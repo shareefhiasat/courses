@@ -665,6 +665,12 @@ model User {
   updatedClassroomAvailability  ClassroomAvailability[]   @relation("ClassroomAvailabilityUpdater")
   createdUserCategoryAccess      UserCategoryAccess[]       @relation("UserCategoryAccessCreator")
   updatedUserCategoryAccess      UserCategoryAccess[]       @relation("UserCategoryAccessUpdater")
+  substituteInstructorClasses    Class[]                    @relation("ClassSubstituteInstructor")
+  deletedScheduledSessions       ScheduledSession[]         @relation("ScheduledSessionDeleter")
+  oldInstructorHistory           InstructorAssignmentHistory[] @relation("OldInstructor")
+  newInstructorHistory           InstructorAssignmentHistory[] @relation("NewInstructor")
+  changedInstructorHistory       InstructorAssignmentHistory[] @relation("HistoryChanger")
+  notificationLogs               NotificationLog[]          @relation("NotificationRecipient")
 
   @@map("users")
 }
@@ -756,6 +762,7 @@ model Class {
   subjectId      Int
   instructorId   Int?
   classroomId    Int?            // Default classroom for this class
+  substituteInstructorId Int?    // Substitute instructor (Story 5)
   createdBy      Int
   updatedBy      Int?
   createdAt      DateTime        @default(now())
@@ -774,6 +781,7 @@ model Class {
   behaviors      Behavior[]
   creator        User            @relation("ClassCreator", fields: [createdBy], references: [id])
   instructor     User?           @relation("ClassInstructor", fields: [instructorId], references: [id])
+  substituteInstructor User?     @relation("ClassSubstituteInstructor", fields: [substituteInstructorId], references: [id])
   classroom      Classroom?      @relation("ClassDefaultClassroom", fields: [classroomId], references: [id])
   program        Program         @relation(fields: [programId], references: [id])
   subject        Subject         @relation(fields: [subjectId], references: [id])
@@ -789,7 +797,9 @@ model Class {
   studentMarks   StudentMarks[]
   scheduleSessions ScheduleSession[] @relation("ClassScheduleSessions")
   workflowDocuments WorkflowDocument[] @relation("WorkflowDocumentClass")
+  instructorHistory InstructorAssignmentHistory[]
 
+  @@index([substituteInstructorId])
   @@map("classes")
 }
 
@@ -2157,8 +2167,8 @@ model ClassroomAvailabilitySlot {
 model ScheduledSession {
   id                  Int      @id @default(autoincrement())
   classId             Int      // The class being scheduled
-  instructorId        Int      // Instructor teaching this session (can override class default)
-  classroomId         Int      // Classroom for this session (can override class default)
+  instructorId        Int?     // Instructor teaching this session (nullable - can override class default)
+  classroomId         Int?     // Classroom for this session (nullable - can override class default)
   startDateTime       DateTime // Full date and time when session starts
   endDateTime         DateTime // Full date and time when session ends
   status              String   @default("scheduled") // scheduled, in_progress, completed, cancelled
@@ -2172,6 +2182,16 @@ model ScheduledSession {
   isRecurringInstance Boolean  @default(false) // Is this part of a recurring series
   parentSessionId     Int?     // Links to first instance of series
   seriesId            Int?     // Links to SessionSeries for tracking
+  recurrenceSeriesId  String?  // UUID for grouping recurring sessions
+  
+  // Soft delete fields (Story 2)
+  deletedAt           DateTime? // When session was soft deleted
+  deletedBy           Int?      // Who deleted the session
+  deletionReason      String?   // Why session was deleted
+  
+  // Capacity override fields (Story 4)
+  capacityOverridden  Boolean  @default(false) // Was room capacity overridden
+  capacityOverrideReason String? // Why capacity was overridden
   
   isActive            Boolean  @default(true)
   createdBy           Int?
@@ -2180,13 +2200,16 @@ model ScheduledSession {
   updatedAt           DateTime @updatedAt
 
   class               Class     @relation("ScheduledSessionClass", fields: [classId], references: [id], onDelete: Cascade)
-  instructor          User      @relation("ScheduledSessionInstructor", fields: [instructorId], references: [id])
-  classroom           Classroom @relation("ScheduledSessionClassroom", fields: [classroomId], references: [id])
+  instructor          User?     @relation("ScheduledSessionInstructor", fields: [instructorId], references: [id])
+  classroom           Classroom? @relation("ScheduledSessionClassroom", fields: [classroomId], references: [id])
   creator             User?     @relation("ScheduledSessionCreator", fields: [createdBy], references: [id])
   updater             User?     @relation("ScheduledSessionUpdater", fields: [updatedBy], references: [id])
+  deleter             User?     @relation("ScheduledSessionDeleter", fields: [deletedBy], references: [id])
   parentSession       ScheduledSession? @relation("RecurringSeries", fields: [parentSessionId], references: [id])
   childSessions       ScheduledSession[] @relation("RecurringSeries")
   series              SessionSeries?    @relation("SeriesSessions", fields: [seriesId], references: [id])
+  instructorHistory   InstructorAssignmentHistory[]
+  notificationLogs    NotificationLog[]
 
   @@index([classId])
   @@index([instructorId])
@@ -2194,6 +2217,9 @@ model ScheduledSession {
   @@index([startDateTime, endDateTime])
   @@index([parentSessionId])
   @@index([seriesId])
+  @@index([deletedAt])
+  @@index([status])
+  @@index([recurrenceSeriesId])
   @@map("scheduled_sessions")
 }
 
@@ -2230,6 +2256,60 @@ model SessionSeries {
   @@index([classroomId])
   @@index([startDate, endDate])
   @@map("session_series")
+}
+
+// ============================================================================
+// PHASE 1: INSTRUCTOR HISTORY & NOTIFICATIONS
+// ============================================================================
+
+model InstructorAssignmentHistory {
+  id                Int       @id @default(autoincrement())
+  classId           Int
+  sessionId         Int?
+  oldInstructorId   Int?
+  newInstructorId   Int?
+  effectiveFrom     DateTime
+  effectiveTo       DateTime?
+  changedBy         Int?
+  changedAt         DateTime  @default(now())
+  reason            String?
+  isActive          Boolean   @default(true)
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+
+  class             Class     @relation(fields: [classId], references: [id], onDelete: Cascade)
+  session           ScheduledSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+  oldInstructor     User?     @relation("OldInstructor", fields: [oldInstructorId], references: [id], onDelete: SetNull)
+  newInstructor     User?     @relation("NewInstructor", fields: [newInstructorId], references: [id], onDelete: SetNull)
+  changer           User?     @relation("HistoryChanger", fields: [changedBy], references: [id], onDelete: SetNull)
+
+  @@index([classId])
+  @@index([sessionId])
+  @@index([oldInstructorId])
+  @@index([newInstructorId])
+  @@index([changedAt])
+  @@map("instructor_assignment_history")
+}
+
+model NotificationLog {
+  id              Int       @id @default(autoincrement())
+  userId          Int
+  type            String    // 'session_created', 'session_updated', 'session_cancelled', 'session_deleted', 'instructor_changed'
+  subject         String
+  body            String
+  sentAt          DateTime  @default(now())
+  deliveryStatus  String    @default("sent") // 'sent', 'failed', 'pending'
+  sessionId       Int?
+  createdAt       DateTime  @default(now())
+
+  user            User      @relation("NotificationRecipient", fields: [userId], references: [id], onDelete: Cascade)
+  session         ScheduledSession? @relation(fields: [sessionId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([sessionId])
+  @@index([sentAt])
+  @@index([type])
+  @@map("notification_log")
 }
 
 model UserCategoryAccess {

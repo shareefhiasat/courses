@@ -80,12 +80,16 @@ export const updateScheduledSession = async (id, data) => {
 };
 
 /**
- * Delete a scheduled session
+ * Delete a scheduled session (soft delete)
  */
-export const deleteScheduledSession = async (id) => {
+export const deleteScheduledSession = async (id, deletedBy = null, deletionReason = null) => {
   try {
     const response = await fetch(`${API_BASE}/${id}`, {
-      method: 'DELETE'
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ deletedBy, deletionReason })
     });
     const result = await response.json();
     
@@ -96,10 +100,98 @@ export const deleteScheduledSession = async (id) => {
   }
 };
 
+/**
+ * Restore a soft-deleted session (admin only)
+ */
+export const restoreScheduledSession = async (id, restoredBy = null) => {
+  try {
+    const response = await fetch(`${API_BASE}/${id}/restore`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ restoredBy })
+    });
+    const result = await response.json();
+    
+    return result;
+  } catch (error) {
+    console.error('Error restoring scheduled session:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Update session status
+ */
+export const updateSessionStatus = async (id, status, updatedBy = null, reason = null) => {
+  try {
+    const response = await fetch(`${API_BASE}/${id}/status`, {
+      method: 'PATCH',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ status, updatedBy, reason })
+    });
+    const result = await response.json();
+    
+    return result;
+  } catch (error) {
+    console.error('Error updating session status:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Cancel a session
+ */
+export const cancelSession = async (id, cancelledBy = null, reason = null) => {
+  try {
+    const response = await fetch(`${API_BASE}/${id}/cancel`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ cancelledBy, reason })
+    });
+    const result = await response.json();
+    
+    return result;
+  } catch (error) {
+    console.error('Error cancelling session:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Cancel recurring series
+ */
+export const cancelRecurringSeries = async (id, cancelledBy = null, reason = null) => {
+  try {
+    const response = await fetch(`${API_BASE}/${id}/cancel-series`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ cancelledBy, reason })
+    });
+    const result = await response.json();
+    
+    return result;
+  } catch (error) {
+    console.error('Error cancelling series:', error);
+    return { success: false, error: error.message };
+  }
+};
+
 export default {
   getAllScheduledSessions,
   getScheduledSessionById,
   createScheduledSession,
   updateScheduledSession,
-  deleteScheduledSession
+  deleteScheduledSession,
+  restoreScheduledSession,
+  updateSessionStatus,
+  cancelSession,
+  cancelRecurringSeries
 };

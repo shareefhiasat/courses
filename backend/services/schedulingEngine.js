@@ -134,6 +134,11 @@ export const detectClassConflict = async (classId, startDateTime, endDateTime, e
  * Returns conflict details if enrolled students exceed classroom capacity
  */
 export const detectCapacityConflict = async (classId, classroomId) => {
+  // If no classroom specified, no capacity conflict
+  if (!classroomId || classroomId === 'null' || classroomId === null) {
+    return null;
+  }
+
   const [classData, classroomData] = await Promise.all([
     prisma.class.findUnique({
       where: { id: parseInt(classId) },

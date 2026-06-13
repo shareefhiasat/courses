@@ -46,7 +46,7 @@ const ClassesPage = () => {
   const [activities, setActivities] = useState([]);
   
   // Form state
-  const [classForm, setClassForm] = useState({ id: '', nameEn: '', nameAr: '', code: '', term: '', year: '', locationEn: '', locationAr: '', descriptionEn: '', descriptionAr: '', ownerEmail: '', instructorId: '', classroomId: '', subjectId: '', programId: '', classId: '', maxCapacity: '' });
+  const [classForm, setClassForm] = useState({ id: '', nameEn: '', nameAr: '', code: '', term: '', year: '', locationEn: '', locationAr: '', descriptionEn: '', descriptionAr: '', ownerEmail: '', instructorId: '', substituteInstructorId: '', classroomId: '', subjectId: '', programId: '', classId: '', maxCapacity: '' });
   const [editingClass, setEditingClass] = useState(null);
   const { deleteModal, deleteClass: deleteClassModal, handleDeleteConfirm, hideDeleteModal } = useDeleteModal(t);
   
@@ -339,6 +339,9 @@ const ClassesPage = () => {
     if (classData.instructorId) {
       classData.instructorId = parseInt(classData.instructorId, 10);
     }
+    if (classData.substituteInstructorId) {
+      classData.substituteInstructorId = parseInt(classData.substituteInstructorId, 10);
+    }
     if (classData.classroomId) {
       classData.classroomId = parseInt(classData.classroomId, 10);
     }
@@ -385,7 +388,7 @@ const ClassesPage = () => {
         } catch (e) { warn('Failed to log activity:', e); }
         await loadData();
         setEditingClass(null);
-        setClassForm({ id: '', nameEn: '', nameAr: '', code: '', term: '', year: '', locationEn: '', locationAr: '', descriptionEn: '', descriptionAr: '', ownerEmail: '', instructorId: '', classroomId: '', subjectId: '', programId: '', classId: '', maxCapacity: '' });
+        setClassForm({ id: '', nameEn: '', nameAr: '', code: '', term: '', year: '', locationEn: '', locationAr: '', descriptionEn: '', descriptionAr: '', ownerEmail: '', instructorId: '', substituteInstructorId: '', classroomId: '', subjectId: '', programId: '', classId: '', maxCapacity: '' });
         // Clear refs
         if (nameRef.current) nameRef.current.value = '';
         if (nameArRef.current) nameArRef.current.value = '';
@@ -449,6 +452,7 @@ const ClassesPage = () => {
       descriptionAr: row.descriptionAr || '',
       ownerEmail: row.ownerEmail || row.instructor?.email || '',
       instructorId: row.instructorId || row.instructor?.id || '',
+      substituteInstructorId: row.substituteInstructorId || row.substituteInstructor?.id || '',
       classroomId: row.classroomId || row.classroom?.id || '',
       subjectId: row.subjectId || '',
       programId: row.programId || '',
@@ -523,7 +527,7 @@ const ClassesPage = () => {
 
 const handleCancelEdit = useCallback(() => {
     setEditingClass(null);
-    setClassForm({ id: '', nameEn: '', nameAr: '', code: '', term: '', year: '', locationEn: '', locationAr: '', descriptionEn: '', descriptionAr: '', ownerEmail: '', instructorId: '', classroomId: '', subjectId: '', programId: '', classId: '', maxCapacity: '' });
+    setClassForm({ id: '', nameEn: '', nameAr: '', code: '', term: '', year: '', locationEn: '', locationAr: '', descriptionEn: '', descriptionAr: '', ownerEmail: '', instructorId: '', substituteInstructorId: '', classroomId: '', subjectId: '', programId: '', classId: '', maxCapacity: '' });
     // Clear refs
     if (nameRef.current) nameRef.current.value = '';
     if (nameArRef.current) nameArRef.current.value = '';
@@ -985,6 +989,26 @@ const handleCancelEdit = useCallback(() => {
             }}
             placeholder={t('select_instructor') + ' (' + t('optional') + ')' || 'Select Instructor (Optional)'}
             roleFilter={[]} // No filtering needed - already filtered
+            includeAll={false}
+            showEnrollments={true}
+            showStatus={true}
+            useEmailAsValue={true}
+            searchable={true}
+          />
+          <UserSelect
+            users={filteredInstructorUsers}
+            enrollments={enrollments}
+            classes={classes}
+            value={classForm.substituteInstructorId ? filteredInstructorUsers.find(u => u.id === parseInt(classForm.substituteInstructorId))?.email : ''}
+            onChange={(selectedEmail) => {
+              const selectedInstructor = filteredInstructorUsers.find(u => u.email === selectedEmail);
+              setClassForm({
+                ...classForm,
+                substituteInstructorId: selectedInstructor ? selectedInstructor.id : ''
+              });
+            }}
+            placeholder="Substitute Instructor (Optional)"
+            roleFilter={[]}
             includeAll={false}
             showEnrollments={true}
             showStatus={true}

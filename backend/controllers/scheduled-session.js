@@ -2,6 +2,7 @@ import express from 'express';
 import * as scheduledSessionDb from '../db/scheduled-session-postgres.js';
 import * as schedulingEngine from '../services/schedulingEngine.js';
 import * as suggestionEngine from '../services/suggestionEngine.js';
+import sessionStatusService from '../services/sessionStatusService.js';
 
 const router = express.Router();
 
@@ -41,7 +42,9 @@ router.get('/:id', async (req, res) => {
  */
 router.post('/', async (req, res) => {
   try {
-    const result = await scheduledSessionDb.createScheduledSession(req.body);
+    // Remove createdBy/updatedBy from request body - Prisma handles these automatically
+    const { createdBy, updatedBy, ...sessionData } = req.body;
+    const result = await scheduledSessionDb.createScheduledSession(sessionData);
     if (result.success) {
       res.status(201).json(result);
     } else {
@@ -58,7 +61,9 @@ router.post('/', async (req, res) => {
  */
 router.put('/:id', async (req, res) => {
   try {
-    const result = await scheduledSessionDb.updateScheduledSession(req.params.id, req.body);
+    // Remove createdBy/updatedBy from request body - Prisma handles these automatically
+    const { createdBy, updatedBy, ...sessionData } = req.body;
+    const result = await scheduledSessionDb.updateScheduledSession(req.params.id, sessionData);
     if (result.success) {
       res.json(result);
     } else {
@@ -70,12 +75,41 @@ router.put('/:id', async (req, res) => {
 });
 
 /**
- * Delete a scheduled session
+ * Delete a scheduled session (soft delete)
  * DELETE /api/v1/scheduled-sessions/:id
+ * Body: { deletedBy, deletionReason } (optional)
  */
 router.delete('/:id', async (req, res) => {
   try {
-    const result = await scheduledSessionDb.deleteScheduledSession(req.params.id);
+    const { deletedBy, deletionReason } = req.body;
+    const result = await scheduledSessionDb.deleteScheduledSession(
+      req.params.id,
+      deletedBy,
+      deletionReason
+    );
+    
+    if (result.requiresReason) {
+      return res.status(400).json(result);
+    }
+    
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * Restore a soft-deleted session (admin only)
+ * POST /api/v1/scheduled-sessions/:id/restore
+ * Body: { restoredBy }
+ */
+router.post('/:id/restore', async (req, res) => {
+  try {
+    const { restoredBy } = req.body;
+    const result = await scheduledSessionDb.restoreScheduledSession(
+      req.params.id,
+      restoredBy
+    );
     res.json(result);
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -171,6 +205,86 @@ router.get('/by-room/:classroomId', async (req, res) => {
       classroomId: req.params.classroomId,
       ...req.query
     });
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * Update session status
+ * PATCH /api/v1/scheduled-sessions/:id/status
+ * Body: { status, updatedBy, reason }
+ */
+router.patch('/:id/status', async (req, res) => {
+  try {
+    const { status, updatedBy, reason } = req.body;
+    const result = await sessionStatusService.updateSessionStatus(
+      req.params.id,
+      status,
+      updatedBy,
+      reason
+    );
+    
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+    
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * Cancel a session
+ * POST /api/v1/scheduled-sessions/:id/cancel
+ * Body: { cancelledBy, reason }
+ */
+router.post('/:id/cancel', async (req, res) => {
+  try {
+    const { cancelledBy, reason } = req.body;
+    const result = await sessionStatusService.cancelSession(
+      req.params.id,
+      cancelledBy,
+      reason
+    );
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * Cancel recurring series (this and all future)
+ * POST /api/v1/scheduled-sessions/:id/cancel-series
+ * Body: { cancelledBy, reason }
+ */
+router.post('/:id/cancel-series', async (req, res) => {
+  try {
+    const { cancelledBy, reason } = req.body;
+    const result = await sessionStatusService.cancelRecurringSeries(
+      req.params.id,
+      cancelledBy,
+      reason
+    );
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * Get sessions by status
+ * GET /api/v1/scheduled-sessions/status/:status
+ * Query params: startDate, endDate, classId, instructorId
+ */
+router.get('/status/:status', async (req, res) => {
+  try {
+    const result = await sessionStatusService.getSessionsByStatus(
+      req.params.status,
+      req.query
+    );
     res.json(result);
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });

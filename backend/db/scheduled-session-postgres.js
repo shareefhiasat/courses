@@ -1,6 +1,7 @@
 import pkg from '@prisma/client';
 const { PrismaClient } = pkg;
 import * as schedulingEngine from '../services/schedulingEngine.js';
+import instructorHistoryService from '../services/instructorHistoryService.js';
 
 const prisma = new PrismaClient();
 
@@ -229,8 +230,7 @@ export const createScheduledSession = async (data) => {
         endDateTime: new Date(data.endDateTime),
         status: data.status || 'scheduled',
         notes: data.notes || null,
-        isActive: data.isActive !== undefined ? data.isActive : true,
-        createdBy: data.createdBy || null
+        isActive: data.isActive !== undefined ? data.isActive : true
       };
 
       // Only connect instructor/classroom if provided (check for truthy value, not just existence)
@@ -263,6 +263,21 @@ export const createScheduledSession = async (data) => {
         }
       });
 
+      // Record instructor assignment in history (initial assignment)
+      if (data.instructorId && data.instructorId !== null && data.instructorId !== 'null') {
+        await instructorHistoryService.recordInstructorChange({
+          classId: session.classId,
+          sessionId: session.id,
+          oldInstructorId: null, // No previous instructor
+          newInstructorId: parseInt(data.instructorId),
+          effectiveFrom: session.startDateTime,
+          changedBy: data.createdBy || null,
+          reason: 'Initial assignment'
+        });
+        
+        console.log(`[ScheduledSession DB] Recorded initial instructor assignment: ${data.instructorId}`);
+      }
+
       return session;
     });
 
@@ -291,6 +306,12 @@ export const updateScheduledSession = async (id, data) => {
       return { success: false, error: 'Session not found' };
     }
 
+    // Track instructor change for history
+    const instructorChanged = data.instructorId !== undefined && 
+                             parseInt(data.instructorId) !== existing.instructorId;
+    const oldInstructorId = existing.instructorId;
+    const newInstructorId = data.instructorId ? parseInt(data.instructorId) : null;
+
     // Check for conflicts if time/room/instructor changed
     if (data.startDateTime || data.endDateTime || data.classroomId || data.instructorId) {
       const conflict = await prisma.scheduledSession.findFirst({
@@ -318,19 +339,21 @@ export const updateScheduledSession = async (id, data) => {
       }
     }
 
+    // Build update data
+    const updateData = {
+      ...(data.classId !== undefined && { classId: parseInt(data.classId) }),
+      ...(data.instructorId !== undefined && { instructorId: parseInt(data.instructorId) }),
+      ...(data.classroomId !== undefined && { classroomId: parseInt(data.classroomId) }),
+      ...(data.startDateTime !== undefined && { startDateTime: new Date(data.startDateTime) }),
+      ...(data.endDateTime !== undefined && { endDateTime: new Date(data.endDateTime) }),
+      ...(data.status !== undefined && { status: data.status }),
+      ...(data.notes !== undefined && { notes: data.notes }),
+      ...(data.isActive !== undefined && { isActive: data.isActive })
+    };
+
     const session = await prisma.scheduledSession.update({
       where: { id: parseInt(id) },
-      data: {
-        ...(data.classId !== undefined && { classId: parseInt(data.classId) }),
-        ...(data.instructorId !== undefined && { instructorId: parseInt(data.instructorId) }),
-        ...(data.classroomId !== undefined && { classroomId: parseInt(data.classroomId) }),
-        ...(data.startDateTime !== undefined && { startDateTime: new Date(data.startDateTime) }),
-        ...(data.endDateTime !== undefined && { endDateTime: new Date(data.endDateTime) }),
-        ...(data.status !== undefined && { status: data.status }),
-        ...(data.notes !== undefined && { notes: data.notes }),
-        ...(data.isActive !== undefined && { isActive: data.isActive }),
-        ...(data.updatedBy !== undefined && { updatedBy: data.updatedBy })
-      },
+      data: updateData,
       include: {
         class: {
           include: {
@@ -345,6 +368,21 @@ export const updateScheduledSession = async (id, data) => {
       }
     });
 
+    // Record instructor change in history if instructor was changed
+    if (instructorChanged) {
+      await instructorHistoryService.recordInstructorChange({
+        classId: session.classId,
+        sessionId: session.id,
+        oldInstructorId,
+        newInstructorId,
+        effectiveFrom: session.startDateTime,
+        changedBy: data.updatedBy || null,
+        reason: data.instructorChangeReason || null
+      });
+      
+      console.log(`[ScheduledSession DB] Recorded instructor change: ${oldInstructorId} → ${newInstructorId}`);
+    }
+
     return { success: true, data: session };
   } catch (error) {
     console.error('[ScheduledSession DB] Error updating session:', error);
@@ -353,18 +391,77 @@ export const updateScheduledSession = async (id, data) => {
 };
 
 /**
- * Delete a scheduled session (soft delete)
+ * Delete a scheduled session (soft delete with attendance protection)
  */
-export const deleteScheduledSession = async (id) => {
+export const deleteScheduledSession = async (id, deletedBy = null, deletionReason = null) => {
+  try {
+    // Check if session exists
+    const session = await prisma.scheduledSession.findUnique({
+      where: { id: parseInt(id) }
+    });
+
+    if (!session) {
+      return { success: false, error: 'Session not found' };
+    }
+
+    // Soft delete the session
+    const deletedSession = await prisma.scheduledSession.update({
+      where: { id: parseInt(id) },
+      data: { 
+        isActive: false,
+        deletedAt: new Date(),
+        deletionReason: deletionReason || null
+      },
+      include: {
+        class: true,
+        instructor: true,
+        classroom: true
+      }
+    });
+
+    console.log(`[ScheduledSession DB] Soft deleted session ${id}`, {
+      hasAttendance,
+      deletedBy,
+      reason: deletionReason
+    });
+
+    return { 
+      success: true, 
+      data: deletedSession,
+      message: hasAttendance ? 'Session deleted (attendance preserved)' : 'Session deleted'
+    };
+  } catch (error) {
+    console.error('[ScheduledSession DB] Error deleting session:', error);
+    return { success: false, error: error.message };
+  }
+};
+
+/**
+ * Restore a soft-deleted session (admin only)
+ */
+export const restoreScheduledSession = async (id, restoredBy = null) => {
   try {
     const session = await prisma.scheduledSession.update({
       where: { id: parseInt(id) },
-      data: { isActive: false }
+      data: {
+        isActive: true,
+        deletedAt: null,
+        deletedBy: null,
+        deletionReason: null,
+        updatedBy: restoredBy ? parseInt(restoredBy) : null
+      },
+      include: {
+        class: true,
+        instructor: true,
+        classroom: true
+      }
     });
 
-    return { success: true, data: session };
+    console.log(`[ScheduledSession DB] Restored session ${id} by user ${restoredBy}`);
+
+    return { success: true, data: session, message: 'Session restored successfully' };
   } catch (error) {
-    console.error('[ScheduledSession DB] Error deleting session:', error);
+    console.error('[ScheduledSession DB] Error restoring session:', error);
     return { success: false, error: error.message };
   }
 };
@@ -495,5 +592,6 @@ export default {
   createScheduledSession,
   updateScheduledSession,
   deleteScheduledSession,
+  restoreScheduledSession,
   createRecurringSessions
 };

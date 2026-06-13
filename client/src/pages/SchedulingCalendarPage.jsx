@@ -5,10 +5,12 @@ import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { Button, SimpleLoading, useToast, Select, Input, UserSelect } from '@ui';
+import { SESSION_STATUS_OPTIONS, STATUS_TRANSITIONS } from '../constants/schedulingConstants.js';
 import { 
   BookOpen, Users, DoorOpen, Calendar as CalendarIcon, 
   ChevronLeft, ChevronRight, Maximize2, Minimize2,
-  Save, Trash2, Clock, MapPin, User, X, Edit, BarChart3
+  Save, Trash2, Clock, MapPin, User, X, Edit, BarChart3,
+  ChevronUp, ChevronDown
 } from 'lucide-react';
 import { getAllClasses } from '@services/business/classService.js';
 import { getAllPrograms } from '@services/business/programService.js';
@@ -48,11 +50,19 @@ const SchedulingCalendarPage = () => {
   const [selectedInstructor, setSelectedInstructor] = useState(null);
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [availabilityType, setAvailabilityType] = useState('instructor'); // 'instructor' or 'room'
+  const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'scheduled', 'in_progress', 'completed', 'cancelled'
   const [currentView, setCurrentView] = useState('week');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [hideWeekends, setHideWeekends] = useState(false);
   const [narrowWeekend, setNarrowWeekend] = useState(false);
+  
+  // Calendar scroll position
+  const scrollPositionRef = useRef(0);
+  
+  // Search and drill-down state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [expandedItems, setExpandedItems] = useState(new Set());
   
   // Recurrence state
   const [isRecurring, setIsRecurring] = useState(false);
@@ -80,6 +90,18 @@ const SchedulingCalendarPage = () => {
   const [modalInstructorId, setModalInstructorId] = useState(null);
   const [modalClassroomId, setModalClassroomId] = useState(null);
   
+  // Delete modal state
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [sessionToDelete, setSessionToDelete] = useState(null);
+  const [deletionReason, setDeletionReason] = useState('');
+  const [requiresReason, setRequiresReason] = useState(false);
+  
+  // Status change modal state
+  const [showStatusModal, setShowStatusModal] = useState(false);
+  const [sessionToChangeStatus, setSessionToChangeStatus] = useState(null);
+  const [newStatus, setNewStatus] = useState('');
+  const [statusChangeReason, setStatusChangeReason] = useState('');
+  
   // Stats
   const [showStats, setShowStats] = useState(true);
 
@@ -87,6 +109,11 @@ const SchedulingCalendarPage = () => {
 
   // Load all data
   const loadData = useCallback(async () => {
+    // Save scroll position before reload
+    if (calendarRef.current) {
+      scrollPositionRef.current = calendarRef.current.scrollTop;
+    }
+    
     setLoading(true);
     try {
       const [
@@ -152,6 +179,13 @@ const SchedulingCalendarPage = () => {
       toast.error('Failed to load scheduling data');
     } finally {
       setLoading(false);
+      
+      // Restore scroll position after data loads
+      setTimeout(() => {
+        if (calendarRef.current && scrollPositionRef.current > 0) {
+          calendarRef.current.scrollTop = scrollPositionRef.current;
+        }
+      }, 100);
     }
   }, [toast]);
 
@@ -241,7 +275,7 @@ const SchedulingCalendarPage = () => {
     };
   }, [scheduledSessions]);
 
-  // Filter sessions based on view mode
+  // Filter sessions based on view mode and status
   const filteredSessions = useMemo(() => {
     let filtered = scheduledSessions;
 
@@ -251,8 +285,13 @@ const SchedulingCalendarPage = () => {
       filtered = filtered.filter(s => s.classroomId === selectedRoom);
     }
 
+    // Apply status filter
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(s => s.status === statusFilter);
+    }
+
     return filtered;
-  }, [scheduledSessions, viewMode, selectedInstructor, selectedRoom]);
+  }, [scheduledSessions, viewMode, selectedInstructor, selectedRoom, statusFilter]);
 
   // Convert scheduled sessions to TOAST UI Calendar events
   const calendarEvents = useMemo(() => {
@@ -292,29 +331,10 @@ const SchedulingCalendarPage = () => {
 
   // Handle event click - open edit modal
   const onClickEvent = useCallback((eventInfo) => {
-    const { event } = eventInfo;
-    const session = event.raw.session;
-    
-    if (!session) return;
-    
-    // Set editing session ID
-    setEditingSessionId(session.id);
-    
-    // Open modal for editing
-    setModalClassItem(session.class);
-    setModalStartDateTime(new Date(session.startDateTime));
-    setModalEndDateTime(new Date(session.endDateTime));
-    
-    // Set instructor
-    const instructor = instructors.find(i => i.id === session.instructorId);
-    setModalInstructorEmail(instructor?.email || null);
-    setModalInstructorId(session.instructorId);
-    
-    // Set classroom
-    setModalClassroomId(session.classroomId);
-    
-    setShowCreateModal(true);
-  }, [instructors]);
+    // Don't open edit modal directly - let the calendar's detail popup show first
+    // Edit modal will open when user clicks the pencil icon in the popup
+    return;
+  }, []);
 
   // Handle event right-click
   const onBeforeCreateEvent = useCallback((eventData) => {
@@ -387,33 +407,78 @@ const SchedulingCalendarPage = () => {
     }
   }, [user, toast, loadData]);
 
-  // Handle event delete
+  // Handle event delete - show confirmation modal
   const onBeforeDeleteEvent = useCallback(async (eventData) => {
     const { event } = eventData;
     
-    // Try to get session ID from multiple possible locations
-    let sessionId = null;
-    if (event?.raw?.session?.id) {
-      sessionId = event.raw.session.id;
-    } else if (event?.id) {
-      sessionId = parseInt(event.id);
+    // Try to get session from event
+    let session = null;
+    if (event?.raw?.session) {
+      session = event.raw.session;
     }
     
-    if (!sessionId) {
+    if (!session || !session.id) {
       console.error('Event data missing for delete:', event);
-      toast.error('Cannot delete session: missing session ID');
+      toast.error('Cannot delete session: missing session data');
       return false;
     }
     
-    const result = await scheduledSessionService.deleteScheduledSession(sessionId);
+    // Show delete confirmation modal
+    setSessionToDelete(session);
+    setShowDeleteModal(true);
+    setDeletionReason('');
+    setRequiresReason(false);
+    
+    return false; // Prevent default delete, we'll handle it in modal
+  }, [toast]);
+  
+  // Handle actual deletion from modal
+  const handleConfirmDelete = useCallback(async () => {
+    if (!sessionToDelete) return;
+    
+    const result = await scheduledSessionService.deleteScheduledSession(
+      sessionToDelete.id,
+      user?.dbId,
+      deletionReason || null
+    );
     
     if (result.success) {
-      toast.success('Session deleted');
+      toast.success(result.message || 'Session deleted');
+      setShowDeleteModal(false);
+      setSessionToDelete(null);
+      setDeletionReason('');
       loadData();
+    } else if (result.requiresReason) {
+      // Session has attendance, reason is required
+      setRequiresReason(true);
+      toast.warning(result.error);
     } else {
       toast.error(result.error || 'Failed to delete session');
     }
-  }, [toast, loadData]);
+  }, [sessionToDelete, user, deletionReason, toast, loadData]);
+  
+  // Handle status change
+  const handleStatusChange = useCallback(async () => {
+    if (!sessionToChangeStatus || !newStatus) return;
+    
+    const result = await scheduledSessionService.updateSessionStatus(
+      sessionToChangeStatus.id,
+      newStatus,
+      user?.dbId,
+      statusChangeReason || null
+    );
+    
+    if (result.success) {
+      toast.success(result.message || `Session status changed to ${newStatus}`);
+      setShowStatusModal(false);
+      setSessionToChangeStatus(null);
+      setNewStatus('');
+      setStatusChangeReason('');
+      loadData();
+    } else {
+      toast.error(result.error || 'Failed to change status');
+    }
+  }, [sessionToChangeStatus, newStatus, statusChangeReason, user, toast, loadData]);
 
   // Handle drag from sidebar
   const handleClassDragStart = useCallback((e, classItem) => {
@@ -508,6 +573,12 @@ const SchedulingCalendarPage = () => {
       return;
     }
 
+    // Validate end time is after start time
+    if (modalEndDateTime <= modalStartDateTime) {
+      toast.error('End time must be after start time');
+      return;
+    }
+
     const sessionData = {
       classId: modalClassItem.id,
       instructorId: modalInstructorId || null,
@@ -515,9 +586,7 @@ const SchedulingCalendarPage = () => {
       startDateTime: modalStartDateTime.toISOString(),
       endDateTime: modalEndDateTime.toISOString(),
       status: 'scheduled',
-      notes: `Scheduled via calendar`,
-      createdBy: user?.dbId,
-      updatedBy: user?.dbId
+      notes: `Scheduled via calendar`
     };
     
     console.log('📤 [CREATE SESSION] Sending data:', sessionData);
@@ -1045,15 +1114,15 @@ const SchedulingCalendarPage = () => {
                 </button>
               )}
               
-              <button onClick={handlePrev} style={{ padding: '0.5rem', backgroundColor: theme === 'dark' ? '#374151' : '#f9fafb', border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`, borderRadius: '0.375rem', cursor: 'pointer' }}>
+              <button onClick={handlePrev} style={{ padding: '0.5rem', backgroundColor: theme === 'dark' ? '#374151' : '#f9fafb', border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`, borderRadius: '0.375rem', cursor: 'pointer', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
                 <ChevronLeft size={16} />
               </button>
               
-              <button onClick={handleToday} style={{ padding: '0.5rem 1rem', backgroundColor: theme === 'dark' ? '#374151' : '#f9fafb', border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`, borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.875rem', fontWeight: '500' }}>
+              <button onClick={handleToday} style={{ padding: '0.5rem 1rem', backgroundColor: theme === 'dark' ? '#374151' : '#f9fafb', border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`, borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.875rem', fontWeight: '500', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
                 Today
               </button>
               
-              <button onClick={handleNext} style={{ padding: '0.5rem', backgroundColor: theme === 'dark' ? '#374151' : '#f9fafb', border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`, borderRadius: '0.375rem', cursor: 'pointer' }}>
+              <button onClick={handleNext} style={{ padding: '0.5rem', backgroundColor: theme === 'dark' ? '#374151' : '#f9fafb', border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`, borderRadius: '0.375rem', cursor: 'pointer', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
                 <ChevronRight size={16} />
               </button>
 
@@ -1077,7 +1146,7 @@ const SchedulingCalendarPage = () => {
                 Hide Weekends
               </button>
               
-              <button onClick={toggleFullscreen} style={{ padding: '0.5rem', backgroundColor: theme === 'dark' ? '#374151' : '#f9fafb', border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`, borderRadius: '0.375rem', cursor: 'pointer' }}>
+              <button onClick={toggleFullscreen} style={{ padding: '0.5rem', backgroundColor: theme === 'dark' ? '#374151' : '#f9fafb', border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`, borderRadius: '0.375rem', cursor: 'pointer', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
                 {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
               </button>
             </div>
@@ -1086,6 +1155,22 @@ const SchedulingCalendarPage = () => {
           {/* View Mode Selector and Filters */}
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap', marginBottom: '1rem' }}>
             <span style={{ fontSize: '0.875rem', fontWeight: '500', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>View:</span>
+            
+            {/* Quick Search */}
+            <Input
+              placeholder="Search rooms or instructors..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              style={{ 
+                padding: '0.5rem',
+                border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`,
+                borderRadius: '0.375rem',
+                backgroundColor: theme === 'dark' ? '#374151' : '#ffffff',
+                color: theme === 'dark' ? '#f3f4f6' : '#1f2937',
+                fontSize: '0.875rem',
+                minWidth: '200px'
+              }}
+            />
             
             <button 
               onClick={() => { setViewMode('all'); setSelectedInstructor(null); setSelectedRoom(null); }} 
@@ -1191,6 +1276,28 @@ const SchedulingCalendarPage = () => {
                 ]}
               />
             )}
+
+            {/* Tree View Toggle */}
+            {searchQuery && (
+              <button
+                onClick={() => setViewMode('tree')}
+                style={{
+                  padding: '0.5rem 1rem',
+                  backgroundColor: viewMode === 'tree' ? '#10b981' : theme === 'dark' ? '#374151' : '#f9fafb',
+                  color: viewMode === 'tree' ? '#ffffff' : 'inherit',
+                  border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`,
+                  borderRadius: '0.375rem',
+                  cursor: 'pointer',
+                  fontSize: '0.875rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.25rem'
+                }}
+              >
+                <BarChart3 size={14} />
+                Tree View
+              </button>
+            )}
             
             {viewMode === 'availability' && (
               <>
@@ -1228,6 +1335,16 @@ const SchedulingCalendarPage = () => {
                 </div>
               </>
             )}
+            
+            {/* Status Filter */}
+            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginLeft: 'auto' }}>
+              <span style={{ fontSize: '0.875rem', fontWeight: '500', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>Status:</span>
+              <Select
+                value={statusFilter}
+                onChange={(value) => setStatusFilter(value)}
+                options={SESSION_STATUS_OPTIONS}
+              />
+            </div>
           </div>
 
           {/* Conflict/Suggestions Alert */}
@@ -1417,6 +1534,134 @@ const SchedulingCalendarPage = () => {
                     })}
                   </div>
                 )}
+              </div>
+            ) : viewMode === 'tree' && searchQuery ? (
+              <div style={{ marginTop: '1rem' }}>
+                <h3 style={{ fontSize: '1rem', fontWeight: '600', marginBottom: '1rem', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
+                  Search Results: "{searchQuery}"
+                </h3>
+                
+                {/* Filtered Rooms */}
+                {classrooms.filter(c => 
+                  (c.nameEn?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                   c.code?.toLowerCase().includes(searchQuery.toLowerCase()))
+                ).map(room => (
+                  <div key={room.id} style={{ marginBottom: '1rem' }}>
+                    <div 
+                      onClick={() => {
+                        const newExpanded = new Set(expandedItems);
+                        if (newExpanded.has(`room-${room.id}`)) {
+                          newExpanded.delete(`room-${room.id}`);
+                        } else {
+                          newExpanded.add(`room-${room.id}`);
+                        }
+                        setExpandedItems(newExpanded);
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        padding: '0.75rem',
+                        backgroundColor: theme === 'dark' ? '#374151' : '#f9fafb',
+                        borderRadius: '0.375rem',
+                        cursor: 'pointer',
+                        border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`
+                      }}
+                    >
+                      <DoorOpen size={18} color="#3b82f6" />
+                      <span style={{ fontWeight: '600', flex: 1 }}>{room.nameEn || room.code}</span>
+                      <span style={{ fontSize: '0.875rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
+                        {scheduledSessions.filter(s => s.classroomId === room.id).length} sessions
+                      </span>
+                      {expandedItems.has(`room-${room.id}`) ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                    </div>
+                    
+                    {expandedItems.has(`room-${room.id}`) && (
+                      <div style={{ marginLeft: '1.5rem', marginTop: '0.5rem' }}>
+                        {scheduledSessions.filter(s => s.classroomId === room.id).map(session => (
+                          <div key={session.id} style={{
+                            padding: '0.5rem',
+                            backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
+                            borderRadius: '0.25rem',
+                            marginBottom: '0.5rem',
+                            border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`
+                          }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span style={{ fontWeight: '500' }}>{session.class?.nameEn || 'Class'}</span>
+                              <span style={{ fontSize: '0.75rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
+                                {new Date(session.startDateTime).toLocaleString()}
+                              </span>
+                            </div>
+                            <div style={{ fontSize: '0.875rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '0.25rem' }}>
+                              Instructor: {session.instructor?.displayName || 'Not assigned'}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
+                
+                {/* Filtered Instructors */}
+                {filteredInstructorUsers.filter(u => 
+                  (u.displayName?.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                   u.email?.toLowerCase().includes(searchQuery.toLowerCase()))
+                ).map(instructor => (
+                  <div key={instructor.id} style={{ marginBottom: '1rem' }}>
+                    <div 
+                      onClick={() => {
+                        const newExpanded = new Set(expandedItems);
+                        if (newExpanded.has(`instructor-${instructor.id}`)) {
+                          newExpanded.delete(`instructor-${instructor.id}`);
+                        } else {
+                          newExpanded.add(`instructor-${instructor.id}`);
+                        }
+                        setExpandedItems(newExpanded);
+                      }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        padding: '0.75rem',
+                        backgroundColor: theme === 'dark' ? '#374151' : '#f9fafb',
+                        borderRadius: '0.375rem',
+                        cursor: 'pointer',
+                        border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`
+                      }}
+                    >
+                      <User size={18} color="#3b82f6" />
+                      <span style={{ fontWeight: '600', flex: 1 }}>{instructor.displayName || instructor.email}</span>
+                      <span style={{ fontSize: '0.875rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
+                        {scheduledSessions.filter(s => s.instructorId === instructor.id).length} sessions
+                      </span>
+                      {expandedItems.has(`instructor-${instructor.id}`) ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                    </div>
+                    
+                    {expandedItems.has(`instructor-${instructor.id}`) && (
+                      <div style={{ marginLeft: '1.5rem', marginTop: '0.5rem' }}>
+                        {scheduledSessions.filter(s => s.instructorId === instructor.id).map(session => (
+                          <div key={session.id} style={{
+                            padding: '0.5rem',
+                            backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
+                            borderRadius: '0.25rem',
+                            marginBottom: '0.5rem',
+                            border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`
+                          }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span style={{ fontWeight: '500' }}>{session.class?.nameEn || 'Class'}</span>
+                              <span style={{ fontSize: '0.75rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
+                                {new Date(session.startDateTime).toLocaleString()}
+                              </span>
+                            </div>
+                            <div style={{ fontSize: '0.875rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '0.25rem' }}>
+                              Room: {session.classroom?.nameEn || 'Not assigned'}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
             ) : (
               <Calendar
@@ -1730,18 +1975,246 @@ const SchedulingCalendarPage = () => {
             </div>
 
             {/* Actions */}
+            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'space-between' }}>
+              <div>
+                {editingSessionId && (
+                  <Button
+                    onClick={() => {
+                      const session = scheduledSessions.find(s => s.id === editingSessionId);
+                      if (session) {
+                        setSessionToChangeStatus(session);
+                        setShowStatusModal(true);
+                        setShowCreateModal(false);
+                      }
+                    }}
+                    style={{ backgroundColor: '#f59e0b', color: '#ffffff' }}
+                  >
+                    Change Status
+                  </Button>
+                )}
+              </div>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <Button
+                  onClick={() => setShowCreateModal(false)}
+                  style={{ backgroundColor: theme === 'dark' ? '#374151' : '#f9fafb', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={handleCreateSession}
+                  style={{ backgroundColor: '#3b82f6', color: '#ffffff' }}
+                >
+                  {editingSessionId ? 'Update Session' : (isRecurring ? 'Create Series' : 'Create Session')}
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && sessionToDelete && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
+            borderRadius: '0.5rem',
+            padding: '1.5rem',
+            maxWidth: '500px',
+            width: '90%',
+            maxHeight: '90vh',
+            overflow: 'auto'
+          }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '1rem', color: '#ef4444' }}>
+              ⚠️ Delete Session
+            </h2>
+
+            <div style={{ marginBottom: '1rem' }}>
+              <p style={{ marginBottom: '0.5rem' }}>
+                Are you sure you want to delete this session?
+              </p>
+              <div style={{ 
+                backgroundColor: theme === 'dark' ? '#374151' : '#f9fafb',
+                padding: '0.75rem',
+                borderRadius: '0.375rem',
+                fontSize: '0.875rem'
+              }}>
+                <div><strong>Class:</strong> {sessionToDelete.class?.nameEn || 'Unknown'}</div>
+                <div><strong>Date:</strong> {new Date(sessionToDelete.startDateTime).toLocaleString()}</div>
+                <div><strong>Instructor:</strong> {sessionToDelete.instructor?.displayName || 'Not assigned'}</div>
+                <div><strong>Room:</strong> {sessionToDelete.classroom?.nameEn || sessionToDelete.classroom?.code || 'Not assigned'}</div>
+              </div>
+            </div>
+
+            {requiresReason && (
+              <div style={{ 
+                backgroundColor: '#fef3c7',
+                border: '1px solid #fbbf24',
+                borderRadius: '0.375rem',
+                padding: '0.75rem',
+                marginBottom: '1rem',
+                fontSize: '0.875rem',
+                color: '#92400e'
+              }}>
+                ⚠️ This session has attendance records. Please provide a reason for deletion.
+              </div>
+            )}
+
+            <div style={{ marginBottom: '1rem' }}>
+              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem' }}>
+                Reason for Deletion {requiresReason && <span style={{ color: '#ef4444' }}>*</span>}
+              </label>
+              <textarea
+                value={deletionReason}
+                onChange={(e) => setDeletionReason(e.target.value)}
+                placeholder={requiresReason ? "Required: Why are you deleting this session?" : "Optional: Provide a reason for audit trail"}
+                style={{
+                  width: '100%',
+                  padding: '0.5rem',
+                  border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`,
+                  borderRadius: '0.375rem',
+                  backgroundColor: theme === 'dark' ? '#374151' : '#ffffff',
+                  color: theme === 'dark' ? '#f3f4f6' : '#1f2937',
+                  fontSize: '0.875rem',
+                  minHeight: '80px',
+                  resize: 'vertical'
+                }}
+              />
+            </div>
+
             <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
               <Button
-                onClick={() => setShowCreateModal(false)}
-                style={{ backgroundColor: theme === 'dark' ? '#374151' : '#f9fafb', color: 'inherit' }}
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setSessionToDelete(null);
+                  setDeletionReason('');
+                  setRequiresReason(false);
+                }}
+                style={{ backgroundColor: theme === 'dark' ? '#374151' : '#f9fafb', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}
               >
                 Cancel
               </Button>
               <Button
-                onClick={handleCreateSession}
-                style={{ backgroundColor: '#3b82f6', color: '#ffffff' }}
+                onClick={handleConfirmDelete}
+                disabled={requiresReason && !deletionReason.trim()}
+                style={{ 
+                  backgroundColor: '#ef4444', 
+                  color: '#ffffff',
+                  opacity: (requiresReason && !deletionReason.trim()) ? 0.5 : 1,
+                  cursor: (requiresReason && !deletionReason.trim()) ? 'not-allowed' : 'pointer'
+                }}
               >
-                {editingSessionId ? 'Update Session' : (isRecurring ? 'Create Series' : 'Create Session')}
+                Delete Session
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Status Change Modal */}
+      {showStatusModal && sessionToChangeStatus && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000
+        }}>
+          <div style={{
+            backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
+            borderRadius: '0.5rem',
+            padding: '1.5rem',
+            maxWidth: '500px',
+            width: '90%'
+          }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '1rem' }}>
+              Change Session Status
+            </h2>
+
+            <div style={{ marginBottom: '1rem' }}>
+              <div style={{ 
+                backgroundColor: theme === 'dark' ? '#374151' : '#f9fafb',
+                padding: '0.75rem',
+                borderRadius: '0.375rem',
+                fontSize: '0.875rem',
+                marginBottom: '1rem'
+              }}>
+                <div><strong>Class:</strong> {sessionToChangeStatus.class?.nameEn}</div>
+                <div><strong>Current Status:</strong> {sessionToChangeStatus.status}</div>
+                <div><strong>Date:</strong> {new Date(sessionToChangeStatus.startDateTime).toLocaleString()}</div>
+              </div>
+
+              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem' }}>
+                New Status
+              </label>
+              <Select
+                value={newStatus}
+                onChange={(value) => setNewStatus(value)}
+                options={[
+                  { value: '', label: 'Select status...' },
+                  ...(STATUS_TRANSITIONS[sessionToChangeStatus.status] || [])
+                ]}
+              />
+
+              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem' }}>
+                Reason (Optional)
+              </label>
+              <textarea
+                value={statusChangeReason}
+                onChange={(e) => setStatusChangeReason(e.target.value)}
+                placeholder="Optional: Why is the status changing?"
+                style={{
+                  width: '100%',
+                  padding: '0.5rem',
+                  border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`,
+                  borderRadius: '0.375rem',
+                  backgroundColor: theme === 'dark' ? '#374151' : '#ffffff',
+                  color: theme === 'dark' ? '#f3f4f6' : '#1f2937',
+                  fontSize: '0.875rem',
+                  minHeight: '60px',
+                  resize: 'vertical'
+                }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+              <Button
+                onClick={() => {
+                  setShowStatusModal(false);
+                  setSessionToChangeStatus(null);
+                  setNewStatus('');
+                  setStatusChangeReason('');
+                }}
+                style={{ backgroundColor: theme === 'dark' ? '#374151' : '#f9fafb', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleStatusChange}
+                disabled={!newStatus}
+                style={{ 
+                  backgroundColor: '#3b82f6', 
+                  color: '#ffffff',
+                  opacity: !newStatus ? 0.5 : 1,
+                  cursor: !newStatus ? 'not-allowed' : 'pointer'
+                }}
+              >
+                Change Status
               </Button>
             </div>
           </div>
