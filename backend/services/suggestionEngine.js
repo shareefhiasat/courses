@@ -191,7 +191,6 @@ export const suggestBestMatch = async (classId, preferredTime = null) => {
     include: {
       subject: { select: { id: true, nameEn: true, nameAr: true } },
       enrollments: {
-        where: { isActive: true },
         select: { id: true }
       }
     }

@@ -6,6 +6,7 @@
 const workflowDocumentsController = require('../controllers/workflowDocumentsController');
 const nextcloudService = require('../services/nextcloudService');
 const prisma = require('../db/prisma');
+const { setupTestEnvironment, expectSuccess, expectUnauthorized, expectBadRequest } = require('./helpers/testSetup');
 
 // Mock dependencies
 jest.mock('../services/nextcloudService');
@@ -15,20 +16,7 @@ describe('Workflow Documents Controller', () => {
   let mockReq, mockRes;
 
   beforeEach(() => {
-    mockReq = {
-      params: {},
-      user: { id: 'test-user-id', roles: ['editor'] },
-      body: {},
-      file: null,
-    };
-    mockRes = {
-      status: jest.fn().mockReturnThis(),
-      json: jest.fn().mockReturnThis(),
-      send: jest.fn().mockReturnThis(),
-      setHeader: jest.fn(),
-      headersSent: false,
-    };
-    jest.clearAllMocks();
+    ({ mockReq, mockRes } = setupTestEnvironment({ user: { id: 'test-user-id', roles: ['editor'] } }));
   });
 
   describe('uploadDocument', () => {
@@ -47,10 +35,7 @@ describe('Workflow Documents Controller', () => {
       
       await workflowDocumentsController.uploadDocument(mockReq, mockRes);
       
-      expect(mockRes.status).toHaveBeenCalledWith(200);
-      expect(mockRes.json).toHaveBeenCalledWith(
-        expect.objectContaining({ success: true })
-      );
+      expectSuccess(mockRes);
     });
 
     it('should deny access for unauthorized user', async () => {
@@ -60,7 +45,7 @@ describe('Workflow Documents Controller', () => {
       
       await workflowDocumentsController.uploadDocument(mockReq, mockRes);
       
-      expect(mockRes.status).toHaveBeenCalledWith(403);
+      expectUnauthorized(mockRes);
     });
 
     it('should reject without file', async () => {
@@ -69,7 +54,7 @@ describe('Workflow Documents Controller', () => {
       
       await workflowDocumentsController.uploadDocument(mockReq, mockRes);
       
-      expect(mockRes.status).toHaveBeenCalledWith(400);
+      expectBadRequest(mockRes);
     });
   });
 
@@ -84,10 +69,7 @@ describe('Workflow Documents Controller', () => {
       
       await workflowDocumentsController.getDocuments(mockReq, mockRes);
       
-      expect(mockRes.status).toHaveBeenCalledWith(200);
-      expect(mockRes.json).toHaveBeenCalledWith(
-        expect.objectContaining({ success: true })
-      );
+      expectSuccess(mockRes);
     });
   });
 
@@ -105,7 +87,7 @@ describe('Workflow Documents Controller', () => {
       
       await workflowDocumentsController.getDocumentHistory(mockReq, mockRes);
       
-      expect(mockRes.status).toHaveBeenCalledWith(200);
+      expectSuccess(mockRes);
     });
   });
 
@@ -126,7 +108,7 @@ describe('Workflow Documents Controller', () => {
       
       await workflowDocumentsController.approveDocument(mockReq, mockRes);
       
-      expect(mockRes.status).toHaveBeenCalledWith(200);
+      expectSuccess(mockRes);
     });
 
     it('should deny approval for unauthorized user', async () => {
@@ -140,7 +122,7 @@ describe('Workflow Documents Controller', () => {
       
       await workflowDocumentsController.approveDocument(mockReq, mockRes);
       
-      expect(mockRes.status).toHaveBeenCalledWith(403);
+      expectUnauthorized(mockRes);
     });
   });
 

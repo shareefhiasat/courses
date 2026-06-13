@@ -6,6 +6,7 @@
 const driveController = require('../controllers/driveController');
 const nextcloudService = require('../services/nextcloudService');
 const keycloakService = require('../services/keycloakService');
+const { setupTestEnvironment, expectSuccess, expectUnauthorized, expectNotFound, expectBadRequest } = require('./helpers/testSetup');
 
 // Mock dependencies
 jest.mock('../services/nextcloudService');
@@ -15,16 +16,7 @@ describe('Drive Controller', () => {
   let mockReq, mockRes;
 
   beforeEach(() => {
-    mockReq = {
-      params: {},
-      user: { id: 'test-user-id', roles: ['student'] },
-    };
-    mockRes = {
-      status: jest.fn().mockReturnThis(),
-      json: jest.fn().mockReturnThis(),
-      send: jest.fn().mockReturnThis(),
-    };
-    jest.clearAllMocks();
+    ({ mockReq, mockRes } = setupTestEnvironment());
   });
 
   describe('getPrivateFiles', () => {
@@ -36,10 +28,7 @@ describe('Drive Controller', () => {
       
       await driveController.getPrivateFiles(mockReq, mockRes);
       
-      expect(mockRes.status).toHaveBeenCalledWith(200);
-      expect(mockRes.json).toHaveBeenCalledWith(
-        expect.objectContaining({ success: true })
-      );
+      expectSuccess(mockRes);
     });
 
     it('should deny access for unauthorized user', async () => {
@@ -50,7 +39,7 @@ describe('Drive Controller', () => {
       
       await driveController.getPrivateFiles(mockReq, mockRes);
       
-      expect(mockRes.status).toHaveBeenCalledWith(403);
+      expectUnauthorized(mockRes);
     });
 
     it('should handle user not found', async () => {
@@ -60,7 +49,7 @@ describe('Drive Controller', () => {
       
       await driveController.getPrivateFiles(mockReq, mockRes);
       
-      expect(mockRes.status).toHaveBeenCalledWith(404);
+      expectNotFound(mockRes);
     });
   });
 
@@ -76,10 +65,7 @@ describe('Drive Controller', () => {
       
       await driveController.uploadFilePrivate(mockReq, mockRes);
       
-      expect(mockRes.status).toHaveBeenCalledWith(200);
-      expect(mockRes.json).toHaveBeenCalledWith(
-        expect.objectContaining({ success: true })
-      );
+      expectSuccess(mockRes);
     });
 
     it('should reject without file', async () => {
@@ -88,7 +74,7 @@ describe('Drive Controller', () => {
       
       await driveController.uploadFilePrivate(mockReq, mockRes);
       
-      expect(mockRes.status).toHaveBeenCalledWith(400);
+      expectBadRequest(mockRes);
     });
   });
 
@@ -100,7 +86,7 @@ describe('Drive Controller', () => {
       
       await driveController.getSharedFiles(mockReq, mockRes);
       
-      expect(mockRes.status).toHaveBeenCalledWith(200);
+      expectSuccess(mockRes);
     });
 
     it('should deny access for student', async () => {
@@ -108,7 +94,7 @@ describe('Drive Controller', () => {
       
       await driveController.getSharedFiles(mockReq, mockRes);
       
-      expect(mockRes.status).toHaveBeenCalledWith(403);
+      expectUnauthorized(mockRes);
     });
   });
 
@@ -138,7 +124,7 @@ describe('Drive Controller', () => {
       
       await driveController.proxyFile(mockReq, mockRes);
       
-      expect(mockRes.status).toHaveBeenCalledWith(403);
+      expectUnauthorized(mockRes);
     });
   });
 });

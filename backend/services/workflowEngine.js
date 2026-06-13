@@ -26,6 +26,29 @@ const err = (code, message) => ({
   timestamp: Date.now(),
 });
 
+/**
+ * Helper function to send workflow notifications to initiator
+ * @param {string} eventType - The event type from EVENTS constant
+ * @param {object} instance - Workflow instance with definition and initiatedBy
+ * @param {object} additionalPayload - Additional event-specific data
+ * @param {object} actor - The actor performing the action
+ */
+async function sendWorkflowNotification(eventType, instance, additionalPayload, actor) {
+  const notificationData = {
+    instanceId: instance.id,
+    workflowName: instance.definition?.name,
+    ...additionalPayload,
+  };
+
+  const recipient = {
+    userId: instance.initiatedBy.id,
+    email: instance.initiatedBy.email,
+    name: instance.initiatedBy.displayName,
+  };
+
+  await notificationGateway.emit(eventType, notificationData, recipient, actor);
+}
+
 // --------------------------------------------------------------------------
 // Workflow Definition Management
 // --------------------------------------------------------------------------
@@ -895,12 +918,10 @@ export async function rejectWorkflow(instanceId, { comment, reason }, actor) {
     });
 
     // Notify initiator
-    await notificationGateway.emit(EVENTS.WORKFLOW_REJECTED, {
-      instanceId: instance.id,
-      workflowName: instance.definition?.name,
+    await sendWorkflowNotification(EVENTS.WORKFLOW_REJECTED, instance, {
       rejecterName: actor.name || 'Unknown',
       reason,
-    }, { userId: instance.initiatedBy.id, email: instance.initiatedBy.email, name: instance.initiatedBy.displayName }, actor);
+    }, actor);
 
     const updated = await prisma.workflowInstance.findUnique({
       where: { id: instanceId },
@@ -959,12 +980,10 @@ export async function reviseWorkflow(instanceId, { comment }, actor) {
     });
 
     // Notify initiator
-    await notificationGateway.emit(EVENTS.WORKFLOW_REVISED, {
-      instanceId: instance.id,
-      workflowName: instance.definition?.name,
+    await sendWorkflowNotification(EVENTS.WORKFLOW_REVISED, instance, {
       revisionCount: instance.revisionCount + 1,
       comment,
-    }, { userId: instance.initiatedBy.id, email: instance.initiatedBy.email, name: instance.initiatedBy.displayName }, actor);
+    }, actor);
 
     const updated = await prisma.workflowInstance.findUnique({
       where: { id: instanceId },
@@ -1012,11 +1031,9 @@ export async function cancelWorkflow(instanceId, { comment }, actor) {
     });
 
     // Notify initiator
-    await notificationGateway.emit(EVENTS.WORKFLOW_CANCELLED, {
-      instanceId: instance.id,
-      workflowName: instance.definition?.name,
+    await sendWorkflowNotification(EVENTS.WORKFLOW_CANCELLED, instance, {
       comment,
-    }, { userId: instance.initiatedBy.id, email: instance.initiatedBy.email, name: instance.initiatedBy.displayName }, actor);
+    }, actor);
 
     const updated = await prisma.workflowInstance.findUnique({
       where: { id: instanceId },

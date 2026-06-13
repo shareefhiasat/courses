@@ -11,7 +11,7 @@
  */
 
 import { PrismaClient, Prisma } from '@prisma/client';
-import { getDatabaseUserId } from '../utils/userResolver.js';
+import { getDatabaseUserId } from '../utils/database/userResolver.js';
 import { SHARE_SUBJECT_TYPES, SHARE_PERMISSIONS } from '../constants/driveConstants.js';
 
 const prisma = new PrismaClient();

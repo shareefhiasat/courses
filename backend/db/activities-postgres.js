@@ -6,7 +6,7 @@
  */
 
 import { PrismaClient } from '@prisma/client';
-import { getDatabaseUserId } from '../utils/userResolver.js';
+import { getDatabaseUserId } from '../utils/database/userResolver.js';
 import { PRISMA_ERRORS, getPrismaErrorMessage, isPrismaError } from '../constants/prisma-errors.js';
 
 const prisma = new PrismaClient();

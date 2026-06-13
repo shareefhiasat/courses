@@ -467,6 +467,125 @@ async function generateGrades() {
   console.log(`  ✅ Generated ${totalGrades} grade records`);
 }
 
+// Comment templates configuration
+const BEHAVIORAL_COMMENT_TEMPLATES = {
+  penalty: {
+    LATE_SUBMISSION: ['Assignment submitted 2 days late', 'Project submitted after deadline', 'Lab report turned in late'],
+    ABSENCE: ['Unexcused absence from lecture', 'Missed lab session without excuse', 'Absent from tutorial'],
+    MISCONDUCT: ['Talking during lecture', 'Using phone in class', 'Disruptive behavior'],
+    CHEATING: ['Caught looking at neighbor\'s paper', 'Unauthorized notes during exam', 'Copying from online sources'],
+    SLEEP_MOBILE: ['Sleeping during lecture', 'Using mobile phone in class', 'Not paying attention']
+  },
+  behavior: {
+    EXCELLENT_PARTICIPATION: ['Outstanding contributions to class discussion', 'Exceptional participation in group work'],
+    HELPING_PEERS: ['Assisted struggling classmates', 'Volunteered to help with difficult concepts'],
+    LEADERSHIP: ['Took initiative in group project', 'Led class discussion effectively'],
+    DISRUPTIVE: ['Disrupted class with phone usage', 'Talking while instructor teaching'],
+    UNPREPARED: ['Not prepared for class discussion', 'Failed to complete required reading']
+  },
+  participation: {
+    POSITIVE: ['Excellent participation in class discussion', 'Active engagement in learning activities'],
+    LATE: ['Arrived 15 minutes late to class', 'Late to lab session'],
+    HELPFUL: ['Helped fellow students understand concepts', 'Assisted peers with difficult problems'],
+    EXCELLENT: ['Exceptional work on assignment', 'Outstanding performance in class']
+  }
+};
+
+function getRandomComment(type, code) {
+  const comments = BEHAVIORAL_COMMENT_TEMPLATES[type][code] || ['General record'];
+  return comments[Math.floor(Math.random() * comments.length)];
+}
+
+function calculateBehaviorPoints(code) {
+  if (code.includes('EXCELLENT') || code.includes('LEADERSHIP') || code.includes('HELPING')) {
+    return Math.floor(Math.random() * 3) + 3;
+  }
+  if (code.includes('DISRUPTIVE') || code.includes('UNPREPARED')) {
+    return -(Math.floor(Math.random() * 3) + 1);
+  }
+  return 0;
+}
+
+function calculateParticipationPoints(code) {
+  if (code === 'POSITIVE' || code === 'EXCELLENT' || code === 'HELPFUL') {
+    return Math.floor(Math.random() * 3) + 3;
+  }
+  if (code === 'LATE') {
+    return -(Math.floor(Math.random() * 2) + 1);
+  }
+  return Math.floor(Math.random() * 2) + 1;
+}
+
+function getPenaltyChance(studentPerformance) {
+  return (studentPerformance === 'weak' || studentPerformance === 'average') ? 0.4 : 0.2;
+}
+
+async function createPenaltyRecord(userId, classItem, penaltyType, randomRecordDate) {
+  const comment = getRandomComment('penalty', penaltyType.code);
+  await prisma.$queryRaw`
+    INSERT INTO penalties ("userId", "classId", "programId", "subjectId", "typeId", "descriptionEn", "descriptionAr", comment, "isActive", "createdAt", "updatedAt")
+    VALUES (${userId}, ${classItem.id}, ${classItem.programId}, ${classItem.subjectId}, ${penaltyType.id}, 'Penalty for ${penaltyType.code.toLowerCase().replace('_', ' ')}', 'عقوبة ل${penaltyType.code}', ${comment}, true, ${randomRecordDate}, ${randomRecordDate})
+    ON CONFLICT DO NOTHING
+  `;
+}
+
+async function createBehaviorRecord(userId, classItem, behaviorType, randomRecordDate) {
+  const comment = getRandomComment('behavior', behaviorType.code);
+  const points = calculateBehaviorPoints(behaviorType.code);
+  await prisma.$queryRaw`
+    INSERT INTO behaviors ("userId", "classId", "programId", "subjectId", "typeId", points, "descriptionEn", "descriptionAr", comment, "isActive", "createdAt", "updatedAt")
+    VALUES (${userId}, ${classItem.id}, ${classItem.programId}, ${classItem.subjectId}, ${behaviorType.id}, ${points}, 'Behavior: ${behaviorType.code.toLowerCase().replace('_', ' ')}', 'سلوك: ${behaviorType.code}', ${comment}, true, ${randomRecordDate}, ${randomRecordDate})
+    ON CONFLICT DO NOTHING
+  `;
+}
+
+async function createParticipationRecord(userId, classItem, participationType, randomRecordDate) {
+  const comment = getRandomComment('participation', participationType.code);
+  const points = calculateParticipationPoints(participationType.code);
+  await prisma.$queryRaw`
+    INSERT INTO participations ("userId", "classId", "programId", "subjectId", "typeId", points, "descriptionEn", "descriptionAr", comment, "isActive", "createdAt", "updatedAt")
+    VALUES (${userId}, ${classItem.id}, ${classItem.programId}, ${classItem.subjectId}, ${participationType.id}, ${points}, 'Participation: ${participationType.code.toLowerCase().replace('_', ' ')}', 'مشاركة: ${participationType.code}', ${comment}, true, ${randomRecordDate}, ${randomRecordDate})
+    ON CONFLICT DO NOTHING
+  `;
+}
+
+async function generateRecordsForStudentClass(userId, student, classItem, penaltyTypes, behaviorTypes, participationTypes) {
+  const termInfo = ACADEMIC_TERMS.find(t => t.code === classItem.term);
+  const recordDate = termInfo ? randomDateInTerm(termInfo.startDate, termInfo.endDate) : new Date();
+  const recordsPerClass = Math.floor(Math.random() * 4) + 2;
+  
+  let totalPenalties = 0;
+  let totalBehaviors = 0;
+  let totalParticipations = 0;
+  
+  for (let i = 0; i < recordsPerClass; i++) {
+    const randomRecordDate = new Date(recordDate.getTime() + (Math.random() * 30 - 15) * 24 * 60 * 60 * 1000);
+    
+    // Penalty
+    if (Math.random() < getPenaltyChance(student.performance)) {
+      const penaltyType = penaltyTypes[Math.floor(Math.random() * penaltyTypes.length)];
+      await createPenaltyRecord(userId, classItem, penaltyType, randomRecordDate);
+      totalPenalties++;
+    }
+    
+    // Behavior
+    if (Math.random() < 0.5) {
+      const behaviorType = behaviorTypes[Math.floor(Math.random() * behaviorTypes.length)];
+      await createBehaviorRecord(userId, classItem, behaviorType, randomRecordDate);
+      totalBehaviors++;
+    }
+    
+    // Participation
+    if (Math.random() < 0.6) {
+      const participationType = participationTypes[Math.floor(Math.random() * participationTypes.length)];
+      await createParticipationRecord(userId, classItem, participationType, randomRecordDate);
+      totalParticipations++;
+    }
+  }
+  
+  return { totalPenalties, totalBehaviors, totalParticipations };
+}
+
 async function generateBehavioralRecords() {
   console.log('📋 Generating behavioral records...');
   
@@ -474,30 +593,6 @@ async function generateBehavioralRecords() {
   const penaltyTypes = await prisma.$queryRaw`SELECT id, code FROM penalty_types`;
   const behaviorTypes = await prisma.$queryRaw`SELECT id, code FROM behavior_types`;
   const participationTypes = await prisma.$queryRaw`SELECT id, code FROM participation_types`;
-  
-  // Comment templates
-  const penaltyComments = {
-    LATE_SUBMISSION: ['Assignment submitted 2 days late', 'Project submitted after deadline', 'Lab report turned in late'],
-    ABSENCE: ['Unexcused absence from lecture', 'Missed lab session without excuse', 'Absent from tutorial'],
-    MISCONDUCT: ['Talking during lecture', 'Using phone in class', 'Disruptive behavior'],
-    CHEATING: ['Caught looking at neighbor\'s paper', 'Unauthorized notes during exam', 'Copying from online sources'],
-    SLEEP_MOBILE: ['Sleeping during lecture', 'Using mobile phone in class', 'Not paying attention']
-  };
-  
-  const behaviorComments = {
-    EXCELLENT_PARTICIPATION: ['Outstanding contributions to class discussion', 'Exceptional participation in group work'],
-    HELPING_PEERS: ['Assisted struggling classmates', 'Volunteered to help with difficult concepts'],
-    LEADERSHIP: ['Took initiative in group project', 'Led class discussion effectively'],
-    DISRUPTIVE: ['Disrupted class with phone usage', 'Talking while instructor teaching'],
-    UNPREPARED: ['Not prepared for class discussion', 'Failed to complete required reading']
-  };
-  
-  const participationComments = {
-    POSITIVE: ['Excellent participation in class discussion', 'Active engagement in learning activities'],
-    LATE: ['Arrived 15 minutes late to class', 'Late to lab session'],
-    HELPFUL: ['Helped fellow students understand concepts', 'Assisted peers with difficult problems'],
-    EXCELLENT: ['Exceptional work on assignment', 'Outstanding performance in class']
-  };
   
   let totalPenalties = 0;
   let totalBehaviors = 0;
@@ -516,66 +611,12 @@ async function generateBehavioralRecords() {
         if (!classResult || classResult.length === 0) continue;
         
         const classItem = classResult[0];
-        const termInfo = ACADEMIC_TERMS.find(t => t.code === classItem.term);
-        const recordDate = termInfo ? randomDateInTerm(termInfo.startDate, termInfo.endDate) : new Date();
+        const { totalPenalties: p, totalBehaviors: b, totalParticipations: pt } = 
+          await generateRecordsForStudentClass(userId, student, classItem, penaltyTypes, behaviorTypes, participationTypes);
         
-        // Generate 2-5 records per class per student
-        const recordsPerClass = Math.floor(Math.random() * 4) + 2;
-        
-        for (let i = 0; i < recordsPerClass; i++) {
-          const randomRecordDate = new Date(recordDate.getTime() + (Math.random() * 30 - 15) * 24 * 60 * 60 * 1000);
-          
-          // Penalty (40% chance for weak/average students, 20% for smart/geek)
-          const penaltyChance = (student.performance === 'weak' || student.performance === 'average') ? 0.4 : 0.2;
-          if (Math.random() < penaltyChance) {
-            const penaltyType = penaltyTypes[Math.floor(Math.random() * penaltyTypes.length)];
-            const comments = penaltyComments[penaltyType.code] || ['General penalty'];
-            const comment = comments[Math.floor(Math.random() * comments.length)];
-            
-            await prisma.$queryRaw`
-              INSERT INTO penalties ("userId", "classId", "programId", "subjectId", "typeId", "descriptionEn", "descriptionAr", comment, "isActive", "createdAt", "updatedAt")
-              VALUES (${userId}, ${classItem.id}, ${classItem.programId}, ${classItem.subjectId}, ${penaltyType.id}, 'Penalty for ${penaltyType.code.toLowerCase().replace('_', ' ')}', 'عقوبة ل${penaltyType.code}', ${comment}, true, ${randomRecordDate}, ${randomRecordDate})
-              ON CONFLICT DO NOTHING
-            `;
-            totalPenalties++;
-          }
-          
-          // Behavior (50% chance)
-          if (Math.random() < 0.5) {
-            const behaviorType = behaviorTypes[Math.floor(Math.random() * behaviorTypes.length)];
-            const comments = behaviorComments[behaviorType.code] || ['General behavior'];
-            const comment = comments[Math.floor(Math.random() * comments.length)];
-            const points = behaviorType.code.includes('EXCELLENT') || behaviorType.code.includes('LEADERSHIP') || 
-                          behaviorType.code.includes('HELPING') ? Math.floor(Math.random() * 3) + 3 : 
-                          (behaviorType.code.includes('DISRUPTIVE') || behaviorType.code.includes('UNPREPARED') ? 
-                           -(Math.floor(Math.random() * 3) + 1) : 0);
-            
-            await prisma.$queryRaw`
-              INSERT INTO behaviors ("userId", "classId", "programId", "subjectId", "typeId", points, "descriptionEn", "descriptionAr", comment, "isActive", "createdAt", "updatedAt")
-              VALUES (${userId}, ${classItem.id}, ${classItem.programId}, ${classItem.subjectId}, ${behaviorType.id}, ${points}, 'Behavior: ${behaviorType.code.toLowerCase().replace('_', ' ')}', 'سلوك: ${behaviorType.code}', ${comment}, true, ${randomRecordDate}, ${randomRecordDate})
-              ON CONFLICT DO NOTHING
-            `;
-            totalBehaviors++;
-          }
-          
-          // Participation (60% chance)
-          if (Math.random() < 0.6) {
-            const participationType = participationTypes[Math.floor(Math.random() * participationTypes.length)];
-            const comments = participationComments[participationType.code] || ['General participation'];
-            const comment = comments[Math.floor(Math.random() * comments.length)];
-            const points = participationType.code === 'POSITIVE' || participationType.code === 'EXCELLENT' || 
-                          participationType.code === 'HELPFUL' ? Math.floor(Math.random() * 3) + 3 : 
-                          (participationType.code === 'LATE' ? -(Math.floor(Math.random() * 2) + 1) : 
-                           Math.floor(Math.random() * 2) + 1);
-            
-            await prisma.$queryRaw`
-              INSERT INTO participations ("userId", "classId", "programId", "subjectId", "typeId", points, "descriptionEn", "descriptionAr", comment, "isActive", "createdAt", "updatedAt")
-              VALUES (${userId}, ${classItem.id}, ${classItem.programId}, ${classItem.subjectId}, ${participationType.id}, ${points}, 'Participation: ${participationType.code.toLowerCase().replace('_', ' ')}', 'مشاركة: ${participationType.code}', ${comment}, true, ${randomRecordDate}, ${randomRecordDate})
-              ON CONFLICT DO NOTHING
-            `;
-            totalParticipations++;
-          }
-        }
+        totalPenalties += p;
+        totalBehaviors += b;
+        totalParticipations += pt;
       }
     }
   }

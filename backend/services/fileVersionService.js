@@ -19,7 +19,7 @@ import {
   streamObject,
   BUCKETS,
 } from './minioService.js';
-import { getDatabaseUserId } from '../utils/userResolver.js';
+import { getDatabaseUserId } from '../utils/database/userResolver.js';
 
 const prisma = new PrismaClient();
 

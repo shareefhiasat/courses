@@ -1,5 +1,5 @@
 import { PrismaClient } from '@prisma/client';
-import { calculateLetterGrade, MANUAL_GRADES } from '../utils/gradingStandards.js';
+import { calculateLetterGrade, MANUAL_GRADES } from '../utils/formatting/gradingStandards.js';
 import notificationGateway from '../services/notifications/index.js';
 import { EVENTS } from '../services/notifications/constants.js';
 

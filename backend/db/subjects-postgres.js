@@ -270,6 +270,88 @@ export const getSubjectById = async (subjectId) => {
 };
 
 /**
+ * Resolve user ID for audit trail from various user object formats
+ * @param {Object} user - User object (may contain id, uid, sub, keycloakId, or email)
+ * @returns {Promise<number>} Database user ID
+ */
+async function resolveUserIdForAudit(user) {
+  let createdBy = 1; // Default to admin user
+  
+  console.log('🔍 Backend received user:', user);
+  console.log('🔍 User ID types:', {
+    'user.id': user?.id,
+    'user.id type': typeof user?.id,
+    'user.uid': user?.uid,
+    'user.sub': user?.sub,
+    'user.keycloakId': user?.keycloakId,
+    'user.email': user?.email
+  });
+  
+  if (user && user.id) {
+    createdBy = user.id;
+    console.log('🔍 Using user.id for createdBy:', createdBy);
+  } else if (user && user.uid) {
+    // Try to find user by Keycloak UID (from frontend)
+    const uidUser = await prisma.user.findFirst({ 
+      where: { keycloakId: user.uid } 
+    });
+    if (uidUser) {
+      createdBy = uidUser.id;
+      console.log('🔍 Found user by uid/keycloakId:', createdBy);
+    }
+  } else if (user && user.sub) {
+    // Try to find user by Keycloak ID
+    const keycloakUser = await prisma.user.findFirst({ 
+      where: { keycloakId: user.sub } 
+    });
+    if (keycloakUser) {
+      createdBy = keycloakUser.id;
+      console.log('🔍 Found user by sub/keycloakId:', createdBy);
+    }
+  } else if (user && user.email) {
+    // Try to find user by email
+    const emailUser = await prisma.user.findFirst({ 
+      where: { email: user.email } 
+    });
+    if (emailUser) {
+      createdBy = emailUser.id;
+      console.log('🔍 Found user by email:', createdBy);
+    }
+  } else {
+    // Try to find an existing user or create a default one
+    console.log('🔍 No valid user found, using default admin');
+    const defaultUser = await prisma.user.findFirst({ 
+      where: { email: 'admin@milmanylms.com' } 
+    });
+    if (defaultUser) {
+      createdBy = defaultUser.id;
+    } else {
+      // Find the ADMIN role (should exist from seed)
+      const adminRole = await prisma.userRoles.findFirst({ 
+        where: { code: 'ADMIN' } 
+      });
+      
+      if (!adminRole) {
+        throw new Error('ADMIN role not found. Please run: pnpm db:seed:roles');
+      }
+      
+      const newAdmin = await prisma.user.create({
+        data: {
+          displayName: 'System Administrator',
+          firstName: 'System',
+          lastName: 'Administrator',
+          email: 'admin@milmanylms.com',
+          roleId: adminRole.id
+        }
+      });
+      createdBy = newAdmin.id;
+    }
+  }
+  
+  return createdBy;
+}
+
+/**
  * Create new subject in PostgreSQL database
  * 
  * @param {Object} subjectData - Subject data
@@ -283,78 +365,7 @@ export const createSubject = async (subjectData, user = null) => {
     const startTime = Date.now();
     
     // Get user ID for audit trail
-    let createdBy = 1; // Default to admin user
-    
-    console.log('🔍 Backend received user:', user);
-    console.log('🔍 User ID types:', {
-      'user.id': user?.id,
-      'user.id type': typeof user?.id,
-      'user.uid': user?.uid,
-      'user.sub': user?.sub,
-      'user.keycloakId': user?.keycloakId,
-      'user.email': user?.email
-    });
-    
-    if (user && user.id) {
-      createdBy = user.id;
-      console.log('🔍 Using user.id for createdBy:', createdBy);
-    } else if (user && user.uid) {
-      // Try to find user by Keycloak UID (from frontend)
-      const uidUser = await prisma.user.findFirst({ 
-        where: { keycloakId: user.uid } 
-      });
-      if (uidUser) {
-        createdBy = uidUser.id;
-        console.log('🔍 Found user by uid/keycloakId:', createdBy);
-      }
-    } else if (user && user.sub) {
-      // Try to find user by Keycloak ID
-      const keycloakUser = await prisma.user.findFirst({ 
-        where: { keycloakId: user.sub } 
-      });
-      if (keycloakUser) {
-        createdBy = keycloakUser.id;
-        console.log('🔍 Found user by sub/keycloakId:', createdBy);
-      }
-    } else if (user && user.email) {
-      // Try to find user by email
-      const emailUser = await prisma.user.findFirst({ 
-        where: { email: user.email } 
-      });
-      if (emailUser) {
-        createdBy = emailUser.id;
-        console.log('🔍 Found user by email:', createdBy);
-      }
-    } else {
-      // Try to find an existing user or create a default one
-      console.log('🔍 No valid user found, using default admin');
-      const defaultUser = await prisma.user.findFirst({ 
-        where: { email: 'admin@milmanylms.com' } 
-      });
-      if (defaultUser) {
-        createdBy = defaultUser.id;
-      } else {
-        // Find the ADMIN role (should exist from seed)
-        const adminRole = await prisma.userRoles.findFirst({ 
-          where: { code: 'ADMIN' } 
-        });
-        
-        if (!adminRole) {
-          throw new Error('ADMIN role not found. Please run: pnpm db:seed:roles');
-        }
-        
-        const newAdmin = await prisma.user.create({
-          data: {
-            displayName: 'System Administrator',
-            firstName: 'System',
-            lastName: 'Administrator',
-            email: 'admin@milmanylms.com',
-            roleId: adminRole.id
-          }
-        });
-        createdBy = newAdmin.id;
-      }
-    }
+    const createdBy = await resolveUserIdForAudit(user);
     
     const newSubject = await prisma.subject.create({
       data: {

@@ -10,7 +10,7 @@
  */
 
 import { PrismaClient, Prisma } from '@prisma/client';
-import { getDatabaseUserId } from '../utils/userResolver.js';
+import { getDatabaseUserId } from '../utils/database/userResolver.js';
 import { LMS_ROLES } from './keycloakAdminService.js';
 
 const prisma = new PrismaClient();

@@ -4,7 +4,7 @@ import '@toast-ui/calendar/dist/toastui-calendar.min.css';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
-import { Button, SimpleLoading, useToast, Select, Input } from '@ui';
+import { Button, SimpleLoading, useToast, Select, Input, UserSelect } from '@ui';
 import { 
   BookOpen, Users, DoorOpen, Calendar as CalendarIcon, 
   ChevronLeft, ChevronRight, Maximize2, Minimize2,
@@ -15,8 +15,10 @@ import { getAllPrograms } from '@services/business/programService.js';
 import { getAllSubjects } from '@services/business/subjectService.js';
 import { getAllClassrooms } from '@services/business/classroomService.js';
 import { getAllUsers } from '@services/business/userService.js';
+import { getEnrollments } from '@services/business/enrollmentService.js';
 import * as scheduledSessionService from '@services/business/scheduledSessionService.js';
 import * as schedulingService from '@services/business/schedulingService.js';
+import { ROLE_STRINGS } from '@utils/userUtils.js';
 
 const SchedulingCalendarPage = () => {
   const { user, isAdmin, isHR, isSuperAdmin } = useAuth();
@@ -31,7 +33,9 @@ const SchedulingCalendarPage = () => {
   const [subjects, setSubjects] = useState([]);
   const [classrooms, setClassrooms] = useState([]);
   const [instructors, setInstructors] = useState([]);
+  const [filteredInstructorUsers, setFilteredInstructorUsers] = useState([]);
   const [scheduledSessions, setScheduledSessions] = useState([]);
+  const [enrollments, setEnrollments] = useState([]);
   
   // Sidebar state
   const [showSidebar, setShowSidebar] = useState(true);
@@ -67,9 +71,11 @@ const SchedulingCalendarPage = () => {
   
   // Modal state
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [editingSessionId, setEditingSessionId] = useState(null);
   const [modalClassItem, setModalClassItem] = useState(null);
   const [modalStartDateTime, setModalStartDateTime] = useState(null);
   const [modalEndDateTime, setModalEndDateTime] = useState(null);
+  const [modalInstructorEmail, setModalInstructorEmail] = useState(null);
   const [modalInstructorId, setModalInstructorId] = useState(null);
   const [modalClassroomId, setModalClassroomId] = useState(null);
   
@@ -88,26 +94,57 @@ const SchedulingCalendarPage = () => {
         subjectsResult,
         classroomsResult,
         instructorsResult,
-        sessionsResult
+        sessionsResult,
+        enrollmentsResult
       ] = await Promise.all([
         getAllClasses(),
         getAllPrograms(),
         getAllSubjects(),
         getAllClassrooms(),
         getAllUsers({ limit: 1000 }),
-        scheduledSessionService.getAllScheduledSessions({ limit: 1000 })
+        scheduledSessionService.getAllScheduledSessions({ limit: 1000 }),
+        getEnrollments()
       ]);
 
       if (classesResult.success) setClasses(classesResult.data || []);
       if (programsResult.success) setPrograms(programsResult.data || []);
       if (subjectsResult.success) setSubjects(subjectsResult.data || []);
       if (classroomsResult.success) setClassrooms(classroomsResult.data || []);
+      if (enrollmentsResult.success) setEnrollments(enrollmentsResult.data || []);
+      
       if (instructorsResult.success) {
-        const instructorUsers = (instructorsResult.data || []).filter(u => 
-          u.roles?.some(r => r.name === 'instructor')
-        );
+        const usersArray = Array.isArray(instructorsResult.data) ? instructorsResult.data : [];
+        
+        // Filter for instructors - check roleAssignments array (role names are uppercase: INSTRUCTOR, ADMIN, SUPER_ADMIN)
+        const instructorUsers = usersArray.filter(u => {
+          const hasInstructorRole = u.roleAssignments?.some(ra => {
+            const roleName = ra.role?.name || ra.role?.code || 'unknown';
+            const roleNameUpper = roleName.toUpperCase();
+            return roleNameUpper === ROLE_STRINGS.INSTRUCTOR.toUpperCase() || 
+                   roleNameUpper === ROLE_STRINGS.ADMIN.toUpperCase() || 
+                   roleNameUpper === ROLE_STRINGS.SUPER_ADMIN.toUpperCase();
+          });
+          const hasRealmInstructor = u.realm_access?.roles?.includes(ROLE_STRINGS.INSTRUCTOR) ||
+                                   u.realm_access?.roles?.includes(ROLE_STRINGS.ADMIN) ||
+                                   u.realm_access?.roles?.includes(ROLE_STRINGS.SUPER_ADMIN);
+          return hasInstructorRole || hasRealmInstructor;
+        });
+        
+        // Filter for only INSTRUCTOR role (not admin/super-admin) for instructor-specific dropdowns
+        const pureInstructors = usersArray.filter(u => {
+          const hasInstructorRole = u.roleAssignments?.some(ra => {
+            const roleName = ra.role?.name || ra.role?.code || 'unknown';
+            const roleNameUpper = roleName.toUpperCase();
+            return roleNameUpper === ROLE_STRINGS.INSTRUCTOR.toUpperCase();
+          });
+          const hasRealmInstructor = u.realm_access?.roles?.includes(ROLE_STRINGS.INSTRUCTOR);
+          return hasInstructorRole || hasRealmInstructor;
+        });
+        
         setInstructors(instructorUsers);
+        setFilteredInstructorUsers(pureInstructors);
       }
+      
       if (sessionsResult.success) setScheduledSessions(sessionsResult.data || []);
     } catch (error) {
       console.error('Error loading data:', error);
@@ -252,14 +289,31 @@ const SchedulingCalendarPage = () => {
     }
   ], []);
 
-  // Handle event click
+  // Handle event click - open edit modal
   const onClickEvent = useCallback((eventInfo) => {
-    const { event, nativeEvent } = eventInfo;
+    const { event } = eventInfo;
     const session = event.raw.session;
     
-    // Show detail popup (TOAST UI handles this automatically with useDetailPopup)
-    // But we can also show custom context menu on right-click
-  }, []);
+    if (!session) return;
+    
+    // Set editing session ID
+    setEditingSessionId(session.id);
+    
+    // Open modal for editing
+    setModalClassItem(session.class);
+    setModalStartDateTime(new Date(session.startDateTime));
+    setModalEndDateTime(new Date(session.endDateTime));
+    
+    // Set instructor
+    const instructor = instructors.find(i => i.id === session.instructorId);
+    setModalInstructorEmail(instructor?.email || null);
+    setModalInstructorId(session.instructorId);
+    
+    // Set classroom
+    setModalClassroomId(session.classroomId);
+    
+    setShowCreateModal(true);
+  }, [instructors]);
 
   // Handle event right-click
   const onBeforeCreateEvent = useCallback((eventData) => {
@@ -270,14 +324,30 @@ const SchedulingCalendarPage = () => {
   // Handle event update (drag/resize) with conflict preview
   const onBeforeUpdateEvent = useCallback(async (updateData) => {
     const { event, changes } = updateData;
+    
+    // Defensive check for event.raw
+    if (!event?.raw?.session) {
+      console.error('Event data missing:', event);
+      return false;
+    }
+    
     const session = event.raw.session;
+    
+    // Handle Date objects - ensure they are Date instances
+    const startDate = changes.start || event.start;
+    const endDate = changes.end || event.end;
+    
+    if (!startDate || !endDate) {
+      console.error('Missing date data:', { startDate, endDate });
+      return false;
+    }
     
     const updatePayload = {
       classId: session.classId,
       instructorId: session.instructorId,
       classroomId: session.classroomId,
-      startDateTime: (changes.start || event.start).toISOString(),
-      endDateTime: (changes.end || event.end).toISOString(),
+      startDateTime: new Date(startDate).toISOString(),
+      endDateTime: new Date(endDate).toISOString(),
       excludeSessionId: session.id,
       updatedBy: user?.dbId
     };
@@ -319,9 +389,22 @@ const SchedulingCalendarPage = () => {
   // Handle event delete
   const onBeforeDeleteEvent = useCallback(async (eventData) => {
     const { event } = eventData;
-    const session = event.raw.session;
     
-    const result = await scheduledSessionService.deleteScheduledSession(session.id);
+    // Try to get session ID from multiple possible locations
+    let sessionId = null;
+    if (event?.raw?.session?.id) {
+      sessionId = event.raw.session.id;
+    } else if (event?.id) {
+      sessionId = parseInt(event.id);
+    }
+    
+    if (!sessionId) {
+      console.error('Event data missing for delete:', event);
+      toast.error('Cannot delete session: missing session ID');
+      return false;
+    }
+    
+    const result = await scheduledSessionService.deleteScheduledSession(sessionId);
     
     if (result.success) {
       toast.success('Session deleted');
@@ -345,8 +428,13 @@ const SchedulingCalendarPage = () => {
 
     const classItem = JSON.parse(classItemData);
     
+    // Reset editing session ID (creating new session)
+    setEditingSessionId(null);
+    
     // Set default instructor and classroom from class, or first available
-    const defaultInstructorId = classItem.instructorId || instructors[0]?.id;
+    const defaultInstructor = instructors.find(i => i.id === classItem.instructorId) || instructors[0];
+    const defaultInstructorEmail = defaultInstructor?.email || null;
+    const defaultInstructorId = defaultInstructor?.id || null;
     const defaultClassroomId = classItem.classroomId || classrooms[0]?.id;
 
     // Set default start/end times
@@ -358,6 +446,7 @@ const SchedulingCalendarPage = () => {
     setModalClassItem(classItem);
     setModalStartDateTime(startDateTime);
     setModalEndDateTime(endDateTime);
+    setModalInstructorEmail(defaultInstructorEmail);
     setModalInstructorId(defaultInstructorId);
     setModalClassroomId(defaultClassroomId);
     setShowCreateModal(true);
@@ -378,8 +467,24 @@ const SchedulingCalendarPage = () => {
       endDateTime: modalEndDateTime.toISOString(),
       status: 'scheduled',
       notes: `Scheduled via calendar`,
-      createdBy: user?.dbId
+      createdBy: user?.dbId,
+      updatedBy: user?.dbId
     };
+
+    // Handle update of existing session
+    if (editingSessionId) {
+      const result = await scheduledSessionService.updateScheduledSession(editingSessionId, sessionData);
+      
+      if (result.success) {
+        toast.success('Session updated successfully!');
+        setShowCreateModal(false);
+        setEditingSessionId(null);
+        loadData();
+      } else {
+        toast.error(result.error || 'Failed to update session');
+      }
+      return;
+    }
 
     if (isRecurring) {
       // Create recurring sessions
@@ -436,7 +541,7 @@ const SchedulingCalendarPage = () => {
         toast.error(result.error || 'Failed to create session');
       }
     }
-  }, [modalClassItem, modalStartDateTime, modalEndDateTime, isRecurring, recurrenceType, recurrenceDays, recurrenceEndDate, recurrenceCount, timesPerDay, user, toast, loadData]);
+  }, [modalClassItem, modalStartDateTime, modalEndDateTime, isRecurring, recurrenceType, recurrenceDays, recurrenceEndDate, recurrenceCount, timesPerDay, user, toast, loadData, editingSessionId]);
 
   const handleCalendarDragOver = useCallback((e) => {
     e.preventDefault();
@@ -989,13 +1094,20 @@ const SchedulingCalendarPage = () => {
             </button>
 
             {viewMode === 'instructor' && (
-              <Select
-                value={selectedInstructor || ''}
-                onChange={(e) => setSelectedInstructor(e.target.value ? parseInt(e.target.value) : null)}
-                options={[
-                  { value: '', label: 'Select Instructor' },
-                  ...instructors.map(i => ({ value: String(i.id), label: i.displayName || `${i.firstName} ${i.lastName}` }))
-                ]}
+              <UserSelect
+                users={filteredInstructorUsers}
+                enrollments={enrollments}
+                classes={classes}
+                value={selectedInstructor ? filteredInstructorUsers.find(u => u.id === selectedInstructor)?.email : null}
+                onChange={(selectedEmail) => {
+                  const selectedInstructor = filteredInstructorUsers.find(u => u.email === selectedEmail);
+                  setSelectedInstructor(selectedInstructor ? selectedInstructor.id : null);
+                }}
+                placeholder="Select Instructor"
+                roleFilter={[]}
+                showLabels={false}
+                useEmailAsValue={true}
+                style={{ minWidth: '200px' }}
               />
             )}
 
@@ -1094,7 +1206,7 @@ const SchedulingCalendarPage = () => {
               calendars={calendars}
               events={calendarEvents}
               useDetailPopup={true}
-              useFormPopup={true}
+              useFormPopup={false}
               onClickEvent={onClickEvent}
               onBeforeCreateEvent={onBeforeCreateEvent}
               onBeforeUpdateEvent={onBeforeUpdateEvent}
@@ -1148,7 +1260,9 @@ const SchedulingCalendarPage = () => {
           }}
           onClick={(e) => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: '600' }}>Schedule Session</h2>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: '600' }}>
+                {editingSessionId ? 'Update Session' : 'Schedule Session'}
+              </h2>
               <button onClick={() => setShowCreateModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
                 <X size={20} color={theme === 'dark' ? '#9ca3af' : '#6b7280'} />
               </button>
@@ -1182,29 +1296,58 @@ const SchedulingCalendarPage = () => {
               </div>
             </div>
 
-            {/* Instructor and Classroom */}
+            {/* Instructor and Classroom - read-only when editing */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem' }}>Instructor</label>
-                <Select
-                  value={modalInstructorId || ''}
-                  onChange={(e) => setModalInstructorId(e.target.value ? parseInt(e.target.value) : null)}
-                  options={[
-                    { value: '', label: 'Select Instructor' },
-                    ...instructors.map(i => ({ value: String(i.id), label: i.displayName || `${i.firstName} ${i.lastName}` }))
-                  ]}
-                />
+                {editingSessionId ? (
+                  <div style={{ 
+                    padding: '0.5rem', 
+                    backgroundColor: theme === 'dark' ? '#374151' : '#f3f4f6', 
+                    borderRadius: '0.375rem',
+                    color: theme === 'dark' ? '#f3f4f6' : '#1f2937'
+                  }}>
+                    {instructors.find(i => i.id === modalInstructorId)?.displayName || 'Not assigned'}
+                  </div>
+                ) : (
+                  <UserSelect
+                    users={filteredInstructorUsers}
+                    enrollments={enrollments}
+                    classes={classes}
+                    value={modalInstructorEmail}
+                    onChange={(selectedEmail) => {
+                      const selectedInstructor = filteredInstructorUsers.find(u => u.email === selectedEmail);
+                      setModalInstructorEmail(selectedEmail);
+                      setModalInstructorId(selectedInstructor ? selectedInstructor.id : null);
+                    }}
+                    placeholder="Select Instructor"
+                    roleFilter={[]}
+                    showLabels={false}
+                    useEmailAsValue={true}
+                  />
+                )}
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem' }}>Classroom</label>
-                <Select
-                  value={modalClassroomId || ''}
-                  onChange={(e) => setModalClassroomId(e.target.value ? parseInt(e.target.value) : null)}
-                  options={[
-                    { value: '', label: 'Select Room' },
-                    ...classrooms.map(c => ({ value: String(c.id), label: c.nameEn || c.code }))
-                  ]}
-                />
+                {editingSessionId ? (
+                  <div style={{ 
+                    padding: '0.5rem', 
+                    backgroundColor: theme === 'dark' ? '#374151' : '#f3f4f6', 
+                    borderRadius: '0.375rem',
+                    color: theme === 'dark' ? '#f3f4f6' : '#1f2937'
+                  }}>
+                    {classrooms.find(c => c.id === modalClassroomId)?.nameEn || classrooms.find(c => c.id === modalClassroomId)?.code || 'Not assigned'}
+                  </div>
+                ) : (
+                  <Select
+                    value={modalClassroomId || ''}
+                    onChange={(e) => setModalClassroomId(e.target.value ? parseInt(e.target.value) : null)}
+                    options={[
+                      { value: '', label: 'Select Room' },
+                      ...classrooms.map(c => ({ value: String(c.id), label: c.nameEn || c.code }))
+                    ]}
+                  />
+                )}
               </div>
             </div>
 
@@ -1350,7 +1493,7 @@ const SchedulingCalendarPage = () => {
                 onClick={handleCreateSession}
                 style={{ backgroundColor: '#3b82f6', color: '#ffffff' }}
               >
-                {isRecurring ? 'Create Series' : 'Create Session'}
+                {editingSessionId ? 'Update Session' : (isRecurring ? 'Create Series' : 'Create Session')}
               </Button>
             </div>
           </div>

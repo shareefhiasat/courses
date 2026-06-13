@@ -7,7 +7,7 @@
 
 import jwt from 'jsonwebtoken';
 import { LMS_ROLES as ROLES } from '../services/keycloakAdminService.js';
-import { getDatabaseUserId } from '../utils/userResolver.js';
+import { getDatabaseUserId } from '../utils/database/userResolver.js';
 
 /**
  * Verify Keycloak JWT token

@@ -5,7 +5,7 @@
  * It wraps the existing backend logger utility.
  */
 
-import { info, error, warn, debug } from '../../utils/logger.js';
+import { info, error, warn, debug } from '../../utils/common/logger.js';
 
 const serviceName = 'notificationGateway';
 

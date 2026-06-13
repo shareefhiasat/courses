@@ -7,7 +7,7 @@
 
 import { PrismaClient } from '@prisma/client';
 import * as fileService from './fileService.js';
-import { getDatabaseUserId } from '../utils/userResolver.js';
+import { getDatabaseUserId } from '../utils/database/userResolver.js';
 
 const prisma = new PrismaClient();
 

@@ -14,6 +14,8 @@ const serviceName = 'enrollmentMarksService';
 const API_BASE = '/marks';
 
 // Frontend grading standards utility
+// NOTE: This must match backend/utils/gradingStandards.js exactly
+// Single source of truth is backend - update both if changing
 export const GRADING_STANDARDS = {
   FIRST_ATTEMPT: {
     name: 'First Attempt',
@@ -38,15 +40,19 @@ export const GRADING_STANDARDS = {
     name: 'Repeated Attempt',
     nameAr: 'محاولة متكررة',
     grades: [
-      { min: 95, max: 100, letter: 'A+', description: 'Excellent', descriptionAr: 'ممتاز' },
-      { min: 90, max: 94.99, letter: 'A', description: 'Excellent', descriptionAr: 'ممتاز' },
-      { min: 85, max: 89.99, letter: 'B+', description: 'Very Good', descriptionAr: 'جيد جدا مرتفع' },
-      { min: 80, max: 84.99, letter: 'B', description: 'Very Good', descriptionAr: 'جيد جدا' },
-      { min: 75, max: 79.99, letter: 'C+', description: 'Good', descriptionAr: 'جيد مرتفع' },
-      { min: 70, max: 74.99, letter: 'C', description: 'Good', descriptionAr: 'جيد' },
-      { min: 65, max: 69.99, letter: 'D+', description: 'Pass', descriptionAr: 'مقبول مرتفع' },
-      { min: 60, max: 64.99, letter: 'D', description: 'Pass', descriptionAr: 'مقبول' },
-      { min: 0, max: 59.99, letter: 'F', description: 'Fail', descriptionAr: 'راسب' }
+      { min: 99, max: 100, letter: 'A+', description: 'Excellent', descriptionAr: 'ممتاز' },
+      { min: 96, max: 98.99, letter: 'A', description: 'Excellent', descriptionAr: 'ممتاز' },
+      { min: 93, max: 95.99, letter: 'A-', description: 'Excellent', descriptionAr: 'ممتاز' },
+      { min: 89, max: 92.99, letter: 'B+', description: 'Very Good', descriptionAr: 'جيد جدا مرتفع' },
+      { min: 86, max: 88.99, letter: 'B', description: 'Very Good', descriptionAr: 'جيد جدا' },
+      { min: 83, max: 85.99, letter: 'B-', description: 'Very Good', descriptionAr: 'جيد جدا' },
+      { min: 80, max: 82.99, letter: 'C+', description: 'Good', descriptionAr: 'جيد مرتفع' },
+      { min: 76, max: 79.99, letter: 'C', description: 'Good', descriptionAr: 'جيد' },
+      { min: 73, max: 75.99, letter: 'C-', description: 'Good', descriptionAr: 'جيد' },
+      { min: 70, max: 72.99, letter: 'D+', description: 'Pass', descriptionAr: 'مقبول مرتفع' },
+      { min: 66, max: 69.99, letter: 'D', description: 'Pass', descriptionAr: 'مقبول' },
+      { min: 63, max: 65.99, letter: 'D-', description: 'Pass', descriptionAr: 'مقبول' },
+      { min: 0, max: 62.99, letter: 'F', description: 'Fail', descriptionAr: 'راسب' }
     ]
   }
 };
