@@ -168,42 +168,88 @@ export const createScheduledSession = async (data) => {
   try {
     // Use transaction for atomic operation - prevents race conditions
     const result = await prisma.$transaction(async (tx) => {
-      // Double-check for conflicts within transaction (prevents race conditions)
-      const conflict = await tx.scheduledSession.findFirst({
-        where: {
-          isActive: true,
-          OR: [
-            { classroomId: parseInt(data.classroomId) },
-            { instructorId: parseInt(data.instructorId) }
-          ],
-          AND: [
-            { startDateTime: { lt: new Date(data.endDateTime) } },
-            { endDateTime: { gt: new Date(data.startDateTime) } }
-          ]
-        }
-      });
-
-      if (conflict) {
-        throw new Error(
-          conflict.classroomId === parseInt(data.classroomId)
-            ? 'Classroom is already booked for this time'
-            : 'Instructor is already scheduled for this time'
-        );
+      // Build conflict check conditions - only check if instructor/classroom is provided
+      const conflictConditions = [];
+      if (data.classroomId) {
+        conflictConditions.push({ classroomId: parseInt(data.classroomId) });
+      }
+      if (data.instructorId) {
+        conflictConditions.push({ instructorId: parseInt(data.instructorId) });
       }
 
-      // Create session
+      // Double-check for conflicts within transaction (prevents race conditions)
+      if (conflictConditions.length > 0) {
+        const conflict = await tx.scheduledSession.findFirst({
+          where: {
+            isActive: true,
+            OR: conflictConditions,
+            AND: [
+              { startDateTime: { lt: new Date(data.endDateTime) } },
+              { endDateTime: { gt: new Date(data.startDateTime) } }
+            ]
+          }
+        });
+
+        if (conflict) {
+          throw new Error(
+            conflict.classroomId === parseInt(data.classroomId)
+              ? 'Classroom is already booked for this time'
+              : 'Instructor is already scheduled for this time'
+          );
+        }
+      }
+
+      // Get the class to check if we need to update it
+      const classRecord = await tx.class.findUnique({
+        where: { id: parseInt(data.classId) }
+      });
+
+      // Update class record if instructor/classroom is being assigned for the first time
+      const classUpdates = {};
+      if (data.instructorId && !classRecord.instructorId) {
+        classUpdates.instructorId = parseInt(data.instructorId);
+        console.log(`[ScheduledSession DB] Updating class ${data.classId} with instructor ${data.instructorId}`);
+      }
+      if (data.classroomId && !classRecord.classroomId) {
+        classUpdates.classroomId = parseInt(data.classroomId);
+        console.log(`[ScheduledSession DB] Updating class ${data.classId} with classroom ${data.classroomId}`);
+      }
+
+      if (Object.keys(classUpdates).length > 0) {
+        await tx.class.update({
+          where: { id: parseInt(data.classId) },
+          data: classUpdates
+        });
+      }
+
+      // Create session - build data object conditionally
+      const sessionData = {
+        class: { connect: { id: parseInt(data.classId) } },
+        startDateTime: new Date(data.startDateTime),
+        endDateTime: new Date(data.endDateTime),
+        status: data.status || 'scheduled',
+        notes: data.notes || null,
+        isActive: data.isActive !== undefined ? data.isActive : true,
+        createdBy: data.createdBy || null
+      };
+
+      // Only connect instructor/classroom if provided (check for truthy value, not just existence)
+      console.log('[ScheduledSession DB] Creating session with:', {
+        instructorId: data.instructorId,
+        classroomId: data.classroomId,
+        hasInstructor: !!data.instructorId,
+        hasClassroom: !!data.classroomId
+      });
+      
+      if (data.instructorId && data.instructorId !== null && data.instructorId !== 'null') {
+        sessionData.instructor = { connect: { id: parseInt(data.instructorId) } };
+      }
+      if (data.classroomId && data.classroomId !== null && data.classroomId !== 'null') {
+        sessionData.classroom = { connect: { id: parseInt(data.classroomId) } };
+      }
+
       const session = await tx.scheduledSession.create({
-        data: {
-          classId: parseInt(data.classId),
-          instructorId: parseInt(data.instructorId),
-          classroomId: parseInt(data.classroomId),
-          startDateTime: new Date(data.startDateTime),
-          endDateTime: new Date(data.endDateTime),
-          status: data.status || 'scheduled',
-          notes: data.notes || null,
-          isActive: data.isActive !== undefined ? data.isActive : true,
-          createdBy: data.createdBy || null
-        },
+        data: sessionData,
         include: {
           class: {
             include: {

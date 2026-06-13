@@ -263,39 +263,57 @@ export const validateAvailability = async (instructorId, classroomId, startDateT
 export const validateSession = async (sessionData, excludeSessionId = null) => {
   const { classId, instructorId, classroomId, startDateTime, endDateTime } = sessionData;
   
-  // Validate required fields
-  if (!classId || !instructorId || !classroomId || !startDateTime || !endDateTime) {
+  // Validate required fields - instructor and classroom are now optional
+  if (!classId || !startDateTime || !endDateTime) {
     return {
       valid: false,
       conflicts: [{
         type: 'validation',
-        message: 'Missing required fields: classId, instructorId, classroomId, startDateTime, and endDateTime are required'
+        message: 'Missing required fields: classId, startDateTime, and endDateTime are required'
+      }]
+    };
+  }
+  
+  // At least one resource (instructor or classroom) should be specified
+  if (!instructorId && !classroomId) {
+    return {
+      valid: false,
+      conflicts: [{
+        type: 'validation',
+        message: 'Please specify at least an instructor or classroom'
       }]
     };
   }
   
   const conflicts = [];
 
-  // Run all conflict checks in parallel
+  // Run conflict checks in parallel - only check resources that are specified
+  const checks = [
+    detectClassConflict(classId, startDateTime, endDateTime, excludeSessionId),
+    detectCapacityConflict(classId, startDateTime, endDateTime, excludeSessionId)
+  ];
+  
+  if (instructorId) {
+    checks.push(detectInstructorConflict(instructorId, startDateTime, endDateTime, excludeSessionId));
+  }
+  
+  if (classroomId) {
+    checks.push(detectClassroomConflict(classroomId, startDateTime, endDateTime, excludeSessionId));
+  }
+
   const [
-    instructorConflict,
-    classroomConflict,
     classConflict,
     capacityConflict,
-    availabilityConflicts
-  ] = await Promise.all([
-    detectInstructorConflict(instructorId, startDateTime, endDateTime, excludeSessionId),
-    detectClassroomConflict(classroomId, startDateTime, endDateTime, excludeSessionId),
-    detectClassConflict(classId, startDateTime, endDateTime, excludeSessionId),
-    detectCapacityConflict(classId, classroomId),
-    validateAvailability(instructorId, classroomId, startDateTime, endDateTime)
-  ]);
+    ...resourceConflicts
+  ] = await Promise.all(checks);
+  
+  const instructorConflict = instructorId ? resourceConflicts[0] : null;
+  const classroomConflict = classroomId ? (instructorId ? resourceConflicts[1] : resourceConflicts[0]) : null;
 
   if (instructorConflict) conflicts.push(instructorConflict);
   if (classroomConflict) conflicts.push(classroomConflict);
   if (classConflict) conflicts.push(classConflict);
   if (capacityConflict) conflicts.push(capacityConflict);
-  if (availabilityConflicts) conflicts.push(...availabilityConflicts);
 
   return {
     valid: conflicts.length === 0,

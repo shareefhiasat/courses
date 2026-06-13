@@ -44,9 +44,10 @@ const SchedulingCalendarPage = () => {
   const [sidebarSearch, setSidebarSearch] = useState('');
   
   // View state
-  const [viewMode, setViewMode] = useState('all'); // 'all', 'instructor', 'room'
+  const [viewMode, setViewMode] = useState('all'); // 'all', 'instructor', 'room', 'availability'
   const [selectedInstructor, setSelectedInstructor] = useState(null);
   const [selectedRoom, setSelectedRoom] = useState(null);
+  const [availabilityType, setAvailabilityType] = useState('instructor'); // 'instructor' or 'room'
   const [currentView, setCurrentView] = useState('week');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -428,19 +429,61 @@ const SchedulingCalendarPage = () => {
 
     const classItem = JSON.parse(classItemData);
     
+    console.log('📍 [DROP DEBUG] Drop event:', {
+      clientX: e.clientX,
+      clientY: e.clientY,
+      pageX: e.pageX,
+      pageY: e.pageY,
+      currentDate: currentDate,
+      currentView: currentView
+    });
+    
     // Reset editing session ID (creating new session)
     setEditingSessionId(null);
     
-    // Set default instructor and classroom from class, or first available
-    const defaultInstructor = instructors.find(i => i.id === classItem.instructorId) || instructors[0];
+    // Set default instructor and classroom from class, or allow null
+    const defaultInstructor = instructors.find(i => i.id === classItem.instructorId);
     const defaultInstructorEmail = defaultInstructor?.email || null;
     const defaultInstructorId = defaultInstructor?.id || null;
-    const defaultClassroomId = classItem.classroomId || classrooms[0]?.id;
+    const defaultClassroomId = classItem.classroomId || null;
 
-    // Set default start/end times
-    const startDateTime = new Date(currentDate);
-    startDateTime.setHours(9, 0, 0, 0); // 9 AM
+    // Try to extract date/time from drop position
+    // Get the calendar element and calculate the drop position
+    const calendarContainer = document.querySelector('.toastui-calendar-week-view-day-names');
+    let startDateTime = new Date(currentDate);
+    
+    if (calendarContainer && currentView === 'week') {
+      // Try to calculate date from drop position
+      const rect = calendarContainer.getBoundingClientRect();
+      const relativeX = e.clientX - rect.left;
+      const dayWidth = rect.width / (hideWeekends ? 5 : 7);
+      const dayIndex = Math.floor(relativeX / dayWidth);
+      
+      // Calculate the actual date based on day index
+      const weekStart = new Date(currentDate);
+      weekStart.setDate(weekStart.getDate() - weekStart.getDay() + (hideWeekends ? 1 : 0));
+      startDateTime = new Date(weekStart);
+      startDateTime.setDate(startDateTime.getDate() + dayIndex);
+      
+      console.log('📅 [DROP DEBUG] Calculated date:', {
+        dayIndex,
+        calculatedDate: startDateTime.toISOString(),
+        weekStart: weekStart.toISOString()
+      });
+    }
+    
+    // Set time to 9 AM by default
+    startDateTime.setHours(9, 0, 0, 0);
     const endDateTime = new Date(startDateTime.getTime() + 2 * 60 * 60 * 1000); // 2 hours
+
+    console.log('⏰ [DROP DEBUG] Final times:', {
+      start: startDateTime.toISOString(),
+      end: endDateTime.toISOString(),
+      instructor: defaultInstructorEmail || 'NOT SET',
+      instructorId: defaultInstructorId || 'NOT SET',
+      classroom: defaultClassroomId || 'NOT SET',
+      classroomId: defaultClassroomId || 'NOT SET'
+    });
 
     // Open modal for configuration
     setModalClassItem(classItem);
@@ -448,21 +491,27 @@ const SchedulingCalendarPage = () => {
     setModalEndDateTime(endDateTime);
     setModalInstructorEmail(defaultInstructorEmail);
     setModalInstructorId(defaultInstructorId);
-    setModalClassroomId(defaultClassroomId);
+    setModalClassroomId(defaultClassroomId || null); // Ensure null, not undefined
     setShowCreateModal(true);
-  }, [currentDate, instructors, classrooms, toast]);
+  }, [currentDate, currentView, hideWeekends, instructors, classrooms]);
 
   // Handle session creation from modal
   const handleCreateSession = useCallback(async () => {
-    if (!modalClassItem || !modalInstructorId || !modalClassroomId) {
-      toast.error('Please select an instructor and classroom');
+    if (!modalClassItem) {
+      toast.error('Class information is missing');
+      return;
+    }
+    
+    // Allow null instructor/classroom for initial scheduling
+    if (!modalInstructorId && !modalClassroomId) {
+      toast.error('Please select at least an instructor or classroom');
       return;
     }
 
     const sessionData = {
       classId: modalClassItem.id,
-      instructorId: modalInstructorId,
-      classroomId: modalClassroomId,
+      instructorId: modalInstructorId || null,
+      classroomId: modalClassroomId || null,
       startDateTime: modalStartDateTime.toISOString(),
       endDateTime: modalEndDateTime.toISOString(),
       status: 'scheduled',
@@ -470,6 +519,8 @@ const SchedulingCalendarPage = () => {
       createdBy: user?.dbId,
       updatedBy: user?.dbId
     };
+    
+    console.log('📤 [CREATE SESSION] Sending data:', sessionData);
 
     // Handle update of existing session
     if (editingSessionId) {
@@ -1092,6 +1143,25 @@ const SchedulingCalendarPage = () => {
               <DoorOpen size={14} />
               By Room
             </button>
+            
+            <button 
+              onClick={() => setViewMode('availability')} 
+              style={{ 
+                padding: '0.5rem 1rem', 
+                backgroundColor: viewMode === 'availability' ? '#10b981' : theme === 'dark' ? '#374151' : '#f9fafb', 
+                color: viewMode === 'availability' ? '#ffffff' : 'inherit', 
+                border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`, 
+                borderRadius: '0.375rem', 
+                cursor: 'pointer', 
+                fontSize: '0.875rem',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.25rem'
+              }}
+            >
+              <CalendarIcon size={14} />
+              Availability
+            </button>
 
             {viewMode === 'instructor' && (
               <UserSelect
@@ -1120,6 +1190,43 @@ const SchedulingCalendarPage = () => {
                   ...classrooms.map(c => ({ value: String(c.id), label: c.nameEn || c.code }))
                 ]}
               />
+            )}
+            
+            {viewMode === 'availability' && (
+              <>
+                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+                  <button
+                    onClick={() => setAvailabilityType('instructor')}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      backgroundColor: availabilityType === 'instructor' ? '#3b82f6' : theme === 'dark' ? '#374151' : '#f9fafb',
+                      color: availabilityType === 'instructor' ? '#ffffff' : 'inherit',
+                      border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`,
+                      borderRadius: '0.375rem',
+                      cursor: 'pointer',
+                      fontSize: '0.875rem'
+                    }}
+                  >
+                    <User size={14} style={{ display: 'inline', marginRight: '0.25rem' }} />
+                    Instructors
+                  </button>
+                  <button
+                    onClick={() => setAvailabilityType('room')}
+                    style={{
+                      padding: '0.5rem 1rem',
+                      backgroundColor: availabilityType === 'room' ? '#3b82f6' : theme === 'dark' ? '#374151' : '#f9fafb',
+                      color: availabilityType === 'room' ? '#ffffff' : 'inherit',
+                      border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`,
+                      borderRadius: '0.375rem',
+                      cursor: 'pointer',
+                      fontSize: '0.875rem'
+                    }}
+                  >
+                    <DoorOpen size={14} style={{ display: 'inline', marginRight: '0.25rem' }} />
+                    Rooms
+                  </button>
+                </div>
+              </>
             )}
           </div>
 
@@ -1186,49 +1293,176 @@ const SchedulingCalendarPage = () => {
           )}
 
           <div style={{ flex: 1, minHeight: 0 }}>
-            <Calendar
-              ref={calendarRef}
-              height="100%"
-              view={currentView}
-              week={{
-                startDayOfWeek: hideWeekends ? 1 : 0,
-                dayNames: hideWeekends ? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'] : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
-                narrowWeekend: narrowWeekend,
-                workweek: hideWeekends,
-                hourStart: 7,
-                hourEnd: 23
-              }}
-              month={{
-                startDayOfWeek: hideWeekends ? 1 : 0,
-                narrowWeekend: narrowWeekend,
-                workweek: hideWeekends
-              }}
-              calendars={calendars}
-              events={calendarEvents}
-              useDetailPopup={true}
-              useFormPopup={false}
-              onClickEvent={onClickEvent}
-              onBeforeCreateEvent={onBeforeCreateEvent}
-              onBeforeUpdateEvent={onBeforeUpdateEvent}
-              onBeforeDeleteEvent={onBeforeDeleteEvent}
-              theme={{
-                common: {
-                  backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
-                  holiday: {
-                    color: '#ef4444'
-                  },
-                  saturday: {
-                    color: '#3b82f6'
-                  },
-                  dayName: {
-                    color: theme === 'dark' ? '#f3f4f6' : '#1f2937'
-                  },
-                  today: {
-                    color: '#10b981'
+            {viewMode === 'availability' ? (
+              <div style={{ 
+                height: '100%', 
+                overflowY: 'auto',
+                backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
+                borderRadius: '0.5rem',
+                padding: '1rem'
+              }}>
+                <h3 style={{ fontSize: '1.125rem', fontWeight: '600', marginBottom: '1rem' }}>
+                  {availabilityType === 'instructor' ? 'Instructor Availability' : 'Room Availability'}
+                </h3>
+                
+                {availabilityType === 'instructor' ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    {filteredInstructorUsers.map(instructor => {
+                      const instructorSessions = scheduledSessions.filter(s => s.instructorId === instructor.id);
+                      return (
+                        <div key={instructor.id} style={{
+                          backgroundColor: theme === 'dark' ? '#374151' : '#f9fafb',
+                          borderRadius: '0.5rem',
+                          padding: '1rem',
+                          border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`
+                        }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <User size={18} color="#3b82f6" />
+                              <span style={{ fontWeight: '600' }}>{instructor.displayName || instructor.email}</span>
+                            </div>
+                            <span style={{ 
+                              fontSize: '0.875rem', 
+                              color: instructorSessions.length === 0 ? '#10b981' : '#f59e0b',
+                              fontWeight: '500'
+                            }}>
+                              {instructorSessions.length === 0 ? '🟢 Available' : `${instructorSessions.length} sessions`}
+                            </span>
+                          </div>
+                          {instructorSessions.length > 0 && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                              {instructorSessions.map(session => (
+                                <div key={session.id} style={{
+                                  backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
+                                  padding: '0.5rem',
+                                  borderRadius: '0.375rem',
+                                  fontSize: '0.875rem',
+                                  display: 'flex',
+                                  justifyContent: 'space-between',
+                                  alignItems: 'center'
+                                }}>
+                                  <span>{session.class?.nameEn || 'Class'}</span>
+                                  <span style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
+                                    {new Date(session.startDateTime).toLocaleString('en-US', { 
+                                      weekday: 'short', 
+                                      month: 'short', 
+                                      day: 'numeric',
+                                      hour: '2-digit',
+                                      minute: '2-digit'
+                                    })}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                    {classrooms.map(classroom => {
+                      const roomSessions = scheduledSessions.filter(s => s.classroomId === classroom.id);
+                      return (
+                        <div key={classroom.id} style={{
+                          backgroundColor: theme === 'dark' ? '#374151' : '#f9fafb',
+                          borderRadius: '0.5rem',
+                          padding: '1rem',
+                          border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`
+                        }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                              <DoorOpen size={18} color="#3b82f6" />
+                              <span style={{ fontWeight: '600' }}>{classroom.nameEn || classroom.code}</span>
+                              <span style={{ fontSize: '0.75rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
+                                ({classroom.capacity} seats)
+                              </span>
+                            </div>
+                            <span style={{ 
+                              fontSize: '0.875rem', 
+                              color: roomSessions.length === 0 ? '#10b981' : '#f59e0b',
+                              fontWeight: '500'
+                            }}>
+                              {roomSessions.length === 0 ? '🟢 Available' : `${roomSessions.length} sessions`}
+                            </span>
+                          </div>
+                          {roomSessions.length > 0 && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                              {roomSessions.map(session => (
+                                <div key={session.id} style={{
+                                  backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
+                                  padding: '0.5rem',
+                                  borderRadius: '0.375rem',
+                                  fontSize: '0.875rem',
+                                  display: 'flex',
+                                  justifyContent: 'space-between',
+                                  alignItems: 'center'
+                                }}>
+                                  <span>{session.class?.nameEn || 'Class'}</span>
+                                  <span style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
+                                    {new Date(session.startDateTime).toLocaleString('en-US', { 
+                                      weekday: 'short', 
+                                      month: 'short', 
+                                      day: 'numeric',
+                                      hour: '2-digit',
+                                      minute: '2-digit'
+                                    })}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <Calendar
+                ref={calendarRef}
+                height="100%"
+                view={currentView}
+                week={{
+                  startDayOfWeek: hideWeekends ? 1 : 0,
+                  dayNames: hideWeekends ? ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'] : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+                  narrowWeekend: narrowWeekend,
+                  workweek: hideWeekends,
+                  hourStart: 7,
+                  hourEnd: 23
+                }}
+                month={{
+                  startDayOfWeek: hideWeekends ? 1 : 0,
+                  narrowWeekend: narrowWeekend,
+                  workweek: hideWeekends
+                }}
+                calendars={calendars}
+                events={calendarEvents}
+                useDetailPopup={true}
+                useFormPopup={false}
+                onClickEvent={onClickEvent}
+                onBeforeCreateEvent={onBeforeCreateEvent}
+                onBeforeUpdateEvent={onBeforeUpdateEvent}
+                onBeforeDeleteEvent={onBeforeDeleteEvent}
+                theme={{
+                  common: {
+                    backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
+                    holiday: {
+                      color: '#ef4444'
+                    },
+                    saturday: {
+                      color: '#3b82f6'
+                    },
+                    dayName: {
+                      color: theme === 'dark' ? '#f3f4f6' : '#1f2937'
+                    },
+                    today: {
+                      color: '#10b981'
+                    }
                   }
-                }
-              }}
-            />
+                }}
+              />
+            )}
           </div>
         </div>
       </div>
@@ -1296,10 +1530,12 @@ const SchedulingCalendarPage = () => {
               </div>
             </div>
 
-            {/* Instructor and Classroom - read-only when editing */}
+            {/* Instructor and Classroom */}
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
               <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem' }}>Instructor</label>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem' }}>
+                  Instructor {!editingSessionId && <span style={{ color: '#9ca3af' }}>(optional)</span>}
+                </label>
                 {editingSessionId ? (
                   <div style={{ 
                     padding: '0.5rem', 
@@ -1320,15 +1556,22 @@ const SchedulingCalendarPage = () => {
                       setModalInstructorEmail(selectedEmail);
                       setModalInstructorId(selectedInstructor ? selectedInstructor.id : null);
                     }}
-                    placeholder="Select Instructor"
+                    placeholder="Select Instructor (optional)"
                     roleFilter={[]}
                     showLabels={false}
                     useEmailAsValue={true}
                   />
                 )}
+                {!editingSessionId && !modalClassItem.instructorId && modalInstructorId && (
+                  <div style={{ fontSize: '0.75rem', color: '#f59e0b', marginTop: '0.25rem' }}>
+                    💡 Will update class record with this instructor
+                  </div>
+                )}
               </div>
               <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem' }}>Classroom</label>
+                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem' }}>
+                  Classroom {!editingSessionId && <span style={{ color: '#9ca3af' }}>(optional)</span>}
+                </label>
                 {editingSessionId ? (
                   <div style={{ 
                     padding: '0.5rem', 
@@ -1343,10 +1586,15 @@ const SchedulingCalendarPage = () => {
                     value={modalClassroomId || ''}
                     onChange={(e) => setModalClassroomId(e.target.value ? parseInt(e.target.value) : null)}
                     options={[
-                      { value: '', label: 'Select Room' },
-                      ...classrooms.map(c => ({ value: String(c.id), label: c.nameEn || c.code }))
+                      { value: '', label: 'Select Room (optional)' },
+                      ...classrooms.map(c => ({ value: String(c.id), label: `${c.nameEn || c.code} (${c.capacity} seats)` }))
                     ]}
                   />
+                )}
+                {!editingSessionId && !modalClassItem.classroomId && modalClassroomId && (
+                  <div style={{ fontSize: '0.75rem', color: '#f59e0b', marginTop: '0.25rem' }}>
+                    💡 Will update class record with this classroom
+                  </div>
                 )}
               </div>
             </div>
