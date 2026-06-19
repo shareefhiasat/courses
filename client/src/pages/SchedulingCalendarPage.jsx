@@ -7,6 +7,7 @@ import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { Button, SimpleLoading, useToast, Select, Input, UserSelect } from '@ui';
 import { SESSION_STATUS_OPTIONS, STATUS_COLORS } from '../constants/schedulingConstants.js';
+import { getLocalizedName } from '../utils/languageHelpers.js';
 import {
   buildSessionEventVenueLine,
   buildSessionEventInstructorLine,
@@ -19,7 +20,17 @@ import {
   getClassroomById,
   toDatetimeLocalValue,
   formatValidationConflict,
-  formatWorkloadSessionTime
+  formatWorkloadSessionTime,
+  formatSchedulingDateTime,
+  formatSchedulingDateOnly,
+  formatSchedulingTimeOnly,
+  resolveSessionDropDateTime,
+  getCalendarDayNames,
+  createToastCalendarTemplates,
+  getLocalizedClassName,
+  getLocalizedSubjectName,
+  getLocalizedInstructorName,
+  getLocalizedClassroomName
 } from '../utils/schedulingDisplayUtils.js';
 import SchedulingCalendarPopup from '../components/SchedulingCalendarPopup.jsx';
 import SchedulingAvailabilityPanel from '../components/SchedulingAvailabilityPanel.jsx';
@@ -894,20 +905,20 @@ const SchedulingCalendarPage = () => {
   );
 
   const groupedInstructorDefined = useMemo(() => {
-    let groups = groupInstructorAvailability(filteredInstructorAvail, filteredInstructorUsers, searchQuery);
+    let groups = groupInstructorAvailability(filteredInstructorAvail, filteredInstructorUsers, searchQuery, lang);
     if (mainTab === 'availability' && selectedInstructor) {
       groups = groups.filter((g) => g.id === selectedInstructor);
     }
     return groups;
-  }, [filteredInstructorAvail, filteredInstructorUsers, searchQuery, mainTab, selectedInstructor]);
+  }, [filteredInstructorAvail, filteredInstructorUsers, searchQuery, mainTab, selectedInstructor, lang]);
 
   const groupedRoomDefined = useMemo(() => {
-    let groups = groupClassroomAvailability(filteredClassroomAvail, classrooms, searchQuery);
+    let groups = groupClassroomAvailability(filteredClassroomAvail, classrooms, searchQuery, lang);
     if (mainTab === 'availability' && selectedRoom) {
       groups = groups.filter((g) => g.id === selectedRoom);
     }
     return groups;
-  }, [filteredClassroomAvail, classrooms, searchQuery, mainTab, selectedRoom]);
+  }, [filteredClassroomAvail, classrooms, searchQuery, mainTab, selectedRoom, lang]);
 
   const availabilityTimelineEvents = useMemo(() => {
     const isInstructor = scopeMode === 'instructor';
@@ -928,10 +939,10 @@ const SchedulingCalendarPage = () => {
       getTitle: (record) => {
         if (isInstructor) {
           const u = record.instructor || filteredInstructorUsers.find((i) => i.id === record.instructorUserId);
-          return u?.displayName || u?.email || t('instructor');
+          return getLocalizedInstructorName(u, lang, t('instructor'));
         }
         const c = record.classroom || classrooms.find((r) => r.id === record.classroomId);
-        return c?.nameEn || c?.code || t('room');
+        return getLocalizedClassroomName(c, lang) || t('room');
       }
     });
 
@@ -949,9 +960,9 @@ const SchedulingCalendarPage = () => {
       classroomId: !isInstructor ? (entityId || null) : null,
       color: bookedColor,
       getTitle: (session) => {
-        if (isInstructor) return session.class?.nameEn || session.class?.code || t('class');
+        if (isInstructor) return getLocalizedClassName(session.class, lang, t('class'));
         const inst = session.instructor || instructors.find((i) => i.id === session.instructorId);
-        return inst?.displayName || inst?.email || t('instructor');
+        return getLocalizedInstructorName(inst, lang, t('instructor'));
       }
     });
 
@@ -978,7 +989,8 @@ const SchedulingCalendarPage = () => {
     scheduledSessions,
     instructors,
     searchQuery,
-    t
+    t,
+    lang
   ]);
 
   const handleAvailCalendarNav = useCallback((dir) => {
@@ -1074,7 +1086,7 @@ const SchedulingCalendarPage = () => {
       }
     }
 
-    const label = lang === 'ar' && cls.nameAr ? cls.nameAr : (cls.nameEn || cls.name || cls.code);
+    const label = getLocalizedClassName(cls, lang, cls.code);
     toast.info(t('viewing_class_sessions', { name: label }));
   }, [scheduledSessions, setMainTab, setSearchParams, lang, t, toast]);
 
@@ -1278,76 +1290,45 @@ const SchedulingCalendarPage = () => {
   const handleCalendarDrop = useCallback(async (e) => {
     e.preventDefault();
     const classItemData = e.dataTransfer.getData('classItem');
-    if (!classItemData) return;
+    if (!classItemData || mainTab !== 'sessions') return;
 
     const classItem = JSON.parse(classItemData);
-    
-    console.log('📍 [DROP DEBUG] Drop event:', {
-      clientX: e.clientX,
-      clientY: e.clientY,
-      pageX: e.pageX,
-      pageY: e.pageY,
-      currentDate: currentDate,
-      currentView: currentView
-    });
-    
-    // Reset editing session ID (creating new session)
     setEditingSessionId(null);
-    
-    // Set default instructor and classroom from class, or allow null
+
     const defaultInstructor = instructors.find(i => i.id === classItem.instructorId);
     const defaultInstructorEmail = defaultInstructor?.email || null;
     const defaultInstructorId = defaultInstructor?.id || null;
     const defaultClassroomId = classItem.classroomId || null;
 
-    // Try to extract date/time from drop position
-    // Get the calendar element and calculate the drop position
-    const calendarContainer = document.querySelector('.toastui-calendar-week-view-day-names');
-    let startDateTime = new Date(currentDate);
-    
-    if (calendarContainer && currentView === 'week') {
-      // Try to calculate date from drop position
-      const rect = calendarContainer.getBoundingClientRect();
-      const relativeX = e.clientX - rect.left;
-      const dayWidth = rect.width / (hideWeekends ? 5 : 7);
-      const dayIndex = Math.floor(relativeX / dayWidth);
-      
-      // Calculate the actual date based on day index
-      const weekStart = new Date(currentDate);
-      weekStart.setDate(weekStart.getDate() - weekStart.getDay() + (hideWeekends ? 1 : 0));
-      startDateTime = new Date(weekStart);
-      startDateTime.setDate(startDateTime.getDate() + dayIndex);
-      
-      console.log('📅 [DROP DEBUG] Calculated date:', {
-        dayIndex,
-        calculatedDate: startDateTime.toISOString(),
-        weekStart: weekStart.toISOString()
-      });
-    }
-    
-    // Set time to 9 AM by default
-    startDateTime.setHours(9, 0, 0, 0);
-    const endDateTime = new Date(startDateTime.getTime() + 2 * 60 * 60 * 1000); // 2 hours
+    const cal = calendarRef.current?.getInstance();
+    const rawAnchor = cal?.getDate?.();
+    const anchorDate = rawAnchor
+      ? (typeof rawAnchor.toDate === 'function' ? rawAnchor.toDate() : new Date(rawAnchor))
+      : new Date(currentDate);
 
-    console.log('⏰ [DROP DEBUG] Final times:', {
-      start: startDateTime.toISOString(),
-      end: endDateTime.toISOString(),
-      instructor: defaultInstructorEmail || 'NOT SET',
-      instructorId: defaultInstructorId || 'NOT SET',
-      classroom: defaultClassroomId || 'NOT SET',
-      classroomId: defaultClassroomId || 'NOT SET'
-    });
+    const resolved = resolveSessionDropDateTime(
+      e.clientX,
+      e.clientY,
+      sessionCalendarContainerRef.current,
+      { currentView, anchorDate, hideWeekends }
+    );
 
-    // Open modal for configuration
+    const startDateTime = resolved?.startDateTime ?? (() => {
+      const fallback = new Date(anchorDate);
+      fallback.setHours(9, 0, 0, 0);
+      return fallback;
+    })();
+    const endDateTime = resolved?.endDateTime ?? new Date(startDateTime.getTime() + 2 * 60 * 60 * 1000);
+
     setModalClassItem(classItem);
     setModalStartDateTime(startDateTime);
     setModalEndDateTime(endDateTime);
     setModalInstructorEmail(defaultInstructorEmail);
     setModalInstructorId(defaultInstructorId);
-    setModalClassroomId(defaultClassroomId || null); // Ensure null, not undefined
+    setModalClassroomId(defaultClassroomId || null);
     setValidationResult(null);
     setShowCreateModal(true);
-  }, [currentDate, currentView, hideWeekends, instructors, classrooms]);
+  }, [mainTab, currentDate, currentView, hideWeekends, instructors]);
 
   // Handle session creation from modal
   const handleCreateSession = useCallback(async () => {
@@ -1472,7 +1453,7 @@ const SchedulingCalendarPage = () => {
       const result = await scheduledSessionService.createScheduledSession(sessionData);
       
       if (result.success) {
-        toast.success(`${modalClassItem.nameEn} scheduled successfully!`);
+        toast.success(`${getLocalizedClassName(modalClassItem, lang, modalClassItem.code)} scheduled successfully!`);
         setShowCreateModal(false);
         setValidationResult(null);
         loadData();
@@ -1600,6 +1581,7 @@ const SchedulingCalendarPage = () => {
     hideWeekends,
     narrowWeekend,
     calendarLayoutKey,
+    lang,
     forceSessionCalendarLayout
   ]);
 
@@ -1623,8 +1605,32 @@ const SchedulingCalendarPage = () => {
   const sessionClassFilterLabel = useMemo(() => {
     if (sessionClassFilter == null) return null;
     const match = classes.find((c) => String(c.id || c.docId) === String(sessionClassFilter));
-    return match?.nameEn || match?.name || match?.code || null;
-  }, [sessionClassFilter, classes]);
+    return getLocalizedClassName(match, lang) || null;
+  }, [sessionClassFilter, classes, lang]);
+
+  const calendarDayNames = useMemo(
+    () => getCalendarDayNames(t, hideWeekends),
+    [t, hideWeekends, lang]
+  );
+
+  const sessionCalendarTemplates = useMemo(() => ({
+    ...createToastCalendarTemplates(lang, t),
+    time: (event) => {
+      const session = event.raw?.session;
+      const venue = session ? buildSessionEventVenueLine(session, lang, t) : '';
+      const instructor = session ? buildSessionEventInstructorLine(session, lang, t) : '';
+      const title = session?.class
+        ? getLocalizedClassName(session.class, lang, session.class.code || t('class'))
+        : t('class');
+      return `
+        <div style="display: flex; flex-direction: column; justify-content: center; width: 100%; height: 100%; min-height: 100%; padding: 4px 6px; line-height: 1.2; overflow: hidden; box-sizing: border-box; color: #ffffff;">
+          <div style="font-weight: 600; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(title)}</div>
+          <div style="font-size: 10px; opacity: 0.92; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(venue)}</div>
+          <div style="font-size: 10px; opacity: 0.88; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(instructor)}</div>
+        </div>
+      `;
+    }
+  }), [lang, t]);
   const showFullCalendarNav = !isClassesTab && (mainTab !== 'availability' || availabilityDataMode === 'timeline');
   const isAvailTimeline = mainTab === 'availability' && availabilityDataMode === 'timeline';
   const isAvailabilityTab = mainTab === 'availability';
@@ -1834,158 +1840,6 @@ const SchedulingCalendarPage = () => {
         </div>
       )}
 
-      {/* Classes panel — horizontal, collapsed by default (sessions tab only) */}
-      {!isFullscreen && !isClassesTab && (
-        <div style={{
-          width: '100%',
-          flexShrink: 0,
-          backgroundColor: theme === 'dark' ? '#1f2937' : '#f9fafb',
-          borderRadius: '0.5rem',
-          padding: isClassesPanelExpanded ? '0.5rem 0.75rem' : '0.25rem 0.75rem',
-          border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`
-        }}>
-          <button
-            type="button"
-            onClick={() => setIsClassesPanelExpanded(!isClassesPanelExpanded)}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              width: '100%',
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              padding: 0,
-              color: theme === 'dark' ? '#f3f4f6' : '#1f2937'
-            }}
-          >
-            <BookOpen size={16} />
-            <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>{t('classes_sidebar')}</span>
-            <span style={{ fontSize: '0.75rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginInlineStart: '0.25rem' }}>
-              {isClassesPanelExpanded ? t('drag_class_to_calendar') : `${filteredClasses.length} ${t('classes_count_label')}`}
-            </span>
-            <span style={{ marginInlineStart: 'auto', display: 'flex' }}>
-              {isClassesPanelExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-            </span>
-          </button>
-
-          {isClassesPanelExpanded && (
-            <>
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-                gap: '0.5rem',
-                marginTop: '0.375rem',
-                alignItems: 'center'
-              }}>
-                <Input
-                  type="text"
-                  placeholder={t('search_classes')}
-                  value={sidebarSearch}
-                  onChange={(e) => setSidebarSearch(e.target.value)}
-                  style={{ width: '100%', minWidth: 0 }}
-                />
-                <Select
-                  value={sidebarProgramFilter}
-                  onChange={(e) => {
-                    setSidebarProgramFilter(e.target.value);
-                    setSidebarSubjectFilter('');
-                  }}
-                  options={[{ value: '', label: t('all_programs') }, ...programs.map((p) => ({ value: String(p.id), label: p.nameEn || p.code }))]}
-                  style={{ width: '100%', minWidth: 0 }}
-                  fullWidth
-                />
-                <Select
-                  value={sidebarSubjectFilter}
-                  onChange={(e) => setSidebarSubjectFilter(e.target.value)}
-                  options={[{ value: '', label: t('all_subjects') }, ...subjects.filter((s) => !sidebarProgramFilter || s.programId === parseInt(sidebarProgramFilter)).map((s) => ({ value: String(s.id), label: s.nameEn || s.code }))]}
-                  disabled={!sidebarProgramFilter}
-                  style={{ width: '100%', minWidth: 0 }}
-                  fullWidth
-                />
-              </div>
-              <div style={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: '0.75rem',
-                marginTop: '0.5rem',
-                fontSize: '0.7rem',
-                color: theme === 'dark' ? '#9ca3af' : '#6b7280',
-                alignItems: 'center'
-              }}>
-                <SchedulingLegendItem
-                  color={STATUS_COLORS.cancelled}
-                  label={t('legend_class_missing_setup')}
-                />
-                <SchedulingLegendItem
-                  color={theme === 'dark' ? '#374151' : '#e5e7eb'}
-                  border={`1px solid ${theme === 'dark' ? '#4b5563' : '#d1d5db'}`}
-                  label={t('legend_class_ready')}
-                />
-                <SchedulingLegendItem
-                  color="#f59e0b"
-                  label={t('legend_subject_filter_locked')}
-                />
-              </div>
-              <div style={{
-                display: 'flex',
-                gap: '0.5rem',
-                marginTop: '0.5rem',
-                overflowX: 'auto',
-                paddingBottom: '0.25rem',
-                scrollbarWidth: 'thin'
-              }}>
-                {filteredClasses.length === 0 ? (
-                  <div style={{ padding: '0.5rem', color: theme === 'dark' ? '#6b7280' : '#9ca3af', fontSize: '0.8125rem' }}>
-                    {t('no_classes_found')}
-                  </div>
-                ) : (
-                  filteredClasses.map((classItem) => {
-                    const subject = subjects.find((s) => s.id === classItem.subjectId);
-                    const instructor = instructors.find((i) => i.id === classItem.instructorId);
-                    const classroom = classrooms.find((c) => c.id === classItem.classroomId);
-                    const missing = !instructor || !classroom;
-                    return (
-                      <div
-                        key={classItem.id}
-                        draggable
-                        onDragStart={(e) => handleClassDragStart(e, classItem)}
-                        title={missing ? (!instructor ? t('missing_instructor') : t('missing_classroom')) : undefined}
-                        style={{
-                          flexShrink: 0,
-                          minWidth: '130px',
-                          maxWidth: '170px',
-                          padding: '0.4rem 0.55rem',
-                          backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-                          borderRadius: '0.375rem',
-                          border: `1px solid ${missing ? '#fca5a5' : theme === 'dark' ? '#374151' : '#e5e7eb'}`,
-                          cursor: 'grab',
-                          fontSize: '0.8125rem'
-                        }}
-                      >
-                        <div style={{ fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {classItem.nameEn || classItem.code}
-                        </div>
-                        {subject && (
-                          <div style={{ fontSize: '0.7rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {subject.nameEn}
-                          </div>
-                        )}
-                        {instructor && (
-                          <div style={{ fontSize: '0.65rem', color: theme === 'dark' ? '#6b7280' : '#9ca3af', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {instructor.displayName || instructor.firstName}
-                          </div>
-                        )}
-                      </div>
-                    );
-                  })
-                )}
-              </div>
-            </>
-          )}
-        </div>
-      )}
-
       <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
         {/* Main Calendar */}
         <div
@@ -1998,8 +1852,6 @@ const SchedulingCalendarPage = () => {
             display: 'flex',
             flexDirection: 'column'
           }}
-          onDrop={handleCalendarDrop}
-          onDragOver={handleCalendarDragOver}
         >
           {/* View Mode Selector and Filters */}
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap', marginBottom: '1rem', width: '100%' }}>
@@ -2374,7 +2226,7 @@ const SchedulingCalendarPage = () => {
                 theme={theme}
                 options={[
                   { value: '', label: t('select_room') },
-                  ...classrooms.map(c => ({ value: String(c.id), label: c.nameEn || c.code }))
+                  ...classrooms.map(c => ({ value: String(c.id), label: getLocalizedClassroomName(c, lang) }))
                 ]}
                 style={INSTRUCTOR_SELECT_WIDTH}
               />
@@ -2474,7 +2326,7 @@ const SchedulingCalendarPage = () => {
                 onChange={(e) => setSelectedRoom(e.target.value ? parseInt(e.target.value) : null)}
                 options={[
                   { value: '', label: t('select_room') },
-                  ...classrooms.map(c => ({ value: String(c.id), label: c.nameEn || c.code }))
+                  ...classrooms.map(c => ({ value: String(c.id), label: getLocalizedClassroomName(c, lang) }))
                 ]}
               />
             )}
@@ -2485,6 +2337,159 @@ const SchedulingCalendarPage = () => {
               </div>
             )}
           </div>
+
+          {/* Classes panel — below toolbar, above calendar (sessions tab) */}
+          {!isFullscreen && !isClassesTab && mainTab === 'sessions' && (
+            <div style={{
+              width: '100%',
+              flexShrink: 0,
+              backgroundColor: theme === 'dark' ? '#1f2937' : '#f9fafb',
+              borderRadius: '0.5rem',
+              padding: isClassesPanelExpanded ? '0.5rem 0.75rem' : '0.25rem 0.75rem',
+              border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`,
+              marginBottom: '0.75rem'
+            }}>
+              <button
+                type="button"
+                onClick={() => setIsClassesPanelExpanded(!isClassesPanelExpanded)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  width: '100%',
+                  background: 'none',
+                  border: 'none',
+                  cursor: 'pointer',
+                  padding: 0,
+                  color: theme === 'dark' ? '#f3f4f6' : '#1f2937'
+                }}
+              >
+                <BookOpen size={16} />
+                <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>{t('classes_sidebar')}</span>
+                <span style={{ fontSize: '0.75rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginInlineStart: '0.25rem' }}>
+                  {isClassesPanelExpanded ? t('drag_class_to_calendar') : `${filteredClasses.length} ${t('classes_count_label')}`}
+                </span>
+                <span style={{ marginInlineStart: 'auto', display: 'flex' }}>
+                  {isClassesPanelExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                </span>
+              </button>
+
+              {isClassesPanelExpanded && (
+                <>
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                    gap: '0.5rem',
+                    marginTop: '0.375rem',
+                    alignItems: 'center'
+                  }}>
+                    <Input
+                      type="text"
+                      placeholder={t('search_classes')}
+                      value={sidebarSearch}
+                      onChange={(e) => setSidebarSearch(e.target.value)}
+                      style={{ width: '100%', minWidth: 0 }}
+                    />
+                    <Select
+                      value={sidebarProgramFilter}
+                      onChange={(e) => {
+                        setSidebarProgramFilter(e.target.value);
+                        setSidebarSubjectFilter('');
+                      }}
+                      options={[{ value: '', label: t('all_programs') }, ...programs.map((p) => ({ value: String(p.id), label: getLocalizedName(p, lang) || p.code }))]}
+                      style={{ width: '100%', minWidth: 0 }}
+                      fullWidth
+                    />
+                    <Select
+                      value={sidebarSubjectFilter}
+                      onChange={(e) => setSidebarSubjectFilter(e.target.value)}
+                      options={[{ value: '', label: t('all_subjects') }, ...subjects.filter((s) => !sidebarProgramFilter || s.programId === parseInt(sidebarProgramFilter)).map((s) => ({ value: String(s.id), label: getLocalizedName(s, lang) || s.code }))]}
+                      disabled={!sidebarProgramFilter}
+                      style={{ width: '100%', minWidth: 0 }}
+                      fullWidth
+                    />
+                  </div>
+                  <div style={{
+                    display: 'flex',
+                    flexWrap: 'wrap',
+                    gap: '0.75rem',
+                    marginTop: '0.5rem',
+                    fontSize: '0.7rem',
+                    color: theme === 'dark' ? '#9ca3af' : '#6b7280',
+                    alignItems: 'center'
+                  }}>
+                    <SchedulingLegendItem
+                      color={STATUS_COLORS.cancelled}
+                      label={t('legend_class_missing_setup')}
+                    />
+                    <SchedulingLegendItem
+                      color={theme === 'dark' ? '#374151' : '#e5e7eb'}
+                      border={`1px solid ${theme === 'dark' ? '#4b5563' : '#d1d5db'}`}
+                      label={t('legend_class_ready')}
+                    />
+                    <SchedulingLegendItem
+                      color="#f59e0b"
+                      label={t('legend_subject_filter_locked')}
+                    />
+                  </div>
+                  <div style={{
+                    display: 'flex',
+                    gap: '0.5rem',
+                    marginTop: '0.5rem',
+                    overflowX: 'auto',
+                    paddingBottom: '0.25rem',
+                    scrollbarWidth: 'thin'
+                  }}>
+                    {filteredClasses.length === 0 ? (
+                      <div style={{ padding: '0.5rem', color: theme === 'dark' ? '#6b7280' : '#9ca3af', fontSize: '0.8125rem' }}>
+                        {t('no_classes_found')}
+                      </div>
+                    ) : (
+                      filteredClasses.map((classItem) => {
+                        const subject = subjects.find((s) => s.id === classItem.subjectId);
+                        const instructor = instructors.find((i) => i.id === classItem.instructorId);
+                        const classroom = classrooms.find((c) => c.id === classItem.classroomId);
+                        const missing = !instructor || !classroom;
+                        return (
+                          <div
+                            key={classItem.id}
+                            draggable
+                            onDragStart={(e) => handleClassDragStart(e, classItem)}
+                            title={missing ? (!instructor ? t('missing_instructor') : t('missing_classroom')) : undefined}
+                            style={{
+                              flexShrink: 0,
+                              minWidth: '130px',
+                              maxWidth: '170px',
+                              padding: '0.4rem 0.55rem',
+                              backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
+                              borderRadius: '0.375rem',
+                              border: `1px solid ${missing ? '#fca5a5' : theme === 'dark' ? '#374151' : '#e5e7eb'}`,
+                              cursor: 'grab',
+                              fontSize: '0.8125rem'
+                            }}
+                          >
+                            <div style={{ fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                              {getLocalizedClassName(classItem, lang, classItem.code)}
+                            </div>
+                            {subject && (
+                              <div style={{ fontSize: '0.7rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {getLocalizedSubjectName(subject, lang)}
+                              </div>
+                            )}
+                            {instructor && (
+                              <div style={{ fontSize: '0.65rem', color: theme === 'dark' ? '#6b7280' : '#9ca3af', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {getLocalizedInstructorName(instructor, lang)}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
 
           {/* Conflict/Suggestions Alert */}
           {showSuggestions && suggestions.length > 0 && (
@@ -2517,7 +2522,7 @@ const SchedulingCalendarPage = () => {
                   }}
                   onClick={() => {
                     if (suggestion.instructor && suggestion.classroom) {
-                      toast.info(`Suggested: ${suggestion.instructor.displayName} in ${suggestion.classroom.nameEn}`);
+                      toast.info(`${getLocalizedInstructorName(suggestion.instructor, lang)} — ${getLocalizedClassroomName(suggestion.classroom, lang)}`);
                     } else if (suggestion.startDateTime) {
                       toast.info(`Suggested: ${new Date(suggestion.startDateTime).toLocaleString()}`);
                     }
@@ -2526,7 +2531,7 @@ const SchedulingCalendarPage = () => {
                     {suggestion.instructor ? (
                       <div>
                         <div style={{ fontWeight: '600', color: '#92400e' }}>
-                          {suggestion.instructor.displayName} • {suggestion.classroom.nameEn}
+                          {getLocalizedInstructorName(suggestion.instructor, lang)} • {getLocalizedClassroomName(suggestion.classroom, lang)}
                         </div>
                         <div style={{ color: '#78350f', marginTop: '0.25rem' }}>
                           Score: {(suggestion.score * 100).toFixed(0)}% • Utilization: {suggestion.details?.capacityUtilization}%
@@ -2733,7 +2738,7 @@ const SchedulingCalendarPage = () => {
                               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1 }}>
                                   <User size={18} color="#3b82f6" />
-                                  <span style={{ fontWeight: '600' }}>{instructor.displayName || instructor.email}</span>
+                                  <span style={{ fontWeight: '600' }}>{getLocalizedInstructorName(instructor, lang, instructor.email)}</span>
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
                                   <div style={{ fontSize: '0.875rem', display: 'flex', gap: '1rem' }}>
@@ -2765,13 +2770,7 @@ const SchedulingCalendarPage = () => {
                               {/* Next session */}
                               {nextSession && (
                                 <div style={{ fontSize: '0.875rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginBottom: '0.5rem' }}>
-                                  {t('next_session')}: {nextSession.class?.nameEn || t('class')} - {new Date(nextSession.startDateTime).toLocaleString('en-US', { 
-                                    weekday: 'short', 
-                                    month: 'short', 
-                                    day: 'numeric',
-                                    hour: '2-digit',
-                                    minute: '2-digit'
-                                  })}
+                                  {t('next_session')}: {getLocalizedClassName(nextSession.class, lang, t('class'))} - {formatWorkloadSessionTime(nextSession.startDateTime, lang)}
                                 </div>
                               )}
                               
@@ -2819,7 +2818,7 @@ const SchedulingCalendarPage = () => {
                                       gap: '0.75rem'
                                     }}>
                                       <div style={{ minWidth: 0 }}>
-                                        <div>{session.class?.nameEn || t('class')}</div>
+                                        <div>{getLocalizedClassName(session.class, lang, t('class'))}</div>
                                         <div style={{ fontSize: '0.75rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '0.125rem' }}>
                                           {buildSessionEventVenueLine(session, lang, t)}
                                         </div>
@@ -2863,7 +2862,7 @@ const SchedulingCalendarPage = () => {
                               
                               return (
                                 <tr key={instructor.id} style={{ borderBottom: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}` }}>
-                                  <td style={{ padding: '0.75rem' }}>{instructor.displayName || instructor.email}</td>
+                                  <td style={{ padding: '0.75rem' }}>{getLocalizedInstructorName(instructor, lang, instructor.email)}</td>
                                   <td style={{ padding: '0.75rem', textAlign: 'center' }}>{sessionCount}</td>
                                   <td style={{ padding: '0.75rem', textAlign: 'center' }}>{scheduledHours}</td>
                                   <td style={{ padding: '0.75rem', textAlign: 'center' }}>
@@ -2872,14 +2871,9 @@ const SchedulingCalendarPage = () => {
                                   <td style={{ padding: '0.75rem', fontSize: '0.75rem' }}>
                                     {nextSession ? (
                                       <div>
-                                        <div>{nextSession.class?.nameEn || t('class')}</div>
+                                        <div>{getLocalizedClassName(nextSession.class, lang, t('class'))}</div>
                                         <div style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
-                                          {new Date(nextSession.startDateTime).toLocaleString('en-US', { 
-                                            month: 'short', 
-                                            day: 'numeric',
-                                            hour: '2-digit',
-                                            minute: '2-digit'
-                                          })}
+                                          {formatSchedulingDateTime(nextSession.startDateTime, lang, { weekday: undefined })}
                                         </div>
                                       </div>
                                     ) : '-'}
@@ -2959,7 +2953,7 @@ const SchedulingCalendarPage = () => {
                                         ? <ChevronDown size={18} color={textColor} />
                                         : <ChevronRight size={18} color={textColor} />}
                                       <User size={18} color="#3b82f6" />
-                                      <span style={{ fontWeight: '600', color: textColor }}>{instructor.displayName || instructor.email}</span>
+                                      <span style={{ fontWeight: '600', color: textColor }}>{getLocalizedInstructorName(instructor, lang, instructor.email)}</span>
                                     </button>
                                   </div>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
@@ -2993,22 +2987,15 @@ const SchedulingCalendarPage = () => {
                                         }}
                                       >
                                         <div style={{ flex: 1 }}>
-                                          <div style={{ fontWeight: '600', fontSize: '0.875rem' }}>{session.class?.nameEn || t('class')}</div>
+                                          <div style={{ fontWeight: '600', fontSize: '0.875rem' }}>{getLocalizedClassName(session.class, lang, t('class'))}</div>
                                           <div style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '0.25rem', fontSize: '0.875rem' }}>
-                                            {session.classroom?.nameEn || session.classroom?.code || t('no_room')}
+                                            {getLocalizedClassroomName(session.classroom, lang) || t('no_room')}
                                           </div>
                                         </div>
                                         <div style={{ textAlign: 'right', fontSize: '0.875rem' }}>
-                                          <div>{new Date(session.startDateTime).toLocaleDateString('en-US', { 
-                                            weekday: 'short',
-                                            month: 'short',
-                                            day: 'numeric'
-                                          })}</div>
+                                          <div>{formatSchedulingDateOnly(session.startDateTime, lang)}</div>
                                           <div style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
-                                            {new Date(session.startDateTime).toLocaleTimeString('en-US', {
-                                              hour: '2-digit',
-                                              minute: '2-digit'
-                                            })}
+                                            {formatSchedulingTimeOnly(session.startDateTime, lang)}
                                           </div>
                                         </div>
                                       </div>
@@ -3050,7 +3037,7 @@ const SchedulingCalendarPage = () => {
                                 <div style={{ flex: 1 }}>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                     <DoorOpen size={18} color="#3b82f6" />
-                                    <span style={{ fontWeight: '600' }}>{classroom.nameEn || classroom.code}</span>
+                                    <span style={{ fontWeight: '600' }}>{getLocalizedClassroomName(classroom, lang)}</span>
                                     <span style={{ fontSize: '0.75rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
                                       ({classroom.capacity} {t('seats')})
                                     </span>
@@ -3091,13 +3078,7 @@ const SchedulingCalendarPage = () => {
                               {/* Next session */}
                               {nextSession && (
                                 <div style={{ fontSize: '0.875rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginBottom: '0.5rem' }}>
-                                  {t('next_session')}: {nextSession.class?.nameEn || t('class')} - {new Date(nextSession.startDateTime).toLocaleString('en-US', { 
-                                    weekday: 'short', 
-                                    month: 'short', 
-                                    day: 'numeric',
-                                    hour: '2-digit',
-                                    minute: '2-digit'
-                                  })}
+                                  {t('next_session')}: {getLocalizedClassName(nextSession.class, lang, t('class'))} - {formatWorkloadSessionTime(nextSession.startDateTime, lang)}
                                 </div>
                               )}
                               
@@ -3145,7 +3126,7 @@ const SchedulingCalendarPage = () => {
                                       gap: '0.75rem'
                                     }}>
                                       <div style={{ minWidth: 0 }}>
-                                        <div>{session.class?.nameEn || t('class')}</div>
+                                        <div>{getLocalizedClassName(session.class, lang, t('class'))}</div>
                                         <div style={{ fontSize: '0.75rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '0.125rem' }}>
                                           {buildSessionEventVenueLine(session, lang, t)}
                                         </div>
@@ -3190,7 +3171,7 @@ const SchedulingCalendarPage = () => {
                               return (
                                 <tr key={classroom.id} style={{ borderBottom: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}` }}>
                                   <td style={{ padding: '0.75rem' }}>
-                                    {classroom.nameEn || classroom.code}
+                                    {getLocalizedClassroomName(classroom, lang)}
                                     <span style={{ fontSize: '0.75rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginLeft: '0.5rem' }}>
                                       ({classroom.capacity} seats)
                                     </span>
@@ -3203,14 +3184,9 @@ const SchedulingCalendarPage = () => {
                                   <td style={{ padding: '0.75rem', fontSize: '0.75rem' }}>
                                     {nextSession ? (
                                       <div>
-                                        <div>{nextSession.class?.nameEn || t('class')}</div>
+                                        <div>{getLocalizedClassName(nextSession.class, lang, t('class'))}</div>
                                         <div style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
-                                          {new Date(nextSession.startDateTime).toLocaleString('en-US', { 
-                                            month: 'short', 
-                                            day: 'numeric',
-                                            hour: '2-digit',
-                                            minute: '2-digit'
-                                          })}
+                                          {formatSchedulingDateTime(nextSession.startDateTime, lang, { weekday: undefined })}
                                         </div>
                                       </div>
                                     ) : '-'}
@@ -3251,6 +3227,8 @@ const SchedulingCalendarPage = () => {
               <div
                 ref={sessionCalendarContainerRef}
                 className="scheduling-sessions-calendar"
+                onDrop={handleCalendarDrop}
+                onDragOver={handleCalendarDragOver}
                 style={{
                   flex: '0 0 auto',
                   width: '100%',
@@ -3263,13 +3241,13 @@ const SchedulingCalendarPage = () => {
                 }}
               >
               <Calendar
-                key={`sessions-cal-${calendarLayoutKey}`}
+                key={`sessions-cal-${calendarLayoutKey}-${lang}`}
                 ref={calendarRef}
                 height={`${sessionCalendarHeight}px`}
                 view={currentView}
                 week={{
                   startDayOfWeek: 0, // Sunday start
-                  dayNames: hideWeekends ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu'] : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+                  dayNames: calendarDayNames,
                   narrowWeekend: narrowWeekend,
                   workweek: hideWeekends,
                   hourStart: 6,
@@ -3283,7 +3261,8 @@ const SchedulingCalendarPage = () => {
                   startDayOfWeek: 0, // Sunday start
                   narrowWeekend: narrowWeekend,
                   workweek: hideWeekends,
-                  isReadOnly: false
+                  isReadOnly: false,
+                  dayNames: calendarDayNames
                 }}
                 theme={{
                   common: {
@@ -3442,21 +3421,7 @@ const SchedulingCalendarPage = () => {
                     position: relative;
                   }
                 `}
-                template={{
-                  time: (event) => {
-                    const session = event.raw?.session;
-                    const venue = session ? buildSessionEventVenueLine(session, lang, t) : '';
-                    const instructor = session ? buildSessionEventInstructorLine(session, t) : '';
-                    const title = session?.class?.code || t('class');
-                    return `
-                      <div style="display: flex; flex-direction: column; justify-content: center; width: 100%; height: 100%; min-height: 100%; padding: 4px 6px; line-height: 1.2; overflow: hidden; box-sizing: border-box; color: #ffffff;">
-                        <div style="font-weight: 600; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(title)}</div>
-                        <div style="font-size: 10px; opacity: 0.92; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(venue)}</div>
-                        <div style="font-size: 10px; opacity: 0.88; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(instructor)}</div>
-                      </div>
-                    `;
-                  }
-                }}
+                template={sessionCalendarTemplates}
                 calendars={calendars}
                 events={calendarEvents}
                 useDetailPopup={false}
@@ -3543,10 +3508,10 @@ const SchedulingCalendarPage = () => {
 
             {/* Class Info */}
             <div style={{ marginBottom: '1rem', padding: '1rem', backgroundColor: theme === 'dark' ? '#374151' : '#f3f4f6', borderRadius: '0.375rem' }}>
-              <div style={{ fontSize: '1rem', fontWeight: '600', marginBottom: '0.25rem' }}>{modalClassItem.nameEn}</div>
+              <div style={{ fontSize: '1rem', fontWeight: '600', marginBottom: '0.25rem' }}>{getLocalizedClassName(modalClassItem, lang, modalClassItem.code)}</div>
               <div style={{ fontSize: '0.875rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
-                {programs.find(p => p.id === modalClassItem.programId)?.nameEn
-                  || subjects.find(s => s.id === modalClassItem.subjectId)?.nameEn
+                {getLocalizedSubjectName(subjects.find(s => s.id === modalClassItem.subjectId), lang)
+                  || getLocalizedName(programs.find(p => p.id === modalClassItem.programId), lang)
                   || modalClassItem.code}
               </div>
             </div>
@@ -3601,7 +3566,7 @@ const SchedulingCalendarPage = () => {
                     borderRadius: '0.375rem',
                     color: theme === 'dark' ? '#f3f4f6' : '#1f2937'
                   }}>
-                    {instructors.find(i => i.id === modalInstructorId)?.displayName || t('not_assigned')}
+                    {getLocalizedInstructorName(instructors.find(i => i.id === modalInstructorId), lang, t('not_assigned'))}
                   </div>
                 ) : (
                   <UserSelect
@@ -3642,7 +3607,7 @@ const SchedulingCalendarPage = () => {
                     { value: '', label: t('select_classroom') },
                     ...classrooms.map(c => ({
                       value: String(c.id),
-                      label: formatClassroomOptionLabel(c, t),
+                      label: formatClassroomOptionLabel(c, lang, t),
                       subtext: formatClassroomDetails(c, lang, t)
                     }))
                   ]}
@@ -3789,10 +3754,10 @@ const SchedulingCalendarPage = () => {
                 borderRadius: '0.375rem',
                 fontSize: '0.875rem'
               }}>
-                <div><strong>{t('class')}:</strong> {sessionToDelete.class?.nameEn || t('unknown')}</div>
-                <div><strong>Date:</strong> {new Date(sessionToDelete.startDateTime).toLocaleString()}</div>
-                <div><strong>Instructor:</strong> {sessionToDelete.instructor?.displayName || 'Not assigned'}</div>
-                <div><strong>Room:</strong> {sessionToDelete.classroom?.nameEn || sessionToDelete.classroom?.code || 'Not assigned'}</div>
+                <div><strong>{t('class')}:</strong> {getLocalizedClassName(sessionToDelete.class, lang, t('unknown'))}</div>
+                <div><strong>{t('date')}:</strong> {formatWorkloadSessionTime(sessionToDelete.startDateTime, lang)}</div>
+                <div><strong>{t('instructor')}:</strong> {getLocalizedInstructorName(sessionToDelete.instructor, lang, t('not_assigned'))}</div>
+                <div><strong>{t('room')}:</strong> {getLocalizedClassroomName(sessionToDelete.classroom, lang) || t('not_assigned')}</div>
               </div>
             </div>
 
@@ -3912,7 +3877,7 @@ const SchedulingCalendarPage = () => {
               color: theme === 'dark' ? '#f3f4f6' : '#1f2937'
             }}>
               <BookOpen size={14} color="#3b82f6" />
-              <span style={{ fontWeight: '600', flex: 1, minWidth: 0 }}>{sessionToChangeStatus.class?.nameEn}</span>
+              <span style={{ fontWeight: '600', flex: 1, minWidth: 0 }}>{getLocalizedClassName(sessionToChangeStatus.class, lang)}</span>
               <div style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -3938,13 +3903,9 @@ const SchedulingCalendarPage = () => {
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', marginBottom: '0.25rem' }}>
                 <Clock size={14} />
                 <span>
-                  {new Date(sessionToChangeStatus.startDateTime).toLocaleString(lang === 'ar' ? 'ar-SA' : 'en-US', {
-                    weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
-                  })}
+                  {formatWorkloadSessionTime(sessionToChangeStatus.startDateTime, lang)}
                   {' – '}
-                  {new Date(sessionToChangeStatus.endDateTime).toLocaleString(lang === 'ar' ? 'ar-SA' : 'en-US', {
-                    hour: '2-digit', minute: '2-digit'
-                  })}
+                  {formatSchedulingTimeOnly(sessionToChangeStatus.endDateTime, lang)}
                 </span>
               </div>
               <div style={{ paddingLeft: '1.25rem', fontSize: '0.75rem' }}>
