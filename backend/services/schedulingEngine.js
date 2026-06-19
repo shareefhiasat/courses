@@ -190,71 +190,79 @@ export const validateAvailability = async (instructorId, classroomId, startDateT
 
   const conflicts = [];
 
-  // Check instructor availability
-  const instructorAvailability = await prisma.instructorAvailability.findFirst({
-    where: {
-      instructorUserId: parseInt(instructorId),
-      isActive: true,
-      startDate: { lte: start },
-      endDate: { gte: start },
-      dayOfWeek: { has: dayOfWeek }
-    },
-    include: {
-      slots: true
-    }
-  });
-
-  if (!instructorAvailability) {
-    conflicts.push({
-      type: 'instructor_availability',
-      message: `Instructor is not available on ${dayOfWeek}s during the specified date range`
+  if (instructorId) {
+    const instructorAvailabilityCount = await prisma.instructorAvailability.count({
+      where: { instructorUserId: parseInt(instructorId), isActive: true }
     });
-  } else {
-    // Check if time falls within any slot
-    const hasMatchingSlot = instructorAvailability.slots.some(slot => 
-      slot.startTime <= startTime && slot.endTime >= endTime
-    );
 
-    if (!hasMatchingSlot) {
-      conflicts.push({
-        type: 'instructor_availability',
-        message: `Instructor is not available during ${startTime}-${endTime} on ${dayOfWeek}s`,
-        availableSlots: instructorAvailability.slots.map(s => `${s.startTime}-${s.endTime}`)
+    if (instructorAvailabilityCount > 0) {
+      const instructorAvailability = await prisma.instructorAvailability.findFirst({
+        where: {
+          instructorUserId: parseInt(instructorId),
+          isActive: true,
+          startDate: { lte: start },
+          endDate: { gte: start },
+          dayOfWeek: { has: dayOfWeek }
+        },
+        include: { slots: true }
       });
+
+      if (!instructorAvailability) {
+        conflicts.push({
+          type: 'instructor_availability',
+          message: `Instructor is not available on ${dayOfWeek}s during the specified date range`
+        });
+      } else {
+        const hasMatchingSlot = instructorAvailability.slots.some(slot =>
+          slot.startTime <= startTime && slot.endTime >= endTime
+        );
+
+        if (!hasMatchingSlot) {
+          conflicts.push({
+            type: 'instructor_availability',
+            message: `Instructor is not available during ${startTime}-${endTime} on ${dayOfWeek}s`,
+            availableSlots: instructorAvailability.slots.map(s => `${s.startTime}-${s.endTime}`)
+          });
+        }
+      }
     }
   }
 
-  // Check classroom availability
-  const classroomAvailability = await prisma.classroomAvailability.findFirst({
-    where: {
-      classroomId: parseInt(classroomId),
-      isActive: true,
-      startDate: { lte: start },
-      endDate: { gte: start },
-      dayOfWeek: { has: dayOfWeek }
-    },
-    include: {
-      slots: true
-    }
-  });
-
-  if (!classroomAvailability) {
-    conflicts.push({
-      type: 'classroom_availability',
-      message: `Classroom is not available on ${dayOfWeek}s during the specified date range`
+  if (classroomId) {
+    const classroomAvailabilityCount = await prisma.classroomAvailability.count({
+      where: { classroomId: parseInt(classroomId), isActive: true }
     });
-  } else {
-    // Check if time falls within any slot
-    const hasMatchingSlot = classroomAvailability.slots.some(slot => 
-      slot.startTime <= startTime && slot.endTime >= endTime
-    );
 
-    if (!hasMatchingSlot) {
-      conflicts.push({
-        type: 'classroom_availability',
-        message: `Classroom is not available during ${startTime}-${endTime} on ${dayOfWeek}s`,
-        availableSlots: classroomAvailability.slots.map(s => `${s.startTime}-${s.endTime}`)
+    if (classroomAvailabilityCount > 0) {
+      const classroomAvailability = await prisma.classroomAvailability.findFirst({
+        where: {
+          classroomId: parseInt(classroomId),
+          isActive: true,
+          startDate: { lte: start },
+          endDate: { gte: start },
+          dayOfWeek: { has: dayOfWeek }
+        },
+        include: { slots: true }
       });
+
+      if (!classroomAvailability) {
+        conflicts.push({
+          type: 'classroom_availability',
+          message: `Classroom is not available on ${dayOfWeek}s during the specified date range`
+        });
+      } else {
+        const hasMatchingSlot = classroomAvailability.slots.some(slot =>
+          slot.startTime <= startTime && slot.endTime >= endTime
+        );
+
+        if (!hasMatchingSlot) {
+          conflicts.push({
+            type: 'classroom_availability',
+            message: `Classroom is not available during ${startTime}-${endTime} on ${dayOfWeek}s`,
+            availableSlots: classroomAvailability.slots.map(s => `${s.startTime}-${s.endTime}`)
+          });
+        }
+      }
     }
   }
 
@@ -292,33 +300,37 @@ export const validateSession = async (sessionData, excludeSessionId = null) => {
   
   const conflicts = [];
 
-  // Run conflict checks in parallel - only check resources that are specified
   const checks = [
     detectClassConflict(classId, startDateTime, endDateTime, excludeSessionId),
-    detectCapacityConflict(classId, startDateTime, endDateTime, excludeSessionId)
+    classroomId ? detectCapacityConflict(classId, classroomId) : Promise.resolve(null)
   ];
-  
+
   if (instructorId) {
     checks.push(detectInstructorConflict(instructorId, startDateTime, endDateTime, excludeSessionId));
   }
-  
+
   if (classroomId) {
     checks.push(detectClassroomConflict(classroomId, startDateTime, endDateTime, excludeSessionId));
   }
 
-  const [
-    classConflict,
-    capacityConflict,
-    ...resourceConflicts
-  ] = await Promise.all(checks);
-  
-  const instructorConflict = instructorId ? resourceConflicts[0] : null;
-  const classroomConflict = classroomId ? (instructorId ? resourceConflicts[1] : resourceConflicts[0]) : null;
+  if (instructorId || classroomId) {
+    checks.push(validateAvailability(instructorId, classroomId, startDateTime, endDateTime));
+  }
+
+  const results = await Promise.all(checks);
+
+  let idx = 0;
+  const classConflict = results[idx++];
+  const capacityConflict = results[idx++];
+  const instructorConflict = instructorId ? results[idx++] : null;
+  const classroomConflict = classroomId ? results[idx++] : null;
+  const availabilityConflicts = (instructorId || classroomId) ? results[idx++] : null;
 
   if (instructorConflict) conflicts.push(instructorConflict);
   if (classroomConflict) conflicts.push(classroomConflict);
   if (classConflict) conflicts.push(classConflict);
   if (capacityConflict) conflicts.push(capacityConflict);
+  if (availabilityConflicts) conflicts.push(...availabilityConflicts);
 
   return {
     valid: conflicts.length === 0,

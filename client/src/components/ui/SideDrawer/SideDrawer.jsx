@@ -166,7 +166,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
           '#classes': 'classes',
           '#enrollments': 'manage-enrollments',
           '#marks': 'marks',
-          '#class-schedule': 'class-schedule'
+          '#class-schedule': 'scheduling-calendar'
         };
         if (path === '/dashboard' && hashToTabMap[hash]) {
           localStorage.setItem('dashboardActiveTab', hashToTabMap[hash]);
@@ -378,7 +378,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
       icon: getThemedIcon('ui', 'book_open', 18, theme),
       children: [
         { id: 'my-enrollments', path: '/my-enrollments', icon: getThemedIcon('ui', 'book_open', 18, theme), label: (t('my_enrollments') || 'My Enrollments').toUpperCase() },
-        { id: 'class-schedules', path: '/class-schedules', icon: getThemedIcon('ui', 'calendar', 18, theme), label: (t('schedules') || 'Schedules').toUpperCase() },
+        { id: 'class-schedules', path: '/scheduling-calendar?tab=classes', icon: getThemedIcon('ui', 'calendar', 18, theme), label: (t('schedules') || 'Schedules').toUpperCase() },
       ]
     },
     {
@@ -458,7 +458,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
         { id: 'programs', path: '/dashboard', hash: '#programs', icon: getThemedIcon('ui', 'book_open', 18, theme), label: (t('programs') || 'Programs').toUpperCase() },
         { id: 'subjects', path: '/dashboard', hash: '#subjects', icon: getThemedIcon('ui', 'book_open', 18, theme), label: (t('subjects') || 'Subjects').toUpperCase() },
         { id: 'classes-academic', path: '/dashboard', hash: '#classes', icon: getThemedIcon('ui', 'calendar', 18, theme), label: (t('classes') || 'Classes').toUpperCase() },
-        { id: 'class-schedule', path: '/dashboard', hash: '#class-schedule', icon: getThemedIcon('ui', 'calendar', 18, theme), label: (t('class_schedules') || 'Class Schedule').toUpperCase() },
+        { id: 'class-schedule', path: '/scheduling-calendar?tab=classes', icon: getThemedIcon('ui', 'calendar', 18, theme), label: (t('class_schedules') || 'Class Schedule').toUpperCase() },
       ]
     }] : []),
     ...(isSuperAdmin || isInstructor || isAdmin ? [{
@@ -524,7 +524,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
       label: t('classes') || 'CLASSES',
       icon: getThemedIcon('ui', 'calendar', 18, theme),
       children: [
-        { id: 'class-schedules-admin', path: '/class-schedules', icon: getThemedIcon('ui', 'calendar', 18, theme), label: (t('schedules') || 'Schedules').toUpperCase() },
+        { id: 'class-schedules-admin', path: '/scheduling-calendar?tab=classes', icon: getThemedIcon('ui', 'calendar', 18, theme), label: (t('schedules') || 'Schedules').toUpperCase() },
       ]
     },
     {

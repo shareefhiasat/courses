@@ -122,7 +122,18 @@ router.post('/:id/restore', async (req, res) => {
  */
 router.post('/validate', async (req, res) => {
   try {
+    const { classId, instructorId, classroomId, startDateTime, endDateTime } = req.body;
+    console.log('[validateSession]', {
+      classId,
+      instructorId,
+      classroomId,
+      startDateTime,
+      endDateTime
+    });
     const result = await schedulingEngine.validateSession(req.body, req.body.excludeSessionId);
+    if (!result.valid) {
+      console.log('[validateSession] conflicts:', result.conflicts?.map(c => c.type + ': ' + c.message));
+    }
     res.json({ success: true, ...result });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });

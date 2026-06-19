@@ -824,19 +824,19 @@ export const HelpProvider = ({ children }) => {
       ]
     };
 
-    // Class Schedule Help
-    content['/dashboard?tab=class-schedule'] = {
-      title: t('class_schedules') || 'Class Schedule',
+    // Class schedules — now on Scheduling Calendar (Classes tab)
+    content['/scheduling-calendar?tab=classes'] = {
+      title: t('main_tab_classes') || 'Classes',
       content: [
         {
           title: t('overview') || 'Overview',
-          items: [{ text: t('purpose') || 'Purpose', description: t('help_schedule_purpose') || 'View and manage the weekly schedule for all active classes.' }]
+          items: [{ text: t('purpose') || 'Purpose', description: t('help_schedule_purpose') || 'View classes with enrollment, resources, and scheduled sessions.' }]
         },
         {
           title: t('features') || 'Features',
           items: [
-            { text: t('weekly_view') || 'Weekly View', description: t('help_schedule_view') || 'See class timings across the week.' },
-            { text: t('manage_slots') || 'Manage Slots', description: t('help_schedule_manage') || 'Add or edit class time slots.' }
+            { text: t('filter_classes') || 'Filter Classes', description: t('help_schedule_view') || 'Filter by program, subject, instructor, year, and term.' },
+            { text: t('scheduled') || 'Scheduled', description: t('help_schedule_manage') || 'See how many sessions are scheduled per class; click a card to view sessions on the calendar.' }
           ]
         }
       ]
@@ -1144,7 +1144,7 @@ export const HelpProvider = ({ children }) => {
       '#classes': 'classes',
       '#enrollments': 'manage-enrollments',
       '#marks': 'marks',
-      '#class-schedule': 'class-schedule'
+      '#class-schedule': 'scheduling-calendar'
     };
     const tabFromHash = hashToTabMap[hash];
 

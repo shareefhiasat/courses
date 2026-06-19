@@ -1,17 +1,39 @@
-import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import Calendar from '@toast-ui/react-calendar';
 import '@toast-ui/calendar/dist/toastui-calendar.min.css';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { Button, SimpleLoading, useToast, Select, Input, UserSelect } from '@ui';
-import { SESSION_STATUS_OPTIONS, STATUS_TRANSITIONS } from '../constants/schedulingConstants.js';
+import { SESSION_STATUS_OPTIONS, STATUS_COLORS } from '../constants/schedulingConstants.js';
+import {
+  buildSessionEventVenueLine,
+  buildSessionEventInstructorLine,
+  escapeHtml,
+  formatSessionDuration,
+  formatClassroomOptionLabel,
+  formatClassroomDetails,
+  getClassroomDetailRows,
+  getAvailableStatusTransitions,
+  getClassroomById,
+  toDatetimeLocalValue,
+  formatValidationConflict,
+  formatWorkloadSessionTime
+} from '../utils/schedulingDisplayUtils.js';
 import SchedulingCalendarPopup from '../components/SchedulingCalendarPopup.jsx';
+import SchedulingAvailabilityPanel from '../components/SchedulingAvailabilityPanel.jsx';
+import SchedulingDefinedAvailabilityCards from '../components/SchedulingDefinedAvailabilityCards.jsx';
+import SchedulingAvailabilityTimeline from '../components/SchedulingAvailabilityTimeline.jsx';
+import SchedulingClassesView from '../components/SchedulingClassesView.jsx';
+import SchedulingRecurrencePanel from '../components/SchedulingRecurrencePanel.jsx';
 import { 
   BookOpen, Users, DoorOpen, Calendar as CalendarIcon, 
   ChevronLeft, ChevronRight, Maximize2, Minimize2,
   Save, Trash2, Clock, MapPin, User, X, Edit, BarChart3,
-  ChevronUp, ChevronDown
+  ChevronUp, ChevronDown, List, Grid, Filter, ArrowUp, ArrowDown,
+  CheckCircle2, XCircle, PanelLeftClose, PanelLeft, CalendarOff,
+  CalendarDays, LayoutList, LayoutGrid, GraduationCap
 } from 'lucide-react';
 import { getAllClasses } from '@services/business/classService.js';
 import { getAllPrograms } from '@services/business/programService.js';
@@ -21,14 +43,149 @@ import { getAllUsers } from '@services/business/userService.js';
 import { getEnrollments } from '@services/business/enrollmentService.js';
 import * as scheduledSessionService from '@services/business/scheduledSessionService.js';
 import * as schedulingService from '@services/business/schedulingService.js';
+import { getAllInstructorAvailabilities } from '@services/business/instructorAvailabilityService.js';
+import { getAllClassroomAvailabilities } from '@services/business/classroomAvailabilityService.js';
+import {
+  groupInstructorAvailability,
+  groupClassroomAvailability,
+  filterAvailabilityRecordsByDateRange,
+  expandAvailabilityToCalendarEvents,
+  markAvailabilitySessionConflicts,
+  expandSessionsToTimelineEvents
+} from '../utils/schedulingAvailabilityUtils.js';
 import { ROLE_STRINGS } from '@utils/userUtils.js';
+
+const SESSION_CALENDAR_HEIGHT = 680;
+
+function ColorDot({ color, size = 8, border }) {
+  return (
+    <span
+      aria-hidden
+      style={{
+        width: size,
+        height: size,
+        borderRadius: '50%',
+        backgroundColor: color,
+        border: border || 'none',
+        flexShrink: 0,
+        display: 'inline-block',
+        boxShadow: color ? `0 0 0 1px ${color}33` : undefined
+      }}
+    />
+  );
+}
+
+function SchedulingLegendItem({ color, label, border }) {
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem' }}>
+      <ColorDot color={color} border={border} />
+      <span>{label}</span>
+    </span>
+  );
+}
+
+function SchedulingStatCard({ value, label, Icon, iconColor, iconBg, theme }) {
+  const muted = theme === 'dark' ? '#9ca3af' : '#6b7280';
+  return (
+    <div style={{
+      backgroundColor: theme === 'dark' ? '#1f2937' : '#f9fafb',
+      borderRadius: '0.375rem',
+      padding: '0.75rem',
+      border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`,
+      display: 'flex',
+      alignItems: 'center',
+      gap: '0.75rem',
+      minWidth: 0
+    }}>
+      <div style={{
+        backgroundColor: iconBg,
+        borderRadius: '0.375rem',
+        padding: '0.5rem',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        flexShrink: 0
+      }}>
+        <Icon size={16} color={iconColor} />
+      </div>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontSize: '1.25rem', fontWeight: 700, lineHeight: 1 }}>{value}</div>
+        <div style={{
+          fontSize: '0.7rem',
+          color: muted,
+          marginTop: '0.125rem',
+          overflow: 'hidden',
+          textOverflow: 'ellipsis',
+          whiteSpace: 'nowrap'
+        }}>
+          {label}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+const findNearestSession = (sessions) => {
+  if (!sessions?.length) return null;
+  const now = new Date();
+  const upcoming = sessions
+    .filter(s => new Date(s.startDateTime) >= now)
+    .sort((a, b) => new Date(a.startDateTime) - new Date(b.startDateTime));
+  if (upcoming.length) return upcoming[0];
+  const past = sessions
+    .filter(s => new Date(s.startDateTime) < now)
+    .sort((a, b) => new Date(b.startDateTime) - new Date(a.startDateTime));
+  return past[0] || sessions[0];
+};
+
+function AvailabilityTimelineLegend({ t, theme }) {
+  const muted = theme === 'dark' ? '#9ca3af' : '#6b7280';
+  const items = [
+    { color: '#10b981', label: t('legend_defined_hours') },
+    { color: '#d97706', label: t('legend_defined_booked') },
+    { color: '#3b82f6', label: t('legend_scheduled_session') }
+  ];
+  return (
+    <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
+      {items.map(({ color, label }) => (
+        <span
+          key={label}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', color: muted }}
+        >
+          <span
+            style={{
+              width: 10,
+              height: 10,
+              borderRadius: '50%',
+              backgroundColor: color,
+              flexShrink: 0,
+              boxShadow: `0 0 0 2px ${color}33`
+            }}
+          />
+          {label}
+        </span>
+      ))}
+    </div>
+  );
+}
+
+const INSTRUCTOR_SELECT_WIDTH = { minWidth: '360px', width: '360px', flex: '0 1 360px' };
 
 const SchedulingCalendarPage = () => {
   const { user, isAdmin, isHR, isSuperAdmin } = useAuth();
-  const { t, lang } = useLang();
+  const { t, lang, isRTL } = useLang();
   const { theme } = useTheme();
   const toast = useToast();
   const calendarRef = useRef(null);
+  const sessionCalendarContainerRef = useRef(null);
+  const currentDateRef = useRef(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [sessionCalendarHeight, setSessionCalendarHeight] = useState(SESSION_CALENDAR_HEIGHT);
+
+  const readTabFromParams = (params) => {
+    const tab = params.get('tab');
+    return ['sessions', 'availability', 'classes'].includes(tab) ? tab : 'sessions';
+  };
 
   const [loading, setLoading] = useState(false);
   const [classes, setClasses] = useState([]);
@@ -40,17 +197,35 @@ const SchedulingCalendarPage = () => {
   const [scheduledSessions, setScheduledSessions] = useState([]);
   const [enrollments, setEnrollments] = useState([]);
   
-  // Sidebar state
-  const [showSidebar, setShowSidebar] = useState(true);
+  // Classes panel (horizontal, below stats)
+  const [isClassesPanelExpanded, setIsClassesPanelExpanded] = useState(false);
+  const [calendarLayoutKey, setCalendarLayoutKey] = useState(0);
   const [sidebarProgramFilter, setSidebarProgramFilter] = useState('');
   const [sidebarSubjectFilter, setSidebarSubjectFilter] = useState('');
   const [sidebarSearch, setSidebarSearch] = useState('');
   
-  // View state
-  const [viewMode, setViewMode] = useState('all'); // 'all', 'instructor', 'room', 'availability'
+  // View state — mainTab: sessions | availability | classes; scopeMode: all | instructor | room
+  const [mainTab, setMainTabState] = useState(() => readTabFromParams(searchParams));
+  const setMainTab = useCallback((tab) => {
+    setMainTabState(tab);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (tab === 'sessions') next.delete('tab');
+      else next.set('tab', tab);
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
+  const [scopeMode, setScopeMode] = useState('all');
   const [selectedInstructor, setSelectedInstructor] = useState(null);
   const [selectedRoom, setSelectedRoom] = useState(null);
-  const [availabilityType, setAvailabilityType] = useState('instructor'); // 'instructor' or 'room'
+  const [availabilityDataMode, setAvailabilityDataMode] = useState('defined'); // 'defined' | 'workload' | 'timeline'
+  const [classesViewMode, setClassesViewMode] = useState('semester'); // 'semester' | 'grid'
+  const [definedAvailFrom, setDefinedAvailFrom] = useState('');
+  const [definedAvailTo, setDefinedAvailTo] = useState('');
+  const [availCalendarDate, setAvailCalendarDate] = useState(() => new Date());
+  const [availCalendarView, setAvailCalendarView] = useState('week');
+  const [instructorAvailabilities, setInstructorAvailabilities] = useState([]);
+  const [classroomAvailabilities, setClassroomAvailabilities] = useState([]);
   const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'scheduled', 'in_progress', 'completed', 'cancelled'
   const [currentView, setCurrentView] = useState('week');
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -63,10 +238,23 @@ const SchedulingCalendarPage = () => {
   
   // Search and drill-down state
   const [searchQuery, setSearchQuery] = useState('');
+  const [sessionClassFilter, setSessionClassFilter] = useState(() => searchParams.get('classId') || null);
   const [expandedItems, setExpandedItems] = useState(new Set());
   
+  // Workload view state
+  const [workloadViewMode, setWorkloadViewMode] = useState('tree'); // 'tree' | 'table' | 'drill'
+  const [workloadSortBy, setWorkloadSortBy] = useState('workload'); // 'workload' | 'name' | 'sessions'
+  const [workloadFilterThreshold, setWorkloadFilterThreshold] = useState(100); // 0-100
+  const [workloadSortOrder, setWorkloadSortOrder] = useState('asc'); // 'asc' | 'desc'
+  const [workloadDateFilter, setWorkloadDateFilter] = useState('all'); // 'all' | 'week' | 'month' | 'custom'
+  const [workloadStartDate, setWorkloadStartDate] = useState(null);
+  const [workloadEndDate, setWorkloadEndDate] = useState(null);
+  
+  // UI state
   // Custom popup state
   const [popupSession, setPopupSession] = useState(null);
+  const [highlightedSessionId, setHighlightedSessionId] = useState(null);
+  const [pendingClassHighlight, setPendingClassHighlight] = useState(null);
   
   // Recurrence state
   const [isRecurring, setIsRecurring] = useState(false);
@@ -74,6 +262,7 @@ const SchedulingCalendarPage = () => {
   const [recurrenceDays, setRecurrenceDays] = useState([]);
   const [recurrenceEndDate, setRecurrenceEndDate] = useState(null);
   const [recurrenceCount, setRecurrenceCount] = useState(null);
+  const [recurrenceEndMode, setRecurrenceEndMode] = useState('date');
   const [timesPerDay, setTimesPerDay] = useState([]);
   
   // Conflict detection state
@@ -107,9 +296,37 @@ const SchedulingCalendarPage = () => {
   const [statusChangeReason, setStatusChangeReason] = useState('');
   
   // Stats
-  const [showStats, setShowStats] = useState(true);
+  const [showStats, setShowStats] = useState(false);
 
   const hasPermission = isAdmin || isHR || isSuperAdmin;
+
+  useEffect(() => {
+    currentDateRef.current = currentDate;
+  }, [currentDate]);
+
+  const getVisibleSessionCalendarDate = useCallback(() => {
+    const cal = calendarRef.current?.getInstance();
+    const calendarDate = cal?.getDate?.();
+    return calendarDate ? new Date(calendarDate) : new Date(currentDateRef.current || Date.now());
+  }, []);
+
+  const restoreSessionCalendarDate = useCallback((date) => {
+    if (!date) return;
+    const restoredDate = new Date(date);
+    setCurrentDate((prev) => (
+      prev && prev.getTime() === restoredDate.getTime() ? prev : restoredDate
+    ));
+
+    [0, 100, 300].forEach((ms) => {
+      setTimeout(() => {
+        const cal = calendarRef.current?.getInstance();
+        if (!cal) return;
+        cal.setDate(restoredDate);
+        if (typeof cal.render === 'function') cal.render();
+        if (typeof cal.updateSize === 'function') cal.updateSize();
+      }, ms);
+    });
+  }, []);
 
   // Load all data
   const loadData = useCallback(async () => {
@@ -127,7 +344,9 @@ const SchedulingCalendarPage = () => {
         classroomsResult,
         instructorsResult,
         sessionsResult,
-        enrollmentsResult
+        enrollmentsResult,
+        instructorAvailResult,
+        classroomAvailResult
       ] = await Promise.all([
         getAllClasses(),
         getAllPrograms(),
@@ -135,7 +354,9 @@ const SchedulingCalendarPage = () => {
         getAllClassrooms(),
         getAllUsers({ limit: 1000 }),
         scheduledSessionService.getAllScheduledSessions({ limit: 1000 }),
-        getEnrollments()
+        getEnrollments(),
+        getAllInstructorAvailabilities({ isActive: true, limit: 500 }),
+        getAllClassroomAvailabilities({ isActive: true, limit: 500 })
       ]);
 
       if (classesResult.success) setClasses(classesResult.data || []);
@@ -178,9 +399,11 @@ const SchedulingCalendarPage = () => {
       }
       
       if (sessionsResult.success) setScheduledSessions(sessionsResult.data || []);
+      if (instructorAvailResult.success) setInstructorAvailabilities(instructorAvailResult.data || []);
+      if (classroomAvailResult.success) setClassroomAvailabilities(classroomAvailResult.data || []);
     } catch (error) {
       console.error('Error loading data:', error);
-      toast.error('Failed to load scheduling data');
+      toast.error(t('failed_to_load_scheduling_data'));
     } finally {
       setLoading(false);
       
@@ -197,6 +420,16 @@ const SchedulingCalendarPage = () => {
     loadData();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    const tab = readTabFromParams(searchParams);
+    setMainTabState((current) => (current === tab ? current : tab));
+    const classId = searchParams.get('classId');
+    setSessionClassFilter((current) => {
+      const next = classId || null;
+      return String(current) === String(next) ? current : next;
+    });
+  }, [searchParams]);
 
   // Close context menu on click outside
   useEffect(() => {
@@ -237,12 +470,41 @@ const SchedulingCalendarPage = () => {
     const oneWeekFromNow = new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000);
     
     const totalSessions = scheduledSessions.length;
-    const uniqueClassrooms = new Set(scheduledSessions.map(s => s.classroomId)).size;
-    const uniqueInstructors = new Set(scheduledSessions.map(s => s.instructorId)).size;
+    const usedClassroomIds = new Set(
+      scheduledSessions.filter((s) => s.classroomId != null).map((s) => s.classroomId)
+    );
+    const usedInstructorIds = new Set(
+      scheduledSessions.filter((s) => s.instructorId != null).map((s) => s.instructorId)
+    );
+    const uniqueClassrooms = usedClassroomIds.size;
+    const uniqueInstructors = usedInstructorIds.size;
     const uniqueClasses = new Set(scheduledSessions.map(s => s.classId)).size;
     
     const scheduledCount = scheduledSessions.filter(s => s.status === 'scheduled').length;
     const completedCount = scheduledSessions.filter(s => s.status === 'completed').length;
+    const cancelledCount = scheduledSessions.filter(s => s.status === 'cancelled').length;
+    const inProgressCount = scheduledSessions.filter(s => s.status === 'in_progress').length;
+    
+    const totalClasses = classes.length;
+    const classesWithSessions = new Set(
+      scheduledSessions.filter((s) => s.status !== 'cancelled').map((s) => s.classId)
+    ).size;
+    const classesMissingSetup = classes.filter((c) => !c.instructorId || !c.classroomId).length;
+
+    const instructorAvailRules = instructorAvailabilities.length;
+    const roomAvailRules = classroomAvailabilities.length;
+    const instructorsWithAvailability = new Set(
+      instructorAvailabilities.map((a) => a.instructorUserId || a.instructor?.id).filter(Boolean)
+    ).size;
+    const roomsWithAvailability = new Set(
+      classroomAvailabilities.map((a) => a.classroomId).filter(Boolean)
+    ).size;
+
+    const instructorPool = filteredInstructorUsers.length || instructors.length;
+    const unusedRooms = Math.max(0, classrooms.length - uniqueClassrooms);
+    const unusedInstructors = Math.max(0, instructorPool - uniqueInstructors);
+    const totalPrograms = programs.length;
+    const totalSubjects = subjects.length;
     
     // This week's sessions
     const thisWeekSessions = scheduledSessions.filter(s => {
@@ -274,37 +536,71 @@ const SchedulingCalendarPage = () => {
       uniqueClasses,
       scheduledCount,
       completedCount,
+      cancelledCount,
+      inProgressCount,
       thisWeekSessions,
       nextSession,
-      avgDuration
+      avgDuration,
+      totalClasses,
+      classesWithSessions,
+      classesMissingSetup,
+      instructorAvailRules,
+      roomAvailRules,
+      instructorsWithAvailability,
+      roomsWithAvailability,
+      unusedRooms,
+      unusedInstructors,
+      instructorPool,
+      totalPrograms,
+      totalSubjects
     };
-  }, [scheduledSessions]);
+  }, [scheduledSessions, classes, programs, subjects, classrooms, instructors, filteredInstructorUsers, instructorAvailabilities, classroomAvailabilities]);
 
-  // Filter sessions based on view mode and status
+  // Filter sessions based on view mode, status, and search
   const filteredSessions = useMemo(() => {
     let filtered = scheduledSessions;
 
-    if (viewMode === 'instructor' && selectedInstructor) {
-      filtered = filtered.filter(s => s.instructorId === selectedInstructor);
-    } else if (viewMode === 'room' && selectedRoom) {
-      filtered = filtered.filter(s => s.classroomId === selectedRoom);
+    if (mainTab === 'sessions') {
+      if (scopeMode === 'instructor' && selectedInstructor) {
+        filtered = filtered.filter(s => s.instructorId === selectedInstructor);
+      } else if (scopeMode === 'room' && selectedRoom) {
+        filtered = filtered.filter(s => s.classroomId === selectedRoom);
+      }
     }
 
-    // Apply status filter
     if (statusFilter !== 'all') {
       filtered = filtered.filter(s => s.status === statusFilter);
     }
 
+    if (sessionClassFilter != null) {
+      filtered = filtered.filter(s => String(s.classId) === String(sessionClassFilter));
+    }
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.toLowerCase().trim();
+      filtered = filtered.filter(s => {
+        const roomName = s.classroom?.nameEn?.toLowerCase() || '';
+        const roomCode = s.classroom?.code?.toLowerCase() || '';
+        const instructorName = s.instructor?.displayName?.toLowerCase() || '';
+        const instructorEmail = s.instructor?.email?.toLowerCase() || '';
+        const className = s.class?.nameEn?.toLowerCase() || s.class?.name?.toLowerCase() || '';
+        const classCode = s.class?.code?.toLowerCase() || '';
+        return roomName.includes(q) || roomCode.includes(q) ||
+               instructorName.includes(q) || instructorEmail.includes(q) ||
+               className.includes(q) || classCode.includes(q);
+      });
+    }
+
     return filtered;
-  }, [scheduledSessions, viewMode, selectedInstructor, selectedRoom, statusFilter]);
+  }, [scheduledSessions, mainTab, scopeMode, selectedInstructor, selectedRoom, statusFilter, sessionClassFilter, searchQuery]);
 
   // Convert scheduled sessions to TOAST UI Calendar events
   const calendarEvents = useMemo(() => {
     return filteredSessions.map(session => ({
       id: String(session.id),
       calendarId: '1',
-      title: `${session.class?.code || 'Class'}`,
-      body: `${session.classroom?.code || 'Room'} - ${session.instructor?.displayName?.split(' ')[0] || 'Instructor'}`,
+      title: `${session.class?.code || t('class')}`,
+      body: buildSessionEventVenueLine(session, lang, t),
       category: 'time',
       start: new Date(session.startDateTime),
       end: new Date(session.endDateTime),
@@ -321,7 +617,466 @@ const SchedulingCalendarPage = () => {
         classroom: session.classroom
       }
     }));
+  }, [filteredSessions, lang, t]);
+
+  // Sync calendar when filtered events change (Toast UI doesn't always react to prop updates)
+  useEffect(() => {
+    const cal = calendarRef.current?.getInstance();
+    if (cal && mainTab !== 'availability') {
+      cal.clear();
+      if (calendarEvents.length > 0) {
+        cal.createEvents(calendarEvents);
+      }
+    }
+  }, [calendarEvents, mainTab]);
+
+  useEffect(() => {
+    if (mainTab !== 'sessions') return;
+    restoreSessionCalendarDate(currentDate);
+  }, [mainTab, calendarLayoutKey, currentDate, restoreSessionCalendarDate]);
+
+  const highlightSessionOnCalendar = useCallback((sessionId) => {
+    const attemptHighlight = (attempt = 0) => {
+      const eventId = String(sessionId);
+      const el = document.querySelector(`[data-event-id="${eventId}"]`)
+        || document.querySelector(`[data-id="${eventId}"]`);
+      if (!el && attempt < 15) {
+        setTimeout(() => attemptHighlight(attempt + 1), 120);
+        return;
+      }
+      if (el) {
+        el.classList.add('scheduling-session-highlight');
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setTimeout(() => {
+          el.classList.remove('scheduling-session-highlight');
+          setHighlightedSessionId(null);
+        }, 4500);
+      } else {
+        setHighlightedSessionId(null);
+      }
+    };
+    attemptHighlight();
+  }, []);
+
+  useEffect(() => {
+    if (!highlightedSessionId || mainTab === 'availability') return;
+    const session = scheduledSessions.find(s => s.id === highlightedSessionId);
+    if (!session) return;
+
+    const targetDate = new Date(session.startDateTime);
+    const timer = setTimeout(() => {
+      const cal = calendarRef.current?.getInstance();
+      if (cal) {
+        cal.setDate(targetDate);
+        setCurrentDate(targetDate);
+        const nextView = 'week';
+        if (cal.getViewName() !== nextView) {
+          cal.changeView(nextView);
+          setCurrentView(nextView);
+        }
+      }
+      highlightSessionOnCalendar(highlightedSessionId);
+    }, 250);
+
+    return () => clearTimeout(timer);
+  }, [highlightedSessionId, calendarEvents, mainTab, scheduledSessions, highlightSessionOnCalendar]);
+
+  useEffect(() => {
+    if (mainTab !== 'sessions' || pendingClassHighlight == null) return;
+    const timer = setTimeout(() => {
+      setHighlightedSessionId(pendingClassHighlight);
+      setPendingClassHighlight(null);
+      setCalendarLayoutKey((k) => k + 1);
+    }, 450);
+    return () => clearTimeout(timer);
+  }, [mainTab, pendingClassHighlight]);
+
+  // Helper to filter sessions by date range
+  const getDateFilteredSessions = useCallback((sessions) => {
+    if (workloadDateFilter === 'all') return sessions;
+    
+    const now = new Date();
+    let startDate, endDate;
+    
+    if (workloadDateFilter === 'week') {
+      startDate = new Date(now);
+      startDate.setDate(now.getDate() - now.getDay());
+      startDate.setHours(0, 0, 0, 0);
+      endDate = new Date(startDate);
+      endDate.setDate(startDate.getDate() + 6);
+      endDate.setHours(23, 59, 59, 999);
+    } else if (workloadDateFilter === 'month') {
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+    } else if (workloadDateFilter === 'custom' && workloadStartDate && workloadEndDate) {
+      startDate = new Date(workloadStartDate);
+      endDate = new Date(workloadEndDate);
+    } else {
+      return sessions;
+    }
+    
+    return sessions.filter(s => {
+      const sessionStart = new Date(s.startDateTime);
+      return sessionStart >= startDate && sessionStart <= endDate;
+    });
+  }, [workloadDateFilter, workloadStartDate, workloadEndDate]);
+
+  // Workload calculation for instructors
+  const instructorWorkloads = useMemo(() => {
+    const AVAILABLE_HOURS_PER_WEEK = 40; // Configurable default
+    
+    return filteredInstructorUsers.map(instructor => {
+      let instructorSessions = scheduledSessions.filter(s => s.instructorId === instructor.id);
+      
+      // Apply date filter
+      const filteredSessions = getDateFilteredSessions(instructorSessions);
+      
+      // Calculate scheduled hours
+      const scheduledHours = filteredSessions.reduce((total, session) => {
+        const duration = (new Date(session.endDateTime) - new Date(session.startDateTime)) / (1000 * 60 * 60);
+        return total + duration;
+      }, 0);
+      
+      // Calculate workload percentage
+      const workloadPercentage = (scheduledHours / AVAILABLE_HOURS_PER_WEEK) * 100;
+      
+      // Get next upcoming session (for list view)
+      const now = new Date();
+      const upcomingSessions = filteredSessions
+        .filter(s => new Date(s.startDateTime) > now)
+        .sort((a, b) => new Date(a.startDateTime) - new Date(b.startDateTime));
+      
+      // Get ALL sessions for drill-down view (not just upcoming)
+      const allSessions = filteredSessions
+        .sort((a, b) => new Date(a.startDateTime) - new Date(b.startDateTime));
+      
+      const nextSession = upcomingSessions[0] || null;
+      
+      // Determine workload level
+      let workloadLevel = 'low';
+      if (workloadPercentage >= 90) workloadLevel = 'overloaded';
+      else if (workloadPercentage >= 75) workloadLevel = 'high';
+      else if (workloadPercentage >= 50) workloadLevel = 'moderate';
+      
+      return {
+        instructor,
+        sessions: filteredSessions,
+        sessionCount: filteredSessions.length,
+        scheduledHours: Math.round(scheduledHours * 10) / 10,
+        workloadPercentage: Math.round(workloadPercentage),
+        workloadLevel,
+        nextSession,
+        upcomingSessions,
+        allSessions
+      };
+    });
+  }, [filteredInstructorUsers, scheduledSessions, getDateFilteredSessions]);
+
+  // Workload calculation for rooms
+  const roomWorkloads = useMemo(() => {
+    const AVAILABLE_HOURS_PER_WEEK = 40; // Configurable default
+    
+    return classrooms.map(classroom => {
+      let roomSessions = scheduledSessions.filter(s => s.classroomId === classroom.id);
+      
+      // Apply date filter
+      const filteredSessions = getDateFilteredSessions(roomSessions);
+      
+      // Calculate scheduled hours
+      const scheduledHours = filteredSessions.reduce((total, session) => {
+        const duration = (new Date(session.endDateTime) - new Date(session.startDateTime)) / (1000 * 60 * 60);
+        return total + duration;
+      }, 0);
+      
+      // Calculate workload percentage
+      const workloadPercentage = (scheduledHours / AVAILABLE_HOURS_PER_WEEK) * 100;
+      
+      // Get next upcoming session (for list view)
+      const now = new Date();
+      const upcomingSessions = filteredSessions
+        .filter(s => new Date(s.startDateTime) > now)
+        .sort((a, b) => new Date(a.startDateTime) - new Date(b.startDateTime));
+      
+      // Get ALL sessions for drill-down view (not just upcoming)
+      const allSessions = filteredSessions
+        .sort((a, b) => new Date(a.startDateTime) - new Date(b.startDateTime));
+      
+      const nextSession = upcomingSessions[0] || null;
+      
+      // Determine workload level
+      let workloadLevel = 'low';
+      if (workloadPercentage >= 90) workloadLevel = 'overloaded';
+      else if (workloadPercentage >= 75) workloadLevel = 'high';
+      else if (workloadPercentage >= 50) workloadLevel = 'moderate';
+      
+      return {
+        classroom,
+        sessions: filteredSessions,
+        sessionCount: filteredSessions.length,
+        scheduledHours: Math.round(scheduledHours * 10) / 10,
+        workloadPercentage: Math.round(workloadPercentage),
+        workloadLevel,
+        nextSession,
+        upcomingSessions,
+        allSessions
+      };
+    });
+  }, [classrooms, scheduledSessions, getDateFilteredSessions]);
+
+  // Filter and sort instructor workloads
+  const filteredAndSortedWorkloads = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    let filtered = instructorWorkloads.filter((w) => {
+      if (w.workloadPercentage > workloadFilterThreshold) return false;
+      if (!q) return true;
+      const name = (w.instructor.displayName || w.instructor.email || '').toLowerCase();
+      return name.includes(q);
+    });
+    
+    // Sort
+    filtered.sort((a, b) => {
+      let comparison = 0;
+      
+      if (workloadSortBy === 'workload') {
+        comparison = a.workloadPercentage - b.workloadPercentage;
+      } else if (workloadSortBy === 'name') {
+        comparison = (a.instructor.displayName || a.instructor.email).localeCompare(
+          b.instructor.displayName || b.instructor.email
+        );
+      } else if (workloadSortBy === 'sessions') {
+        comparison = a.sessionCount - b.sessionCount;
+      }
+      
+      return workloadSortOrder === 'asc' ? comparison : -comparison;
+    });
+    
+    return filtered;
+  }, [instructorWorkloads, workloadFilterThreshold, workloadSortBy, workloadSortOrder, searchQuery]);
+
+  // Filter and sort room workloads
+  const filteredAndSortedRoomWorkloads = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    let filtered = roomWorkloads.filter((w) => {
+      if (w.workloadPercentage > workloadFilterThreshold) return false;
+      if (!q) return true;
+      const name = (w.classroom.nameEn || w.classroom.code || '').toLowerCase();
+      return name.includes(q);
+    });
+    
+    // Sort
+    filtered.sort((a, b) => {
+      let comparison = 0;
+      
+      if (workloadSortBy === 'workload') {
+        comparison = a.workloadPercentage - b.workloadPercentage;
+      } else if (workloadSortBy === 'name') {
+        comparison = (a.classroom.nameEn || a.classroom.code).localeCompare(
+          b.classroom.nameEn || b.classroom.code
+        );
+      } else if (workloadSortBy === 'sessions') {
+        comparison = a.sessionCount - b.sessionCount;
+      }
+      
+      return workloadSortOrder === 'asc' ? comparison : -comparison;
+    });
+    
+    return filtered;
+  }, [roomWorkloads, workloadFilterThreshold, workloadSortBy, workloadSortOrder, searchQuery]);
+
+  const filteredInstructorAvail = useMemo(
+    () => filterAvailabilityRecordsByDateRange(instructorAvailabilities, definedAvailFrom, definedAvailTo),
+    [instructorAvailabilities, definedAvailFrom, definedAvailTo]
+  );
+
+  const filteredClassroomAvail = useMemo(
+    () => filterAvailabilityRecordsByDateRange(classroomAvailabilities, definedAvailFrom, definedAvailTo),
+    [classroomAvailabilities, definedAvailFrom, definedAvailTo]
+  );
+
+  const groupedInstructorDefined = useMemo(() => {
+    let groups = groupInstructorAvailability(filteredInstructorAvail, filteredInstructorUsers, searchQuery);
+    if (mainTab === 'availability' && selectedInstructor) {
+      groups = groups.filter((g) => g.id === selectedInstructor);
+    }
+    return groups;
+  }, [filteredInstructorAvail, filteredInstructorUsers, searchQuery, mainTab, selectedInstructor]);
+
+  const groupedRoomDefined = useMemo(() => {
+    let groups = groupClassroomAvailability(filteredClassroomAvail, classrooms, searchQuery);
+    if (mainTab === 'availability' && selectedRoom) {
+      groups = groups.filter((g) => g.id === selectedRoom);
+    }
+    return groups;
+  }, [filteredClassroomAvail, classrooms, searchQuery, mainTab, selectedRoom]);
+
+  const availabilityTimelineEvents = useMemo(() => {
+    const isInstructor = scopeMode === 'instructor';
+    const records = isInstructor ? filteredInstructorAvail : filteredClassroomAvail;
+    const idField = isInstructor ? 'instructorUserId' : 'classroomId';
+    const entityId = isInstructor ? selectedInstructor : selectedRoom;
+    const availColor = isInstructor ? '#10b981' : '#3b82f6';
+    const bookedColor = isInstructor ? '#3b82f6' : '#8b5cf6';
+
+    const availabilityEvents = expandAvailabilityToCalendarEvents(records, {
+      view: availCalendarView,
+      anchorDate: availCalendarDate,
+      filterFrom: definedAvailFrom || null,
+      filterTo: definedAvailTo || null,
+      entityId: entityId || null,
+      idField,
+      color: availColor,
+      getTitle: (record) => {
+        if (isInstructor) {
+          const u = record.instructor || filteredInstructorUsers.find((i) => i.id === record.instructorUserId);
+          return u?.displayName || u?.email || t('instructor');
+        }
+        const c = record.classroom || classrooms.find((r) => r.id === record.classroomId);
+        return c?.nameEn || c?.code || t('room');
+      }
+    });
+
+    const markedAvailability = markAvailabilitySessionConflicts(availabilityEvents, scheduledSessions, {
+      instructorUserId: isInstructor ? (entityId || null) : null,
+      classroomId: !isInstructor ? (entityId || null) : null
+    });
+
+    const bookedSessions = expandSessionsToTimelineEvents(scheduledSessions, {
+      view: availCalendarView,
+      anchorDate: availCalendarDate,
+      filterFrom: definedAvailFrom || null,
+      filterTo: definedAvailTo || null,
+      instructorUserId: isInstructor ? (entityId || null) : null,
+      classroomId: !isInstructor ? (entityId || null) : null,
+      color: bookedColor,
+      getTitle: (session) => {
+        if (isInstructor) return session.class?.nameEn || session.class?.code || t('class');
+        const inst = session.instructor || instructors.find((i) => i.id === session.instructorId);
+        return inst?.displayName || inst?.email || t('instructor');
+      }
+    });
+
+    const allEvents = [...markedAvailability, ...bookedSessions];
+    if (!searchQuery.trim()) return allEvents;
+    const q = searchQuery.toLowerCase().trim();
+    return allEvents.filter((e) => {
+      const title = (e.title || '').toLowerCase();
+      const body = (e.body || '').toLowerCase();
+      return title.includes(q) || body.includes(q);
+    });
+  }, [
+    scopeMode,
+    filteredInstructorAvail,
+    filteredClassroomAvail,
+    selectedInstructor,
+    selectedRoom,
+    availCalendarView,
+    availCalendarDate,
+    definedAvailFrom,
+    definedAvailTo,
+    filteredInstructorUsers,
+    classrooms,
+    scheduledSessions,
+    instructors,
+    searchQuery,
+    t
+  ]);
+
+  const handleAvailCalendarNav = useCallback((dir) => {
+    const cal = new Date(availCalendarDate);
+    if (availCalendarView === 'month') {
+      cal.setMonth(cal.getMonth() + (dir === 'next' ? 1 : -1));
+    } else if (availCalendarView === 'week') {
+      cal.setDate(cal.getDate() + (dir === 'next' ? 7 : -7));
+    } else {
+      cal.setDate(cal.getDate() + (dir === 'next' ? 1 : -1));
+    }
+    setAvailCalendarDate(cal);
+  }, [availCalendarDate, availCalendarView]);
+
+  // Helper function to get workload color
+  const getWorkloadColor = useCallback((workloadLevel) => {
+    switch (workloadLevel) {
+      case 'low': return '#10b981'; // green
+      case 'moderate': return '#f59e0b'; // yellow
+      case 'high': return '#f97316'; // orange
+      case 'overloaded': return '#ef4444'; // red
+      default: return '#10b981';
+    }
+  }, []);
+
+  const renderStatusIcon = useCallback((iconName, size = 14, color) => {
+    const iconMap = {
+      List,
+      Calendar: CalendarIcon,
+      Clock,
+      CheckCircle2,
+      XCircle
+    };
+    const Icon = iconMap[iconName];
+    return Icon ? <Icon size={size} color={color} /> : null;
+  }, []);
+
+  // Handle show on calendar — navigate to nearest session and highlight it
+  const handleShowOnCalendar = useCallback((instructorId) => {
+    setMainTab('sessions');
+    setScopeMode('instructor');
+    setSelectedInstructor(instructorId);
+    const sessions = scheduledSessions.filter(s => s.instructorId === instructorId);
+    const target = findNearestSession(sessions);
+    if (target) {
+      setCurrentDate(new Date(target.startDateTime));
+      setHighlightedSessionId(target.id);
+    }
   }, [scheduledSessions]);
+
+  const handleShowRoomOnCalendar = useCallback((roomId) => {
+    setMainTab('sessions');
+    setScopeMode('room');
+    setSelectedRoom(roomId);
+    const sessions = scheduledSessions.filter(s => s.classroomId === roomId);
+    const target = findNearestSession(sessions);
+    if (target) {
+      setCurrentDate(new Date(target.startDateTime));
+      setHighlightedSessionId(target.id);
+    }
+  }, [scheduledSessions]);
+
+  const navigateToClassOnCalendar = useCallback((cls, session = null) => {
+    if (!cls) return;
+    const classId = cls.id || cls.docId;
+    const classSessions = scheduledSessions.filter((s) => String(s.classId) === String(classId));
+    const target = session
+      ? (scheduledSessions.find((s) => s.id === session.id)
+        || classSessions.find((s) => s.id === session.id)
+        || session)
+      : findNearestSession(classSessions);
+
+    setSessionClassFilter(classId);
+    setMainTab('sessions');
+    setScopeMode('all');
+    setSelectedInstructor(null);
+    setSelectedRoom(null);
+    if (cls.programId) setSidebarProgramFilter(String(cls.programId));
+    if (cls.subjectId) setSidebarSubjectFilter(String(cls.subjectId));
+
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.delete('tab');
+      next.set('classId', String(classId));
+      return next;
+    }, { replace: true });
+
+    if (target?.startDateTime) {
+      setCurrentDate(new Date(target.startDateTime));
+      setCurrentView('week');
+      if (target.id != null) {
+        setPendingClassHighlight(target.id);
+      }
+    }
+
+    const label = lang === 'ar' && cls.nameAr ? cls.nameAr : (cls.nameEn || cls.name || cls.code);
+    toast.info(t('viewing_class_sessions', { name: label }));
+  }, [scheduledSessions, setMainTab, setSearchParams, lang, t, toast]);
 
   // Calendar calendars config
   const calendars = useMemo(() => [
@@ -353,6 +1108,7 @@ const SchedulingCalendarPage = () => {
   // Handle event update (drag/resize) with conflict preview
   const onBeforeUpdateEvent = useCallback(async (updateData) => {
     const { event, changes } = updateData;
+    const visibleDateBeforeSave = getVisibleSessionCalendarDate();
     
     // Defensive check for event.raw
     if (!event?.raw?.session) {
@@ -386,7 +1142,7 @@ const SchedulingCalendarPage = () => {
     setValidationResult(validation);
 
     if (!validation.valid) {
-      toast.error(`Conflict detected: ${validation.conflicts[0]?.message}`);
+      toast.error(formatValidationConflict(validation.conflicts?.[0], t) || t('validation_failed'));
       
       // Get suggestions for alternative times
       const altTimes = await schedulingService.getAlternativeTimes(
@@ -410,14 +1166,21 @@ const SchedulingCalendarPage = () => {
       toast.success('Session updated');
       setValidationResult(null);
       // Reload sessions without full data reload
-      const sessionsResult = await scheduledSessionService.getScheduledSessions();
+      const sessionsResult = await scheduledSessionService.getAllScheduledSessions({ limit: 1000 });
       if (sessionsResult.success) {
         setScheduledSessions(sessionsResult.data || []);
       }
+      restoreSessionCalendarDate(visibleDateBeforeSave);
     } else {
       toast.error(result.error || 'Failed to update session');
     }
-  }, [user, toast]);
+  }, [user, toast, t, getVisibleSessionCalendarDate, restoreSessionCalendarDate]);
+
+  const closeCreateModal = useCallback(() => {
+    setShowCreateModal(false);
+    setValidationResult(null);
+    setEditingSessionId(null);
+  }, []);
 
   // Handle event delete - show confirmation modal
   const onBeforeDeleteEvent = useCallback(async (eventData) => {
@@ -473,6 +1236,7 @@ const SchedulingCalendarPage = () => {
   const handleStatusChange = useCallback(async () => {
     if (!sessionToChangeStatus || !newStatus) return;
     
+    const visibleDateBeforeSave = getVisibleSessionCalendarDate();
     const result = await scheduledSessionService.updateSessionStatus(
       sessionToChangeStatus.id,
       newStatus,
@@ -486,11 +1250,23 @@ const SchedulingCalendarPage = () => {
       setSessionToChangeStatus(null);
       setNewStatus('');
       setStatusChangeReason('');
-      loadData();
+      const sessionsResult = await scheduledSessionService.getAllScheduledSessions({ limit: 1000 });
+      if (sessionsResult.success) {
+        setScheduledSessions(sessionsResult.data || []);
+      }
+      restoreSessionCalendarDate(visibleDateBeforeSave);
     } else {
       toast.error(result.error || 'Failed to change status');
     }
-  }, [sessionToChangeStatus, newStatus, statusChangeReason, user, toast, loadData]);
+  }, [
+    sessionToChangeStatus,
+    newStatus,
+    statusChangeReason,
+    user,
+    toast,
+    getVisibleSessionCalendarDate,
+    restoreSessionCalendarDate
+  ]);
 
   // Handle drag from sidebar
   const handleClassDragStart = useCallback((e, classItem) => {
@@ -569,6 +1345,7 @@ const SchedulingCalendarPage = () => {
     setModalInstructorEmail(defaultInstructorEmail);
     setModalInstructorId(defaultInstructorId);
     setModalClassroomId(defaultClassroomId || null); // Ensure null, not undefined
+    setValidationResult(null);
     setShowCreateModal(true);
   }, [currentDate, currentView, hideWeekends, instructors, classrooms]);
 
@@ -579,9 +1356,8 @@ const SchedulingCalendarPage = () => {
       return;
     }
     
-    // Allow null instructor/classroom for initial scheduling
-    if (!modalInstructorId && !modalClassroomId) {
-      toast.error('Please select at least an instructor or classroom');
+    if (!modalClassroomId) {
+      toast.error(t('classroom_required'));
       return;
     }
 
@@ -598,20 +1374,26 @@ const SchedulingCalendarPage = () => {
       startDateTime: modalStartDateTime.toISOString(),
       endDateTime: modalEndDateTime.toISOString(),
       status: 'scheduled',
-      notes: `Scheduled via calendar`
+      notes: t('scheduled_via_calendar')
     };
     
     console.log('📤 [CREATE SESSION] Sending data:', sessionData);
 
     // Handle update of existing session
     if (editingSessionId) {
+      const visibleDateBeforeSave = getVisibleSessionCalendarDate();
       const result = await scheduledSessionService.updateScheduledSession(editingSessionId, sessionData);
       
       if (result.success) {
         toast.success('Session updated successfully!');
         setShowCreateModal(false);
+        setValidationResult(null);
         setEditingSessionId(null);
-        loadData();
+        const sessionsResult = await scheduledSessionService.getAllScheduledSessions({ limit: 1000 });
+        if (sessionsResult.success) {
+          setScheduledSessions(sessionsResult.data || []);
+        }
+        restoreSessionCalendarDate(visibleDateBeforeSave);
       } else {
         toast.error(result.error || 'Failed to update session');
       }
@@ -619,12 +1401,33 @@ const SchedulingCalendarPage = () => {
     }
 
     if (isRecurring) {
-      // Create recurring sessions
+      const effectiveDays = recurrenceType === 'daily'
+        ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+        : recurrenceDays;
+
+      if (recurrenceType !== 'daily' && !effectiveDays.length) {
+        toast.error(t('recurrence_days_required'));
+        return;
+      }
+      if (recurrenceEndMode === 'date' && !recurrenceEndDate) {
+        toast.error(t('recurrence_end_required'));
+        return;
+      }
+      if (recurrenceEndMode === 'count' && !recurrenceCount) {
+        toast.error(t('recurrence_end_required'));
+        return;
+      }
+      if (recurrenceEndMode === 'date' && recurrenceEndDate && modalStartDateTime
+        && recurrenceEndDate < modalStartDateTime) {
+        toast.error(t('series_end_before_start'));
+        return;
+      }
+
       const recurrenceConfig = {
         recurrenceType,
-        recurrenceDays,
-        recurrenceEndDate: recurrenceEndDate?.toISOString(),
-        recurrenceCount,
+        recurrenceDays: effectiveDays,
+        recurrenceEndDate: recurrenceEndMode === 'date' ? recurrenceEndDate?.toISOString() : null,
+        recurrenceCount: recurrenceEndMode === 'count' ? recurrenceCount : null,
         timesPerDay
       };
 
@@ -633,6 +1436,7 @@ const SchedulingCalendarPage = () => {
       if (result.success) {
         toast.success(`Recurring series created: ${result.data.totalCreated} sessions!`);
         setShowCreateModal(false);
+        setValidationResult(null);
         setIsRecurring(false);
         setRecurrenceDays([]);
         setTimesPerDay([]);
@@ -649,8 +1453,10 @@ const SchedulingCalendarPage = () => {
       setValidationResult(validation);
 
       if (!validation.success || !validation.valid) {
-        const errorMsg = validation.conflicts?.[0]?.message || validation.error || 'Validation failed';
-        toast.error(`Cannot schedule: ${errorMsg}`);
+        const errorMsg = validation.conflicts?.length
+          ? formatValidationConflict(validation.conflicts[0], t)
+          : (validation.error || t('validation_failed'));
+        toast.error(errorMsg);
         
         // Get suggestions only if we have conflicts
         if (validation.conflicts && validation.conflicts.length > 0) {
@@ -668,12 +1474,52 @@ const SchedulingCalendarPage = () => {
       if (result.success) {
         toast.success(`${modalClassItem.nameEn} scheduled successfully!`);
         setShowCreateModal(false);
+        setValidationResult(null);
         loadData();
       } else {
         toast.error(result.error || 'Failed to create session');
       }
     }
-  }, [modalClassItem, modalStartDateTime, modalEndDateTime, isRecurring, recurrenceType, recurrenceDays, recurrenceEndDate, recurrenceCount, timesPerDay, user, toast, loadData, editingSessionId]);
+  }, [modalClassItem, modalClassroomId, modalInstructorId, modalStartDateTime, modalEndDateTime, isRecurring, recurrenceType, recurrenceDays, recurrenceEndDate, recurrenceCount, recurrenceEndMode, timesPerDay, user, toast, loadData, editingSessionId, t, getVisibleSessionCalendarDate, restoreSessionCalendarDate]);
+
+  const applySuggestedSlot = useCallback((start, end) => {
+    setModalStartDateTime(new Date(start));
+    setModalEndDateTime(new Date(end));
+    setValidationResult(null);
+  }, []);
+
+  // Live validation while configuring a session (debounced)
+  useEffect(() => {
+    if (!showCreateModal || editingSessionId || !modalClassItem || !modalClassroomId) {
+      return undefined;
+    }
+    if (!modalStartDateTime || !modalEndDateTime || modalEndDateTime <= modalStartDateTime) {
+      return undefined;
+    }
+
+    const timer = setTimeout(async () => {
+      const sessionData = {
+        classId: modalClassItem.id,
+        instructorId: modalInstructorId || null,
+        classroomId: modalClassroomId,
+        startDateTime: modalStartDateTime.toISOString(),
+        endDateTime: modalEndDateTime.toISOString(),
+        status: 'scheduled'
+      };
+      const validation = await schedulingService.validateSession(sessionData);
+      setValidationResult(validation);
+    }, 450);
+
+    return () => clearTimeout(timer);
+  }, [
+    showCreateModal,
+    editingSessionId,
+    modalClassItem,
+    modalClassroomId,
+    modalInstructorId,
+    modalStartDateTime,
+    modalEndDateTime
+  ]);
 
   const handleCalendarDragOver = useCallback((e) => {
     e.preventDefault();
@@ -719,6 +1565,165 @@ const SchedulingCalendarPage = () => {
     setIsFullscreen(!isFullscreen);
   }, [isFullscreen]);
 
+  const forceSessionCalendarLayout = useCallback(() => {
+    const el = sessionCalendarContainerRef.current;
+    const measuredHeight = el?.offsetHeight || SESSION_CALENDAR_HEIGHT;
+    const nextHeight = Math.max(measuredHeight, SESSION_CALENDAR_HEIGHT);
+
+    setSessionCalendarHeight((prev) => (prev === nextHeight ? prev : nextHeight));
+
+    requestAnimationFrame(() => {
+      const cal = calendarRef.current?.getInstance();
+      if (!cal) return;
+      if (typeof cal.render === 'function') cal.render();
+      if (typeof cal.updateSize === 'function') cal.updateSize();
+    });
+  }, []);
+
+  useEffect(() => {
+    const timers = [0, 100, 300].map((ms) => setTimeout(() => {
+      setCalendarLayoutKey((k) => k + 1);
+      forceSessionCalendarLayout();
+    }, ms));
+    return () => timers.forEach(clearTimeout);
+  }, [isClassesPanelExpanded, showStats, isFullscreen, forceSessionCalendarLayout]);
+
+  useLayoutEffect(() => {
+    if (mainTab !== 'sessions') return undefined;
+
+    setSessionCalendarHeight(SESSION_CALENDAR_HEIGHT);
+    const timers = [0, 50, 150, 400].map((ms) => setTimeout(forceSessionCalendarLayout, ms));
+    return () => timers.forEach(clearTimeout);
+  }, [
+    mainTab,
+    currentView,
+    hideWeekends,
+    narrowWeekend,
+    calendarLayoutKey,
+    forceSessionCalendarLayout
+  ]);
+
+  useEffect(() => {
+    if (mainTab !== 'sessions') return undefined;
+    const el = sessionCalendarContainerRef.current;
+    if (!el) return undefined;
+
+    const ro = new ResizeObserver(() => forceSessionCalendarLayout());
+    ro.observe(el);
+    if (el.parentElement) ro.observe(el.parentElement);
+    window.addEventListener('resize', forceSessionCalendarLayout);
+
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', forceSessionCalendarLayout);
+    };
+  }, [mainTab, forceSessionCalendarLayout]);
+
+  const isClassesTab = mainTab === 'classes';
+  const sessionClassFilterLabel = useMemo(() => {
+    if (sessionClassFilter == null) return null;
+    const match = classes.find((c) => String(c.id || c.docId) === String(sessionClassFilter));
+    return match?.nameEn || match?.name || match?.code || null;
+  }, [sessionClassFilter, classes]);
+  const showFullCalendarNav = !isClassesTab && (mainTab !== 'availability' || availabilityDataMode === 'timeline');
+  const isAvailTimeline = mainTab === 'availability' && availabilityDataMode === 'timeline';
+  const isAvailabilityTab = mainTab === 'availability';
+  const calendarSearchPlaceholder = useMemo(() => {
+    if (mainTab === 'sessions') {
+      if (scopeMode === 'instructor') return t('search_sessions_class_room');
+      if (scopeMode === 'room') return t('search_sessions_class_instructor');
+      return t('search_sessions_class_room_instructor');
+    }
+    if (mainTab === 'availability') {
+      if (availabilityDataMode === 'timeline') {
+        if (scopeMode === 'room') return t('search_timeline_room_events');
+        return t('search_timeline_instructor_events');
+      }
+      if (availabilityDataMode === 'workload') {
+        if (scopeMode === 'room') return t('search_workload_rooms');
+        return t('search_workload_instructors');
+      }
+      if (scopeMode === 'room') return t('search_defined_rooms');
+      return t('search_defined_instructors');
+    }
+    return t('search_rooms_instructors');
+  }, [mainTab, scopeMode, availabilityDataMode, t]);
+  const toolbarAccent = isAvailTimeline ? '#10b981' : '#3b82f6';
+  const toolbarView = isAvailTimeline ? availCalendarView : currentView;
+  const toolbarNavPrev = isAvailTimeline ? () => handleAvailCalendarNav('prev') : handlePrev;
+  const toolbarNavNext = isAvailTimeline ? () => handleAvailCalendarNav('next') : handleNext;
+  const toolbarNavToday = isAvailTimeline ? () => setAvailCalendarDate(new Date()) : handleToday;
+  const toolbarViewChange = isAvailTimeline ? setAvailCalendarView : handleViewChange;
+
+  const instructorPool = filteredInstructorUsers.length || instructors.length;
+
+  const overviewStatCards = useMemo(() => {
+    const card = (value, label, Icon, iconColor, iconBg) => ({ value, label, Icon, iconColor, iconBg });
+
+    if (isClassesTab) {
+      return [
+        card(stats.totalPrograms, t('stats_total_programs'), BookOpen, '#6366f1', '#e0e7ff'),
+        card(stats.totalSubjects, t('stats_total_subjects'), BookOpen, '#6366f1', '#e0e7ff'),
+        card(stats.totalClasses, t('stats_total_classes'), GraduationCap, '#8b5cf6', '#ede9fe'),
+        card(stats.classesWithSessions, t('stats_classes_with_sessions'), BookOpen, '#8b5cf6', '#ede9fe'),
+        card(stats.classesMissingSetup, t('stats_classes_missing_setup'), XCircle, STATUS_COLORS.cancelled, '#fee2e2'),
+        card(`${stats.uniqueClassrooms}/${classrooms.length}`, t('rooms_used'), DoorOpen, '#10b981', '#d1fae5'),
+        card(stats.unusedRooms, t('stats_rooms_unused'), DoorOpen, '#6b7280', '#f3f4f6')
+      ];
+    }
+
+    if (isAvailabilityTab) {
+      return [
+        card(stats.totalPrograms, t('stats_total_programs'), BookOpen, '#6366f1', '#e0e7ff'),
+        card(stats.totalSubjects, t('stats_total_subjects'), BookOpen, '#6366f1', '#e0e7ff'),
+        card(stats.totalClasses, t('stats_total_classes'), GraduationCap, '#8b5cf6', '#ede9fe'),
+        card(stats.instructorAvailRules, t('stats_instructor_avail_rules'), Users, '#10b981', '#d1fae5'),
+        card(stats.instructorsWithAvailability, t('stats_instructors_with_hours'), Users, '#10b981', '#d1fae5'),
+        card(stats.roomAvailRules, t('stats_room_avail_rules'), DoorOpen, '#10b981', '#d1fae5'),
+        card(stats.roomsWithAvailability, t('stats_rooms_with_hours'), DoorOpen, '#10b981', '#d1fae5'),
+        card(`${stats.uniqueClassrooms}/${classrooms.length}`, t('rooms_used'), DoorOpen, '#10b981', '#d1fae5'),
+        card(stats.unusedRooms, t('stats_rooms_unused'), DoorOpen, '#6b7280', '#f3f4f6'),
+        card(stats.unusedInstructors, t('stats_instructors_unused'), Users, '#6b7280', '#f3f4f6')
+      ];
+    }
+
+    return [
+      card(stats.totalPrograms, t('stats_total_programs'), BookOpen, '#6366f1', '#e0e7ff'),
+      card(stats.totalSubjects, t('stats_total_subjects'), BookOpen, '#6366f1', '#e0e7ff'),
+      card(stats.totalClasses, t('stats_total_classes'), GraduationCap, '#8b5cf6', '#ede9fe'),
+      card(stats.thisWeekSessions, t('this_week'), CalendarIcon, STATUS_COLORS.scheduled, '#dbeafe'),
+      card(stats.totalSessions, t('total_sessions'), Clock, STATUS_COLORS.scheduled, '#dbeafe'),
+      card(stats.scheduledCount, t('scheduled'), Save, STATUS_COLORS.scheduled, '#dbeafe'),
+      card(stats.inProgressCount, t('in_progress'), Clock, STATUS_COLORS.in_progress, '#fef3c7'),
+      card(stats.completedCount, t('completed'), CheckCircle2, STATUS_COLORS.completed, '#d1fae5'),
+      card(stats.cancelledCount, t('cancelled'), XCircle, STATUS_COLORS.cancelled, '#fee2e2'),
+      card(`${stats.uniqueClassrooms}/${classrooms.length}`, t('rooms_used'), DoorOpen, '#10b981', '#d1fae5'),
+      card(stats.unusedRooms, t('stats_rooms_unused'), DoorOpen, '#6b7280', '#f3f4f6'),
+      card(`${stats.uniqueInstructors}/${instructorPool}`, t('stats_instructors_active'), Users, '#f59e0b', '#fef3c7'),
+      card(stats.unusedInstructors, t('stats_instructors_unused'), Users, '#6b7280', '#f3f4f6'),
+      card(`${stats.avgDuration}h`, t('avg_duration'), BarChart3, '#ec4899', '#fce7f3')
+    ];
+  }, [isClassesTab, isAvailabilityTab, stats, classrooms.length, instructorPool, t]);
+
+  const statsSummary = useMemo(() => {
+    if (isClassesTab) {
+      return `${stats.totalPrograms} ${t('stats_total_programs')} · ${stats.totalSubjects} ${t('stats_total_subjects')} · ${stats.totalClasses} ${t('stats_total_classes')} · ${stats.unusedRooms} ${t('stats_rooms_unused')}`;
+    }
+    if (isAvailabilityTab) {
+      return `${stats.instructorAvailRules} ${t('stats_instructor_avail_rules')} · ${stats.unusedRooms} ${t('stats_rooms_unused')} · ${stats.unusedInstructors} ${t('stats_instructors_unused')}`;
+    }
+    return `${stats.totalPrograms} ${t('programs')} · ${stats.totalSubjects} ${t('subjects')} · ${stats.totalClasses} ${t('classes')} · ${stats.thisWeekSessions} ${t('this_week')} · ${stats.cancelledCount} ${t('cancelled')} · ${stats.unusedRooms} ${t('stats_rooms_unused')}`;
+  }, [isClassesTab, isAvailabilityTab, stats, t]);
+
+  const navBtnStyle = {
+    padding: '0.5rem',
+    backgroundColor: theme === 'dark' ? '#374151' : '#f9fafb',
+    border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`,
+    borderRadius: '0.375rem',
+    cursor: 'pointer',
+    color: theme === 'dark' ? '#f3f4f6' : '#1f2937'
+  };
+
   if (!hasPermission) {
     return (
       <div style={{ padding: '2rem', textAlign: 'center' }}>
@@ -733,7 +1738,7 @@ const SchedulingCalendarPage = () => {
   }
 
   if (loading) {
-    return <SimpleLoading message="Loading scheduling data..." />;
+    return <SimpleLoading message={t('loading_scheduling_data')} />;
   }
 
   const containerStyle = isFullscreen ? {
@@ -749,430 +1754,508 @@ const SchedulingCalendarPage = () => {
     padding: '1rem'
   } : {
     display: 'flex',
-    gap: '1rem',
-    padding: '1.5rem',
+    flexDirection: 'column',
+    gap: '0.375rem',
+    padding: '1rem',
     height: 'calc(100vh - 100px)'
   };
 
   return (
     <div style={containerStyle}>
-      {/* Statistics Bar - Compact */}
-      {showStats && !isFullscreen && (
+      {/* Statistics Bar - Collapsible */}
+      {!isFullscreen && (
+        <div style={{
+          width: '100%',
+          flexShrink: 0,
+          backgroundColor: theme === 'dark' ? '#1f2937' : '#f9fafb',
+          borderRadius: '0.5rem',
+          padding: showStats ? '0.625rem 0.75rem' : '0.375rem 0.75rem',
+          border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`
+        }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            gap: '0.5rem',
+            marginBottom: showStats ? '0.5rem' : 0
+          }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0, flex: 1 }}>
+              <BarChart3 size={16} color={theme === 'dark' ? '#9ca3af' : '#6b7280'} />
+              <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: theme === 'dark' ? '#f3f4f6' : '#1f2937', flexShrink: 0 }}>
+                {t('scheduling_overview')}
+              </span>
+              {!showStats && (
+                <span style={{
+                  fontSize: '0.75rem',
+                  color: theme === 'dark' ? '#9ca3af' : '#6b7280',
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis'
+                }}>
+                  {statsSummary}
+                </span>
+              )}
+            </div>
+            <button
+              onClick={() => setShowStats(!showStats)}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '0.125rem',
+                flexShrink: 0
+              }}
+              title={showStats ? t('collapse') : t('expand')}
+            >
+              {showStats
+                ? <ChevronUp size={16} color={theme === 'dark' ? '#9ca3af' : '#6b7280'} />
+                : <ChevronDown size={16} color={theme === 'dark' ? '#9ca3af' : '#6b7280'} />}
+            </button>
+          </div>
+          {showStats && (
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
-          gap: '0.75rem',
-          marginBottom: '1rem'
+          gap: '0.5rem'
         }}>
-          {/* This Week */}
-          <div style={{
-            backgroundColor: theme === 'dark' ? '#1f2937' : '#f9fafb',
-            borderRadius: '0.375rem',
-            padding: '0.75rem',
-            border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.75rem'
-          }}>
-            <div style={{ 
-              backgroundColor: '#dbeafe', 
-              borderRadius: '0.375rem', 
-              padding: '0.5rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <CalendarIcon size={16} color="#3b82f6" />
-            </div>
-            <div>
-              <div style={{ fontSize: '1.25rem', fontWeight: '700', lineHeight: 1 }}>{stats.thisWeekSessions}</div>
-              <div style={{ fontSize: '0.7rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '0.125rem' }}>This Week</div>
-            </div>
-          </div>
-
-          {/* Total Sessions */}
-          <div style={{
-            backgroundColor: theme === 'dark' ? '#1f2937' : '#f9fafb',
-            borderRadius: '0.375rem',
-            padding: '0.75rem',
-            border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.75rem'
-          }}>
-            <div style={{ 
-              backgroundColor: '#dbeafe', 
-              borderRadius: '0.375rem', 
-              padding: '0.5rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <Clock size={16} color="#3b82f6" />
-            </div>
-            <div>
-              <div style={{ fontSize: '1.25rem', fontWeight: '700', lineHeight: 1 }}>{stats.totalSessions}</div>
-              <div style={{ fontSize: '0.7rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '0.125rem' }}>Total Sessions</div>
-            </div>
-          </div>
-
-          {/* Scheduled */}
-          <div style={{
-            backgroundColor: theme === 'dark' ? '#1f2937' : '#f9fafb',
-            borderRadius: '0.375rem',
-            padding: '0.75rem',
-            border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.75rem'
-          }}>
-            <div style={{ 
-              backgroundColor: '#dbeafe', 
-              borderRadius: '0.375rem', 
-              padding: '0.5rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <Save size={16} color="#3b82f6" />
-            </div>
-            <div>
-              <div style={{ fontSize: '1.25rem', fontWeight: '700', lineHeight: 1 }}>{stats.scheduledCount}</div>
-              <div style={{ fontSize: '0.7rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '0.125rem' }}>Scheduled</div>
-            </div>
-          </div>
-
-          {/* Completed */}
-          <div style={{
-            backgroundColor: theme === 'dark' ? '#1f2937' : '#f9fafb',
-            borderRadius: '0.375rem',
-            padding: '0.75rem',
-            border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.75rem'
-          }}>
-            <div style={{ 
-              backgroundColor: '#d1fae5', 
-              borderRadius: '0.375rem', 
-              padding: '0.5rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <Save size={16} color="#10b981" />
-            </div>
-            <div>
-              <div style={{ fontSize: '1.25rem', fontWeight: '700', lineHeight: 1 }}>{stats.completedCount}</div>
-              <div style={{ fontSize: '0.7rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '0.125rem' }}>Completed</div>
-            </div>
-          </div>
-
-          {/* Classrooms */}
-          <div style={{
-            backgroundColor: theme === 'dark' ? '#1f2937' : '#f9fafb',
-            borderRadius: '0.375rem',
-            padding: '0.75rem',
-            border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.75rem'
-          }}>
-            <div style={{ 
-              backgroundColor: '#d1fae5', 
-              borderRadius: '0.375rem', 
-              padding: '0.5rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <DoorOpen size={16} color="#10b981" />
-            </div>
-            <div>
-              <div style={{ fontSize: '1.25rem', fontWeight: '700', lineHeight: 1 }}>{stats.uniqueClassrooms}/{classrooms.length}</div>
-              <div style={{ fontSize: '0.7rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '0.125rem' }}>Rooms Used</div>
-            </div>
-          </div>
-
-          {/* Instructors */}
-          <div style={{
-            backgroundColor: theme === 'dark' ? '#1f2937' : '#f9fafb',
-            borderRadius: '0.375rem',
-            padding: '0.75rem',
-            border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.75rem'
-          }}>
-            <div style={{ 
-              backgroundColor: '#fef3c7', 
-              borderRadius: '0.375rem', 
-              padding: '0.5rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <Users size={16} color="#f59e0b" />
-            </div>
-            <div>
-              <div style={{ fontSize: '1.25rem', fontWeight: '700', lineHeight: 1 }}>{stats.uniqueInstructors}/{instructors.length}</div>
-              <div style={{ fontSize: '0.7rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '0.125rem' }}>Instructors</div>
-            </div>
-          </div>
-
-          {/* Classes */}
-          <div style={{
-            backgroundColor: theme === 'dark' ? '#1f2937' : '#f9fafb',
-            borderRadius: '0.375rem',
-            padding: '0.75rem',
-            border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.75rem'
-          }}>
-            <div style={{ 
-              backgroundColor: '#e0e7ff', 
-              borderRadius: '0.375rem', 
-              padding: '0.5rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <BookOpen size={16} color="#6366f1" />
-            </div>
-            <div>
-              <div style={{ fontSize: '1.25rem', fontWeight: '700', lineHeight: 1 }}>{stats.uniqueClasses}</div>
-              <div style={{ fontSize: '0.7rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '0.125rem' }}>Classes</div>
-            </div>
-          </div>
-
-          {/* Avg Duration */}
-          <div style={{
-            backgroundColor: theme === 'dark' ? '#1f2937' : '#f9fafb',
-            borderRadius: '0.375rem',
-            padding: '0.75rem',
-            border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.75rem'
-          }}>
-            <div style={{ 
-              backgroundColor: '#fce7f3', 
-              borderRadius: '0.375rem', 
-              padding: '0.5rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center'
-            }}>
-              <BarChart3 size={16} color="#ec4899" />
-            </div>
-            <div>
-              <div style={{ fontSize: '1.25rem', fontWeight: '700', lineHeight: 1 }}>{stats.avgDuration}h</div>
-              <div style={{ fontSize: '0.7rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '0.125rem' }}>Avg Duration</div>
-            </div>
-          </div>
+          {overviewStatCards.map(({ value, label, Icon, iconColor, iconBg }) => (
+            <SchedulingStatCard
+              key={label}
+              value={value}
+              label={label}
+              Icon={Icon}
+              iconColor={iconColor}
+              iconBg={iconBg}
+              theme={theme}
+            />
+          ))}
+        </div>
+          )}
         </div>
       )}
 
-      <div style={{ display: 'flex', gap: '1rem', flex: 1, minHeight: 0 }}>
-        {/* Classes Sidebar */}
-        {showSidebar && !isFullscreen && (
-          <div style={{
-            width: '280px',
-            flexShrink: 0,
-            backgroundColor: theme === 'dark' ? '#1f2937' : '#f9fafb',
-            borderRadius: '0.5rem',
-            padding: '1rem',
-            border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`,
-            overflowY: 'auto'
-          }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                <BookOpen size={18} />
-                <h3 style={{ fontSize: '1rem', fontWeight: '600' }}>Classes</h3>
+      {/* Classes panel — horizontal, collapsed by default (sessions tab only) */}
+      {!isFullscreen && !isClassesTab && (
+        <div style={{
+          width: '100%',
+          flexShrink: 0,
+          backgroundColor: theme === 'dark' ? '#1f2937' : '#f9fafb',
+          borderRadius: '0.5rem',
+          padding: isClassesPanelExpanded ? '0.5rem 0.75rem' : '0.25rem 0.75rem',
+          border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`
+        }}>
+          <button
+            type="button"
+            onClick={() => setIsClassesPanelExpanded(!isClassesPanelExpanded)}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              width: '100%',
+              background: 'none',
+              border: 'none',
+              cursor: 'pointer',
+              padding: 0,
+              color: theme === 'dark' ? '#f3f4f6' : '#1f2937'
+            }}
+          >
+            <BookOpen size={16} />
+            <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>{t('classes_sidebar')}</span>
+            <span style={{ fontSize: '0.75rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginInlineStart: '0.25rem' }}>
+              {isClassesPanelExpanded ? t('drag_class_to_calendar') : `${filteredClasses.length} ${t('classes_count_label')}`}
+            </span>
+            <span style={{ marginInlineStart: 'auto', display: 'flex' }}>
+              {isClassesPanelExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+            </span>
+          </button>
+
+          {isClassesPanelExpanded && (
+            <>
+              <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                gap: '0.5rem',
+                marginTop: '0.375rem',
+                alignItems: 'center'
+              }}>
+                <Input
+                  type="text"
+                  placeholder={t('search_classes')}
+                  value={sidebarSearch}
+                  onChange={(e) => setSidebarSearch(e.target.value)}
+                  style={{ width: '100%', minWidth: 0 }}
+                />
+                <Select
+                  value={sidebarProgramFilter}
+                  onChange={(e) => {
+                    setSidebarProgramFilter(e.target.value);
+                    setSidebarSubjectFilter('');
+                  }}
+                  options={[{ value: '', label: t('all_programs') }, ...programs.map((p) => ({ value: String(p.id), label: p.nameEn || p.code }))]}
+                  style={{ width: '100%', minWidth: 0 }}
+                  fullWidth
+                />
+                <Select
+                  value={sidebarSubjectFilter}
+                  onChange={(e) => setSidebarSubjectFilter(e.target.value)}
+                  options={[{ value: '', label: t('all_subjects') }, ...subjects.filter((s) => !sidebarProgramFilter || s.programId === parseInt(sidebarProgramFilter)).map((s) => ({ value: String(s.id), label: s.nameEn || s.code }))]}
+                  disabled={!sidebarProgramFilter}
+                  style={{ width: '100%', minWidth: 0 }}
+                  fullWidth
+                />
               </div>
-              <button
-                onClick={() => setShowSidebar(false)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  cursor: 'pointer',
-                  padding: '0.25rem'
-                }}
-              >
-                <X size={18} color={theme === 'dark' ? '#9ca3af' : '#6b7280'} />
-              </button>
-            </div>
-            <p style={{ fontSize: '0.75rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginBottom: '1rem' }}>
-              Drag classes to the calendar to schedule
-            </p>
-
-            {/* Filters */}
-            <div style={{ marginBottom: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              <Input
-                type="text"
-                placeholder="Search classes..."
-                value={sidebarSearch}
-                onChange={(e) => setSidebarSearch(e.target.value)}
-              />
-              <Select
-                value={sidebarProgramFilter}
-                onChange={e => {
-                  setSidebarProgramFilter(e.target.value);
-                  setSidebarSubjectFilter('');
-                }}
-                options={[{ value: '', label: 'All Programs' }, ...programs.map(p => ({ value: String(p.id), label: p.nameEn || p.code }))]}
-              />
-              <Select
-                value={sidebarSubjectFilter}
-                onChange={e => setSidebarSubjectFilter(e.target.value)}
-                options={[{ value: '', label: 'All Subjects' }, ...subjects.filter(s => !sidebarProgramFilter || s.programId === parseInt(sidebarProgramFilter)).map(s => ({ value: String(s.id), label: s.nameEn || s.code }))]}
-                disabled={!sidebarProgramFilter}
-              />
-            </div>
-
-            {/* Classes List */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-              {filteredClasses.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '2rem 1rem', color: theme === 'dark' ? '#6b7280' : '#9ca3af', fontSize: '0.875rem' }}>
-                  No classes found
-                </div>
-              ) : (
-                filteredClasses.map(classItem => {
-                  const subject = subjects.find(s => s.id === classItem.subjectId);
-                  const instructor = instructors.find(i => i.id === classItem.instructorId);
-                  const classroom = classrooms.find(c => c.id === classItem.classroomId);
-                  
-                  return (
-                    <div
-                      key={classItem.id}
-                      draggable
-                      onDragStart={(e) => handleClassDragStart(e, classItem)}
-                      style={{
-                        padding: '0.75rem',
-                        backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
-                        borderRadius: '0.375rem',
-                        border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`,
-                        cursor: 'grab',
-                        transition: 'all 0.2s'
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '600', fontSize: '0.875rem', marginBottom: '0.25rem' }}>
-                        <BookOpen size={14} />
-                        {classItem.nameEn || classItem.code}
+              <div style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '0.75rem',
+                marginTop: '0.5rem',
+                fontSize: '0.7rem',
+                color: theme === 'dark' ? '#9ca3af' : '#6b7280',
+                alignItems: 'center'
+              }}>
+                <SchedulingLegendItem
+                  color={STATUS_COLORS.cancelled}
+                  label={t('legend_class_missing_setup')}
+                />
+                <SchedulingLegendItem
+                  color={theme === 'dark' ? '#374151' : '#e5e7eb'}
+                  border={`1px solid ${theme === 'dark' ? '#4b5563' : '#d1d5db'}`}
+                  label={t('legend_class_ready')}
+                />
+                <SchedulingLegendItem
+                  color="#f59e0b"
+                  label={t('legend_subject_filter_locked')}
+                />
+              </div>
+              <div style={{
+                display: 'flex',
+                gap: '0.5rem',
+                marginTop: '0.5rem',
+                overflowX: 'auto',
+                paddingBottom: '0.25rem',
+                scrollbarWidth: 'thin'
+              }}>
+                {filteredClasses.length === 0 ? (
+                  <div style={{ padding: '0.5rem', color: theme === 'dark' ? '#6b7280' : '#9ca3af', fontSize: '0.8125rem' }}>
+                    {t('no_classes_found')}
+                  </div>
+                ) : (
+                  filteredClasses.map((classItem) => {
+                    const subject = subjects.find((s) => s.id === classItem.subjectId);
+                    const instructor = instructors.find((i) => i.id === classItem.instructorId);
+                    const classroom = classrooms.find((c) => c.id === classItem.classroomId);
+                    const missing = !instructor || !classroom;
+                    return (
+                      <div
+                        key={classItem.id}
+                        draggable
+                        onDragStart={(e) => handleClassDragStart(e, classItem)}
+                        title={missing ? (!instructor ? t('missing_instructor') : t('missing_classroom')) : undefined}
+                        style={{
+                          flexShrink: 0,
+                          minWidth: '130px',
+                          maxWidth: '170px',
+                          padding: '0.4rem 0.55rem',
+                          backgroundColor: theme === 'dark' ? '#111827' : '#ffffff',
+                          borderRadius: '0.375rem',
+                          border: `1px solid ${missing ? '#fca5a5' : theme === 'dark' ? '#374151' : '#e5e7eb'}`,
+                          cursor: 'grab',
+                          fontSize: '0.8125rem'
+                        }}
+                      >
+                        <div style={{ fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          {classItem.nameEn || classItem.code}
+                        </div>
+                        {subject && (
+                          <div style={{ fontSize: '0.7rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {subject.nameEn}
+                          </div>
+                        )}
+                        {instructor && (
+                          <div style={{ fontSize: '0.65rem', color: theme === 'dark' ? '#6b7280' : '#9ca3af', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {instructor.displayName || instructor.firstName}
+                          </div>
+                        )}
                       </div>
-                      {subject && (
-                        <div style={{ fontSize: '0.75rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginLeft: '1.25rem' }}>
-                          {subject.nameEn}
-                        </div>
-                      )}
-                      {instructor && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.7rem', color: theme === 'dark' ? '#6b7280' : '#9ca3af', marginLeft: '1.25rem' }}>
-                          <User size={12} />
-                          {instructor.displayName || instructor.firstName}
-                        </div>
-                      )}
-                      {classroom && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.7rem', color: theme === 'dark' ? '#6b7280' : '#9ca3af', marginLeft: '1.25rem' }}>
-                          <DoorOpen size={12} />
-                          {classroom.code}
-                        </div>
-                      )}
-                      {(!instructor || !classroom) && (
-                        <div style={{ fontSize: '0.7rem', color: '#ef4444', marginTop: '0.25rem', marginLeft: '1.25rem' }}>
-                          ⚠️ Missing {!instructor ? 'instructor' : 'classroom'}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })
-              )}
-            </div>
-          </div>
-        )}
+                    );
+                  })
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      )}
 
+      <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
         {/* Main Calendar */}
-        <div 
-          style={{ 
-            flex: 1, 
-            minWidth: 0, 
-            backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff', 
-            borderRadius: '0.5rem', 
-            padding: '1rem',
+        <div
+          style={{
+            flex: 1,
+            minWidth: 0,
+            backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
+            borderRadius: '0.5rem',
+            padding: '0.75rem',
             display: 'flex',
             flexDirection: 'column'
           }}
           onDrop={handleCalendarDrop}
           onDragOver={handleCalendarDragOver}
         >
-          {/* Toolbar */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-              {!showSidebar && !isFullscreen && (
-                <button
-                  onClick={() => setShowSidebar(true)}
-                  style={{
-                    padding: '0.5rem',
-                    backgroundColor: theme === 'dark' ? '#374151' : '#f9fafb',
-                    border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`,
-                    borderRadius: '0.375rem',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.25rem'
-                  }}
-                >
-                  <BookOpen size={16} />
-                </button>
-              )}
-              
-              <button onClick={handlePrev} style={{ padding: '0.5rem', backgroundColor: theme === 'dark' ? '#374151' : '#f9fafb', border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`, borderRadius: '0.375rem', cursor: 'pointer', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
-                <ChevronLeft size={16} />
-              </button>
-              
-              <button onClick={handleToday} style={{ padding: '0.5rem 1rem', backgroundColor: theme === 'dark' ? '#374151' : '#f9fafb', border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`, borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.875rem', fontWeight: '500', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
-                {t('today')}
-              </button>
-              
-              <button onClick={handleNext} style={{ padding: '0.5rem', backgroundColor: theme === 'dark' ? '#374151' : '#f9fafb', border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`, borderRadius: '0.375rem', cursor: 'pointer', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
-                <ChevronRight size={16} />
-              </button>
-
-              <h1 style={{ fontSize: '1.25rem', fontWeight: '600', marginLeft: '0.5rem' }}>
-                {currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}
-              </h1>
-            </div>
-            
-            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-              <button onClick={() => handleViewChange('day')} style={{ padding: '0.5rem 1rem', backgroundColor: currentView === 'day' ? '#3b82f6' : theme === 'dark' ? '#374151' : '#f9fafb', color: currentView === 'day' ? '#ffffff' : 'inherit', border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`, borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.875rem' }}>
-                {t('day')}
-              </button>
-              <button onClick={() => handleViewChange('week')} style={{ padding: '0.5rem 1rem', backgroundColor: currentView === 'week' ? '#3b82f6' : theme === 'dark' ? '#374151' : '#f9fafb', color: currentView === 'week' ? '#ffffff' : 'inherit', border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`, borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.875rem' }}>
-                {t('week')}
-              </button>
-              <button onClick={() => handleViewChange('month')} style={{ padding: '0.5rem 1rem', backgroundColor: currentView === 'month' ? '#3b82f6' : theme === 'dark' ? '#374151' : '#f9fafb', color: currentView === 'month' ? '#ffffff' : 'inherit', border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`, borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.875rem' }}>
-                {t('month')}
-              </button>
-              
-              <button onClick={() => setHideWeekends(!hideWeekends)} style={{ padding: '0.5rem 1rem', backgroundColor: hideWeekends ? '#3b82f6' : theme === 'dark' ? '#374151' : '#f9fafb', color: hideWeekends ? '#ffffff' : 'inherit', border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`, borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.875rem' }}>
-                {t('hide_weekends')}
-              </button>
-              
-              <button onClick={toggleFullscreen} style={{ padding: '0.5rem', backgroundColor: theme === 'dark' ? '#374151' : '#f9fafb', border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`, borderRadius: '0.375rem', cursor: 'pointer', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
-                {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
-              </button>
-            </div>
-          </div>
-
           {/* View Mode Selector and Filters */}
-          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap', marginBottom: '1rem' }}>
-            <span style={{ fontSize: '0.875rem', fontWeight: '500', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>{t('view')}:</span>
+          <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap', marginBottom: '1rem', width: '100%' }}>
+            {/* Tab Ribbon: Sessions | Availability → scope */}
+            <div style={{ 
+              display: 'flex', 
+              gap: '0.25rem', 
+              flexWrap: 'wrap',
+              backgroundColor: theme === 'dark' ? '#1f2937' : '#f3f4f6',
+              padding: '0.25rem',
+              borderRadius: '0.5rem',
+              border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`
+            }}>
+              <button
+                onClick={() => { setMainTab('sessions'); setScopeMode('all'); setSelectedInstructor(null); setSelectedRoom(null); }}
+                style={{
+                  padding: '0.5rem 1rem',
+                  backgroundColor: mainTab === 'sessions' ? '#3b82f6' : 'transparent',
+                  color: mainTab === 'sessions' ? '#ffffff' : theme === 'dark' ? '#9ca3af' : '#6b7280',
+                  border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.875rem',
+                  fontWeight: mainTab === 'sessions' ? 600 : 400,
+                  display: 'flex', alignItems: 'center', gap: '0.5rem'
+                }}
+              >
+                <CalendarIcon size={14} />
+                {t('main_tab_sessions')}
+              </button>
+              <button
+                onClick={() => { setMainTab('availability'); setScopeMode(scopeMode === 'room' ? 'room' : 'instructor'); }}
+                style={{
+                  padding: '0.5rem 1rem',
+                  backgroundColor: mainTab === 'availability' ? '#10b981' : 'transparent',
+                  color: mainTab === 'availability' ? '#ffffff' : theme === 'dark' ? '#9ca3af' : '#6b7280',
+                  border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.875rem',
+                  fontWeight: mainTab === 'availability' ? 600 : 400,
+                  display: 'flex', alignItems: 'center', gap: '0.5rem'
+                }}
+              >
+                <BarChart3 size={14} />
+                {t('main_tab_availability')}
+              </button>
+              <button
+                onClick={() => {
+                  setMainTab('classes');
+                  setSessionClassFilter(null);
+                  setSearchParams((prev) => {
+                    const next = new URLSearchParams(prev);
+                    next.set('tab', 'classes');
+                    next.delete('classId');
+                    return next;
+                  }, { replace: true });
+                }}
+                style={{
+                  padding: '0.5rem 1rem',
+                  backgroundColor: mainTab === 'classes' ? '#8b5cf6' : 'transparent',
+                  color: mainTab === 'classes' ? '#ffffff' : theme === 'dark' ? '#9ca3af' : '#6b7280',
+                  border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.875rem',
+                  fontWeight: mainTab === 'classes' ? 600 : 400,
+                  display: 'flex', alignItems: 'center', gap: '0.5rem'
+                }}
+              >
+                <GraduationCap size={14} />
+                {t('main_tab_classes')}
+              </button>
+
+              <div style={{ width: '1px', backgroundColor: theme === 'dark' ? '#374151' : '#d1d5db', margin: '0 0.25rem' }} />
+
+              {mainTab === 'sessions' && (
+                <>
+                  <button
+                    onClick={() => { setScopeMode('all'); setSelectedInstructor(null); setSelectedRoom(null); }}
+                    title={t('all_sessions')}
+                    style={{
+                      padding: '0.5rem 0.75rem',
+                      backgroundColor: scopeMode === 'all' ? '#3b82f6' : 'transparent',
+                      color: scopeMode === 'all' ? '#ffffff' : theme === 'dark' ? '#9ca3af' : '#6b7280',
+                      border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.875rem',
+                      fontWeight: scopeMode === 'all' ? 600 : 400
+                    }}
+                  >
+                    {t('all')}
+                  </button>
+                  <button
+                    onClick={() => { setScopeMode('instructor'); setSelectedRoom(null); }}
+                    title={t('by_instructor')}
+                    style={{
+                      padding: '0.5rem',
+                      backgroundColor: scopeMode === 'instructor' ? '#3b82f6' : 'transparent',
+                      color: scopeMode === 'instructor' ? '#ffffff' : theme === 'dark' ? '#9ca3af' : '#6b7280',
+                      border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.875rem',
+                      fontWeight: scopeMode === 'instructor' ? 600 : 400,
+                      display: 'flex', alignItems: 'center'
+                    }}
+                  >
+                    <User size={16} />
+                  </button>
+                  <button
+                    onClick={() => { setScopeMode('room'); setSelectedInstructor(null); }}
+                    title={t('by_room')}
+                    style={{
+                      padding: '0.5rem',
+                      backgroundColor: scopeMode === 'room' ? '#3b82f6' : 'transparent',
+                      color: scopeMode === 'room' ? '#ffffff' : theme === 'dark' ? '#9ca3af' : '#6b7280',
+                      border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.875rem',
+                      fontWeight: scopeMode === 'room' ? 600 : 400,
+                      display: 'flex', alignItems: 'center'
+                    }}
+                  >
+                    <DoorOpen size={16} />
+                  </button>
+                </>
+              )}
+
+              {mainTab === 'availability' && (
+                <>
+                  <button
+                    onClick={() => setScopeMode('instructor')}
+                    title={t('by_instructor')}
+                    style={{
+                      padding: '0.5rem',
+                      backgroundColor: scopeMode === 'instructor' ? '#10b981' : 'transparent',
+                      color: scopeMode === 'instructor' ? '#ffffff' : theme === 'dark' ? '#9ca3af' : '#6b7280',
+                      border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.875rem',
+                      fontWeight: scopeMode === 'instructor' ? 600 : 400,
+                      display: 'flex', alignItems: 'center'
+                    }}
+                  >
+                    <User size={16} />
+                  </button>
+                  <button
+                    onClick={() => setScopeMode('room')}
+                    title={t('by_room')}
+                    style={{
+                      padding: '0.5rem',
+                      backgroundColor: scopeMode === 'room' ? '#10b981' : 'transparent',
+                      color: scopeMode === 'room' ? '#ffffff' : theme === 'dark' ? '#9ca3af' : '#6b7280',
+                      border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.875rem',
+                      fontWeight: scopeMode === 'room' ? 600 : 400,
+                      display: 'flex', alignItems: 'center'
+                    }}
+                  >
+                    <DoorOpen size={16} />
+                  </button>
+
+                  <div style={{ width: '1px', backgroundColor: theme === 'dark' ? '#374151' : '#d1d5db', margin: '0 0.25rem' }} />
+
+                  {[
+                    { mode: 'defined', Icon: LayoutList, titleKey: 'defined_hours_view', activeColor: '#10b981' },
+                    { mode: 'timeline', Icon: CalendarDays, titleKey: 'timeline_view', activeColor: '#10b981' },
+                    { mode: 'workload', Icon: BarChart3, titleKey: 'scheduled_workload_view', activeColor: '#3b82f6' }
+                  ].map(({ mode, Icon, titleKey, activeColor }) => (
+                    <button
+                      key={mode}
+                      type="button"
+                      onClick={() => setAvailabilityDataMode(mode)}
+                      title={t(titleKey)}
+                      aria-label={t(titleKey)}
+                      style={{
+                        padding: '0.5rem',
+                        backgroundColor: availabilityDataMode === mode ? activeColor : 'transparent',
+                        color: availabilityDataMode === mode ? '#ffffff' : theme === 'dark' ? '#9ca3af' : '#6b7280',
+                        border: 'none',
+                        borderRadius: '0.375rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                    >
+                      <Icon size={16} />
+                    </button>
+                  ))}
+
+                  {availabilityDataMode === 'workload' && (
+                    <>
+                      <div style={{ width: '1px', backgroundColor: theme === 'dark' ? '#374151' : '#d1d5db', margin: '0 0.25rem' }} />
+                      {[
+                        { mode: 'tree', Icon: List, titleKey: 'tree_view' },
+                        { mode: 'table', Icon: Grid, titleKey: 'table_view' },
+                        { mode: 'drill', Icon: BarChart3, titleKey: 'drill_down_view' }
+                      ].map(({ mode, Icon, titleKey }) => (
+                        <button
+                          key={mode}
+                          type="button"
+                          onClick={() => setWorkloadViewMode(mode)}
+                          title={t(titleKey)}
+                          aria-label={t(titleKey)}
+                          style={{
+                            padding: '0.5rem',
+                            backgroundColor: workloadViewMode === mode ? '#3b82f6' : 'transparent',
+                            color: workloadViewMode === mode ? '#ffffff' : theme === 'dark' ? '#9ca3af' : '#6b7280',
+                            border: 'none',
+                            borderRadius: '0.375rem',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                        >
+                          <Icon size={16} />
+                        </button>
+                      ))}
+                    </>
+                  )}
+                </>
+              )}
+
+              {mainTab === 'classes' && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setClassesViewMode('semester')}
+                    title={t('semester_overview')}
+                    aria-label={t('semester_overview')}
+                    style={{
+                      padding: '0.5rem',
+                      backgroundColor: classesViewMode === 'semester' ? '#8b5cf6' : 'transparent',
+                      color: classesViewMode === 'semester' ? '#ffffff' : theme === 'dark' ? '#9ca3af' : '#6b7280',
+                      border: 'none',
+                      borderRadius: '0.375rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center'
+                    }}
+                  >
+                    <List size={16} />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setClassesViewMode('grid')}
+                    title={t('grid_view')}
+                    aria-label={t('grid_view')}
+                    style={{
+                      padding: '0.5rem',
+                      backgroundColor: classesViewMode === 'grid' ? '#8b5cf6' : 'transparent',
+                      color: classesViewMode === 'grid' ? '#ffffff' : theme === 'dark' ? '#9ca3af' : '#6b7280',
+                      border: 'none',
+                      borderRadius: '0.375rem',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center'
+                    }}
+                  >
+                    <LayoutGrid size={16} />
+                  </button>
+                </>
+              )}
+            </div>
             
             {/* Quick Search */}
+            {!isClassesTab && (
             <Input
-              placeholder={t('search_rooms_instructors')}
+              placeholder={calendarSearchPlaceholder}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
+              theme={theme}
               style={{ 
                 padding: '0.5rem',
                 border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`,
@@ -1183,84 +2266,191 @@ const SchedulingCalendarPage = () => {
                 minWidth: '200px'
               }}
             />
-            
-            <button 
-              onClick={() => { setViewMode('all'); setSelectedInstructor(null); setSelectedRoom(null); }} 
-              style={{ 
-                padding: '0.5rem 1rem', 
-                backgroundColor: viewMode === 'all' ? '#3b82f6' : theme === 'dark' ? '#374151' : '#f9fafb', 
-                color: viewMode === 'all' ? '#ffffff' : 'inherit', 
-                border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`, 
-                borderRadius: '0.375rem', 
-                cursor: 'pointer', 
-                fontSize: '0.875rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.25rem'
-              }}
-            >
-              <CalendarIcon size={14} />
-              {t('all_sessions')}
-            </button>
-            
-            <button 
-              onClick={() => setViewMode('instructor')} 
-              style={{ 
-                padding: '0.5rem 1rem', 
-                backgroundColor: viewMode === 'instructor' ? '#3b82f6' : theme === 'dark' ? '#374151' : '#f9fafb', 
-                color: viewMode === 'instructor' ? '#ffffff' : 'inherit', 
-                border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`, 
-                borderRadius: '0.375rem', 
-                cursor: 'pointer', 
-                fontSize: '0.875rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.25rem'
-              }}
-            >
-              <User size={14} />
-              By Instructor
-            </button>
-            
-            <button 
-              onClick={() => setViewMode('room')} 
-              style={{ 
-                padding: '0.5rem 1rem', 
-                backgroundColor: viewMode === 'room' ? '#3b82f6' : theme === 'dark' ? '#374151' : '#f9fafb', 
-                color: viewMode === 'room' ? '#ffffff' : 'inherit', 
-                border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`, 
-                borderRadius: '0.375rem', 
-                cursor: 'pointer', 
-                fontSize: '0.875rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.25rem'
-              }}
-            >
-              <DoorOpen size={14} />
-              By Room
-            </button>
-            
-            <button 
-              onClick={() => setViewMode('availability')} 
-              style={{ 
-                padding: '0.5rem 1rem', 
-                backgroundColor: viewMode === 'availability' ? '#10b981' : theme === 'dark' ? '#374151' : '#f9fafb', 
-                color: viewMode === 'availability' ? '#ffffff' : 'inherit', 
-                border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`, 
-                borderRadius: '0.375rem', 
-                cursor: 'pointer', 
-                fontSize: '0.875rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.25rem'
-              }}
-            >
-              <CalendarIcon size={14} />
-              {t('availability_view')}
-            </button>
+            )}
 
-            {viewMode === 'instructor' && (
+            {mainTab === 'sessions' && sessionClassFilterLabel && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSessionClassFilter(null);
+                  setSearchParams((prev) => {
+                    const next = new URLSearchParams(prev);
+                    next.delete('classId');
+                    return next;
+                  }, { replace: true });
+                }}
+                title={t('clear_class_filter')}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.35rem',
+                  padding: '0.35rem 0.65rem',
+                  borderRadius: '999px',
+                  border: '1px solid #8b5cf6',
+                  background: '#8b5cf620',
+                  color: '#8b5cf6',
+                  fontSize: '0.8125rem',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap'
+                }}
+              >
+                <GraduationCap size={14} />
+                {sessionClassFilterLabel}
+                <span style={{ opacity: 0.7 }}>×</span>
+              </button>
+            )}
+
+            {showFullCalendarNav && (
+              <>
+                <button type="button" onClick={toolbarNavPrev} style={navBtnStyle} aria-label="Previous">
+                  <ChevronLeft size={16} />
+                </button>
+                <button type="button" onClick={toolbarNavToday} style={navBtnStyle} title={t('today')}>
+                  <CalendarIcon size={16} />
+                </button>
+                <button type="button" onClick={toolbarNavNext} style={navBtnStyle} aria-label="Next">
+                  <ChevronRight size={16} />
+                </button>
+                {['day', 'week', 'month'].map((view) => (
+                  <button
+                    key={view}
+                    type="button"
+                    onClick={() => toolbarViewChange(view)}
+                    style={{
+                      ...navBtnStyle,
+                      padding: '0.5rem 1rem',
+                      backgroundColor: toolbarView === view ? toolbarAccent : navBtnStyle.backgroundColor,
+                      color: toolbarView === view ? '#ffffff' : navBtnStyle.color
+                    }}
+                  >
+                    {t(view)}
+                  </button>
+                ))}
+              </>
+            )}
+
+            {(mainTab === 'sessions' || isAvailTimeline) && !isClassesTab && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setHideWeekends(!hideWeekends)}
+                  style={{
+                    ...navBtnStyle,
+                    backgroundColor: hideWeekends ? toolbarAccent : navBtnStyle.backgroundColor,
+                    color: hideWeekends ? '#ffffff' : navBtnStyle.color
+                  }}
+                  title={t('hide_weekends')}
+                >
+                  <CalendarOff size={16} />
+                </button>
+                <button type="button" onClick={toggleFullscreen} style={navBtnStyle}>
+                  {isFullscreen ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
+                </button>
+              </>
+            )}
+
+            {mainTab === 'availability' && scopeMode === 'instructor' && (
+              <UserSelect
+                users={filteredInstructorUsers}
+                enrollments={enrollments}
+                classes={classes}
+                value={selectedInstructor ? filteredInstructorUsers.find(u => u.id === selectedInstructor)?.email : null}
+                onChange={(selectedEmail) => {
+                  const inst = filteredInstructorUsers.find(u => u.email === selectedEmail);
+                  setSelectedInstructor(inst ? inst.id : null);
+                }}
+                placeholder={t('select_instructor')}
+                roleFilter={[]}
+                showLabels={false}
+                useEmailAsValue={true}
+                style={INSTRUCTOR_SELECT_WIDTH}
+              />
+            )}
+
+            {mainTab === 'availability' && scopeMode === 'room' && (
+              <Select
+                value={selectedRoom || ''}
+                onChange={(e) => setSelectedRoom(e.target.value ? parseInt(e.target.value) : null)}
+                theme={theme}
+                options={[
+                  { value: '', label: t('select_room') },
+                  ...classrooms.map(c => ({ value: String(c.id), label: c.nameEn || c.code }))
+                ]}
+                style={INSTRUCTOR_SELECT_WIDTH}
+              />
+            )}
+
+            {isAvailabilityTab && !isClassesTab && (availabilityDataMode === 'defined' || availabilityDataMode === 'timeline') && (
+              <>
+                <input
+                  type="date"
+                  value={definedAvailFrom}
+                  onChange={(e) => setDefinedAvailFrom(e.target.value)}
+                  title={t('availability_from')}
+                  aria-label={t('availability_from')}
+                  style={{
+                    padding: '0.5rem',
+                    borderRadius: '0.375rem',
+                    border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`,
+                    backgroundColor: theme === 'dark' ? '#374151' : '#ffffff',
+                    color: theme === 'dark' ? '#f3f4f6' : '#1f2937',
+                    fontSize: '0.875rem'
+                  }}
+                />
+                <span style={{ color: theme === 'dark' ? '#6b7280' : '#9ca3af', fontSize: '0.875rem' }}>–</span>
+                <input
+                  type="date"
+                  value={definedAvailTo}
+                  onChange={(e) => setDefinedAvailTo(e.target.value)}
+                  title={t('availability_to')}
+                  aria-label={t('availability_to')}
+                  style={{
+                    padding: '0.5rem',
+                    borderRadius: '0.375rem',
+                    border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`,
+                    backgroundColor: theme === 'dark' ? '#374151' : '#ffffff',
+                    color: theme === 'dark' ? '#f3f4f6' : '#1f2937',
+                    fontSize: '0.875rem'
+                  }}
+                />
+              </>
+            )}
+
+            {/* Status Filter - Icon Buttons */}
+            {mainTab !== 'availability' && !isClassesTab && (
+              <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center', flexShrink: 0 }} title={t('filter_by_status')}>
+                {SESSION_STATUS_OPTIONS.map(opt => {
+                  const IconComponent = opt.iconName === 'List' ? List : 
+                                       opt.iconName === 'Calendar' ? CalendarIcon :
+                                       opt.iconName === 'Clock' ? Clock :
+                                       opt.iconName === 'CheckCircle2' ? CheckCircle2 :
+                                       opt.iconName === 'XCircle' ? XCircle : List;
+                  
+                  return (
+                    <button
+                      key={opt.value}
+                      onClick={() => setStatusFilter(opt.value)}
+                      style={{
+                        padding: '0.5rem',
+                        backgroundColor: statusFilter === opt.value ? '#3b82f6' : theme === 'dark' ? '#374151' : '#f9fafb',
+                        color: statusFilter === opt.value ? '#ffffff' : 'inherit',
+                        border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`,
+                        borderRadius: '0.375rem',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        flexShrink: 0
+                      }}
+                      title={t(opt.labelKey)}
+                    >
+                      <IconComponent size={16} />
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
+            {mainTab === 'sessions' && scopeMode === 'instructor' && (
               <UserSelect
                 users={filteredInstructorUsers}
                 enrollments={enrollments}
@@ -1270,96 +2460,30 @@ const SchedulingCalendarPage = () => {
                   const selectedInstructor = filteredInstructorUsers.find(u => u.email === selectedEmail);
                   setSelectedInstructor(selectedInstructor ? selectedInstructor.id : null);
                 }}
-                placeholder="Select Instructor"
+                placeholder={t('select_instructor')}
                 roleFilter={[]}
                 showLabels={false}
                 useEmailAsValue={true}
-                style={{ minWidth: '200px' }}
+                style={INSTRUCTOR_SELECT_WIDTH}
               />
             )}
 
-            {viewMode === 'room' && (
+            {mainTab === 'sessions' && scopeMode === 'room' && (
               <Select
                 value={selectedRoom || ''}
                 onChange={(e) => setSelectedRoom(e.target.value ? parseInt(e.target.value) : null)}
                 options={[
-                  { value: '', label: 'Select Room' },
+                  { value: '', label: t('select_room') },
                   ...classrooms.map(c => ({ value: String(c.id), label: c.nameEn || c.code }))
                 ]}
               />
             )}
 
-            {/* Tree View Toggle */}
-            {searchQuery && (
-              <button
-                onClick={() => setViewMode('tree')}
-                style={{
-                  padding: '0.5rem 1rem',
-                  backgroundColor: viewMode === 'tree' ? '#10b981' : theme === 'dark' ? '#374151' : '#f9fafb',
-                  color: viewMode === 'tree' ? '#ffffff' : 'inherit',
-                  border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`,
-                  borderRadius: '0.375rem',
-                  cursor: 'pointer',
-                  fontSize: '0.875rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.25rem'
-                }}
-              >
-                <BarChart3 size={14} />
-                Tree View
-              </button>
+            {isAvailTimeline && (
+              <div style={{ marginInlineStart: 'auto' }}>
+                <AvailabilityTimelineLegend t={t} theme={theme} />
+              </div>
             )}
-            
-            {viewMode === 'availability' && (
-              <>
-                <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-                  <button
-                    onClick={() => setAvailabilityType('instructor')}
-                    style={{
-                      padding: '0.5rem 1rem',
-                      backgroundColor: availabilityType === 'instructor' ? '#3b82f6' : theme === 'dark' ? '#374151' : '#f9fafb',
-                      color: availabilityType === 'instructor' ? '#ffffff' : 'inherit',
-                      border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`,
-                      borderRadius: '0.375rem',
-                      cursor: 'pointer',
-                      fontSize: '0.875rem'
-                    }}
-                  >
-                    <User size={14} style={{ display: 'inline', marginRight: '0.25rem' }} />
-                    Instructors
-                  </button>
-                  <button
-                    onClick={() => setAvailabilityType('room')}
-                    style={{
-                      padding: '0.5rem 1rem',
-                      backgroundColor: availabilityType === 'room' ? '#3b82f6' : theme === 'dark' ? '#374151' : '#f9fafb',
-                      color: availabilityType === 'room' ? '#ffffff' : 'inherit',
-                      border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`,
-                      borderRadius: '0.375rem',
-                      cursor: 'pointer',
-                      fontSize: '0.875rem'
-                    }}
-                  >
-                    <DoorOpen size={14} style={{ display: 'inline', marginRight: '0.25rem' }} />
-                    {t('room_view')}
-                  </button>
-                </div>
-              </>
-            )}
-            
-            {/* Status Filter */}
-            <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginLeft: 'auto' }}>
-              <span style={{ fontSize: '0.875rem', fontWeight: '500', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>{t('status')}:</span>
-              <Select
-                value={statusFilter}
-                onChange={(value) => setStatusFilter(value)}
-                options={SESSION_STATUS_OPTIONS.map(opt => ({
-                  value: opt.value,
-                  label: `${opt.icon || ''} ${t(opt.labelKey)}`
-                }))}
-              />
-            </div>
           </div>
 
           {/* Conflict/Suggestions Alert */}
@@ -1424,272 +2548,732 @@ const SchedulingCalendarPage = () => {
             </div>
           )}
 
-          <div style={{ flex: 1, minHeight: 0 }}>
-            {viewMode === 'availability' ? (
+          <div style={{ flex: 1, minHeight: isClassesTab ? 0 : SESSION_CALENDAR_HEIGHT, width: '100%', display: 'flex', flexDirection: 'column' }}>
+            {isClassesTab ? (
+              <SchedulingClassesView
+                classes={classes}
+                programs={programs}
+                subjects={subjects}
+                instructors={instructors}
+                enrollments={enrollments}
+                scheduledSessions={scheduledSessions}
+                theme={theme}
+                t={t}
+                lang={lang}
+                isRTL={isRTL}
+                viewMode={classesViewMode}
+                onSelectClass={navigateToClassOnCalendar}
+              />
+            ) : mainTab === 'availability' ? (
               <div style={{ 
                 height: '100%', 
-                overflowY: 'auto',
+                overflowY: availabilityDataMode === 'timeline' ? 'hidden' : 'auto',
+                display: 'flex',
+                flexDirection: 'column',
                 backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
                 borderRadius: '0.5rem',
                 padding: '1rem'
               }}>
-                <h3 style={{ fontSize: '1.125rem', fontWeight: '600', marginBottom: '1rem' }}>
-                  {availabilityType === 'instructor' ? 'Instructor Availability' : 'Room Availability'}
-                </h3>
+                {/* Content area — view mode toggles live in tab ribbon */}
+                <div style={{ marginBottom: '0.5rem', flexShrink: 0 }}>
+                  {availabilityDataMode === 'defined' && (
+                    <SchedulingDefinedAvailabilityCards
+                      groups={scopeMode === 'instructor' ? groupedInstructorDefined : groupedRoomDefined}
+                      type={scopeMode === 'instructor' ? 'instructor' : 'room'}
+                      theme={theme}
+                      t={t}
+                      lang={lang}
+                      emptyMessage={scopeMode === 'instructor'
+                        ? t('no_instructor_availability_defined')
+                        : t('no_room_availability_defined')}
+                    />
+                  )}
+
+                  {availabilityDataMode === 'timeline' && (
+                    <div
+                      style={{
+                        flex: '0 0 auto',
+                        width: '100%',
+                        maxWidth: '100%',
+                        minWidth: 0,
+                        minHeight: SESSION_CALENDAR_HEIGHT,
+                        height: SESSION_CALENDAR_HEIGHT,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        overflow: 'hidden'
+                      }}
+                    >
+                      <SchedulingAvailabilityTimeline
+                        events={availabilityTimelineEvents}
+                        currentDate={availCalendarDate}
+                        currentView={availCalendarView}
+                        theme={theme}
+                        lang={lang}
+                        t={t}
+                        isActive={availabilityDataMode === 'timeline'}
+                        hideWeekends={hideWeekends}
+                        layoutRevision={calendarLayoutKey}
+                      />
+                    </div>
+                  )}
+
+                  {availabilityDataMode === 'workload' && (
+                  <>
+                  <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap', marginBottom: '1rem' }}>
+                    {/* Date filter */}
+                    <Select
+                      value={workloadDateFilter}
+                      onChange={(e) => setWorkloadDateFilter(e.target.value)}
+                      options={[
+                        { value: 'all', label: t('all_time') },
+                        { value: 'week', label: t('this_week') },
+                        { value: 'month', label: t('this_month') },
+                        { value: 'custom', label: t('custom_range') }
+                      ]}
+                      theme={theme}
+                      style={{ minWidth: '120px' }}
+                    />
+                    
+                    {/* Custom date range inputs */}
+                    {workloadDateFilter === 'custom' && (
+                      <>
+                        <input
+                          type="date"
+                          value={workloadStartDate || ''}
+                          onChange={(e) => setWorkloadStartDate(e.target.value)}
+                          placeholder={t('start_date')}
+                          style={{
+                            padding: '0.5rem',
+                            borderRadius: '0.375rem',
+                            border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`,
+                            backgroundColor: theme === 'dark' ? '#374151' : '#ffffff',
+                            color: theme === 'dark' ? '#f3f4f6' : '#1f2937'
+                          }}
+                        />
+                        <input
+                          type="date"
+                          value={workloadEndDate || ''}
+                          onChange={(e) => setWorkloadEndDate(e.target.value)}
+                          placeholder={t('end_date')}
+                          style={{
+                            padding: '0.5rem',
+                            borderRadius: '0.375rem',
+                            border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`,
+                            backgroundColor: theme === 'dark' ? '#374151' : '#ffffff',
+                            color: theme === 'dark' ? '#f3f4f6' : '#1f2937'
+                          }}
+                        />
+                      </>
+                    )}
+                    
+                    {/* Sort controls */}
+                    <Select
+                      value={workloadSortBy}
+                      onChange={(e) => setWorkloadSortBy(e.target.value)}
+                      options={[
+                        { value: 'workload', label: t('sort_by_workload') },
+                        { value: 'name', label: t('sort_by_name') },
+                        { value: 'sessions', label: t('sort_by_sessions') }
+                      ]}
+                      theme={theme}
+                      style={{ minWidth: '150px' }}
+                    />
+                    <button
+                      onClick={() => setWorkloadSortOrder(workloadSortOrder === 'asc' ? 'desc' : 'asc')}
+                      style={{
+                        padding: '0.5rem',
+                        backgroundColor: theme === 'dark' ? '#374151' : '#f9fafb',
+                        border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`,
+                        borderRadius: '0.375rem',
+                        cursor: 'pointer',
+                        color: theme === 'dark' ? '#f3f4f6' : '#1f2937',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                    >
+                      {workloadSortOrder === 'asc' ? <ArrowUp size={16} /> : <ArrowDown size={16} />}
+                    </button>
+                    
+                    {/* Filter slider */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1, minWidth: '200px' }}>
+                      <Filter size={16} />
+                      <input
+                        type="range"
+                        min="0"
+                        max="100"
+                        value={workloadFilterThreshold}
+                        onChange={(e) => setWorkloadFilterThreshold(parseInt(e.target.value))}
+                        style={{ flex: 1 }}
+                      />
+                      <span style={{ fontSize: '0.875rem', minWidth: '60px' }}>≤ {workloadFilterThreshold}%</span>
+                    </div>
+                  </div>
                 
-                {availabilityType === 'instructor' ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    {filteredInstructorUsers.map(instructor => {
-                      const instructorSessions = scheduledSessions.filter(s => s.instructorId === instructor.id);
-                      return (
-                        <div key={instructor.id} style={{
-                          backgroundColor: theme === 'dark' ? '#374151' : '#f9fafb',
-                          borderRadius: '0.5rem',
-                          padding: '1rem',
-                          border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`
-                        }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                              <User size={18} color="#3b82f6" />
-                              <span style={{ fontWeight: '600' }}>{instructor.displayName || instructor.email}</span>
-                            </div>
-                            <span style={{ 
-                              fontSize: '0.875rem', 
-                              color: instructorSessions.length === 0 ? '#10b981' : '#f59e0b',
-                              fontWeight: '500'
+                {scopeMode === 'instructor' && workloadViewMode === 'tree' && (
+                    /* List View */
+                    filteredAndSortedWorkloads.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '2rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
+                        {t('no_instructors_match_filter')}
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        {filteredAndSortedWorkloads.map(({ instructor, sessionCount, scheduledHours, workloadPercentage, workloadLevel, nextSession, upcomingSessions }) => {
+                          const isExpanded = expandedItems.has(`workload-${instructor.id}`);
+                          const workloadColor = getWorkloadColor(workloadLevel);
+                          
+                          return (
+                            <div key={instructor.id} style={{
+                              backgroundColor: theme === 'dark' ? '#374151' : '#f9fafb',
+                              borderRadius: '0.5rem',
+                              padding: '1rem',
+                              border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`
                             }}>
-                              {instructorSessions.length === 0 ? '🟢 Available' : `${instructorSessions.length} sessions`}
-                            </span>
-                          </div>
-                          {instructorSessions.length > 0 && (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                              {instructorSessions.map(session => (
-                                <div key={session.id} style={{
-                                  backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
-                                  padding: '0.5rem',
-                                  borderRadius: '0.375rem',
-                                  fontSize: '0.875rem',
-                                  display: 'flex',
-                                  justifyContent: 'space-between',
-                                  alignItems: 'center'
-                                }}>
-                                  <span>{session.class?.nameEn || 'Class'}</span>
-                                  <span style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
-                                    {new Date(session.startDateTime).toLocaleString('en-US', { 
-                                      weekday: 'short', 
-                                      month: 'short', 
-                                      day: 'numeric',
-                                      hour: '2-digit',
-                                      minute: '2-digit'
-                                    })}
-                                  </span>
+                              {/* Header */}
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1 }}>
+                                  <User size={18} color="#3b82f6" />
+                                  <span style={{ fontWeight: '600' }}>{instructor.displayName || instructor.email}</span>
                                 </div>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    {classrooms.map(classroom => {
-                      const roomSessions = scheduledSessions.filter(s => s.classroomId === classroom.id);
-                      return (
-                        <div key={classroom.id} style={{
-                          backgroundColor: theme === 'dark' ? '#374151' : '#f9fafb',
-                          borderRadius: '0.5rem',
-                          padding: '1rem',
-                          border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`
-                        }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                              <DoorOpen size={18} color="#3b82f6" />
-                              <span style={{ fontWeight: '600' }}>{classroom.nameEn || classroom.code}</span>
-                              <span style={{ fontSize: '0.75rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
-                                ({classroom.capacity} seats)
-                              </span>
-                            </div>
-                            <span style={{ 
-                              fontSize: '0.875rem', 
-                              color: roomSessions.length === 0 ? '#10b981' : '#f59e0b',
-                              fontWeight: '500'
-                            }}>
-                              {roomSessions.length === 0 ? '🟢 Available' : `${roomSessions.length} sessions`}
-                            </span>
-                          </div>
-                          {roomSessions.length > 0 && (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                              {roomSessions.map(session => (
-                                <div key={session.id} style={{
-                                  backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
-                                  padding: '0.5rem',
-                                  borderRadius: '0.375rem',
-                                  fontSize: '0.875rem',
-                                  display: 'flex',
-                                  justifyContent: 'space-between',
-                                  alignItems: 'center'
-                                }}>
-                                  <span>{session.class?.nameEn || 'Class'}</span>
-                                  <span style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
-                                    {new Date(session.startDateTime).toLocaleString('en-US', { 
-                                      weekday: 'short', 
-                                      month: 'short', 
-                                      day: 'numeric',
-                                      hour: '2-digit',
-                                      minute: '2-digit'
-                                    })}
-                                  </span>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                                  <div style={{ fontSize: '0.875rem', display: 'flex', gap: '1rem' }}>
+                                    <span>{sessionCount} {t('sessions')}</span>
+                                    <span>{scheduledHours} {t('hours_abbr')}</span>
+                                    <span style={{ color: workloadColor, fontWeight: '600' }}>{workloadPercentage}%</span>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    disabled={sessionCount === 0}
+                                    title={sessionCount === 0 ? t('no_sessions_to_show') : t('show_on_calendar')}
+                                    onClick={() => handleShowOnCalendar(instructor.id)}
+                                    style={{
+                                      padding: '0.25rem 0.5rem',
+                                      fontSize: '0.75rem',
+                                      backgroundColor: sessionCount > 0 ? '#3b82f6' : (theme === 'dark' ? '#374151' : '#e5e7eb'),
+                                      color: sessionCount > 0 ? '#ffffff' : (theme === 'dark' ? '#6b7280' : '#9ca3af'),
+                                      border: 'none',
+                                      borderRadius: '0.25rem',
+                                      cursor: sessionCount > 0 ? 'pointer' : 'not-allowed',
+                                      opacity: sessionCount > 0 ? 1 : 0.7
+                                    }}
+                                  >
+                                    {t('show_on_calendar')}
+                                  </button>
                                 </div>
-                              ))}
+                              </div>
+                              
+                              {/* Next session */}
+                              {nextSession && (
+                                <div style={{ fontSize: '0.875rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginBottom: '0.5rem' }}>
+                                  {t('next_session')}: {nextSession.class?.nameEn || t('class')} - {new Date(nextSession.startDateTime).toLocaleString('en-US', { 
+                                    weekday: 'short', 
+                                    month: 'short', 
+                                    day: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
+                                </div>
+                              )}
+                              
+                              {/* Expand/Collapse button */}
+                              {upcomingSessions.length > 0 && (
+                                <button
+                                  onClick={() => {
+                                    const newExpanded = new Set(expandedItems);
+                                    if (isExpanded) {
+                                      newExpanded.delete(`workload-${instructor.id}`);
+                                    } else {
+                                      newExpanded.add(`workload-${instructor.id}`);
+                                    }
+                                    setExpandedItems(newExpanded);
+                                  }}
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.25rem',
+                                    fontSize: '0.875rem',
+                                    color: '#3b82f6',
+                                    background: 'none',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    padding: '0.25rem 0'
+                                  }}
+                                >
+                                  {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                                  {t('upcoming_sessions')} ({upcomingSessions.length})
+                                </button>
+                              )}
+                              
+                              {/* Upcoming sessions list */}
+                              {isExpanded && upcomingSessions.length > 0 && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
+                                  {upcomingSessions.map(session => (
+                                    <div key={session.id} style={{
+                                      backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
+                                      padding: '0.5rem',
+                                      borderRadius: '0.375rem',
+                                      fontSize: '0.875rem',
+                                      display: 'flex',
+                                      justifyContent: 'space-between',
+                                      alignItems: 'center',
+                                      gap: '0.75rem'
+                                    }}>
+                                      <div style={{ minWidth: 0 }}>
+                                        <div>{session.class?.nameEn || t('class')}</div>
+                                        <div style={{ fontSize: '0.75rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '0.125rem' }}>
+                                          {buildSessionEventVenueLine(session, lang, t)}
+                                        </div>
+                                      </div>
+                                      <span style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280', flexShrink: 0, textAlign: 'end' }}>
+                                        {formatWorkloadSessionTime(session.startDateTime, lang)}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
                             </div>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </div>
+                          );
+                        })}
+                      </div>
+                    )
                 )}
-              </div>
-            ) : viewMode === 'tree' && searchQuery ? (
-              <div style={{ marginTop: '1rem' }}>
-                <h3 style={{ fontSize: '1rem', fontWeight: '600', marginBottom: '1rem', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
-                  {t('search_results')}: "{searchQuery}"
-                </h3>
                 
-                {/* Filtered Rooms */}
-                {classrooms.filter(c => 
-                  (c.nameEn?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                   c.code?.toLowerCase().includes(searchQuery.toLowerCase()))
-                ).map(room => (
-                  <div key={room.id} style={{ marginBottom: '1rem' }}>
-                    <div 
-                      onClick={() => {
-                        const newExpanded = new Set(expandedItems);
-                        if (newExpanded.has(`room-${room.id}`)) {
-                          newExpanded.delete(`room-${room.id}`);
-                        } else {
-                          newExpanded.add(`room-${room.id}`);
-                        }
-                        setExpandedItems(newExpanded);
-                      }}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        padding: '0.75rem',
-                        backgroundColor: theme === 'dark' ? '#374151' : '#f9fafb',
-                        borderRadius: '0.375rem',
-                        cursor: 'pointer',
-                        border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`
-                      }}
-                    >
-                      <DoorOpen size={18} color="#3b82f6" />
-                      <span style={{ fontWeight: '600', flex: 1 }}>{room.nameEn || room.code}</span>
-                      <span style={{ fontSize: '0.875rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
-                        {scheduledSessions.filter(s => s.classroomId === room.id).length} {t('sessions')}
-                      </span>
-                      {expandedItems.has(`room-${room.id}`) ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                    </div>
-                    
-                    {expandedItems.has(`room-${room.id}`) && (
-                      <div style={{ marginLeft: '1.5rem', marginTop: '0.5rem' }}>
-                        {scheduledSessions.filter(s => s.classroomId === room.id).map(session => (
-                          <div key={session.id} style={{
-                            padding: '0.5rem',
-                            backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
-                            borderRadius: '0.25rem',
-                            marginBottom: '0.5rem',
-                            border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`
-                          }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <span style={{ fontWeight: '500' }}>{session.class?.nameEn || 'Class'}</span>
-                              <span style={{ fontSize: '0.75rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
-                                {new Date(session.startDateTime).toLocaleString()}
-                              </span>
-                            </div>
-                            <div style={{ fontSize: '0.875rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '0.25rem' }}>
-                              {t('instructor')}: {session.instructor?.displayName || t('not_assigned')}
-                            </div>
-                          </div>
-                        ))}
+                {scopeMode === 'instructor' && workloadViewMode === 'table' && (
+                    /* Table View */
+                    filteredAndSortedWorkloads.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '2rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
+                        {t('no_instructors_match_filter')}
                       </div>
-                    )}
-                  </div>
-                ))}
+                    ) : (
+                      <div style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+                          <thead>
+                            <tr style={{ borderBottom: `2px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}` }}>
+                              <th style={{ padding: '0.75rem', textAlign: 'left' }}>{t('instructor')}</th>
+                              <th style={{ padding: '0.75rem', textAlign: 'center' }}>{t('sessions')}</th>
+                              <th style={{ padding: '0.75rem', textAlign: 'center' }}>{t('scheduled_hours')}</th>
+                              <th style={{ padding: '0.75rem', textAlign: 'center' }}>{t('workload_percentage')}</th>
+                              <th style={{ padding: '0.75rem', textAlign: 'left' }}>{t('next_session')}</th>
+                              <th style={{ padding: '0.75rem', textAlign: 'center' }}>{t('actions')}</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {filteredAndSortedWorkloads.map(({ instructor, sessionCount, scheduledHours, workloadPercentage, workloadLevel, nextSession }) => {
+                              const workloadColor = getWorkloadColor(workloadLevel);
+                              
+                              return (
+                                <tr key={instructor.id} style={{ borderBottom: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}` }}>
+                                  <td style={{ padding: '0.75rem' }}>{instructor.displayName || instructor.email}</td>
+                                  <td style={{ padding: '0.75rem', textAlign: 'center' }}>{sessionCount}</td>
+                                  <td style={{ padding: '0.75rem', textAlign: 'center' }}>{scheduledHours}</td>
+                                  <td style={{ padding: '0.75rem', textAlign: 'center' }}>
+                                    <span style={{ color: workloadColor, fontWeight: '600' }}>{workloadPercentage}%</span>
+                                  </td>
+                                  <td style={{ padding: '0.75rem', fontSize: '0.75rem' }}>
+                                    {nextSession ? (
+                                      <div>
+                                        <div>{nextSession.class?.nameEn || t('class')}</div>
+                                        <div style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
+                                          {new Date(nextSession.startDateTime).toLocaleString('en-US', { 
+                                            month: 'short', 
+                                            day: 'numeric',
+                                            hour: '2-digit',
+                                            minute: '2-digit'
+                                          })}
+                                        </div>
+                                      </div>
+                                    ) : '-'}
+                                  </td>
+                                  <td style={{ padding: '0.75rem', textAlign: 'center' }}>
+                                    <button
+                                      type="button"
+                                      disabled={sessionCount === 0}
+                                      title={sessionCount === 0 ? t('no_sessions_to_show') : t('show_on_calendar')}
+                                      onClick={() => handleShowOnCalendar(instructor.id)}
+                                      style={{
+                                        padding: '0.25rem 0.5rem',
+                                        fontSize: '0.75rem',
+                                        backgroundColor: sessionCount > 0 ? '#3b82f6' : (theme === 'dark' ? '#374151' : '#e5e7eb'),
+                                        color: sessionCount > 0 ? '#ffffff' : (theme === 'dark' ? '#6b7280' : '#9ca3af'),
+                                        border: 'none',
+                                        borderRadius: '0.25rem',
+                                        cursor: sessionCount > 0 ? 'pointer' : 'not-allowed',
+                                        opacity: sessionCount > 0 ? 1 : 0.7
+                                      }}
+                                    >
+                                      {t('show_on_calendar')}
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )
+                )}
                 
-                {/* Filtered Instructors */}
-                {filteredInstructorUsers.filter(u => 
-                  (u.displayName?.toLowerCase().includes(searchQuery.toLowerCase()) || 
-                   u.email?.toLowerCase().includes(searchQuery.toLowerCase()))
-                ).map(instructor => (
-                  <div key={instructor.id} style={{ marginBottom: '1rem' }}>
-                    <div 
-                      onClick={() => {
-                        const newExpanded = new Set(expandedItems);
-                        if (newExpanded.has(`instructor-${instructor.id}`)) {
-                          newExpanded.delete(`instructor-${instructor.id}`);
-                        } else {
-                          newExpanded.add(`instructor-${instructor.id}`);
-                        }
-                        setExpandedItems(newExpanded);
-                      }}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        padding: '0.75rem',
-                        backgroundColor: theme === 'dark' ? '#374151' : '#f9fafb',
-                        borderRadius: '0.375rem',
-                        cursor: 'pointer',
-                        border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`
-                      }}
-                    >
-                      <User size={18} color="#3b82f6" />
-                      <span style={{ fontWeight: '600', flex: 1 }}>{instructor.displayName || instructor.email}</span>
-                      <span style={{ fontSize: '0.875rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
-                        {scheduledSessions.filter(s => s.instructorId === instructor.id).length} {t('sessions')}
-                      </span>
-                      {expandedItems.has(`instructor-${instructor.id}`) ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
-                    </div>
-                    
-                    {expandedItems.has(`instructor-${instructor.id}`) && (
-                      <div style={{ marginLeft: '1.5rem', marginTop: '0.5rem' }}>
-                        {scheduledSessions.filter(s => s.instructorId === instructor.id).map(session => (
-                          <div key={session.id} style={{
-                            padding: '0.5rem',
-                            backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
-                            borderRadius: '0.25rem',
-                            marginBottom: '0.5rem',
-                            border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`
-                          }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                              <span style={{ fontWeight: '500' }}>{session.class?.nameEn || 'Class'}</span>
-                              <span style={{ fontSize: '0.75rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
-                                {new Date(session.startDateTime).toLocaleString()}
-                              </span>
-                            </div>
-                            <div style={{ fontSize: '0.875rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '0.25rem' }}>
-                              {t('room')}: {session.classroom?.nameEn || t('not_assigned')}
-                            </div>
-                          </div>
-                        ))}
+                {scopeMode === 'instructor' && workloadViewMode === 'drill' && (
+                    filteredAndSortedWorkloads.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: '2rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
+                          {t('no_instructors_match_filter')}
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                          {filteredAndSortedWorkloads.map(({ instructor, allSessions, workloadPercentage, workloadLevel, scheduledHours, sessionCount }) => {
+                            const isDrillExpanded = expandedItems.has(`drill-${instructor.id}`);
+                            const workloadColor = getWorkloadColor(workloadLevel);
+                            const textColor = theme === 'dark' ? '#f3f4f6' : '#1f2937';
+                            
+                            return (
+                              <div key={instructor.id} style={{
+                                backgroundColor: theme === 'dark' ? '#374151' : '#f9fafb',
+                                borderRadius: '0.5rem',
+                                padding: '1rem',
+                                border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`
+                              }}>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: isDrillExpanded ? '0.75rem' : '0', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flex: 1 }}>
+                                    <button
+                                      onClick={() => {
+                                        const newExpanded = new Set(expandedItems);
+                                        if (isDrillExpanded) {
+                                          newExpanded.delete(`drill-${instructor.id}`);
+                                        } else {
+                                          newExpanded.add(`drill-${instructor.id}`);
+                                        }
+                                        setExpandedItems(newExpanded);
+                                      }}
+                                      style={{
+                                        padding: '0',
+                                        backgroundColor: 'transparent',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '0.5rem',
+                                        color: textColor
+                                      }}
+                                    >
+                                      {isDrillExpanded
+                                        ? <ChevronDown size={18} color={textColor} />
+                                        : <ChevronRight size={18} color={textColor} />}
+                                      <User size={18} color="#3b82f6" />
+                                      <span style={{ fontWeight: '600', color: textColor }}>{instructor.displayName || instructor.email}</span>
+                                    </button>
+                                  </div>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                                    <div style={{ fontSize: '0.875rem', display: 'flex', gap: '1rem', color: textColor }}>
+                                      <span>{sessionCount} {t('sessions')}</span>
+                                      <span>{scheduledHours} {t('hours_abbr')}</span>
+                                      <span style={{ color: workloadColor, fontWeight: '600' }}>{workloadPercentage}%</span>
+                                    </div>
+                                  </div>
+                                </div>
+                                
+                                {isDrillExpanded && (
+                                  <div style={{ 
+                                    marginLeft: '2rem',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '1rem'
+                                  }}>
+                                    {allSessions.length > 0 ? allSessions.map(session => (
+                                      <div 
+                                        key={session.id}
+                                        style={{
+                                          padding: '1rem',
+                                          backgroundColor: theme === 'dark' ? '#374151' : '#f9fafb',
+                                          border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`,
+                                          borderRadius: '0.5rem',
+                                          fontSize: '0.875rem',
+                                          display: 'flex',
+                                          justifyContent: 'space-between',
+                                          alignItems: 'center'
+                                        }}
+                                      >
+                                        <div style={{ flex: 1 }}>
+                                          <div style={{ fontWeight: '600', fontSize: '0.875rem' }}>{session.class?.nameEn || t('class')}</div>
+                                          <div style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '0.25rem', fontSize: '0.875rem' }}>
+                                            {session.classroom?.nameEn || session.classroom?.code || t('no_room')}
+                                          </div>
+                                        </div>
+                                        <div style={{ textAlign: 'right', fontSize: '0.875rem' }}>
+                                          <div>{new Date(session.startDateTime).toLocaleDateString('en-US', { 
+                                            weekday: 'short',
+                                            month: 'short',
+                                            day: 'numeric'
+                                          })}</div>
+                                          <div style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
+                                            {new Date(session.startDateTime).toLocaleTimeString('en-US', {
+                                              hour: '2-digit',
+                                              minute: '2-digit'
+                                            })}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    )) : (
+                                      <div style={{ padding: '1rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', fontSize: '0.875rem' }}>
+                                        {t('no_sessions')}
+                                      </div>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )
+                )}
+                
+                {scopeMode === 'room' && workloadViewMode === 'tree' && (
+                  /* Room Workload View - List */
+                    filteredAndSortedRoomWorkloads.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '2rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
+                        {t('no_rooms_match_filter')}
                       </div>
-                    )}
-                  </div>
-                ))}
+                    ) : (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                        {filteredAndSortedRoomWorkloads.map(({ classroom, sessionCount, scheduledHours, workloadPercentage, workloadLevel, nextSession, upcomingSessions }) => {
+                          const isExpanded = expandedItems.has(`workload-room-${classroom.id}`);
+                          const workloadColor = getWorkloadColor(workloadLevel);
+                          
+                          return (
+                            <div key={classroom.id} style={{
+                              backgroundColor: theme === 'dark' ? '#374151' : '#f9fafb',
+                              borderRadius: '0.5rem',
+                              padding: '1rem',
+                              border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`
+                            }}>
+                              {/* Header */}
+                              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                                <div style={{ flex: 1 }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                                    <DoorOpen size={18} color="#3b82f6" />
+                                    <span style={{ fontWeight: '600' }}>{classroom.nameEn || classroom.code}</span>
+                                    <span style={{ fontSize: '0.75rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
+                                      ({classroom.capacity} {t('seats')})
+                                    </span>
+                                  </div>
+                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem 1rem', marginTop: '0.25rem', marginLeft: '1.625rem', fontSize: '0.75rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
+                                    {getClassroomDetailRows(classroom, lang, t).map((row) => (
+                                      <span key={row.label}><strong>{row.label}:</strong> {row.value}</span>
+                                    ))}
+                                  </div>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
+                                  <div style={{ fontSize: '0.875rem', display: 'flex', gap: '1rem' }}>
+                                    <span>{sessionCount} {t('sessions')}</span>
+                                    <span>{scheduledHours} {t('hours_abbr')}</span>
+                                    <span style={{ color: workloadColor, fontWeight: '600' }}>{workloadPercentage}%</span>
+                                  </div>
+                                  <button
+                                    type="button"
+                                    disabled={sessionCount === 0}
+                                    title={sessionCount === 0 ? t('no_sessions_to_show') : t('show_on_calendar')}
+                                    onClick={() => handleShowRoomOnCalendar(classroom.id)}
+                                    style={{
+                                      padding: '0.25rem 0.5rem',
+                                      fontSize: '0.75rem',
+                                      backgroundColor: sessionCount > 0 ? '#3b82f6' : (theme === 'dark' ? '#374151' : '#e5e7eb'),
+                                      color: sessionCount > 0 ? '#ffffff' : (theme === 'dark' ? '#6b7280' : '#9ca3af'),
+                                      border: 'none',
+                                      borderRadius: '0.25rem',
+                                      cursor: sessionCount > 0 ? 'pointer' : 'not-allowed',
+                                      opacity: sessionCount > 0 ? 1 : 0.7
+                                    }}
+                                  >
+                                    {t('show_on_calendar')}
+                                  </button>
+                                </div>
+                              </div>
+                              
+                              {/* Next session */}
+                              {nextSession && (
+                                <div style={{ fontSize: '0.875rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginBottom: '0.5rem' }}>
+                                  {t('next_session')}: {nextSession.class?.nameEn || t('class')} - {new Date(nextSession.startDateTime).toLocaleString('en-US', { 
+                                    weekday: 'short', 
+                                    month: 'short', 
+                                    day: 'numeric',
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
+                                </div>
+                              )}
+                              
+                              {/* Expand/Collapse button */}
+                              {upcomingSessions.length > 0 && (
+                                <button
+                                  onClick={() => {
+                                    const newExpanded = new Set(expandedItems);
+                                    if (isExpanded) {
+                                      newExpanded.delete(`workload-room-${classroom.id}`);
+                                    } else {
+                                      newExpanded.add(`workload-room-${classroom.id}`);
+                                    }
+                                    setExpandedItems(newExpanded);
+                                  }}
+                                  style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '0.25rem',
+                                    fontSize: '0.875rem',
+                                    color: '#3b82f6',
+                                    background: 'none',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    padding: '0.25rem 0'
+                                  }}
+                                >
+                                  {isExpanded ? <ChevronUp size={16} /> : <ChevronDown size={16} />}
+                                  {t('upcoming_sessions')} ({upcomingSessions.length})
+                                </button>
+                              )}
+                              
+                              {/* Upcoming sessions list */}
+                              {isExpanded && upcomingSessions.length > 0 && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', marginTop: '0.5rem' }}>
+                                  {upcomingSessions.map(session => (
+                                    <div key={session.id} style={{
+                                      backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
+                                      padding: '0.5rem',
+                                      borderRadius: '0.375rem',
+                                      fontSize: '0.875rem',
+                                      display: 'flex',
+                                      justifyContent: 'space-between',
+                                      alignItems: 'center',
+                                      gap: '0.75rem'
+                                    }}>
+                                      <div style={{ minWidth: 0 }}>
+                                        <div>{session.class?.nameEn || t('class')}</div>
+                                        <div style={{ fontSize: '0.75rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '0.125rem' }}>
+                                          {buildSessionEventVenueLine(session, lang, t)}
+                                        </div>
+                                      </div>
+                                      <span style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280', flexShrink: 0, textAlign: 'end' }}>
+                                        {formatWorkloadSessionTime(session.startDateTime, lang)}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )
+                )}
+                
+                {scopeMode === 'room' && workloadViewMode === 'table' && (
+                    /* Room Table View */
+                    filteredAndSortedRoomWorkloads.length === 0 ? (
+                      <div style={{ textAlign: 'center', padding: '2rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
+                        {t('no_rooms_match_filter')}
+                      </div>
+                    ) : (
+                      <div style={{ overflowX: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+                          <thead>
+                            <tr style={{ borderBottom: `2px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}` }}>
+                              <th style={{ padding: '0.75rem', textAlign: 'left' }}>{t('room')}</th>
+                              <th style={{ padding: '0.75rem', textAlign: 'center' }}>{t('sessions')}</th>
+                              <th style={{ padding: '0.75rem', textAlign: 'center' }}>{t('scheduled_hours')}</th>
+                              <th style={{ padding: '0.75rem', textAlign: 'center' }}>{t('workload_percentage')}</th>
+                              <th style={{ padding: '0.75rem', textAlign: 'left' }}>{t('next_session')}</th>
+                              <th style={{ padding: '0.75rem', textAlign: 'center' }}>{t('actions')}</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {filteredAndSortedRoomWorkloads.map(({ classroom, sessionCount, scheduledHours, workloadPercentage, workloadLevel, nextSession }) => {
+                              const workloadColor = getWorkloadColor(workloadLevel);
+                              
+                              return (
+                                <tr key={classroom.id} style={{ borderBottom: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}` }}>
+                                  <td style={{ padding: '0.75rem' }}>
+                                    {classroom.nameEn || classroom.code}
+                                    <span style={{ fontSize: '0.75rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginLeft: '0.5rem' }}>
+                                      ({classroom.capacity} seats)
+                                    </span>
+                                  </td>
+                                  <td style={{ padding: '0.75rem', textAlign: 'center' }}>{sessionCount}</td>
+                                  <td style={{ padding: '0.75rem', textAlign: 'center' }}>{scheduledHours}</td>
+                                  <td style={{ padding: '0.75rem', textAlign: 'center' }}>
+                                    <span style={{ color: workloadColor, fontWeight: '600' }}>{workloadPercentage}%</span>
+                                  </td>
+                                  <td style={{ padding: '0.75rem', fontSize: '0.75rem' }}>
+                                    {nextSession ? (
+                                      <div>
+                                        <div>{nextSession.class?.nameEn || t('class')}</div>
+                                        <div style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
+                                          {new Date(nextSession.startDateTime).toLocaleString('en-US', { 
+                                            month: 'short', 
+                                            day: 'numeric',
+                                            hour: '2-digit',
+                                            minute: '2-digit'
+                                          })}
+                                        </div>
+                                      </div>
+                                    ) : '-'}
+                                  </td>
+                                  <td style={{ padding: '0.75rem', textAlign: 'center' }}>
+                                    <button
+                                      type="button"
+                                      disabled={sessionCount === 0}
+                                      title={sessionCount === 0 ? t('no_sessions_to_show') : t('show_on_calendar')}
+                                      onClick={() => handleShowRoomOnCalendar(classroom.id)}
+                                      style={{
+                                        padding: '0.25rem 0.5rem',
+                                        fontSize: '0.75rem',
+                                        backgroundColor: sessionCount > 0 ? '#3b82f6' : (theme === 'dark' ? '#374151' : '#e5e7eb'),
+                                        color: sessionCount > 0 ? '#ffffff' : (theme === 'dark' ? '#6b7280' : '#9ca3af'),
+                                        border: 'none',
+                                        borderRadius: '0.25rem',
+                                        cursor: sessionCount > 0 ? 'pointer' : 'not-allowed',
+                                        opacity: sessionCount > 0 ? 1 : 0.7
+                                      }}
+                                    >
+                                      {t('show_on_calendar')}
+                                    </button>
+                                  </td>
+                                </tr>
+                              );
+                            })}
+                          </tbody>
+                        </table>
+                      </div>
+                    )
+                )}
+                </>
+                )}
+                </div>
               </div>
             ) : (
+              <div
+                ref={sessionCalendarContainerRef}
+                className="scheduling-sessions-calendar"
+                style={{
+                  flex: '0 0 auto',
+                  width: '100%',
+                  maxWidth: '100%',
+                  minWidth: 0,
+                  minHeight: SESSION_CALENDAR_HEIGHT,
+                  height: SESSION_CALENDAR_HEIGHT,
+                  position: 'relative',
+                  overflow: 'hidden'
+                }}
+              >
               <Calendar
+                key={`sessions-cal-${calendarLayoutKey}`}
                 ref={calendarRef}
-                height="100%"
+                height={`${sessionCalendarHeight}px`}
                 view={currentView}
                 week={{
                   startDayOfWeek: 0, // Sunday start
                   dayNames: hideWeekends ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu'] : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
                   narrowWeekend: narrowWeekend,
                   workweek: hideWeekends,
-                  hourStart: 7,
-                  hourEnd: 23,
+                  hourStart: 6,
+                  hourEnd: 24,
                   eventView: ['time'], // Only show time events, hide all day
                   taskView: false, // Hide milestone and task
                   showNowIndicator: true,
@@ -1755,6 +3339,42 @@ const SchedulingCalendarPage = () => {
                   }
                 }}
                 css={`
+                  .toastui-calendar-layout,
+                  .toastui-calendar-layout * {
+                    max-width: 100%;
+                  }
+                  .scheduling-sessions-calendar > .container {
+                    width: 100% !important;
+                    height: 100% !important;
+                    max-width: none !important;
+                  }
+                  .toastui-calendar-layout {
+                    width: 100% !important;
+                    height: 100% !important;
+                    min-width: 0 !important;
+                  }
+                  .scheduling-sessions-calendar .toastui-calendar-column .toastui-calendar-events {
+                    margin-right: 0 !important;
+                  }
+                  .scheduling-sessions-calendar .toastui-calendar-event-time {
+                    border-radius: 0 !important;
+                    margin-left: 0 !important;
+                    width: 100% !important;
+                    padding-bottom: 2px !important;
+                    box-sizing: content-box !important;
+                  }
+                  .scheduling-sessions-calendar .toastui-calendar-event-time-content {
+                    width: 100% !important;
+                    height: 100% !important;
+                    padding: 0 !important;
+                    overflow: hidden !important;
+                    box-sizing: border-box !important;
+                    color: #ffffff !important;
+                  }
+                  .scheduling-sessions-calendar .toastui-calendar-template-time {
+                    width: 100% !important;
+                    height: 100% !important;
+                  }
                   /* Remove default red color from Sunday - override inline style */
                   .toastui-calendar-holiday-sun,
                   .toastui-calendar-holiday-sun * {
@@ -1805,14 +3425,34 @@ const SchedulingCalendarPage = () => {
                     opacity: 0.9 !important;
                     display: block !important;
                   }
+
+                  @keyframes scheduling-session-pulse {
+                    0%, 100% {
+                      box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.8);
+                      outline: 2px solid #3b82f6;
+                    }
+                    50% {
+                      box-shadow: 0 0 0 10px rgba(59, 130, 246, 0);
+                      outline: 3px solid #60a5fa;
+                    }
+                  }
+                  .scheduling-session-highlight {
+                    animation: scheduling-session-pulse 0.8s ease-in-out 5 !important;
+                    z-index: 50 !important;
+                    position: relative;
+                  }
                 `}
                 template={{
                   time: (event) => {
                     const session = event.raw?.session;
+                    const venue = session ? buildSessionEventVenueLine(session, lang, t) : '';
+                    const instructor = session ? buildSessionEventInstructorLine(session, t) : '';
+                    const title = session?.class?.code || t('class');
                     return `
-                      <div style="display: flex; flex-direction: column; height: 100%;">
-                        <div style="font-weight: 600; font-size: 12px;">${session?.class?.code || 'Class'}</div>
-                        <div style="font-size: 10px; opacity: 0.9;">${session?.classroom?.code || 'Room'} - ${session?.instructor?.displayName || 'Instructor'}</div>
+                      <div style="display: flex; flex-direction: column; justify-content: center; width: 100%; height: 100%; min-height: 100%; padding: 4px 6px; line-height: 1.2; overflow: hidden; box-sizing: border-box; color: #ffffff;">
+                        <div style="font-weight: 600; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(title)}</div>
+                        <div style="font-size: 10px; opacity: 0.92; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(venue)}</div>
+                        <div style="font-size: 10px; opacity: 0.88; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(instructor)}</div>
                       </div>
                     `;
                   }
@@ -1826,6 +3466,7 @@ const SchedulingCalendarPage = () => {
                 onBeforeUpdateEvent={onBeforeUpdateEvent}
                 onBeforeDeleteEvent={onBeforeDeleteEvent}
               />
+              </div>
             )}
           </div>
         </div>
@@ -1880,12 +3521,12 @@ const SchedulingCalendarPage = () => {
           zIndex: 10000,
           padding: '1rem'
         }}
-        onClick={() => setShowCreateModal(false)}>
+        onClick={closeCreateModal}>
           <div style={{
             backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
             borderRadius: '0.5rem',
             padding: '1.5rem',
-            maxWidth: '600px',
+            maxWidth: '780px',
             width: '100%',
             maxHeight: '90vh',
             overflowY: 'auto'
@@ -1893,9 +3534,9 @@ const SchedulingCalendarPage = () => {
           onClick={(e) => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
               <h2 style={{ fontSize: '1.25rem', fontWeight: '600' }}>
-                {editingSessionId ? 'Update Session' : 'Schedule Session'}
+                {editingSessionId ? t('update_session') : t('schedule_session')}
               </h2>
-              <button onClick={() => setShowCreateModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
+              <button onClick={closeCreateModal} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
                 <X size={20} color={theme === 'dark' ? '#9ca3af' : '#6b7280'} />
               </button>
             </div>
@@ -1904,27 +3545,46 @@ const SchedulingCalendarPage = () => {
             <div style={{ marginBottom: '1rem', padding: '1rem', backgroundColor: theme === 'dark' ? '#374151' : '#f3f4f6', borderRadius: '0.375rem' }}>
               <div style={{ fontSize: '1rem', fontWeight: '600', marginBottom: '0.25rem' }}>{modalClassItem.nameEn}</div>
               <div style={{ fontSize: '0.875rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
-                {subjects.find(s => s.id === modalClassItem.subjectId)?.nameEn || 'Subject'}
+                {programs.find(p => p.id === modalClassItem.programId)?.nameEn
+                  || subjects.find(s => s.id === modalClassItem.subjectId)?.nameEn
+                  || modalClassItem.code}
               </div>
             </div>
 
             {/* Date and Time */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem' }}>Start Time</label>
-                <Input
-                  type="datetime-local"
-                  value={modalStartDateTime ? modalStartDateTime.toISOString().slice(0, 16) : ''}
-                  onChange={(e) => setModalStartDateTime(new Date(e.target.value))}
-                />
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem' }}>End Time</label>
-                <Input
-                  type="datetime-local"
-                  value={modalEndDateTime ? modalEndDateTime.toISOString().slice(0, 16) : ''}
-                  onChange={(e) => setModalEndDateTime(new Date(e.target.value))}
-                />
+            <div style={{ marginBottom: isRecurring ? '0.35rem' : '1rem' }}>
+              {isRecurring && (
+                <p style={{ margin: '0 0 0.5rem', fontSize: '0.75rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
+                  {t('first_occurrence_datetime_hint')}
+                </p>
+              )}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem' }}>
+                    {isRecurring ? t('first_occurrence_start') : t('start_time')}
+                  </label>
+                  <Input
+                    type="datetime-local"
+                    value={toDatetimeLocalValue(modalStartDateTime)}
+                    onChange={(e) => {
+                      setModalStartDateTime(new Date(e.target.value));
+                      setValidationResult(null);
+                    }}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem' }}>
+                    {isRecurring ? t('first_occurrence_end') : t('end_time')}
+                  </label>
+                  <Input
+                    type="datetime-local"
+                    value={toDatetimeLocalValue(modalEndDateTime)}
+                    onChange={(e) => {
+                      setModalEndDateTime(new Date(e.target.value));
+                      setValidationResult(null);
+                    }}
+                  />
+                </div>
               </div>
             </div>
 
@@ -1932,7 +3592,7 @@ const SchedulingCalendarPage = () => {
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
               <div>
                 <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem' }}>
-                  Instructor {!editingSessionId && <span style={{ color: '#9ca3af' }}>(optional)</span>}
+                  {t('instructor')} {!editingSessionId && <span style={{ color: '#9ca3af' }}>{t('optional_label')}</span>}
                 </label>
                 {editingSessionId ? (
                   <div style={{ 
@@ -1941,7 +3601,7 @@ const SchedulingCalendarPage = () => {
                     borderRadius: '0.375rem',
                     color: theme === 'dark' ? '#f3f4f6' : '#1f2937'
                   }}>
-                    {instructors.find(i => i.id === modalInstructorId)?.displayName || 'Not assigned'}
+                    {instructors.find(i => i.id === modalInstructorId)?.displayName || t('not_assigned')}
                   </div>
                 ) : (
                   <UserSelect
@@ -1953,8 +3613,9 @@ const SchedulingCalendarPage = () => {
                       const selectedInstructor = filteredInstructorUsers.find(u => u.email === selectedEmail);
                       setModalInstructorEmail(selectedEmail);
                       setModalInstructorId(selectedInstructor ? selectedInstructor.id : null);
+                      setValidationResult(null);
                     }}
-                    placeholder="Select Instructor (optional)"
+                    placeholder={t('select_instructor_optional')}
                     roleFilter={[]}
                     showLabels={false}
                     useEmailAsValue={true}
@@ -1962,170 +3623,90 @@ const SchedulingCalendarPage = () => {
                 )}
                 {!editingSessionId && !modalClassItem.instructorId && modalInstructorId && (
                   <div style={{ fontSize: '0.75rem', color: '#f59e0b', marginTop: '0.25rem' }}>
-                    💡 Will update class record with this instructor
+                    💡 {t('will_update_class_instructor')}
                   </div>
                 )}
               </div>
               <div>
                 <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem' }}>
-                  Classroom {!editingSessionId && <span style={{ color: '#9ca3af' }}>(optional)</span>}
+                  {t('room')} {!editingSessionId && <span style={{ color: '#9ca3af' }}>*</span>}
                 </label>
-                {editingSessionId ? (
-                  <div style={{ 
-                    padding: '0.5rem', 
-                    backgroundColor: theme === 'dark' ? '#374151' : '#f3f4f6', 
+                <Select
+                  value={modalClassroomId != null ? String(modalClassroomId) : ''}
+                  onChange={(e) => {
+                    setModalClassroomId(e.target.value ? parseInt(e.target.value, 10) : null);
+                    setValidationResult(null);
+                  }}
+                  theme={theme}
+                  options={[
+                    { value: '', label: t('select_classroom') },
+                    ...classrooms.map(c => ({
+                      value: String(c.id),
+                      label: formatClassroomOptionLabel(c, t),
+                      subtext: formatClassroomDetails(c, lang, t)
+                    }))
+                  ]}
+                />
+                {modalClassroomId && (
+                  <div style={{
+                    marginTop: '0.5rem',
+                    padding: '0.5rem 0.625rem',
+                    backgroundColor: theme === 'dark' ? '#374151' : '#f9fafb',
                     borderRadius: '0.375rem',
-                    color: theme === 'dark' ? '#f3f4f6' : '#1f2937'
+                    fontSize: '0.75rem',
+                    color: theme === 'dark' ? '#9ca3af' : '#6b7280'
                   }}>
-                    {classrooms.find(c => c.id === modalClassroomId)?.nameEn || classrooms.find(c => c.id === modalClassroomId)?.code || 'Not assigned'}
+                    <div style={{ fontWeight: '600', marginBottom: '0.125rem', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
+                      {t('classroom_details')}
+                    </div>
+                    {formatClassroomDetails(getClassroomById(classrooms, modalClassroomId), lang, t) || t('not_assigned')}
                   </div>
-                ) : (
-                  <Select
-                    value={modalClassroomId || ''}
-                    onChange={(value) => setModalClassroomId(value ? parseInt(value) : null)}
-                    options={[
-                      { value: '', label: 'Select Room (optional)' },
-                      ...classrooms.map(c => ({ value: String(c.id), label: `${c.nameEn || c.code} (${c.capacity} seats)` }))
-                    ]}
-                  />
                 )}
                 {!editingSessionId && !modalClassItem.classroomId && modalClassroomId && (
                   <div style={{ fontSize: '0.75rem', color: '#f59e0b', marginTop: '0.25rem' }}>
-                    💡 Will update class record with this classroom
+                    💡 {t('will_update_class_classroom')}
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Recurrence Toggle */}
-            <div style={{ marginBottom: '1rem', padding: '1rem', border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`, borderRadius: '0.375rem' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
-                <input
-                  type="checkbox"
-                  id="isRecurring"
-                  checked={isRecurring}
-                  onChange={(e) => setIsRecurring(e.target.checked)}
-                  style={{ cursor: 'pointer' }}
-                />
-                <label htmlFor="isRecurring" style={{ fontSize: '0.875rem', fontWeight: '500', cursor: 'pointer' }}>
-                  Create Recurring Sessions
-                </label>
-              </div>
+            {!editingSessionId && (
+              <SchedulingAvailabilityPanel
+                instructorId={modalInstructorId}
+                classroomId={modalClassroomId}
+                startDateTime={modalStartDateTime}
+                endDateTime={modalEndDateTime}
+                instructorAvailabilities={instructorAvailabilities}
+                classroomAvailabilities={classroomAvailabilities}
+                validationResult={validationResult}
+                isRecurring={isRecurring}
+                theme={theme}
+                t={t}
+                lang={lang}
+                onApplySuggestedSlot={applySuggestedSlot}
+              />
+            )}
 
-              {isRecurring && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  {/* Recurrence Type */}
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem' }}>Recurrence Type</label>
-                    <Select
-                      value={recurrenceType}
-                      onChange={(e) => setRecurrenceType(e.target.value)}
-                      options={[
-                        { value: 'daily', label: 'Daily' },
-                        { value: 'weekly', label: 'Weekly' },
-                        { value: 'custom', label: 'Custom' }
-                      ]}
-                    />
-                  </div>
-
-                  {/* Day Selection */}
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem' }}>Select Days</label>
-                    <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                      {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map((day) => (
-                        <button
-                          key={day}
-                          onClick={() => {
-                            setRecurrenceDays(prev => 
-                              prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]
-                            );
-                          }}
-                          style={{
-                            padding: '0.5rem 1rem',
-                            backgroundColor: recurrenceDays.includes(day) ? '#3b82f6' : theme === 'dark' ? '#374151' : '#f9fafb',
-                            color: recurrenceDays.includes(day) ? '#ffffff' : 'inherit',
-                            border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`,
-                            borderRadius: '0.375rem',
-                            cursor: 'pointer',
-                            fontSize: '0.875rem'
-                          }}
-                        >
-                          {day}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* End Date or Count */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem' }}>End Date</label>
-                      <Input
-                        type="date"
-                        value={recurrenceEndDate ? recurrenceEndDate.toISOString().slice(0, 10) : ''}
-                        onChange={(e) => setRecurrenceEndDate(e.target.value ? new Date(e.target.value) : null)}
-                      />
-                    </div>
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem' }}>Or Count</label>
-                      <Input
-                        type="number"
-                        min="1"
-                        value={recurrenceCount || ''}
-                        onChange={(e) => setRecurrenceCount(e.target.value ? parseInt(e.target.value) : null)}
-                        placeholder="Number of sessions"
-                      />
-                    </div>
-                  </div>
-
-                  {/* Different times per day */}
-                  {recurrenceDays.length > 0 && (
-                    <div>
-                      <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem' }}>
-                        Custom Times per Day (Optional)
-                      </label>
-                      <div style={{ fontSize: '0.75rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginBottom: '0.5rem' }}>
-                        Leave empty to use the same time for all days
-                      </div>
-                      {recurrenceDays.map((day) => (
-                        <div key={day} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.5rem' }}>
-                          <span style={{ fontSize: '0.875rem', minWidth: '50px' }}>{day}:</span>
-                          <Input
-                            type="time"
-                            placeholder="Start"
-                            value={timesPerDay.find(t => t.day === day)?.startTime || ''}
-                            onChange={(e) => {
-                              setTimesPerDay(prev => {
-                                const filtered = prev.filter(t => t.day !== day);
-                                if (e.target.value) {
-                                  return [...filtered, { day, startTime: e.target.value, endTime: timesPerDay.find(t => t.day === day)?.endTime || '' }];
-                                }
-                                return filtered;
-                              });
-                            }}
-                          />
-                          <Input
-                            type="time"
-                            placeholder="End"
-                            value={timesPerDay.find(t => t.day === day)?.endTime || ''}
-                            onChange={(e) => {
-                              setTimesPerDay(prev => {
-                                const filtered = prev.filter(t => t.day !== day);
-                                const startTime = timesPerDay.find(t => t.day === day)?.startTime || '';
-                                if (e.target.value && startTime) {
-                                  return [...filtered, { day, startTime, endTime: e.target.value }];
-                                }
-                                return filtered;
-                              });
-                            }}
-                          />
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+            <SchedulingRecurrencePanel
+              isRecurring={isRecurring}
+              onRecurringChange={setIsRecurring}
+              recurrenceType={recurrenceType}
+              onRecurrenceTypeChange={setRecurrenceType}
+              recurrenceDays={recurrenceDays}
+              onRecurrenceDaysChange={setRecurrenceDays}
+              recurrenceEndMode={recurrenceEndMode}
+              onRecurrenceEndModeChange={setRecurrenceEndMode}
+              recurrenceEndDate={recurrenceEndDate}
+              onRecurrenceEndDateChange={setRecurrenceEndDate}
+              recurrenceCount={recurrenceCount}
+              onRecurrenceCountChange={setRecurrenceCount}
+              timesPerDay={timesPerDay}
+              onTimesPerDayChange={setTimesPerDay}
+              modalStartDateTime={modalStartDateTime}
+              modalEndDateTime={modalEndDateTime}
+              theme={theme}
+              t={t}
+            />
 
             {/* Actions */}
             <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'space-between' }}>
@@ -2148,16 +3729,22 @@ const SchedulingCalendarPage = () => {
               </div>
               <div style={{ display: 'flex', gap: '0.5rem' }}>
                 <Button
-                  onClick={() => setShowCreateModal(false)}
-                  style={{ backgroundColor: theme === 'dark' ? '#374151' : '#f9fafb', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}
+                  variant="secondary"
+                  onClick={closeCreateModal}
                 >
-                  Cancel
+                  {t('cancel')}
                 </Button>
                 <Button
                   onClick={handleCreateSession}
-                  style={{ backgroundColor: '#3b82f6', color: '#ffffff' }}
+                  disabled={!editingSessionId && validationResult?.valid === false && !!modalClassroomId}
+                  style={{
+                    backgroundColor: '#3b82f6',
+                    color: '#ffffff',
+                    opacity: (!editingSessionId && validationResult?.valid === false && !!modalClassroomId) ? 0.55 : 1,
+                    cursor: (!editingSessionId && validationResult?.valid === false && !!modalClassroomId) ? 'not-allowed' : 'pointer'
+                  }}
                 >
-                  {editingSessionId ? 'Update Session' : (isRecurring ? 'Create Series' : 'Create Session')}
+                  {editingSessionId ? t('update_session') : (isRecurring ? t('create_series') : t('create_session'))}
                 </Button>
               </div>
             </div>
@@ -2202,7 +3789,7 @@ const SchedulingCalendarPage = () => {
                 borderRadius: '0.375rem',
                 fontSize: '0.875rem'
               }}>
-                <div><strong>Class:</strong> {sessionToDelete.class?.nameEn || 'Unknown'}</div>
+                <div><strong>{t('class')}:</strong> {sessionToDelete.class?.nameEn || t('unknown')}</div>
                 <div><strong>Date:</strong> {new Date(sessionToDelete.startDateTime).toLocaleString()}</div>
                 <div><strong>Instructor:</strong> {sessionToDelete.instructor?.displayName || 'Not assigned'}</div>
                 <div><strong>Room:</strong> {sessionToDelete.classroom?.nameEn || sessionToDelete.classroom?.code || 'Not assigned'}</div>
@@ -2291,64 +3878,127 @@ const SchedulingCalendarPage = () => {
           <div style={{
             backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
             borderRadius: '0.5rem',
-            padding: '1.5rem',
-            maxWidth: '500px',
+            padding: '1rem',
+            maxWidth: '420px',
             width: '90%'
           }}>
-            <h2 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '1rem' }}>
-              Change Session Status
-            </h2>
-
-            <div style={{ marginBottom: '1rem' }}>
-              <div style={{ 
-                backgroundColor: theme === 'dark' ? '#374151' : '#f9fafb',
-                padding: '0.75rem',
-                borderRadius: '0.375rem',
-                fontSize: '0.875rem',
-                marginBottom: '1rem'
-              }}>
-                <div><strong>Class:</strong> {sessionToChangeStatus.class?.nameEn}</div>
-                <div><strong>Current Status:</strong> {sessionToChangeStatus.status}</div>
-                <div><strong>Date:</strong> {new Date(sessionToChangeStatus.startDateTime).toLocaleString()}</div>
-              </div>
-
-              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem' }}>
-                {t('new_status')}
-              </label>
-              <Select
-                value={newStatus}
-                onChange={(value) => setNewStatus(typeof value === 'object' ? value.value : value)}
-                options={[
-                  { value: '', label: t('select_status') },
-                  ...(STATUS_TRANSITIONS[sessionToChangeStatus.status] || []).map(opt => ({
-                    value: opt.value,
-                    label: `${opt.icon || ''} ${t(opt.labelKey)}`
-                  }))
-                ]}
-              />
-
-              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem' }}>
-                {t('reason_optional')}
-              </label>
-              <textarea
-                value={statusChangeReason}
-                onChange={(e) => setStatusChangeReason(e.target.value)}
-                placeholder={t('reason_placeholder')}
-                style={{
-                  width: '100%',
-                  padding: '0.5rem',
-                  border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`,
-                  borderRadius: '0.375rem',
-                  backgroundColor: theme === 'dark' ? '#374151' : '#ffffff',
-                  color: theme === 'dark' ? '#f3f4f6' : '#1f2937',
-                  fontSize: '0.875rem',
-                  minHeight: '60px',
-                  resize: 'vertical'
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+              <h2 style={{ fontSize: '1rem', fontWeight: '600', margin: 0, color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
+                {t('change_status')}
+              </h2>
+              <button
+                onClick={() => {
+                  setShowStatusModal(false);
+                  setSessionToChangeStatus(null);
+                  setNewStatus('');
+                  setStatusChangeReason('');
                 }}
-              />
+                style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '0.25rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}
+              >
+                <X size={18} />
+              </button>
             </div>
 
-            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
+            <div style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              flexWrap: 'wrap',
+              padding: '0.625rem 0.75rem',
+              backgroundColor: theme === 'dark' ? '#374151' : '#f9fafb',
+              borderRadius: '0.375rem',
+              fontSize: '0.8125rem',
+              marginBottom: '0.75rem',
+              color: theme === 'dark' ? '#f3f4f6' : '#1f2937'
+            }}>
+              <BookOpen size={14} color="#3b82f6" />
+              <span style={{ fontWeight: '600', flex: 1, minWidth: 0 }}>{sessionToChangeStatus.class?.nameEn}</span>
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.25rem',
+                padding: '0.15rem 0.5rem',
+                borderRadius: '1rem',
+                backgroundColor: `${STATUS_COLORS[sessionToChangeStatus.status] || '#6b7280'}20`,
+                border: `1px solid ${STATUS_COLORS[sessionToChangeStatus.status] || '#6b7280'}`,
+                color: STATUS_COLORS[sessionToChangeStatus.status] || '#6b7280',
+                fontSize: '0.75rem',
+                fontWeight: '500'
+              }}>
+                {renderStatusIcon(
+                  SESSION_STATUS_OPTIONS.find(o => o.value === sessionToChangeStatus.status)?.iconName,
+                  12,
+                  STATUS_COLORS[sessionToChangeStatus.status]
+                )}
+                <span style={{ textTransform: 'capitalize' }}>{t(sessionToChangeStatus.status)}</span>
+              </div>
+            </div>
+
+            <div style={{ fontSize: '0.8125rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginBottom: '0.75rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', marginBottom: '0.25rem' }}>
+                <Clock size={14} />
+                <span>
+                  {new Date(sessionToChangeStatus.startDateTime).toLocaleString(lang === 'ar' ? 'ar-SA' : 'en-US', {
+                    weekday: 'short', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit'
+                  })}
+                  {' – '}
+                  {new Date(sessionToChangeStatus.endDateTime).toLocaleString(lang === 'ar' ? 'ar-SA' : 'en-US', {
+                    hour: '2-digit', minute: '2-digit'
+                  })}
+                </span>
+              </div>
+              <div style={{ paddingLeft: '1.25rem', fontSize: '0.75rem' }}>
+                {formatSessionDuration(sessionToChangeStatus.startDateTime, sessionToChangeStatus.endDateTime)}
+              </div>
+            </div>
+
+            {getAvailableStatusTransitions(sessionToChangeStatus).length === 0 ? (
+              <div style={{ fontSize: '0.8125rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginBottom: '0.75rem' }}>
+                {t('no_status_options')}
+              </div>
+            ) : (
+              <>
+            <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: '500', marginBottom: '0.375rem', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
+              {t('new_status')}
+            </label>
+            <Select
+              value={newStatus}
+              onChange={(e) => setNewStatus(e.target.value)}
+              theme={theme}
+              options={[
+                { value: '', label: t('select_status') },
+                ...getAvailableStatusTransitions(sessionToChangeStatus).map(opt => ({
+                  value: opt.value,
+                  label: t(opt.labelKey),
+                  icon: renderStatusIcon(opt.iconName, 14, STATUS_COLORS[opt.value])
+                }))
+              ]}
+            />
+              </>
+            )}
+
+            <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: '500', margin: '0.75rem 0 0.375rem', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
+              {t('reason_optional')}
+            </label>
+            <textarea
+              value={statusChangeReason}
+              onChange={(e) => setStatusChangeReason(e.target.value)}
+              placeholder={t('reason_placeholder')}
+              style={{
+                width: '100%',
+                padding: '0.5rem',
+                border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`,
+                borderRadius: '0.375rem',
+                backgroundColor: theme === 'dark' ? '#374151' : '#ffffff',
+                color: theme === 'dark' ? '#f3f4f6' : '#1f2937',
+                fontSize: '0.8125rem',
+                minHeight: '52px',
+                resize: 'vertical',
+                boxSizing: 'border-box'
+              }}
+            />
+
+            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '0.75rem' }}>
               <Button
                 onClick={() => {
                   setShowStatusModal(false);
@@ -2356,21 +4006,28 @@ const SchedulingCalendarPage = () => {
                   setNewStatus('');
                   setStatusChangeReason('');
                 }}
-                style={{ backgroundColor: theme === 'dark' ? '#374151' : '#f9fafb', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}
+                style={{
+                  backgroundColor: theme === 'dark' ? '#374151' : '#6b7280',
+                  color: '#ffffff',
+                  padding: '0.4rem 0.75rem',
+                  fontSize: '0.8125rem'
+                }}
               >
-                Cancel
+                {t('cancel')}
               </Button>
               <Button
                 onClick={handleStatusChange}
-                disabled={!newStatus}
+                disabled={!newStatus || getAvailableStatusTransitions(sessionToChangeStatus).length === 0}
                 style={{ 
                   backgroundColor: '#3b82f6', 
                   color: '#ffffff',
-                  opacity: !newStatus ? 0.5 : 1,
-                  cursor: !newStatus ? 'not-allowed' : 'pointer'
+                  padding: '0.4rem 0.75rem',
+                  fontSize: '0.8125rem',
+                  opacity: (!newStatus || getAvailableStatusTransitions(sessionToChangeStatus).length === 0) ? 0.5 : 1,
+                  cursor: (!newStatus || getAvailableStatusTransitions(sessionToChangeStatus).length === 0) ? 'not-allowed' : 'pointer'
                 }}
               >
-                Change Status
+                {t('change_status')}
               </Button>
             </div>
           </div>

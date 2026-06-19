@@ -42,7 +42,6 @@ const EnrollmentsManagementPage = lazy(() => import('../academic/enrollments/Enr
 const EnrollmentsPage = lazy(() => import('../academic/enrollments/EnrollmentsPage.jsx'));
 const ScheduledReportsPage = lazy(() => import('../feedback/reports/ScheduledReportsPage.jsx'));
 const MarksPage = lazy(() => import('../academic/enrollments/grading/MarksPage.jsx'));
-const ClassSchedulePage = lazy(() => import('../academic/classes/ClassSchedulePage.jsx'));
 const PenaltiesPage = lazy(() => import('../operations/penalty/PenaltiesPage.jsx'));
 const ParticipationPage = lazy(() => import('../operations/participation/ParticipationPage.jsx'));
 const BehaviorPage = lazy(() => import('../operations/behavior/BehaviorPage.jsx'));
@@ -136,7 +135,7 @@ const DashboardPage = () => {
     // Stop loading after a short delay to allow lazy components to load
     setTimeout(() => stopLoading(), 500);
     // Tabs that should update the URL with query parameters
-    const queryParamTabs = [MODE_TYPES.ACTIVITIES, MODE_TYPES.ANNOUNCEMENTS, MODE_TYPES.RESOURCES, 'users', /* 'allowlist' - removed, now using Keycloak */ 'programs', 'subjects', 'classes', 'enrollments', 'manage-enrollments', 'marks', 'class-schedule', 'penalty', 'participation', 'behavior', /* 'smtp' - DEPRECATED */ 'emailTemplates', 'notificationLogs', 'scheduled-reports', 'categories', 'logging', 'resource-types', 'priority-types', 'user-roles', 'subject-types', 'assessment-types', 'question-types', 'attendance-status-types', 'enrollment-status-types', 'activity-types', 'behavior-types', 'participation-types', 'penalty-types'];
+    const queryParamTabs = [MODE_TYPES.ACTIVITIES, MODE_TYPES.ANNOUNCEMENTS, MODE_TYPES.RESOURCES, 'users', /* 'allowlist' - removed, now using Keycloak */ 'programs', 'subjects', 'classes', 'enrollments', 'manage-enrollments', 'marks', 'penalty', 'participation', 'behavior', /* 'smtp' - DEPRECATED */ 'emailTemplates', 'notificationLogs', 'scheduled-reports', 'categories', 'logging', 'resource-types', 'priority-types', 'user-roles', 'subject-types', 'assessment-types', 'question-types', 'attendance-status-types', 'enrollment-status-types', 'activity-types', 'behavior-types', 'participation-types', 'penalty-types'];
     if (queryParamTabs.includes(tab)) {
       const searchParams = new URLSearchParams(location.search);
       searchParams.set('tab', tab);
@@ -159,7 +158,6 @@ const DashboardPage = () => {
         'classes': '#classes',
         'enrollments': '#enrollments',
         'marks': '#marks',
-        'class-schedule': '#class-schedule'
       };
       if (tabToHashMap[tab]) {
         const hashTarget = `${location.pathname}${tabToHashMap[tab]}`;
@@ -248,8 +246,7 @@ const DashboardPage = () => {
       items: [
         { key: 'programs', label: t('programs') || 'Programs' },
         { key: 'subjects', label: t('subjects') || 'Subjects' },
-        { key: 'classes', label: t('classes') || 'Classes' },
-        { key: 'class-schedule', label: t('class_schedules') || 'Class Schedules' }
+        { key: 'classes', label: t('classes') || 'Classes' }
       ]
     },
     {
@@ -400,8 +397,7 @@ const DashboardPage = () => {
         'subjects': 'subjects',
         'classes': 'classes',
         'enrollments': 'manage-enrollments',
-        'marks': 'marks',
-        'class-schedule': 'class-schedule'
+        'marks': 'marks'
       };
       const tab = hashToHashMap[hash];
       if (tab && tab !== activeTab) {
@@ -509,9 +505,6 @@ const DashboardPage = () => {
           )}
           {activeTab === 'marks' && (isSuperAdmin || isAdmin || isInstructor) && (
             <MarksPage />
-          )}
-          {activeTab === 'class-schedule' && (isSuperAdmin || isAdmin || isInstructor) && (
-            <ClassSchedulePage />
           )}
           {activeTab === 'manage-enrollments' && (isSuperAdmin || isAdmin || isInstructor) && (
             <EnrollmentsManagementPage />

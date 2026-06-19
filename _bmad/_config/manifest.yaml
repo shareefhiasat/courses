@@ -37,3 +37,4 @@ modules:
     sha: 3a4eb926aa871ca673e30bdd3e08645da201762a
 ides:
   - opencode
+  - cursor

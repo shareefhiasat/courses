@@ -2,6 +2,7 @@ import pkg from '@prisma/client';
 const { PrismaClient } = pkg;
 import * as schedulingEngine from '../services/schedulingEngine.js';
 import instructorHistoryService from '../services/instructorHistoryService.js';
+import { autoCompletePastSessions } from '../services/sessionStatusService.js';
 
 const prisma = new PrismaClient();
 
@@ -10,6 +11,7 @@ const prisma = new PrismaClient();
  */
 export const getScheduledSessions = async (params = {}) => {
   try {
+    await autoCompletePastSessions();
     const {
       page = 1,
       limit = 100,
@@ -72,7 +74,9 @@ export const getScheduledSessions = async (params = {}) => {
                   nameEn: true,
                   nameAr: true
                 }
-              }
+              },
+              locationEn: true,
+              locationAr: true
             }
           },
           instructor: {
@@ -90,6 +94,10 @@ export const getScheduledSessions = async (params = {}) => {
               code: true,
               nameEn: true,
               nameAr: true,
+              locationEn: true,
+              locationAr: true,
+              floor: true,
+              roomNumber: true,
               capacity: true
             }
           },
@@ -167,6 +175,15 @@ export const getScheduledSessionById = async (id) => {
  */
 export const createScheduledSession = async (data) => {
   try {
+    const validation = await schedulingEngine.validateSession(data);
+    if (!validation.valid) {
+      return {
+        success: false,
+        error: validation.conflicts?.[0]?.message || 'Session validation failed',
+        conflicts: validation.conflicts
+      };
+    }
+
     // Use transaction for atomic operation - prevents race conditions
     const result = await prisma.$transaction(async (tx) => {
       // Build conflict check conditions - only check if instructor/classroom is provided

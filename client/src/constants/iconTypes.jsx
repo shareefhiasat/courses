@@ -901,6 +901,10 @@ export const CLASS_STAT_CONFIGS = {
   resources: {
     color: '#06b6d4',
     icon: { type: 'ui', name: 'folder' }
+  },
+  sessions: {
+    color: '#8b5cf6',
+    icon: { type: 'ui', name: 'calendar' }
   }
 };
 

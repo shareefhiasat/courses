@@ -44,7 +44,6 @@ const ParticipationPage = lazy(() => import('./pages/operations/participation/Pa
 const BehaviorPage = lazy(() => import('./pages/operations/behavior/BehaviorPage'));
 const QRScannerPage = lazy(() => import('./pages/operations/attendance/QRScannerPage'));
 const QRCodeDisplayPage = lazy(() => import('./pages/operations/attendance/QRCodeDisplayPage'));
-const ClassSchedulePage = lazy(() => import('./pages/academic/classes/ClassSchedulePage'));
 const EnrollmentsPage = lazy(() => import('./pages/academic/enrollments/EnrollmentsPage'));
 const AnalyticsPage = lazy(() => import('./pages/feedback/analytics/AnalyticsPage'));
 const PermissionMatrixPage = lazy(() => import('./pages/system/PermissionMatrixPage'));
@@ -455,11 +454,7 @@ const AppContent = () => {
           
           <Route 
             path="/class-schedules" 
-            element={
-              <ProtectedRoute screenId="classSchedules" screenName="Class Schedules">
-                <ClassSchedulePage />
-              </ProtectedRoute>
-            } 
+            element={<Navigate to="/scheduling-calendar?tab=classes" replace />}
           />
           
           {/* ============================================ */}
@@ -615,7 +610,6 @@ const AppContent = () => {
           <Route path="/resources" element={<Navigate to="/?mode=resources" replace />} />
           <Route path="/progress" element={<Navigate to="/student-dashboard" replace />} />
           <Route path="/my-attendance" element={<Navigate to="/student-dashboard" replace />} />
-          <Route path="/class-schedules" element={<Navigate to="/student-dashboard" replace />} />
           <Route path="/my-enrollments" element={<Navigate to="/student-dashboard" replace />} />
           <Route path="/my-progress" element={<Navigate to="/student-dashboard" replace />} />
           <Route path="/quiz-management" element={<Navigate to="/quizzes" replace />} />

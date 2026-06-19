@@ -5,26 +5,26 @@
  */
 
 export const SESSION_STATUS_OPTIONS = [
-  { value: 'all', labelKey: 'all' },
-  { value: 'scheduled', labelKey: 'scheduled', icon: '📅' },
-  { value: 'in_progress', labelKey: 'in_progress', icon: '⏳' },
-  { value: 'completed', labelKey: 'completed', icon: '✅' },
-  { value: 'cancelled', labelKey: 'cancelled', icon: '❌' }
+  { value: 'all', labelKey: 'all', iconName: 'List' },
+  { value: 'scheduled', labelKey: 'scheduled', iconName: 'Calendar' },
+  { value: 'in_progress', labelKey: 'in_progress', iconName: 'Clock' },
+  { value: 'completed', labelKey: 'completed', iconName: 'CheckCircle2' },
+  { value: 'cancelled', labelKey: 'cancelled', iconName: 'XCircle' }
 ];
 
 export const STATUS_TRANSITIONS = {
   scheduled: [
-    { value: 'in_progress', labelKey: 'in_progress', icon: '⏳' },
-    { value: 'cancelled', labelKey: 'cancelled', icon: '❌' }
+    { value: 'in_progress', labelKey: 'in_progress', iconName: 'Clock' },
+    { value: 'cancelled', labelKey: 'cancelled', iconName: 'XCircle' }
   ],
   in_progress: [
-    { value: 'completed', labelKey: 'completed', icon: '✅' },
-    { value: 'cancelled', labelKey: 'cancelled', icon: '❌' }
+    { value: 'completed', labelKey: 'completed', iconName: 'CheckCircle2' },
+    { value: 'cancelled', labelKey: 'cancelled', iconName: 'XCircle' }
   ],
   cancelled: [
-    { value: 'scheduled', labelKey: 'restore_to_scheduled', icon: '📅' }
+    { value: 'scheduled', labelKey: 'restore_to_scheduled', iconName: 'Calendar' }
   ],
-  completed: [] // No valid transitions from completed
+  completed: []
 };
 
 export const STATUS_COLORS = {

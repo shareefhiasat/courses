@@ -35,7 +35,7 @@ export default function RibbonTabs({ categories = [], activeCategory, activeItem
     'enrollments': '/enrollments',
     'manage-enrollments': '/manage-enrollments',
     'marks': '/marks-entry',
-    'classschedule': '/class-schedules',
+    'classschedule': '/scheduling-calendar?tab=classes',
     'penalty': '/penalty',
     'participation': '/participation',
     'behavior': '/behavior',

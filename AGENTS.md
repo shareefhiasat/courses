@@ -100,6 +100,22 @@ The project has a team of specialized agents in `.opencode/agents/`:
 
 Skills available in `.opencode/skills/`: docker, postgres, keycloak, minio, monitoring, testing
 
+## Cursor IDE Setup
+
+BMAD Method is configured for Cursor alongside OpenCode:
+
+| Layer | Location | Purpose |
+|-------|----------|---------|
+| Rules | `.cursor/rules/` | Always-on + file-scoped implementation rules |
+| Skills | `.cursor/skills/` | Symlinks to `.agents/skills/` (BMAD) and `.opencode/skills/` (infra) |
+| MCP | `.cursor/mcp.json` | postgres, docker, prisma, git servers for this project |
+| Context | `_bmad-output/project-context.md` | Authoritative AI implementation rules (read first) |
+| Agents | `_bmad/custom/bmad-agent-*.toml` | Team persona overrides for Amelia & Winston |
+
+**Invoke agents:** Ask Cursor to use skill `bmad-agent-dev` (Amelia) or `bmad-agent-architect` (Winston). Use `bmad-help` when unsure which workflow to run.
+
+**MCP note:** Project MCP in `.cursor/mcp.json` complements your global `~/.cursor/mcp.json`. Enable project MCP in Cursor Settings → MCP if servers don't appear automatically.
+
 ## Issues Workflow
 1. Create issue on GitHub with label `bug` or `feature`
 2. Create branch from issue

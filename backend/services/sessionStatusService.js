@@ -3,29 +3,60 @@ const { PrismaClient } = pkg;
 const prisma = new PrismaClient();
 
 /**
- * Valid status transitions
+ * Base status transitions (timing-aware rules applied in validateStatusTransition)
  */
 const STATUS_TRANSITIONS = {
-  'scheduled': ['in_progress', 'cancelled'],
-  'in_progress': ['completed', 'cancelled'],
-  'completed': [], // Cannot change from completed
-  'cancelled': ['scheduled'] // Allow restoring cancelled sessions back to scheduled
+  scheduled: ['in_progress', 'completed', 'cancelled'],
+  in_progress: ['completed', 'cancelled'],
+  completed: [],
+  cancelled: ['scheduled']
 };
 
 /**
- * Validate status transition
+ * Validate status transition (optionally time-aware when session is provided)
  */
-export const validateStatusTransition = (currentStatus, newStatus) => {
-  const allowedTransitions = STATUS_TRANSITIONS[currentStatus] || [];
-  
+export const validateStatusTransition = (currentStatus, newStatus, session = null) => {
+  let allowedTransitions = STATUS_TRANSITIONS[currentStatus] || [];
+
+  if (session && currentStatus === 'scheduled') {
+    const now = new Date();
+    const start = new Date(session.startDateTime);
+    const end = new Date(session.endDateTime);
+
+    if (now > end) {
+      allowedTransitions = ['completed', 'cancelled'];
+    } else if (now >= start && now <= end) {
+      allowedTransitions = ['in_progress', 'cancelled'];
+    } else {
+      allowedTransitions = ['cancelled'];
+    }
+  }
+
   if (!allowedTransitions.includes(newStatus)) {
     return {
       valid: false,
       error: `Cannot change status from '${currentStatus}' to '${newStatus}'. Allowed transitions: ${allowedTransitions.join(', ') || 'none'}`
     };
   }
-  
+
   return { valid: true };
+};
+
+/**
+ * Auto-mark past sessions as completed
+ */
+export const autoCompletePastSessions = async () => {
+  const now = new Date();
+  const result = await prisma.scheduledSession.updateMany({
+    where: {
+      status: { in: ['scheduled', 'in_progress'] },
+      endDateTime: { lt: now },
+      deletedAt: null,
+      isActive: true
+    },
+    data: { status: 'completed' }
+  });
+  return result.count;
 };
 
 /**
@@ -42,8 +73,8 @@ export const updateSessionStatus = async (sessionId, newStatus, updatedBy = null
       return { success: false, error: 'Session not found' };
     }
 
-    // Validate transition
-    const validation = validateStatusTransition(session.status, newStatus);
+    // Validate transition (time-aware)
+    const validation = validateStatusTransition(session.status, newStatus, session);
     if (!validation.valid) {
       return { success: false, error: validation.error };
     }
@@ -219,5 +250,6 @@ export default {
   cancelRecurringSeries,
   startSession,
   completeSession,
-  getSessionsByStatus
+  getSessionsByStatus,
+  autoCompletePastSessions
 };

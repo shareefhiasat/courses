@@ -141,7 +141,7 @@ export const PERMISSION_CONFIG = {
                   '/smart-drive'],
     [ROLES.ADMIN]: ['all'], // Admin can access all screens except role-access-pro
     [ROLES.INSTRUCTOR]: ['all'], // Instructor can access all screens except role-access-pro
-    [ROLES.STUDENT]: ['/', '/student-dashboard', '/my-enrollments', '/class-schedules', '/my-attendance', '/profile']
+    [ROLES.STUDENT]: ['/', '/student-dashboard', '/my-enrollments', '/scheduling-calendar', '/my-attendance', '/profile']
   }
 };
 

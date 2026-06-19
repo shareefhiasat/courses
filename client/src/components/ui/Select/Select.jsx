@@ -44,6 +44,7 @@ const Select = forwardRef(({
   theme = 'light',
   onSearchChange,
   searchPlaceholder,
+  style,
   ...rest
 }, ref) => {
   const { t } = useLang();
@@ -300,7 +301,7 @@ const Select = forwardRef(({
   // If not searchable, use native select
   if (!searchable) {
     return (
-      <div className={wrapperClasses}>
+      <div className={wrapperClasses} style={style}>
         {label && (
           <label className={styles.label}>
             {label}
@@ -343,7 +344,7 @@ const Select = forwardRef(({
 
   // Searchable/Custom dropdown
   return (
-    <div className={wrapperClasses} ref={containerRef}>
+    <div className={wrapperClasses} ref={containerRef} style={style}>
       {label && (
         <label className={styles.label}>
           {label}

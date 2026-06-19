@@ -111,7 +111,7 @@ export const ROUTE_CONFIG = {
   // Class & Enrollment routes
   CLASSES: {
     classSchedules: {
-      path: '/class-schedules',
+      path: '/scheduling-calendar?tab=classes',
       requireAuth: true,
       screenId: 'classSchedules',
       screenName: 'Class Schedules'

@@ -1,10 +1,8 @@
 import React from 'react';
 import { useLang } from '@contexts/LangContext';
-import { useTheme } from '@contexts/ThemeContext';
-import { useColorTheme } from '@contexts/ColorThemeContext';
-import { getThemedIcon, deriveIconColor } from '@constants/iconTypes';
-import { Tooltip, PortalTooltip } from '@ui';
+import { getThemedIcon } from '@constants/iconTypes';
 import { createClassStatBadge, CLASS_STAT_CONFIGS } from '@constants/iconTypes';
+import ClassCardScheduleSection from '../../ClassCardScheduleSection.jsx';
 
 
 import { info, error, warn, debug } from '@services/utils/logger.js';const ClassCard = ({ 
@@ -14,11 +12,15 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Class
   theme, 
   t,
   onViewClass,
+  onSessionSelect,
   showInstructorInfo = true 
 }) => {
-  const { lang } = useLang();
+  const { lang, isRTL } = useLang();
   const clsId = cls.docId || cls.id;
-  const hasSchedule = cls.schedule && cls.schedule.days && cls.schedule.days.length > 0;
+  const statsLoaded = Object.prototype.hasOwnProperty.call(classStats, clsId);
+  const sessionCount = classStats[clsId]?.sessions ?? 0;
+  const hasSessions = statsLoaded && sessionCount > 0;
+  const isEmptySchedule = statsLoaded && !hasSessions;
   const instructor = cls.instructorData;
 
 // Helper function to get localized class name
@@ -123,24 +125,26 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Class
   return (
     <div
       key={clsId}
+      dir={isRTL ? 'rtl' : 'ltr'}
       style={{
-        background: theme === 'dark' ? '#1f2937' : '#ffffff',
-        border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`,
+        background: isEmptySchedule
+          ? (theme === 'dark' ? '#111827' : '#f3f4f6')
+          : (theme === 'dark' ? '#1f2937' : '#ffffff'),
+        border: isEmptySchedule
+          ? `1px dashed ${theme === 'dark' ? '#4b5563' : '#d1d5db'}`
+          : `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`,
         borderRadius: '12px',
         padding: '1rem',
-        cursor: 'pointer',
+        cursor: onViewClass ? 'pointer' : 'default',
+        opacity: isEmptySchedule ? 0.88 : 1,
         transition: 'all 0.2s ease',
-        boxShadow: theme === 'dark' 
-          ? '0 4px 6px -1px rgba(0, 0, 0, 0.3)' 
-          : '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-        '&:hover': {
-          transform: 'translateY(-2px)',
-          boxShadow: theme === 'dark' 
-            ? '0 8px 12px -1px rgba(0, 0, 0, 0.4)' 
-            : '0 8px 12px -1px rgba(0, 0, 0, 0.15)',
-        }
+        boxShadow: isEmptySchedule
+          ? 'none'
+          : (theme === 'dark'
+            ? '0 4px 6px -1px rgba(0, 0, 0, 0.3)'
+            : '0 4px 6px -1px rgba(0, 0, 0, 0.1)'),
       }}
-      onClick={() => onViewClass(cls)}
+      onClick={() => onViewClass?.(cls)}
     >
       {/* Class Header */}
       <div style={{ marginBottom: '0.75rem' }}>
@@ -148,7 +152,9 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Class
           margin: 0, 
           fontSize: '1rem', 
           fontWeight: 600,
-          color: theme === 'dark' ? '#f9fafb' : '#111827',
+          color: isEmptySchedule
+            ? (theme === 'dark' ? '#9ca3af' : '#6b7280')
+            : (theme === 'dark' ? '#f9fafb' : '#111827'),
           lineHeight: '1.25'
         }}>
           {getLocalizedClassName(cls)}
@@ -210,32 +216,34 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Class
 
       {/* Compact Statistics */}
       {classStats[clsId] && (
-        <div style={{ 
-          display: 'flex', 
-          flexWrap: 'wrap', 
-          gap: '0.25rem', 
-          marginBottom: '0.5rem',
-          fontSize: 11,
-          color: 'var(--muted)'
-        }}>
+        <div
+          style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '0.25rem',
+            marginBottom: '0.5rem',
+            fontSize: 11,
+            color: 'var(--muted)'
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
           {classStats[clsId].students > 0 && (
-            <PortalTooltip content={t('classcard_students')} position="top">
-              <span 
-                style={{ 
-                  background: `${primaryColor}15`, 
-                  color: primaryColor, 
-                  padding: '1px 4px', 
-                  borderRadius: 3,
-                  fontWeight: 500,
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '2px'
-                }}
-              >
-                {getThemedIcon('ui', 'users', 10, deriveIconColor(primaryColor))}
-                {classStats[clsId].students}
-              </span>
-            </PortalTooltip>
+            createClassStatBadge(
+              classStats[clsId].students,
+              CLASS_STAT_CONFIGS.students.icon,
+              primaryColor || CLASS_STAT_CONFIGS.students.color,
+              t('classcard_students'),
+              theme
+            )
+          )}
+          {classStats[clsId].sessions > 0 && (
+            createClassStatBadge(
+              classStats[clsId].sessions,
+              CLASS_STAT_CONFIGS.sessions.icon,
+              CLASS_STAT_CONFIGS.sessions.color,
+              t('classcard_scheduled_sessions'),
+              theme
+            )
           )}
           {classStats[clsId].penalties > 0 && (
             createClassStatBadge(
@@ -294,20 +302,17 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Class
         </div>
       )}
       
-      {/* Schedule Info */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <div style={{ fontSize: 10, color: 'var(--muted)' }}>
-          {hasSchedule ? `${cls.schedule.frequency} • ${cls.schedule.days.join(', ')}` : t('classcard_no_schedule')}
-        </div>
-        {hasSchedule && (
-          <div style={{ 
-            width: 8, 
-            height: 8, 
-            borderRadius: '50%', 
-            background: primaryColor 
-          }} />
-        )}
-      </div>
+      {statsLoaded && (
+        <ClassCardScheduleSection
+          clsId={clsId}
+          classStats={classStats}
+          lang={lang}
+          isRTL={isRTL}
+          t={t}
+          theme={theme}
+          onSessionSelect={onSessionSelect}
+        />
+      )}
     </div>
   );
 };
