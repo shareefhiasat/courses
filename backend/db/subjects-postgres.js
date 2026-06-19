@@ -118,6 +118,9 @@ export const getSubjects = async (params = {}) => {
             displayName: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             email: true
           }
         },
@@ -127,6 +130,9 @@ export const getSubjects = async (params = {}) => {
             displayName: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             email: true
           }
         },
@@ -207,6 +213,9 @@ export const getSubjectById = async (subjectId) => {
             displayName: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             email: true
           }
         },
@@ -216,6 +225,9 @@ export const getSubjectById = async (subjectId) => {
             displayName: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             email: true
           }
         },
@@ -389,6 +401,9 @@ export const createSubject = async (subjectData, user = null) => {
             displayName: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             email: true
           }
         },
@@ -398,6 +413,9 @@ export const createSubject = async (subjectData, user = null) => {
             displayName: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             email: true
           }
         },
@@ -490,6 +508,9 @@ export const updateSubject = async (subjectId, updateData, user = null) => {
             displayName: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             email: true
           }
         },
@@ -499,6 +520,9 @@ export const updateSubject = async (subjectId, updateData, user = null) => {
             displayName: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             email: true
           }
         },

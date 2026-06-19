@@ -137,9 +137,12 @@ const getEnrollments = async (params = {}) => {
           select: {
             id: true,
             displayName: true,
+            displayNameAr: true,
             email: true,
             firstName: true,
-            lastName: true
+            lastName: true,
+            firstNameAr: true,
+            lastNameAr: true
           }
         },
         class: {
@@ -236,9 +239,12 @@ const getEnrollmentById = async (id) => {
           select: {
             id: true,
             displayName: true,
+            displayNameAr: true,
             email: true,
             firstName: true,
-            lastName: true
+            lastName: true,
+            firstNameAr: true,
+            lastNameAr: true
           }
         },
         class: {
@@ -444,9 +450,12 @@ const create = async (enrollmentData, user = null) => {
           select: {
             id: true,
             displayName: true,
+            displayNameAr: true,
             email: true,
             firstName: true,
-            lastName: true
+            lastName: true,
+            firstNameAr: true,
+            lastNameAr: true
           }
         },
         class: {
@@ -548,9 +557,12 @@ const update = async (id, updateData, user = null) => {
           select: {
             id: true,
             displayName: true,
+            displayNameAr: true,
             email: true,
             firstName: true,
-            lastName: true
+            lastName: true,
+            firstNameAr: true,
+            lastNameAr: true
           }
         },
         class: {

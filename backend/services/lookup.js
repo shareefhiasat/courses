@@ -399,9 +399,12 @@ export async function getLookupData(lookupType, options = {}) {
         select: {
           id: true,
           displayName: true,
-          email: true,
-          firstName: true,
-          lastName: true
+            displayNameAr: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            firstNameAr: true,
+            lastNameAr: true
         }
       };
     }
@@ -410,9 +413,12 @@ export async function getLookupData(lookupType, options = {}) {
         select: {
           id: true,
           displayName: true,
-          email: true,
-          firstName: true,
-          lastName: true
+            displayNameAr: true,
+            email: true,
+            firstName: true,
+            lastName: true,
+            firstNameAr: true,
+            lastNameAr: true
         }
       };
     }

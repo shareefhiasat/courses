@@ -2,6 +2,7 @@ import { PrismaClient } from '@prisma/client';
 import { calculateLetterGrade, MANUAL_GRADES } from '../utils/formatting/gradingStandards.js';
 import notificationGateway from '../services/notifications/index.js';
 import { EVENTS } from '../services/notifications/constants.js';
+import { buildLocalizedNameFields, buildNotificationNameVars } from '../utils/localizedUserName.js';
 
 const prisma = new PrismaClient();
 
@@ -159,6 +160,9 @@ const getStudentMarks = async (req, res) => {
             email: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             displayName: true,
             studentNumber: true
           }
@@ -309,6 +313,9 @@ const updateStudentMarks = async (req, res) => {
             email: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             displayName: true
           }
         }
@@ -375,7 +382,7 @@ const updateStudentMarks = async (req, res) => {
 
       const student = await prisma.user.findUnique({
         where: { id: parseInt(userId) },
-        select: { displayName: true, firstName: true, lastName: true }
+        select: { displayName: true, firstName: true, lastName: true, displayNameAr: true, firstNameAr: true, lastNameAr: true }
       });
 
       if (subject && student) {
@@ -384,7 +391,7 @@ const updateStudentMarks = async (req, res) => {
         await notificationGateway.emit(
           eventType,
           {
-            studentName: student.displayName || `${student.firstName} ${student.lastName}`,
+            ...buildNotificationNameVars(student, 'Unknown Student'),
             subjectName: subject.nameEn || subject.nameAr,
             grade: letterGrade,
             totalMarks: `${totalMarks}%`
@@ -511,14 +518,14 @@ const batchUpdateStudentMarks = async (req, res) => {
           results.map(async (result) => {
             const student = await prisma.user.findUnique({
               where: { id: result.userId },
-              select: { displayName: true, firstName: true, lastName: true }
+              select: { displayName: true, firstName: true, lastName: true, displayNameAr: true, firstNameAr: true, lastNameAr: true }
             });
 
             if (student) {
               await notificationGateway.emit(
                 EVENTS.MARKS_UPDATED,
                 {
-                  studentName: student.displayName || `${student.firstName} ${student.lastName}`,
+                  ...buildNotificationNameVars(student, 'Unknown Student'),
                   subjectName: subject.nameEn || subject.nameAr,
                   grade: result.letterGrade,
                   totalMarks: `${result.totalMarks}%`
@@ -565,6 +572,9 @@ const getStudentMarksHistory = async (req, res) => {
             id: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             email: true
           }
         }
@@ -816,9 +826,12 @@ const getAllStudentMarksReport = async (req, res) => {
           select: {
             id: true,
             displayName: true,
+            displayNameAr: true,
             email: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
             studentNumber: true
           }
         },
@@ -971,12 +984,13 @@ const getAllStudentMarksReport = async (req, res) => {
           gradingStandard = studentMarks.isRepeated ? 'Repeated' : 'First Attempt';
         }
         
+        const studentNames = buildLocalizedNameFields(enrollment.user, 'Unknown Student');
         reportData.push({
           id: firstAttemptKey,
           studentId: enrollment.userId,
           studentNumber: enrollment.user.studentNumber || '',
-          studentName: enrollment.user.displayName || 
-            `${enrollment.user.firstName} ${enrollment.user.lastName}`,
+          studentName: studentNames.studentName,
+          studentNameAr: studentNames.studentNameAr,
           studentEmail: enrollment.user.email,
           programId: enrollment.class.programId,
           programName: enrollment.class.program?.nameEn || enrollment.class.program?.nameAr || 
@@ -1056,12 +1070,13 @@ const getAllStudentMarksReport = async (req, res) => {
           gradingStandard = studentMarks.isRepeated ? 'Repeated' : 'First Attempt';
         }
         
+        const studentNames = buildLocalizedNameFields(enrollment.user, 'Unknown Student');
         reportData.push({
           id: repeatedAttemptKey,
           studentId: enrollment.userId,
           studentNumber: enrollment.user.studentNumber || '',
-          studentName: enrollment.user.displayName || 
-            `${enrollment.user.firstName} ${enrollment.user.lastName}`,
+          studentName: studentNames.studentName,
+          studentNameAr: studentNames.studentNameAr,
           studentEmail: enrollment.user.email,
           programId: enrollment.class.programId,
           programName: enrollment.class.program?.nameEn || enrollment.class.program?.nameAr || 

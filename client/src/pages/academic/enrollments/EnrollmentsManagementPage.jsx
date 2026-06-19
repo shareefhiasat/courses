@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useCallback, useRef, useLayoutEffect } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
 import { useTheme } from '@contexts/ThemeContext';
 import { useLang } from '@contexts/LangContext';
 import { useAuth } from '@contexts/AuthContext';
@@ -16,6 +16,7 @@ import { getPenalties } from '@services/business/penaltyService';
 import { getBehaviors } from '@services/business/behaviorService';
 import { getParticipations } from '@services/business/participationService';
 import { toggleStudentAccess as toggleStudentAccessService } from '@services/business/enrollmentService';
+import { getLocalizedUserName } from '@utils/localizedUserName';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import { DeleteModal, useDeleteModal } from '@ui';
 
@@ -27,8 +28,6 @@ const EnrollmentsManagementPage = () => {
   const { deleteModal, deleteEntity, handleDeleteConfirm, hideDeleteModal } = useDeleteModal(t);
 
   // Refs for form fields to avoid re-renders on keystroke
-  const userSelectRef = useRef(null);
-
   // Internal state management
   const [enrollments, setEnrollments] = useState([]);
   const [users, setUsers] = useState([]);
@@ -261,6 +260,15 @@ const EnrollmentsManagementPage = () => {
     return rows;
   }, [enrollmentRows, localClasses, localSubjects, programFilter, subjectFilter, classFilter]);
 
+  const matchUserId = useCallback((left, right) => {
+    if (left == null || right == null) return false;
+    return String(left) === String(right);
+  }, []);
+
+  const findUserById = useCallback((userId) => {
+    return users.find((u) => matchUserId(u.docId || u.id, userId));
+  }, [users, matchUserId]);
+
   const enrollmentSummary = useMemo(() => {
     const total = filteredEnrollmentRows.length;
     const uniqueStudents = new Set(filteredEnrollmentRows.map(r => r.userId)).size;
@@ -288,11 +296,15 @@ const EnrollmentsManagementPage = () => {
   const handleEnrollmentSubmit = useCallback(async (e) => {
     if (e) e.preventDefault();
     
-    // Use first available student if no student selected
-    const studentIdToUse = enrollmentForm.studentId || (availableUsers.length > 0 ? availableUsers[0].id : '');
+    const studentIdToUse = enrollmentForm.studentId;
     
     if (!studentIdToUse) {
-      toast?.showError(t('no_students_available') || 'No students available for enrollment');
+      toast?.showError(t('participation_please_select_student') || 'Please select a student');
+      return;
+    }
+
+    if (!enrollmentForm.classId) {
+      toast?.showError(t('please_select_class') || 'Please select a class');
       return;
     }
     
@@ -351,6 +363,22 @@ const EnrollmentsManagementPage = () => {
             onClassChange={(classId) => setEnrollmentForm(prev => ({ ...prev, classId }))}
             showLabels={false}
             required
+          />
+        </div>
+
+        <div className="form-row wide-cols">
+          <UserSelect
+            users={availableUsers}
+            enrollments={enrollments}
+            classes={localClasses}
+            value={enrollmentForm.studentId}
+            onChange={(studentId) => setEnrollmentForm((prev) => ({ ...prev, studentId }))}
+            placeholder={t('select_student') || 'Select student'}
+            roleFilter={[ROLE_STRINGS.STUDENT]}
+            includeAll={false}
+            showEnrollments
+            searchable
+            fullWidth
           />
         </div>
         
@@ -477,12 +505,12 @@ const EnrollmentsManagementPage = () => {
             flex: 1.5, 
             minWidth: 200,
             renderCell: (params) => {
-              const user = users.find(u => (u.docId || u.id) === params.value);
-              if (!user) return params.value;
+              const user = findUserById(params.value);
+              if (!user) return params.value || '—';
               return (
                 <div style={{ padding: '8px 0' }}>
                   <div style={{ fontWeight: '500', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
-                    {user.displayName || user.realName || '—'}
+                    {getLocalizedUserName(user, lang)}
                   </div>
                   <div style={{ fontSize: '0.875rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '2px' }}>
                     {user.email || '—'}
@@ -529,7 +557,7 @@ const EnrollmentsManagementPage = () => {
             headerName: t('created_by') || 'CREATED BY', 
             width: 150,
             renderCell: (params) => {
-              const creator = users.find(u => (u.docId || u.id) === params.value);
+              const creator = users.find(u => matchUserId(u.docId || u.id, params.value));
               if (!creator) {
                 return <span style={{ color: '#6b7280' }}>System</span>;
               }
@@ -650,9 +678,9 @@ const EnrollmentsManagementPage = () => {
             field: 'actions', headerName: t('actions') || 'Actions', width: 200, sortable: false, filterable: false,
             renderCell: (params) => {
               const enrollment = params.row;
-              const user = users.find(u => (u.docId || u.id) === enrollment.userId);
-              const classItem = localClasses.find(c => (c.docId || c.id) === enrollment.classId);
-              const userName = user ? (user.displayName || user.realName || user.email || 'Unknown User') : 'Unknown User';
+              const user = findUserById(enrollment.userId);
+              const classItem = localClasses.find(c => matchUserId(c.docId || c.id, enrollment.classId));
+              const userName = user ? getLocalizedUserName(user, lang) : (t('unknown_user') || 'Unknown User');
               const className = classItem ? (classItem.name || classItem.code || 'Unknown Class') : 'Unknown Class';
               const isDisabled = Array.isArray(classItem?.disabledStudents) && classItem.disabledStudents.includes(enrollment.userId);
 

@@ -46,6 +46,11 @@ export const recordInstructorChange = async ({
           select: {
             id: true,
             displayName: true,
+            displayNameAr: true,
+            firstName: true,
+            lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
             email: true
           }
         },
@@ -53,6 +58,11 @@ export const recordInstructorChange = async ({
           select: {
             id: true,
             displayName: true,
+            displayNameAr: true,
+            firstName: true,
+            lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
             email: true
           }
         },
@@ -60,6 +70,11 @@ export const recordInstructorChange = async ({
           select: {
             id: true,
             displayName: true,
+            displayNameAr: true,
+            firstName: true,
+            lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
             email: true
           }
         }
@@ -111,6 +126,11 @@ export const getClassInstructorHistory = async (classId) => {
           select: {
             id: true,
             displayName: true,
+            displayNameAr: true,
+            firstName: true,
+            lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
             email: true
           }
         },
@@ -118,6 +138,11 @@ export const getClassInstructorHistory = async (classId) => {
           select: {
             id: true,
             displayName: true,
+            displayNameAr: true,
+            firstName: true,
+            lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
             email: true
           }
         },
@@ -125,6 +150,11 @@ export const getClassInstructorHistory = async (classId) => {
           select: {
             id: true,
             displayName: true,
+            displayNameAr: true,
+            firstName: true,
+            lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
             email: true
           }
         }
@@ -197,6 +227,11 @@ export const getInstructorHistory = async (instructorId, options = {}) => {
           select: {
             id: true,
             displayName: true,
+            displayNameAr: true,
+            firstName: true,
+            lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
             email: true
           }
         },
@@ -204,6 +239,11 @@ export const getInstructorHistory = async (instructorId, options = {}) => {
           select: {
             id: true,
             displayName: true,
+            displayNameAr: true,
+            firstName: true,
+            lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
             email: true
           }
         },
@@ -211,6 +251,11 @@ export const getInstructorHistory = async (instructorId, options = {}) => {
           select: {
             id: true,
             displayName: true,
+            displayNameAr: true,
+            firstName: true,
+            lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
             email: true
           }
         }
@@ -257,6 +302,11 @@ export const getSessionInstructorHistory = async (sessionId) => {
           select: {
             id: true,
             displayName: true,
+            displayNameAr: true,
+            firstName: true,
+            lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
             email: true
           }
         },
@@ -264,6 +314,11 @@ export const getSessionInstructorHistory = async (sessionId) => {
           select: {
             id: true,
             displayName: true,
+            displayNameAr: true,
+            firstName: true,
+            lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
             email: true
           }
         },
@@ -271,6 +326,11 @@ export const getSessionInstructorHistory = async (sessionId) => {
           select: {
             id: true,
             displayName: true,
+            displayNameAr: true,
+            firstName: true,
+            lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
             email: true
           }
         }

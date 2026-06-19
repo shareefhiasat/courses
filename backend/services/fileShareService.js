@@ -126,7 +126,7 @@ export async function getFolderDetailsForNotification(folderId) {
     const folder = await prisma.folder.findUnique({
       where: { id: folderId },
       include: {
-        user: { select: { displayName: true, firstName: true, lastName: true } }
+        user: { select: { displayName: true, firstName: true, lastName: true, displayNameAr: true, firstNameAr: true, lastNameAr: true } }
       }
     });
     return ok(folder);

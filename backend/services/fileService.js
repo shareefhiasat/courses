@@ -411,7 +411,7 @@ export async function listFiles(keycloakUser, {
       prisma.file.findMany({
         where,
         include: {
-          owner: { select: { id: true, keycloakId: true, email: true, displayName: true, firstName: true, lastName: true } },
+          owner: { select: { id: true, keycloakId: true, email: true, displayName: true, firstName: true, lastName: true, displayNameAr: true, firstNameAr: true, lastNameAr: true } },
           currentVersion: { select: { versionNumber: true, size: true, createdAt: true } },
         },
         orderBy: { [sortField]: sortOrder },

@@ -73,8 +73,11 @@ export const getRequirementTypes = async (params = {}) => {
               id: true,
               displayName: true,
               firstName: true,
-              lastName: true,
-              email: true
+            lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
+            email: true
             }
           },
           updater: {
@@ -82,8 +85,11 @@ export const getRequirementTypes = async (params = {}) => {
               id: true,
               displayName: true,
               firstName: true,
-              lastName: true,
-              email: true
+            lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
+            email: true
             }
           }
         }
@@ -145,6 +151,9 @@ export const getRequirementTypeById = async (id) => {
             displayName: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             email: true
           }
         },
@@ -154,6 +163,9 @@ export const getRequirementTypeById = async (id) => {
             displayName: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             email: true
           }
         },
@@ -253,6 +265,9 @@ export const createRequirementType = async (data) => {
             displayName: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             email: true
           }
         }
@@ -348,6 +363,9 @@ export const updateRequirementType = async (id, data) => {
             displayName: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             email: true
           }
         },
@@ -357,6 +375,9 @@ export const updateRequirementType = async (id, data) => {
             displayName: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             email: true
           }
         }

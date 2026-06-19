@@ -1,6 +1,22 @@
-import React, { cache } from 'react';
+import React from 'react';
 import useAnalyticsData from '@hooks/useAnalyticsData';
 import { info, error, warn, debug } from '@services/utils/logger.js';
+
+/** React.cache is React 19+; provide a Map-based fallback for React 18. */
+function memoCache(fn) {
+  const store = new Map();
+  return (...args) => {
+    const key = JSON.stringify(args);
+    if (store.has(key)) {
+      return store.get(key);
+    }
+    const result = fn(...args);
+    store.set(key, result);
+    return result;
+  };
+}
+
+const cache = typeof React.cache === 'function' ? React.cache : memoCache;
 
 /**
  * Cached data fetchers using React.cache for deduplication

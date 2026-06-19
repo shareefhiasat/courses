@@ -6,6 +6,7 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { buildLocalizedNameFields, buildNotificationNameVars } from '../utils/localizedUserName.js';
 
 const prisma = new PrismaClient();
 
@@ -132,10 +133,12 @@ const getDashboardSummary = async (params = {}) => {
     const teacherLoad = await Promise.all(teacherLoadData.map(async (tl) => {
       const instructor = await prisma.user.findUnique({
         where: { id: tl.instructorUserId },
-        select: { displayName: true, firstName: true, lastName: true }
+        select: { displayName: true, firstName: true, lastName: true, displayNameAr: true, firstNameAr: true, lastNameAr: true }
       });
+      const names = buildLocalizedNameFields(instructor, 'Unknown');
       return {
-        instructorName: instructor?.displayName || instructor?.firstName || 'Unknown',
+        instructorName: names.instructorName,
+        instructorNameAr: names.instructorNameAr,
         sessionCount: tl._count.id
       };
     }));

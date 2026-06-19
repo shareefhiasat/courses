@@ -8,6 +8,7 @@
 import { PrismaClient } from '@prisma/client';
 import notificationGateway from './notifications/index.js';
 import { EVENTS } from './notifications/constants.js';
+import { buildLocalizedNameFields, buildNotificationNameVars } from '../utils/localizedUserName.js';
 
 const prisma = new PrismaClient();
 
@@ -150,7 +151,10 @@ export const getAttendanceById = async (id) => {
             email: true,
             displayName: true,
             firstName: true,
-            lastName: true
+            lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true
           }
         },
         class: {
@@ -294,7 +298,7 @@ export const createAttendance = async (attendanceData, user = null) => {
         await notificationGateway.emit(
           eventType,
           {
-            studentName: updatedAttendance.user.displayName || `${updatedAttendance.user.firstName} ${updatedAttendance.user.lastName}`,
+            ...buildNotificationNameVars(updatedAttendance.user, 'Unknown Student'),
             date: updatedAttendance.date,
             className: updatedAttendance.class.nameEn,
             status: status
@@ -335,7 +339,10 @@ export const createAttendance = async (attendanceData, user = null) => {
             email: true,
             displayName: true,
             firstName: true,
-            lastName: true
+            lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true
           }
         },
         class: {
@@ -370,7 +377,7 @@ export const createAttendance = async (attendanceData, user = null) => {
       await notificationGateway.emit(
         eventType,
         {
-          studentName: newAttendance.user.displayName || `${newAttendance.user.firstName} ${newAttendance.user.lastName}`,
+          ...buildNotificationNameVars(newAttendance.user, 'Unknown Student'),
           date: newAttendance.date,
           className: newAttendance.class.nameEn,
           status: status
@@ -460,7 +467,10 @@ export const updateAttendance = async (id, updateData, user = null) => {
             email: true,
             displayName: true,
             firstName: true,
-            lastName: true
+            lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true
           }
         },
         class: {

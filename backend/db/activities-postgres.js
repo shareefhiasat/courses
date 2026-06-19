@@ -80,6 +80,9 @@ export const getActivities = async (params = {}) => {
             displayName: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             email: true
           }
         },
@@ -89,6 +92,9 @@ export const getActivities = async (params = {}) => {
             displayName: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             email: true
           }
         },
@@ -162,6 +168,9 @@ export const getActivityById = async (activityId) => {
             displayName: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             email: true
           }
         },
@@ -171,6 +180,9 @@ export const getActivityById = async (activityId) => {
             displayName: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             email: true
           }
         },
@@ -280,6 +292,9 @@ export const createActivity = async (activityData, user = null) => {
             displayName: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             email: true
           }
         },
@@ -289,6 +304,9 @@ export const createActivity = async (activityData, user = null) => {
             displayName: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             email: true
           }
         },
@@ -404,8 +422,11 @@ export const updateActivity = async (activityId, updateData, user = null) => {
               id: true,
               displayName: true,
               firstName: true,
-              lastName: true,
-              email: true
+            lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
+            email: true
             }
           },
           updater: {
@@ -413,8 +434,11 @@ export const updateActivity = async (activityId, updateData, user = null) => {
               id: true,
               displayName: true,
               firstName: true,
-              lastName: true,
-              email: true
+            lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
+            email: true
             }
           },
           class: {
@@ -461,8 +485,11 @@ export const updateActivity = async (activityId, updateData, user = null) => {
               id: true,
               displayName: true,
               firstName: true,
-              lastName: true,
-              email: true
+            lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
+            email: true
             }
           },
           updater: {
@@ -470,8 +497,11 @@ export const updateActivity = async (activityId, updateData, user = null) => {
               id: true,
               displayName: true,
               firstName: true,
-              lastName: true,
-              email: true
+            lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
+            email: true
             }
           },
           class: {

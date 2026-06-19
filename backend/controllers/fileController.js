@@ -111,7 +111,7 @@ export const completeUpload = async (req, res) => {
         const file = await prisma.file.findUnique({
           where: { id: fileId },
           include: {
-            user: { select: { displayName: true, firstName: true, lastName: true } }
+            user: { select: { displayName: true, firstName: true, lastName: true, displayNameAr: true, firstNameAr: true, lastNameAr: true } }
           }
         });
 
@@ -408,7 +408,7 @@ export const shareFile = async (req, res) => {
       const file = await prisma.file.findUnique({
         where: { id: fileId },
         include: {
-          user: { select: { displayName: true, firstName: true, lastName: true } }
+          user: { select: { displayName: true, firstName: true, lastName: true, displayNameAr: true, firstNameAr: true, lastNameAr: true } }
         }
       });
 
@@ -449,7 +449,7 @@ export const unshareFile = async (req, res) => {
       include: {
         file: {
           include: {
-            user: { select: { displayName: true, firstName: true, lastName: true } }
+            user: { select: { displayName: true, firstName: true, lastName: true, displayNameAr: true, firstNameAr: true, lastNameAr: true } }
           }
         }
       }
@@ -535,7 +535,7 @@ export const addComment = async (req, res) => {
       const file = await prisma.file.findUnique({
         where: { id: fileId },
         include: {
-          user: { select: { displayName: true, firstName: true, lastName: true } }
+          user: { select: { displayName: true, firstName: true, lastName: true, displayNameAr: true, firstNameAr: true, lastNameAr: true } }
         }
       });
 
@@ -702,7 +702,7 @@ export const softDeleteFile = async (req, res) => {
     const file = await prisma.file.findUnique({
       where: { id: fileId },
       include: {
-        owner: { select: { displayName: true, firstName: true, lastName: true } }
+        owner: { select: { displayName: true, firstName: true, lastName: true, displayNameAr: true, firstNameAr: true, lastNameAr: true } }
       }
     });
 

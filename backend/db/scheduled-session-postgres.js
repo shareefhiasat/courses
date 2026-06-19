@@ -83,8 +83,11 @@ export const getScheduledSessions = async (params = {}) => {
             select: {
               id: true,
               firstName: true,
-              lastName: true,
-              displayName: true,
+            lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
+            displayName: true,
               email: true
             }
           },
@@ -105,16 +108,22 @@ export const getScheduledSessions = async (params = {}) => {
             select: {
               id: true,
               firstName: true,
-              lastName: true,
-              displayName: true
+            lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
+            displayName: true
             }
           },
           updater: {
             select: {
               id: true,
               firstName: true,
-              lastName: true,
-              displayName: true
+            lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
+            displayName: true
             }
           }
         }

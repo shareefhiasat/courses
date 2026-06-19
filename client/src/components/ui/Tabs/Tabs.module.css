@@ -2,12 +2,24 @@
 
 .tabsContainer {
   display: flex;
-  justify-content: center;
+  justify-content: stretch;
+  width: 100%;
+  max-width: 100%;
   margin-bottom: 0.5rem;
+  overflow: hidden;
 }
 
 .tabsWrapper {
-  display: inline-flex;
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border, #d1d5db) transparent;
   background: var(--panel, #ffffff);
   border-radius: 12px;
   padding: 4px;
@@ -15,7 +27,15 @@
   border: 1px solid var(--border, #e5e7eb);
   gap: 4px;
   position: relative;
-  overflow: hidden;
+}
+
+.tabsWrapper::-webkit-scrollbar {
+  height: 6px;
+}
+
+.tabsWrapper::-webkit-scrollbar-thumb {
+  background: var(--border, #d1d5db);
+  border-radius: 999px;
 }
 
 [data-theme="dark"] .tabsWrapper {
@@ -91,6 +111,7 @@
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   white-space: nowrap;
   min-height: 40px;
+  flex-shrink: 0;
 }
 
 .tab:hover {
@@ -322,18 +343,9 @@
     margin-bottom: 1rem;
   }
 
-  .tabsWrapper {
-    flex-wrap: wrap;
-    width: 100%;
-    gap: 2px;
-    padding: 2px;
-  }
-
   .tab {
-    flex: 1;
-    min-width: 0;
-    padding: 6px 8px;
-    font-size: 0.75rem;
+    padding: 6px 12px;
+    font-size: 0.8rem;
     gap: 4px;
     min-height: 36px;
   }

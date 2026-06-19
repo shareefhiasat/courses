@@ -502,7 +502,10 @@ model User {
   email                          String                    @unique
   firstName                      String?
   lastName                       String?
+  firstNameAr                    String?
+  lastNameAr                     String?
   displayName                    String?
+  displayNameAr                  String?
   realName                       String?
   studentNumber                  String?
   sequence                       Int?

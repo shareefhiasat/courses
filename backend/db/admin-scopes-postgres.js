@@ -75,8 +75,11 @@ export const getAdminScopes = async (params = {}) => {
               id: true,
               email: true,
               firstName: true,
-              lastName: true,
-              displayName: true
+            lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
+            displayName: true
             }
           },
           program: {
@@ -100,8 +103,11 @@ export const getAdminScopes = async (params = {}) => {
               id: true,
               email: true,
               firstName: true,
-              lastName: true,
-              displayName: true
+            lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
+            displayName: true
             }
           }
         }
@@ -157,6 +163,9 @@ export const getAdminScopeById = async (id) => {
             email: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             displayName: true
           }
         },
@@ -182,6 +191,9 @@ export const getAdminScopeById = async (id) => {
             email: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             displayName: true
           }
         }
@@ -257,6 +269,9 @@ export const getAdminScopesByUserId = async (userId) => {
             email: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             displayName: true
           }
         }
@@ -305,6 +320,9 @@ export const createAdminScope = async (data) => {
             email: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             displayName: true
           }
         },
@@ -330,6 +348,9 @@ export const createAdminScope = async (data) => {
             email: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             displayName: true
           }
         }
@@ -380,6 +401,9 @@ export const updateAdminScope = async (id, data) => {
             email: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             displayName: true
           }
         },
@@ -405,6 +429,9 @@ export const updateAdminScope = async (id, data) => {
             email: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             displayName: true
           }
         }
@@ -542,6 +569,9 @@ export const getUserEffectiveScope = async (userId) => {
             email: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             displayName: true
           }
         }

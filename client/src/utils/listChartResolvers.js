@@ -37,16 +37,20 @@ export const resolveUser = (userId, users = [], t) => {
   }
   
   return {
-    nameEn: user.realNameEn || user.real_name_en || user.displayNameEn || user.display_name_en || user.realName || user.displayName || user.name || user.email || translate('unknown_student'),
-    nameAr: user.realNameAr || user.real_name_ar || user.displayNameAr || user.display_name_ar || user.realName || user.displayName || user.name || user.email || translate('unknown_student'),
+    nameEn: user.displayName || user.realName || user.name || user.email || translate('unknown_student'),
+    nameAr: user.displayNameAr
+      || (user.firstNameAr && user.lastNameAr ? `${user.firstNameAr} ${user.lastNameAr}` : null)
+      || user.displayName || user.realName || user.name || user.email || translate('unknown_student'),
     number: user.studentNumber || user.studentId || user.id?.substring(0, 8) || translate('not_available'),
     email: user.email || '—',
     phone: user.phone || user.phoneNumber || '—',
     address: user.address || '—',
     parentName: user.parentName || user.guardianName || '—',
     role: user.role || '—',
-    displayNameEn: user.displayNameEn || user.display_name_en || user.displayName || user.realName || '—',
-    displayNameAr: user.displayNameAr || user.display_name_ar || user.displayName || user.realName || '—'
+    displayNameEn: user.displayName || user.realName || '—',
+    displayNameAr: user.displayNameAr
+      || (user.firstNameAr && user.lastNameAr ? `${user.firstNameAr} ${user.lastNameAr}` : null)
+      || user.displayName || user.realName || '—'
   };
 };
 

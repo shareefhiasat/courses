@@ -17,7 +17,7 @@ import styles from './ProgramsPage.module.css';
 
 const ProgramsPage = () => {
   const { isAdmin, isSuperAdmin, user, loading: authLoading } = useAuth();
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const { theme } = useTheme();
   const toast = useToast();
   const { startLoading } = useGlobalLoading();
@@ -317,7 +317,7 @@ const ProgramsPage = () => {
       width: 200,
       renderCell: (params) => {
         const creator = params.row?.creator;
-        const props = getUserDisplayProps(creator, users);
+        const props = getUserDisplayProps(creator, users, { lang });
         return <span {...props} />;
       }
     },
@@ -327,7 +327,7 @@ const ProgramsPage = () => {
       width: 200,
       renderCell: (params) => {
         const updater = params.row?.updater;
-        const props = getUserDisplayProps(updater, users);
+        const props = getUserDisplayProps(updater, users, { lang });
         return <span {...props} />;
       }
     },

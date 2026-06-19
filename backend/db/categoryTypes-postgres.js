@@ -69,8 +69,11 @@ export const getCategoryTypes = async (params = {}) => {
               id: true,
               displayName: true,
               firstName: true,
-              lastName: true,
-              email: true
+            lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
+            email: true
             }
           },
           updater: {
@@ -78,8 +81,11 @@ export const getCategoryTypes = async (params = {}) => {
               id: true,
               displayName: true,
               firstName: true,
-              lastName: true,
-              email: true
+            lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
+            email: true
             }
           }
         }
@@ -137,6 +143,9 @@ export const getCategoryTypeById = async (id) => {
             displayName: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             email: true
           }
         },
@@ -146,6 +155,9 @@ export const getCategoryTypeById = async (id) => {
             displayName: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             email: true
           }
         }
@@ -210,6 +222,9 @@ export const createCategoryType = async (data, userId) => {
             id: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             email: true
           }
         }
@@ -272,6 +287,9 @@ export const updateCategoryType = async (id, data, userId) => {
             displayName: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             email: true
           }
         },
@@ -281,6 +299,9 @@ export const updateCategoryType = async (id, data, userId) => {
             displayName: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             email: true
           }
         }

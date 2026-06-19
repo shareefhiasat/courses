@@ -3,17 +3,17 @@ import { useLang } from '@contexts/LangContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { createClassStatBadge, CLASS_STAT_CONFIGS } from '@constants/iconTypes';
 import ClassCardScheduleSection from '../../ClassCardScheduleSection.jsx';
+import { getLocalizedInstructorName as resolveLocalizedInstructorName } from '@utils/schedulingDisplayUtils';
 
-
-import { info, error, warn, debug } from '@services/utils/logger.js';const ClassCard = ({ 
-  cls, 
-  classStats, 
-  primaryColor, 
-  theme, 
+const ClassCard = ({
+  cls,
+  classStats,
+  primaryColor,
+  theme,
   t,
   onViewClass,
   onSessionSelect,
-  showInstructorInfo = true 
+  showInstructorInfo = true
 }) => {
   const { lang, isRTL } = useLang();
   const clsId = cls.docId || cls.id;
@@ -45,44 +45,8 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Class
   };
 
   // Helper function to get localized instructor name
-  const getLocalizedInstructorName = (instructor) => {
-    if (!instructor) return t('classcard_instructor');
-    
-    // Arabic support
-    if (lang === 'ar' && instructor.firstNameAr && instructor.lastNameAr) {
-      return `${instructor.firstNameAr} ${instructor.lastNameAr}`;
-    }
-    
-    // Try multiple name fields in order of preference
-    if (instructor.firstName && instructor.lastName) {
-      return `${instructor.firstName} ${instructor.lastName}`;
-    }
-    
-    if (instructor.realName) {
-      return instructor.realName;
-    }
-    
-    if (instructor.displayName && instructor.displayName.trim()) {
-      return instructor.displayName;
-    }
-    
-    // Extract name from email as last resort
-    if (instructor.email) {
-      const emailName = instructor.email.split('@')[0];
-      // Format email name (e.g., "john.doe" -> "John Doe")
-      const formattedName = emailName
-        .replace(/[._-]/g, ' ')
-        .split(' ')
-        .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
-        .join(' ');
-      
-      if (formattedName && formattedName !== emailName) {
-        return formattedName;
-      }
-    }
-    
-    return t('classcard_instructor');
-  };
+  const getLocalizedInstructorName = (instructor) =>
+    resolveLocalizedInstructorName(instructor, lang, t('classcard_instructor'));
   
   // Helper function to get instructor initials
   const getInstructorInitials = (instructor) => {

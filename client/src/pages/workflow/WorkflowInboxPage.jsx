@@ -12,6 +12,7 @@ import { formatQatarDate } from '@utils/timezone';
 import { getSlaInfo } from '@utils/sla.js';
 import { getStatusVariant as getActionVariant, getStatusColorClasses, getWorkflowStatusIcon } from '@constants/workflowStatusTypes';
 import { getThemedIcon, getUserRoleIcon, getUserRoleColor } from '@constants/iconTypes';
+import { getLocalizedUserName } from '@utils/localizedUserName';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import useNotifications from '@hooks/useNotifications';
@@ -25,7 +26,7 @@ import { useAuth } from '@contexts/AuthContext';
 
 const WorkflowInboxPage = () => {
   const navigate = useNavigate();
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const { theme } = useTheme();
   const { triggerNotification } = useNotifications();
   const toast = useToast();
@@ -313,10 +314,7 @@ const WorkflowInboxPage = () => {
           row: params.row
         });
         
-        const displayName = submitter?.displayName || 
-                          (submitter?.firstName && submitter?.lastName ? `${submitter.firstName} ${submitter.lastName}` : null) ||
-                          submitter?.email ||
-                          t('workflow.inbox.unknown', 'Unknown');
+        const displayName = getLocalizedUserName(submitter, lang, t('workflow.inbox.unknown', 'Unknown'));
         
         // Get role type from role assignments
         const roleAssignments = submitter?.roleAssignments || [];
@@ -427,10 +425,7 @@ const WorkflowInboxPage = () => {
 
         const roleType = getRoleType(primaryRole?.code);
         const roleColor = roleType ? getUserRoleColor(roleType) : theme;
-        const displayName = assignee?.displayName || 
-                          (assignee?.firstName && assignee?.lastName ? `${assignee.firstName} ${assignee.lastName}` : null) ||
-                          assignee?.email ||
-                          t('workflow.inbox.unknown', 'Unknown');
+        const displayName = getLocalizedUserName(assignee, lang, t('workflow.inbox.unknown', 'Unknown'));
         
         console.log('[WorkflowInbox] Final display:', {
           roleType,

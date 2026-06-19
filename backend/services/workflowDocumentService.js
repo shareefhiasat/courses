@@ -693,8 +693,11 @@ export async function listFileVersions(fileId) {
               select: {
                 id: true,
                 firstName: true,
-                lastName: true,
-                displayName: true,
+            lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
+            displayName: true,
                 email: true
               }
             }
@@ -720,8 +723,11 @@ export async function listFileVersions(fileId) {
                     select: {
                       id: true,
                       firstName: true,
-                      lastName: true,
-                      displayName: true,
+            lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
+            displayName: true,
                       email: true
                     }
                   }

@@ -9,6 +9,7 @@ import { getQatarTimeAgo, formatQatarDate } from '@utils/timezone';
 import { getThemedIcon, getUserRoleIcon } from '@constants/iconTypes';
 import MultiSelect from '@components/ui/MultiSelect';
 import { ROLE_STRINGS } from '@utils/userUtils';
+import { getLocalizedUserName } from '@utils/localizedUserName';
 import { ACTIVITY_LOG_TYPES } from '@services/other/activityLogger';
 import { Button, Input, Select, ToggleSwitch, AdvancedDataGrid, Card, CardBody, ConfirmModal } from '@ui';
 import { DeleteModal, useDeleteModal } from '@ui';
@@ -47,6 +48,9 @@ const UsersPage = ({ isDashboardTab = false }) => {
   const emailRef = useRef(null);
   const displayNameRef = useRef(null);
   const realNameRef = useRef(null);
+  const displayNameArRef = useRef(null);
+  const firstNameArRef = useRef(null);
+  const lastNameArRef = useRef(null);
   const studentNumberRef = useRef(null);
   const orderRef = useRef(null);
   
@@ -67,6 +71,9 @@ const UsersPage = ({ isDashboardTab = false }) => {
     email: '',
     displayName: '',
     realName: '',
+    displayNameAr: '',
+    firstNameAr: '',
+    lastNameAr: '',
     role: ROLE_STRINGS.STUDENT, // Primary role for backward compatibility
     roles: [], // Multi-role array
     studentNumber: '',
@@ -259,6 +266,9 @@ const UsersPage = ({ isDashboardTab = false }) => {
       email: user.email || '',
       displayName: user.displayName || '',
       realName: user.realName || '',
+      displayNameAr: user.displayNameAr || '',
+      firstNameAr: user.firstNameAr || '',
+      lastNameAr: user.lastNameAr || '',
       role: primaryRole,
       roles: user.roles || [primaryRole], // Multi-role array
       studentNumber: user.studentNumber || '',
@@ -548,6 +558,9 @@ const UsersPage = ({ isDashboardTab = false }) => {
     if (emailRef.current) emailRef.current.value = formData.email || '';
     if (displayNameRef.current) displayNameRef.current.value = formData.displayName || '';
     if (realNameRef.current) realNameRef.current.value = formData.realName || '';
+    if (displayNameArRef.current) displayNameArRef.current.value = formData.displayNameAr || '';
+    if (firstNameArRef.current) firstNameArRef.current.value = formData.firstNameAr || '';
+    if (lastNameArRef.current) lastNameArRef.current.value = formData.lastNameAr || '';
     if (studentNumberRef.current) studentNumberRef.current.value = formData.studentNumber || '';
     if (orderRef.current) orderRef.current.value = formData.sequence || '';
   }, [editingUser, formData]);
@@ -558,6 +571,9 @@ const UsersPage = ({ isDashboardTab = false }) => {
       email: emailRef.current?.value ?? formData.email,
       displayName: displayNameRef.current?.value ?? formData.displayName,
       realName: realNameRef.current?.value ?? formData.realName,
+      displayNameAr: displayNameArRef.current?.value ?? formData.displayNameAr,
+      firstNameAr: firstNameArRef.current?.value ?? formData.firstNameAr,
+      lastNameAr: lastNameArRef.current?.value ?? formData.lastNameAr,
       studentNumber: studentNumberRef.current?.value ?? formData.studentNumber,
       sequence: orderRef.current?.value ?? formData.sequence,
       role: formData.role
@@ -574,7 +590,10 @@ const UsersPage = ({ isDashboardTab = false }) => {
       filtered = filtered.filter(user => 
         user.email?.toLowerCase().includes(searchLower) ||
         user.displayName?.toLowerCase().includes(searchLower) ||
-        user.realName?.toLowerCase().includes(searchLower)
+        user.realName?.toLowerCase().includes(searchLower) ||
+        user.displayNameAr?.toLowerCase().includes(searchLower) ||
+        user.firstNameAr?.toLowerCase().includes(searchLower) ||
+        user.lastNameAr?.toLowerCase().includes(searchLower)
       );
     }
     
@@ -696,6 +715,17 @@ const UsersPage = ({ isDashboardTab = false }) => {
   const gridColumns = useMemo(() => [
     { field: 'email', headerName: t('email_col'), flex: 1, minWidth: 220 },
     { field: 'displayName', headerName: t('display_name_col'), flex: 1, minWidth: 180 },
+    {
+      field: 'displayNameAr',
+      headerName: t('display_name_ar_col'),
+      flex: 1,
+      minWidth: 160,
+      renderCell: (params) => (
+        <span dir="rtl" style={{ color: params.value ? 'inherit' : '#9ca3af', fontStyle: params.value ? 'normal' : 'italic' }}>
+          {params.value || '—'}
+        </span>
+      )
+    },
     { 
       field: 'realName', 
       headerName: t('real_name') || 'Real Name', 
@@ -1129,11 +1159,11 @@ const UsersPage = ({ isDashboardTab = false }) => {
     
     const user = users.find(u => u.id === userId);
     if (user) {
-      return user.displayName || user.email || user.realName || `User ${userId}`;
+      return getLocalizedUserName(user, lang, `User ${userId}`);
     }
     
     return `User ${userId}`;
-  }, [users, t]);
+  }, [users, t, lang]);
 
   // Helper function to get role icon using getThemedIcon
   const getRoleIconThemed = (role) => {
@@ -1357,6 +1387,9 @@ const UsersPage = ({ isDashboardTab = false }) => {
       email: '',
       displayName: '',
       realName: '',
+      displayNameAr: '',
+      firstNameAr: '',
+      lastNameAr: '',
       role: ROLE_STRINGS.STUDENT,
       roles: [],
       studentNumber: '',
@@ -1676,7 +1709,6 @@ borderColor: theme === 'dark' ? '#374151' : 'transparent',
             placeholder={t('student_number_placeholder') || 'Student Number'}
             required={formData.role === ROLE_STRINGS.STUDENT}
             onChange={(e) => {
-              // Update form state when student number changes
               setFormData(prev => ({ ...prev, studentNumber: e.target.value }));
             }}
           />
@@ -1687,6 +1719,33 @@ borderColor: theme === 'dark' ? '#374151' : 'transparent',
             description={t('student_order_description') || 'Display order for student lists'}
             onChange={(e) => setFormData(prev => ({ ...prev, sequence: e.target.value }))}
           />
+        </div>
+
+        <div className="form-row">
+          <Input
+            type="text"
+            ref={displayNameArRef}
+            placeholder={t('display_name_ar_placeholder')}
+            onChange={(e) => setFormData(prev => ({ ...prev, displayNameAr: e.target.value }))}
+            dir="rtl"
+          />
+          <Input
+            type="text"
+            ref={firstNameArRef}
+            placeholder={t('first_name_ar_placeholder')}
+            onChange={(e) => setFormData(prev => ({ ...prev, firstNameAr: e.target.value }))}
+            dir="rtl"
+          />
+          <Input
+            type="text"
+            ref={lastNameArRef}
+            placeholder={t('last_name_ar_placeholder')}
+            onChange={(e) => setFormData(prev => ({ ...prev, lastNameAr: e.target.value }))}
+            dir="rtl"
+          />
+        </div>
+
+        <div className="form-row">
           {/* Multi-Role Select */}
           <MultiSelect
             options={[

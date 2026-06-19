@@ -6,6 +6,7 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { buildLocalizedNameFields, buildNotificationNameVars } from '../utils/localizedUserName.js';
 
 const prisma = new PrismaClient();
 
@@ -604,7 +605,12 @@ export async function getComplianceData(filters) {
         subject: doc.subject,
         classId: doc.classId,
         instructorId: doc.instructorId,
-        instructorName: doc.instructor?.name || 'Unknown',
+        instructorName: doc.instructor
+          ? buildLocalizedNameFields(doc.instructor, 'Unknown').instructorName
+          : 'Unknown',
+        instructorNameAr: doc.instructor
+          ? buildLocalizedNameFields(doc.instructor, 'Unknown').instructorNameAr
+          : 'Unknown',
         status: doc.status,
         submittedAt: doc.submittedAt
       });

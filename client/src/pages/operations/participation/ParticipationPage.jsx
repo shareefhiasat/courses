@@ -19,6 +19,8 @@ import { ACTIVITY_LOG_TYPES } from '@services/other/activityLogger';
 import { formatQatarDate } from '@utils/timezone';
 import { getUserStatus, getUserStatusSummary, USER_STATUS, getStatusIconProps } from '@utils/userStatus';
 import { isUserDisabled, getUserId, getUserDisplayNameSync } from '@services/business/userService';
+import { applyLocalizedNameFields } from '@utils/localizedUserName';
+import { pickStudentName } from '@utils/pickLocalizedName';
 import { 
   PAGE_STATES, 
   FORM_STATES,
@@ -327,7 +329,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
           if (enrichedParticipation.userId && enrichedParticipation.user) {
             // Use the pre-populated user object from API
             const user = enrichedParticipation.user;
-            enrichedParticipation.studentName = user.displayName || user.realName || user.email || 'N/A';
+            applyLocalizedNameFields(enrichedParticipation, user, 'N/A');
             enrichedParticipation.studentEmail = user.email;
             enrichedParticipation.studentId = enrichedParticipation.userId; // Set studentId for grid
           } else if (enrichedParticipation.userId) {
@@ -335,7 +337,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
             try {
               const studentData = await fetchUser(enrichedParticipation.userId);
               if (studentData) {
-                enrichedParticipation.studentName = studentData.displayName || studentData.email || 'N/A';
+                applyLocalizedNameFields(enrichedParticipation, studentData, 'N/A');
                 enrichedParticipation.studentEmail = studentData.email;
                 enrichedParticipation.studentId = enrichedParticipation.userId;
               }
@@ -1152,7 +1154,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
                   
                   return {
                     value: getUserId(u),
-                    displayLabel: getUserDisplayNameSync(u),
+                    displayLabel: getUserDisplayNameSync(u, lang),
                     label: (
                       <div style={{ 
                         display: 'flex', 
@@ -1293,7 +1295,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
                     
                     return {
                       value: getUserId(u),
-                      displayLabel: getUserDisplayNameSync(u),
+                      displayLabel: getUserDisplayNameSync(u, lang),
                       label: (
                         <div style={{ 
                           display: 'flex', 

@@ -418,7 +418,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
         }
         
         // Use centralized authService for consistent display
-        return getAuthUserDisplayName(creator);
+        return getAuthUserDisplayName(creator, [], lang);
       }
     },
     {
@@ -443,7 +443,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
         }
         
         // Use centralized authService for consistent display
-        return getAuthUserDisplayName(updater);
+        return getAuthUserDisplayName(updater, [], lang);
       }
     },
     {

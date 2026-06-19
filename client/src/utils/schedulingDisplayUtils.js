@@ -2,6 +2,8 @@
  * Shared display helpers for scheduling calendar UI
  */
 
+import { getLocalizedUserName } from './localizedUserName.js';
+
 const CALENDAR_DAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 const CALENDAR_DAY_KEYS_WORKWEEK = ['sun', 'mon', 'tue', 'wed', 'thu'];
 const EN_DAY_TO_KEY = {
@@ -32,16 +34,7 @@ export function getLocalizedSubjectName(subject, lang) {
 }
 
 export function getLocalizedInstructorName(instructor, lang, fallback = '') {
-  if (!instructor) return fallback;
-  if (lang === 'ar' && instructor.firstNameAr && instructor.lastNameAr) {
-    return `${instructor.firstNameAr} ${instructor.lastNameAr}`;
-  }
-  if (instructor.firstName && instructor.lastName) {
-    return `${instructor.firstName} ${instructor.lastName}`;
-  }
-  if (instructor.realName) return instructor.realName;
-  if (instructor.displayName?.trim()) return instructor.displayName;
-  return instructor.email || fallback;
+  return getLocalizedUserName(instructor, lang, fallback || 'Unknown User');
 }
 
 export function getLocalizedClassroomName(classroom, lang) {

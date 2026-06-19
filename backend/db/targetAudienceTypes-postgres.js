@@ -40,6 +40,9 @@ export const getTargetAudienceTypes = async (params = {}) => {
             displayName: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             email: true
           }
         },
@@ -49,6 +52,9 @@ export const getTargetAudienceTypes = async (params = {}) => {
             displayName: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             email: true
           }
         }
@@ -101,6 +107,9 @@ export const getTargetAudienceTypeById = async (targetAudienceTypeId) => {
             displayName: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             email: true
           }
         },
@@ -110,6 +119,9 @@ export const getTargetAudienceTypeById = async (targetAudienceTypeId) => {
             displayName: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             email: true
           }
         },
@@ -181,6 +193,9 @@ export const createTargetAudienceType = async (targetAudienceTypeData, createdBy
             displayName: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             email: true
           }
         },
@@ -190,6 +205,9 @@ export const createTargetAudienceType = async (targetAudienceTypeData, createdBy
             displayName: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             email: true
           }
         }
@@ -240,6 +258,9 @@ export const updateTargetAudienceType = async (targetAudienceTypeId, updateData,
             displayName: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             email: true
           }
         },
@@ -249,6 +270,9 @@ export const updateTargetAudienceType = async (targetAudienceTypeId, updateData,
             displayName: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             email: true
           }
         }

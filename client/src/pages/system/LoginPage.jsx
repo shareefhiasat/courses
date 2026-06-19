@@ -7,7 +7,7 @@ import { Container } from '@ui';
 import { GlobalLoadingFallback } from '@/contexts/GlobalLoadingContext';
 import Navbar from '@ui/Navbar/Navbar';
 import VersionDisplay from '@ui/VersionDisplay/VersionDisplay';
-import AuthForm from '@components/AuthForm';
+import KeycloakLoginPrompt from '@components/KeycloakLoginPrompt';
 import styles from './LoginPage.module.css';
 
 
@@ -183,7 +183,7 @@ const LoginPage = () => {
       <Navbar hideHamburger={true} />
       
       <Container maxWidth="sm" className={styles.formContainer}>
-        <AuthForm />
+        <KeycloakLoginPrompt />
         
         {/* Logout Reason Message - Moved to bottom */}
         {logoutReason && (

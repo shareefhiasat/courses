@@ -6,40 +6,59 @@
  */
 
 import { PrismaClient } from '@prisma/client';
-import { getDatabaseUserId } from '../utils/database/userResolver.js';
+import { getDatabaseUserId, findUserByParam } from '../utils/database/userResolver.js';
 
 const prisma = new PrismaClient();
 
 /**
  * GET /api/v1/users/me
- * Get current user profile (lightweight - uses middleware-resolved data)
+ * Get current user profile from database (merged with auth context)
  */
 export const getCurrentUserController = async (req, res) => {
   try {
-    console.log('[getCurrentUserController] req.user:', req.user);
-    const user = req.user;
-    
-    if (!user) {
-      console.log('[getCurrentUserController] No user in request');
+    const authUser = req.user;
+
+    if (!authUser) {
       return res.status(401).json({
         success: false,
         error: 'Unauthorized'
       });
     }
 
-    // Return the user object already resolved by middleware
-    // dbId is already resolved by keycloakAuth middleware
-    console.log('[getCurrentUserController] Returning user data:', { dbId: user.dbId, email: user.email });
+    const dbUser = authUser.dbId
+      ? await prisma.user.findUnique({
+          where: { id: authUser.dbId },
+          select: {
+            id: true,
+            keycloakId: true,
+            email: true,
+            displayName: true,
+            displayNameAr: true,
+            firstName: true,
+            lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            realName: true,
+            studentNumber: true,
+          }
+        })
+      : null;
+
     return res.json({
       success: true,
       data: {
-        id: user.dbId,
-        keycloakId: user.keycloakId,
-        email: user.email,
-        displayName: user.displayName,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        dbId: user.dbId
+        id: dbUser?.id ?? authUser.dbId,
+        keycloakId: authUser.keycloakId,
+        email: dbUser?.email ?? authUser.email,
+        displayName: dbUser?.displayName ?? authUser.displayName,
+        displayNameAr: dbUser?.displayNameAr ?? null,
+        firstName: dbUser?.firstName ?? authUser.firstName,
+        lastName: dbUser?.lastName ?? authUser.lastName,
+        firstNameAr: dbUser?.firstNameAr ?? null,
+        lastNameAr: dbUser?.lastNameAr ?? null,
+        realName: dbUser?.realName ?? null,
+        studentNumber: dbUser?.studentNumber ?? null,
+        dbId: authUser.dbId
       }
     });
   } catch (error) {
@@ -67,8 +86,11 @@ export const listUsersController = async (req, res) => {
     // Build search conditions
     const searchConditions = search ? [
       { displayName: { contains: search, mode: 'insensitive' } },
+      { displayNameAr: { contains: search, mode: 'insensitive' } },
       { firstName: { contains: search, mode: 'insensitive' } },
       { lastName: { contains: search, mode: 'insensitive' } },
+      { firstNameAr: { contains: search, mode: 'insensitive' } },
+      { lastNameAr: { contains: search, mode: 'insensitive' } },
       { email: { contains: search, mode: 'insensitive' } },
     ] : [];
 
@@ -83,8 +105,12 @@ export const listUsersController = async (req, res) => {
       select: {
         id: true,
         displayName: true,
+        displayNameAr: true,
         firstName: true,
         lastName: true,
+        firstNameAr: true,
+        lastNameAr: true,
+        realName: true,
         email: true,
         isActive: true,
         roleAssignments: {
@@ -148,13 +174,15 @@ export const getUserByIdController = async (req, res) => {
   try {
     const { id } = req.params;
 
-    const user = await prisma.user.findUnique({
-      where: { id: parseInt(id) },
-      select: {
+    const user = await findUserByParam(id, {
         id: true,
         displayName: true,
+        displayNameAr: true,
         firstName: true,
         lastName: true,
+        firstNameAr: true,
+        lastNameAr: true,
+        realName: true,
         email: true,
         isActive: true,
         keycloakId: true,
@@ -172,7 +200,6 @@ export const getUserByIdController = async (req, res) => {
             }
           }
         }
-      }
     });
 
     if (!user) {
@@ -201,7 +228,7 @@ export const getUserByIdController = async (req, res) => {
  */
 export const createUserController = async (req, res) => {
   try {
-    const { displayName, realName, firstName: firstNameParam, lastName: lastNameParam, email, role, studentNumber, sequence } = req.body;
+    const { displayName, realName, firstName: firstNameParam, lastName: lastNameParam, firstNameAr, lastNameAr, displayNameAr, email, role, studentNumber, sequence } = req.body;
     
     // Import Keycloak service
     const { createUser, setUserRoles } = await import('../services/keycloakAdminService.js');
@@ -288,9 +315,12 @@ export const createUserController = async (req, res) => {
     const user = await prisma.user.create({
       data: {
         displayName,
+        displayNameAr: displayNameAr || null,
         realName,
         firstName: finalFirstName,
         lastName: finalLastName,
+        firstNameAr: firstNameAr || null,
+        lastNameAr: lastNameAr || null,
         email,
         studentNumber: studentNumber || null,
         sequence: sequence ? parseInt(sequence, 10) : null,
@@ -341,7 +371,7 @@ export const updateUserController = async (req, res) => {
   
   try {
     const { id } = req.params;
-    const { displayName, realName, firstName, lastName, email, roles, isActive, studentNumber, sequence } = req.body;
+    const { displayName, realName, firstName, lastName, firstNameAr, lastNameAr, displayNameAr, email, roles, isActive, studentNumber, sequence } = req.body;
     
     // Import Keycloak services for role sync
     const { setUserRoles } = await import('../services/keycloakAdminService.js');
@@ -371,11 +401,7 @@ export const updateUserController = async (req, res) => {
       console.log('🔧 Using fallback user ID: 1');
     }
     
-    // Get user with Keycloak ID
-    const existingUser = await prisma.user.findUnique({
-      where: { id: parseInt(id) },
-      select: { keycloakId: true }
-    });
+    const existingUser = await findUserByParam(id, { id: true, keycloakId: true });
     
     if (!existingUser) {
       return res.status(404).json({
@@ -383,21 +409,26 @@ export const updateUserController = async (req, res) => {
         error: 'User not found'
       });
     }
+
+    const targetUserId = existingUser.id;
     
     // Update user in PostgreSQL
     console.log('🔧 Update Debug:', {
       currentUserId,
       updatedByValue: currentUserId,
-      userId: parseInt(id)
+      userId: targetUserId
     });
     
     const user = await prisma.user.update({
-      where: { id: parseInt(id) },
+      where: { id: targetUserId },
       data: {
         displayName,
+        displayNameAr,
         realName,
         firstName,
         lastName,
+        firstNameAr,
+        lastNameAr,
         email,
         isActive,
         studentNumber,
@@ -415,7 +446,7 @@ export const updateUserController = async (req, res) => {
     if (roles && Array.isArray(roles)) {
       // Delete existing role assignments
       await prisma.userRoleAssignment.deleteMany({
-        where: { userId: parseInt(id) }
+        where: { userId: targetUserId }
       });
       
       // Create new role assignments
@@ -431,7 +462,7 @@ export const updateUserController = async (req, res) => {
         if (role) {
           await prisma.userRoleAssignment.create({
             data: {
-              userId: parseInt(id),
+              userId: targetUserId,
               roleId: role.id,
               assignedAt: new Date(),
               assignedBy: 1 // TODO: Get actual admin user ID

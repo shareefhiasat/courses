@@ -125,8 +125,11 @@ export const getScheduleSessions = async (params = {}) => {
               id: true,
               email: true,
               firstName: true,
-              lastName: true,
-              displayName: true
+            lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
+            displayName: true
             }
           },
           classroom: {
@@ -229,6 +232,9 @@ export const getScheduleSessionById = async (id) => {
             email: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             displayName: true
           }
         },
@@ -348,6 +354,9 @@ export const getScheduleSessionsByDateRange = async (params) => {
             email: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             displayName: true
           }
         },
@@ -441,6 +450,9 @@ export const createScheduleSession = async (data) => {
             email: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             displayName: true
           }
         },
@@ -536,6 +548,9 @@ export const updateScheduleSession = async (id, data) => {
             email: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             displayName: true
           }
         },

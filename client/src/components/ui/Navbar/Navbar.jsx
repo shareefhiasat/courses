@@ -3,7 +3,8 @@ import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@contexts/AuthContext';
 import NotificationBell from '../NotificationBell/NotificationBell';
 import { useLang } from '@contexts/LangContext';
-import { getUsers, updateUser, getUserDisplayName, getUserById } from '@services/business/userService';
+import { getUsers, updateUser, getUserById } from '@services/business/userService';
+import { getLocalizedUserName } from '@utils/localizedUserName';
 import { getAllUserImages } from '@services/business/userImageService';
 import './Navbar.css';
 import { getThemedIcon, getWhiteIcon, getIconWithColor, getUserRoleIcon, getUserRoleColor } from '@constants/iconTypes';
@@ -30,6 +31,9 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
   const [displayName, setDisplayName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [realName, setRealName] = useState('');
+  const [displayNameAr, setDisplayNameAr] = useState('');
+  const [firstNameAr, setFirstNameAr] = useState('');
+  const [lastNameAr, setLastNameAr] = useState('');
   const [studentNumber, setStudentNumber] = useState('');
   const [userImages, setUserImages] = useState({
     profile: null,
@@ -142,6 +146,9 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
       setPhoneNumber(me?.phoneNumber || '');
       setPrimaryColor(normalizeHexColor(me?.messageColor, ACCENT_FALLBACK));
       setRealName(me?.realName || '');
+      setDisplayNameAr(me?.displayNameAr || '');
+      setFirstNameAr(me?.firstNameAr || '');
+      setLastNameAr(me?.lastNameAr || '');
       setStudentNumber(me?.studentNumber || '');
       setNotifLang(me?.notifLang || 'auto');
       setTimeFormat(getTimeFormatPreference());
@@ -157,6 +164,9 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
         phoneNumber: phoneNumber || null,
         messageColor: normalizeHexColor(primaryColor, ACCENT_FALLBACK),
         realName: realName || null,
+        displayNameAr: displayNameAr || null,
+        firstNameAr: firstNameAr || null,
+        lastNameAr: lastNameAr || null,
         studentNumber: studentNumber || null,
         email: user.email,
         notifLang: notifLang || 'auto',
@@ -169,7 +179,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
       error('Failed to save profile:', err);
       alert(t('failed_to_save_profile') || 'Failed to save profile');
     }
-  }, [user, displayName, phoneNumber, primaryColor, realName, studentNumber, notifLang, timeFormat]);
+  }, [user, displayName, phoneNumber, primaryColor, realName, displayNameAr, firstNameAr, lastNameAr, studentNumber, notifLang, timeFormat]);
 
   return (
     <>
@@ -510,7 +520,11 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                   <div className="dropdown-menu" style={{ right: 0, top: 48, zIndex: 9999 }}>
                     <div className="dropdown-item user-info" style={{ padding: '10px 12px' }}>
                       <div className="user-name" style={{ fontWeight: 600, marginBottom: 4, fontSize: '1rem' }}>
-                        {displayName || user?.displayName || user?.email?.split('@')[0] || 'User'}
+                        {getLocalizedUserName(
+                          { displayName, displayNameAr, firstNameAr, lastNameAr, email: user?.email },
+                          lang,
+                          user?.email?.split('@')[0] || 'User'
+                        )}
                       </div>
                       <div className="user-email" style={{ fontSize: '0.85rem', color: '#666', marginBottom: 4 }}>
                         {user?.email || ''}
@@ -691,6 +705,18 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
               <div>
                 <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>{t('real_name')}</label>
                 <input type="text" value={realName} onChange={(e)=>setRealName(e.target.value)} placeholder={t('navbar.real_name_placeholder', 'First Last')} style={{ width: '100%', padding: '0.75rem', border: theme==='light'?'1px solid #e5e7eb':'1px solid rgba(255,255,255,0.15)', borderRadius: 8, background: theme==='light'?'#ffffff':'#0b1220', color: theme==='light'?'#111827':'#e5e7eb' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>{t('display_name_ar')}</label>
+                <input type="text" dir="rtl" value={displayNameAr} onChange={(e)=>setDisplayNameAr(e.target.value)} placeholder={t('display_name_ar_placeholder')} style={{ width: '100%', padding: '0.75rem', border: theme==='light'?'1px solid #e5e7eb':'1px solid rgba(255,255,255,0.15)', borderRadius: 8, background: theme==='light'?'#ffffff':'#0b1220', color: theme==='light'?'#111827':'#e5e7eb' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>{t('first_name_ar')}</label>
+                <input type="text" dir="rtl" value={firstNameAr} onChange={(e)=>setFirstNameAr(e.target.value)} placeholder={t('first_name_ar_placeholder')} style={{ width: '100%', padding: '0.75rem', border: theme==='light'?'1px solid #e5e7eb':'1px solid rgba(255,255,255,0.15)', borderRadius: 8, background: theme==='light'?'#ffffff':'#0b1220', color: theme==='light'?'#111827':'#e5e7eb' }} />
+              </div>
+              <div>
+                <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>{t('last_name_ar')}</label>
+                <input type="text" dir="rtl" value={lastNameAr} onChange={(e)=>setLastNameAr(e.target.value)} placeholder={t('last_name_ar_placeholder')} style={{ width: '100%', padding: '0.75rem', border: theme==='light'?'1px solid #e5e7eb':'1px solid rgba(255,255,255,0.15)', borderRadius: 8, background: theme==='light'?'#ffffff':'#0b1220', color: theme==='light'?'#111827':'#e5e7eb' }} />
               </div>
               <div>
                 <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>{t('student_number')} ({t('optional')})</label>

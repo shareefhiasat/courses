@@ -375,7 +375,7 @@ const ClassroomAvailabilityPage = () => {
         renderCell: (params) => {
           const creator = params?.row?.creator;
           if (!creator) return '—';
-          return getAuthUserDisplayName(creator);
+          return getAuthUserDisplayName(creator, [], lang);
         }
       },
       {
@@ -396,7 +396,7 @@ const ClassroomAvailabilityPage = () => {
         renderCell: (params) => {
           const updater = params?.row?.updater;
           if (!updater) return '—';
-          return getAuthUserDisplayName(updater);
+          return getAuthUserDisplayName(updater, [], lang);
         }
       },
       {

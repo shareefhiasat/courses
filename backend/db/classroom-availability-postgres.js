@@ -98,6 +98,9 @@ export const getClassroomAvailabilities = async (params = {}) => {
             id: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             displayName: true
           }
         },
@@ -106,6 +109,9 @@ export const getClassroomAvailabilities = async (params = {}) => {
             id: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             displayName: true
           }
         }
@@ -228,6 +234,9 @@ export const createClassroomAvailability = async (data) => {
             id: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             displayName: true
           }
         }
@@ -340,6 +349,9 @@ export const updateClassroomAvailability = async (id, data) => {
             id: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             displayName: true
           }
         },
@@ -348,6 +360,9 @@ export const updateClassroomAvailability = async (id, data) => {
             id: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             displayName: true
           }
         }

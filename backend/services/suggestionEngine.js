@@ -30,8 +30,11 @@ export const findAvailableInstructors = async (classId, startDateTime, endDateTi
         select: {
           id: true,
           firstName: true,
-          lastName: true,
-          displayName: true,
+            lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
+            displayName: true,
           email: true,
           instructorClasses: {
             where: { subjectId: subjectId ? parseInt(subjectId) : undefined },

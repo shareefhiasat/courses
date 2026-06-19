@@ -442,13 +442,20 @@ export const createTemplate = (event) => {
     category: getCategoryFromEvent(event),
     defaultPriority: getPriorityFromEvent(event),
     render: (payload, lang = 'en') => {
-      const template = raw[lang] || raw.en || event;
-      const rendered = renderTemplate(template, payload);
+      const enVars = { ...payload, studentName: payload.studentName || payload.studentNameAr };
+      const arVars = {
+        ...payload,
+        studentName: payload.studentNameAr || payload.studentName,
+        instructorName: payload.instructorNameAr || payload.instructorName,
+        userName: payload.userNameAr || payload.userName,
+      };
+      const bodyEn = raw.en ? renderTemplate(raw.en, enVars) : event;
+      const bodyAr = raw.ar ? renderTemplate(raw.ar, arVars) : bodyEn;
       return {
-        titleEn: raw.en ? renderTemplate(raw.en, payload) : event,
-        titleAr: raw.ar ? renderTemplate(raw.ar, payload) : event,
-        bodyEn: rendered,
-        bodyAr: rendered,
+        titleEn: raw.en ? renderTemplate(raw.en, enVars) : event,
+        titleAr: raw.ar ? renderTemplate(raw.ar, arVars) : event,
+        bodyEn,
+        bodyAr,
         link: null,
         groupKey: event
       };

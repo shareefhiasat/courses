@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, useLayoutEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useLayoutEffect } from 'react';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
@@ -6,7 +6,7 @@ import { useTheme } from '@contexts/ThemeContext';
 import { Navigate } from 'react-router-dom';
 import { getUserProfile, updateUser } from '@services/business/userService';
 import { getAllUserImages } from '@services/business/userImageService';
-import { getThemedIcon, getUserRoleColor } from '@constants/iconTypes';
+import { getThemedIcon, getUserRoleColor, getIconWithColor } from '@constants/iconTypes';
 import { Container, Card, CardBody, Button, Input, Spinner, useToast } from '@ui';
 import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { ToggleSwitch } from '@ui';
@@ -39,6 +39,9 @@ const ProfileSettingsPage = () => {
   const [profileData, setProfileData] = useState({
     displayName: '',
     realName: '',
+    displayNameAr: '',
+    firstNameAr: '',
+    lastNameAr: '',
     studentNumber: '',
     phoneNumber: '',
     messageColor: DEFAULT_ACCENT,
@@ -52,6 +55,7 @@ const ProfileSettingsPage = () => {
     additional: null
   });
   const [loadingImages, setLoadingImages] = useState(false);
+  const notificationPrefsRef = useRef(null);
 
   // Callback handlers for image operations
   const handleImageUploadSuccess = useCallback((imageData) => {
@@ -75,11 +79,12 @@ const ProfileSettingsPage = () => {
   }, [t, toast]);
 
   useEffect(() => {
-    if (!user?.uid) return;
+    const profileUserId = user?.dbId ?? user?.uid;
+    if (!profileUserId) return;
 
     const loadProfile = async () => {
       try {
-        const userProfile = await getUserProfile(user.uid);
+        const userProfile = await getUserProfile(profileUserId);
         if (userProfile) {
           const resolvedColor = normalizeHexColor(userProfile.messageColor, DEFAULT_ACCENT);
           // Save to localStorage for ChatPage access
@@ -87,6 +92,9 @@ const ProfileSettingsPage = () => {
           setProfileData({
             displayName: userProfile.displayName || user.displayName || '',
             realName: userProfile.realName || '',
+            displayNameAr: userProfile.displayNameAr || '',
+            firstNameAr: userProfile.firstNameAr || '',
+            lastNameAr: userProfile.lastNameAr || '',
             studentNumber: userProfile.studentNumber || '',
             phoneNumber: userProfile.phoneNumber || '',
             messageColor: resolvedColor,
@@ -163,24 +171,27 @@ const ProfileSettingsPage = () => {
               browser: notificationSettings.browserNotificationsEnabled
             }
           });
-        toast.success(t('test_notification_sent') || 'Test notification sent');
+        toast.success(t('profile_test_notification_sent'));
       } catch (error) {
         error('Failed to send test notification:', error);
-        toast.error(t('failed_to_send_test_notification') || 'Failed to send test notification');
+        toast.error(t('notifications_failed_to_send_test_notification'));
       }
     } else {
-      toast.error(t('browser_notifications_not_supported') || 'Browser notifications not supported');
+      toast.error(t('profile_browser_not_supported'));
     }
   };
 
   const handleSave = async () => {
-    if (!user?.uid) return;
+    const profileUserId = user?.dbId ?? user?.uid;
+    if (!profileUserId) return;
 
     setSaving(true);
     try {
       const normalizedColor = normalizeHexColor(profileData.messageColor, DEFAULT_ACCENT);
-      // Only save LMS-managed fields, exclude Keycloak-managed fields
-      const updateResult = await updateUser(user.uid, {
+      const updateResult = await updateUser(profileUserId, {
+        displayNameAr: profileData.displayNameAr || null,
+        firstNameAr: profileData.firstNameAr || null,
+        lastNameAr: profileData.lastNameAr || null,
         phoneNumber: profileData.phoneNumber,
         messageColor: normalizedColor,
         preferOTPLogin: profileData.preferOTPLogin
@@ -190,24 +201,28 @@ const ProfileSettingsPage = () => {
         throw new Error(updateResult?.error || 'Failed to update profile');
       }
 
-      // Log profile update activity
-      try {
-        await ActivityLogger.profileUpdate();
-      } catch (error) {
-        warn('Failed to log profile update activity:', error);
+      if (notificationPrefsRef.current?.save) {
+        await notificationPrefsRef.current.save({ silent: true });
       }
 
-      // Apply color globally immediately
+      try {
+        await ActivityLogger.profileUpdate();
+      } catch (logError) {
+        warn('Failed to log profile update activity:', logError);
+      }
+
       applyAccentColorGlobally(normalizedColor);
-      
-      toast.success(t('profile_updated') || 'Profile updated successfully');
+      toast.success(t('profile_updated'));
     } catch (err) {
       error('Error updating profile:', err);
-      toast.error(t('error_updating_profile') || 'Error updating profile');
+      toast.error(t('error_updating_profile'));
     } finally {
       setSaving(false);
     }
   };
+
+  const statusLabel = (enabled) => (enabled ? t('enabled') : t('disabled'));
+  const deviceLabel = isMobile() ? t('mobile') : t('desktop');
 
   const handleChange = (field, value) => {
     setProfileData(prev => ({
@@ -274,6 +289,8 @@ const ProfileSettingsPage = () => {
     applyAccentColorGlobally(normalized);
   };
 
+  const keycloakHelperStyle = { color: '#F59E0B' };
+
   const colorOptions = [
     '#8B5CF6', // Purple
     '#800020', // Blue
@@ -285,6 +302,19 @@ const ProfileSettingsPage = () => {
     '#6366F1', // Indigo
   ];
 
+  const renderRoleBadge = (role, labelKey) => {
+    const color = getUserRoleColor(role);
+    return (
+      <span
+        className={styles.roleBadge}
+        style={{ color, borderColor: color, background: `${color}20` }}
+      >
+        {getIconWithColor('user_role', role, 14, color)}
+        {t(labelKey)}
+      </span>
+    );
+  };
+
   return (
     <Container maxWidth="lg" className={styles.page}>
       <div className={styles.content}>
@@ -295,44 +325,25 @@ const ProfileSettingsPage = () => {
               <h2>{t('profile_personal_information')}</h2>
             </div>
 
-            {/* Role Display */}
-            <div style={{ marginBottom: '1rem', padding: '0.75rem 1rem', background: '#f9fafb', borderRadius: 8, border: '1px solid #e5e7eb' }}>
-              <div style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.5rem' }}>{t('profile_your_role')}</div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center' }}>
-                {isSuperAdmin && (
-                  <span style={{ color: getUserRoleColor('super_admin'), border: `1.5px solid ${getUserRoleColor('super_admin')}`, background: `${getUserRoleColor('super_admin')}20`, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 14, fontWeight: 700, padding: '4px 12px', borderRadius: 999 }}>
-                    {getThemedIcon('user_role', 'super_admin', 14, theme)} {t('profile_super_admin')}
-                  </span>
-                )}
-                {isAdmin && !isSuperAdmin && (
-                  <span style={{ color: getUserRoleColor('admin'), border: `1.5px solid ${getUserRoleColor('admin')}`, background: `${getUserRoleColor('admin')}20`, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 14, fontWeight: 700, padding: '4px 12px', borderRadius: 999 }}>
-                    {getThemedIcon('user_role', 'admin', 14, theme)} {t('profile_admin')}
-                  </span>
-                )}
-                {isInstructor && (
-                  <span style={{ color: getUserRoleColor('instructor'), border: `1.5px solid ${getUserRoleColor('instructor')}`, background: `${getUserRoleColor('instructor')}20`, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 14, fontWeight: 700, padding: '4px 12px', borderRadius: 999 }}>
-                    {getThemedIcon('user_role', 'instructor', 14, theme)} {t('profile_instructor')}
-                  </span>
-                )}
-                {isHR && (
-                  <span style={{ color: getUserRoleColor('hr'), border: `1.5px solid ${getUserRoleColor('hr')}`, background: `${getUserRoleColor('hr')}20`, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 14, fontWeight: 700, padding: '4px 12px', borderRadius: 999 }}>
-                    {getThemedIcon('user_role', 'hr', 14, theme)} {t('profile_hr')}
-                  </span>
-                )}
-                {!isSuperAdmin && !isAdmin && !isInstructor && !isHR && (
-                  <span style={{ color: getUserRoleColor('student'), border: `1.5px solid ${getUserRoleColor('student')}`, background: `${getUserRoleColor('student')}20`, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 14, fontWeight: 700, padding: '4px 12px', borderRadius: 999 }}>{t('profile_student')}</span>
-                )}
+            <div className={styles.roleBar}>
+              <div className={styles.roleList}>
+                {isSuperAdmin && renderRoleBadge('super_admin', 'profile_super_admin')}
+                {isAdmin && !isSuperAdmin && renderRoleBadge('admin', 'profile_admin')}
+                {isInstructor && renderRoleBadge('instructor', 'profile_instructor')}
+                {isHR && renderRoleBadge('hr', 'profile_hr')}
+                {!isSuperAdmin && !isAdmin && !isInstructor && !isHR && renderRoleBadge('student', 'profile_student')}
               </div>
             </div>
 
-            <div className={styles.formSection}>
+            <div className={styles.formGrid}>
               <Input
                 id="email"
                 type="email"
                 label={t('email')}
                 value={user.email || ''}
                 disabled
-                helperText={t('email_managed_by_keycloak') || 'Email address is managed by Keycloak authentication system'}
+                helperText={t('profile_email_managed_by_keycloak')}
+                helperTextStyle={keycloakHelperStyle}
               />
 
               <Input
@@ -341,7 +352,8 @@ const ProfileSettingsPage = () => {
                 label={t('display_name')}
                 value={user.displayName || ''}
                 disabled
-                helperText={t('display_name_managed_by_keycloak') || 'Display name is managed by Keycloak authentication system'}
+                helperText={t('profile_display_name_managed_by_keycloak')}
+                helperTextStyle={keycloakHelperStyle}
                 maxLength={100}
               />
 
@@ -351,7 +363,8 @@ const ProfileSettingsPage = () => {
                 label={t('real_name')}
                 value={`${user.firstName || ''} ${user.lastName || ''}`.trim() || ''}
                 disabled
-                helperText={t('real_name_managed_by_keycloak') || 'Real name is managed by Keycloak authentication system'}
+                helperText={t('profile_real_name_managed_by_keycloak')}
+                helperTextStyle={keycloakHelperStyle}
                 maxLength={100}
               />
 
@@ -363,7 +376,7 @@ const ProfileSettingsPage = () => {
                 disabled
                 placeholder={t('student_number_placeholder')}
                 maxLength={100}
-                description={t('student_number_readonly') || 'Student number cannot be changed here. Contact administrator if you need to update it.'}
+                description={t('student_number_readonly')}
               />
 
               <Input
@@ -372,8 +385,46 @@ const ProfileSettingsPage = () => {
                 label={t('phone_number')}
                 value={profileData.phoneNumber}
                 onChange={(e) => handleChange('phoneNumber', e.target.value)}
-                placeholder={t('phone_number_placeholder') || 'Enter your phone number'}
+                placeholder={t('phone_number_placeholder')}
                 maxLength={100}
+              />
+
+              <div className={styles.formGridFull}>
+                <h3 className={styles.sectionHeading}>{t('arabic_name_section')}</h3>
+                <p className={styles.sectionHint}>{t('arabic_name_helper')}</p>
+              </div>
+
+              <Input
+                id="displayNameAr"
+                type="text"
+                label={t('display_name_ar')}
+                value={profileData.displayNameAr}
+                onChange={(e) => handleChange('displayNameAr', e.target.value)}
+                placeholder={t('display_name_ar_placeholder')}
+                maxLength={100}
+                dir="rtl"
+              />
+
+              <Input
+                id="firstNameAr"
+                type="text"
+                label={t('first_name_ar')}
+                value={profileData.firstNameAr}
+                onChange={(e) => handleChange('firstNameAr', e.target.value)}
+                placeholder={t('first_name_ar_placeholder')}
+                maxLength={100}
+                dir="rtl"
+              />
+
+              <Input
+                id="lastNameAr"
+                type="text"
+                label={t('last_name_ar')}
+                value={profileData.lastNameAr}
+                onChange={(e) => handleChange('lastNameAr', e.target.value)}
+                placeholder={t('last_name_ar_placeholder')}
+                maxLength={100}
+                dir="rtl"
               />
             </div>
           </CardBody>
@@ -476,28 +527,23 @@ const ProfileSettingsPage = () => {
                 </div>
 
               {/* Compact Settings Row */}
-              <div style={{ 
-                display: 'flex',
-                flexDirection: 'row',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                gap: '2rem',
-                padding: '1rem 0',
-                borderTop: '1px solid #e5e7eb',
-                marginTop: '1rem'
-              }}>
-                {/* Language Toggle */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  {getThemedIcon('ui', 'globe', 18, theme)}
+              <div className={styles.appearanceRow}>
+                <div className={styles.appearanceToggle}>
+                  <span className={styles.appearanceToggleLabel}>
+                    {getThemedIcon('ui', 'globe', 18, theme)}
+                    {t('profile_language')}
+                  </span>
                   <ToggleSwitch
                     checked={lang === 'ar'}
                     onChange={() => toggleLang()}
                   />
                 </div>
 
-                {/* OTP Login Toggle */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                  {getThemedIcon('ui', 'shield', 18, theme)}
+                <div className={styles.appearanceToggle}>
+                  <span className={styles.appearanceToggleLabel}>
+                    {getThemedIcon('ui', 'shield', 18, theme)}
+                    {t('profile_prefer_otp_login')}
+                  </span>
                   <ToggleSwitch
                     checked={profileData.preferOTPLogin}
                     onChange={(checked) => handleChange('preferOTPLogin', checked)}
@@ -512,353 +558,207 @@ const ProfileSettingsPage = () => {
           <CardBody>
             <div className={styles.cardHeader}>
               {getThemedIcon('ui', 'smartphone', 24, theme)}
-              <h2>{t('notifications') || 'Notifications'}</h2>
+              <h2>{t('profile_notifications')}</h2>
             </div>
 
-            <div className={styles.formSection}>
-              {/* Mobile Detection Info */}
+            <div className={`${styles.formSection} ${styles.notificationsLayout}`}>
               {isMobile() && (
-                <div style={{ 
-                  marginBottom: '1rem', 
-                  padding: '0.75rem', 
-                  background: '#e0f2fe', 
-                  borderRadius: 8, 
-                  border: '1px solid #0ea5e9',
-                  fontSize: '0.875rem',
-                  color: '#0369a1'
-                }}>
-                  📱 {t('mobile_device_detected') || 'Mobile device detected - Notification sounds and vibration will work even when screen is off'}
+                <div className={styles.mobileBanner}>
+                  {t('profile_mobile_device_detected')}
                 </div>
               )}
 
-              {/* Permission Status */}
               {!notificationSettings.permissionsRequested && (
-                <div style={{ marginBottom: '1rem' }}>
+                <div className={styles.permissionBlock}>
                   <Button
                     variant="primary"
                     onClick={async () => {
                       await initializeNotifications();
-                      toast.success(t('permissions_requested') || 'Notification permissions requested');
+                      toast.success(t('profile_permissions_requested'));
                     }}
                     disabled={notificationsInitializing}
                     loading={notificationsInitializing}
                     icon={getThemedIcon('ui', 'settings', 16, theme)}
                   >
-                    {notificationsInitializing 
-                      ? (t('requesting') || 'Requesting...') 
-                      : (t('enable_notifications') || 'Enable Notifications')
-                    }
+                    {notificationsInitializing
+                      ? t('profile_requesting')
+                      : t('profile_enable_notifications')}
                   </Button>
-                  <p className={styles.helpText} style={{ marginTop: '0.5rem' }}>
-                    {t('permission_description') || 'Enable notifications to receive alerts with sound and vibration even when your phone is asleep.'}
+                  <p className={styles.helpText}>
+                    {t('profile_permission_description')}
                   </p>
                 </div>
               )}
 
-              {/* Notification Settings */}
-              <div style={{ 
-                padding: '1rem', 
-                background: '#f9fafb', 
-                borderRadius: 8, 
-                border: '1px solid #e5e7eb',
-                fontSize: '0.875rem',
-                color: '#6b7280'
-              }}>
-                <div style={{ 
-                  fontWeight: 600, 
-                  marginBottom: '1rem', 
-                  display: 'flex', 
-                  justifyContent: 'space-between', 
-                  alignItems: 'center',
-                  borderBottom: '1px solid #e5e7eb',
-                  paddingBottom: '0.5rem'
-                }}>
-                  <span style={{ fontSize: '0.95rem', color: '#374151' }}>
-                    {t('notification_settings') || 'Notification Settings'}
-                  </span>
-                  <span style={{ 
-                    fontSize: '0.75rem', 
-                    color: '#6b7280',
-                    background: '#fff',
-                    padding: '0.25rem 0.5rem',
-                    borderRadius: '12px',
-                    border: '1px solid #d1d5db'
-                  }}>
-                    {isMobile() ? <>{getThemedIcon('ui', 'smartphone', 12, theme)} Mobile</> : <>{getThemedIcon('ui', 'monitor', 12, theme)} Desktop</>}
-                  </span>
-                </div>
-                
-                <div style={{ 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  gap: '0.75rem' 
-                }}>
-                  {/* Sound Setting */}
-                  <div style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                    padding: '0.75rem',
-                    background: '#fff',
-                    borderRadius: '6px',
-                    border: '1px solid #e5e7eb',
-                    transition: 'all 0.2s ease'
-                  }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                      {getThemedIcon('ui', 'volume2', 18, theme)}
-                      <div>
-                        <div style={{ 
-                          color: '#374151',
-                          fontWeight: '500',
-                          fontSize: '0.9rem'
-                        }}>
-                          {t('audio_notifications') || 'Audio Notifications'}
-                        </div>
-                        <div style={{ 
-                          color: '#6b7280',
-                          fontSize: '0.8rem',
-                          marginTop: '0.1rem'
-                        }}>
-                          {notificationSettings.soundEnabled ? 'Enabled' : 'Disabled'}
-                        </div>
-                      </div>
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      <ToggleSwitch
-                        checked={notificationSettings.soundEnabled}
-                        onChange={async (checked) => {
-                          const success = await updateSetting('soundEnabled', checked);
-                          if (success) {
-                            toast.success(checked 
-                              ? (t('sound_enabled') || 'Sound enabled') 
-                              : (t('sound_disabled') || 'Sound disabled'));
-                          }
-                        }}
-                      />
-                      {notificationSettings.soundEnabled && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            import('@utils/notifications').then(({ default: nm }) => {
-                              nm.playNotificationSound('default');
-                            });
-                          }}
-                          title={t('test_sound') || 'Test Sound'}
-                          style={{ padding: '0.25rem' }}
-                        >
-                          {getThemedIcon('ui', 'volume2', 14, theme)}
-                        </Button>
-                      )}
-                    </div>
+              <div className={styles.notificationsTopGrid}>
+                <div className={styles.notificationPanel}>
+                  <div className={styles.panelHeader}>
+                    <span className={styles.panelTitle}>{t('profile_device_alerts')}</span>
+                    <span className={styles.deviceBadge}>
+                      {isMobile()
+                        ? getThemedIcon('ui', 'smartphone', 12, theme)
+                        : getThemedIcon('ui', 'monitor', 12, theme)}
+                      {deviceLabel}
+                    </span>
                   </div>
 
-                  {/* Vibration Setting */}
-                  {checkSupport().vibration && (
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '0.75rem',
-                      background: '#fff',
-                      borderRadius: '6px',
-                      border: '1px solid #e5e7eb',
-                      transition: 'all 0.2s ease'
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        {getThemedIcon('ui', 'vibrate', 18, theme)}
-                        <div>
-                          <div style={{ 
-                            color: '#374151',
-                            fontWeight: '500',
-                            fontSize: '0.9rem'
-                          }}>
-                            {t('vibration') || 'Vibration'}
-                          </div>
-                          <div style={{ 
-                            color: '#6b7280',
-                            fontSize: '0.8rem',
-                            marginTop: '0.1rem'
-                          }}>
-                            {notificationSettings.vibrationEnabled ? 'Enabled' : 'Disabled'}
+                  <div className={styles.settingList}>
+                    <div className={styles.settingRow}>
+                      <div className={styles.settingInfo}>
+                        {getThemedIcon('ui', 'volume2', 18, theme)}
+                        <div className={styles.settingText}>
+                          <div className={styles.settingLabel}>{t('profile_sound_effects')}</div>
+                          <div className={styles.settingStatus}>
+                            {statusLabel(notificationSettings.soundEnabled)}
                           </div>
                         </div>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      <div className={styles.settingActions}>
                         <ToggleSwitch
-                          checked={notificationSettings.vibrationEnabled}
+                          checked={notificationSettings.soundEnabled}
                           onChange={async (checked) => {
-                            const success = await updateSetting('vibrationEnabled', checked);
+                            const success = await updateSetting('soundEnabled', checked);
                             if (success) {
-                              toast.success(checked 
-                                ? (t('vibration_enabled') || 'Vibration enabled') 
-                                : (t('vibration_disabled') || 'Vibration disabled'));
+                              toast.success(checked ? t('profile_sound_enabled') : t('profile_sound_disabled'));
                             }
                           }}
                         />
-                        {notificationSettings.vibrationEnabled && (
+                        {notificationSettings.soundEnabled && (
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => {
                               import('@utils/notifications').then(({ default: nm }) => {
-                                nm.vibrate('default');
+                                nm.playNotificationSound('default');
                               });
                             }}
-                            title={t('test_vibration') || 'Test Vibration'}
-                            style={{ padding: '0.25rem' }}
+                            title={t('profile_test_sound')}
                           >
-                            {getThemedIcon('ui', 'vibrate', 14, theme)}
+                            {getThemedIcon('ui', 'volume2', 14, theme)}
                           </Button>
                         )}
                       </div>
                     </div>
-                  )}
 
-                  {/* Browser Notifications Setting */}
-                  {checkSupport().notification && (
-                    <div style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '0.75rem',
-                      background: '#fff',
-                      borderRadius: '6px',
-                      border: '1px solid #e5e7eb',
-                      transition: 'all 0.2s ease'
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                        {getThemedIcon('ui', 'bell', 18, theme)}
-                        <div>
-                          <div style={{ 
-                            color: '#374151',
-                            fontWeight: '500',
-                            fontSize: '0.9rem'
-                          }}>
-                            {t('browser_notifications') || 'Browser Notifications'}
-                          </div>
-                          <div style={{ 
-                            color: '#6b7280',
-                            fontSize: '0.8rem',
-                            marginTop: '0.1rem'
-                          }}>
-                            {notificationSettings.browserNotificationsEnabled ? 'Enabled' : 'Disabled'}
+                    {checkSupport().vibration && (
+                      <div className={styles.settingRow}>
+                        <div className={styles.settingInfo}>
+                          {getThemedIcon('ui', 'vibrate', 18, theme)}
+                          <div className={styles.settingText}>
+                            <div className={styles.settingLabel}>{t('profile_vibration')}</div>
+                            <div className={styles.settingStatus}>
+                              {statusLabel(notificationSettings.vibrationEnabled)}
+                            </div>
                           </div>
                         </div>
+                        <div className={styles.settingActions}>
+                          <ToggleSwitch
+                            checked={notificationSettings.vibrationEnabled}
+                            onChange={async (checked) => {
+                              const success = await updateSetting('vibrationEnabled', checked);
+                              if (success) {
+                                toast.success(checked ? t('profile_vibration_enabled') : t('profile_vibration_disabled'));
+                              }
+                            }}
+                          />
+                          {notificationSettings.vibrationEnabled && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => {
+                                import('@utils/notifications').then(({ default: nm }) => {
+                                  nm.vibrate('default');
+                                });
+                              }}
+                              title={t('profile_test_vibration')}
+                            >
+                              {getThemedIcon('ui', 'vibrate', 14, theme)}
+                            </Button>
+                          )}
+                        </div>
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <ToggleSwitch
-                          checked={notificationSettings.browserNotificationsEnabled}
-                          onChange={async (checked) => {
-                            const success = await updateSetting('browserNotificationsEnabled', checked);
-                            if (success) {
-                              toast.success(checked 
-                                ? (t('browser_notifications_enabled') || 'Browser notifications enabled') 
-                                : (t('browser_notifications_disabled') || 'Browser notifications disabled'));
-                            }
-                          }}
-                        />
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={handleTestBrowserNotification}
-                          title={t('test_browser_notification') || 'Test Browser Notification'}
-                          style={{ padding: '0.25rem' }}
-                        >
-                          {getThemedIcon('ui', 'test_tube', 14, theme)}
-                        </Button>
+                    )}
+
+                    {checkSupport().notification && (
+                      <div className={styles.settingRow}>
+                        <div className={styles.settingInfo}>
+                          {getThemedIcon('ui', 'bell', 18, theme)}
+                          <div className={styles.settingText}>
+                            <div className={styles.settingLabel}>{t('profile_browser_notifications')}</div>
+                            <div className={styles.settingStatus}>
+                              {statusLabel(notificationSettings.browserNotificationsEnabled)}
+                            </div>
+                          </div>
+                        </div>
+                        <div className={styles.settingActions}>
+                          <ToggleSwitch
+                            checked={notificationSettings.browserNotificationsEnabled}
+                            onChange={async (checked) => {
+                              const success = await updateSetting('browserNotificationsEnabled', checked);
+                              if (success) {
+                                toast.success(
+                                  checked
+                                    ? t('profile_browser_notifications_enabled')
+                                    : t('profile_browser_notifications_disabled')
+                                );
+                              }
+                            }}
+                          />
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={handleTestBrowserNotification}
+                            title={t('profile_test_notification_button')}
+                          >
+                            {getThemedIcon('ui', 'test_tube', 14, theme)}
+                          </Button>
+                        </div>
                       </div>
-                    </div>
-                  )}
+                    )}
+                  </div>
+                </div>
+
+                <div className={styles.notificationPanel}>
+                  <div className={styles.panelHeader}>
+                    <span className={styles.panelTitle}>{t('profile_supported_features')}</span>
+                    <span className={styles.deviceBadge}>
+                      {isMobile()
+                        ? getThemedIcon('ui', 'smartphone', 12, theme)
+                        : getThemedIcon('ui', 'monitor', 12, theme)}
+                      {deviceLabel}
+                    </span>
+                  </div>
+
+                  <div className={styles.settingList}>
+                    {[
+                      { icon: 'volume2', label: t('profile_sound_effects'), supported: checkSupport().audio },
+                      { icon: 'bell', label: t('profile_browser_notifications'), supported: checkSupport().notification },
+                      { icon: 'vibrate', label: t('profile_vibration'), supported: checkSupport().vibration },
+                      { icon: 'settings', label: t('profile_service_worker'), supported: checkSupport().serviceWorker }
+                    ].map((feature) => (
+                      <div
+                        key={feature.icon}
+                        className={`${styles.capabilityRow} ${feature.supported ? styles.supported : styles.unsupported}`}
+                      >
+                        <span className={styles.capabilityLabel}>
+                          {getThemedIcon('ui', feature.icon, 16, theme)}
+                          {feature.label}
+                        </span>
+                        <span className={`${styles.capabilityIcon} ${feature.supported ? styles.supported : styles.unsupported}`}>
+                          {feature.supported ? '✓' : '✗'}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               </div>
 
-              {/* Support Info */}
-              <div style={{ 
-                padding: '1rem', 
-                background: '#f9fafb', 
-                borderRadius: 8, 
-                border: '1px solid #e5e7eb',
-                fontSize: '0.875rem',
-                color: '#6b7280'
-              }}>
-                <div style={{ 
-                  fontWeight: 600, 
-                  marginBottom: '1rem', 
-                  display: 'flex', 
-                  justifyContent: 'space-between', 
-                  alignItems: 'center',
-                  borderBottom: '1px solid #e5e7eb',
-                  paddingBottom: '0.5rem'
-                }}>
-                  <span style={{ fontSize: '0.95rem', color: '#374151' }}>
-                    {t('supported_features') || 'Supported Features'}
-                  </span>
-                  <span style={{ 
-                    fontSize: '0.75rem', 
-                    color: '#6b7280',
-                    background: '#fff',
-                    padding: '0.25rem 0.5rem',
-                    borderRadius: '12px',
-                    border: '1px solid #d1d5db'
-                  }}>
-                    {isMobile() ? <>{getThemedIcon('ui', 'smartphone', 12, theme)} Mobile</> : <>{getThemedIcon('ui', 'monitor', 12, theme)} Desktop</>}
-                  </span>
-                </div>
-                
-                <div style={{ 
-                  display: 'flex', 
-                  flexDirection: 'column', 
-                  gap: '0.75rem' 
-                }}>
-                  {[
-                    { icon: 'volume2', label: t('audio_notifications') || 'Audio Notifications', supported: checkSupport().audio },
-                    { icon: 'bell', label: t('browser_notifications') || 'Browser Notifications', supported: checkSupport().notification },
-                    { icon: 'vibrate', label: t('vibration') || 'Vibration', supported: checkSupport().vibration },
-                    { icon: 'settings', label: t('service_worker') || 'Service Worker', supported: checkSupport().serviceWorker }
-                  ].map((feature, index) => (
-                    <div key={index} style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: '0.5rem 0.75rem',
-                      background: feature.supported ? '#f0fdf4' : '#fef2f2',
-                      borderRadius: '6px',
-                      border: `1px solid ${feature.supported ? '#bbf7d0' : '#fecaca'}`
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        {getThemedIcon('ui', feature.icon, 16, theme)}
-                        <span style={{ 
-                          color: feature.supported ? '#166534' : '#991b1b',
-                          fontWeight: '500'
-                        }}>
-                          {feature.label}
-                        </span>
-                      </div>
-                      <div style={{
-                        width: '20px',
-                        height: '20px',
-                        borderRadius: '50%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        background: feature.supported ? '#22c55e' : '#ef4444',
-                        color: 'white',
-                        fontSize: '12px',
-                        fontWeight: 'bold'
-                      }}>
-                        {feature.supported ? '✓' : '✗'}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
+              <div className={styles.notificationsDivider} />
+
+              <NotificationPreferencesSection ref={notificationPrefsRef} embedded />
             </div>
           </CardBody>
         </Card>
-
-        {/* Notification Preferences Section */}
-        <NotificationPreferencesSection />
 
         <div className={styles.actions}>
           <Button
@@ -869,7 +769,7 @@ const ProfileSettingsPage = () => {
             disabled={saving}
             loading={saving}
           >
-            {saving ? t('saving') : t('save_changes')}
+            {saving ? t('saving') : t('profile_save_changes')}
           </Button>
         </div>
       </div>

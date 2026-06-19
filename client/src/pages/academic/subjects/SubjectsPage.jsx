@@ -415,7 +415,7 @@ const gridColumns = useMemo(() => [
         const creator = params.row?.creator;
         if (!creator) return '—';
         
-        const displayProps = getUserDisplayProps(creator, users);
+        const displayProps = getUserDisplayProps(creator, users, { lang });
         return (
           <span title={displayProps.title} style={displayProps.style}>
             {displayProps.children}
@@ -431,7 +431,7 @@ const gridColumns = useMemo(() => [
         const updater = params.row?.updater;
         if (!updater) return '—';
         
-        const displayProps = getUserDisplayProps(updater, users);
+        const displayProps = getUserDisplayProps(updater, users, { lang });
         return (
           <span title={displayProps.title} style={displayProps.style}>
             {displayProps.children}

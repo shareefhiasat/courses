@@ -62,7 +62,9 @@ export const fetchClassStudentsWithStatus = async (classId) => {
   });
 };
 
-export const buildStudentOptionMeta = (student) => {
+import { getLocalizedUserName } from '@utils/localizedUserName';
+
+export const buildStudentOptionMeta = (student, lang = 'en') => {
   if (!student) {
     return {
       displayLabel: '',
@@ -70,9 +72,12 @@ export const buildStudentOptionMeta = (student) => {
     };
   }
 
-  const displayLabel = student.displayName || student.email || 'Unknown';
+  const displayLabel = getLocalizedUserName(student, lang, 'Unknown');
   const searchSegments = [
     student.displayName,
+    student.displayNameAr,
+    student.firstNameAr,
+    student.lastNameAr,
     student.email,
     student.statusLabel,
     student.status,

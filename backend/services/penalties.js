@@ -7,6 +7,7 @@
 
 import notificationGateway from './notifications/index.js';
 import { EVENTS } from './notifications/constants.js';
+import { buildLocalizedNameFields, buildNotificationNameVars } from '../utils/localizedUserName.js';
 
 export const getAllPenalties = async (params = {}, user = null) => {
   return {
@@ -48,7 +49,7 @@ export const createPenalty = async (penaltyData, user = null) => {
       await notificationGateway.emit(
         eventType,
         {
-          studentName: result.data.student?.displayName || result.data.studentName,
+          ...buildNotificationNameVars(result.data.student || { displayName: result.data.studentName }, 'Unknown Student'),
           penaltyType: result.data.penaltyType?.nameEn || penaltyType
         },
         user,
@@ -74,7 +75,7 @@ export const updatePenalty = async (id, updateData, user = null) => {
       await notificationGateway.emit(
         EVENTS.PENALTY_UPDATED,
         {
-          studentName: result.data.student?.displayName || result.data.studentName,
+          ...buildNotificationNameVars(result.data.student || { displayName: result.data.studentName }, 'Unknown Student'),
           penaltyType: result.data.penaltyType?.nameEn || 'penalty'
         },
         user,

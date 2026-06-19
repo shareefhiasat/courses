@@ -565,3 +565,51 @@ export const createTypeOptions = (category, lang = 'en', lookupData = {}, option
 
   return typeOptions;
 };
+
+const CATEGORY_MAP = {
+  participation: TYPE_CATEGORIES.PARTICIPATION,
+  behavior: TYPE_CATEGORIES.BEHAVIOR,
+  penalty: TYPE_CATEGORIES.PENALTY,
+  attendance: TYPE_CATEGORIES.ATTENDANCE,
+};
+
+const humanizeTypeId = (typeId) => {
+  if (!typeId) return '';
+  return String(typeId)
+    .replace(/[-_]/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+};
+
+/**
+ * Resolve a localized label for participation/behavior/penalty action types.
+ * Accepts a type id string or an API object with nameEn/nameAr.
+ */
+export const getLocalizedActionLabel = (category, typeValue, t, lang = 'en', lookupData = {}) => {
+  if (typeValue == null || typeValue === '') return '';
+
+  if (typeof typeValue === 'object') {
+    const localized = lang === 'ar'
+      ? (typeValue.nameAr || typeValue.nameEn || typeValue.code)
+      : (typeValue.nameEn || typeValue.nameAr || typeValue.code);
+    if (localized) return localized;
+    typeValue = typeValue.code || typeValue.id || '';
+  }
+
+  const typeId = String(typeValue);
+  const mappedCategory = CATEGORY_MAP[category] || category;
+  const fromLookup = getTypeLabel(mappedCategory, typeId, lang, lookupData);
+  if (fromLookup && fromLookup !== typeId) {
+    return fromLookup;
+  }
+
+  if (typeof t === 'function') {
+    const dictKey = `${category}_${typeId}`;
+    const translated = t(dictKey);
+    const fallback = dictKey.replaceAll('_', ' ');
+    if (translated && translated !== fallback) {
+      return translated;
+    }
+  }
+
+  return humanizeTypeId(typeId);
+};

@@ -1,5 +1,7 @@
 import React from 'react';
 import { Select } from '@ui';
+import { useLang } from '@contexts/LangContext';
+import { getLocalizedUserName } from '@utils/localizedUserName';
 import { getUserStatus, getUserStatusSummary, getStatusIconProps, getStatusDescription, USER_STATUS, USER_STATUS_LABELS } from '@utils/userStatus';
 import { getThemedIcon, getUserRoleIcon } from '@constants/iconTypes';
 import { getThemeColor } from '@constants';
@@ -52,6 +54,7 @@ const UserSelect = ({
   theme = 'light',
   ...rest
 }) => {
+  const { lang } = useLang();
   
   // Icon component mapping using centralized system
   const getIconComponent = (iconName) => {
@@ -222,10 +225,11 @@ const UserSelect = ({
       const isDisabled = status === USER_STATUS.DELETED;
       const statusLabel = statusSummary?.label || status;
       
+      const localizedName = getLocalizedUserName(u, lang, 'Unknown');
       options.push({
         value: useEmailAsValue ? u.email : (u.docId || u.id),
-        displayLabel: u.displayName || u.realName || u.email || 'Unknown',
-        label: u.displayName || u.realName || u.email || 'Unknown',
+        displayLabel: localizedName,
+        label: localizedName,
         icon: IconComponent,
         disabled: isDisabled
       });

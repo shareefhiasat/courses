@@ -16,6 +16,7 @@ import {
   getStudentParticipationStats,
   getClassParticipationStats
 } from '../db/participations-postgres.js';
+import { buildNotificationNameVars } from '../utils/localizedUserName.js';
 import notificationGateway from './notifications/index.js';
 import { EVENTS } from './notifications/constants.js';
 
@@ -51,7 +52,7 @@ export const createParticipation = async (participationData, user = null) => {
       await notificationGateway.emit(
         eventType,
         {
-          studentName: result.data.student?.displayName || result.data.studentName,
+          ...buildNotificationNameVars(result.data.student || { displayName: result.data.studentName }, 'Unknown Student'),
           participationType: result.data.participationType?.nameEn || participationType
         },
         user,
@@ -74,7 +75,7 @@ export const updateParticipation = async (id, updateData, user = null) => {
       await notificationGateway.emit(
         EVENTS.PARTICIPATION_UPDATED,
         {
-          studentName: result.data.student?.displayName || result.data.studentName,
+          ...buildNotificationNameVars(result.data.student || { displayName: result.data.studentName }, 'Unknown Student'),
           participationType: result.data.participationType?.nameEn || 'participation'
         },
         user,
@@ -100,7 +101,7 @@ export const deleteParticipation = async (id, user = null) => {
       await notificationGateway.emit(
         EVENTS.PARTICIPATION_DELETED,
         {
-          studentName: existing.data.student?.displayName || existing.data.studentName,
+          ...buildNotificationNameVars(existing.data.student || { displayName: existing.data.studentName }, 'Unknown Student'),
           participationType: existing.data.participationType?.nameEn || 'participation'
         },
         user,

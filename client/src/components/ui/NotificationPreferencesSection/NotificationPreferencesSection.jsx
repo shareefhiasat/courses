@@ -1,25 +1,28 @@
 /**
  * Notification Preferences Section
- * 
- * Manages notification channel preferences per category.
- * Integrates with the backend notification preferences API.
+ *
+ * Channel and category preferences. When embedded in ProfileSettingsPage,
+ * defers saving to the parent via ref.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useImperativeHandle, forwardRef } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useToast } from '@ui';
-import { Card, CardBody, ToggleSwitch, Spinner } from '@ui';
+import { ToggleSwitch, Spinner } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 import { apiService } from '@services/api/apiService';
+import styles from './NotificationPreferencesSection.module.css';
 
-const NotificationPreferencesSection = () => {
-  const { t, isRTL } = useLang();
+const NotificationPreferencesSection = forwardRef(function NotificationPreferencesSection(
+  { embedded = false, onLoadingChange },
+  ref
+) {
+  const { t } = useLang();
   const { theme } = useTheme();
   const toast = useToast();
-  
+
   const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [preferences, setPreferences] = useState({
     inAppEnabled: true,
     emailEnabled: true,
@@ -28,30 +31,31 @@ const NotificationPreferencesSection = () => {
     matrix: {}
   });
 
-  // Categories for the matrix
   const categories = [
-    { key: 'WORKFLOW', label: t('category_workflow', 'Workflow'), icon: 'workflow', color: '#8b5cf6' },
-    { key: 'ACADEMIC', label: t('category_academic', 'Academic'), icon: 'academic' },
-    { key: 'ATTENDANCE', label: t('category_attendance', 'Attendance'), icon: 'attendance' },
-    { key: 'ASSESSMENT', label: t('category_assessment', 'Assessment'), icon: 'assessment' },
-    { key: 'ANNOUNCEMENT', label: t('category_announcement', 'Announcement'), icon: 'announcement' },
-    { key: 'BEHAVIOR', label: t('category_behavior', 'Behavior'), icon: 'behavior' },
-    { key: 'FILE', label: t('category_file', 'File'), icon: 'file' },
-    { key: 'QR', label: t('category_qr', 'QR Code'), icon: 'qr' }
+    { key: 'WORKFLOW', label: t('profile_category_workflow'), icon: 'workflow' },
+    { key: 'ACADEMIC', label: t('profile_category_academic'), icon: 'academic' },
+    { key: 'ATTENDANCE', label: t('profile_category_attendance'), icon: 'attendance' },
+    { key: 'ASSESSMENT', label: t('profile_category_assessment'), icon: 'assessment' },
+    { key: 'ANNOUNCEMENT', label: t('profile_category_announcement'), icon: 'announcement' },
+    { key: 'BEHAVIOR', label: t('profile_category_behavior'), icon: 'behavior' },
+    { key: 'FILE', label: t('profile_category_file'), icon: 'file' },
+    { key: 'QR', label: t('profile_category_qr'), icon: 'qr' }
   ];
 
-  // Channels
   const channels = [
-    { key: 'in_app', label: t('channel_in_app', 'In-App'), icon: 'bell' },
-    { key: 'email', label: t('channel_email', 'Email'), icon: 'mail' },
-    { key: 'sms', label: t('channel_sms', 'SMS'), icon: 'message' },
-    { key: 'push', label: t('channel_push', 'Push'), icon: 'smartphone' }
+    { key: 'in_app', label: t('profile_channel_in_app'), icon: 'bell' },
+    { key: 'email', label: t('profile_channel_email'), icon: 'mail' },
+    { key: 'sms', label: t('profile_channel_sms'), icon: 'message' },
+    { key: 'push', label: t('profile_channel_push'), icon: 'smartphone' }
   ];
 
-  // Load preferences
   useEffect(() => {
     loadPreferences();
   }, []);
+
+  useEffect(() => {
+    onLoadingChange?.(loading);
+  }, [loading, onLoadingChange]);
 
   const loadPreferences = async () => {
     try {
@@ -60,28 +64,31 @@ const NotificationPreferencesSection = () => {
       if (response.data?.preferences) {
         setPreferences(response.data.preferences);
       }
-    } catch (error) {
-      console.error('Failed to load notification preferences:', error);
-      toast.error(t('error_loading_preferences', 'Failed to load preferences'));
+    } catch (err) {
+      console.error('Failed to load notification preferences:', err);
+      if (!embedded) {
+        toast.error(t('profile_error_loading_preferences'));
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  const handleSave = async () => {
-    try {
-      setSaving(true);
-      const response = await apiService.put('/notifications/preferences', preferences);
-      if (response.data?.success) {
-        toast.success(t('preferences_saved', 'Preferences saved successfully'));
+  const savePreferences = async ({ silent = false } = {}) => {
+    const response = await apiService.put('/notifications/preferences', preferences);
+    if (response.data?.success) {
+      if (!silent) {
+        toast.success(t('profile_preferences_saved'));
       }
-    } catch (error) {
-      console.error('Failed to save notification preferences:', error);
-      toast.error(t('error_saving_preferences', 'Failed to save preferences'));
-    } finally {
-      setSaving(false);
+      return true;
     }
+    throw new Error('Failed to save preferences');
   };
+
+  useImperativeHandle(ref, () => ({
+    save: savePreferences,
+    isLoading: () => loading
+  }));
 
   const handleMasterToggle = (channel, value) => {
     setPreferences(prev => ({
@@ -103,9 +110,7 @@ const NotificationPreferencesSection = () => {
     }));
   };
 
-  const isChannelEnabled = (channel) => {
-    return preferences[`${channel}Enabled`];
-  };
+  const isChannelEnabled = (channel) => preferences[`${channel}Enabled`];
 
   const isCategoryChannelEnabled = (category, channel) => {
     const categoryConfig = preferences.matrix[category];
@@ -114,146 +119,73 @@ const NotificationPreferencesSection = () => {
 
   if (loading) {
     return (
-      <Card>
-        <CardBody>
-          <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '2rem' }}>
-            <Spinner size="md" />
-          </div>
-        </CardBody>
-      </Card>
+      <div className={styles.loading}>
+        <Spinner size="md" />
+      </div>
     );
   }
 
   return (
-    <Card>
-      <CardBody>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.5rem' }}>
-          {getThemedIcon('ui', 'settings', 24, theme)}
-          <h2>{t('notification_preferences', 'Notification Preferences')}</h2>
+    <div className={styles.section}>
+      <div>
+        <h3 className={styles.subsectionTitle}>{t('profile_master_channels')}</h3>
+        <p className={styles.subsectionDesc}>{t('profile_master_channels_desc')}</p>
+        <div className={styles.masterGrid}>
+          {channels.map(channel => (
+            <div key={channel.key} className={styles.masterItem}>
+              <span className={styles.masterLabel}>
+                {getThemedIcon('ui', channel.icon, 16, theme)}
+                {channel.label}
+              </span>
+              <ToggleSwitch
+                checked={isChannelEnabled(channel.key)}
+                onChange={(value) => handleMasterToggle(channel.key, value)}
+              />
+            </div>
+          ))}
         </div>
+      </div>
 
-        {/* Master Toggles */}
-        <div style={{
-          marginBottom: '2rem',
-          padding: '1rem',
-          background: '#f9fafb',
-          borderRadius: 8,
-          border: '1px solid #e5e7eb'
-        }}>
-          <div style={{ fontWeight: 600, marginBottom: '1rem', color: '#374151' }}>
-            {t('master_channels', 'Master Channel Toggles')}
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {channels.map(channel => (
-              <div
-                key={channel.key}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '0.75rem',
-                  background: '#fff',
-                  borderRadius: 6,
-                  border: '1px solid #e5e7eb'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-                  {getThemedIcon('ui', channel.icon, 18, theme)}
-                  <span style={{ fontSize: '0.9rem', color: '#374151' }}>
-                    {channel.label}
-                  </span>
-                </div>
-                <ToggleSwitch
-                  checked={isChannelEnabled(channel.key)}
-                  onChange={(value) => handleMasterToggle(channel.key, value)}
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Category Matrix */}
-        <div style={{
-          marginBottom: '1.5rem',
-          padding: '1rem',
-          background: '#f9fafb',
-          borderRadius: 8,
-          border: '1px solid #e5e7eb'
-        }}>
-          <div style={{ fontWeight: 600, marginBottom: '1rem', color: '#374151' }}>
-            {t('category_preferences', 'Category Preferences')}
-          </div>
-          <p style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '1rem' }}>
-            {t('category_preferences_desc', 'Configure which notification categories you want to receive via each channel.')}
-          </p>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            {categories.map(category => (
-              <div
-                key={category.key}
-                style={{
-                  padding: '1rem',
-                  background: '#fff',
-                  borderRadius: 6,
-                  border: '1px solid #e5e7eb'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
-                  {getThemedIcon('ui', category.icon, 16, theme)}
-                  <span style={{ fontWeight: 500, fontSize: '0.9rem', color: '#374151' }}>
-                    {category.label}
-                  </span>
-                </div>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem' }}>
+      <div>
+        <h3 className={styles.subsectionTitle}>{t('profile_category_preferences')}</h3>
+        <p className={styles.subsectionDesc}>{t('profile_category_preferences_desc')}</p>
+        <div className={styles.matrixWrap}>
+          <table className={styles.matrixTable}>
+            <thead>
+              <tr>
+                <th>{t('profile_category_column')}</th>
+                {channels.map(channel => (
+                  <th key={channel.key}>{channel.label}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {categories.map(category => (
+                <tr key={category.key}>
+                  <td>
+                    <span className={styles.categoryCell}>
+                      {getThemedIcon('ui', category.icon, 14, theme)}
+                      {category.label}
+                    </span>
+                  </td>
                   {channels.map(channel => (
-                    <div
-                      key={channel.key}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.5rem',
-                        fontSize: '0.85rem',
-                        color: '#6b7280'
-                      }}
-                    >
+                    <td key={channel.key}>
                       <ToggleSwitch
                         checked={isChannelEnabled(channel.key) && isCategoryChannelEnabled(category.key, channel.key)}
                         onChange={(value) => handleMatrixToggle(category.key, channel.key, value)}
                         disabled={!isChannelEnabled(channel.key)}
                         size="sm"
                       />
-                      <span>{channel.label}</span>
-                    </div>
+                    </td>
                   ))}
-                </div>
-              </div>
-            ))}
-          </div>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-
-        {/* Save Button */}
-        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-          <button
-            onClick={handleSave}
-            disabled={saving}
-            style={{
-              padding: '0.75rem 1.5rem',
-              background: '#8A1538',
-              color: '#fff',
-              border: 'none',
-              borderRadius: 6,
-              fontSize: '0.9rem',
-              fontWeight: 500,
-              cursor: saving ? 'not-allowed' : 'pointer',
-              opacity: saving ? 0.6 : 1
-            }}
-          >
-            {saving ? t('saving', 'Saving...') : t('save_preferences', 'Save Preferences')}
-          </button>
-        </div>
-      </CardBody>
-    </Card>
+      </div>
+    </div>
   );
-};
+});
 
 export default NotificationPreferencesSection;

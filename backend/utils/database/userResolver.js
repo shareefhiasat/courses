@@ -123,4 +123,21 @@ export const getDatabaseUserId = async (user) => {
   }
 };
 
-export default { getDatabaseUserId };
+/** Build a Prisma `where` clause from a route param (numeric DB id or Keycloak UUID). */
+export function resolveUserWhereFromParam(idParam) {
+  if (idParam == null || idParam === '') return null;
+  const idStr = String(idParam).trim();
+  const numericId = Number.parseInt(idStr, 10);
+  if (!Number.isNaN(numericId) && String(numericId) === idStr) {
+    return { id: numericId };
+  }
+  return { keycloakId: idStr };
+}
+
+export async function findUserByParam(idParam, select) {
+  const where = resolveUserWhereFromParam(idParam);
+  if (!where) return null;
+  return prisma.user.findUnique({ where, select });
+}
+
+export default { getDatabaseUserId, resolveUserWhereFromParam, findUserByParam };

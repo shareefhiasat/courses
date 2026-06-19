@@ -35,7 +35,7 @@ import { ActivityLogger } from '@services/other/activityLogger';
 import { Card, CardBody, Modal, EmptyState, Select } from '@ui';
 import { useToast } from '@ui';
 import UnifiedCard from '@components/UnifiedCard';
-import AuthForm from '@components/AuthForm';
+import KeycloakLoginPrompt from '@components/KeycloakLoginPrompt';
 import { UnifiedFilterSection } from '@components/filters';
 import useBookmarks from '@hooks/useBookmarks';
 import './HomePage.css';
@@ -1269,8 +1269,8 @@ const HomePage = memo(() => {
 
   if (!user) {
     return (
-      <div className="home-page">
-        <AuthForm />
+      <div className="home-page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
+        <KeycloakLoginPrompt />
       </div>
     );
   }

@@ -19,6 +19,8 @@ import { ACTIVITY_LOG_TYPES } from '@services/other/activityLogger';
 import { formatQatarDate } from '@utils/timezone';
 import { getUserStatus, getUserStatusSummary, USER_STATUS, getStatusIconProps } from '@utils/userStatus';
 import { isUserDisabled, getUserId, getUserDisplayNameSync } from '@services/business/userService';
+import { applyLocalizedNameFields } from '@utils/localizedUserName';
+import { pickStudentName } from '@utils/pickLocalizedName';
 import { 
   PAGE_STATES, 
   FORM_STATES,
@@ -314,17 +316,16 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
           
           // Fix 1: Use userId instead of studentId, and use pre-populated user object
           if (enrichedPenalty.userId && enrichedPenalty.user) {
-            // Use the pre-populated user object from API
             const user = enrichedPenalty.user;
-            enrichedPenalty.studentName = user.displayName || user.realName || user.email || 'N/A';
+            applyLocalizedNameFields(enrichedPenalty, user, 'N/A');
             enrichedPenalty.studentEmail = user.email;
-            enrichedPenalty.studentId = enrichedPenalty.userId; // Set studentId for grid
+            enrichedPenalty.studentId = enrichedPenalty.userId;
           } else if (enrichedPenalty.userId) {
             // Fallback: fetch user data if user object is missing
             try {
               const studentData = await fetchUser(enrichedPenalty.userId);
               if (studentData) {
-                enrichedPenalty.studentName = studentData.displayName || studentData.email || 'N/A';
+                applyLocalizedNameFields(enrichedPenalty, studentData, 'N/A');
                 enrichedPenalty.studentEmail = studentData.email;
                 enrichedPenalty.studentId = enrichedPenalty.userId;
               }
@@ -721,8 +722,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
         const rowId = row.id || row.docId || params?.id;
         
         
-        // Get studentName and studentEmail from row first
-        let studentName = row.studentName || params?.value;
+        let studentName = pickStudentName(row, row.user, lang, row.studentName || params?.value || 'N/A');
         let studentEmail = row.studentEmail;
         let studentId = row.studentId || row.userId; // Fix: Use userId as fallback
         
@@ -1144,7 +1144,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
                   
                   return {
                     value: getUserId(u),
-                    displayLabel: getUserDisplayNameSync(u),
+                    displayLabel: getUserDisplayNameSync(u, lang),
                     label: (
                       <div style={{ 
                         display: 'flex', 
@@ -1285,7 +1285,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
                     
                     return {
                       value: getUserId(u),
-                      displayLabel: getUserDisplayNameSync(u),
+                      displayLabel: getUserDisplayNameSync(u, lang),
                       label: (
                         <div style={{ 
                           display: 'flex', 

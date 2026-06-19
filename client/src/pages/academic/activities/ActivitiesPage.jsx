@@ -19,8 +19,9 @@ import { getSubjects } from '@services/business/subjectService.js';
 import { getClasses } from '@services/business/classService.js';
 import { getCategories } from '@services/business/categoryService';
 import { getActivities, addActivity, updateActivity, deleteActivity as deleteActivityService } from '@services/business/activitiesService';
+import { getUsers } from '@services/business/userService.js';
 import { getAllQuizzes } from '@services/business/quizService';
-import { getUsers } from '@services/business/userService';
+import { getLocalizedUserName } from '@utils/localizedUserName';
 import { Select, DatePicker, Button, ToggleSwitch, UrlInput, Input, RichTextEditor } from '@ui';
 import { DeleteModal, useDeleteModal } from '@ui';
 import { RECORD_TYPES } from '@utils/sharedTypes';
@@ -684,7 +685,7 @@ const ActivitiesPage = () => {
         // Try to find user display name from users array
         const user = users.find(u => (u.uid || u.id) === createdBy);
         if (user) {
-          return user.displayName || user.name || user.email || createdBy;
+          return getLocalizedUserName(user, lang, String(createdBy));
         }
         
         return createdBy;
@@ -699,7 +700,7 @@ const ActivitiesPage = () => {
         // Try to find user display name from users array
         const user = users.find(u => (u.uid || u.id) === updatedBy);
         if (user) {
-          return user.displayName || user.name || user.email || '—';
+          return getLocalizedUserName(user, lang, '—');
         }
         
         return updatedBy;

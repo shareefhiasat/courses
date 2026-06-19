@@ -33,6 +33,11 @@ export const getAllPenaltiesController = async (req, res) => {
             select: {
               id: true,
               displayName: true,
+              displayNameAr: true,
+              firstName: true,
+              lastName: true,
+              firstNameAr: true,
+              lastNameAr: true,
               realName: true,
               email: true
             }
@@ -108,7 +113,12 @@ export const getPenaltyByIdController = async (req, res) => {
           select: {
             id: true,
             displayName: true,
-            realName: true,
+              displayNameAr: true,
+              firstName: true,
+              lastName: true,
+              firstNameAr: true,
+              lastNameAr: true,
+              realName: true,
             email: true
           }
         },
@@ -240,7 +250,12 @@ export const createPenaltyController = async (req, res) => {
           select: {
             id: true,
             displayName: true,
-            realName: true,
+              displayNameAr: true,
+              firstName: true,
+              lastName: true,
+              firstNameAr: true,
+              lastNameAr: true,
+              realName: true,
             email: true
           }
         },
@@ -359,7 +374,12 @@ export const updatePenaltyController = async (req, res) => {
           select: {
             id: true,
             displayName: true,
-            realName: true,
+              displayNameAr: true,
+              firstName: true,
+              lastName: true,
+              firstNameAr: true,
+              lastNameAr: true,
+              realName: true,
             email: true
           }
         },
@@ -455,6 +475,11 @@ export const getPenaltiesByStudentController = async (req, res) => {
             select: {
               id: true,
               displayName: true,
+              displayNameAr: true,
+              firstName: true,
+              lastName: true,
+              firstNameAr: true,
+              lastNameAr: true,
               realName: true,
               email: true
             }
@@ -534,6 +559,11 @@ export const getPenaltiesByClassController = async (req, res) => {
             select: {
               id: true,
               displayName: true,
+              displayNameAr: true,
+              firstName: true,
+              lastName: true,
+              firstNameAr: true,
+              lastNameAr: true,
               realName: true,
               email: true
             }

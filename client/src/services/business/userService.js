@@ -1,5 +1,6 @@
 import { info, error, warn, debug } from '../utils/logger.js';
 import { appConfig } from '../config/apiConfig.js';
+import { getLocalizedUserName } from '../../utils/localizedUserName.js';
 
 const serviceName = 'userService';
 const API_BASE = appConfig.getApiBaseUrl();
@@ -554,16 +555,8 @@ export const getPerformedByFields = (user) => {
 };
 
 // User utility functions (to avoid circular dependency)
-export const getUserDisplayName = (user) => {
-  if (!user) return 'Unknown User';
-  
-  if (user.displayName) return user.displayName;
-  if (user.name) return user.name;
-  if (user.firstName && user.lastName) return `${user.firstName} ${user.lastName}`;
-  if (user.firstName) return user.firstName;
-  if (user.email) return user.email;
-  
-  return 'Unknown User';
+export const getUserDisplayName = (user, lang = 'en') => {
+  return getLocalizedUserName(user, lang);
 };
 
 export const getUserInitials = (user) => {
@@ -579,29 +572,21 @@ export const getUserInitials = (user) => {
   return name.substring(0, 2).toUpperCase();
 };
 
-export const getUserProfile = async (userId) => {
+export const getUserProfile = async (userIdOrUser) => {
   try {
+    const userId = typeof userIdOrUser === 'object'
+      ? (userIdOrUser?.dbId || userIdOrUser?.uid || userIdOrUser?.id)
+      : userIdOrUser;
     info(`${serviceName}:getUserProfile`, { userId });
-    
-    // Mock implementation - replace with actual database call
-    return {
-      success: true,
-      data: {
-        id: userId,
-        displayName: 'Test User',
-        email: 'test@example.com',
-        role: 'student',
-        isProfileComplete: true
-      },
-      message: 'User profile retrieved successfully'
-    };
-  } catch (error) {
-    error(`${serviceName}:getUserProfile:error`, { error: error.message, userId });
-    return {
-      success: false,
-      error: error.message || 'Failed to retrieve user profile',
-      data: null
-    };
+
+    const result = await getUserById(userId);
+    if (result.success && result.data) {
+      return result.data;
+    }
+    return null;
+  } catch (err) {
+    error(`${serviceName}:getUserProfile:error`, { error: err.message, userIdOrUser });
+    return null;
   }
 };
 
@@ -629,12 +614,12 @@ export const updateUserProgress = async (userId, progressData, user = null) => {
   }
 };
 
-export const getUserDisplayNameAsync = async (userId) => {
+export const getUserDisplayNameAsync = async (userId, lang = 'en') => {
   try {
-    const profileResult = await getUserProfile(userId);
-    return getUserDisplayName(profileResult.data);
-  } catch (error) {
-    error(`${serviceName}:getUserDisplayNameAsync:error`, { error: error.message, userId });
+    const profile = await getUserProfile(userId);
+    return getUserDisplayName(profile, lang);
+  } catch (err) {
+    error(`${serviceName}:getUserDisplayNameAsync:error`, { error: err.message, userId });
     return 'Unknown User';
   }
 };
@@ -697,8 +682,8 @@ export const getUserId = (user) => {
 };
 
 // Get user display name synchronously
-export const getUserDisplayNameSync = (user) => {
-  return getUserDisplayName(user);
+export const getUserDisplayNameSync = (user, lang = 'en') => {
+  return getUserDisplayName(user, lang);
 };
 
 // Default export

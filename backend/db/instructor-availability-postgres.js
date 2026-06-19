@@ -96,6 +96,9 @@ export const getInstructorAvailabilities = async (params = {}) => {
             id: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             displayName: true,
             email: true
           }
@@ -111,6 +114,9 @@ export const getInstructorAvailabilities = async (params = {}) => {
             id: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             displayName: true
           }
         },
@@ -119,6 +125,9 @@ export const getInstructorAvailabilities = async (params = {}) => {
             id: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             displayName: true
           }
         }
@@ -233,6 +242,9 @@ export const createInstructorAvailability = async (data) => {
             id: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             displayName: true,
             email: true
           }
@@ -248,6 +260,9 @@ export const createInstructorAvailability = async (data) => {
             id: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             displayName: true
           }
         }
@@ -354,6 +369,9 @@ export const updateInstructorAvailability = async (id, data) => {
             id: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             displayName: true,
             email: true
           }
@@ -369,6 +387,9 @@ export const updateInstructorAvailability = async (id, data) => {
             id: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             displayName: true
           }
         },
@@ -377,6 +398,9 @@ export const updateInstructorAvailability = async (id, data) => {
             id: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             displayName: true
           }
         }

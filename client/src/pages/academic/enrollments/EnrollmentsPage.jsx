@@ -2,6 +2,8 @@ import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
+import { getLocalizedUserName, applyLocalizedNameFields } from '@utils/localizedUserName';
+import { pickInstructorName, pickStudentName } from '@utils/pickLocalizedName';
 import { useTheme } from '@contexts/ThemeContext';
 import { getPrograms, getSubjects } from '@services/business/programService';
 import { getClasses } from '@services/business/classService';
@@ -36,6 +38,11 @@ const EnrollmentsPage = () => {
   const [classFilter, setClassFilter] = useState('all');
   const [yearFilter, setYearFilter] = useState('all');
   const [termFilter, setTermFilter] = useState('all');
+
+  const matchUserId = useCallback((left, right) => {
+    if (left == null || right == null) return false;
+    return String(left) === String(right);
+  }, []);
 
   const availableYears = useMemo(() => {
     const years = new Set();
@@ -175,7 +182,25 @@ const EnrollmentsPage = () => {
         throw new Error(result.error || t('enrollments_failed_to_load_students'));
       }
 
-      setStudents(result.data || []);
+      const normalizedStudents = (result.data || []).map((enrollment) => {
+        const studentUser = enrollment.user || {};
+        const userId = enrollment.userId ?? studentUser.id;
+        return {
+          ...enrollment,
+          id: userId,
+          userId,
+          email: studentUser.email || enrollment.email || '',
+          displayName: studentUser.displayName,
+          displayNameAr: studentUser.displayNameAr,
+          firstName: studentUser.firstName,
+          lastName: studentUser.lastName,
+          firstNameAr: studentUser.firstNameAr,
+          lastNameAr: studentUser.lastNameAr,
+          isDisabled: Boolean(enrollment.isDisabled),
+        };
+      });
+
+      setStudents(normalizedStudents);
     } catch (e) {
       error('[EnrollmentsPage] Error loading students:', e);
       toast.error(
@@ -195,7 +220,7 @@ const EnrollmentsPage = () => {
     
     try {
       // Get student details for notifications
-      const student = students.find(s => (s.docId || s.id) === studentId);
+      const student = students.find(s => matchUserId(s.id || s.userId, studentId));
       
       const result = await toggleStudentAccessService(
         selectedClass.id, 
@@ -203,9 +228,9 @@ const EnrollmentsPage = () => {
         currentlyDisabled,
         {
           studentEmail: student?.email,
-          studentName: student?.displayName || student?.realName,
+          studentName: getLocalizedUserName(student, lang),
           className: selectedClass.name || selectedClass.code,
-          instructorName: user?.displayName || user?.realName,
+          instructorName: getLocalizedUserName(user, lang),
           lang: t('lang') || 'en'
         }
       );
@@ -233,10 +258,12 @@ const EnrollmentsPage = () => {
   const filteredStudents = students.filter(s => {
     if (!searchTerm) return true;
     const term = searchTerm.toLowerCase();
+    const localizedName = getLocalizedUserName(s, lang, '').toLowerCase();
     return (
+      localizedName.includes(term) ||
       (s.displayName || '').toLowerCase().includes(term) ||
       (s.email || '').toLowerCase().includes(term) ||
-      (s.id || '').toLowerCase().includes(term)
+      String(s.id || s.userId || '').toLowerCase().includes(term)
     );
   });
 
@@ -544,7 +571,7 @@ const EnrollmentsPage = () => {
                     >
                       <div className={styles.studentInfo}>
                         <div className={styles.studentName}>
-                          {student.displayName || student.email}
+                          {getLocalizedUserName(student, lang) || student.email}
                           {student.isDisabled && (
                             <Badge variant="danger" size="sm">{t('disabled') || 'DISABLED'}</Badge>
                           )}

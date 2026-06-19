@@ -4,7 +4,7 @@ import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { Button, SimpleLoading, useToast, Card, CardBody, Select } from '@ui';
-import dashboardBusinessService from '@services/business/dashboardBusinessService.js';
+import { pickInstructorName } from '@utils/pickLocalizedName';
 
 const SummaryDashboardPage = () => {
   const { user, isAdmin, isHR, isSuperAdmin, isInstructor } = useAuth();
@@ -352,7 +352,7 @@ const SummaryDashboardPage = () => {
                           fontSize: '0.875rem'
                         }}
                       >
-                        <span>{item.instructorName}</span>
+                        <span>{pickInstructorName(item, item.instructor, lang, item.instructorName)}</span>
                         <span style={{ fontWeight: '500' }}>{item.sessionCount} {t('sessions') || 'sessions'}</span>
                       </div>
                     ))}

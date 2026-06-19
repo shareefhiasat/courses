@@ -88,16 +88,22 @@ export const getClassrooms = async (params = {}) => {
             select: {
               id: true,
               firstName: true,
-              lastName: true,
-              displayName: true
+            lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
+            displayName: true
             }
           },
           updater: {
             select: {
               id: true,
               firstName: true,
-              lastName: true,
-              displayName: true
+            lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
+            displayName: true
             }
           }
         }
@@ -371,6 +377,9 @@ export const updateClassroom = async (id, data) => {
             id: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             displayName: true
           }
         },
@@ -379,6 +388,9 @@ export const updateClassroom = async (id, data) => {
             id: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             displayName: true
           }
         }

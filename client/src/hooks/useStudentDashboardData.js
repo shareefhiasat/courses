@@ -27,7 +27,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';
 const useStudentDashboardData = (displayStudentId, hasSelection = true, classId = null) => {
   const { user } = useAuth();
   const toast = useToast();
-  const { t } = useLang();
+  const { t, lang } = useLang();
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -143,17 +143,17 @@ const useStudentDashboardData = (displayStudentId, hasSelection = true, classId 
         // Add localized labels for class mode data
         aggregatedData.participations = aggregatedData.participations.map(p => ({
           ...p,
-          label: getLocalizedActionLabel('participation', p.type, t, t('lang') || 'en')
+          label: getLocalizedActionLabel('participation', p.type, t, lang)
         }));
 
         aggregatedData.behaviors = aggregatedData.behaviors.map(b => ({
           ...b,
-          label: getLocalizedActionLabel('behavior', b.type, t, t('lang') || 'en')
+          label: getLocalizedActionLabel('behavior', b.type, t, lang)
         }));
 
         aggregatedData.penalties = aggregatedData.penalties.map(p => ({
           ...p,
-          label: getLocalizedActionLabel('penalty', p.penaltyType, t, t('lang') || 'en')
+          label: getLocalizedActionLabel('penalty', p.penaltyType, t, lang)
         }));
 
       } else {
@@ -188,17 +188,17 @@ const useStudentDashboardData = (displayStudentId, hasSelection = true, classId 
       // Add localized labels to action types
       const participationsWithLabels = participations.map(p => ({
         ...p,
-        label: getLocalizedActionLabel('participation', p.type, t, t('lang') || 'en')
+        label: getLocalizedActionLabel('participation', p.type, t, lang)
       }));
 
       const behaviorsWithLabels = behaviors.map(b => ({
         ...b,
-        label: getLocalizedActionLabel('behavior', b.type, t, t('lang') || 'en')
+        label: getLocalizedActionLabel('behavior', b.type, t, lang)
       }));
 
       const penaltiesWithLabels = penalties.map(p => ({
         ...p,
-        label: getLocalizedActionLabel('penalty', p.penaltyType, t, t('lang') || 'en')
+        label: getLocalizedActionLabel('penalty', p.penaltyType, t, lang)
       }));
 
       // Load activities for all enrolled classes
@@ -296,7 +296,7 @@ const useStudentDashboardData = (displayStudentId, hasSelection = true, classId 
     } finally {
       setLoading(false);
     }
-  }, [effectiveUserId, classId, isClassMode, hasSelection, toast, t]);
+  }, [effectiveUserId, classId, isClassMode, hasSelection, toast, t, lang]);
 
   useEffect(() => {
     loadData();

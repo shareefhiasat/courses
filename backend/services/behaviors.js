@@ -14,6 +14,7 @@ import {
   getBehaviorsByStudent as getBehaviorsByStudentFromDb,
   getBehaviorsByClass as getBehaviorsByClassFromDb
 } from '../db/behaviors-postgres.js';
+import { buildNotificationNameVars } from '../utils/localizedUserName.js';
 import notificationGateway from './notifications/index.js';
 import { EVENTS } from './notifications/constants.js';
 
@@ -39,7 +40,7 @@ export const createBehavior = async (behaviorData, user = null) => {
       await notificationGateway.emit(
         eventType,
         {
-          studentName: result.data.student?.displayName || result.data.studentName,
+          ...buildNotificationNameVars(result.data.student || { displayName: result.data.studentName }, 'Unknown Student'),
           behaviorType: result.data.behaviorType?.nameEn || result.data.action
         },
         user,
@@ -62,7 +63,7 @@ export const updateBehavior = async (id, behaviorData, user = null) => {
       await notificationGateway.emit(
         EVENTS.BEHAVIOR_UPDATED,
         {
-          studentName: result.data.student?.displayName || result.data.studentName,
+          ...buildNotificationNameVars(result.data.student || { displayName: result.data.studentName }, 'Unknown Student'),
           behaviorType: result.data.behaviorType?.nameEn || result.data.action
         },
         user,
@@ -88,7 +89,7 @@ export const deleteBehavior = async (id, user = null) => {
       await notificationGateway.emit(
         EVENTS.BEHAVIOR_DELETED,
         {
-          studentName: existing.data.student?.displayName || existing.data.studentName,
+          ...buildNotificationNameVars(existing.data.student || { displayName: existing.data.studentName }, 'Unknown Student'),
           behaviorType: existing.data.behaviorType?.nameEn || existing.data.action
         },
         user,

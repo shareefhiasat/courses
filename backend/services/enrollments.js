@@ -9,6 +9,7 @@ import enrollmentDbService from "../db/enrollments-postgres.js";
 import { LMS_ROLES } from './keycloakAdminService.js';
 import notificationGateway from './notifications/index.js';
 import { EVENTS } from './notifications/constants.js';
+import { buildLocalizedNameFields, buildNotificationNameVars } from '../utils/localizedUserName.js';
 
 const serviceName = "enrollmentsBusinessService";
 
@@ -170,7 +171,7 @@ export const createEnrollment = async (enrollmentData, user = null) => {
         // Get student and course/program details
         const student = await prisma.user.findUnique({
           where: { id: enrollmentData.studentId },
-          select: { displayName: true, firstName: true, lastName: true }
+          select: { displayName: true, firstName: true, lastName: true, displayNameAr: true, firstNameAr: true, lastNameAr: true }
         });
 
         let courseName = 'Course';
@@ -192,7 +193,7 @@ export const createEnrollment = async (enrollmentData, user = null) => {
           await notificationGateway.emit(
             EVENTS.ENROLLMENT_CONFIRMED,
             {
-              studentName: student.displayName || `${student.firstName} ${student.lastName}`,
+              ...buildNotificationNameVars(student, 'Unknown Student'),
               courseName: courseName
             },
             user,
@@ -274,7 +275,7 @@ export const updateEnrollment = async (id, updateData, user = null) => {
         // Get student and course details
         const student = await prisma.user.findUnique({
           where: { id: enrollment.userId },
-          select: { displayName: true, firstName: true, lastName: true }
+          select: { displayName: true, firstName: true, lastName: true, displayNameAr: true, firstNameAr: true, lastNameAr: true }
         });
 
         // Get status name
@@ -317,7 +318,7 @@ export const updateEnrollment = async (id, updateData, user = null) => {
           await notificationGateway.emit(
             eventType,
             {
-              studentName: student.displayName || `${student.firstName} ${student.lastName}`,
+              ...buildNotificationNameVars(student, 'Unknown Student'),
               courseName: courseName
             },
             user,
@@ -385,7 +386,7 @@ export const deleteEnrollment = async (id, user = null) => {
         if (enrollment.success && enrollment.data) {
           const student = await prisma.user.findUnique({
             where: { id: enrollment.data.userId },
-            select: { displayName: true, firstName: true, lastName: true }
+            select: { displayName: true, firstName: true, lastName: true, displayNameAr: true, firstNameAr: true, lastNameAr: true }
           });
 
           let courseName = 'Course';
@@ -407,7 +408,7 @@ export const deleteEnrollment = async (id, user = null) => {
             await notificationGateway.emit(
               EVENTS.ENROLLMENT_DROPPED,
               {
-                studentName: student.displayName || `${student.firstName} ${student.lastName}`,
+                ...buildNotificationNameVars(student, 'Unknown Student'),
                 courseName: courseName
               },
               user,

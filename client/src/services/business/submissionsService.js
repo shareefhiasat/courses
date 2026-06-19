@@ -1,6 +1,13 @@
 // Mock implementation since no submissions DB service exists
+import { getUserSubmissions } from './submissionService.js';
+
+export const getSubmissionsByUser = getUserSubmissions;
+
 export const getSubmissions = async (options = {}) => {
   try {
+    if (options.userId) {
+      return getSubmissionsByUser(options.userId, options);
+    }
     return {
       success: true,
       data: [],
@@ -17,4 +24,5 @@ export const getSubmissions = async (options = {}) => {
 
 export default {
   getSubmissions,
+  getSubmissionsByUser,
 };

@@ -51,7 +51,7 @@ export const createFolder = async (req, res) => {
       const folder = await prisma.folder.findUnique({
         where: { id: result.payload.id },
         include: {
-          user: { select: { displayName: true, firstName: true, lastName: true } }
+          user: { select: { displayName: true, firstName: true, lastName: true, displayNameAr: true, firstNameAr: true, lastNameAr: true } }
         }
       });
 
@@ -94,7 +94,7 @@ export const softDeleteFolder = async (req, res) => {
   const folder = await prisma.folder.findUnique({
     where: { id: req.params.folderId },
     include: {
-      user: { select: { displayName: true, firstName: true, lastName: true } }
+      user: { select: { displayName: true, firstName: true, lastName: true, displayNameAr: true, firstNameAr: true, lastNameAr: true } }
     }
   });
 

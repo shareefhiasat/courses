@@ -6,6 +6,7 @@
 
 import { info, error, warn, debug } from '../services/utils/logger.js';
 import userService from '../services/business/userService.js';
+import { getLocalizedUserName } from './localizedUserName.js';
 
 export const ROLE_STRINGS = {
   STUDENT: 'student',
@@ -77,16 +78,19 @@ export const getUserRoleDisplay = (userOrRole, t, lang) => {
   return ROLE_DISPLAY_NAMES[userOrRole] || 'Unknown';
 };
 
-export const getUserDisplayName = (user) => {
-  if (!user) return 'Unknown User';
-  
+export const getEnglishUserName = (user, fallback = 'Unknown User') => {
+  if (!user) return fallback;
   if (user.displayName) return user.displayName;
+  if (user.realName) return user.realName;
   if (user.name) return user.name;
   if (user.firstName && user.lastName) return `${user.firstName} ${user.lastName}`;
   if (user.firstName) return user.firstName;
   if (user.email) return user.email;
-  
-  return 'Unknown User';
+  return fallback;
+};
+
+export const getUserDisplayName = (user, lang = 'en') => {
+  return getLocalizedUserName(user, lang);
 };
 
 export const getUserInitials = (user) => {
@@ -154,6 +158,8 @@ export default {
   ROLE_KEYS,
   hasScreenAccess,
   getUserRoleDisplay,
+  getLocalizedUserName,
+  getEnglishUserName,
   getUserDisplayName,
   getUserInitials,
   isValidEmail,

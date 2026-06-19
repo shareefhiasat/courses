@@ -34,6 +34,7 @@ const Input = forwardRef(({
   onChange,
   error,
   helperText,
+  helperTextStyle,
   helperTextInfo,
   disabled = false,
   required = false,
@@ -127,7 +128,7 @@ const Input = forwardRef(({
       {(error || helperText) && (
         <div className={styles.helperContainer}>
           {error && <span className={styles.errorText}>{error}</span>}
-          {helperText && !helperTextInfo && <span className={styles.helperText}>{helperText}</span>}
+          {helperText && !helperTextInfo && <span className={styles.helperText} style={helperTextStyle}>{helperText}</span>}
           {helperTextInfo && (
             <InfoTooltip contentKey={helperTextInfo} />
           )}

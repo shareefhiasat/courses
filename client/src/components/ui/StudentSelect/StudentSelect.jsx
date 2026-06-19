@@ -3,9 +3,10 @@ import PropTypes from 'prop-types';
 import Select from '../Select';
 import StudentSelectOption from '../StudentSelectOption/StudentSelectOption';
 import { getUserStatus, getUserStatusSummary } from '../../../utils/userStatus';
+import { useLang } from '@contexts/LangContext';
+import { getLocalizedUserName } from '@utils/localizedUserName';
 
-
-import { info, error, warn, debug } from '@services/utils/logger.js';const StudentSelect = ({
+const StudentSelect = ({
   value,
   onChange,
   students = [],
@@ -19,6 +20,8 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
   filterStatuses = null,
   ...selectProps
 }) => {
+  const { lang } = useLang();
+
   // Create enrollments map for fast lookup
   const enrollmentsMap = useMemo(() => {
     const map = {};
@@ -60,7 +63,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
     const opts = [{ value: '', label: placeholder }];
     
     enrichedStudents.forEach(student => {
-      const displayName = student.displayName || student.name || student.email || student.id;
+      const displayName = getLocalizedUserName(student, lang, student.email || student.id);
       const studentId = student.id || student.docId;
       
       opts.push({
@@ -79,7 +82,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
     });
     
     return opts;
-  }, [enrichedStudents, placeholder]);
+  }, [enrichedStudents, placeholder, lang]);
 
   // Handle change with proper value extraction
   const handleChange = useCallback((e) => {

@@ -814,7 +814,7 @@ const handleCancelEdit = useCallback(() => {
         const creator = params.row?.creator;
         if (!creator) return '—';
         
-        const displayProps = getUserDisplayProps(creator);
+        const displayProps = getUserDisplayProps(creator, users, { lang });
         return (
           <span title={displayProps.title} style={displayProps.style}>
             {displayProps.children}
@@ -834,7 +834,7 @@ const handleCancelEdit = useCallback(() => {
         const updater = params.row?.updater;
         if (!updater) return '—';
         
-        const displayProps = getUserDisplayProps(updater);
+        const displayProps = getUserDisplayProps(updater, users, { lang });
         return (
           <span title={displayProps.title} style={displayProps.style}>
             {displayProps.children}

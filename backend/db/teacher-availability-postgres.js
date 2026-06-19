@@ -55,8 +55,11 @@ export const getTeacherAvailabilities = async (params = {}) => {
               id: true,
               email: true,
               firstName: true,
-              lastName: true,
-              displayName: true
+            lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
+            displayName: true
             }
           }
         }
@@ -112,6 +115,9 @@ export const getTeacherAvailabilityById = async (id) => {
             email: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             displayName: true
           }
         }
@@ -168,6 +174,9 @@ export const getTeacherAvailabilityByUserId = async (userId) => {
             email: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             displayName: true
           }
         }
@@ -238,6 +247,9 @@ export const getAvailableTeachers = async (params) => {
             email: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             displayName: true
           }
         }
@@ -332,6 +344,9 @@ export const createTeacherAvailability = async (data) => {
             email: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             displayName: true
           }
         }
@@ -382,6 +397,9 @@ export const updateTeacherAvailability = async (id, data) => {
             email: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
             displayName: true
           }
         }
