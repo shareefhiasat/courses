@@ -14,7 +14,7 @@ import {
 } from '@services/business/classroomAvailabilityService.js';
 import { getAllClassrooms } from '@services/business/classroomService.js';
 import { formatDateTime } from '@utils/dateUtils.js';
-import { getUserDisplayName as getAuthUserDisplayName } from '@services/business/authService';
+import { useAuditGridColumns } from '@hooks/useAuditGridColumns.js';
 import { exportToCSV } from '@utils/csvExport.js';
 import {
   getWeekDayOptions,
@@ -257,6 +257,8 @@ const ClassroomAvailabilityPage = () => {
     resetForm();
   }, [resetForm]);
 
+  const auditColumns = useAuditGridColumns();
+
   const formatDate = useCallback((dateValue) => {
     return formatDateTime(dateValue, lang);
   }, [lang]);
@@ -363,50 +365,8 @@ const ClassroomAvailabilityPage = () => {
       }
     ];
 
-    // Add audit columns
     columns.push(
-      {
-        field: 'creator',
-        headerName: t('created_by') || 'Created By',
-        flex: 1,
-        minWidth: 150,
-        renderCell: (params) => {
-          const creator = params?.row?.creator;
-          if (!creator) return '—';
-          return getAuthUserDisplayName(creator, [], lang);
-        }
-      },
-      {
-        field: 'createdAt',
-        headerName: t('created_at') || 'Created At',
-        flex: 0.8,
-        minWidth: 120,
-        renderCell: (params) => {
-          const value = params?.value;
-          return formatDate(value);
-        }
-      },
-      {
-        field: 'updater',
-        headerName: t('updated_by') || 'Updated By',
-        flex: 1,
-        minWidth: 150,
-        renderCell: (params) => {
-          const updater = params?.row?.updater;
-          if (!updater) return '—';
-          return getAuthUserDisplayName(updater, [], lang);
-        }
-      },
-      {
-        field: 'updatedAt',
-        headerName: t('updated_at') || 'Updated At',
-        flex: 0.8,
-        minWidth: 120,
-        renderCell: (params) => {
-          const value = params?.value;
-          return formatDate(value);
-        }
-      },
+      ...auditColumns,
       {
         field: 'actions',
         headerName: t('actions'),
@@ -440,7 +400,7 @@ const ClassroomAvailabilityPage = () => {
     );
 
     return columns;
-  }, [formatDate, handleEditAvailability, deleteEntity, saving, t, lang, classroomLabel]);
+  }, [auditColumns, formatDate, handleEditAvailability, deleteEntity, saving, t, lang, classroomLabel]);
 
   // Backend handles filtering
   const filteredAvailabilities = availabilities;

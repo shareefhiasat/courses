@@ -4,18 +4,32 @@
  */
 
 /**
+ * Coerce DB/API date values (ISO string, ms, or Unix seconds) for display.
+ */
+export function coerceDateValue(dateValue) {
+  if (dateValue == null || dateValue === '') return null;
+  if (typeof dateValue === 'number' && Number.isFinite(dateValue)) {
+    // Values below ~year 2001 in ms are treated as Unix seconds
+    return dateValue < 1e12 ? new Date(dateValue * 1000) : new Date(dateValue);
+  }
+  return dateValue;
+}
+
+/**
  * Format date with time in Qatar timezone
- * @param {Date|string} dateValue - Date to format
+ * @param {Date|string|number} dateValue - Date to format
  * @param {string} lang - Language code ('en' or 'ar')
+ * @param {string} [emptyLabel='—'] - Label when value is missing
  * @returns {string} Formatted date and time
  */
-export const formatDateTime = (dateValue, lang = 'en') => {
-  if (!dateValue) return '—';
+export const formatDateTime = (dateValue, lang = 'en', emptyLabel = '—') => {
+  const coerced = coerceDateValue(dateValue);
+  if (!coerced) return emptyLabel;
   
   try {
-    const date = new Date(dateValue);
+    const date = coerced instanceof Date ? coerced : new Date(coerced);
     if (isNaN(date.getTime())) {
-      return dateValue; // Return original if parsing fails
+      return emptyLabel;
     }
     
     if (lang === 'ar') {
@@ -49,7 +63,7 @@ export const formatDateTime = (dateValue, lang = 'en') => {
     return date.toLocaleString(lang === 'ar' ? 'ar-QA' : 'en-US', options);
   } catch (error) {
     console.error('Error formatting date:', error);
-    return dateValue;
+    return emptyLabel;
   }
 };
 

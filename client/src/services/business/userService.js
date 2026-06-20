@@ -148,6 +148,7 @@ export const getAllUsers = async (params = {}) => {
     if (params.search) queryParams.append('search', params.search);
     if (params.first !== undefined) queryParams.append('first', params.first);
     if (params.max !== undefined) queryParams.append('max', params.max);
+    if (params.limit !== undefined) queryParams.append('limit', params.limit);
     if (params.studentsOnly) queryParams.append('studentsOnly', 'true');
     if (params.excludeStudents) queryParams.append('excludeStudents', 'true');
 

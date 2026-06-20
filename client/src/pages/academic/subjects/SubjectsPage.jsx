@@ -14,10 +14,8 @@ import { SimpleLoading, Button, Input, Select, useToast, AdvancedDataGrid } from
 import { useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { DeleteModal, useDeleteModal } from '@ui';
 import { useTheme } from '@contexts/ThemeContext';
-import { getUserDisplayProps } from '@utils/userDisplayUtils.js';
 import { getLocalizedName, createDropdownOptions, createLocalizedValueGetter } from '@utils/languageHelpers';
-import { formatDateTime } from '@utils/dateUtils.js';
-import { getLocalizedUserName } from '@utils/localizedUserName.js';
+import { useAuditGridColumns } from '@hooks/useAuditGridColumns.js';
 // OLD: import { ACTIVITY_TYPES } from '@constants';
 // NOW: Not used in this component
 import styles from './SubjectsPage.module.css';
@@ -316,6 +314,8 @@ const resetForm = () => {
     if (descArRef.current) descArRef.current.value = '';
   };
 
+  const auditColumns = useAuditGridColumns({ users });
+
 const gridColumns = useMemo(() => [
     { 
       field: 'code', 
@@ -382,107 +382,7 @@ const gridColumns = useMemo(() => [
         return requirementTypeId;
       }
     },
-    {
-      field: 'createdAt',
-      headerName: t('created_at') || 'Created At',
-      width: 180,
-      valueGetter: (params) => {
-        const row = params?.row || {};
-        const createdAt = row.createdAt || params?.value;
-        if (!createdAt) return '—';
-        
-        try {
-          // Handle Firestore Timestamp
-          if (typeof createdAt === 'object' && createdAt.toDate) {
-            return formatDateTime(createdAt.toDate(), lang || 'en');
-          }
-          
-          // Handle ISO string or timestamp string
-          if (typeof createdAt === 'string' || typeof createdAt === 'number') {
-            return formatDateTime(createdAt, lang || 'en');
-          }
-          
-          return createdAt;
-        } catch (error) {
-          return createdAt || 'Invalid Date';
-        }
-      }
-    },
-    {
-      field: 'creator',
-      headerName: t('created_by') || 'Created By',
-      width: 200,
-      renderCell: (params) => {
-        const creator = params.row?.creator;
-        if (!creator) return '—';
-        
-        const displayProps = getUserDisplayProps(creator, users, { lang });
-        return (
-          <span title={displayProps.title} style={displayProps.style}>
-            {displayProps.children}
-          </span>
-        );
-      }
-    },
-    {
-      field: 'updater',
-      headerName: t('updated_by') || 'Updated By',
-      width: 200,
-      renderCell: (params) => {
-        const updater = params.row?.updater;
-        if (!updater) return '—';
-        
-        const displayProps = getUserDisplayProps(updater, users, { lang });
-        return (
-          <span title={displayProps.title} style={displayProps.style}>
-            {displayProps.children}
-          </span>
-        );
-      }
-    },
-    {
-      field: 'updatedAt',
-      headerName: t('updated_at') || 'Updated At',
-      width: 180,
-      renderCell: (params) => {
-        const updatedAt = params.row?.updatedAt || params?.value;
-        if (!updatedAt) return '—';
-        if (typeof updatedAt === 'object' && updatedAt.toDate) {
-          return formatDateTime(updatedAt.toDate(), lang);
-        }
-        return formatDateTime(updatedAt, lang);
-      }
-    },
-    {
-      field: 'createdBy',
-      headerName: t('created_by') || 'Created By',
-      width: 180,
-      renderCell: (params) => {
-        const creator = params.row?.creator;
-        if (!creator) return '—';
-        const user = users.find(u => (u.uid || u.id) === creator.id || u.id === creator);
-        if (user) {
-          return getLocalizedUserName(user, lang, user.displayName || user.name || user.email || '—');
-        }
-        return getLocalizedUserName(creator, lang, creator.displayName || creator.name || '—');
-      }
-    },
-    {
-      field: 'updatedBy',
-      headerName: t('updated_by') || 'Updated By',
-      width: 180,
-      renderCell: (params) => {
-        const updater = params.row?.updater;
-        if (!updater) return '—';
-        
-        // Try to find user display name from users array
-        const user = users.find(u => (u.uid || u.id) === updater.id || u.id === updater);
-        if (user) {
-          return getLocalizedUserName(user, lang, user.displayName || user.name || user.email || '—');
-        }
-        return getLocalizedUserName(updater, lang, updater.displayName || updater.name || '—');
-      }
-    },
+    ...auditColumns,
     {
       field: 'actions',
       headerName: t('actions') || 'Actions',
@@ -511,7 +411,7 @@ const gridColumns = useMemo(() => [
         </div>
       )
     }
-  ], [t, theme, handleEdit, handleDelete, users, subjectTypes, requirementTypes, lang]);
+  ], [t, theme, handleEdit, handleDelete, users, subjectTypes, requirementTypes, lang, auditColumns]);
 
   return (
     <div className={styles.container}>

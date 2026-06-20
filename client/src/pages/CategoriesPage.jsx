@@ -7,9 +7,7 @@ import { getThemedIcon, CATEGORY_ICONS } from '@constants';
 import { Button, Select, SimpleLoading, Textarea, useToast, AdvancedDataGrid, Card, CardBody, Input } from '@ui';
 import { DeleteModal, useDeleteModal } from '@ui';
 import { getCategories, addCategory, updateCategory, deleteCategory } from '@services/business/categoryService';
-import { getUsers, getUserDisplayName } from '@services/business/userService';
-import { getUserDisplayName as getAuthUserDisplayName } from '@services/business/authService';
-import { formatDateTime } from '@utils/dateUtils.js';
+import { useAuditGridColumns } from '@hooks/useAuditGridColumns.js';
 import { useLookupTypes } from '@hooks/useLookupTypes.js';
 import { 
   PAGE_STATES, 
@@ -92,10 +90,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
     info('🔍 [FORM] Form data changed:', formData);
   }, [formData]);
 
-  // Format date with time in Qatar timezone
-  const formatDate = useCallback((dateValue) => {
-    return formatDateTime(dateValue, lang);
-  }, [lang]);
+  const auditColumns = useAuditGridColumns();
 
   // Dynamic form validation
   const formErrors = useMemo(() => {
@@ -396,56 +391,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
         return value || '—';
       }
     },
-    {
-      field: 'createdAt',
-      headerName: t('created_at') || 'Created At',
-      flex: 0.8,
-      minWidth: 120,
-      renderCell: (params) => {
-        const value = params?.value;
-        return formatDate(value);
-      }
-    },
-    {
-      field: 'creator',
-      headerName: t('created_by') || 'Created By',
-      flex: 1,
-      minWidth: 150,
-      renderCell: (params) => {
-        const creator = params?.row?.creator;
-        if (!creator) {
-          return '—'; // Show dash for null/empty creator
-        }
-        
-        // Use centralized authService for consistent display
-        return getAuthUserDisplayName(creator, [], lang);
-      }
-    },
-    {
-      field: 'updatedAt',
-      headerName: t('updated_at') || 'Updated At',
-      flex: 0.8,
-      minWidth: 120,
-      renderCell: (params) => {
-        const value = params?.value;
-        return formatDate(value);
-      }
-    },
-    {
-      field: 'updater',
-      headerName: t('updated_by') || 'Updated By',
-      flex: 1,
-      minWidth: 150,
-      renderCell: (params) => {
-        const updater = params?.row?.updater;
-        if (!updater) {
-          return '—'; // Show dash for null/empty updater
-        }
-        
-        // Use centralized authService for consistent display
-        return getAuthUserDisplayName(updater, [], lang);
-      }
-    },
+    ...auditColumns,
     {
       field: 'actions',
       headerName: t('actions') || 'Actions',
@@ -481,7 +427,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
         );
       }
     }
-  ], [theme, t, handleEdit, handleDelete, hideActions, toast]);
+  ], [theme, t, handleEdit, handleDelete, hideActions, toast, auditColumns]);
 
   return (
     <div>

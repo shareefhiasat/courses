@@ -301,21 +301,27 @@ const DashboardPage = () => {
     },
     {
       id: 'flexible-scheduling',
-      label: t('scheduling') || 'Scheduling',
+      label: t('scheduling_and_availabilities') || t('scheduling') || 'Scheduling and Availabilities',
       items: [
         { key: 'summary-dashboard', label: t('summary_dashboard') || 'Summary Dashboard' },
         { key: 'scheduling-calendar', label: t('scheduling_calendar') || 'Scheduling Calendar' },
-        { key: 'instructor-availability', label: t('instructor_availability') || 'Instructor Availability' },
         ...(isSuperAdmin ? [
           { key: 'user-category-access', label: t('user_access') || 'User Access' }
         ] : []),
       ]
     },
     {
+      id: 'availability-setup',
+      label: t('availability_setup') || 'Availability Setup',
+      items: [
+        { key: 'instructor-availability', label: t('instructor_availability_setup') || t('instructor_availability') || 'Instructor Availability Setup' },
+        { key: 'classroom-availability', label: t('room_availability_setup') || t('room_availability') || 'Room Availability Setup' },
+      ]
+    },
+    {
       id: 'rooms',
       label: t('rooms') || 'Rooms',
       items: [
-        { key: 'classroom-availability', label: t('room_availability') || 'Room Availability' },
         { key: 'classrooms-management', label: t('rooms_management') || 'Rooms Management' },
       ]
     },

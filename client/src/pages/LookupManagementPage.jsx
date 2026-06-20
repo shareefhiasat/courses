@@ -15,8 +15,7 @@ import { useAuth } from '@contexts/AuthContext';
 import { useToast } from '@components/ui/ToastProvider';
 import { useLookupTypes } from '@hooks/useLookupTypes.js';
 import { getDatabaseUserId } from '@services/business/authService';
-import { getUserDisplayName as getAuthUserDisplayName } from '@services/business/authService';
-import { formatDateTime } from '@utils/dateUtils.js';
+import { useAuditGridColumns } from '@hooks/useAuditGridColumns.js';
 import api from '@api';
 import { PAGE_STATES, FORM_STATES } from '@constants/pageTypes';
 import { useDeleteModal } from '@components/ui/DeleteModal/DeleteModal';
@@ -355,10 +354,7 @@ const LookupManagementPage = ({ lookupType }) => {
     return synced;
   }, [formData]);
 
-  // Format date with time
-  const formatDate = useCallback((dateValue) => {
-    return formatDateTime(dateValue, lang);
-  }, [lang]);
+  const auditColumns = useAuditGridColumns();
 
   // Reset form
   const resetForm = useCallback(() => {
@@ -609,50 +605,8 @@ const LookupManagementPage = ({ lookupType }) => {
       });
     }
 
-    // Add audit columns
     columns.push(
-      {
-        field: 'creator',
-        headerName: t('created_by'),
-        flex: 1,
-        minWidth: 150,
-        renderCell: (params) => {
-          const creator = params?.row?.creator;
-          if (!creator) return '—';
-          return getAuthUserDisplayName(creator, [], lang);
-        }
-      },
-      {
-        field: 'createdAt',
-        headerName: t('created_at'),
-        flex: 0.8,
-        minWidth: 120,
-        renderCell: (params) => {
-          const value = params?.value;
-          return formatDate(value);
-        }
-      },
-      {
-        field: 'updater',
-        headerName: t('updated_by'),
-        flex: 1,
-        minWidth: 150,
-        renderCell: (params) => {
-          const updater = params?.row?.updater;
-          if (!updater) return '—';
-          return getAuthUserDisplayName(updater, [], lang);
-        }
-      },
-      {
-        field: 'updatedAt',
-        headerName: t('updated_at'),
-        flex: 0.8,
-        minWidth: 120,
-        renderCell: (params) => {
-          const value = params?.value;
-          return formatDate(value);
-        }
-      },
+      ...auditColumns,
       {
         field: 'actions',
         headerName: t('actions'),
@@ -686,7 +640,7 @@ const LookupManagementPage = ({ lookupType }) => {
     );
 
     return columns;
-  }, [config, formatDate, handleEdit, deleteEntity, saving, t, lang]);
+  }, [config, auditColumns, handleEdit, deleteEntity, saving, t]);
 
   // Loading state
   if (pageState === PAGE_STATES.LOADING) {

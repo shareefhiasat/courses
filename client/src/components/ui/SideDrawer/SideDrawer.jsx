@@ -28,6 +28,10 @@ const DASHBOARD_HASH_TABS = {
   'classroom-availability': 'classroom-availability',
 };
 
+const CALENDAR_CLASSES_PATH = '/scheduling-calendar?tab=classes';
+const CALENDAR_INSTRUCTOR_AVAIL_PATH = '/scheduling-calendar?tab=availability&scope=instructor';
+const CALENDAR_ROOM_AVAIL_PATH = '/scheduling-calendar?tab=availability&scope=room';
+
 const SideDrawer = ({ isOpen, onClose }) => {
   const { user, isAdmin, isSuperAdmin, isHR, isInstructor, role, impersonating, stopImpersonation, logout } = useAuth();
   const { t, lang, toggleLang } = useLang();
@@ -361,6 +365,62 @@ const SideDrawer = ({ isOpen, onClose }) => {
     e.currentTarget.style.transform = 'translateY(0)';
   };
 
+  // Scheduling + availability navigation sections (shared across roles)
+  const buildSchedulingSections = (idSuffix = '', { includeSummary = false, includeSetup = false, schedulingPrepend = [] } = {}) => {
+    const sfx = idSuffix;
+    const sections = [
+      {
+        id: `scheduling${sfx}`,
+        label: nl('scheduling_and_availabilities', 'Scheduling and Availabilities'),
+        icon: getThemedIcon('ui', 'calendar', 18, theme),
+        children: [
+          ...schedulingPrepend,
+          ...(includeSummary ? [
+            { id: `summary-dashboard${sfx}`, path: '/summary-dashboard', icon: getThemedIcon('ui', 'layout_dashboard', 18, theme), label: nl('summary_dashboard', 'Summary Dashboard') },
+          ] : []),
+          { id: `calendar-sessions${sfx}`, path: '/scheduling-calendar', icon: getThemedIcon('ui', 'calendar', 18, theme), label: nl('main_tab_sessions', 'Sessions') },
+        ],
+      },
+      {
+        id: `availability${sfx}`,
+        label: nl('nav_availability', 'Availability'),
+        icon: getThemedIcon('ui', 'bar_chart3', 18, theme),
+        children: [
+          { id: `calendar-classes${sfx}`, path: CALENDAR_CLASSES_PATH, icon: getThemedIcon('ui', 'graduation_cap', 18, theme), label: nl('classes_availability', 'Classes Availability') },
+          { id: `calendar-instructor-avail${sfx}`, path: CALENDAR_INSTRUCTOR_AVAIL_PATH, icon: getThemedIcon('ui', 'users', 18, theme), label: nl('instructor_availability', 'Instructor Availability') },
+          { id: `calendar-room-avail${sfx}`, path: CALENDAR_ROOM_AVAIL_PATH, icon: getThemedIcon('ui', 'list', 18, theme), label: nl('room_availability', 'Room Availability') },
+        ],
+      },
+    ];
+
+    if (includeSetup) {
+      sections.push({
+        id: `availability-setup${sfx}`,
+        label: nl('availability_setup', 'Availability Setup'),
+        icon: getThemedIcon('ui', 'settings', 18, theme),
+        children: [
+          { id: `instructor-availability${sfx}`, path: '/dashboard', hash: '#instructor-availability', icon: getThemedIcon('ui', 'users', 18, theme), label: nl('instructor_availability_setup', 'Instructor Availability Setup') },
+          { id: `classroom-availability${sfx}`, path: '/dashboard', hash: '#classroom-availability', icon: getThemedIcon('ui', 'list', 18, theme), label: nl('room_availability_setup', 'Room Availability Setup') },
+        ],
+      });
+    }
+
+    return sections;
+  };
+
+  const adminSchedulingSections = buildSchedulingSections('', {
+    includeSummary: isSuperAdmin || isAdmin || isHR,
+    includeSetup: isSuperAdmin || isAdmin || isHR,
+  });
+  const studentSchedulingSections = buildSchedulingSections('-student', {
+    includeSummary: false,
+    includeSetup: false,
+    schedulingPrepend: [
+      { id: 'my-enrollments-student', path: '/my-enrollments', icon: getThemedIcon('ui', 'book_open', 18, theme), label: nl('my_enrollments', 'My Enrollments') },
+    ],
+  });
+  const hrSchedulingSections = buildSchedulingSections('-hr', { includeSummary: true, includeSetup: true });
+
   // Tree-structured navigation data
   const studentLinks = [
     {
@@ -396,17 +456,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
         { id: 'lab-results', path: '/review-results?activityType=lab_work', icon: getThemedIcon('activity_type', 'lab', 18, theme), label: nl('lab_results', 'Lab Results') },
       ]
     },
-    {
-      id: 'scheduling',
-      label: nl('scheduling', 'Scheduling'),
-      icon: getThemedIcon('ui', 'calendar', 18, theme),
-      children: [
-        { id: 'my-enrollments', path: '/my-enrollments', icon: getThemedIcon('ui', 'book_open', 18, theme), label: nl('my_enrollments', 'My Enrollments') },
-        { id: 'calendar-sessions', path: '/scheduling-calendar', icon: getThemedIcon('ui', 'calendar', 18, theme), label: nl('main_tab_sessions', 'Sessions') },
-        { id: 'calendar-availability', path: '/scheduling-calendar?tab=availability', icon: getThemedIcon('ui', 'bar_chart3', 18, theme), label: nl('main_tab_availability', 'Availability') },
-        { id: 'calendar-classes', path: '/scheduling-calendar?tab=classes', icon: getThemedIcon('ui', 'graduation_cap', 18, theme), label: nl('main_tab_classes', 'Classes') },
-      ]
-    },
+    ...studentSchedulingSections,
     {
       id: 'attendance',
       label: nl('attendance', 'Attendance'),
@@ -441,20 +491,6 @@ const SideDrawer = ({ isOpen, onClose }) => {
         { id: 'profile', path: '/profile', icon: getThemedIcon('ui', 'settings', 18, theme), label: nl('settings', 'Settings') },
       ]
     }
-  ];
-
-  // Admin & SuperAdmin: Full management view
-  const adminSchedulingChildren = [
-    ...(isSuperAdmin || isAdmin || isHR ? [
-      { id: 'summary-dashboard', path: '/summary-dashboard', icon: getThemedIcon('ui', 'layout_dashboard', 18, theme), label: nl('summary_dashboard', 'Summary Dashboard') },
-    ] : []),
-    { id: 'calendar-sessions', path: '/scheduling-calendar', icon: getThemedIcon('ui', 'calendar', 18, theme), label: nl('main_tab_sessions', 'Sessions') },
-    { id: 'calendar-availability', path: '/scheduling-calendar?tab=availability', icon: getThemedIcon('ui', 'bar_chart3', 18, theme), label: nl('main_tab_availability', 'Availability') },
-    { id: 'calendar-classes', path: '/scheduling-calendar?tab=classes', icon: getThemedIcon('ui', 'graduation_cap', 18, theme), label: nl('main_tab_classes', 'Classes') },
-    ...(isSuperAdmin || isAdmin || isHR ? [
-      { id: 'instructor-availability', path: '/dashboard', hash: '#instructor-availability', icon: getThemedIcon('ui', 'users', 18, theme), label: nl('instructor_availability', 'Instructor Availability') },
-      { id: 'classroom-availability', path: '/dashboard', hash: '#classroom-availability', icon: getThemedIcon('ui', 'list', 18, theme), label: nl('room_availability', 'Room Availability') },
-    ] : []),
   ];
 
   const adminLinks = [
@@ -519,12 +555,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
         { id: 'participation', path: '/dashboard', hash: '#participation', icon: getThemedIcon('ui', 'users', 18, theme), label: nl('participation', 'Participation') },
       ]
     }] : []),
-    {
-      id: 'scheduling',
-      label: nl('scheduling', 'Scheduling'),
-      icon: getThemedIcon('ui', 'calendar', 18, theme),
-      children: adminSchedulingChildren,
-    },
+    ...adminSchedulingSections,
     ...(isSuperAdmin ? [{
       id: 'users',
       label: nl('users', 'Users'),
@@ -620,19 +651,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
         { id: 'daily-scan', path: '/qr-scanner', icon: getThemedIcon('ui', 'qr_code', 18, theme), label: nl('daily_scan', 'Daily Scan') },
       ]
     },
-    {
-      id: 'scheduling',
-      label: nl('scheduling', 'Scheduling'),
-      icon: getThemedIcon('ui', 'calendar', 18, theme),
-      children: [
-        { id: 'summary-dashboard-hr', path: '/summary-dashboard', icon: getThemedIcon('ui', 'layout_dashboard', 18, theme), label: nl('summary_dashboard', 'Summary Dashboard') },
-        { id: 'calendar-sessions-hr', path: '/scheduling-calendar', icon: getThemedIcon('ui', 'calendar', 18, theme), label: nl('main_tab_sessions', 'Sessions') },
-        { id: 'calendar-availability-hr', path: '/scheduling-calendar?tab=availability', icon: getThemedIcon('ui', 'bar_chart3', 18, theme), label: nl('main_tab_availability', 'Availability') },
-        { id: 'calendar-classes-hr', path: '/scheduling-calendar?tab=classes', icon: getThemedIcon('ui', 'graduation_cap', 18, theme), label: nl('main_tab_classes', 'Classes') },
-        { id: 'instructor-availability-hr', path: '/dashboard', hash: '#instructor-availability', icon: getThemedIcon('ui', 'users', 18, theme), label: nl('instructor_availability', 'Instructor Availability') },
-        { id: 'classroom-availability-hr', path: '/dashboard', hash: '#classroom-availability', icon: getThemedIcon('ui', 'list', 18, theme), label: nl('room_availability', 'Room Availability') },
-      ]
-    },
+    ...hrSchedulingSections,
     {
       id: 'drive',
       label: nl('drive', 'Drive'),

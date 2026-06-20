@@ -15,8 +15,8 @@ import { getPrograms, getSubjects, getSubject, fetchProgram } from '@services/bu
 import { getClasses, getClassById } from '@services/business/classService';
 import { getEnrollments, getStudentsByClass } from '@services/business/enrollmentService';
 import { getAllUsers, getUserById, getUsersByIds, getUserByEmail } from '@services/business/userService';
+import { useAuditGridColumns } from '@hooks/useAuditGridColumns.js';
 import { ACTIVITY_LOG_TYPES } from '@services/other/activityLogger';
-import { formatQatarDate } from '@utils/timezone';
 import { getUserStatus, getUserStatusSummary, USER_STATUS, getStatusIconProps } from '@utils/userStatus';
 import { isUserDisabled, getUserId, getUserDisplayNameSync } from '@services/business/userService';
 import { applyLocalizedNameFields } from '@utils/localizedUserName';
@@ -383,47 +383,6 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
             }
           }
           
-          // Add created by and updated by display fields
-          enrichedPenalty.createdByDisplay = (() => {
-            if (enrichedPenalty.creator?.displayName) {
-              return enrichedPenalty.creator.displayName;
-            }
-            if (enrichedPenalty.createdBy) {
-              // Search in all users (students array contains all users)
-              const creatorUser = students.find(u => (u.docId || u.id) === enrichedPenalty.createdBy || (u.docId || u.id) === parseInt(enrichedPenalty.createdBy));
-              if (creatorUser) {
-                return creatorUser.displayName || creatorUser.realName || creatorUser.email;
-              }
-              // Search in userCache as fallback
-              const cachedUser = userCache[enrichedPenalty.createdBy];
-              if (cachedUser) {
-                return cachedUser.displayName || cachedUser.realName || cachedUser.email;
-              }
-              return `ID: ${enrichedPenalty.createdBy}`;
-            }
-            return '—';
-          })();
-          
-          enrichedPenalty.updatedByDisplay = (() => {
-            if (enrichedPenalty.updater?.displayName) {
-              return enrichedPenalty.updater.displayName;
-            }
-            if (enrichedPenalty.updatedBy) {
-              // Search in all users (students array contains all users)
-              const updaterUser = students.find(u => (u.docId || u.id) === enrichedPenalty.updatedBy || (u.docId || u.id) === parseInt(enrichedPenalty.updatedBy));
-              if (updaterUser) {
-                return updaterUser.displayName || updaterUser.realName || updaterUser.email;
-              }
-              // Search in userCache as fallback
-              const cachedUser = userCache[enrichedPenalty.updatedBy];
-              if (cachedUser) {
-                return cachedUser.displayName || cachedUser.realName || cachedUser.email;
-              }
-              return `ID: ${enrichedPenalty.updatedBy}`;
-            }
-            return '—';
-          })();
-          
           } catch (err) {
           debug('Failed to enrich penalty:', enrichedPenalty.id || enrichedPenalty.docId, err);
         }
@@ -711,6 +670,13 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
     return true;
   });
 
+  const auditColumns = useAuditGridColumns({
+    users: students,
+    columnOverrides: {
+      createdAt: { headerName: t('penalty_date'), width: 150 },
+    },
+  });
+
   const columns = useMemo(() => [
     {
       field: 'studentName',
@@ -963,62 +929,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
       minWidth: 150,
       valueGetter: (params) => params.value || '—'
     },
-    {
-      field: 'createdAt',
-      headerName: t('penalty_date'),
-      width: 150,
-      valueGetter: (params) => {
-        
-        // Check if params directly contains the timestamp
-        if (params && typeof params === 'object' && params.seconds) {
-          const date = new Date(params.seconds * 1000);
-          return formatQatarDate(date, "MMM dd, yyyy 'at' h:mm:ss a");
-        }
-        
-        // Check if params.value directly contains the timestamp
-        if (params.value && typeof params.value === 'object' && params.value.seconds) {
-          const date = new Date(params.value.seconds * 1000);
-          return formatQatarDate(date, "MMM dd, yyyy 'at' h:mm:ss a");
-        }
-        
-        // Fallback to original logic
-        if (!params.row.createdAt) {
-          return 'No Date';
-        }
-        // Handle Firebase Timestamp properly
-        let date;
-        if (params.row.createdAt?.toDate) {
-          date = params.row.createdAt.toDate();
-        } else if (params.row.createdAt?.seconds) {
-          date = new Date(params.row.createdAt.seconds * 1000);
-        } else {
-          date = new Date(params.row.createdAt);
-        }
-        if (isNaN(date.getTime())) {
-          return 'Invalid Date';
-        }
-        const formattedDate = formatQatarDate(date, "MMM dd, yyyy 'at' h:mm:ss a");
-        return formattedDate;
-      }
-    },
-    {
-      field: 'createdByDisplay',
-      headerName: t('created_by') || 'Created By',
-      width: 150,
-      renderCell: (params) => {
-        const value = params.value;
-        return value || '—';
-      }
-    },
-    {
-      field: 'updatedByDisplay', 
-      headerName: t('updated_by') || 'Updated By',
-      width: 150,
-      renderCell: (params) => {
-        const value = params.value;
-        return value || '—';
-      }
-    },
+    ...auditColumns,
     ...(hideActions ? [] : [{
       field: 'actions',
       headerName: t('penalty_actions'),
@@ -1056,7 +967,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
         </div>
       )
     }])
-  ], [theme, lang, t, handleEdit, handleDelete, hideActions, subjects, penalties, students, userCache]);
+  ], [theme, lang, t, handleEdit, handleDelete, hideActions, subjects, penalties, students, auditColumns]);
 
   return (
     <div>

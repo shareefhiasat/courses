@@ -3,7 +3,7 @@ import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useAuth } from '@contexts/AuthContext';
 import { useGlobalLoading } from '@/contexts/GlobalLoadingContext';
-import { formatDateTime } from '@utils/dateUtils.js';
+import { useAuditGridColumns } from '@hooks/useAuditGridColumns.js';
 import { useToast } from '@ui';
 import { AdvancedDataGrid } from '@ui';
 import { getThemedIcon } from '@constants';
@@ -21,7 +21,6 @@ import { getCategories } from '@services/business/categoryService';
 import { getActivities, addActivity, updateActivity, deleteActivity as deleteActivityService } from '@services/business/activitiesService';
 import { getUsers } from '@services/business/userService.js';
 import { getAllQuizzes } from '@services/business/quizService';
-import { getLocalizedUserName } from '@utils/localizedUserName';
 import { Select, DatePicker, Button, ToggleSwitch, UrlInput, Input, RichTextEditor } from '@ui';
 import { DeleteModal, useDeleteModal } from '@ui';
 import { RECORD_TYPES } from '@utils/sharedTypes';
@@ -439,6 +438,8 @@ const ActivitiesPage = () => {
   }, [categories, lang, t, theme]);
 
   // Memoize columns to prevent re-renders
+  const auditColumns = useAuditGridColumns({ users });
+
   const gridColumns = useMemo(() => [
     { field: 'titleEn', headerName: t('title_en_col'), flex: 1, minWidth: 160,
       renderCell: (params) => {
@@ -670,49 +671,7 @@ const ActivitiesPage = () => {
         return formatQatarStandard(params.value);
       }
     },
-    {
-      field: 'createdAt', headerName: t('created_at') || 'Created At', width: 180,
-      valueGetter: (params) => {
-        const createdAt = params.value || params.row?.createdAt;
-        if (!createdAt) return '—';
-        return formatDateTime(createdAt, lang);
-      },
-      renderCell: (params) => {
-        const createdAt = params.value || params.row?.createdAt;
-        if (!createdAt) return '—';
-        return formatDateTime(createdAt, lang);
-      }
-    },
-    {
-      field: 'createdBy', headerName: t('created_by'), width: 150,
-      renderCell: (params) => {
-        const createdBy = params.value || params.row?.createdBy;
-        if (!createdBy) return 'Unknown';
-        
-        // Try to find user display name from users array
-        const user = users.find(u => (u.uid || u.id) === createdBy);
-        if (user) {
-          return getLocalizedUserName(user, lang, String(createdBy));
-        }
-        
-        return createdBy;
-      }
-    },
-    {
-      field: 'updatedBy', headerName: t('updated_by') || 'Updated By', width: 150,
-      renderCell: (params) => {
-        const updatedBy = params.value || params.row?.updater?.id || params.row?.updatedBy;
-        if (!updatedBy) return '—';
-        
-        // Try to find user display name from users array
-        const user = users.find(u => (u.uid || u.id) === updatedBy);
-        if (user) {
-          return getLocalizedUserName(user, lang, '—');
-        }
-        
-        return updatedBy;
-      }
-    },
+    ...auditColumns,
     {
       field: 'show', headerName: t('visible') || 'Visible', width: 100,
       renderCell: (params) => {
@@ -834,7 +793,7 @@ const ActivitiesPage = () => {
         </div>
       )
     }
-  ], [programs, subjects, classes, quizzes, theme, lang, t, handleEditActivity, toast, loadData, deleteActivity]);
+  ], [programs, subjects, classes, quizzes, theme, lang, t, handleEditActivity, toast, loadData, deleteActivity, users, auditColumns]);
 
   const filteredActivities = activities.filter(activity => {
     if (activityProgramFilter && activity.programId !== activityProgramFilter) return false;

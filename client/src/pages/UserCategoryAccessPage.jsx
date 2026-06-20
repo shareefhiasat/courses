@@ -11,7 +11,7 @@ import { getAllUsers, getUserRoles } from '@services/business/userService.js';
 import { getAllPrograms } from '@services/business/programService.js';
 import { getAllSubjects } from '@services/business/subjectService.js';
 import { getAllClasses } from '@services/business/classService.js';
-import { formatDateTime } from '@utils/dateUtils.js';
+import { useAuditGridColumns } from '@hooks/useAuditGridColumns.js';
 import { getUserDisplayName as getAuthUserDisplayName } from '@services/business/authService';
 
 const UserCategoryAccessPage = () => {
@@ -231,9 +231,7 @@ const UserCategoryAccessPage = () => {
     resetForm();
   }, [resetForm]);
 
-  const formatDate = useCallback((dateValue) => {
-    return formatDateTime(dateValue, lang);
-  }, [lang]);
+  const auditColumns = useAuditGridColumns();
 
   const localizedName = useCallback((entity) => {
     if (!entity) return '—';
@@ -305,50 +303,8 @@ const UserCategoryAccessPage = () => {
       }
     ];
 
-    // Add audit columns
     columns.push(
-      {
-        field: 'creator',
-        headerName: t('created_by'),
-        flex: 1,
-        minWidth: 150,
-        renderCell: (params) => {
-          const creator = params?.row?.creator;
-          if (!creator) return '—';
-          return getAuthUserDisplayName(creator, [], lang);
-        }
-      },
-      {
-        field: 'createdAt',
-        headerName: t('created_at'),
-        flex: 0.8,
-        minWidth: 120,
-        renderCell: (params) => {
-          const value = params?.value;
-          return formatDate(value);
-        }
-      },
-      {
-        field: 'updater',
-        headerName: t('updated_by'),
-        flex: 1,
-        minWidth: 150,
-        renderCell: (params) => {
-          const updater = params?.row?.updater;
-          if (!updater) return '—';
-          return getAuthUserDisplayName(updater, [], lang);
-        }
-      },
-      {
-        field: 'updatedAt',
-        headerName: t('updated_at'),
-        flex: 0.8,
-        minWidth: 120,
-        renderCell: (params) => {
-          const value = params?.value;
-          return formatDate(value);
-        }
-      },
+      ...auditColumns,
       {
         field: 'actions',
         headerName: t('actions'),
@@ -382,7 +338,7 @@ const UserCategoryAccessPage = () => {
     );
 
     return columns;
-  }, [formatDate, handleEditAccess, deleteEntity, saving, t, lang, localizedName]);
+  }, [auditColumns, handleEditAccess, deleteEntity, saving, t, lang, localizedName]);
 
   // Derived filtered rows - backend handles filtering
   const filteredAccesses = accesses;

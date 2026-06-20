@@ -2,9 +2,12 @@ import React, { useRef, useMemo } from 'react';
 import {
   DataGrid,
   GridToolbar,
+  GRID_CHECKBOX_SELECTION_COL_DEF,
 } from '@mui/x-data-grid';
 import { arSD, enUS } from '@mui/x-data-grid/locales';
 import { Box } from '@mui/material';
+import { createTheme, ThemeProvider as MuiThemeProvider } from '@mui/material/styles';
+import RtlProvider from '@mui/system/RtlProvider';
 import { getColoredIcon, getThemedIcon } from '@constants/iconTypes';
 import { useTheme } from '@contexts/ThemeContext';
 import { useLang } from '@contexts/LangContext';
@@ -40,7 +43,58 @@ const AdvancedDataGrid = ({
   const direction = directionProp ?? (isRTL ? 'rtl' : 'ltr');
   const resolvedExportLabel = exportLabel ?? t('export');
   const isDarkMode = theme === 'dark';
-  // Store rows in a ref so we can access them in valueGetter
+  const gridTheme = useMemo(
+    () => createTheme({
+      direction,
+      palette: { mode: isDarkMode ? 'dark' : 'light' },
+    }),
+    [direction, isDarkMode],
+  );
+  const checkboxField = GRID_CHECKBOX_SELECTION_COL_DEF.field;
+  const isGridRtl = direction === 'rtl';
+  const gridDirectionSx = useMemo(() => {
+    if (!isGridRtl) return {};
+    return {
+      '& .MuiDataGrid-columnHeaders': {
+        direction: 'rtl',
+      },
+      '& .MuiDataGrid-columnHeaderRow': {
+        direction: 'rtl',
+      },
+      '& .MuiDataGrid-columnHeader': {
+        direction: 'rtl',
+      },
+      '& .MuiDataGrid-columnHeaderDraggableContainer': {
+        direction: 'rtl',
+        flexDirection: 'row-reverse',
+      },
+      '& .MuiDataGrid-columnHeaderTitleContainer': {
+        direction: 'rtl',
+        flexDirection: 'row-reverse',
+        justifyContent: 'flex-start',
+      },
+      '& .MuiDataGrid-columnHeaderTitleContainerContent': {
+        direction: 'rtl',
+        justifyContent: 'flex-end',
+        width: '100%',
+      },
+      '& .MuiDataGrid-columnHeaderTitle': {
+        direction: 'rtl',
+        textAlign: 'right',
+        width: '100%',
+      },
+      '& .MuiDataGrid-cell--textLeft': {
+        textAlign: 'right',
+        justifyContent: 'flex-end',
+      },
+      '& .MuiDataGrid-columnHeader--alignLeft': {
+        textAlign: 'right',
+      },
+      '& .MuiDataGrid-columnHeader--alignRight .MuiDataGrid-columnHeaderDraggableContainer, & .MuiDataGrid-columnHeader--alignRight .MuiDataGrid-columnHeaderTitleContainer': {
+        flexDirection: 'row-reverse',
+      },
+    };
+  }, [isGridRtl]);
   const rowsRef = useRef(rows || []);
   rowsRef.current = rows || [];
 
@@ -111,6 +165,14 @@ const AdvancedDataGrid = ({
       if (!wrapped.key) {
         wrapped.key = wrapped.field || `column-${index}`;
       }
+      const keepLtr = col.field === 'actions' || col.field === checkboxField || col.type === 'actions';
+      if (direction === 'rtl' && !keepLtr) {
+        wrapped.align = col.align ?? 'right';
+        wrapped.headerAlign = col.headerAlign ?? 'right';
+      } else if (direction === 'ltr' && !keepLtr) {
+        wrapped.align = col.align ?? 'left';
+        wrapped.headerAlign = col.headerAlign ?? 'left';
+      }
       if (typeof col.renderCell === 'function') {
         wrapped.renderCell = (params) => col.renderCell(normalizeParams(params, col.field));
       }
@@ -130,7 +192,7 @@ const AdvancedDataGrid = ({
       }
       return wrapped;
     });
-  }, [columns]);
+  }, [columns, direction, checkboxField]);
 
   const gridLocaleText = useMemo(() => {
     const base = lang === 'ar'
@@ -236,7 +298,9 @@ const AdvancedDataGrid = ({
           <SimpleLoading loading type="spinner" size="lg" />
         </Box>
       )}
-      <Box sx={{ 
+      <Box
+        dir={direction}
+        sx={{
         width: '100%', 
         height: '100%',
         maxHeight: '70vh',
@@ -288,6 +352,7 @@ const AdvancedDataGrid = ({
           color: isDarkMode ? '#f9fafb !important' : '#111827 !important',
           borderBottom: isDarkMode ? '1px solid #374151' : '1px solid #e5e7eb'
         },
+        ...(isGridRtl ? gridDirectionSx : {}),
         '& .MuiDataGrid-row': {
           direction: direction,
           backgroundColor: isDarkMode ? '#1f2937' : '#ffffff',
@@ -338,7 +403,10 @@ const AdvancedDataGrid = ({
           </button>
         </Box>
       )}
+      <MuiThemeProvider theme={gridTheme}>
+      <RtlProvider value={isGridRtl}>
       <DataGrid
+        key={`data-grid-${lang}-${direction}`}
         rows={safeRows}
         columns={safeColumns}
         autoHeight={autoHeight}
@@ -350,6 +418,10 @@ const AdvancedDataGrid = ({
         // MUI v8 API
         slots={mergedSlots}
         localeText={gridLocaleText}
+        sx={{
+          direction,
+          ...(isGridRtl ? gridDirectionSx : {}),
+        }}
         getRowId={(row) => {
           try {
             // Use consumer-provided getRowId if passed through rest
@@ -362,6 +434,8 @@ const AdvancedDataGrid = ({
         }}
         {...rest}
       />
+      </RtlProvider>
+      </MuiThemeProvider>
       </Box>
     </Box>
   );

@@ -5,8 +5,8 @@ import { useAuth } from '@contexts/AuthContext';
 import { useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { info, error, warn, debug } from '@services/utils/logger.js';
-import { formatDateTime } from '@utils/dateUtils.js';
 import { getLocalizedUserName } from '@utils/localizedUserName.js';
+import { useAuditGridColumns } from '@hooks/useAuditGridColumns.js';
 import { addClass, updateClass, deleteClass, getClasses } from '@services/business/classService';
 import { getPrograms, getSubjects } from '@services/business/programService';
 import { getAllClassrooms } from '@services/business/classroomService';
@@ -14,7 +14,6 @@ import { getUsers } from '@services/business/userService';
 import { getEnrollments } from '@services/business/enrollmentService';
 import { getActivities } from '@services/business/activitiesService';
 import { logActivity, ACTIVITY_LOG_TYPES } from '@services/other/activityLogger.jsx';
-import { getUserDisplayProps } from '@utils/userDisplayUtils.js';
 import { ROLE_STRINGS } from '@utils/userUtils';
 import { isAdmin, isInstructor, isSuperAdmin } from '@services/business/userService';
 import { makeCurrentUserSuperAdminAndInstructor } from '@utils/userRoleManager';
@@ -540,6 +539,8 @@ const handleCancelEdit = useCallback(() => {
     if (capacityRef.current) capacityRef.current.value = '';
   }, []);
 
+  const auditColumns = useAuditGridColumns({ users });
+
   const gridColumns = useMemo(() => [
     { field: 'nameEn', headerName: t('name') || 'Name', flex: 1, minWidth: 180 },
     { 
@@ -773,61 +774,7 @@ const handleCancelEdit = useCallback(() => {
         );
       }
     },
-    {
-      field: 'createdAt',
-      headerName: t('created_at') || 'Created At',
-      width: 180,
-      valueGetter: (params) => params.value,
-      renderCell: (params) => {
-        const createdAt = params.value || params.row?.createdAt;
-        if (!createdAt) return '—';
-        return formatDateTime(createdAt, lang);
-      },
-      valueFormatter: (params) => {
-        if (!params.value) return '—';
-        return formatDateTime(params.value, lang);
-      }
-    },
-    {
-      field: 'createdBy',
-      headerName: t('created_by') || 'Created By',
-      width: 180,
-      valueGetter: (params) => {
-        const creator = params.row?.creator;
-        return creator?.displayName || creator?.firstName || creator?.email || '—';
-      },
-      renderCell: (params) => {
-        const creator = params.row?.creator;
-        if (!creator) return '—';
-        
-        const displayProps = getUserDisplayProps(creator, users, { lang });
-        return (
-          <span title={displayProps.title} style={displayProps.style}>
-            {displayProps.children}
-          </span>
-        );
-      }
-    },
-    {
-      field: 'updatedBy',
-      headerName: t('updated_by') || 'Updated By',
-      width: 180,
-      valueGetter: (params) => {
-        const updater = params.row?.updater;
-        return updater?.displayName || updater?.firstName || updater?.email || '—';
-      },
-      renderCell: (params) => {
-        const updater = params.row?.updater;
-        if (!updater) return '—';
-        
-        const displayProps = getUserDisplayProps(updater, users, { lang });
-        return (
-          <span title={displayProps.title} style={displayProps.style}>
-            {displayProps.children}
-          </span>
-        );
-      }
-    },
+    ...auditColumns,
     {
       field: 'actions', headerName: t('actions') || 'Actions', width: 200, sortable: false, filterable: false,
       renderCell: (params) => (
@@ -854,7 +801,7 @@ const handleCancelEdit = useCallback(() => {
         </div>
       )
     }
-  ], [subjects, users, theme, lang, t, handleEdit, handleDelete, programs]);
+  ], [subjects, users, theme, lang, t, handleEdit, handleDelete, programs, auditColumns]);
 
   const filteredClasses = classes.filter(classItem => {
     if (classProgramFilter && classProgramFilter !== 'all' && classItem.programId !== classProgramFilter) return false;

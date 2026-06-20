@@ -182,6 +182,7 @@ function AvailabilityTimelineLegend({ t, theme }) {
 }
 
 const INSTRUCTOR_SELECT_WIDTH = { minWidth: '360px', width: '360px', flex: '0 1 360px' };
+const ROOM_SELECT_WIDTH = { minWidth: '420px', width: '420px', flex: '0 0 420px', maxWidth: '100%' };
 
 const SchedulingCalendarPage = () => {
   const { user, isAdmin, isHR, isSuperAdmin } = useAuth();
@@ -197,6 +198,17 @@ const SchedulingCalendarPage = () => {
   const readTabFromParams = (params) => {
     const tab = params.get('tab');
     return ['sessions', 'availability', 'classes'].includes(tab) ? tab : 'sessions';
+  };
+
+  const readScopeFromParams = (params, tab) => {
+    const scope = params.get('scope');
+    if (tab === 'availability') {
+      return scope === 'room' ? 'room' : 'instructor';
+    }
+    if (tab === 'sessions') {
+      return scope === 'instructor' || scope === 'room' ? scope : 'all';
+    }
+    return 'all';
   };
 
   const [loading, setLoading] = useState(false);
@@ -222,12 +234,41 @@ const SchedulingCalendarPage = () => {
     setMainTabState(tab);
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev);
-      if (tab === 'sessions') next.delete('tab');
-      else next.set('tab', tab);
+      if (tab === 'sessions') {
+        next.delete('tab');
+        next.delete('scope');
+      } else if (tab === 'classes') {
+        next.set('tab', 'classes');
+        next.delete('scope');
+        next.delete('classId');
+      } else if (tab === 'availability') {
+        next.set('tab', 'availability');
+      }
       return next;
     }, { replace: true });
   }, [setSearchParams]);
-  const [scopeMode, setScopeMode] = useState('all');
+
+  const navigateAvailabilityView = useCallback((scope) => {
+    setMainTabState('availability');
+    setScopeMode(scope);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set('tab', 'availability');
+      next.set('scope', scope);
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
+
+  const setSessionsScope = useCallback((scope) => {
+    setScopeMode(scope);
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      if (scope === 'all') next.delete('scope');
+      else next.set('scope', scope);
+      return next;
+    }, { replace: true });
+  }, [setSearchParams]);
+  const [scopeMode, setScopeMode] = useState(() => readScopeFromParams(searchParams, readTabFromParams(searchParams)));
   const [selectedInstructor, setSelectedInstructor] = useState(null);
   const [selectedRoom, setSelectedRoom] = useState(null);
   const [availabilityDataMode, setAvailabilityDataMode] = useState('defined'); // 'defined' | 'workload' | 'timeline'
@@ -436,6 +477,8 @@ const SchedulingCalendarPage = () => {
   useEffect(() => {
     const tab = readTabFromParams(searchParams);
     setMainTabState((current) => (current === tab ? current : tab));
+    const scope = readScopeFromParams(searchParams, tab);
+    setScopeMode((current) => (current === scope ? current : scope));
     const classId = searchParams.get('classId');
     setSessionClassFilter((current) => {
       const next = classId || null;
@@ -1881,29 +1924,9 @@ const SchedulingCalendarPage = () => {
                 {t('main_tab_sessions')}
               </button>
               <button
-                onClick={() => { setMainTab('availability'); setScopeMode(scopeMode === 'room' ? 'room' : 'instructor'); }}
-                style={{
-                  padding: '0.5rem 1rem',
-                  backgroundColor: mainTab === 'availability' ? '#10b981' : 'transparent',
-                  color: mainTab === 'availability' ? '#ffffff' : theme === 'dark' ? '#9ca3af' : '#6b7280',
-                  border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.875rem',
-                  fontWeight: mainTab === 'availability' ? 600 : 400,
-                  display: 'flex', alignItems: 'center', gap: '0.5rem'
-                }}
-              >
-                <BarChart3 size={14} />
-                {t('main_tab_availability')}
-              </button>
-              <button
                 onClick={() => {
                   setMainTab('classes');
                   setSessionClassFilter(null);
-                  setSearchParams((prev) => {
-                    const next = new URLSearchParams(prev);
-                    next.set('tab', 'classes');
-                    next.delete('classId');
-                    return next;
-                  }, { replace: true });
                 }}
                 style={{
                   padding: '0.5rem 1rem',
@@ -1915,7 +1938,35 @@ const SchedulingCalendarPage = () => {
                 }}
               >
                 <GraduationCap size={14} />
-                {t('main_tab_classes')}
+                {t('classes_availability')}
+              </button>
+              <button
+                onClick={() => { navigateAvailabilityView('instructor'); setSelectedRoom(null); }}
+                style={{
+                  padding: '0.5rem 1rem',
+                  backgroundColor: mainTab === 'availability' && scopeMode === 'instructor' ? '#10b981' : 'transparent',
+                  color: mainTab === 'availability' && scopeMode === 'instructor' ? '#ffffff' : theme === 'dark' ? '#9ca3af' : '#6b7280',
+                  border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.875rem',
+                  fontWeight: mainTab === 'availability' && scopeMode === 'instructor' ? 600 : 400,
+                  display: 'flex', alignItems: 'center', gap: '0.5rem'
+                }}
+              >
+                <User size={14} />
+                {t('instructor_availability')}
+              </button>
+              <button
+                onClick={() => { navigateAvailabilityView('room'); setSelectedInstructor(null); }}
+                style={{
+                  padding: '0.5rem 1rem',
+                  backgroundColor: mainTab === 'availability' && scopeMode === 'room' ? '#10b981' : 'transparent',
+                  color: mainTab === 'availability' && scopeMode === 'room' ? '#ffffff' : theme === 'dark' ? '#9ca3af' : '#6b7280',
+                  border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.875rem',
+                  fontWeight: mainTab === 'availability' && scopeMode === 'room' ? 600 : 400,
+                  display: 'flex', alignItems: 'center', gap: '0.5rem'
+                }}
+              >
+                <DoorOpen size={14} />
+                {t('room_availability')}
               </button>
 
               <div style={{ width: '1px', backgroundColor: theme === 'dark' ? '#374151' : '#d1d5db', margin: '0 0.25rem' }} />
@@ -1923,7 +1974,7 @@ const SchedulingCalendarPage = () => {
               {mainTab === 'sessions' && (
                 <>
                   <button
-                    onClick={() => { setScopeMode('all'); setSelectedInstructor(null); setSelectedRoom(null); }}
+                    onClick={() => { setSessionsScope('all'); setSelectedInstructor(null); setSelectedRoom(null); }}
                     title={t('all_sessions')}
                     style={{
                       padding: '0.5rem 0.75rem',
@@ -1936,7 +1987,7 @@ const SchedulingCalendarPage = () => {
                     {t('all')}
                   </button>
                   <button
-                    onClick={() => { setScopeMode('instructor'); setSelectedRoom(null); }}
+                    onClick={() => { setSessionsScope('instructor'); setSelectedRoom(null); }}
                     title={t('by_instructor')}
                     style={{
                       padding: '0.5rem',
@@ -1950,7 +2001,7 @@ const SchedulingCalendarPage = () => {
                     <User size={16} />
                   </button>
                   <button
-                    onClick={() => { setScopeMode('room'); setSelectedInstructor(null); }}
+                    onClick={() => { setSessionsScope('room'); setSelectedInstructor(null); }}
                     title={t('by_room')}
                     style={{
                       padding: '0.5rem',
@@ -1968,37 +2019,6 @@ const SchedulingCalendarPage = () => {
 
               {mainTab === 'availability' && (
                 <>
-                  <button
-                    onClick={() => setScopeMode('instructor')}
-                    title={t('by_instructor')}
-                    style={{
-                      padding: '0.5rem',
-                      backgroundColor: scopeMode === 'instructor' ? '#10b981' : 'transparent',
-                      color: scopeMode === 'instructor' ? '#ffffff' : theme === 'dark' ? '#9ca3af' : '#6b7280',
-                      border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.875rem',
-                      fontWeight: scopeMode === 'instructor' ? 600 : 400,
-                      display: 'flex', alignItems: 'center'
-                    }}
-                  >
-                    <User size={16} />
-                  </button>
-                  <button
-                    onClick={() => setScopeMode('room')}
-                    title={t('by_room')}
-                    style={{
-                      padding: '0.5rem',
-                      backgroundColor: scopeMode === 'room' ? '#10b981' : 'transparent',
-                      color: scopeMode === 'room' ? '#ffffff' : theme === 'dark' ? '#9ca3af' : '#6b7280',
-                      border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.875rem',
-                      fontWeight: scopeMode === 'room' ? 600 : 400,
-                      display: 'flex', alignItems: 'center'
-                    }}
-                  >
-                    <DoorOpen size={16} />
-                  </button>
-
-                  <div style={{ width: '1px', backgroundColor: theme === 'dark' ? '#374151' : '#d1d5db', margin: '0 0.25rem' }} />
-
                   {[
                     { mode: 'defined', Icon: LayoutList, titleKey: 'defined_hours_view', activeColor: '#10b981' },
                     { mode: 'timeline', Icon: CalendarDays, titleKey: 'timeline_view', activeColor: '#10b981' },
@@ -2229,7 +2249,7 @@ const SchedulingCalendarPage = () => {
                   { value: '', label: t('select_room') },
                   ...classrooms.map(c => ({ value: String(c.id), label: getLocalizedClassroomName(c, lang) }))
                 ]}
-                style={INSTRUCTOR_SELECT_WIDTH}
+                style={ROOM_SELECT_WIDTH}
               />
             )}
 
@@ -2317,7 +2337,7 @@ const SchedulingCalendarPage = () => {
                 roleFilter={[]}
                 showLabels={false}
                 useEmailAsValue={true}
-                style={INSTRUCTOR_SELECT_WIDTH}
+                style={ROOM_SELECT_WIDTH}
               />
             )}
 
@@ -2325,10 +2345,12 @@ const SchedulingCalendarPage = () => {
               <Select
                 value={selectedRoom || ''}
                 onChange={(e) => setSelectedRoom(e.target.value ? parseInt(e.target.value) : null)}
+                theme={theme}
                 options={[
                   { value: '', label: t('select_room') },
                   ...classrooms.map(c => ({ value: String(c.id), label: getLocalizedClassroomName(c, lang) }))
                 ]}
+                style={ROOM_SELECT_WIDTH}
               />
             )}
 

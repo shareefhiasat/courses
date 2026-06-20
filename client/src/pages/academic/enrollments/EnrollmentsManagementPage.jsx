@@ -19,6 +19,7 @@ import { toggleStudentAccess as toggleStudentAccessService } from '@services/bus
 import { getLocalizedUserName } from '@utils/localizedUserName';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import { DeleteModal, useDeleteModal } from '@ui';
+import { useAuditGridColumns } from '@hooks/useAuditGridColumns.js';
 
 const EnrollmentsManagementPage = () => {
   const { t, lang } = useLang();
@@ -273,6 +274,15 @@ const EnrollmentsManagementPage = () => {
     if (!code) return t('status_enrolled');
     return t(`status_${String(code).toLowerCase()}`) || code;
   }, [t]);
+
+  const enrollmentAuditColumns = useAuditGridColumns({
+    users,
+    includeUpdater: false,
+    includeUpdatedAt: false,
+    columnOverrides: {
+      createdAt: { headerName: t('enrolled_col'), width: 220 },
+    },
+  });
 
   const enrollmentSummary = useMemo(() => {
     const total = filteredEnrollmentRows.length;
@@ -550,27 +560,7 @@ const EnrollmentsManagementPage = () => {
               </div>
             )
           },
-          {
-            field: 'createdBy', 
-            headerName: t('created_by'), 
-            width: 150,
-            renderCell: (params) => {
-              const creator = users.find(u => matchUserId(u.docId || u.id, params.value));
-              if (!creator) {
-                return <span style={{ color: '#6b7280' }}>System</span>;
-              }
-              return (
-                <span style={{ 
-                  display: 'inline-flex', 
-                  alignItems: 'center', 
-                  gap: '6px'
-                }}>
-                  {getThemedIcon('ui', 'user', 14, theme)}
-                  {creator.displayName || creator.realName || creator.email || 'Unknown'}
-                </span>
-              );
-            }
-          },
+          ...enrollmentAuditColumns,
           {
             field: 'status', 
             headerName: t('status') || 'STATUS', 
@@ -599,62 +589,6 @@ const EnrollmentsManagementPage = () => {
                   {getEnrollmentStatusLabel(statusCode)}
                 </span>
               );
-            }
-          },
-          {
-            field: 'createdAt', headerName: t('enrolled_col'), width: 220,
-            valueGetter: (params) => params.value,
-            renderCell: (params) => {
-              if (!params.value) return 'Unknown';
-              
-              let dateObj;
-              
-              // Handle Firestore Timestamp
-              if (params.value?.toDate) {
-                dateObj = params.value.toDate();
-              }
-              // Handle Firestore timestamp with seconds
-              else if (params.value?.seconds) {
-                dateObj = new Date(params.value.seconds * 1000);
-              }
-              // Handle string dates
-              else if (typeof params.value === 'string') {
-                // Try parsing the string directly first
-                dateObj = new Date(params.value);
-                
-                // If invalid, try to handle specific formats
-                if (isNaN(dateObj.getTime())) {
-                  // Handle format like "March 2, 2026 at 5:24:47 AM UTC+3"
-                  const match = params.value.match(/(\w+)\s+(\d+),\s+(\d+)\s+at\s+(.+)$/);
-                  if (match) {
-                    const [, month, day, year, timePart] = match;
-                    // Remove timezone info and parse
-                    const timeWithoutTimezone = timePart.split(' UTC')[0];
-                    const dateString = `${month} ${day}, ${year} ${timeWithoutTimezone}`;
-                    dateObj = new Date(dateString);
-                  }
-                }
-              }
-              // Handle number (timestamp)
-              else if (typeof params.value === 'number') {
-                dateObj = new Date(params.value);
-              }
-              else {
-                dateObj = new Date(params.value);
-              }
-              
-              // Final validation
-              if (isNaN(dateObj.getTime())) {
-                return 'Invalid Date';
-              }
-              
-              const dateStr = dateObj.toLocaleDateString('en-US', {
-                month: 'short', day: '2-digit', year: 'numeric'
-              });
-              const timeStr = dateObj.toLocaleTimeString('en-US', {
-                hour: 'numeric', minute: '2-digit', second: '2-digit'
-              });
-              return `${dateStr} at ${timeStr}`;
             }
           },
           {

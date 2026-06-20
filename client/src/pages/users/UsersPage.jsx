@@ -27,6 +27,7 @@ import { getBehaviors } from '@services/business/behaviorService';
 import { getParticipations } from '@services/business/participationService';
 import { getUserSubmissions } from '@services/business/submissionService';
 import { PAGE_STATES, FORM_STATES } from '@constants/pageTypes';
+import { useAuditGridColumns } from '@hooks/useAuditGridColumns.js';
 
 const UsersPage = ({ isDashboardTab = false }) => {
   const navigate = useNavigate();
@@ -129,7 +130,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
     try {
       
       const [usersResult, programsResult, classesResult, subjectsResult, enrollmentsResult] = await Promise.all([
-        getUsers(),
+        getUsers({ limit: 5000 }),
         getPrograms(),
         getClasses(),
         getSubjects(),
@@ -711,6 +712,12 @@ const UsersPage = ({ isDashboardTab = false }) => {
     }))
   ], [subjects, t]);
 
+  const auditColumns = useAuditGridColumns({
+    users,
+    emptyCreatedAtLabel: t('unknown'),
+    emptyUpdatedAtLabel: t('never'),
+  });
+
   // Memoized grid columns for performance
   const gridColumns = useMemo(() => [
     { field: 'email', headerName: t('email_col'), flex: 1, minWidth: 220 },
@@ -913,64 +920,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
         }
       }
     },
-    {
-      field: 'createdAt', headerName: t('created_at') || 'Created At', width: 180,
-      valueGetter: (params) => params.row.createdAt,
-      renderCell: (params) => {
-        if (!params.value) return (t('unknown') || 'Unknown');
-        const date = params.value?.toDate ? params.value.toDate() : (params.value?.seconds ? new Date(params.value.seconds * 1000) : new Date(params.value));
-        if (isNaN(date.getTime())) return (t('unknown') || 'Unknown');
-        
-        // Format as: FEB 11, 2026 at 11:02:55 PM
-        const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-        const month = months[date.getMonth()];
-        const day = date.getDate();
-        const year = date.getFullYear();
-        const hours = date.getHours();
-        const minutes = date.getMinutes().toString().padStart(2, '0');
-        const seconds = date.getSeconds().toString().padStart(2, '0');
-        const ampm = hours >= 12 ? 'PM' : 'AM';
-        const displayHours = hours % 12 || 12;
-        
-        return `${month} ${day}, ${year} at ${displayHours}:${minutes}:${seconds} ${ampm}`;
-      }
-    },
-    {
-      field: 'createdBy', headerName: t('created_by') || 'Created By', width: 150,
-      valueGetter: (params) => params.row.createdBy,
-      renderCell: (params) => {
-        return getUserDisplayName(params.value);
-      }
-    },
-    {
-      field: 'updatedAt', headerName: t('updated_at') || 'Updated At', width: 180,
-      valueGetter: (params) => params.row.updatedAt,
-      renderCell: (params) => {
-        if (!params.value) return (t('never') || 'Never');
-        const date = params.value?.toDate ? params.value.toDate() : (params.value?.seconds ? new Date(params.value.seconds * 1000) : new Date(params.value));
-        if (isNaN(date.getTime())) return (t('unknown') || 'Unknown');
-        
-        // Format as: FEB 11, 2026 at 11:02:55 PM
-        const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-        const month = months[date.getMonth()];
-        const day = date.getDate();
-        const year = date.getFullYear();
-        const hours = date.getHours();
-        const minutes = date.getMinutes().toString().padStart(2, '0');
-        const seconds = date.getSeconds().toString().padStart(2, '0');
-        const ampm = hours >= 12 ? 'PM' : 'AM';
-        const displayHours = hours % 12 || 12;
-        
-        return `${month} ${day}, ${year} at ${displayHours}:${minutes}:${seconds} ${ampm}`;
-      }
-    },
-    {
-      field: 'updatedBy', headerName: t('updated_by') || 'Updated By', width: 150,
-      valueGetter: (params) => params.row.updatedBy,
-      renderCell: (params) => {
-        return getUserDisplayName(params.value);
-      }
-    },
+    ...auditColumns,
     {
       field: 'actions', headerName: t('actions_col'), width: 350, sortable: false, filterable: false,
       renderCell: (params) => (
@@ -1151,19 +1101,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
         </div>
       )
     }
-  ], [t, theme, handleEditUser, openQRCodeInNewTab, handleSendQRCodeEmail, handleResetPassword, handleSendWelcomeEmail, handleToggleUserStatus, handleDeleteUser, user?.isSuperAdmin, user?.role]);
-
-  // Helper function to get user display name by ID
-  const getUserDisplayName = useCallback((userId) => {
-    if (!userId) return (t('system') || 'System');
-    
-    const user = users.find(u => u.id === userId);
-    if (user) {
-      return getLocalizedUserName(user, lang, `User ${userId}`);
-    }
-    
-    return `User ${userId}`;
-  }, [users, t, lang]);
+  ], [t, lang, theme, handleEditUser, openQRCodeInNewTab, handleSendQRCodeEmail, handleResetPassword, handleSendWelcomeEmail, handleToggleUserStatus, handleDeleteUser, user?.isSuperAdmin, user?.role, auditColumns]);
 
   // Helper function to get role icon using getThemedIcon
   const getRoleIconThemed = (role) => {
@@ -1889,7 +1827,7 @@ borderColor: theme === 'dark' ? '#374151' : 'transparent',
             /> */}
             
             <AdvancedDataGrid
-              key={`users-grid-${gridRefreshKey}`}
+              key={`users-grid-${gridRefreshKey}-${lang}`}
               rows={filteredUsers}
               getRowId={(row) => row.docId || row.id}
               columns={gridColumns}

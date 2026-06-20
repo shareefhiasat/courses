@@ -6,8 +6,7 @@ import { Button, SimpleLoading, useToast, Input, Select, DeleteModal } from '@ui
 import { useDeleteModal } from '@hooks/useDeleteModal.js';
 import AdvancedDataGrid from '@components/ui/AdvancedDataGrid';
 import { getAllClassrooms, createClassroom, updateClassroom, deleteClassroom } from '@services/business/classroomService.js';
-import { formatDateTime } from '@utils/dateUtils.js';
-import { getUserDisplayName as getAuthUserDisplayName } from '@services/business/authService';
+import { useAuditGridColumns } from '@hooks/useAuditGridColumns.js';
 import { exportToCSV } from '@utils/csvExport.js';
 
 const ClassroomsManagementPage = () => {
@@ -187,9 +186,7 @@ const ClassroomsManagementPage = () => {
     resetForm();
   }, [resetForm]);
 
-  const formatDate = useCallback((dateValue) => {
-    return formatDateTime(dateValue, lang);
-  }, [lang]);
+  const auditColumns = useAuditGridColumns();
 
   const handleDeleteClassroom = async (classroom) => {
     try {
@@ -276,50 +273,8 @@ const ClassroomsManagementPage = () => {
       }
     ];
 
-    // Add audit columns
     columns.push(
-      {
-        field: 'creator',
-        headerName: t('created_by') || 'Created By',
-        flex: 1,
-        minWidth: 150,
-        renderCell: (params) => {
-          const creator = params?.row?.creator;
-          if (!creator) return '—';
-          return getAuthUserDisplayName(creator, [], lang);
-        }
-      },
-      {
-        field: 'createdAt',
-        headerName: t('created_at') || 'Created At',
-        flex: 0.8,
-        minWidth: 120,
-        renderCell: (params) => {
-          const value = params?.value;
-          return formatDate(value);
-        }
-      },
-      {
-        field: 'updater',
-        headerName: t('updated_by') || 'Updated By',
-        flex: 1,
-        minWidth: 150,
-        renderCell: (params) => {
-          const updater = params?.row?.updater;
-          if (!updater) return '—';
-          return getAuthUserDisplayName(updater, [], lang);
-        }
-      },
-      {
-        field: 'updatedAt',
-        headerName: t('updated_at') || 'Updated At',
-        flex: 0.8,
-        minWidth: 120,
-        renderCell: (params) => {
-          const value = params?.value;
-          return formatDate(value);
-        }
-      },
+      ...auditColumns,
       {
         field: 'actions',
         headerName: t('actions'),
@@ -353,7 +308,7 @@ const ClassroomsManagementPage = () => {
     );
 
     return columns;
-  }, [formatDate, handleEditClassroom, deleteEntity, saving, t, lang]);
+  }, [auditColumns, handleEditClassroom, deleteEntity, saving, t]);
 
   // Derived filtered rows - backend handles filtering
   const filteredClassrooms = classrooms;

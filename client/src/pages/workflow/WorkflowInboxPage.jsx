@@ -8,7 +8,6 @@
 import React, { useMemo, useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { format } from "date-fns";
-import { formatQatarDate } from '@utils/timezone';
 import { getSlaInfo } from '@utils/sla.js';
 import { getStatusVariant as getActionVariant, getStatusColorClasses, getWorkflowStatusIcon } from '@constants/workflowStatusTypes';
 import { getThemedIcon, getUserRoleIcon, getUserRoleColor } from '@constants/iconTypes';
@@ -17,6 +16,7 @@ import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import useNotifications from '@hooks/useNotifications';
 import useWorkflowInbox from "@hooks/useWorkflowInbox";
+import { useAuditGridColumns } from '@hooks/useAuditGridColumns.js';
 import { Button, useToast } from '@ui';
 import { Card, CardContent, CardHeader, CardTitle, Badge, Input, SimpleLoading, EmptyState, AdvancedDataGrid } from '@ui';
 import { useGlobalLoading } from '@/contexts/GlobalLoadingContext';
@@ -128,6 +128,18 @@ const WorkflowInboxPage = () => {
         return '#6b7280';
     }
   };
+
+  const receivedColumn = useAuditGridColumns({
+    includeCreator: false,
+    includeUpdater: false,
+    includeUpdatedAt: false,
+    columnOverrides: {
+      createdAt: {
+        headerName: t('workflow.inbox.received', 'Received'),
+        width: 120,
+      },
+    },
+  });
 
   // Grid columns - Updated for WorkflowDocument model
   const columns = useMemo(() => [
@@ -450,21 +462,7 @@ const WorkflowInboxPage = () => {
         );
       }
     },
-    {
-      field: 'createdAt',
-      headerName: t('workflow.inbox.received', 'Received'),
-      width: 120,
-      renderCell: (params) => {
-        const date = params.value ? new Date(params.value) : null;
-        const isValidDate = date && !isNaN(date.getTime());
-        
-        return (
-          <div className="text-sm text-gray-500">
-            {isValidDate ? formatQatarDate(date, 'MMM d, yyyy') : 'N/A'}
-          </div>
-        );
-      }
-    },
+    ...receivedColumn,
     {
       field: 'sla',
       headerName: t('workflow.inbox.sla', 'SLA'),
@@ -514,7 +512,7 @@ const WorkflowInboxPage = () => {
         </div>
       )
     }
-  ], [t, navigate]); // eslint-disable-line react-hooks/exhaustive-deps
+  ], [t, navigate, receivedColumn]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Handle page change
   const handlePageChange = (newPage) => {

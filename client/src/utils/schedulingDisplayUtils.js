@@ -4,6 +4,8 @@
 
 import { getLocalizedUserName } from './localizedUserName.js';
 
+export { getEntityDisplayName } from './entityDisplayName.js';
+
 const CALENDAR_DAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
 const CALENDAR_DAY_KEYS_WORKWEEK = ['sun', 'mon', 'tue', 'wed', 'thu'];
 const EN_DAY_TO_KEY = {

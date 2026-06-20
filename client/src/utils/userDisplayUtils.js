@@ -10,6 +10,9 @@ import { getLocalizedUserName } from './localizedUserName.js';
 function resolveUserObject(user, usersArray = []) {
   if (!user) return null;
   if (typeof user === 'object') return user;
+  if (typeof user === 'number') {
+    return usersArray?.find((u) => u.id === user || u.dbId === user) || null;
+  }
   if (typeof user === 'string') {
     return usersArray?.find((u) => (u.uid || u.id) === user) || null;
   }

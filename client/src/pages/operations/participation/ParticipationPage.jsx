@@ -15,8 +15,8 @@ import { getPrograms, getSubjects, getSubject, fetchProgram } from '@services/bu
 import { getClasses, getClassById } from '@services/business/classService';
 import { getEnrollments, getStudentsByClass } from '@services/business/enrollmentService';
 import { getAllUsers, getUserById, getUsersByIds, getUserByEmail } from '@services/business/userService';
+import { useAuditGridColumns } from '@hooks/useAuditGridColumns.js';
 import { ACTIVITY_LOG_TYPES } from '@services/other/activityLogger';
-import { formatQatarDate } from '@utils/timezone';
 import { getUserStatus, getUserStatusSummary, USER_STATUS, getStatusIconProps } from '@utils/userStatus';
 import { isUserDisabled, getUserId, getUserDisplayNameSync } from '@services/business/userService';
 import { applyLocalizedNameFields } from '@utils/localizedUserName';
@@ -395,47 +395,6 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
             }
           }
           
-          // Add created by and updated by display fields
-          enrichedParticipation.createdByDisplay = (() => {
-            if (enrichedParticipation.creator?.displayName) {
-              return enrichedParticipation.creator.displayName;
-            }
-            if (enrichedParticipation.createdBy) {
-              // Search in all users (students array contains all users)
-              const creatorUser = students.find(u => (u.docId || u.id) === enrichedParticipation.createdBy || (u.docId || u.id) === parseInt(enrichedParticipation.createdBy));
-              if (creatorUser) {
-                return creatorUser.displayName || creatorUser.realName || creatorUser.email;
-              }
-              // Search in userCache as fallback
-              const cachedUser = userCache[enrichedParticipation.createdBy];
-              if (cachedUser) {
-                return cachedUser.displayName || cachedUser.realName || cachedUser.email;
-              }
-              return `ID: ${enrichedParticipation.createdBy}`;
-            }
-            return '—';
-          })();
-          
-          enrichedParticipation.updatedByDisplay = (() => {
-            if (enrichedParticipation.updater?.displayName) {
-              return enrichedParticipation.updater.displayName;
-            }
-            if (enrichedParticipation.updatedBy) {
-              // Search in all users (students array contains all users)
-              const updaterUser = students.find(u => (u.docId || u.id) === enrichedParticipation.updatedBy || (u.docId || u.id) === parseInt(enrichedParticipation.updatedBy));
-              if (updaterUser) {
-                return updaterUser.displayName || updaterUser.realName || updaterUser.email;
-              }
-              // Search in userCache as fallback
-              const cachedUser = userCache[enrichedParticipation.updatedBy];
-              if (cachedUser) {
-                return cachedUser.displayName || cachedUser.realName || cachedUser.email;
-              }
-              return `ID: ${enrichedParticipation.updatedBy}`;
-            }
-            return '—';
-          })();
-          
           } catch (err) {
           debug('Failed to enrich participation:', enrichedParticipation.id || enrichedParticipation.docId, err);
         }
@@ -720,6 +679,13 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
     return true;
   });
 
+  const auditColumns = useAuditGridColumns({
+    users: students,
+    columnOverrides: {
+      createdAt: { headerName: t('participation_date'), width: lang === 'ar' ? 150 : 130 },
+    },
+  });
+
   const columns = useMemo(() => [
     {
       field: 'studentName',
@@ -973,62 +939,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
       minWidth: 150,
       valueGetter: (params) => params.value || '—'
     },
-    {
-      field: 'createdAt',
-      headerName: t('participation_date'),
-      width: 150,
-      valueGetter: (params) => {
-        
-        // Check if params directly contains the timestamp
-        if (params && typeof params === 'object' && params.seconds) {
-          const date = new Date(params.seconds * 1000);
-          return formatQatarDate(date, "MMM dd, yyyy 'at' h:mm:ss a");
-        }
-        
-        // Check if params.value directly contains the timestamp
-        if (params.value && typeof params.value === 'object' && params.value.seconds) {
-          const date = new Date(params.value.seconds * 1000);
-          return formatQatarDate(date, "MMM dd, yyyy 'at' h:mm:ss a");
-        }
-        
-        // Fallback to original logic
-        if (!params.row.createdAt) {
-          return 'No Date';
-        }
-        // Handle Firebase Timestamp properly
-        let date;
-        if (params.row.createdAt?.toDate) {
-          date = params.row.createdAt.toDate();
-        } else if (params.row.createdAt?.seconds) {
-          date = new Date(params.row.createdAt.seconds * 1000);
-        } else {
-          date = new Date(params.row.createdAt);
-        }
-        if (isNaN(date.getTime())) {
-          return 'Invalid Date';
-        }
-        const formattedDate = formatQatarDate(date, "MMM dd, yyyy 'at' h:mm:ss a");
-        return formattedDate;
-      }
-    },
-    {
-      field: 'createdByDisplay',
-      headerName: t('created_by') || 'Created By',
-      width: 150,
-      renderCell: (params) => {
-        const value = params.value;
-        return value || '—';
-      }
-    },
-    {
-      field: 'updatedByDisplay', 
-      headerName: t('updated_by') || 'Updated By',
-      width: 150,
-      renderCell: (params) => {
-        const value = params.value;
-        return value || '—';
-      }
-    },
+    ...auditColumns,
     ...(hideActions ? [] : [{
       field: 'actions',
       headerName: t('participation_actions'),
@@ -1066,7 +977,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
         </div>
       )
     }])
-  ], [theme, lang, t, handleEdit, handleDelete, hideActions, subjects, participations, students, userCache]);
+  ], [theme, lang, t, handleEdit, handleDelete, hideActions, subjects, participations, students, auditColumns]);
 
   return (
     <div>

@@ -22,6 +22,7 @@ import { getLocalizedClassName } from '@utils/schedulingDisplayUtils';
 import PortalTooltip from '@ui/PortalTooltip';
 import { exportGeneric } from '@services/export/excelExportService.js';
 import { submitAttendanceReport } from '@services/business/workflowDocumentService.js';
+import styles from './AttendancePage.module.css';
 
 const AttendancePage = () => {
   const { user, isAdmin, isInstructor, isHR, loading: authLoading } = useAuth();

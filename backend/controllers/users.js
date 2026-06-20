@@ -76,8 +76,9 @@ export const getCurrentUserController = async (req, res) => {
  */
 export const listUsersController = async (req, res) => {
   try {
-    const { studentsOnly, excludeStudents, search, limit: limitStr } = req.query;
-    const limit = parseInt(limitStr) || 20;
+    const { studentsOnly, excludeStudents, search, limit: limitStr, max: maxStr } = req.query;
+    const parsedLimit = parseInt(maxStr || limitStr, 10);
+    const limit = Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : 5000;
 
     console.log('[listUsersController] Query params:', { studentsOnly, excludeStudents, search, limit });
 
@@ -113,6 +114,10 @@ export const listUsersController = async (req, res) => {
         realName: true,
         email: true,
         isActive: true,
+        createdAt: true,
+        updatedAt: true,
+        createdBy: true,
+        updatedBy: true,
         roleAssignments: {
           select: {
             role: {

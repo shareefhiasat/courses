@@ -1,13 +1,12 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef, useLayoutEffect } from 'react';
 import { info, error, warn, debug } from '@services/utils/logger.js';
-import { getUserDisplayProps } from '@utils/userDisplayUtils.js';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { Navigate } from 'react-router-dom';
 import { getPrograms, createProgram, updateProgram, deleteProgram } from '@services/business/programService';
 import { getUsers } from '@services/business/userService';
+import { useAuditGridColumns } from '@hooks/useAuditGridColumns.js';
 import { getThemedIcon } from '@constants/iconTypes';
-import { formatDateTime } from '@utils/dateUtils.js';
 import { SimpleLoading, Button, Input, Textarea, useToast, AdvancedDataGrid } from '@ui';
 import { useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { DeleteModal, useDeleteModal } from '@ui';
@@ -251,6 +250,8 @@ const ProgramsPage = () => {
     if (descArRef.current) descArRef.current.value = '';
   };
 
+  const auditColumns = useAuditGridColumns({ users });
+
   const gridColumns = useMemo(() => [
     { 
       field: 'code', 
@@ -285,104 +286,7 @@ const ProgramsPage = () => {
       }
     },
     { field: 'totalCreditHours', headerName: t('credit_hours_header') || 'Credit Hours', width: 120 },
-    {
-      field: 'createdAt',
-      headerName: t('created_at') || 'Created At',
-      width: 180,
-      valueGetter: (params) => {
-        const row = params?.row || {};
-        const createdAt = row.createdAt || params?.value;
-        if (!createdAt) return '—';
-        
-        try {
-          // Handle Firestore Timestamp
-          if (typeof createdAt === 'object' && createdAt.toDate) {
-            return formatDateTime(createdAt.toDate(), t.lang || 'en');
-          }
-          
-          // Handle ISO string or timestamp string
-          if (typeof createdAt === 'string' || typeof createdAt === 'number') {
-            return formatDateTime(createdAt, t.lang || 'en');
-          }
-          
-          return createdAt;
-        } catch (error) {
-          return createdAt || 'Invalid Date';
-        }
-      }
-    },
-    {
-      field: 'createdBy',
-      headerName: t('created_by') || 'Created By',
-      width: 200,
-      renderCell: (params) => {
-        const creator = params.row?.creator;
-        const props = getUserDisplayProps(creator, users, { lang });
-        return <span {...props} />;
-      }
-    },
-    {
-      field: 'updatedBy',
-      headerName: t('updated_by') || 'Updated By',
-      width: 200,
-      renderCell: (params) => {
-        const updater = params.row?.updater;
-        const props = getUserDisplayProps(updater, users, { lang });
-        return <span {...props} />;
-      }
-    },
-    {
-      field: 'updatedAt',
-      headerName: t('updated_at') || 'Updated At',
-      width: 180,
-      valueGetter: (params) => {
-        const row = params?.row || {};
-        const updatedAt = row.updatedAt || params?.value;
-        if (!updatedAt) return '—';
-        
-        // If it's already a formatted Qatar string, return it as-is
-        if (typeof updatedAt === 'string' && updatedAt.includes('UTC+3')) {
-          return updatedAt;
-        }
-        
-        try {
-          // Handle Firestore Timestamp
-          if (typeof updatedAt === 'object' && updatedAt.toDate) {
-            return updatedAt.toDate().toLocaleDateString('en-US', {
-              year: 'numeric',
-              month: 'short',
-              day: 'numeric'
-            });
-          }
-          
-          // Handle ISO string or timestamp string
-          if (typeof updatedAt === 'string') {
-            const date = new Date(updatedAt);
-            if (isNaN(date.getTime())) return updatedAt; // Return original if can't parse
-            return date.toLocaleDateString('en-US', {
-              year: 'numeric',
-              month: 'short',
-              day: 'numeric'
-            });
-          }
-          
-          // Handle timestamp number
-          if (typeof updatedAt === 'number') {
-            const date = new Date(updatedAt);
-            if (isNaN(date.getTime())) return 'Invalid Date';
-            return date.toLocaleDateString('en-US', {
-              year: 'numeric',
-              month: 'short',
-              day: 'numeric'
-            });
-          }
-          
-          return updatedAt;
-        } catch (error) {
-          return updatedAt || 'Invalid Date';
-        }
-      }
-    },
+    ...auditColumns,
     {
       field: 'actions',
       headerName: t('actions') || 'Actions',
@@ -411,7 +315,7 @@ const ProgramsPage = () => {
         </div>
       )
     }
-  ], [t, theme, handleEdit, handleDelete, users]);
+  ], [t, theme, handleEdit, handleDelete, users, auditColumns]);
 
 
   if (authLoading) {

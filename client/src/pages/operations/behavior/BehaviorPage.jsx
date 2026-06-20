@@ -13,7 +13,7 @@ import { getClasses, fetchClass } from '@services/business/classService';
 import { getEnrollments, getStudentsByClass } from '@services/business/enrollmentService';
 import { createBehavior, updateBehavior, deleteBehavior, loadBehaviors } from '@services/business/behaviorService';
 import { getAllUsers, getUserById, getUsersByIds } from '@services/business/userService';
-import { formatQatarDate, formatQatarDateOnly } from '@utils/timezone';
+import { useAuditGridColumns } from '@hooks/useAuditGridColumns.js';
 import { useLookupTypes } from '@hooks/useLookupTypes.js';
 // OLD: import { BEHAVIOR_TYPES, getBehaviorLabel, getBehaviorTypeById } from '@constants/behaviorTypes.jsx';
 // NOW: Using useLookupTypes hook for all lookup data
@@ -480,6 +480,10 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
     return true;
   });
 
+  const auditColumns = useAuditGridColumns({
+    users: students,
+  });
+
   const columns = useMemo(() => [
     {
       field: 'studentName',
@@ -669,79 +673,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
       minWidth: 150,
       valueGetter: (params) => params.value || '—'
     },
-    {
-      field: 'createdAt',
-      headerName: t('created_at') || 'Created At',
-      width: 150,
-      valueGetter: (params) => {
-        // Debug logging for date investigation
-        ('=== BEHAVIOR DATE DEBUG ===');
-        ('Behavior Date Debug - params:', params);
-        ('Behavior Date Debug - params.value:', params.value);
-        ('Behavior Date Debug - params.row:', params.row);
-        
-        // Check if params directly contains the timestamp
-        if (params && typeof params === 'object' && params.seconds) {
-          const date = new Date(params.seconds * 1000);
-          ('Behavior Date Debug - Using params.seconds:', params.seconds, '-> date:', date);
-          ('Behavior Date Debug - Formatted date:', formatQatarDate(date));
-          ('=== BEHAVIOR DATE DEBUG END ===');
-          return formatQatarDate(date, "MMM dd, yyyy 'at' h:mm:ss a");
-        }
-        
-        // Check if params.value directly contains the timestamp
-        if (params.value && typeof params.value === 'object' && params.value.seconds) {
-          const date = new Date(params.value.seconds * 1000);
-          ('Behavior Date Debug - Using params.value.seconds:', params.value.seconds, '-> date:', date);
-          ('Behavior Date Debug - Formatted date:', formatQatarDate(date));
-          ('=== BEHAVIOR DATE DEBUG END ===');
-          return formatQatarDate(date, "MMM dd, yyyy 'at' h:mm:ss a");
-        }
-        
-        // Fallback to original logic
-        if (!params.row.createdAt) {
-          ('Behavior Date Debug - No createdAt found, returning "No Date"');
-          ('=== BEHAVIOR DATE DEBUG END ===');
-          return 'No Date';
-        }
-        // Handle Firebase Timestamp properly
-        let date;
-        if (params.row.createdAt?.toDate) {
-          date = params.row.createdAt.toDate();
-        } else if (params.row.createdAt?.seconds) {
-          date = new Date(params.row.createdAt.seconds * 1000);
-        } else {
-          date = new Date(params.row.createdAt);
-        }
-        if (isNaN(date.getTime())) {
-          ('Behavior Date Debug - Invalid date, returning "Invalid Date"');
-          ('=== BEHAVIOR DATE DEBUG END ===');
-          return 'Invalid Date';
-        }
-        const formattedDate = formatQatarDate(date, "MMM dd, yyyy 'at' h:mm:ss a");
-        ('Behavior Date Debug - Formatted date (fallback):', formattedDate);
-        ('=== BEHAVIOR DATE DEBUG END ===');
-        return formattedDate;
-      }
-    },
-    {
-      field: 'createdByDisplay',
-      headerName: t('created_by') || 'Created By',
-      width: 150,
-      renderCell: (params) => {
-        const value = params.value;
-        return value || '—';
-      }
-    },
-    {
-      field: 'updatedByDisplay', 
-      headerName: t('updated_by') || 'Updated By',
-      width: 150,
-      renderCell: (params) => {
-        const value = params.value;
-        return value || '—';
-      }
-    },
+    ...auditColumns,
     ...(hideActions ? [] : [{
       field: 'actions',
       headerName: t('behavior_actions'),
@@ -779,7 +711,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
         </div>
       )
     }])
-  ], [theme, lang, t, handleEdit, handleDelete, hideActions, behaviorsRaw, students]);
+  ], [theme, lang, t, handleEdit, handleDelete, hideActions, behaviorsRaw, students, auditColumns]);
 
   return (
     <div>

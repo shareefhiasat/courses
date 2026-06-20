@@ -8,7 +8,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';
 import { AdvancedDataGrid } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 import { formatQatarStandard, getQatarNow } from '@utils/qatarDate';
-import { formatDateTime } from '@utils/dateUtils';
+import { useAuditGridColumns } from '@hooks/useAuditGridColumns.js';
 import { getPrograms } from '@services/business/programService.js';
 import { getSubjects } from '@services/business/subjectService.js';
 import { getClasses } from '@services/business/classService.js';
@@ -382,6 +382,8 @@ const AnnouncementsPage = ({ isDashboardTab = false }) => {
     if (titleArRef.current) titleArRef.current.value = '';
   }, [resetAnnouncementForm]);
 
+  const auditColumns = useAuditGridColumns({ users });
+
   // Memoize columns to prevent re-renders
   const gridColumns = useMemo(() => [
     { 
@@ -547,49 +549,7 @@ const AnnouncementsPage = ({ isDashboardTab = false }) => {
          return 'Global';
       }
     },
-    {
-      field: 'createdAt', headerName: t('created_at') || 'Created At', width: 180,
-      valueGetter: (params) => {
-        const createdAt = params.value || params.row?.createdAt;
-        if (!createdAt) return '—';
-        return formatDateTime(createdAt, lang);
-      },
-      renderCell: (params) => {
-        const createdAt = params.value || params.row?.createdAt;
-        if (!createdAt) return '—';
-        return formatDateTime(createdAt, lang);
-      }
-    },
-    {
-      field: 'createdBy', headerName: t('created_by'), width: 150,
-      renderCell: (params) => {
-        const createdBy = params.value || params.row?.createdBy;
-        if (!createdBy) return 'Unknown';
-        
-        // Try to find user display name from users array
-        const user = users.find(u => (u.uid || u.id) === createdBy);
-        if (user) {
-          return user.displayName || user.name || user.email || createdBy;
-        }
-        
-        return createdBy;
-      }
-    },
-    {
-      field: 'updatedBy', headerName: t('updated_by') || 'Updated By', width: 150,
-      renderCell: (params) => {
-        const updatedBy = params.value || params.row?.updater?.id || params.row?.updatedBy;
-        if (!updatedBy) return '—';
-        
-        // Try to find user display name from users array
-        const user = users.find(u => (u.uid || u.id) === updatedBy);
-        if (user) {
-          return user.displayName || user.name || user.email || '—';
-        }
-        
-        return updatedBy;
-      }
-    },
+    ...auditColumns,
     {
       field: 'actions', headerName: t('actions') || 'Actions', width: 200, sortable: false, filterable: false,
       renderCell: (params) => (
@@ -642,7 +602,7 @@ const AnnouncementsPage = ({ isDashboardTab = false }) => {
         </div>
       )
     }
-  ], [programs, subjects, classes, priorityTypes, users, user?.email, theme, lang, t, handleEditAnnouncement, toast, loadData, deleteEntity]);
+  ], [programs, subjects, classes, priorityTypes, users, user?.email, theme, lang, t, handleEditAnnouncement, toast, loadData, deleteEntity, auditColumns]);
 
   const filteredAnnouncements = announcements.filter(announcement => {
     if (announcementProgramFilter && announcement.programId !== announcementProgramFilter) return false;

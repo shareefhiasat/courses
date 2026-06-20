@@ -13,7 +13,7 @@ import { getEnrollments } from '@services/business/enrollmentService';
 import { logActivity, ACTIVITY_LOG_TYPES } from '@services/other/activityLogger.jsx';
 // import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes'; // Removed - notifications now handled by backend
 import { getUserById } from '@services/business/userService';
-import { formatDateTime } from '@utils/dateUtils.js';
+import { useAuditGridColumns } from '@hooks/useAuditGridColumns.js';
 import { Button, Input, Textarea, Select, ToggleSwitch, DatePicker, RichTextEditor } from '@ui';
 import { DeleteModal, useDeleteModal } from '@ui';
 import { getResourceTypeConfig, getResourceTypeOptions } from '@constants/dashboardTypes.jsx';
@@ -381,6 +381,8 @@ const ResourcesPage = () => {
     setResourceCategoryFilter('all');
   };
 
+  const auditColumns = useAuditGridColumns({ users });
+
   const gridColumns = useMemo(() => [
     { 
       field: 'titleEn', 
@@ -614,49 +616,7 @@ const ResourcesPage = () => {
         </span>
       )
     },
-        {
-      field: 'createdAt', headerName: t('created_at') || 'Created At', width: 180,
-      valueGetter: (params) => {
-        const createdAt = params.value || params.row?.createdAt;
-        if (!createdAt) return '—';
-        return formatDateTime(createdAt, lang);
-      },
-      renderCell: (params) => {
-        const createdAt = params.value || params.row?.createdAt;
-        if (!createdAt) return '—';
-        return formatDateTime(createdAt, lang);
-      }
-    },
-    {
-      field: 'createdBy', headerName: t('created_by'), width: 150,
-      renderCell: (params) => {
-        const createdBy = params.value || params.row?.createdBy;
-        if (!createdBy) return 'Unknown';
-        
-        // Try to find user display name from users array
-        const user = users.find(u => (u.uid || u.id) === createdBy);
-        if (user) {
-          return user.displayName || user.name || user.email || createdBy;
-        }
-        
-        return createdBy;
-      }
-    },
-    {
-      field: 'updatedBy', headerName: t('updated_by') || 'Updated By', width: 150,
-      renderCell: (params) => {
-        const updatedBy = params.value || params.row?.updater?.id || params.row?.updatedBy;
-        if (!updatedBy) return '—';
-        
-        // Try to find user display name from users array
-        const user = users.find(u => (u.uid || u.id) === updatedBy);
-        if (user) {
-          return user.displayName || user.name || user.email || '—';
-        }
-        
-        return updatedBy;
-      }
-    },
+    ...auditColumns,
     {
       field: 'actions', headerName: t('actions') || 'Actions', width: 200, sortable: false, filterable: false,
       renderCell: (params) => (
@@ -683,7 +643,7 @@ const ResourcesPage = () => {
         </div>
       )
     }
-  ], [programs, subjects, classes, courses, theme, lang, t, handleEdit, handleDelete]);
+  ], [programs, subjects, classes, courses, theme, lang, t, handleEdit, handleDelete, users, auditColumns]);
 
   const filteredResources = resources.filter(r => {
     // Apply type filter first (before public resources check)

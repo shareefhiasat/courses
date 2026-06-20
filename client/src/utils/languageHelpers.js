@@ -4,6 +4,8 @@
  * Purpose: Helper functions for language-aware display of lookup data
  */
 
+export { getEntityDisplayName } from './entityDisplayName.js';
+
 /**
  * Get localized name from lookup object based on current language
  * @param {Object} item - Lookup item with nameEn, nameAr properties

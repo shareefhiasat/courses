@@ -826,7 +826,7 @@ export const HelpProvider = ({ children }) => {
 
     // Class schedules — now on Scheduling Calendar (Classes tab)
     content['/scheduling-calendar?tab=classes'] = {
-      title: t('main_tab_classes') || 'Classes',
+      title: t('classes_availability') || t('main_tab_classes') || 'Classes Availability',
       content: [
         {
           title: t('overview') || 'Overview',
