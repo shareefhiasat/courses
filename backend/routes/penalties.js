@@ -15,8 +15,10 @@ import {
   getPenaltiesByStudentController,
   getPenaltiesByClassController
 } from '../controllers/penalties.js';
+import { screenOps } from '../middleware/requirePermission.js';
 
 const router = Router();
+const ops = screenOps('penalty');
 
 /**
  * @swagger
@@ -137,7 +139,7 @@ const router = Router();
  *                   type: integer
  *                   example: 10
  */
-router.get('/', getAllPenaltiesController);
+router.get('/', ops.view, getAllPenaltiesController);
 
 /**
  * @swagger
@@ -168,7 +170,7 @@ router.get('/', getAllPenaltiesController);
  *       404:
  *         description: Penalty not found
  */
-router.get('/:id', getPenaltyByIdController);
+router.get('/:id', ops.view, getPenaltyByIdController);
 
 /**
  * @swagger
@@ -228,7 +230,7 @@ router.get('/:id', getPenaltyByIdController);
  *       400:
  *         description: Invalid input
  */
-router.post('/', createPenaltyController);
+router.post('/', ops.create, createPenaltyController);
 
 /**
  * @swagger
@@ -285,7 +287,7 @@ router.post('/', createPenaltyController);
  *       404:
  *         description: Penalty not found
  */
-router.put('/:id', updatePenaltyController);
+router.put('/:id', ops.update, updatePenaltyController);
 
 /**
  * @swagger
@@ -317,7 +319,7 @@ router.put('/:id', updatePenaltyController);
  *       404:
  *         description: Penalty not found
  */
-router.delete('/:id', deletePenaltyController);
+router.delete('/:id', ops.delete, deletePenaltyController);
 
 /**
  * @swagger
@@ -348,7 +350,7 @@ router.delete('/:id', deletePenaltyController);
  *                   items:
  *                     $ref: '#/components/schemas/Penalty'
  */
-router.get('/student/:studentId', getPenaltiesByStudentController);
+router.get('/student/:studentId', ops.view, getPenaltiesByStudentController);
 
 /**
  * @swagger
@@ -379,6 +381,6 @@ router.get('/student/:studentId', getPenaltiesByStudentController);
  *                   items:
  *                     $ref: '#/components/schemas/Penalty'
  */
-router.get('/class/:classId', getPenaltiesByClassController);
+router.get('/class/:classId', ops.view, getPenaltiesByClassController);
 
 export default router;

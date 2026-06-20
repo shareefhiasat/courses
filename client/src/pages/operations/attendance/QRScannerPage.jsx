@@ -1237,22 +1237,9 @@ const QRScannerPage = () => {
       const allClasses = classesResponse.success ? classesResponse.data : [];
       
       let filteredClasses = allClasses;
-      
-      // If user is admin or super admin, show all classes
-      if (user?.role === 'admin' || user?.role === 'super_admin') {
-        if (subjectId && subjectId !== 'all') {
-          // Use == for type coercion (string vs number)
-          filteredClasses = allClasses.filter(c => c.subjectId == subjectId);
-        }
-      } else {
-        // Regular instructor - only show their classes
-        filteredClasses = allClasses.filter(c => 
-          c.instructorId === user?.uid || c.ownerEmail === user?.email
-        );
-        if (subjectId && subjectId !== 'all') {
-          // Use == for type coercion (string vs number)
-          filteredClasses = filteredClasses.filter(c => c.subjectId == subjectId);
-        }
+
+      if (subjectId && subjectId !== 'all') {
+        filteredClasses = filteredClasses.filter((c) => c.subjectId == subjectId);
       }
       
       if (filteredClasses.length === 0) {

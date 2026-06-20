@@ -7,6 +7,7 @@
 
 import { PrismaClient } from '@prisma/client';
 import { getDatabaseUserId, findUserByParam } from '../utils/database/userResolver.js';
+import { validateUserRemoval } from '../services/availabilityGuardService.js';
 
 const prisma = new PrismaClient();
 
@@ -596,6 +597,18 @@ export const setEnabledController = async (req, res) => {
         error: 'User not found in Keycloak'
       });
     }
+
+    if (enabled === false) {
+      const guardResult = await validateUserRemoval(userId);
+      if (!guardResult.valid) {
+        return res.status(400).json({
+          success: false,
+          error: 'Cannot disable user while they have upcoming sessions or availability records',
+          code: 'HAS_RELATED_RECORDS',
+          conflicts: guardResult.conflicts
+        });
+      }
+    }
     
     // Update status in Keycloak
     const keycloakResult = await setKeycloakUserEnabled({
@@ -634,9 +647,20 @@ export const setEnabledController = async (req, res) => {
 export const deleteUserController = async (req, res) => {
   try {
     const { id } = req.params;
+    const userId = parseInt(id, 10);
+
+    const guardResult = await validateUserRemoval(userId);
+    if (!guardResult.valid) {
+      return res.status(400).json({
+        success: false,
+        error: 'Cannot delete user while they have scheduled sessions or availability records',
+        code: 'HAS_RELATED_RECORDS',
+        conflicts: guardResult.conflicts
+      });
+    }
     
     await prisma.user.delete({
-      where: { id: parseInt(id) }
+      where: { id: userId }
     });
     
     res.status(200).json({

@@ -10,7 +10,8 @@ import {
   getAllClassroomAvailabilities, 
   createClassroomAvailability, 
   updateClassroomAvailability, 
-  deleteClassroomAvailability 
+  deleteClassroomAvailability,
+  validateClassroomAvailabilityChange
 } from '@services/business/classroomAvailabilityService.js';
 import { getAllClassrooms } from '@services/business/classroomService.js';
 import { formatDateTime } from '@utils/dateUtils.js';
@@ -21,6 +22,8 @@ import {
   formatWeekDayCodes,
   getLocalizedClassroomName,
 } from '@utils/schedulingDisplayUtils.js';
+import AvailabilityChangeConflictPanel from '@components/AvailabilityChangeConflictPanel.jsx';
+import { useAvailabilityChangeValidation } from '@hooks/useAvailabilityChangeValidation.js';
 
 const ClassroomAvailabilityPage = () => {
   const { user, isAdmin, isHR, isSuperAdmin } = useAuth();
@@ -46,6 +49,7 @@ const ClassroomAvailabilityPage = () => {
   const [filterEndDate, setFilterEndDate] = useState('');
   const [filterTimeFrom, setFilterTimeFrom] = useState('');
   const [filterTimeTo, setFilterTimeTo] = useState('');
+  const [deleteValidation, setDeleteValidation] = useState(null);
 
   const [formData, setFormData] = useState({
     classroomId: '',
@@ -53,6 +57,14 @@ const ClassroomAvailabilityPage = () => {
     slots: [{ startTime: '09:00', endTime: '10:00' }],
     startDate: '',
     endDate: '',
+  });
+
+  const { validation: changeValidation, validating, runValidation, clearValidation } = useAvailabilityChangeValidation({
+    validateFn: validateClassroomAvailabilityChange,
+    formData,
+    editingAvailabilityId: editingAvailability?.id,
+    classroomId: formData.classroomId ? parseInt(formData.classroomId, 10) : null,
+    enabled: formState === 'editing'
   });
 
   const dayOptions = useMemo(() => getWeekDayOptions(t), [t]);
@@ -144,11 +156,15 @@ const ClassroomAvailabilityPage = () => {
   }, []);
 
   const handleRemoveSlot = useCallback((index) => {
+    if (formState === 'editing' && formData.slots.length <= 1) {
+      toast.error(t('availability_slots_required'));
+      return;
+    }
     setFormData(prev => ({
       ...prev,
       slots: prev.slots.filter((_, i) => i !== index)
     }));
-  }, []);
+  }, [formState, formData.slots.length, toast, t]);
 
   const handleSlotChange = useCallback((index, field, value) => {
     setFormData(prev => ({
@@ -184,6 +200,14 @@ const ClassroomAvailabilityPage = () => {
       if (new Date(formData.startDate) > new Date(formData.endDate)) {
         toast.error(t('availability_date_order_invalid'));
         return;
+      }
+
+      if (editingAvailability) {
+        const preview = await runValidation('update');
+        if (preview && !preview.valid) {
+          toast.error(t('availability_change_blocked_title'));
+          return;
+        }
       }
 
       // Validate each slot
@@ -228,9 +252,14 @@ const ClassroomAvailabilityPage = () => {
       if (result.success) {
         toast.success(editingAvailability ? t('availability_updated') : t('availability_created'));
         resetForm();
+        clearValidation();
+        setDeleteValidation(null);
         setGridKey(prev => prev + 1);
         loadAvailabilities();
       } else {
+        if (result.conflicts?.length) {
+          setDeleteValidation({ valid: false, conflicts: result.conflicts, blockingCount: result.blockingCount });
+        }
         toast.error(result.error || t('failed_to_save_availability'));
       }
     } catch (error) {
@@ -251,7 +280,9 @@ const ClassroomAvailabilityPage = () => {
     });
     setEditingAvailability(null);
     setFormState('creating');
-  }, []);
+    clearValidation();
+    setDeleteValidation(null);
+  }, [clearValidation]);
 
   const handleCancel = useCallback(() => {
     resetForm();
@@ -266,15 +297,30 @@ const ClassroomAvailabilityPage = () => {
   const handleDeleteAvailability = async (availability) => {
     try {
       setSaving(true);
+      const preview = await runValidation('delete', {
+        availabilityId: availability.id,
+        classroomId: availability.classroomId,
+        action: 'delete'
+      });
+      if (preview && !preview.valid) {
+        setDeleteValidation(preview);
+        toast.error(t('availability_change_blocked_title'));
+        return;
+      }
+
       const result = await deleteClassroomAvailability(availability.id, user);
 
       console.log('[ClassroomAvailabilityListPage] Delete result:', result);
 
       if (result.success) {
         toast.success(t('availability_deleted'));
+        setDeleteValidation(null);
         setGridKey(prev => prev + 1);
         loadAvailabilities();
       } else {
+        if (result.conflicts?.length) {
+          setDeleteValidation({ valid: false, conflicts: result.conflicts, blockingCount: result.blockingCount });
+        }
         toast.error(result.error || t('failed_to_delete_availability'));
       }
     } catch (error) {
@@ -446,6 +492,7 @@ const ClassroomAvailabilityPage = () => {
               onChange={(e) => handleInputChange('classroomId', e.target.value)}
               options={classrooms.map(c => ({ value: c.id.toString(), label: classroomLabel(c) }))}
               disabled={saving}
+              placeholder={t('select_classroom') || 'Select classroom'}
             />
           </div>
 
@@ -528,10 +575,19 @@ const ClassroomAvailabilityPage = () => {
           </div>
         </div>
 
+        {(formState === 'editing' || deleteValidation) && (
+          <AvailabilityChangeConflictPanel
+            validation={deleteValidation || changeValidation}
+            theme={theme}
+            t={t}
+            loading={validating}
+          />
+        )}
+
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <Button
             type="submit"
-            disabled={saving}
+            disabled={saving || validating || (formState === 'editing' && changeValidation && !changeValidation.valid)}
             loading={saving}
           >
             {saving ? t('saving') : (formState === 'creating' ? t('create') : t('update'))}

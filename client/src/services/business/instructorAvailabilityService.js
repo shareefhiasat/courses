@@ -102,7 +102,7 @@ export const updateInstructorAvailability = async (id, data) => {
     if (result.success) {
       return { success: true, data: result.data };
     } else {
-      return { success: false, error: result.error };
+      return { success: false, error: result.error, conflicts: result.conflicts, code: result.code };
     }
   } catch (error) {
     error('Error updating instructor availability:', error);
@@ -123,7 +123,7 @@ export const deleteInstructorAvailability = async (id) => {
     if (result.success) {
       return { success: true, data: result.data };
     } else {
-      return { success: false, error: result.error };
+      return { success: false, error: result.error, conflicts: result.conflicts, code: result.code };
     }
   } catch (error) {
     error('Error deleting instructor availability:', error);
@@ -169,6 +169,24 @@ export const getInstructorWorkload = async (instructorUserId, startDate, endDate
   }
 };
 
+/**
+ * Validate instructor availability change before save/delete
+ */
+export const validateInstructorAvailabilityChange = async (data) => {
+  try {
+    const response = await fetch(`${API_BASE}/validate-change`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    error('Error validating instructor availability change:', error);
+    return { success: false, error: error.message };
+  }
+};
+
 export default {
   getAllInstructorAvailabilities,
   getInstructorAvailabilityByUserId,
@@ -177,4 +195,5 @@ export default {
   deleteInstructorAvailability,
   checkInstructorAvailability,
   getInstructorWorkload,
+  validateInstructorAvailabilityChange,
 };

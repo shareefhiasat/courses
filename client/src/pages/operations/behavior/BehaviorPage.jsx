@@ -94,23 +94,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
   }, [formData.comment, formData.points]);
 
   // Filter enrollments based on user role for student dropdown
-  const filteredEnrollmentsForSelect = useMemo(() => {
-    if (isSuperAdmin || isAdmin || isHR) {
-      return enrollments; // Admins/HR see all students
-    }
-    if (isInstructor) {
-      // Instructors see students from their classes
-      return enrollments.filter(enrollment => {
-        const classItem = classes.find(c => (c.docId || c.id) === enrollment.classId);
-        return classItem && (
-          classItem.instructorId === user?.uid ||
-          classItem.ownerEmail === user?.email ||
-          classItem.instructor === user?.email
-        );
-      });
-    }
-    return []; // Other roles see no students
-  }, [enrollments, classes, user?.uid, user?.email, isAdmin, isSuperAdmin, isHR, isInstructor]);
+  const filteredEnrollmentsForSelect = enrollments;
 
   useEffect(() => {
     const loadSelectStudents = async () => {

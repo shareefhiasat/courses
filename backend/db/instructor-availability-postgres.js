@@ -7,6 +7,7 @@
 
 import { PrismaClient } from '@prisma/client';
 import { PRISMA_ERRORS, getPrismaErrorMessage, isPrismaError } from '../constants/prisma-errors.js';
+import { validateInstructorAvailabilityChange } from '../services/availabilityGuardService.js';
 
 const prisma = new PrismaClient();
 
@@ -293,6 +294,39 @@ export const createInstructorAvailability = async (data) => {
 export const updateInstructorAvailability = async (id, data) => {
   try {
     console.log('[InstructorAvailability DB] Updating availability:', id, data);
+
+    const existing = await prisma.instructorAvailability.findUnique({
+      where: { id: parseInt(id) },
+      include: { slots: { orderBy: { startTime: 'asc' } } }
+    });
+
+    if (!existing) {
+      return {
+        success: false,
+        error: 'Availability record not found',
+        code: 'NOT_FOUND'
+      };
+    }
+
+    const guardResult = await validateInstructorAvailabilityChange({
+      availabilityId: id,
+      instructorUserId: data.instructorUserId ?? existing.instructorUserId,
+      dayOfWeek: data.dayOfWeek ?? existing.dayOfWeek,
+      slots: data.slots ?? existing.slots,
+      startDate: data.startDate ?? existing.startDate,
+      endDate: data.endDate ?? existing.endDate,
+      action: 'update'
+    });
+
+    if (!guardResult.valid) {
+      return {
+        success: false,
+        error: 'Cannot update availability: scheduled sessions would be left outside defined hours',
+        code: 'SESSION_CONFLICT',
+        conflicts: guardResult.conflicts,
+        blockingCount: guardResult.blockingCount
+      };
+    }
     
     // Parse dates safely
     const parseDate = (dateStr) => {
@@ -430,6 +464,35 @@ export const updateInstructorAvailability = async (id, data) => {
 export const deleteInstructorAvailability = async (id) => {
   try {
     console.log('[InstructorAvailability DB] Deleting availability:', id);
+
+    const existing = await prisma.instructorAvailability.findUnique({
+      where: { id: parseInt(id) },
+      include: { slots: true }
+    });
+
+    if (!existing) {
+      return {
+        success: false,
+        error: 'Availability record not found',
+        code: 'NOT_FOUND'
+      };
+    }
+
+    const guardResult = await validateInstructorAvailabilityChange({
+      availabilityId: id,
+      instructorUserId: existing.instructorUserId,
+      action: 'delete'
+    });
+
+    if (!guardResult.valid) {
+      return {
+        success: false,
+        error: 'Cannot delete availability: scheduled sessions depend on these hours',
+        code: 'SESSION_CONFLICT',
+        conflicts: guardResult.conflicts,
+        blockingCount: guardResult.blockingCount
+      };
+    }
     
     await prisma.instructorAvailability.delete({
       where: { id: parseInt(id) }

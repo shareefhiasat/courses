@@ -1,10 +1,13 @@
 import express from 'express';
+import { requireAuth, requireSuperAdmin } from '../middleware/keycloakAuth.js';
 const router = express.Router();
 import userCategoryAccessDb from '../db/user-category-access-postgres.js';
 
 /**
- * User Category Access Routes
+ * User Category Access Routes — super admin only
  */
+router.use(requireAuth);
+router.use(requireSuperAdmin);
 
 // Create user category access
 router.post('/', async (req, res) => {

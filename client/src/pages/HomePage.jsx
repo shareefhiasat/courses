@@ -37,11 +37,13 @@ import { useToast } from '@ui';
 import UnifiedCard from '@components/UnifiedCard';
 import { UnifiedFilterSection } from '@components/filters';
 import useBookmarks from '@hooks/useBookmarks';
+import { useDataScope } from '@hooks/useDataScope';
 import './HomePage.css';
 
 const HomePage = memo(() => {
   // logger.componentMount('HomePage');
   const { user, isAdmin, isSuperAdmin, isHR, isInstructor, isStudent, loading: authLoading } = useAuth();
+  const { isUnrestricted, canAccessRecord } = useDataScope();
   const { lang, t } = useLang();
   const { theme } = useTheme();
   const { startLoading } = useGlobalLoading();
@@ -343,22 +345,6 @@ const HomePage = memo(() => {
       let activitiesData = activitiesRes.success ? (activitiesRes.data || []) : [];
       const usersData = usersRes.success ? (usersRes.data || []) : [];
 
-      const isInstructor = user?.isInstructor || false;
-      const isSuperAdmin = user?.isSuperAdmin || false;
-      const isAdmin = user?.isAdmin || false;
-
-      if (isInstructor && !isAdmin && !isSuperAdmin) {
-        classesData = classesData.filter(c =>
-          c.instructorId === user.uid || c.ownerEmail === user.email || c.instructor === user.email
-        );
-        const accessibleSubjectIds = new Set(classesData.map(c => c.subjectId).filter(Boolean));
-        subjectsData = subjectsData.filter(s => accessibleSubjectIds.has(s.docId || s.id));
-        const accessibleProgramIds = new Set(subjectsData.map(s => s.programId).filter(Boolean));
-        programsData = programsData.filter(p => accessibleProgramIds.has(p.docId || p.id));
-        const accessibleClassIds = new Set(classesData.map(c => c.id || c.docId));
-        activitiesData = activitiesData.filter(a => !a.classId || accessibleClassIds.has(a.classId));
-      }
-
       setReviewPrograms(programsData);
       setReviewSubjects(subjectsData);
       setReviewClasses(classesData);
@@ -478,22 +464,21 @@ const HomePage = memo(() => {
   const getCurrentItems = useCallback(() => {
     // Helper function to check if user can access item based on class
     const canUserAccessItem = (item) => {
-      // Admin, SuperAdmin, and HR roles can see all items
-      if (isAdmin || isSuperAdmin || isHR) {
-        return true;
+      if (isSuperAdmin || isHR || isUnrestricted) return true;
+
+      if (isInstructor || isAdmin) {
+        return canAccessRecord({
+          classId: item.classId,
+          subjectId: item.subjectId,
+          programId: item.programId,
+          categoryId: item.categoryId,
+        });
       }
-      
-      // Instructors can see items from their enrolled classes
-      if (isInstructor) {
-        return enrolledClasses.includes(item.classId);
-      }
-      
-      // Students can only see items from their enrolled classes
+
       if (isStudent) {
         return enrolledClasses.includes(item.classId);
       }
-      
-      // Default: deny access if no role flags are set
+
       return false;
     };
     
@@ -544,7 +529,7 @@ const HomePage = memo(() => {
     }
     
     return [];
-  }, [mode, activityType, category, activities, resources, quizzes, announcements, enrolledClasses, user]);
+  }, [mode, activityType, category, activities, resources, quizzes, announcements, enrolledClasses, isSuperAdmin, isHR, isUnrestricted, isInstructor, isAdmin, isStudent, canAccessRecord]);
 
   // Debug: Log when resources state changes
   useEffect(() => {
@@ -898,15 +883,13 @@ const HomePage = memo(() => {
   const modeCounts = useMemo(() => {
     // Helper function to check if user can access item based on class
     const canUserAccessItem = (item) => {
-      // Admin, SuperAdmin, and HR roles can see all items
-      if (isAdmin || isSuperAdmin || isHR) return true;
-      
-      // Instructors and students can only see items from their enrolled classes
-      if (isInstructor || isStudent) {
+      if (isSuperAdmin || isHR || isUnrestricted) return true;
+      if (isInstructor || isAdmin) {
+        return canAccessRecord({ classId: item.classId, subjectId: item.subjectId, programId: item.programId });
+      }
+      if (isStudent) {
         return enrolledClasses.includes(item.classId);
       }
-      
-      // Default: deny access
       return false;
     };
     
@@ -942,7 +925,7 @@ const HomePage = memo(() => {
       resources: resourcesCount,
       announcements: announcementsCount
     };
-  }, [activities, resources, announcements, enrolledClasses, category, user]);
+  }, [activities, resources, announcements, enrolledClasses, category, isSuperAdmin, isHR, isUnrestricted, isInstructor, isAdmin, isStudent, canAccessRecord]);
 
   // Calculate counts for each activity type
   const activityTypeCounts = useMemo(() => {

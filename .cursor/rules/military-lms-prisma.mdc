@@ -1,0 +1,15 @@
+---
+description: Prisma and database rules for Military LMS
+globs: client/prisma/**/*
+alwaysApply: false
+---
+
+# Prisma & Database Rules
+
+- Schema: `client/prisma/schema.prisma`
+- After every schema change: `npx prisma generate --schema=client/prisma/schema.prisma` then `npx prisma db push --schema=client/prisma/schema.prisma`
+- **Never** use `prisma migrate` — intentional for air-gapped deployment
+- Column renames = drop+add in DB; rename field and update all references in the **same PR**
+- No rollback path — destructive `db push` changes lose data; coordinate with team
+- Restart backend after `db push`
+- DB: PostgreSQL in `lms-qaf-app-db` (`military_lms` / `military_lms123` @ localhost:5432)

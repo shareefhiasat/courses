@@ -1,6 +1,6 @@
 /**
  * Attendance Routes
- * 
+ *
  * PURPOSE: Define REST API routes for attendance operations
  * ARCHITECTURE: Routes → Controller → Service → Database
  */
@@ -12,27 +12,17 @@ import {
   createAttendance,
   updateAttendance,
   deleteAttendance,
-  getClassAttendanceStats
+  getClassAttendanceStats,
 } from '../controllers/attendances.js';
+import { qrScannerOps } from '../middleware/requirePermission.js';
 
 const router = Router();
 
-// GET /api/v1/attendance - Get all attendance records with filtering
-router.get('/', getAllAttendance);
-
-// GET /api/v1/attendance/stats - Get class attendance statistics
-router.get('/stats', getClassAttendanceStats);
-
-// GET /api/v1/attendance/:id - Get attendance by ID
-router.get('/:id', getAttendanceById);
-
-// POST /api/v1/attendance - Create new attendance record
-router.post('/', createAttendance);
-
-// PUT /api/v1/attendance/:id - Update attendance record
-router.put('/:id', updateAttendance);
-
-// DELETE /api/v1/attendance/:id - Delete attendance record
-router.delete('/:id', deleteAttendance);
+router.get('/', qrScannerOps.view, getAllAttendance);
+router.get('/stats', qrScannerOps.view, getClassAttendanceStats);
+router.get('/:id', qrScannerOps.view, getAttendanceById);
+router.post('/', qrScannerOps.mark, createAttendance);
+router.put('/:id', qrScannerOps.edit, updateAttendance);
+router.delete('/:id', qrScannerOps.delete, deleteAttendance);
 
 export default router;

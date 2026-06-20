@@ -10,7 +10,8 @@ import {
   getAllClassroomAvailabilitiesController,
   createClassroomAvailabilityController,
   updateClassroomAvailabilityController,
-  deleteClassroomAvailabilityController
+  deleteClassroomAvailabilityController,
+  validateClassroomAvailabilityChangeController
 } from '../controllers/classroom-availability.js';
 
 const router = Router();
@@ -52,6 +53,8 @@ const router = Router();
  *         description: List of classroom availability entries
  */
 router.get('/', getAllClassroomAvailabilitiesController);
+
+router.post('/validate-change', validateClassroomAvailabilityChangeController);
 
 /**
  * @swagger

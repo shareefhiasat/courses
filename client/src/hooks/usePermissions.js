@@ -1,17 +1,20 @@
 import { useMemo, useEffect, useState } from 'react';
 import { useAuth } from '@contexts/AuthContext';
-import { ROLES } from '@constants/permissionConfig';
+import { resolveScreenIdFromNavItem } from '@config/navigationRegistry.js';
 import { getAuthToken } from '@utils/authHelpers';
 
-// Role hierarchy - higher index = higher precedence
 const ROLE_HIERARCHY = ['student', 'instructor', 'hr', 'admin', 'super_admin'];
 
+function roleHasPermission(operation, roleCode) {
+  const perm = operation.permissions.find((p) => p.role === roleCode);
+  return Boolean(perm?.allowed);
+}
+
 export const usePermissions = () => {
-  const { role, isSuperAdmin, isHR, isAdmin, isInstructor, isStudent, userRoles } = useAuth();
+  const { isSuperAdmin, isHR, isAdmin, isInstructor, isStudent } = useAuth();
   const [permissionsData, setPermissionsData] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Determine user's role codes (all roles the user has)
   const roleCodes = useMemo(() => {
     const roles = [];
     if (isSuperAdmin) roles.push('super_admin');
@@ -22,49 +25,36 @@ export const usePermissions = () => {
     return roles;
   }, [isSuperAdmin, isHR, isAdmin, isInstructor, isStudent]);
 
-  // Get the highest role based on hierarchy
   const highestRoleCode = useMemo(() => {
     if (roleCodes.length === 0) return null;
-    
     let highestIndex = -1;
     let highestRole = null;
-    
-    roleCodes.forEach(role => {
-      const index = ROLE_HIERARCHY.indexOf(role);
+    roleCodes.forEach((r) => {
+      const index = ROLE_HIERARCHY.indexOf(r);
       if (index > highestIndex) {
         highestIndex = index;
-        highestRole = role;
+        highestRole = r;
       }
     });
-    
     return highestRole;
   }, [roleCodes]);
 
-  // Fetch permissions from database
   useEffect(() => {
     const fetchPermissions = async () => {
       if (roleCodes.length === 0) {
-        console.log('[usePermissions] No role codes, skipping fetch');
         setLoading(false);
         return;
       }
 
       try {
         const token = getAuthToken();
-        // console.log('[usePermissions] Fetching permissions for roles:', roleCodes);
-        
         const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://localhost:8001/api/v1'}/permissions`, {
-          headers: {
-            'Authorization': token ? `Bearer ${token}` : ''
-          }
+          headers: { Authorization: token ? `Bearer ${token}` : '' },
         });
 
         if (response.ok) {
           const data = await response.json();
-          // console.log('[usePermissions] Permissions data received:', data);
           setPermissionsData(data.data);
-        } else {
-          console.error('[usePermissions] Failed to fetch permissions:', response.status, response.statusText);
         }
       } catch (error) {
         console.error('[usePermissions] Error fetching permissions:', error);
@@ -76,94 +66,53 @@ export const usePermissions = () => {
     fetchPermissions();
   }, [roleCodes]);
 
-  // Extract permissions for the user's highest role
+  // Union: allowed if ANY of the user's roles grants the operation
   const permissions = useMemo(() => {
-    if (!permissionsData || !highestRoleCode) {
-      // Default to no permissions if not loaded
-      console.log('[usePermissions] No permissions data or role code');
-      return {};
-    }
+    if (!permissionsData || roleCodes.length === 0) return {};
 
     const result = {};
-    
-    permissionsData.forEach(screen => {
-      screen.operations.forEach(operation => {
-        // Check if any of the user's roles has this permission
-        // Use highest role for precedence
-        const perm = operation.permissions.find(p => p.role === highestRoleCode);
-        if (perm && perm.allowed) {
+    permissionsData.forEach((screen) => {
+      screen.operations.forEach((operation) => {
+        const allowed = roleCodes.some((roleCode) => roleHasPermission(operation, roleCode));
+        if (allowed) {
           result[operation.operationKey] = true;
         }
       });
     });
 
-    // console.log('[usePermissions] Extracted permissions for role:', highestRoleCode, {
-    //   count: Object.keys(result).length,
-    //   permissions: Object.keys(result)
-    // });
-
     return result;
-  }, [permissionsData, highestRoleCode]);
-
-  // Store permissions data structure for screen access checking
-  const permissionsDataForScreenAccess = permissionsData;
+  }, [permissionsData, roleCodes]);
 
   return {
     loading,
     roleCode: highestRoleCode,
     allRoles: roleCodes,
-    // All permissions as boolean flags
     ...permissions,
-    // Helper functions
     hasPermission: (permissionName) => permissions[permissionName] || false,
-    canAccessScreen: (screenId) => {
-      // Super admin can access all screens
-      if (highestRoleCode === 'super_admin') return true;
-      
-      // Handle undefined screenId (for items with key instead of path)
-      if (!screenId || typeof screenId !== 'string') return false;
-      
-      // Handle case where permissions data is not loaded yet
-      if (!permissionsDataForScreenAccess || permissionsDataForScreenAccess.length === 0) {
+    canAccessScreen: (target) => {
+      if (isSuperAdmin || roleCodes.includes('super_admin')) return true;
+
+      if (target == null) return false;
+
+      let normalizedScreenId;
+      if (typeof target === 'object') {
+        normalizedScreenId = resolveScreenIdFromNavItem(target);
+      } else if (typeof target === 'string') {
+        normalizedScreenId = target.includes('/') || target.includes('?') || target.includes('#')
+          ? resolveScreenIdFromNavItem({ path: target })
+          : target;
+      } else {
         return false;
       }
-      
-      // Strip leading slash and query params from screenId
-      let normalizedScreenId = screenId.replace(/^\/+/, '').split('?')[0].split('/')[0];
-      
-      // Map paths to screenIds
-      const pathToScreenIdMap = {
-        '': 'home',
-        'home': 'home',
-        'smart-drive': 'drive',
-        'timer': 'timer'
-      };
-      
-      if (pathToScreenIdMap[normalizedScreenId]) {
-        normalizedScreenId = pathToScreenIdMap[normalizedScreenId];
-      }
-      
-      // Use permissions data structure directly - no need to parse operation keys
-      // Check if user has ANY permission on this screen
-      const hasAnyPermission = permissionsDataForScreenAccess.some(screen => {
-        if (screen.screenId === normalizedScreenId) {
-          return screen.operations.some(operation => {
-            const perm = operation.permissions.find(p => p.role === highestRoleCode);
-            return perm && perm.allowed;
-          });
-        }
-        return false;
-      });
-      
-      // Debug logging
-      console.log('[usePermissions] canAccessScreen:', {
-        originalPath: screenId,
-        normalizedScreenId,
-        hasAnyPermission,
-        screenCount: permissionsDataForScreenAccess.length
-      });
-      
-      return hasAnyPermission;
-    }
+
+      if (!normalizedScreenId || !permissionsData?.length) return false;
+
+      const screen = permissionsData.find((s) => s.screenId === normalizedScreenId);
+      if (!screen) return false;
+
+      return screen.operations.some((operation) =>
+        roleCodes.some((roleCode) => roleHasPermission(operation, roleCode))
+      );
+    },
   };
 };

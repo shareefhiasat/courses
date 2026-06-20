@@ -10,7 +10,8 @@ import {
   getAllInstructorAvailabilities, 
   createInstructorAvailability, 
   updateInstructorAvailability, 
-  deleteInstructorAvailability 
+  deleteInstructorAvailability,
+  validateInstructorAvailabilityChange
 } from '@services/business/instructorAvailabilityService.js';
 import { getAllUsers, getUserRoles } from '@services/business/userService.js';
 import { getAllPrograms } from '@services/business/programService.js';
@@ -27,6 +28,8 @@ import {
   getLocalizedClassName,
   getLocalizedInstructorName,
 } from '@utils/schedulingDisplayUtils.js';
+import AvailabilityChangeConflictPanel from '@components/AvailabilityChangeConflictPanel.jsx';
+import { useAvailabilityChangeValidation } from '@hooks/useAvailabilityChangeValidation.js';
 
 const InstructorAvailabilityPage = () => {
   const { user, isAdmin, isHR, isSuperAdmin } = useAuth();
@@ -55,6 +58,7 @@ const InstructorAvailabilityPage = () => {
   const [filterProgram, setFilterProgram] = useState('');
   const [filterSubject, setFilterSubject] = useState('');
   const [filterClass, setFilterClass] = useState('');
+  const [deleteValidation, setDeleteValidation] = useState(null);
   
   const [programs, setPrograms] = useState([]);
   const [subjects, setSubjects] = useState([]);
@@ -71,6 +75,14 @@ const InstructorAvailabilityPage = () => {
     programId: '',
     subjectId: '',
     classId: '',
+  });
+
+  const { validation: changeValidation, validating, runValidation, clearValidation } = useAvailabilityChangeValidation({
+    validateFn: validateInstructorAvailabilityChange,
+    formData,
+    editingAvailabilityId: editingAvailability?.id,
+    instructorUserId: formData.instructorUserId ? parseInt(formData.instructorUserId, 10) : null,
+    enabled: formState === 'editing'
   });
 
   const dayOptions = useMemo(() => getWeekDayOptions(t), [t]);
@@ -216,11 +228,15 @@ const InstructorAvailabilityPage = () => {
   }, []);
 
   const handleRemoveSlot = useCallback((index) => {
+    if (formState === 'editing' && formData.slots.length <= 1) {
+      toast.error(t('availability_slots_required'));
+      return;
+    }
     setFormData(prev => ({
       ...prev,
       slots: prev.slots.filter((_, i) => i !== index)
     }));
-  }, []);
+  }, [formState, formData.slots.length, toast, t]);
 
   const handleSlotChange = useCallback((index, field, value) => {
     setFormData(prev => ({
@@ -256,6 +272,14 @@ const InstructorAvailabilityPage = () => {
       if (new Date(formData.startDate) > new Date(formData.endDate)) {
         toast.error(t('availability_date_order_invalid'));
         return;
+      }
+
+      if (editingAvailability) {
+        const preview = await runValidation('update');
+        if (preview && !preview.valid) {
+          toast.error(t('availability_change_blocked_title'));
+          return;
+        }
       }
 
       // Validate each slot
@@ -306,9 +330,14 @@ const InstructorAvailabilityPage = () => {
       if (result.success) {
         toast.success(editingAvailability ? t('availability_updated') : t('availability_created'));
         resetForm();
+        clearValidation();
+        setDeleteValidation(null);
         setGridKey(prev => prev + 1);
         loadAvailabilities();
       } else {
+        if (result.conflicts?.length) {
+          setDeleteValidation({ valid: false, conflicts: result.conflicts, blockingCount: result.blockingCount });
+        }
         toast.error(result.error || t('failed_to_save_availability'));
       }
     } catch (error) {
@@ -334,7 +363,9 @@ const InstructorAvailabilityPage = () => {
     });
     setEditingAvailability(null);
     setFormState('creating');
-  }, []);
+    clearValidation();
+    setDeleteValidation(null);
+  }, [clearValidation]);
 
   const handleCancel = useCallback(() => {
     resetForm();
@@ -349,15 +380,30 @@ const InstructorAvailabilityPage = () => {
   const handleDeleteAvailability = async (availability) => {
     try {
       setSaving(true);
+      const preview = await runValidation('delete', {
+        availabilityId: availability.id,
+        instructorUserId: availability.instructorUserId,
+        action: 'delete'
+      });
+      if (preview && !preview.valid) {
+        setDeleteValidation(preview);
+        toast.error(t('availability_change_blocked_title'));
+        return;
+      }
+
       const result = await deleteInstructorAvailability(availability.id, user);
 
       console.log('[InstructorAvailabilityListPage] Delete result:', result);
 
       if (result.success) {
         toast.success(t('availability_deleted'));
+        setDeleteValidation(null);
         setGridKey(prev => prev + 1);
         loadAvailabilities();
       } else {
+        if (result.conflicts?.length) {
+          setDeleteValidation({ valid: false, conflicts: result.conflicts, blockingCount: result.blockingCount });
+        }
         toast.error(result.error || t('failed_to_delete_availability'));
       }
     } catch (error) {
@@ -648,36 +694,45 @@ const InstructorAvailabilityPage = () => {
               <Select
                 value={formData.programId}
                 onChange={(e) => handleInputChange('programId', e.target.value)}
-                options={[{ value: '', label: t('none') }, ...(programs || []).map(p => ({ value: p.id.toString(), label: localizedEntityName(p) }))]}
+                options={(programs || []).map(p => ({ value: p.id.toString(), label: localizedEntityName(p) }))}
                 disabled={saving}
-                placeholder={`${t('program')} (${t('optional')})`}
+                placeholder={`${t('program')} (${t('optional_label')})`}
               />
             </div>
             <div style={{ flex: '1 1 180px', minWidth: 0 }}>
               <Select
                 value={formData.subjectId}
                 onChange={(e) => handleInputChange('subjectId', e.target.value)}
-                options={[{ value: '', label: t('none') }, ...(subjects || []).map(s => ({ value: s.id.toString(), label: localizedEntityName(s) }))]}
+                options={(subjects || []).map(s => ({ value: s.id.toString(), label: localizedEntityName(s) }))}
                 disabled={saving}
-                placeholder={`${t('subject')} (${t('optional')})`}
+                placeholder={`${t('subject')} (${t('optional_label')})`}
               />
             </div>
             <div style={{ flex: '1 1 180px', minWidth: 0 }}>
               <Select
                 value={formData.classId}
                 onChange={(e) => handleInputChange('classId', e.target.value)}
-                options={[{ value: '', label: t('none') }, ...(classes || []).map(c => ({ value: c.id.toString(), label: localizedEntityName(c) }))]}
+                options={(classes || []).map(c => ({ value: c.id.toString(), label: localizedEntityName(c) }))}
                 disabled={saving}
-                placeholder={`${t('class')} (${t('optional')})`}
+                placeholder={`${t('class')} (${t('optional_label')})`}
               />
             </div>
           </div>
         </div>
 
+        {(formState === 'editing' || deleteValidation) && (
+          <AvailabilityChangeConflictPanel
+            validation={deleteValidation || changeValidation}
+            theme={theme}
+            t={t}
+            loading={validating}
+          />
+        )}
+
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           <Button
             type="submit"
-            disabled={saving}
+            disabled={saving || validating || (formState === 'editing' && changeValidation && !changeValidation.valid)}
             loading={saving}
           >
             {saving ? t('saving') : (formState === 'creating' ? t('create') : t('update'))}

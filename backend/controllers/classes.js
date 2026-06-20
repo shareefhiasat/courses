@@ -15,6 +15,11 @@ import {
   getClassesBySubject,
   getClassesByInstructor
 } from '../services/classes.js';
+import { applyListScope } from '../utils/applyListScope.js';
+
+async function applyClassScope(result, req) {
+  return applyListScope(req, result, 'class');
+}
 
 /**
  * GET /api/v1/classes
@@ -23,15 +28,16 @@ import {
 export const getAllClassesController = async (req, res) => {
   try {
     const result = await getAllClasses(req.query, req.user);
+    const scoped = await applyClassScope(result, req);
     
-    if (result.success) {
+    if (scoped.success) {
       res.status(200).json({
         success: true,
-        data: result.data,
-        total: result.total,
-        page: result.page,
-        limit: result.limit,
-        totalPages: result.totalPages
+        data: scoped.data,
+        total: scoped.total,
+        page: scoped.page,
+        limit: scoped.limit,
+        totalPages: scoped.totalPages
       });
     } else {
       res.status(400).json({
@@ -185,7 +191,7 @@ export const getClassesByProgramController = async (req, res) => {
   try {
     const { programId } = req.params;
     
-    const result = await getClassesByProgram(programId, req.query, req.user);
+    const result = await applyClassScope(await getClassesByProgram(programId, req.query, req.user), req);
     
     if (result.success) {
       res.status(200).json({
@@ -220,7 +226,7 @@ export const getClassesBySubjectController = async (req, res) => {
   try {
     const { subjectId } = req.params;
     
-    const result = await getClassesBySubject(subjectId, req.query, req.user);
+    const result = await applyClassScope(await getClassesBySubject(subjectId, req.query, req.user), req);
     
     if (result.success) {
       res.status(200).json({
@@ -255,7 +261,7 @@ export const getClassesByInstructorController = async (req, res) => {
   try {
     const { instructorId } = req.params;
     
-    const result = await getClassesByInstructor(instructorId, req.query, req.user);
+    const result = await applyClassScope(await getClassesByInstructor(instructorId, req.query, req.user), req);
     
     if (result.success) {
       res.status(200).json({

@@ -1,0 +1,13 @@
+# Team overrides for Winston (System Architect)
+# Merges over .agents/skills/bmad-agent-architect/customize.toml
+
+[agent]
+persistent_facts = [
+  "Brownfield Military LMS monorepo: client/ (React+Vite) + backend/ (Express) + client/prisma/ (PostgreSQL).",
+  "Offline deployment: Docker images pre-bundled, no registry pulls, pnpm workspace, Prisma db push (no migrations).",
+  "Auth boundary is Keycloak OIDC realm military-lms — do not propose alternative identity systems.",
+  "Nginx terminates TLS and reverse-proxies; check nginx config before adding routes or CORS.",
+  "file:{project-root}/ARCHITECTURE_GUIDE.md",
+  "file:{project-root}/_bmad-output/planning_artifacts/architecture.md",
+  "file:{project-root}/NOTIFICATION_ARCHITECTURE.md",
+]

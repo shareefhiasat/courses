@@ -187,23 +187,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
   }, []);
 
   // Filter enrollments based on user role for student dropdown
-  const filteredEnrollmentsForSelect = useMemo(() => {
-    if (isHR || isAdmin || isSuperAdmin) {
-      return enrollments; // HR/Admins see all students
-    }
-    if (isInstructor) {
-      // Instructors see students from their classes
-      return enrollments.filter(enrollment => {
-        const classItem = classes.find(c => (c.docId || c.id) === enrollment.classId);
-        return classItem && (
-          classItem.instructorId === user?.uid ||
-          classItem.ownerEmail === user?.email ||
-          classItem.instructor === user?.email
-        );
-      });
-    }
-    return []; // Other roles see no students
-  }, [enrollments, classes, user?.uid, user?.email, isHR, isAdmin, isSuperAdmin, isInstructor]);
+  const filteredEnrollmentsForSelect = enrollments;
 
   // Load users - merge both selectStudents and all users logic to prevent infinite loop
   useEffect(() => {

@@ -16,8 +16,10 @@ import {
   getClassesBySubjectController,
   getClassesByInstructorController
 } from '../controllers/classes.js';
+import { screenOps } from '../middleware/requirePermission.js';
 
 const router = Router();
+const ops = screenOps('classes');
 
 /**
  * @swagger
@@ -181,7 +183,7 @@ const router = Router();
  *                   type: integer
  *                   example: 2
  */
-router.get('/', getAllClassesController);
+router.get('/', ops.view, getAllClassesController);
 
 /**
  * @swagger
@@ -213,7 +215,7 @@ router.get('/', getAllClassesController);
  *       404:
  *         description: Class not found
  */
-router.get('/:id', getClassByIdController);
+router.get('/:id', ops.view, getClassByIdController);
 
 /**
  * @swagger
@@ -280,7 +282,7 @@ router.get('/:id', getClassByIdController);
  *       400:
  *         description: Bad request - validation error
  */
-router.post('/', createClassController);
+router.post('/', ops.create, createClassController);
 
 /**
  * @swagger
@@ -343,7 +345,7 @@ router.post('/', createClassController);
  *       404:
  *         description: Class not found
  */
-router.put('/:id', updateClassController);
+router.put('/:id', ops.update, updateClassController);
 
 /**
  * @swagger
@@ -384,7 +386,7 @@ router.put('/:id', updateClassController);
  *       400:
  *         description: Cannot delete class with dependencies
  */
-router.delete('/:id', deleteClassController);
+router.delete('/:id', ops.delete, deleteClassController);
 
 /**
  * @swagger
@@ -450,7 +452,7 @@ router.delete('/:id', deleteClassController);
  *                   type: integer
  *                   example: 1
  */
-router.get('/program/:programId', getClassesByProgramController);
+router.get('/program/:programId', ops.view, getClassesByProgramController);
 
 /**
  * @swagger
@@ -516,7 +518,7 @@ router.get('/program/:programId', getClassesByProgramController);
  *                   type: integer
  *                   example: 1
  */
-router.get('/subject/:subjectId', getClassesBySubjectController);
+router.get('/subject/:subjectId', ops.view, getClassesBySubjectController);
 
 /**
  * @swagger
@@ -582,6 +584,6 @@ router.get('/subject/:subjectId', getClassesBySubjectController);
  *                   type: integer
  *                   example: 1
  */
-router.get('/instructor/:instructorId', getClassesByInstructorController);
+router.get('/instructor/:instructorId', ops.view, getClassesByInstructorController);
 
 export default router;

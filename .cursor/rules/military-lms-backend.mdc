@@ -1,0 +1,33 @@
+---
+description: Express backend conventions for Military LMS
+globs: backend/**/*
+alwaysApply: false
+---
+
+# Backend Rules
+
+## Layered architecture
+
+```
+routes → controllers → services → Prisma/DB
+```
+
+No business logic in route handlers. Follow existing files in each layer.
+
+## API
+
+- All routes under `/api/v1/` prefix
+- Swagger via `swagger-jsdoc` + `swagger-ui-express`
+- Validate all user input with Zod/schema on the backend — no exceptions
+- Structured error responses from services; try-catch with descriptive messages
+
+## Modules
+
+- ES modules only (`import`/`export`) — no `require()`
+- For `__dirname`: `fileURLToPath(import.meta.url)` + `dirname()`
+- Env vars from `.env` — never hardcode credentials
+
+## Auth
+
+- Keycloak token validation middleware on every protected route
+- Realm: `military-lms`, client: `military-lms-app`

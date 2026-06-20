@@ -14,8 +14,10 @@ import {
   deleteProgramController,
   hardDeleteProgramController
 } from '../controllers/programs.js';
+import { screenOps } from '../middleware/requirePermission.js';
 
 const router = Router();
+const ops = screenOps('programs');
 
 // Debug middleware
 router.use((req, res, next) => {
@@ -227,7 +229,7 @@ router.get('/:id', (req, res, next) => {
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.post('/', createProgramController);
+router.post('/', ops.create, createProgramController);
 
 // PUT /api/programs/:id - Update program
 /**
@@ -287,7 +289,7 @@ router.post('/', createProgramController);
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.put('/:id', updateProgramController);
+router.put('/:id', ops.update, updateProgramController);
 
 // DELETE /api/programs/:id - Delete program
 /**
@@ -333,7 +335,7 @@ router.put('/:id', updateProgramController);
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.delete('/:id', deleteProgramController);
+router.delete('/:id', ops.delete, deleteProgramController);
 
 /**
  * @swagger
@@ -383,6 +385,6 @@ router.delete('/:id', deleteProgramController);
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.delete('/:id/hard', hardDeleteProgramController);
+router.delete('/:id/hard', ops.delete, hardDeleteProgramController);
 
 export default router;

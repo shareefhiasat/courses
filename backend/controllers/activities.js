@@ -13,6 +13,7 @@ import {
   deleteActivity, 
   getActivitiesByClass
 } from '../services/activities.js';
+import { applyListScope } from '../utils/applyListScope.js';
 
 /**
  * GET /api/v1/activities
@@ -20,7 +21,7 @@ import {
  */
 export const getAllActivitiesController = async (req, res) => {
   try {
-    const result = await getAllActivities(req.query, req.user);
+    const result = await applyListScope(req, await getAllActivities(req.query, req.user), 'activity');
     
     if (result.success) {
       res.status(200).json({

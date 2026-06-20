@@ -18,8 +18,11 @@ import {
   getEnrollmentsByProgramController,
 } from "../controllers/enrollments.js";
 import { requireAuth } from "../middleware/keycloakAuth.js";
+import { screenOps } from "../middleware/requirePermission.js";
 
 const router = Router();
+const enrollOps = screenOps('enrollments');
+const manageOps = screenOps('manage-enrollments');
 
 /**
  * @swagger
@@ -118,7 +121,7 @@ const router = Router();
  *                   type: integer
  *                   example: 10
  */
-router.get("/", requireAuth, getAllEnrollmentsController);
+router.get("/", requireAuth, enrollOps.view, getAllEnrollmentsController);
 
 /**
  * @swagger
@@ -149,7 +152,7 @@ router.get("/", requireAuth, getAllEnrollmentsController);
  *                   items:
  *                     type: object
  */
-router.get("/students-by-class", requireAuth, getStudentsByClassController);
+router.get("/students-by-class", requireAuth, enrollOps.view, getStudentsByClassController);
 
 /**
  * @swagger
@@ -180,7 +183,7 @@ router.get("/students-by-class", requireAuth, getStudentsByClassController);
  *       404:
  *         description: Enrollment not found
  */
-router.get("/:id", getEnrollmentByIdController);
+router.get("/:id", enrollOps.view, getEnrollmentByIdController);
 
 /**
  * @swagger
@@ -227,7 +230,7 @@ router.get("/:id", getEnrollmentByIdController);
  *       400:
  *         description: Invalid input
  */
-router.post("/", createEnrollmentController);
+router.post("/", manageOps.create, createEnrollmentController);
 
 /**
  * @swagger
@@ -274,7 +277,7 @@ router.post("/", createEnrollmentController);
  *       404:
  *         description: Enrollment not found
  */
-router.put("/:id", updateEnrollmentController);
+router.put("/:id", manageOps.update, updateEnrollmentController);
 
 /**
  * @swagger
@@ -306,7 +309,7 @@ router.put("/:id", updateEnrollmentController);
  *       404:
  *         description: Enrollment not found
  */
-router.delete("/:id", deleteEnrollmentController);
+router.delete("/:id", manageOps.delete, deleteEnrollmentController);
 
 /**
  * @swagger
@@ -337,7 +340,7 @@ router.delete("/:id", deleteEnrollmentController);
  *                   items:
  *                     $ref: '#/components/schemas/Enrollment'
  */
-router.get("/student/:studentId", getEnrollmentsByStudentController);
+router.get("/student/:studentId", enrollOps.view, getEnrollmentsByStudentController);
 
 /**
  * @swagger
@@ -368,7 +371,7 @@ router.get("/student/:studentId", getEnrollmentsByStudentController);
  *                   items:
  *                     $ref: '#/components/schemas/Enrollment'
  */
-router.get("/class/:classId", getEnrollmentsByClassController);
+router.get("/class/:classId", enrollOps.view, getEnrollmentsByClassController);
 
 /**
  * @swagger
@@ -399,6 +402,6 @@ router.get("/class/:classId", getEnrollmentsByClassController);
  *                   items:
  *                     $ref: '#/components/schemas/Enrollment'
  */
-router.get("/program/:programId", requireAuth, getEnrollmentsByProgramController);
+router.get("/program/:programId", requireAuth, enrollOps.view, getEnrollmentsByProgramController);
 
 export default router;

@@ -6,6 +6,7 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { validateClassroomRemoval } from '../services/availabilityGuardService.js';
 import { PRISMA_ERRORS, getPrismaErrorMessage, isPrismaError } from '../constants/prisma-errors.js';
 
 const prisma = new PrismaClient();
@@ -430,37 +431,17 @@ export const deleteClassroom = async (id) => {
   try {
     console.log('[Classrooms DB] Deleting classroom:', id);
     
-    // Check for related records before deletion
     const classroomId = parseInt(id);
-    
-    // Check for classroom availability records
-    const availabilityCount = await prisma.classroomAvailability.count({
-      where: { classroomId }
-    });
-    
-    if (availabilityCount > 0) {
+
+    const guardResult = await validateClassroomRemoval(classroomId);
+    if (!guardResult.valid) {
       return {
         success: false,
-        error: `Cannot delete classroom: it has ${availabilityCount} availability record(s). Please delete the availability records first.`,
-        code: 'HAS_RELATED_RECORDS'
+        error: guardResult.conflicts.map((c) => c.message).join('. '),
+        code: 'HAS_RELATED_RECORDS',
+        conflicts: guardResult.conflicts
       };
     }
-    
-    // Check for schedule sessions using this classroom
-    const sessionCount = await prisma.scheduleSession.count({
-      where: { classroomId }
-    });
-    
-    if (sessionCount > 0) {
-      return {
-        success: false,
-        error: `Cannot delete classroom: it is used in ${sessionCount} schedule session(s). Please remove the classroom from sessions first.`,
-        code: 'HAS_RELATED_RECORDS'
-      };
-    }
-    
-    // Check for any other potential relationships (add more as needed)
-    // For example: programs, etc.
     
     await prisma.classroom.delete({
       where: { id: classroomId }

@@ -1,0 +1,31 @@
+---
+description: Military LMS critical rules — read before any implementation
+alwaysApply: true
+---
+
+# Military LMS Core Rules
+
+**Before implementing code, read `_bmad-output/project-context.md`.** It is the authoritative rule set for this brownfield project.
+
+## Non-negotiables
+
+- **Offline red network** — no external APIs, CDNs, or internet dependencies
+- **pnpm only** — never `npm install`
+- **Prisma `db push` only** — never `prisma migrate`; run `generate` after schema changes, then restart backend
+- **Keycloak JWT auth** — never roll custom auth; use `ProtectedRoute` / `RoleGuard` on frontend, Keycloak middleware on backend
+- **No hardcoded secrets** — use `.env` / `client/.env`
+
+## Startup order
+
+1. `docker compose -p qaf-lms -f scripts/docker/docker-compose.yml up -d`
+2. `npx prisma generate --schema=client/prisma/schema.prisma`
+3. `node backend/server.js` (port 8001)
+4. `cd client && node node_modules/vite/bin/vite.js --host` (HTTPS port 5174)
+
+Keycloak needs 20–30s after `healthy` before OIDC works.
+
+## Artifacts
+
+- Planning: `_bmad-output/planning-artifacts/`
+- Implementation stories: `_bmad-output/implementation-artifacts/`
+- Architecture: `_bmad-output/planning_artifacts/architecture.md`, `ARCHITECTURE_GUIDE.md`

@@ -15,8 +15,10 @@ import {
   getBehaviorsByStudentController,
   getBehaviorsByClassController
 } from '../controllers/behaviors.js';
+import { screenOps } from '../middleware/requirePermission.js';
 
 const router = Router();
+const ops = screenOps('behavior');
 
 /**
  * @swagger
@@ -128,7 +130,7 @@ const router = Router();
  *                   type: integer
  *                   example: 10
  */
-router.get('/', getAllBehaviorsController);
+router.get('/', ops.view, getAllBehaviorsController);
 
 /**
  * @swagger
@@ -159,7 +161,7 @@ router.get('/', getAllBehaviorsController);
  *       404:
  *         description: Behavior not found
  */
-router.get('/:id', getBehaviorByIdController);
+router.get('/:id', ops.view, getBehaviorByIdController);
 
 /**
  * @swagger
@@ -216,7 +218,7 @@ router.get('/:id', getBehaviorByIdController);
  *       400:
  *         description: Invalid input
  */
-router.post('/', createBehaviorController);
+router.post('/', ops.create, createBehaviorController);
 
 /**
  * @swagger
@@ -269,7 +271,7 @@ router.post('/', createBehaviorController);
  *       404:
  *         description: Behavior not found
  */
-router.put('/:id', updateBehaviorController);
+router.put('/:id', ops.update, updateBehaviorController);
 
 /**
  * @swagger
@@ -301,7 +303,7 @@ router.put('/:id', updateBehaviorController);
  *       404:
  *         description: Behavior not found
  */
-router.delete('/:id', deleteBehaviorController);
+router.delete('/:id', ops.delete, deleteBehaviorController);
 
 /**
  * @swagger
@@ -332,7 +334,7 @@ router.delete('/:id', deleteBehaviorController);
  *                   items:
  *                     $ref: '#/components/schemas/Behavior'
  */
-router.get('/student/:studentId', getBehaviorsByStudentController);
+router.get('/student/:studentId', ops.view, getBehaviorsByStudentController);
 
 /**
  * @swagger
@@ -363,6 +365,6 @@ router.get('/student/:studentId', getBehaviorsByStudentController);
  *                   items:
  *                     $ref: '#/components/schemas/Behavior'
  */
-router.get('/class/:classId', getBehaviorsByClassController);
+router.get('/class/:classId', ops.view, getBehaviorsByClassController);
 
 export default router;

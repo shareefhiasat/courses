@@ -71,9 +71,18 @@ export const deleteClassroomAvailability = async (id, user = null) => {
   }
 };
 
+export const validateClassroomAvailabilityChange = async (data) => {
+  try {
+    return await classroomAvailabilityBusinessService.validateClassroomAvailabilityChange(data);
+  } catch (err) {
+    return { success: false, error: err.message };
+  }
+};
+
 export default {
   getAllClassroomAvailabilities,
   createClassroomAvailability,
   updateClassroomAvailability,
-  deleteClassroomAvailability
+  deleteClassroomAvailability,
+  validateClassroomAvailabilityChange
 };

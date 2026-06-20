@@ -7,6 +7,7 @@
 
 import { PrismaClient } from '@prisma/client';
 import { USER_NAME_SELECT_WITH_ID } from '../utils/userNameFields.js';
+import { scopeArray } from '../utils/applyListScope.js';
 
 const prisma = new PrismaClient();
 
@@ -78,13 +79,15 @@ export const getAllPenaltiesController = async (req, res) => {
       prisma.penalty.count({ where })
     ]);
     
+    const scopedPenalties = await scopeArray(req, penalties, 'classLinked');
+    
     res.status(200).json({
       success: true,
-      data: penalties,
-      total,
+      data: scopedPenalties,
+      total: scopedPenalties.length,
       page: parseInt(page),
       limit: parseInt(limit),
-      totalPages: Math.ceil(total / parseInt(limit))
+      totalPages: Math.ceil(scopedPenalties.length / parseInt(limit))
     });
   } catch (error) {
     console.error('Error in getAllPenaltiesController:', error);

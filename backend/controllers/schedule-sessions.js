@@ -16,6 +16,7 @@ import {
   bulkCreateScheduleSessions
 } from '../db/schedule-sessions-postgres.js';
 import { detectConflicts, getLocalizedConflictMessage } from '../services/conflict-detection.js';
+import { applyListScope } from '../utils/applyListScope.js';
 
 /**
  * GET /api/v1/schedule-sessions
@@ -23,7 +24,7 @@ import { detectConflicts, getLocalizedConflictMessage } from '../services/confli
  */
 export const getAllScheduleSessionsController = async (req, res) => {
   try {
-    const result = await getScheduleSessions(req.query);
+    const result = await applyListScope(req, await getScheduleSessions(req.query), 'classLinked');
     
     if (result.success) {
       res.status(200).json({
@@ -53,7 +54,7 @@ export const getAllScheduleSessionsController = async (req, res) => {
  */
 export const getScheduleSessionsByRangeController = async (req, res) => {
   try {
-    const result = await getScheduleSessionsByDateRange(req.query);
+    const result = await applyListScope(req, await getScheduleSessionsByDateRange(req.query), 'classLinked');
     
     if (result.success) {
       res.status(200).json({

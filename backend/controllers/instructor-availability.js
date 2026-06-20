@@ -1,10 +1,21 @@
 import express from 'express';
 const router = express.Router();
 import * as instructorAvailabilityDb from '../db/instructor-availability-postgres.js';
+import { validateInstructorAvailabilityChange } from '../services/availabilityGuardService.js';
 
 /**
  * Instructor Availability Routes
  */
+
+// Validate instructor availability change (live preview)
+router.post('/validate-change', async (req, res) => {
+  try {
+    const result = await validateInstructorAvailabilityChange(req.body);
+    res.json({ success: true, ...result });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
 
 // Create instructor availability
 router.post('/', async (req, res) => {

@@ -1,0 +1,29 @@
+---
+description: React frontend conventions for Military LMS
+globs: client/src/**/*
+alwaysApply: false
+---
+
+# Frontend Rules
+
+## Stack
+
+- React 19, TypeScript strict, Vite 6 (HTTPS dev server)
+- MUI 7 for UI primitives; TailwindCSS 4 for custom styling; Emotion for component CSS-in-JS
+- React Router 7 — routes under `@pages`
+
+## Imports
+
+Use path aliases, not deep relative paths: `@components`, `@pages`, `@services`, `@ui`, `@hooks`, `@contexts`, `@utils`
+
+## UI requirements
+
+- **Dark mode**: use MUI `useTheme()` — no hardcoded colors
+- **i18n**: all user-facing strings through localization (`LangContext` / existing i18n) — no hardcoded Arabic or English
+- **Responsive**: mobile 320px, tablet 768px, desktop 1280px+ — MUI Grid/Container + Tailwind breakpoints
+
+## Auth & data
+
+- Auth via `keycloak-js`; guard routes with `ProtectedRoute` and `RoleGuard`
+- Tables: prefer `@mui/x-data-grid`
+- Add `data-testid` on interactive elements (no test framework yet, but code must be testable)

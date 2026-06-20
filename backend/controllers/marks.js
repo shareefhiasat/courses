@@ -3,6 +3,8 @@ import { calculateLetterGrade, MANUAL_GRADES } from '../utils/formatting/grading
 import notificationGateway from '../services/notifications/index.js';
 import { EVENTS } from '../services/notifications/constants.js';
 import { buildLocalizedNameFields, buildNotificationNameVars } from '../utils/localizedUserName.js';
+import { getRequestScope, isRecordInScope, scopeForbidden } from '../utils/scopeAccess.js';
+import { scopeArray } from '../utils/applyListScope.js';
 
 const prisma = new PrismaClient();
 
@@ -10,6 +12,17 @@ const prisma = new PrismaClient();
 const getMarksDistribution = async (req, res) => {
   try {
     const { subjectId } = req.params;
+
+    const scope = await getRequestScope(req);
+    if (!scope.unrestricted) {
+      const subject = await prisma.subject.findUnique({
+        where: { id: parseInt(subjectId, 10) },
+        select: { id: true, programId: true, categoryId: true },
+      });
+      if (!subject || !isRecordInScope(scope, subject)) {
+        return scopeForbidden(res);
+      }
+    }
 
     const distribution = await prisma.marksDistribution.findUnique({
       where: { subjectId: parseInt(subjectId) },
@@ -143,6 +156,26 @@ const getStudentMarks = async (req, res) => {
     const { subjectId } = req.params;
     const { classId } = req.query;
 
+    const scope = await getRequestScope(req);
+    if (!scope.unrestricted) {
+      const subject = await prisma.subject.findUnique({
+        where: { id: parseInt(subjectId, 10) },
+        select: { id: true, programId: true, categoryId: true },
+      });
+      if (!subject || !isRecordInScope(scope, subject)) {
+        return scopeForbidden(res);
+      }
+      if (classId) {
+        const cls = await prisma.class.findUnique({
+          where: { id: parseInt(classId, 10) },
+          select: { id: true, programId: true, subjectId: true, categoryId: true },
+        });
+        if (!cls || !isRecordInScope(scope, cls)) {
+          return scopeForbidden(res);
+        }
+      }
+    }
+
     const where = {
       subjectId: parseInt(subjectId)
     };
@@ -192,7 +225,7 @@ const getStudentMarks = async (req, res) => {
     });
 
     // Add grade information to each student mark
-    const marksWithGradeInfo = marks.map(mark => {
+    const marksWithGradeInfo = (await scopeArray(req, marks, 'classLinked')).map(mark => {
       const gradeInfo = calculateLetterGrade(mark.totalMarks, mark.isRepeated);
       return {
         ...mark,
@@ -859,7 +892,18 @@ const getAllStudentMarksReport = async (req, res) => {
     });
     
     console.log('🔍 [MARKS DEBUG] Found enrollments:', enrollments.length);
-    console.log('🔍 [MARKS DEBUG] Enrollment details:', enrollments.map(e => ({
+
+    const scope = await getRequestScope(req);
+    const scopedEnrollments = scope.unrestricted
+      ? enrollments
+      : enrollments.filter((e) => isRecordInScope(scope, {
+          classId: e.classId,
+          subjectId: e.subjectId ?? e.class?.subjectId,
+          programId: e.class?.programId ?? e.class?.program?.id,
+          categoryId: e.class?.categoryId,
+        }));
+
+    console.log('🔍 [MARKS DEBUG] Enrollment details:', scopedEnrollments.map(e => ({
       userId: e.userId,
       userName: e.user.displayName || e.user.email,
       subjectId: e.subjectId,
@@ -868,9 +912,9 @@ const getAllStudentMarksReport = async (req, res) => {
     })));
     
     // Get all student marks for these enrollments
-    const studentIds = enrollments.map(e => e.userId);
-    const subjectIds = [...new Set(enrollments.map(e => e.subjectId))];
-    const classIds = [...new Set(enrollments.map(e => e.classId))];
+    const studentIds = scopedEnrollments.map(e => e.userId);
+    const subjectIds = [...new Set(scopedEnrollments.map(e => e.subjectId))];
+    const classIds = [...new Set(scopedEnrollments.map(e => e.classId))];
     
     const marks = await prisma.studentMarks.findMany({
       where: {
@@ -914,7 +958,7 @@ const getAllStudentMarksReport = async (req, res) => {
     
     // Build the report data
     const reportData = [];
-    enrollments.forEach(enrollment => {
+    scopedEnrollments.forEach(enrollment => {
       console.log('🔍 [MARKS DEBUG] Processing enrollment:', {
         userId: enrollment.userId,
         subjectId: enrollment.subjectId,

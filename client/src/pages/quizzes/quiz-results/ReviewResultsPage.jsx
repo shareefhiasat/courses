@@ -157,27 +157,7 @@ const ReviewResultsPage = () => {
       let subjectsData = subjectsRes.success ? (subjectsRes.data || []) : [];
       let classesData = classesRes.success ? (classesRes.data || []) : [];
       let activitiesData = activitiesRes.success ? (activitiesRes.data || []) : [];
-      let usersData = usersRes.success ? (usersRes.data || []) : [];
-
-      // Filter for instructors
-      if (isInstructor && !isAdmin && !isSuperAdmin) {
-        classesData = classesData.filter(c =>
-          c.instructorId === user.uid ||
-          c.ownerEmail === user.email ||
-          c.instructor === user.email
-        );
-
-        const accessibleSubjectIds = new Set(classesData.map(c => c.subjectId).filter(Boolean));
-        subjectsData = subjectsData.filter(s => accessibleSubjectIds.has(s.docId || s.id));
-
-        const accessibleProgramIds = new Set(subjectsData.map(s => s.programId).filter(Boolean));
-        programsData = programsData.filter(p => accessibleProgramIds.has(p.docId || p.id));
-
-        const accessibleClassIds = new Set(classesData.map(c => c.id || c.docId));
-        activitiesData = activitiesData.filter(a =>
-          !a.classId || accessibleClassIds.has(a.classId)
-        );
-      }
+      const usersData = usersRes.success ? (usersRes.data || []) : [];
 
       setPrograms(programsData);
       setSubjects(subjectsData);

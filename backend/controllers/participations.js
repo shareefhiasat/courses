@@ -16,6 +16,7 @@ import {
   getStudentStats,
   getClassStats
 } from '../services/participations.js';
+import { applyListScope } from '../utils/applyListScope.js';
 
 /**
  * GET /api/v1/participations
@@ -23,7 +24,7 @@ import {
  */
 export const getAllParticipationsController = async (req, res) => {
   try {
-    const result = await getAllParticipations(req.query, req.user);
+    const result = await applyListScope(req, await getAllParticipations(req.query, req.user), 'classLinked');
     
     if (result.success) {
       res.status(200).json(result);

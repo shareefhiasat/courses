@@ -10,6 +10,7 @@ import { ROLE_STRINGS } from '@utils/userUtils';
 import { getThemedIcon } from '@constants/iconTypes';
 import { TimerStopwatch } from '@ui';
 import VersionDisplay from '@ui/VersionDisplay/VersionDisplay';
+import { resolveScreenIdFromNavItem } from '@config/navigationRegistry.js';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import { usePermissions } from '@hooks/usePermissions';
 
@@ -376,9 +377,9 @@ const SideDrawer = ({ isOpen, onClose }) => {
         children: [
           ...schedulingPrepend,
           ...(includeSummary ? [
-            { id: `summary-dashboard${sfx}`, path: '/summary-dashboard', icon: getThemedIcon('ui', 'layout_dashboard', 18, theme), label: nl('summary_dashboard', 'Summary Dashboard') },
+            { id: `summary-dashboard${sfx}`, path: '/summary-dashboard', screenId: 'summary-dashboard', icon: getThemedIcon('ui', 'layout_dashboard', 18, theme), label: nl('summary_dashboard', 'Summary Dashboard') },
           ] : []),
-          { id: `calendar-sessions${sfx}`, path: '/scheduling-calendar', icon: getThemedIcon('ui', 'calendar', 18, theme), label: nl('main_tab_sessions', 'Sessions') },
+          { id: `calendar-sessions${sfx}`, path: '/scheduling-calendar', screenId: 'scheduling-calendar', icon: getThemedIcon('ui', 'calendar', 18, theme), label: nl('main_tab_sessions', 'Sessions') },
         ],
       },
       {
@@ -386,9 +387,9 @@ const SideDrawer = ({ isOpen, onClose }) => {
         label: nl('nav_availability', 'Availability'),
         icon: getThemedIcon('ui', 'bar_chart3', 18, theme),
         children: [
-          { id: `calendar-classes${sfx}`, path: CALENDAR_CLASSES_PATH, icon: getThemedIcon('ui', 'graduation_cap', 18, theme), label: nl('classes_availability', 'Classes Availability') },
-          { id: `calendar-instructor-avail${sfx}`, path: CALENDAR_INSTRUCTOR_AVAIL_PATH, icon: getThemedIcon('ui', 'users', 18, theme), label: nl('instructor_availability', 'Instructor Availability') },
-          { id: `calendar-room-avail${sfx}`, path: CALENDAR_ROOM_AVAIL_PATH, icon: getThemedIcon('ui', 'list', 18, theme), label: nl('room_availability', 'Room Availability') },
+          { id: `calendar-classes${sfx}`, path: CALENDAR_CLASSES_PATH, screenId: 'classes-availability', icon: getThemedIcon('ui', 'graduation_cap', 18, theme), label: nl('classes_availability', 'Classes Availability') },
+          { id: `calendar-instructor-avail${sfx}`, path: CALENDAR_INSTRUCTOR_AVAIL_PATH, screenId: 'instructor-availability-view', icon: getThemedIcon('ui', 'users', 18, theme), label: nl('instructor_availability', 'Instructor Availability') },
+          { id: `calendar-room-avail${sfx}`, path: CALENDAR_ROOM_AVAIL_PATH, screenId: 'room-availability-view', icon: getThemedIcon('ui', 'list', 18, theme), label: nl('room_availability', 'Room Availability') },
         ],
       },
     ];
@@ -399,8 +400,8 @@ const SideDrawer = ({ isOpen, onClose }) => {
         label: nl('availability_setup', 'Availability Setup'),
         icon: getThemedIcon('ui', 'settings', 18, theme),
         children: [
-          { id: `instructor-availability${sfx}`, path: '/dashboard', hash: '#instructor-availability', icon: getThemedIcon('ui', 'users', 18, theme), label: nl('instructor_availability_setup', 'Instructor Availability Setup') },
-          { id: `classroom-availability${sfx}`, path: '/dashboard', hash: '#classroom-availability', icon: getThemedIcon('ui', 'list', 18, theme), label: nl('room_availability_setup', 'Room Availability Setup') },
+          { id: `instructor-availability${sfx}`, path: '/dashboard', hash: '#instructor-availability', screenId: 'instructor-availability-setup', icon: getThemedIcon('ui', 'users', 18, theme), label: nl('instructor_availability_setup', 'Instructor Availability Setup') },
+          { id: `classroom-availability${sfx}`, path: '/dashboard', hash: '#classroom-availability', screenId: 'room-availability-setup', icon: getThemedIcon('ui', 'list', 18, theme), label: nl('room_availability_setup', 'Room Availability Setup') },
         ],
       });
     }
@@ -499,9 +500,9 @@ const SideDrawer = ({ isOpen, onClose }) => {
       label: nl('main', 'Main'),
       icon: getThemedIcon('ui', 'home', 18, theme),
       children: [
-        { id: 'home', path: '/', icon: getThemedIcon('ui', 'home', 18, theme), label: nl('home', 'Home') },
-        { id: 'dashboard', path: '/dashboard', icon: getThemedIcon('ui', 'layout_dashboard', 18, theme), label: nl('dashboard', 'Dashboard') },
-        { id: 'student-dashboard', path: '/student-dashboard', icon: getThemedIcon('ui', 'layout_dashboard', 18, theme), label: nl('student_dashboard', 'Student Dashboard') },
+        { id: 'home', path: '/', screenId: 'home', icon: getThemedIcon('ui', 'home', 18, theme), label: nl('home', 'Home') },
+        { id: 'dashboard', path: '/dashboard', screenId: 'dashboard', icon: getThemedIcon('ui', 'layout_dashboard', 18, theme), label: nl('dashboard', 'Dashboard') },
+        { id: 'student-dashboard', path: '/student-dashboard', screenId: 'student-dashboard', icon: getThemedIcon('ui', 'layout_dashboard', 18, theme), label: nl('student_dashboard', 'Student Dashboard') },
       ]
     },
     {
@@ -530,9 +531,9 @@ const SideDrawer = ({ isOpen, onClose }) => {
       label: nl('academic', 'Academic'),
       icon: getThemedIcon('ui', 'book_open', 18, theme),
       children: [
-        { id: 'programs', path: '/dashboard', hash: '#programs', icon: getThemedIcon('ui', 'book_open', 18, theme), label: nl('programs', 'Programs') },
-        { id: 'subjects', path: '/dashboard', hash: '#subjects', icon: getThemedIcon('ui', 'book_open', 18, theme), label: nl('subjects', 'Subjects') },
-        { id: 'classes-academic', path: '/dashboard', hash: '#classes', icon: getThemedIcon('ui', 'calendar', 18, theme), label: nl('classes', 'Classes') },
+        { id: 'programs', path: '/dashboard', hash: '#programs', screenId: 'programs', icon: getThemedIcon('ui', 'book_open', 18, theme), label: nl('programs', 'Programs') },
+        { id: 'subjects', path: '/dashboard', hash: '#subjects', screenId: 'subjects', icon: getThemedIcon('ui', 'book_open', 18, theme), label: nl('subjects', 'Subjects') },
+        { id: 'classes-academic', path: '/dashboard', hash: '#classes', screenId: 'classes', icon: getThemedIcon('ui', 'calendar', 18, theme), label: nl('classes', 'Classes') },
       ]
     }] : []),
     ...(isSuperAdmin || isInstructor || isAdmin ? [{
@@ -540,9 +541,9 @@ const SideDrawer = ({ isOpen, onClose }) => {
       label: nl('enrollments', 'Enrollments'),
       icon: getThemedIcon('ui', 'users', 18, theme),
       children: [
-        { id: 'enrollments', path: '/dashboard', hash: '#enrollments', icon: getThemedIcon('ui', 'users', 18, theme), label: nl('enrollments', 'Enrollments') },
-        { id: 'manage-enrollments', path: '/manage-enrollments', icon: getThemedIcon('ui', 'users', 18, theme), label: nl('manage_enrollments', 'Manage Enrollments') },
-        { id: 'marks', path: '/dashboard', hash: '#marks', icon: getThemedIcon('ui', 'award', 18, theme), label: nl('marks_entry', 'Marks Entry') },
+        { id: 'enrollments', path: '/dashboard', hash: '#enrollments', screenId: 'enrollments', icon: getThemedIcon('ui', 'users', 18, theme), label: nl('enrollments', 'Enrollments') },
+        { id: 'manage-enrollments', path: '/manage-enrollments', screenId: 'manage-enrollments', icon: getThemedIcon('ui', 'users', 18, theme), label: nl('manage_enrollments', 'Manage Enrollments') },
+        { id: 'marks', path: '/dashboard', hash: '#marks', screenId: 'marks-entry', icon: getThemedIcon('ui', 'award', 18, theme), label: nl('marks_entry', 'Marks Entry') },
       ]
     }] : []),
     ...(isSuperAdmin || isInstructor || isAdmin ? [{
@@ -550,9 +551,9 @@ const SideDrawer = ({ isOpen, onClose }) => {
       label: nl('academic_records', 'Academic Records'),
       icon: getThemedIcon('ui', 'award', 18, theme),
       children: [
-        { id: 'penalty', path: '/dashboard', hash: '#penalty', icon: getThemedIcon('ui', 'alert_triangle', 18, theme), label: nl('penalty', 'Penalty') },
-        { id: 'behavior', path: '/dashboard', hash: '#behavior', icon: getThemedIcon('ui', 'activity', 18, theme), label: nl('behavior', 'Behavior') },
-        { id: 'participation', path: '/dashboard', hash: '#participation', icon: getThemedIcon('ui', 'users', 18, theme), label: nl('participation', 'Participation') },
+        { id: 'penalty', path: '/dashboard', hash: '#penalty', screenId: 'penalty', icon: getThemedIcon('ui', 'alert_triangle', 18, theme), label: nl('penalty', 'Penalty') },
+        { id: 'behavior', path: '/dashboard', hash: '#behavior', screenId: 'behavior', icon: getThemedIcon('ui', 'activity', 18, theme), label: nl('behavior', 'Behavior') },
+        { id: 'participation', path: '/dashboard', hash: '#participation', screenId: 'participation', icon: getThemedIcon('ui', 'users', 18, theme), label: nl('participation', 'Participation') },
       ]
     }] : []),
     ...adminSchedulingSections,
@@ -581,9 +582,9 @@ const SideDrawer = ({ isOpen, onClose }) => {
       label: nl('attendance', 'Attendance'),
       icon: getThemedIcon('ui', 'qr_code', 18, theme),
       children: [
-        { id: 'attendance-admin', path: '/attendance', icon: getThemedIcon('ui', 'qr_code', 18, theme), label: nl('attendance', 'Attendance') },
-        { id: 'qr-scanner', path: '/qr-scanner', icon: getThemedIcon('ui', 'qr_code', 18, theme), label: nl('daily_scan', 'Daily Scan') },
-        { id: 'hr-attendance', path: '/hr-attendance', icon: getThemedIcon('ui', 'qr_code', 18, theme), label: nl('hr_attendance', 'HR Attendance') },
+        { id: 'attendance-admin', path: '/attendance', screenId: 'attendance', icon: getThemedIcon('ui', 'qr_code', 18, theme), label: nl('attendance', 'Attendance') },
+        { id: 'qr-scanner', path: '/qr-scanner', screenId: 'qr-scanner', icon: getThemedIcon('ui', 'qr_code', 18, theme), label: nl('daily_scan', 'Daily Scan') },
+        { id: 'hr-attendance', path: '/hr-attendance', screenId: 'hr-attendance', icon: getThemedIcon('ui', 'qr_code', 18, theme), label: nl('hr_attendance', 'HR Attendance') },
       ]
     },
     {
@@ -591,8 +592,8 @@ const SideDrawer = ({ isOpen, onClose }) => {
       label: nl('drive', 'Drive'),
       icon: getThemedIcon('ui', 'hard_drive', 18, theme),
       children: [
-        { id: 'smart-drive', path: '/smart-drive', icon: getThemedIcon('ui', 'hard_drive', 18, theme), label: nl('smart_drive', 'Smart Drive') },
-        { id: 'workflow-inbox', path: '/workflow/inbox', icon: getThemedIcon('ui', 'list', 18, theme), label: nl('workflow_inbox', 'Workflow Inbox') },
+        { id: 'smart-drive', path: '/smart-drive', screenId: 'drive', icon: getThemedIcon('ui', 'hard_drive', 18, theme), label: nl('smart_drive', 'Smart Drive') },
+        { id: 'workflow-inbox', path: '/workflow/inbox', screenId: 'workflow', icon: getThemedIcon('ui', 'list', 18, theme), label: nl('workflow_inbox', 'Workflow Inbox') },
       ]
     },
     {
@@ -600,8 +601,8 @@ const SideDrawer = ({ isOpen, onClose }) => {
       label: nl('analytics', 'Analytics'),
       icon: getThemedIcon('ui', 'bar_chart3', 18, theme),
       children: [
-        { id: 'analytics-dashboards', path: '/analytics', icon: getThemedIcon('ui', 'bar_chart3', 18, theme), label: nl('dashboards', 'Dashboards') },
-        { id: 'advanced-analytics', path: '/advanced-analytics', icon: getThemedIcon('ui', 'bar_chart3', 18, theme), label: nl('advanced', 'Advanced') },
+        { id: 'analytics-dashboards', path: '/analytics', screenId: 'analytics', icon: getThemedIcon('ui', 'bar_chart3', 18, theme), label: nl('dashboards', 'Dashboards') },
+        { id: 'advanced-analytics', path: '/advanced-analytics', screenId: 'advanced-analytics', icon: getThemedIcon('ui', 'bar_chart3', 18, theme), label: nl('advanced', 'Advanced') },
       ]
     },
     ...(isSuperAdmin ? [{
@@ -716,8 +717,13 @@ const SideDrawer = ({ isOpen, onClose }) => {
       // Items with 'key' instead of 'path' are not checked against permissions
       if (item.key && !item.path) return true;
       
-      // Check if user can access this screen
-      return checkScreenAccess(item.path);
+      // Check if user can access this screen (path, hash, or explicit screenId)
+      const screenKey = item.screenId || resolveScreenIdFromNavItem({
+        path: item.path,
+        hash: item.hash,
+        search: item.search,
+      });
+      return checkScreenAccess(screenKey);
     });
   };
 

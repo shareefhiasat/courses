@@ -11,6 +11,21 @@ import {
   updateClassroomAvailability,
   deleteClassroomAvailability
 } from '../db/classroom-availability-postgres.js';
+import { validateClassroomAvailabilityChange } from '../services/availabilityGuardService.js';
+
+/**
+ * POST /api/v1/classroom-availability/validate-change
+ * Preview whether an availability edit/delete would orphan sessions
+ */
+export const validateClassroomAvailabilityChangeController = async (req, res) => {
+  try {
+    const result = await validateClassroomAvailabilityChange(req.body);
+    res.status(200).json({ success: true, ...result });
+  } catch (error) {
+    console.error('Error in validateClassroomAvailabilityChangeController:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+};
 
 /**
  * GET /api/v1/classroom-availability

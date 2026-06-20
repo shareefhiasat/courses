@@ -60,10 +60,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Atten
       onChange={onChange}
       options={options}
       fullWidth={fullWidth}
-      placeholder={placeholder || getLocalizedLabel(
-        t('all_attendance_types'),
-        t('all_attendance_types_ar')
-      )}
+      placeholder={placeholder || t('all_attendance_types') || 'All Attendance Types'}
       disabled={disabled}
     />
   );

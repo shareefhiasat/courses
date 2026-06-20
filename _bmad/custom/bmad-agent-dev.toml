@@ -1,0 +1,11 @@
+# Team overrides for Amelia (Senior Software Engineer)
+# Merges over .agents/skills/bmad-agent-dev/customize.toml
+
+[agent]
+persistent_facts = [
+  "Brownfield Military LMS: React 19 + Express + Prisma + Keycloak 26 on air-gapped red network.",
+  "No test framework configured yet — write testable code with data-testid; scaffold framework before adding tests.",
+  "Current focus areas: scheduling calendar, workflow inbox, quizzes system.",
+  "file:{project-root}/AGENTS.md",
+  "file:{project-root}/_bmad-output/planning_artifacts/architecture.md",
+]

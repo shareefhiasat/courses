@@ -18,8 +18,10 @@ import {
   getClassStatsController,
   getParticipationsByActivityController
 } from '../controllers/participations.js';
+import { screenOps } from '../middleware/requirePermission.js';
 
 const router = Router();
+const ops = screenOps('participation');
 
 /**
  * @swagger
@@ -130,7 +132,7 @@ const router = Router();
  *                   type: integer
  *                   example: 10
  */
-router.get('/', getAllParticipationsController);
+router.get('/', ops.view, getAllParticipationsController);
 
 /**
  * @swagger
@@ -187,7 +189,7 @@ router.get('/', getAllParticipationsController);
  *                           totalPoints:
  *                             type: integer
  */
-router.get('/stats', getStudentStatsController);
+router.get('/stats', ops.view, getStudentStatsController);
 
 /**
  * @swagger
@@ -244,7 +246,7 @@ router.get('/stats', getStudentStatsController);
  *                           totalPoints:
  *                             type: integer
  */
-router.get('/class-stats', getClassStatsController);
+router.get('/class-stats', ops.view, getClassStatsController);
 
 /**
  * @swagger
@@ -275,7 +277,7 @@ router.get('/class-stats', getClassStatsController);
  *       404:
  *         description: Participation not found
  */
-router.get('/:id', getParticipationByIdController);
+router.get('/:id', ops.view, getParticipationByIdController);
 
 /**
  * @swagger
@@ -331,7 +333,7 @@ router.get('/:id', getParticipationByIdController);
  *       400:
  *         description: Invalid input
  */
-router.post('/', createParticipationController);
+router.post('/', ops.create, createParticipationController);
 
 /**
  * @swagger
@@ -384,7 +386,7 @@ router.post('/', createParticipationController);
  *       404:
  *         description: Participation not found
  */
-router.put('/:id', updateParticipationController);
+router.put('/:id', ops.update, updateParticipationController);
 
 /**
  * @swagger
@@ -416,7 +418,7 @@ router.put('/:id', updateParticipationController);
  *       404:
  *         description: Participation not found
  */
-router.delete('/:id', deleteParticipationController);
+router.delete('/:id', ops.delete, deleteParticipationController);
 
 /**
  * @swagger
@@ -447,7 +449,7 @@ router.delete('/:id', deleteParticipationController);
  *                   items:
  *                     $ref: '#/components/schemas/Participation'
  */
-router.get('/student/:studentId', getParticipationsByStudentController);
+router.get('/student/:studentId', ops.view, getParticipationsByStudentController);
 
 /**
  * @swagger
@@ -478,7 +480,7 @@ router.get('/student/:studentId', getParticipationsByStudentController);
  *                   items:
  *                     $ref: '#/components/schemas/Participation'
  */
-router.get('/class/:classId', getParticipationsByClassController);
+router.get('/class/:classId', ops.view, getParticipationsByClassController);
 
 /**
  * @swagger
@@ -509,7 +511,7 @@ router.get('/class/:classId', getParticipationsByClassController);
  *                   items:
  *                     $ref: '#/components/schemas/Participation'
  */
-router.get('/activity/:activityId', getParticipationsByActivityController);
+router.get('/activity/:activityId', ops.view, getParticipationsByActivityController);
 
 /**
  * @swagger
@@ -566,6 +568,6 @@ router.get('/activity/:activityId', getParticipationsByActivityController);
  *                           totalPoints:
  *                             type: integer
  */
-router.get('/class-stats', getClassStatsController);
+router.get('/class-stats', ops.view, getClassStatsController);
 
 export default router;

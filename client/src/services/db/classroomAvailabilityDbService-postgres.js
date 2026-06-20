@@ -92,7 +92,13 @@ const updateClassroomAvailability = async (id, data) => {
     const result = await response.json();
     
     if (!response.ok) {
-      throw new Error(result.error || 'Failed to update classroom availability');
+      return {
+        success: false,
+        error: result.error || 'Failed to update classroom availability',
+        conflicts: result.conflicts,
+        code: result.code,
+        data: null
+      };
     }
     
     return {
@@ -123,7 +129,13 @@ const deleteClassroomAvailability = async (id) => {
     const result = await response.json();
     
     if (!response.ok) {
-      throw new Error(result.error || 'Failed to delete classroom availability');
+      return {
+        success: false,
+        error: result.error || 'Failed to delete classroom availability',
+        conflicts: result.conflicts,
+        code: result.code,
+        data: null
+      };
     }
     
     return {
@@ -140,9 +152,24 @@ const deleteClassroomAvailability = async (id) => {
   }
 };
 
+const validateClassroomAvailabilityChange = async (data) => {
+  try {
+    const response = await fetch(`${API_BASE}/validate-change`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data)
+    });
+    return await response.json();
+  } catch (err) {
+    error(`${serviceName}:validateClassroomAvailabilityChange:error`, { error: err.message });
+    return { success: false, error: err.message };
+  }
+};
+
 export default {
   getClassroomAvailabilities,
   createClassroomAvailability,
   updateClassroomAvailability,
-  deleteClassroomAvailability
+  deleteClassroomAvailability,
+  validateClassroomAvailabilityChange
 };

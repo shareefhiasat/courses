@@ -59,6 +59,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Import Keycloak authentication middleware
 import { keycloakAuth } from "./middleware/keycloakAuth.js";
+import { attachDataScope } from "./middleware/attachDataScope.js";
 
 // Import WOPI router for Collabora (needs to be before global auth)
 import { wopiRouter } from "./routes/driveNew.js";
@@ -89,6 +90,7 @@ app.use(`/api/v1/public`, publicLinksRoutes);
 // Apply Keycloak authentication to all API routes
 // This will verify JWT tokens and extract user information
 app.use("/api", keycloakAuth([])); // No specific roles required for basic access
+app.use("/api", attachDataScope);
 
 // ==================== SWAGGER SETUP ====================
 
@@ -353,6 +355,7 @@ import classroomAvailabilityRoutes from "./routes/classroom-availability.js";
 import scheduledSessionRoutes from "./controllers/scheduled-session.js";
 import instructorHistoryRoutes from "./routes/instructor-history.js";
 import userCategoryAccessRoutes from "./controllers/user-category-access.js";
+import meRoutes from "./routes/me.js";
 import quizRoutes from "./routes/quizzes.js";
 import workflowDocumentRoutes from "./routes/workflow-documents.js";
 import weeklySummaryRoutes from "./routes/weekly-summary.js";
@@ -382,6 +385,7 @@ app.use(`/api/${API_VERSION}/attendance`, attendanceRoutes);
 app.use(`/api/${API_VERSION}/standup-attendance`, standupAttendanceRoutes);
 app.use(`/api/${API_VERSION}/lookup`, lookupRoutes);
 app.use(`/api/${API_VERSION}/permissions`, permissionsRoutes);
+app.use(`/api/${API_VERSION}/me`, meRoutes);
 app.use(`/api/${API_VERSION}/user-images`, userImagesRoutes);
 
 app.use(`/api/${API_VERSION}/drive`, driveRoutes);

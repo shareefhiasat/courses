@@ -8,8 +8,10 @@ import {
   getAllStudentMarksReport,
   getStudentMarksHistory
 } from '../controllers/marks.js';
+import { screenOps } from '../middleware/requirePermission.js';
 
 const router = express.Router();
+const ops = screenOps('marks-entry');
 
 /**
  * @swagger
@@ -37,7 +39,7 @@ const router = express.Router();
  *       500:
  *         description: Server error
  */
-router.get('/distribution/:subjectId', getMarksDistribution);
+router.get('/distribution/:subjectId', ops.view, getMarksDistribution);
 
 /**
  * @swagger
@@ -81,7 +83,7 @@ router.get('/distribution/:subjectId', getMarksDistribution);
  *       500:
  *         description: Server error
  */
-router.put('/distribution/:subjectId', setMarksDistribution);
+router.put('/distribution/:subjectId', ops.update, setMarksDistribution);
 
 /**
  * @swagger
@@ -107,7 +109,7 @@ router.put('/distribution/:subjectId', setMarksDistribution);
  *       500:
  *         description: Server error
  */
-router.get('/students/:subjectId', getStudentMarks);
+router.get('/students/:subjectId', ops.view, getStudentMarks);
 
 /**
  * @swagger
@@ -158,7 +160,7 @@ router.get('/students/:subjectId', getStudentMarks);
  *       500:
  *         description: Server error
  */
-router.put('/students/:userId/:subjectId/:classId', updateStudentMarks);
+router.put('/students/:userId/:subjectId/:classId', ops.update, updateStudentMarks);
 
 /**
  * @swagger
@@ -213,7 +215,7 @@ router.put('/students/:userId/:subjectId/:classId', updateStudentMarks);
  *       500:
  *         description: Server error
  */
-router.put('/students/batch/:subjectId/:classId', batchUpdateStudentMarks);
+router.put('/students/batch/:subjectId/:classId', ops.update, batchUpdateStudentMarks);
 
 /**
  * @swagger
@@ -259,7 +261,7 @@ router.put('/students/batch/:subjectId/:classId', batchUpdateStudentMarks);
  *       500:
  *         description: Server error
  */
-router.get('/report', getAllStudentMarksReport);
+router.get('/report', ops.view, getAllStudentMarksReport);
 
 /**
  * @swagger
@@ -292,6 +294,6 @@ router.get('/report', getAllStudentMarksReport);
  *       500:
  *         description: Server error
  */
-router.get('/history/:userId/:subjectId/:classId', getStudentMarksHistory);
+router.get('/history/:userId/:subjectId/:classId', ops.view, getStudentMarksHistory);
 
 export default router;

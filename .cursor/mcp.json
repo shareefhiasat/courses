@@ -1,0 +1,33 @@
+{
+  "mcpServers": {
+    "postgres": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-postgres",
+        "postgresql://military_lms:military_lms123@localhost:5432/military_lms"
+      ]
+    },
+    "docker": {
+      "command": "npx",
+      "args": ["-y", "@modelcontextprotocol/server-docker"]
+    },
+    "prisma": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-prisma",
+        "--schema-path",
+        "client/prisma/schema.prisma"
+      ]
+    },
+    "git": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-git",
+        "."
+      ]
+    }
+  }
+}

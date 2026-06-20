@@ -6,6 +6,7 @@
  */
 
 import programBusinessService from '../services/programs.js';
+import { applyListScope } from '../utils/applyListScope.js';
 
 /**
  * Get all programs
@@ -16,7 +17,7 @@ import programBusinessService from '../services/programs.js';
 export const getProgramsController = async (req, res) => {
   try {
     console.log('[Controller] Getting programs with query:', req.query);
-    const result = await programBusinessService.getAllPrograms(req.query);
+    const result = await applyListScope(req, await programBusinessService.getAllPrograms(req.query), 'program');
     
     if (result.success) {
       res.status(200).json(result);

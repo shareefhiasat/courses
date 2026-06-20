@@ -14,6 +14,7 @@ import {
   getQuizzesByCreator,
   getQuizStats
 } from '../db/quizzes-postgres.js';
+import { filterQuizzesByScope } from '../utils/quizScope.js';
 
 /**
  * Get all quizzes
@@ -31,6 +32,12 @@ export const getAllQuizzesController = async (req, res) => {
       sortBy,
       sortOrder
     });
+
+    if (result.success && req.user) {
+      result.data = await filterQuizzesByScope(req, result.data || []);
+      result.total = result.data.length;
+      result.totalPages = Math.ceil(result.data.length / (parseInt(limit) || 50));
+    }
     
     if (result.success) {
       res.json(result);

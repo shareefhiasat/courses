@@ -17,7 +17,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';
 import { LOCAL_STORAGE_KEYS } from '../constants/chatConstants';
 import { getChatType, getChatId } from '../utils/chatHelpers';
 
-export const useChatSubscriptions = (user, isAdmin, state, actions) => {
+export const useChatSubscriptions = (user, isAdmin, isHR, isInstructor, isSuperAdmin, state, actions) => {
   const location = useLocation();
   
   const {
@@ -92,17 +92,21 @@ export const useChatSubscriptions = (user, isAdmin, state, actions) => {
     const setupClassesSubscription = async () => {
       try {
         let ids = new Set();
-        if (!isAdmin) {
-          // Student: get enrolled classes
+
+        if (isSuperAdmin || isHR || isAdmin || isInstructor) {
+          const classesResult = await getClasses();
+          if (classesResult.success) {
+            (classesResult.data || []).forEach((cls) => ids.add(cls.docId || cls.id));
+          }
+        } else {
           const enrollmentsResult = await getEnrollments();
           const allEnr = enrollmentsResult.success ? (enrollmentsResult.data || []) : [];
-          const byUid = allEnr.filter(e => e.userId === user.uid);
+          const byUid = allEnr.filter((e) => e.userId === user.uid);
           let mine = byUid;
           if (mine.length === 0 && user.email) {
-            const byEmail = allEnr.filter(e => (e.userEmail || e.email) === user.email);
-            mine = byEmail;
+            mine = allEnr.filter((e) => (e.userEmail || e.email) === user.email);
           }
-          ids = new Set(mine.map(e => e.classId));
+          ids = new Set(mine.map((e) => e.classId));
           if (ids.size === 0) {
             try {
               const me = await getUserProfile(user);
@@ -130,7 +134,7 @@ export const useChatSubscriptions = (user, isAdmin, state, actions) => {
               loadClassMembers(all[0].docId);
             }
           }
-        }, isAdmin, user.uid, ids);
+        }, isSuperAdmin || isHR, user.uid, ids);
         unsubs.push(unsub);
         
         // Sync membership
@@ -155,7 +159,7 @@ export const useChatSubscriptions = (user, isAdmin, state, actions) => {
     unsubs.push(unsub);
     
     return () => unsubs.forEach(u => u());
-  }, [user, isAdmin, loadClassMembers, selectedClass, userHasInteracted, setSelectedClass, setSelectedClassName, setClasses, setDirectRooms, setLoading]);
+  }, [user, isAdmin, isHR, isInstructor, isSuperAdmin, loadClassMembers, selectedClass, userHasInteracted, setSelectedClass, setSelectedClassName, setClasses, setDirectRooms, setLoading]);
 
   // Load all users once for DM labels
   useEffect(() => {

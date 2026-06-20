@@ -14,6 +14,7 @@ import {
   getBehaviorsByStudent,
   getBehaviorsByClass
 } from '../services/behaviors.js';
+import { applyListScope } from '../utils/applyListScope.js';
 
 /**
  * GET /api/v1/behaviors
@@ -35,7 +36,7 @@ export const getAllBehaviorsController = async (req, res) => {
       sortOrder: sortOrder || 'desc'
     };
     
-    const result = await getAllBehaviors(params, req.user);
+    const result = await applyListScope(req, await getAllBehaviors(params, req.user), 'classLinked');
     
     if (result.success) {
       res.status(200).json({

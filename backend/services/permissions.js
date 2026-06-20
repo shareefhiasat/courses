@@ -155,35 +155,39 @@ export const permissionsService = {
   },
   
   /**
-   * Check if a role has a specific permission
+   * Check if a role has a specific permission (by screenId + operationKey or full operationKey).
    */
   async checkPermission(role, screenId, operationKey) {
+    const key = operationKey.includes('.') ? operationKey : `${screenId}.${operationKey}`;
+    return this.checkPermissionForRoles([role], key);
+  },
+
+  /**
+   * Union check: allowed if any of the user's roles grants the operation.
+   * @param {string[]} roles
+   * @param {string} operationKey - e.g. "qr-scanner.canMarkAttendance"
+   */
+  async checkPermissionForRoles(roles = [], operationKey) {
     try {
-      const screen = await prisma.screen.findUnique({
-        where: { screenId },
+      const uniqueRoles = [...new Set((roles || []).map((r) => String(r).toLowerCase()))];
+      if (uniqueRoles.length === 0) return false;
+
+      const operation = await prisma.operation.findFirst({
+        where: { operationKey, isActive: true },
         include: {
-          operations: {
-            where: { operationKey },
-            include: {
-              rolePermissions: {
-                where: { role }
-              }
-            }
-          }
-        }
+          rolePermissions: {
+            where: { role: { in: uniqueRoles } },
+          },
+        },
       });
-      
-      if (!screen || !screen.operations[0]) {
-        return false;
-      }
-      
-      const permission = screen.operations[0].rolePermissions[0];
-      return permission ? permission.allowed : false;
+
+      if (!operation) return false;
+      return operation.rolePermissions.some((p) => p.allowed);
     } catch (error) {
       console.error('Error checking permission:', error);
       return false;
     }
-  }
+  },
 };
 
 export default permissionsService;

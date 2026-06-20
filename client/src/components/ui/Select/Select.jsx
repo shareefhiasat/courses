@@ -215,7 +215,8 @@ const Select = forwardRef(({
   // Get selected option label
   // Use loose equality (==) to handle string/number type mismatches
   // e.g., when value is "1" (string) and opt.value is 1 (number)
-  const selectedOption = options.find(opt => opt.value == value);
+  const hasValue = value !== '' && value !== null && value !== undefined;
+  const selectedOption = hasValue ? options.find(opt => opt.value == value) : null;
   const displayValue = selectedOption
     ? (selectedOption.displayLabel ??
         (typeof selectedOption.label === 'string'
@@ -366,13 +367,13 @@ const Select = forwardRef(({
           }}
         >
           <div className={styles.selectContent}>
-            <span className={!value ? styles.placeholder : ''} style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, overflow: 'hidden' }}>
+            <span className={!hasValue ? styles.placeholder : ''} style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, overflow: 'hidden' }}>
               {selectedOption?.icon && <span style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>{selectedOption.icon}</span>}
               <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{displayValue}</span>
             </span>
           </div>
           <div className={styles.icons}>
-            {value && !disabled && (
+            {hasValue && !disabled && (
               <button
                 className={styles.clearIcon}
                 onClick={handleClear}

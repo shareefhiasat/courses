@@ -8,6 +8,7 @@ import { Container, Card, CardBody, Button, Select, Badge, useToast, AdvancedDat
 import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { getPrograms, getSubjects } from '@services/business/programService';
 import { getClasses } from '@services/business/classService';
+import { getEnrollments } from '@services/business/enrollmentService';
 import { 
   getQuizResults, 
   getQuizResultsByUser, 
@@ -72,80 +73,35 @@ const QuizResultsPage = () => {
     setLoading(true);
     try {
       // Load programs, subjects, classes with permission filtering
-      const [programsRes, subjectsRes, classesRes] = await Promise.all([
+      const [programsRes, subjectsRes, classesRes, quizzesResult] = await Promise.all([
         getPrograms(),
         getSubjects(),
-        getClasses()
+        getClasses(),
+        getQuizzes(),
       ]);
 
-      let programsData = programsRes.success ? (programsRes.data || []) : [];
-      let subjectsData = subjectsRes.success ? (subjectsRes.data || []) : [];
-      let classesData = classesRes.success ? (classesRes.data || []) : [];
-
-      // Filter for instructors: only show classes they have access to
-      if (isInstructor && !isAdmin && !isSuperAdmin) {
-        // Filter classes by instructorId or ownerEmail
-        classesData = classesData.filter(c => 
-          c.instructorId === user.uid || 
-          c.ownerEmail === user.email ||
-          c.instructor === user.email
-        );
-        
-        // Get unique subject IDs from accessible classes
-        const accessibleSubjectIds = new Set(classesData.map(c => c.subjectId).filter(Boolean));
-        subjectsData = subjectsData.filter(s => accessibleSubjectIds.has(s.docId || s.id));
-        
-        // Get unique program IDs from accessible subjects
-        const accessibleProgramIds = new Set(subjectsData.map(s => s.programId).filter(Boolean));
-        programsData = programsData.filter(p => accessibleProgramIds.has(p.docId || p.id));
-      }
+      const programsData = programsRes.success ? (programsRes.data || []) : [];
+      const subjectsData = subjectsRes.success ? (subjectsRes.data || []) : [];
+      const classesData = classesRes.success ? (classesRes.data || []) : [];
+      const quizzesData = quizzesResult.success ? quizzesResult.data : [];
 
       setPrograms(programsData);
       setSubjects(subjectsData);
       setClasses(classesData);
-
-      // Load quizzes - filter by accessible classes for instructors
-      const quizzesResult = await getQuizzes();
-      let quizzesData = quizzesResult.success ? quizzesResult.data : [];
-      
-      // Filter quizzes for instructors
-      if (isInstructor && !isAdmin && !isSuperAdmin) {
-        const accessibleClassIds = new Set(classesData.map(c => c.id || c.docId));
-        quizzesData = quizzesData.filter(q => 
-          !q.classId || accessibleClassIds.has(q.classId)
-        );
-      }
-      
       setQuizzes(quizzesData);
 
-      // Load students - filter by accessible classes for instructors
-      if (isInstructor && !isAdmin && !isSuperAdmin) {
-        // Get students from enrollments in accessible classes
-        const accessibleClassIds = classesData.map(c => c.id || c.docId);
+      if (isHR || isAdmin || isSuperAdmin) {
+        const usersResult = await getUsers();
+        const studentsData = usersResult.success ? usersResult.data.filter((u) => u.role === 'student') : [];
+        setStudents(studentsData);
+      } else {
         const enrollmentsResult = await getEnrollments();
         const enrollmentsData = enrollmentsResult.success ? enrollmentsResult.data : [];
-        const filteredEnrollments = enrollmentsData.filter(e => 
-          accessibleClassIds.slice(0, 10).includes(e.classId)
-        );
-        const studentIds = new Set(filteredEnrollments.map(e => e.userId).filter(Boolean));
-        const studentsData = await Promise.all(
-          Array.from(studentIds).slice(0, 50).map(async (studentId) => {
-            try {
-              const usersResult = await getUsers();
-              if (usersResult.success) {
-                return usersResult.data.find(u => (u.docId || u.id) === studentId);
-              }
-            } catch (err) {
-              warn('Failed to load student:', studentId, err);
-            }
-            return null;
-          })
-        );
-        setStudents(studentsData.filter(Boolean));
-      } else {
-        // Admin/HR: load all students
+        const studentIds = new Set(enrollmentsData.map((e) => e.userId).filter(Boolean));
         const usersResult = await getUsers();
-        const studentsData = usersResult.success ? usersResult.data.filter(user => user.role === 'student') : [];
+        const studentsData = usersResult.success
+          ? usersResult.data.filter((u) => studentIds.has(u.docId || u.id))
+          : [];
         setStudents(studentsData);
       }
     } catch (error) {

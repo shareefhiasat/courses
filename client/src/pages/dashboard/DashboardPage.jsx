@@ -59,7 +59,7 @@ const ClassroomsManagementPage = lazy(() => import('../ClassroomsManagementPage.
 const UserCategoryAccessPage = lazy(() => import('../UserCategoryAccessPage.jsx'));
 
 const DashboardPage = () => {
-  const { user, isAdmin, isSuperAdmin, isInstructor, loading: authLoading } = useAuth();
+  const { user, isAdmin, isSuperAdmin, isInstructor, isHR, loading: authLoading } = useAuth();
   const { lang, t } = useLang();
   const { theme } = useTheme();
   const { startLoading } = useGlobalLoading();
@@ -425,14 +425,14 @@ const DashboardPage = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.hash, location.search]);
   useEffect(() => {
-    if (!authLoading && (!user || !(isAdmin || isSuperAdmin || isInstructor))) {
+    if (!authLoading && (!user || !(isAdmin || isSuperAdmin || isInstructor || isHR))) {
       navigate('/');
     }
-  }, [user, isAdmin, isSuperAdmin, isInstructor, authLoading, navigate]);
+  }, [user, isAdmin, isSuperAdmin, isInstructor, isHR, authLoading, navigate]);
   if (authLoading) {
     return <GlobalLoadingFallback />;
   }
-  if (!user || !(isAdmin || isSuperAdmin)) {
+  if (!user || !(isAdmin || isSuperAdmin || isInstructor || isHR)) {
     return (
       <div className="dashboard-page">
         <div className="access-denied">
@@ -441,10 +441,6 @@ const DashboardPage = () => {
         </div>
     </div>
     );
-  }
-  // Auth loading check with GlobalLoading
-  if (authLoading) {
-    return <GlobalLoadingFallback />;
   }
 
   return (

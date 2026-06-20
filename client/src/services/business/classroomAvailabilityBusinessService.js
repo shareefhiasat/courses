@@ -176,7 +176,9 @@ const updateClassroomAvailability = async (id, data) => {
     return {
       success: result.success,
       data: result.data,
-      error: result.success ? undefined : result.error
+      error: result.success ? undefined : result.error,
+      conflicts: result.conflicts,
+      code: result.code
     };
   } catch (error) {
     error(`${serviceName}:updateClassroomAvailability:error`, { error: error.message, id, data });
@@ -205,7 +207,9 @@ const deleteClassroomAvailability = async (id) => {
     return {
       success: result.success,
       data: result.data,
-      error: result.success ? undefined : result.error
+      error: result.success ? undefined : result.error,
+      conflicts: result.conflicts,
+      code: result.code
     };
   } catch (error) {
     error(`${serviceName}:deleteClassroomAvailability:error`, { error: error.message, id });
@@ -217,9 +221,19 @@ const deleteClassroomAvailability = async (id) => {
   }
 };
 
+const validateClassroomAvailabilityChange = async (data) => {
+  try {
+    return await classroomAvailabilityDbService.validateClassroomAvailabilityChange(data);
+  } catch (error) {
+    error(`${serviceName}:validateClassroomAvailabilityChange:error`, { error: error.message });
+    return { success: false, error: error.message };
+  }
+};
+
 export default {
   getAllClassroomAvailabilities,
   createClassroomAvailability,
   updateClassroomAvailability,
-  deleteClassroomAvailability
+  deleteClassroomAvailability,
+  validateClassroomAvailabilityChange
 };

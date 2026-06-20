@@ -1,0 +1,34 @@
+---
+description: BMAD Method agent routing for Amelia (dev) and Winston (architect)
+alwaysApply: true
+---
+
+# BMAD Method — Cursor Integration
+
+## Agent personas (invoke via skills)
+
+| Agent | Skill | When to use |
+|-------|-------|-------------|
+| Amelia (Dev) | `bmad-agent-dev` | Story implementation, TDD, code review, quick dev |
+| Winston (Architect) | `bmad-agent-architect` | Architecture decisions, implementation readiness |
+| John (PM) | `bmad-agent-pm` | PRDs, epics, stories |
+| Mary (Analyst) | `bmad-agent-analyst` | Discovery, research |
+| Sally (UX) | `bmad-agent-ux-designer` | UX design specs |
+
+## Key workflows
+
+- **Implement story**: `bmad-dev-story` (Amelia menu `DS`)
+- **Quick fix/feature**: `bmad-quick-dev` (Amelia menu `QD`)
+- **Create architecture**: `bmad-create-architecture` (Winston menu `CA`)
+- **Readiness check**: `bmad-check-implementation-readiness` (Winston menu `IR`)
+- **Unsure what next**: `bmad-help`
+
+## Config
+
+- BMAD config: `_bmad/bmm/config.yaml`
+- Team overrides: `_bmad/custom/*.toml`
+- Skills live in `.agents/skills/` (symlinked to `.cursor/skills/`)
+
+## Infrastructure skills
+
+`docker-manage`, `postgres-manage`, `keycloak-manage`, `minio-manage`, `start-app` — use when working on dev environment or infra.

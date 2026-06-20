@@ -14,8 +14,10 @@ import {
   deleteSubjectController,
   getSubjectsByProgramController
 } from '../controllers/subjects.js';
+import { screenOps } from '../middleware/requirePermission.js';
 
 const router = Router();
+const ops = screenOps('subjects');
 
 /**
  * @swagger
@@ -154,7 +156,7 @@ const router = Router();
  *                   type: integer
  *                   example: 2
  */
-router.get('/', getAllSubjectsController);
+router.get('/', ops.view, getAllSubjectsController);
 
 /**
  * @swagger
@@ -274,7 +276,7 @@ router.get('/requirement-types', (req, res) => {
  *       404:
  *         description: Subject not found
  */
-router.get('/:id', getSubjectByIdController);
+router.get('/:id', ops.view, getSubjectByIdController);
 
 /**
  * @swagger
@@ -334,7 +336,7 @@ router.get('/:id', getSubjectByIdController);
  *       400:
  *         description: Bad request - validation error
  */
-router.post('/', createSubjectController);
+router.post('/', ops.create, createSubjectController);
 
 /**
  * @swagger
@@ -397,7 +399,7 @@ router.post('/', createSubjectController);
  *       404:
  *         description: Subject not found
  */
-router.put('/:id', updateSubjectController);
+router.put('/:id', ops.update, updateSubjectController);
 
 /**
  * @swagger
@@ -438,7 +440,7 @@ router.put('/:id', updateSubjectController);
  *       400:
  *         description: Cannot delete subject with dependencies
  */
-router.delete('/:id', deleteSubjectController);
+router.delete('/:id', ops.delete, deleteSubjectController);
 
 /**
  * @swagger
@@ -504,6 +506,6 @@ router.delete('/:id', deleteSubjectController);
  *                   type: integer
  *                   example: 1
  */
-router.get('/program/:programId', getSubjectsByProgramController);
+router.get('/program/:programId', ops.view, getSubjectsByProgramController);
 
 export default router;

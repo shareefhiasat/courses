@@ -62,7 +62,7 @@ import MessageBubbleWrapper from './components/MessageBubbleWrapper';
 import { useChatActions } from './hooks/useChatActions';
 
 const ChatPage = memo(() => {
-  const { user, isAdmin, isSuperAdmin, loading: authLoading } = useAuth();
+  const { user, isAdmin, isSuperAdmin, isHR, isInstructor, loading: authLoading } = useAuth();
   const { t, lang } = useLang();
   const { theme } = useTheme();
   const toast = useToast();
@@ -621,46 +621,27 @@ const ChatPage = memo(() => {
     const setupClassesSubscription = async () => {
       try {
         let ids = new Set();
-        
-        // Check if user is instructor for any classes (for all users including admins)
-        try {
-          info('Checking for instructor classes', { userId: user.uid, userEmail: user.email });
+
+        if (isSuperAdmin || isHR || isAdmin || isInstructor) {
           const classesResult = await getClasses();
           if (classesResult.success) {
-            const allClasses = classesResult.data || [];
-            info('Total classes fetched', { count: allClasses.length });
-            const instructorClasses = allClasses.filter(cls => 
-              cls.instructorId === user.uid || cls.ownerEmail === user.email || cls.createdBy === user.uid
-            );
-            instructorClasses.forEach(cls => ids.add(cls.docId));
-            info('Found instructor classes', { 
-              count: instructorClasses.length,
-              classIds: instructorClasses.map(c => ({ id: c.docId, name: c.name, instructorId: c.instructorId, ownerEmail: c.ownerEmail, createdBy: c.createdBy }))
-            });
-          } else {
-            error('Failed to fetch classes', { error: classesResult.error });
+            (classesResult.data || []).forEach((cls) => ids.add(cls.docId || cls.id));
           }
-        } catch (error) {
-          error('Error fetching instructor classes:', error);
-        }
-        
-        if (!isAdmin && !isSuperAdmin) {
-          // Student: get enrolled classes
+        } else {
+          // Student: enrolled classes (API already scoped to self)
           const enrollmentsResult = await getEnrollments();
           const allEnr = enrollmentsResult.success ? (enrollmentsResult.data || []) : [];
-          const byUid = allEnr.filter(e => e.userId === user.uid);
+          const byUid = allEnr.filter((e) => e.userId === user.uid);
           let mine = byUid;
           if (mine.length === 0 && user.email) {
-            const byEmail = allEnr.filter(e => (e.userEmail || e.email) === user.email);
-            mine = byEmail;
+            mine = allEnr.filter((e) => (e.userEmail || e.email) === user.email);
           }
-          mine.forEach(e => ids.add(e.classId));
-          
+          mine.forEach((e) => ids.add(e.classId));
           if (ids.size === 0) {
             try {
               const me = await getUserProfile(user);
               const enrolled = Array.isArray(me?.enrolledClasses) ? me.enrolledClasses : [];
-              enrolled.forEach(id => ids.add(id));
+              enrolled.forEach((id) => ids.add(id));
             } catch {}
           }
         }
@@ -687,7 +668,7 @@ const ChatPage = memo(() => {
               loadClassMembers(all[0].docId);
             }
           }
-        }, isAdmin, user.uid, ids);
+        }, isSuperAdmin || isHR, user.uid, ids);
         unsubs.push(unsub);
         
         // Sync membership
@@ -713,7 +694,7 @@ const ChatPage = memo(() => {
     unsubs.push(unsub);
     
     return () => unsubs.forEach(u => u());
-  }, [user, isAdmin, isSuperAdmin, authLoading, selectedClass]); // Remove loadClassMembers from dependencies
+  }, [user, isAdmin, isSuperAdmin, isHR, isInstructor, authLoading, selectedClass]); // Remove loadClassMembers from dependencies
 
   // Load all users once for DM labels
   useEffect(() => {

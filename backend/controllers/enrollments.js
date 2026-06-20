@@ -15,6 +15,7 @@ import {
   getEnrollmentsByClass,
   getEnrollmentsByProgram
 } from '../services/enrollments.js';
+import { applyListScope } from '../utils/applyListScope.js';
 
 /**
  * GET /api/v1/enrollments
@@ -25,7 +26,7 @@ export const getAllEnrollmentsController = async (req, res) => {
     console.log('🔍 [EnrollmentsController] getAllEnrollments - Query:', req.query);
     console.log('🔍 [EnrollmentsController] getAllEnrollments - User:', req.user);
     
-    const result = await getAllEnrollments(req.query, req.user);
+    const result = await applyListScope(req, await getAllEnrollments(req.query, req.user), 'enrollment');
     
     if (result.success) {
       res.status(200).json({
@@ -202,7 +203,7 @@ export const deleteEnrollmentController = async (req, res) => {
 export const getEnrollmentsByStudentController = async (req, res) => {
   try {
     const { studentId } = req.params;
-    const result = await getEnrollmentsByStudent(parseInt(studentId), req.query, req.user);
+    const result = await applyListScope(req, await getEnrollmentsByStudent(parseInt(studentId), req.query, req.user), 'enrollment');
     
     if (result.success) {
       res.status(200).json({
@@ -233,7 +234,7 @@ export const getEnrollmentsByStudentController = async (req, res) => {
 export const getEnrollmentsByClassController = async (req, res) => {
   try {
     const { classId } = req.params;
-    const result = await getEnrollmentsByClass(parseInt(classId), req.query, req.user);
+    const result = await applyListScope(req, await getEnrollmentsByClass(parseInt(classId), req.query, req.user), 'enrollment');
     
     if (result.success) {
       res.status(200).json({
@@ -264,11 +265,11 @@ export const getEnrollmentsByClassController = async (req, res) => {
 export const getStudentsByClassController = async (req, res) => {
   try {
     const { classId } = req.query;
-    const result = await getEnrollmentsByClass(
+    const result = await applyListScope(req, await getEnrollmentsByClass(
       classId ? parseInt(classId) : null,
       { ...req.query },
       req.user
-    );
+    ), 'enrollment');
 
     if (result.success) {
       res.status(200).json({
@@ -298,7 +299,7 @@ export const getStudentsByClassController = async (req, res) => {
 export const getEnrollmentsByProgramController = async (req, res) => {
   try {
     const { programId } = req.params;
-    const result = await getEnrollmentsByProgram(parseInt(programId), req.query, req.user);
+    const result = await applyListScope(req, await getEnrollmentsByProgram(parseInt(programId), req.query, req.user), 'enrollment');
     
     if (result.success) {
       res.status(200).json({

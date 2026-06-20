@@ -13,6 +13,11 @@ import {
   deleteSubject, 
   getSubjectsByProgram 
 } from '../services/subjects.js';
+import { applyListScope } from '../utils/applyListScope.js';
+
+function applySubjectScope(result, req) {
+  return applyListScope(req, result, 'subject');
+}
 
 /**
  * GET /api/v1/subjects
@@ -22,22 +27,23 @@ export const getAllSubjectsController = async (req, res) => {
   try {
     console.log('🔍 Subjects controller called with query:', req.query);
     const result = await getAllSubjects(req.query, req.user);
+    const scoped = await applySubjectScope(result, req);
     
     console.log('🔍 Subjects controller sending response:', {
-      success: result.success,
-      dataLength: result.data?.length,
-      firstSubject: result.data?.[0],
-      responseData: result.data
+      success: scoped.success,
+      dataLength: scoped.data?.length,
+      firstSubject: scoped.data?.[0],
+      responseData: scoped.data
     });
     
-    if (result.success) {
+    if (scoped.success) {
       res.status(200).json({
         success: true,
-        data: result.data,
-        total: result.total,
-        page: result.page,
-        limit: result.limit,
-        totalPages: result.totalPages
+        data: scoped.data,
+        total: scoped.total,
+        page: scoped.page,
+        limit: scoped.limit,
+        totalPages: scoped.totalPages
       });
     } else {
       res.status(400).json({
