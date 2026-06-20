@@ -7,7 +7,6 @@ import { Container } from '@ui';
 import { GlobalLoadingFallback } from '@/contexts/GlobalLoadingContext';
 import Navbar from '@ui/Navbar/Navbar';
 import VersionDisplay from '@ui/VersionDisplay/VersionDisplay';
-import LoginPrompt from '@components/LoginPrompt';
 import styles from './LoginPage.module.css';
 
 
@@ -183,8 +182,6 @@ const LoginPage = () => {
       <Navbar hideHamburger={true} />
       
       <Container maxWidth="sm" className={styles.formContainer}>
-        <LoginPrompt />
-        
         {/* Logout Reason Message - Moved to bottom */}
         {logoutReason && (
           <div style={{

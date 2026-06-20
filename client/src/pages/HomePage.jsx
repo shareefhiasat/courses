@@ -35,7 +35,6 @@ import { ActivityLogger } from '@services/other/activityLogger';
 import { Card, CardBody, Modal, EmptyState, Select } from '@ui';
 import { useToast } from '@ui';
 import UnifiedCard from '@components/UnifiedCard';
-import LoginPrompt from '@components/LoginPrompt';
 import { UnifiedFilterSection } from '@components/filters';
 import useBookmarks from '@hooks/useBookmarks';
 import './HomePage.css';
@@ -1270,7 +1269,7 @@ const HomePage = memo(() => {
   if (!user) {
     return (
       <div className="home-page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
-        <LoginPrompt />
+        <GlobalLoadingFallback />
       </div>
     );
   }
