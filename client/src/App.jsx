@@ -627,9 +627,9 @@ function App() {
   return (
     <ErrorBoundary>
       <KeycloakProvider>
-        <AuthProvider>
+        <LangProvider>
+          <AuthProvider>
           <ThemeProvider>
-            <LangProvider>
               <ColorThemeProvider>
                 <GlobalLoadingProvider>
                   <Router>
@@ -641,9 +641,9 @@ function App() {
                   </Router>
                 </GlobalLoadingProvider>
               </ColorThemeProvider>
-            </LangProvider>
           </ThemeProvider>
         </AuthProvider>
+        </LangProvider>
       </KeycloakProvider>
     </ErrorBoundary>
   );

@@ -7,6 +7,7 @@
 
 import { PrismaClient } from '@prisma/client';
 import { PRISMA_ERRORS, getPrismaErrorMessage, isPrismaError } from '../constants/prisma-errors.js';
+import { USER_NAME_SELECT_WITH_ID } from '../utils/userNameFields.js';
 
 const prisma = new PrismaClient();
 
@@ -92,11 +93,7 @@ export const getAllParticipations = async (params = {}, user = null) => {
         where,
         include: {
           user: {
-            select: {
-              id: true,
-              displayName: true,
-              email: true
-            }
+            select: USER_NAME_SELECT_WITH_ID
           },
           class: {
             select: {
@@ -114,18 +111,10 @@ export const getAllParticipations = async (params = {}, user = null) => {
             }
           },
           creator: {
-            select: {
-              id: true,
-              displayName: true,
-              email: true
-            }
+            select: USER_NAME_SELECT_WITH_ID
           },
           updater: {
-            select: {
-              id: true,
-              displayName: true,
-              email: true
-            }
+            select: USER_NAME_SELECT_WITH_ID
           }
         },
         orderBy,

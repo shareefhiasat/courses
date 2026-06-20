@@ -35,7 +35,7 @@ import { ActivityLogger } from '@services/other/activityLogger';
 import { Card, CardBody, Modal, EmptyState, Select } from '@ui';
 import { useToast } from '@ui';
 import UnifiedCard from '@components/UnifiedCard';
-import KeycloakLoginPrompt from '@components/KeycloakLoginPrompt';
+import LoginPrompt from '@components/LoginPrompt';
 import { UnifiedFilterSection } from '@components/filters';
 import useBookmarks from '@hooks/useBookmarks';
 import './HomePage.css';
@@ -1270,7 +1270,7 @@ const HomePage = memo(() => {
   if (!user) {
     return (
       <div className="home-page" style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
-        <KeycloakLoginPrompt />
+        <LoginPrompt />
       </div>
     );
   }
@@ -1304,7 +1304,7 @@ const HomePage = memo(() => {
               },
               {
                 value: MODE_TYPES.REVIEW,
-                label: (t('review_results') || 'Review Results').replace(/\b\w/g, l => l.toUpperCase()),
+                label: t('review_results') || 'Review Results',
                 icon: mode === MODE_TYPES.REVIEW ? getIconWithColor('ui', 'eye', 16, '#ffffff') : getIconWithColor('ui', 'eye', 16, primaryColor),
                 badge: mode === MODE_TYPES.REVIEW ? filteredReviewItems.length : reviewSubmissions.length
               }

@@ -114,7 +114,7 @@ const ActivityList = ({
                 )}
               </div>
               <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary, #374151)', flex: 1 }}>
-                {activity.studentName}
+                {lang === 'ar' ? (activity.studentNameAr || activity.studentName) : (activity.studentName || activity.studentNameAr)}
               </span>
               
               {canUseQuickActions && activity.studentId && activity.type === RECORD_TYPES.ATTENDANCE && (
@@ -200,6 +200,8 @@ const ActivityList = ({
                 <PerformedBy 
                   performedByName={activity.performedByName}
                   performedBy={activity.performedBy}
+                  user={activity.creator}
+                  lang={lang}
                 />
                 {(activity.comment || activity.scanMethod) && (
                   <div style={{ marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>

@@ -384,7 +384,7 @@ const ResourcesPage = () => {
   const gridColumns = useMemo(() => [
     { 
       field: 'titleEn', 
-      headerName: 'Title (EN)', 
+      headerName: t('title_en_col'), 
       flex: 1, 
       minWidth: 200,
       renderCell: (params) => {
@@ -394,7 +394,7 @@ const ResourcesPage = () => {
     },
     { 
       field: 'titleAr', 
-      headerName: 'Title (AR)', 
+      headerName: t('title_ar_col'), 
       flex: 1, 
       minWidth: 200,
       renderCell: (params) => {
@@ -404,7 +404,7 @@ const ResourcesPage = () => {
     },
     {
       field: 'url', 
-      headerName: 'Resource URL', 
+      headerName: t('resource_url'), 
       flex: 1, 
       minWidth: 250,
       renderCell: (params) => {
@@ -457,7 +457,7 @@ const ResourcesPage = () => {
     },
     {
       field: 'categoryId',
-      headerName: 'Category',
+      headerName: t('category'),
       width: 150,
       valueGetter: (params) => {
         const row = params?.row || {};
@@ -507,7 +507,7 @@ const ResourcesPage = () => {
         if (!normalizedProgramId) return (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', color: 'var(--color-success, #16a34a)' }}>
             {/*{getThemedIcon('ui', 'globe', 16, theme)} */}
-            Public
+            {t('public_label')}
           </span>
         );
         
@@ -587,7 +587,7 @@ const ResourcesPage = () => {
       }
     },
     {
-      field: 'optional', headerName: 'Optional', width: 100,
+      field: 'optional', headerName: t('optional'), width: 100,
       renderCell: (params) => (
         <span style={{ 
           color: params.value ? 'var(--color-success, #16a34a)' : 'var(--color-danger, #dc3545)',
@@ -601,7 +601,7 @@ const ResourcesPage = () => {
       )
     },
     {
-      field: 'featured', headerName: 'Featured', width: 100,
+      field: 'featured', headerName: t('featured'), width: 100,
       renderCell: (params) => (
         <span style={{ 
           color: params.value ? 'var(--color-warning, #ffc107)' : 'var(--text-muted, #6b7280)',
@@ -628,7 +628,7 @@ const ResourcesPage = () => {
       }
     },
     {
-      field: 'createdBy', headerName: 'Created By', width: 150,
+      field: 'createdBy', headerName: t('created_by'), width: 150,
       renderCell: (params) => {
         const createdBy = params.value || params.row?.createdBy;
         if (!createdBy) return 'Unknown';

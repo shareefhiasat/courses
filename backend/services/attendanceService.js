@@ -9,6 +9,7 @@ import { PrismaClient } from '@prisma/client';
 import notificationGateway from './notifications/index.js';
 import { EVENTS } from './notifications/constants.js';
 import { buildLocalizedNameFields, buildNotificationNameVars } from '../utils/localizedUserName.js';
+import { USER_NAME_SELECT_WITH_ID } from '../utils/userNameFields.js';
 
 const prisma = new PrismaClient();
 
@@ -102,11 +103,7 @@ export const getAllAttendance = async (params = {}) => {
             }
           },
           creator: {
-            select: {
-              id: true,
-              displayName: true,
-              email: true
-            }
+            select: USER_NAME_SELECT_WITH_ID
           }
         },
         orderBy: {
@@ -173,11 +170,7 @@ export const getAttendanceById = async (id) => {
           }
         },
         creator: {
-          select: {
-            id: true,
-            displayName: true,
-            email: true
-          }
+          select: USER_NAME_SELECT_WITH_ID
         }
       }
     });

@@ -13,9 +13,43 @@ import VersionDisplay from '@ui/VersionDisplay/VersionDisplay';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import { usePermissions } from '@hooks/usePermissions';
 
+const DASHBOARD_HASH_TABS = {
+  programs: 'programs',
+  subjects: 'subjects',
+  classes: 'classes',
+  users: 'users',
+  enrollments: 'manage-enrollments',
+  marks: 'marks',
+  penalty: 'penalty',
+  participation: 'participation',
+  behavior: 'behavior',
+  'user-category-access': 'user-category-access',
+  'instructor-availability': 'instructor-availability',
+  'classroom-availability': 'classroom-availability',
+};
+
 const SideDrawer = ({ isOpen, onClose }) => {
   const { user, isAdmin, isSuperAdmin, isHR, isInstructor, role, impersonating, stopImpersonation, logout } = useAuth();
   const { t, lang, toggleLang } = useLang();
+  const toInitCap = (text) => {
+    if (!text || lang === 'ar') return text;
+    const normalized = text === text.toUpperCase() && /[A-Z]/.test(text)
+      ? text.charAt(0) + text.slice(1).toLowerCase()
+      : text;
+    return normalized.replace(/\b[a-z]/g, (c) => c.toUpperCase());
+  };
+  const nl = (key, fallback) => {
+    const raw = t(key);
+    const resolved = raw !== key ? raw : (fallback || String(key || '').replaceAll('_', ' '));
+    return toInitCap(resolved);
+  };
+  const syncDashboardTabFromHash = (path, hash) => {
+    if (path !== '/dashboard' || !hash) return;
+    const tab = DASHBOARD_HASH_TABS[hash.replace('#', '')];
+    if (!tab) return;
+    localStorage.setItem('dashboardActiveTab', tab);
+    window.dispatchEvent(new CustomEvent('dashboard-tab-change', { detail: { tab } }));
+  };
   const { theme, toggleTheme } = useTheme();
   const location = useLocation();
   const navigate = useNavigate();
@@ -159,18 +193,8 @@ const SideDrawer = ({ isOpen, onClose }) => {
       const { path, hash } = navigationConfirmation;
       if (hash) {
         navigate(`${path}${hash}`);
-        // Map hash to tab for dashboard
-        const hashToTabMap = {
-          '#programs': 'programs',
-          '#subjects': 'subjects',
-          '#classes': 'classes',
-          '#enrollments': 'manage-enrollments',
-          '#marks': 'marks',
-          '#class-schedule': 'scheduling-calendar'
-        };
-        if (path === '/dashboard' && hashToTabMap[hash]) {
-          localStorage.setItem('dashboardActiveTab', hashToTabMap[hash]);
-          window.dispatchEvent(new CustomEvent('dashboard-tab-change', { detail: { tab: hashToTabMap[hash] } }));
+        if (path === '/dashboard') {
+          syncDashboardTabFromHash(path, hash);
         }
       } else {
         navigate(path);
@@ -341,265 +365,247 @@ const SideDrawer = ({ isOpen, onClose }) => {
   const studentLinks = [
     {
       id: 'main',
-      label: t('main') || 'MAIN',
+      label: nl('main', 'Main'),
       icon: getThemedIcon('ui', 'home', 18, theme),
       children: [
-        { id: 'home', path: '/', icon: getThemedIcon('ui', 'home', 18, theme), label: (t('home') || 'Home').toUpperCase() },
-        { id: 'student-dashboard', path: '/student-dashboard', icon: getThemedIcon('ui', 'layout_dashboard', 18, theme), label: (t('student_dashboard') || 'Student Dashboard').toUpperCase() },
-        { id: 'progress', path: '/student-dashboard', icon: getThemedIcon('ui', 'bar_chart3', 18, theme), label: (t('progress') || 'Progress').toUpperCase() },
+        { id: 'home', path: '/', icon: getThemedIcon('ui', 'home', 18, theme), label: nl('home', 'Home') },
+        { id: 'student-dashboard', path: '/student-dashboard', icon: getThemedIcon('ui', 'layout_dashboard', 18, theme), label: nl('student_dashboard', 'Student Dashboard') },
+        { id: 'progress', path: '/student-dashboard', icon: getThemedIcon('ui', 'bar_chart3', 18, theme), label: nl('progress', 'Progress') },
       ]
     },
     {
       id: 'activity',
-      label: t('activity') || 'ACTIVITY',
+      label: nl('activity', 'Activity'),
       icon: getThemedIcon('ui', 'activity', 18, theme),
       children: [
-        { id: 'activities', path: '/?mode=activities', icon: getThemedIcon('ui', 'activity', 18, theme), label: (t('activities') || 'Activities').toUpperCase() },
-        { id: 'quiz-activity', path: '/?mode=activities&activityType=quiz', icon: getThemedIcon('ui', 'gamepad2', 18, theme), label: (t('quiz') || 'Quiz').toUpperCase() },
-        { id: 'homework-activity', path: '/?mode=activities&activityType=homework', icon: getThemedIcon('ui', 'file_text', 18, theme), label: (t('homework') || 'Homework').toUpperCase() },
-        { id: 'training-activity', path: '/?mode=activities&activityType=training', icon: getThemedIcon('activity_type', 'training', 18, theme), label: (t('training') || 'Training').toUpperCase() },
-        { id: 'lab-activity', path: '/?mode=activities&activityType=lab_work', icon: getThemedIcon('activity_type', 'lab', 18, theme), label: 'LAB & PROJECT' },
+        { id: 'activities', path: '/?mode=activities', icon: getThemedIcon('ui', 'activity', 18, theme), label: nl('activities', 'Activities') },
+        { id: 'quiz-activity', path: '/?mode=activities&activityType=quiz', icon: getThemedIcon('ui', 'gamepad2', 18, theme), label: nl('quiz', 'Quiz') },
+        { id: 'homework-activity', path: '/?mode=activities&activityType=homework', icon: getThemedIcon('ui', 'file_text', 18, theme), label: nl('homework', 'Homework') },
+        { id: 'training-activity', path: '/?mode=activities&activityType=training', icon: getThemedIcon('activity_type', 'training', 18, theme), label: nl('training', 'Training') },
+        { id: 'lab-activity', path: '/?mode=activities&activityType=lab_work', icon: getThemedIcon('activity_type', 'lab', 18, theme), label: nl('lab_and_project', 'Lab & Project') },
       ]
     },
     {
       id: 'quiz',
-      label: t('quiz') || 'QUIZ',
+      label: nl('quiz', 'Quiz'),
       icon: getThemedIcon('ui', 'list_checks', 18, theme),
       children: [
-        { id: 'quiz-results', path: '/review-results?activityType=quiz', icon: getThemedIcon('ui', 'list_checks', 18, theme), label: (t('quizzes') || 'Quizzes').toUpperCase() },
-        { id: 'homework-results', path: '/review-results?activityType=homework', icon: getThemedIcon('ui', 'file_text', 18, theme), label: (t('homework') || 'Homework').toUpperCase() },
-        { id: 'training-results', path: '/review-results?activityType=training', icon: getThemedIcon('activity_type', 'training', 18, theme), label: (t('training') || 'Training').toUpperCase() },
-        { id: 'lab-results', path: '/review-results?activityType=lab_work', icon: getThemedIcon('activity_type', 'lab', 18, theme), label: 'LAB & PROJECT' },
+        { id: 'quiz-results', path: '/review-results?activityType=quiz', icon: getThemedIcon('ui', 'list_checks', 18, theme), label: nl('quiz_results', 'Quiz Results') },
+        { id: 'homework-results', path: '/review-results?activityType=homework', icon: getThemedIcon('ui', 'file_text', 18, theme), label: nl('homework_results', 'Homework Results') },
+        { id: 'training-results', path: '/review-results?activityType=training', icon: getThemedIcon('activity_type', 'training', 18, theme), label: nl('training_results', 'Training Results') },
+        { id: 'lab-results', path: '/review-results?activityType=lab_work', icon: getThemedIcon('activity_type', 'lab', 18, theme), label: nl('lab_results', 'Lab Results') },
       ]
     },
     {
-      id: 'classes',
-      label: t('classes') || 'CLASSES',
-      icon: getThemedIcon('ui', 'book_open', 18, theme),
+      id: 'scheduling',
+      label: nl('scheduling', 'Scheduling'),
+      icon: getThemedIcon('ui', 'calendar', 18, theme),
       children: [
-        { id: 'my-enrollments', path: '/my-enrollments', icon: getThemedIcon('ui', 'book_open', 18, theme), label: (t('my_enrollments') || 'My Enrollments').toUpperCase() },
-        { id: 'class-schedules', path: '/scheduling-calendar?tab=classes', icon: getThemedIcon('ui', 'calendar', 18, theme), label: (t('schedules') || 'Schedules').toUpperCase() },
+        { id: 'my-enrollments', path: '/my-enrollments', icon: getThemedIcon('ui', 'book_open', 18, theme), label: nl('my_enrollments', 'My Enrollments') },
+        { id: 'calendar-sessions', path: '/scheduling-calendar', icon: getThemedIcon('ui', 'calendar', 18, theme), label: nl('main_tab_sessions', 'Sessions') },
+        { id: 'calendar-availability', path: '/scheduling-calendar?tab=availability', icon: getThemedIcon('ui', 'bar_chart3', 18, theme), label: nl('main_tab_availability', 'Availability') },
+        { id: 'calendar-classes', path: '/scheduling-calendar?tab=classes', icon: getThemedIcon('ui', 'graduation_cap', 18, theme), label: nl('main_tab_classes', 'Classes') },
       ]
     },
     {
       id: 'attendance',
-      label: t('attendance') || 'ATTENDANCE',
+      label: nl('attendance', 'Attendance'),
       icon: getThemedIcon('ui', 'qr_code', 18, theme),
       children: [
-        { id: 'my-attendance', path: '/my-attendance', icon: getThemedIcon('ui', 'qr_code', 18, theme), label: (t('my_attendance') || 'My Attendance').toUpperCase() },
+        { id: 'my-attendance', path: '/my-attendance', icon: getThemedIcon('ui', 'qr_code', 18, theme), label: nl('my_attendance', 'My Attendance') },
       ]
     },
     {
       id: 'community',
-      label: t('community') || 'COMMUNITY',
+      label: nl('community', 'Community'),
       icon: getThemedIcon('ui', 'message_square', 18, theme),
       children: [
-        { id: 'chat', path: '/chat', icon: getThemedIcon('ui', 'message_square', 18, theme), label: (t('chat') || 'Chat').toUpperCase() },
-        { id: 'resources', path: '/?mode=resources', icon: getThemedIcon('ui', 'book_open', 18, theme), label: (t('resources') || 'Resources').toUpperCase() },
+        { id: 'chat', path: '/chat', icon: getThemedIcon('ui', 'message_square', 18, theme), label: nl('chat', 'Chat') },
+        { id: 'resources', path: '/?mode=resources', icon: getThemedIcon('ui', 'book_open', 18, theme), label: nl('resources', 'Resources') },
       ]
     },
     {
       id: 'tools',
-      label: t('tools') || 'TOOLS',
+      label: nl('tools', 'Tools'),
       icon: getThemedIcon('ui', 'timer', 18, theme),
       children: [
-        { id: 'timerControl', key: 'timerControl', icon: getThemedIcon('ui', 'timer', 18, theme), label: (t('timer') || 'Timer').toUpperCase() }
+        { id: 'timerControl', key: 'timerControl', icon: getThemedIcon('ui', 'timer', 18, theme), label: nl('timer', 'Timer') }
       ]
     },
     {
       id: 'settings',
-      label: t('settings') || 'SETTINGS',
+      label: nl('settings', 'Settings'),
       icon: getThemedIcon('ui', 'settings', 18, theme),
       children: [
-        { id: 'notifications', path: '/notifications', icon: getThemedIcon('ui', 'bell', 18, theme), label: (t('notifications') || 'Notifications').toUpperCase() },
-        { id: 'profile', path: '/profile', icon: getThemedIcon('ui', 'settings', 18, theme), label: (t('settings') || 'Settings').toUpperCase() },
+        { id: 'notifications', path: '/notifications', icon: getThemedIcon('ui', 'bell', 18, theme), label: nl('notifications', 'Notifications') },
+        { id: 'profile', path: '/profile', icon: getThemedIcon('ui', 'settings', 18, theme), label: nl('settings', 'Settings') },
       ]
     }
   ];
 
   // Admin & SuperAdmin: Full management view
+  const adminSchedulingChildren = [
+    ...(isSuperAdmin || isAdmin || isHR ? [
+      { id: 'summary-dashboard', path: '/summary-dashboard', icon: getThemedIcon('ui', 'layout_dashboard', 18, theme), label: nl('summary_dashboard', 'Summary Dashboard') },
+    ] : []),
+    { id: 'calendar-sessions', path: '/scheduling-calendar', icon: getThemedIcon('ui', 'calendar', 18, theme), label: nl('main_tab_sessions', 'Sessions') },
+    { id: 'calendar-availability', path: '/scheduling-calendar?tab=availability', icon: getThemedIcon('ui', 'bar_chart3', 18, theme), label: nl('main_tab_availability', 'Availability') },
+    { id: 'calendar-classes', path: '/scheduling-calendar?tab=classes', icon: getThemedIcon('ui', 'graduation_cap', 18, theme), label: nl('main_tab_classes', 'Classes') },
+    ...(isSuperAdmin || isAdmin || isHR ? [
+      { id: 'instructor-availability', path: '/dashboard', hash: '#instructor-availability', icon: getThemedIcon('ui', 'users', 18, theme), label: nl('instructor_availability', 'Instructor Availability') },
+      { id: 'classroom-availability', path: '/dashboard', hash: '#classroom-availability', icon: getThemedIcon('ui', 'list', 18, theme), label: nl('room_availability', 'Room Availability') },
+    ] : []),
+  ];
+
   const adminLinks = [
     {
       id: 'main',
-      label: t('main') || 'MAIN',
+      label: nl('main', 'Main'),
       icon: getThemedIcon('ui', 'home', 18, theme),
       children: [
-        { id: 'home', path: '/', icon: getThemedIcon('ui', 'home', 18, theme), label: (t('home') || 'Home').toUpperCase() },
-        { id: 'dashboard', path: '/dashboard', icon: getThemedIcon('ui', 'layout_dashboard', 18, theme), label: (t('dashboard') || 'Dashboard').toUpperCase() },
-        { id: 'student-dashboard', path: '/student-dashboard', icon: getThemedIcon('ui', 'layout_dashboard', 18, theme), label: (t('student_dashboard') || 'Student Dashboard').toUpperCase() },
+        { id: 'home', path: '/', icon: getThemedIcon('ui', 'home', 18, theme), label: nl('home', 'Home') },
+        { id: 'dashboard', path: '/dashboard', icon: getThemedIcon('ui', 'layout_dashboard', 18, theme), label: nl('dashboard', 'Dashboard') },
+        { id: 'student-dashboard', path: '/student-dashboard', icon: getThemedIcon('ui', 'layout_dashboard', 18, theme), label: nl('student_dashboard', 'Student Dashboard') },
       ]
     },
     {
       id: 'activity',
-      label: t('activity') || 'ACTIVITY',
+      label: nl('activity', 'Activity'),
       icon: getThemedIcon('ui', 'activity', 18, theme),
       children: [
-        { id: 'activities', path: '/?mode=activities', icon: getThemedIcon('ui', 'activity', 18, theme), label: (t('activities') || 'Activities').toUpperCase() },
-        { id: 'quiz-activity', path: '/?mode=activities&activityType=quiz', icon: getThemedIcon('ui', 'gamepad2', 18, theme), label: (t('quiz') || 'Quiz').toUpperCase() },
-        { id: 'homework-activity', path: '/?mode=activities&activityType=homework', icon: getThemedIcon('ui', 'file_text', 18, theme), label: (t('homework') || 'Homework').toUpperCase() },
-        { id: 'training-activity', path: '/?mode=activities&activityType=training', icon: getThemedIcon('activity_type', 'training', 18, theme), label: (t('training') || 'Training').toUpperCase() },
-        { id: 'lab-activity', path: '/?mode=activities&activityType=lab_work', icon: getThemedIcon('activity_type', 'lab', 18, theme), label: 'LAB & PROJECT' },
+        { id: 'activities', path: '/?mode=activities', icon: getThemedIcon('ui', 'activity', 18, theme), label: nl('activities', 'Activities') },
+        { id: 'quiz-activity', path: '/?mode=activities&activityType=quiz', icon: getThemedIcon('ui', 'gamepad2', 18, theme), label: nl('quiz', 'Quiz') },
+        { id: 'homework-activity', path: '/?mode=activities&activityType=homework', icon: getThemedIcon('ui', 'file_text', 18, theme), label: nl('homework', 'Homework') },
+        { id: 'training-activity', path: '/?mode=activities&activityType=training', icon: getThemedIcon('activity_type', 'training', 18, theme), label: nl('training', 'Training') },
+        { id: 'lab-activity', path: '/?mode=activities&activityType=lab_work', icon: getThemedIcon('activity_type', 'lab', 18, theme), label: nl('lab_and_project', 'Lab & Project') },
       ]
     },
     {
       id: 'quiz',
-      label: t('quiz') || 'QUIZ',
+      label: nl('quiz', 'Quiz'),
       icon: getThemedIcon('ui', 'list_checks', 18, theme),
       children: [
-        { id: 'quizzes', path: '/quizzes', icon: getThemedIcon('ui', 'gamepad2', 18, theme), label: (t('quizzes') || 'Quizzes').toUpperCase() },
-        { id: 'quiz-results', path: '/review-results?activityType=quiz', icon: getThemedIcon('ui', 'list_checks', 18, theme), label: (t('quiz_results') || 'Quiz Results').toUpperCase() },
+        { id: 'quizzes', path: '/quizzes', icon: getThemedIcon('ui', 'gamepad2', 18, theme), label: nl('quizzes', 'Quizzes') },
+        { id: 'quiz-results', path: '/review-results?activityType=quiz', icon: getThemedIcon('ui', 'list_checks', 18, theme), label: nl('quiz_results', 'Quiz Results') },
       ]
     },
     ...(isSuperAdmin || isInstructor || isAdmin ? [{
       id: 'academic',
-      label: t('academic') || 'ACADEMIC',
+      label: nl('academic', 'Academic'),
       icon: getThemedIcon('ui', 'book_open', 18, theme),
       children: [
-        { id: 'programs', path: '/dashboard', hash: '#programs', icon: getThemedIcon('ui', 'book_open', 18, theme), label: (t('programs') || 'Programs').toUpperCase() },
-        { id: 'subjects', path: '/dashboard', hash: '#subjects', icon: getThemedIcon('ui', 'book_open', 18, theme), label: (t('subjects') || 'Subjects').toUpperCase() },
-        { id: 'classes-academic', path: '/dashboard', hash: '#classes', icon: getThemedIcon('ui', 'calendar', 18, theme), label: (t('classes') || 'Classes').toUpperCase() },
-        { id: 'class-schedule', path: '/scheduling-calendar?tab=classes', icon: getThemedIcon('ui', 'calendar', 18, theme), label: (t('class_schedules') || 'Class Schedule').toUpperCase() },
+        { id: 'programs', path: '/dashboard', hash: '#programs', icon: getThemedIcon('ui', 'book_open', 18, theme), label: nl('programs', 'Programs') },
+        { id: 'subjects', path: '/dashboard', hash: '#subjects', icon: getThemedIcon('ui', 'book_open', 18, theme), label: nl('subjects', 'Subjects') },
+        { id: 'classes-academic', path: '/dashboard', hash: '#classes', icon: getThemedIcon('ui', 'calendar', 18, theme), label: nl('classes', 'Classes') },
       ]
     }] : []),
     ...(isSuperAdmin || isInstructor || isAdmin ? [{
       id: 'enrollments',
-      label: t('enrollments') || 'ENROLLMENTS',
+      label: nl('enrollments', 'Enrollments'),
       icon: getThemedIcon('ui', 'users', 18, theme),
       children: [
-        { id: 'enrollments', path: '/dashboard', hash: '#enrollments', icon: getThemedIcon('ui', 'users', 18, theme), label: (t('enrollments') || 'Enrollments').toUpperCase() },
-        { id: 'manage-enrollments', path: '/manage-enrollments', icon: getThemedIcon('ui', 'users', 18, theme), label: (t('manage_enrollments') || 'Manage Enrollments').toUpperCase() },
-        { id: 'marks', path: '/dashboard', hash: '#marks', icon: getThemedIcon('ui', 'award', 18, theme), label: (t('marks_entry') || 'Marks Entry').toUpperCase() },
+        { id: 'enrollments', path: '/dashboard', hash: '#enrollments', icon: getThemedIcon('ui', 'users', 18, theme), label: nl('enrollments', 'Enrollments') },
+        { id: 'manage-enrollments', path: '/manage-enrollments', icon: getThemedIcon('ui', 'users', 18, theme), label: nl('manage_enrollments', 'Manage Enrollments') },
+        { id: 'marks', path: '/dashboard', hash: '#marks', icon: getThemedIcon('ui', 'award', 18, theme), label: nl('marks_entry', 'Marks Entry') },
       ]
     }] : []),
     ...(isSuperAdmin || isInstructor || isAdmin ? [{
       id: 'records',
-      label: t('academic_records') || 'ACADEMIC RECORDS',
+      label: nl('academic_records', 'Academic Records'),
       icon: getThemedIcon('ui', 'award', 18, theme),
       children: [
-        { id: 'penalty', path: '/penalty', icon: getThemedIcon('ui', 'alert_triangle', 18, theme), label: (t('penalty') || 'Penalty').toUpperCase() },
+        { id: 'penalty', path: '/dashboard', hash: '#penalty', icon: getThemedIcon('ui', 'alert_triangle', 18, theme), label: nl('penalty', 'Penalty') },
+        { id: 'behavior', path: '/dashboard', hash: '#behavior', icon: getThemedIcon('ui', 'activity', 18, theme), label: nl('behavior', 'Behavior') },
+        { id: 'participation', path: '/dashboard', hash: '#participation', icon: getThemedIcon('ui', 'users', 18, theme), label: nl('participation', 'Participation') },
       ]
     }] : []),
-    ...(isSuperAdmin || isAdmin || isHR ? [
-      {
-        id: 'flexible-scheduling',
-        label: t('scheduling') || 'SCHEDULING',
-        icon: getThemedIcon('ui', 'calendar', 18, theme),
-        children: [
-          { id: 'summary-dashboard', path: '/summary-dashboard', icon: getThemedIcon('ui', 'layout_dashboard', 18, theme), label: t('summary_dashboard') || 'Summary Dashboard' },
-          { id: 'scheduling-calendar', path: '/scheduling-calendar', icon: getThemedIcon('ui', 'calendar', 18, theme), label: t('scheduling_calendar') || 'Scheduling Calendar' },
-        ]
-      },
-      {
-        id: 'availability',
-        label: t('availability') || 'AVAILABILITY',
-        icon: getThemedIcon('ui', 'clock', 18, theme),
-        children: [
-          { id: 'instructor-availability', path: '/instructor-availability', icon: getThemedIcon('ui', 'users', 18, theme), label: t('instructor_availability') || 'Instructor Availability' },
-          { id: 'classroom-availability', path: '/classroom-availability', icon: getThemedIcon('ui', 'list', 18, theme), label: t('room_availability') || 'Room Availability' },
-        ]
-      },
-    ] : []),
+    {
+      id: 'scheduling',
+      label: nl('scheduling', 'Scheduling'),
+      icon: getThemedIcon('ui', 'calendar', 18, theme),
+      children: adminSchedulingChildren,
+    },
     ...(isSuperAdmin ? [{
       id: 'users',
-      label: t('users') || 'USERS',
+      label: nl('users', 'Users'),
       icon: getThemedIcon('ui', 'users', 18, theme),
       children: [
-        { id: 'users', path: '/dashboard', hash: '#users', icon: getThemedIcon('ui', 'users', 18, theme), label: (t('users') || 'Users').toUpperCase() },
-        { id: 'user-category-access', path: '/user-category-access', icon: getThemedIcon('ui', 'shield', 18, theme), label: t('user_access') || 'User Access' }
+        { id: 'users', path: '/dashboard', hash: '#users', icon: getThemedIcon('ui', 'users', 18, theme), label: nl('users', 'Users') },
+        { id: 'user-category-access', path: '/dashboard', hash: '#user-category-access', icon: getThemedIcon('ui', 'shield', 18, theme), label: nl('user_access', 'User Access') }
       ]
     }] : []),
     ...(isSuperAdmin || isInstructor || isAdmin ? [{
       id: 'review',
-      label: t('review_results') || 'REVIEW RESULTS',
+      label: nl('review_results', 'Review Results'),
       icon: getThemedIcon('ui', 'list_checks', 18, theme),
       children: [
-        { id: 'review-quiz', path: '/review-results?activityType=quiz', icon: getThemedIcon('ui', 'list_checks', 18, theme), label: (t('quiz_results') || 'Quiz Results').toUpperCase() },
-        { id: 'review-homework', path: '/review-results?activityType=homework', icon: getThemedIcon('ui', 'file_text', 18, theme), label: (t('homework_results') || 'Homework Results').toUpperCase() },
-        { id: 'review-training', path: '/review-results?activityType=training', icon: getThemedIcon('activity_type', 'training', 18, theme), label: (t('training_results') || 'Training Results').toUpperCase() },
-        { id: 'review-lab', path: '/review-results?activityType=lab_work', icon: getThemedIcon('activity_type', 'lab', 18, theme), label: (t('lab_results') || 'Lab Results').toUpperCase() },
+        { id: 'review-quiz', path: '/review-results?activityType=quiz', icon: getThemedIcon('ui', 'list_checks', 18, theme), label: nl('quiz_results', 'Quiz Results') },
+        { id: 'review-homework', path: '/review-results?activityType=homework', icon: getThemedIcon('ui', 'file_text', 18, theme), label: nl('homework_results', 'Homework Results') },
+        { id: 'review-training', path: '/review-results?activityType=training', icon: getThemedIcon('activity_type', 'training', 18, theme), label: nl('training_results', 'Training Results') },
+        { id: 'review-lab', path: '/review-results?activityType=lab_work', icon: getThemedIcon('activity_type', 'lab', 18, theme), label: nl('lab_results', 'Lab Results') },
       ]
     }] : []),
     {
-      id: 'classes',
-      label: t('classes') || 'CLASSES',
-      icon: getThemedIcon('ui', 'calendar', 18, theme),
-      children: [
-        { id: 'class-schedules-admin', path: '/scheduling-calendar?tab=classes', icon: getThemedIcon('ui', 'calendar', 18, theme), label: (t('schedules') || 'Schedules').toUpperCase() },
-      ]
-    },
-    {
-      id: 'scheduling',
-      label: t('scheduling') || 'SCHEDULING',
-      icon: getThemedIcon('ui', 'calendar', 18, theme),
-      children: [
-        { id: 'schedule-overview', path: '/schedule-overview', icon: getThemedIcon('ui', 'calendar', 18, theme), label: (t('schedule_overview') || 'Schedule Overview').toUpperCase() },
-        { id: 'scheduling-masters', path: '/scheduling-masters', icon: getThemedIcon('ui', 'layout_dashboard', 18, theme), label: (t('scheduling_masters') || 'Scheduling Masters').toUpperCase() },
-        { id: 'schedule-session-editor', path: '/schedule-session-editor', icon: getThemedIcon('ui', 'edit', 18, theme), label: (t('schedule_session_editor') || 'Schedule Session Editor').toUpperCase() },
-        { id: 'bulk-scheduling', path: '/bulk-scheduling', icon: getThemedIcon('ui', 'layers', 18, theme), label: (t('bulk_scheduling') || 'Bulk Scheduling').toUpperCase() },
-        { id: 'admin-scope-assignment', path: '/admin-scope-assignment', icon: getThemedIcon('ui', 'shield', 18, theme), label: (t('admin_scope_assignment') || 'Admin Scope Assignment').toUpperCase() },
-      ]
-    },
-    {
       id: 'attendance',
-      label: t('attendance') || 'ATTENDANCE',
+      label: nl('attendance', 'Attendance'),
       icon: getThemedIcon('ui', 'qr_code', 18, theme),
       children: [
-        { id: 'attendance-admin', path: '/attendance', icon: getThemedIcon('ui', 'qr_code', 18, theme), label: (t('attendance') || 'Attendance').toUpperCase() },
-        { id: 'qr-scanner', path: '/qr-scanner', icon: getThemedIcon('ui', 'qr_code', 18, theme), label: (t('qr_class') || 'QR Class').toUpperCase() },
-        { id: 'hr-attendance', path: '/hr-attendance', icon: getThemedIcon('ui', 'qr_code', 18, theme), label: (t('hr_attendance') || 'HR Attendance').toUpperCase() },
+        { id: 'attendance-admin', path: '/attendance', icon: getThemedIcon('ui', 'qr_code', 18, theme), label: nl('attendance', 'Attendance') },
+        { id: 'qr-scanner', path: '/qr-scanner', icon: getThemedIcon('ui', 'qr_code', 18, theme), label: nl('daily_scan', 'Daily Scan') },
+        { id: 'hr-attendance', path: '/hr-attendance', icon: getThemedIcon('ui', 'qr_code', 18, theme), label: nl('hr_attendance', 'HR Attendance') },
       ]
     },
     {
       id: 'drive',
-      label: t('drive') || 'DRIVE',
+      label: nl('drive', 'Drive'),
       icon: getThemedIcon('ui', 'hard_drive', 18, theme),
       children: [
-        { id: 'smart-drive', path: '/smart-drive', icon: getThemedIcon('ui', 'hard_drive', 18, theme), label: (t('smart_drive') || 'Smart Drive').toUpperCase() },
-        { id: 'workflow-inbox', path: '/workflow/inbox', icon: getThemedIcon('ui', 'list', 18, theme), label: (t('workflow_inbox') || 'Workflow Inbox').toUpperCase() },
+        { id: 'smart-drive', path: '/smart-drive', icon: getThemedIcon('ui', 'hard_drive', 18, theme), label: nl('smart_drive', 'Smart Drive') },
+        { id: 'workflow-inbox', path: '/workflow/inbox', icon: getThemedIcon('ui', 'list', 18, theme), label: nl('workflow_inbox', 'Workflow Inbox') },
       ]
     },
     {
       id: 'analytics',
-      label: t('analytics') || 'ANALYTICS',
+      label: nl('analytics', 'Analytics'),
       icon: getThemedIcon('ui', 'bar_chart3', 18, theme),
       children: [
-        { id: 'analytics-dashboards', path: '/analytics', icon: getThemedIcon('ui', 'bar_chart3', 18, theme), label: (t('dashboards') || 'Dashboards').toUpperCase() },
-        { id: 'advanced-analytics', path: '/advanced-analytics', icon: getThemedIcon('ui', 'bar_chart3', 18, theme), label: (t('advanced') || 'Advanced').toUpperCase() },
+        { id: 'analytics-dashboards', path: '/analytics', icon: getThemedIcon('ui', 'bar_chart3', 18, theme), label: nl('dashboards', 'Dashboards') },
+        { id: 'advanced-analytics', path: '/advanced-analytics', icon: getThemedIcon('ui', 'bar_chart3', 18, theme), label: nl('advanced', 'Advanced') },
       ]
     },
     ...(isSuperAdmin ? [{
       id: 'communication',
-      label: t('communication') || 'COMMUNICATION',
+      label: nl('communication', 'Communication'),
       icon: getThemedIcon('ui', 'calendar', 18, theme),
       children: [
-        { id: 'scheduled-reports', path: '/scheduled-reports', icon: getThemedIcon('ui', 'calendar', 18, theme), label: (t('scheduling') || 'Scheduling').toUpperCase() },
+        { id: 'scheduled-reports', path: '/scheduled-reports', icon: getThemedIcon('ui', 'calendar', 18, theme), label: nl('schedule_updates', 'Schedule Updates') },
       ]
     }] : []),
     {
       id: 'community',
-      label: t('community') || 'COMMUNITY',
+      label: nl('community', 'Community'),
       icon: getThemedIcon('ui', 'message_square', 18, theme),
       children: [
-        { id: 'chat-admin', path: '/chat', icon: getThemedIcon('ui', 'message_square', 18, theme), label: (t('chat') || 'Chat').toUpperCase() },
-        { id: 'resources-admin', path: '/?mode=resources', icon: getThemedIcon('ui', 'book_open', 18, theme), label: (t('resources') || 'Resources').toUpperCase() },
+        { id: 'chat-admin', path: '/chat', icon: getThemedIcon('ui', 'message_square', 18, theme), label: nl('chat', 'Chat') },
+        { id: 'resources-admin', path: '/?mode=resources', icon: getThemedIcon('ui', 'book_open', 18, theme), label: nl('resources', 'Resources') },
       ]
     },
     {
       id: 'tools',
-      label: t('tools') || 'TOOLS',
+      label: nl('tools', 'Tools'),
       icon: getThemedIcon('ui', 'timer', 18, theme),
       children: [
-        { id: 'timerControl-admin', key: 'timerControl', icon: getThemedIcon('ui', 'timer', 18, theme), label: (t('timer') || 'Timer').toUpperCase() }
+        { id: 'timerControl-admin', key: 'timerControl', icon: getThemedIcon('ui', 'timer', 18, theme), label: nl('timer', 'Timer') }
       ]
     },
     {
       id: 'settings',
-      label: t('workspace_settings') || 'WORKSPACE SETTINGS',
+      label: nl('workspace_settings', 'Workspace Settings'),
       icon: getThemedIcon('ui', 'settings', 18, theme),
       children: [
-        { id: 'notifications-admin', path: '/notifications', icon: getThemedIcon('ui', 'bell', 18, theme), label: (t('notifications') || 'Notifications').toUpperCase() },
-        { id: 'student-profile', path: '/student-profile', icon: getThemedIcon('ui', 'user', 18, theme), label: (t('student_profile') || 'Student Profile').toUpperCase() },
-        { id: 'profile-admin', path: '/profile', icon: getThemedIcon('ui', 'settings', 18, theme), label: (t('settings') || 'Settings').toUpperCase() }
+        { id: 'notifications-admin', path: '/notifications', icon: getThemedIcon('ui', 'bell', 18, theme), label: nl('notifications', 'Notifications') },
+        { id: 'student-profile', path: '/student-profile', icon: getThemedIcon('ui', 'user', 18, theme), label: nl('student_profile', 'Student Profile') },
+        { id: 'profile-admin', path: '/profile', icon: getThemedIcon('ui', 'settings', 18, theme), label: nl('settings', 'Settings') }
       ]
     }
   ];
@@ -607,51 +613,52 @@ const SideDrawer = ({ isOpen, onClose }) => {
   const hrLinks = [
     {
       id: 'main',
-      label: t('main') || 'MAIN',
+      label: nl('main', 'Main'),
       icon: getThemedIcon('ui', 'home', 18, theme),
       children: [
-        { id: 'home-hr', path: '/', icon: getThemedIcon('ui', 'home', 18, theme), label: (t('home') || 'Home').toUpperCase() },
-        { id: 'daily-scan', path: '/qr-scanner', icon: getThemedIcon('ui', 'qr_code', 18, theme), label: (t('daily_scan') || 'Daily Scan').toUpperCase() },
+        { id: 'home-hr', path: '/', icon: getThemedIcon('ui', 'home', 18, theme), label: nl('home', 'Home') },
+        { id: 'daily-scan', path: '/qr-scanner', icon: getThemedIcon('ui', 'qr_code', 18, theme), label: nl('daily_scan', 'Daily Scan') },
       ]
     },
     {
       id: 'scheduling',
-      label: t('scheduling') || 'SCHEDULING',
+      label: nl('scheduling', 'Scheduling'),
       icon: getThemedIcon('ui', 'calendar', 18, theme),
       children: [
-        { id: 'schedule-overview-hr', path: '/schedule-overview', icon: getThemedIcon('ui', 'calendar', 18, theme), label: (t('schedule_overview') || 'Schedule Overview').toUpperCase() },
-        { id: 'scheduling-masters-hr', path: '/scheduling-masters', icon: getThemedIcon('ui', 'layout_dashboard', 18, theme), label: (t('scheduling_masters') || 'Scheduling Masters').toUpperCase() },
-        { id: 'schedule-session-editor-hr', path: '/schedule-session-editor', icon: getThemedIcon('ui', 'edit', 18, theme), label: (t('schedule_session_editor') || 'Schedule Session Editor').toUpperCase() },
-        { id: 'bulk-scheduling-hr', path: '/bulk-scheduling', icon: getThemedIcon('ui', 'layers', 18, theme), label: (t('bulk_scheduling') || 'Bulk Scheduling').toUpperCase() },
-        { id: 'admin-scope-assignment-hr', path: '/admin-scope-assignment', icon: getThemedIcon('ui', 'shield', 18, theme), label: (t('admin_scope_assignment') || 'Admin Scope Assignment').toUpperCase() },
+        { id: 'summary-dashboard-hr', path: '/summary-dashboard', icon: getThemedIcon('ui', 'layout_dashboard', 18, theme), label: nl('summary_dashboard', 'Summary Dashboard') },
+        { id: 'calendar-sessions-hr', path: '/scheduling-calendar', icon: getThemedIcon('ui', 'calendar', 18, theme), label: nl('main_tab_sessions', 'Sessions') },
+        { id: 'calendar-availability-hr', path: '/scheduling-calendar?tab=availability', icon: getThemedIcon('ui', 'bar_chart3', 18, theme), label: nl('main_tab_availability', 'Availability') },
+        { id: 'calendar-classes-hr', path: '/scheduling-calendar?tab=classes', icon: getThemedIcon('ui', 'graduation_cap', 18, theme), label: nl('main_tab_classes', 'Classes') },
+        { id: 'instructor-availability-hr', path: '/dashboard', hash: '#instructor-availability', icon: getThemedIcon('ui', 'users', 18, theme), label: nl('instructor_availability', 'Instructor Availability') },
+        { id: 'classroom-availability-hr', path: '/dashboard', hash: '#classroom-availability', icon: getThemedIcon('ui', 'list', 18, theme), label: nl('room_availability', 'Room Availability') },
       ]
     },
     {
       id: 'drive',
-      label: t('drive') || 'DRIVE',
+      label: nl('drive', 'Drive'),
       icon: getThemedIcon('ui', 'hard_drive', 18, theme),
       children: [
-        { id: 'smart-drive-hr', path: '/smart-drive', icon: getThemedIcon('ui', 'hard_drive', 18, theme), label: (t('smart_drive') || 'Smart Drive').toUpperCase() },
-        { id: 'workflow-inbox-hr', path: '/workflow/inbox', icon: getThemedIcon('ui', 'list', 18, theme), label: (t('workflow_inbox') || 'Workflow Inbox').toUpperCase() },
+        { id: 'smart-drive-hr', path: '/smart-drive', icon: getThemedIcon('ui', 'hard_drive', 18, theme), label: nl('smart_drive', 'Smart Drive') },
+        { id: 'workflow-inbox-hr', path: '/workflow/inbox', icon: getThemedIcon('ui', 'list', 18, theme), label: nl('workflow_inbox', 'Workflow Inbox') },
       ]
     },
     {
       id: 'community',
-      label: t('community') || 'COMMUNITY',
+      label: nl('community', 'Community'),
       icon: getThemedIcon('ui', 'message_square', 18, theme),
       children: [
-        { id: 'chat-hr', path: '/chat', icon: getThemedIcon('ui', 'message_square', 18, theme), label: (t('chat') || 'Chat').toUpperCase() },
+        { id: 'chat-hr', path: '/chat', icon: getThemedIcon('ui', 'message_square', 18, theme), label: nl('chat', 'Chat') },
       ]
     },
     {
       id: 'settings',
-      label: t('settings') || 'SETTINGS',
+      label: nl('settings', 'Settings'),
       icon: getThemedIcon('ui', 'settings', 18, theme),
       children: [
-        { id: 'notifications-hr', path: '/notifications', icon: getThemedIcon('ui', 'bell', 18, theme), label: (t('notifications') || 'Notifications').toUpperCase() },
-        { id: 'student-profile-hr', path: '/student-profile', icon: getThemedIcon('ui', 'user', 18, theme), label: (t('student_profile') || 'Student Profile').toUpperCase() },
-        { id: 'profile-hr', path: '/profile', icon: getThemedIcon('ui', 'settings', 18, theme), label: (t('settings') || 'Settings').toUpperCase() },
-        { id: 'timerControl-hr', key: 'timerControl', icon: getThemedIcon('ui', 'timer', 18, theme), label: (t('timer') || 'Timer').toUpperCase() }
+        { id: 'notifications-hr', path: '/notifications', icon: getThemedIcon('ui', 'bell', 18, theme), label: nl('notifications', 'Notifications') },
+        { id: 'student-profile-hr', path: '/student-profile', icon: getThemedIcon('ui', 'user', 18, theme), label: nl('student_profile', 'Student Profile') },
+        { id: 'profile-hr', path: '/profile', icon: getThemedIcon('ui', 'settings', 18, theme), label: nl('settings', 'Settings') },
+        { id: 'timerControl-hr', key: 'timerControl', icon: getThemedIcon('ui', 'timer', 18, theme), label: nl('timer', 'Timer') }
       ]
     }
   ];
@@ -672,7 +679,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
             id: 'permission-matrix',
             path: '/permission-matrix',
             icon: getThemedIcon('ui', 'shield', 18, theme),
-            label: (t('permission_matrix') || 'Permission Matrix').toUpperCase()
+            label: nl('permission_matrix', 'Permission Matrix')
           });
         }
       }
@@ -1133,9 +1140,9 @@ const SideDrawer = ({ isOpen, onClose }) => {
                         background: 'transparent',
                         border: 'none',
                         color: theme==='light' ? 'rgba(17,24,39,0.6)' : 'rgba(255,255,255,0.5)',
-                        fontSize: lang === 'ar' ? '0.75rem' : '0.65rem',
-                        textTransform: lang === 'ar' ? 'none' : 'uppercase',
-                        letterSpacing: lang === 'ar' ? '0.5px' : '1.2px',
+                        fontSize: lang === 'ar' ? '0.75rem' : '0.7rem',
+                        textTransform: 'none',
+                        letterSpacing: lang === 'ar' ? '0.5px' : '0.3px',
                         fontWeight: 600,
                         cursor: 'pointer',
                         transition: 'color 0.2s'
@@ -1216,7 +1223,10 @@ const SideDrawer = ({ isOpen, onClose }) => {
                       ) : (
                         <Link
                           to={link.hash ? `${link.path}${link.hash}` : link.path}
-                          onClick={onClose}
+                          onClick={() => {
+                            syncDashboardTabFromHash(link.path, link.hash);
+                            onClose();
+                          }}
                           title={link.label}
                           style={{
                           display: 'flex',

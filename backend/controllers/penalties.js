@@ -6,6 +6,7 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { USER_NAME_SELECT_WITH_ID } from '../utils/userNameFields.js';
 
 const prisma = new PrismaClient();
 
@@ -67,11 +68,7 @@ export const getAllPenaltiesController = async (req, res) => {
             }
           },
           creator: {
-            select: {
-              id: true,
-              displayName: true,
-              email: true
-            }
+            select: USER_NAME_SELECT_WITH_ID
           }
         },
         orderBy: { createdAt: 'desc' },
@@ -509,11 +506,7 @@ export const getPenaltiesByStudentController = async (req, res) => {
             }
           },
           creator: {
-            select: {
-              id: true,
-              displayName: true,
-              email: true
-            }
+            select: USER_NAME_SELECT_WITH_ID
           }
         },
         orderBy: { createdAt: 'desc' },
@@ -593,11 +586,7 @@ export const getPenaltiesByClassController = async (req, res) => {
             }
           },
           creator: {
-            select: {
-              id: true,
-              displayName: true,
-              email: true
-            }
+            select: USER_NAME_SELECT_WITH_ID
           }
         },
         orderBy: { createdAt: 'desc' },

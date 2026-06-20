@@ -9,6 +9,7 @@ import { formatDateTime } from '@utils/date';
 import { API_CONFIG } from '@services/config/apiConfig';
 import emailDbService from '@services/business/emailDbService';
 import { info, error, warn, debug } from '@services/utils/logger.js';
+import { RefreshCw, BarChart3, Bug } from 'lucide-react';
 import PortalTooltip from '@ui/PortalTooltip';
 
 const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
@@ -279,6 +280,9 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
             <button
                 onClick={() => loadTemplates(true)}
                 style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.375rem',
                   padding: '10px 15px',
                   background: '#6c757d',
                   color: 'white',
@@ -288,7 +292,8 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
                   fontSize: '0.85rem'
                 }}
             >
-              {getThemedIcon('ui', 'refresh', 16, theme)} Force Refresh
+              <RefreshCw size={16} />
+              {t('email_force_refresh')}
             </button>
             </PortalTooltip>
             <PortalTooltip content={t('debug_check_password_reset')} position="top">
@@ -298,6 +303,9 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
                   toast?.showInfo(`Template exists: ${result.exists}`);
                 }}
                 style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.375rem',
                   padding: '10px 15px',
                   background: '#dc3545',
                   color: 'white',
@@ -307,12 +315,16 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
                   fontSize: '0.85rem'
                 }}
             >
-              🔍 Debug
+              <Bug size={16} />
+              {t('email_debug')}
             </button>
             </PortalTooltip>
           </div>
           <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
             <div style={{ 
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
               background: '#f8f9fa', 
               padding: '8px 16px', 
               borderRadius: '20px',
@@ -321,7 +333,8 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
               fontWeight: '600',
               color: '#495057'
             }}>
-              📊 {filteredTemplates.length} of {templates.length} templates
+              <BarChart3 size={16} />
+              {t('email_templates_count', { filtered: filteredTemplates.length, total: templates.length })}
             </div>
             <button
                 onClick={onCreateNew}
@@ -440,7 +453,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
                                   fontSize: '0.85rem'
                                 }}
                             >
-                              <span style={{ display:'inline-flex', alignItems:'center', gap:6 }}>{getThemedIcon('ui', 'edit', 14, theme)} {t('edit') || 'Edit'}</span>
+                              {t('edit')}
                             </button>
                             <button
                                 onClick={async (e) => {
@@ -471,9 +484,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
                                   fontSize: '0.85rem'
                                 }}
                             >
-                              {testingEmail === template.id
-                                  ? (t('sending') || 'Sending…')
-                                  : <span style={{ display:'inline-flex', alignItems:'center', gap:6 }}>{getThemedIcon('ui', 'send', 14, theme)} {t('test_email') || 'Test Email'}</span>}
+                              {testingEmail === template.id ? (t('sending') || 'Sending…') : (t('test_email') || 'Test Email')}
                             </button>
                             <button
                                 onClick={(e) => {
@@ -490,7 +501,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
                                   fontSize: '0.85rem'
                                 }}
                             >
-                              <span style={{ display:'inline-flex', alignItems:'center', gap:6 }}>{getThemedIcon('ui', 'copy', 14, theme)} {t('duplicate') || 'Duplicate'}</span>
+                              {t('duplicate') || 'Duplicate'}
                             </button>
                             <button
                                 onClick={(e) => {
@@ -507,7 +518,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
                                   fontSize: '0.85rem'
                                 }}
                             >
-                              <span style={{ display:'inline-flex', alignItems:'center', gap:6 }}>{getThemedIcon('ui', 'trash', 14, theme)} {t('delete') || 'Delete'}</span>
+                              {t('delete') || 'Delete'}
                             </button>
                           </div>
                         </div>

@@ -29,6 +29,7 @@ import { getUserProfile } from '@services/business/userService';
 import { StudentHistory, StudentRosterHistory } from '@ui/history';
 import { DeleteModal } from '@ui';
 import { StudentCard, StudentTableRow } from '@ui/history';
+import { getLocalizedUserName } from '@utils/localizedUserName';
 import { usePermissions } from '@hooks/usePermissions';
 
 const StudentRoster = React.memo(function StudentRoster({
@@ -208,7 +209,12 @@ const StudentRoster = React.memo(function StudentRoster({
             method: record.method, // ← Add method field for localization
             // Add user information - use creator from database first, then fallback to markedBy/performedBy
             performedBy: record.creator?.id || record.markedBy || record.performedBy,
-            performedByName: record.creator?.displayName || record.markedByName || record.performedByName,
+            performedByName: getLocalizedUserName(
+              record.creator,
+              lang,
+              record.markedByName || record.performedByName
+            ),
+            creator: record.creator,
             performedByEmail: record.creator?.email || record.markedByEmail || record.performedByEmail
           };
 
@@ -247,7 +253,8 @@ const StudentRoster = React.memo(function StudentRoster({
             color: '#dbeafe',
             // Add user information - use creator from database first
             performedBy: p.creator?.id || p.performedBy,
-            performedByName: p.creator?.displayName || p.performedByName,
+            performedByName: getLocalizedUserName(p.creator, lang, p.performedByName),
+            creator: p.creator,
             performedByEmail: p.creator?.email || p.performedByEmail,
             user: p.user,
             createdBy: p.createdBy
@@ -271,7 +278,8 @@ const StudentRoster = React.memo(function StudentRoster({
             color: '#fff7ed',
             // Add user information - use creator from database first
             performedBy: b.creator?.id || b.performedBy,
-            performedByName: b.creator?.displayName || b.performedByName,
+            performedByName: getLocalizedUserName(b.creator, lang, b.performedByName),
+            creator: b.creator,
             performedByEmail: b.creator?.email || b.performedByEmail,
             user: b.user,
             createdBy: b.createdBy
@@ -298,7 +306,8 @@ const StudentRoster = React.memo(function StudentRoster({
             color: penalty.points > 0 ? '#dcfce7' : '#fee2e2',
             // Add user information - use creator from database first
             performedBy: penalty.creator?.id || penalty.performedBy,
-            performedByName: penalty.creator?.displayName || penalty.performedByName,
+            performedByName: getLocalizedUserName(penalty.creator, lang, penalty.performedByName),
+            creator: penalty.creator,
             performedByEmail: penalty.creator?.email || penalty.performedByEmail,
             user: penalty.user,
             createdBy: penalty.createdBy

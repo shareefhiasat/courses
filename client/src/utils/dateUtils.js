@@ -18,7 +18,24 @@ export const formatDateTime = (dateValue, lang = 'en') => {
       return dateValue; // Return original if parsing fails
     }
     
-    // Qatar timezone options
+    if (lang === 'ar') {
+      const datePart = date.toLocaleDateString('ar-QA', {
+        timeZone: 'Asia/Qatar',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        numberingSystem: 'arab',
+      });
+      const timePart = date.toLocaleTimeString('ar-QA', {
+        timeZone: 'Asia/Qatar',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+        numberingSystem: 'arab',
+      });
+      return `${datePart} في ${timePart}`;
+    }
+
     const options = {
       timeZone: 'Asia/Qatar',
       year: 'numeric',

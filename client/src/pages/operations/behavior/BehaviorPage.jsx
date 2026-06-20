@@ -568,7 +568,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
     },
     {
       field: 'programName',
-      headerName: 'Program',
+      headerName: t('program'),
       flex: 1,
       minWidth: 150,
       valueGetter: (params) => {
@@ -588,7 +588,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
     },
     {
       field: 'subjectName',
-      headerName: 'Subject',
+      headerName: t('subject'),
       flex: 1,
       minWidth: 120,
       valueGetter: (params) => {
@@ -1141,7 +1141,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
           color: '#991b1b'
         }}>
           {getThemedIcon('ui', 'target', 16, theme)}
-          {behaviorsRaw.length} Total
+          {behaviorsRaw.length} {t('behavior_total_badge')}
         </div>
         <div style={{ 
           display: 'inline-flex', 
@@ -1156,7 +1156,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
           color: '#991b1b'
         }}>
           {getThemedIcon('ui', 'users', 16, theme)}
-          {new Set(behaviorsRaw.map(b => b.studentId)).size} Students
+          {new Set(behaviorsRaw.map(b => b.studentId)).size} {t('behavior_students_badge')}
         </div>
         <div style={{ 
           display: 'inline-flex', 
@@ -1200,7 +1200,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
           checkboxSelection
           exportFileName="behaviors"
           showExportButton
-          exportLabel="Export"
+          exportLabel={t('export')}
           loadingOverlayMessage={pageState === PAGE_STATES.LOADING ? t('behavior_loading_behaviors') : undefined}
         />
       </div>

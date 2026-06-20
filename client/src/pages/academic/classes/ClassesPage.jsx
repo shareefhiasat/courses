@@ -5,7 +5,8 @@ import { useAuth } from '@contexts/AuthContext';
 import { useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { info, error, warn, debug } from '@services/utils/logger.js';
-import { formatQatarStandard } from '@utils/qatarDate';
+import { formatDateTime } from '@utils/dateUtils.js';
+import { getLocalizedUserName } from '@utils/localizedUserName.js';
 import { addClass, updateClass, deleteClass, getClasses } from '@services/business/classService';
 import { getPrograms, getSubjects } from '@services/business/programService';
 import { getAllClassrooms } from '@services/business/classroomService';
@@ -742,7 +743,7 @@ const handleCancelEdit = useCallback(() => {
         if (!email) return '—';
         const owner = users.find(u => u.email === email);
         if (owner) {
-          const displayName = owner.displayName || owner.name || owner.realName || '';
+          const displayName = getLocalizedUserName(owner, lang, owner.displayName || owner.name || owner.realName || '');
           return displayName ? `${displayName} (${email})` : email;
         }
         return email;
@@ -757,10 +758,9 @@ const handleCancelEdit = useCallback(() => {
         );
         const owner = users.find(u => u.email === email);
         if (owner) {
-          const displayName = owner.displayName || owner.name || owner.realName || '';
+          const displayName = getLocalizedUserName(owner, lang, owner.displayName || owner.name || owner.realName || '');
           return (
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-              {/*{getThemedIcon('ui', 'user', 16, theme)} */}
               {displayName ? `${displayName} (${email})` : email}
             </span>
           );
@@ -781,25 +781,11 @@ const handleCancelEdit = useCallback(() => {
       renderCell: (params) => {
         const createdAt = params.value || params.row?.createdAt;
         if (!createdAt) return '—';
-        
-        // If it's already a formatted string, display it directly
-        if (typeof createdAt === 'string' && createdAt.includes('UTC+3')) {
-          return createdAt;
-        }
-        
-        // Otherwise, format it
-        return formatQatarStandard(createdAt);
+        return formatDateTime(createdAt, lang);
       },
       valueFormatter: (params) => {
         if (!params.value) return '—';
-        
-        // If it's already a formatted string, return it directly
-        if (typeof params.value === 'string' && params.value.includes('UTC+3')) {
-          return params.value;
-        }
-        
-        // Otherwise, format it
-        return formatQatarStandard(params.value);
+        return formatDateTime(params.value, lang);
       }
     },
     {
@@ -853,7 +839,7 @@ const handleCancelEdit = useCallback(() => {
             icon={getThemedIcon('ui', 'edit', 16, theme)} 
             onClick={() => handleEdit(params)}
           >
-            Edit
+            {t('edit')}
           </Button>
           <Button 
             size="sm" 
@@ -908,7 +894,7 @@ const handleCancelEdit = useCallback(() => {
           />
           <Input
             ref={nameArRef}
-            placeholder={t('class_name_arabic')}
+            placeholder={t('enter_name_arabic')}
             defaultValue={classForm.nameAr || ''}
             dir="rtl"
           />
@@ -957,18 +943,18 @@ const handleCancelEdit = useCallback(() => {
         </div>
 
         {/* Academic Info */}
-        <div className="form-row">
+        <div className="form-row" style={{ flexWrap: 'wrap', gap: '0.75rem' }}>
           <ProgramsSelect
             programs={programs}
             subjects={subjects}
-            classes={[]} // Pass empty array to hide class selection
+            classes={[]}
             selectedProgram={classForm.programId}
             selectedSubject={classForm.subjectId}
             selectedClass=""
             onProgramChange={handleDropdownChange(setClassForm, 'programId', ['subjectId'])}
             onSubjectChange={handleDropdownChange(setClassForm, 'subjectId')}
             onClassChange={() => {}}
-            showClasses={false} // Use correct prop name
+            showClasses={false}
             showLabels={false}
             required
           />
@@ -1007,7 +993,7 @@ const handleCancelEdit = useCallback(() => {
                 substituteInstructorId: selectedInstructor ? selectedInstructor.id : ''
               });
             }}
-            placeholder="Substitute Instructor (Optional)"
+            placeholder={t('substitute_instructor_optional')}
             roleFilter={[]}
             includeAll={false}
             showEnrollments={true}
@@ -1017,11 +1003,11 @@ const handleCancelEdit = useCallback(() => {
           />
           <Select
             searchable
-            placeholder="Classroom (Optional)"
+            placeholder={t('classroom_optional')}
             value={classForm.classroomId || ''}
             onChange={e => setClassForm({ ...classForm, classroomId: e.target.value })}
             options={[
-              { value: '', label: 'Select Classroom (Optional)' },
+              { value: '', label: t('select_classroom_optional') },
               ...classrooms.map(c => ({ 
                 value: String(c.id), 
                 label: `${c.code} - ${c.nameEn} (${c.capacity} seats)` 

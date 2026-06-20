@@ -94,6 +94,9 @@ class SubjectDbService {
       const result = await api.get(url);
       return result;
     } catch (error) {
+      if (error.response?.status === 404) {
+        return { success: false, error: 'Subject not found', data: null };
+      }
       console.error(`[${this.serviceName}] ❌ Error getting subject by ID:`, error);
       return { success: false, error: error.message, data: null };
     }

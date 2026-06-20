@@ -13,7 +13,7 @@ import { useLookupTypes } from '@hooks/useLookupTypes.js';
 // OLD: import { ACTIVITY_TYPES, getActivityTypeConfig, ACTIVITY_TYPE_OPTIONS, getThemeColor } from '@constants';
 // NOW: Using useLookupTypes hook for all lookup data
 import { getActivityTypeConfig, ACTIVITY_TYPE_OPTIONS, getThemeColor } from '@constants';
-import { DIFFICULTY_TYPES, getDifficultyConfig, getDifficultyOptionsForDropdown } from '@constants/difficultyTypes';
+import { DIFFICULTY_TYPES, getDifficultyConfig } from '@constants/difficultyTypes';
 import { getPrograms } from '@services/business/programService.js';
 import { getSubjects } from '@services/business/subjectService.js';
 import { getClasses } from '@services/business/classService.js';
@@ -68,6 +68,14 @@ const ActivitiesPage = () => {
   };
 
   const isDark = theme === 'dark';
+  const difficultyOptions = useMemo(() => [
+    { value: DIFFICULTY_TYPES.BEGINNER, label: t('beginner') },
+    { value: DIFFICULTY_TYPES.INTERMEDIATE, label: t('intermediate') },
+    { value: DIFFICULTY_TYPES.ADVANCED, label: t('advanced') },
+  ], [t]);
+  const getDifficultyLabel = useCallback((difficulty) => (
+    difficultyOptions.find((option) => option.value === difficulty)?.label || difficulty
+  ), [difficultyOptions]);
   const { user } = useAuth();
   const toast = useToast();
   
@@ -613,14 +621,13 @@ const ActivitiesPage = () => {
         return (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
             {getThemedIcon('ui', difficultyConfig.icon, 14, theme)}
-            {difficultyConfig.text}
+            {getDifficultyLabel(difficulty)}
           </span>
         );
       },
       valueFormatter: (params) => {
         if (!params.value) return '—';
-        const difficultyConfig = getDifficultyConfig(params.value);
-        return difficultyConfig.text;
+        return getDifficultyLabel(params.value);
       }
     },
     {
@@ -677,7 +684,7 @@ const ActivitiesPage = () => {
       }
     },
     {
-      field: 'createdBy', headerName: 'Created By', width: 150,
+      field: 'createdBy', headerName: t('created_by'), width: 150,
       renderCell: (params) => {
         const createdBy = params.value || params.row?.createdBy;
         if (!createdBy) return 'Unknown';
@@ -916,7 +923,7 @@ const ActivitiesPage = () => {
                     }
                     handleFieldChange('difficulty', e.target.value);
                   }}
-                  options={getDifficultyOptionsForDropdown()}
+                  options={difficultyOptions}
                   style={{ width: '100%' }}
                   icon={getThemedIcon('ui', 'target', 16, theme)}
                   disabled={activityForm.quizId && !activityForm.overrideQuizSettings}
@@ -1269,7 +1276,7 @@ const ActivitiesPage = () => {
             onChange={(e) => setActivityDifficultyFilter(e.target.value)}
             options={[
               { value: '', label: t('all_difficulties') || 'All Difficulties', icon: getThemedIcon('ui', 'filter', 16, theme) },
-              ...getDifficultyOptionsForDropdown()
+              ...difficultyOptions
             ]}
             placeholder={t('all_difficulties') || 'All Difficulties'}
             style={{ minWidth: '200px' }}

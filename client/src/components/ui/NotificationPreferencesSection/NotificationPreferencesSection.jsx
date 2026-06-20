@@ -14,6 +14,13 @@ import { getThemedIcon } from '@constants/iconTypes';
 import { apiService } from '@services/api/apiService';
 import styles from './NotificationPreferencesSection.module.css';
 
+const CHANNEL_PREF_KEYS = {
+  in_app: 'inAppEnabled',
+  email: 'emailEnabled',
+  sms: 'smsEnabled',
+  push: 'pushEnabled',
+};
+
 const NotificationPreferencesSection = forwardRef(function NotificationPreferencesSection(
   { embedded = false, onLoadingChange },
   ref
@@ -61,8 +68,15 @@ const NotificationPreferencesSection = forwardRef(function NotificationPreferenc
     try {
       setLoading(true);
       const response = await apiService.get('/notifications/preferences');
-      if (response.data?.preferences) {
-        setPreferences(response.data.preferences);
+      if (response?.preferences) {
+        const { inAppEnabled, emailEnabled, smsEnabled, pushEnabled, matrix } = response.preferences;
+        setPreferences({
+          inAppEnabled: inAppEnabled ?? true,
+          emailEnabled: emailEnabled ?? true,
+          smsEnabled: smsEnabled ?? false,
+          pushEnabled: pushEnabled ?? false,
+          matrix: matrix || {},
+        });
       }
     } catch (err) {
       console.error('Failed to load notification preferences:', err);
@@ -75,14 +89,21 @@ const NotificationPreferencesSection = forwardRef(function NotificationPreferenc
   };
 
   const savePreferences = async ({ silent = false } = {}) => {
-    const response = await apiService.put('/notifications/preferences', preferences);
-    if (response.data?.success) {
+    const payload = {
+      inAppEnabled: preferences.inAppEnabled,
+      emailEnabled: preferences.emailEnabled,
+      smsEnabled: preferences.smsEnabled,
+      pushEnabled: preferences.pushEnabled,
+      matrix: preferences.matrix || {},
+    };
+    const response = await apiService.put('/notifications/preferences', payload);
+    if (response?.success) {
       if (!silent) {
         toast.success(t('profile_preferences_saved'));
       }
       return true;
     }
-    throw new Error('Failed to save preferences');
+    throw new Error(response?.error || 'Failed to save preferences');
   };
 
   useImperativeHandle(ref, () => ({
@@ -91,9 +112,11 @@ const NotificationPreferencesSection = forwardRef(function NotificationPreferenc
   }));
 
   const handleMasterToggle = (channel, value) => {
+    const prefKey = CHANNEL_PREF_KEYS[channel];
+    if (!prefKey) return;
     setPreferences(prev => ({
       ...prev,
-      [`${channel}Enabled`]: value
+      [prefKey]: value,
     }));
   };
 
@@ -110,7 +133,7 @@ const NotificationPreferencesSection = forwardRef(function NotificationPreferenc
     }));
   };
 
-  const isChannelEnabled = (channel) => preferences[`${channel}Enabled`];
+  const isChannelEnabled = (channel) => preferences[CHANNEL_PREF_KEYS[channel]];
 
   const isCategoryChannelEnabled = (category, channel) => {
     const categoryConfig = preferences.matrix[category];

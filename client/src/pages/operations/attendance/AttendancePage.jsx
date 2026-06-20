@@ -17,14 +17,15 @@ import { Button, Select, YearSelect, ProgramsSelect, TermSelect } from '@ui';
 import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { getPrograms, getSubjects } from '@services/business/programService';
 import { getClasses } from '@services/business/classService';
-import styles from './AttendancePage.module.css';
+import { ClipboardList, Play, Smartphone, CheckCircle, Copy, ListOrdered } from 'lucide-react';
+import { getLocalizedClassName } from '@utils/schedulingDisplayUtils';
 import PortalTooltip from '@ui/PortalTooltip';
 import { exportGeneric } from '@services/export/excelExportService.js';
 import { submitAttendanceReport } from '@services/business/workflowDocumentService.js';
 
 const AttendancePage = () => {
   const { user, isAdmin, isInstructor, isHR, loading: authLoading } = useAuth();
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const { theme } = useTheme();
   const { startLoading } = useGlobalLoading();
   const [classId, setClassId] = useState(() => {
@@ -522,10 +523,10 @@ const AttendancePage = () => {
             {getThemedIcon('ui', 'play_circle', 32, theme)}
             <div>
               <div style={{ fontWeight: 700, fontSize: '1.1rem', marginBottom: '0.25rem' }}>
-                {t('session_active') || 'Session Active'}
+                {t('attendance_session_active')}
               </div>
               <div style={{ fontSize: '0.9rem', opacity: 0.9 }}>
-                {t('duration') || 'Duration'}: {durationDisplay} • {attendanceCount} {t('scanned') || 'scanned'}
+                {t('attendance_session_duration')}: {durationDisplay} • {attendanceCount} {t('attendance_scanned')}
               </div>
             </div>
           </div>
@@ -570,7 +571,7 @@ const AttendancePage = () => {
             color: '#1f2937'
           }}
         >
-          <span>{t('class_selection') || 'Class Selection'}</span>
+          <span>{t('attendance_class_selection')}</span>
           {collapsedSections.class ? getThemedIcon('ui', 'plus', 20, theme) : getThemedIcon('ui', 'minus', 20, theme)}
         </button>
         {!collapsedSections.class && (
@@ -650,27 +651,27 @@ const AttendancePage = () => {
 
         {/* Class List */}
         <div style={{ fontSize:12, color:'var(--muted)', marginBottom:8 }}>
-          {t('showing') || 'Showing'} {filteredClasses.length} {t('of') || 'of'} {classOptions.length} {t('classes') || 'classes'}
+          {t('attendance_showing_of_classes', { shown: filteredClasses.length, total: classOptions.length })}
         </div>
         {filteredClasses.length === 0 && (
           <div style={{ padding:'1rem', textAlign:'center', color:'var(--muted)' }}>
-            {t('no_classes_found') || 'No classes found. Adjust filters or create a class first.'}
+            {t('attendance_no_classes_found')}
           </div>
         )}
         <div style={{ display:'grid', gap:6, maxHeight:300, overflowY:'auto' }}>
           {filteredClasses.map(c => {
             const val = c.id || c.docId || '';
-            const label = c.name || c.code || val || '—';
+            const label = getLocalizedClassName(c, lang, c.name || c.code || val || '—');
             const checked = classId === val;
             return (
-              <label key={val} style={{ display:'flex', alignItems:'center', gap:8, cursor:'pointer', padding:'8px 10px', border:'1px solid var(--border)', borderRadius:8, background: checked ? 'rgba(102,126,234,0.12)' : 'var(--panel)' }} onClick={()=>{ setClassId(val); try { localStorage.setItem('att_instructor_class', val); } catch {}; }}>
-                <input type="radio" name="classSelect" value={val} checked={checked} onChange={()=>{}} />
+              <label key={val} className={styles.classOption} style={{ background: checked ? 'rgba(102,126,234,0.12)' : 'var(--panel)' }} onClick={()=>{ setClassId(val); try { localStorage.setItem('att_instructor_class', val); } catch {}; }}>
+                <input type="radio" name="classSelect" value={val} checked={checked} onChange={()=>{}} className={styles.classRadio} />
                 <div style={{ flex:1 }}>
                   <div style={{ fontWeight:600 }}>{label}</div>
-                  <div style={{ fontSize:11, color:'var(--muted)', display:'flex', gap:8 }}>
-                    {c.term && <span>Term: {c.term}</span>}
-                    {c.year && <span>Year: {c.year}</span>}
-                    {c.code && <span>Code: {c.code}</span>}
+                  <div style={{ fontSize:11, color:'var(--muted)', display:'flex', gap:8, flexWrap: 'wrap' }}>
+                    {c.term && <span>{t('attendance_term_label')}: {c.term}</span>}
+                    {c.year && <span>{t('attendance_year_label')}: {c.year}</span>}
+                    {c.code && <span>{t('attendance_code_label')}: {c.code}</span>}
                   </div>
                 </div>
               </label>
@@ -700,33 +701,33 @@ const AttendancePage = () => {
               color: '#1f2937'
             }}
           >
-            <span>{t('attendance_settings') || 'Attendance Settings'}</span>
+            <span>{t('attendance_attendance_settings')}</span>
             {collapsedSections.settings ? getThemedIcon('ui', 'plus', 18, theme) : getThemedIcon('ui', 'minus', 18, theme)}
           </button>
           {!collapsedSections.settings && (
             <div style={{ padding: '0 0.75rem 0.75rem 0.75rem' }}>
               <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(120px,1fr))', gap: 8, marginBottom: 8 }}>
                 <div>
-                  <label style={{ display:'block', marginBottom: 4, fontWeight: 600, fontSize:10, color: '#1f2937' }}>{t('qr_rotation_seconds') || 'QR Rotation (seconds)'}</label>
+                  <label style={{ display:'block', marginBottom: 4, fontWeight: 600, fontSize:10, color: '#1f2937' }}>{t('attendance_rotation_seconds')}</label>
                   <input type="number" min={10} max={120} value={cfg.rotationSeconds}
                     onChange={(e)=>setCfg(v=>({ ...v, rotationSeconds: Math.max(10, Math.min(120, parseInt(e.target.value||'30',10))) }))}
                     style={{ width:'100%', padding:'0.4rem', border:'1px solid var(--border)', borderRadius:6, background:'var(--panel)', color:'inherit', fontSize: '0.8rem' }} />
                 </div>
                 <div>
-                  <label style={{ display:'block', marginBottom: 4, fontWeight: 600, fontSize:10, color: '#1f2937' }}>{t('session_duration_minutes') || 'Session Duration (minutes)'}</label>
+                  <label style={{ display:'block', marginBottom: 4, fontWeight: 600, fontSize:10, color: '#1f2937' }}>{t('attendance_session_minutes')}</label>
                   <input type="number" min={5} max={180} value={cfg.sessionMinutes}
                     onChange={(e)=>setCfg(v=>({ ...v, sessionMinutes: Math.max(5, Math.min(180, parseInt(e.target.value||'15',10))) }))}
                     style={{ width:'100%', padding:'0.4rem', border:'1px solid var(--border)', borderRadius:6, background:'var(--panel)', color:'inherit', fontSize: '0.8rem' }} />
                 </div>
                 <div style={{ alignSelf:'end' }}>
-                  <label style={{ display:'block', marginBottom: 4, fontWeight: 600, fontSize:10, color: '#1f2937' }}>{t('strict_device_binding') || 'Strict Device Binding'}</label>
+                  <label style={{ display:'block', marginBottom: 4, fontWeight: 600, fontSize:10, color: '#1f2937' }}>{t('attendance_strict_device_binding')}</label>
                   <button onClick={()=>setCfg(v=>({ ...v, strictDeviceBinding: !v.strictDeviceBinding }))} style={{ padding:'0.4rem 0.75rem', border:'1px solid var(--border)', borderRadius:6, background: cfg.strictDeviceBinding ? 'rgba(16,185,129,0.15)' : 'transparent', color:'inherit', fontWeight:600, fontSize: '0.8rem' }}>
-                    {cfg.strictDeviceBinding ? (t('enabled')||'Enabled') : (t('disabled')||'Disabled')}
+                    {cfg.strictDeviceBinding ? t('enabled') : t('disabled')}
                   </button>
                 </div>
                 <div style={{ alignSelf:'end' }}>
                   <button onClick={saveCfg} disabled={savingCfg} style={{ padding:'0.4rem 1rem', border:'none', borderRadius:6, background:'#800020', color:'white', fontWeight:600, fontSize: '0.8rem' }}>
-                    {savingCfg ? (t('saving')||'Saving...') : (t('save_settings')||'Save Settings')}
+                    {savingCfg ? t('saving') : t('attendance_save_settings')}
                   </button>
                 </div>
               </div>
@@ -745,7 +746,7 @@ const AttendancePage = () => {
                       width: '100%'
                     }}
                   >
-                    {cfg.lateMode ? (t('late_mode_on') || 'Late Mode: ON') : (t('late_mode_off') || 'Late Mode: OFF')}
+                    {cfg.lateMode ? t('attendance_late_mode_on') : t('attendance_late_mode_off')}
                   </button>
                 </div>
               )}
@@ -766,7 +767,7 @@ const AttendancePage = () => {
         }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
           <div style={{ fontWeight: 700, fontSize: '1rem' }}>
-            {(t('live_qr') || 'Live QR Code').replaceAll('_',' ')}
+            {t('attendance_live_qr')}
           </div>
           {sessionId && (
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
@@ -805,11 +806,11 @@ const AttendancePage = () => {
             />
             {sessionId && manualCode && (
               <div style={{ marginTop:12, padding:'1rem', background:'#fff', border:'2px solid #800020', borderRadius:8, textAlign:'center' }}>
-                <div style={{ fontSize:11, fontWeight:600, color:'var(--muted)', marginBottom:6 }}>{t('manual_code') || 'MANUAL CODE'}</div>
+                <div style={{ fontSize:11, fontWeight:600, color:'var(--muted)', marginBottom:6 }}>{t('attendance_manual_code')}</div>
                 <div style={{ fontSize:32, fontWeight:700, letterSpacing:'0.2em', color:'#800020', fontFamily:'monospace' }}>{manualCode}</div>
-                <div style={{ fontSize:10, color:'var(--muted)', marginTop:6 }}>{t('rotates_every') || 'Rotates every'} {cfg.rotationSeconds}s</div>
+                <div style={{ fontSize:10, color:'var(--muted)', marginTop:6 }}>{t('attendance_rotates_every')} {cfg.rotationSeconds}s</div>
                 <div style={{ fontSize:9, color:'var(--muted)', marginTop:8, padding:'4px 8px', background:'#f3f4f6', borderRadius:4, fontFamily:'monospace' }}>
-                  {t('session') || 'Session'}: {sessionId.slice(0,8)}...
+                  {t('session')}: {sessionId.slice(0,8)}...
                 </div>
               </div>
             )}
@@ -818,27 +819,39 @@ const AttendancePage = () => {
             {!sessionId && (
               <div style={{ fontSize: 14, color:'var(--muted)' }}>
                 <div style={{ marginBottom: 12, fontWeight: 600, color: '#1f2937' }}>
-                  {t('how_to_start_session') || 'How to Start Attendance Session'}
+                  {t('attendance_how_to_start_session')}
                 </div>
                 <div style={{ lineHeight: 1.6 }}>
-                  <div style={{ marginBottom: 8 }}>📋 <strong>{t('step1') || 'Step 1'}:</strong> {t('select_class_instructions') || 'Select your class from the dropdown above'}</div>
-                  <div style={{ marginBottom: 8 }}>▶️ <strong>{t('step2') || 'Step 2'}:</strong> {t('click_start_session_instructions') || 'Click the "Start Session" button below'}</div>
-                  <div style={{ marginBottom: 8 }}>📱 <strong>{t('step3') || 'Step 3'}:</strong> {t('students_scan_instructions') || 'Students will scan the QR code or use manual code'}</div>
-                  <div>✅ <strong>{t('step4') || 'Step 4'}:</strong> {t('attendance_records_instructions') || 'Attendance will be recorded automatically in real-time'}</div>
+                  <div style={{ marginBottom: 8, display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
+                    <ClipboardList size={16} style={{ flexShrink: 0, marginTop: 2 }} />
+                    <span><strong>{t('attendance_step1')}:</strong> {t('attendance_select_class_instructions')}</span>
+                  </div>
+                  <div style={{ marginBottom: 8, display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
+                    <Play size={16} style={{ flexShrink: 0, marginTop: 2 }} />
+                    <span><strong>{t('attendance_step2')}:</strong> {t('attendance_click_start_session_instructions')}</span>
+                  </div>
+                  <div style={{ marginBottom: 8, display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
+                    <Smartphone size={16} style={{ flexShrink: 0, marginTop: 2 }} />
+                    <span><strong>{t('attendance_step3')}:</strong> {t('attendance_students_scan_instructions')}</span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
+                    <CheckCircle size={16} style={{ flexShrink: 0, marginTop: 2 }} />
+                    <span><strong>{t('attendance_step4')}:</strong> {t('attendance_records_instructions')}</span>
+                  </div>
                 </div>
               </div>
             )}
             {sessionId && (
               <>
                 <div style={{ fontSize: 12, color:'var(--muted)', marginBottom:8 }}>
-                  {t('qr_rotates_info') || `QR code rotates every ${cfg.rotationSeconds} seconds for security.`}
+                  {t('attendance_qr_rotates_info', { seconds: cfg.rotationSeconds })}
                 </div>
                 <div style={{ marginTop:8, padding:'0.5rem 0.75rem', background:'rgba(0,0,0,0.04)', borderRadius:8, fontFamily:'monospace', fontSize:11, color:'var(--muted)', wordBreak:'break-all' }}>
-                  {token ? token.slice(0,80)+'…' : ((t('waiting_token')||'Waiting for token...').replaceAll('_',' '))}
+                  {token ? token.slice(0,80)+'…' : t('attendance_waiting_token')}
                 </div>
                 {!token && (
                   <div style={{ marginTop:8, fontSize:12, color:'#b45309' }}>
-                    {(t('waiting_for_backend')||'If this stays empty, ensure Cloud Functions are deployed and ATTENDANCE_SECRET is set.').replaceAll('_',' ')}
+                    {t('attendance_waiting_for_backend')}
                   </div>
                 )}
                 <div style={{ marginTop:12, display:'flex', gap:8, flexWrap:'wrap' }}>
@@ -846,8 +859,9 @@ const AttendancePage = () => {
                     const origin = typeof window !== 'undefined' ? window.location.origin : '';
                     const link = `${origin}/my-attendance?sid=${sessionId}&t=${encodeURIComponent(token||'')}`;
                     navigator.clipboard && navigator.clipboard.writeText(link).catch(()=>{});
-                  }} style={{ padding:'0.5rem 1rem', border:'1px solid var(--border)', borderRadius:8, background:'#fff', fontWeight:600, color: '#1f2937' }}>
-                    📋 {(t('copy_student_link')||'Copy Student Link').replaceAll('_',' ')}
+                  }} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.375rem', padding:'0.5rem 1rem', border:'1px solid var(--border)', borderRadius:8, background:'#fff', fontWeight:600, color: '#1f2937' }}>
+                    <Copy size={14} />
+                    {t('attendance_copy_student_link')}
                   </button>
                   <Button 
                     variant="secondary" 
@@ -903,7 +917,7 @@ const AttendancePage = () => {
                 fontSize: '0.875rem'
               }}
             >
-              {loading ? (t('starting') || 'Starting...') : (t('start_session') || 'Start Session')}
+              {loading ? t('attendance_starting') : t('attendance_start_session')}
             </button>
           ) : (
             <button
@@ -918,7 +932,7 @@ const AttendancePage = () => {
                 fontSize: '0.875rem'
               }}
             >
-              {cfg.lateMode ? (t('late_mode_on') || 'Late Mode: ON') : (t('late_mode_off') || 'Late Mode: OFF')}
+              {cfg.lateMode ? t('attendance_late_mode_on') : t('attendance_late_mode_off')}
             </button>
           )}
         </div>
@@ -927,33 +941,33 @@ const AttendancePage = () => {
       {/* Guidelines */}
       <div style={{ padding:'1rem', background:'#eff6ff', border:'1px solid #800020', borderRadius: 12 }}>
         <div style={{ fontWeight: 700, marginBottom: 12, display:'flex', alignItems:'center', gap:8, color:'#1e40af' }}>
-          {getThemedIcon('ui', 'info', 20, theme)}
-          <span>{t('how_to_use') || 'How to Use Attendance System'}</span>
+          <ListOrdered size={20} />
+          <span>{t('attendance_how_to_use')}</span>
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', gap: '0.5rem', fontSize: 13, color: '#1e3a8a' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.5rem 0.75rem', background: 'rgba(255,255,255,0.7)', borderRadius: 6 }}>
             <strong>1.</strong>
-            <span>{t('attendance_step1') || 'Select your class from the dropdown and click Start Session to generate QR code'}</span>
+            <span>{t('attendance_guide_step1')}</span>
           </div>
           {getThemedIcon('ui', 'chevron_right', 16, theme)}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.5rem 0.75rem', background: 'rgba(255,255,255,0.7)', borderRadius: 6 }}>
             <strong>2.</strong>
-            <span>{t('attendance_step2') || 'Students scan QR code with their phones or use manual code if needed'}</span>
+            <span>{t('attendance_guide_step2')}</span>
           </div>
           {getThemedIcon('ui', 'chevron_right', 16, theme)}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.5rem 0.75rem', background: 'rgba(255,255,255,0.7)', borderRadius: 6 }}>
             <strong>3.</strong>
-            <span>{t('attendance_step3') || 'QR code automatically rotates for security - attendance is recorded in real-time'}</span>
+            <span>{t('attendance_guide_step3')}</span>
           </div>
           {getThemedIcon('ui', 'chevron_right', 16, theme)}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.5rem 0.75rem', background: 'rgba(255,255,255,0.7)', borderRadius: 6 }}>
             <strong>4.</strong>
-            <span>{t('attendance_step4') || 'Enable Late Mode to allow late arrivals after session starts'}</span>
+            <span>{t('attendance_guide_step4')}</span>
           </div>
           {getThemedIcon('ui', 'chevron_right', 16, theme)}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.5rem 0.75rem', background: 'rgba(255,255,255,0.7)', borderRadius: 6 }}>
             <strong>5.</strong>
-            <span>{t('attendance_step5') || 'Export attendance data as CSV for records and reporting'}</span>
+            <span>{t('attendance_guide_step5')}</span>
           </div>
         </div>
       </div>

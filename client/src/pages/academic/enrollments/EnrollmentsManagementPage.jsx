@@ -269,6 +269,11 @@ const EnrollmentsManagementPage = () => {
     return users.find((u) => matchUserId(u.docId || u.id, userId));
   }, [users, matchUserId]);
 
+  const getEnrollmentStatusLabel = useCallback((code) => {
+    if (!code) return t('status_enrolled');
+    return t(`status_${String(code).toLowerCase()}`) || code;
+  }, [t]);
+
   const enrollmentSummary = useMemo(() => {
     const total = filteredEnrollmentRows.length;
     const uniqueStudents = new Set(filteredEnrollmentRows.map(r => r.userId)).size;
@@ -389,14 +394,7 @@ const EnrollmentsManagementPage = () => {
             value={enrollmentForm.role}
             onChange={e => setEnrollmentForm({ ...enrollmentForm, role: e.target.value })}
             options={[
-              { value: ROLE_STRINGS.STUDENT, label: (
-                <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <span style={{ color: '#16a34a' }}>
-                    {getThemedIcon('ui', 'user', 16, theme)}
-                  </span>
-                  {t('student') || 'Student'}
-                </span>
-              )}
+              { value: ROLE_STRINGS.STUDENT, label: t('student') }
             ]}
           />
         </div>
@@ -442,7 +440,7 @@ const EnrollmentsManagementPage = () => {
           color: '#1d4ed8'
         }}>
           {getThemedIcon('ui', 'layers', 16, theme)}
-          {(t('total_enrollments') || 'Total enrollments')}: {enrollmentSummary.total}
+          {(t('total_enrollments'))}: {enrollmentSummary.total}
         </div>
         <div style={{
           display: 'inline-flex',
@@ -457,7 +455,7 @@ const EnrollmentsManagementPage = () => {
           color: '#15803d'
         }}>
           {getThemedIcon('ui', 'user', 16, theme)}
-          {(t('unique_students') || 'Unique students')}: {enrollmentSummary.uniqueStudents}
+          {(t('unique_students'))}: {enrollmentSummary.uniqueStudents}
         </div>
         <div style={{
           display: 'inline-flex',
@@ -472,7 +470,7 @@ const EnrollmentsManagementPage = () => {
           color: '#854d0e'
         }}>
           {getThemedIcon('ui', 'home', 16, theme)}
-          {(t('unique_classes') || 'Unique classes')}: {enrollmentSummary.uniqueClasses}
+          {(t('unique_classes'))}: {enrollmentSummary.uniqueClasses}
         </div>
         {enrollmentSummary.uniquePrograms > 0 && (
           <div style={{
@@ -488,7 +486,7 @@ const EnrollmentsManagementPage = () => {
             color: '#6d28d9'
           }}>
             {getThemedIcon('ui', 'grid', 16, theme)}
-            {(t('unique_programs') || 'Unique programs')}: {enrollmentSummary.uniquePrograms}
+            {(t('unique_programs'))}: {enrollmentSummary.uniquePrograms}
           </div>
         )}
       </div>
@@ -554,7 +552,7 @@ const EnrollmentsManagementPage = () => {
           },
           {
             field: 'createdBy', 
-            headerName: t('created_by') || 'CREATED BY', 
+            headerName: t('created_by'), 
             width: 150,
             renderCell: (params) => {
               const creator = users.find(u => matchUserId(u.docId || u.id, params.value));
@@ -579,21 +577,7 @@ const EnrollmentsManagementPage = () => {
             width: 120,
             renderCell: (params) => {
               const status = params.row.status;
-              if (!status) {
-                return (
-                  <span style={{ 
-                    padding: '4px 8px',
-                    backgroundColor: theme === 'dark' ? '#059669' : '#d1fae5',
-                    color: theme === 'dark' ? '#6ee7b7' : '#059669',
-                    borderRadius: '12px',
-                    fontSize: '0.875rem',
-                    fontWeight: '500'
-                  }}>
-                    ENROLLED
-                  </span>
-                );
-              }
-              
+              const statusCode = status?.code || 'ENROLLED';
               const statusColors = {
                 'ENROLLED': { bg: theme === 'dark' ? '#059669' : '#d1fae5', color: theme === 'dark' ? '#6ee7b7' : '#059669' },
                 'SUSPENDED': { bg: theme === 'dark' ? '#dc2626' : '#fee2e2', color: theme === 'dark' ? '#f87171' : '#dc2626' },
@@ -601,9 +585,8 @@ const EnrollmentsManagementPage = () => {
                 'ACTIVE': { bg: theme === 'dark' ? '#059669' : '#d1fae5', color: theme === 'dark' ? '#6ee7b7' : '#059669' },
                 'DROPPED': { bg: theme === 'dark' ? '#6b7280' : '#f3f4f6', color: theme === 'dark' ? '#d1d5db' : '#6b7280' }
               };
-              
-              const colors = statusColors[status.code] || statusColors['ENROLLED'];
-              
+              const colors = statusColors[statusCode] || statusColors['ENROLLED'];
+
               return (
                 <span style={{ 
                   padding: '4px 8px',
@@ -613,7 +596,7 @@ const EnrollmentsManagementPage = () => {
                   fontSize: '0.875rem',
                   fontWeight: '500'
                 }}>
-                  {status.code === 'ENROLLED' ? 'ENROLLED' : status.code}
+                  {getEnrollmentStatusLabel(statusCode)}
                 </span>
               );
             }

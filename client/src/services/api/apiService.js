@@ -83,9 +83,12 @@ apiClient.interceptors.response.use(
       }
     }
 
-    // Suppress 404 errors for standup attendance (expected when no data exists)
-    if (error.response?.status === 404 && originalRequest.url?.includes('standup-attendance')) {
-      debug('[API Service] 404 for standup-attendance (expected when no data):', originalRequest.url);
+    // Suppress noisy 404 errors where missing data is expected
+    if (error.response?.status === 404 && (
+      originalRequest.url?.includes('standup-attendance') ||
+      /\/subjects\/\d+/.test(originalRequest.url || '')
+    )) {
+      debug('[API Service] Expected 404:', originalRequest.url);
       return Promise.reject(error);
     }
 
@@ -379,10 +382,12 @@ export const apiService = {
 
       return data;
     } catch (error) {
-      // Suppress 404 errors for standup-attendance endpoints (expected when no data exists)
-      if (error.response?.status === 404 && String(url || '').includes('standup-attendance')) {
-        // Silent handling for expected 404s
-        debug('[API Service] Expected 404 for standup-attendance GET:', url);
+      // Suppress 404 errors for endpoints where missing data is expected
+      if (error.response?.status === 404 && (
+        String(url || '').includes('standup-attendance') ||
+        /\/subjects\/\d+/.test(String(url || ''))
+      )) {
+        debug('[API Service] Expected 404 for GET:', url);
       } else {
         console.error('API GET Error:', error);
       }

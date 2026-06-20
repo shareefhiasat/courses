@@ -308,10 +308,12 @@ const ProgramsSelect = ({
   );
 };
 
+const idProp = PropTypes.oneOfType([PropTypes.string, PropTypes.number]);
+
 ProgramsSelect.propTypes = {
   programs: PropTypes.arrayOf(
     PropTypes.shape({
-      id: PropTypes.string,
+      id: idProp,
       nameEn: PropTypes.string,
       nameAr: PropTypes.string,
       name: PropTypes.string,
@@ -320,8 +322,8 @@ ProgramsSelect.propTypes = {
   ),
   subjects: PropTypes.arrayOf(
     PropTypes.shape({
-      id: PropTypes.string,
-      programId: PropTypes.string,
+      id: idProp,
+      programId: idProp,
       nameEn: PropTypes.string,
       nameAr: PropTypes.string,
       name: PropTypes.string,
@@ -329,8 +331,9 @@ ProgramsSelect.propTypes = {
   ),
   classes: PropTypes.arrayOf(
     PropTypes.shape({
-      id: PropTypes.string,
-      subjectId: PropTypes.string,
+      id: idProp,
+      subjectId: idProp,
+      programId: idProp,
       name: PropTypes.string,
       code: PropTypes.string,
       term: PropTypes.string,

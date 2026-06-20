@@ -7,6 +7,7 @@
 
 import { PrismaClient } from '@prisma/client';
 import { PRISMA_ERRORS, getPrismaErrorMessage, isPrismaError } from '../constants/prisma-errors.js';
+import { USER_NAME_SELECT_WITH_ID } from '../utils/userNameFields.js';
 
 const prisma = new PrismaClient();
 
@@ -148,18 +149,10 @@ export const getBehaviors = async (params = {}) => {
           }
         },
         creator: {
-          select: {
-            id: true,
-            displayName: true,
-            email: true
-          }
+            select: USER_NAME_SELECT_WITH_ID
         },
         updater: {
-          select: {
-            id: true,
-            displayName: true,
-            email: true
-          }
+            select: USER_NAME_SELECT_WITH_ID
         }
       }
     });
@@ -245,18 +238,10 @@ export const getBehaviorById = async (id) => {
           }
         },
         creator: {
-          select: {
-            id: true,
-            displayName: true,
-            email: true
-          }
+            select: USER_NAME_SELECT_WITH_ID
         },
         updater: {
-          select: {
-            id: true,
-            displayName: true,
-            email: true
-          }
+            select: USER_NAME_SELECT_WITH_ID
         }
       }
     });
@@ -358,18 +343,10 @@ export const createBehavior = async (behaviorData, user = null) => {
           }
         },
         creator: {
-          select: {
-            id: true,
-            displayName: true,
-            email: true
-          }
+            select: USER_NAME_SELECT_WITH_ID
         },
         updater: {
-          select: {
-            id: true,
-            displayName: true,
-            email: true
-          }
+            select: USER_NAME_SELECT_WITH_ID
         }
       }
     });
@@ -464,18 +441,10 @@ export const updateBehavior = async (id, updateData, user = null) => {
           }
         },
         creator: {
-          select: {
-            id: true,
-            displayName: true,
-            email: true
-          }
+            select: USER_NAME_SELECT_WITH_ID
         },
         updater: {
-          select: {
-            id: true,
-            displayName: true,
-            email: true
-          }
+            select: USER_NAME_SELECT_WITH_ID
         }
       }
     });

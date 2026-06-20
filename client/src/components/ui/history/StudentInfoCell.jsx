@@ -1,21 +1,22 @@
 import React, { useState } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
+import { getLocalizedUserName } from '@utils/localizedUserName';
 import { getThemedIcon } from '@constants/iconTypes';
-import { ATTENDANCE_TYPE_CATEGORY, getAttendanceColor, getAttendanceLabel, getAttendanceIcon } from '@constants/attendanceTypes';
+import { ATTENDANCE_TYPE_CATEGORY, getAttendanceColor, getAttendanceIcon } from '@constants/attendanceTypes';
 import { CheckSmallIcon, ClockSmallIcon, XSmallIcon, HeartIcon, CircleIcon } from '@utils/icons.jsx';
 
 /**
  * StudentInfoCell - Displays student name, avatar, ID, favorite button, and today's status
- * Logic-free component following workspace constitution
  */
 const StudentInfoCell = ({ student, favoriteStudents, toggleFavorite, onStudentSelect, t, attendanceMode, todayStatus, theme = 'light' }) => {
+  const { lang } = useLang();
   const [isHovered, setIsHovered] = useState(false);
-  const avatarColorObj = getAvatarColor(student.displayName || student.realName || student.name || '');
-  const avatarInitials = getAvatarInitials(student.displayName || student.realName || student.name || '');
+  const displayName = getLocalizedUserName(student, lang, student.email || t('unknown_student'));
+  const avatarColorObj = getAvatarColor(displayName);
+  const avatarInitials = getAvatarInitials(displayName);
   const isStandupMode = attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP;
 
-  // Get attendance icon component based on status
   const getAttendanceIconComponent = (status) => {
     if (!status) return null;
     const statusUpper = status?.toUpperCase();
@@ -44,7 +45,6 @@ const StudentInfoCell = ({ student, favoriteStudents, toggleFavorite, onStudentS
       onMouseLeave={() => setIsHovered(false)}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-        {/* Avatar */}
         <div style={{
           width: '2.5rem',
           height: '2.5rem',
@@ -61,9 +61,7 @@ const StudentInfoCell = ({ student, favoriteStudents, toggleFavorite, onStudentS
           {avatarInitials}
         </div>
 
-        {/* Student Info */}
         <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          {/* Favorite Button */}
           <button
             onClick={(e) => {
               e.stopPropagation();
@@ -77,14 +75,13 @@ const StudentInfoCell = ({ student, favoriteStudents, toggleFavorite, onStudentS
             }}
           >
             {favoriteStudents.includes(student.id)
-              ? getThemedIcon('ui', 'star', 16, '#fbbf24') // Yellow when favorited
-              : getThemedIcon('ui', 'star', 16, '#9ca3af') // Gray when not favorited
+              ? getThemedIcon('ui', 'star', 16, '#fbbf24')
+              : getThemedIcon('ui', 'star', 16, '#9ca3af')
             }
           </button>
           <div>
             <div style={{ fontWeight: 500, color: theme === 'dark' ? (isHovered ? '#000000' : '#ffffff') : 'var(--text, #111827)', display: 'flex', alignItems: 'center', gap: '0.5rem', whiteSpace: isStandupMode ? 'nowrap' : 'normal' }}>
-              {student.displayName || student.realName || student.name || student.email}
-              {/* Today's Attendance Status - Show with color and icon */}
+              {displayName}
               {todayStatus && (
                 <span style={{
                   display: 'flex',
@@ -97,11 +94,9 @@ const StudentInfoCell = ({ student, favoriteStudents, toggleFavorite, onStudentS
                   padding: '0.125rem 0.375rem',
                   borderRadius: '0.25rem'
                 }}>
-                  {/* {getAttendanceIconComponent(todayStatus)}
-                  {getAttendanceLabel(todayStatus?.toUpperCase())} */}
+                  {getAttendanceIconComponent(todayStatus)}
                 </span>
               )}
-              {/* Student Order Badge - Hidden in standup mode */}
               {!isStandupMode && student.studentOrder !== null && student.studentOrder !== undefined && student.studentOrder !== '' && (
                 <span style={{
                   background: 'var(--color-primary-light, #dbeafe)',

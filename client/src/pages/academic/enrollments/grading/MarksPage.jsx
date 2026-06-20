@@ -1344,7 +1344,7 @@ const MarksPage = () => {
                             />
                           </div>
                           <span style={{ marginLeft: '8px', fontSize: '12px', color: isRepeated ? '#22c55e' : '#ef4444' }}>
-                            {isRepeated ? 'Yes' : 'No'}
+                            {isRepeated ? t('yes') : t('no')}
                           </span>
                         </div>
                       );

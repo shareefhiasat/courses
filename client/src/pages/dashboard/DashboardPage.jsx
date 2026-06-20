@@ -390,14 +390,21 @@ const DashboardPage = () => {
       }
     }
     // Then check for hash navigation (legacy support)
-    if (location.hash && !hashProcessed) {
+    if (location.hash) {
       const hash = location.hash.substring(1); // Remove #
       const hashToHashMap = {
-        'programs': 'programs',
-        'subjects': 'subjects',
-        'classes': 'classes',
-        'enrollments': 'manage-enrollments',
-        'marks': 'marks'
+        programs: 'programs',
+        subjects: 'subjects',
+        classes: 'classes',
+        users: 'users',
+        enrollments: 'manage-enrollments',
+        marks: 'marks',
+        penalty: 'penalty',
+        participation: 'participation',
+        behavior: 'behavior',
+        'user-category-access': 'user-category-access',
+        'instructor-availability': 'instructor-availability',
+        'classroom-availability': 'classroom-availability',
       };
       const tab = hashToHashMap[hash];
       if (tab && tab !== activeTab) {

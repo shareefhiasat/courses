@@ -561,7 +561,7 @@ const AnnouncementsPage = ({ isDashboardTab = false }) => {
       }
     },
     {
-      field: 'createdBy', headerName: 'Created By', width: 150,
+      field: 'createdBy', headerName: t('created_by'), width: 150,
       renderCell: (params) => {
         const createdBy = params.value || params.row?.createdBy;
         if (!createdBy) return 'Unknown';

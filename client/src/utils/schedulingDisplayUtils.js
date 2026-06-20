@@ -33,6 +33,26 @@ export function getLocalizedSubjectName(subject, lang) {
   return subject.nameEn || subject.code || '';
 }
 
+export function getLocalizedProgramName(program, lang) {
+  if (!program) return '';
+  if (lang === 'ar' && program.nameAr) return program.nameAr;
+  return program.nameEn || program.name || program.code || '';
+}
+
+export const WEEK_DAY_CODES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+export function getWeekDayOptions(t) {
+  return WEEK_DAY_CODES.map((code) => ({
+    value: code,
+    label: t(EN_DAY_TO_KEY[code] || code),
+  }));
+}
+
+export function formatWeekDayCodes(days, t) {
+  if (!days || !Array.isArray(days) || days.length === 0) return '—';
+  return days.map((d) => t(EN_DAY_TO_KEY[d] || d)).join(', ');
+}
+
 export function getLocalizedInstructorName(instructor, lang, fallback = '') {
   return getLocalizedUserName(instructor, lang, fallback || 'Unknown User');
 }
@@ -159,11 +179,23 @@ export function getClassroomById(classrooms, classroomId) {
   return classrooms.find(c => c.id === classroomId) || null;
 }
 
+export function getLocalizedClassroomStatus(classroom, t) {
+  if (!classroom?.status) return null;
+  const statusMap = {
+    Available: t('available'),
+    UnderMaintenance: t('under_maintenance'),
+    Closed: t('closed'),
+  };
+  return statusMap[classroom.status] || classroom.status;
+}
+
 export function formatClassroomOptionLabel(classroom, lang, t) {
   if (!classroom) return '';
   const name = getLocalizedClassroomName(classroom, lang);
   const capacity = classroom.capacity != null ? classroom.capacity : '—';
-  return `${name} (${capacity} ${t('seats')})`;
+  const statusLabel = getLocalizedClassroomStatus(classroom, t);
+  const statusSuffix = statusLabel ? ` · ${statusLabel}` : '';
+  return `${name} (${capacity} ${t('seats')})${statusSuffix}`;
 }
 
 export function formatClassroomDetails(classroom, lang, t) {
@@ -195,7 +227,7 @@ export function getClassroomDetailRows(classroom, lang, t) {
     { label: t('floor'), value: classroom.floor },
     { label: t('room_number'), value: classroom.roomNumber },
     { label: t('location'), value: location },
-    { label: t('status'), value: classroom.status },
+    { label: t('status'), value: getLocalizedClassroomStatus(classroom, t) },
     { label: t('equipment'), value: classroom.equipment?.length ? classroom.equipment.join(', ') : null },
     { label: t('available_days'), value: classroom.availableDays?.length
       ? classroom.availableDays.join(', ') : null }

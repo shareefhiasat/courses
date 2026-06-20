@@ -1,8 +1,7 @@
 /**
  * User Image Upload Component
- * 
- * PURPOSE: Reusable component for uploading user images with progress tracking
- * ARCHITECTURE: UI Component → User Image Service → Backend API → Nextcloud WebDAV
+ *
+ * Reusable upload card for profile photo, QID, and military ID images.
  */
 
 import React, { useState, useCallback, useRef } from 'react';
@@ -10,11 +9,26 @@ import { Upload, X, CheckCircle, AlertCircle, Trash2, User, CreditCard, Shield, 
 import { useLang } from '@contexts/LangContext';
 import { Button, Progress } from '@ui';
 import { uploadUserImage, deleteUserImage } from '@services/business/userImageService';
+import styles from './UserImageUpload.module.css';
 
-const UserImageUpload = ({ userId, imageType, currentImageUrl, editable = true, onUploadSuccess, onDeleteSuccess, onError }) => {
+const IMAGE_TYPE_META = {
+  profile: { labelKey: 'user_images.profile_photo', fallback: 'Profile Photo', Icon: User },
+  qid: { labelKey: 'user_images.qid_image', fallback: 'QID / ID Card', Icon: CreditCard },
+  military: { labelKey: 'user_images.military_id_image', fallback: 'Military ID', Icon: Shield },
+};
+
+const UserImageUpload = ({
+  userId,
+  imageType,
+  currentImageUrl,
+  editable = true,
+  onUploadSuccess,
+  onDeleteSuccess,
+  onError,
+}) => {
   const { t } = useLang();
   const fileInputRef = useRef(null);
-  
+
   const [selectedFile, setSelectedFile] = useState(null);
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -22,29 +36,29 @@ const UserImageUpload = ({ userId, imageType, currentImageUrl, editable = true, 
   const [uploadSuccess, setUploadSuccess] = useState(false);
   const [deleting, setDeleting] = useState(false);
 
+  const meta = IMAGE_TYPE_META[imageType] || {
+    labelKey: imageType,
+    fallback: imageType,
+    Icon: ImagePlus,
+  };
+  const { labelKey, fallback, Icon } = meta;
+  const label = t(labelKey, fallback);
+
   const handleFileSelect = useCallback((event) => {
-    console.log('[UserImageUpload] File select triggered');
     const file = event.target.files?.[0];
-    console.log('[UserImageUpload] Selected file:', file);
-    
     if (!file) return;
 
-    // Validate file size (5MB)
     if (file.size > 5 * 1024 * 1024) {
-      console.error('[UserImageUpload] File too large:', file.size);
-      setUploadError(t('user_images.file_too_large', 'File size exceeds 5MB limit'));
+      setUploadError(t('user_images.file_too_large'));
       return;
     }
 
-    // Validate file type
     const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
     if (!validTypes.includes(file.type)) {
-      console.error('[UserImageUpload] Invalid file type:', file.type);
-      setUploadError(t('user_images.invalid_file_type', 'Invalid file type. Allowed: JPEG, PNG, PDF'));
+      setUploadError(t('user_images.invalid_file_type'));
       return;
     }
 
-    console.log('[UserImageUpload] File validated, setting selected file');
     setSelectedFile(file);
     setUploadError(null);
     setUploadSuccess(false);
@@ -52,37 +66,26 @@ const UserImageUpload = ({ userId, imageType, currentImageUrl, editable = true, 
   }, [t]);
 
   const handleUpload = useCallback(async () => {
-    console.log('[UserImageUpload] handleUpload called:', { userId, imageType, selectedFile: selectedFile?.name });
-    
-    if (!selectedFile) {
-      console.error('[UserImageUpload] No file selected');
-      return;
-    }
+    if (!selectedFile) return;
 
     setUploading(true);
     setUploadError(null);
     setUploadProgress(0);
 
     try {
-      console.log('[UserImageUpload] Calling uploadUserImage...');
       const result = await uploadUserImage(userId, imageType, selectedFile, {
-        onProgress: (progress) => {
-          console.log('[UserImageUpload] Upload progress:', progress);
-          setUploadProgress(Math.min(progress, 90));
-        }
+        onProgress: (progress) => setUploadProgress(Math.min(progress, 90)),
       });
 
       setUploadProgress(100);
 
       if (result.success) {
         setUploadSuccess(true);
-        if (onUploadSuccess) {
-          onUploadSuccess({
-            type: imageType,
-            url: result.data?.url,
-            filePath: result.data?.filePath
-          });
-        }
+        onUploadSuccess?.({
+          type: imageType,
+          url: result.data?.url,
+          filePath: result.data?.filePath,
+        });
         setTimeout(() => {
           setSelectedFile(null);
           setUploadSuccess(false);
@@ -92,17 +95,14 @@ const UserImageUpload = ({ userId, imageType, currentImageUrl, editable = true, 
           }
         }, 2000);
       } else {
-        setUploadError(result.error || t('user_images.upload_error', 'Failed to upload image'));
-        if (onError) {
-          onError(result.error);
-        }
+        const message = result.error || t('user_images.upload_error');
+        setUploadError(message);
+        onError?.(result.error);
       }
-    } catch (error) {
-      console.error('[UserImageUpload] Upload error:', error);
-      setUploadError(error.message || t('user_images.upload_error', 'Failed to upload image'));
-      if (onError) {
-        onError(error.message);
-      }
+    } catch (err) {
+      const message = err.message || t('user_images.upload_error');
+      setUploadError(message);
+      onError?.(err.message);
     } finally {
       setUploading(false);
     }
@@ -125,21 +125,16 @@ const UserImageUpload = ({ userId, imageType, currentImageUrl, editable = true, 
     try {
       const result = await deleteUserImage(userId, imageType);
       if (result.success) {
-        if (onDeleteSuccess) {
-          onDeleteSuccess(imageType);
-        }
+        onDeleteSuccess?.(imageType);
       } else {
-        setUploadError(result.error || t('user_images.delete_error', 'Failed to delete image'));
-        if (onError) {
-          onError(result.error);
-        }
+        const message = result.error || t('user_images.delete_error');
+        setUploadError(message);
+        onError?.(result.error);
       }
-    } catch (error) {
-      console.error('[UserImageUpload] Delete error:', error);
-      setUploadError(error.message || t('user_images.delete_error', 'Failed to delete image'));
-      if (onError) {
-        onError(error.message);
-      }
+    } catch (err) {
+      const message = err.message || t('user_images.delete_error');
+      setUploadError(message);
+      onError?.(err.message);
     } finally {
       setDeleting(false);
     }
@@ -149,20 +144,8 @@ const UserImageUpload = ({ userId, imageType, currentImageUrl, editable = true, 
     fileInputRef.current?.click();
   }, []);
 
-  const getImageTypeMeta = () => {
-    switch (imageType) {
-      case 'profile':  return { label: t('user_images.profile_photo', 'Profile Photo'),   Icon: User,       color: 'text-blue-500 dark:text-blue-400',   bg: 'bg-blue-50 dark:bg-blue-900/20',   border: 'border-blue-200 dark:border-blue-700' };
-      case 'qid':      return { label: t('user_images.qid_image', 'QID / ID Card'),        Icon: CreditCard, color: 'text-purple-500 dark:text-purple-400', bg: 'bg-purple-50 dark:bg-purple-900/20', border: 'border-purple-200 dark:border-purple-700' };
-      case 'military': return { label: t('user_images.military_id_image', 'Military ID'),  Icon: Shield,     color: 'text-green-600 dark:text-green-400',  bg: 'bg-green-50 dark:bg-green-900/20',  border: 'border-green-200 dark:border-green-700' };
-      default:         return { label: imageType,                                           Icon: ImagePlus,  color: 'text-gray-500 dark:text-gray-400',   bg: 'bg-gray-50 dark:bg-gray-800',   border: 'border-gray-200 dark:border-gray-600' };
-    }
-  };
-
-  const { label, Icon, color, bg, border } = getImageTypeMeta();
-
   return (
-    <div className="flex flex-col gap-2">
-      {/* Hidden file input */}
+    <div className={styles.wrapper}>
       <input
         ref={fileInputRef}
         type="file"
@@ -172,12 +155,12 @@ const UserImageUpload = ({ userId, imageType, currentImageUrl, editable = true, 
         disabled={!editable || uploading}
       />
 
-      {/* Card */}
-      <div className={`rounded-lg border ${border} ${bg} overflow-hidden transition-all dark:bg-gray-800/50`}>
-        {/* Header */}
-        <div className="flex items-center justify-between px-2.5 py-1.5 border-b border-gray-200 dark:border-gray-700 bg-white/80 dark:bg-gray-800/80">
-          <div className={`flex items-center gap-1.5 font-medium text-xs ${color}`}>
-            <Icon className="h-3 w-3" />
+      <div className={styles.card}>
+        <div className={styles.header}>
+          <div className={styles.headerLabel}>
+            <span className={styles.headerIcon}>
+              <Icon size={14} />
+            </span>
             {label}
           </div>
           {currentImageUrl && editable && !selectedFile && (
@@ -185,98 +168,90 @@ const UserImageUpload = ({ userId, imageType, currentImageUrl, editable = true, 
               type="button"
               onClick={handleDelete}
               disabled={deleting || uploading}
-              className="text-red-500 hover:text-red-600 dark:text-red-400 dark:hover:text-red-300 transition-colors disabled:opacity-40"
+              className={styles.deleteBtn}
               title={t('common.delete', 'Delete')}
             >
-              <Trash2 className="h-3 w-3" />
+              <Trash2 size={14} />
             </button>
           )}
         </div>
 
-        {/* Body */}
-        <div className="p-2">
-          {/* Current Image Preview */}
+        <div className={styles.body}>
           {currentImageUrl && !selectedFile ? (
-            <div className="space-y-1.5">
+            <div className={styles.previewWrap}>
               <img
                 src={currentImageUrl}
                 alt={label}
-                className="w-full h-24 object-cover rounded-md shadow-sm"
+                className={styles.preview}
                 onError={(e) => { e.target.style.display = 'none'; }}
               />
               {editable && (
                 <button
                   type="button"
                   onClick={handleButtonClick}
-                  className={`w-full text-xs ${color} hover:underline flex items-center justify-center gap-1 py-1`}
+                  className={styles.replaceBtn}
                 >
-                  <Upload className="h-3 w-3" /> {t('user_images.replace', 'Replace')}
+                  <Upload size={14} />
+                  {t('user_images.replace')}
                 </button>
               )}
             </div>
           ) : !selectedFile ? (
-            /* Empty state - click to upload */
             <button
               type="button"
               onClick={handleButtonClick}
               disabled={!editable || uploading}
-              className={`w-full flex flex-col items-center gap-1 py-3 rounded-md border-2 border-dashed ${border} hover:bg-white/50 dark:hover:bg-gray-700/50 transition-colors disabled:opacity-40 cursor-pointer`}
+              className={styles.dropzone}
             >
-              <Upload className={`h-4 w-4 ${color}`} />
-              <span className={`text-xs font-medium ${color}`}>{t('user_images.click_to_upload', 'Click to upload')}</span>
-              <span className="text-xs text-gray-500 dark:text-gray-400">{t('user_images.file_types', 'JPEG, PNG, PDF · max 5MB')}</span>
+              <Upload size={20} className={styles.dropzoneIcon} />
+              <p className={styles.dropzoneTitle}>{t('user_images.click_to_upload')}</p>
+              <p className={styles.dropzoneHint}>{t('user_images.file_types')}</p>
             </button>
           ) : (
-            /* File selected */
-            <div className="space-y-1.5">
-              {/* File info row */}
-              <div className="flex items-center gap-2 bg-white dark:bg-gray-800 rounded-md px-2 py-1.5 shadow-sm border border-gray-200 dark:border-gray-700">
-                <Icon className={`h-3.5 w-3.5 flex-shrink-0 ${color}`} />
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-medium text-gray-900 dark:text-gray-100 truncate">{selectedFile.name}</p>
-                  <p className="text-xs text-gray-500 dark:text-gray-400">{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
+            <div className={styles.selectedContent}>
+              <div className={styles.fileRow}>
+                <Icon size={16} className={styles.dropzoneIcon} />
+                <div className={styles.fileInfo}>
+                  <p className={styles.fileName}>{selectedFile.name}</p>
+                  <p className={styles.fileSize}>{(selectedFile.size / 1024 / 1024).toFixed(2)} MB</p>
                 </div>
                 {!uploading && !uploadSuccess && (
-                  <button type="button" onClick={handleRemoveFile} className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
-                    <X className="h-3 w-3" />
+                  <button type="button" onClick={handleRemoveFile} className={styles.removeBtn}>
+                    <X size={14} />
                   </button>
                 )}
               </div>
 
-              {/* Progress */}
               {uploading && (
-                <div className="space-y-1">
+                <div className={styles.progressWrap}>
                   <Progress value={uploadProgress} className="h-1" />
-                  <p className="text-xs text-gray-500 dark:text-gray-400 text-center">{uploadProgress}%</p>
+                  <p className={styles.progressLabel}>{uploadProgress}%</p>
                 </div>
               )}
 
-              {/* Success */}
               {uploadSuccess && (
-                <div className="flex items-center gap-1.5 text-green-600 dark:text-green-400 text-xs">
-                  <CheckCircle className="h-3 w-3" />
-                  {t('user_images.upload_success', 'Uploaded successfully')}
+                <div className={styles.statusSuccess}>
+                  <CheckCircle size={14} />
+                  {t('user_images.upload_success')}
                 </div>
               )}
 
-              {/* Error */}
               {uploadError && (
-                <div className="flex items-center gap-1.5 text-red-500 dark:text-red-400 text-xs">
-                  <AlertCircle className="h-3 w-3 flex-shrink-0" />
+                <div className={styles.statusError}>
+                  <AlertCircle size={14} />
                   {uploadError}
                 </div>
               )}
 
-              {/* Upload button */}
               {!uploading && !uploadSuccess && (
                 <Button
                   type="button"
                   onClick={handleUpload}
-                  className="w-full flex items-center justify-center gap-1.5 text-xs py-1.5"
+                  className={styles.uploadBtn}
                   disabled={uploading}
                 >
-                  <Upload className="h-3 w-3" />
-                  {t('user_images.upload', 'Upload')}
+                  <Upload size={14} />
+                  {t('user_images.upload')}
                 </Button>
               )}
             </div>

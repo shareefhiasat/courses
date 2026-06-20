@@ -30,7 +30,8 @@ import {
   getLocalizedClassName,
   getLocalizedSubjectName,
   getLocalizedInstructorName,
-  getLocalizedClassroomName
+  getLocalizedClassroomName,
+  getLocalizedClassroomStatus
 } from '../utils/schedulingDisplayUtils.js';
 import SchedulingCalendarPopup from '../components/SchedulingCalendarPopup.jsx';
 import SchedulingAvailabilityPanel from '../components/SchedulingAvailabilityPanel.jsx';
@@ -3625,6 +3626,15 @@ const SchedulingCalendarPage = () => {
                       {t('classroom_details')}
                     </div>
                     {formatClassroomDetails(getClassroomById(classrooms, modalClassroomId), lang, t) || t('not_assigned')}
+                    {modalClassroomId && (() => {
+                      const room = getClassroomById(classrooms, modalClassroomId);
+                      const statusLabel = room ? getLocalizedClassroomStatus(room, t) : null;
+                      return statusLabel ? (
+                        <div style={{ marginTop: '0.25rem' }}>
+                          <strong>{t('room_status')}:</strong> {statusLabel}
+                        </div>
+                      ) : null;
+                    })()}
                   </div>
                 )}
                 {!editingSessionId && !modalClassItem.classroomId && modalClassroomId && (
@@ -3639,6 +3649,7 @@ const SchedulingCalendarPage = () => {
               <SchedulingAvailabilityPanel
                 instructorId={modalInstructorId}
                 classroomId={modalClassroomId}
+                classroom={getClassroomById(classrooms, modalClassroomId)}
                 startDateTime={modalStartDateTime}
                 endDateTime={modalEndDateTime}
                 instructorAvailabilities={instructorAvailabilities}

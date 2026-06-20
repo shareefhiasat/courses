@@ -41,7 +41,7 @@ import { addNotification } from '@services/business/notificationService';
 import { sendStudentNotification } from '@services/business/notificationService';
 // OLD: import { BEHAVIOR_TYPES } from '@constants/behaviorTypes';
 // OLD: import { PARTICIPATION_TYPES } from '@constants/participationTypes';
-import { RECORD_TYPES } from '@utils/sharedTypes';
+import { getLocalizedUserName } from '@utils/localizedUserName';
 import { USER_ROLES } from '@constants/activityTypes';
 import { Select, DatePicker, Button, Card, CardBody, ProgramsSelect } from '@ui';
 import QRScanner from '@/components/qr-scanner/QRScanner';
@@ -810,7 +810,6 @@ const QRScannerPage = () => {
         const batch = studentUsers.slice(i, i + BATCH_SIZE);
         const batchResults = await Promise.all(batch.map(async (student) => {
           const studentId = student.id;
-          const studentName = student.displayName || student.realName || student.name || student.email;
           
           // Find the primary attendance record
           // In standup mode, attendance records are in the attendance array
@@ -824,7 +823,7 @@ const QRScannerPage = () => {
           // DEBUG: Log student records
           info('🔍 [DEBUG] Student attendance records:', {
             studentId,
-            studentName,
+            studentName: getLocalizedUserName(student, lang, student.email),
             totalRecords: studentRecords.length,
             standupRecords: studentStandupRecords.length,
             records: studentRecords.map(r => ({
@@ -1030,10 +1029,15 @@ const QRScannerPage = () => {
           // DEBUG: Log final student object creation
           const studentObject = {
             id: studentId,
-            userId: studentId, // Use the actual user ID from users table
+            userId: studentId,
             studentId: student.studentId || studentId,
             studentNumber: student.studentNumber,
-            name: studentName,
+            displayName: student.displayName,
+            displayNameAr: student.displayNameAr,
+            firstNameAr: student.firstNameAr,
+            lastNameAr: student.lastNameAr,
+            realName: student.realName,
+            name: student.displayName || student.realName || student.name || student.email,
             email: student.email,
             studentOrder: student.studentOrder, // Add student order field
             attendance: todayAttendanceStatus, // Regular attendance
@@ -1054,7 +1058,7 @@ const QRScannerPage = () => {
           // Log 2: Log data object in StudentRoster after totals are calculated
           console.log('🔍 [LOG 2] QRScannerPage - Student object with calculated totals:', {
             studentId,
-            studentName,
+            studentName: getLocalizedUserName(student, lang, student.email),
             attendance: studentObject.attendance,
             standupStatus: studentObject.standupStatus,
             participationTotal: studentObject.participation,
@@ -1067,7 +1071,7 @@ const QRScannerPage = () => {
 
           info('🔍 [DEBUG] Student object created:', {
             studentId,
-            studentName,
+            studentName: getLocalizedUserName(student, lang, student.email),
             attendance: studentObject.attendance,
             standupStatus: studentObject.standupStatus,
             attendanceIsStandup: studentObject.attendance?.startsWith('standup_'),
@@ -1100,7 +1104,7 @@ const QRScannerPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [attendanceMode]);
+  }, [attendanceMode, lang]);
 
   // Load students when class or date changes, or when in standup mode with program selected
   useEffect(() => {
@@ -4669,11 +4673,10 @@ const QRScannerPage = () => {
           isOpen={showNoAttendanceModal}
           onClose={() => setShowNoAttendanceModal(false)}
           onConfirm={() => setShowNoAttendanceModal(false)}
-          title={t('note') || 'Note'}
-          message={lang === 'ar' 
-            ? 'لا توجد سجلات حضور لهذا التاريخ. يرجى تسجيل الحضور أولاً.'
-            : 'No attendance records found for this date. Please mark attendance first.'}
-          confirmText={t('ok') || 'OK'}
+          title={t('note')}
+          message={t('no_attendance_records_found')}
+          confirmText={t('ok')}
+          cancelText={t('cancel')}
           variant="primary"
         />
 

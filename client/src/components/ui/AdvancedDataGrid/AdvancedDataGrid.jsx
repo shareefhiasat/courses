@@ -3,10 +3,11 @@ import {
   DataGrid,
   GridToolbar,
 } from '@mui/x-data-grid';
-import { arSD } from '@mui/x-data-grid/locales';
+import { arSD, enUS } from '@mui/x-data-grid/locales';
 import { Box } from '@mui/material';
 import { getColoredIcon, getThemedIcon } from '@constants/iconTypes';
 import { useTheme } from '@contexts/ThemeContext';
+import { useLang } from '@contexts/LangContext';
 import { SimpleLoading } from '@ui';
 
 
@@ -27,13 +28,17 @@ const AdvancedDataGrid = ({
   sx = {},
   exportFileName = 'export',
   showExportButton = false,
-  exportLabel = 'Export',
+  exportLabel,
   loadingOverlayMessage,
-  direction = 'ltr', // 'ltr' or 'rtl'
-  lang = 'en', // 'en' or 'ar'
+  direction: directionProp,
+  lang: langProp,
   ...rest
 }) => {
   const { theme } = useTheme();
+  const { lang: contextLang, isRTL, t } = useLang();
+  const lang = langProp ?? contextLang;
+  const direction = directionProp ?? (isRTL ? 'rtl' : 'ltr');
+  const resolvedExportLabel = exportLabel ?? t('export');
   const isDarkMode = theme === 'dark';
   // Store rows in a ref so we can access them in valueGetter
   const rowsRef = useRef(rows || []);
@@ -127,76 +132,15 @@ const AdvancedDataGrid = ({
     });
   }, [columns]);
 
-  // Arabic locale text for DataGrid
-  const arabicLocale = {
-    ...arSD,
-    // Toolbar
-    toolbarColumns: 'الأعمدة',
-    toolbarFilters: 'تصفية',
-    toolbarDensity: 'الكثافة',
-    toolbarExport: 'تصدير',
-    toolbarQuickFilterPlaceholder: 'بحث...',
-    // Column menu
-    columnMenuLabel: 'القائمة',
-    columnMenuShowColumns: 'إظهار الأعمدة',
-    columnMenuFilter: 'تصفية',
-    columnMenuHideColumn: 'إخفاء',
-    columnMenuUnsort: 'إلغاء الترتيب',
-    columnMenuSortAsc: 'ترتيب تصاعدي',
-    columnMenuSortDesc: 'ترتيب تنازلي',
-    columnMenuManageColumns: 'إدارة الأعمدة',
-    // Filter
-    filterOperatorContains: 'يحتوي',
-    filterOperatorEquals: 'يساوي',
-    filterOperatorStartsWith: 'يبدأ بـ',
-    filterOperatorEndsWith: 'ينتهي بـ',
-    filterOperatorIsEmpty: 'فارغ',
-    filterOperatorIsNotEmpty: 'غير فارغ',
-    filterOperatorIsAnyOf: 'أي من',
-    // Empty state
-    noRowsLabel: 'لا توجد بيانات',
-    noResultsOverlayLabel: 'لم يتم العثور على نتائج',
-    // Pagination
-    MuiTablePagination: {
-      labelRowsPerPage: 'الصفوف في الصفحة:',
-      labelDisplayedRows: ({ from, to, count }) => `${from}–${to} من ${count !== -1 ? count : `أكثر من ${to}`}`
-    }
-  };
-
-  // English locale text for DataGrid
-  const englishLocale = {
-    // Empty state
-    noRowsLabel: 'No Data',
-    noResultsOverlayLabel: 'No results found',
-    // Toolbar
-    toolbarColumns: 'Columns',
-    toolbarFilters: 'Filters',
-    toolbarDensity: 'Density',
-    toolbarExport: 'Export',
-    toolbarQuickFilterPlaceholder: 'Search...',
-    // Column menu
-    columnMenuLabel: 'Menu',
-    columnMenuShowColumns: 'Show columns',
-    columnMenuFilter: 'Filter',
-    columnMenuHideColumn: 'Hide',
-    columnMenuUnsort: 'Unsort',
-    columnMenuSortAsc: 'Sort by Asc',
-    columnMenuSortDesc: 'Sort by Desc',
-    columnMenuManageColumns: 'Manage columns',
-    // Filter
-    filterOperatorContains: 'contains',
-    filterOperatorEquals: 'equals',
-    filterOperatorStartsWith: 'starts with',
-    filterOperatorEndsWith: 'ends with',
-    filterOperatorIsEmpty: 'is empty',
-    filterOperatorIsNotEmpty: 'is not empty',
-    filterOperatorIsAnyOf: 'is any of',
-    // Pagination
-    MuiTablePagination: {
-      labelRowsPerPage: 'Rows per page:',
-      labelDisplayedRows: ({ from, to, count }) => `${from}–${to} of ${count !== -1 ? count : `more than ${to}`}`
-    }
-  };
+  const gridLocaleText = useMemo(() => {
+    const base = lang === 'ar'
+      ? (arSD.components?.MuiDataGrid?.defaultProps?.localeText ?? {})
+      : (enUS.components?.MuiDataGrid?.defaultProps?.localeText ?? {});
+    return {
+      ...base,
+      noRowsLabel: lang === 'ar' ? 'لا توجد بيانات' : (t('no_data') || 'No Data'),
+    };
+  }, [lang, t]);
 
   // Export fields (exclude internal/actions columns)
   const exportFields = useMemo(() => 
@@ -390,7 +334,7 @@ const AdvancedDataGrid = ({
               cursor:'pointer'
             }}
           >
-            {exportLabel}
+            {resolvedExportLabel}
           </button>
         </Box>
       )}
@@ -405,7 +349,7 @@ const AdvancedDataGrid = ({
         density={density}
         // MUI v8 API
         slots={mergedSlots}
-        localeText={lang === 'ar' ? arabicLocale : englishLocale}
+        localeText={gridLocaleText}
         getRowId={(row) => {
           try {
             // Use consumer-provided getRowId if passed through rest

@@ -204,6 +204,36 @@ const LOOKUP_CONFIGS = {
   }
 };
 
+const LOOKUP_TITLE_KEYS = {
+  'category-types': 'category_types',
+  'resource-types': 'resource_types',
+  'priority-types': 'priority_types',
+  'user-roles': 'user_roles',
+  'subject-types': 'subject_types',
+  'assessment-types': 'assessment_types',
+  'question-types': 'question_types',
+  'attendance-status-types': 'attendance_status_types',
+  'enrollment-status-types': 'enrollment_status_types',
+  'activity-types': 'activity_types',
+  'participation-types': 'participation_types',
+  'penalty-types': 'penalty_types',
+  'behavior-types': 'behavior_types',
+};
+
+const FIELD_LABEL_KEYS = {
+  nameEn: 'name_english',
+  nameAr: 'name_arabic',
+  descriptionEn: 'description_english',
+  descriptionAr: 'description_arabic',
+  description: 'description',
+  code: 'code',
+  icon: 'icon',
+  color: 'color',
+  sortOrder: 'sort',
+  severity: 'severity',
+  level: 'level',
+};
+
 const LookupManagementPage = ({ lookupType }) => {
   const { user, isInstructor, isAdmin, isSuperAdmin } = useAuth();
   const { t, lang } = useLang();
@@ -211,7 +241,23 @@ const LookupManagementPage = ({ lookupType }) => {
   const toast = useToast();
   
   // Get configuration for this lookup type
-  const config = LOOKUP_CONFIGS[lookupType];
+  const baseConfig = LOOKUP_CONFIGS[lookupType];
+  const localizedTitle = useMemo(
+    () => t(LOOKUP_TITLE_KEYS[lookupType] || lookupType),
+    [lookupType, t]
+  );
+  const config = useMemo(() => {
+    if (!baseConfig) return null;
+    return {
+      ...baseConfig,
+      title: localizedTitle,
+      fields: baseConfig.fields.map((field) => ({
+        ...field,
+        label: t(FIELD_LABEL_KEYS[field.key] || field.key),
+      })),
+    };
+  }, [baseConfig, localizedTitle, t]);
+
   if (!config) {
     return (
       <div style={{ padding: '2rem', textAlign: 'center' }}>
@@ -436,6 +482,9 @@ const LookupManagementPage = ({ lookupType }) => {
   // Render form field based on type
   const renderField = useCallback((field) => {
     const value = formData[field.key] || '';
+    const placeholder = field.type === 'textarea'
+      ? t('enter_description')
+      : t('enter_field_placeholder', { field: field.label });
     const commonProps = {
       label: field.label,
       required: field.required,
@@ -446,9 +495,9 @@ const LookupManagementPage = ({ lookupType }) => {
 
     switch (field.type) {
       case 'textarea':
-        return <Textarea {...commonProps} placeholder={`Enter ${field.label.toLowerCase()}...`} />;
+        return <Textarea {...commonProps} placeholder={placeholder} />;
       case 'number':
-        return <Input {...commonProps} type="number" placeholder={`Enter ${field.label.toLowerCase()}...`} />;
+        return <Input {...commonProps} type="number" placeholder={placeholder} />;
       case 'boolean':
         return (
           <Select
@@ -458,34 +507,34 @@ const LookupManagementPage = ({ lookupType }) => {
               handleInputChange(field.key, value === true || value === 'true');
             }}
             options={[
-              { value: 'true', label: 'Yes' },
-              { value: 'false', label: 'No' }
+              { value: 'true', label: t('yes') },
+              { value: 'false', label: t('no') }
             ]}
           />
         );
       default:
-        return <Input {...commonProps} placeholder={`Enter ${field.label.toLowerCase()}...`} />;
+        return <Input {...commonProps} placeholder={placeholder} />;
     }
-  }, [formData, saving, handleInputChange]);
+  }, [formData, saving, handleInputChange, t]);
 
   // Build grid columns
   const gridColumns = useMemo(() => {
     const columns = [
       {
         field: 'nameEn',
-        headerName: 'Name (English)',
+        headerName: t('name_english'),
         flex: 1,
         minWidth: 150
       },
       {
         field: 'nameAr',
-        headerName: 'Name (Arabic)',
+        headerName: t('name_arabic'),
         flex: 1,
         minWidth: 150
       },
       {
         field: 'code',
-        headerName: 'Code',
+        headerName: t('code'),
         flex: 0.5,
         minWidth: 100
       }
@@ -495,7 +544,7 @@ const LookupManagementPage = ({ lookupType }) => {
     if (config.fields.some(f => f.key === 'description' || f.key === 'descriptionEn')) {
       columns.push({
         field: 'descriptionEn',
-        headerName: 'Description (EN)',
+        headerName: t('description_english'),
         flex: 1,
         minWidth: 180,
         renderCell: (params) => {
@@ -506,7 +555,7 @@ const LookupManagementPage = ({ lookupType }) => {
 
       columns.push({
         field: 'descriptionAr',
-        headerName: 'Description (AR)',
+        headerName: t('description_arabic'),
         flex: 1,
         minWidth: 180,
         renderCell: (params) => {
@@ -519,7 +568,7 @@ const LookupManagementPage = ({ lookupType }) => {
     if (config.fields.some(f => f.key === 'icon')) {
       columns.push({
         field: 'icon',
-        headerName: 'Icon',
+        headerName: t('icon') || 'Icon',
         width: 140,
         renderCell: (params) => params?.value || '—'
       });
@@ -528,7 +577,7 @@ const LookupManagementPage = ({ lookupType }) => {
     if (config.fields.some(f => f.key === 'color')) {
       columns.push({
         field: 'color',
-        headerName: 'Color',
+        headerName: t('color') || 'Color',
         width: 130,
         renderCell: (params) => params?.value || '—'
       });
@@ -537,7 +586,7 @@ const LookupManagementPage = ({ lookupType }) => {
     if (config.fields.some(f => f.key === 'sortOrder' || f.key === 'sort')) {
       columns.push({
         field: 'sortOrder',
-        headerName: 'Sort',
+        headerName: t('sort') || 'Sort',
         width: 90,
         renderCell: (params) => {
           const row = params?.row || {};
@@ -550,12 +599,12 @@ const LookupManagementPage = ({ lookupType }) => {
     if (config.fields.some(f => f.key === 'isPositive')) {
       columns.push({
         field: 'isPositive',
-        headerName: 'Is Positive',
+        headerName: t('is_positive') || 'Is Positive',
         width: 110,
         renderCell: (params) => {
           const value = params?.row?.isPositive;
           if (value === undefined || value === null) return '—';
-          return value ? 'Yes' : 'No';
+          return value ? t('yes') : t('no');
         }
       });
     }
@@ -564,7 +613,7 @@ const LookupManagementPage = ({ lookupType }) => {
     columns.push(
       {
         field: 'creator',
-        headerName: 'Created By',
+        headerName: t('created_by'),
         flex: 1,
         minWidth: 150,
         renderCell: (params) => {
@@ -575,7 +624,7 @@ const LookupManagementPage = ({ lookupType }) => {
       },
       {
         field: 'createdAt',
-        headerName: 'Created At',
+        headerName: t('created_at'),
         flex: 0.8,
         minWidth: 120,
         renderCell: (params) => {
@@ -585,7 +634,7 @@ const LookupManagementPage = ({ lookupType }) => {
       },
       {
         field: 'updater',
-        headerName: 'Updated By',
+        headerName: t('updated_by'),
         flex: 1,
         minWidth: 150,
         renderCell: (params) => {
@@ -596,7 +645,7 @@ const LookupManagementPage = ({ lookupType }) => {
       },
       {
         field: 'updatedAt',
-        headerName: 'Updated At',
+        headerName: t('updated_at'),
         flex: 0.8,
         minWidth: 120,
         renderCell: (params) => {
@@ -606,7 +655,7 @@ const LookupManagementPage = ({ lookupType }) => {
       },
       {
         field: 'actions',
-        headerName: 'Actions',
+        headerName: t('actions'),
         flex: 1,
         minWidth: 150,
         renderCell: (params) => {
@@ -637,14 +686,14 @@ const LookupManagementPage = ({ lookupType }) => {
     );
 
     return columns;
-  }, [config, formatDate, handleEdit, deleteEntity, saving, t]);
+  }, [config, formatDate, handleEdit, deleteEntity, saving, t, lang]);
 
   // Loading state
   if (pageState === PAGE_STATES.LOADING) {
     return (
       <div style={{ padding: '2rem', textAlign: 'center' }}>
         <div style={{ fontSize: '1rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
-          Loading {config.title.toLowerCase()}...
+          Loading {t('loading_lookup_type', { type: localizedTitle })}...
         </div>
       </div>
     );
@@ -655,7 +704,7 @@ const LookupManagementPage = ({ lookupType }) => {
     return (
       <div style={{ padding: '2rem', textAlign: 'center' }}>
         <div style={{ fontSize: '1rem', color: '#ef4444' }}>
-          Error loading {config.title.toLowerCase()}
+          {t('error_loading_lookup_type', { type: localizedTitle })}
         </div>
         <Button
           variant="outline"
@@ -690,14 +739,14 @@ const LookupManagementPage = ({ lookupType }) => {
             color: theme === 'dark' ? '#9ca3af' : '#6b7280',
             margin: '0.5rem 0 0 0'
           }}>
-            Manage {config.title.toLowerCase()} for the LMS system
+            {t('lookup_manage_description', { type: localizedTitle })}
           </p>
         </div>
         <Button
           onClick={() => setFormState(FORM_STATES.CREATING)}
           disabled={saving}
         >
-          {t('create') || 'Create'} {config.title.slice(0, -1)}
+          {t('create')} {localizedTitle}
         </Button>
       </div>
 
@@ -717,7 +766,7 @@ const LookupManagementPage = ({ lookupType }) => {
             marginTop: 0,
             marginBottom: '1rem'
           }}>
-            {formState === FORM_STATES.CREATING ? `Create ${config.title.slice(0, -1)}` : `Edit ${config.title.slice(0, -1)}`}
+            {formState === FORM_STATES.CREATING ? `${t('create')} ${localizedTitle}` : `${t('edit')} ${localizedTitle}`}
           </h2>
           
           <form onSubmit={handleSubmit}>
@@ -740,7 +789,7 @@ const LookupManagementPage = ({ lookupType }) => {
                 disabled={saving}
                 loading={saving}
               >
-                {saving ? 'Saving...' : (formState === FORM_STATES.CREATING ? 'Create' : 'Update')}
+                {saving ? t('saving') : (formState === FORM_STATES.CREATING ? t('create') : t('update'))}
               </Button>
               <Button
                 variant="outline"

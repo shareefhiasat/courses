@@ -524,7 +524,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
               value={formData.code}
               onChange={(e) => setFormData({ ...formData, code: e.target.value })}
               type="text"
-              placeholder={t('enter_code') || 'Enter code (auto-generated if empty)'}
+              placeholder={t('enter_code')}
               error={formErrors.code}
             />
             <Input
@@ -711,7 +711,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
           checkboxSelection
           exportFileName="categories"
           showExportButton
-          exportLabel="Export"
+          exportLabel={t('export')}
           loadingOverlayMessage={pageState === PAGE_STATES.LOADING ? "Loading categories..." : undefined}
         />
       </div>

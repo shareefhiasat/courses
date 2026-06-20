@@ -201,15 +201,15 @@ const UserCategoryAccessPage = () => {
       }
 
       if (result.success) {
-        toast.success(editingAccess ? 'Access updated' : 'Access created');
+        toast.success(editingAccess ? t('access_updated') : t('access_created'));
         resetForm();
         setGridKey(prev => prev + 1);
         loadAccesses();
       } else {
-        toast.error(result.error || 'Failed to save access');
+        toast.error(result.error || t('failed_to_save_access'));
       }
     } catch (error) {
-      toast.error(error.message || 'Failed to save access');
+      toast.error(error.message || t('failed_to_save_access'));
     } finally {
       setSaving(false);
     }
@@ -235,20 +235,27 @@ const UserCategoryAccessPage = () => {
     return formatDateTime(dateValue, lang);
   }, [lang]);
 
+  const localizedName = useCallback((entity) => {
+    if (!entity) return '—';
+    return lang === 'ar'
+      ? (entity.nameAr || entity.nameEn || entity.name)
+      : (entity.nameEn || entity.nameAr || entity.name);
+  }, [lang]);
+
   const handleDeleteAccess = async (access) => {
     try {
       setSaving(true);
       const result = await userCategoryAccessService.deleteUserCategoryAccess(access.id);
 
       if (result.success) {
-        toast.success('Access deleted');
+        toast.success(t('access_deleted'));
         setGridKey(prev => prev + 1);
         loadAccesses();
       } else {
-        toast.error(result.error || 'Failed to delete access');
+        toast.error(result.error || t('failed_to_delete_access'));
       }
     } catch (error) {
-      toast.error(error.message || 'Failed to delete access');
+      toast.error(error.message || t('failed_to_delete_access'));
     } finally {
       setSaving(false);
     }
@@ -259,58 +266,42 @@ const UserCategoryAccessPage = () => {
     const columns = [
       {
         field: 'user',
-        headerName: 'User',
+        headerName: t('user'),
         flex: 1,
         minWidth: 150,
         renderCell: (params) => {
-          const user = params?.row?.user;
-          if (!user) return '—';
-          return user.displayName || user.firstName || 'User';
+          const rowUser = params?.row?.user;
+          if (!rowUser) return '—';
+          return getAuthUserDisplayName(rowUser, [], lang) || rowUser.displayName || rowUser.firstName || t('user');
         }
       },
       {
         field: 'category',
-        headerName: 'Category',
+        headerName: t('category'),
         flex: 1,
         minWidth: 150,
-        renderCell: (params) => {
-          const category = params?.row?.category;
-          if (!category) return '—';
-          return category.nameEn || category.name || 'Category';
-        }
+        renderCell: (params) => localizedName(params?.row?.category)
       },
       {
         field: 'program',
-        headerName: 'Program',
+        headerName: t('program'),
         flex: 1,
         minWidth: 150,
-        renderCell: (params) => {
-          const program = params?.row?.program;
-          if (!program) return '—';
-          return program.nameEn || '—';
-        }
+        renderCell: (params) => localizedName(params?.row?.program)
       },
       {
         field: 'subject',
-        headerName: 'Subject',
+        headerName: t('subject'),
         flex: 1,
         minWidth: 150,
-        renderCell: (params) => {
-          const subject = params?.row?.subject;
-          if (!subject) return '—';
-          return subject.nameEn || '—';
-        }
+        renderCell: (params) => localizedName(params?.row?.subject)
       },
       {
         field: 'class',
-        headerName: 'Class',
+        headerName: t('class'),
         flex: 1,
         minWidth: 150,
-        renderCell: (params) => {
-          const cls = params?.row?.class;
-          if (!cls) return '—';
-          return cls.nameEn || '—';
-        }
+        renderCell: (params) => localizedName(params?.row?.class)
       }
     ];
 
@@ -318,7 +309,7 @@ const UserCategoryAccessPage = () => {
     columns.push(
       {
         field: 'creator',
-        headerName: t('created_by') || 'Created By',
+        headerName: t('created_by'),
         flex: 1,
         minWidth: 150,
         renderCell: (params) => {
@@ -329,7 +320,7 @@ const UserCategoryAccessPage = () => {
       },
       {
         field: 'createdAt',
-        headerName: t('created_at') || 'Created At',
+        headerName: t('created_at'),
         flex: 0.8,
         minWidth: 120,
         renderCell: (params) => {
@@ -339,7 +330,7 @@ const UserCategoryAccessPage = () => {
       },
       {
         field: 'updater',
-        headerName: t('updated_by') || 'Updated By',
+        headerName: t('updated_by'),
         flex: 1,
         minWidth: 150,
         renderCell: (params) => {
@@ -350,7 +341,7 @@ const UserCategoryAccessPage = () => {
       },
       {
         field: 'updatedAt',
-        headerName: t('updated_at') || 'Updated At',
+        headerName: t('updated_at'),
         flex: 0.8,
         minWidth: 120,
         renderCell: (params) => {
@@ -360,7 +351,7 @@ const UserCategoryAccessPage = () => {
       },
       {
         field: 'actions',
-        headerName: 'Actions',
+        headerName: t('actions'),
         flex: 1,
         minWidth: 150,
         renderCell: (params) => {
@@ -391,7 +382,7 @@ const UserCategoryAccessPage = () => {
     );
 
     return columns;
-  }, [formatDate, handleEditAccess, deleteEntity, saving, t]);
+  }, [formatDate, handleEditAccess, deleteEntity, saving, t, lang, localizedName]);
 
   // Derived filtered rows - backend handles filtering
   const filteredAccesses = accesses;
@@ -400,10 +391,10 @@ const UserCategoryAccessPage = () => {
     return (
       <div style={{ padding: '2rem', textAlign: 'center' }}>
         <div style={{ fontSize: '1.125rem', fontWeight: '500', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
-          Access Denied
+          {t('access_denied')}
         </div>
         <div style={{ fontSize: '0.875rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '0.5rem' }}>
-          You need super admin privileges to manage user access.
+          {t('super_admin_required')}
         </div>
       </div>
     );
@@ -420,7 +411,6 @@ const UserCategoryAccessPage = () => {
             marginBottom: '1.5rem'
           }}>
             <div>
-              <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: '500' }}>User *</label>
               <UserSelect
                 value={formData.userId}
                 onChange={(value) => {
@@ -430,22 +420,22 @@ const UserCategoryAccessPage = () => {
                 }}
                 users={users}
                 disabled={saving}
+                placeholder={`${t('user')} *`}
               />
             </div>
 
             <div>
-              <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: '500' }}>Category *</label>
               <CategorySelect
                 categories={categories}
                 value={formData.categoryId}
                 onChange={(e) => setFormData({ ...formData, categoryId: e.target.value })}
                 disabled={saving}
                 theme={theme}
+                placeholder={`${t('category')} *`}
               />
             </div>
 
             <div>
-              <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: '500' }}>Program (Optional)</label>
               <Select
                 value={formData.programId}
                 onChange={(e) => {
@@ -458,18 +448,18 @@ const UserCategoryAccessPage = () => {
                   });
                 }}
                 options={[
-                  { value: '', label: 'Select program' },
+                  { value: '', label: t('select_program') },
                   ...programs.map(program => ({
                     value: program.id.toString(),
-                    label: program.nameEn
+                    label: localizedName(program)
                   }))
                 ]}
                 disabled={saving}
+                placeholder={`${t('program')} (${t('optional')})`}
               />
             </div>
 
             <div>
-              <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: '500' }}>Subject (Optional)</label>
               <Select
                 value={formData.subjectId}
                 onChange={(e) => {
@@ -481,25 +471,25 @@ const UserCategoryAccessPage = () => {
                   });
                 }}
                 options={[
-                  { value: '', label: 'Select subject' },
+                  { value: '', label: t('select_subject') },
                   ...subjects
                     .filter(subject => !formData.programId || subject.programId === parseInt(formData.programId))
                     .map(subject => ({
                       value: subject.id.toString(),
-                      label: subject.nameEn
+                      label: localizedName(subject)
                     }))
                 ]}
                 disabled={saving}
+                placeholder={`${t('subject')} (${t('optional')})`}
               />
             </div>
 
             <div>
-              <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: '500' }}>Class (Optional)</label>
               <Select
                 value={formData.classId}
                 onChange={(e) => setFormData({ ...formData, classId: e.target.value })}
                 options={[
-                  { value: '', label: 'Select class' },
+                  { value: '', label: t('select_class') },
                   ...classes
                     .filter(cls => {
                       if (!formData.subjectId) return false;
@@ -507,10 +497,11 @@ const UserCategoryAccessPage = () => {
                     })
                     .map(cls => ({
                       value: cls.id.toString(),
-                      label: cls.nameEn
+                      label: localizedName(cls)
                     }))
                 ]}
                 disabled={saving}
+                placeholder={`${t('class')} (${t('optional')})`}
               />
             </div>
           </div>
@@ -521,7 +512,7 @@ const UserCategoryAccessPage = () => {
               disabled={saving}
               loading={saving}
             >
-              {saving ? 'Saving...' : (formState === 'creating' ? 'Create' : 'Update')}
+              {saving ? t('saving') : (formState === 'creating' ? t('create') : t('update'))}
             </Button>
             {formState === 'editing' && (
               <Button
@@ -553,10 +544,10 @@ const UserCategoryAccessPage = () => {
             value={filterCategory}
             onChange={e => setFilterCategory(e.target.value)}
             options={[
-              { value: '', label: 'All Categories' },
+              { value: '', label: t('all_categories') },
               ...categories.map(category => ({
                 value: category.id.toString(),
-                label: category.nameEn
+                label: localizedName(category)
               }))
             ]}
             placeholder={t('category') || 'Category'}
@@ -567,10 +558,10 @@ const UserCategoryAccessPage = () => {
             value={filterProgram}
             onChange={e => setFilterProgram(e.target.value)}
             options={[
-              { value: '', label: 'All Programs' },
+              { value: '', label: t('all_programs') },
               ...programs.map(program => ({
                 value: program.id.toString(),
-                label: program.nameEn
+                label: localizedName(program)
               }))
             ]}
             placeholder={t('program') || 'Program'}
@@ -581,10 +572,10 @@ const UserCategoryAccessPage = () => {
             value={filterSubject}
             onChange={e => setFilterSubject(e.target.value)}
             options={[
-              { value: '', label: 'All Subjects' },
+              { value: '', label: t('all_subjects') },
               ...subjects.map(subject => ({
                 value: subject.id.toString(),
-                label: subject.nameEn
+                label: localizedName(subject)
               }))
             ]}
             placeholder={t('subject') || 'Subject'}
@@ -595,10 +586,10 @@ const UserCategoryAccessPage = () => {
             value={filterClass}
             onChange={e => setFilterClass(e.target.value)}
             options={[
-              { value: '', label: 'All Classes' },
+              { value: '', label: t('all_classes') },
               ...classes.map(cls => ({
                 value: cls.id.toString(),
-                label: cls.nameEn
+                label: localizedName(cls)
               }))
             ]}
             placeholder={t('class') || 'Class'}
@@ -612,7 +603,7 @@ const UserCategoryAccessPage = () => {
               backgroundColor: 'transparent', cursor: 'pointer',
               color: theme === 'dark' ? '#9ca3af' : '#6b7280'
             }}
-          >✕ Clear</button>
+          >{t('clear_filters')}</button>
         )}
       </div>
 
@@ -624,7 +615,7 @@ const UserCategoryAccessPage = () => {
         marginBottom: '1rem'
       }}>
         <h3 style={{ margin: 0, fontSize: '1.125rem', fontWeight: '500' }}>
-          User Access ({filteredAccesses.length}{filteredAccesses.length !== accesses.length ? ` of ${accesses.length}` : ''})
+          {t('user_access_title', { count: `${filteredAccesses.length}${filteredAccesses.length !== accesses.length ? ` / ${accesses.length}` : ''}` })}
         </h3>
       </div>
 

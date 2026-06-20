@@ -17,6 +17,7 @@ import { useTheme } from '@contexts/ThemeContext';
 import { getUserDisplayProps } from '@utils/userDisplayUtils.js';
 import { getLocalizedName, createDropdownOptions, createLocalizedValueGetter } from '@utils/languageHelpers';
 import { formatDateTime } from '@utils/dateUtils.js';
+import { getLocalizedUserName } from '@utils/localizedUserName.js';
 // OLD: import { ACTIVITY_TYPES } from '@constants';
 // NOW: Not used in this component
 import styles from './SubjectsPage.module.css';
@@ -443,52 +444,13 @@ const gridColumns = useMemo(() => [
       field: 'updatedAt',
       headerName: t('updated_at') || 'Updated At',
       width: 180,
-      valueGetter: (params) => {
-        const row = params?.row || {};
-        const updatedAt = row.updatedAt || params?.value;
+      renderCell: (params) => {
+        const updatedAt = params.row?.updatedAt || params?.value;
         if (!updatedAt) return '—';
-        
-        // If it's already a formatted Qatar string, return it as-is
-        if (typeof updatedAt === 'string' && updatedAt.includes('UTC+3')) {
-          return updatedAt;
+        if (typeof updatedAt === 'object' && updatedAt.toDate) {
+          return formatDateTime(updatedAt.toDate(), lang);
         }
-        
-        try {
-          // Handle Firestore Timestamp
-          if (typeof updatedAt === 'object' && updatedAt.toDate) {
-            return updatedAt.toDate().toLocaleDateString('en-US', {
-              year: 'numeric',
-              month: 'short',
-              day: 'numeric'
-            });
-          }
-          
-          // Handle ISO string or timestamp string
-          if (typeof updatedAt === 'string') {
-            const date = new Date(updatedAt);
-            if (isNaN(date.getTime())) return updatedAt; // Return original if can't parse
-            return date.toLocaleDateString('en-US', {
-              year: 'numeric',
-              month: 'short',
-              day: 'numeric'
-            });
-          }
-          
-          // Handle timestamp number
-          if (typeof updatedAt === 'number') {
-            const date = new Date(updatedAt);
-            if (isNaN(date.getTime())) return 'Invalid Date';
-            return date.toLocaleDateString('en-US', {
-              year: 'numeric',
-              month: 'short',
-              day: 'numeric'
-            });
-          }
-          
-          return updatedAt;
-        } catch (error) {
-          return updatedAt || 'Invalid Date';
-        }
+        return formatDateTime(updatedAt, lang);
       }
     },
     {
@@ -498,14 +460,11 @@ const gridColumns = useMemo(() => [
       renderCell: (params) => {
         const creator = params.row?.creator;
         if (!creator) return '—';
-        
-        // Try to find user display name from users array
         const user = users.find(u => (u.uid || u.id) === creator.id || u.id === creator);
         if (user) {
-          return user.displayName || user.name || user.email || '—';
+          return getLocalizedUserName(user, lang, user.displayName || user.name || user.email || '—');
         }
-        
-        return creator.displayName || creator.name || '—';
+        return getLocalizedUserName(creator, lang, creator.displayName || creator.name || '—');
       }
     },
     {
@@ -519,10 +478,9 @@ const gridColumns = useMemo(() => [
         // Try to find user display name from users array
         const user = users.find(u => (u.uid || u.id) === updater.id || u.id === updater);
         if (user) {
-          return user.displayName || user.name || user.email || '—';
+          return getLocalizedUserName(user, lang, user.displayName || user.name || user.email || '—');
         }
-        
-        return updater.displayName || updater.name || '—';
+        return getLocalizedUserName(updater, lang, updater.displayName || updater.name || '—');
       }
     },
     {
@@ -579,13 +537,12 @@ const gridColumns = useMemo(() => [
             onChange={(e) => setFormData({ ...formData, programId: e.target.value })}
             placeholder={t('select_program') || 'Select Program *'}
             options={[
-              { value: '', label: t('select_program') || 'Select Program', icon: getThemedIcon('ui', 'folder', 16, theme) },
+              { value: '', label: t('select_program') || 'Select Program' },
               ...programs.map(program => ({
                 value: program.id,
                 label: lang === 'ar' 
                   ? (program.nameAr || program.nameEn || program.name || program.id)
                   : (program.nameEn || program.nameAr || program.name || program.id),
-                icon: getThemedIcon('ui', 'folder', 16, theme)
               }))
             ]}
             required

@@ -310,6 +310,8 @@ export const HistoryEntry = ({
           <PerformedBy 
             performedByName={log.performedByName}
             performedBy={log.performedBy}
+            user={log.creator}
+            lang={lang}
             containerStyle={{ marginBottom: 0 }}
             style={{ 
               background: 'transparent',

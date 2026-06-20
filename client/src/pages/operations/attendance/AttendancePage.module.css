@@ -77,6 +77,21 @@
   border: 1px solid var(--border, #e0e0e0);
 }
 
+.classOption {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  cursor: pointer;
+  padding: 0.5rem 0.625rem;
+  border: 1px solid var(--border, #e0e0e0);
+  border-radius: 8px;
+}
+
+.classRadio {
+  flex-shrink: 0;
+  margin: 0;
+}
+
 [data-theme="dark"] .classSelection {
   background: #1f2937;
   border-color: #374151;

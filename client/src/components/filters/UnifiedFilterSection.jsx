@@ -199,7 +199,7 @@ const UnifiedFilterSection = ({
 
       {/* Row 2: Status Filter Chips */}
       {showStatusFilters && (
-        <div style={{ marginBottom: '0.75rem' }}>
+        <div style={{ marginBottom: '0.75rem', display: 'flex', justifyContent: 'center' }}>
           <StatusFilterChips
           completedFilter={completedFilter}
           setCompletedFilter={setCompletedFilter}
@@ -229,7 +229,7 @@ const UnifiedFilterSection = ({
 
       {/* Row 4: Difficulty + Hierarchy + Toggle Filters */}
       <div style={{ marginBottom: '0.75rem' }}>
-        <div className="filter-container filter-row" style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div className="filter-container filter-row" style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center' }}>
         {/* Difficulty chips */}
         {showDifficultyFilters && (
           <DifficultyFilterChips

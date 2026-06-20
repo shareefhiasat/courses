@@ -59,15 +59,15 @@ const ClassroomsManagementPage = () => {
         setClassrooms(result.data);
       } else {
         setError(result.error);
-        toast.error(result.error || 'Failed to load classrooms');
+        toast.error(result.error || t('failed_to_load_classrooms'));
       }
     } catch (error) {
       setError(error.message);
-      toast.error(error.message || 'Failed to load classrooms');
+      toast.error(error.message || t('failed_to_load_classrooms'));
     } finally {
       setLoading(false);
     }
-  }, [toast, filterSearch, filterStatus, filterBuilding, filterCapacity, filterRoomNumber]);
+  }, [toast, t, filterSearch, filterStatus, filterBuilding, filterCapacity, filterRoomNumber]);
   
   useEffect(() => {
     loadClassrooms();
@@ -114,16 +114,16 @@ const ClassroomsManagementPage = () => {
 
       // Validation
       if (!formData.code || formData.code.trim() === '') {
-        toast.error('Code is required');
+        toast.error(t('classroom_code_required'));
         return;
       }
       if (!formData.name || formData.name.trim() === '') {
-        toast.error('Name (English) is required');
+        toast.error(t('classroom_name_en_required'));
         return;
       }
       const capacity = parseInt(formData.capacity);
       if (isNaN(capacity) || capacity <= 0) {
-        toast.error('Capacity must be a positive number');
+        toast.error(t('capacity_positive_required'));
         return;
       }
 
@@ -153,16 +153,16 @@ const ClassroomsManagementPage = () => {
       console.log('[ClassroomsManagementPage] Save result:', result);
 
       if (result.success) {
-        toast.success(editingClassroom ? 'Classroom updated' : 'Classroom created');
+        toast.success(editingClassroom ? t('classroom_updated') : t('classroom_created'));
         resetForm();
         setGridKey(prev => prev + 1);
         loadClassrooms();
       } else {
-        toast.error(result.error || 'Failed to save classroom');
+        toast.error(result.error || t('failed_to_save_classroom'));
       }
     } catch (error) {
       console.error('[ClassroomsManagementPage] Save error:', error);
-      toast.error(error.message || 'Failed to save classroom');
+      toast.error(error.message || t('failed_to_save_classroom'));
     } finally {
       setSaving(false);
     }
@@ -199,15 +199,15 @@ const ClassroomsManagementPage = () => {
       console.log('[ClassroomsManagementPage] Delete result:', result);
 
       if (result.success) {
-        toast.success('Classroom deleted');
+        toast.success(t('classroom_deleted'));
         setGridKey(prev => prev + 1);
         loadClassrooms();
       } else {
-        toast.error(result.error || 'Failed to delete classroom');
+        toast.error(result.error || t('failed_to_delete_classroom'));
       }
     } catch (error) {
       console.error('[ClassroomsManagementPage] Delete error:', error);
-      toast.error(error.message || 'Failed to delete classroom');
+      toast.error(error.message || t('failed_to_delete_classroom'));
     } finally {
       setSaving(false);
     }
@@ -218,19 +218,19 @@ const ClassroomsManagementPage = () => {
     const columns = [
       {
         field: 'code',
-        headerName: 'Code',
+        headerName: t('code'),
         flex: 0.5,
         minWidth: 100
       },
       {
         field: 'nameEn',
-        headerName: 'Name (English)',
+        headerName: t('name_english'),
         flex: 1,
         minWidth: 150
       },
       {
         field: 'nameAr',
-        headerName: 'Name (Arabic)',
+        headerName: t('name_arabic'),
         flex: 1,
         minWidth: 150
       },
@@ -267,16 +267,11 @@ const ClassroomsManagementPage = () => {
           const status = params?.value;
           if (!status) return '—';
           const statusMap = {
-            'Available': t('available') || 'Available',
-            'UnderMaintenance': t('underMaintenance') || 'Under Maintenance',
-            'Closed': t('closed') || 'Closed'
+            Available: t('available'),
+            UnderMaintenance: t('under_maintenance'),
+            Closed: t('closed'),
           };
-          const displayValue = statusMap[status];
-          // Ensure proper spacing if translation returns the key without space
-          if (displayValue === 'UnderMaintenance') {
-            return 'Under Maintenance';
-          }
-          return displayValue || status;
+          return statusMap[status] || status;
         }
       }
     ];
@@ -327,7 +322,7 @@ const ClassroomsManagementPage = () => {
       },
       {
         field: 'actions',
-        headerName: 'Actions',
+        headerName: t('actions'),
         flex: 1,
         minWidth: 150,
         renderCell: (params) => {
@@ -358,7 +353,7 @@ const ClassroomsManagementPage = () => {
     );
 
     return columns;
-  }, [formatDate, handleEditClassroom, deleteEntity, saving, t]);
+  }, [formatDate, handleEditClassroom, deleteEntity, saving, t, lang]);
 
   // Derived filtered rows - backend handles filtering
   const filteredClassrooms = classrooms;
@@ -366,11 +361,11 @@ const ClassroomsManagementPage = () => {
   const handleExport = useCallback(() => {
     const result = exportToCSV(filteredClassrooms, gridColumns, 'classrooms.csv');
     if (result.success) {
-      toast.success('Classrooms exported successfully');
+      toast.success(t('classrooms_exported'));
     } else {
-      toast.error(result.error || 'Failed to export classrooms');
+      toast.error(result.error || t('failed_to_export_classrooms'));
     }
-  }, [classrooms, gridColumns, toast]);
+  }, [filteredClassrooms, gridColumns, toast, t]);
 
   const hasPermission = isAdmin || isHR || isSuperAdmin;
   
@@ -378,10 +373,10 @@ const ClassroomsManagementPage = () => {
     return (
       <div style={{ padding: '2rem', textAlign: 'center' }}>
         <div style={{ fontSize: '1.125rem', fontWeight: '500', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
-          Access Denied
+          {t('access_denied')}
         </div>
         <div style={{ fontSize: '0.875rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '0.5rem' }}>
-          You need admin or HR privileges to manage classrooms.
+          {t('admin_hr_required_classrooms')}
         </div>
       </div>
     );
@@ -398,38 +393,38 @@ const ClassroomsManagementPage = () => {
             marginBottom: '1.5rem'
           }}>
             <div>
-              <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: '500' }}>Code *</label>
+              <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: '500' }}>{t('code')} *</label>
               <Input
                 value={formData.code}
                 onChange={(e) => handleInputChange('code', e.target.value)}
-                placeholder="Enter classroom code (e.g., R101)"
+                placeholder={t('classroom_code_placeholder')}
                 disabled={saving}
               />
             </div>
 
             <div>
-              <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: '500' }}>Name (English)</label>
+              <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: '500' }}>{t('name_english')}</label>
               <Input
                 value={formData.name}
                 onChange={(e) => handleInputChange('name', e.target.value)}
-                placeholder="Enter classroom name"
+                placeholder={t('classroom_name_placeholder')}
                 disabled={saving}
               />
             </div>
 
             <div>
-              <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: '500' }}>Name (Arabic)</label>
+              <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: '500' }}>{t('name_arabic')}</label>
               <Input
                 value={formData.nameAr}
                 onChange={(e) => handleInputChange('nameAr', e.target.value)}
-                placeholder="Enter classroom name in Arabic"
+                placeholder={t('classroom_name_ar_placeholder')}
                 disabled={saving}
               />
             </div>
 
 
             <div>
-              <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: '500' }}>Capacity</label>
+              <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: '500' }}>{t('capacity')}</label>
               <Input
                 type="number"
                 value={formData.capacity}
@@ -441,44 +436,44 @@ const ClassroomsManagementPage = () => {
             </div>
 
             <div>
-              <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: '500' }}>Building</label>
+              <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: '500' }}>{t('building')}</label>
               <Input
                 value={formData.building}
                 onChange={(e) => handleInputChange('building', e.target.value)}
-                placeholder="Building name or number"
+                placeholder={t('building_placeholder')}
                 disabled={saving}
               />
             </div>
 
             <div>
-              <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: '500' }}>Floor</label>
+              <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: '500' }}>{t('floor')}</label>
               <Input
                 value={formData.floor}
                 onChange={(e) => handleInputChange('floor', e.target.value)}
-                placeholder="Floor number"
+                placeholder={t('floor_placeholder')}
                 disabled={saving}
               />
             </div>
 
             <div>
-              <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: '500' }}>Room Number</label>
+              <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: '500' }}>{t('room_number')}</label>
               <Input
                 value={formData.roomNumber}
                 onChange={(e) => handleInputChange('roomNumber', e.target.value)}
-                placeholder="Room number"
+                placeholder={t('room_number_placeholder')}
                 disabled={saving}
               />
             </div>
 
             <div>
-              <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: '500' }}>Status</label>
+              <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: '500' }}>{t('status')}</label>
               <Select
                 value={formData.status}
                 onChange={(e) => handleInputChange('status', e.target.value)}
                 options={[
-                  { value: 'Available', label: 'Available' },
-                  { value: 'UnderMaintenance', label: 'Under Maintenance' },
-                  { value: 'Closed', label: 'Closed' }
+                  { value: 'Available', label: t('available') },
+                  { value: 'UnderMaintenance', label: t('under_maintenance') },
+                  { value: 'Closed', label: t('closed') }
                 ]}
                 disabled={saving}
               />
@@ -491,7 +486,7 @@ const ClassroomsManagementPage = () => {
               disabled={saving}
               loading={saving}
             >
-              {saving ? 'Saving...' : (formState === 'creating' ? 'Create' : 'Update')}
+              {saving ? t('saving') : (formState === 'creating' ? t('create') : t('update'))}
             </Button>
             {formState === 'editing' && (
               <Button
@@ -561,7 +556,7 @@ const ClassroomsManagementPage = () => {
               backgroundColor: 'transparent', cursor: 'pointer',
               color: theme === 'dark' ? '#9ca3af' : '#6b7280'
             }}
-          >✕ Clear</button>
+          >✕ {t('clear')}</button>
         )}
       </div>
 
@@ -573,7 +568,7 @@ const ClassroomsManagementPage = () => {
         marginBottom: '1rem'
       }}>
         <h3 style={{ margin: 0, fontSize: '1.125rem', fontWeight: '500' }}>
-          Classrooms ({filteredClassrooms.length}{filteredClassrooms.length !== classrooms.length ? ` of ${classrooms.length}` : ''})
+          {t('classrooms_title', { count: `${filteredClassrooms.length}${filteredClassrooms.length !== classrooms.length ? ` / ${classrooms.length}` : ''}` })}
         </h3>
         <Button
           variant="outline"

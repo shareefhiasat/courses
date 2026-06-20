@@ -1,5 +1,6 @@
 import React from 'react';
 import { Select } from '@ui';
+import { useLang } from '@contexts/LangContext';
 import { getThemedIcon } from '@constants/iconTypes';
 
 /**
@@ -16,6 +17,7 @@ import { getThemedIcon } from '@constants/iconTypes';
  * @param {Object} props.theme - Theme object
  */
 const CategorySelect = ({ categories, value, onChange, disabled = false, placeholder = 'Select category', theme = 'light' }) => {
+  const { lang, t } = useLang();
   // Generate category options with icons
   const generateCategoryOptions = () => {
     if (!categories || categories.length === 0) {
@@ -26,7 +28,9 @@ const CategorySelect = ({ categories, value, onChange, disabled = false, placeho
       { value: '', label: placeholder },
       ...categories.map(category => {
         const IconComponent = getThemedIcon('ui', category.icon || 'folder', 16, theme);
-        const categoryLabel = category.nameEn || category.name || 'Category';
+        const categoryLabel = lang === 'ar'
+          ? (category.nameAr || category.nameEn || category.name || t('category'))
+          : (category.nameEn || category.nameAr || category.name || t('category'));
         const displayContent = (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span>{categoryLabel}</span>

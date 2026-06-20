@@ -8,7 +8,7 @@ import {
   getActiveRecordsForEntity,
   suggestNearestValidSlot
 } from '../utils/schedulingAvailabilityUtils.js';
-import { formatValidationConflict } from '../utils/schedulingDisplayUtils.js';
+import { formatValidationConflict, getLocalizedClassroomStatus } from '../utils/schedulingDisplayUtils.js';
 
 const panelStyle = (theme, tone) => {
   const tones = {
@@ -84,6 +84,7 @@ function DefinedSlotsBlock({ title, records, startDateTime, endDateTime, theme, 
 export default function SchedulingAvailabilityPanel({
   instructorId,
   classroomId,
+  classroom,
   startDateTime,
   endDateTime,
   instructorAvailabilities,
@@ -134,15 +135,41 @@ export default function SchedulingAvailabilityPanel({
       )}
 
       {classroomId && (
-        <DefinedSlotsBlock
-          title={t('room_defined_hours')}
-          records={classroomRecords}
-          startDateTime={startDateTime}
-          endDateTime={endDateTime}
-          theme={theme}
-          t={t}
-          lang={lang}
-        />
+        <>
+          {classroom?.status && classroom.status !== 'Available' && (
+            <div style={{
+              padding: '0.5rem 0.75rem',
+              borderRadius: '0.375rem',
+              backgroundColor: classroom.status === 'Closed'
+                ? (theme === 'dark' ? '#450a0a' : '#fef2f2')
+                : (theme === 'dark' ? '#451a03' : '#fffbeb'),
+              border: `1px solid ${classroom.status === 'Closed'
+                ? (theme === 'dark' ? '#991b1b' : '#fecaca')
+                : (theme === 'dark' ? '#92400e' : '#fde68a')}`,
+              fontSize: '0.8125rem',
+              color: classroom.status === 'Closed'
+                ? (theme === 'dark' ? '#fecaca' : '#991b1b')
+                : (theme === 'dark' ? '#fde68a' : '#92400e'),
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.375rem'
+            }}>
+              <AlertCircle size={14} />
+              <span>
+                {t('room_status')}: <strong>{getLocalizedClassroomStatus(classroom, t)}</strong>
+              </span>
+            </div>
+          )}
+          <DefinedSlotsBlock
+            title={t('room_defined_hours')}
+            records={classroomRecords}
+            startDateTime={startDateTime}
+            endDateTime={endDateTime}
+            theme={theme}
+            t={t}
+            lang={lang}
+          />
+        </>
       )}
 
       {liveInvalid && validationResult.conflicts?.length > 0 && (

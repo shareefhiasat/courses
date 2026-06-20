@@ -521,6 +521,21 @@ const WorkflowInboxPage = () => {
     updatePagination({ page: newPage });
   };
 
+  const statusFilterOptions = useMemo(() => [
+    { value: 'DRAFT', label: t('workflow.inbox.statusDraft'), color: '#6b7280', icon: 'file_text' },
+    { value: 'SUBMITTED', label: t('workflow.inbox.statusSubmitted'), color: '#3b82f6', icon: 'send' },
+    { value: 'UNDER_REVIEW', label: t('workflow.inbox.statusUnderHrReview'), color: '#8b5cf6', icon: 'alert_triangle' },
+    { value: 'UNDER_ADMIN_REVIEW', label: t('workflow.inbox.statusUnderAdminReview'), color: '#8b5cf6', icon: 'alert_triangle' },
+    { value: 'APPROVED', label: t('workflow.inbox.statusCompleted'), color: '#10b981', icon: 'check_circle' },
+    { value: 'REJECTED', label: t('workflow.inbox.statusRejected'), color: '#ef4444', icon: 'x_circle' },
+  ], [t]);
+
+  const assignmentFilterOptions = useMemo(() => [
+    { value: 'assigned_to_me', label: t('workflow.inbox.filterAssignedToMe'), color: '#8b5cf6', icon: 'user' },
+    { value: 'assigned_to_my_role', label: t('workflow.inbox.filterMyRole'), color: '#8b5cf6', icon: 'users' },
+    { value: 'i_own', label: t('workflow.inbox.filterIOwn'), color: '#10b981', icon: 'user_check' },
+  ], [t]);
+
   if (loading && documents.length === 0) {
     return (
       <div className="flex items-center justify-center h-64">
@@ -552,14 +567,7 @@ const WorkflowInboxPage = () => {
 
             {/* Status Filter - badge toggles */}
             <div className="flex items-center gap-2 flex-wrap">
-              {[
-                { value: 'DRAFT', label: 'Draft', color: '#6b7280', icon: 'file_text' },
-                { value: 'SUBMITTED', label: 'Submitted', color: '#3b82f6', icon: 'send' },
-                { value: 'UNDER_REVIEW', label: 'HR Review', color: '#8b5cf6', icon: 'alert_triangle' },
-                { value: 'UNDER_ADMIN_REVIEW', label: 'Admin Review', color: '#8b5cf6', icon: 'alert_triangle' },
-                { value: 'APPROVED', label: 'Completed', color: '#10b981', icon: 'check_circle' },
-                { value: 'REJECTED', label: 'Rejected', color: '#ef4444', icon: 'x_circle' }
-              ].map((status) => {
+              {statusFilterOptions.map((status) => {
                 const isSelected = filters.status === status.value;
                 return (
                   <button
@@ -581,11 +589,7 @@ const WorkflowInboxPage = () => {
 
             {/* Assignment Filter */}
             <div className="flex items-center gap-2 flex-wrap">
-              {[
-                { value: 'assigned_to_me', label: 'Me', color: '#8b5cf6', icon: 'user' },
-                { value: 'assigned_to_my_role', label: 'My Role', color: '#8b5cf6', icon: 'users' },
-                { value: 'i_own', label: 'I Own', color: '#10b981', icon: 'user_check' }
-              ].map((assignment) => {
+              {assignmentFilterOptions.map((assignment) => {
                 const isSelected = filters.assignment === assignment.value;
                 return (
                   <button

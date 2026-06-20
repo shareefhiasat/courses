@@ -34,7 +34,7 @@ export const useAuth = () => {
 
 export const AuthProvider = ({ children }) => {
   const { keycloak, initialized } = useKeycloak();
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -655,18 +655,17 @@ export const AuthProvider = ({ children }) => {
 
   // Get token expiry in local time
   const getTokenExpiryLocalTime = () => {
-    if (!keycloak.tokenParsed?.exp) return 'Unknown';
+    if (!keycloak.tokenParsed?.exp) return t('unknown') || 'Unknown';
     const expiryDate = new Date(keycloak.tokenParsed.exp * 1000);
-    return expiryDate.toLocaleTimeString();
+    return expiryDate.toLocaleTimeString(lang === 'ar' ? 'ar-QA' : 'en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   };
 
-  // Generate dynamic modal message with countdown and local time
   const getModalMessage = () => {
     const expiryTime = getTokenExpiryLocalTime();
-    const baseMessage = `Your session will expire soon. Token expires at ${expiryTime}. Would you like to extend your session or logout?`;
+    const baseMessage = t('session_expiring_message', { time: expiryTime });
     if (countdownTime !== null) {
       const countdownText = formatCountdown(countdownTime);
-      return `${baseMessage}\n\n⏰\n${countdownText}`;
+      return `${baseMessage}\n\n⏰ ${countdownText}`;
     }
     return baseMessage;
   };
@@ -897,10 +896,10 @@ export const AuthProvider = ({ children }) => {
         isOpen={showSessionModal}
         onClose={handleSessionModalClose}
         onConfirm={handleRefresh}
-        title="Session Expiring Soon"
+        title={t('session_expiring_soon')}
         message={getModalMessage()}
-        confirmText="Extend Session"
-        cancelText="Logout"
+        confirmText={t('extend_session')}
+        cancelText={t('logout')}
         loading={isRefreshing}
         variant="primary"
         size="small"

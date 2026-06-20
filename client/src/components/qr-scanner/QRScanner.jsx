@@ -27,7 +27,7 @@ import { useLookupTypes } from '@hooks/useLookupTypes.js';
 import { usePermissions } from '@hooks/usePermissions';
 import { useToast } from '@ui';
 import PortalTooltip from '@ui/PortalTooltip';
-import { GENERAL_STATUS } from '@utils/sharedTypes';
+import { getLocalizedUserName } from '@utils/localizedUserName';
 import StudentActionStatsPanel from './StudentActionStatsPanel';
 import StudentActionZapPanel from './StudentActionZapPanel';
 import BulkScanDialog from '@ui/BulkScanDialog';
@@ -1110,10 +1110,11 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       // Add a small delay to ensure students are fully loaded
       await new Promise(resolve => setTimeout(resolve, 100));
 
-      currentStudents.forEach((student, index) => {
+      const unknownStudentLabel = t('unknown_student');
+
+      currentStudents.forEach((student) => {
         const studentId = student.id;
-        const name = student.displayName || student.realName || student.name || (student.email ? student.email.split('@')[0] : 'Unknown');
-        studentMap[studentId] = name;
+        studentMap[studentId] = getLocalizedUserName(student, lang, unknownStudentLabel);
       });
 
       info('QRScanner student map created:', currentStudents.length, 'students');
@@ -1124,49 +1125,59 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       const activityLogs = allRecords.map((record, index) => {
         const studentId = record.userId || record.studentId;
         let studentName;
+        let studentNameEn;
+        let studentNameAr;
+        const resolveStudentNames = (student) => {
+          if (!student) return;
+          studentNameEn = getLocalizedUserName(student, 'en', unknownStudentLabel);
+          studentNameAr = getLocalizedUserName(student, 'ar', studentNameEn);
+          studentName = lang === 'ar' ? studentNameAr : studentNameEn;
+        };
         
-        // For penalty/behavior/participation records, always use database ID matching (no name-based mapping)
-        // Note: 'cheating' is a penalty type, not a record type. Record types are: attendance, penalty, participation, behavior, etc.
         if (record.type === RECORD_TYPES.PENALTY || record.category === RECORD_TYPES.PENALTY || record.category === RECORD_TYPES.BEHAVIOR || record.category === RECORD_TYPES.PARTICIPATION) {
-          // Find student by database ID directly - studentId is the userId field from activity records
           const foundStudent = students.find(s => s.id === studentId);
           if (foundStudent) {
-            studentName = foundStudent.displayName || foundStudent.name || foundStudent.email?.split('@')[0] || 'Unknown Student';
+            resolveStudentNames(foundStudent);
           } else {
-            // Fallback: try studentNumber matching
             const foundStudentByNumber = students.find(s => 
               s.studentNumber && record.studentNumber && s.studentNumber === record.studentNumber
             );
             if (foundStudentByNumber) {
-              studentName = foundStudentByNumber.displayName || foundStudentByNumber.name || foundStudentByNumber.email?.split('@')[0] || 'Unknown Student';
+              resolveStudentNames(foundStudentByNumber);
             } else {
-              studentName = 'Unknown Student';
+              studentName = unknownStudentLabel;
+              studentNameEn = unknownStudentLabel;
+              studentNameAr = unknownStudentLabel;
             }
           }
           
-          // Found student by database ID
           debug('[QR Scanner] Processing penalty/behavior record with database ID mapping:', studentId, '->', studentName);
         } else {
-          // For other records (attendance, etc.), use the original name-based mapping
           studentName = studentMap[studentId];
-        }
-
-        // If not found in map, try to find the student by database ID directly
-        if (!studentName && students.length > 0) {
-          const foundStudent = students.find(s => s.id === studentId);
-          if (foundStudent) {
-            studentName = foundStudent.displayName || foundStudent.name || foundStudent.email?.split('@')[0] || 'Unknown Student';
+          if (studentName) {
+            const foundStudent = students.find(s => s.id === studentId);
+            if (foundStudent) {
+              studentNameEn = getLocalizedUserName(foundStudent, 'en', studentName);
+              studentNameAr = getLocalizedUserName(foundStudent, 'ar', studentNameEn);
+            }
           }
         }
 
-        // Log cheating record processing for debugging
+        if (!studentName && students.length > 0) {
+          const foundStudent = students.find(s => s.id === studentId);
+          if (foundStudent) {
+            resolveStudentNames(foundStudent);
+          }
+        }
+
         if (record.type === RECORD_TYPES.PENALTY || record.category === RECORD_TYPES.PENALTY || record.category === RECORD_TYPES.BEHAVIOR) {
           debug('[QR Scanner] Processing cheating record:', record.id, 'for student:', studentName);
         }
 
-        // Final fallback
         if (!studentName) {
-          studentName = 'Unknown Student';
+          studentName = unknownStudentLabel;
+          studentNameEn = studentNameEn || unknownStudentLabel;
+          studentNameAr = studentNameAr || unknownStudentLabel;
         }
 
         const recordPointsRaw = record.delta !== undefined && record.delta !== null ? record.delta : (record.points !== undefined && record.points !== null ? record.points : 0);
@@ -1232,13 +1243,18 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           type: computedType,
           studentId,
           studentName,
+          studentNameEn,
+          studentNameAr,
           status: record.status || null,
           delta: recordPoints,
           points: recordPoints,
           label: finalLabel,
           method: record.method || ATTENDANCE_METHODS.QR_SCAN,
           performedBy: record.creator?.id || record.performedBy || user?.uid || '-',
-          performedByName: record.creator?.displayName || record.performedByName || user?.displayName || '',
+          performedByName: record.creator
+            ? getLocalizedUserName(record.creator, lang, record.creator.displayName || record.performedByName || user?.displayName || '')
+            : (record.performedByName || user?.displayName || ''),
+          creator: record.creator || null,
           performedByEmail: record.creator?.email || record.performedByEmail || user?.email || '',
           scanMethod: record.scanMethod || (record.method === ATTENDANCE_METHODS.QR_SCAN ? 'auto' : ATTENDANCE_METHODS.MANUAL_INSTRUCTOR),
           subject: selectedSubjectName,

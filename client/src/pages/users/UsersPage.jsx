@@ -846,11 +846,11 @@ const UsersPage = ({ isDashboardTab = false }) => {
         };
         
         const roleNames = {
-          [ROLE_STRINGS.SUPER_ADMIN]: 'Super Admin',
-          [ROLE_STRINGS.ADMIN]: 'Admin',
-          [ROLE_STRINGS.INSTRUCTOR]: 'Instructor',
-          [ROLE_STRINGS.HR]: 'HR',
-          [ROLE_STRINGS.STUDENT]: 'Student'
+          [ROLE_STRINGS.SUPER_ADMIN]: t('super_admin'),
+          [ROLE_STRINGS.ADMIN]: t('admin'),
+          [ROLE_STRINGS.INSTRUCTOR]: t('instructor'),
+          [ROLE_STRINGS.HR]: t('hr'),
+          [ROLE_STRINGS.STUDENT]: t('student')
         };
         
         return (
@@ -1406,7 +1406,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
 
   return (
     <div className="users-page">
-      <p style={{ color: '#555', marginBottom: '1rem' }}>Create and manage users with seamless Keycloak integration. All users are automatically provisioned with their assigned roles and secure temporary passwords.</p>
+      <p style={{ color: '#555', marginBottom: '1rem' }}>{t('users_page_description')}</p>
       
       {/* Keycloak Instructions */}
       <div style={{
@@ -1427,7 +1427,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
           gap: '0.5rem'
         }}>
           {getThemedIcon('ui', 'info', 18, theme)}
-          Automatic Keycloak User Management
+          {t('users_keycloak_title')}
         </h4>
         <div style={{ 
           fontSize: '0.875rem', 
@@ -1442,16 +1442,14 @@ const UsersPage = ({ isDashboardTab = false }) => {
             marginBottom: '1rem',
             fontSize: '0.8rem'
           }}>
-            <strong style={{ color: theme === 'dark' ? '#bfdbfe' : '#1e40af' }}>🤖 Automatic User Creation</strong><br />
-            Users are automatically created in Keycloak with their assigned roles when you submit the form.
+            <strong style={{ color: theme === 'dark' ? '#bfdbfe' : '#1e40af' }}>🤖 {t('users_auto_creation_title')}</strong><br />
+            {t('users_auto_creation_desc')}
           </div>
           
           <div style={{ display: 'grid', gap: '0.5rem', marginBottom: '1rem' }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
               <span style={{ color: theme === 'dark' ? '#60a5fa' : '#2563eb', fontWeight: 'bold' }}>➤</span>
-              <div>
-                <strong>Create User:</strong> Fill form + enable "Create user in Keycloak" → User automatically created with temporary password
-              </div>
+              <div>{t('users_create_user_step')}</div>
             </div>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
               <span style={{ color: theme === 'dark' ? '#60a5fa' : '#2563eb', fontWeight: 'bold' }}>➤</span>
@@ -1485,7 +1483,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
           }}>
             <span style={{ color: theme === 'dark' ? '#fbbf24' : '#d97706', fontWeight: 'bold' }}>⚠️</span>
             <div>
-              <strong style={{ color: theme === 'dark' ? '#fbbf24' : '#d97706' }}>Important:</strong> Ensure Keycloak admin credentials are configured in backend environment variables for automatic creation.
+              <strong style={{ color: theme === 'dark' ? '#fbbf24' : '#d97706' }}>{t('important')}:</strong> {t('users_keycloak_important')}
             </div>
           </div>
         </div>
@@ -1776,7 +1774,7 @@ borderColor: theme === 'dark' ? '#374151' : 'transparent',
         {!editingUser && (
           <div className="form-row flex-row">
             <ToggleSwitch
-              label="Create user in Keycloak"
+              label={t('create_user_in_keycloak')}
               checked={autoAddToKeycloak}
               onChange={(checked) => setAutoAddToKeycloak(checked)}
             />

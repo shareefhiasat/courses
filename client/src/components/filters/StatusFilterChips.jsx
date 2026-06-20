@@ -134,7 +134,7 @@ const StatusFilterChips = ({
 
   return (
     <div 
-      className={`filter-container flex flex-wrap gap-1 relative z-10 ${lang === 'ar' ? 'flex-row-reverse' : ''}`}
+      className={`filter-container flex flex-wrap gap-1 relative z-10 justify-center ${lang === 'ar' ? 'flex-row-reverse' : ''}`}
       role="group"
       aria-label={t('status_filters') || 'Status filters'}
     >

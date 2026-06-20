@@ -442,7 +442,7 @@ const ProfileSettingsPage = () => {
                 {t('user_images.description', 'Upload your profile photo, QID/ID card, and military ID. Maximum file size: 5MB. Allowed formats: JPEG, PNG, PDF.')}
               </p>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+              <div className={styles.imageGrid}>
                 <UserImageUpload
                   userId={user?.uid}
                   imageType="profile"
