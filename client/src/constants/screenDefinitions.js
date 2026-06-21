@@ -1,5 +1,6 @@
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import { ROLES } from './permissionConfig';
+import { resolveMatrixScreenId } from '@config/navigationRegistry.js';
 
 /**
  * Screen Definitions for Localization
@@ -311,17 +312,21 @@ export const SCREEN_ROLE_ACCESS = {
   quizManagement: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.INSTRUCTOR],
   quizBuilder: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.INSTRUCTOR],
   quizResults: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.INSTRUCTOR, ROLES.STUDENT],
-  reviewResults: [ROLES.SUPER_ADMIN, ROLES.ADMIN],
+  reviewResults: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.INSTRUCTOR, ROLES.HR],
+  'quiz-results': [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.INSTRUCTOR, ROLES.HR, ROLES.STUDENT],
+  'homework-results': [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.INSTRUCTOR, ROLES.HR, ROLES.STUDENT],
+  'training-results': [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.INSTRUCTOR, ROLES.HR, ROLES.STUDENT],
+  'lab-results': [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.INSTRUCTOR, ROLES.HR, ROLES.STUDENT],
   
   // Class screens
   classSchedules: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.INSTRUCTOR, ROLES.STUDENT],
   manageEnrollments: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.INSTRUCTOR],
   myEnrollments: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.STUDENT],
-  enrollments: [ROLES.SUPER_ADMIN, ROLES.ADMIN],
+  enrollments: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.INSTRUCTOR, ROLES.HR],
   
   // Academic screens
-  programs: [ROLES.SUPER_ADMIN, ROLES.ADMIN],
-  subjects: [ROLES.SUPER_ADMIN, ROLES.ADMIN],
+  programs: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.INSTRUCTOR],
+  subjects: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.INSTRUCTOR],
   classes: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.INSTRUCTOR],
   marksEntry: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.INSTRUCTOR],
   courseProgress: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.STUDENT],
@@ -330,6 +335,9 @@ export const SCREEN_ROLE_ACCESS = {
   // Attendance screens
   attendance: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.INSTRUCTOR],
   hrAttendance: [ROLES.SUPER_ADMIN, ROLES.HR],
+  penalty: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.INSTRUCTOR, ROLES.HR],
+  participation: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.INSTRUCTOR, ROLES.HR],
+  behavior: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.INSTRUCTOR, ROLES.HR],
   myAttendance: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.STUDENT],
   hrPenalties: [ROLES.SUPER_ADMIN, ROLES.HR],
   instructorParticipation: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.INSTRUCTOR],
@@ -341,10 +349,10 @@ export const SCREEN_ROLE_ACCESS = {
   advancedAnalytics: [ROLES.SUPER_ADMIN, ROLES.ADMIN],
   
   // Communication screens
-  chat: [ROLES.SUPER_ADMIN],
+  chat: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.HR, ROLES.INSTRUCTOR],
   scheduledReports: [ROLES.SUPER_ADMIN, ROLES.ADMIN],
   smtpConfig: [ROLES.SUPER_ADMIN],
-  notifications: [ROLES.SUPER_ADMIN],
+  notifications: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.HR, ROLES.INSTRUCTOR, ROLES.STUDENT],
 
   // Drive & Workflow screens
   drive: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.HR, ROLES.INSTRUCTOR],
@@ -358,8 +366,10 @@ export const SCREEN_ROLE_ACCESS = {
   summaryDashboard: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.HR, ROLES.INSTRUCTOR],
   'summary-dashboard': [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.HR, ROLES.INSTRUCTOR],
   schedulingCalendar: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.HR, ROLES.INSTRUCTOR],
+  'scheduling-calendar': [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.HR, ROLES.INSTRUCTOR],
   instructorAvailability: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.HR],
   classroomAvailability: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.HR],
+  'permission-matrix': [ROLES.SUPER_ADMIN],
 };
 
 /**
@@ -377,8 +387,9 @@ export const hasScreenAccess = (screenId, userRoles) => {
   // Home is accessible to all authenticated users
   if (screenId === 'home') return true;
   
-  // Check screen-specific access
-  const allowedRoles = SCREEN_ROLE_ACCESS[screenId];
+  // Check screen-specific access (matrix id first, then legacy route id)
+  const matrixId = resolveMatrixScreenId(screenId);
+  const allowedRoles = SCREEN_ROLE_ACCESS[matrixId] || SCREEN_ROLE_ACCESS[screenId];
   if (!allowedRoles) return false; // Unknown screen - deny by default
   
   return normalizedRoles.some(role => allowedRoles.includes(role));

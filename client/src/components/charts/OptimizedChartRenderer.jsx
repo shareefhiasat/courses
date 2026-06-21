@@ -54,7 +54,7 @@ const getChartTypeFromDataSource = (dataSource) => {
  * @param {Function} onPointClick - Click handler for chart points
  * @returns {React.Component} Rendered chart
  */
-const OptimizedChartRenderer = memo(({ widget, size, data, accentColor, rawData, onPointClick }) => {
+const OptimizedChartRenderer = memo(({ widget, size, data, accentColor, rawData, onPointClick, onListColumnsChange, onListConfigChange }) => {
   const { chartType, dataSource, ...widgetProps } = widget;
 
   // Memoize chart props to prevent unnecessary re-renders
@@ -64,9 +64,12 @@ const OptimizedChartRenderer = memo(({ widget, size, data, accentColor, rawData,
     size,
     rawData,
     chartType: getChartTypeFromDataSource(dataSource),
+    widget,
     onSliceClick: onPointClick,
+    onListColumnsChange,
+    onListConfigChange,
     ...widgetProps
-  }), [data, accentColor, size, rawData, dataSource, onPointClick, widgetProps]);
+  }), [data, accentColor, size, rawData, dataSource, onPointClick, onListColumnsChange, onListConfigChange, widget, widgetProps]);
 
   // Memoize the rendered chart to prevent unnecessary re-renders
   const renderedChart = useMemo(() => {

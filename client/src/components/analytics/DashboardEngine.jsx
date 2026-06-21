@@ -12,21 +12,47 @@ import WidgetWrapper from './WidgetWrapper';
 import WidgetBuilder, { DEFAULT_WIDGET_CONFIG } from './WidgetBuilder';
 import OptimizedChartRenderer from '../charts/OptimizedChartRenderer';
 import { normalizeAttendanceStatus, normalizeActivityType } from '@utils/listChartResolvers';
+import { inferSchedulingWidgetCategory, getWidgetDisplayTitle, resolveDrillDownListWidget, SCHEDULING_SUMMARY_MAX_WIDGETS } from '@constants/schedulingSummaryWidgets';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 
 const ResponsiveGrid = WidthProvider(GridLayout);
+const GRID_COLS = 12;
+
+/** Pack visible widgets from the top-left when search/category filters are active. */
+function compactLayoutItems(items, cols = GRID_COLS) {
+  const sorted = [...items].sort((a, b) => a.y - b.y || a.x - b.x);
+  const placed = [];
+
+  for (const item of sorted) {
+    let y = 0;
+    while (true) {
+      const collides = placed.some((p) => !(
+        item.x + item.w <= p.x
+        || p.x + p.w <= item.x
+        || y + item.h <= p.y
+        || p.y + p.h <= y
+      ));
+      if (!collides) {
+        placed.push({ ...item, y });
+        break;
+      }
+      y += 1;
+    }
+  }
+  return placed;
+}
 
 /**
  * DashboardEngine
  * Plug-and-play analytics container.
- * Widget configs are persisted to Firestore (users/{uid}/preferences.dashboards.{storageKey}).
+ * Widget configs are persisted per user in PostgreSQL (user_preferences.settings.dashboards).
  *
  * Props:
  *   rawData        - from useAnalyticsData()
  *   globalFilters  - { classId, term, year, programId, subjectId, semester, studentId }
  *   accentColor    - hex string
  *   editLayout     - bool (drag/resize mode)
- *   defaultWidgets - seed widget list (used when Firestore + localStorage are empty)
+ *   defaultWidgets - seed widget list (used when database has no saved layout)
  *   storageKey     - dashboard identifier (default: 'main')
  *   isLoading      - bool (global loading state from useAnalyticsData)
  *   lastUpdatedAt  - timestamp ms
@@ -41,18 +67,23 @@ const DashboardEngine = React.forwardRef(({
   isLoading = false,
   lastUpdatedAt,
   onSmartReload,
+  widgetSearch = '',
+  widgetCategory = '',
+  widgetCategoryResolver = null,
+  builderCategoryScope = null,
+  maxWidgets = null,
 }, ref) => {
   const { theme } = useTheme();
   const { t, lang } = useLang();
   const { user } = useAuth();
 
-  // ── Persistent widget state (Firestore + localStorage fallback) ────────────
+  // ── Persistent widget state (PostgreSQL user_preferences) ────────────────
   const {
     widgets,
     setWidgets,
     loading: dashLoading,
     resetToDefaults,
-  } = useWidgetDashboard(user?.uid, storageKey, defaultWidgets);
+  } = useWidgetDashboard(user?.dbId, storageKey, defaultWidgets);
 
   // ── Local UI state ────────────────────────────────────────────────────────
   const [showBuilder, setShowBuilder] = useState(false);
@@ -66,27 +97,23 @@ const DashboardEngine = React.forwardRef(({
   const [recentlyRefreshed, setRecentlyRefreshed] = useState({});
   const [widgetUpdatedAt, setWidgetUpdatedAt] = useState({});
   const [widgetFreshData, setWidgetFreshData] = useState({}); // Store fresh data for each widget
+  const [maxWidgetsWarning, setMaxWidgetsWarning] = useState(false);
 
-  // ── Clear problematic localStorage cache on mount (only if corrupted) ───────────
-  useEffect(() => {
-    // Only clear localStorage if it's corrupted, not on every mount
-    // This prevents the flash when loading widgets
-    try {
-      const saved = localStorage.getItem(`wdg_${storageKey}`);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        // Only clear if the data is corrupted (not an array)
-        if (!Array.isArray(parsed?.widgets)) {
-          localStorage.removeItem(`wdg_${storageKey}`);
-          info(`[DashboardEngine] Cleared corrupted localStorage cache for ${storageKey}`);
-        }
-      }
-    } catch (e) {
-      // Only clear if there's an actual error parsing
-      localStorage.removeItem(`wdg_${storageKey}`);
-      warn(`[DashboardEngine] Cleared invalid localStorage cache for ${storageKey}:`, e);
-    }
-  }, [storageKey]);
+  const widgetLimit = maxWidgets ?? null;
+  const atWidgetLimit = widgetLimit != null && widgets.length >= widgetLimit;
+
+  const warnWidgetLimit = useCallback(() => {
+    setMaxWidgetsWarning(true);
+    window.setTimeout(() => setMaxWidgetsWarning(false), 6000);
+  }, []);
+
+  const canAddWidget = useCallback(() => {
+    if (!atWidgetLimit) return true;
+    warnWidgetLimit();
+    return false;
+  }, [atWidgetLimit, warnWidgetLimit]);
+
+  // ── Widget state loaded from database via useWidgetDashboard ─────────────
 
   // ── Sorted widgets with duplicate cleanup ─────────────────────────────────────────
   const sortedWidgets = useMemo(() => {
@@ -131,10 +158,29 @@ const DashboardEngine = React.forwardRef(({
     });
   }, [widgets]);
 
+  const filteredWidgets = useMemo(() => {
+    const q = widgetSearch.trim().toLowerCase();
+    return sortedWidgets.filter((widget) => {
+      if (widgetCategoryResolver === 'scheduling' && widgetCategory) {
+        const cat = inferSchedulingWidgetCategory(widget);
+        if (cat !== widgetCategory) return false;
+      }
+      if (!q) return true;
+      const title = String(widget.title || widget.titleEn || '').toLowerCase();
+      const titleAr = String(widget.titleAr || '').toLowerCase();
+      const id = String(widget.id || '').toLowerCase();
+      const groupBy = String(widget.groupBy || '').toLowerCase();
+      return title.includes(q) || titleAr.includes(q) || id.includes(q) || groupBy.includes(q);
+    });
+  }, [sortedWidgets, widgetSearch, widgetCategory, widgetCategoryResolver]);
+
+  const isFilterActive = Boolean(widgetSearch.trim())
+    || (widgetCategoryResolver === 'scheduling' && widgetCategory);
+
   // ── Grid layout — minimized widgets collapse to header height (h=1) ───────
   const gridLayout = useMemo(() => {
     const isRTL = document.documentElement.getAttribute('dir') === 'rtl';
-    const layout = sortedWidgets.map(w => {
+    const layout = filteredWidgets.map(w => {
       const isMinimized = minimizedIds[w.id];
       const originalSize = originalSizes[w.id];
       
@@ -168,10 +214,10 @@ const DashboardEngine = React.forwardRef(({
       return item;
     });
     if (import.meta.env.MODE === 'development') {
-      info(`[gridLayout] Total widgets in layout: ${layout.length}, RTL=${isRTL}`);
+      info(`[gridLayout] Total widgets in layout: ${layout.length}, RTL=${isRTL}, compact=${isFilterActive}`);
     }
-    return layout;
-  }, [sortedWidgets, minimizedIds, originalSizes]);
+    return isFilterActive ? compactLayoutItems(layout) : layout;
+  }, [filteredWidgets, minimizedIds, originalSizes, isFilterActive]);
 
   // ── Layout change (drag/resize) ───────────────────────────────────────────
   const onLayoutChange = useCallback((newLayout) => {
@@ -204,10 +250,14 @@ const DashboardEngine = React.forwardRef(({
 
   // ── Builder ───────────────────────────────────────────────────────────────
   const openBuilder = useCallback((widget = null) => {
+    if (!widget && atWidgetLimit) {
+      warnWidgetLimit();
+      return;
+    }
     setEditingWidget(widget);
     setWidgetConfig(widget ? { ...DEFAULT_WIDGET_CONFIG, ...widget } : DEFAULT_WIDGET_CONFIG);
     setShowBuilder(true);
-  }, []);
+  }, [atWidgetLimit, warnWidgetLimit]);
 
   const closeBuilder = useCallback(() => {
     setShowBuilder(false);
@@ -232,29 +282,17 @@ const DashboardEngine = React.forwardRef(({
   const handleSave = useCallback(() => {
     if (editingWidget) {
       setWidgets(prev => prev.map(w => w.id === editingWidget.id ? { ...w, ...widgetConfig } : w));
-    } else {
+    } else if (canAddWidget()) {
       const newWidget = { ...widgetConfig, id: 'w' + Date.now() };
       setWidgets(prev => [...prev, newWidget]);
     }
     closeBuilder();
-  }, [editingWidget, widgetConfig, setWidgets, closeBuilder]);
+  }, [editingWidget, widgetConfig, setWidgets, closeBuilder, canAddWidget]);
 
   // ── Widget actions ────────────────────────────────────────────────────────
   const handleDelete = useCallback((id) => {
     if (import.meta.env.MODE === 'development') {
       info(`[handleDelete] Deleting widget: ${id}`);
-    }
-    
-    // Clear any cached widget data that might interfere
-    try {
-      localStorage.removeItem(`wdg_${storageKey}`);
-      if (import.meta.env.MODE === 'development') {
-        info(`[handleDelete] Cleared localStorage cache for ${storageKey}`);
-      }
-    } catch (e) {
-      if (import.meta.env.MODE === 'development') {
-        warn(`[handleDelete] Failed to clear localStorage:`, e);
-      }
     }
     
     // Remove widget from widgets array (allow save to persist deletion)
@@ -264,7 +302,7 @@ const DashboardEngine = React.forwardRef(({
         info(`[handleDelete] Widgets after removal: ${newWidgets.length}`);
       }
       return newWidgets;
-    }); // Allow save to persist deletion
+    });
     
     // Remove from minimized state
     setMinimizedIds(prev => {
@@ -325,18 +363,6 @@ const DashboardEngine = React.forwardRef(({
       }
     }
     
-    // Clear any cached widget data that might interfere
-    try {
-      localStorage.removeItem(`wdg_${storageKey}`);
-      if (import.meta.env.MODE === 'development') {
-        info(`[handleMinimize] Cleared localStorage cache for ${storageKey}`);
-      }
-    } catch (e) {
-      if (import.meta.env.MODE === 'development') {
-        warn(`[handleMinimize] Failed to clear localStorage:`, e);
-      }
-    }
-    
     // Update minimized state
     setMinimizedIds(prev => {
       const newState = { ...prev, [id]: isMinimizing };
@@ -380,6 +406,7 @@ const DashboardEngine = React.forwardRef(({
    * from the already-loaded rawData. No Firebase call needed — rawData is live.
    */
   const handleDuplicate = useCallback((id) => {
+    if (!canAddWidget()) return;
     const widgetToDuplicate = widgets.find(w => w.id === id);
     if (!widgetToDuplicate) return;
 
@@ -398,107 +425,63 @@ const DashboardEngine = React.forwardRef(({
 
     // Add the duplicated widget to the widgets list
     setWidgets(prev => [...prev, duplicatedWidget]);
-  }, [widgets, setWidgets, t]);
+  }, [widgets, setWidgets, t, canAddWidget]);
 
   const handleRefreshWidget = useCallback(async (id) => {
-    console.log('[WIDGET DEBUG] 🔄 Widget refresh button clicked!');
-    console.log('[WIDGET DEBUG] 📊 Widget ID:', id);
-    console.log('[WIDGET DEBUG] 🕐 Timestamp:', new Date().toISOString());
-    
-    // Find the widget configuration
     const widget = widgets.find(w => w.id === id);
-    if (!widget) {
-      console.error('[WIDGET DEBUG] ❌ Widget not found:', id);
-      return;
-    }
-    
-    console.log('[WIDGET DEBUG] 📋 Widget config:', { title: widget.title, dataSource: widget.dataSource, groupBy: widget.groupBy });
-    
-    // Perform smart reload to get fresh data for this widget
+    if (!widget) return;
+
     let freshData = null;
     if (onSmartReload) {
-      console.log('[WIDGET DEBUG] 🔄 Starting smart reload for widget...');
       const result = await onSmartReload(widget);
       freshData = result?.freshData;
-      console.log('[WIDGET DEBUG] ✅ Smart reload completed');
-      
-      // Store fresh data for this widget
       if (freshData) {
         setWidgetFreshData(prev => ({ ...prev, [id]: freshData }));
-        console.log('[WIDGET DEBUG] 💾 Stored fresh data for widget:', id);
       }
-    } else {
-      console.log('[WIDGET DEBUG] ⚠️  No smart reload function provided, doing local re-render only');
     }
-    
-    // Increment widget version to trigger re-render with fresh data
-    setWidgetVersions(prev => {
-      const newVersion = (prev[id] || 0) + 1;
-      console.log('[WIDGET DEBUG] 📈 Incrementing widget version:', { id, oldVersion: prev[id] || 0, newVersion });
-      return { ...prev, [id]: newVersion };
-    });
-    
-    // Update timestamp for this widget
-    setWidgetUpdatedAt(prev => {
-      const newTimestamp = Date.now();
-      console.log('[WIDGET DEBUG] 🕐 Updating widget timestamp:', { id, timestamp: new Date(newTimestamp).toISOString() });
-      return { ...prev, [id]: newTimestamp };
-    });
-    
-    // Show success indicator
+
+    setWidgetVersions(prev => ({ ...prev, [id]: (prev[id] || 0) + 1 }));
+    setWidgetUpdatedAt(prev => ({ ...prev, [id]: Date.now() }));
     setRecentlyRefreshed(prev => ({ ...prev, [id]: true }));
     setTimeout(() => setRecentlyRefreshed(prev => ({ ...prev, [id]: false })), 1400);
-    
-    console.log('[WIDGET DEBUG] ✅ Widget refresh completed with fresh data!');
   }, [widgets, onSmartReload]);
   // Using processWidgetData with translation support
   const chartDataMap = useMemo(() => {
-    const startTime = performance.now();
-    console.log(`[PERF DEBUG] 🚀 Starting chart data computation for ${sortedWidgets.length} widgets`);
-    
     const map = {};
-    sortedWidgets.forEach((w, index) => {
-      const widgetStart = performance.now();
-      // Use processWidgetData with translation support
+    filteredWidgets.forEach((w) => {
       map[w.id] = processWidgetData(w, rawData, globalFilters, 0, t, lang);
-      const widgetEnd = performance.now();
-      
-      // Log slow widgets (>100ms)
-      if (widgetEnd - widgetStart > 100) {
-        console.log(`[PERF DEBUG] ⚠️ Slow widget: ${w.title} (${widgetEnd - widgetStart.toFixed(2)}ms)`);
-      }
     });
-    
-    const endTime = performance.now();
-    console.log(`[PERF DEBUG] ✅ Chart data computation completed in ${(endTime - startTime).toFixed(2)}ms`);
-    
     return map;
   }, [
-    sortedWidgets.length, // Only recompute when number of widgets changes
-    JSON.stringify(sortedWidgets.map(w => ({ 
-      id: w.id, 
-      dataSource: w.dataSource, 
-      groupBy: w.groupBy, 
-      aggregation: w.aggregation, 
-      dateRange: w.dateRange,
-      filters: w.filters,
-      filterValue: w.filterValue
-    }))), // Widget configs
-    rawData, // Raw data changes
-    JSON.stringify(globalFilters), // Filter changes
-    t, lang // Translation changes
+    filteredWidgets,
+    rawData,
+    globalFilters,
+    t,
+    lang,
   ]);
 
   // ── Chart rendering ───────────────────────────────────────────────────────
   const handleChartClick = useCallback((widget, dataPoint) => {
-    // Create a new list widget based on the clicked pie chart slice
+    if (!canAddWidget()) return;
+
+    const drillWidget = resolveDrillDownListWidget(widget, dataPoint, t, lang);
+    if (drillWidget) {
+      setWidgets((prev) => [...prev, drillWidget]);
+      return;
+    }
+
+    const parentTitle = getWidgetDisplayTitle(widget, t, lang);
+    const sliceLabel = dataPoint.label || dataPoint.lines?.[0] || t('not_specified') || 'Item';
+    const newTitle = `${parentTitle} - ${sliceLabel}`;
     const newListWidget = {
       id: 'list-' + Date.now(),
-      title: `${widget.title} - ${dataPoint.label}`,
+      title: newTitle,
+      titleEn: newTitle,
+      titleAr: newTitle,
       chartType: 'list',
       dataSource: widget.dataSource,
       groupBy: widget.groupBy,
-      filterValue: dataPoint.label,
+      filterValue: sliceLabel,
       aggregation: 'list',
       dateRange: widget.dateRange,
       filters: widget.filters,
@@ -511,9 +494,8 @@ const DashboardEngine = React.forwardRef(({
       }
     };
     
-    // Add the new list widget to the widgets list
     setWidgets(prev => [...prev, newListWidget]);
-  }, [setWidgets]);
+  }, [setWidgets, t, lang, canAddWidget]);
 
   const renderChart = useCallback((widget, size) => {
     const data = chartDataMap[widget.id] || [];
@@ -529,13 +511,38 @@ const DashboardEngine = React.forwardRef(({
         accentColor={accentColor}
         rawData={widgetSpecificRawData}
         onPointClick={(dp) => handleChartClick(widget, dp)}
+        onListColumnsChange={(cols) => {
+          setWidgets((prev) => prev.map((w) => (
+            w.id === widget.id ? { ...w, listColumns: cols } : w
+          )));
+        }}
+        onListConfigChange={(config) => {
+          setWidgets((prev) => prev.map((w) => (
+            w.id === widget.id ? { ...w, ...config } : w
+          )));
+        }}
       />
     );
-  }, [chartDataMap, handleChartClick, accentColor, rawData, widgetFreshData]);
+  }, [chartDataMap, handleChartClick, accentColor, rawData, widgetFreshData, setWidgets]);
 
   // ── Render ────────────────────────────────────────────────────────────────
   return (
     <>
+      {maxWidgetsWarning && (
+        <div style={{
+          marginBottom: '0.75rem',
+          padding: '0.75rem 1rem',
+          borderRadius: 8,
+          border: '1px solid #f59e0b',
+          background: 'rgba(245, 158, 11, 0.12)',
+          color: 'var(--text)',
+          fontSize: '0.875rem',
+        }}>
+          <strong>{t('widget_limit_reached') || 'Widget limit reached'}</strong>
+          {' — '}
+          {t('widget_limit_message') || `Maximum ${widgetLimit} widgets (system default). Delete or edit existing widgets before adding more.`}
+        </div>
+      )}
       {/* Scoped CSS */}
       <style>{`
         .rgl-engine .react-grid-item {
@@ -632,9 +639,10 @@ const DashboardEngine = React.forwardRef(({
         </div>
       ) : (
         <ResponsiveGrid
+          key={`widgets-${widgetSearch}-${widgetCategory}`}
           className="layout rgl-engine"
           layout={gridLayout}
-          cols={12}
+          cols={GRID_COLS}
           rowHeight={64}
           isDraggable={editLayout}
           isResizable={editLayout}
@@ -645,7 +653,7 @@ const DashboardEngine = React.forwardRef(({
           preventCollision={false}
           margin={[12, 12]}
         >
-          {sortedWidgets.map(widget => (
+          {filteredWidgets.map(widget => (
             <div key={widget.id} style={{ display: 'flex', flexDirection: 'column' }}>
               <WidgetWrapper
                 widget={widget}
@@ -674,7 +682,7 @@ const DashboardEngine = React.forwardRef(({
       )}
 
       {/* ── Empty state ── */}
-      {!dashLoading && sortedWidgets.length === 0 && (
+      {!dashLoading && filteredWidgets.length === 0 && (
         <div style={{
           display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
           padding: '4rem 2rem', gap: 16, color: 'var(--muted)', textAlign: 'center'
@@ -694,6 +702,7 @@ const DashboardEngine = React.forwardRef(({
         onCancel={closeBuilder}
         isEditing={!!editingWidget}
         accentColor={accentColor}
+        categoryScope={builderCategoryScope ?? (storageKey === 'scheduling_summary' ? 'scheduling' : null)}
       />
     </>
   );

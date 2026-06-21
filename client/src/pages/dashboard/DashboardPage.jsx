@@ -5,6 +5,8 @@ import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { MODE_TYPES } from '@utils/sharedTypes';
+import { DASHBOARD_TAB_SCREEN_IDS } from '@config/navigationRegistry.js';
+import { usePermissions } from '@hooks/usePermissions';
 import Joyride from 'react-joyride';
 import { Modal, Button, SimpleLoading } from '@ui';
 import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
@@ -60,6 +62,7 @@ const UserCategoryAccessPage = lazy(() => import('../UserCategoryAccessPage.jsx'
 
 const DashboardPage = () => {
   const { user, isAdmin, isSuperAdmin, isInstructor, isHR, loading: authLoading } = useAuth();
+  const { canAccessScreen } = usePermissions();
   const { lang, t } = useLang();
   const { theme } = useTheme();
   const { startLoading } = useGlobalLoading();
@@ -230,7 +233,16 @@ const DashboardPage = () => {
   // Show loading while auth is initializing to prevent useAuth errors
   // Note: Removed early return to avoid hooks order issues
   // ===== PHASE 1: Core Dashboard Tabs =====
-  const ribbonCategories = useMemo(() => [
+  const ribbonCategories = useMemo(() => {
+    const filterRibbonItems = (items) => {
+      if (isSuperAdmin) return items;
+      return items.filter((item) => {
+        const screenId = DASHBOARD_TAB_SCREEN_IDS[item.key] || item.key;
+        return canAccessScreen(screenId);
+      });
+    };
+
+    const categories = [
     {
       id: 'content',
       label: t('content') || 'Content',
@@ -275,7 +287,6 @@ const DashboardPage = () => {
         ...(isSuperAdmin ? [
           { key: 'user-category-access', label: t('user_access') || 'User Access' }
         ] : [])
-        // { key: 'allowlist', label: t('allowlist') } - removed, now using Keycloak
       ]
     },
     {
@@ -296,7 +307,6 @@ const DashboardPage = () => {
         { key: 'behavior-types', label: t('behavior_types') || 'Behavior Types' },
         { key: 'participation-types', label: t('participation_types') || 'Participation Types' },
         { key: 'penalty-types', label: t('penalty_types') || 'Penalty Types' }
-        // { key: 'logging', label: t('logs') } // Hidden for now
       ]
     },
     {
@@ -339,7 +349,12 @@ const DashboardPage = () => {
         { key: 'enrollment-status-types', label: t('enrollment_status') || 'Enrollment Status' }
       ]
     }
-  ], [t, isSuperAdmin]);
+    ];
+
+    return categories
+      .map((cat) => ({ ...cat, items: filterRibbonItems(cat.items) }))
+      .filter((cat) => cat.items.length > 0);
+  }, [t, isSuperAdmin, canAccessScreen]);
   // Initialize tour steps (localization-aware)
   useEffect(() => {
     const steps = [
@@ -556,12 +571,12 @@ const DashboardPage = () => {
           {/* AllowlistPage removed - now using Keycloak for user management */}
           
           {/* ===== FLEXIBLE SCHEDULING ===== */}
-          {activeTab === 'summary-dashboard' && (isSuperAdmin || isAdmin || isHR) && <SummaryDashboardPage />}
-          {activeTab === 'scheduling-calendar' && (isSuperAdmin || isAdmin || isHR) && <SchedulingCalendarPage />}
-          {activeTab === 'instructor-availability' && (isSuperAdmin || isAdmin || isHR) && <InstructorAvailabilityPage />}
-          {activeTab === 'classroom-availability' && (isSuperAdmin || isAdmin || isHR) && <ClassroomAvailabilityPage />}
-          {activeTab === 'classrooms-management' && (isSuperAdmin || isAdmin || isHR) && <ClassroomsManagementPage />}
-          {activeTab === 'user-category-access' && isSuperAdmin && <UserCategoryAccessPage />}
+          {activeTab === 'summary-dashboard' && canAccessScreen('summary-dashboard') && <SummaryDashboardPage />}
+          {activeTab === 'scheduling-calendar' && canAccessScreen('scheduling-calendar') && <SchedulingCalendarPage />}
+          {activeTab === 'instructor-availability' && canAccessScreen('instructor-availability-setup') && <InstructorAvailabilityPage />}
+          {activeTab === 'classroom-availability' && canAccessScreen('room-availability-setup') && <ClassroomAvailabilityPage />}
+          {activeTab === 'classrooms-management' && canAccessScreen('rooms-management') && <ClassroomsManagementPage />}
+          {activeTab === 'user-category-access' && canAccessScreen('user-category-access') && <UserCategoryAccessPage />}
         </Suspense>
         </div>
       </div>

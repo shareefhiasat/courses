@@ -561,8 +561,8 @@ class WidgetConfigurationService {
    * @param {string} userId - User ID (for personal customization)
    * @returns {string} Storage key
    */
-  static getStorageKey(role, dashboard, userId) {
-    return `widgets_${role}_${dashboard}_${userId}`;
+  static getStorageKey(role, dashboard) {
+    return `widgets_${role}_${dashboard}`;
   }
 
   /**

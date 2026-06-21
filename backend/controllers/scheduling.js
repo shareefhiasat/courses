@@ -7,6 +7,8 @@ import schedulingSummaryDb from '../db/scheduling-summary-postgres.js';
 import teacherEffortDb from '../db/teacher-effort-postgres.js';
 import effortReportDb from '../db/effort-report-postgres.js';
 import { isSuperAdmin, getEffectiveRoles } from '../utils/roleUtils.js';
+import { canAccessTeacherInScope, applySchedulingDataScope } from '../utils/schedulingScope.js';
+import { scopeForbidden } from '../utils/scopeAccess.js';
 
 function parseQueryParams(req) {
   const {
@@ -30,8 +32,30 @@ function parseQueryParams(req) {
 
 function canAccessTeacherData(req, teacherUserId) {
   const roles = getEffectiveRoles(req.user?.roles || []);
-  if (isSuperAdmin(roles) || roles.includes('admin') || roles.includes('hr')) return true;
-  return req.user?.dbId === parseInt(teacherUserId, 10);
+  if (isSuperAdmin(roles) || roles.includes('hr')) return true;
+  if (req.user?.dbId === parseInt(teacherUserId, 10)) return true;
+  return null; // defer to scope check
+}
+
+async function assertTeacherAccess(req, res, teacherUserId) {
+  const roleBypass = canAccessTeacherData(req, teacherUserId);
+  if (roleBypass === true) return true;
+  const inScope = await canAccessTeacherInScope(req, teacherUserId);
+  if (!inScope) {
+    scopeForbidden(res);
+    return false;
+  }
+  return true;
+}
+
+async function scopedParams(req, res) {
+  let params = resolveInstructorScope(req, parseQueryParams(req));
+  const scoped = await applySchedulingDataScope(req, params);
+  if (scoped.denied) {
+    scopeForbidden(res);
+    return null;
+  }
+  return scoped.params;
 }
 
 function resolveInstructorScope(req, params) {
@@ -44,7 +68,8 @@ function resolveInstructorScope(req, params) {
 
 export const getBreakSessions = async (req, res) => {
   try {
-    const params = resolveInstructorScope(req, parseQueryParams(req));
+    const params = await scopedParams(req, res);
+    if (!params) return;
     const result = await breakSessionsDb.getBreakSessions(params);
     res.status(result.success ? 200 : 500).json(result);
   } catch (error) {
@@ -81,7 +106,8 @@ export const deleteBreakSession = async (req, res) => {
 
 export const getSchedulingSummary = async (req, res) => {
   try {
-    const params = resolveInstructorScope(req, parseQueryParams(req));
+    const params = await scopedParams(req, res);
+    if (!params) return;
     const result = await schedulingSummaryDb.getSchedulingSummary(params);
     res.status(result.success ? 200 : 500).json(result);
   } catch (error) {
@@ -91,7 +117,8 @@ export const getSchedulingSummary = async (req, res) => {
 
 export const getBreakSessionSummary = async (req, res) => {
   try {
-    const params = resolveInstructorScope(req, parseQueryParams(req));
+    const params = await scopedParams(req, res);
+    if (!params) return;
     const result = await schedulingSummaryDb.getBreakSessionSummary(params);
     res.status(result.success ? 200 : 500).json(result);
   } catch (error) {
@@ -132,10 +159,9 @@ export const getClassroomUtilizationSummary = async (req, res) => {
 export const getTeacherEffort = async (req, res) => {
   try {
     const { teacherId } = req.params;
-    if (!canAccessTeacherData(req, teacherId)) {
-      return res.status(403).json({ success: false, error: 'Access denied' });
-    }
-    const params = parseQueryParams(req);
+    if (!(await assertTeacherAccess(req, res, teacherId))) return;
+    const params = await scopedParams(req, res);
+    if (!params) return;
     const result = await teacherEffortDb.getTeacherEffortSummary(teacherId, params);
     res.status(result.success ? 200 : 500).json(result);
   } catch (error) {
@@ -146,10 +172,9 @@ export const getTeacherEffort = async (req, res) => {
 export const exportTeacherEffortExcel = async (req, res) => {
   try {
     const { teacherId } = req.params;
-    if (!canAccessTeacherData(req, teacherId)) {
-      return res.status(403).json({ success: false, error: 'Access denied' });
-    }
-    const params = parseQueryParams(req);
+    if (!(await assertTeacherAccess(req, res, teacherId))) return;
+    const params = await scopedParams(req, res);
+    if (!params) return;
     const result = await teacherEffortDb.exportTeacherEffortCSV(teacherId, params);
     if (!result.success) {
       return res.status(500).json(result);
@@ -165,10 +190,9 @@ export const exportTeacherEffortExcel = async (req, res) => {
 export const exportTeacherEffortPDF = async (req, res) => {
   try {
     const { teacherId } = req.params;
-    if (!canAccessTeacherData(req, teacherId)) {
-      return res.status(403).json({ success: false, error: 'Access denied' });
-    }
-    const params = parseQueryParams(req);
+    if (!(await assertTeacherAccess(req, res, teacherId))) return;
+    const params = await scopedParams(req, res);
+    if (!params) return;
     const result = await teacherEffortDb.getTeacherEffortSummary(teacherId, params);
     if (!result.success) {
       return res.status(500).json(result);
@@ -181,7 +205,8 @@ export const exportTeacherEffortPDF = async (req, res) => {
 
 export const getEffortReport = async (req, res) => {
   try {
-    const params = resolveInstructorScope(req, parseQueryParams(req));
+    const params = await scopedParams(req, res);
+    if (!params) return;
     if (params.reportFormat) params.reportFormat = req.query.reportFormat || 'summary';
     const result = await effortReportDb.getEffortReport({
       ...params,

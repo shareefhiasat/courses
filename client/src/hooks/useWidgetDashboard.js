@@ -1,26 +1,56 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { info, error, warn, debug } from '@services/utils/logger.js';
+import { info, warn } from '@services/utils/logger.js';
+import {
+  loadDashboardPreferences,
+  saveDashboardPreferences,
+  resetDashboardPreferences,
+} from '@services/business/dashboardPreferencesService';
 
 /**
  * Migration function to fix widgets with invalid groupBy values
  */
 const migrateWidgetConfigs = (widgets) => {
   return widgets.map(widget => {
-    if (widget.chartType === 'count' || widget.dataSource === 'schedulingOverviewStats') {
-      return { ...widget, groupBy: '' };
+    if (widget.dataSource === 'schedulingOverviewStats') {
+      const statToSource = {
+        totalPrograms: 'schedulingPrograms',
+        totalSubjects: 'schedulingSubjects',
+        totalClasses: 'schedulingClasses',
+        totalSessions: 'schedulingSessions',
+        scheduledCount: 'schedulingSessions',
+        inProgressCount: 'schedulingSessions',
+        completedCount: 'schedulingSessions',
+        cancelledCount: 'schedulingSessions',
+        thisWeekSessions: 'schedulingSessions',
+        uniqueClassrooms: 'schedulingRooms',
+        totalClassrooms: 'schedulingRooms',
+        uniqueInstructors: 'schedulingTeachers',
+        totalInstructors: 'schedulingTeachers',
+        breakCount: 'schedulingBreaks',
+        holidayCount: 'schedulingHolidays',
+      };
+      return {
+        ...widget,
+        dataSource: statToSource[widget.statKey] || 'schedulingSessions',
+        countMetric: widget.statKey || 'totalSessions',
+        groupBy: '',
+        aggregation: 'count',
+      };
     }
 
-    // If groupBy is empty, undefined, null, or invalid, fix it
+    if (widget.chartType === 'count') {
+      return { ...widget, groupBy: '', aggregation: 'count' };
+    }
+
     if (!widget.groupBy || widget.groupBy.trim() === '' || widget.groupBy === 'undefined' || widget.groupBy === 'null') {
-      warn('[useWidgetDashboard] Migrating widget with invalid groupBy:', { 
-        title: widget.title, 
-        dataSource: widget.dataSource, 
-        groupBy: widget.groupBy 
+      warn('[useWidgetDashboard] Migrating widget with invalid groupBy:', {
+        title: widget.title,
+        dataSource: widget.dataSource,
+        groupBy: widget.groupBy,
       });
-      
-      // Set appropriate groupBy based on dataSource
-      let fixedGroupBy = 'status'; // default fallback
-      
+
+      let fixedGroupBy = 'status';
+
       if (widget.dataSource === 'activities,announcements,resources') {
         fixedGroupBy = 'type';
       } else if (widget.dataSource === 'activities') {
@@ -42,11 +72,8 @@ const migrateWidgetConfigs = (widgets) => {
       } else if (widget.dataSource?.startsWith('scheduling')) {
         fixedGroupBy = widget.chartType === 'count' ? '' : (widget.groupBy || 'status');
       }
-      
-      return {
-        ...widget,
-        groupBy: fixedGroupBy
-      };
+
+      return { ...widget, groupBy: fixedGroupBy };
     }
     return widget;
   });
@@ -54,52 +81,50 @@ const migrateWidgetConfigs = (widgets) => {
 
 /**
  * useWidgetDashboard
- * Persists widget configs per user in localStorage: wdg_{dashboardKey}
- * dashboardKey should include user id when dashboards are user-specific.
+ * Persists widget configs per user in PostgreSQL (user_preferences.settings.dashboards).
  */
-const useWidgetDashboard = (uid, dashboardKey, defaultWidgets = []) => {
+const useWidgetDashboard = (userDbId, dashboardKey, defaultWidgets = []) => {
   const [widgets, setWidgetsState] = useState(defaultWidgets);
   const [pinnedIds, setPinnedIdsState] = useState([]);
   const [loading, setLoading] = useState(true);
   const saveTimerRef = useRef(null);
   const skipSaveRef = useRef(false);
   const defaultWidgetsRef = useRef(defaultWidgets);
+  const pinnedIdsRef = useRef([]);
 
   useEffect(() => {
     defaultWidgetsRef.current = defaultWidgets;
   }, [defaultWidgets]);
 
-  // ── Load ──────────────────────────────────────────────────────────────────
+  useEffect(() => {
+    pinnedIdsRef.current = pinnedIds;
+  }, [pinnedIds]);
+
+  // ── Load from database ────────────────────────────────────────────────────
   useEffect(() => {
     let cancelled = false;
 
     const load = async () => {
       setLoading(true);
 
-      try {
-        const saved = localStorage.getItem(`wdg_${dashboardKey}`);
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          if (!cancelled) {
-            const migratedWidgets = migrateWidgetConfigs(parsed.widgets || defaultWidgets);
-            setWidgetsState(migratedWidgets);
-            setPinnedIdsState(parsed.pinnedIds || []);
+      if (!userDbId || !dashboardKey) {
+        if (!cancelled) setLoading(false);
+        return;
+      }
 
-            if (JSON.stringify(migratedWidgets) !== JSON.stringify(parsed.widgets || defaultWidgets)) {
-              try {
-                const payload = { widgets: migratedWidgets, pinnedIds: parsed.pinnedIds || [] };
-                localStorage.setItem(`wdg_${dashboardKey}`, JSON.stringify(payload));
-                info('[useWidgetDashboard] Migrated widgets saved to localStorage');
-              } catch (e) {
-                warn('[useWidgetDashboard] Failed to save migrated widgets to localStorage:', e);
-              }
-            }
-            setLoading(false);
-            return;
+      try {
+        const saved = await loadDashboardPreferences(dashboardKey);
+        if (!cancelled && saved.widgets?.length) {
+          const migratedWidgets = migrateWidgetConfigs(saved.widgets);
+          setWidgetsState(migratedWidgets);
+          setPinnedIdsState(saved.pinnedIds || []);
+
+          if (JSON.stringify(migratedWidgets) !== JSON.stringify(saved.widgets)) {
+            await saveDashboardPreferences(dashboardKey, migratedWidgets, saved.pinnedIds || []);
           }
         }
       } catch (e) {
-        warn('[useWidgetDashboard] localStorage load failed:', e);
+        warn('[useWidgetDashboard] Database load failed:', e);
       }
 
       if (!cancelled) setLoading(false);
@@ -107,35 +132,26 @@ const useWidgetDashboard = (uid, dashboardKey, defaultWidgets = []) => {
 
     load();
     return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [uid, dashboardKey]);
+  }, [userDbId, dashboardKey]);
 
   // ── Debounced save ────────────────────────────────────────────────────────
   const debouncedSave = useCallback((nextWidgets, nextPinned) => {
+    if (!userDbId || !dashboardKey) return;
+
     if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
     saveTimerRef.current = setTimeout(async () => {
-      const payload = { widgets: nextWidgets, pinnedIds: nextPinned };
-
-      // Always write localStorage as fast cache
-      try {
-        localStorage.setItem(`wdg_${dashboardKey}`, JSON.stringify(payload));
-      } catch {}
-
-      // Firestore removed - using localStorage only
-      info('[useWidgetDashboard] Dashboard saved to localStorage:', { dashboardKey, widgetCount: payload.widgets?.length || 0 });
+      await saveDashboardPreferences(dashboardKey, nextWidgets, nextPinned);
     }, 800);
-  }, [uid, dashboardKey]);
+  }, [userDbId, dashboardKey]);
 
-  // ── Setters that also persist ─────────────────────────────────────────────
   const setWidgets = useCallback((next, skipSave = false) => {
     const resolved = typeof next === 'function' ? next(widgets) : next;
     setWidgetsState(resolved);
     if (!skipSave && !skipSaveRef.current) {
-      debouncedSave(resolved, pinnedIds);
+      debouncedSave(resolved, pinnedIdsRef.current);
     }
-  }, [widgets, pinnedIds, debouncedSave]);
+  }, [widgets, debouncedSave]);
 
-  // ── Control save mechanism ────────────────────────────────────────────────
   const setSkipSave = useCallback((skip) => {
     skipSaveRef.current = skip;
   }, []);
@@ -143,17 +159,19 @@ const useWidgetDashboard = (uid, dashboardKey, defaultWidgets = []) => {
   const setPinnedIds = useCallback((next) => {
     const resolved = typeof next === 'function' ? next(pinnedIds) : next;
     setPinnedIdsState(resolved);
+    pinnedIdsRef.current = resolved;
     debouncedSave(widgets, resolved);
   }, [widgets, pinnedIds, debouncedSave]);
 
-  const resetToDefaults = useCallback(() => {
+  const resetToDefaults = useCallback(async () => {
     const defaults = JSON.parse(JSON.stringify(defaultWidgetsRef.current || []));
     setWidgetsState(defaults);
     setPinnedIdsState([]);
-    try {
-      localStorage.removeItem(`wdg_${dashboardKey}`);
-      localStorage.setItem(`wdg_${dashboardKey}`, JSON.stringify({ widgets: defaults, pinnedIds: [] }));
-    } catch {}
+    pinnedIdsRef.current = [];
+    if (dashboardKey) {
+      await resetDashboardPreferences(dashboardKey);
+      await saveDashboardPreferences(dashboardKey, defaults, []);
+    }
     info('[useWidgetDashboard] Dashboard reset to system defaults:', { dashboardKey, widgetCount: defaults.length });
   }, [dashboardKey]);
 

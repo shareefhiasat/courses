@@ -1,37 +1,58 @@
-import React, { memo } from 'react';
+import React, { memo, useState, useCallback, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useLang } from '@contexts/LangContext';
+import { getAcademicTermLabel, isValidAcademicTerm } from '@constants/academicTerms';
+import ChartBrushControls, { CHART_BRUSH_RESERVE } from './ChartBrushControls';
+import { useChartBrush, downsampleChartData, CHART_MAX_POINTS } from './useChartBrush';
+import { CHART_LABEL_SHADOW, CHART_LABEL_FILL } from './chartLabelStyles';
 
-
-import { info, error, warn, debug } from '@services/utils/logger.js';/**
- * Helper function to get localized name for chart items
- * @param {Object} item - Data item
- * @param {string} lang - Current language ('en' or 'ar')
- * @returns {string} Localized name
- */
 const getLocalizedName = (item, lang) => {
   if (!item) return '';
-  
-  // Check for Arabic name first
   if (lang === 'ar') {
     return item.localize || item.nameAr || item.titleAr || item.name || item.title || item.code || item.docId || '';
   }
-  
-  // Default to English
   return item.nameEn || item.name || item.title || item.code || item.docId || '';
 };
 
-/**
- * Custom Bar Chart Component (Pure React/SVG)
- * @param {Array} data - Array of {label, value, color?}
- * @param {Number} width - Chart width
- * @param {Number} height - Chart height
- * @param {Boolean} horizontal - Horizontal bars
- */
+const localizeLine = (line, lang) => {
+  if (!line) return '';
+  if (isValidAcademicTerm(line)) return getAcademicTermLabel(line, lang);
+  return String(line);
+};
+
+const getLabelLines = (item, lang) => {
+  if (Array.isArray(item.labelLines) && item.labelLines.length > 0) {
+    return item.labelLines.filter(Boolean).map((l) => localizeLine(l, lang));
+  }
+  const primary = getLocalizedName(item, lang) || item.label;
+  if (!primary || primary === '—') return [];
+  const lines = [localizeLine(primary, lang)];
+  if (item.term) lines.push(getAcademicTermLabel(item.term, lang));
+  if (item.year) lines.push(String(item.year));
+  if (item.instructorName && item.instructorName !== '—') lines.push(String(item.instructorName));
+  return lines;
+};
+
+const LABEL_SHADOW = CHART_LABEL_SHADOW;
+
+function isTimelineData(items) {
+  if (!items?.length) return false;
+  const sample = items.slice(0, 3).map((d) => String(d.label || d.date || ''));
+  return sample.some((s) => /^\d{4}-\d{2}-\d{2}/.test(s));
+}
+
+function truncateLabel(text, max = 14) {
+  const s = String(text || '');
+  return s.length > max ? `${s.slice(0, max - 1)}…` : s;
+}
+
 function BarChart({ data = [], size = { width: 400, height: 300 }, horizontal = false, showValues = true, showGrid = true, accentColor = '#800020' }) {
   const { t, lang } = useLang();
-  
-  // Handle size as object with width/height or legacy width/height props
-  let width, height;
+  const [hovered, setHovered] = useState(null);
+  const svgRef = useRef(null);
+
+  let width;
+  let height;
   if (typeof size === 'object' && size.width && size.height) {
     width = size.width;
     height = size.height;
@@ -42,151 +63,210 @@ function BarChart({ data = [], size = { width: 400, height: 300 }, horizontal = 
     width = 400;
     height = 300;
   }
-  
-  if (!data || data.length === 0) {
-    return <div style={{ width, height, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>{t('no_data') || 'No data'}</div>;
+
+  const hideTooltip = useCallback(() => setHovered(null), []);
+
+  const baseData = downsampleChartData(data, CHART_MAX_POINTS);
+  const {
+    needsBrush, range, visibleData, resetRange,
+    startDrag, updateDrag, endDrag, downloadSvg, isZoomed,
+  } = useChartBrush(baseData);
+
+  const brushReserve = needsBrush ? CHART_BRUSH_RESERVE : 0;
+  const chartHeight = height - brushReserve;
+
+  if (!baseData || baseData.length === 0) {
+    return (
+      <div style={{ width, height, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>
+        {t('no_data') || 'No data'}
+      </div>
+    );
   }
 
-  // Reduced padding for less wasted space
-  const padding = { top: 15, right: 15, bottom: 45, left: 45 };
-  const chartWidth = width - padding.left - padding.right;
-  const chartHeight = height - padding.top - padding.bottom;
-  
-  // Calculate responsive font sizes based on chart dimensions
-  const axisFontSize = Math.max(8, Math.min(12, Math.min(width, height) / 25));
-  const valueFontSize = Math.max(9, Math.min(14, Math.min(width, height) / 20));
-  const labelFontSize = Math.max(9, Math.min(12, Math.min(width, height) / 25));
-  
-  const maxValue = Math.max(...data.map(d => d.value || 0), 1);
-  const barWidth = horizontal ? chartHeight / data.length : chartWidth / data.length;
+  const isTimeline = isTimelineData(visibleData);
+  const showXLabels = !needsBrush || isZoomed;
+  const labelStep = isZoomed && visibleData.length <= 24
+    ? 1
+    : visibleData.length > 16
+      ? Math.ceil(visibleData.length / 8)
+      : visibleData.length > 8
+        ? 2
+        : 1;
+
+  const padding = {
+    top: 18,
+    right: 18,
+    bottom: 20,
+    left: 48,
+  };
+  const plotW = width - padding.left - padding.right;
+  const plotH = chartHeight - padding.top - padding.bottom;
+  const axisY = padding.top + plotH;
+  const axisFontSize = Math.max(8, Math.min(12, Math.min(width, chartHeight) / 25));
+  const valueFontSize = Math.max(9, Math.min(14, Math.min(width, chartHeight) / 20));
+  const labelFontSize = Math.max(8, Math.min(11, Math.min(width, chartHeight) / 28));
+
+  const maxValue = Math.max(...visibleData.map((d) => d.value || 0), 1);
+  const barWidth = horizontal ? plotH / visibleData.length : plotW / visibleData.length;
   const barGap = barWidth * 0.2;
   const actualBarWidth = barWidth - barGap;
+  const palette = [accentColor, '#10b981', '#f59e0b', '#3b82f6', '#8b5cf6', '#ef4444', '#06b6d4', '#14b8a6'];
+
+  const barGeometries = visibleData.map((item, idx) => {
+    const value = item.value || 0;
+    const barH = (value / maxValue) * plotH;
+    const x = padding.left + idx * barWidth + barGap / 2;
+    const y = padding.top + plotH - barH;
+    const labelLines = getLabelLines(item, lang).filter((l) => l && l !== '—');
+    return {
+      idx,
+      item,
+      value,
+      x,
+      y,
+      barHeight: barH,
+      color: item.color || palette[idx % palette.length],
+      labelLines,
+      primary: labelLines[0] || '',
+      labelX: x + actualBarWidth / 2,
+      labelY: barH > 16 ? y + barH - 6 : axisY - 4,
+    };
+  });
+
+  const tooltip = hovered && createPortal(
+    <div
+      style={{
+        position: 'fixed',
+        left: hovered.x,
+        top: hovered.y - 8,
+        transform: 'translate(-50%, -100%)',
+        zIndex: 10000,
+        pointerEvents: 'none',
+        background: 'var(--panel, #1f2937)',
+        color: 'var(--text, #f9fafb)',
+        border: '1px solid var(--border, #374151)',
+        borderRadius: 8,
+        padding: '8px 10px',
+        fontSize: 12,
+        lineHeight: 1.45,
+        maxWidth: 260,
+        boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
+      }}
+    >
+      {hovered.lines.map((line, i) => (
+        <div key={i} style={{ fontWeight: i === 0 ? 600 : 400, color: i === 0 ? 'var(--text)' : 'var(--muted, #9ca3af)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {line}
+        </div>
+      ))}
+      <div style={{ marginTop: 4, fontWeight: 700, color: accentColor }}>{hovered.value}</div>
+    </div>,
+    document.body,
+  );
 
   return (
-    <svg width={width} height={height} style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
-      {/* Grid lines */}
-      {showGrid && (
-        <g>
-          {(() => {
-            // Generate proper y-axis labels to avoid duplicates
-            const steps = 5; // Number of grid lines
-            const stepSize = maxValue / (steps - 1);
-            const yLabels = [];
-            
-            for (let i = 0; i < steps; i++) {
-              const value = Math.round(stepSize * i);
-              if (!yLabels.includes(value)) {
-                yLabels.push(value);
+    <div style={{ width, height, overflow: 'visible' }}>
+      <svg ref={svgRef} width={width} height={chartHeight} style={{ fontFamily: 'system-ui, -apple-system, sans-serif', display: 'block', overflow: 'visible' }} onMouseLeave={hideTooltip}>
+        {showGrid && (
+          <g>
+            {(() => {
+              const steps = 5;
+              const stepSize = maxValue / (steps - 1);
+              const yLabels = [];
+              for (let i = 0; i < steps; i++) {
+                const value = Math.round(stepSize * i);
+                if (!yLabels.includes(value)) yLabels.push(value);
               }
-            }
-            
-            // Ensure we have the max value at the end
-            if (!yLabels.includes(maxValue)) {
-              yLabels.push(maxValue);
-            }
-            
-            return yLabels.map((value, i) => {
-              const ratio = value / maxValue;
-              const y = padding.top + chartHeight * (1 - ratio);
-              return (
-                <g key={i}>
-                  <line
-                    x1={padding.left}
-                    y1={y}
-                    x2={padding.left + chartWidth}
-                    y2={y}
-                    stroke="#9ca3af" // Changed to gray
-                    strokeWidth="1"
-                    strokeDasharray="4,4"
-                  />
-                  <text
-                    x={padding.left - 10}
-                    y={y + 4}
-                    textAnchor="end"
-                    fontSize={axisFontSize} // Responsive font
-                    fontWeight="bold"
-                    fill="#6b7280"
-                  >
-                    {value}
-                  </text>
-                </g>
-              );
-            });
-          })()}
-        </g>
-      )}
+              if (!yLabels.includes(maxValue)) yLabels.push(maxValue);
+              return yLabels.map((value, i) => {
+                const ratio = value / maxValue;
+                const y = padding.top + plotH * (1 - ratio);
+                return (
+                  <g key={i}>
+                    <line x1={padding.left} y1={y} x2={padding.left + plotW} y2={y} stroke="#9ca3af" strokeWidth="1" strokeDasharray="4,4" />
+                    <text x={padding.left - 10} y={y + 4} textAnchor="end" fontSize={axisFontSize} fontWeight="bold" fill="#6b7280">{value}</text>
+                  </g>
+                );
+              });
+            })()}
+          </g>
+        )}
 
-      {/* Bars */}
-      {data.map((item, idx) => {
-        const value = item.value || 0;
-        const barHeight = (value / maxValue) * chartHeight;
-        const x = padding.left + idx * barWidth + barGap / 2;
-        const y = padding.top + chartHeight - barHeight;
-        const color = item.color || accentColor;
-        const localizedLabel = getLocalizedName(item, lang) || item.label;
-
-        return (
-          <g key={idx}>
+        {barGeometries.map((bar) => (
+          <g key={bar.idx}>
             <rect
-              x={x}
-              y={y}
+              x={bar.x}
+              y={bar.y}
               width={actualBarWidth}
-              height={barHeight}
-              fill={color}
+              height={Math.max(bar.barHeight, 0)}
+              fill={bar.color}
+              opacity={hovered?.idx === bar.idx ? 0.95 : 0.72}
               rx="4"
-              style={{ transition: 'all 0.3s ease' }}
-            >
-              <title>{`${localizedLabel}: ${value}`}</title>
-            </rect>
-            
-            {/* Value label on top */}
-            {showValues && (
-              <text
-                x={x + actualBarWidth / 2}
-                y={y - 5}
-                textAnchor="middle"
-                fontSize={valueFontSize} // Responsive font
-                fontWeight="600"
-                fill="#374151"
-              >
-                {value}
+              style={{ transition: 'opacity 0.15s ease', cursor: 'pointer' }}
+              onMouseEnter={(e) => {
+                const hoverLines = bar.labelLines.length > 0 ? bar.labelLines : [t('not_specified') || 'Unspecified'];
+                setHovered({ idx: bar.idx, x: e.clientX, y: e.clientY, lines: hoverLines, value: bar.value });
+              }}
+              onMouseMove={(e) => {
+                setHovered((prev) => (prev?.idx === bar.idx ? { ...prev, x: e.clientX, y: e.clientY } : prev));
+              }}
+            />
+            {showValues && bar.value > 0 && (
+              <text x={bar.x + actualBarWidth / 2} y={bar.y - 5} textAnchor="middle" fontSize={valueFontSize} fontWeight="600" fill={CHART_LABEL_FILL} style={LABEL_SHADOW}>
+                {bar.value}
               </text>
             )}
-
-            {/* X-axis label */}
-            <text
-              x={x + actualBarWidth / 2}
-              y={height - padding.bottom + 20}
-              textAnchor="middle"
-              fontSize={labelFontSize} // Responsive font
-              fontWeight="normal"
-              fill="#000000" // Changed to black for better readability
-              transform={`rotate(-45, ${x + actualBarWidth / 2}, ${height - padding.bottom + 20})`}
-            >
-              {localizedLabel}
-            </text>
           </g>
-        );
-      })}
+        ))}
 
-      {/* Axes - changed to gray */}
-      <line
-        x1={padding.left}
-        y1={padding.top + chartHeight}
-        x2={padding.left + chartWidth}
-        y2={padding.top + chartHeight}
-        stroke="#9ca3af" // Changed to gray
-        strokeWidth="2"
+        <line x1={padding.left} y1={axisY} x2={padding.left + plotW} y2={axisY} stroke="#9ca3af" strokeWidth="2" />
+        <line x1={padding.left} y1={padding.top} x2={padding.left} y2={axisY} stroke="#9ca3af" strokeWidth="2" />
+
+        {showXLabels && (
+          <g style={{ pointerEvents: 'none' }}>
+            {barGeometries.map((bar, i) => {
+              if (!bar.primary) return null;
+              if (i % labelStep !== 0 && i !== barGeometries.length - 1) return null;
+
+              return (
+                <text
+                  key={`lbl-${bar.idx}`}
+                  x={bar.labelX}
+                  y={bar.labelY}
+                  textAnchor="start"
+                  fontSize={labelFontSize}
+                  fontWeight="600"
+                  fontStyle="italic"
+                  fill={CHART_LABEL_FILL}
+                  style={LABEL_SHADOW}
+                  transform={`rotate(-90, ${bar.labelX}, ${bar.labelY})`}
+                >
+                  <title>{bar.primary}</title>
+                  {truncateLabel(
+                    bar.primary,
+                    isTimeline && isZoomed ? 24 : (lang === 'ar' ? 18 : 12),
+                  )}
+                </text>
+              );
+            })}
+          </g>
+        )}
+      </svg>
+
+      <ChartBrushControls
+        data={baseData}
+        range={range}
+        needsBrush={needsBrush}
+        isZoomed={isZoomed}
+        accentColor={accentColor}
+        chartWidth={width}
+        onStartDrag={startDrag}
+        onUpdateDrag={updateDrag}
+        onEndDrag={endDrag}
+        onReset={resetRange}
+        onDownload={() => downloadSvg(svgRef.current, 'bar-chart.svg')}
       />
-      <line
-        x1={padding.left}
-        y1={padding.top}
-        x2={padding.left}
-        y2={padding.top + chartHeight}
-        stroke="#9ca3af" // Changed to gray
-        strokeWidth="2"
-      />
-    </svg>
+      {tooltip}
+    </div>
   );
 }
 

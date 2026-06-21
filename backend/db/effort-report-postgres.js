@@ -5,6 +5,7 @@
 import { PrismaClient } from '@prisma/client';
 import { buildLocalizedNameFields } from '../utils/localizedUserName.js';
 import { resolveDateRange, toDateStr, toDateTimeRange, resolveClassIds as resolveClassIdsUtil } from '../utils/schedulingDateRange.js';
+import { intersectClassIdLists } from '../utils/schedulingScope.js';
 
 const prisma = new PrismaClient();
 
@@ -140,10 +141,27 @@ export const getEffortReport = async (params = {}) => {
     const {
       programId, subjectId, classId, term, year, instructorId,
       timeRange = 'month', startDate, endDate, reportFormat = 'summary',
+      scopeClassIds = null,
     } = params;
 
     const { start, end } = resolveDateRange(timeRange, startDate, endDate);
-    const classIds = await resolveClassIds({ programId, subjectId, classId, term, year });
+    let classIds = await resolveClassIds({ programId, subjectId, classId, term, year });
+    classIds = intersectClassIdLists(classIds, scopeClassIds);
+
+    if (scopeClassIds !== null && scopeClassIds !== undefined && (!classIds || classIds.length === 0)) {
+      return {
+        success: true,
+        data: {
+          reportFormat,
+          filters: { programId, subjectId, classId, term, year, instructorId, timeRange, start, end },
+          totals: { sessionCount: 0, teachingHours: 0, teacherCount: 0, courseCount: 0 },
+          teachers: [],
+          courses: [],
+          chartData: { byTeacher: [], bySubject: [], byProgram: [] },
+          generatedAt: new Date().toISOString(),
+        },
+      };
+    }
 
     const scheduleWhere = {
       isCancelled: false,

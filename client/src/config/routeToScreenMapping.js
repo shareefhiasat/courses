@@ -176,6 +176,19 @@ export const ROUTE_TO_SCREEN_MAP = {
     icon: 'file_text'
   },
   
+  '/summary-dashboard': {
+    screenId: 'summaryDashboard',
+    path: '/summary-dashboard',
+    category: 'scheduling',
+    icon: 'layout_dashboard'
+  },
+  '/scheduling-calendar': {
+    screenId: 'schedulingCalendar',
+    path: '/scheduling-calendar',
+    category: 'scheduling',
+    icon: 'calendar'
+  },
+  
   // Settings Routes
   '/profile': {
     screenId: 'profile',

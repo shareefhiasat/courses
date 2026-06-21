@@ -56,7 +56,6 @@ export default function ReportFilterBar({
     filters.term,
     filters.year,
     filters.instructorId,
-    filters.reportFormat !== 'summary' ? filters.reportFormat : '',
   ].filter(Boolean).length;
 
   const summary = activeCount
@@ -64,61 +63,62 @@ export default function ReportFilterBar({
     : t('all_filters_cleared') || 'All filters cleared';
 
   const grid = (
-    <div style={{
-      display: 'grid',
-      gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
-      gap: '0.75rem',
-    }}>
-      <Select
-        placeholder={t('select_program') || 'Select a program'}
-        value={filters.programId || ''}
-        onChange={(e) => set('programId', e.target.value)}
-        options={itemOptions(programs, isRTL)}
-      />
-      <Select
-        placeholder={t('select_subject') || 'Select a subject'}
-        value={filters.subjectId || ''}
-        onChange={(e) => set('subjectId', e.target.value)}
-        options={itemOptions(filteredSubjects, isRTL)}
-      />
-      <Select
-        placeholder={t('select_class') || 'Select a class'}
-        value={filters.classId || ''}
-        onChange={(e) => set('classId', e.target.value)}
-        options={itemOptions(filteredClasses, isRTL)}
-      />
-      <Select
-        placeholder={t('select_term') || 'Select a term'}
-        value={filters.term || ''}
-        onChange={(e) => set('term', e.target.value)}
-        options={termOptions}
-      />
-      <Select
-        placeholder={t('select_year') || 'Select a year'}
-        value={filters.year || ''}
-        onChange={(e) => set('year', e.target.value)}
-        options={YEAR_OPTIONS}
-      />
-      {showInstructor && (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(3, minmax(150px, 1fr))',
+        gap: '0.75rem',
+        alignItems: 'center',
+      }}>
         <Select
-          placeholder={t('select_instructor') || 'Select an instructor'}
-          value={filters.instructorId || ''}
-          onChange={(e) => set('instructorId', e.target.value)}
-          options={instructors.map((i) => ({
-            value: String(i.id),
-            label: i.displayName || `${i.firstName || ''} ${i.lastName || ''}`.trim(),
-          }))}
+          placeholder={t('select_program') || 'Select a program'}
+          value={filters.programId || ''}
+          onChange={(e) => set('programId', e.target.value)}
+          options={itemOptions(programs, isRTL)}
         />
-      )}
-      <Select
-        placeholder={t('select_report_format') || 'Select report format'}
-        value={filters.reportFormat || 'summary'}
-        onChange={(e) => set('reportFormat', e.target.value)}
-        options={[
-          { value: 'summary', label: t('report_format_summary') || 'Summary' },
-          { value: 'breakdown', label: t('report_format_breakdown') || 'Breakdown' },
-        ]}
-      />
+        <Select
+          placeholder={t('select_subject') || 'Select a subject'}
+          value={filters.subjectId || ''}
+          onChange={(e) => set('subjectId', e.target.value)}
+          options={itemOptions(filteredSubjects, isRTL)}
+        />
+        <Select
+          placeholder={t('select_class') || 'Select a class'}
+          value={filters.classId || ''}
+          onChange={(e) => set('classId', e.target.value)}
+          options={itemOptions(filteredClasses, isRTL)}
+        />
+      </div>
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: showInstructor ? 'repeat(3, minmax(150px, 1fr))' : 'repeat(2, minmax(150px, 1fr))',
+        gap: '0.75rem',
+        alignItems: 'center',
+      }}>
+        <Select
+          placeholder={t('select_term') || 'Select a term'}
+          value={filters.term || ''}
+          onChange={(e) => set('term', e.target.value)}
+          options={termOptions}
+        />
+        <Select
+          placeholder={t('select_year') || 'Select a year'}
+          value={filters.year || ''}
+          onChange={(e) => set('year', e.target.value)}
+          options={YEAR_OPTIONS}
+        />
+        {showInstructor && (
+          <Select
+            placeholder={t('select_instructor') || 'Select an instructor'}
+            value={filters.instructorId || ''}
+            onChange={(e) => set('instructorId', e.target.value)}
+            options={instructors.map((i) => ({
+              value: String(i.id),
+              label: i.displayName || `${i.firstName || ''} ${i.lastName || ''}`.trim(),
+            }))}
+          />
+        )}
+      </div>
     </div>
   );
 

@@ -13,22 +13,27 @@ export default function CollapsibleSection({
 }) {
   const { theme } = useTheme();
   const [open, setOpen] = useState(defaultOpen);
+  const [hovered, setHovered] = useState(false);
   const border = theme === 'dark' ? '#374151' : '#e5e7eb';
   const muted = theme === 'dark' ? '#9ca3af' : '#6b7280';
+  const hoverBg = theme === 'dark' ? 'rgba(129, 12, 41, 0.16)' : 'rgba(129, 12, 41, 0.06)';
 
   const toggle = () => setOpen((v) => !v);
 
   return (
     <div
       data-testid={testId}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
       style={{
         width: '100%',
         flexShrink: 0,
-        backgroundColor: theme === 'dark' ? '#1f2937' : '#f9fafb',
+        backgroundColor: hovered ? hoverBg : (theme === 'dark' ? '#1f2937' : '#f9fafb'),
         borderRadius: '0.5rem',
         padding: open ? '0.625rem 0.75rem' : '0.375rem 0.75rem',
-        border: `1px solid ${border}`,
+        border: `1px solid ${hovered ? '#810C29' : border}`,
         marginBottom: '0.75rem',
+        transition: 'background-color 0.18s ease, border-color 0.18s ease',
       }}
     >
       <div

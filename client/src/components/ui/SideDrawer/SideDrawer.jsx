@@ -410,14 +410,14 @@ const SideDrawer = ({ isOpen, onClose }) => {
   };
 
   const adminSchedulingSections = buildSchedulingSections('', {
-    includeSummary: isSuperAdmin || isAdmin || isHR,
+    includeSummary: true,
     includeSetup: isSuperAdmin || isAdmin || isHR,
   });
   const studentSchedulingSections = buildSchedulingSections('-student', {
     includeSummary: false,
     includeSetup: false,
     schedulingPrepend: [
-      { id: 'my-enrollments-student', path: '/my-enrollments', icon: getThemedIcon('ui', 'book_open', 18, theme), label: nl('my_enrollments', 'My Enrollments') },
+      { id: 'my-enrollments-student', path: '/my-enrollments', screenId: 'enrollments', icon: getThemedIcon('ui', 'book_open', 18, theme), label: nl('my_enrollments', 'My Enrollments') },
     ],
   });
   const hrSchedulingSections = buildSchedulingSections('-hr', { includeSummary: true, includeSetup: true });
@@ -429,9 +429,9 @@ const SideDrawer = ({ isOpen, onClose }) => {
       label: nl('main', 'Main'),
       icon: getThemedIcon('ui', 'home', 18, theme),
       children: [
-        { id: 'home', path: '/', icon: getThemedIcon('ui', 'home', 18, theme), label: nl('home', 'Home') },
-        { id: 'student-dashboard', path: '/student-dashboard', icon: getThemedIcon('ui', 'layout_dashboard', 18, theme), label: nl('student_dashboard', 'Student Dashboard') },
-        { id: 'progress', path: '/student-dashboard', icon: getThemedIcon('ui', 'bar_chart3', 18, theme), label: nl('progress', 'Progress') },
+        { id: 'home', path: '/', screenId: 'home', icon: getThemedIcon('ui', 'home', 18, theme), label: nl('home', 'Home') },
+        { id: 'student-dashboard', path: '/student-dashboard', screenId: 'student-dashboard', icon: getThemedIcon('ui', 'layout_dashboard', 18, theme), label: nl('student_dashboard', 'Student Dashboard') },
+        { id: 'progress', path: '/student-dashboard', screenId: 'student-dashboard', icon: getThemedIcon('ui', 'bar_chart3', 18, theme), label: nl('progress', 'Progress') },
       ]
     },
     {
@@ -439,11 +439,11 @@ const SideDrawer = ({ isOpen, onClose }) => {
       label: nl('activity', 'Activity'),
       icon: getThemedIcon('ui', 'activity', 18, theme),
       children: [
-        { id: 'activities', path: '/?mode=activities', icon: getThemedIcon('ui', 'activity', 18, theme), label: nl('activities', 'Activities') },
-        { id: 'quiz-activity', path: '/?mode=activities&activityType=quiz', icon: getThemedIcon('ui', 'gamepad2', 18, theme), label: nl('quiz', 'Quiz') },
-        { id: 'homework-activity', path: '/?mode=activities&activityType=homework', icon: getThemedIcon('ui', 'file_text', 18, theme), label: nl('homework', 'Homework') },
-        { id: 'training-activity', path: '/?mode=activities&activityType=training', icon: getThemedIcon('activity_type', 'training', 18, theme), label: nl('training', 'Training') },
-        { id: 'lab-activity', path: '/?mode=activities&activityType=lab_work', icon: getThemedIcon('activity_type', 'lab', 18, theme), label: nl('lab_and_project', 'Lab & Project') },
+        { id: 'activities', path: '/?mode=activities', screenId: 'activities', icon: getThemedIcon('ui', 'activity', 18, theme), label: nl('activities', 'Activities') },
+        { id: 'quiz-activity', path: '/?mode=activities&activityType=quiz', screenId: 'activities', icon: getThemedIcon('ui', 'gamepad2', 18, theme), label: nl('quiz', 'Quiz') },
+        { id: 'homework-activity', path: '/?mode=activities&activityType=homework', screenId: 'activities', icon: getThemedIcon('ui', 'file_text', 18, theme), label: nl('homework', 'Homework') },
+        { id: 'training-activity', path: '/?mode=activities&activityType=training', screenId: 'activities', icon: getThemedIcon('activity_type', 'training', 18, theme), label: nl('training', 'Training') },
+        { id: 'lab-activity', path: '/?mode=activities&activityType=lab_work', screenId: 'activities', icon: getThemedIcon('activity_type', 'lab', 18, theme), label: nl('lab_and_project', 'Lab & Project') },
       ]
     },
     {
@@ -451,10 +451,10 @@ const SideDrawer = ({ isOpen, onClose }) => {
       label: nl('quiz', 'Quiz'),
       icon: getThemedIcon('ui', 'list_checks', 18, theme),
       children: [
-        { id: 'quiz-results', path: '/review-results?activityType=quiz', icon: getThemedIcon('ui', 'list_checks', 18, theme), label: nl('quiz_results', 'Quiz Results') },
-        { id: 'homework-results', path: '/review-results?activityType=homework', icon: getThemedIcon('ui', 'file_text', 18, theme), label: nl('homework_results', 'Homework Results') },
-        { id: 'training-results', path: '/review-results?activityType=training', icon: getThemedIcon('activity_type', 'training', 18, theme), label: nl('training_results', 'Training Results') },
-        { id: 'lab-results', path: '/review-results?activityType=lab_work', icon: getThemedIcon('activity_type', 'lab', 18, theme), label: nl('lab_results', 'Lab Results') },
+        { id: 'quiz-results', path: '/review-results?activityType=quiz', screenId: 'quiz-results', icon: getThemedIcon('ui', 'list_checks', 18, theme), label: nl('quiz_results', 'Quiz Results') },
+        { id: 'homework-results', path: '/review-results?activityType=homework', screenId: 'homework-results', icon: getThemedIcon('ui', 'file_text', 18, theme), label: nl('homework_results', 'Homework Results') },
+        { id: 'training-results', path: '/review-results?activityType=training', screenId: 'training-results', icon: getThemedIcon('activity_type', 'training', 18, theme), label: nl('training_results', 'Training Results') },
+        { id: 'lab-results', path: '/review-results?activityType=lab_work', screenId: 'lab-results', icon: getThemedIcon('activity_type', 'lab', 18, theme), label: nl('lab_results', 'Lab Results') },
       ]
     },
     ...studentSchedulingSections,
@@ -463,7 +463,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
       label: nl('attendance', 'Attendance'),
       icon: getThemedIcon('ui', 'qr_code', 18, theme),
       children: [
-        { id: 'my-attendance', path: '/my-attendance', icon: getThemedIcon('ui', 'qr_code', 18, theme), label: nl('my_attendance', 'My Attendance') },
+        { id: 'my-attendance', path: '/my-attendance', screenId: 'my-attendance', icon: getThemedIcon('ui', 'qr_code', 18, theme), label: nl('my_attendance', 'My Attendance') },
       ]
     },
     {
@@ -471,8 +471,8 @@ const SideDrawer = ({ isOpen, onClose }) => {
       label: nl('community', 'Community'),
       icon: getThemedIcon('ui', 'message_square', 18, theme),
       children: [
-        { id: 'chat', path: '/chat', icon: getThemedIcon('ui', 'message_square', 18, theme), label: nl('chat', 'Chat') },
-        { id: 'resources', path: '/?mode=resources', icon: getThemedIcon('ui', 'book_open', 18, theme), label: nl('resources', 'Resources') },
+        { id: 'chat', path: '/chat', screenId: 'chat', icon: getThemedIcon('ui', 'message_square', 18, theme), label: nl('chat', 'Chat') },
+        { id: 'resources', path: '/?mode=resources', screenId: 'resources', icon: getThemedIcon('ui', 'book_open', 18, theme), label: nl('resources', 'Resources') },
       ]
     },
     {
@@ -488,8 +488,8 @@ const SideDrawer = ({ isOpen, onClose }) => {
       label: nl('settings', 'Settings'),
       icon: getThemedIcon('ui', 'settings', 18, theme),
       children: [
-        { id: 'notifications', path: '/notifications', icon: getThemedIcon('ui', 'bell', 18, theme), label: nl('notifications', 'Notifications') },
-        { id: 'profile', path: '/profile', icon: getThemedIcon('ui', 'settings', 18, theme), label: nl('settings', 'Settings') },
+        { id: 'notifications', path: '/notifications', screenId: 'notifications', icon: getThemedIcon('ui', 'bell', 18, theme), label: nl('notifications', 'Notifications') },
+        { id: 'profile', path: '/profile', screenId: 'profile', icon: getThemedIcon('ui', 'settings', 18, theme), label: nl('settings', 'Settings') },
       ]
     }
   ];
@@ -510,11 +510,11 @@ const SideDrawer = ({ isOpen, onClose }) => {
       label: nl('activity', 'Activity'),
       icon: getThemedIcon('ui', 'activity', 18, theme),
       children: [
-        { id: 'activities', path: '/?mode=activities', icon: getThemedIcon('ui', 'activity', 18, theme), label: nl('activities', 'Activities') },
-        { id: 'quiz-activity', path: '/?mode=activities&activityType=quiz', icon: getThemedIcon('ui', 'gamepad2', 18, theme), label: nl('quiz', 'Quiz') },
-        { id: 'homework-activity', path: '/?mode=activities&activityType=homework', icon: getThemedIcon('ui', 'file_text', 18, theme), label: nl('homework', 'Homework') },
-        { id: 'training-activity', path: '/?mode=activities&activityType=training', icon: getThemedIcon('activity_type', 'training', 18, theme), label: nl('training', 'Training') },
-        { id: 'lab-activity', path: '/?mode=activities&activityType=lab_work', icon: getThemedIcon('activity_type', 'lab', 18, theme), label: nl('lab_and_project', 'Lab & Project') },
+        { id: 'activities', path: '/?mode=activities', screenId: 'activities', icon: getThemedIcon('ui', 'activity', 18, theme), label: nl('activities', 'Activities') },
+        { id: 'quiz-activity', path: '/?mode=activities&activityType=quiz', screenId: 'activities', icon: getThemedIcon('ui', 'gamepad2', 18, theme), label: nl('quiz', 'Quiz') },
+        { id: 'homework-activity', path: '/?mode=activities&activityType=homework', screenId: 'activities', icon: getThemedIcon('ui', 'file_text', 18, theme), label: nl('homework', 'Homework') },
+        { id: 'training-activity', path: '/?mode=activities&activityType=training', screenId: 'activities', icon: getThemedIcon('activity_type', 'training', 18, theme), label: nl('training', 'Training') },
+        { id: 'lab-activity', path: '/?mode=activities&activityType=lab_work', screenId: 'activities', icon: getThemedIcon('activity_type', 'lab', 18, theme), label: nl('lab_and_project', 'Lab & Project') },
       ]
     },
     {
@@ -522,8 +522,8 @@ const SideDrawer = ({ isOpen, onClose }) => {
       label: nl('quiz', 'Quiz'),
       icon: getThemedIcon('ui', 'list_checks', 18, theme),
       children: [
-        { id: 'quizzes', path: '/quizzes', icon: getThemedIcon('ui', 'gamepad2', 18, theme), label: nl('quizzes', 'Quizzes') },
-        { id: 'quiz-results', path: '/review-results?activityType=quiz', icon: getThemedIcon('ui', 'list_checks', 18, theme), label: nl('quiz_results', 'Quiz Results') },
+        { id: 'quizzes', path: '/quizzes', screenId: 'quizzes', icon: getThemedIcon('ui', 'gamepad2', 18, theme), label: nl('quizzes', 'Quizzes') },
+        { id: 'quiz-results', path: '/review-results?activityType=quiz', screenId: 'quiz-results', icon: getThemedIcon('ui', 'list_checks', 18, theme), label: nl('quiz_results', 'Quiz Results') },
       ]
     },
     ...(isSuperAdmin || isInstructor || isAdmin ? [{
@@ -562,8 +562,8 @@ const SideDrawer = ({ isOpen, onClose }) => {
       label: nl('users', 'Users'),
       icon: getThemedIcon('ui', 'users', 18, theme),
       children: [
-        { id: 'users', path: '/dashboard', hash: '#users', icon: getThemedIcon('ui', 'users', 18, theme), label: nl('users', 'Users') },
-        { id: 'user-category-access', path: '/dashboard', hash: '#user-category-access', icon: getThemedIcon('ui', 'shield', 18, theme), label: nl('user_access', 'User Access') }
+        { id: 'users', path: '/dashboard', hash: '#users', screenId: 'users', icon: getThemedIcon('ui', 'users', 18, theme), label: nl('users', 'Users') },
+        { id: 'user-category-access', path: '/dashboard', hash: '#user-category-access', screenId: 'user-category-access', icon: getThemedIcon('ui', 'shield', 18, theme), label: nl('user_access', 'User Access') }
       ]
     }] : []),
     ...(isSuperAdmin || isInstructor || isAdmin ? [{
@@ -571,10 +571,10 @@ const SideDrawer = ({ isOpen, onClose }) => {
       label: nl('review_results', 'Review Results'),
       icon: getThemedIcon('ui', 'list_checks', 18, theme),
       children: [
-        { id: 'review-quiz', path: '/review-results?activityType=quiz', icon: getThemedIcon('ui', 'list_checks', 18, theme), label: nl('quiz_results', 'Quiz Results') },
-        { id: 'review-homework', path: '/review-results?activityType=homework', icon: getThemedIcon('ui', 'file_text', 18, theme), label: nl('homework_results', 'Homework Results') },
-        { id: 'review-training', path: '/review-results?activityType=training', icon: getThemedIcon('activity_type', 'training', 18, theme), label: nl('training_results', 'Training Results') },
-        { id: 'review-lab', path: '/review-results?activityType=lab_work', icon: getThemedIcon('activity_type', 'lab', 18, theme), label: nl('lab_results', 'Lab Results') },
+        { id: 'review-quiz', path: '/review-results?activityType=quiz', screenId: 'quiz-results', icon: getThemedIcon('ui', 'list_checks', 18, theme), label: nl('quiz_results', 'Quiz Results') },
+        { id: 'review-homework', path: '/review-results?activityType=homework', screenId: 'homework-results', icon: getThemedIcon('ui', 'file_text', 18, theme), label: nl('homework_results', 'Homework Results') },
+        { id: 'review-training', path: '/review-results?activityType=training', screenId: 'training-results', icon: getThemedIcon('activity_type', 'training', 18, theme), label: nl('training_results', 'Training Results') },
+        { id: 'review-lab', path: '/review-results?activityType=lab_work', screenId: 'lab-results', icon: getThemedIcon('activity_type', 'lab', 18, theme), label: nl('lab_results', 'Lab Results') },
       ]
     }] : []),
     {
@@ -610,7 +610,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
       label: nl('communication', 'Communication'),
       icon: getThemedIcon('ui', 'calendar', 18, theme),
       children: [
-        { id: 'scheduled-reports', path: '/scheduled-reports', icon: getThemedIcon('ui', 'calendar', 18, theme), label: nl('schedule_updates', 'Schedule Updates') },
+        { id: 'scheduled-reports', path: '/scheduled-reports', screenId: 'scheduled-reports', icon: getThemedIcon('ui', 'calendar', 18, theme), label: nl('schedule_updates', 'Schedule Updates') },
       ]
     }] : []),
     {
@@ -618,8 +618,8 @@ const SideDrawer = ({ isOpen, onClose }) => {
       label: nl('community', 'Community'),
       icon: getThemedIcon('ui', 'message_square', 18, theme),
       children: [
-        { id: 'chat-admin', path: '/chat', icon: getThemedIcon('ui', 'message_square', 18, theme), label: nl('chat', 'Chat') },
-        { id: 'resources-admin', path: '/?mode=resources', icon: getThemedIcon('ui', 'book_open', 18, theme), label: nl('resources', 'Resources') },
+        { id: 'chat-admin', path: '/chat', screenId: 'chat', icon: getThemedIcon('ui', 'message_square', 18, theme), label: nl('chat', 'Chat') },
+        { id: 'resources-admin', path: '/?mode=resources', screenId: 'resources', icon: getThemedIcon('ui', 'book_open', 18, theme), label: nl('resources', 'Resources') },
       ]
     },
     {
@@ -635,9 +635,9 @@ const SideDrawer = ({ isOpen, onClose }) => {
       label: nl('workspace_settings', 'Workspace Settings'),
       icon: getThemedIcon('ui', 'settings', 18, theme),
       children: [
-        { id: 'notifications-admin', path: '/notifications', icon: getThemedIcon('ui', 'bell', 18, theme), label: nl('notifications', 'Notifications') },
-        { id: 'student-profile', path: '/student-profile', icon: getThemedIcon('ui', 'user', 18, theme), label: nl('student_profile', 'Student Profile') },
-        { id: 'profile-admin', path: '/profile', icon: getThemedIcon('ui', 'settings', 18, theme), label: nl('settings', 'Settings') }
+        { id: 'notifications-admin', path: '/notifications', screenId: 'notifications', icon: getThemedIcon('ui', 'bell', 18, theme), label: nl('notifications', 'Notifications') },
+        { id: 'student-profile', path: '/student-profile', screenId: 'student-profile', icon: getThemedIcon('ui', 'user', 18, theme), label: nl('student_profile', 'Student Profile') },
+        { id: 'profile-admin', path: '/profile', screenId: 'profile', icon: getThemedIcon('ui', 'settings', 18, theme), label: nl('settings', 'Settings') }
       ]
     }
   ];
@@ -648,8 +648,8 @@ const SideDrawer = ({ isOpen, onClose }) => {
       label: nl('main', 'Main'),
       icon: getThemedIcon('ui', 'home', 18, theme),
       children: [
-        { id: 'home-hr', path: '/', icon: getThemedIcon('ui', 'home', 18, theme), label: nl('home', 'Home') },
-        { id: 'daily-scan', path: '/qr-scanner', icon: getThemedIcon('ui', 'qr_code', 18, theme), label: nl('daily_scan', 'Daily Scan') },
+        { id: 'home-hr', path: '/', screenId: 'home', icon: getThemedIcon('ui', 'home', 18, theme), label: nl('home', 'Home') },
+        { id: 'daily-scan', path: '/qr-scanner', screenId: 'qr-scanner', icon: getThemedIcon('ui', 'qr_code', 18, theme), label: nl('daily_scan', 'Daily Scan') },
       ]
     },
     ...hrSchedulingSections,
@@ -658,8 +658,8 @@ const SideDrawer = ({ isOpen, onClose }) => {
       label: nl('drive', 'Drive'),
       icon: getThemedIcon('ui', 'hard_drive', 18, theme),
       children: [
-        { id: 'smart-drive-hr', path: '/smart-drive', icon: getThemedIcon('ui', 'hard_drive', 18, theme), label: nl('smart_drive', 'Smart Drive') },
-        { id: 'workflow-inbox-hr', path: '/workflow/inbox', icon: getThemedIcon('ui', 'list', 18, theme), label: nl('workflow_inbox', 'Workflow Inbox') },
+        { id: 'smart-drive-hr', path: '/smart-drive', screenId: 'drive', icon: getThemedIcon('ui', 'hard_drive', 18, theme), label: nl('smart_drive', 'Smart Drive') },
+        { id: 'workflow-inbox-hr', path: '/workflow/inbox', screenId: 'workflow', icon: getThemedIcon('ui', 'list', 18, theme), label: nl('workflow_inbox', 'Workflow Inbox') },
       ]
     },
     {
@@ -667,7 +667,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
       label: nl('community', 'Community'),
       icon: getThemedIcon('ui', 'message_square', 18, theme),
       children: [
-        { id: 'chat-hr', path: '/chat', icon: getThemedIcon('ui', 'message_square', 18, theme), label: nl('chat', 'Chat') },
+        { id: 'chat-hr', path: '/chat', screenId: 'chat', icon: getThemedIcon('ui', 'message_square', 18, theme), label: nl('chat', 'Chat') },
       ]
     },
     {
@@ -675,9 +675,9 @@ const SideDrawer = ({ isOpen, onClose }) => {
       label: nl('settings', 'Settings'),
       icon: getThemedIcon('ui', 'settings', 18, theme),
       children: [
-        { id: 'notifications-hr', path: '/notifications', icon: getThemedIcon('ui', 'bell', 18, theme), label: nl('notifications', 'Notifications') },
-        { id: 'student-profile-hr', path: '/student-profile', icon: getThemedIcon('ui', 'user', 18, theme), label: nl('student_profile', 'Student Profile') },
-        { id: 'profile-hr', path: '/profile', icon: getThemedIcon('ui', 'settings', 18, theme), label: nl('settings', 'Settings') },
+        { id: 'notifications-hr', path: '/notifications', screenId: 'notifications', icon: getThemedIcon('ui', 'bell', 18, theme), label: nl('notifications', 'Notifications') },
+        { id: 'student-profile-hr', path: '/student-profile', screenId: 'student-profile', icon: getThemedIcon('ui', 'user', 18, theme), label: nl('student_profile', 'Student Profile') },
+        { id: 'profile-hr', path: '/profile', screenId: 'profile', icon: getThemedIcon('ui', 'settings', 18, theme), label: nl('settings', 'Settings') },
         { id: 'timerControl-hr', key: 'timerControl', icon: getThemedIcon('ui', 'timer', 18, theme), label: nl('timer', 'Timer') }
       ]
     }
@@ -698,6 +698,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
           toolsSection.children.push({
             id: 'permission-matrix',
             path: '/permission-matrix',
+            screenId: 'permission-matrix',
             icon: getThemedIcon('ui', 'shield', 18, theme),
             label: nl('permission_matrix', 'Permission Matrix')
           });

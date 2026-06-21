@@ -1,5 +1,4 @@
 import React, { useState, useCallback, useMemo, useRef } from 'react';
-import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
@@ -7,10 +6,30 @@ import { DEFAULT_ACCENT, normalizeHexColor } from '@utils/color';
 import DashboardEngine from '@components/analytics/DashboardEngine';
 import EffortReportExport from '@components/scheduling/summary/EffortReportExport';
 import {
+  LayoutDashboard, BarChart3, LineChart, Users, Layers, DoorOpen, Coffee, Palmtree, CalendarDays, History,
+  ClipboardList, GitBranch,
+} from 'lucide-react';
+import {
   SCHEDULING_SUMMARY_DEFAULT_WIDGETS,
   SCHEDULING_SUMMARY_STORAGE_KEY,
+  SCHEDULING_SUMMARY_MAX_WIDGETS,
+  SCHEDULING_WIDGET_CATEGORIES,
   buildSchedulingRawData,
 } from '@constants/schedulingSummaryWidgets';
+
+const CATEGORY_ICONS = {
+  overview: LayoutDashboard,
+  sessions: BarChart3,
+  timeline: LineChart,
+  instructors: Users,
+  classes: Layers,
+  rooms: DoorOpen,
+  breaks: Coffee,
+  holidays: Palmtree,
+  calendar: CalendarDays,
+  attendance: ClipboardList,
+  workflow: GitBranch,
+};
 
 export default function SchedulingSummaryAnalytics({
   effortReport,
@@ -22,15 +41,13 @@ export default function SchedulingSummaryAnalytics({
 }) {
   const { t } = useLang();
   const { theme } = useTheme();
-  const { user } = useAuth();
   const engineRef = useRef(null);
   const [editLayout, setEditLayout] = useState(false);
+  const [widgetSearch, setWidgetSearch] = useState('');
+  const [widgetCategory, setWidgetCategory] = useState('attendance');
   const accentColor = DEFAULT_ACCENT;
 
-  const storageKey = useMemo(() => {
-    if (!user?.uid) return SCHEDULING_SUMMARY_STORAGE_KEY;
-    return `${SCHEDULING_SUMMARY_STORAGE_KEY}_${user.uid}`;
-  }, [user?.uid]);
+  const storageKey = SCHEDULING_SUMMARY_STORAGE_KEY;
 
   const rawData = useMemo(
     () => buildSchedulingRawData(effortReport, dashboardData, isRTL),
@@ -41,16 +58,18 @@ export default function SchedulingSummaryAnalytics({
     engineRef.current?.openBuilder?.();
   }, []);
 
-  const btnStyle = (color) => ({
+  const iconBtnStyle = (color, active = false) => ({
     display: 'inline-flex',
     alignItems: 'center',
-    gap: '0.35rem',
-    padding: '0.35rem 0.65rem',
+    justifyContent: 'center',
+    padding: '0.35rem',
+    width: 33,
+    height: 33,
     fontSize: '0.8125rem',
     borderRadius: '6px',
-    border: `1px solid ${theme === 'dark' ? '#4b5563' : '#d1d5db'}`,
-    background: theme === 'dark' ? '#374151' : '#fff',
-    color: theme === 'dark' ? '#f3f4f6' : '#1f2937',
+    border: `1px solid ${active ? color : (theme === 'dark' ? '#4b5563' : '#d1d5db')}`,
+    background: active ? `${color}18` : (theme === 'dark' ? '#374151' : '#fff'),
+    color: active ? color : (theme === 'dark' ? '#f3f4f6' : '#1f2937'),
     cursor: 'pointer',
   });
 
@@ -58,39 +77,97 @@ export default function SchedulingSummaryAnalytics({
     <div data-testid="scheduling-summary-analytics">
       <div style={{
         display: 'flex',
-        justifyContent: 'flex-end',
+        justifyContent: 'space-between',
         alignItems: 'center',
         flexWrap: 'wrap',
         gap: '0.5rem',
         marginBottom: '0.75rem',
       }}>
-        {canExport && <EffortReportExport report={effortReport} canExport={canExport} />}
-        <button type="button" onClick={onReload} style={btnStyle('#6b7280')} title={t('refresh')}>
-          {getThemedIcon('ui', 'rotate_cw', 14, theme)}
-          <span>{t('refresh')}</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => setEditLayout((v) => !v)}
-          style={btnStyle(accentColor)}
-          title={t('edit_layout') || 'Edit layout'}
-        >
-          {getThemedIcon('ui', 'layout_dashboard', 14, theme)}
-          <span>{editLayout ? (t('done') || 'Done') : (t('edit_layout') || 'Edit Layout')}</span>
-        </button>
-        <button type="button" onClick={handleAddWidget} style={btnStyle(accentColor)} title={t('add_widget') || 'Add widget'}>
-          {getThemedIcon('ui', 'plus', 14, theme)}
-          <span>{t('add_widget') || 'Add Widget'}</span>
-        </button>
-        <button
-          type="button"
-          onClick={() => engineRef.current?.resetToDefaults?.()}
-          style={btnStyle('#ef4444')}
-          title={t('reset_to_system_default') || 'Reset to system default'}
-        >
-          {getThemedIcon('ui', 'rotate_ccw', 14, theme)}
-          <span>{t('reset_to_system_default') || 'Reset to Default'}</span>
-        </button>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', alignItems: 'center', flex: '1 1 240px' }}>
+          <input
+            type="search"
+            value={widgetSearch}
+            onChange={(e) => setWidgetSearch(e.target.value)}
+            placeholder={t('search_widgets') || 'Search widgets…'}
+            aria-label={t('search_widgets') || 'Search widgets'}
+            data-testid="widget-search-input"
+            style={{
+              minWidth: 160,
+              flex: '1 1 160px',
+              maxWidth: 240,
+              padding: '0.35rem 0.65rem',
+              fontSize: '0.8125rem',
+              borderRadius: 6,
+              border: `1px solid ${theme === 'dark' ? '#4b5563' : '#d1d5db'}`,
+              background: theme === 'dark' ? '#374151' : '#fff',
+              color: theme === 'dark' ? '#f3f4f6' : '#1f2937',
+            }}
+          />
+          {SCHEDULING_WIDGET_CATEGORIES.map((cat) => {
+            const active = widgetCategory === cat.id;
+            const Icon = CATEGORY_ICONS[cat.id] || BarChart3;
+            const label = t(cat.labelKey) || cat.id;
+            return (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => setWidgetCategory(cat.id)}
+                data-testid={`widget-cat-${cat.id}`}
+                title={label}
+                aria-label={label}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '0.3rem',
+                  padding: '0.25rem 0.5rem',
+                  fontSize: '0.75rem',
+                  borderRadius: 999,
+                  border: `1px solid ${active ? accentColor : (theme === 'dark' ? '#4b5563' : '#d1d5db')}`,
+                  background: active ? `${accentColor}18` : (theme === 'dark' ? '#374151' : '#fff'),
+                  color: active ? accentColor : (theme === 'dark' ? '#e5e7eb' : '#374151'),
+                  cursor: 'pointer',
+                  fontWeight: active ? 600 : 400,
+                }}
+              >
+                <Icon size={13} strokeWidth={2} />
+                <span>{label}</span>
+              </button>
+            );
+          })}
+        </div>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', alignItems: 'center', justifyContent: 'flex-end' }}>
+          {canExport && <EffortReportExport report={effortReport} canExport={canExport} />}
+          <button type="button" onClick={onReload} style={iconBtnStyle('#6b7280')} title={t('refresh')} aria-label={t('refresh')}>
+            {getThemedIcon('ui', 'rotate_cw', 16, theme)}
+          </button>
+          <button
+            type="button"
+            onClick={() => setEditLayout((v) => !v)}
+            style={iconBtnStyle(accentColor, editLayout)}
+            title={t('edit_layout') || 'Edit layout'}
+            aria-label={t('edit_layout') || 'Edit layout'}
+          >
+            {getThemedIcon('ui', 'layout_dashboard', 16, theme)}
+          </button>
+          <button
+            type="button"
+            onClick={handleAddWidget}
+            style={iconBtnStyle(accentColor)}
+            title={t('add_widget') || 'Add widget'}
+            aria-label={t('add_widget') || 'Add widget'}
+          >
+            {getThemedIcon('ui', 'plus', 16, theme)}
+          </button>
+          <button
+            type="button"
+            onClick={() => engineRef.current?.resetToDefaults?.()}
+            style={iconBtnStyle('#ef4444')}
+            title={t('reset_to_system_default') || 'Reset to system default'}
+            aria-label={t('reset_to_system_default') || 'Reset to system default'}
+          >
+            <History size={16} strokeWidth={2} />
+          </button>
+        </div>
       </div>
 
       <DashboardEngine
@@ -104,6 +181,11 @@ export default function SchedulingSummaryAnalytics({
         isLoading={false}
         lastUpdatedAt={lastUpdatedAt}
         onSmartReload={onReload}
+        widgetSearch={widgetSearch}
+        widgetCategory={widgetCategory}
+        widgetCategoryResolver="scheduling"
+        builderCategoryScope="scheduling"
+        maxWidgets={SCHEDULING_SUMMARY_MAX_WIDGETS}
       />
     </div>
   );

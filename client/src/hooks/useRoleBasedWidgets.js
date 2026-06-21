@@ -27,9 +27,9 @@ export default function useRoleBasedWidgets(dashboard, options = {}) {
 
   // Generate storage key for this dashboard
   const storageKey = useMemo(() => {
-    if (!user?.uid) return null;
-    return WidgetConfigurationService.getStorageKey(userRole, dashboard, user.uid);
-  }, [userRole, dashboard, user?.uid]);
+    if (!user?.dbId) return null;
+    return WidgetConfigurationService.getStorageKey(userRole, dashboard);
+  }, [userRole, dashboard, user?.dbId]);
 
   // Get default widgets for this role/dashboard
   const defaultWidgets = useMemo(() => {
@@ -43,7 +43,7 @@ export default function useRoleBasedWidgets(dashboard, options = {}) {
     pinnedIds,
     setPinnedIds,
     loading: widgetLoading
-  } = useWidgetDashboard(user?.uid, storageKey, defaultWidgets);
+  } = useWidgetDashboard(user?.dbId, storageKey, defaultWidgets);
 
   // Filter widgets based on permissions
   const filteredWidgets = useMemo(() => {

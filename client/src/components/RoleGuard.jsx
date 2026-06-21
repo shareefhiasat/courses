@@ -4,6 +4,8 @@ import { useAuth } from '@contexts/AuthContext';
 import { GlobalLoadingFallback } from '@/contexts/GlobalLoadingContext';
 import { useLang } from '@contexts/LangContext';
 import { hasScreenAccess } from '@constants/screenDefinitions';
+import { resolveMatrixScreenId } from '@config/navigationRegistry.js';
+import { usePermissions } from '@hooks/usePermissions';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 
 /**
@@ -33,9 +35,10 @@ const RoleGuard = ({
   const { user, loading, isSuperAdmin } = useAuth();
   const location = useLocation();
   const { t } = useLang();
+  const { canAccessScreen, loading: permissionsLoading } = usePermissions();
 
   // Show loading while checking permissions
-  if (loading) {
+  if (loading || permissionsLoading) {
     if (loadingComponent) {
       return loadingComponent;
     }
@@ -58,8 +61,12 @@ const RoleGuard = ({
     return <>{children}</>;
   }
 
-  // Check if user has access to this screen based on Keycloak roles
-  const authorized = hasScreenAccess(screenId, user.roles || []);
+  // Permission matrix (kebab-case) with legacy role map fallback (camelCase routes)
+  const matrixScreenId = resolveMatrixScreenId(screenId);
+  const matrixAllowed = canAccessScreen(matrixScreenId);
+  const legacyAllowed = hasScreenAccess(screenId, user.roles || [])
+    || (matrixScreenId !== screenId && hasScreenAccess(matrixScreenId, user.roles || []));
+  const authorized = matrixAllowed || legacyAllowed;
 
   if (!authorized) {
     warn(`[RoleGuard] Access denied to screen: ${screenId}`, {

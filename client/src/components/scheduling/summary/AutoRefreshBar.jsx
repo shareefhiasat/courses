@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
-import { Button, Select } from '@ui';
+import { Select } from '@ui';
 import { RefreshCw } from 'lucide-react';
 
 const INTERVALS = [
@@ -17,6 +17,8 @@ export default function AutoRefreshBar({
   intervalMs = 30000,
   onIntervalChange,
   compact = false,
+  showInterval = true,
+  showLastUpdated = true,
 }) {
   const { t } = useLang();
   const { theme } = useTheme();
@@ -55,6 +57,19 @@ export default function AutoRefreshBar({
 
   const refreshLabel = INTERVALS.find((i) => i.value === ms);
   const intervalLabel = refreshLabel ? (t(refreshLabel.labelKey) || refreshLabel.labelKey) : '';
+  const compactButtonStyle = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '0.35rem',
+    padding: '0.35rem 0.65rem',
+    fontSize: '0.8125rem',
+    borderRadius: '6px',
+    border: `1px solid ${theme === 'dark' ? '#4b5563' : '#d1d5db'}`,
+    background: theme === 'dark' ? '#374151' : '#fff',
+    color: theme === 'dark' ? '#f3f4f6' : '#1f2937',
+    cursor: 'pointer',
+    whiteSpace: 'nowrap',
+  };
 
   if (compact) {
     return (
@@ -62,36 +77,41 @@ export default function AutoRefreshBar({
         data-testid="auto-refresh-bar"
         style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', flexWrap: 'wrap' }}
       >
-        <Select
-          placeholder={t('select_refresh_interval') || 'Refresh interval'}
-          value={ms}
-          onChange={handleIntervalChange}
-          options={INTERVALS.map((i) => ({
-            value: i.value,
-            label: t(i.labelKey) || i.labelKey,
-          }))}
-          style={{ minWidth: '110px', maxWidth: '140px' }}
-          size="small"
-          data-testid="refresh-interval-select"
-        />
-        <Button
-          variant="outline"
-          size="sm"
+        {showInterval && (
+          <Select
+            placeholder={t('select_refresh_interval') || 'Refresh interval'}
+            value={ms}
+            onChange={handleIntervalChange}
+            options={INTERVALS.map((i) => ({
+              value: i.value,
+              label: t(i.labelKey) || i.labelKey,
+            }))}
+            style={{ minWidth: '110px', maxWidth: '140px' }}
+            size="small"
+            data-testid="refresh-interval-select"
+          />
+        )}
+        <button
+          type="button"
           onClick={handleRefresh}
           data-testid="manual-refresh-btn"
           title={t('refresh') || 'Refresh'}
           aria-label={t('refresh') || 'Refresh'}
+          style={compactButtonStyle}
         >
           <RefreshCw size={14} />
-        </Button>
+          <span>{t('refresh') || 'Refresh'}</span>
+        </button>
         {ms > 0 && (
           <div style={{ width: '48px', height: '4px', background: theme === 'dark' ? '#374151' : '#e5e7eb', borderRadius: '2px' }}>
             <div style={{ height: '100%', width: `${Math.min(100, progress)}%`, background: '#10b981', borderRadius: '2px', transition: 'width 0.25s linear' }} />
           </div>
         )}
-        <span style={{ fontSize: '0.6875rem', color: muted, whiteSpace: 'nowrap' }}>
-          {new Date(lastUpdated).toLocaleTimeString()}
-        </span>
+        {showLastUpdated && (
+          <span style={{ fontSize: '0.6875rem', color: muted, whiteSpace: 'nowrap' }}>
+            {new Date(lastUpdated).toLocaleTimeString()}
+          </span>
+        )}
       </div>
     );
   }
@@ -110,16 +130,17 @@ export default function AutoRefreshBar({
         marginBottom: '1rem',
       }}
     >
-      <Button
-        variant="outline"
-        size="sm"
+      <button
+        type="button"
         onClick={handleRefresh}
         data-testid="manual-refresh-btn"
         title={t('refresh') || 'Refresh'}
         aria-label={t('refresh') || 'Refresh'}
+        style={compactButtonStyle}
       >
         <RefreshCw size={16} />
-      </Button>
+        <span>{t('refresh') || 'Refresh'}</span>
+      </button>
       <Select
         placeholder={t('select_refresh_interval') || 'Select refresh interval'}
         value={ms}

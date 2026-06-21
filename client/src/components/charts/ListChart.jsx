@@ -1,4 +1,5 @@
-import React, { useMemo, useContext, useState, memo } from 'react';
+import React, { useMemo, useState, memo, useEffect, useCallback, useRef } from 'react';
+import { Filter } from 'lucide-react';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
@@ -15,6 +16,7 @@ import {
   truncateId,
   resolveRelatedColumn
 } from '@utils/listChartResolvers';
+import { getWidgetDisplayTitle } from '@constants/schedulingSummaryWidgets';
 
 /**
  * Helper function to get localized name for agenda items
@@ -24,15 +26,40 @@ import {
  */
 const getLocalizedName = (item, lang) => {
   if (!item) return '';
-  
-  // Check for Arabic name first
+
   if (lang === 'ar') {
-    return item.localize || item.nameAr || item.titleAr || item.name || item.title || item.code || item.docId || '';
+    return item.localize || item.nameAr || item.titleAr || item.instructorNameAr
+      || item.displayNameAr || item.name || item.title || item.instructorName
+      || item.courseLabel || item.code || item.docId || '';
   }
-  
-  // Default to English
-  return item.nameEn || item.name || item.title || item.code || item.docId || '';
+
+  return item.nameEn || item.titleEn || item.instructorName || item.displayNameEn
+    || item.name || item.title || item.courseLabel || item.code || item.docId || '';
 };
+
+const TEXT_FILTER_COLUMN_KEYS = new Set([
+  'studentName', 'studentNumber', 'title', 'titleEn', 'titleAr', 'markedBy',
+  'instructorName', 'id', 'name', 'nameEn', 'nameAr', 'createdBy', 'courseLabel',
+]);
+
+function getColumnFilterMode(colKey, uniqueCount) {
+  if (TEXT_FILTER_COLUMN_KEYS.has(colKey)) return 'text';
+  if (uniqueCount > 0 && uniqueCount <= 25) return 'checkbox';
+  return 'text';
+}
+
+function buildTableExport(columns, items, renderCellValue) {
+  const escape = (v) => `"${String(v ?? '').replace(/"/g, '""')}"`;
+  const header = columns.map((c) => escape(c.label)).join(',');
+  const rows = items.map((item) => columns.map((c) => escape(renderCellValue(item, c))).join(','));
+  return `\uFEFF${[header, ...rows].join('\n')}`;
+}
+
+function buildTableTsv(columns, items, renderCellValue) {
+  const header = columns.map((c) => c.label).join('\t');
+  const rows = items.map((item) => columns.map((c) => String(renderCellValue(item, c) ?? '').replace(/[\t\n]/g, ' ')).join('\t'));
+  return [header, ...rows].join('\n');
+}
 
 /**
  * List Chart Component - Displays detailed data in a table format
@@ -49,12 +76,51 @@ function ListChart({
   chartType = 'list',
   rawData = {},
   accentColor = '#800020',
-  widget = {}
+  widget = {},
+  onListColumnsChange,
+  onListConfigChange,
 }) {
   const { t, lang } = useLang();
   const { theme } = useTheme();
   const [showColumnManager, setShowColumnManager] = useState(false);
-  const [selectedColumns, setSelectedColumns] = useState([]);
+  const [selectedColumns, setSelectedColumns] = useState(widget.listColumns || []);
+  const [copyFeedback, setCopyFeedback] = useState('');
+  const [colWidths, setColWidths] = useState(widget.listColumnWidths || {});
+  const [collapsedCols, setCollapsedCols] = useState(() => new Set(widget.collapsedColumns || []));
+  const [sortState, setSortState] = useState(widget.listSort || null);
+  const [columnFilters, setColumnFilters] = useState(widget.listColumnFilters || {});
+  const [openFilterCol, setOpenFilterCol] = useState(null);
+  const [filterSearch, setFilterSearch] = useState('');
+  const filterMenuRef = useRef(null);
+
+  useEffect(() => {
+    setSelectedColumns(widget.listColumns || []);
+  }, [widget.id, widget.listColumns]);
+
+  useEffect(() => {
+    setColWidths(widget.listColumnWidths || {});
+    setCollapsedCols(new Set(widget.collapsedColumns || []));
+    setSortState(widget.listSort || null);
+    setColumnFilters(widget.listColumnFilters || {});
+  }, [widget.id, widget.listColumnWidths, widget.collapsedColumns, widget.listSort, widget.listColumnFilters]);
+
+  useEffect(() => {
+    if (!openFilterCol) return undefined;
+    const onDocClick = (e) => {
+      if (filterMenuRef.current && !filterMenuRef.current.contains(e.target)) {
+        setOpenFilterCol(null);
+        setFilterSearch('');
+      }
+    };
+    document.addEventListener('mousedown', onDocClick);
+    return () => document.removeEventListener('mousedown', onDocClick);
+  }, [openFilterCol]);
+
+  const persistListConfig = useCallback((patch) => {
+    onListConfigChange?.(patch);
+  }, [onListConfigChange]);
+
+  const rowLimit = Math.max(1, Math.min(500, Number(widget.listLimit) || 50));
 
   // Disable all logging to prevent console spam
   // // Comprehensive logging for debugging
@@ -113,42 +179,50 @@ function ListChart({
     // Apply filters if specified
     let filteredData = sourceData;
     if (groupBy && widget.filterValue) {
-      filteredData = sourceData.filter(item => {
+      filteredData = sourceData.filter((item) => {
+        if (widget.drillFilters && typeof widget.drillFilters === 'object') {
+          const scopeOk = Object.entries(widget.drillFilters).every(
+            ([key, val]) => item[key] != null && String(item[key]) === String(val),
+          );
+          if (!scopeOk) return false;
+        }
         if (chartType === 'activity') {
           const itemType = normalizeActivityType(item.type || 'Unknown', t);
           return itemType === widget.filterValue;
-        } else if (chartType === 'attendance') {
-          // Handle different data structures from multiple attendance sources
-          let status = item.status || item.attendanceType || item.absenceType || item.attendanceStatus || 'Unknown';
-          const itemStatus = normalizeAttendanceStatus(status, t);
-          return itemStatus === widget.filterValue;
-        } else if (chartType === 'enrollment') {
+        }
+        if (chartType === 'attendance') {
+          const status = item.status || item.attendanceType || item.absenceType || item.attendanceStatus || 'Unknown';
+          return normalizeAttendanceStatus(status, t) === widget.filterValue;
+        }
+        if (chartType === 'enrollment') {
           return (item.programId || item.status) === widget.filterValue;
         }
-        return false;
+        if (groupBy === 'date' && widget.filterValue) {
+          const itemDate = item.date || item.startDate;
+          if (itemDate) {
+            const d = typeof itemDate === 'string' ? itemDate.slice(0, 10) : new Date(itemDate).toISOString().slice(0, 10);
+            return d === String(widget.filterValue).slice(0, 10);
+          }
+        }
+        const fieldVal = item[groupBy];
+        return fieldVal != null && String(fieldVal) === String(widget.filterValue);
       });
     }
-    
-    // Sort by creation date (newest first)
-    const sortedData = filteredData.sort((a, b) => {
-      const dateA = a.createdAt?.seconds || a.createdAt || 0;
-      const dateB = b.createdAt?.seconds || b.createdAt || 0;
-      return dateB - dateA;
-    }).slice(0, 50); // Limit to 50 items for performance
 
-    // Disable all logging to prevent console spam
-    // // Log sample data for debugging
-    // info('[ListChart] Processed items:', {
-    //   totalSourceRecords: filteredData.length,
-    //   finalItemsCount: sortedData.length,
-    //   sampleItem: sortedData[0] || 'No items',
-    //   hasStudentIds: sortedData.some(item => item.studentId),
-    //   hasClassIds: sortedData.some(item => item.classId),
-    //   hasStatuses: sortedData.some(item => item.status)
-    // });
+    const sortedData = [...filteredData].sort((a, b) => {
+      const dateA = a.date || a.startDate || a.createdAt?.seconds || a.createdAt || 0;
+      const dateB = b.date || b.startDate || b.createdAt?.seconds || b.createdAt || 0;
+      return new Date(dateB) - new Date(dateA);
+    });
 
-    return sortedData;
-  }, [rawData, widget, chartType]);
+    return {
+      items: sortedData.slice(0, rowLimit),
+      totalCount: sortedData.length,
+    };
+  }, [rawData, widget, chartType, t, rowLimit]);
+
+  const listItems = items.items || [];
+  const totalCount = items.totalCount ?? listItems.length;
 
   // Use centralized resolvers for consistent data mapping
 
@@ -168,22 +242,6 @@ function ListChart({
   // Ensure minimum height for usability
   chartHeight = Math.max(chartHeight, 200);
   chartWidth = Math.max(chartWidth, 300);
-
-  if (items.length === 0) {
-    return (
-      <div style={{ 
-        width: chartWidth, 
-        height: chartHeight, 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center', 
-        color: '#999',
-        fontSize: '14px'
-      }}>
-        {t('no_data_available') || 'No data available'}
-      </div>
-    );
-  }
 
   // Enhanced column configuration based on data source and user selection
   const getColumns = () => {
@@ -234,11 +292,55 @@ function ListChart({
       ];
     } else if (chartType === 'enrollment') {
       return [
-        { key: 'programName', label: t('program_name') || 'Program', width: '25%', isRelated: false },
+        { key: 'programName', label: t('gb_program') || 'Program', width: '25%', isRelated: false },
         { key: 'studentName', label: t('student_name') || 'Student', width: '30%', isRelated: false },
         { key: 'studentNumber', label: t('student_number') || 'Student Number', width: '15%', isRelated: false },
         { key: 'className', label: t('class_name') || 'Class', width: '20%', isRelated: false },
         { key: 'status', label: t('status') || 'Status', width: '10%', isRelated: false }
+      ];
+    } else if (widget.dataSource === 'schedulingAttendanceRecords') {
+      return [
+        { key: 'date', label: t('date') || 'Date', width: '12%', isRelated: false },
+        { key: 'attendanceTypeLabel', label: t('attendance_type') || 'Type', width: '14%', isRelated: false },
+        { key: 'status', label: t('status') || 'Status', width: '12%', isRelated: false },
+        { key: 'studentName', label: t('student_name') || 'Student', width: '18%', isRelated: false },
+        { key: 'studentNumber', label: t('student_number') || 'Number', width: '10%', isRelated: false },
+        { key: 'programName', label: t('gb_program') || 'Program', width: '16%', isRelated: false },
+        { key: 'className', label: t('class_name') || 'Class', width: '14%', isRelated: false },
+        { key: 'instructorName', label: t('gb_instructor') || 'Instructor', width: '14%', isRelated: false },
+        { key: 'markedBy', label: t('marked_by') || 'Marked by', width: '12%', isRelated: false },
+      ];
+    } else if (widget.dataSource === 'schedulingInstructorWorkload') {
+      return [
+        { key: 'instructorName', label: t('gb_instructor') || 'Instructor', width: '28%', isRelated: false },
+        { key: 'assignedHours', label: t('assigned_hours') || 'Assigned (h)', width: '16%', isRelated: false },
+        { key: 'capacityHours', label: t('capacity_hours') || 'Capacity (h)', width: '16%', isRelated: false },
+        { key: 'utilizationPct', label: t('vf_utilizationPct') || 'Utilization %', width: '14%', isRelated: false },
+        { key: 'metricLabel', label: t('summary') || 'Summary', width: '26%', isRelated: false },
+      ];
+    } else if (widget.dataSource === 'schedulingTeachers') {
+      return [
+        { key: 'instructorName', label: t('gb_instructor') || 'Instructor', width: '30%', isRelated: false },
+        { key: 'sessionCount', label: t('vf_sessionCount') || 'Sessions', width: '14%', isRelated: false },
+        { key: 'teachingHours', label: t('vf_teachingHours') || 'Hours', width: '14%', isRelated: false },
+        { key: 'primarySubject', label: t('gb_subject') || 'Subject', width: '22%', isRelated: false },
+        { key: 'classCount', label: t('vf_classCount') || 'Classes', width: '10%', isRelated: false },
+      ];
+    } else if (widget.dataSource === 'schedulingCourses') {
+      return [
+        { key: 'courseLabel', label: t('gb_course') || 'Course', width: '35%', isRelated: false },
+        { key: 'sessionCount', label: t('vf_sessionCount') || 'Sessions', width: '12%', isRelated: false },
+        { key: 'teachingHours', label: t('vf_teachingHours') || 'Hours', width: '12%', isRelated: false },
+        { key: 'location', label: t('gb_location') || 'Location', width: '20%', isRelated: false },
+        { key: 'capacity', label: t('capacity') || 'Capacity', width: '10%', isRelated: false },
+      ];
+    } else if (widget.dataSource?.startsWith('scheduling')) {
+      return [
+        { key: 'title', label: t('title') || 'Title', width: '30%', isRelated: false },
+        { key: 'status', label: t('status') || 'Status', width: '15%', isRelated: false },
+        { key: 'date', label: t('date') || 'Date', width: '15%', isRelated: false },
+        { key: 'instructorName', label: t('gb_instructor') || 'Instructor', width: '20%', isRelated: false },
+        { key: 'sessionCount', label: t('vf_sessionCount') || 'Count', width: '10%', isRelated: false },
       ];
     }
     // Default columns
@@ -263,6 +365,11 @@ function ListChart({
       studentNumber: t('student_number') || 'Student Number',
       status: t('status') || 'Status',
       date: t('date') || 'Date',
+      programName: t('gb_program') || 'Program',
+      className: t('class_name') || 'Class',
+      instructorName: t('gb_instructor') || 'Instructor',
+      markedBy: t('marked_by') || 'Marked by',
+      attendanceTypeLabel: t('attendance_type') || 'Type',
       nameEn: t('program_name_en') || 'Program Name (EN)',
       nameAr: t('program_name_ar') || 'Program Name (AR)',
       realNameEn: t('full_name_en') || 'Full Name (EN)',
@@ -343,7 +450,23 @@ function ListChart({
 
   const columns = getColumns();
 
+  const getResolvedWidth = useCallback((col) => {
+    if (collapsedCols.has(col.key)) return 28;
+    if (colWidths[col.key]) return colWidths[col.key];
+    const w = col.width;
+    if (typeof w === 'string' && w.endsWith('%')) {
+      return Math.max(60, Math.round((parseFloat(w) / 100) * chartWidth));
+    }
+    return parseInt(w, 10) || 120;
+  }, [colWidths, collapsedCols, chartWidth]);
+
   // Enhanced cell rendering with smart data mapping
+  const pickLocalized = (item, field) => {
+    const arKey = `${field}Ar`;
+    if (lang === 'ar') return item[arKey] || item[field] || '—';
+    return item[field] || item[arKey] || '—';
+  };
+
   const renderCellValue = (item, column) => {
     if (column.isRelated) {
       return resolveRelatedColumn(item, column.key, rawData, t);
@@ -354,8 +477,45 @@ function ListChart({
         return normalizeActivityType(item.type || item.activityType, t);
       
       case 'title':
-        return getLocalizedName(item, lang) || t('not_specified');
-      
+        return getLocalizedName(item, lang) || item.label || item.courseLabel || t('not_specified');
+
+      case 'instructorName':
+        return pickLocalized(item, 'instructorName');
+
+      case 'assignedHours':
+      case 'capacityHours':
+      case 'utilizationPct':
+      case 'sessionCount':
+      case 'teachingHours':
+      case 'classCount':
+      case 'subjectCount':
+        return item[column.key] ?? '—';
+
+      case 'courseLabel':
+      case 'metricLabel':
+      case 'location':
+      case 'capacity':
+      case 'primarySubject':
+      case 'subjectName':
+      case 'breakType':
+      case 'roomName':
+        return item[column.key] ?? '—';
+
+      case 'programName':
+      case 'className':
+      case 'studentName':
+      case 'markedBy':
+        return pickLocalized(item, column.key);
+
+      case 'attendanceTypeLabel':
+        if (item.attendanceType === 'daily') {
+          return lang === 'ar' ? (t('daily_attendance') || 'الحضور اليومي') : (t('daily_attendance_en') || 'Daily attendance');
+        }
+        return lang === 'ar' ? (t('class_attendance') || 'حضور الصف') : (t('class_attendance_en') || 'Class attendance');
+
+      case 'studentNumber':
+        return item.studentNumber ?? '—';
+
       case 'titleEn':
         return item.titleEn || getLocalizedName(item, 'en') || '—';
         
@@ -368,25 +528,18 @@ function ListChart({
       
       case 'createdAt':
         return formatDate(item.createdAt?.seconds ? new Date(item.createdAt.seconds * 1000) : item.createdAt, t);
-      
-      case 'studentName':
-        const student = resolveUser(item.studentId, rawData.users, t);
-        return student.name;
-      
-      case 'studentNumber':
-        const studentNum = resolveUser(item.studentId, rawData.users, t);
-        return studentNum.number;
-      
+
       case 'status':
-        // Handle different data structures from multiple attendance sources
-        let status = item.status || item.attendanceType || item.absenceType || item.attendanceStatus;
-        return normalizeAttendanceStatus(status, t);
-      
+        if (item.statusAr || item.status) return pickLocalized(item, 'status');
+        return normalizeAttendanceStatus(item.attendanceType || item.absenceType || item.attendanceStatus, t);
+
       case 'date':
         return formatDate(item.date?.seconds ? new Date(item.date.seconds * 1000) : item.date, t);
-      
+
+      case 'titleEn':
+        return item.titleEn || getLocalizedName(item, 'en') || '—';
+
       case 'nameEn':
-        // Handle different entity types for nameEn
         if (item.nameEn) {
           return item.nameEn || getLocalizedName(item, 'en') || '—';
         }
@@ -450,9 +603,195 @@ function ListChart({
         return item.severity || item.level || '—';
       
       default:
-        return item[column.key] || '—';
+        return item[column.key] ?? '—';
     }
   };
+
+  const columnFilteredItems = useMemo(() => {
+    const activeFilters = Object.entries(columnFilters || {}).filter(([, v]) => {
+      if (v == null || v === '') return false;
+      if (Array.isArray(v)) return v.length > 0;
+      return true;
+    });
+    if (!activeFilters.length) return listItems;
+
+    return listItems.filter((item) => activeFilters.every(([key, filter]) => {
+      const col = columns.find((c) => c.key === key);
+      if (!col) return true;
+      const val = String(renderCellValue(item, col) ?? '');
+      if (Array.isArray(filter)) return filter.includes(val);
+      return val.toLowerCase().includes(String(filter).toLowerCase());
+    }));
+  }, [listItems, columnFilters, columns, lang, t, rawData]);
+
+  const displayItems = useMemo(() => {
+    if (!sortState?.key) return columnFilteredItems;
+    const col = columns.find((c) => c.key === sortState.key);
+    if (!col) return columnFilteredItems;
+    const dir = sortState.dir === 'desc' ? -1 : 1;
+    return [...columnFilteredItems].sort((a, b) => {
+      const av = String(renderCellValue(a, col) ?? '');
+      const bv = String(renderCellValue(b, col) ?? '');
+      const an = Number(av);
+      const bn = Number(bv);
+      if (!Number.isNaN(an) && !Number.isNaN(bn) && av !== '' && bv !== '') {
+        return (an - bn) * dir;
+      }
+      return av.localeCompare(bv, undefined, { numeric: true }) * dir;
+    });
+  }, [columnFilteredItems, sortState, columns, lang, t, rawData]);
+
+  const getColumnUniqueValues = useCallback((colKey) => {
+    const col = columns.find((c) => c.key === colKey);
+    if (!col) return [];
+    const values = new Set();
+    listItems.forEach((item) => {
+      const v = renderCellValue(item, col);
+      if (v != null && v !== '' && v !== '—') values.add(String(v));
+    });
+    return [...values].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+  }, [columns, listItems, lang, t, rawData]);
+
+  const isColumnFilterActive = useCallback((colKey) => {
+    const f = columnFilters?.[colKey];
+    if (f == null || f === '') return false;
+    if (Array.isArray(f)) return f.length > 0;
+    return true;
+  }, [columnFilters]);
+
+  const toggleColumnFilterValue = useCallback((colKey, value) => {
+    setColumnFilters((prev) => {
+      const current = Array.isArray(prev[colKey]) ? [...prev[colKey]] : [];
+      const next = current.includes(value)
+        ? current.filter((v) => v !== value)
+        : [...current, value];
+      const updated = { ...prev, [colKey]: next };
+      if (!next.length) delete updated[colKey];
+      persistListConfig({ listColumnFilters: updated });
+      return updated;
+    });
+  }, [persistListConfig]);
+
+  const setColumnTextFilter = useCallback((colKey, text) => {
+    setColumnFilters((prev) => {
+      const updated = { ...prev };
+      if (!text) delete updated[colKey];
+      else updated[colKey] = text;
+      persistListConfig({ listColumnFilters: updated });
+      return updated;
+    });
+  }, [persistListConfig]);
+
+  const clearColumnFilter = useCallback((colKey) => {
+    setColumnFilters((prev) => {
+      const updated = { ...prev };
+      delete updated[colKey];
+      persistListConfig({ listColumnFilters: updated });
+      return updated;
+    });
+    setOpenFilterCol(null);
+    setFilterSearch('');
+  }, [persistListConfig]);
+
+  const handleHeaderClick = useCallback((col) => {
+    setSortState((prev) => {
+      let next;
+      if (prev?.key !== col.key) next = { key: col.key, dir: 'asc' };
+      else if (prev.dir === 'asc') next = { key: col.key, dir: 'desc' };
+      else next = null;
+      persistListConfig({ listSort: next });
+      return next;
+    });
+  }, [persistListConfig]);
+
+  const handleHeaderDblClick = useCallback((col, e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setCollapsedCols((prev) => {
+      const next = new Set(prev);
+      if (next.has(col.key)) next.delete(col.key);
+      else next.add(col.key);
+      persistListConfig({ collapsedColumns: [...next] });
+      return next;
+    });
+  }, [persistListConfig]);
+
+  const startColumnResize = useCallback((colKey, e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const col = columns.find((c) => c.key === colKey);
+    if (!col) return;
+    const startX = e.clientX;
+    const startW = getResolvedWidth(col);
+    const onMove = (ev) => {
+      const delta = ev.clientX - startX;
+      setColWidths((prev) => ({ ...prev, [colKey]: Math.max(48, startW + delta) }));
+    };
+    const onUp = () => {
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+      setColWidths((prev) => {
+        persistListConfig({ listColumnWidths: { ...prev } });
+        return prev;
+      });
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }, [columns, getResolvedWidth, persistListConfig]);
+
+  const handleCopy = useCallback(async () => {
+    try {
+      const tsv = buildTableTsv(columns, listItems, renderCellValue);
+      await navigator.clipboard.writeText(tsv);
+      setCopyFeedback(t('copied') || 'Copied');
+      setTimeout(() => setCopyFeedback(''), 2000);
+    } catch {
+      setCopyFeedback(t('copy_failed') || 'Copy failed');
+      setTimeout(() => setCopyFeedback(''), 2000);
+    }
+  }, [columns, displayItems, t]);
+
+  const handleExport = useCallback(() => {
+    const csv = buildTableExport(columns, displayItems, renderCellValue);
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${(widget.title || 'list_export').replace(/\s+/g, '_')}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [columns, listItems, widget.title]);
+
+  const headerBtnStyle = {
+    background: 'transparent',
+    border: '1px solid var(--border)',
+    borderRadius: '4px',
+    padding: '2px 6px',
+    cursor: 'pointer',
+    fontSize: '10px',
+    color: 'var(--text)',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px',
+  };
+
+  const listTitle = getWidgetDisplayTitle(widget, t, lang);
+
+  if (listItems.length === 0) {
+    return (
+      <div style={{
+        width: chartWidth,
+        height: chartHeight,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: '#999',
+        fontSize: '14px',
+      }}>
+        {t('no_data_available') || 'No data available'}
+      </div>
+    );
+  }
 
   return (
     <div style={{ 
@@ -479,28 +818,31 @@ function ListChart({
         alignItems: 'center'
       }}>
         <span>
-          {widget.title || t('list_view') || 'List View'} ({items.length} {t('items') || 'items'})
+          {listTitle} ({displayItems.length} {t('items_label') || t('items') || 'items'})
         </span>
-        <PortalTooltip content={t('manage_columns')} position="top">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {copyFeedback && <span style={{ fontSize: 10, color: accentColor }}>{copyFeedback}</span>}
+          <PortalTooltip content={t('copy_list') || 'Copy'} position="top">
+            <button type="button" onClick={handleCopy} style={headerBtnStyle}>
+              {getThemedIcon('ui', 'copy', 12, theme)}
+            </button>
+          </PortalTooltip>
+          <PortalTooltip content={t('export_list') || 'Export CSV'} position="top">
+            <button type="button" onClick={handleExport} style={headerBtnStyle}>
+              {getThemedIcon('ui', 'download', 12, theme)}
+            </button>
+          </PortalTooltip>
+          <PortalTooltip content={t('manage_columns')} position="top">
         <button
+          type="button"
           onClick={() => setShowColumnManager(true)}
-          style={{
-            background: 'transparent',
-            border: '1px solid var(--border)',
-            borderRadius: '4px',
-            padding: '2px 6px',
-            cursor: 'pointer',
-            fontSize: '10px',
-            color: 'var(--text)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px'
-          }}
+          style={headerBtnStyle}
+          aria-label={t('columns')}
         >
           {getThemedIcon('ui', 'settings', 12, theme)}
-          {t('columns')}
         </button>
       </PortalTooltip>
+        </div>
       </div>
 
       {/* Table */}
@@ -521,29 +863,227 @@ function ListChart({
           color: 'var(--muted)',
           position: 'sticky',
           top: 0,
-          zIndex: 1
+          zIndex: 2
         }}>
-          {columns.map(column => (
+          {columns.map((column) => {
+            const isCollapsed = collapsedCols.has(column.key);
+            const width = getResolvedWidth(column);
+            const isSorted = sortState?.key === column.key;
+            const filterActive = isColumnFilterActive(column.key);
+            const uniqueValues = getColumnUniqueValues(column.key);
+            const filterMode = getColumnFilterMode(column.key, uniqueValues.length);
+            const isFilterOpen = openFilterCol === column.key;
+            const filteredUniqueValues = filterSearch
+              ? uniqueValues.filter((v) => v.toLowerCase().includes(filterSearch.toLowerCase()))
+              : uniqueValues;
+            return (
             <div
               key={column.key}
               style={{
                 padding: '6px 8px',
-                width: column.width,
-                minWidth: '60px',
+                width,
+                minWidth: isCollapsed ? 28 : 48,
+                maxWidth: width,
                 borderRight: '1px solid var(--border)',
-                overflow: 'hidden',
-                textOverflow: 'ellipsis',
-                whiteSpace: 'nowrap'
+                overflow: 'visible',
+                cursor: 'default',
+                userSelect: 'none',
+                position: 'relative',
+                flexShrink: 0,
+                background: isSorted || filterActive ? `${accentColor}10` : 'transparent',
               }}
+              onDoubleClick={(e) => handleHeaderDblClick(column, e)}
             >
-              {column.label}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 3, overflow: 'hidden' }}>
+                <span
+                  style={{
+                    flex: 1,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    cursor: 'pointer',
+                  }}
+                  onClick={() => handleHeaderClick(column)}
+                  title={isCollapsed ? `${column.label} — ${t('double_click_expand') || 'Double-click to expand'}` : `${column.label} — ${t('click_sort') || 'Click to sort'}`}
+                >
+                  {isCollapsed ? '*' : column.label}
+                  {!isCollapsed && isSorted && (
+                    <span style={{ marginInlineStart: 4, fontSize: 9 }}>{sortState.dir === 'asc' ? '▲' : '▼'}</span>
+                  )}
+                </span>
+                {!isCollapsed && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setOpenFilterCol(isFilterOpen ? null : column.key);
+                      setFilterSearch('');
+                    }}
+                    title={t('column_filter') || 'Filter column'}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: 2,
+                      border: 'none',
+                      background: filterActive ? `${accentColor}22` : 'transparent',
+                      borderRadius: 3,
+                      cursor: 'pointer',
+                      flexShrink: 0,
+                      color: filterActive ? accentColor : 'var(--muted)',
+                    }}
+                  >
+                    <Filter size={10} strokeWidth={2.5} />
+                  </button>
+                )}
+              </div>
+              {!isCollapsed && isFilterOpen && (
+                <div
+                  ref={filterMenuRef}
+                  onMouseDown={(e) => e.stopPropagation()}
+                  style={{
+                    position: 'absolute',
+                    top: '100%',
+                    left: 0,
+                    minWidth: 160,
+                    maxWidth: 240,
+                    maxHeight: 220,
+                    overflow: 'auto',
+                    background: 'var(--panel)',
+                    border: '1px solid var(--border)',
+                    borderRadius: 6,
+                    boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                    zIndex: 200,
+                    padding: 8,
+                    fontSize: 10,
+                    fontWeight: 400,
+                    color: 'var(--text)',
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, gap: 4 }}>
+                    <span style={{ fontWeight: 600, fontSize: 9, color: 'var(--muted)' }}>
+                      {t('column_filter') || 'Filter'}
+                    </span>
+                    {filterActive && (
+                      <button
+                        type="button"
+                        onClick={() => clearColumnFilter(column.key)}
+                        style={{ border: 'none', background: 'none', color: accentColor, cursor: 'pointer', fontSize: 9, padding: 0 }}
+                      >
+                        {t('filter_clear') || 'Clear'}
+                      </button>
+                    )}
+                  </div>
+                  {filterMode === 'text' ? (
+                    <input
+                      type="text"
+                      autoFocus
+                      value={typeof columnFilters[column.key] === 'string' ? columnFilters[column.key] : ''}
+                      onChange={(e) => setColumnTextFilter(column.key, e.target.value)}
+                      placeholder={t('filter_search') || 'Search…'}
+                      style={{
+                        width: '100%',
+                        padding: '4px 6px',
+                        border: '1px solid var(--border)',
+                        borderRadius: 4,
+                        background: 'var(--bg)',
+                        color: 'var(--text)',
+                        fontSize: 10,
+                        boxSizing: 'border-box',
+                      }}
+                    />
+                  ) : (
+                    <>
+                      <input
+                        type="text"
+                        autoFocus
+                        value={filterSearch}
+                        onChange={(e) => setFilterSearch(e.target.value)}
+                        placeholder={t('filter_search') || 'Search…'}
+                        style={{
+                          width: '100%',
+                          padding: '4px 6px',
+                          marginBottom: 6,
+                          border: '1px solid var(--border)',
+                          borderRadius: 4,
+                          background: 'var(--bg)',
+                          color: 'var(--text)',
+                          fontSize: 10,
+                          boxSizing: 'border-box',
+                        }}
+                      />
+                      <div style={{ display: 'flex', gap: 6, marginBottom: 4 }}>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const all = uniqueValues;
+                            setColumnFilters((prev) => {
+                              const updated = { ...prev, [column.key]: all };
+                              persistListConfig({ listColumnFilters: updated });
+                              return updated;
+                            });
+                          }}
+                          style={{ border: 'none', background: 'none', color: accentColor, cursor: 'pointer', fontSize: 9, padding: 0 }}
+                        >
+                          {t('filter_select_all') || 'All'}
+                        </button>
+                      </div>
+                      {filteredUniqueValues.map((val) => {
+                        const selected = Array.isArray(columnFilters[column.key])
+                          ? columnFilters[column.key].includes(val)
+                          : false;
+                        return (
+                          <label
+                            key={val}
+                            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '3px 0', cursor: 'pointer' }}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={selected}
+                              onChange={() => toggleColumnFilterValue(column.key, val)}
+                              style={{ accentColor }}
+                            />
+                            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={val}>
+                              {val}
+                            </span>
+                          </label>
+                        );
+                      })}
+                      {!filteredUniqueValues.length && (
+                        <div style={{ color: 'var(--muted)', fontSize: 9 }}>{t('no_data') || 'No values'}</div>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
+              {!isCollapsed && (
+                <span
+                  role="separator"
+                  onMouseDown={(e) => startColumnResize(column.key, e)}
+                  style={{
+                    position: 'absolute',
+                    top: 0,
+                    right: 0,
+                    width: 5,
+                    height: '100%',
+                    cursor: 'col-resize',
+                    zIndex: 2,
+                  }}
+                />
+              )}
             </div>
-          ))}
+          );})}
         </div>
 
         {/* Table Body */}
         <div style={{ fontSize: '9px' }}>
-          {items.map((item, idx) => (
+          {displayItems.length === 0 ? (
+            <div style={{ padding: '16px 12px', textAlign: 'center', color: 'var(--muted)', fontSize: 10 }}>
+              {columnFilteredItems.length === 0 && listItems.length > 0
+                ? (t('no_matching_rows') || 'No rows match the current filters')
+                : (t('no_data') || 'No data')}
+            </div>
+          ) : displayItems.map((item, idx) => (
             <div
               key={idx}
               style={{
@@ -560,32 +1100,38 @@ function ListChart({
                 e.currentTarget.style.background = idx % 2 === 0 ? 'var(--panel)' : 'var(--bg)';
               }}
             >
-              {columns.map(column => (
+              {columns.map((column) => {
+                const isCollapsed = collapsedCols.has(column.key);
+                const width = getResolvedWidth(column);
+                return (
                 <div
                   key={column.key}
                   style={{
                     padding: '6px 8px',
-                    width: column.width,
-                    minWidth: '60px',
+                    width,
+                    minWidth: isCollapsed ? 28 : 48,
+                    maxWidth: width,
                     borderRight: '1px solid var(--border)',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
                     color: column.key === 'type' || column.key === 'status' ? 'var(--text)' : 'var(--muted)',
-                    fontWeight: column.key === 'type' || column.key === 'status' ? '500' : '400'
+                    fontWeight: column.key === 'type' || column.key === 'status' ? '500' : '400',
+                    flexShrink: 0,
+                    textAlign: isCollapsed ? 'center' : 'start',
                   }}
-                  title={renderCellValue(item, column)}
+                  title={isCollapsed ? '' : renderCellValue(item, column)}
                 >
-                  {renderCellValue(item, column)}
+                  {isCollapsed ? '·' : renderCellValue(item, column)}
                 </div>
-              ))}
+              );})}
             </div>
           ))}
         </div>
       </div>
 
-      {/* Footer with more info */}
-      {items.length >= 50 && (
+      {/* Footer with row counts */}
+      {(totalCount > listItems.length || displayItems.length !== listItems.length) && (
         <div style={{
           padding: '4px 12px',
           fontSize: '8px',
@@ -595,7 +1141,9 @@ function ListChart({
           borderRadius: '0 0 6px 6px',
           borderTop: '1px solid var(--border)'
         }}>
-          {t('showing_first_items') || `Showing first 50 items`}
+          {displayItems.length !== listItems.length
+            ? `${t('filtered_rows') || 'Filtered'}: ${displayItems.length} / ${listItems.length}`
+            : `${t('showing') || 'Showing'} ${listItems.length} / ${totalCount} ${t('items') || 'items'}`}
         </div>
       )}
 
@@ -606,8 +1154,12 @@ function ListChart({
           dataSource={widget.dataSource}
           chartType={chartType}
           selectedColumns={selectedColumns}
-          onColumnsChange={setSelectedColumns}
+          onColumnsChange={(cols) => {
+            setSelectedColumns(cols);
+            onListColumnsChange?.(cols);
+          }}
           accentColor={accentColor}
+          columnDefinitions={columns.map((c) => ({ key: c.key, label: c.label }))}
       />
     </div>
   );

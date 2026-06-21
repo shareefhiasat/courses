@@ -43,9 +43,9 @@ const DEFAULT_ROLE_PRESETS = {
       'home', 'dashboard', 'activities', 'resources', 'quizzes', 'attendance', 'qr-scanner',
       'penalty', 'participation', 'behavior', 'enrollments', 'manage-enrollments', 'programs',
       'subjects', 'classes', 'marks-entry', 'quiz-results', 'homework-results', 'training-results',
-      'lab-results', 'scheduling-calendar', 'classes-availability', 'instructor-availability-view',
-      'room-availability-view', 'student-profile', 'profile', 'drive', 'chat', 'notifications',
-      'my-attendance',
+      'lab-results', 'summary-dashboard', 'scheduling-calendar', 'classes-availability',
+      'instructor-availability-view', 'room-availability-view', 'student-profile', 'profile',
+      'drive', 'chat', 'notifications', 'my-attendance',
     ]);
     if (!allowed.has(screen.screenId)) return false;
     return ['canView', 'canCreate', 'canUpdate'].includes(opType);

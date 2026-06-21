@@ -1,8 +1,9 @@
 import React, { useState, useMemo, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useLang } from '@contexts/LangContext';
+import { PIE_LEGEND_TEXT_STYLE, PIE_LEGEND_ITEM_BG } from './chartLabelStyles';
 
-
-import { info, error, warn, debug } from '@services/utils/logger.js';/**
+/**
  * Helper function to get localized name for chart items
  * @param {Object} item - Data item
  * @param {string} lang - Current language ('en' or 'ar')
@@ -28,8 +29,12 @@ const getLocalizedName = (item, lang) => {
  */
 export default function PieChart({ data = [], size = 300, donut = false, showLabels = true, showLegend = true, accentColor = '#800020', rawData = [], chartType = 'pie', onSliceClick = null }) {
   const { t, lang } = useLang();
-  
-  // Handle size as object with width/height or number
+  const [hovered, setHovered] = useState(null);
+
+  const activeData = useMemo(
+    () => (data || []).filter((item) => (item.value || 0) > 0),
+    [data],
+  );// Handle size as object with width/height or number
   let chartWidth, chartHeight;
   if (typeof size === 'object' && size.width && size.height) {
     chartWidth = size.width;
@@ -43,50 +48,46 @@ export default function PieChart({ data = [], size = 300, donut = false, showLab
   }
   
   // Use the smaller dimension for the chart to ensure it fits
-  const chartSize = Math.min(chartWidth, chartHeight);
-  
+  const baseLegendReserve = showLegend ? Math.min(72, Math.max(48, chartHeight * 0.2)) : 0;
+  const tentativeSize = Math.min(chartWidth, Math.max(120, chartHeight - baseLegendReserve));
+  const sideLegend = showLegend && chartWidth >= tentativeSize + 100;
+  const chartSize = sideLegend
+    ? Math.min(chartWidth - 108, chartHeight)
+    : tentativeSize;
+  const legendReserve = showLegend && !sideLegend ? baseLegendReserve : 0;
+  const legendWidth = sideLegend ? Math.max(120, chartWidth - chartSize - 16) : chartWidth;
   // Calculate responsive font sizes based on chart size
   const labelFontSize = Math.max(8, Math.min(14, chartSize / 20));
   const centerFontSize = Math.max(12, Math.min(20, chartSize / 15));
-  const legendFontSize = Math.max(10, Math.min(14, chartSize / 20)); // Less aggressive scaling (was /12, max 18)
-  
-  if (!data || data.length === 0) {
-    return <div style={{ width: chartWidth, height: chartHeight, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999', fontSize: legendFontSize }}>{t('no_data') || 'No data'}</div>;
-  }
+  const legendFontSize = Math.max(10, Math.min(13, chartSize / 22));
 
-  const total = data.reduce((sum, item) => sum + (item.value || 0), 0);
-  if (total === 0) {
-    return <div style={{ width: chartWidth, height: chartHeight, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>{t('no_data') || 'No data'}</div>;
-  }
+  const total = useMemo(
+    () => activeData.reduce((sum, item) => sum + (item.value || 0), 0),
+    [activeData],
+  );
 
   const centerX = chartSize / 2;
   const centerY = chartSize / 2;
-  
-  // Smart radius calculation based on legend presence and chart size
+
   let radius;
   if (showLegend && chartHeight < 200) {
-    // Small charts with legend - make more room for legend
     radius = Math.min(chartSize / 2 - 20, chartSize * 0.35);
   } else if (showLegend && chartHeight < 300) {
-    // Medium charts with legend
     radius = Math.min(chartSize / 2 - 15, chartSize * 0.40);
   } else {
-    // Large charts or no legend - use more space
     radius = Math.min(chartSize / 2 - 5, chartSize * 0.45);
   }
-  
-  const innerRadius = donut ? radius * 0.6 : 0;
 
+  const innerRadius = donut ? radius * 0.6 : 0;
   const colors = [accentColor, '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899', '#14b8a6'];
 
-  // Memoize slices calculation to prevent unnecessary re-renders
   const slices = useMemo(() => {
-    if (!data || data.length === 0 || total === 0) return [];
+    if (!activeData || activeData.length === 0 || total === 0) return [];
     
     let currentAngle = -90; // Start from top
     const calculatedSlices = [];
 
-    data.forEach((item, idx) => {
+    activeData.forEach((item, idx) => {
       const value = item.value || 0;
       const percentage = (value / total) * 100;
       const angle = (value / total) * 360;
@@ -153,16 +154,17 @@ export default function PieChart({ data = [], size = 300, donut = false, showLab
       calculatedSlices.push({
         path,
         color,
-        label: item.label,
+        label: item.label || getLocalizedName(item, lang) || t('not_specified') || 'Unspecified',
+        labelLines: item.labelLines,
         value,
         percentage: percentage.toFixed(1),
         labelX,
-        labelY
+        labelY,
       });
     });
 
     return calculatedSlices;
-  }, [data, total, centerX, centerY, radius, innerRadius, donut, colors]);
+  }, [activeData, total, centerX, centerY, radius, innerRadius, donut, colors, lang, t]);
 
   // Memoize click handler
   const handleSliceClick = useCallback((slice) => {
@@ -171,17 +173,44 @@ export default function PieChart({ data = [], size = 300, donut = false, showLab
       onSliceClick(slice);
     }
   }, [onSliceClick]);
-  
-  // Disable all logging to prevent console spam
-  // if (import.meta.env.MODE === 'development') {
-  //   info('[PieChart] Data source:', chartType, 'Raw data keys:', Object.keys(rawData || {}));
-  //   info('[PieChart] Available slices:', data.map(d => d.label));
-  // }
+
+  const getSliceLines = useCallback((slice) => {
+    if (Array.isArray(slice.labelLines) && slice.labelLines.length > 0) {
+      return slice.labelLines;
+    }
+    const label = slice.label || '';
+    if (!label) return [t('not_specified') || 'Unspecified'];
+    if (label.includes(' · ')) return label.split(' · ').map((s) => s.trim()).filter(Boolean);
+    return [label];
+  }, [t]);
+
+  if (!activeData || activeData.length === 0 || total === 0) {
+    return (
+      <div style={{ width: chartWidth, height: chartHeight, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999', fontSize: legendFontSize }}>
+        {t('no_data') || 'No data'}
+      </div>
+    );
+  }
 
   return (
     <>
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 6, width: chartWidth, height: chartHeight }}>
-        <svg width={chartSize} height={chartSize} style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+      <div style={{
+        position: 'relative',
+        display: 'flex',
+        flexDirection: sideLegend ? 'row' : 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: sideLegend ? 0 : 4,
+        width: chartWidth,
+        height: chartHeight,
+        overflow: 'hidden',
+      }}>
+        <svg
+          width={chartSize}
+          height={chartSize}
+          style={{ fontFamily: 'system-ui, -apple-system, sans-serif', flexShrink: 0 }}
+          onMouseLeave={() => setHovered(null)}
+        >
           {slices.map((slice, idx) => (
             <g key={idx}>
               <path
@@ -189,23 +218,25 @@ export default function PieChart({ data = [], size = 300, donut = false, showLab
                 fill={slice.color}
                 stroke="white"
                 strokeWidth="2"
-                style={{ 
-                  transition: 'all 0.3s ease', 
-                  cursor: 'pointer'
+                style={{
+                  transition: 'all 0.3s ease',
+                  cursor: 'pointer',
+                  opacity: hovered?.idx === idx ? 1 : (hovered != null ? 0.55 : 1),
                 }}
                 onMouseEnter={(e) => {
-                  e.currentTarget.style.opacity = '0.8';
-                  e.currentTarget.style.transform = 'scale(1.05)';
+                  setHovered({ idx, x: e.clientX, y: e.clientY });
+                  e.currentTarget.style.transform = 'scale(1.03)';
                   e.currentTarget.style.transformOrigin = `${centerX}px ${centerY}px`;
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.opacity = '1';
+                  setHovered(null);
                   e.currentTarget.style.transform = 'scale(1)';
                 }}
+                onMouseMove={(e) => {
+                  setHovered((prev) => (prev?.idx === idx ? { ...prev, x: e.clientX, y: e.clientY } : prev));
+                }}
                 onClick={() => handleSliceClick(slice)}
-              >
-                <title>{`${slice.label}: ${slice.value} (${slice.percentage}%)`}</title>
-              </path>
+              />
               
               {showLabels && parseFloat(slice.percentage) > 5 && (
                 <text
@@ -232,27 +263,55 @@ export default function PieChart({ data = [], size = 300, donut = false, showLab
               dominantBaseline="middle"
               fontSize={centerFontSize}
               fontWeight="800"
-              fill="#374151"
+              fill="var(--text)"
             >
               {total}
             </text>
           )}
         </svg>
 
-        {/* Legend */}
+        {/* Legend — transparent overlay; does not steal layout space from pie */}
         {showLegend && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, justifyContent: 'center', maxWidth: chartWidth }}>
+          <div style={{
+            position: sideLegend ? 'absolute' : 'relative',
+            right: sideLegend ? 0 : undefined,
+            top: sideLegend ? '50%' : undefined,
+            transform: sideLegend ? 'translateY(-50%)' : undefined,
+            display: 'flex',
+            flexDirection: 'column',
+            flexWrap: sideLegend ? 'nowrap' : 'wrap',
+            gap: '0.2rem',
+            justifyContent: 'center',
+            maxWidth: sideLegend ? legendWidth : chartWidth,
+            maxHeight: sideLegend ? chartSize : (legendReserve || 64),
+            overflow: 'auto',
+            padding: sideLegend ? '4px 6px' : '0 0.15rem',
+            background: 'transparent',
+            zIndex: 2,
+            pointerEvents: 'none',
+          }}>
             {slices.map((slice, idx) => (
-              <div 
-                key={idx} 
-                style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  gap: 2
+              <div
+                key={idx}
+                style={{
+                  display: 'flex',
+                  alignItems: 'flex-start',
+                  gap: 4,
+                  minWidth: 0,
+                  pointerEvents: 'auto',
+                  background: PIE_LEGEND_ITEM_BG,
+                  borderRadius: 4,
+                  padding: '2px 5px',
                 }}
+                title={`${slice.label}\n${slice.value} (${slice.percentage}%)`}
               >
-                <div style={{ width: 8, height: 8, borderRadius: 1, background: slice.color }} />
-                <span style={{ fontSize: legendFontSize, color: '#6b7280' }}>
+                <div style={{ width: 8, height: 8, borderRadius: 1, background: slice.color, marginTop: 3, flexShrink: 0 }} />
+                <span style={{
+                  ...PIE_LEGEND_TEXT_STYLE,
+                  fontSize: legendFontSize,
+                  whiteSpace: sideLegend ? 'nowrap' : 'normal',
+                  wordBreak: 'break-word',
+                }}>
                   {slice.label} ({slice.value})
                 </span>
               </div>
@@ -260,6 +319,37 @@ export default function PieChart({ data = [], size = 300, donut = false, showLab
           </div>
         )}
       </div>
+      {hovered != null && slices[hovered.idx] && createPortal(
+        <div
+          style={{
+            position: 'fixed',
+            left: hovered.x,
+            top: hovered.y - 8,
+            transform: 'translate(-50%, -100%)',
+            zIndex: 10000,
+            pointerEvents: 'none',
+            background: 'var(--panel, #1f2937)',
+            color: 'var(--text, #f9fafb)',
+            border: '1px solid var(--border, #374151)',
+            borderRadius: 8,
+            padding: '8px 12px',
+            fontSize: 12,
+            lineHeight: 1.45,
+            maxWidth: 280,
+            boxShadow: '0 8px 24px rgba(0,0,0,0.18)',
+          }}
+        >
+          {getSliceLines(slices[hovered.idx]).map((line, i) => (
+            <div key={i} style={{ fontWeight: i === 0 ? 600 : 400, color: i === 0 ? 'var(--text)' : 'var(--muted)', whiteSpace: 'nowrap' }}>
+              {line}
+            </div>
+          ))}
+          <div style={{ marginTop: 4, fontWeight: 700, color: accentColor }}>
+            {slices[hovered.idx].value} ({slices[hovered.idx].percentage}%)
+          </div>
+        </div>,
+        document.body,
+      )}
     </>
   );
 }

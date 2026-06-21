@@ -2,7 +2,6 @@ import React, { useCallback } from 'react';
 import { jsPDF } from 'jspdf';
 import ExcelJS from 'exceljs';
 import { useLang } from '@contexts/LangContext';
-import { Button } from '@ui';
 import { FileDown, FileSpreadsheet } from 'lucide-react';
 
 function downloadBlob(blob, filename) {
@@ -16,6 +15,20 @@ function downloadBlob(blob, filename) {
 
 export default function EffortReportExport({ report, canExport }) {
   const { t, isRTL } = useLang();
+  const buttonStyle = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: '0.35rem',
+    width: 33,
+    height: 33,
+    borderRadius: '6px',
+    border: '1px solid var(--border)',
+    background: 'var(--panel)',
+    color: 'var(--text)',
+    cursor: report ? 'pointer' : 'not-allowed',
+    opacity: report ? 1 : 0.55,
+  };
 
   const exportPDF = useCallback(() => {
     if (!report) return;
@@ -107,29 +120,29 @@ export default function EffortReportExport({ report, canExport }) {
   if (!canExport) return null;
 
   return (
-    <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
-      <Button
-        variant="outline"
-        size="sm"
+    <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+      <button
+        type="button"
         onClick={exportPDF}
         disabled={!report}
         data-testid="export-effort-pdf"
         title={t('export_pdf') || 'Export PDF'}
         aria-label={t('export_pdf') || 'Export PDF'}
+        style={buttonStyle}
       >
         <FileDown size={16} />
-      </Button>
-      <Button
-        variant="outline"
-        size="sm"
+      </button>
+      <button
+        type="button"
         onClick={exportExcel}
         disabled={!report}
         data-testid="export-effort-excel"
         title={t('export_excel') || 'Export Excel'}
         aria-label={t('export_excel') || 'Export Excel'}
+        style={buttonStyle}
       >
         <FileSpreadsheet size={16} />
-      </Button>
+      </button>
     </div>
   );
 }

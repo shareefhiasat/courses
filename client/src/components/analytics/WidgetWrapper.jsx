@@ -1,8 +1,11 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useRef } from 'react';
 import { useTheme } from '@contexts/ThemeContext';
 import { useLang } from '@contexts/LangContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import PortalTooltip from '@ui/PortalTooltip';
+import { CircleHelp, Info, ChevronUp, ChevronDown, Pencil, Copy, Download, Trash2, GripVertical } from 'lucide-react';
+import { getSchedulingWidgetHelp } from '@constants/schedulingSummaryWidgets';
+import { getSourceByValue } from '@constants/widgetDataSources';
 
 
 import { info, error, warn, debug } from '@services/utils/logger.js';/**
@@ -47,12 +50,37 @@ const WidgetWrapper = ({
   const { t, lang } = useLang();
   const [isMaximized, setIsMaximized] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const widgetRef = useRef(null);
   const toggleMaximize = useCallback(() => setIsMaximized(v => !v), []);
+
+  const getWidgetTitle = useCallback(() => {
+    const titleFromKey = widget.titleKey ? t(widget.titleKey) : null;
+    const localized = lang === 'ar'
+      ? (widget.titleAr || widget.titleEn || widget.title)
+      : (widget.titleEn || widget.titleAr || widget.title);
+    return titleFromKey || localized || t('untitled') || 'Untitled';
+  }, [widget, t, lang]);
+
+  const downloadWidgetSvg = useCallback(() => {
+    const svg = widgetRef.current?.querySelector('svg');
+    if (!svg) return;
+    const cloned = svg.cloneNode(true);
+    cloned.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+    const blob = new Blob([new XMLSerializer().serializeToString(cloned)], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${getWidgetTitle().replace(/[^\w\u0600-\u06FF]+/g, '_') || 'widget'}.svg`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }, [getWidgetTitle]);
 
   // Helper to get localized date range label
   const getDateRangeLabel = useCallback((dateRange) => {
     const labels = {
       all: t('all_time') || 'All',
+      current: t('current_period') || 'Current period',
       today: t('today') || 'Today',
       last7: t('last_7_days') || 'Last 7 Days',
       last30: t('last_30_days') || 'Last 30 Days',
@@ -62,10 +90,65 @@ const WidgetWrapper = ({
     return labels[dateRange] || dateRange;
   }, [t]);
 
+  const helpText = widget.dataSource?.startsWith('scheduling')
+    ? getSchedulingWidgetHelp(widget, t)
+    : '';
+  const sourceDef = getSourceByValue(widget.dataSource);
+  const sourceLabel = sourceDef ? (t(sourceDef.labelKey) || sourceDef.labelKey) : widget.dataSource;
+  const chartTypeLabel = {
+    bar: t('bar'),
+    line: t('line'),
+    pie: t('pie'),
+    donut: t('donut'),
+    list: t('list'),
+    count: t('count'),
+  }[widget.chartType] || widget.chartType;
+  const metaTooltip = [
+    widget.dateRange && widget.dateRange !== 'current'
+      ? `${t('period') || 'Period'}: ${getDateRangeLabel(widget.dateRange)}`
+      : null,
+    lastUpdatedAt
+      ? `${t('updated') || 'Updated'}: ${new Date(lastUpdatedAt).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(',', '')}`
+      : null,
+  ].filter(Boolean).join('\n');
+
+  const tinyBtn = {
+    padding: 2,
+    background: 'var(--panel)',
+    border: '1px solid var(--border)',
+    borderRadius: 4,
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 20,
+    height: 20,
+    color: 'var(--text)',
+    flexShrink: 0,
+    boxShadow: '0 1px 3px rgba(0,0,0,0.12)',
+  };
+
+  const ActionIcon = ({ children }) => (
+    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--text)' }}>
+      {children}
+    </span>
+  );
+
   const headerActions = (
     <div
       className="widget-actions"
-      style={{ display: 'flex', gap: 4, opacity: 0, transition: 'opacity 0.2s', flexShrink: 0 }}
+      style={{
+        display: 'flex',
+        gap: 2,
+        opacity: isHovered ? 1 : 0,
+        pointerEvents: isHovered ? 'auto' : 'none',
+        transition: 'opacity 0.15s ease',
+        flexShrink: 0,
+        background: 'var(--panel)',
+        borderRadius: 6,
+        padding: 2,
+        boxShadow: isHovered ? '0 2px 8px rgba(0,0,0,0.08)' : 'none',
+      }}
     >
       {/* Refresh — local re-render only - HIDDEN FOR NOW */}
       {/* <ActionBtn
@@ -103,98 +186,34 @@ const WidgetWrapper = ({
 
       {/* Minimize / Restore — controlled */}
       <PortalTooltip content={isMinimized ? t('restore') : t('minimize')} position="top">
-        <button
-          onClick={onMinimize}
-          style={{
-            padding: '0.3rem',
-            background: 'transparent',
-            border: '1px solid var(--border)',
-            borderRadius: 4,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: 28,
-            height: 28,
-            color: isMinimized ? accentColor : 'var(--text)',
-            flexShrink: 0
-          }}
-        >
-          {getThemedIcon('ui', isMinimized ? 'chevron_down' : 'chevron_up', 14, theme)}
+        <button type="button" onClick={onMinimize} style={{ ...tinyBtn, color: isMinimized ? accentColor : 'var(--text)' }}>
+          <ActionIcon>{isMinimized ? <ChevronDown size={11} /> : <ChevronUp size={11} />}</ActionIcon>
         </button>
       </PortalTooltip>
 
-      {/* Maximize - Commented out */}
-      {/* <ActionBtn title={t('maximize') || 'Maximize'} onClick={toggleMaximize}>
-        {getThemedIcon('ui', 'maximize', 14, theme)}
-      </ActionBtn> */}
-
-      {/* Edit */}
       <PortalTooltip content={t('edit')} position="top">
-        <button
-          onClick={onEdit}
-          style={{
-            padding: '0.3rem',
-            background: 'transparent',
-            border: '1px solid var(--border)',
-            borderRadius: 4,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: 28,
-            height: 28,
-            color: 'var(--text)',
-            flexShrink: 0
-          }}
-        >
-          {getThemedIcon('ui', 'edit', 14, theme)}
+        <button type="button" onClick={onEdit} style={tinyBtn}>
+          <ActionIcon><Pencil size={11} /></ActionIcon>
         </button>
       </PortalTooltip>
 
-      {/* Duplicate */}
       <PortalTooltip content={t('duplicate')} position="top">
-        <button
-          onClick={onDuplicate}
-          style={{
-            padding: '0.3rem',
-            background: 'transparent',
-            border: '1px solid var(--border)',
-            borderRadius: 4,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: 28,
-            height: 28,
-            color: 'var(--text)',
-            flexShrink: 0
-          }}
-        >
-          {getThemedIcon('ui', 'copy', 14, theme)}
+        <button type="button" onClick={onDuplicate} style={tinyBtn}>
+          <ActionIcon><Copy size={11} /></ActionIcon>
         </button>
       </PortalTooltip>
 
-      {/* Delete */}
+      {widget.chartType !== 'list' && widget.chartType !== 'count' && (
+        <PortalTooltip content={t('download') || 'Download'} position="top">
+          <button type="button" onClick={downloadWidgetSvg} style={tinyBtn}>
+            <ActionIcon><Download size={11} /></ActionIcon>
+          </button>
+        </PortalTooltip>
+      )}
+
       <PortalTooltip content={t('delete')} position="top">
-        <button
-          onClick={onDelete}
-          style={{
-            padding: '0.3rem',
-            background: 'transparent',
-            border: '1px solid var(--color-danger, #ef4444)',
-            borderRadius: 4,
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: 28,
-            height: 28,
-            color: 'var(--color-danger, #ef4444)',
-            flexShrink: 0
-          }}
-        >
-          {getThemedIcon('ui', 'trash2', 14, theme)}
+        <button type="button" onClick={onDelete} style={{ ...tinyBtn, borderColor: 'var(--color-danger, #ef4444)', color: 'var(--color-danger, #ef4444)' }}>
+          <ActionIcon><Trash2 size={11} /></ActionIcon>
         </button>
       </PortalTooltip>
     </div>
@@ -204,74 +223,79 @@ const WidgetWrapper = ({
     <>
       {/* ── Card ── */}
       <div
+        ref={widgetRef}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        onClick={isMinimized ? onMinimize : undefined}
         style={{
           padding: isMinimized ? '0.5rem 0.75rem' : '0.75rem 1rem',
-          border: '1px solid var(--border)',
+          border: `1px solid ${isHovered ? accentColor : 'var(--border)'}`,
+          borderInlineStart: `4px solid ${isHovered ? accentColor : 'transparent'}`,
           borderRadius: 16,
-          background: 'var(--panel)',
-          boxShadow: editLayout ? '0 4px 12px rgba(0,0,0,0.1)' : '0 2px 8px rgba(0,0,0,0.04)',
-          transition: 'box-shadow 0.2s ease, border-color 0.2s ease, padding 0.15s ease',
+          background: isMinimized && isHovered ? 'var(--hover, var(--panel))' : 'var(--panel)',
+          boxShadow: isHovered ? `0 4px 14px ${accentColor}18` : (editLayout ? '0 4px 12px rgba(0,0,0,0.1)' : '0 2px 8px rgba(0,0,0,0.04)'),
+          transition: 'box-shadow 0.2s ease, border-color 0.2s ease, border-inline-start-color 0.2s ease, padding 0.15s ease, background 0.15s ease',
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',
-          height: '100%'
+          height: '100%',
+          cursor: isMinimized ? 'pointer' : 'default',
         }}
       >
         {/* Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 4 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4, flex: 1, minWidth: 0 }}>
+        <div style={{ position: 'relative', marginBottom: isMinimized ? 0 : '0.25rem' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 4, position: 'relative' }}>
             {editLayout && (
-              <span
-                className="drag-handle"
-                style={{ cursor: 'grab', display: 'flex', alignItems: 'center', color: 'var(--muted)', flexShrink: 0 }}
-              >
-                {getThemedIcon('ui', 'grip_vertical', 18, theme)}
+              <span className="drag-handle" style={{ cursor: 'grab', display: 'flex', alignItems: 'center', color: 'var(--muted)', flexShrink: 0, marginTop: 2 }}>
+                <GripVertical size={14} />
               </span>
             )}
-            <div>
-              <h3
-                style={{
-                  margin: 0,
-                  fontSize: 13,
-                  fontWeight: 700,
-                  color: 'var(--text)',
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis'
-                }}
-              >
-                {(() => {
-                  const titleFromKey = widget.titleKey ? t(widget.titleKey) : null;
-                  const localized = lang === 'ar'
-                    ? (widget.titleAr || widget.titleEn || widget.title)
-                    : (widget.titleEn || widget.titleAr || widget.title);
-                  return titleFromKey || localized || t('untitled') || 'Untitled';
-                })()}
-                {isRecentlyRefreshed && (
-                  <span style={{ color: 'var(--color-success, #10b981)', fontSize: 11, marginInlineStart: 4 }}>✓</span>
-                )}
-              </h3>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 2 }}>
-                {widget.dateRange && (
-                  <span style={{ 
-                    fontSize: 11, 
-                    color: 'var(--muted)', 
-                    fontWeight: 500 
-                  }}>
-                    {getDateRangeLabel(widget.dateRange)}
-                  </span>
-                )}
-                <span style={{ fontSize: 10, color: 'var(--muted)', opacity: 0.7, flexShrink: 0 }}>
-                  {lastUpdatedAt
-                    ? new Date(lastUpdatedAt).toLocaleString('en-GB', {
-                        day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit'
-                      }).replace(',', '')
-                    : ''}
+            {helpText && (
+              <PortalTooltip content={helpText} position="top">
+                <span
+                  style={{ display: 'flex', color: 'var(--muted)', cursor: 'help', marginTop: 2, flexShrink: 0 }}
+                  aria-label={t('widget_help') || 'What does this show?'}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <CircleHelp size={12} />
                 </span>
-              </div>
-            </div>
+              </PortalTooltip>
+            )}
+            {metaTooltip && (
+              <PortalTooltip content={metaTooltip} position="top">
+                <span
+                  style={{ display: 'flex', color: 'var(--muted)', cursor: 'help', marginTop: 2, flexShrink: 0 }}
+                  aria-label={t('widget_meta') || 'Widget info'}
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  <Info size={12} />
+                </span>
+              </PortalTooltip>
+            )}
+            <h3
+              style={{
+                margin: 0,
+                flex: 1,
+                minWidth: 0,
+                fontSize: 13,
+                fontWeight: 700,
+                color: 'var(--text)',
+                lineHeight: 1.3,
+                wordBreak: 'break-word',
+              }}
+            >
+              {getWidgetTitle()}
+              {isRecentlyRefreshed && (
+                <span style={{ color: 'var(--color-success, #10b981)', fontSize: 11, marginInlineStart: 4 }}>✓</span>
+              )}
+              {isMinimized && (
+                <span style={{ color: 'var(--muted)', fontSize: 11, fontWeight: 400, marginInlineStart: 6 }}>
+                  — {t('click_to_expand') || 'click to expand'}
+                </span>
+              )}
+            </h3>
           </div>
-          {headerActions}
+          <div style={{ position: 'absolute', top: 0, right: 0, zIndex: 5 }} onClick={(e) => e.stopPropagation()}>{headerActions}</div>
         </div>
 
         {/* Body — only rendered when NOT minimized */}
@@ -337,7 +361,7 @@ const WidgetWrapper = ({
                   margin: 0, color: 'var(--muted)', fontSize: 14,
                   opacity: 0.8
                 }}>
-                  {widget.dataSource} • {widget.chartType}
+                  {sourceLabel} • {chartTypeLabel}
                 </p>
               </div>
               <PortalTooltip content={t('close')} position="top">

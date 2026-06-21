@@ -51,6 +51,35 @@ const REVIEW_ACTIVITY_SCREEN = {
   lab_work: 'lab-results',
 };
 
+/** Route guard / legacy camelCase screenId → permission matrix screenId */
+export const LEGACY_ROUTE_SCREEN_ALIASES = {
+  summaryDashboard: 'summary-dashboard',
+  schedulingCalendar: 'scheduling-calendar',
+  instructorAvailability: 'instructor-availability-setup',
+  classroomAvailability: 'room-availability-setup',
+  userCategoryAccess: 'user-category-access',
+  studentDashboard: 'student-dashboard',
+  studentProfile: 'student-profile',
+  hrAttendance: 'hr-attendance',
+  manageEnrollments: 'manage-enrollments',
+  marksEntry: 'marks-entry',
+  advancedAnalytics: 'advanced-analytics',
+  scheduledReports: 'scheduled-reports',
+  qrScanner: 'qr-scanner',
+  reviewResults: 'quiz-results',
+  'review-results': 'quiz-results',
+  classSchedules: 'scheduling-calendar',
+  myEnrollments: 'enrollments',
+  permissionMatrix: 'permission-matrix',
+  emailTemplates: 'email-templates',
+  notificationLogs: 'notification-logs',
+};
+
+export function resolveMatrixScreenId(screenId) {
+  if (!screenId) return screenId;
+  return LEGACY_ROUTE_SCREEN_ALIASES[screenId] || screenId;
+}
+
 const PATH_ALIASES = {
   '': 'home',
   home: 'home',
@@ -252,11 +281,13 @@ export function getOperationDefsForScreen(screenId, operations = ['view', 'creat
 
 export default {
   DASHBOARD_TAB_SCREEN_IDS,
+  LEGACY_ROUTE_SCREEN_ALIASES,
   BASE_PERMISSION_SCREEN_DEFINITIONS,
   PERMISSION_SCREEN_DEFINITIONS,
   QR_SCANNER_OPERATION_DEFINITIONS,
   getAllSyncScreenDefinitions,
   resolveScreenIdFromNavItem,
+  resolveMatrixScreenId,
   getOperationDefsForScreen,
   buildOperationKey,
 };

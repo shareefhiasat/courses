@@ -15,7 +15,8 @@ export default function ColumnManager({
   chartType, 
   selectedColumns, 
   onColumnsChange,
-  accentColor 
+  accentColor,
+  columnDefinitions = null,
 }) {
   const { t } = useLang();
   const { theme } = useTheme();
@@ -138,7 +139,51 @@ export default function ColumnManager({
         { key: 'credits', label: t('credits') || 'Credits', required: false },
         { key: 'createdAt', label: t('created_date') || 'Created Date', required: false },
         { key: 'createdBy', label: t('created_by') || 'Created By', required: false }
-      ]
+      ],
+
+      schedulingInstructorWorkload: [
+        { key: 'instructorName', label: t('gb_instructor') || 'Instructor', required: true },
+        { key: 'assignedHours', label: t('assigned_hours') || 'Assigned (h)', required: true },
+        { key: 'capacityHours', label: t('capacity_hours') || 'Capacity (h)', required: true },
+        { key: 'utilizationPct', label: t('vf_utilizationPct') || 'Utilization %', required: false },
+        { key: 'metricLabel', label: t('summary') || 'Summary', required: false },
+      ],
+
+      schedulingTeachers: [
+        { key: 'instructorName', label: t('gb_instructor') || 'Instructor', required: true },
+        { key: 'sessionCount', label: t('vf_sessionCount') || 'Sessions', required: true },
+        { key: 'teachingHours', label: t('vf_teachingHours') || 'Hours', required: true },
+        { key: 'primarySubject', label: t('gb_subject') || 'Subject', required: false },
+        { key: 'classCount', label: t('vf_classCount') || 'Classes', required: false },
+      ],
+
+      schedulingCourses: [
+        { key: 'courseLabel', label: t('gb_course') || 'Course', required: true },
+        { key: 'sessionCount', label: t('vf_sessionCount') || 'Sessions', required: true },
+        { key: 'teachingHours', label: t('vf_teachingHours') || 'Hours', required: false },
+        { key: 'location', label: t('gb_location') || 'Location', required: false },
+        { key: 'capacity', label: t('capacity') || 'Capacity', required: false },
+      ],
+
+      schedulingAttendanceRecords: [
+        { key: 'date', label: t('date') || 'Date', required: false },
+        { key: 'attendanceTypeLabel', label: t('attendance_type') || 'Type', required: false },
+        { key: 'status', label: t('status') || 'Status', required: true },
+        { key: 'studentName', label: t('student_name') || 'Student', required: true },
+        { key: 'studentNumber', label: t('student_number') || 'Number', required: false },
+        { key: 'programName', label: t('program_name') || 'Program', required: false },
+        { key: 'className', label: t('class_name') || 'Class', required: false },
+        { key: 'instructorName', label: t('gb_instructor') || 'Instructor', required: false },
+        { key: 'markedBy', label: t('marked_by') || 'Marked by', required: false },
+      ],
+
+      scheduling: [
+        { key: 'title', label: t('title') || 'Title', required: true },
+        { key: 'status', label: t('status') || 'Status', required: false },
+        { key: 'date', label: t('date') || 'Date', required: false },
+        { key: 'instructorName', label: t('gb_instructor') || 'Instructor', required: false },
+        { key: 'sessionCount', label: t('vf_sessionCount') || 'Count', required: false },
+      ],
     };
 
     // Determine chart type from data source
@@ -163,6 +208,16 @@ export default function ColumnManager({
       type = 'programs';
     } else if (dataSource?.includes('subjects')) {
       type = 'subjects';
+    } else if (dataSource?.includes('schedulingInstructorWorkload')) {
+      type = 'schedulingInstructorWorkload';
+    } else if (dataSource?.includes('schedulingTeachers')) {
+      type = 'schedulingTeachers';
+    } else if (dataSource?.includes('schedulingCourses')) {
+      type = 'schedulingCourses';
+    } else if (dataSource === 'schedulingAttendanceRecords') {
+      type = 'schedulingAttendanceRecords';
+    } else if (dataSource?.startsWith('scheduling')) {
+      type = 'scheduling';
     }
 
     return baseColumns[type] || baseColumns.activity;
@@ -337,12 +392,14 @@ export default function ColumnManager({
 
   React.useEffect(() => {
     if (isOpen) {
-      const baseCols = getPredefinedColumns();
-      const relCols = getRelatedColumns();
+      const baseCols = columnDefinitions?.length
+        ? columnDefinitions.map((c) => ({ key: c.key, label: c.label, required: c.required || false }))
+        : getPredefinedColumns();
+      const relCols = columnDefinitions?.length ? [] : getRelatedColumns();
       setAvailableColumns(baseCols);
       setRelatedColumns(relCols);
     }
-  }, [isOpen, dataSource, chartType]);
+  }, [isOpen, dataSource, chartType, columnDefinitions]);
 
   const handleColumnToggle = (columnKey) => {
     const newSelected = selectedColumns.includes(columnKey)

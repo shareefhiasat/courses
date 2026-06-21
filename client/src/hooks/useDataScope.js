@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useAuth } from '@contexts/AuthContext';
 import { getAuthToken } from '@utils/authHelpers';
 
@@ -56,7 +56,7 @@ export function useDataScope() {
     return () => { cancelled = true; };
   }, [user, isSuperAdmin, isHR]);
 
-  const filterItems = (items, fieldMap) => {
+  const filterItems = useCallback((items, fieldMap) => {
     if (scope.unrestricted) return items || [];
     const {
       idField = 'id',
@@ -74,10 +74,9 @@ export function useDataScope() {
       if (item[categoryField] != null && scope.categoryIds.includes(Number(item[categoryField]))) return true;
       return false;
     });
-  };
+  }, [scope.unrestricted, scope.classIds, scope.subjectIds, scope.programIds, scope.categoryIds]);
 
-  /** Check if a record/class is within effective scope (instructor ∪ UCA). */
-  const canAccessRecord = (record = {}) => {
+  const canAccessRecord = useCallback((record = {}) => {
     if (scope.unrestricted) return true;
     const classId = record.classId ?? record.class_id;
     const subjectId = record.subjectId ?? record.subject_id;
@@ -88,7 +87,7 @@ export function useDataScope() {
     if (programId != null && scope.programIds.includes(Number(programId))) return true;
     if (categoryId != null && scope.categoryIds.includes(Number(categoryId))) return true;
     return false;
-  };
+  }, [scope.unrestricted, scope.classIds, scope.subjectIds, scope.programIds, scope.categoryIds]);
 
   return { scope, loading, filterItems, canAccessRecord, isUnrestricted: scope.unrestricted };
 }

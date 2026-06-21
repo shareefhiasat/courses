@@ -5,7 +5,7 @@ import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { usePermissions } from '@hooks/usePermissions';
 import { useDataScope } from '@hooks/useDataScope';
-import { Button, SimpleLoading, useToast, Card, CardBody } from '@ui';
+import { SimpleLoading, useToast, Card, CardBody } from '@ui';
 import schedulingSummaryService from '@services/business/schedulingSummaryService';
 import AutoRefreshBar from '@components/scheduling/summary/AutoRefreshBar';
 import TimeRangeSelector from '@components/scheduling/summary/TimeRangeSelector';
@@ -22,7 +22,7 @@ import BreakSessionModal from '@components/scheduling/summary/BreakSessionModal'
 import SchedulingOverviewPanel from '@components/scheduling/SchedulingOverviewPanel';
 import CollapsibleSection from '@components/scheduling/CollapsibleSection';
 import {
-  CalendarDays, Coffee, User, DoorOpen, BarChart3, Palmtree,
+  CalendarDays, Coffee, User, DoorOpen, BarChart3, Palmtree, ExternalLink,
 } from 'lucide-react';
 import { getAllUsers, getUserRoles } from '@services/business/userService';
 import { getAllSubjects } from '@services/business/subjectService';
@@ -34,6 +34,7 @@ import {
   buildSchedulingOverviewCards,
   buildInstructorOverviewCards,
 } from '@utils/schedulingOverviewCards';
+import { SCHEDULING_SUMMARY_DEFAULT_WIDGETS } from '@constants/schedulingSummaryWidgets';
 
 const SummaryDashboardPage = () => {
   const { user, isAdmin, isHR, isSuperAdmin, isInstructor } = useAuth();
@@ -42,8 +43,8 @@ const SummaryDashboardPage = () => {
   const toast = useToast();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { canAccessScreen, hasPermission } = usePermissions();
-  const { scope } = useDataScope();
+  const { canAccessScreen, hasPermission, loading: permissionsLoading } = usePermissions();
+  const { scope, filterItems } = useDataScope();
 
   const prefilterInstructor = searchParams.get('instructorId');
   const isSelfView = isInstructor && !isAdmin && !isHR && !isSuperAdmin;
@@ -75,8 +76,8 @@ const SummaryDashboardPage = () => {
   const [breakModalOpen, setBreakModalOpen] = useState(false);
   const [timeSlots, setTimeSlots] = useState([]);
 
-  const canView = canAccessScreen('summary-dashboard') || isAdmin || isHR || isSuperAdmin || isInstructor;
-  const canExport = hasPermission('summary-dashboard.canExport') || isSuperAdmin || isHR;
+  const canView = canAccessScreen('summary-dashboard');
+  const canExport = hasPermission('summary-dashboard.canExport');
   const activeInstructorId = isSelfView ? dbUserId : reportFilters.instructorId;
   const isInstructorDetailView = Boolean(activeInstructorId);
 
@@ -121,19 +122,42 @@ const SummaryDashboardPage = () => {
         getAllClasses(),
         isSelfView ? Promise.resolve(null) : getAllUsers({ excludeStudents: true }),
       ]);
-      if (subjRes?.data) setSubjects(subjRes.data);
-      if (classRes?.data) setClasses(classRes.data);
+
+      let subjectList = subjRes?.data || [];
+      let classList = classRes?.data || [];
+      if (!scope.unrestricted) {
+        subjectList = filterItems(subjectList, {
+          idField: 'id',
+          programField: 'programId',
+          subjectField: 'id',
+        });
+        classList = filterItems(classList, {
+          idField: 'id',
+          classField: 'id',
+          programField: 'programId',
+          subjectField: 'subjectId',
+        });
+      }
+      setSubjects(subjectList);
+      setClasses(classList);
+
       if (userRes?.data) {
+        const scopedInstructorIds = new Set(
+          classList.map((c) => Number(c.instructorId)).filter(Boolean),
+        );
         const instructorList = userRes.data.filter((u) => {
           const roles = getUserRoles(u);
-          return roles.includes('instructor') || roles.includes('INSTRUCTOR');
+          const isInstructorUser = roles.includes('instructor') || roles.includes('INSTRUCTOR');
+          if (!isInstructorUser) return false;
+          if (scope.unrestricted) return true;
+          return scopedInstructorIds.has(Number(u.id)) || scopedInstructorIds.has(Number(u.dbId));
         });
         setInstructors(instructorList);
       }
     } catch (err) {
       console.error('Error loading lookup data:', err);
     }
-  }, [isSelfView]);
+  }, [isSelfView, scope.unrestricted, filterItems]);
 
   useEffect(() => {
     if (isSelfView && dbUserId) {
@@ -172,7 +196,8 @@ const SummaryDashboardPage = () => {
       setLoading(false);
       setLastUpdatedAt(Date.now());
     }
-  }, [queryParams, toast, t, activeInstructorId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- toast identity is unstable; queryParams drives reloads
+  }, [queryParams, activeInstructorId]);
 
   useEffect(() => { if (dbUserId) loadPrograms(); }, [dbUserId, loadPrograms]);
   useEffect(() => { loadLookupData(); }, [loadLookupData]);
@@ -185,6 +210,17 @@ const SummaryDashboardPage = () => {
       setReportFilters((f) => ({ ...f, instructorId: prefilterInstructor }));
     }
   }, [prefilterInstructor]);
+
+  useEffect(() => {
+    if (!prefilterInstructor || scope.unrestricted || isSelfView) return;
+    const allowed = instructors.some(
+      (u) => String(u.id) === prefilterInstructor || String(u.dbId) === prefilterInstructor,
+    );
+    if (!allowed && instructors.length > 0) {
+      setReportFilters((f) => ({ ...f, instructorId: '' }));
+      toast.error(t('access_denied') || 'Access denied');
+    }
+  }, [prefilterInstructor, instructors, scope.unrestricted, isSelfView, toast, t]);
 
   useEffect(() => {
     const pid = reportFilters.programId;
@@ -242,23 +278,55 @@ const SummaryDashboardPage = () => {
 
   const muted = theme === 'dark' ? '#9ca3af' : '#6b7280';
   const border = theme === 'dark' ? '#374151' : '#e5e7eb';
+  const headerButtonStyle = {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: '0.35rem',
+    padding: '0.35rem 0.65rem',
+    fontSize: '0.8125rem',
+    borderRadius: '6px',
+    border: `1px solid ${theme === 'dark' ? '#4b5563' : '#d1d5db'}`,
+    background: theme === 'dark' ? '#374151' : '#fff',
+    color: theme === 'dark' ? '#f3f4f6' : '#1f2937',
+    cursor: 'pointer',
+    whiteSpace: 'nowrap',
+  };
 
   const quickActions = (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}>
-      <Button variant="outline" size="sm" onClick={() => navigate('/scheduling-calendar')} title={t('view_schedule')} aria-label={t('view_schedule')}>
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center', justifyContent: 'flex-end' }}>
+      <AutoRefreshBar
+        compact
+        showInterval={false}
+        showLastUpdated={false}
+        onRefresh={loadAll}
+        intervalMs={refreshInterval}
+        onIntervalChange={setRefreshInterval}
+      />
+      <button type="button" style={headerButtonStyle} onClick={() => navigate('/scheduling-calendar')} title={t('schedules_view_schedule')} aria-label={t('schedules_view_schedule')}>
         <CalendarDays size={16} />
-      </Button>
-      <Button variant="outline" size="sm" onClick={() => setBreakModalOpen(true)} title={t('manage_break_sessions')} aria-label={t('manage_break_sessions')}>
+        <span>{t('schedules_view_schedule')}</span>
+        <ExternalLink size={13} aria-hidden style={{ opacity: 0.65 }} />
+      </button>
+      <button type="button" style={headerButtonStyle} onClick={() => setBreakModalOpen(true)} title={t('manage_break_sessions')} aria-label={t('manage_break_sessions')}>
         <Coffee size={16} />
-      </Button>
-      <Button variant="outline" size="sm" onClick={() => navigate('/instructor-availability')} title={t('manage_instructor_availability')} aria-label={t('manage_instructor_availability')}>
+        <span>{t('breaks')}</span>
+      </button>
+      <button type="button" style={headerButtonStyle} onClick={() => navigate('/instructor-availability')} title={t('manage_instructor_availability')} aria-label={t('manage_instructor_availability')}>
         <User size={16} />
-      </Button>
-      <Button variant="outline" size="sm" onClick={() => navigate('/classroom-availability')} title={t('manage_room_availability')} aria-label={t('manage_room_availability')}>
+        <span>{t('instructors') || 'Instructors'}</span>
+        <ExternalLink size={13} aria-hidden style={{ opacity: 0.65 }} />
+      </button>
+      <button type="button" style={headerButtonStyle} onClick={() => navigate('/classroom-availability')} title={t('manage_room_availability')} aria-label={t('manage_room_availability')}>
         <DoorOpen size={16} />
-      </Button>
+        <span>{t('rooms') || 'Rooms'}</span>
+        <ExternalLink size={13} aria-hidden style={{ opacity: 0.65 }} />
+      </button>
     </div>
   );
+
+  if (permissionsLoading) {
+    return <SimpleLoading />;
+  }
 
   if (!canView) {
     return (
@@ -279,12 +347,6 @@ const SummaryDashboardPage = () => {
         marginBottom: '0.75rem',
         flexWrap: 'wrap',
       }}>
-        <AutoRefreshBar
-          compact
-          onRefresh={loadAll}
-          intervalMs={refreshInterval}
-          onIntervalChange={setRefreshInterval}
-        />
         {quickActions}
       </div>
 
@@ -326,8 +388,8 @@ const SummaryDashboardPage = () => {
           )}
 
           <CollapsibleSection
-            title={isInstructorDetailView ? (t('teacher_effort_report') || 'Teacher Effort') : (t('organization_effort_report') || 'Organization Effort Report')}
-            summary={`${effortReport?.totals?.sessionCount ?? 0} ${t('sessions')} · ${effortReport?.totals?.teacherCount ?? 0} ${t('total_teachers')}`}
+            title={isInstructorDetailView ? (t('teacher_effort_report') || 'Teacher Effort') : (t('analytics') || 'Analytics')}
+            summary={`${SCHEDULING_SUMMARY_DEFAULT_WIDGETS.length} ${t('widgets') || 'widgets'} · ${effortReport?.totals?.sessionCount ?? 0} ${t('sessions')} · ${effortReport?.totals?.teacherCount ?? 0} ${t('total_teachers')}`}
             icon={BarChart3}
             defaultOpen
             testId="effort-report-section"
@@ -369,9 +431,10 @@ const SummaryDashboardPage = () => {
               defaultOpen={false}
               testId="breaks-holidays-section"
               actions={(
-                <Button variant="outline" size="sm" onClick={() => setBreakModalOpen(true)} title={t('manage_break_sessions')} aria-label={t('manage_break_sessions')}>
+                <button type="button" style={headerButtonStyle} onClick={() => setBreakModalOpen(true)} title={t('manage_break_sessions')} aria-label={t('manage_break_sessions')}>
                   <Coffee size={14} />
-                </Button>
+                  <span>{t('manage_break_sessions') || 'Manage Breaks'}</span>
+                </button>
               )}
             >
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>

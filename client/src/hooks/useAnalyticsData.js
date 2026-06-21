@@ -6,6 +6,8 @@ import { useLookupTypes } from '@hooks/useLookupTypes.js';
 // OLD: import { ACTIVITY_TYPES, ACTIVITY_TYPE_LABELS } from '@constants/activityTypes';
 // NOW: Using useLookupTypes hook for all lookup data
 import { ABSENCE_TYPES } from '@constants/absenceTypes';
+import { getCountMetric } from '@constants/widgetDataSources';
+import { getAcademicTermLabel } from '@constants/academicTerms';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 
 const EMPTY_RAW = {
@@ -34,7 +36,11 @@ const EMPTY_RAW = {
   studentProgress: [],
   subjectMarksDistribution: [],
   notificationLogs: [],
-  attendanceSessions: []
+  attendanceSessions: [],
+  smartDriveFiles: [],
+  smartDriveShares: [],
+  workflowDocuments: [],
+  workflowTasks: []
 };
 
 /**
@@ -179,7 +185,11 @@ const useAnalyticsData = () => {
       safeLoad('studentProgress', () => []),
       safeLoad('subjectMarksDistribution', () => []),
       safeLoad('notificationLogs', () => []),
-      safeLoad('attendanceSessions', () => [])
+      safeLoad('attendanceSessions', () => []),
+      safeLoad('smartDriveFiles', () => []),
+      safeLoad('smartDriveShares', () => []),
+      safeLoad('workflowDocuments', () => []),
+      safeLoad('workflowTasks', () => [])
     ]);
 
     console.log('[REFRESH DEBUG] 🎉 Refresh completed!');
@@ -342,6 +352,18 @@ const useAnalyticsData = () => {
           case 'attendanceSessions':
             loadFn = () => [];
             break;
+          case 'smartDriveFiles':
+            loadFn = () => [];
+            break;
+          case 'smartDriveShares':
+            loadFn = () => [];
+            break;
+          case 'workflowDocuments':
+            loadFn = () => [];
+            break;
+          case 'workflowTasks':
+            loadFn = () => [];
+            break;
           default:
             warn(`[SMART REFRESH DEBUG] ⚠️ Unknown collection: ${collectionName}`);
             return;
@@ -417,6 +439,16 @@ export const getWidgetCollections = (widget) => {
  */
 export const processWidgetData = (widget, rawData, globalFilters = {}, comparisonOffset = 0, t = null, lang = 'en') => {
   const { dataSource, groupBy, aggregation = 'count', filters = [], dateRange, customDateFrom, customDateTo, valueField = 'sessionCount' } = widget;
+  const applyCountMetricFilter = (dataset, metric) => {
+    if (!metric?.filter) return dataset;
+    const { field, equals, includes } = metric.filter;
+    return dataset.filter((item) => {
+      const value = item?.[field];
+      if (equals !== undefined) return value === equals;
+      if (includes !== undefined) return String(value || '').toLowerCase().includes(String(includes).toLowerCase());
+      return true;
+    });
+  };
 
   if (dataSource === 'schedulingOverviewStats') {
     const stats = rawData.schedulingOverviewStats || {};
@@ -427,8 +459,31 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
     return [{ label, value: stats[statKey] ?? 0 }];
   }
 
+  if (dataSource === 'schedulingAttendanceOverview') {
+    const stats = rawData.schedulingAttendanceOverview || {};
+    const statKey = widget.statKey || widget.countMetric || 'totalRecords';
+    const label = widget.titleKey && t ? t(widget.titleKey) : (widget.titleEn || widget.title || statKey);
+    return [{ label, value: stats[statKey] ?? 0 }];
+  }
+
+  if (dataSource === 'schedulingWorkflowOverview') {
+    const stats = rawData.schedulingWorkflowOverview || {};
+    const statKey = widget.statKey || widget.countMetric || 'totalDocuments';
+    const label = widget.titleKey && t ? t(widget.titleKey) : (widget.titleEn || widget.title || statKey);
+    return [{ label, value: stats[statKey] ?? 0 }];
+  }
+
   if (dataSource?.startsWith('scheduling')) {
     const dataset = rawData[dataSource] || [];
+    if (widget.chartType === 'count') {
+      const metric = getCountMetric(dataSource, widget.countMetric || widget.statKey);
+      const label = metric?.labelKey && t ? t(metric.labelKey) : (widget.title || metric?.value || 'Count');
+      if (metric?.statKey) {
+        return [{ label, value: rawData.schedulingOverviewStats?.[metric.statKey] ?? 0 }];
+      }
+      return [{ label, value: applyCountMetricFilter(dataset, metric).length }];
+    }
+
     if (!groupBy || groupBy.trim() === '') {
       if (aggregation === 'sum') {
         const total = dataset.reduce((s, r) => s + (Number(r[valueField]) || Number(r.value) || 0), 0);
@@ -437,12 +492,34 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
       return [{ label: widget.title || 'Count', value: dataset.length }];
     }
     const map = new Map();
+    const isPreAggregated = (row) => row.recordCount != null || row.documentCount != null;
+    const metricFromRow = (row) => {
+      if (row.recordCount != null) return Number(row.recordCount) || 0;
+      if (row.documentCount != null) return Number(row.documentCount) || 0;
+      return Number(row[valueField]) || Number(row.value) || 0;
+    };
     for (const row of dataset) {
-      const key = row[groupBy] ?? '—';
-      if (!map.has(key)) map.set(key, { label: String(key), value: 0 });
+      const raw = row[groupBy];
+      if (raw == null || raw === '' || raw === '—') continue;
+      const key = raw;
+      if (!map.has(key)) {
+        const labelLines = [];
+        const primary = groupBy === 'term'
+          ? getAcademicTermLabel(raw, lang)
+          : String(key);
+        labelLines.push(primary);
+        if (groupBy !== 'term' && row.term) {
+          labelLines.push(getAcademicTermLabel(row.term, lang));
+        }
+        if (groupBy !== 'year' && row.year) labelLines.push(String(row.year));
+        if (groupBy !== 'instructorName' && row.instructorName && row.instructorName !== '—') {
+          labelLines.push(String(row.instructorName));
+        }
+        map.set(key, { label: primary, labelLines, value: 0 });
+      }
       const entry = map.get(key);
-      if (aggregation === 'sum') {
-        entry.value += Number(row[valueField]) || 0;
+      if (aggregation === 'sum' || isPreAggregated(row)) {
+        entry.value += metricFromRow(row);
       } else if (aggregation === 'average') {
         entry.value += Number(row[valueField]) || 0;
         entry._count = (entry._count || 0) + 1;
@@ -452,7 +529,10 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
     }
     return [...map.values()]
       .map((e) => (e._count ? { label: e.label, value: Math.round((e.value / e._count) * 10) / 10 } : e))
-      .sort((a, b) => b.value - a.value);
+      .sort((a, b) => {
+        if (groupBy === 'date') return String(a.label).localeCompare(String(b.label));
+        return b.value - a.value;
+      });
   }
 
   // DEBUG: Log widget processing start with more details
@@ -611,6 +691,12 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
     if (beforeDateFilter > dataset.length) {
       info(`[WIDGET DEBUG] 📅 Date filter: ${beforeDateFilter} → ${dataset.length}`);
     }
+  }
+
+  if (widget.chartType === 'count') {
+    const metric = getCountMetric(dataSource, widget.countMetric || widget.statKey);
+    const label = metric?.labelKey && t ? t(metric.labelKey) : (widget.title || metric?.value || 'Count');
+    return [{ label, value: applyCountMetricFilter(dataset, metric).length }];
   }
 
   // --- Group & aggregate ---
@@ -831,12 +917,14 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
   };
 
   const accumulate = (key, item) => {
-    const value = parseFloat(item.score || item.value || item.grade || item.percentage || 0);
+    const value = parseFloat(
+      item[valueField] ?? item.score ?? item.value ?? item.grade ?? item.percentage ?? 0
+    );
     if (aggregation === 'count') {
       grouped[key] = (grouped[key] || 0) + 1;
     } else if (aggregation === 'sum') {
       grouped[key] = (grouped[key] || 0) + value;
-    } else if (aggregation === 'avg') {
+    } else if (aggregation === 'avg' || aggregation === 'average') {
       if (!grouped[key]) grouped[key] = { sum: 0, count: 0 };
       grouped[key].sum += value;
       grouped[key].count += 1;
@@ -866,7 +954,7 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
       });
     });
     Object.keys(grouped).forEach(k => {
-      if (aggregation === 'avg') grouped[k] = grouped[k].count > 0 ? grouped[k].sum / grouped[k].count : 0;
+      if (aggregation === 'avg' || aggregation === 'average') grouped[k] = grouped[k].count > 0 ? grouped[k].sum / grouped[k].count : 0;
       else if (aggregation === 'sum') grouped[k] = grouped[k].sum;
       else grouped[k] = grouped[k].count;
     });
@@ -879,7 +967,7 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
       const ratio = maxScore > 0 ? (score / maxScore) * 100 : 0;
       if (aggregation === 'count') {
         grouped[key] = (grouped[key] || 0) + 1;
-      } else if (aggregation === 'avg') {
+      } else if (aggregation === 'avg' || aggregation === 'average') {
         if (!grouped[key]) grouped[key] = { sum: 0, count: 0 };
         grouped[key].sum += ratio;
         grouped[key].count += 1;
@@ -898,7 +986,7 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
   // --- Convert to chart data ---
   const chartData = Object.entries(grouped).map(([label, value]) => {
     let finalValue = value;
-    if (aggregation === 'avg' && value && typeof value === 'object') {
+    if ((aggregation === 'avg' || aggregation === 'average') && value && typeof value === 'object') {
       finalValue = value.count > 0 ? value.sum / value.count : 0;
     } else if (aggregation === 'median' && Array.isArray(value)) {
       const sorted = [...value].sort((a, b) => a - b);

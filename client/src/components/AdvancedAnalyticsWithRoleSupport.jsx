@@ -449,7 +449,7 @@ export default function AdvancedAnalytics({
           accentColor={accentColor}
           editLayout={editLayout && canEdit}
           defaultWidgets={effectiveWidgets}
-          storageKey={propStorageKey || `analytics_${userRole}_${dashboard}_${user?.uid}`}
+          storageKey={propStorageKey || `analytics_${userRole}_${dashboard}`}
           isLoading={loading}
           lastUpdatedAt={lastUpdatedAt}
         />

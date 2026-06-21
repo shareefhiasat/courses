@@ -1,10 +1,12 @@
 /**
  * GET /api/v1/me/data-scope — effective category/program/subject/class scope for current user.
+ * GET/PUT/DELETE /api/v1/me/dashboards/:dashboardKey — per-user widget layouts
  */
 
 import { Router } from 'express';
 import { requireAuth } from '../middleware/keycloakAuth.js';
 import { getEffectiveDataScope } from '../services/scopeResolver.js';
+import { getDashboard, saveDashboard, resetDashboard } from '../controllers/user-preferences.js';
 
 const router = Router();
 
@@ -17,5 +19,9 @@ router.get('/data-scope', requireAuth, async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 });
+
+router.get('/dashboards/:dashboardKey', requireAuth, getDashboard);
+router.put('/dashboards/:dashboardKey', requireAuth, saveDashboard);
+router.delete('/dashboards/:dashboardKey', requireAuth, resetDashboard);
 
 export default router;
