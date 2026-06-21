@@ -28,7 +28,7 @@ const getLocalizedName = (item, lang) => {
  * @param {Boolean} donut - Donut style
  */
 export default function PieChart({ data = [], size = 300, donut = false, showLabels = true, showLegend = true, accentColor = '#800020', rawData = [], chartType = 'pie', onSliceClick = null }) {
-  const { t, lang } = useLang();
+  const { t, lang, isRTL } = useLang();
   const [hovered, setHovered] = useState(null);
 
   const activeData = useMemo(
@@ -274,7 +274,7 @@ export default function PieChart({ data = [], size = 300, donut = false, showLab
         {showLegend && (
           <div style={{
             position: sideLegend ? 'absolute' : 'relative',
-            right: sideLegend ? 0 : undefined,
+            insetInlineEnd: sideLegend ? 0 : undefined,
             top: sideLegend ? '50%' : undefined,
             transform: sideLegend ? 'translateY(-50%)' : undefined,
             display: 'flex',
@@ -282,6 +282,7 @@ export default function PieChart({ data = [], size = 300, donut = false, showLab
             flexWrap: sideLegend ? 'nowrap' : 'wrap',
             gap: '0.2rem',
             justifyContent: 'center',
+            alignItems: sideLegend ? 'flex-start' : 'center',
             maxWidth: sideLegend ? legendWidth : chartWidth,
             maxHeight: sideLegend ? chartSize : (legendReserve || 64),
             overflow: 'auto',
@@ -289,6 +290,7 @@ export default function PieChart({ data = [], size = 300, donut = false, showLab
             background: 'transparent',
             zIndex: 2,
             pointerEvents: 'none',
+            direction: isRTL ? 'rtl' : 'ltr',
           }}>
             {slices.map((slice, idx) => (
               <div

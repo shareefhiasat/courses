@@ -2,6 +2,7 @@ import React, { memo, useState, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useLang } from '@contexts/LangContext';
 import { getAcademicTermLabel, isValidAcademicTerm } from '@constants/academicTerms';
+import { getLocalizedAttendanceLabel } from '@constants/attendanceTypes';
 import ChartBrushControls, { CHART_BRUSH_RESERVE, brushCompactDate } from './ChartBrushControls';
 import { useChartBrush, downsampleChartData, CHART_MAX_POINTS } from './useChartBrush';
 import { CHART_LABEL_SHADOW, CHART_LABEL_FILL } from './chartLabelStyles';
@@ -24,7 +25,12 @@ const getLabelLines = (item, lang) => {
   if (Array.isArray(item.labelLines) && item.labelLines.length > 0) {
     return item.labelLines.filter(Boolean).map((l) => localizeLine(l, lang));
   }
-  const primary = getLocalizedName(item, lang) || item.label;
+  let primary = getLocalizedName(item, lang) || item.label;
+  if (primary) {
+    const statusKey = String(primary).toUpperCase().replace(/-/g, '_');
+    const localizedStatus = getLocalizedAttendanceLabel(statusKey, lang);
+    if (localizedStatus && localizedStatus !== statusKey) primary = localizedStatus;
+  }
   if (!primary || primary === '—') return [];
   const lines = [localizeLine(primary, lang)];
   if (item.term) lines.push(getAcademicTermLabel(item.term, lang));
@@ -34,6 +40,11 @@ const getLabelLines = (item, lang) => {
 };
 
 const LABEL_SHADOW = CHART_LABEL_SHADOW;
+const VERTICAL_LABEL_CHAR_RATIO = 0.56;
+
+function estimateVerticalLabelHeight(text, fontSize) {
+  return String(text || '').length * fontSize * VERTICAL_LABEL_CHAR_RATIO;
+}
 
 function isTimelineData(items) {
   if (!items?.length) return false;
@@ -42,7 +53,7 @@ function isTimelineData(items) {
 }
 
 function BarChart({ data = [], size = { width: 400, height: 300 }, horizontal = false, showValues = true, showGrid = true, accentColor = '#800020' }) {
-  const { t, lang } = useLang();
+  const { t, lang, isRTL } = useLang();
   const [hovered, setHovered] = useState(null);
   const svgRef = useRef(null);
 
@@ -90,13 +101,16 @@ function BarChart({ data = [], size = { width: 400, height: 300 }, horizontal = 
 
   const padding = {
     top: 18,
-    right: 18,
-    bottom: 20,
-    left: 48,
+    right: isRTL ? 48 : 18,
+    bottom: showXLabels ? 12 : 20,
+    left: isRTL ? 18 : 48,
   };
   const plotW = width - padding.left - padding.right;
   const plotH = chartHeight - padding.top - padding.bottom;
   const axisY = padding.top + plotH;
+  const yAxisX = isRTL ? padding.left + plotW : padding.left;
+  const yLabelX = isRTL ? yAxisX + 10 : yAxisX - 10;
+  const yLabelAnchor = isRTL ? 'start' : 'end';
   const axisFontSize = Math.max(8, Math.min(12, Math.min(width, chartHeight) / 25));
   const valueFontSize = Math.max(9, Math.min(14, Math.min(width, chartHeight) / 20));
   const labelFontSize = Math.max(8, Math.min(11, Math.min(width, chartHeight) / 28));
@@ -124,7 +138,6 @@ function BarChart({ data = [], size = { width: 400, height: 300 }, horizontal = 
       labelLines,
       primary: labelLines[0] || '',
       labelX: x + actualBarWidth / 2,
-      labelY: barH > 16 ? y + barH - 6 : axisY - 4,
     };
   });
 
@@ -178,7 +191,7 @@ function BarChart({ data = [], size = { width: 400, height: 300 }, horizontal = 
                 return (
                   <g key={i}>
                     <line x1={padding.left} y1={y} x2={padding.left + plotW} y2={y} stroke="#9ca3af" strokeWidth="1" strokeDasharray="4,4" />
-                    <text x={padding.left - 10} y={y + 4} textAnchor="end" fontSize={axisFontSize} fontWeight="bold" fill="#6b7280">{value}</text>
+                    <text x={yLabelX} y={y + 4} textAnchor={yLabelAnchor} fontSize={axisFontSize} fontWeight="bold" fill="#6b7280">{value}</text>
                   </g>
                 );
               });
@@ -214,7 +227,7 @@ function BarChart({ data = [], size = { width: 400, height: 300 }, horizontal = 
         ))}
 
         <line x1={padding.left} y1={axisY} x2={padding.left + plotW} y2={axisY} stroke="#9ca3af" strokeWidth="2" />
-        <line x1={padding.left} y1={padding.top} x2={padding.left} y2={axisY} stroke="#9ca3af" strokeWidth="2" />
+        <line x1={yAxisX} y1={padding.top} x2={yAxisX} y2={axisY} stroke="#9ca3af" strokeWidth="2" />
 
         {showXLabels && (
           <g style={{ pointerEvents: 'none' }}>
@@ -222,21 +235,26 @@ function BarChart({ data = [], size = { width: 400, height: 300 }, horizontal = 
               if (!bar.primary) return null;
               if (i % labelStep !== 0 && i !== barGeometries.length - 1) return null;
 
+              const displayText = isTimeline && isZoomed ? brushCompactDate(bar.primary) : bar.primary;
+              const labelHeight = estimateVerticalLabelHeight(displayText, labelFontSize);
+              const centeredY = bar.y + (bar.barHeight + labelHeight) / 2;
+              const labelY = Math.min(axisY - 6, Math.max(bar.y + labelHeight + 4, centeredY));
+
               return (
                 <text
                   key={`lbl-${bar.idx}`}
                   x={bar.labelX}
-                  y={bar.labelY}
+                  y={labelY}
                   textAnchor="start"
                   fontSize={labelFontSize}
                   fontWeight="600"
                   fontStyle="italic"
                   fill={CHART_LABEL_FILL}
-                  style={LABEL_SHADOW}
-                  transform={`rotate(-90, ${bar.labelX}, ${bar.labelY})`}
+                  style={{ ...LABEL_SHADOW, direction: 'ltr', unicodeBidi: 'plaintext' }}
+                  transform={`rotate(-90, ${bar.labelX}, ${labelY})`}
                 >
                   <title>{bar.primary}</title>
-                  {isTimeline && isZoomed ? brushCompactDate(bar.primary) : bar.primary}
+                  {displayText}
                 </text>
               );
             })}

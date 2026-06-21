@@ -460,6 +460,11 @@ function ListChart({
     return parseInt(w, 10) || 120;
   }, [colWidths, collapsedCols, chartWidth]);
 
+  const tableMinWidth = useMemo(
+    () => columns.reduce((sum, col) => sum + getResolvedWidth(col), 0),
+    [columns, getResolvedWidth],
+  );
+
   // Enhanced cell rendering with smart data mapping
   const pickLocalized = (item, field) => {
     const arKey = `${field}Ar`;
@@ -851,8 +856,9 @@ function ListChart({
         overflow: 'auto',
         border: '1px solid var(--border)',
         borderRadius: '0 0 6px 6px',
-        background: 'var(--panel)'
+        background: 'var(--panel)',
       }}>
+        <div style={{ minWidth: tableMinWidth, width: 'max-content', paddingInlineEnd: 12, boxSizing: 'border-box' }}>
         {/* Table Header */}
         <div style={{
           display: 'flex',
@@ -863,7 +869,8 @@ function ListChart({
           color: 'var(--muted)',
           position: 'sticky',
           top: 0,
-          zIndex: 2
+          zIndex: 2,
+          minWidth: tableMinWidth,
         }}>
           {columns.map((column) => {
             const isCollapsed = collapsedCols.has(column.key);
@@ -884,7 +891,7 @@ function ListChart({
                 width,
                 minWidth: isCollapsed ? 28 : 48,
                 maxWidth: width,
-                borderRight: '1px solid var(--border)',
+                borderInlineEnd: '1px solid var(--border)',
                 overflow: 'visible',
                 cursor: 'default',
                 userSelect: 'none',
@@ -944,7 +951,7 @@ function ListChart({
                   style={{
                     position: 'absolute',
                     top: '100%',
-                    left: 0,
+                    insetInlineStart: 0,
                     minWidth: 160,
                     maxWidth: 240,
                     maxHeight: 220,
@@ -1063,7 +1070,7 @@ function ListChart({
                   style={{
                     position: 'absolute',
                     top: 0,
-                    right: 0,
+                    insetInlineEnd: 0,
                     width: 5,
                     height: '100%',
                     cursor: 'col-resize',
@@ -1091,7 +1098,8 @@ function ListChart({
                 borderBottom: '1px solid var(--border)',
                 background: idx % 2 === 0 ? 'var(--panel)' : 'var(--bg)',
                 alignItems: 'center',
-                transition: 'background 0.2s ease'
+                transition: 'background 0.2s ease',
+                minWidth: tableMinWidth,
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.background = `${accentColor}10`;
@@ -1111,7 +1119,7 @@ function ListChart({
                     width,
                     minWidth: isCollapsed ? 28 : 48,
                     maxWidth: width,
-                    borderRight: '1px solid var(--border)',
+                    borderInlineEnd: '1px solid var(--border)',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
@@ -1127,6 +1135,7 @@ function ListChart({
               );})}
             </div>
           ))}
+        </div>
         </div>
       </div>
 

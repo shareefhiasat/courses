@@ -1,5 +1,6 @@
 import React from 'react';
 import { useLang } from '@contexts/LangContext';
+import { CHART_LABEL_SHADOW, CHART_LABEL_FILL } from './chartLabelStyles';
 
 export const CHART_BRUSH_RESERVE = 50;
 const BRUSH_H = 28;
@@ -197,7 +198,8 @@ export default function ChartBrushControls({
               textAnchor="middle"
               fontSize={9}
               fontWeight="500"
-              fill="var(--text)"
+              fill={CHART_LABEL_FILL}
+              style={CHART_LABEL_SHADOW}
               opacity={isZoomed && (i < selStart || i > selEnd) ? 0.35 : 1}
             >
               {brushCompactDate(label)}
