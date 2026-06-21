@@ -6,6 +6,10 @@ import { info, error, warn, debug } from '@services/utils/logger.js';
  */
 const migrateWidgetConfigs = (widgets) => {
   return widgets.map(widget => {
+    if (widget.chartType === 'count' || widget.dataSource === 'schedulingOverviewStats') {
+      return { ...widget, groupBy: '' };
+    }
+
     // If groupBy is empty, undefined, null, or invalid, fix it
     if (!widget.groupBy || widget.groupBy.trim() === '' || widget.groupBy === 'undefined' || widget.groupBy === 'null') {
       warn('[useWidgetDashboard] Migrating widget with invalid groupBy:', { 
@@ -35,6 +39,8 @@ const migrateWidgetConfigs = (widgets) => {
         fixedGroupBy = 'programId';
       } else if (widget.dataSource === 'activityLogs') {
         fixedGroupBy = 'date';
+      } else if (widget.dataSource?.startsWith('scheduling')) {
+        fixedGroupBy = widget.chartType === 'count' ? '' : (widget.groupBy || 'status');
       }
       
       return {
@@ -48,10 +54,8 @@ const migrateWidgetConfigs = (widgets) => {
 
 /**
  * useWidgetDashboard
- * Persists widget configs to Firestore: users/{uid}/preferences (field: dashboards.{dashboardKey})
- * Falls back to localStorage if user is not authenticated.
- *
- * Returns: { widgets, setWidgets, pinnedIds, setPinnedIds, loading }
+ * Persists widget configs per user in localStorage: wdg_{dashboardKey}
+ * dashboardKey should include user id when dashboards are user-specific.
  */
 const useWidgetDashboard = (uid, dashboardKey, defaultWidgets = []) => {
   const [widgets, setWidgetsState] = useState(defaultWidgets);
@@ -59,6 +63,11 @@ const useWidgetDashboard = (uid, dashboardKey, defaultWidgets = []) => {
   const [loading, setLoading] = useState(true);
   const saveTimerRef = useRef(null);
   const skipSaveRef = useRef(false);
+  const defaultWidgetsRef = useRef(defaultWidgets);
+
+  useEffect(() => {
+    defaultWidgetsRef.current = defaultWidgets;
+  }, [defaultWidgets]);
 
   // ── Load ──────────────────────────────────────────────────────────────────
   useEffect(() => {
@@ -67,48 +76,6 @@ const useWidgetDashboard = (uid, dashboardKey, defaultWidgets = []) => {
     const load = async () => {
       setLoading(true);
 
-      if (uid) {
-        try {
-          const ref = doc(db, 'users', uid);
-          const snap = await getDoc(ref);
-          if (!cancelled && snap.exists()) {
-            const prefs = snap.data()?.preferences?.dashboards?.[dashboardKey];
-            if (prefs?.widgets?.length) {
-              const migratedWidgets = migrateWidgetConfigs(prefs.widgets);
-              setWidgetsState(migratedWidgets);
-              setPinnedIdsState(prefs.pinnedIds || []);
-              
-              // Save migrated widgets back to Firestore to prevent repeated migrations
-              if (JSON.stringify(migratedWidgets) !== JSON.stringify(prefs.widgets)) {
-                try {
-                  const ref = doc(db, 'users', uid);
-                  await setDoc(ref, {
-                    preferences: {
-                      dashboards: {
-                        [dashboardKey]: { 
-                          ...prefs, 
-                          widgets: migratedWidgets, 
-                          updatedAt: serverTimestamp() 
-                        }
-                      }
-                    }
-                  }, { merge: true });
-                  info('[useWidgetDashboard] Migrated widgets saved to Firestore');
-                } catch (e) {
-                  warn('[useWidgetDashboard] Failed to save migrated widgets:', e);
-                }
-              }
-              
-              setLoading(false);
-              return;
-            }
-          }
-        } catch (e) {
-          warn('[useWidgetDashboard] Firestore load failed, falling back to localStorage:', e);
-        }
-      }
-
-      // Fallback: localStorage
       try {
         const saved = localStorage.getItem(`wdg_${dashboardKey}`);
         if (saved) {
@@ -117,8 +84,7 @@ const useWidgetDashboard = (uid, dashboardKey, defaultWidgets = []) => {
             const migratedWidgets = migrateWidgetConfigs(parsed.widgets || defaultWidgets);
             setWidgetsState(migratedWidgets);
             setPinnedIdsState(parsed.pinnedIds || []);
-            
-            // Save migrated widgets back to localStorage to prevent repeated migrations
+
             if (JSON.stringify(migratedWidgets) !== JSON.stringify(parsed.widgets || defaultWidgets)) {
               try {
                 const payload = { widgets: migratedWidgets, pinnedIds: parsed.pinnedIds || [] };
@@ -128,9 +94,13 @@ const useWidgetDashboard = (uid, dashboardKey, defaultWidgets = []) => {
                 warn('[useWidgetDashboard] Failed to save migrated widgets to localStorage:', e);
               }
             }
+            setLoading(false);
+            return;
           }
         }
-      } catch {}
+      } catch (e) {
+        warn('[useWidgetDashboard] localStorage load failed:', e);
+      }
 
       if (!cancelled) setLoading(false);
     };
@@ -176,7 +146,18 @@ const useWidgetDashboard = (uid, dashboardKey, defaultWidgets = []) => {
     debouncedSave(widgets, resolved);
   }, [widgets, pinnedIds, debouncedSave]);
 
-  return { widgets, setWidgets, pinnedIds, setPinnedIds, loading, setSkipSave };
+  const resetToDefaults = useCallback(() => {
+    const defaults = JSON.parse(JSON.stringify(defaultWidgetsRef.current || []));
+    setWidgetsState(defaults);
+    setPinnedIdsState([]);
+    try {
+      localStorage.removeItem(`wdg_${dashboardKey}`);
+      localStorage.setItem(`wdg_${dashboardKey}`, JSON.stringify({ widgets: defaults, pinnedIds: [] }));
+    } catch {}
+    info('[useWidgetDashboard] Dashboard reset to system defaults:', { dashboardKey, widgetCount: defaults.length });
+  }, [dashboardKey]);
+
+  return { widgets, setWidgets, pinnedIds, setPinnedIds, loading, setSkipSave, resetToDefaults };
 };
 
 export default useWidgetDashboard;

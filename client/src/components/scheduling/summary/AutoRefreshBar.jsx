@@ -12,7 +12,12 @@ const INTERVALS = [
   { value: 300000, labelKey: 'refresh_5m' },
 ];
 
-export default function AutoRefreshBar({ onRefresh, intervalMs = 30000, onIntervalChange }) {
+export default function AutoRefreshBar({
+  onRefresh,
+  intervalMs = 30000,
+  onIntervalChange,
+  compact = false,
+}) {
   const { t } = useLang();
   const { theme } = useTheme();
   const [ms, setMs] = useState(intervalMs);
@@ -47,6 +52,49 @@ export default function AutoRefreshBar({ onRefresh, intervalMs = 30000, onInterv
     setMs(val);
     onIntervalChange?.(val);
   };
+
+  const refreshLabel = INTERVALS.find((i) => i.value === ms);
+  const intervalLabel = refreshLabel ? (t(refreshLabel.labelKey) || refreshLabel.labelKey) : '';
+
+  if (compact) {
+    return (
+      <div
+        data-testid="auto-refresh-bar"
+        style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', flexWrap: 'wrap' }}
+      >
+        <Select
+          placeholder={t('select_refresh_interval') || 'Refresh interval'}
+          value={ms}
+          onChange={handleIntervalChange}
+          options={INTERVALS.map((i) => ({
+            value: i.value,
+            label: t(i.labelKey) || i.labelKey,
+          }))}
+          style={{ minWidth: '110px', maxWidth: '140px' }}
+          size="small"
+          data-testid="refresh-interval-select"
+        />
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleRefresh}
+          data-testid="manual-refresh-btn"
+          title={t('refresh') || 'Refresh'}
+          aria-label={t('refresh') || 'Refresh'}
+        >
+          <RefreshCw size={14} />
+        </Button>
+        {ms > 0 && (
+          <div style={{ width: '48px', height: '4px', background: theme === 'dark' ? '#374151' : '#e5e7eb', borderRadius: '2px' }}>
+            <div style={{ height: '100%', width: `${Math.min(100, progress)}%`, background: '#10b981', borderRadius: '2px', transition: 'width 0.25s linear' }} />
+          </div>
+        )}
+        <span style={{ fontSize: '0.6875rem', color: muted, whiteSpace: 'nowrap' }}>
+          {new Date(lastUpdated).toLocaleTimeString()}
+        </span>
+      </div>
+    );
+  }
 
   return (
     <div

@@ -302,6 +302,17 @@ export default function AdvancedAnalytics({
               {t('add_widget') || 'Add Widget'}
             </button>
 
+            {canEdit && enableCustomization && (
+              <button
+                onClick={() => dashboardEngineRef.current?.resetToDefaults?.()}
+                style={btnStyle('#ef4444')}
+                title={t('reset_to_system_default') || 'Reset to system default'}
+              >
+                {getThemedIcon('ui', 'rotate_ccw', 16, theme)}
+                {t('reset_to_system_default') || 'Reset to Default'}
+              </button>
+            )}
+
             {/* Widget Assignment Manager - Super Admin only */}
             {isSuperAdmin && (
               <button

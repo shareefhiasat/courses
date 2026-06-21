@@ -240,7 +240,13 @@ const WidgetWrapper = ({
                   textOverflow: 'ellipsis'
                 }}
               >
-                {lang === 'ar' ? (widget.titleAr || widget.titleEn || widget.title) : (widget.titleEn || widget.titleAr || widget.title)}
+                {(() => {
+                  const titleFromKey = widget.titleKey ? t(widget.titleKey) : null;
+                  const localized = lang === 'ar'
+                    ? (widget.titleAr || widget.titleEn || widget.title)
+                    : (widget.titleEn || widget.titleAr || widget.title);
+                  return titleFromKey || localized || t('untitled') || 'Untitled';
+                })()}
                 {isRecentlyRefreshed && (
                   <span style={{ color: 'var(--color-success, #10b981)', fontSize: 11, marginInlineStart: 4 }}>✓</span>
                 )}

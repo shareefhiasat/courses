@@ -10,8 +10,7 @@ import schedulingSummaryService from '@services/business/schedulingSummaryServic
 import AutoRefreshBar from '@components/scheduling/summary/AutoRefreshBar';
 import TimeRangeSelector from '@components/scheduling/summary/TimeRangeSelector';
 import ReportFilterBar from '@components/scheduling/summary/ReportFilterBar';
-import EffortReportView from '@components/scheduling/summary/EffortReportView';
-import EffortReportExport from '@components/scheduling/summary/EffortReportExport';
+import SchedulingSummaryAnalytics from '@components/scheduling/summary/SchedulingSummaryAnalytics';
 import BreakSessionTimeline from '@components/scheduling/summary/BreakSessionTimeline';
 import BreakTypeDistributionCard from '@components/scheduling/summary/BreakTypeDistributionCard';
 import UpcomingHolidaysList from '@components/scheduling/summary/UpcomingHolidaysList';
@@ -72,6 +71,7 @@ const SummaryDashboardPage = () => {
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [refreshInterval, setRefreshInterval] = useState(30000);
+  const [lastUpdatedAt, setLastUpdatedAt] = useState(Date.now());
   const [breakModalOpen, setBreakModalOpen] = useState(false);
   const [timeSlots, setTimeSlots] = useState([]);
 
@@ -170,6 +170,7 @@ const SummaryDashboardPage = () => {
       toast.error(err.message);
     } finally {
       setLoading(false);
+      setLastUpdatedAt(Date.now());
     }
   }, [queryParams, toast, t, activeInstructorId]);
 
@@ -270,15 +271,20 @@ const SummaryDashboardPage = () => {
 
   return (
     <div style={{ padding: '1rem' }} data-testid="summary-dashboard-page">
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
-        <div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '0.25rem' }}>{t('summary_dashboard')}</h1>
-          <p style={{ color: muted, margin: 0 }}>
-            {isInstructorDetailView
-              ? (t('instructor_effort_view') || 'Instructor effort view')
-              : (t('organization_effort_view') || 'Organization-wide scheduling summary')}
-          </p>
-        </div>
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        gap: '0.75rem',
+        marginBottom: '0.75rem',
+        flexWrap: 'wrap',
+      }}>
+        <AutoRefreshBar
+          compact
+          onRefresh={loadAll}
+          intervalMs={refreshInterval}
+          onIntervalChange={setRefreshInterval}
+        />
         {quickActions}
       </div>
 
@@ -294,7 +300,6 @@ const SummaryDashboardPage = () => {
         defaultOpen
       />
 
-      <AutoRefreshBar onRefresh={loadAll} intervalMs={refreshInterval} onIntervalChange={setRefreshInterval} />
       <TimeRangeSelector
         timeRange={timeRange}
         startDate={startDate}
@@ -327,8 +332,14 @@ const SummaryDashboardPage = () => {
             defaultOpen
             testId="effort-report-section"
           >
-            <EffortReportExport report={effortReport} canExport={canExport} />
-            <EffortReportView report={effortReport} isRTL={isRTL} hideStatCards />
+            <SchedulingSummaryAnalytics
+              effortReport={effortReport}
+              dashboardData={dashboardData}
+              isRTL={isRTL}
+              canExport={canExport}
+              onReload={loadAll}
+              lastUpdatedAt={lastUpdatedAt}
+            />
           </CollapsibleSection>
 
           {isInstructorDetailView && teacherEffort && (
@@ -357,6 +368,11 @@ const SummaryDashboardPage = () => {
               icon={Palmtree}
               defaultOpen={false}
               testId="breaks-holidays-section"
+              actions={(
+                <Button variant="outline" size="sm" onClick={() => setBreakModalOpen(true)} title={t('manage_break_sessions')} aria-label={t('manage_break_sessions')}>
+                  <Coffee size={14} />
+                </Button>
+              )}
             >
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
                 <Card>

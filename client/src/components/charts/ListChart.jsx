@@ -99,6 +99,10 @@ function ListChart({
       sourceData = rawData.announcements || [];
     } else if (dataSource === 'resources') {
       sourceData = rawData.resources || [];
+    } else if (dataSource?.startsWith('scheduling')) {
+      sourceData = rawData[dataSource] || [];
+    } else if (rawData[dataSource]) {
+      sourceData = rawData[dataSource] || [];
     } else {
       // Default: try to find any array in rawData
       sourceData = Object.values(rawData).find(item => Array.isArray(item)) || [];

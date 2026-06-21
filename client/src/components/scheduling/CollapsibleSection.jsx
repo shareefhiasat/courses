@@ -16,6 +16,8 @@ export default function CollapsibleSection({
   const border = theme === 'dark' ? '#374151' : '#e5e7eb';
   const muted = theme === 'dark' ? '#9ca3af' : '#6b7280';
 
+  const toggle = () => setOpen((v) => !v);
+
   return (
     <div
       data-testid={testId}
@@ -29,13 +31,27 @@ export default function CollapsibleSection({
         marginBottom: '0.75rem',
       }}
     >
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        gap: '0.5rem',
-        marginBottom: open ? '0.5rem' : 0,
-      }}>
+      <div
+        role="button"
+        tabIndex={0}
+        onClick={toggle}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            toggle();
+          }
+        }}
+        style={{
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          gap: '0.5rem',
+          marginBottom: open ? '0.5rem' : 0,
+          cursor: 'pointer',
+          userSelect: 'none',
+        }}
+        aria-expanded={open}
+      >
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0, flex: 1 }}>
           {HeaderIcon && <HeaderIcon size={16} color={muted} />}
           <span style={{
@@ -58,24 +74,17 @@ export default function CollapsibleSection({
             </span>
           )}
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+        <div
+          style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}
+          onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => e.stopPropagation()}
+        >
           {actions}
-          <button
-            type="button"
-            onClick={() => setOpen(!open)}
-            style={{
-              background: 'none',
-              border: 'none',
-              cursor: 'pointer',
-              padding: '0.125rem',
-              flexShrink: 0,
-            }}
-            aria-expanded={open}
-          >
+          <span style={{ display: 'inline-flex', padding: '0.125rem' }} aria-hidden>
             {open
               ? <ChevronUp size={16} color={muted} />
               : <ChevronDown size={16} color={muted} />}
-          </button>
+          </span>
         </div>
       </div>
       {open && children}

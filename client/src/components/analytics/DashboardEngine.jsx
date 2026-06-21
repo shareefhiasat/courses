@@ -50,7 +50,8 @@ const DashboardEngine = React.forwardRef(({
   const {
     widgets,
     setWidgets,
-    loading: dashLoading
+    loading: dashLoading,
+    resetToDefaults,
   } = useWidgetDashboard(user?.uid, storageKey, defaultWidgets);
 
   // ── Local UI state ────────────────────────────────────────────────────────
@@ -216,8 +217,17 @@ const DashboardEngine = React.forwardRef(({
 
   // Expose methods via ref
   useImperativeHandle(ref, () => ({
-    openBuilder
-  }), [openBuilder]);
+    openBuilder,
+    resetToDefaults: () => {
+      if (window.confirm(t('reset_dashboard_confirm') || 'Reset dashboard to system defaults? Your custom layout will be lost.')) {
+        resetToDefaults();
+        setMinimizedIds({});
+        setOriginalSizes({});
+        setWidgetVersions({});
+        setWidgetUpdatedAt({});
+      }
+    },
+  }), [openBuilder, resetToDefaults, t]);
 
   const handleSave = useCallback(() => {
     if (editingWidget) {

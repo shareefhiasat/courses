@@ -1,33 +1,18 @@
-import React from 'react';
+import React, { useState, useMemo } from 'react';
 import { useTheme } from '@contexts/ThemeContext';
 import { useLang } from '@contexts/LangContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { Select, DateRangeSlider } from '@ui';
+import {
+  SOURCE_CATEGORIES,
+  SCHEDULING_STAT_KEYS,
+  getSourcesForChartType,
+} from '@constants/widgetDataSources';
 
+import { info, error, warn, debug } from '@services/utils/logger.js';
 
-import { info, error, warn, debug } from '@services/utils/logger.js';/**
- * DATA_SOURCES
- * Single source of truth for all available collections and their valid groupBy fields.
- */
-export const DATA_SOURCES = [
-  // ── Merged / virtual sources ──────────────────────────────────────────────
-  { value: 'activities,announcements,resources', labelKey: 'all_activities', label: 'Activities (merged)', groupBy: ['classId', 'programId', 'subjectId', 'userId', 'createdBy', 'date'] },
-
-  // ── Single collections ────────────────────────────────────────────────────
-  { value: 'announcements',           labelKey: 'announcements',            groupBy: ['classId', 'programId', 'userId', 'createdBy', 'date'] },
-  { value: 'resources',               labelKey: 'resources',                groupBy: ['classId', 'programId', 'subjectId', 'userId', 'createdBy', 'date'] },
-  { value: 'attendance',              labelKey: 'attendance',               groupBy: ['attendanceType', 'classId', 'programId', 'studentId', 'createdBy', 'date'] },
-  { value: 'enrollments',             labelKey: 'enrollments',              groupBy: ['classId', 'programId', 'subjectId', 'createdBy', 'date'] },
-  { value: 'users',                   labelKey: 'users',                    groupBy: ['role', 'programId', 'createdBy', 'date'] },
-  { value: 'classes',                 labelKey: 'classes',                  groupBy: ['programId', 'term', 'year', 'createdBy'] },
-  { value: 'programs',                labelKey: 'programs',                 groupBy: ['createdBy'] },
-  { value: 'subjects',                labelKey: 'subjects',                 groupBy: ['programId', 'createdBy'] },
-  { value: 'penalties',               labelKey: 'penalties',                groupBy: ['penaltyType', 'classId', 'userId', 'createdBy', 'date'] },
-  { value: 'absences',                labelKey: 'absences',                 groupBy: ['absenceType', 'classId', 'userId', 'createdBy', 'date'] },
-  { value: 'behaviors',               labelKey: 'behaviors',                groupBy: ['classId', 'studentId', 'programId', 'subjectId', 'createdBy', 'date'] },
-  { value: 'participations',          labelKey: 'participations',           groupBy: ['classId', 'studentId', 'programId', 'subjectId', 'createdBy', 'date'] },
-  { value: 'activityLogs',            labelKey: 'activity_logs',            groupBy: ['userId', 'createdBy', 'date'] },
-];
+/** Re-export for backward compatibility */
+export { DATA_SOURCES } from '@constants/widgetDataSources';
 
 const GROUP_BY_KEYS = {
   status: 'gb_status', classId: 'gb_class', programId: 'gb_program',
@@ -36,6 +21,12 @@ const GROUP_BY_KEYS = {
   penaltyType: 'gb_penalty_type', absenceType: 'gb_absence_type',
   attendanceStatus: 'gb_status', attendanceType: 'gb_attendance_type', markType: 'gb_mark_type',
   studentId: 'gb_student', createdBy: 'Created By',
+  instructorName: 'gb_instructor', instructorId: 'gb_instructor',
+  classroomId: 'gb_classroom', roomName: 'gb_classroom',
+  subjectName: 'gb_subject', className: 'gb_class', programName: 'gb_program',
+  courseLabel: 'gb_course', breakType: 'gb_break_type', eventType: 'gb_event_type',
+  usageType: 'gb_usage_type', dayOfWeek: 'gb_day_of_week', type: 'gb_type',
+  startDate: 'gb_date', location: 'gb_location', primarySubject: 'gb_subject',
 };
 
 const AGGREGATION_KEYS = [
@@ -95,6 +86,7 @@ export const DEFAULT_WIDGET_CONFIG = {
 const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing = false, accentColor }) => {
   const { theme } = useTheme();
   const { t } = useLang();
+  const [sourceCategory, setSourceCategory] = useState('all');
 
   const getInputStyle = () => ({
     width: '100%',
@@ -110,25 +102,24 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
   if (!isOpen) return null;
 
   const isListWidget = config.chartType === 'list';
+  const isCountWidget = config.chartType === 'count';
 
-  // Restrict data sources for list widgets
-  const LIST_ALLOWED_SOURCES = [
-    'activities,announcements,resources',
-    'activities',
-    'participations',
-    'penalties',
-    'behaviors',
-    'users',
-    'enrollments',
-    'attendance'
-  ];
+  const availableDataSources = useMemo(
+    () => getSourcesForChartType(config.chartType, sourceCategory),
+    [config.chartType, sourceCategory],
+  );
 
-  const availableDataSources = isListWidget
-    ? DATA_SOURCES.filter(s => LIST_ALLOWED_SOURCES.includes(s.value))
-    : DATA_SOURCES;
+  const currentSource = availableDataSources.find(s => s.value === config.dataSource)
+    || getSourcesForChartType(config.chartType, 'all').find(s => s.value === config.dataSource)
+    || availableDataSources[0];
 
-  const currentSource = availableDataSources.find(s => s.value === config.dataSource) || availableDataSources[0];
-  const groupByOptions = currentSource.groupBy.map(v => ({ value: v, label: t(GROUP_BY_KEYS[v]) || v }));
+  const isStatSource = currentSource?.isStatSource || config.dataSource === 'schedulingOverviewStats';
+  const statOptions = currentSource?.stats || SCHEDULING_STAT_KEYS;
+  const groupByOptions = (currentSource?.groupBy || []).map(v => ({ value: v, label: t(GROUP_BY_KEYS[v]) || v }));
+  const valueFieldOptions = (currentSource?.valueFields || ['sessionCount', 'teachingHours']).map(v => ({
+    value: v,
+    label: t(`vf_${v}`) || v,
+  }));
 
   const set = (partial) => onChange(partial);
 
@@ -213,7 +204,20 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
             {CHART_TYPES.map(({ type, icon, label }) => (
               <div
                 key={type}
-                onClick={() => set({ chartType: type })}
+                onClick={() => {
+                  const nextSources = getSourcesForChartType(type, sourceCategory);
+                  const stillValid = nextSources.some(s => s.value === config.dataSource);
+                  const patch = { chartType: type };
+                  if (!stillValid && nextSources[0]) {
+                    patch.dataSource = nextSources[0].value;
+                    patch.groupBy = type === 'count' ? '' : (nextSources[0].groupBy?.[0] || '');
+                    if (nextSources[0].isStatSource) {
+                      patch.statKey = nextSources[0].stats?.[0]?.value || 'totalSessions';
+                    }
+                  }
+                  if (type === 'count') patch.groupBy = '';
+                  set(patch);
+                }}
                 style={{
                   padding: '12px 8px',
                   border: config.chartType === type ? `2px solid ${accentColor}` : '1px solid var(--border)',
@@ -246,19 +250,102 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
             ))}
           </div>
 
-          {/* Data Source */}
-          <Select
-            value={config.dataSource}
-            onChange={e => {
-              const newDataSource = e.target.value;
-              const source = availableDataSources.find(s => s.value === newDataSource);
-              // Only set groupBy if chart type is not count
-              const newGroupBy = config.chartType === 'count' ? '' : (source?.groupBy[0] || 'status');
-              set({ dataSource: newDataSource, groupBy: newGroupBy });
-            }}
-            options={availableDataSources.map(s => ({ value: s.value, label: t(s.labelKey) || s.label || s.value }))}
-            fullWidth
-          />
+          {/* Data source category tabs */}
+          <Field label={t('data_source') || 'Data Source'}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
+              {SOURCE_CATEGORIES.map((cat) => (
+                <div
+                  key={cat.id}
+                  onClick={() => setSourceCategory(cat.id)}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: 20,
+                    fontSize: 12,
+                    cursor: 'pointer',
+                    border: sourceCategory === cat.id ? `2px solid ${accentColor}` : '1px solid var(--border)',
+                    background: sourceCategory === cat.id ? `${accentColor}15` : 'transparent',
+                    color: sourceCategory === cat.id ? accentColor : 'var(--text)',
+                    fontWeight: sourceCategory === cat.id ? 600 : 400,
+                  }}
+                >
+                  {t(cat.labelKey) || cat.id}
+                </div>
+              ))}
+            </div>
+            <Select
+              value={config.dataSource}
+              onChange={e => {
+                const newDataSource = e.target.value;
+                const allSources = getSourcesForChartType(config.chartType, 'all');
+                const source = allSources.find(s => s.value === newDataSource);
+                const patch = { dataSource: newDataSource };
+                if (source?.isStatSource) {
+                  patch.groupBy = '';
+                  patch.statKey = source.stats?.[0]?.value || config.statKey || 'totalSessions';
+                } else {
+                  patch.groupBy = isCountWidget ? '' : (source?.groupBy?.[0] || 'status');
+                }
+                if (source?.valueFields?.length) {
+                  patch.valueField = source.valueFields[0];
+                }
+                set(patch);
+              }}
+              options={availableDataSources.map(s => ({ value: s.value, label: t(s.labelKey) || s.label || s.value }))}
+              placeholder={t('select_data_source') || 'Select a data source'}
+              fullWidth
+            />
+          </Field>
+
+          {/* Stat metric picker (scheduling count widgets) */}
+          {isCountWidget && isStatSource && (
+            <Field label={t('metric') || 'Metric'}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 8 }}>
+                {statOptions.map((stat) => (
+                  <div
+                    key={stat.value}
+                    onClick={() => set({ statKey: stat.value, titleKey: stat.labelKey })}
+                    style={{
+                      padding: '8px 10px',
+                      borderRadius: 6,
+                      cursor: 'pointer',
+                      fontSize: 12,
+                      textAlign: 'center',
+                      border: config.statKey === stat.value ? `2px solid ${accentColor}` : '1px solid var(--border)',
+                      background: config.statKey === stat.value ? `${accentColor}15` : 'transparent',
+                      color: config.statKey === stat.value ? accentColor : 'var(--text)',
+                    }}
+                  >
+                    {t(stat.labelKey) || stat.value}
+                  </div>
+                ))}
+              </div>
+            </Field>
+          )}
+
+          {/* Value field for sum aggregation on scheduling sources */}
+          {!isListWidget && !isCountWidget && currentSource?.valueFields?.length > 0 && (
+            <Field label={t('value_field') || 'Value Field'}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {valueFieldOptions.map((vf) => (
+                  <div
+                    key={vf.value}
+                    onClick={() => set({ valueField: vf.value, aggregation: 'sum' })}
+                    style={{
+                      padding: '8px 12px',
+                      borderRadius: 6,
+                      cursor: 'pointer',
+                      fontSize: 12,
+                      border: (config.valueField || 'sessionCount') === vf.value ? `2px solid ${accentColor}` : '1px solid var(--border)',
+                      background: (config.valueField || 'sessionCount') === vf.value ? `${accentColor}15` : 'transparent',
+                      color: (config.valueField || 'sessionCount') === vf.value ? accentColor : 'var(--text)',
+                    }}
+                  >
+                    {vf.label}
+                  </div>
+                ))}
+              </div>
+            </Field>
+          )}
 
           {/* Group By + Aggregation */}
           <div style={{ display: 'grid', gridTemplateColumns: isListWidget ? '1fr' : '1fr 1fr', gap: 12 }}>

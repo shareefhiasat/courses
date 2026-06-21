@@ -416,7 +416,44 @@ export const getWidgetCollections = (widget) => {
  * @param {number} comparisonOffset - 0 = current period, 1 = previous period
  */
 export const processWidgetData = (widget, rawData, globalFilters = {}, comparisonOffset = 0, t = null, lang = 'en') => {
-  const { dataSource, groupBy, aggregation = 'count', filters = [], dateRange, customDateFrom, customDateTo } = widget;
+  const { dataSource, groupBy, aggregation = 'count', filters = [], dateRange, customDateFrom, customDateTo, valueField = 'sessionCount' } = widget;
+
+  if (dataSource === 'schedulingOverviewStats') {
+    const stats = rawData.schedulingOverviewStats || {};
+    const statKey = widget.statKey || 'totalSessions';
+    const label = widget.titleKey && t
+      ? t(widget.titleKey)
+      : (widget.title || statKey);
+    return [{ label, value: stats[statKey] ?? 0 }];
+  }
+
+  if (dataSource?.startsWith('scheduling')) {
+    const dataset = rawData[dataSource] || [];
+    if (!groupBy || groupBy.trim() === '') {
+      if (aggregation === 'sum') {
+        const total = dataset.reduce((s, r) => s + (Number(r[valueField]) || Number(r.value) || 0), 0);
+        return [{ label: widget.title || 'Total', value: total }];
+      }
+      return [{ label: widget.title || 'Count', value: dataset.length }];
+    }
+    const map = new Map();
+    for (const row of dataset) {
+      const key = row[groupBy] ?? '—';
+      if (!map.has(key)) map.set(key, { label: String(key), value: 0 });
+      const entry = map.get(key);
+      if (aggregation === 'sum') {
+        entry.value += Number(row[valueField]) || 0;
+      } else if (aggregation === 'average') {
+        entry.value += Number(row[valueField]) || 0;
+        entry._count = (entry._count || 0) + 1;
+      } else {
+        entry.value += 1;
+      }
+    }
+    return [...map.values()]
+      .map((e) => (e._count ? { label: e.label, value: Math.round((e.value / e._count) * 10) / 10 } : e))
+      .sort((a, b) => b.value - a.value);
+  }
 
   // DEBUG: Log widget processing start with more details
   info(`[WIDGET DEBUG] 🎯 Processing: ${widget.title || 'Untitled'} (${dataSource}) - groupBy: "${groupBy}" - aggregation: ${aggregation}`);
