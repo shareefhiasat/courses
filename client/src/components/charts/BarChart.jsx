@@ -2,7 +2,7 @@ import React, { memo, useState, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useLang } from '@contexts/LangContext';
 import { getAcademicTermLabel, isValidAcademicTerm } from '@constants/academicTerms';
-import ChartBrushControls, { CHART_BRUSH_RESERVE } from './ChartBrushControls';
+import ChartBrushControls, { CHART_BRUSH_RESERVE, brushCompactDate } from './ChartBrushControls';
 import { useChartBrush, downsampleChartData, CHART_MAX_POINTS } from './useChartBrush';
 import { CHART_LABEL_SHADOW, CHART_LABEL_FILL } from './chartLabelStyles';
 
@@ -39,11 +39,6 @@ function isTimelineData(items) {
   if (!items?.length) return false;
   const sample = items.slice(0, 3).map((d) => String(d.label || d.date || ''));
   return sample.some((s) => /^\d{4}-\d{2}-\d{2}/.test(s));
-}
-
-function truncateLabel(text, max = 14) {
-  const s = String(text || '');
-  return s.length > max ? `${s.slice(0, max - 1)}…` : s;
 }
 
 function BarChart({ data = [], size = { width: 400, height: 300 }, horizontal = false, showValues = true, showGrid = true, accentColor = '#800020' }) {
@@ -241,10 +236,7 @@ function BarChart({ data = [], size = { width: 400, height: 300 }, horizontal = 
                   transform={`rotate(-90, ${bar.labelX}, ${bar.labelY})`}
                 >
                   <title>{bar.primary}</title>
-                  {truncateLabel(
-                    bar.primary,
-                    isTimeline && isZoomed ? 24 : (lang === 'ar' ? 18 : 12),
-                  )}
+                  {isTimeline && isZoomed ? brushCompactDate(bar.primary) : bar.primary}
                 </text>
               );
             })}

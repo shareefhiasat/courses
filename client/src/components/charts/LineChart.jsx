@@ -1,6 +1,6 @@
 import React, { memo, useRef } from 'react';
 import { useLang } from '@contexts/LangContext';
-import ChartBrushControls, { CHART_BRUSH_RESERVE } from './ChartBrushControls';
+import ChartBrushControls, { CHART_BRUSH_RESERVE, brushCompactDate } from './ChartBrushControls';
 import { CHART_LABEL_SHADOW, CHART_LABEL_FILL } from './chartLabelStyles';
 import { useChartBrush, downsampleChartData, CHART_MAX_POINTS } from './useChartBrush';
 
@@ -126,7 +126,7 @@ function LineChart({ data = [], size = { width: 400, height: 300 }, accentColor 
                 style={CHART_LABEL_SHADOW}
                 transform={`rotate(-40, ${p.x}, ${padding.top + plotH + 20})`}
               >
-                {p.label}
+                {/^\d{4}-\d{2}-\d{2}/.test(String(p.label || '')) ? brushCompactDate(p.label) : p.label}
               </text>
             )}
           </g>
