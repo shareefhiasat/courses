@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Clock, CheckCircle2, AlertCircle, CalendarDays } from 'lucide-react';
 import {
   checkDefinedAvailability,
@@ -96,6 +97,7 @@ export default function SchedulingAvailabilityPanel({
   lang,
   onApplySuggestedSlot
 }) {
+  const navigate = useNavigate();
   const instructorRecords = useMemo(
     () => getActiveRecordsForEntity(instructorAvailabilities, instructorId, 'instructorUserId'),
     [instructorAvailabilities, instructorId]
@@ -117,9 +119,18 @@ export default function SchedulingAvailabilityPanel({
 
   return (
     <div style={{ marginBottom: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-      <div style={{ fontSize: '0.875rem', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.375rem', color: theme === 'dark' ? '#e5e7eb' : '#374151' }}>
-        <CalendarDays size={16} />
-        {t('defined_availability')}
+      <div style={{ fontSize: '0.875rem', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.375rem', color: theme === 'dark' ? '#e5e7eb' : '#374151' }}>
+        <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+          <CalendarDays size={16} />
+          {t('defined_availability')}
+        </span>
+        <button
+          type="button"
+          onClick={() => navigate(instructorId ? `/summary-dashboard?instructorId=${instructorId}` : '/summary-dashboard')}
+          style={{ fontSize: '0.75rem', background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', textDecoration: 'underline' }}
+        >
+          {t('view_summary') || 'View Summary'}
+        </button>
       </div>
 
       {instructorId && (

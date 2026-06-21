@@ -661,6 +661,7 @@ model User {
   scopedInstructorFor            AdminScope[]               @relation("InstructorAdminScope")
   userCategoryAccess             UserCategoryAccess[]       @relation("UserCategoryAccess")
   flexibleInstructorSessions     FlexibleScheduleSession[] @relation("FlexibleInstructorSessions")
+  breakSessions                  BreakSession[]             @relation("InstructorBreakSessions")
   instructorAvailability         InstructorAvailability[]   @relation("InstructorAvailability")
   createdInstructorAvailability  InstructorAvailability[]  @relation("InstructorAvailabilityCreator")
   updatedInstructorAvailability  InstructorAvailability[]  @relation("InstructorAvailabilityUpdater")
@@ -712,6 +713,7 @@ model Program {
   schedulingHolidays   Holiday[]            @relation("SchedulingHolidays")
   adminScopes         AdminScope[]          @relation("ProgramAdminScope")
   flexibleSessions    FlexibleScheduleSession[] @relation("FlexibleProgramSessions")
+  breakSessions       BreakSession[]           @relation("ProgramBreakSessions")
   category            CategoryTypes?       @relation("ProgramCategory", fields: [categoryId], references: [id])
   userCategoryAccesses UserCategoryAccess[] @relation("UserCategoryAccessProgram")
   instructorAvailabilities InstructorAvailability[] @relation("InstructorAvailabilityProgram")
@@ -1827,6 +1829,7 @@ model Classroom {
   scheduleSessions     ScheduleSession[] @relation("ClassroomScheduleSessions")
   adminScopes          AdminScope[]     @relation("ClassroomAdminScope")
   flexibleSessions     FlexibleScheduleSession[] @relation("FlexibleClassroomSessions")
+  breakSessions        BreakSession[]            @relation("ClassroomBreakSessions")
   classroomAvailability ClassroomAvailability[] @relation("ClassroomAvailability")
   defaultForClasses    Class[]          @relation("ClassDefaultClassroom")
   scheduledSessions    ScheduledSession[] @relation("ScheduledSessionClassroom")
@@ -1857,9 +1860,39 @@ model TimeSlot {
   program         Program          @relation("SchedulingTimeSlots", fields: [programId], references: [id])
   scheduleSessions ScheduleSession[] @relation("TimeSlotScheduleSessions")
   flexibleSessions FlexibleScheduleSession[] @relation("FlexibleTimeSlotSessions")
+  breakSessions    BreakSession[]            @relation("TimeSlotBreakSessions")
 
   @@unique([programId, sortOrder])
   @@map("time_slots")
+}
+
+model BreakSession {
+  id                Int      @id @default(autoincrement())
+  programId         Int
+  instructorUserId  Int?
+  classroomId       Int?
+  timeSlotId        Int
+  date              DateTime
+  breakType         String   // TeaBreak, PrayerBreak, LunchBreak, Other
+  notes             String?
+  isRecurring       Boolean  @default(false)
+  recurrencePattern String?
+  isActive          Boolean  @default(true)
+  createdBy         Int?
+  updatedBy         Int?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  program    Program    @relation("ProgramBreakSessions", fields: [programId], references: [id])
+  instructor User?      @relation("InstructorBreakSessions", fields: [instructorUserId], references: [id])
+  classroom  Classroom? @relation("ClassroomBreakSessions", fields: [classroomId], references: [id])
+  timeSlot   TimeSlot   @relation("TimeSlotBreakSessions", fields: [timeSlotId], references: [id])
+
+  @@unique([timeSlotId, date, instructorUserId, classroomId])
+  @@index([date])
+  @@index([instructorUserId, date])
+  @@index([classroomId, date])
+  @@map("break_sessions")
 }
 
 model Holiday {

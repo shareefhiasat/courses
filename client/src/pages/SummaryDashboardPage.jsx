@@ -1,404 +1,398 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
-import { info, error, warn, debug } from '@logger';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
-import { Button, SimpleLoading, useToast, Card, CardBody, Select } from '@ui';
-import { pickInstructorName } from '@utils/pickLocalizedName';
+import { usePermissions } from '@hooks/usePermissions';
+import { useDataScope } from '@hooks/useDataScope';
+import { Button, SimpleLoading, useToast, Card, CardBody } from '@ui';
+import schedulingSummaryService from '@services/business/schedulingSummaryService';
+import AutoRefreshBar from '@components/scheduling/summary/AutoRefreshBar';
+import TimeRangeSelector from '@components/scheduling/summary/TimeRangeSelector';
+import ReportFilterBar from '@components/scheduling/summary/ReportFilterBar';
+import EffortReportView from '@components/scheduling/summary/EffortReportView';
+import EffortReportExport from '@components/scheduling/summary/EffortReportExport';
+import BreakSessionTimeline from '@components/scheduling/summary/BreakSessionTimeline';
+import BreakTypeDistributionCard from '@components/scheduling/summary/BreakTypeDistributionCard';
+import UpcomingHolidaysList from '@components/scheduling/summary/UpcomingHolidaysList';
+import HolidayImpactCard from '@components/scheduling/summary/HolidayImpactCard';
+import TeacherEffortSummary from '@components/scheduling/summary/TeacherEffortSummary';
+import TeacherSubjectDistribution from '@components/scheduling/summary/TeacherSubjectDistribution';
+import TeacherEffortExport from '@components/scheduling/summary/TeacherEffortExport';
+import BreakSessionModal from '@components/scheduling/summary/BreakSessionModal';
+import SchedulingOverviewPanel from '@components/scheduling/SchedulingOverviewPanel';
+import CollapsibleSection from '@components/scheduling/CollapsibleSection';
+import {
+  CalendarDays, Coffee, User, DoorOpen, BarChart3, Palmtree,
+} from 'lucide-react';
+import { getAllUsers, getUserRoles } from '@services/business/userService';
+import { getAllSubjects } from '@services/business/subjectService';
+import { getAllClasses } from '@services/business/classService';
+import { getAccessibleProgramsForUser } from '@services/business/userCategoryAccessService';
+import { getAllPrograms } from '@services/business/programService';
+import timeSlotBusinessService from '@services/business/timeSlotBusinessService';
+import {
+  buildSchedulingOverviewCards,
+  buildInstructorOverviewCards,
+} from '@utils/schedulingOverviewCards';
 
 const SummaryDashboardPage = () => {
   const { user, isAdmin, isHR, isSuperAdmin, isInstructor } = useAuth();
-  const { t, lang, isRTL } = useLang();
+  const { t, isRTL } = useLang();
   const { theme } = useTheme();
   const toast = useToast();
-  
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const { canAccessScreen, hasPermission } = usePermissions();
+  const { scope } = useDataScope();
+
+  const prefilterInstructor = searchParams.get('instructorId');
+  const isSelfView = isInstructor && !isAdmin && !isHR && !isSuperAdmin;
+  const dbUserId = user?.dbId;
+
   const [dashboardData, setDashboardData] = useState(null);
+  const [effortReport, setEffortReport] = useState(null);
+  const [teacherEffort, setTeacherEffort] = useState(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
-  const [selectedProgram, setSelectedProgram] = useState('');
+  const [loadError, setLoadError] = useState(null);
   const [accessiblePrograms, setAccessiblePrograms] = useState([]);
-  
-  // Load accessible programs based on category access
-  const loadAccessiblePrograms = useCallback(async () => {
+  const [subjects, setSubjects] = useState([]);
+  const [classes, setClasses] = useState([]);
+  const [instructors, setInstructors] = useState([]);
+  const [reportFilters, setReportFilters] = useState({
+    programId: '',
+    subjectId: '',
+    classId: '',
+    term: '',
+    year: '',
+    instructorId: prefilterInstructor || (isSelfView && dbUserId ? String(dbUserId) : ''),
+    reportFormat: 'summary',
+  });
+  const [timeRange, setTimeRange] = useState('year');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [refreshInterval, setRefreshInterval] = useState(30000);
+  const [breakModalOpen, setBreakModalOpen] = useState(false);
+  const [timeSlots, setTimeSlots] = useState([]);
+
+  const canView = canAccessScreen('summary-dashboard') || isAdmin || isHR || isSuperAdmin || isInstructor;
+  const canExport = hasPermission('summary-dashboard.canExport') || isSuperAdmin || isHR;
+  const activeInstructorId = isSelfView ? dbUserId : reportFilters.instructorId;
+  const isInstructorDetailView = Boolean(activeInstructorId);
+
+  const queryParams = useMemo(() => ({
+    programId: reportFilters.programId || undefined,
+    subjectId: reportFilters.subjectId || undefined,
+    classId: reportFilters.classId || undefined,
+    term: reportFilters.term || undefined,
+    year: reportFilters.year || undefined,
+    instructorId: activeInstructorId || undefined,
+    reportFormat: reportFilters.reportFormat || 'summary',
+    timeRange,
+    startDate: timeRange === 'custom' ? startDate : undefined,
+    endDate: timeRange === 'custom' ? endDate : undefined,
+  }), [reportFilters, timeRange, startDate, endDate, activeInstructorId]);
+
+  const loadPrograms = useCallback(async () => {
+    if (!dbUserId) return;
     try {
-      const response = await fetch('/api/v1/user-category-access/user/:userId/programs'.replace(':userId', user.id));
-      const result = await response.json();
-      
-      if (result.success) {
-        setAccessiblePrograms(result.data);
-        if (result.data.length > 0) {
-          setSelectedProgram(result.data[0].id.toString());
+      let programs = [];
+      if (scope.unrestricted || isSuperAdmin || isAdmin || isHR) {
+        const result = await getAllPrograms();
+        if (result?.success) programs = result.data || [];
+      } else {
+        const result = await getAccessibleProgramsForUser(dbUserId);
+        if (result.success) programs = result.data || [];
+        if (scope.programIds?.length) {
+          const allowed = new Set(scope.programIds.map(Number));
+          programs = programs.filter((p) => allowed.has(Number(p.id)));
         }
       }
-    } catch (error) {
-      console.error('Error loading accessible programs:', error);
+      setAccessiblePrograms(programs);
+    } catch (err) {
+      console.error('Error loading programs:', err);
     }
-  }, [user.id]);
-  
-  // Load dashboard data
-  const loadDashboardData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  }, [dbUserId, scope.unrestricted, scope.programIds, isSuperAdmin, isAdmin, isHR]);
+
+  const loadLookupData = useCallback(async () => {
     try {
-      const result = await dashboardBusinessService.getDashboardSummary(selectedProgram);
-      
-      if (result.success) {
-        setDashboardData(result.data);
-      } else {
-        setError(result.error);
-        toast.error(result.error || t('failed_to_load_dashboard') || 'Failed to load dashboard');
+      const [subjRes, classRes, userRes] = await Promise.all([
+        getAllSubjects(),
+        getAllClasses(),
+        isSelfView ? Promise.resolve(null) : getAllUsers({ excludeStudents: true }),
+      ]);
+      if (subjRes?.data) setSubjects(subjRes.data);
+      if (classRes?.data) setClasses(classRes.data);
+      if (userRes?.data) {
+        const instructorList = userRes.data.filter((u) => {
+          const roles = getUserRoles(u);
+          return roles.includes('instructor') || roles.includes('INSTRUCTOR');
+        });
+        setInstructors(instructorList);
       }
-    } catch (error) {
-      setError(error.message);
-      toast.error(error.message || t('failed_to_load_dashboard') || 'Failed to load dashboard');
+    } catch (err) {
+      console.error('Error loading lookup data:', err);
+    }
+  }, [isSelfView]);
+
+  useEffect(() => {
+    if (isSelfView && dbUserId) {
+      setReportFilters((f) => ({ ...f, instructorId: String(dbUserId) }));
+    }
+  }, [isSelfView, dbUserId]);
+
+  const loadAll = useCallback(async () => {
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const [summaryRes, reportRes] = await Promise.all([
+        schedulingSummaryService.getSchedulingSummary(queryParams),
+        schedulingSummaryService.getEffortReport(queryParams),
+      ]);
+
+      if (summaryRes.success) setDashboardData(summaryRes.data);
+      else {
+        setLoadError(summaryRes.error);
+        toast.error(summaryRes.error || t('failed_to_load_dashboard'));
+      }
+
+      if (reportRes.success) setEffortReport(reportRes.data);
+      else if (!summaryRes.success) setLoadError(reportRes.error);
+
+      if (activeInstructorId) {
+        const effortRes = await schedulingSummaryService.getTeacherEffort(activeInstructorId, queryParams);
+        if (effortRes.success) setTeacherEffort(effortRes.data);
+      } else {
+        setTeacherEffort(null);
+      }
+    } catch (err) {
+      setLoadError(err.message);
+      toast.error(err.message);
     } finally {
       setLoading(false);
     }
-  }, [toast, t, selectedProgram]);
-  
-  // Load data on mount
+  }, [queryParams, toast, t, activeInstructorId]);
+
+  useEffect(() => { if (dbUserId) loadPrograms(); }, [dbUserId, loadPrograms]);
+  useEffect(() => { loadLookupData(); }, [loadLookupData]);
   useEffect(() => {
-    loadAccessiblePrograms();
-  }, [loadAccessiblePrograms]);
-  
+    if (canView) loadAll();
+  }, [canView, loadAll]);
+
   useEffect(() => {
-    if (selectedProgram) {
-      loadDashboardData();
+    if (prefilterInstructor) {
+      setReportFilters((f) => ({ ...f, instructorId: prefilterInstructor }));
     }
-  }, [loadDashboardData, selectedProgram]);
-  
-  // Program options
-  const programOptions = useMemo(() => {
-    return [
-      { value: '', label: t('all_programs') || 'All Programs' },
-      ...accessiblePrograms.map(program => ({
-        value: program.id.toString(),
-        label: isRTL ? `${program.nameAr || program.nameEn} (${program.code})` : `${program.nameEn} (${program.code})`
-      }))
-    ];
-  }, [accessiblePrograms, isRTL, t]);
-  
-  // Check permissions
-  const hasPermission = isAdmin || isHR || isSuperAdmin;
-  
-  if (!hasPermission) {
+  }, [prefilterInstructor]);
+
+  useEffect(() => {
+    const pid = reportFilters.programId;
+    if (!pid) { setTimeSlots([]); return; }
+    (async () => {
+      const result = await timeSlotBusinessService.getAllTimeSlots({ programId: pid, isBreak: true });
+      if (result.success) setTimeSlots(result.data || []);
+    })();
+  }, [reportFilters.programId]);
+
+  const overviewStats = useMemo(() => {
+    const base = dashboardData?.overview || {};
+    if (isInstructorDetailView && teacherEffort) {
+      return {
+        ...base,
+        totalSessions: teacherEffort.sessionCount ?? effortReport?.totals?.sessionCount ?? 0,
+        teachingHours: teacherEffort.teachingHours ?? 0,
+        subjectCount: teacherEffort.subjectCount ?? 0,
+        classCount: teacherEffort.classCount ?? 0,
+        scheduledCount: teacherEffort.scheduledCount ?? base.scheduledCount,
+        completedCount: teacherEffort.completedCount ?? base.completedCount,
+        cancelledCount: teacherEffort.cancelledCount ?? base.cancelledCount,
+      };
+    }
+    if (effortReport?.totals) {
+      return {
+        ...base,
+        totalSessions: effortReport.totals.sessionCount ?? base.totalSessions,
+      };
+    }
+    return base;
+  }, [dashboardData, effortReport, teacherEffort, isInstructorDetailView]);
+
+  const overviewCards = useMemo(() => {
+    if (isInstructorDetailView && teacherEffort) {
+      const name = isRTL ? teacherEffort.teacher?.instructorNameAr : teacherEffort.teacher?.instructorName;
+      return buildInstructorOverviewCards({
+        totalSessions: teacherEffort.sessionCount,
+        teachingHours: teacherEffort.teachingHours,
+        subjectCount: teacherEffort.subjectCount,
+        classCount: teacherEffort.classCount,
+        scheduledCount: overviewStats.scheduledCount,
+        completedCount: overviewStats.completedCount,
+        cancelledCount: overviewStats.cancelledCount,
+      }, t, name);
+    }
+    return buildSchedulingOverviewCards(overviewStats, t);
+  }, [isInstructorDetailView, teacherEffort, overviewStats, t, isRTL]);
+
+  const handleTimeRangeChange = (patch) => {
+    if (patch.timeRange) setTimeRange(patch.timeRange);
+    if (patch.startDate !== undefined) setStartDate(patch.startDate);
+    if (patch.endDate !== undefined) setEndDate(patch.endDate);
+  };
+
+  const muted = theme === 'dark' ? '#9ca3af' : '#6b7280';
+  const border = theme === 'dark' ? '#374151' : '#e5e7eb';
+
+  const quickActions = (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.375rem' }}>
+      <Button variant="outline" size="sm" onClick={() => navigate('/scheduling-calendar')} title={t('view_schedule')} aria-label={t('view_schedule')}>
+        <CalendarDays size={16} />
+      </Button>
+      <Button variant="outline" size="sm" onClick={() => setBreakModalOpen(true)} title={t('manage_break_sessions')} aria-label={t('manage_break_sessions')}>
+        <Coffee size={16} />
+      </Button>
+      <Button variant="outline" size="sm" onClick={() => navigate('/instructor-availability')} title={t('manage_instructor_availability')} aria-label={t('manage_instructor_availability')}>
+        <User size={16} />
+      </Button>
+      <Button variant="outline" size="sm" onClick={() => navigate('/classroom-availability')} title={t('manage_room_availability')} aria-label={t('manage_room_availability')}>
+        <DoorOpen size={16} />
+      </Button>
+    </div>
+  );
+
+  if (!canView) {
     return (
       <div style={{ padding: '2rem', textAlign: 'center' }}>
-        <div style={{ fontSize: '1.125rem', fontWeight: '500', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
-          {t('access_denied') || 'Access Denied'}
-        </div>
-        <div style={{ fontSize: '0.875rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '0.5rem' }}>
-          {t('dashboard_permission_required') || 'You need admin or HR privileges to view the dashboard.'}
-        </div>
+        <div style={{ fontSize: '1.125rem', fontWeight: 500 }}>{t('access_denied')}</div>
+        <div style={{ fontSize: '0.875rem', color: muted, marginTop: '0.5rem' }}>{t('dashboard_permission_required')}</div>
       </div>
     );
   }
-  
+
   return (
-    <div style={{ padding: '1rem' }}>
-      {/* Header */}
-      <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+    <div style={{ padding: '1rem' }} data-testid="summary-dashboard-page">
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', marginBottom: '1rem', flexWrap: 'wrap' }}>
         <div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: '600', marginBottom: '0.5rem' }}>
-            {t('summary_dashboard') || 'Summary Dashboard'}
-          </h1>
-          <p style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
-            {t('dashboard_welcome') || `Welcome back, ${user?.displayName || user?.firstName || 'User'}`}
+          <h1 style={{ fontSize: '1.5rem', fontWeight: 600, marginBottom: '0.25rem' }}>{t('summary_dashboard')}</h1>
+          <p style={{ color: muted, margin: 0 }}>
+            {isInstructorDetailView
+              ? (t('instructor_effort_view') || 'Instructor effort view')
+              : (t('organization_effort_view') || 'Organization-wide scheduling summary')}
           </p>
         </div>
-        
-        {/* Program Selector */}
-        {accessiblePrograms.length > 0 && (
-          <div style={{ minWidth: '250px' }}>
-            <Select
-              value={selectedProgram}
-              onChange={(e) => setSelectedProgram(e.target.value)}
-              options={programOptions}
-              style={{ width: '100%' }}
-            />
-          </div>
-        )}
+        {quickActions}
       </div>
-      
+
+      <ReportFilterBar
+        programs={accessiblePrograms}
+        subjects={subjects}
+        classes={classes}
+        instructors={instructors}
+        filters={reportFilters}
+        onChange={setReportFilters}
+        showInstructor={!isSelfView}
+        isRTL={isRTL}
+        defaultOpen
+      />
+
+      <AutoRefreshBar onRefresh={loadAll} intervalMs={refreshInterval} onIntervalChange={setRefreshInterval} />
+      <TimeRangeSelector
+        timeRange={timeRange}
+        startDate={startDate}
+        endDate={endDate}
+        onChange={handleTimeRangeChange}
+        onApply={loadAll}
+      />
+
       {loading ? (
         <SimpleLoading />
-      ) : error ? (
-        <div style={{ padding: '1rem', color: 'red' }}>
-          {error}
+      ) : loadError ? (
+        <div style={{ padding: '1rem', color: '#ef4444' }}>
+          <p>{loadError}</p>
         </div>
-      ) : dashboardData ? (
+      ) : (
         <>
-          {/* Quick Stats Row */}
-          <div style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
-            gap: '1rem', 
-            marginBottom: '1.5rem' 
-          }}>
-            {/* Total Teachers */}
-            <Card>
-              <CardBody>
-                <div style={{ fontSize: '0.875rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginBottom: '0.25rem' }}>
-                  {t('total_teachers') || 'Total Teachers'}
-                </div>
-                <div style={{ fontSize: '1.5rem', fontWeight: '600', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
-                  {dashboardData.totalTeachers || 0}
-                </div>
-                <div style={{ fontSize: '0.75rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
-                  {dashboardData.activeTeachers || 0} {t('active') || 'active'}
-                </div>
-              </CardBody>
-            </Card>
-            
-            {/* Subjects */}
-            <Card>
-              <CardBody>
-                <div style={{ fontSize: '0.875rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginBottom: '0.25rem' }}>
-                  {t('subjects') || 'Subjects'}
-                </div>
-                <div style={{ fontSize: '1.5rem', fontWeight: '600', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
-                  {dashboardData.totalSubjects || 0}
-                </div>
-                <div style={{ fontSize: '0.75rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
-                  {dashboardData.totalCategories || 0} {t('categories') || 'categories'}
-                </div>
-              </CardBody>
-            </Card>
-            
-            {/* Classrooms */}
-            <Card>
-              <CardBody>
-                <div style={{ fontSize: '0.875rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginBottom: '0.25rem' }}>
-                  {t('classrooms') || 'Classrooms'}
-                </div>
-                <div style={{ fontSize: '1.5rem', fontWeight: '600', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
-                  {dashboardData.totalClassrooms || 0}
-                </div>
-                <div style={{ fontSize: '0.75rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
-                  {dashboardData.availableClassrooms || 0} {t('available') || 'available'}
-                </div>
-              </CardBody>
-            </Card>
-            
-            {/* This Week Sessions */}
-            <Card>
-              <CardBody>
-                <div style={{ fontSize: '0.875rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginBottom: '0.25rem' }}>
-                  {t('this_week_sessions') || 'This Week Sessions'}
-                </div>
-                <div style={{ fontSize: '1.5rem', fontWeight: '600', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
-                  {dashboardData.weekSessions || 0}
-                </div>
-              </CardBody>
-            </Card>
-            
-            {/* This Month Sessions */}
-            <Card>
-              <CardBody>
-                <div style={{ fontSize: '0.875rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginBottom: '0.25rem' }}>
-                  {t('this_month_sessions') || 'This Month Sessions'}
-                </div>
-                <div style={{ fontSize: '1.5rem', fontWeight: '600', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
-                  {dashboardData.monthSessions || 0}
-                </div>
-              </CardBody>
-            </Card>
-            
-            {/* This Year Sessions */}
-            <Card>
-              <CardBody>
-                <div style={{ fontSize: '0.875rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginBottom: '0.25rem' }}>
-                  {t('this_year_sessions') || 'This Year Sessions'}
-                </div>
-                <div style={{ fontSize: '1.5rem', fontWeight: '600', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
-                  {dashboardData.yearSessions || 0}
-                </div>
-              </CardBody>
-            </Card>
-          </div>
-          
-          {/* Main Content Grid */}
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '1.5rem' }}>
-            {/* Today's Schedule */}
-            <Card>
-              <CardBody>
-                <h3 style={{ fontSize: '1.125rem', fontWeight: '500', marginBottom: '1rem' }}>
-                  {t('today_schedule') || "Today's Schedule"}
-                </h3>
-                <div style={{ fontSize: '0.875rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginBottom: '0.5rem' }}>
-                  {new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}
-                </div>
-                {dashboardData.todaySchedule && dashboardData.todaySchedule.length > 0 ? (
-                  <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
-                    {dashboardData.todaySchedule.map((session, index) => (
-                      <div
-                        key={index}
-                        style={{
-                          padding: '0.75rem',
-                          borderBottom: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`,
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center'
-                        }}
-                      >
-                        <div>
-                          <div style={{ fontWeight: '500', fontSize: '0.875rem' }}>
-                            {isRTL ? session.subject?.nameAr : session.subject?.nameEn}
-                          </div>
-                          <div style={{ fontSize: '0.75rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
-                            {session.program?.nameEn} | {session.classroom?.nameEn || t('no_classroom') || 'No Classroom'}
-                          </div>
+          {overviewCards.length > 0 && (
+            <SchedulingOverviewPanel
+              title={isInstructorDetailView ? (t('instructor_overview') || 'Instructor Overview') : (t('scheduling_overview') || 'Scheduling Overview')}
+              stats={overviewStats}
+              cards={overviewCards}
+              defaultOpen
+            />
+          )}
+
+          <CollapsibleSection
+            title={isInstructorDetailView ? (t('teacher_effort_report') || 'Teacher Effort') : (t('organization_effort_report') || 'Organization Effort Report')}
+            summary={`${effortReport?.totals?.sessionCount ?? 0} ${t('sessions')} · ${effortReport?.totals?.teacherCount ?? 0} ${t('total_teachers')}`}
+            icon={BarChart3}
+            defaultOpen
+            testId="effort-report-section"
+          >
+            <EffortReportExport report={effortReport} canExport={canExport} />
+            <EffortReportView report={effortReport} isRTL={isRTL} hideStatCards />
+          </CollapsibleSection>
+
+          {isInstructorDetailView && teacherEffort && (
+            <CollapsibleSection
+              title={t('instructor_detail') || 'Instructor Detail'}
+              summary={isRTL ? teacherEffort.teacher?.instructorNameAr : teacherEffort.teacher?.instructorName}
+              icon={User}
+              defaultOpen
+              testId="instructor-detail-section"
+            >
+              <TeacherEffortExport
+                teacherId={String(activeInstructorId)}
+                params={queryParams}
+                effort={teacherEffort}
+                canExport={canExport}
+              />
+              <TeacherEffortSummary effort={teacherEffort} />
+              <TeacherSubjectDistribution effort={teacherEffort} />
+            </CollapsibleSection>
+          )}
+
+          {dashboardData && (
+            <CollapsibleSection
+              title={t('breaks_and_holidays') || 'Breaks & Holidays'}
+              summary={`${dashboardData.breakSessions?.length ?? 0} ${t('breaks')} · ${dashboardData.holidays?.length ?? 0} ${t('holidays')}`}
+              icon={Palmtree}
+              defaultOpen={false}
+              testId="breaks-holidays-section"
+            >
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
+                <Card>
+                  <CardBody>
+                    <h3 style={{ fontSize: '1rem', fontWeight: 500, marginBottom: '0.75rem' }}>{t('today_schedule')}</h3>
+                    {dashboardData.todaySchedule?.length > 0 ? (
+                      dashboardData.todaySchedule.map((session, index) => (
+                        <div key={index} style={{ padding: '0.5rem 0', borderBottom: `1px solid ${border}`, fontSize: '0.875rem' }}>
+                          {isRTL ? session.subject?.nameAr : session.subject?.nameEn || '—'}
+                          {' · '}{session.timeSlot?.startTime}–{session.timeSlot?.endTime}
                         </div>
-                        <div style={{ textAlign: 'right' }}>
-                          <div style={{ fontSize: '0.875rem', fontWeight: '500' }}>
-                            {session.timeSlot?.startTime} - {session.timeSlot?.endTime}
-                          </div>
-                          <div style={{ fontSize: '0.75rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
-                            {session.instructor?.displayName || session.instructor?.firstName}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div style={{ padding: '2rem', textAlign: 'center', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
-                    {t('no_sessions_today') || 'No sessions today'}
-                  </div>
-                )}
-              </CardBody>
-            </Card>
-            
-            {/* Side Widgets */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-              {/* Upcoming Holidays */}
-              <Card>
-                <CardBody>
-                  <h3 style={{ fontSize: '1.125rem', fontWeight: '500', marginBottom: '1rem' }}>
-                    {t('upcoming_holidays') || 'Upcoming Holidays'}
-                  </h3>
-                  {dashboardData.holidays && dashboardData.holidays.length > 0 ? (
-                    <div style={{ maxHeight: '150px', overflowY: 'auto' }}>
-                      {dashboardData.holidays.map((holiday, index) => (
-                        <div
-                          key={index}
-                          style={{
-                            padding: '0.5rem',
-                            borderBottom: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`,
-                            fontSize: '0.875rem'
-                          }}
-                        >
-                          <div style={{ fontWeight: '500' }}>
-                            {isRTL ? holiday.descriptionAr : holiday.descriptionEn}
-                          </div>
-                          <div style={{ fontSize: '0.75rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
-                            {new Date(holiday.startDate).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div style={{ padding: '1rem', textAlign: 'center', color: theme === 'dark' ? '#9ca3af' : '#6b7280', fontSize: '0.875rem' }}>
-                      {t('no_upcoming_holidays') || 'No upcoming holidays'}
-                    </div>
-                  )}
-                </CardBody>
-              </Card>
-              
-              {/* Quick Actions */}
-              <Card>
-                <CardBody>
-                  <h3 style={{ fontSize: '1.125rem', fontWeight: '500', marginBottom: '1rem' }}>
-                    {t('quick_actions') || 'Quick Actions'}
-                  </h3>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                    <Button variant="outline" style={{ width: '100%' }} onClick={() => window.location.href = '/flexible-schedule'}>
-                      {t('view_schedule') || 'View Full Schedule'}
-                    </Button>
-                    <Button variant="outline" style={{ width: '100%' }} onClick={() => window.location.href = '/instructor-availability'}>
-                      {t('manage_instructor_availability') || 'Manage Instructor Availability'}
-                    </Button>
-                    <Button variant="outline" style={{ width: '100%' }} onClick={() => window.location.href = '/classroom-availability'}>
-                      {t('manage_room_availability') || 'Manage Room Availability'}
-                    </Button>
-                    {isSuperAdmin && (
-                      <Button variant="outline" style={{ width: '100%' }} onClick={() => window.location.href = '/user-category-access'}>
-                        {t('manage_category_access') || 'Manage Category Access'}
-                      </Button>
+                      ))
+                    ) : (
+                      <p style={{ color: muted, textAlign: 'center' }}>{t('no_sessions_today')}</p>
                     )}
-                  </div>
-                </CardBody>
-              </Card>
-            </div>
-          </div>
-          
-          {/* Teacher Load & Subject Sessions */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginTop: '1.5rem' }}>
-            {/* Teacher Load */}
-            <Card>
-              <CardBody>
-                <h3 style={{ fontSize: '1.125rem', fontWeight: '500', marginBottom: '1rem' }}>
-                  {t('teacher_load_month') || 'Teacher Load (This Month)'}
-                </h3>
-                {dashboardData.teacherLoad && dashboardData.teacherLoad.length > 0 ? (
-                  <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
-                    {dashboardData.teacherLoad.map((item, index) => (
-                      <div
-                        key={index}
-                        style={{
-                          padding: '0.5rem',
-                          borderBottom: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`,
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          fontSize: '0.875rem'
-                        }}
-                      >
-                        <span>{pickInstructorName(item, item.instructor, lang, item.instructorName)}</span>
-                        <span style={{ fontWeight: '500' }}>{item.sessionCount} {t('sessions') || 'sessions'}</span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div style={{ padding: '1rem', textAlign: 'center', color: theme === 'dark' ? '#9ca3af' : '#6b7280', fontSize: '0.875rem' }}>
-                    {t('no_teacher_data') || 'No teacher data available'}
-                  </div>
-                )}
-              </CardBody>
-            </Card>
-            
-            {/* Subject Sessions */}
-            <Card>
-              <CardBody>
-                <h3 style={{ fontSize: '1.125rem', fontWeight: '500', marginBottom: '1rem' }}>
-                  {t('subject_sessions_month') || 'Subject Sessions (This Month)'}
-                </h3>
-                {dashboardData.subjectSessions && dashboardData.subjectSessions.length > 0 ? (
-                  <div style={{ maxHeight: '200px', overflowY: 'auto' }}>
-                    {dashboardData.subjectSessions.map((item, index) => (
-                      <div
-                        key={index}
-                        style={{
-                          padding: '0.5rem',
-                          borderBottom: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`,
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          fontSize: '0.875rem'
-                        }}
-                      >
-                        <span>{isRTL ? item.subjectNameAr : item.subjectNameEn}</span>
-                        <span style={{ fontWeight: '500' }}>{item.sessionCount} {t('sessions') || 'sessions'}</span>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div style={{ padding: '1rem', textAlign: 'center', color: theme === 'dark' ? '#9ca3af' : '#6b7280', fontSize: '0.875rem' }}>
-                    {t('no_subject_data') || 'No subject data available'}
-                  </div>
-                )}
-              </CardBody>
-            </Card>
-          </div>
+                  </CardBody>
+                </Card>
+                <BreakSessionTimeline breaks={dashboardData.breakSessions} />
+                <UpcomingHolidaysList holidays={dashboardData.holidays} />
+                <HolidayImpactCard impact={dashboardData.holidayImpact} />
+                <BreakTypeDistributionCard distribution={dashboardData.breakTypeDistribution} />
+              </div>
+            </CollapsibleSection>
+          )}
+
+          <BreakSessionModal
+            open={breakModalOpen}
+            onClose={() => setBreakModalOpen(false)}
+            onSaved={loadAll}
+            programId={reportFilters.programId}
+            programs={accessiblePrograms}
+            timeSlots={timeSlots}
+            instructors={instructors}
+          />
         </>
-      ) : null}
+      )}
     </div>
   );
 };

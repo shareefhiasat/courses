@@ -349,6 +349,7 @@ import teacherAvailabilityRoutes from "./routes/teacher-availability.js";
 import scheduleSessionRoutes from "./routes/schedule-sessions.js";
 import adminScopeRoutes from "./routes/admin-scopes.js";
 import dashboardRoutes from "./routes/dashboard.js";
+import schedulingRoutes from "./routes/scheduling.js";
 import flexibleSchedulingRoutes from "./controllers/flexible-scheduling.js";
 import instructorAvailabilityRoutes from "./controllers/instructor-availability.js";
 import classroomAvailabilityRoutes from "./routes/classroom-availability.js";
@@ -411,6 +412,7 @@ app.use(`/api/${API_VERSION}/user-category-access`, userCategoryAccessRoutes);
 
 // Dashboard routes
 app.use(`/api/${API_VERSION}/dashboard`, dashboardRoutes);
+app.use(`/api/${API_VERSION}/scheduling`, schedulingRoutes);
 
 // Quiz routes
 app.use(`/api/${API_VERSION}/quizzes`, quizRoutes);

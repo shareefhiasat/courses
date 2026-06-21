@@ -204,7 +204,10 @@ export const getAccessibleCategoriesForUser = async (userId) => {
  */
 export const getAccessibleProgramsForUser = async (userId) => {
   try {
-    const response = await fetch(`${API_BASE}/user/${userId}/programs`);
+    const token = localStorage.getItem('keycloak_token');
+    const response = await fetch(`${API_BASE}/user/${userId}/programs`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+    });
     const result = await response.json();
     
     if (result.success) {

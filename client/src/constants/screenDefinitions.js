@@ -352,7 +352,14 @@ export const SCREEN_ROLE_ACCESS = {
 
   // Settings screens
   profile: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.HR, ROLES.INSTRUCTOR, ROLES.STUDENT],
-  roleAccess: [ROLES.SUPER_ADMIN] // REMOVED from UI - kept for reference only
+  roleAccess: [ROLES.SUPER_ADMIN], // REMOVED from UI - kept for reference only
+
+  // Scheduling screens
+  summaryDashboard: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.HR, ROLES.INSTRUCTOR],
+  'summary-dashboard': [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.HR, ROLES.INSTRUCTOR],
+  schedulingCalendar: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.HR, ROLES.INSTRUCTOR],
+  instructorAvailability: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.HR],
+  classroomAvailability: [ROLES.SUPER_ADMIN, ROLES.ADMIN, ROLES.HR],
 };
 
 /**

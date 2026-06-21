@@ -1,5 +1,5 @@
 import React, { useState, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import Calendar from '@toast-ui/react-calendar';
 import '@toast-ui/calendar/dist/toastui-calendar.min.css';
 import { useAuth } from '@contexts/AuthContext';
@@ -45,7 +45,7 @@ import {
   Save, Trash2, Clock, MapPin, User, X, Edit, BarChart3,
   ChevronUp, ChevronDown, List, Grid, Filter, ArrowUp, ArrowDown,
   CheckCircle2, XCircle, PanelLeftClose, PanelLeft, CalendarOff,
-  CalendarDays, LayoutList, LayoutGrid, GraduationCap
+  CalendarDays, LayoutList, LayoutGrid, GraduationCap, LayoutDashboard
 } from 'lucide-react';
 import { getAllClasses } from '@services/business/classService.js';
 import { getAllPrograms } from '@services/business/programService.js';
@@ -193,6 +193,7 @@ const SchedulingCalendarPage = () => {
   const sessionCalendarContainerRef = useRef(null);
   const currentDateRef = useRef(null);
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const [sessionCalendarHeight, setSessionCalendarHeight] = useState(SESSION_CALENDAR_HEIGHT);
 
   const readTabFromParams = (params) => {
@@ -1846,7 +1847,18 @@ const SchedulingCalendarPage = () => {
                 </span>
               )}
             </div>
-            <button
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => navigate('/summary-dashboard')}
+                data-testid="view-summary-btn"
+                title={t('view_summary') || 'View Summary'}
+                aria-label={t('view_summary') || 'View Summary'}
+              >
+                <LayoutDashboard size={16} />
+              </Button>
+              <button
               onClick={() => setShowStats(!showStats)}
               style={{
                 background: 'none',
@@ -1861,6 +1873,7 @@ const SchedulingCalendarPage = () => {
                 ? <ChevronUp size={16} color={theme === 'dark' ? '#9ca3af' : '#6b7280'} />
                 : <ChevronDown size={16} color={theme === 'dark' ? '#9ca3af' : '#6b7280'} />}
             </button>
+          </div>
           </div>
           {showStats && (
         <div style={{
@@ -2769,6 +2782,22 @@ const SchedulingCalendarPage = () => {
                                     <span>{scheduledHours} {t('hours_abbr')}</span>
                                     <span style={{ color: workloadColor, fontWeight: '600' }}>{workloadPercentage}%</span>
                                   </div>
+                                  <button
+                                    type="button"
+                                    onClick={() => navigate(`/summary-dashboard?instructorId=${instructor.id}`)}
+                                    style={{
+                                      padding: '0.25rem 0.5rem',
+                                      fontSize: '0.75rem',
+                                      backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
+                                      color: theme === 'dark' ? '#f3f4f6' : '#1f2937',
+                                      border: `1px solid ${theme === 'dark' ? '#4b5563' : '#d1d5db'}`,
+                                      borderRadius: '0.25rem',
+                                      cursor: 'pointer',
+                                    }}
+                                    data-testid={`view-workload-${instructor.id}`}
+                                  >
+                                    {t('view_workload') || 'View Workload'}
+                                  </button>
                                   <button
                                     type="button"
                                     disabled={sessionCount === 0}
