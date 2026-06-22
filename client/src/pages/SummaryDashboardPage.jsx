@@ -18,7 +18,6 @@ import HolidayImpactCard from '@components/scheduling/summary/HolidayImpactCard'
 import TeacherEffortSummary from '@components/scheduling/summary/TeacherEffortSummary';
 import TeacherSubjectDistribution from '@components/scheduling/summary/TeacherSubjectDistribution';
 import TeacherEffortExport from '@components/scheduling/summary/TeacherEffortExport';
-import BreakSessionModal from '@components/scheduling/summary/BreakSessionModal';
 import SchedulingOverviewPanel from '@components/scheduling/SchedulingOverviewPanel';
 import CollapsibleSection from '@components/scheduling/CollapsibleSection';
 import {
@@ -29,7 +28,6 @@ import { getAllSubjects } from '@services/business/subjectService';
 import { getAllClasses } from '@services/business/classService';
 import { getAccessibleProgramsForUser } from '@services/business/userCategoryAccessService';
 import { getAllPrograms } from '@services/business/programService';
-import timeSlotBusinessService from '@services/business/timeSlotBusinessService';
 import {
   buildSchedulingOverviewCards,
   buildInstructorOverviewCards,
@@ -73,8 +71,6 @@ const SummaryDashboardPage = () => {
   const [endDate, setEndDate] = useState('');
   const [refreshInterval, setRefreshInterval] = useState(30000);
   const [lastUpdatedAt, setLastUpdatedAt] = useState(Date.now());
-  const [breakModalOpen, setBreakModalOpen] = useState(false);
-  const [timeSlots, setTimeSlots] = useState([]);
 
   const canView = canAccessScreen('summary-dashboard');
   const canExport = hasPermission('summary-dashboard.canExport');
@@ -222,15 +218,6 @@ const SummaryDashboardPage = () => {
     }
   }, [prefilterInstructor, instructors, scope.unrestricted, isSelfView, toast, t]);
 
-  useEffect(() => {
-    const pid = reportFilters.programId;
-    if (!pid) { setTimeSlots([]); return; }
-    (async () => {
-      const result = await timeSlotBusinessService.getAllTimeSlots({ programId: pid, isBreak: true });
-      if (result.success) setTimeSlots(result.data || []);
-    })();
-  }, [reportFilters.programId]);
-
   const overviewStats = useMemo(() => {
     const base = dashboardData?.overview || {};
     if (isInstructorDetailView && teacherEffort) {
@@ -307,9 +294,9 @@ const SummaryDashboardPage = () => {
         <span>{t('schedules_view_schedule')}</span>
         <ExternalLink size={13} aria-hidden style={{ opacity: 0.65 }} />
       </button>
-      <button type="button" style={headerButtonStyle} onClick={() => setBreakModalOpen(true)} title={t('manage_break_sessions')} aria-label={t('manage_break_sessions')}>
+      <button type="button" style={headerButtonStyle} onClick={() => navigate('/scheduling-calendar')} title={t('manage_breaks_and_holidays')} aria-label={t('manage_breaks_and_holidays')}>
         <Coffee size={16} />
-        <span>{t('breaks')}</span>
+        <span>{t('manage_breaks_and_holidays')}</span>
       </button>
       <button type="button" style={headerButtonStyle} onClick={() => navigate('/instructor-availability')} title={t('manage_instructor_availability')} aria-label={t('manage_instructor_availability')}>
         <User size={16} />
@@ -425,15 +412,15 @@ const SummaryDashboardPage = () => {
 
           {dashboardData && (
             <CollapsibleSection
-              title={t('breaks_and_holidays') || 'Breaks & Holidays'}
+              title={t('breaks_and_holidays_analytics') || 'Breaks & Holidays Analytics'}
               summary={`${dashboardData.breakSessions?.length ?? 0} ${t('breaks')} · ${dashboardData.holidays?.length ?? 0} ${t('holidays')}`}
               icon={Palmtree}
               defaultOpen={false}
               testId="breaks-holidays-section"
               actions={(
-                <button type="button" style={headerButtonStyle} onClick={() => setBreakModalOpen(true)} title={t('manage_break_sessions')} aria-label={t('manage_break_sessions')}>
-                  <Coffee size={14} />
-                  <span>{t('manage_break_sessions') || 'Manage Breaks'}</span>
+                <button type="button" style={headerButtonStyle} onClick={() => navigate('/scheduling-calendar')} title={t('manage_breaks_and_holidays')} aria-label={t('manage_breaks_and_holidays')}>
+                  <CalendarDays size={14} />
+                  <span>{t('manage_in_calendar') || 'Manage in Calendar'}</span>
                 </button>
               )}
             >
@@ -461,15 +448,6 @@ const SummaryDashboardPage = () => {
             </CollapsibleSection>
           )}
 
-          <BreakSessionModal
-            open={breakModalOpen}
-            onClose={() => setBreakModalOpen(false)}
-            onSaved={loadAll}
-            programId={reportFilters.programId}
-            programs={accessiblePrograms}
-            timeSlots={timeSlots}
-            instructors={instructors}
-          />
         </>
       )}
     </div>

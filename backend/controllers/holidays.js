@@ -143,7 +143,7 @@ export const getHolidayByIdController = async (req, res) => {
  */
 export const createHolidayController = async (req, res) => {
   try {
-    const result = await createHoliday(req.body);
+    const result = await createHoliday(req.body, req.user?.dbId);
     
     if (result.success) {
       res.status(201).json({
@@ -174,7 +174,7 @@ export const updateHolidayController = async (req, res) => {
   try {
     const { id } = req.params;
     
-    const result = await updateHoliday(id, req.body);
+    const result = await updateHoliday(id, req.body, req.user?.dbId);
     
     if (result.success) {
       res.status(200).json({
@@ -205,8 +205,9 @@ export const updateHolidayController = async (req, res) => {
 export const deleteHolidayController = async (req, res) => {
   try {
     const { id } = req.params;
+    const { deleteScope } = req.body || {};
     
-    const result = await deleteHoliday(id);
+    const result = await deleteHoliday(id, deleteScope);
     
     if (result.success) {
       res.status(200).json({

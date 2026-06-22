@@ -165,6 +165,10 @@ const createHoliday = async (holidayData, user = null) => {
       startDate: new Date(startDate),
       endDate: new Date(endDate),
       isRecurring: holidayData.isRecurring || false,
+      recurrenceType: holidayData.recurrenceType || null,
+      recurrenceDays: holidayData.recurrenceDays || null,
+      recurrenceEndDate: holidayData.recurrenceEndDate || null,
+      recurrenceCount: holidayData.recurrenceCount || null,
       recurrencePattern: holidayData.recurrencePattern || null,
       isActive: holidayData.isActive !== undefined ? holidayData.isActive : true
     };
@@ -242,9 +246,9 @@ const updateHoliday = async (holidayId, updateData, user = null) => {
   }
 };
 
-const deleteHoliday = async (holidayId, user = null) => {
+const deleteHoliday = async (holidayId, deleteScope = 'single', user = null) => {
   try {
-    info(`${serviceName}:deleteHoliday`, { holidayId });
+    info(`${serviceName}:deleteHoliday`, { holidayId, deleteScope });
     
     if (!holidayId) {
       return {
@@ -254,12 +258,12 @@ const deleteHoliday = async (holidayId, user = null) => {
       };
     }
     
-    const result = await holidayDbService.deleteHoliday(holidayId, user);
+    const result = await holidayDbService.deleteHoliday(holidayId, deleteScope, user);
     
     if (result.success) {
       return {
         success: true,
-        message: 'Holiday deleted successfully'
+        message: result.message || 'Holiday deleted successfully'
       };
     } else {
       return {

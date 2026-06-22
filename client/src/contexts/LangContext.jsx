@@ -5461,6 +5461,8 @@ const DICT = {
     // Bulk scan translations
     add_all_except: 'Add All Except',
     add_all_except_tooltip: 'Add All Students Except Listed Numbers',
+    add_break: 'Add Break',
+    add_holiday: 'Add Holiday',
 
   },
   ar: {

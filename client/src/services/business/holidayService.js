@@ -93,10 +93,10 @@ export const updateHoliday = async (id, updateData, user = null) => {
   }
 };
 
-export const deleteHoliday = async (id, user = null) => {
+export const deleteHoliday = async (id, deleteScope = 'single', user = null) => {
   try {
-    info(`${serviceName}:deleteHoliday`, { id });
-    const result = await holidayBusinessService.deleteHoliday(id, user);
+    info(`${serviceName}:deleteHoliday`, { id, deleteScope });
+    const result = await holidayBusinessService.deleteHoliday(id, deleteScope, user);
     return result;
   } catch (err) {
     console.error(`${serviceName}:deleteHoliday:error`, { error: err.message, id });

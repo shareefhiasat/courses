@@ -603,6 +603,8 @@ const SideDrawer = ({ isOpen, onClose }) => {
       children: [
         { id: 'analytics-dashboards', path: '/analytics', screenId: 'analytics', icon: getThemedIcon('ui', 'bar_chart3', 18, theme), label: nl('dashboards', 'Dashboards') },
         { id: 'advanced-analytics', path: '/advanced-analytics', screenId: 'advanced-analytics', icon: getThemedIcon('ui', 'bar_chart3', 18, theme), label: nl('advanced', 'Advanced') },
+        { id: 'breaks-analytics', path: '/summary-dashboard', screenId: 'summary-dashboard', icon: getThemedIcon('ui', 'coffee', 18, theme), label: nl('breaks_analytics', 'Breaks Analytics') },
+        { id: 'holidays-analytics', path: '/summary-dashboard', screenId: 'summary-dashboard', icon: getThemedIcon('ui', 'umbrella', 18, theme), label: nl('holidays_analytics', 'Holidays Analytics') },
       ]
     },
     ...(isSuperAdmin ? [{

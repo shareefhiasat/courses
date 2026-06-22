@@ -24,7 +24,8 @@ export const getTeacherEffort = (teacherId, params) => api.get(`/scheduling/teac
 export const getBreakSessions = (params) => api.get(`/scheduling/break-sessions${buildQuery(params)}`);
 export const createBreakSession = (data) => api.post('/scheduling/break-sessions', data);
 export const updateBreakSession = (id, data) => api.put(`/scheduling/break-sessions/${id}`, data);
-export const deleteBreakSession = (id) => api.delete(`/scheduling/break-sessions/${id}`);
+export const deleteBreakSession = (id, deleteScope = 'single') =>
+  api.delete(`/scheduling/break-sessions/${id}`, { data: { deleteScope } });
 
 export default {
   getSchedulingSummary,

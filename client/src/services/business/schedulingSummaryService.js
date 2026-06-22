@@ -21,6 +21,14 @@ const getTeacherEffort = async (teacherId, params = {}) => {
   }
 };
 
+const getBreakSessions = async (params = {}) => {
+  try {
+    return await schedulingSummaryDb.getBreakSessions(params);
+  } catch (error) {
+    return { success: false, error: error.message };
+  }
+};
+
 const createBreakSession = async (data) => {
   try {
     return await schedulingSummaryDb.createBreakSession(data);
@@ -37,9 +45,9 @@ const updateBreakSession = async (id, data) => {
   }
 };
 
-const deleteBreakSession = async (id) => {
+const deleteBreakSession = async (id, deleteScope = 'single') => {
   try {
-    return await schedulingSummaryDb.deleteBreakSession(id);
+    return await schedulingSummaryDb.deleteBreakSession(id, deleteScope);
   } catch (error) {
     return { success: false, error: error.message };
   }
@@ -57,6 +65,7 @@ export default {
   getSchedulingSummary,
   getTeacherEffort,
   getEffortReport,
+  getBreakSessions,
   createBreakSession,
   updateBreakSession,
   deleteBreakSession,

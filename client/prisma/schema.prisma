@@ -1877,6 +1877,7 @@ model BreakSession {
   notes             String?
   isRecurring       Boolean  @default(false)
   recurrencePattern String?
+  seriesId          String?  // UUID grouping recurring instances
   isActive          Boolean  @default(true)
   createdBy         Int?
   updatedBy         Int?
@@ -1890,6 +1891,7 @@ model BreakSession {
 
   @@unique([timeSlotId, date, instructorUserId, classroomId])
   @@index([date])
+  @@index([seriesId])
   @@index([instructorUserId, date])
   @@index([classroomId, date])
   @@map("break_sessions")
@@ -1905,6 +1907,7 @@ model Holiday {
   endDate           DateTime
   isRecurring       Boolean  @default(false)
   recurrencePattern String?  // "yearly", "monthly", etc.
+  seriesId          String?  // UUID grouping recurring instances
   isActive          Boolean  @default(true)
   createdBy         Int?
   updatedBy         Int?
@@ -1914,6 +1917,7 @@ model Holiday {
   program           Program?  @relation("SchedulingHolidays", fields: [programId], references: [id])
 
   @@index([startDate, endDate])
+  @@index([seriesId])
   @@map("holidays")
 }
 

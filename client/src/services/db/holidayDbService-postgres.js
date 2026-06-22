@@ -23,6 +23,8 @@ const getHolidays = async (params = {}) => {
     if (params.isActive !== undefined) queryParams.append('isActive', params.isActive);
     if (params.sortBy) queryParams.append('sortBy', params.sortBy);
     if (params.sortOrder) queryParams.append('sortOrder', params.sortOrder);
+    if (params.startDate) queryParams.append('startDate', params.startDate);
+    if (params.endDate) queryParams.append('endDate', params.endDate);
 
     const url = `/holidays?${queryParams.toString()}`;
     const result = await api.get(url);
@@ -151,12 +153,12 @@ const updateHoliday = async (holidayId, updateData, user = null) => {
 /**
  * Delete holiday
  */
-const deleteHoliday = async (holidayId, user = null) => {
+const deleteHoliday = async (holidayId, deleteScope = 'single', user = null) => {
   const startTime = Date.now();
   try {
-    console.log(`[HolidayDbService] Deleting holiday: ${holidayId}`);
+    console.log(`[HolidayDbService] Deleting holiday: ${holidayId}`, { deleteScope });
 
-    const result = await api.delete(`/holidays/${holidayId}`);
+    const result = await api.delete(`/holidays/${holidayId}`, { data: { deleteScope } });
 
     const duration = Date.now() - startTime;
     console.log(`[HolidayDbService] ✅ Deleted holiday in ${duration}ms`);

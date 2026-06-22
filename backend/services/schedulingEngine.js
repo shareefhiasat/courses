@@ -88,6 +88,103 @@ export const detectClassroomConflict = async (classroomId, startDateTime, endDat
 };
 
 /**
+ * Detect break session conflict
+ * Returns conflict details if a scheduled session overlaps an active break for the same instructor/classroom/time slot
+ */
+export const detectBreakConflict = async (instructorId, classroomId, startDateTime, endDateTime, excludeSessionId = null) => {
+  const start = new Date(startDateTime);
+  const end = new Date(endDateTime);
+  const startDateOnly = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+  const endDateOnly = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+
+  const where = {
+    isActive: true,
+    date: { gte: startDateOnly, lte: endDateOnly },
+    OR: [
+      ...(instructorId ? [{ instructorUserId: parseInt(instructorId) }] : []),
+      ...(classroomId ? [{ classroomId: parseInt(classroomId) }] : []),
+    ],
+    AND: [
+      { timeSlot: { startTime: { lt: end.toTimeString().substring(0, 5) } } },
+      { timeSlot: { endTime: { gt: start.toTimeString().substring(0, 5) } } },
+    ],
+  };
+
+  const breakSession = await prisma.breakSession.findFirst({
+    where,
+    include: {
+      timeSlot: { select: { labelEn: true, labelAr: true, startTime: true, endTime: true } },
+      instructor: { select: { id: true, displayName: true, firstName: true, lastName: true } },
+      classroom: { select: { id: true, code: true, nameEn: true, nameAr: true } },
+    },
+  });
+
+  if (breakSession) {
+    return {
+      type: 'break',
+      message: `Break session (${breakSession.breakType}) blocks this time slot`,
+      conflict: {
+        breakSessionId: breakSession.id,
+        breakType: breakSession.breakType,
+        timeSlot: breakSession.timeSlot,
+        instructor: breakSession.instructor,
+        classroom: breakSession.classroom,
+        date: breakSession.date,
+      },
+    };
+  }
+
+  return null;
+};
+
+/**
+ * Detect holiday conflict
+ * Returns conflict details if the session falls within an active holiday (global or program-specific)
+ */
+export const detectHolidayConflict = async (programId, startDateTime, endDateTime) => {
+  const start = new Date(startDateTime);
+  const end = new Date(endDateTime);
+
+  const where = {
+    isActive: true,
+    startDate: { lte: end },
+    endDate: { gte: start },
+  };
+
+  if (programId) {
+    where.OR = [
+      { programId: null },
+      { programId: parseInt(programId) },
+    ];
+  }
+
+  const holiday = await prisma.holiday.findFirst({
+    where,
+    include: {
+      program: { select: { id: true, code: true, nameEn: true, nameAr: true } },
+    },
+  });
+
+  if (holiday) {
+    return {
+      type: 'holiday',
+      message: `Date falls on holiday: ${holiday.descriptionEn || holiday.descriptionAr}`,
+      conflict: {
+        holidayId: holiday.id,
+        descriptionEn: holiday.descriptionEn,
+        descriptionAr: holiday.descriptionAr,
+        type: holiday.type,
+        startDate: holiday.startDate,
+        endDate: holiday.endDate,
+        program: holiday.program,
+      },
+    };
+  }
+
+  return null;
+};
+
+/**
  * Detect class conflict
  * Returns conflict details if the same class already has a session during the time range
  */
@@ -300,9 +397,23 @@ export const validateSession = async (sessionData, excludeSessionId = null) => {
   
   const conflicts = [];
 
+  // Resolve program id from class to check program-scoped holidays
+  let programId = null;
+  try {
+    const classRecord = await prisma.class.findUnique({
+      where: { id: parseInt(classId) },
+      select: { programId: true }
+    });
+    programId = classRecord?.programId || null;
+  } catch {
+    programId = null;
+  }
+
   const checks = [
     detectClassConflict(classId, startDateTime, endDateTime, excludeSessionId),
-    classroomId ? detectCapacityConflict(classId, classroomId) : Promise.resolve(null)
+    classroomId ? detectCapacityConflict(classId, classroomId) : Promise.resolve(null),
+    detectHolidayConflict(programId, startDateTime, endDateTime),
+    detectBreakConflict(instructorId, classroomId, startDateTime, endDateTime, excludeSessionId),
   ];
 
   if (instructorId) {
@@ -322,6 +433,8 @@ export const validateSession = async (sessionData, excludeSessionId = null) => {
   let idx = 0;
   const classConflict = results[idx++];
   const capacityConflict = results[idx++];
+  const holidayConflict = results[idx++];
+  const breakConflict = results[idx++];
   const instructorConflict = instructorId ? results[idx++] : null;
   const classroomConflict = classroomId ? results[idx++] : null;
   const availabilityConflicts = (instructorId || classroomId) ? results[idx++] : null;
@@ -330,6 +443,8 @@ export const validateSession = async (sessionData, excludeSessionId = null) => {
   if (classroomConflict) conflicts.push(classroomConflict);
   if (classConflict) conflicts.push(classConflict);
   if (capacityConflict) conflicts.push(capacityConflict);
+  if (holidayConflict) conflicts.push(holidayConflict);
+  if (breakConflict) conflicts.push(breakConflict);
   if (availabilityConflicts) conflicts.push(...availabilityConflicts);
 
   return {
@@ -416,6 +531,8 @@ export default {
   detectClassroomConflict,
   detectClassConflict,
   detectCapacityConflict,
+  detectBreakConflict,
+  detectHolidayConflict,
   validateAvailability,
   validateSession,
   generateRecurringSessions

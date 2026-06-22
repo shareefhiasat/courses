@@ -34,18 +34,19 @@ import {
   getLocalizedClassroomStatus
 } from '../utils/schedulingDisplayUtils.js';
 import SchedulingCalendarPopup from '../components/SchedulingCalendarPopup.jsx';
-import SchedulingAvailabilityPanel from '../components/SchedulingAvailabilityPanel.jsx';
 import SchedulingDefinedAvailabilityCards from '../components/SchedulingDefinedAvailabilityCards.jsx';
 import SchedulingAvailabilityTimeline from '../components/SchedulingAvailabilityTimeline.jsx';
 import SchedulingClassesView from '../components/SchedulingClassesView.jsx';
-import SchedulingRecurrencePanel from '../components/SchedulingRecurrencePanel.jsx';
+import CalendarEventDialog from '../components/scheduling/CalendarEventDialog.jsx';
+import SessionEventDialog from '../components/scheduling/SessionEventDialog.jsx';
 import { 
   BookOpen, Users, DoorOpen, Calendar as CalendarIcon, 
   ChevronLeft, ChevronRight, Maximize2, Minimize2,
   Save, Trash2, Clock, MapPin, User, X, Edit, BarChart3,
   ChevronUp, ChevronDown, List, Grid, Filter, ArrowUp, ArrowDown,
   CheckCircle2, XCircle, PanelLeftClose, PanelLeft, CalendarOff,
-  CalendarDays, LayoutList, LayoutGrid, GraduationCap, LayoutDashboard
+  CalendarDays, LayoutList, LayoutGrid, GraduationCap, LayoutDashboard,
+  Coffee, Umbrella
 } from 'lucide-react';
 import { getAllClasses } from '@services/business/classService.js';
 import { getAllPrograms } from '@services/business/programService.js';
@@ -55,6 +56,9 @@ import { getAllUsers } from '@services/business/userService.js';
 import { getEnrollments } from '@services/business/enrollmentService.js';
 import * as scheduledSessionService from '@services/business/scheduledSessionService.js';
 import * as schedulingService from '@services/business/schedulingService.js';
+import schedulingSummaryService from '@services/business/schedulingSummaryService.js';
+import * as holidayService from '@services/business/holidayService.js';
+import { getAllTimeSlots } from '@services/business/timeSlotService.js';
 import { getAllInstructorAvailabilities } from '@services/business/instructorAvailabilityService.js';
 import { getAllClassroomAvailabilities } from '@services/business/classroomAvailabilityService.js';
 import {
@@ -283,6 +287,14 @@ const SchedulingCalendarPage = () => {
   const [statusFilter, setStatusFilter] = useState('all'); // 'all', 'scheduled', 'in_progress', 'completed', 'cancelled'
   const [currentView, setCurrentView] = useState('week');
   const [currentDate, setCurrentDate] = useState(new Date());
+  const [calendarDateRange, setCalendarDateRange] = useState(() => {
+    const today = new Date();
+    const from = new Date(today);
+    from.setFullYear(from.getFullYear() - 1);
+    const to = new Date(today);
+    to.setFullYear(to.getFullYear() + 1);
+    return { from, to, fromStr: from.toISOString().split('T')[0], toStr: to.toISOString().split('T')[0] };
+  });
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [hideWeekends, setHideWeekends] = useState(false);
   const [narrowWeekend, setNarrowWeekend] = useState(false);
@@ -352,6 +364,24 @@ const SchedulingCalendarPage = () => {
   // Stats
   const [showStats, setShowStats] = useState(false);
 
+  // Break/Holiday calendar events
+  const [breakSessions, setBreakSessions] = useState([]);
+  const [holidays, setHolidays] = useState([]);
+  const [timeSlots, setTimeSlots] = useState([]);
+  const [calendarEventDialog, setCalendarEventDialog] = useState({
+    open: false,
+    mode: 'create', // 'create' | 'edit'
+    eventType: 'session', // 'session' | 'break' | 'holiday'
+    event: null,
+    initialStart: null,
+    initialEnd: null,
+  });
+  const [deleteScopeDialog, setDeleteScopeDialog] = useState({
+    open: false,
+    eventType: null,
+    event: null,
+  });
+
   const hasPermission = isAdmin || isHR || isSuperAdmin;
 
   useEffect(() => {
@@ -391,6 +421,9 @@ const SchedulingCalendarPage = () => {
     
     setLoading(true);
     try {
+      const calendarFromStr = calendarDateRange.fromStr;
+      const calendarToStr = calendarDateRange.toStr;
+
       const [
         classesResult,
         programsResult,
@@ -400,7 +433,10 @@ const SchedulingCalendarPage = () => {
         sessionsResult,
         enrollmentsResult,
         instructorAvailResult,
-        classroomAvailResult
+        classroomAvailResult,
+        breakSessionsResult,
+        holidaysResult,
+        timeSlotsResult
       ] = await Promise.all([
         getAllClasses(),
         getAllPrograms(),
@@ -410,7 +446,10 @@ const SchedulingCalendarPage = () => {
         scheduledSessionService.getAllScheduledSessions({ limit: 1000 }),
         getEnrollments(),
         getAllInstructorAvailabilities({ isActive: true, limit: 500 }),
-        getAllClassroomAvailabilities({ isActive: true, limit: 500 })
+        getAllClassroomAvailabilities({ isActive: true, limit: 500 }),
+        schedulingSummaryService.getBreakSessions({ start: calendarFromStr, end: calendarToStr, limit: 5000 }),
+        holidayService.getAllHolidays({ startDate: calendarFromStr, endDate: calendarToStr, limit: 5000 }),
+        getAllTimeSlots({ limit: 500 })
       ]);
 
       if (classesResult.success) setClasses(classesResult.data || []);
@@ -418,6 +457,9 @@ const SchedulingCalendarPage = () => {
       if (subjectsResult.success) setSubjects(subjectsResult.data || []);
       if (classroomsResult.success) setClassrooms(classroomsResult.data || []);
       if (enrollmentsResult.success) setEnrollments(enrollmentsResult.data || []);
+      if (breakSessionsResult.success) setBreakSessions(breakSessionsResult.data || []);
+      if (holidaysResult.success) setHolidays(holidaysResult.data || []);
+      if (timeSlotsResult.success) setTimeSlots(timeSlotsResult.data || []);
       
       if (instructorsResult.success) {
         const usersArray = Array.isArray(instructorsResult.data) ? instructorsResult.data : [];
@@ -468,7 +510,20 @@ const SchedulingCalendarPage = () => {
         }
       }, 100);
     }
-  }, [toast]);
+  }, [toast, t, calendarDateRange]);
+
+  useEffect(() => {
+    const from = new Date(currentDate);
+    from.setFullYear(from.getFullYear() - 1);
+    const to = new Date(currentDate);
+    to.setFullYear(to.getFullYear() + 1);
+    setCalendarDateRange({
+      from,
+      to,
+      fromStr: from.toISOString().split('T')[0],
+      toStr: to.toISOString().split('T')[0],
+    });
+  }, [currentDate]);
 
   useEffect(() => {
     loadData();
@@ -650,11 +705,11 @@ const SchedulingCalendarPage = () => {
     return filtered;
   }, [scheduledSessions, mainTab, scopeMode, selectedInstructor, selectedRoom, statusFilter, sessionClassFilter, searchQuery]);
 
-  // Convert scheduled sessions to TOAST UI Calendar events
+  // Convert scheduled sessions, break sessions, and holidays to calendar events
   const calendarEvents = useMemo(() => {
-    return filteredSessions.map(session => ({
-      id: String(session.id),
-      calendarId: '1',
+    const sessionEvents = filteredSessions.map(session => ({
+      id: `session-${session.id}`,
+      calendarId: 'sessions',
       title: `${session.class?.code || t('class')}`,
       body: buildSessionEventVenueLine(session, lang, t),
       category: 'time',
@@ -667,13 +722,66 @@ const SchedulingCalendarPage = () => {
       color: '#ffffff',
       isReadOnly: false,
       raw: {
+        eventType: 'session',
         session,
         classInfo: session.class,
         instructor: session.instructor,
         classroom: session.classroom
       }
     }));
-  }, [filteredSessions, lang, t]);
+
+    const breakEvents = breakSessions.map((bs) => {
+      const timeSlot = bs.timeSlot || timeSlots.find((ts) => ts.id === bs.timeSlotId);
+      const start = new Date(bs.date);
+      const end = new Date(bs.date);
+      if (timeSlot) {
+        const [startHour, startMinute] = timeSlot.startTime.split(':').map(Number);
+        const [endHour, endMinute] = timeSlot.endTime.split(':').map(Number);
+        start.setHours(startHour, startMinute, 0, 0);
+        end.setHours(endHour, endMinute, 0, 0);
+      } else {
+        start.setHours(9, 0, 0, 0);
+        end.setHours(9, 45, 0, 0);
+      }
+      return {
+        id: `break-${bs.id}`,
+        calendarId: 'breaks',
+        title: `${bs.breakType || t('break')}`,
+        body: bs.notes || '',
+        category: 'time',
+        start,
+        end,
+        backgroundColor: '#f59e0b',
+        borderColor: '#d97706',
+        color: '#ffffff',
+        isReadOnly: false,
+        raw: {
+          eventType: 'break',
+          breakSession: bs,
+        },
+      };
+    });
+
+    const holidayEvents = holidays.map((h) => ({
+      id: `holiday-${h.id}`,
+      calendarId: 'holidays',
+      title: h.descriptionEn || h.descriptionAr || t('holiday'),
+      body: h.type || '',
+      category: 'allday',
+      start: new Date(h.startDate),
+      end: new Date(h.endDate),
+      backgroundColor: '#ef4444',
+      borderColor: '#dc2626',
+      color: '#ffffff',
+      isReadOnly: false,
+      raw: {
+        eventType: 'holiday',
+        holiday: h,
+      },
+    }));
+
+    return [...sessionEvents, ...breakEvents, ...holidayEvents];
+  }, [filteredSessions, breakSessions, holidays, timeSlots, lang, t]);
 
   // Sync calendar when filtered events change (Toast UI doesn't always react to prop updates)
   useEffect(() => {
@@ -694,8 +802,10 @@ const SchedulingCalendarPage = () => {
   const highlightSessionOnCalendar = useCallback((sessionId) => {
     const attemptHighlight = (attempt = 0) => {
       const eventId = String(sessionId);
-      const el = document.querySelector(`[data-event-id="${eventId}"]`)
-        || document.querySelector(`[data-id="${eventId}"]`);
+      const legacyId = `session-${sessionId}`;
+      const el = document.querySelector(`[data-event-id="${legacyId}"]`)
+        || document.querySelector(`[data-id="${eventId}"]`)
+        || document.querySelector(`[data-id="${legacyId}"]`);
       if (!el && attempt < 15) {
         setTimeout(() => attemptHighlight(attempt + 1), 120);
         return;
@@ -1084,7 +1194,7 @@ const SchedulingCalendarPage = () => {
       setCurrentDate(new Date(target.startDateTime));
       setHighlightedSessionId(target.id);
     }
-  }, [scheduledSessions]);
+  }, [scheduledSessions, setMainTab]);
 
   const handleShowRoomOnCalendar = useCallback((roomId) => {
     setMainTab('sessions');
@@ -1096,7 +1206,7 @@ const SchedulingCalendarPage = () => {
       setCurrentDate(new Date(target.startDateTime));
       setHighlightedSessionId(target.id);
     }
-  }, [scheduledSessions]);
+  }, [scheduledSessions, setMainTab]);
 
   const navigateToClassOnCalendar = useCallback((cls, session = null) => {
     if (!cls) return;
@@ -1138,100 +1248,182 @@ const SchedulingCalendarPage = () => {
   // Calendar calendars config
   const calendars = useMemo(() => [
     {
-      id: '1',
+      id: 'sessions',
       name: 'Classes',
       backgroundColor: '#3b82f6',
       borderColor: '#2563eb',
       dragBackgroundColor: '#3b82f6'
+    },
+    {
+      id: 'breaks',
+      name: 'Breaks',
+      backgroundColor: '#f59e0b',
+      borderColor: '#d97706',
+      dragBackgroundColor: '#f59e0b'
+    },
+    {
+      id: 'holidays',
+      name: 'Holidays',
+      backgroundColor: '#ef4444',
+      borderColor: '#dc2626',
+      dragBackgroundColor: '#ef4444'
     }
   ], []);
 
-  // Handle event click - show custom popup
+  // Handle event click - show custom popup or dialog based on event type
   const onClickEvent = useCallback((eventInfo) => {
     const { event } = eventInfo;
-    const session = event.raw.session;
-    
-    if (session) {
-      setPopupSession(session);
+    const eventType = event.raw?.eventType;
+    if (eventType === 'session') {
+      const session = event.raw.session;
+      if (session) setPopupSession(session);
+    } else if (eventType === 'break') {
+      setCalendarEventDialog({
+        open: true,
+        mode: 'edit',
+        eventType: 'break',
+        event: event.raw.breakSession,
+        initialStart: event.start,
+        initialEnd: event.end,
+      });
+    } else if (eventType === 'holiday') {
+      setCalendarEventDialog({
+        open: true,
+        mode: 'edit',
+        eventType: 'holiday',
+        event: event.raw.holiday,
+        initialStart: event.start,
+        initialEnd: event.end,
+      });
     }
   }, []);
 
-  // Handle event right-click
+  // Handle calendar drag-to-create (select time range) - open unified dialog
   const onBeforeCreateEvent = useCallback((eventData) => {
-    // This is for creating new events - we'll handle via drag & drop from sidebar
-    return eventData;
+    const start = eventData?.start || eventData?.startDateTime;
+    const end = eventData?.end || eventData?.endDateTime;
+    if (start && end) {
+      const startDate = new Date(start);
+      const endDate = new Date(end);
+      const isFullDay = (endDate - startDate) >= 24 * 60 * 60 * 1000 || (startDate.getHours() === 0 && endDate.getHours() === 0);
+      setCalendarEventDialog({
+        open: true,
+        mode: 'create',
+        eventType: isFullDay ? 'holiday' : 'break',
+        event: null,
+        initialStart: startDate,
+        initialEnd: endDate,
+      });
+    }
+    return false; // Prevent default creation; we'll create via dialog
   }, []);
 
   // Handle event update (drag/resize) with conflict preview
   const onBeforeUpdateEvent = useCallback(async (updateData) => {
     const { event, changes } = updateData;
     const visibleDateBeforeSave = getVisibleSessionCalendarDate();
-    
-    // Defensive check for event.raw
-    if (!event?.raw?.session) {
+    const eventType = event?.raw?.eventType;
+    const calendarFromStr = calendarDateRange.fromStr;
+    const calendarToStr = calendarDateRange.toStr;
+
+    if (!eventType) {
       console.error('Event data missing:', event);
       return false;
     }
-    
-    const session = event.raw.session;
-    
-    // Handle Date objects - ensure they are Date instances
-    const startDate = changes.start || event.start;
-    const endDate = changes.end || event.end;
-    
+
+    const startDate = changes?.start || event.start;
+    const endDate = changes?.end || event.end;
     if (!startDate || !endDate) {
       console.error('Missing date data:', { startDate, endDate });
       return false;
     }
-    
-    const updatePayload = {
-      classId: session.classId,
-      instructorId: session.instructorId,
-      classroomId: session.classroomId,
-      startDateTime: new Date(startDate).toISOString(),
-      endDateTime: new Date(endDate).toISOString(),
-      excludeSessionId: session.id,
-      updatedBy: user?.dbId
-    };
+    const start = new Date(startDate);
+    const end = new Date(endDate);
 
-    // Validate before updating
-    const validation = await schedulingService.validateSession(updatePayload);
-    setValidationResult(validation);
+    if (eventType === 'session') {
+      const session = event.raw.session;
+      const updatePayload = {
+        classId: session.classId,
+        instructorId: session.instructorId,
+        classroomId: session.classroomId,
+        startDateTime: start.toISOString(),
+        endDateTime: end.toISOString(),
+        excludeSessionId: session.id,
+        updatedBy: user?.dbId
+      };
 
-    if (!validation.valid) {
-      toast.error(formatValidationConflict(validation.conflicts?.[0], t) || t('validation_failed'));
-      
-      // Get suggestions for alternative times
-      const altTimes = await schedulingService.getAlternativeTimes(
-        session.classId,
-        session.instructorId,
-        session.classroomId,
-        updatePayload.startDateTime
-      );
-      
-      if (altTimes.success && altTimes.suggestions.length > 0) {
-        setSuggestions(altTimes.suggestions);
-        setShowSuggestions(true);
+      const validation = await schedulingService.validateSession(updatePayload);
+      setValidationResult(validation);
+
+      if (!validation.valid) {
+        toast.error(formatValidationConflict(validation.conflicts?.[0], t) || t('validation_failed'));
+        const altTimes = await schedulingService.getAlternativeTimes(
+          session.classId,
+          session.instructorId,
+          session.classroomId,
+          updatePayload.startDateTime
+        );
+        if (altTimes.success && altTimes.suggestions.length > 0) {
+          setSuggestions(altTimes.suggestions);
+          setShowSuggestions(true);
+        }
+        return false;
       }
-      
-      return; // Prevent update
+
+      const result = await scheduledSessionService.updateScheduledSession(session.id, updatePayload);
+      if (result.success) {
+        toast.success('Session updated');
+        setValidationResult(null);
+        const sessionsResult = await scheduledSessionService.getAllScheduledSessions({ limit: 1000 });
+        if (sessionsResult.success) setScheduledSessions(sessionsResult.data || []);
+        restoreSessionCalendarDate(visibleDateBeforeSave);
+      } else {
+        toast.error(result.error || 'Failed to update session');
+      }
+      return result.success;
     }
 
-    const result = await scheduledSessionService.updateScheduledSession(session.id, updatePayload);
-    
-    if (result.success) {
-      toast.success('Session updated');
-      setValidationResult(null);
-      // Reload sessions without full data reload
-      const sessionsResult = await scheduledSessionService.getAllScheduledSessions({ limit: 1000 });
-      if (sessionsResult.success) {
-        setScheduledSessions(sessionsResult.data || []);
+    if (eventType === 'break') {
+      const breakSession = event.raw.breakSession;
+      const updateData = {
+        date: start.toISOString(),
+        updateScope: 'single',
+        updatedBy: user?.dbId,
+      };
+      const result = await schedulingSummaryService.updateBreakSession(breakSession.id, updateData);
+      if (result.success) {
+        toast.success('Break updated');
+        const breakResult = await schedulingSummaryService.getBreakSessions({ start: calendarFromStr, end: calendarToStr, limit: 5000 });
+        if (breakResult.success) setBreakSessions(breakResult.data || []);
+        restoreSessionCalendarDate(visibleDateBeforeSave);
+      } else {
+        toast.error(result.error || 'Failed to update break');
       }
-      restoreSessionCalendarDate(visibleDateBeforeSave);
-    } else {
-      toast.error(result.error || 'Failed to update session');
+      return result.success;
     }
-  }, [user, toast, t, getVisibleSessionCalendarDate, restoreSessionCalendarDate]);
+
+    if (eventType === 'holiday') {
+      const holiday = event.raw.holiday;
+      const updateData = {
+        startDate: start.toISOString(),
+        endDate: end.toISOString(),
+        updateScope: 'single',
+        updatedBy: user?.dbId,
+      };
+      const result = await holidayService.updateHoliday(holiday.id, updateData);
+      if (result.success) {
+        toast.success('Holiday updated');
+        const holidayResult = await holidayService.getAllHolidays({ startDate: calendarFromStr, endDate: calendarToStr, limit: 5000 });
+        if (holidayResult.success) setHolidays(holidayResult.data || []);
+        restoreSessionCalendarDate(visibleDateBeforeSave);
+      } else {
+        toast.error(result.error || 'Failed to update holiday');
+      }
+      return result.success;
+    }
+
+    return false;
+  }, [user, toast, t, getVisibleSessionCalendarDate, restoreSessionCalendarDate, calendarDateRange]);
 
   const closeCreateModal = useCallback(() => {
     setShowCreateModal(false);
@@ -1239,29 +1431,118 @@ const SchedulingCalendarPage = () => {
     setEditingSessionId(null);
   }, []);
 
+  const handleSessionChangeStatus = useCallback(() => {
+    const session = scheduledSessions.find((s) => s.id === editingSessionId);
+    if (session) {
+      setSessionToChangeStatus(session);
+      setShowStatusModal(true);
+      setShowCreateModal(false);
+    }
+  }, [editingSessionId, scheduledSessions]);
+
+  const closeCalendarEventDialog = useCallback(() => {
+    setCalendarEventDialog((prev) => ({ ...prev, open: false, event: null }));
+  }, []);
+
+  const handleCalendarEventSave = useCallback(async ({ eventType, mode, payload, event }) => {
+    const visibleDateBeforeSave = getVisibleSessionCalendarDate();
+    const { fromStr: calendarFromStr, toStr: calendarToStr } = calendarDateRange;
+    let result;
+    if (eventType === 'break') {
+      if (mode === 'edit' && event) {
+        result = await schedulingSummaryService.updateBreakSession(event.id, payload);
+      } else {
+        result = await schedulingSummaryService.createBreakSession(payload);
+      }
+      if (result.success) {
+        toast.success(mode === 'edit' ? 'Break updated' : 'Break created');
+        const breakResult = await schedulingSummaryService.getBreakSessions({ start: calendarFromStr, end: calendarToStr, limit: 5000 });
+        if (breakResult.success) setBreakSessions(breakResult.data || []);
+      } else {
+        toast.error(result.error || 'Failed to save break');
+      }
+    } else if (eventType === 'holiday') {
+      if (mode === 'edit' && event) {
+        result = await holidayService.updateHoliday(event.id, payload);
+      } else {
+        result = await holidayService.createHoliday(payload);
+      }
+      if (result.success) {
+        toast.success(mode === 'edit' ? 'Holiday updated' : 'Holiday created');
+        const holidayResult = await holidayService.getAllHolidays({ startDate: calendarFromStr, endDate: calendarToStr, limit: 5000 });
+        if (holidayResult.success) setHolidays(holidayResult.data || []);
+      } else {
+        toast.error(result.error || 'Failed to save holiday');
+      }
+    }
+    if (result?.success) {
+      closeCalendarEventDialog();
+      restoreSessionCalendarDate(visibleDateBeforeSave);
+    }
+  }, [toast, getVisibleSessionCalendarDate, restoreSessionCalendarDate, calendarDateRange, closeCalendarEventDialog]);
+
+  const handleCalendarEventDelete = useCallback(async ({ eventType, event, deleteScope }) => {
+    const visibleDateBeforeSave = getVisibleSessionCalendarDate();
+    const { fromStr: calendarFromStr, toStr: calendarToStr } = calendarDateRange;
+    let result;
+    if (eventType === 'break') {
+      result = await schedulingSummaryService.deleteBreakSession(event.id, deleteScope);
+      if (result.success) {
+        toast.success('Break deleted');
+        const breakResult = await schedulingSummaryService.getBreakSessions({ start: calendarFromStr, end: calendarToStr, limit: 5000 });
+        if (breakResult.success) setBreakSessions(breakResult.data || []);
+      } else {
+        toast.error(result.error || 'Failed to delete break');
+      }
+    } else if (eventType === 'holiday') {
+      result = await holidayService.deleteHoliday(event.id, deleteScope);
+      if (result.success) {
+        toast.success('Holiday deleted');
+        const holidayResult = await holidayService.getAllHolidays({ startDate: calendarFromStr, endDate: calendarToStr, limit: 5000 });
+        if (holidayResult.success) setHolidays(holidayResult.data || []);
+      } else {
+        toast.error(result.error || 'Failed to delete holiday');
+      }
+    }
+    if (result?.success) {
+      setDeleteScopeDialog({ open: false, eventType: null, event: null });
+      closeCalendarEventDialog();
+      restoreSessionCalendarDate(visibleDateBeforeSave);
+    }
+  }, [toast, getVisibleSessionCalendarDate, restoreSessionCalendarDate, calendarDateRange, closeCalendarEventDialog]);
+
   // Handle event delete - show confirmation modal
   const onBeforeDeleteEvent = useCallback(async (eventData) => {
     const { event } = eventData;
-    
-    // Try to get session from event
-    let session = null;
-    if (event?.raw?.session) {
-      session = event.raw.session;
-    }
-    
-    if (!session || !session.id) {
-      console.error('Event data missing for delete:', event);
-      toast.error('Cannot delete session: missing session data');
+    const eventType = event?.raw?.eventType;
+
+    if (eventType === 'session') {
+      const session = event.raw.session;
+      if (!session || !session.id) {
+        console.error('Event data missing for delete:', event);
+        toast.error('Cannot delete session: missing session data');
+        return false;
+      }
+      setSessionToDelete(session);
+      setShowDeleteModal(true);
+      setDeletionReason('');
+      setRequiresReason(false);
       return false;
     }
-    
-    // Show delete confirmation modal
-    setSessionToDelete(session);
-    setShowDeleteModal(true);
-    setDeletionReason('');
-    setRequiresReason(false);
-    
-    return false; // Prevent default delete, we'll handle it in modal
+
+    if (eventType === 'break' || eventType === 'holiday') {
+      const hasSeries = eventType === 'break'
+        ? !!event.raw.breakSession?.seriesId
+        : !!event.raw.holiday?.seriesId;
+      if (hasSeries) {
+        setDeleteScopeDialog({ open: true, eventType, event: event.raw });
+      } else {
+        setDeleteScopeDialog({ open: true, eventType, event: event.raw });
+      }
+      return false;
+    }
+
+    return false;
   }, [toast]);
   
   // Handle actual deletion from modal
@@ -1506,7 +1787,7 @@ const SchedulingCalendarPage = () => {
         toast.error(result.error || 'Failed to create session');
       }
     }
-  }, [modalClassItem, modalClassroomId, modalInstructorId, modalStartDateTime, modalEndDateTime, isRecurring, recurrenceType, recurrenceDays, recurrenceEndDate, recurrenceCount, recurrenceEndMode, timesPerDay, user, toast, loadData, editingSessionId, t, getVisibleSessionCalendarDate, restoreSessionCalendarDate]);
+  }, [modalClassItem, modalClassroomId, modalInstructorId, modalStartDateTime, modalEndDateTime, isRecurring, recurrenceType, recurrenceDays, recurrenceEndDate, recurrenceCount, recurrenceEndMode, timesPerDay, toast, loadData, editingSessionId, t, lang, getVisibleSessionCalendarDate, restoreSessionCalendarDate]);
 
   const applySuggestedSlot = useCallback((start, end) => {
     setModalStartDateTime(new Date(start));
@@ -1655,23 +1936,38 @@ const SchedulingCalendarPage = () => {
 
   const calendarDayNames = useMemo(
     () => getCalendarDayNames(t, hideWeekends),
-    [t, hideWeekends, lang]
+    [t, hideWeekends]
   );
 
   const sessionCalendarTemplates = useMemo(() => ({
     ...createToastCalendarTemplates(lang, t),
     time: (event) => {
+      const eventType = event.raw?.eventType;
       const session = event.raw?.session;
-      const venue = session ? buildSessionEventVenueLine(session, lang, t) : '';
-      const instructor = session ? buildSessionEventInstructorLine(session, lang, t) : '';
-      const title = session?.class
-        ? getLocalizedClassName(session.class, lang, session.class.code || t('class'))
-        : t('class');
+      const breakSession = event.raw?.breakSession;
+      const holiday = event.raw?.holiday;
+      let title = event.title || '';
+      let body = '';
+      if (eventType === 'session' && session) {
+        const venue = buildSessionEventVenueLine(session, lang, t);
+        const instructor = buildSessionEventInstructorLine(session, lang, t);
+        title = getLocalizedClassName(session.class, lang, session.class.code || t('class'));
+        body = `${escapeHtml(venue)}${venue ? ' • ' : ''}${escapeHtml(instructor)}`;
+      } else if (eventType === 'break' && breakSession) {
+        const where = [
+          breakSession.classroom?.nameEn || breakSession.classroom?.code,
+          breakSession.instructor?.displayName
+        ].filter(Boolean).join(' • ');
+        title = `${breakSession.breakType || t('break')}`;
+        body = escapeHtml(where);
+      } else if (eventType === 'holiday' && holiday) {
+        title = holiday.descriptionEn || holiday.descriptionAr || t('holiday');
+        body = escapeHtml(holiday.type || '');
+      }
       return `
         <div style="display: flex; flex-direction: column; justify-content: center; width: 100%; height: 100%; min-height: 100%; padding: 4px 6px; line-height: 1.2; overflow: hidden; box-sizing: border-box; color: #ffffff;">
           <div style="font-weight: 600; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(title)}</div>
-          <div style="font-size: 10px; opacity: 0.92; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(venue)}</div>
-          <div style="font-size: 10px; opacity: 0.88; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(instructor)}</div>
+          <div style="font-size: 10px; opacity: 0.92; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${body}</div>
         </div>
       `;
     }
@@ -2333,6 +2629,70 @@ const SchedulingCalendarPage = () => {
                     </button>
                   );
                 })}
+              </div>
+            )}
+
+            {mainTab === 'sessions' && (
+              <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center', flexShrink: 0 }}>
+                <div style={{ width: '1px', backgroundColor: theme === 'dark' ? '#374151' : '#d1d5db', margin: '0 0.25rem' }} />
+                <button
+                  type="button"
+                  onClick={() => {
+                    const start = new Date(currentDate);
+                    start.setHours(9, 0, 0, 0);
+                    const end = new Date(start);
+                    end.setHours(9, 45, 0, 0);
+                    setCalendarEventDialog({ open: true, mode: 'create', eventType: 'break', event: null, initialStart: start, initialEnd: end });
+                  }}
+                  title={t('add_break')}
+                  aria-label={t('add_break')}
+                  style={{
+                    padding: '0.5rem 0.75rem',
+                    backgroundColor: '#f59e0b',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '0.375rem',
+                    cursor: 'pointer',
+                    fontSize: '0.875rem',
+                    fontWeight: 500,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    flexShrink: 0
+                  }}
+                >
+                  <Coffee size={16} />
+                  <span>{t('add_break')}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const start = new Date(currentDate);
+                    start.setHours(0, 0, 0, 0);
+                    const end = new Date(start);
+                    end.setHours(23, 59, 59, 999);
+                    setCalendarEventDialog({ open: true, mode: 'create', eventType: 'holiday', event: null, initialStart: start, initialEnd: end });
+                  }}
+                  title={t('add_holiday')}
+                  aria-label={t('add_holiday')}
+                  style={{
+                    padding: '0.5rem 0.75rem',
+                    backgroundColor: '#ef4444',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: '0.375rem',
+                    cursor: 'pointer',
+                    fontSize: '0.875rem',
+                    fontWeight: 500,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.35rem',
+                    flexShrink: 0
+                  }}
+                >
+                  <Umbrella size={16} />
+                  <span>{t('add_holiday')}</span>
+                </button>
               </div>
             )}
 
@@ -3523,8 +3883,84 @@ const SchedulingCalendarPage = () => {
         />
       )}
 
-      {/* Create Session Modal */}
-      {showCreateModal && modalClassItem && (
+      {/* Create/Update Session Dialog */}
+      <SessionEventDialog
+        open={showCreateModal && !!modalClassItem}
+        mode={editingSessionId ? 'edit' : 'create'}
+        classItem={modalClassItem}
+        startDateTime={modalStartDateTime}
+        endDateTime={modalEndDateTime}
+        instructorEmail={modalInstructorEmail}
+        instructorId={modalInstructorId}
+        classroomId={modalClassroomId}
+        isRecurring={isRecurring}
+        recurrenceType={recurrenceType}
+        recurrenceDays={recurrenceDays}
+        recurrenceEndDate={recurrenceEndDate}
+        recurrenceCount={recurrenceCount}
+        recurrenceEndMode={recurrenceEndMode}
+        timesPerDay={timesPerDay}
+        validationResult={validationResult}
+        subjects={subjects}
+        programs={programs}
+        instructors={instructors}
+        filteredInstructorUsers={filteredInstructorUsers}
+        classes={classes}
+        classrooms={classrooms}
+        enrollments={enrollments}
+        instructorAvailabilities={instructorAvailabilities}
+        classroomAvailabilities={classroomAvailabilities}
+        theme={theme}
+        t={t}
+        lang={lang}
+        onClose={closeCreateModal}
+        onStartChange={(date) => { setModalStartDateTime(date); setValidationResult(null); }}
+        onEndChange={(date) => { setModalEndDateTime(date); setValidationResult(null); }}
+        onInstructorChange={(instructor) => {
+          setModalInstructorEmail(instructor ? instructor.email : null);
+          setModalInstructorId(instructor ? instructor.id : null);
+          setValidationResult(null);
+        }}
+        onClassroomChange={(id) => { setModalClassroomId(id); setValidationResult(null); }}
+        onRecurringChange={setIsRecurring}
+        onRecurrenceTypeChange={setRecurrenceType}
+        onRecurrenceDaysChange={setRecurrenceDays}
+        onRecurrenceEndModeChange={setRecurrenceEndMode}
+        onRecurrenceEndDateChange={setRecurrenceEndDate}
+        onRecurrenceCountChange={setRecurrenceCount}
+        onTimesPerDayChange={setTimesPerDay}
+        onApplySuggestedSlot={applySuggestedSlot}
+        onChangeStatus={handleSessionChangeStatus}
+        onSave={handleCreateSession}
+        isSaveDisabled={!editingSessionId && validationResult?.valid === false && !!modalClassroomId}
+        saveLabel={editingSessionId ? t('update_session') : (isRecurring ? t('create_series') : t('create_session'))}
+      />
+
+      {/* Calendar Event Dialog (break/holiday) */}
+      {calendarEventDialog.open && (calendarEventDialog.eventType === 'break' || calendarEventDialog.eventType === 'holiday') && (
+        <CalendarEventDialog
+          open={calendarEventDialog.open}
+          mode={calendarEventDialog.mode}
+          eventType={calendarEventDialog.eventType}
+          event={calendarEventDialog.event}
+          initialStart={calendarEventDialog.initialStart}
+          initialEnd={calendarEventDialog.initialEnd}
+          programs={programs}
+          instructors={instructors}
+          classrooms={classrooms}
+          timeSlots={timeSlots}
+          user={user}
+          theme={theme}
+          t={t}
+          lang={lang}
+          onClose={closeCalendarEventDialog}
+          onSave={handleCalendarEventSave}
+          onDelete={handleCalendarEventDelete}
+        />
+      )}
+
+      {/* Delete Scope Dialog (recurring break/holiday) */}
+      {deleteScopeDialog.open && (
         <div style={{
           position: 'fixed',
           top: 0,
@@ -3535,245 +3971,75 @@ const SchedulingCalendarPage = () => {
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          zIndex: 10000,
+          zIndex: 10001,
           padding: '1rem'
-        }}
-        onClick={closeCreateModal}>
+        }} onClick={() => setDeleteScopeDialog({ open: false, eventType: null, event: null })}>
           <div style={{
             backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
             borderRadius: '0.5rem',
             padding: '1.5rem',
-            maxWidth: '780px',
-            width: '100%',
-            maxHeight: '90vh',
-            overflowY: 'auto'
-          }}
-          onClick={(e) => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <h2 style={{ fontSize: '1.25rem', fontWeight: '600' }}>
-                {editingSessionId ? t('update_session') : t('schedule_session')}
-              </h2>
-              <button onClick={closeCreateModal} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
-                <X size={20} color={theme === 'dark' ? '#9ca3af' : '#6b7280'} />
+            maxWidth: '420px',
+            width: '100%'
+          }} onClick={(e) => e.stopPropagation()}>
+            <h2 style={{ fontSize: '1.125rem', fontWeight: 600, color: theme === 'dark' ? '#f3f4f6' : '#1f2937', marginBottom: '1rem' }}>
+              {t('delete_event')}
+            </h2>
+            <p style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginBottom: '1rem' }}>
+              {t('delete_event_scope_prompt')}
+            </p>
+            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+              <button
+                type="button"
+                style={{
+                  padding: '0.5rem 1rem',
+                  borderRadius: '0.375rem',
+                  border: 'none',
+                  cursor: 'pointer',
+                  backgroundColor: theme === 'dark' ? '#374151' : '#f3f4f6',
+                  color: theme === 'dark' ? '#f3f4f6' : '#1f2937'
+                }}
+                onClick={() => setDeleteScopeDialog({ open: false, eventType: null, event: null })}
+              >
+                {t('cancel')}
               </button>
-            </div>
-
-            {/* Class Info */}
-            <div style={{ marginBottom: '1rem', padding: '1rem', backgroundColor: theme === 'dark' ? '#374151' : '#f3f4f6', borderRadius: '0.375rem' }}>
-              <div style={{ fontSize: '1rem', fontWeight: '600', marginBottom: '0.25rem' }}>{getLocalizedClassName(modalClassItem, lang, modalClassItem.code)}</div>
-              <div style={{ fontSize: '0.875rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
-                {getLocalizedSubjectName(subjects.find(s => s.id === modalClassItem.subjectId), lang)
-                  || getLocalizedName(programs.find(p => p.id === modalClassItem.programId), lang)
-                  || modalClassItem.code}
-              </div>
-            </div>
-
-            {/* Date and Time */}
-            <div style={{ marginBottom: isRecurring ? '0.35rem' : '1rem' }}>
-              {isRecurring && (
-                <p style={{ margin: '0 0 0.5rem', fontSize: '0.75rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
-                  {t('first_occurrence_datetime_hint')}
-                </p>
-              )}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem' }}>
-                    {isRecurring ? t('first_occurrence_start') : t('start_time')}
-                  </label>
-                  <Input
-                    type="datetime-local"
-                    value={toDatetimeLocalValue(modalStartDateTime)}
-                    onChange={(e) => {
-                      setModalStartDateTime(new Date(e.target.value));
-                      setValidationResult(null);
-                    }}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem' }}>
-                    {isRecurring ? t('first_occurrence_end') : t('end_time')}
-                  </label>
-                  <Input
-                    type="datetime-local"
-                    value={toDatetimeLocalValue(modalEndDateTime)}
-                    onChange={(e) => {
-                      setModalEndDateTime(new Date(e.target.value));
-                      setValidationResult(null);
-                    }}
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Instructor and Classroom */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginBottom: '1rem' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem' }}>
-                  {t('instructor')} {!editingSessionId && <span style={{ color: '#9ca3af' }}>{t('optional_label')}</span>}
-                </label>
-                {editingSessionId ? (
-                  <div style={{ 
-                    padding: '0.5rem', 
-                    backgroundColor: theme === 'dark' ? '#374151' : '#f3f4f6', 
-                    borderRadius: '0.375rem',
-                    color: theme === 'dark' ? '#f3f4f6' : '#1f2937'
-                  }}>
-                    {getLocalizedInstructorName(instructors.find(i => i.id === modalInstructorId), lang, t('not_assigned'))}
-                  </div>
-                ) : (
-                  <UserSelect
-                    users={filteredInstructorUsers}
-                    enrollments={enrollments}
-                    classes={classes}
-                    value={modalInstructorEmail}
-                    onChange={(selectedEmail) => {
-                      const selectedInstructor = filteredInstructorUsers.find(u => u.email === selectedEmail);
-                      setModalInstructorEmail(selectedEmail);
-                      setModalInstructorId(selectedInstructor ? selectedInstructor.id : null);
-                      setValidationResult(null);
-                    }}
-                    placeholder={t('select_instructor_optional')}
-                    roleFilter={[]}
-                    showLabels={false}
-                    useEmailAsValue={true}
-                  />
-                )}
-                {!editingSessionId && !modalClassItem.instructorId && modalInstructorId && (
-                  <div style={{ fontSize: '0.75rem', color: '#f59e0b', marginTop: '0.25rem' }}>
-                    💡 {t('will_update_class_instructor')}
-                  </div>
-                )}
-              </div>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem' }}>
-                  {t('room')} {!editingSessionId && <span style={{ color: '#9ca3af' }}>*</span>}
-                </label>
-                <Select
-                  value={modalClassroomId != null ? String(modalClassroomId) : ''}
-                  onChange={(e) => {
-                    setModalClassroomId(e.target.value ? parseInt(e.target.value, 10) : null);
-                    setValidationResult(null);
-                  }}
-                  theme={theme}
-                  options={[
-                    { value: '', label: t('select_classroom') },
-                    ...classrooms.map(c => ({
-                      value: String(c.id),
-                      label: formatClassroomOptionLabel(c, lang, t),
-                      subtext: formatClassroomDetails(c, lang, t)
-                    }))
-                  ]}
-                />
-                {modalClassroomId && (
-                  <div style={{
-                    marginTop: '0.5rem',
-                    padding: '0.5rem 0.625rem',
-                    backgroundColor: theme === 'dark' ? '#374151' : '#f9fafb',
-                    borderRadius: '0.375rem',
-                    fontSize: '0.75rem',
-                    color: theme === 'dark' ? '#9ca3af' : '#6b7280'
-                  }}>
-                    <div style={{ fontWeight: '600', marginBottom: '0.125rem', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
-                      {t('classroom_details')}
-                    </div>
-                    {formatClassroomDetails(getClassroomById(classrooms, modalClassroomId), lang, t) || t('not_assigned')}
-                    {modalClassroomId && (() => {
-                      const room = getClassroomById(classrooms, modalClassroomId);
-                      const statusLabel = room ? getLocalizedClassroomStatus(room, t) : null;
-                      return statusLabel ? (
-                        <div style={{ marginTop: '0.25rem' }}>
-                          <strong>{t('room_status')}:</strong> {statusLabel}
-                        </div>
-                      ) : null;
-                    })()}
-                  </div>
-                )}
-                {!editingSessionId && !modalClassItem.classroomId && modalClassroomId && (
-                  <div style={{ fontSize: '0.75rem', color: '#f59e0b', marginTop: '0.25rem' }}>
-                    💡 {t('will_update_class_classroom')}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {!editingSessionId && (
-              <SchedulingAvailabilityPanel
-                instructorId={modalInstructorId}
-                classroomId={modalClassroomId}
-                classroom={getClassroomById(classrooms, modalClassroomId)}
-                startDateTime={modalStartDateTime}
-                endDateTime={modalEndDateTime}
-                instructorAvailabilities={instructorAvailabilities}
-                classroomAvailabilities={classroomAvailabilities}
-                validationResult={validationResult}
-                isRecurring={isRecurring}
-                theme={theme}
-                t={t}
-                lang={lang}
-                onApplySuggestedSlot={applySuggestedSlot}
-              />
-            )}
-
-            <SchedulingRecurrencePanel
-              isRecurring={isRecurring}
-              onRecurringChange={setIsRecurring}
-              recurrenceType={recurrenceType}
-              onRecurrenceTypeChange={setRecurrenceType}
-              recurrenceDays={recurrenceDays}
-              onRecurrenceDaysChange={setRecurrenceDays}
-              recurrenceEndMode={recurrenceEndMode}
-              onRecurrenceEndModeChange={setRecurrenceEndMode}
-              recurrenceEndDate={recurrenceEndDate}
-              onRecurrenceEndDateChange={setRecurrenceEndDate}
-              recurrenceCount={recurrenceCount}
-              onRecurrenceCountChange={setRecurrenceCount}
-              timesPerDay={timesPerDay}
-              onTimesPerDayChange={setTimesPerDay}
-              modalStartDateTime={modalStartDateTime}
-              modalEndDateTime={modalEndDateTime}
-              theme={theme}
-              t={t}
-            />
-
-            {/* Actions */}
-            <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'space-between' }}>
-              <div>
-                {editingSessionId && (
-                  <Button
-                    onClick={() => {
-                      const session = scheduledSessions.find(s => s.id === editingSessionId);
-                      if (session) {
-                        setSessionToChangeStatus(session);
-                        setShowStatusModal(true);
-                        setShowCreateModal(false);
-                      }
-                    }}
-                    style={{ backgroundColor: '#f59e0b', color: '#ffffff' }}
-                  >
-                    Change Status
-                  </Button>
-                )}
-              </div>
-              <div style={{ display: 'flex', gap: '0.5rem' }}>
-                <Button
-                  variant="secondary"
-                  onClick={closeCreateModal}
-                >
-                  {t('cancel')}
-                </Button>
-                <Button
-                  onClick={handleCreateSession}
-                  disabled={!editingSessionId && validationResult?.valid === false && !!modalClassroomId}
+              <button
+                type="button"
+                style={{
+                  padding: '0.5rem 1rem',
+                  borderRadius: '0.375rem',
+                  border: 'none',
+                  cursor: 'pointer',
+                  backgroundColor: '#ef4444',
+                  color: '#ffffff'
+                }}
+                onClick={() => handleCalendarEventDelete({
+                  eventType: deleteScopeDialog.eventType,
+                  event: deleteScopeDialog.eventType === 'break' ? deleteScopeDialog.event?.breakSession : deleteScopeDialog.event?.holiday,
+                  deleteScope: 'single'
+                })}
+              >
+                {t('this_instance')}
+              </button>
+              {(deleteScopeDialog.eventType === 'break' ? deleteScopeDialog.event?.breakSession?.seriesId : deleteScopeDialog.event?.holiday?.seriesId) && (
+                <button
+                  type="button"
                   style={{
-                    backgroundColor: '#3b82f6',
-                    color: '#ffffff',
-                    opacity: (!editingSessionId && validationResult?.valid === false && !!modalClassroomId) ? 0.55 : 1,
-                    cursor: (!editingSessionId && validationResult?.valid === false && !!modalClassroomId) ? 'not-allowed' : 'pointer'
+                    padding: '0.5rem 1rem',
+                    borderRadius: '0.375rem',
+                    border: 'none',
+                    cursor: 'pointer',
+                    backgroundColor: '#ef4444',
+                    color: '#ffffff'
                   }}
+                  onClick={() => handleCalendarEventDelete({
+                    eventType: deleteScopeDialog.eventType,
+                    event: deleteScopeDialog.eventType === 'break' ? deleteScopeDialog.event?.breakSession : deleteScopeDialog.event?.holiday,
+                    deleteScope: 'series'
+                  })}
                 >
-                  {editingSessionId ? t('update_session') : (isRecurring ? t('create_series') : t('create_session'))}
-                </Button>
-              </div>
+                  {t('whole_series')}
+                </button>
+              )}
             </div>
           </div>
         </div>

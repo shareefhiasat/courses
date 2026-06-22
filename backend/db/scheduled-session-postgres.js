@@ -340,17 +340,22 @@ export const updateScheduledSession = async (id, data) => {
 
     // Check for conflicts if time/room/instructor changed
     if (data.startDateTime || data.endDateTime || data.classroomId || data.instructorId) {
+      const start = new Date(data.startDateTime || existing.startDateTime);
+      const end = new Date(data.endDateTime || existing.endDateTime);
+      const classroomId = data.classroomId !== undefined ? data.classroomId : existing.classroomId;
+      const instructorId = data.instructorId !== undefined ? data.instructorId : existing.instructorId;
+
       const conflict = await prisma.scheduledSession.findFirst({
         where: {
           id: { not: parseInt(id) },
           isActive: true,
           OR: [
-            { classroomId: parseInt(data.classroomId || existing.classroomId) },
-            { instructorId: parseInt(data.instructorId || existing.instructorId) }
+            ...(classroomId ? [{ classroomId: parseInt(classroomId) }] : []),
+            ...(instructorId ? [{ instructorId: parseInt(instructorId) }] : []),
           ],
           AND: [
-            { startDateTime: { lt: new Date(data.endDateTime || existing.endDateTime) } },
-            { endDateTime: { gt: new Date(data.startDateTime || existing.startDateTime) } }
+            { startDateTime: { lt: end } },
+            { endDateTime: { gt: start } }
           ]
         }
       });
@@ -358,10 +363,66 @@ export const updateScheduledSession = async (id, data) => {
       if (conflict) {
         return {
           success: false,
-          error: conflict.classroomId === parseInt(data.classroomId || existing.classroomId)
+          error: conflict.classroomId === parseInt(classroomId)
             ? 'Classroom is already booked for this time'
             : 'Instructor is already scheduled for this time'
         };
+      }
+
+      // Check break/holiday conflicts
+      const classRecord = await prisma.class.findUnique({
+        where: { id: parseInt(data.classId || existing.classId) },
+        select: { programId: true }
+      });
+      const programId = classRecord?.programId || null;
+
+      const holiday = await prisma.holiday.findFirst({
+        where: {
+          isActive: true,
+          startDate: { lte: end },
+          endDate: { gte: start },
+          ...(programId && {
+            OR: [{ programId: null }, { programId: parseInt(programId) }]
+          }),
+        }
+      });
+
+      if (holiday) {
+        return {
+          success: false,
+          error: `Date falls on holiday: ${holiday.descriptionEn || holiday.descriptionAr}`
+        };
+      }
+
+      if (instructorId || classroomId) {
+        const startDateOnly = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+        const endDateOnly = new Date(end.getFullYear(), end.getMonth(), end.getDate());
+        const breakWhere = {
+          isActive: true,
+          date: { gte: startDateOnly, lte: endDateOnly },
+          OR: [
+            ...(instructorId ? [{ instructorUserId: parseInt(instructorId) }] : []),
+            ...(classroomId ? [{ classroomId: parseInt(classroomId) }] : []),
+          ],
+          AND: [
+            { timeSlot: { startTime: { lt: end.toTimeString().substring(0, 5) } } },
+            { timeSlot: { endTime: { gt: start.toTimeString().substring(0, 5) } } },
+          ],
+        };
+
+        const breakSession = await prisma.breakSession.findFirst({
+          where: breakWhere,
+          include: {
+            timeSlot: { select: { startTime: true, endTime: true } }
+          }
+        });
+
+        if (breakSession) {
+          return {
+            success: false,
+            error: `Break session (${breakSession.breakType}) blocks this time slot`
+          };
+        }
       }
     }
 

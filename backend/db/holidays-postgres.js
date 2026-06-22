@@ -7,8 +7,15 @@
 
 import { PrismaClient } from '@prisma/client';
 import { PRISMA_ERRORS, getPrismaErrorMessage, isPrismaError } from '../constants/prisma-errors.js';
+import {
+  expandRecurrenceDates,
+  buildRecurrencePattern,
+  generateSeriesId,
+} from '../utils/schedulingRecurrence.js';
 
 const prisma = new PrismaClient();
+
+const MAX_RECURRING_OCCURRENCES = 500;
 
 /**
  * Get all holidays from PostgreSQL database
@@ -27,7 +34,9 @@ export const getHolidays = async (params = {}) => {
       type = '',
       isActive = null,
       sortBy = 'startDate',
-      sortOrder = 'asc'
+      sortOrder = 'asc',
+      startDate,
+      endDate,
     } = params;
     
     // Build where clause
@@ -47,6 +56,17 @@ export const getHolidays = async (params = {}) => {
     
     if (isActive !== null) {
       where.isActive = isActive === 'true' || isActive === true;
+    }
+
+    // Date range filter: overlap with [startDate, endDate]
+    if (startDate || endDate) {
+      where.AND = [];
+      if (startDate) {
+        where.AND.push({ endDate: { gte: new Date(startDate) } });
+      }
+      if (endDate) {
+        where.AND.push({ startDate: { lte: new Date(endDate) } });
+      }
     }
     
     const skip = (parseInt(page) - 1) * parseInt(limit);
@@ -269,28 +289,89 @@ export const getUpcomingHolidays = async (params) => {
  * @param {Object} data - Holiday data
  * @returns {Promise<Object>} - Result object with created holiday
  */
-export const createHoliday = async (data) => {
+export const createHoliday = async (data, userId) => {
   try {
     console.log('[Holidays DB] Creating holiday:', data);
-    
-    const holiday = await prisma.holiday.create({
-      data,
-      include: {
-        program: {
-          select: {
-            id: true,
-            code: true,
-            nameEn: true,
-            nameAr: true
+
+    const isRecurring = Boolean(data.isRecurring);
+    const seriesId = isRecurring ? generateSeriesId() : null;
+    const startDate = new Date(data.startDate);
+    const endDate = new Date(data.endDate);
+    const durationMs = endDate - startDate;
+    const recurrencePattern = isRecurring
+      ? data.recurrencePattern || buildRecurrencePattern({
+          recurrenceType: data.recurrenceType,
+          recurrenceDays: data.recurrenceDays,
+          recurrenceEndDate: data.recurrenceEndDate ? new Date(data.recurrenceEndDate) : null,
+          recurrenceCount: data.recurrenceCount,
+        })
+      : null;
+
+    const baseRecord = {
+      programId: data.programId ? parseInt(data.programId, 10) : null,
+      descriptionEn: data.descriptionEn,
+      descriptionAr: data.descriptionAr || null,
+      type: data.type,
+      createdBy: userId,
+      updatedBy: userId,
+    };
+
+    if (!isRecurring) {
+      const holiday = await prisma.holiday.create({
+        data: {
+          ...baseRecord,
+          startDate,
+          endDate,
+          isRecurring: false,
+          recurrencePattern: null,
+          seriesId: null,
+        },
+        include: {
+          program: {
+            select: { id: true, code: true, nameEn: true, nameAr: true }
           }
         }
-      }
+      });
+      return { success: true, data: holiday };
+    }
+
+    const dates = expandRecurrenceDates({
+      startDate,
+      recurrenceType: data.recurrenceType,
+      recurrenceDays: data.recurrenceDays,
+      recurrenceEndDate: data.recurrenceEndDate ? new Date(data.recurrenceEndDate) : null,
+      recurrenceCount: data.recurrenceCount,
+      maxOccurrences: MAX_RECURRING_OCCURRENCES,
     });
-    
-    return {
-      success: true,
-      data: holiday
-    };
+
+    if (dates.length === 0) {
+      return { success: false, error: 'No valid recurrence dates found' };
+    }
+
+    const records = await prisma.$transaction(
+      dates.map((date) => {
+        const occurrenceStart = new Date(date);
+        occurrenceStart.setHours(startDate.getHours(), startDate.getMinutes(), 0, 0);
+        const occurrenceEnd = new Date(occurrenceStart.getTime() + durationMs);
+        return prisma.holiday.create({
+          data: {
+            ...baseRecord,
+            startDate: occurrenceStart,
+            endDate: occurrenceEnd,
+            isRecurring: true,
+            recurrencePattern,
+            seriesId,
+          },
+          include: {
+            program: {
+              select: { id: true, code: true, nameEn: true, nameAr: true }
+            }
+          }
+        });
+      })
+    );
+
+    return { success: true, data: records, seriesId, count: records.length };
   } catch (error) {
     console.error('[Holidays DB] Error creating holiday:', error);
     
@@ -317,13 +398,44 @@ export const createHoliday = async (data) => {
  * @param {Object} data - Updated holiday data
  * @returns {Promise<Object>} - Result object with updated holiday
  */
-export const updateHoliday = async (id, data) => {
+export const updateHoliday = async (id, data, userId) => {
   try {
     console.log('[Holidays DB] Updating holiday:', id, data);
-    
+
+    const existing = await prisma.holiday.findUnique({ where: { id: parseInt(id) } });
+    if (!existing) {
+      return { success: false, error: 'Holiday not found', code: 'NOT_FOUND' };
+    }
+
+    const updateScope = data.updateScope || 'single';
+    const updatePayload = {
+      ...(data.programId !== undefined && { programId: data.programId ? parseInt(data.programId, 10) : null }),
+      ...(data.descriptionEn !== undefined && { descriptionEn: data.descriptionEn }),
+      ...(data.descriptionAr !== undefined && { descriptionAr: data.descriptionAr }),
+      ...(data.type !== undefined && { type: data.type }),
+      ...(data.isActive !== undefined && { isActive: Boolean(data.isActive) }),
+      updatedBy: userId,
+    };
+
+    if (updateScope === 'series' && existing.seriesId) {
+      await prisma.holiday.updateMany({
+        where: { seriesId: existing.seriesId },
+        data: updatePayload,
+      });
+      const records = await prisma.holiday.findMany({
+        where: { seriesId: existing.seriesId },
+        include: { program: { select: { id: true, code: true, nameEn: true, nameAr: true } } },
+      });
+      return { success: true, data: records, scope: 'series' };
+    }
+
     const holiday = await prisma.holiday.update({
       where: { id: parseInt(id) },
-      data,
+      data: {
+        ...updatePayload,
+        ...(data.startDate !== undefined && { startDate: new Date(data.startDate) }),
+        ...(data.endDate !== undefined && { endDate: new Date(data.endDate) }),
+      },
       include: {
         program: {
           select: {
@@ -336,10 +448,7 @@ export const updateHoliday = async (id, data) => {
       }
     });
     
-    return {
-      success: true,
-      data: holiday
-    };
+    return { success: true, data: holiday, scope: 'single' };
   } catch (error) {
     console.error('[Holidays DB] Error updating holiday:', error);
     
@@ -363,20 +472,26 @@ export const updateHoliday = async (id, data) => {
  * Delete a holiday
  * 
  * @param {number} id - Holiday ID
+ * @param {string} deleteScope - 'single' or 'series'
  * @returns {Promise<Object>} - Result object
  */
-export const deleteHoliday = async (id) => {
+export const deleteHoliday = async (id, deleteScope = 'single') => {
   try {
     console.log('[Holidays DB] Deleting holiday:', id);
+
+    const existing = await prisma.holiday.findUnique({ where: { id: parseInt(id) } });
+    if (!existing) {
+      return { success: false, error: 'Holiday not found', code: 'NOT_FOUND' };
+    }
+
+    if (deleteScope === 'series' && existing.seriesId) {
+      const { count } = await prisma.holiday.deleteMany({ where: { seriesId: existing.seriesId } });
+      return { success: true, message: 'Holiday series deleted successfully', scope: 'series', count };
+    }
+
+    await prisma.holiday.delete({ where: { id: parseInt(id) } });
     
-    await prisma.holiday.delete({
-      where: { id: parseInt(id) }
-    });
-    
-    return {
-      success: true,
-      message: 'Holiday deleted successfully'
-    };
+    return { success: true, message: 'Holiday deleted successfully', scope: 'single' };
   } catch (error) {
     console.error('[Holidays DB] Error deleting holiday:', error);
     

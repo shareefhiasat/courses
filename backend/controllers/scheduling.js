@@ -97,7 +97,8 @@ export const updateBreakSession = async (req, res) => {
 
 export const deleteBreakSession = async (req, res) => {
   try {
-    const result = await breakSessionsDb.deleteBreakSession(req.params.id);
+    const { deleteScope } = req.body || {};
+    const result = await breakSessionsDb.deleteBreakSession(req.params.id, deleteScope);
     res.status(result.success ? 200 : 400).json(result);
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
