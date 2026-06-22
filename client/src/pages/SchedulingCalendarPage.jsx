@@ -39,14 +39,14 @@ import SchedulingAvailabilityTimeline from '../components/SchedulingAvailability
 import SchedulingClassesView from '../components/SchedulingClassesView.jsx';
 import CalendarEventDialog from '../components/scheduling/CalendarEventDialog.jsx';
 import SessionEventDialog from '../components/scheduling/SessionEventDialog.jsx';
-import { 
-  BookOpen, Users, DoorOpen, Calendar as CalendarIcon, 
+import {
+  BookOpen, Users, DoorOpen, Calendar as CalendarIcon,
   ChevronLeft, ChevronRight, Maximize2, Minimize2,
   Save, Trash2, Clock, MapPin, User, X, Edit, BarChart3,
   ChevronUp, ChevronDown, List, Grid, Filter, ArrowUp, ArrowDown,
   CheckCircle2, XCircle, PanelLeftClose, PanelLeft, CalendarOff,
   CalendarDays, LayoutList, LayoutGrid, GraduationCap, LayoutDashboard,
-  Coffee, Umbrella
+  Coffee, Umbrella, Utensils, MoreHorizontal
 } from 'lucide-react';
 import { getAllClasses } from '@services/business/classService.js';
 import { getAllPrograms } from '@services/business/programService.js';
@@ -1574,11 +1574,23 @@ const SchedulingCalendarPage = () => {
       const result = await scheduledSessionService.updateScheduledSession(session.id, updatePayload);
       if (result.success) {
         toast.success('Session updated');
-        setValidationResult(null);
+        console.log('[DRAG/RESIZE] Updating calendar with new data');
+        
+        // Update the calendar event directly
+        const cal = calendarRef.current?.getInstance();
+        if (cal) {
+          cal.updateEvent(event.id, event.calendarId, {
+            start: start.toISOString(),
+            end: end.toISOString()
+          });
+          cal.render();
+        }
+        
+        // Reload sessions data in background
         const sessionsResult = await scheduledSessionService.getAllScheduledSessions({ limit: 1000 });
-        if (sessionsResult.success) setScheduledSessions(sessionsResult.data || []);
-        restoreSessionCalendarDate(visibleDateBeforeSave);
-        setCalendarLayoutKey((k) => k + 1);
+        if (sessionsResult.success) {
+          setScheduledSessions(sessionsResult.data || []);
+        }
       } else {
         toast.error(result.error || 'Failed to update session');
       }
@@ -1619,35 +1631,37 @@ const SchedulingCalendarPage = () => {
       console.log('[DRAG/RESIZE] 📤 Calling backend to update break session...');
       const result = await schedulingSummaryService.updateBreakSession(breakSession.id, updatePayload);
       console.log('[DRAG/RESIZE] 📥 Backend response:', result.success ? '✅ SUCCESS' : '❌ FAILED');
-      
+
       if (result.success) {
         toast.success('Break updated');
-        console.log('[DRAG/RESIZE] 🔄 Starting state refresh sequence...');
+        console.log('[DRAG/RESIZE] Updating calendar with new data');
         
+        // Update the calendar event directly
+        const cal = calendarRef.current?.getInstance();
+        if (cal) {
+          cal.updateEvent(event.id, event.calendarId, {
+            start: start.toISOString(),
+            end: end.toISOString()
+          });
+          cal.render();
+        }
+        
+        // Update time slots if changed
         if (slotResolution.timeSlots) {
-          console.log('[DRAG/RESIZE] ⏰ Updating timeSlots state');
           setTimeSlots(slotResolution.timeSlots);
         }
         
-        console.log('[DRAG/RESIZE] 📋 Reloading break sessions from backend...');
-        const breakResult = await schedulingSummaryService.getBreakSessions({ start: calendarFromStr, end: calendarToStr, limit: 5000 });
-        console.log('[DRAG/RESIZE] 📋 Break sessions loaded:', breakResult.success ? `✅ ${breakResult.data?.length} breaks` : '❌ FAILED');
-        
+        // Reload break sessions data in background
+        const breakResult = await schedulingSummaryService.getBreakSessions({ 
+          start: calendarDateRange.fromStrLocal, 
+          end: calendarDateRange.toStrLocal, 
+          limit: 5000 
+        });
         if (breakResult.success) {
-          console.log('[DRAG/RESIZE] 💾 Setting breakSessions state with', breakResult.data?.length, 'items');
           setBreakSessions(breakResult.data || []);
         }
         
-        console.log('[DRAG/RESIZE] 📅 Restoring calendar date to:', visibleDateBeforeSave);
-        restoreSessionCalendarDate(visibleDateBeforeSave);
-        
-        console.log('[DRAG/RESIZE] 🔑 Incrementing calendarLayoutKey to force remount');
-        setCalendarLayoutKey((k) => {
-          console.log('[DRAG/RESIZE] 🔑 calendarLayoutKey:', k, '→', k + 1);
-          return k + 1;
-        });
-        
-        console.log('[DRAG/RESIZE] ✅ Break update complete, returning true');
+        console.log('[DRAG/RESIZE] ✅ Break update complete');
         console.log('═══════════════════════════════════════════════════════');
         return true;
       }
@@ -1668,10 +1682,27 @@ const SchedulingCalendarPage = () => {
       const result = await holidayService.updateHoliday(holiday.id, updateData);
       if (result.success) {
         toast.success('Holiday updated');
-        const holidayResult = await holidayService.getAllHolidays({ startDate: calendarFromStr, endDate: calendarToStr, limit: 5000 });
-        if (holidayResult.success) setHolidays(holidayResult.data || []);
-        restoreSessionCalendarDate(visibleDateBeforeSave);
-        setCalendarLayoutKey((k) => k + 1);
+        console.log('[DRAG/RESIZE] Updating calendar with new data');
+        
+        // Update the calendar event directly
+        const cal = calendarRef.current?.getInstance();
+        if (cal) {
+          cal.updateEvent(event.id, event.calendarId, {
+            start: start.toISOString(),
+            end: end.toISOString()
+          });
+          cal.render();
+        }
+        
+        // Reload holidays data in background
+        const holidayResult = await holidayService.getAllHolidays({ 
+          startDate: calendarDateRange.fromStrLocal, 
+          endDate: calendarDateRange.toStrLocal, 
+          limit: 5000 
+        });
+        if (holidayResult.success) {
+          setHolidays(holidayResult.data || []);
+        }
       } else {
         toast.error(result.error || 'Failed to update holiday');
       }
@@ -1767,9 +1798,100 @@ const SchedulingCalendarPage = () => {
       }
       if (result.success) {
         toast.success(mode === 'edit' ? 'Break updated' : 'Break created');
-        // Full page refresh to ensure calendar refresh
-        console.log('[DIALOG SAVE] Triggering full page refresh');
-        window.location.reload();
+        console.log('[DIALOG SAVE] Updating calendar with new data');
+        
+        const cal = calendarRef.current?.getInstance();
+        
+        if (mode === 'edit' && event) {
+          const updatedData = result.data;
+          if (updatedData) {
+            setBreakSessions((prev) => prev.map((item) => (
+              String(item.id) === String(updatedData.id) ? updatedData : item
+            )));
+
+            if (cal) {
+              const eventStart = new Date(updatedData.date);
+              const [startHour, startMinute] = (updatedData.timeSlot?.startTime || '09:00').split(':').map(Number);
+              const [endHour, endMinute] = (updatedData.timeSlot?.endTime || '09:45').split(':').map(Number);
+              eventStart.setHours(startHour, startMinute, 0, 0);
+              const eventEnd = new Date(eventStart);
+              eventEnd.setHours(endHour, endMinute, 0, 0);
+              const description = lang === 'ar' && updatedData.descriptionAr ? updatedData.descriptionAr : updatedData.descriptionEn;
+              const eventId = `break-${updatedData.id}`;
+              const updatedEvent = {
+                id: eventId,
+                calendarId: 'breaks',
+                title: description || updatedData.breakType || t('break'),
+                body: updatedData.notes || '',
+                category: 'time',
+                start: eventStart,
+                end: eventEnd,
+                backgroundColor: '#f59e0b',
+                borderColor: '#d97706',
+                color: '#ffffff',
+                isReadOnly: false,
+                raw: { eventType: 'break', breakSession: updatedData }
+              };
+              const nextEvents = calendarEventsRef.current.some((calendarEvent) => calendarEvent.id === eventId)
+                ? calendarEventsRef.current.map((calendarEvent) => (calendarEvent.id === eventId ? updatedEvent : calendarEvent))
+                : [...calendarEventsRef.current, updatedEvent];
+
+              calendarEventsRef.current = nextEvents;
+              cal.clear();
+              cal.createEvents(nextEvents);
+              cal.render();
+            }
+          }
+        } else if (mode === 'create' && cal) {
+          // Create new event in calendar
+          const createdData = result.data;
+          if (createdData) {
+            const eventStart = new Date(createdData.date);
+            const [startHour, startMinute] = (createdData.timeSlot?.startTime || '09:00').split(':').map(Number);
+            const [endHour, endMinute] = (createdData.timeSlot?.endTime || '09:45').split(':').map(Number);
+            eventStart.setHours(startHour, startMinute, 0, 0);
+            const eventEnd = new Date(eventStart);
+            eventEnd.setHours(endHour, endMinute, 0, 0);
+            
+            setBreakSessions((prev) => (
+              prev.some((item) => item.id === createdData.id) ? prev : [...prev, createdData]
+            ));
+            const description = lang === 'ar' && createdData.descriptionAr ? createdData.descriptionAr : createdData.descriptionEn;
+            const eventId = `break-${createdData.id}`;
+            const createdEvent = {
+              id: eventId,
+              calendarId: 'breaks',
+              title: description || createdData.breakType || t('break'),
+              body: createdData.notes || '',
+              start: eventStart,
+              end: eventEnd,
+              category: 'time',
+              backgroundColor: '#f59e0b',
+              borderColor: '#d97706',
+              color: '#ffffff',
+              isReadOnly: false,
+              raw: { eventType: 'break', breakSession: createdData }
+            };
+            const nextEvents = calendarEventsRef.current.some((calendarEvent) => calendarEvent.id === eventId)
+              ? calendarEventsRef.current.map((calendarEvent) => (calendarEvent.id === eventId ? createdEvent : calendarEvent))
+              : [...calendarEventsRef.current, createdEvent];
+
+            calendarEventsRef.current = nextEvents;
+            cal.clear();
+            cal.createEvents(nextEvents);
+            cal.render();
+          }
+        }
+        
+        // Reload data in background to keep state in sync
+        const breakResult = await schedulingSummaryService.getBreakSessions({ 
+          start: calendarFromStr, 
+          end: calendarToStr, 
+          limit: 5000 
+        });
+        if (breakResult.success) {
+          setBreakSessions(breakResult.data || []);
+        }
       } else {
         toast.error(result.error || 'Failed to save break');
       }
@@ -1784,9 +1906,47 @@ const SchedulingCalendarPage = () => {
       }
       if (result.success) {
         toast.success(mode === 'edit' ? 'Holiday updated' : 'Holiday created');
-        // Full page refresh to ensure calendar refresh
-        console.log('[DIALOG SAVE] Triggering full page refresh');
-        window.location.reload();
+        console.log('[DIALOG SAVE] Updating calendar with new data');
+        
+        const cal = calendarRef.current?.getInstance();
+        
+        if (mode === 'edit' && event) {
+          const updatedData = result.data;
+          if (updatedData) {
+            setHolidays((prev) => prev.map((item) => (
+              item.id === updatedData.id ? updatedData : item
+            )));
+          }
+        } else if (mode === 'create' && cal) {
+          // Create new event in calendar
+          const createdData = result.data;
+          if (createdData) {
+            setHolidays((prev) => (
+              prev.some((item) => item.id === createdData.id) ? prev : [...prev, createdData]
+            ));
+            cal.createEvents([{
+              id: `holiday-${createdData.id}`,
+              calendarId: 'holidays',
+              title: createdData.descriptionEn || createdData.descriptionAr || t('holiday'),
+              start: new Date(createdData.startDate).toISOString(),
+              end: new Date(createdData.endDate).toISOString(),
+              category: 'allday',
+              isAllday: true,
+              raw: { eventType: 'holiday', holiday: createdData }
+            }]);
+            cal.render();
+          }
+        }
+        
+        // Reload data in background to keep state in sync
+        const holidayResult = await holidayService.getAllHolidays({ 
+          startDate: calendarFromStr, 
+          endDate: calendarToStr, 
+          limit: 5000 
+        });
+        if (holidayResult.success) {
+          setHolidays(holidayResult.data || []);
+        }
       } else {
         toast.error(result.error || 'Failed to save holiday');
       }
@@ -1797,7 +1957,7 @@ const SchedulingCalendarPage = () => {
       restoreSessionCalendarDate(visibleDateBeforeSave);
       // loadData already triggers calendar sync, no need for layout key increment
     }
-  }, [toast, getVisibleSessionCalendarDate, restoreSessionCalendarDate, calendarDateRange, closeCalendarEventDialog, setCalendarLayoutKey, loadData]);
+  }, [toast, getVisibleSessionCalendarDate, restoreSessionCalendarDate, calendarDateRange, closeCalendarEventDialog, setCalendarLayoutKey, loadData, lang, t]);
 
   const handleCalendarEventDelete = useCallback(async ({ eventType, event, deleteScope }) => {
     const visibleDateBeforeSave = getVisibleSessionCalendarDate();
@@ -1807,9 +1967,25 @@ const SchedulingCalendarPage = () => {
       result = await schedulingSummaryService.deleteBreakSession(event.id, deleteScope);
       if (result.success) {
         toast.success('Break deleted');
-        // Full page refresh to ensure calendar refresh
-        console.log('[DELETE] Triggering full page refresh');
-        window.location.reload();
+        console.log('[DELETE] Updating calendar with new data');
+        
+        const cal = calendarRef.current?.getInstance();
+        if (cal) {
+          // Use the correct event ID format (break-{id})
+          const eventId = `break-${event.id}`;
+          cal.deleteEvent(eventId, 'breaks');
+          cal.render();
+        }
+        
+        // Reload data in background to keep state in sync
+        const breakResult = await schedulingSummaryService.getBreakSessions({ 
+          start: calendarFromStr, 
+          end: calendarToStr, 
+          limit: 5000 
+        });
+        if (breakResult.success) {
+          setBreakSessions(breakResult.data || []);
+        }
       } else {
         toast.error(result.error || 'Failed to delete break');
       }
@@ -1819,9 +1995,25 @@ const SchedulingCalendarPage = () => {
       console.log('[DELETE] Holiday delete result:', result);
       if (result.success) {
         toast.success('Holiday deleted');
-        // Full page refresh to ensure calendar refresh
-        console.log('[DELETE] Triggering full page refresh');
-        window.location.reload();
+        console.log('[DELETE] Updating calendar with new data');
+        
+        const cal = calendarRef.current?.getInstance();
+        if (cal) {
+          // Use the correct event ID format (holiday-{id})
+          const eventId = `holiday-${event.id}`;
+          cal.deleteEvent(eventId, 'holidays');
+          cal.render();
+        }
+        
+        // Reload data in background to keep state in sync
+        const holidayResult = await holidayService.getAllHolidays({ 
+          startDate: calendarFromStr, 
+          endDate: calendarToStr, 
+          limit: 5000 
+        });
+        if (holidayResult.success) {
+          setHolidays(holidayResult.data || []);
+        }
       } else {
         toast.error(result.error || 'Failed to delete holiday');
       }
@@ -2329,6 +2521,19 @@ const SchedulingCalendarPage = () => {
         const instructor = buildSessionEventInstructorLine(session, lang, t);
         title = getLocalizedClassName(session.class, lang, session.class.code || t('class'));
         body = `${escapeHtml(venue)}${venue ? ' • ' : ''}${escapeHtml(instructor)}`;
+
+        // Add default icon for sessions
+        const sessionIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; flex-shrink: 0;"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"></path></svg>`;
+
+        return `
+          <div style="display: flex; flex-direction: column; justify-content: center; width: 100%; height: 100%; min-height: 100%; padding: 4px 6px; line-height: 1.2; overflow: hidden; box-sizing: border-box; color: #ffffff;">
+            <div style="display: flex; align-items: center; font-weight: 600; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+              ${sessionIcon}
+              ${escapeHtml(title)}
+            </div>
+            <div style="font-size: 10px; opacity: 0.92; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${body}</div>
+          </div>
+        `;
       } else if (eventType === 'break' && breakSession) {
         const where = [
           breakSession.classroom?.nameEn || breakSession.classroom?.code,
@@ -2336,9 +2541,59 @@ const SchedulingCalendarPage = () => {
         ].filter(Boolean).join(' • ');
         title = `${breakSession.breakType || t('break')}`;
         body = escapeHtml(where);
+
+        // Add icon based on break type
+        let breakIcon = '';
+        const breakType = breakSession.breakType;
+        if (breakType === 'TeaBreak') {
+          breakIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; flex-shrink: 0;"><path d="M18 8h1a4 4 0 0 1 0 8h-1"></path><path d="M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"></path><line x1="6" y1="1" x2="6" y2="4"></line><line x1="10" y1="1" x2="10" y2="4"></line><line x1="14" y1="1" x2="14" y2="4"></line></svg>`;
+        } else if (breakType === 'LunchBreak') {
+          breakIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; flex-shrink: 0;"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"></path><path d="M7 2v20"></path><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"></path></svg>`;
+        } else if (breakType === 'PrayerBreak') {
+          breakIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; flex-shrink: 0;"><path d="M12 2v20"></path><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>`;
+        } else {
+          breakIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; flex-shrink: 0;"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>`;
+        }
+
+        return `
+          <div style="display: flex; flex-direction: column; justify-content: center; width: 100%; height: 100%; min-height: 100%; padding: 4px 6px; line-height: 1.2; overflow: hidden; box-sizing: border-box; color: #ffffff;">
+            <div style="display: flex; align-items: center; font-weight: 600; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+              ${breakIcon}
+              ${escapeHtml(title)}
+            </div>
+            <div style="font-size: 10px; opacity: 0.92; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${body}</div>
+          </div>
+        `;
       } else if (eventType === 'holiday' && holiday) {
         title = holiday.descriptionEn || holiday.descriptionAr || t('holiday');
         body = escapeHtml(holiday.type || '');
+
+        // Add icon based on holiday type
+        let holidayIcon = '';
+        const holidayType = holiday.type;
+        if (holidayType === 'Public') {
+          holidayIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; flex-shrink: 0;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>`;
+        } else if (holidayType === 'National') {
+          holidayIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; flex-shrink: 0;"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"></path><line x1="4" y1="22" x2="4" y2="15"></line></svg>`;
+        } else if (holidayType === 'SemesterBreak') {
+          holidayIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; flex-shrink: 0;"><path d="M22 10v6M2 10l10-5 10 5-10 5z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path></svg>`;
+        } else if (holidayType === 'Summer') {
+          holidayIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; flex-shrink: 0;"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2"></path><path d="M12 20v2"></path><path d="m4.93 4.93 1.41 1.41"></path><path d="m17.66 17.66 1.41 1.41"></path><path d="M2 12h2"></path><path d="M20 12h2"></path><path d="m6.34 17.66-1.41 1.41"></path><path d="m19.07 4.93-1.41 1.41"></path></svg>`;
+        } else if (holidayType === 'Winter') {
+          holidayIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; flex-shrink: 0;"><line x1="2" y1="12" x2="22" y2="12"></line><line x1="12" y1="2" x2="12" y2="22"></line><path d="m20 16-4-4 4-4"></path><path d="m4 8 4 4-4 4"></path><path d="m16 4-4 4-4-4"></path><path d="m8 20 4-4 4 4"></path></svg>`;
+        } else {
+          holidayIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; flex-shrink: 0;"><path d="M7 10v12"></path><path d="M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2h0a3.13 3.13 0 0 1 3 3.88Z"></path></svg>`;
+        }
+
+        return `
+          <div style="display: flex; flex-direction: column; justify-content: center; width: 100%; height: 100%; min-height: 100%; padding: 4px 6px; line-height: 1.2; overflow: hidden; box-sizing: border-box; color: #ffffff;">
+            <div style="display: flex; align-items: center; font-weight: 600; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+              ${holidayIcon}
+              ${escapeHtml(title)}
+            </div>
+            <div style="font-size: 10px; opacity: 0.92; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${body}</div>
+          </div>
+        `;
       }
       return `
         <div style="display: flex; flex-direction: column; justify-content: center; width: 100%; height: 100%; min-height: 100%; padding: 4px 6px; line-height: 1.2; overflow: hidden; box-sizing: border-box; color: #ffffff;">

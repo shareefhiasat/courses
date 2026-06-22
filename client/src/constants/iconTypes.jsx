@@ -19,7 +19,7 @@ import {
   // Navigation Icons
   Home, Search, Filter, ChevronDown, ChevronUp, ChevronsUp, ChevronsUpDown, Link, Video, List, ExternalLink, Maximize, Square,
   // Time Icons
-  Clock, Calendar,
+  Clock, Calendar, Coffee, Umbrella,
   // UI Icons
   Settings, Key, Eye, EyeOff, Lock, LogIn, LogOut, MoreVertical,
   // Action Icons
@@ -242,6 +242,8 @@ export const ICON_TYPES = {
     home: <Home size={16} />,
     calendar: <Calendar size={16} />,
     clock: <Clock size={16} />,
+    coffee: <Coffee size={16} />,
+    umbrella: <Umbrella size={16} />,
     bell: <Bell size={16} />,
     bell_off: <BellOff size={16} />,
     message: <MessageSquare size={16} />,
