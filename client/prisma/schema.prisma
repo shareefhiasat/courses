@@ -1874,6 +1874,8 @@ model BreakSession {
   timeSlotId        Int
   date              DateTime
   breakType         String   // TeaBreak, PrayerBreak, LunchBreak, Other
+  descriptionEn     String?
+  descriptionAr     String?
   notes             String?
   isRecurring       Boolean  @default(false)
   recurrencePattern String?

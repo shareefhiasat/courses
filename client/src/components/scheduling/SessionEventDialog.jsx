@@ -98,6 +98,7 @@ function SessionEventDialog({
     fontWeight: 500,
     backgroundColor: variant === 'primary' ? '#3b82f6' : variant === 'danger' ? '#ef4444' : theme === 'dark' ? '#374151' : '#f3f4f6',
     color: ['primary', 'danger'].includes(variant) ? '#ffffff' : text,
+    transition: 'all 0.2s ease',
   });
 
   return (

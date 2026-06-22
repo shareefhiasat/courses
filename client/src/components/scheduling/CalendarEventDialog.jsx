@@ -319,6 +319,7 @@ function CalendarEventDialog({
     fontWeight: 500,
     backgroundColor: variant === 'primary' ? '#3b82f6' : variant === 'danger' ? '#ef4444' : theme === 'dark' ? '#374151' : '#f3f4f6',
     color: ['primary', 'danger'].includes(variant) ? '#ffffff' : text,
+    transition: 'all 0.2s ease',
   });
 
   return (
@@ -739,7 +740,12 @@ function CalendarEventDialog({
             </button>
           )}
           <button type="button" style={buttonStyle('secondary')} onClick={onClose}>{t('cancel')}</button>
-          <button type="button" style={buttonStyle('primary')} disabled={!isValid} onClick={handleSave}>
+          <button
+            type="button"
+            style={{ ...buttonStyle('primary'), opacity: !isValid ? 0.55 : 1, cursor: !isValid ? 'not-allowed' : 'pointer' }}
+            disabled={!isValid}
+            onClick={handleSave}
+          >
             {isEdit ? t('save') : t('create')}
           </button>
         </div>
