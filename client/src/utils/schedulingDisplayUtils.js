@@ -130,7 +130,11 @@ export function createToastCalendarTemplates(lang, t) {
     },
     timegridDisplayTime({ time }) {
       const d = time instanceof Date ? time : new Date(time);
-      return d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: false });
+      return d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: true });
+    },
+    timegridNowIndicatorLabel({ time }) {
+      const d = time instanceof Date ? time : new Date(time);
+      return d.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit', hour12: true });
     }
   };
 }

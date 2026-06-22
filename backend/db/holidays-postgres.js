@@ -26,6 +26,8 @@ const MAX_RECURRING_OCCURRENCES = 500;
 export const getHolidays = async (params = {}) => {
   try {
     console.log('[Holidays DB] Getting holidays with params:', params);
+    console.log('[Holidays DB] Raw params type:', typeof params);
+    console.log('[Holidays DB] Raw params keys:', Object.keys(params));
     
     const {
       page = 1,
@@ -38,6 +40,8 @@ export const getHolidays = async (params = {}) => {
       startDate,
       endDate,
     } = params;
+    
+    console.log('[Holidays DB] Parsed params:', { page, limit, programId, type, isActive, sortBy, sortOrder, startDate, endDate });
     
     // Build where clause
     const where = {};
@@ -69,6 +73,9 @@ export const getHolidays = async (params = {}) => {
       }
     }
     
+    console.log('[Holidays DB] Where clause:', JSON.stringify(where, null, 2));
+    console.log('[Holidays DB] Query params:', { page, limit, skip: (parseInt(page) - 1) * parseInt(limit), take: parseInt(limit) });
+    
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const take = parseInt(limit);
     
@@ -91,6 +98,9 @@ export const getHolidays = async (params = {}) => {
       }),
       prisma.holiday.count({ where })
     ]);
+    
+    console.log('[Holidays DB] Retrieved holidays:', holidays.length);
+    console.log('[Holidays DB] Holiday IDs:', holidays.map(h => ({ id: h.id, startDate: h.startDate, endDate: h.endDate })));
     
     return {
       success: true,
@@ -292,12 +302,51 @@ export const getUpcomingHolidays = async (params) => {
 export const createHoliday = async (data, userId) => {
   try {
     console.log('[Holidays DB] Creating holiday:', data);
+    console.log('[Holidays DB] User ID:', userId);
+
+    // Input validation
+    if (!data.descriptionEn || !data.type || !data.startDate || !data.endDate) {
+      return { success: false, error: 'Missing required fields: descriptionEn, type, startDate, endDate' };
+    }
+
+    const startDate = new Date(data.startDate);
+    const endDate = new Date(data.endDate);
+
+    // Validate dates
+    if (isNaN(startDate.getTime()) || isNaN(endDate.getTime())) {
+      return { success: false, error: 'Invalid date format' };
+    }
+
+    // Validate date range
+    if (startDate > endDate) {
+      return { success: false, error: 'Start date must be before or equal to end date' };
+    }
+
+    // Prevent holidays too far in the past or future (max 10 years)
+    const now = new Date();
+    const maxFuture = new Date();
+    maxFuture.setFullYear(now.getFullYear() + 10);
+    const maxPast = new Date();
+    maxPast.setFullYear(now.getFullYear() - 10);
+
+    if (startDate > maxFuture || endDate > maxFuture) {
+      return { success: false, error: 'Holiday dates cannot be more than 10 years in the future' };
+    }
+
+    if (startDate < maxPast || endDate < maxPast) {
+      return { success: false, error: 'Holiday dates cannot be more than 10 years in the past' };
+    }
+
+    // Validate holiday duration (max 365 days)
+    const durationMs = endDate - startDate;
+    const maxDurationMs = 365 * 24 * 60 * 60 * 1000;
+    if (durationMs > maxDurationMs) {
+      return { success: false, error: 'Holiday duration cannot exceed 365 days' };
+    }
 
     const isRecurring = Boolean(data.isRecurring);
     const seriesId = isRecurring ? generateSeriesId() : null;
-    const startDate = new Date(data.startDate);
-    const endDate = new Date(data.endDate);
-    const durationMs = endDate - startDate;
+    console.log('[Holidays DB] Date range:', { startDate, endDate, durationMs });
     const recurrencePattern = isRecurring
       ? data.recurrencePattern || buildRecurrencePattern({
           recurrenceType: data.recurrenceType,
@@ -315,8 +364,10 @@ export const createHoliday = async (data, userId) => {
       createdBy: userId,
       updatedBy: userId,
     };
+    console.log('[Holidays DB] Base record:', baseRecord);
 
     if (!isRecurring) {
+      console.log('[Holidays DB] Creating non-recurring holiday');
       const holiday = await prisma.holiday.create({
         data: {
           ...baseRecord,
@@ -332,6 +383,8 @@ export const createHoliday = async (data, userId) => {
           }
         }
       });
+      console.log('[Holidays DB] Holiday created successfully:', holiday);
+      console.log('[Holidays DB] Holiday ID:', holiday.id);
       return { success: true, data: holiday };
     }
 

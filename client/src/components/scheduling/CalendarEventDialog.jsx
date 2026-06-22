@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { X, Coffee, Umbrella, Trash2 } from 'lucide-react';
+import { X, Coffee, Umbrella, Trash2, AlertCircle } from 'lucide-react';
+import { Select, Input } from '@ui';
 import SchedulingRecurrencePanel from '../SchedulingRecurrencePanel.jsx';
 import { getLocalizedName } from '../../utils/languageHelpers.js';
 
@@ -45,6 +46,7 @@ function CalendarEventDialog({
   onClose,
   onSave,
   onDelete,
+  existingSessions = [],
 }) {
   const isEdit = mode === 'edit';
   const isBreak = eventType === 'break';
@@ -65,7 +67,11 @@ function CalendarEventDialog({
   const [breakClassroomId, setBreakClassroomId] = useState('');
   const [breakTimeSlotId, setBreakTimeSlotId] = useState('');
   const [breakDate, setBreakDate] = useState('');
+  const [breakStartTime, setBreakStartTime] = useState('');
+  const [breakEndTime, setBreakEndTime] = useState('');
   const [breakType, setBreakType] = useState('TeaBreak');
+  const [breakDescriptionEn, setBreakDescriptionEn] = useState('');
+  const [breakDescriptionAr, setBreakDescriptionAr] = useState('');
   const [breakNotes, setBreakNotes] = useState('');
 
   // Holiday fields
@@ -90,8 +96,20 @@ function CalendarEventDialog({
         setBreakClassroomId(event.classroomId ? String(event.classroomId) : '');
         setBreakTimeSlotId(event.timeSlotId ? String(event.timeSlotId) : '');
         setBreakType(event.breakType || 'TeaBreak');
+        setBreakDescriptionEn(event.descriptionEn || '');
+        setBreakDescriptionAr(event.descriptionAr || '');
         setBreakNotes(event.notes || '');
         setIsRecurring(event.isRecurring || false);
+        // Set time fields from the time slot or initialStart/initialEnd
+        if (event.timeSlot) {
+          setBreakStartTime(event.timeSlot.startTime || '');
+          setBreakEndTime(event.timeSlot.endTime || '');
+        } else if (initialStart && initialEnd) {
+          const s = new Date(initialStart);
+          const e = new Date(initialEnd);
+          setBreakStartTime(`${String(s.getHours()).padStart(2, '0')}:${String(s.getMinutes()).padStart(2, '0')}`);
+          setBreakEndTime(`${String(e.getHours()).padStart(2, '0')}:${String(e.getMinutes()).padStart(2, '0')}`);
+        }
       } else if (!isEdit && timeSlots.length > 0) {
         const slot = timeSlots.find((s) => {
           const [sh, sm] = s.startTime.split(':').map(Number);
@@ -100,6 +118,8 @@ function CalendarEventDialog({
           return sh === startH && sm === startM;
         }) || timeSlots[0];
         setBreakTimeSlotId(String(slot.id));
+        setBreakStartTime(slot.startTime || '');
+        setBreakEndTime(slot.endTime || '');
       }
     }
   }, [isBreak, isEdit, event, initialStart, timeSlots]);
@@ -130,26 +150,75 @@ function CalendarEventDialog({
     }
   }, [isRecurring, isEdit, recurrenceEndDate, recurrenceCount, breakDate, holidayStartDate]);
 
-  const isValid = useMemo(() => {
+  const validationErrors = useMemo(() => {
+    const errors = {};
     if (selectedEventType === 'break') {
-      return breakProgramId && breakTimeSlotId && breakDate;
+      if (!breakProgramId) errors.breakProgramId = true;
+      if (!breakTimeSlotId) errors.breakTimeSlotId = true;
+      if (!breakDate) errors.breakDate = true;
     }
     if (selectedEventType === 'holiday') {
-      return holidayDescriptionEn && holidayStartDate && holidayEndDate;
+      if (!holidayDescriptionEn) errors.holidayDescriptionEn = true;
+      if (!holidayStartDate) errors.holidayStartDate = true;
+      if (!holidayEndDate) errors.holidayEndDate = true;
     }
-    return false;
+    return errors;
   }, [selectedEventType, breakProgramId, breakTimeSlotId, breakDate, holidayDescriptionEn, holidayStartDate, holidayEndDate]);
+
+  const isValid = useMemo(() => {
+    return Object.keys(validationErrors).length === 0;
+  }, [validationErrors]);
+
+  const breakConflicts = useMemo(() => {
+    if (selectedEventType !== 'break' || !breakDate || !breakTimeSlotId || !breakProgramId) return [];
+    const slot = timeSlots.find((s) => String(s.id) === String(breakTimeSlotId));
+    if (!slot) return [];
+    
+    const breakStart = new Date(breakDate);
+    const breakEnd = new Date(breakDate);
+    const [sh, sm] = (breakStartTime || slot.startTime).split(':').map(Number);
+    const [eh, em] = (breakEndTime || slot.endTime).split(':').map(Number);
+    breakStart.setHours(sh, sm, 0, 0);
+    breakEnd.setHours(eh, em, 0, 0);
+    
+    const selectedProgramId = parseInt(breakProgramId, 10);
+    
+    return existingSessions.filter((session) => {
+      // Only check conflicts for the same program
+      if (session.class?.programId !== selectedProgramId) return false;
+      
+      const sessionStart = new Date(session.startDateTime);
+      const sessionEnd = new Date(session.endDateTime);
+      return sessionStart < breakEnd && sessionEnd > breakStart;
+    });
+  }, [selectedEventType, breakDate, breakTimeSlotId, breakProgramId, breakStartTime, breakEndTime, timeSlots, existingSessions]);
+
+  const holidayConflicts = useMemo(() => {
+    if (selectedEventType !== 'holiday' || !holidayStartDate || !holidayEndDate) return [];
+    const start = new Date(holidayStartDate);
+    const end = new Date(holidayEndDate);
+    end.setHours(23, 59, 59, 999);
+
+    return existingSessions.filter((session) => {
+      const sessionStart = new Date(session.startDateTime);
+      const sessionEnd = new Date(session.endDateTime);
+      return sessionStart <= end && sessionEnd >= start;
+    });
+  }, [selectedEventType, holidayStartDate, holidayEndDate, existingSessions]);
 
   if (!open) return null;
 
   const handleSave = () => {
+    console.log('[CalendarEventDialog] handleSave called', { selectedEventType, mode, isEdit });
     if (selectedEventType === 'break') {
       const start = new Date(breakDate);
       const slot = timeSlots.find((s) => String(s.id) === String(breakTimeSlotId));
-      if (slot) {
-        const [sh, sm] = slot.startTime.split(':').map(Number);
-        start.setHours(sh, sm, 0, 0);
-      }
+      // Use custom time fields if set, otherwise fall back to slot times
+      const timeToUse = breakStartTime || (slot ? slot.startTime : '09:00');
+      const [sh, sm] = timeToUse.split(':').map(Number);
+      start.setUTCHours(sh, sm, 0, 0);
+      // Check if custom times differ from the selected slot's times
+      const customTimesChanged = slot && (breakStartTime !== slot.startTime || breakEndTime !== slot.endTime);
       const payload = {
         programId: breakProgramId ? parseInt(breakProgramId, 10) : undefined,
         instructorUserId: breakInstructorId ? parseInt(breakInstructorId, 10) : null,
@@ -157,6 +226,8 @@ function CalendarEventDialog({
         timeSlotId: breakTimeSlotId ? parseInt(breakTimeSlotId, 10) : undefined,
         date: start.toISOString(),
         breakType: breakType,
+        descriptionEn: breakDescriptionEn || null,
+        descriptionAr: breakDescriptionAr || null,
         notes: breakNotes,
         isRecurring,
         recurrenceType: isRecurring ? recurrenceType : null,
@@ -165,13 +236,18 @@ function CalendarEventDialog({
         recurrenceCount: isRecurring ? recurrenceCount : null,
         updateScope: scope,
         updatedBy: user?.dbId,
+        ...(customTimesChanged && {
+          customStartTime: breakStartTime,
+          customEndTime: breakEndTime,
+        }),
       };
+      console.log('[CalendarEventDialog] Sending break payload:', payload);
       onSave({ eventType: 'break', mode, payload, event });
     } else if (selectedEventType === 'holiday') {
       const start = new Date(holidayStartDate);
-      start.setHours(0, 0, 0, 0);
+      start.setUTCHours(0, 0, 0, 0);
       const end = new Date(holidayEndDate);
-      end.setHours(23, 59, 59, 999);
+      end.setUTCHours(23, 59, 59, 999);
       const payload = {
         programId: holidayProgramId ? parseInt(holidayProgramId, 10) : null,
         descriptionEn: holidayDescriptionEn,
@@ -187,6 +263,8 @@ function CalendarEventDialog({
         updateScope: scope,
         updatedBy: user?.dbId,
       };
+      console.log('[CalendarEventDialog] Sending holiday payload:', payload);
+      console.log('[CalendarEventDialog] Holiday date range:', { start: start.toISOString(), end: end.toISOString() });
       onSave({ eventType: 'holiday', mode, payload, event });
     }
   };
@@ -212,6 +290,15 @@ function CalendarEventDialog({
     fontSize: '0.875rem',
     fontWeight: 500,
     color: text,
+  };
+
+  const errorStyle = {
+    fontSize: '0.75rem',
+    color: '#ef4444',
+    marginTop: '0.25rem',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '0.25rem',
   };
 
   const inputStyle = {
@@ -306,166 +393,290 @@ function CalendarEventDialog({
           <>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
               <div style={fieldStyle}>
-                <label style={labelStyle}>{t('program')}</label>
-                <select
-                  style={inputStyle}
+                <label style={labelStyle}>{t('program')} <span style={{ color: '#ef4444' }}>*</span></label>
+                <Select
                   value={breakProgramId}
                   onChange={(e) => setBreakProgramId(e.target.value)}
-                >
-                  <option value="">{t('select_program')}</option>
-                  {programs.map((p) => (
-                    <option key={p.id} value={String(p.id)}>{getLocalizedName(p, lang) || p.code}</option>
-                  ))}
-                </select>
+                  theme={theme}
+                  options={[
+                    { value: '', label: t('select_program') },
+                    ...programs.map((p) => ({ value: String(p.id), label: getLocalizedName(p, lang) || p.code }))
+                  ]}
+                />
+                {validationErrors.breakProgramId && (
+                  <div style={errorStyle}>
+                    <AlertCircle size={12} />
+                    {t('required')}
+                  </div>
+                )}
               </div>
               <div style={fieldStyle}>
                 <label style={labelStyle}>{t('break_type')}</label>
-                <select
-                  style={inputStyle}
+                <Select
                   value={breakType}
                   onChange={(e) => setBreakType(e.target.value)}
-                >
-                  {BREAK_TYPES.map((bt) => (
-                    <option key={bt.value} value={bt.value}>{lang === 'ar' ? bt.labelAr : bt.labelEn}</option>
-                  ))}
-                </select>
+                  theme={theme}
+                  options={BREAK_TYPES.map((bt) => ({
+                    value: bt.value,
+                    label: lang === 'ar' ? bt.labelAr : bt.labelEn
+                  }))}
+                />
               </div>
             </div>
             <div style={fieldStyle}>
-              <label style={labelStyle}>{t('time_slot')}</label>
-              <select
-                style={inputStyle}
+              <label style={labelStyle}>{t('description_en')}</label>
+              <Input
+                type="text"
+                value={breakDescriptionEn}
+                onChange={(e) => setBreakDescriptionEn(e.target.value)}
+                placeholder={t('description_en')}
+                theme={theme}
+              />
+            </div>
+            <div style={fieldStyle}>
+              <label style={labelStyle}>{t('description_ar')}</label>
+              <Input
+                type="text"
+                value={breakDescriptionAr}
+                onChange={(e) => setBreakDescriptionAr(e.target.value)}
+                placeholder={t('description_ar')}
+                theme={theme}
+              />
+            </div>
+            <div style={fieldStyle}>
+              <label style={labelStyle}>{t('time_slot')} <span style={{ color: '#ef4444' }}>*</span></label>
+              <Select
                 value={breakTimeSlotId}
-                onChange={(e) => setBreakTimeSlotId(e.target.value)}
-              >
-                <option value="">{t('select_time_slot')}</option>
-                {timeSlots.map((ts) => (
-                  <option key={ts.id} value={String(ts.id)}>
-                    {ts.labelEn || ts.labelAr || `${ts.startTime} - ${ts.endTime}`}
-                  </option>
-                ))}
-              </select>
+                onChange={(e) => {
+                  setBreakTimeSlotId(e.target.value);
+                  const slot = timeSlots.find((ts) => String(ts.id) === e.target.value);
+                  if (slot) {
+                    setBreakStartTime(slot.startTime);
+                    setBreakEndTime(slot.endTime);
+                  }
+                }}
+                theme={theme}
+                options={[
+                  { value: '', label: t('select_time_slot') },
+                  ...timeSlots.map((ts) => ({
+                    value: String(ts.id),
+                    label: ts.labelEn || ts.labelAr || `${ts.startTime} - ${ts.endTime}`
+                  }))
+                ]}
+              />
+              {validationErrors.breakTimeSlotId && (
+                <div style={errorStyle}>
+                  <AlertCircle size={12} />
+                  {t('required')}
+                </div>
+              )}
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
               <div style={fieldStyle}>
-                <label style={labelStyle}>{t('date')}</label>
-                <input
-                  type="date"
-                  style={inputStyle}
-                  value={breakDate}
-                  onChange={(e) => setBreakDate(e.target.value)}
+                <label style={labelStyle}>{t('start_time')}</label>
+                <Input
+                  type="time"
+                  value={breakStartTime}
+                  onChange={(e) => setBreakStartTime(e.target.value)}
+                  theme={theme}
                 />
               </div>
               <div style={fieldStyle}>
+                <label style={labelStyle}>{t('end_time')}</label>
+                <Input
+                  type="time"
+                  value={breakEndTime}
+                  onChange={(e) => setBreakEndTime(e.target.value)}
+                  theme={theme}
+                />
+              </div>
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
+              <div style={fieldStyle}>
+                <label style={labelStyle}>{t('date')} <span style={{ color: '#ef4444' }}>*</span></label>
+                <Input
+                  type="date"
+                  value={breakDate}
+                  onChange={(e) => setBreakDate(e.target.value)}
+                  theme={theme}
+                />
+                {validationErrors.breakDate && (
+                  <div style={errorStyle}>
+                    <AlertCircle size={12} />
+                    {t('required')}
+                  </div>
+                )}
+              </div>
+              <div style={fieldStyle}>
                 <label style={labelStyle}>{t('classroom')}</label>
-                <select
-                  style={inputStyle}
+                <Select
                   value={breakClassroomId}
                   onChange={(e) => setBreakClassroomId(e.target.value)}
-                >
-                  <option value="">{t('optional')}</option>
-                  {classrooms.map((c) => (
-                    <option key={c.id} value={String(c.id)}>{c.nameEn || c.code}</option>
-                  ))}
-                </select>
+                  theme={theme}
+                  options={[
+                    { value: '', label: t('optional') },
+                    ...classrooms.map((c) => ({ value: String(c.id), label: c.nameEn || c.code }))
+                  ]}
+                />
               </div>
             </div>
             <div style={fieldStyle}>
               <label style={labelStyle}>{t('instructor')}</label>
-              <select
-                style={inputStyle}
+              <Select
                 value={breakInstructorId}
                 onChange={(e) => setBreakInstructorId(e.target.value)}
-              >
-                <option value="">{t('optional')}</option>
-                {instructors.map((i) => (
-                  <option key={i.id} value={String(i.id)}>{i.displayName || i.email || i.id}</option>
-                ))}
-              </select>
+                theme={theme}
+                options={[
+                  { value: '', label: t('optional') },
+                  ...instructors.map((i) => ({ value: String(i.id), label: i.displayName || i.email || i.id }))
+                ]}
+              />
             </div>
             <div style={fieldStyle}>
               <label style={labelStyle}>{t('notes')}</label>
-              <input
+              <Input
                 type="text"
-                style={inputStyle}
                 value={breakNotes}
                 onChange={(e) => setBreakNotes(e.target.value)}
                 placeholder={t('notes')}
+                theme={theme}
               />
             </div>
+
+            {breakConflicts.length > 0 && (
+              <div style={{
+                padding: '0.75rem',
+                backgroundColor: theme === 'dark' ? '#7f1d1d' : '#fef2f2',
+                borderRadius: '0.375rem',
+                border: `1px solid ${theme === 'dark' ? '#991b1b' : '#fecaca'}`
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                  <AlertCircle size={16} color={theme === 'dark' ? '#fca5a5' : '#991b1b'} />
+                  <span style={{ fontWeight: '600', color: theme === 'dark' ? '#fca5a5' : '#991b1b' }}>
+                    {t('scheduling_conflicts_title')}
+                  </span>
+                </div>
+                <div style={{ fontSize: '0.8125rem', color: theme === 'dark' ? '#fca5a5' : '#991b1b' }}>
+                  {breakConflicts.length} {t('session')}{breakConflicts.length === 1 ? '' : 's'} {t('for_same_program')} {t('on_selected_date_time')}
+                </div>
+                <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: theme === 'dark' ? '#fca5a5' : '#991b1b' }}>
+                  {t('break_conflict_warning')}
+                </div>
+              </div>
+            )}
           </>
         )}
 
         {selectedEventType === 'holiday' && (
           <>
             <div style={fieldStyle}>
-              <label style={labelStyle}>{t('description_en')}</label>
-              <input
+              <label style={labelStyle}>{t('description_en')} <span style={{ color: '#ef4444' }}>*</span></label>
+              <Input
                 type="text"
-                style={inputStyle}
                 value={holidayDescriptionEn}
                 onChange={(e) => setHolidayDescriptionEn(e.target.value)}
                 placeholder={t('description_en')}
+                theme={theme}
               />
+              {validationErrors.holidayDescriptionEn && (
+                <div style={errorStyle}>
+                  <AlertCircle size={12} />
+                  {t('required')}
+                </div>
+              )}
             </div>
             <div style={fieldStyle}>
               <label style={labelStyle}>{t('description_ar')}</label>
-              <input
+              <Input
                 type="text"
-                style={inputStyle}
                 value={holidayDescriptionAr}
                 onChange={(e) => setHolidayDescriptionAr(e.target.value)}
                 placeholder={t('description_ar')}
+                theme={theme}
                 dir="rtl"
               />
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
               <div style={fieldStyle}>
                 <label style={labelStyle}>{t('holiday_type')}</label>
-                <select
-                  style={inputStyle}
+                <Select
                   value={holidayType}
                   onChange={(e) => setHolidayType(e.target.value)}
-                >
-                  {HOLIDAY_TYPES.map((ht) => (
-                    <option key={ht.value} value={ht.value}>{lang === 'ar' ? ht.labelAr : ht.labelEn}</option>
-                  ))}
-                </select>
+                  theme={theme}
+                  options={HOLIDAY_TYPES.map((ht) => ({
+                    value: ht.value,
+                    label: lang === 'ar' ? ht.labelAr : ht.labelEn
+                  }))}
+                />
               </div>
               <div style={fieldStyle}>
                 <label style={labelStyle}>{t('program')}</label>
-                <select
-                  style={inputStyle}
+                <Select
                   value={holidayProgramId}
                   onChange={(e) => setHolidayProgramId(e.target.value)}
-                >
-                  <option value="">{t('global')}</option>
-                  {programs.map((p) => (
-                    <option key={p.id} value={String(p.id)}>{getLocalizedName(p, lang) || p.code}</option>
-                  ))}
-                </select>
+                  theme={theme}
+                  options={[
+                    { value: '', label: t('global') },
+                    ...programs.map((p) => ({ value: String(p.id), label: getLocalizedName(p, lang) || p.code }))
+                  ]}
+                />
               </div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
               <div style={fieldStyle}>
-                <label style={labelStyle}>{t('start_date')}</label>
-                <input
+                <label style={labelStyle}>{t('start_date')} <span style={{ color: '#ef4444' }}>*</span></label>
+                <Input
                   type="date"
-                  style={inputStyle}
                   value={holidayStartDate}
                   onChange={(e) => setHolidayStartDate(e.target.value)}
+                  theme={theme}
                 />
+                {validationErrors.holidayStartDate && (
+                  <div style={errorStyle}>
+                    <AlertCircle size={12} />
+                    {t('required')}
+                  </div>
+                )}
               </div>
               <div style={fieldStyle}>
-                <label style={labelStyle}>{t('end_date')}</label>
-                <input
+                <label style={labelStyle}>{t('end_date')} <span style={{ color: '#ef4444' }}>*</span></label>
+                <Input
                   type="date"
-                  style={inputStyle}
                   value={holidayEndDate}
                   onChange={(e) => setHolidayEndDate(e.target.value)}
+                  theme={theme}
                 />
+                {validationErrors.holidayEndDate && (
+                  <div style={errorStyle}>
+                    <AlertCircle size={12} />
+                    {t('required')}
+                  </div>
+                )}
               </div>
             </div>
+
+            {holidayConflicts.length > 0 && (
+              <div style={{
+                padding: '0.75rem',
+                backgroundColor: theme === 'dark' ? '#7f1d1d' : '#fef2f2',
+                border: `1px solid ${theme === 'dark' ? '#dc2626' : '#fecaca'}`,
+                borderRadius: '0.375rem',
+                marginTop: '0.5rem',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                  <AlertCircle size={16} color={theme === 'dark' ? '#fca5a5' : '#dc2626'} />
+                  <span style={{ fontWeight: 600, color: theme === 'dark' ? '#fca5a5' : '#dc2626', fontSize: '0.875rem' }}>
+                    {t('holiday_conflict_warning')}
+                  </span>
+                </div>
+                <div style={{ fontSize: '0.8125rem', color: theme === 'dark' ? '#fca5a5' : '#991b1b' }}>
+                  {holidayConflicts.length} {t('session')} {holidayConflicts.length === 1 ? t('exists') : t('exist')} {t('on_selected_dates')}
+                </div>
+                <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: theme === 'dark' ? '#fca5a5' : '#991b1b' }}>
+                  {t('holiday_conflict_proceed_warning')}
+                </div>
+              </div>
+            )}
           </>
         )}
 

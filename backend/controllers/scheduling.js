@@ -79,6 +79,15 @@ export const getBreakSessions = async (req, res) => {
 
 export const createBreakSession = async (req, res) => {
   try {
+    // Authorization check: only admin/HR can create break sessions
+    const roles = getEffectiveRoles(req.user?.roles || []);
+    if (!isSuperAdmin(roles) && !roles.includes('admin') && !roles.includes('hr')) {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied: Only admin and HR can create break sessions'
+      });
+    }
+
     const result = await breakSessionsDb.createBreakSession(req.body, req.user?.dbId);
     res.status(result.success ? 201 : 400).json(result);
   } catch (error) {
@@ -88,6 +97,15 @@ export const createBreakSession = async (req, res) => {
 
 export const updateBreakSession = async (req, res) => {
   try {
+    // Authorization check: only admin/HR can update break sessions
+    const roles = getEffectiveRoles(req.user?.roles || []);
+    if (!isSuperAdmin(roles) && !roles.includes('admin') && !roles.includes('hr')) {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied: Only admin and HR can update break sessions'
+      });
+    }
+
     const result = await breakSessionsDb.updateBreakSession(req.params.id, req.body, req.user?.dbId);
     res.status(result.success ? 200 : 400).json(result);
   } catch (error) {
@@ -97,6 +115,15 @@ export const updateBreakSession = async (req, res) => {
 
 export const deleteBreakSession = async (req, res) => {
   try {
+    // Authorization check: only admin/HR can delete break sessions
+    const roles = getEffectiveRoles(req.user?.roles || []);
+    if (!isSuperAdmin(roles) && !roles.includes('admin') && !roles.includes('hr')) {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied: Only admin and HR can delete break sessions'
+      });
+    }
+
     const { deleteScope } = req.body || {};
     const result = await breakSessionsDb.deleteBreakSession(req.params.id, deleteScope);
     res.status(result.success ? 200 : 400).json(result);

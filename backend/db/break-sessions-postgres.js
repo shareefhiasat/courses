@@ -70,6 +70,31 @@ export const getBreakTypeDistribution = async (params = {}) => {
 
 export const createBreakSession = async (data, userId) => {
   try {
+    // Input validation
+    if (!data.programId || !data.timeSlotId || !data.date || !data.breakType) {
+      return { success: false, error: 'Missing required fields: programId, timeSlotId, date, breakType' };
+    }
+
+    const breakDate = new Date(data.date);
+    if (isNaN(breakDate.getTime())) {
+      return { success: false, error: 'Invalid date format' };
+    }
+
+    // Prevent breaks too far in the past or future (max 2 years)
+    const now = new Date();
+    const maxFuture = new Date();
+    maxFuture.setFullYear(now.getFullYear() + 2);
+    const maxPast = new Date();
+    maxPast.setFullYear(now.getFullYear() - 2);
+
+    if (breakDate > maxFuture) {
+      return { success: false, error: 'Break date cannot be more than 2 years in the future' };
+    }
+
+    if (breakDate < maxPast) {
+      return { success: false, error: 'Break date cannot be more than 2 years in the past' };
+    }
+
     const isRecurring = Boolean(data.isRecurring);
     const seriesId = isRecurring ? generateSeriesId() : null;
     const recurrencePattern = isRecurring
@@ -142,12 +167,43 @@ export const createBreakSession = async (data, userId) => {
 
 export const updateBreakSession = async (id, data, userId) => {
   try {
+    console.log('[BreakSessions DB] Updating break session:', { id, data, userId });
+    console.log('[BreakSessions DB] Received date:', data.date);
+    console.log('[BreakSessions DB] Date type:', typeof data.date);
+    
     const existing = await prisma.breakSession.findUnique({ where: { id: parseInt(id, 10) } });
     if (!existing) {
+      console.log('[BreakSessions DB] Break session not found:', id);
       return { success: false, error: 'Break session not found' };
+    }
+    console.log('[BreakSessions DB] Existing break session:', existing);
+    console.log('[BreakSessions DB] Existing date:', existing.date);
+
+    // Validate date if provided
+    if (data.date) {
+      const breakDate = new Date(data.date);
+      if (isNaN(breakDate.getTime())) {
+        return { success: false, error: 'Invalid date format' };
+      }
+
+      // Prevent breaks too far in the past or future (max 2 years)
+      const now = new Date();
+      const maxFuture = new Date();
+      maxFuture.setFullYear(now.getFullYear() + 2);
+      const maxPast = new Date();
+      maxPast.setFullYear(now.getFullYear() - 2);
+
+      if (breakDate > maxFuture) {
+        return { success: false, error: 'Break date cannot be more than 2 years in the future' };
+      }
+
+      if (breakDate < maxPast) {
+        return { success: false, error: 'Break date cannot be more than 2 years in the past' };
+      }
     }
 
     const updateScope = data.updateScope || 'single';
+    console.log('[BreakSessions DB] Update scope:', updateScope);
     const updatePayload = {
       ...(data.programId != null && { programId: parseInt(data.programId, 10) }),
       ...(data.instructorUserId !== undefined && {
@@ -162,8 +218,18 @@ export const updateBreakSession = async (id, data, userId) => {
       ...(data.isActive !== undefined && { isActive: Boolean(data.isActive) }),
       updatedBy: userId,
     };
+    
+    if (data.date) {
+      const dateObj = new Date(data.date);
+      console.log('[BreakSessions DB] Date object created:', dateObj);
+      console.log('[BreakSessions DB] Date object ISO:', dateObj.toISOString());
+      updatePayload.date = dateObj;
+    }
+    
+    console.log('[BreakSessions DB] Update payload:', updatePayload);
 
     if (updateScope === 'series' && existing.seriesId) {
+      console.log('[BreakSessions DB] Updating series:', existing.seriesId);
       await prisma.breakSession.updateMany({
         where: { seriesId: existing.seriesId },
         data: updatePayload,
@@ -172,19 +238,21 @@ export const updateBreakSession = async (id, data, userId) => {
         where: { seriesId: existing.seriesId },
         include: breakInclude,
       });
+      console.log('[BreakSessions DB] Series updated, records:', records.length);
       return { success: true, data: records, scope: 'series' };
     }
 
+    console.log('[BreakSessions DB] Updating single record');
     const record = await prisma.breakSession.update({
       where: { id: parseInt(id, 10) },
-      data: {
-        ...updatePayload,
-        ...(data.date && { date: new Date(data.date) }),
-      },
+      data: updatePayload,
       include: breakInclude,
     });
+    console.log('[BreakSessions DB] Record updated successfully:', record);
+    console.log('[BreakSessions DB] Updated date in DB:', record.date);
     return { success: true, data: record, scope: 'single' };
   } catch (error) {
+    console.error('[BreakSessions DB] Error updating break session:', error);
     return { success: false, error: error.message };
   }
 };

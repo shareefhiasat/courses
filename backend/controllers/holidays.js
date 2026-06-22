@@ -143,6 +143,14 @@ export const getHolidayByIdController = async (req, res) => {
  */
 export const createHolidayController = async (req, res) => {
   try {
+    // Authorization check: only admin/HR can create holidays
+    if (!req.user || !['SUPER_ADMIN', 'ADMIN', 'HR'].includes(req.user.role)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied: Only admin and HR can create holidays'
+      });
+    }
+
     const result = await createHoliday(req.body, req.user?.dbId);
     
     if (result.success) {
@@ -172,6 +180,14 @@ export const createHolidayController = async (req, res) => {
  */
 export const updateHolidayController = async (req, res) => {
   try {
+    // Authorization check: only admin/HR can update holidays
+    if (!req.user || !['SUPER_ADMIN', 'ADMIN', 'HR'].includes(req.user.role)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied: Only admin and HR can update holidays'
+      });
+    }
+
     const { id } = req.params;
     
     const result = await updateHoliday(id, req.body, req.user?.dbId);
@@ -204,6 +220,14 @@ export const updateHolidayController = async (req, res) => {
  */
 export const deleteHolidayController = async (req, res) => {
   try {
+    // Authorization check: only admin/HR can delete holidays
+    if (!req.user || !['SUPER_ADMIN', 'ADMIN', 'HR'].includes(req.user.role)) {
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied: Only admin and HR can delete holidays'
+      });
+    }
+
     const { id } = req.params;
     const { deleteScope } = req.body || {};
     

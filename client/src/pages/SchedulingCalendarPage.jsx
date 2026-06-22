@@ -58,7 +58,7 @@ import * as scheduledSessionService from '@services/business/scheduledSessionSer
 import * as schedulingService from '@services/business/schedulingService.js';
 import schedulingSummaryService from '@services/business/schedulingSummaryService.js';
 import * as holidayService from '@services/business/holidayService.js';
-import { getAllTimeSlots } from '@services/business/timeSlotService.js';
+import { getAllTimeSlots, createTimeSlot, updateTimeSlot } from '@services/business/timeSlotService.js';
 import { getAllInstructorAvailabilities } from '@services/business/instructorAvailabilityService.js';
 import { getAllClassroomAvailabilities } from '@services/business/classroomAvailabilityService.js';
 import {
@@ -72,6 +72,82 @@ import {
 import { ROLE_STRINGS } from '@utils/userUtils.js';
 
 const SESSION_CALENDAR_HEIGHT = 680;
+
+/** Resolve or create a time slot when a break is moved to custom start/end times. */
+async function resolveBreakTimeSlotForCustomTime({
+  breakSession,
+  startStr,
+  endStr,
+  timeSlots,
+  breakSessions,
+  user,
+}) {
+  const matchingSlot = timeSlots.find((ts) => ts.startTime === startStr && ts.endTime === endStr);
+  if (matchingSlot) {
+    console.log('[resolveBreakTimeSlot] Using existing matching slot', {
+      breakSessionId: breakSession.id,
+      slotId: matchingSlot.id,
+      startStr,
+      endStr,
+    });
+    return { success: true, timeSlotId: matchingSlot.id, timeSlots };
+  }
+
+  const [startHour, startMinute] = startStr.split(':').map(Number);
+  const [endHour, endMinute] = endStr.split(':').map(Number);
+  const durationMinutes = (endHour * 60 + endMinute) - (startHour * 60 + startMinute);
+
+  const otherBreaksUsingSlot = breakSessions.filter(
+    (bs) => bs.timeSlotId === breakSession.timeSlotId && bs.id !== breakSession.id
+  );
+
+  if (otherBreaksUsingSlot.length > 0) {
+    console.log('[resolveBreakTimeSlot] Slot shared by other breaks, creating new slot', {
+      breakSessionId: breakSession.id,
+      timeSlotId: breakSession.timeSlotId,
+      otherBreakCount: otherBreaksUsingSlot.length,
+      startStr,
+      endStr,
+    });
+    const sortOrder = 9000 + Math.floor(Date.now() / 1000) % 1000;
+    const slotResult = await createTimeSlot({
+      programId: breakSession.programId,
+      labelEn: `Custom Break ${startStr}-${endStr}`,
+      labelAr: `استراحة مخصصة ${startStr}-${endStr}`,
+      startTime: startStr,
+      endTime: endStr,
+      durationMinutes,
+      sortOrder,
+      isBreak: true,
+      breakType: breakSession.breakType || null,
+      isActive: true,
+    }, user);
+    if (!slotResult.success) {
+      return { success: false, error: slotResult.error };
+    }
+    const slotsResult = await getAllTimeSlots({ limit: 500 });
+    const updatedSlots = slotsResult.success ? slotsResult.data || [] : timeSlots;
+    return { success: true, timeSlotId: slotResult.data.id, timeSlots: updatedSlots };
+  }
+
+  console.log('[resolveBreakTimeSlot] Updating unshared slot', {
+    breakSessionId: breakSession.id,
+    timeSlotId: breakSession.timeSlotId,
+    startStr,
+    endStr,
+  });
+  const slotResult = await updateTimeSlot(breakSession.timeSlotId, {
+    startTime: startStr,
+    endTime: endStr,
+    durationMinutes,
+  }, user);
+  if (!slotResult.success) {
+    return { success: false, error: slotResult.error };
+  }
+  const slotsResult = await getAllTimeSlots({ limit: 500 });
+  const updatedSlots = slotsResult.success ? slotsResult.data || [] : timeSlots;
+  return { success: true, timeSlotId: breakSession.timeSlotId, timeSlots: updatedSlots };
+}
 
 function ColorDot({ color, size = 8, border }) {
   return (
@@ -196,6 +272,7 @@ const SchedulingCalendarPage = () => {
   const calendarRef = useRef(null);
   const sessionCalendarContainerRef = useRef(null);
   const currentDateRef = useRef(null);
+  const calendarEventsRef = useRef([]);
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const [sessionCalendarHeight, setSessionCalendarHeight] = useState(SESSION_CALENDAR_HEIGHT);
@@ -293,7 +370,14 @@ const SchedulingCalendarPage = () => {
     from.setFullYear(from.getFullYear() - 1);
     const to = new Date(today);
     to.setFullYear(to.getFullYear() + 1);
-    return { from, to, fromStr: from.toISOString().split('T')[0], toStr: to.toISOString().split('T')[0] };
+    return {
+      from,
+      to,
+      fromStr: from.toISOString().split('T')[0],
+      toStr: to.toISOString().split('T')[0],
+      fromStrLocal: from.toLocaleDateString('en-CA'), // YYYY-MM-DD format in local time
+      toStrLocal: to.toLocaleDateString('en-CA'),
+    };
   });
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [hideWeekends, setHideWeekends] = useState(false);
@@ -406,7 +490,7 @@ const SchedulingCalendarPage = () => {
         const cal = calendarRef.current?.getInstance();
         if (!cal) return;
         cal.setDate(restoredDate);
-        if (typeof cal.render === 'function') cal.render();
+        // Don't call cal.render() here - it clears events. Sync useEffect handles rendering.
         if (typeof cal.updateSize === 'function') cal.updateSize();
       }, ms);
     });
@@ -421,8 +505,8 @@ const SchedulingCalendarPage = () => {
     
     setLoading(true);
     try {
-      const calendarFromStr = calendarDateRange.fromStr;
-      const calendarToStr = calendarDateRange.toStr;
+      const calendarFromStr = calendarDateRange.fromStrLocal;
+      const calendarToStr = calendarDateRange.toStrLocal;
 
       const [
         classesResult,
@@ -522,6 +606,8 @@ const SchedulingCalendarPage = () => {
       to,
       fromStr: from.toISOString().split('T')[0],
       toStr: to.toISOString().split('T')[0],
+      fromStrLocal: from.toLocaleDateString('en-CA'), // YYYY-MM-DD format in local time
+      toStrLocal: to.toLocaleDateString('en-CA'),
     });
   }, [currentDate]);
 
@@ -743,10 +829,12 @@ const SchedulingCalendarPage = () => {
         start.setHours(9, 0, 0, 0);
         end.setHours(9, 45, 0, 0);
       }
+      const description = lang === 'ar' && bs.descriptionAr ? bs.descriptionAr : bs.descriptionEn;
+      const title = description || bs.breakType || t('break');
       return {
         id: `break-${bs.id}`,
         calendarId: 'breaks',
-        title: `${bs.breakType || t('break')}`,
+        title,
         body: bs.notes || '',
         category: 'time',
         start,
@@ -762,42 +850,143 @@ const SchedulingCalendarPage = () => {
       };
     });
 
-    const holidayEvents = holidays.map((h) => ({
-      id: `holiday-${h.id}`,
-      calendarId: 'holidays',
-      title: h.descriptionEn || h.descriptionAr || t('holiday'),
-      body: h.type || '',
-      category: 'allday',
-      start: new Date(h.startDate),
-      end: new Date(h.endDate),
-      backgroundColor: '#ef4444',
-      borderColor: '#dc2626',
-      color: '#ffffff',
-      isReadOnly: false,
-      raw: {
-        eventType: 'holiday',
-        holiday: h,
-      },
-    }));
+    const holidayEvents = holidays.map((h) => {
+      const start = new Date(h.startDate);
+      const end = new Date(h.endDate);
+      // Adjust both start and end to local time on the same day to prevent date shift
+      // Start at 00:00:00 local time
+      start.setHours(0, 0, 0, 0);
+      // End at 23:59:59 local time on the same day as start
+      end.setFullYear(start.getFullYear());
+      end.setMonth(start.getMonth());
+      end.setDate(start.getDate());
+      end.setHours(23, 59, 59, 999);
+      const event = {
+        id: `holiday-${h.id}`,
+        calendarId: 'holidays',
+        title: h.descriptionEn || h.descriptionAr || t('holiday'),
+        body: h.type || '',
+        category: 'time',
+        start,
+        end,
+        backgroundColor: '#ef4444',
+        borderColor: '#dc2626',
+        color: '#ffffff',
+        isReadOnly: false,
+        raw: {
+          eventType: 'holiday',
+          holiday: h,
+        },
+      };
+      console.log('[SchedulingCalendarPage] Holiday event created:', { id: event.id, title: event.title, start: event.start, end: event.end, category: event.category });
+      return event;
+    });
+    console.log('[SchedulingCalendarPage] Total holiday events:', holidayEvents.length);
 
-    return [...sessionEvents, ...breakEvents, ...holidayEvents];
+    const events = [...sessionEvents, ...breakEvents, ...holidayEvents];
+    calendarEventsRef.current = events;
+    return events;
   }, [filteredSessions, breakSessions, holidays, timeSlots, lang, t]);
 
   // Sync calendar when filtered events change (Toast UI doesn't always react to prop updates)
   useEffect(() => {
-    const cal = calendarRef.current?.getInstance();
-    if (cal && mainTab !== 'availability') {
-      cal.clear();
-      if (calendarEvents.length > 0) {
-        cal.createEvents(calendarEvents);
+    console.log('🔄 [CALENDAR SYNC] useEffect triggered');
+    console.log('🔄 [CALENDAR SYNC] mainTab:', mainTab);
+    console.log('🔄 [CALENDAR SYNC] calendarEvents.length:', calendarEvents.length);
+    console.log('🔄 [CALENDAR SYNC] calendarLayoutKey:', calendarLayoutKey);
+    
+    // Small delay to ensure calendar instance is ready after remount
+    const syncCalendar = () => {
+      const cal = calendarRef.current?.getInstance();
+      console.log('🔄 [CALENDAR SYNC] Calendar instance:', cal ? 'FOUND' : 'NOT FOUND');
+      
+      if (cal && mainTab !== 'availability') {
+        console.log('🔄 [CALENDAR SYNC] ✅ Clearing calendar');
+        cal.clear();
+        
+        if (calendarEvents.length > 0) {
+          console.log('🔄 [CALENDAR SYNC] ✅ Creating', calendarEvents.length, 'events');
+          const breakEvents = calendarEvents.filter(e => e.raw?.eventType === 'break');
+          const holidayEvents = calendarEvents.filter(e => e.raw?.eventType === 'holiday');
+          console.log('🔄 [CALENDAR SYNC] Break events:', breakEvents.map(e => ({
+            id: e.id,
+            title: e.title,
+            start: e.start?.toISOString?.() || e.start,
+            end: e.end?.toISOString?.() || e.end
+          })));
+          console.log('🔄 [CALENDAR SYNC] Holiday events:', holidayEvents.map(e => ({
+            id: e.id,
+            title: e.title,
+            calendarId: e.calendarId,
+            start: e.start?.toISOString?.() || e.start,
+            end: e.end?.toISOString?.() || e.end,
+            category: e.category
+          })));
+          cal.createEvents(calendarEvents);
+        }
+        
+        if (typeof cal.render === 'function') {
+          console.log('🔄 [CALENDAR SYNC] ✅ Calling cal.render()');
+          cal.render();
+        }
+        if (typeof cal.updateSize === 'function') {
+          console.log('🔄 [CALENDAR SYNC] ✅ Calling cal.updateSize()');
+          cal.updateSize();
+        }
+        console.log('🔄 [CALENDAR SYNC] ✅ Sync complete');
+      } else {
+        console.log('🔄 [CALENDAR SYNC] ⏭️  Skipped (no cal instance or in availability tab)');
       }
-    }
-  }, [calendarEvents, mainTab]);
+    };
+    
+    // Try immediately
+    syncCalendar();
+    
+    // Also try after a small delay to handle remount timing
+    const timer = setTimeout(syncCalendar, 50);
+    
+    return () => clearTimeout(timer);
+  }, [calendarEvents, mainTab, calendarLayoutKey]);
+
 
   useEffect(() => {
     if (mainTab !== 'sessions') return;
     restoreSessionCalendarDate(currentDate);
   }, [mainTab, calendarLayoutKey, currentDate, restoreSessionCalendarDate]);
+
+  // Force calendar to take full width - override Toast UI Calendar's inline width
+  useEffect(() => {
+    const forceFullWidth = () => {
+      const layout = document.querySelector('.toastui-calendar-layout');
+      const week = document.querySelector('.toastui-calendar-week');
+      const container = document.querySelector('.scheduling-sessions-calendar');
+      const innerContainer = container?.querySelector('.container');
+      
+      if (container && layout) {
+        layout.style.width = '100%';
+        layout.style.maxWidth = '100%';
+        layout.style.minWidth = '100%';
+        if (week) {
+          week.style.width = '100%';
+          week.style.maxWidth = '100%';
+        }
+        if (innerContainer) {
+          innerContainer.style.width = '100%';
+          innerContainer.style.maxWidth = '100%';
+          innerContainer.style.minWidth = '100%';
+        }
+      }
+    };
+    
+    forceFullWidth();
+    const timeout = setTimeout(forceFullWidth, 100);
+    const timeout2 = setTimeout(forceFullWidth, 500);
+    
+    return () => {
+      clearTimeout(timeout);
+      clearTimeout(timeout2);
+    };
+  }, [mainTab, calendarLayoutKey]);
 
   const highlightSessionOnCalendar = useCallback((sessionId) => {
     const attemptHighlight = (attempt = 0) => {
@@ -1320,21 +1509,33 @@ const SchedulingCalendarPage = () => {
 
   // Handle event update (drag/resize) with conflict preview
   const onBeforeUpdateEvent = useCallback(async (updateData) => {
+    console.log('═══════════════════════════════════════════════════════');
+    console.log('[DRAG/RESIZE] onBeforeUpdateEvent CALLED');
+    console.log('[DRAG/RESIZE] Timestamp:', new Date().toISOString());
+    console.log('[DRAG/RESIZE] updateData:', JSON.stringify({
+      eventId: updateData?.event?.id,
+      eventTitle: updateData?.event?.title,
+      eventType: updateData?.event?.raw?.eventType,
+      changes: updateData?.changes
+    }, null, 2));
+    
     const { event, changes } = updateData;
     const visibleDateBeforeSave = getVisibleSessionCalendarDate();
     const eventType = event?.raw?.eventType;
-    const calendarFromStr = calendarDateRange.fromStr;
-    const calendarToStr = calendarDateRange.toStr;
+    const calendarFromStr = calendarDateRange.fromStrLocal;
+    const calendarToStr = calendarDateRange.toStrLocal;
 
     if (!eventType) {
-      console.error('Event data missing:', event);
+      console.error('[DRAG/RESIZE] ❌ Event data missing:', event);
       return false;
     }
+    
+    console.log('[DRAG/RESIZE] Event type:', eventType);
 
     const startDate = changes?.start || event.start;
     const endDate = changes?.end || event.end;
     if (!startDate || !endDate) {
-      console.error('Missing date data:', { startDate, endDate });
+      console.error('[SchedulingCalendarPage] Missing date data:', { startDate, endDate });
       return false;
     }
     const start = new Date(startDate);
@@ -1377,6 +1578,7 @@ const SchedulingCalendarPage = () => {
         const sessionsResult = await scheduledSessionService.getAllScheduledSessions({ limit: 1000 });
         if (sessionsResult.success) setScheduledSessions(sessionsResult.data || []);
         restoreSessionCalendarDate(visibleDateBeforeSave);
+        setCalendarLayoutKey((k) => k + 1);
       } else {
         toast.error(result.error || 'Failed to update session');
       }
@@ -1385,21 +1587,74 @@ const SchedulingCalendarPage = () => {
 
     if (eventType === 'break') {
       const breakSession = event.raw.breakSession;
-      const updateData = {
+      const startHour = start.getHours();
+      const startMinute = start.getMinutes();
+      const endHour = end.getHours();
+      const endMinute = end.getMinutes();
+
+      const startStr = `${String(startHour).padStart(2, '0')}:${String(startMinute).padStart(2, '0')}`;
+      const endStr = `${String(endHour).padStart(2, '0')}:${String(endMinute).padStart(2, '0')}`;
+
+      const slotResolution = await resolveBreakTimeSlotForCustomTime({
+        breakSession,
+        startStr,
+        endStr,
+        timeSlots,
+        breakSessions,
+        user,
+      });
+      if (!slotResolution.success) {
+        toast.error('Failed to update break time slot');
+        console.error('[SchedulingCalendarPage] Break slot resolution failed:', slotResolution.error);
+        return false;
+      }
+
+      const updatePayload = {
         date: start.toISOString(),
+        timeSlotId: slotResolution.timeSlotId,
         updateScope: 'single',
         updatedBy: user?.dbId,
       };
-      const result = await schedulingSummaryService.updateBreakSession(breakSession.id, updateData);
+
+      console.log('[DRAG/RESIZE] 📤 Calling backend to update break session...');
+      const result = await schedulingSummaryService.updateBreakSession(breakSession.id, updatePayload);
+      console.log('[DRAG/RESIZE] 📥 Backend response:', result.success ? '✅ SUCCESS' : '❌ FAILED');
+      
       if (result.success) {
         toast.success('Break updated');
+        console.log('[DRAG/RESIZE] 🔄 Starting state refresh sequence...');
+        
+        if (slotResolution.timeSlots) {
+          console.log('[DRAG/RESIZE] ⏰ Updating timeSlots state');
+          setTimeSlots(slotResolution.timeSlots);
+        }
+        
+        console.log('[DRAG/RESIZE] 📋 Reloading break sessions from backend...');
         const breakResult = await schedulingSummaryService.getBreakSessions({ start: calendarFromStr, end: calendarToStr, limit: 5000 });
-        if (breakResult.success) setBreakSessions(breakResult.data || []);
+        console.log('[DRAG/RESIZE] 📋 Break sessions loaded:', breakResult.success ? `✅ ${breakResult.data?.length} breaks` : '❌ FAILED');
+        
+        if (breakResult.success) {
+          console.log('[DRAG/RESIZE] 💾 Setting breakSessions state with', breakResult.data?.length, 'items');
+          setBreakSessions(breakResult.data || []);
+        }
+        
+        console.log('[DRAG/RESIZE] 📅 Restoring calendar date to:', visibleDateBeforeSave);
         restoreSessionCalendarDate(visibleDateBeforeSave);
-      } else {
-        toast.error(result.error || 'Failed to update break');
+        
+        console.log('[DRAG/RESIZE] 🔑 Incrementing calendarLayoutKey to force remount');
+        setCalendarLayoutKey((k) => {
+          console.log('[DRAG/RESIZE] 🔑 calendarLayoutKey:', k, '→', k + 1);
+          return k + 1;
+        });
+        
+        console.log('[DRAG/RESIZE] ✅ Break update complete, returning true');
+        console.log('═══════════════════════════════════════════════════════');
+        return true;
       }
-      return result.success;
+      console.log('[DRAG/RESIZE] ❌ Break update failed');
+      console.log('═══════════════════════════════════════════════════════');
+      toast.error(result.error || 'Failed to update break');
+      return false;
     }
 
     if (eventType === 'holiday') {
@@ -1416,6 +1671,7 @@ const SchedulingCalendarPage = () => {
         const holidayResult = await holidayService.getAllHolidays({ startDate: calendarFromStr, endDate: calendarToStr, limit: 5000 });
         if (holidayResult.success) setHolidays(holidayResult.data || []);
         restoreSessionCalendarDate(visibleDateBeforeSave);
+        setCalendarLayoutKey((k) => k + 1);
       } else {
         toast.error(result.error || 'Failed to update holiday');
       }
@@ -1423,7 +1679,7 @@ const SchedulingCalendarPage = () => {
     }
 
     return false;
-  }, [user, toast, t, getVisibleSessionCalendarDate, restoreSessionCalendarDate, calendarDateRange]);
+  }, [user, toast, t, getVisibleSessionCalendarDate, restoreSessionCalendarDate, calendarDateRange, timeSlots, breakSessions, setCalendarLayoutKey]);
 
   const closeCreateModal = useCallback(() => {
     setShowCreateModal(false);
@@ -1445,61 +1701,127 @@ const SchedulingCalendarPage = () => {
   }, []);
 
   const handleCalendarEventSave = useCallback(async ({ eventType, mode, payload, event }) => {
+    console.log('═══════════════════════════════════════════════════════');
+    console.log('[DIALOG SAVE] handleCalendarEventSave called');
+    console.log('[DIALOG SAVE] eventType:', eventType);
+    console.log('[DIALOG SAVE] mode:', mode);
+    console.log('[DIALOG SAVE] event:', event);
+    console.log('[DIALOG SAVE] payload BEFORE processing:', JSON.stringify(payload, null, 2));
+    
     const visibleDateBeforeSave = getVisibleSessionCalendarDate();
-    const { fromStr: calendarFromStr, toStr: calendarToStr } = calendarDateRange;
+    const { fromStrLocal: calendarFromStr, toStrLocal: calendarToStr } = calendarDateRange;
+    console.log('[DIALOG SAVE] Calendar date range:', { calendarFromStr, calendarToStr });
     let result;
     if (eventType === 'break') {
+      console.log('[DIALOG SAVE] Processing break save', { mode, eventId: event?.id });
+      if (payload.customStartTime && payload.customEndTime && event) {
+        console.log('[DIALOG SAVE] Custom time provided, resolving time slot...');
+        const slotResolution = await resolveBreakTimeSlotForCustomTime({
+          breakSession: event,
+          startStr: payload.customStartTime,
+          endStr: payload.customEndTime,
+          timeSlots,
+          breakSessions,
+          user,
+        });
+        console.log('[DIALOG SAVE] Break dialog slot resolution:', slotResolution);
+        if (!slotResolution.success) {
+          toast.error('Failed to update break time slot');
+          return;
+        }
+        if (slotResolution.timeSlots) {
+          setTimeSlots(slotResolution.timeSlots);
+        }
+        payload = { ...payload, timeSlotId: slotResolution.timeSlotId };
+        
+        // Recalculate date based on custom start time (not time slot, to avoid race conditions)
+        if (payload.customStartTime && payload.date) {
+          const originalDate = new Date(payload.date);
+          const [hours, minutes] = payload.customStartTime.split(':').map(Number);
+          const newDate = new Date(originalDate);
+          // Use UTC methods since the date is in UTC (has Z suffix)
+          newDate.setUTCHours(hours, minutes, 0, 0);
+          const newDateStr = newDate.toISOString();
+          console.log('[DIALOG SAVE] Recalculated date based on custom start time:', {
+            originalDate: originalDate.toISOString(),
+            newDate: newDateStr,
+            customStartTime: payload.customStartTime,
+            hours,
+            minutes
+          });
+          payload.date = newDateStr;
+        }
+        
+        const { customStartTime, customEndTime, ...breakPayload } = payload;
+        payload = breakPayload;
+        console.log('[DIALOG SAVE] payload AFTER time slot resolution:', JSON.stringify(payload, null, 2));
+      }
       if (mode === 'edit' && event) {
+        console.log('[DIALOG SAVE] Calling updateBreakSession with id:', event.id);
+        console.log('[DIALOG SAVE] Final payload:', JSON.stringify(payload, null, 2));
         result = await schedulingSummaryService.updateBreakSession(event.id, payload);
+        console.log('[DIALOG SAVE] Break update result:', result);
       } else {
         result = await schedulingSummaryService.createBreakSession(payload);
+        console.log('[DIALOG SAVE] Break create result:', result);
       }
       if (result.success) {
         toast.success(mode === 'edit' ? 'Break updated' : 'Break created');
-        const breakResult = await schedulingSummaryService.getBreakSessions({ start: calendarFromStr, end: calendarToStr, limit: 5000 });
-        if (breakResult.success) setBreakSessions(breakResult.data || []);
+        // Full page refresh to ensure calendar refresh
+        console.log('[DIALOG SAVE] Triggering full page refresh');
+        window.location.reload();
       } else {
         toast.error(result.error || 'Failed to save break');
       }
     } else if (eventType === 'holiday') {
+      console.log('[SchedulingCalendarPage] Processing holiday save', { mode, eventId: event?.id });
       if (mode === 'edit' && event) {
         result = await holidayService.updateHoliday(event.id, payload);
+        console.log('[SchedulingCalendarPage] Holiday update result:', result);
       } else {
         result = await holidayService.createHoliday(payload);
+        console.log('[SchedulingCalendarPage] Holiday create result:', result);
       }
       if (result.success) {
         toast.success(mode === 'edit' ? 'Holiday updated' : 'Holiday created');
-        const holidayResult = await holidayService.getAllHolidays({ startDate: calendarFromStr, endDate: calendarToStr, limit: 5000 });
-        if (holidayResult.success) setHolidays(holidayResult.data || []);
+        // Full page refresh to ensure calendar refresh
+        console.log('[DIALOG SAVE] Triggering full page refresh');
+        window.location.reload();
       } else {
         toast.error(result.error || 'Failed to save holiday');
       }
     }
     if (result?.success) {
+      setDeleteScopeDialog({ open: false, eventType: null, event: null });
       closeCalendarEventDialog();
       restoreSessionCalendarDate(visibleDateBeforeSave);
+      // loadData already triggers calendar sync, no need for layout key increment
     }
-  }, [toast, getVisibleSessionCalendarDate, restoreSessionCalendarDate, calendarDateRange, closeCalendarEventDialog]);
+  }, [toast, getVisibleSessionCalendarDate, restoreSessionCalendarDate, calendarDateRange, closeCalendarEventDialog, setCalendarLayoutKey, loadData]);
 
   const handleCalendarEventDelete = useCallback(async ({ eventType, event, deleteScope }) => {
     const visibleDateBeforeSave = getVisibleSessionCalendarDate();
-    const { fromStr: calendarFromStr, toStr: calendarToStr } = calendarDateRange;
+    const { fromStrLocal: calendarFromStr, toStrLocal: calendarToStr } = calendarDateRange;
     let result;
     if (eventType === 'break') {
       result = await schedulingSummaryService.deleteBreakSession(event.id, deleteScope);
       if (result.success) {
         toast.success('Break deleted');
-        const breakResult = await schedulingSummaryService.getBreakSessions({ start: calendarFromStr, end: calendarToStr, limit: 5000 });
-        if (breakResult.success) setBreakSessions(breakResult.data || []);
+        // Full page refresh to ensure calendar refresh
+        console.log('[DELETE] Triggering full page refresh');
+        window.location.reload();
       } else {
         toast.error(result.error || 'Failed to delete break');
       }
     } else if (eventType === 'holiday') {
+      console.log('[DELETE] Deleting holiday:', { id: event.id, deleteScope });
       result = await holidayService.deleteHoliday(event.id, deleteScope);
+      console.log('[DELETE] Holiday delete result:', result);
       if (result.success) {
         toast.success('Holiday deleted');
-        const holidayResult = await holidayService.getAllHolidays({ startDate: calendarFromStr, endDate: calendarToStr, limit: 5000 });
-        if (holidayResult.success) setHolidays(holidayResult.data || []);
+        // Full page refresh to ensure calendar refresh
+        console.log('[DELETE] Triggering full page refresh');
+        window.location.reload();
       } else {
         toast.error(result.error || 'Failed to delete holiday');
       }
@@ -1508,8 +1830,9 @@ const SchedulingCalendarPage = () => {
       setDeleteScopeDialog({ open: false, eventType: null, event: null });
       closeCalendarEventDialog();
       restoreSessionCalendarDate(visibleDateBeforeSave);
+      // loadData already triggers calendar sync, no need for layout key increment
     }
-  }, [toast, getVisibleSessionCalendarDate, restoreSessionCalendarDate, calendarDateRange, closeCalendarEventDialog]);
+  }, [toast, getVisibleSessionCalendarDate, restoreSessionCalendarDate, calendarDateRange, closeCalendarEventDialog, setCalendarLayoutKey, loadData]);
 
   // Handle event delete - show confirmation modal
   const onBeforeDeleteEvent = useCallback(async (eventData) => {
@@ -1614,9 +1937,62 @@ const SchedulingCalendarPage = () => {
 
   // Handle drop on calendar - open modal for configuration
   const handleCalendarDrop = useCallback(async (e) => {
+    console.log('[SchedulingCalendarPage] handleCalendarDrop called', { mainTab });
     e.preventDefault();
+    if (mainTab !== 'sessions') {
+      console.log('[SchedulingCalendarPage] Not in sessions tab, ignoring drop');
+      return;
+    }
+
     const classItemData = e.dataTransfer.getData('classItem');
-    if (!classItemData || mainTab !== 'sessions') return;
+    const eventType = e.dataTransfer.getData('eventType');
+    console.log('[SchedulingCalendarPage] Drop data:', { classItemData, eventType });
+
+    if (eventType === 'break' || eventType === 'holiday') {
+      console.log('[SchedulingCalendarPage] Processing event type drop:', eventType);
+      const cal = calendarRef.current?.getInstance();
+      const rawAnchor = cal?.getDate?.();
+      const anchorDate = rawAnchor
+        ? (typeof rawAnchor.toDate === 'function' ? rawAnchor.toDate() : new Date(rawAnchor))
+        : new Date(currentDate);
+
+      const resolved = resolveSessionDropDateTime(
+        e.clientX,
+        e.clientY,
+        sessionCalendarContainerRef.current,
+        { currentView, anchorDate, hideWeekends }
+      );
+
+      const startDateTime = resolved?.startDateTime ?? (() => {
+        const fallback = new Date(anchorDate);
+        fallback.setHours(9, 0, 0, 0);
+        return fallback;
+      })();
+
+      let endDateTime;
+      if (eventType === 'holiday') {
+        endDateTime = new Date(startDateTime);
+        endDateTime.setHours(23, 59, 59, 999);
+      } else {
+        endDateTime = resolved?.endDateTime ?? new Date(startDateTime.getTime() + 45 * 60 * 1000);
+      }
+
+      console.log('[SchedulingCalendarPage] Opening dialog for:', { eventType, startDateTime, endDateTime });
+      setCalendarEventDialog({
+        open: true,
+        mode: 'create',
+        eventType,
+        event: null,
+        initialStart: startDateTime,
+        initialEnd: endDateTime,
+      });
+      return;
+    }
+
+    if (!classItemData) {
+      console.log('[SchedulingCalendarPage] No class item data, ignoring drop');
+      return;
+    }
 
     const classItem = JSON.parse(classItemData);
     setEditingSessionId(null);
@@ -2637,6 +3013,11 @@ const SchedulingCalendarPage = () => {
                 <div style={{ width: '1px', backgroundColor: theme === 'dark' ? '#374151' : '#d1d5db', margin: '0 0.25rem' }} />
                 <button
                   type="button"
+                  draggable
+                  onDragStart={(e) => {
+                    e.dataTransfer.setData('eventType', 'break');
+                    e.dataTransfer.effectAllowed = 'copy';
+                  }}
                   onClick={() => {
                     const start = new Date(currentDate);
                     start.setHours(9, 0, 0, 0);
@@ -2652,7 +3033,7 @@ const SchedulingCalendarPage = () => {
                     color: '#ffffff',
                     border: 'none',
                     borderRadius: '0.375rem',
-                    cursor: 'pointer',
+                    cursor: 'grab',
                     fontSize: '0.875rem',
                     fontWeight: 500,
                     display: 'flex',
@@ -2666,6 +3047,11 @@ const SchedulingCalendarPage = () => {
                 </button>
                 <button
                   type="button"
+                  draggable
+                  onDragStart={(e) => {
+                    e.dataTransfer.setData('eventType', 'holiday');
+                    e.dataTransfer.effectAllowed = 'copy';
+                  }}
                   onClick={() => {
                     const start = new Date(currentDate);
                     start.setHours(0, 0, 0, 0);
@@ -2681,7 +3067,7 @@ const SchedulingCalendarPage = () => {
                     color: '#ffffff',
                     border: 'none',
                     borderRadius: '0.375rem',
-                    cursor: 'pointer',
+                    cursor: 'grab',
                     fontSize: '0.875rem',
                     fontWeight: 500,
                     display: 'flex',
@@ -2949,7 +3335,7 @@ const SchedulingCalendarPage = () => {
             </div>
           )}
 
-          <div style={{ flex: 1, minHeight: isClassesTab ? 0 : SESSION_CALENDAR_HEIGHT, width: '100%', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ flex: 1, minHeight: isClassesTab ? 0 : SESSION_CALENDAR_HEIGHT, display: 'flex', flexDirection: 'column' }}>
             {isClassesTab ? (
               <SchedulingClassesView
                 classes={classes}
@@ -3646,8 +4032,8 @@ const SchedulingCalendarPage = () => {
                   width: '100%',
                   maxWidth: '100%',
                   minWidth: 0,
-                  minHeight: SESSION_CALENDAR_HEIGHT,
-                  height: SESSION_CALENDAR_HEIGHT,
+                  minHeight: '800px',
+                  height: 'auto',
                   position: 'relative',
                   overflow: 'hidden'
                 }}
@@ -3655,19 +4041,23 @@ const SchedulingCalendarPage = () => {
               <Calendar
                 key={`sessions-cal-${calendarLayoutKey}-${lang}`}
                 ref={calendarRef}
-                height={`${sessionCalendarHeight}px`}
+                height="800px"
                 view={currentView}
+                timezones={[]}
                 week={{
                   startDayOfWeek: 0, // Sunday start
                   dayNames: calendarDayNames,
                   narrowWeekend: narrowWeekend,
                   workweek: hideWeekends,
-                  hourStart: 6,
+                  hourStart: 0,
                   hourEnd: 24,
                   eventView: ['time'], // Only show time events, hide all day
                   taskView: false, // Hide milestone and task
                   showNowIndicator: true,
-                  showTimezoneCollapseButton: false
+                  showTimezoneCollapseButton: false,
+                  disableDblClick: false,
+                  disableClick: false,
+                  isReadOnly: false
                 }}
                 month={{
                   startDayOfWeek: 0, // Sunday start
@@ -3734,15 +4124,27 @@ const SchedulingCalendarPage = () => {
                   .toastui-calendar-layout * {
                     max-width: 100%;
                   }
+                  /* Ensure calendar takes full width and auto height */
                   .scheduling-sessions-calendar > .container {
                     width: 100% !important;
-                    height: 100% !important;
-                    max-width: none !important;
+                    max-width: 100% !important;
+                    height: auto !important;
                   }
                   .toastui-calendar-layout {
                     width: 100% !important;
-                    height: 100% !important;
+                    height: auto !important;
                     min-width: 0 !important;
+                  }
+                  /* Hide scrollbar visually while allowing scroll functionality */
+                  .scheduling-sessions-calendar .toastui-calendar-timegrid-scroll-area {
+                    scrollbar-width: none !important;
+                    -ms-overflow-style: none !important;
+                  }
+                  .scheduling-sessions-calendar .toastui-calendar-timegrid-scroll-area::-webkit-scrollbar {
+                    display: none !important;
+                  }
+                  .scheduling-sessions-calendar .toastui-calendar-timegrid-scroll-area::-webkit-scrollbar-thumb {
+                    display: none !important;
                   }
                   .scheduling-sessions-calendar .toastui-calendar-column .toastui-calendar-events {
                     margin-right: 0 !important;
@@ -3956,6 +4358,7 @@ const SchedulingCalendarPage = () => {
           onClose={closeCalendarEventDialog}
           onSave={handleCalendarEventSave}
           onDelete={handleCalendarEventDelete}
+          existingSessions={scheduledSessions}
         />
       )}
 
