@@ -47,19 +47,6 @@ export const ALL_ROLES = Object.values(ROLE_STRINGS);
 export const ROLE_KEYS = Object.keys(ROLE_STRINGS);
 
 // Helper functions
-export const hasScreenAccess = (userRole, screenName) => {
-  // Basic implementation - can be expanded
-  const screenAccess = {
-    [ROLE_STRINGS.SUPER_ADMIN]: ['dashboard', 'users', 'programs', 'classes', 'attendance', 'reports', 'settings'],
-    [ROLE_STRINGS.ADMIN]: ['dashboard', 'programs', 'classes', 'attendance', 'reports'],
-    [ROLE_STRINGS.HR]: ['dashboard', 'users', 'reports'],
-    [ROLE_STRINGS.INSTRUCTOR]: ['dashboard', 'classes', 'attendance', 'reports'],
-    [ROLE_STRINGS.STUDENT]: ['dashboard', 'classes', 'attendance']
-  };
-  
-  return screenAccess[userRole]?.includes(screenName) || false;
-};
-
 export const getUserRoleDisplay = (userOrRole, t, lang) => {
   // Handle user object with role property
   if (typeof userOrRole === 'object' && userOrRole !== null) {
@@ -156,7 +143,6 @@ export default {
   DEFAULT_ROLE,
   ALL_ROLES,
   ROLE_KEYS,
-  hasScreenAccess,
   getUserRoleDisplay,
   getLocalizedUserName,
   getEnglishUserName,

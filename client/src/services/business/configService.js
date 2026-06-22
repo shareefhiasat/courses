@@ -71,21 +71,6 @@ export const SCREEN_ACCESS = {
   ]
 };
 
-// Permission checks
-export const hasScreenAccess = (userRole, screenName) => {
-  try {
-    if (!userRole || !screenName) {
-      return false;
-    }
-    
-    const allowedScreens = SCREEN_ACCESS[userRole] || [];
-    return allowedScreens.includes(screenName);
-  } catch (error) {
-    error(`${serviceName}:hasScreenAccess:error`, { error: error.message, userRole, screenName });
-    return false;
-  }
-};
-
 export const getAccessibleScreens = (userRole) => {
   try {
     if (!userRole) {
@@ -137,11 +122,6 @@ export const getUserRoleAccess = (userRole) => {
     canViewReports: canViewReports(userRole),
     level: getRoleLevel(userRole)
   };
-};
-
-export const checkScreenAccess = (user, screenName) => {
-  const userRole = user?.role || user?.userRole;
-  return hasScreenAccess(userRole, screenName);
 };
 
 // Feature access configuration
@@ -277,7 +257,6 @@ export const updateAllowlist = async (allowlistData) => {
 // Default export
 export default {
   // Screen access
-  hasScreenAccess,
   getAccessibleScreens,
   hasAdminAccess,
   canManageUsers,
@@ -286,7 +265,6 @@ export default {
   hasHigherPrivilege,
   getRoleScreens,
   getUserRoleAccess,
-  checkScreenAccess,
   
   // Feature access
   hasFeatureAccess,

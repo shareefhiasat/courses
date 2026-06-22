@@ -30,6 +30,7 @@ const DEFAULT_ROLE_PRESETS = {
   hr: (screen, opType) => {
     if (screen.category === 'admin' && screen.screenId === 'permission-matrix') return false;
     if (screen.category === 'admin' && screen.screenId === 'user-category-access') return opType === 'canView';
+    if (screen.category === 'settings') return opType === 'canView';
     if (['canView', 'canCreate', 'canUpdate', 'canExport'].includes(opType)) return true;
     return opType === 'canView';
   },
@@ -45,7 +46,7 @@ const DEFAULT_ROLE_PRESETS = {
       'subjects', 'classes', 'marks-entry', 'quiz-results', 'homework-results', 'training-results',
       'lab-results', 'summary-dashboard', 'scheduling-calendar', 'classes-availability',
       'instructor-availability-view', 'room-availability-view', 'student-profile', 'profile',
-      'drive', 'chat', 'notifications', 'my-attendance',
+      'drive', 'chat', 'notifications', 'my-attendance', 'timer', 'workflow',
     ]);
     if (!allowed.has(screen.screenId)) return false;
     return ['canView', 'canCreate', 'canUpdate'].includes(opType);
@@ -55,6 +56,7 @@ const DEFAULT_ROLE_PRESETS = {
       'home', 'student-dashboard', 'student-profile', 'activities', 'resources', 'quizzes',
       'my-attendance', 'enrollments', 'quiz-results', 'homework-results', 'training-results',
       'lab-results', 'scheduling-calendar', 'classes-availability', 'profile', 'chat', 'notifications',
+      'timer', 'instructor-availability-view', 'room-availability-view',
     ]);
     return allowed.has(screen.screenId) && opType === 'canView';
   },
@@ -134,10 +136,27 @@ async function upsertRolePermission(role, screenDbId, operationDbId, allowed) {
   });
 }
 
+async function deactivateGhostScreens(validScreenIds) {
+  const ghostScreens = await prisma.screen.findMany({
+    where: { screenId: { notIn: validScreenIds } },
+  });
+  if (ghostScreens.length > 0) {
+    console.log(`  🧹 Deactivating ${ghostScreens.length} ghost screens not in navigationRegistry:`);
+    for (const ghost of ghostScreens) {
+      console.log(`    ✗ ${ghost.screenId} (${ghost.nameEn})`);
+      await prisma.screen.update({
+        where: { id: ghost.id },
+        data: { isActive: false },
+      });
+    }
+  }
+}
+
 async function main() {
   console.log('🔄 Syncing permission screens from navigationRegistry...');
   const roles = Object.keys(DEFAULT_ROLE_PRESETS);
   const allScreens = getAllSyncScreenDefinitions();
+  const validScreenIds = allScreens.map((s) => s.screenId);
   console.log(`  ${allScreens.length} screens to sync`);
 
   for (const def of allScreens) {
@@ -172,6 +191,9 @@ async function main() {
       }
     }
   }
+
+  // Deactivate screens that exist in DB but not in navigationRegistry
+  await deactivateGhostScreens(validScreenIds);
 
   console.log('✅ Permission screen sync complete');
 }

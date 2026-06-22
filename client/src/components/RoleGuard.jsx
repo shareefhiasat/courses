@@ -3,7 +3,6 @@ import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@contexts/AuthContext';
 import { GlobalLoadingFallback } from '@/contexts/GlobalLoadingContext';
 import { useLang } from '@contexts/LangContext';
-import { hasScreenAccess } from '@constants/screenDefinitions';
 import { resolveMatrixScreenId } from '@config/navigationRegistry.js';
 import { usePermissions } from '@hooks/usePermissions';
 import { info, error, warn, debug } from '@services/utils/logger.js';
@@ -61,12 +60,9 @@ const RoleGuard = ({
     return <>{children}</>;
   }
 
-  // Permission matrix (kebab-case) with legacy role map fallback (camelCase routes)
+  // DB-driven permission matrix check (single source of truth)
   const matrixScreenId = resolveMatrixScreenId(screenId);
-  const matrixAllowed = canAccessScreen(matrixScreenId);
-  const legacyAllowed = hasScreenAccess(screenId, user.roles || [])
-    || (matrixScreenId !== screenId && hasScreenAccess(matrixScreenId, user.roles || []));
-  const authorized = matrixAllowed || legacyAllowed;
+  const authorized = canAccessScreen(matrixScreenId);
 
   if (!authorized) {
     warn(`[RoleGuard] Access denied to screen: ${screenId}`, {
