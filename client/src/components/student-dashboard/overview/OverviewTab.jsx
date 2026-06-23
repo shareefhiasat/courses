@@ -2,8 +2,10 @@ import React, { useMemo, useCallback, memo } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useAuth } from '@contexts/AuthContext';
-import AdvancedAnalyticsWithRoleSupport from '@components/AdvancedAnalyticsWithRoleSupport';
-import { info, error, warn, debug } from '@services/utils/logger.js';
+import { LayoutDashboard } from 'lucide-react';
+import CollapsibleSection from '@components/scheduling/CollapsibleSection';
+import OverviewAnalytics from './OverviewAnalytics';
+import { info, error } from '@services/utils/logger.js';
 import styles from './OverviewTab.module.css';
 
 /**
@@ -23,40 +25,16 @@ const OverviewTab = memo(({
   selectedClassId,
   selectedStudentId,
   selectedProgramId,
-  selectedSubjectId
+  selectedSubjectId,
+  // Analytics props
+  dashData,
+  lookupData,
+  isRTL,
+  lastUpdatedAt,
 }) => {
   const { theme } = useTheme();
   const { user, userProfile } = useAuth();
-
-  // Memoize global filters to prevent unnecessary re-renders
-  const globalFilters = useMemo(() => {
-    const filters = {};
-    
-    if (selectedClassId && selectedClassId !== 'all') {
-      filters.classId = selectedClassId;
-    }
-    
-    if (selectedStudentId) {
-      filters.studentId = selectedStudentId;
-    }
-    
-    if (selectedProgramId) {
-      filters.programId = selectedProgramId;
-    }
-    
-    if (selectedSubjectId) {
-      filters.subjectId = selectedSubjectId;
-    }
-    
-    info('[OverviewTab] Global filters applied:', filters);
-    return filters;
-  }, [selectedClassId, selectedStudentId, selectedProgramId, selectedSubjectId]);
-
-  // Generate storage key for this dashboard
-  const storageKey = useMemo(() => {
-    const role = userProfile?.role || user?.role || 'student';
-    return `student_dashboard_overview_${role}`;
-  }, [userProfile, user]);
+  const { t: tFn } = useLang();
 
   // Memoize title based on context
   const title = useMemo(() => {
@@ -69,26 +47,42 @@ const OverviewTab = memo(({
     return t('dashboard.overview') || (lang === 'ar' ? 'نظرة عامة' : 'Overview');
   }, [selectedStudentId, selectedClassId, lang, t]);
 
+  // Build summary text for collapsible header
+  const summaryText = useMemo(() => {
+    const parts = [];
+    if (enrollments.length > 0) parts.push(`${enrollments.length} ${tFn('enrollments') || 'enrollments'}`);
+    if (statsData.gpa > 0) parts.push(`GPA: ${statsData.gpa}`);
+    if (statsData.attendanceRate > 0) parts.push(`${statsData.attendanceRate}% ${tFn('attendance') || 'attendance'}`);
+    return parts.join(' · ') || (tFn('no_data') || 'No data');
+  }, [enrollments, statsData, tFn]);
+
   // Handle widget data refresh with proper error handling
   const handleDataRefresh = useCallback(async (refreshFunction) => {
     try {
       await refreshFunction();
       info('[OverviewTab] Widgets refreshed successfully');
-    } catch (error) {
-      error('[OverviewTab] Error refreshing widgets:', error);
+    } catch (err) {
+      error('[OverviewTab] Error refreshing widgets:', err);
     }
   }, []);
 
   return (
     <div className={styles.container}>
-      <AdvancedAnalyticsWithRoleSupport
+      <CollapsibleSection
         title={title}
-        storageKey={storageKey}
-        globalFilters={globalFilters}
-        dashboard="overview"
-        enableCustomization={true}
-        showFilters={false} // Filters are handled by parent component
-      />
+        summary={summaryText}
+        icon={LayoutDashboard}
+        defaultOpen
+        testId="student-overview-analytics-section"
+      >
+        <OverviewAnalytics
+          dashData={dashData}
+          lookupData={lookupData}
+          isRTL={isRTL}
+          onReload={handleDataRefresh}
+          lastUpdatedAt={lastUpdatedAt}
+        />
+      </CollapsibleSection>
     </div>
   );
 });

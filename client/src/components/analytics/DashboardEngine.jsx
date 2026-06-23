@@ -13,6 +13,7 @@ import WidgetBuilder, { DEFAULT_WIDGET_CONFIG } from './WidgetBuilder';
 import OptimizedChartRenderer from '../charts/OptimizedChartRenderer';
 import { normalizeAttendanceStatus, normalizeActivityType } from '@utils/listChartResolvers';
 import { inferSchedulingWidgetCategory, getWidgetDisplayTitle, resolveDrillDownListWidget, SCHEDULING_SUMMARY_MAX_WIDGETS } from '@constants/schedulingSummaryWidgets';
+import { inferStudentWidgetCategory, getStudentWidgetDisplayTitle, resolveStudentDrillDownListWidget } from '@constants/studentPerformanceWidgets';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 
 const ResponsiveGrid = WidthProvider(GridLayout);
@@ -165,6 +166,10 @@ const DashboardEngine = React.forwardRef(({
         const cat = inferSchedulingWidgetCategory(widget);
         if (cat !== widgetCategory) return false;
       }
+      if (widgetCategoryResolver === 'student' && widgetCategory) {
+        const cat = inferStudentWidgetCategory(widget);
+        if (cat !== widgetCategory) return false;
+      }
       if (!q) return true;
       const title = String(widget.title || widget.titleEn || '').toLowerCase();
       const titleAr = String(widget.titleAr || '').toLowerCase();
@@ -175,7 +180,8 @@ const DashboardEngine = React.forwardRef(({
   }, [sortedWidgets, widgetSearch, widgetCategory, widgetCategoryResolver]);
 
   const isFilterActive = Boolean(widgetSearch.trim())
-    || (widgetCategoryResolver === 'scheduling' && widgetCategory);
+    || (widgetCategoryResolver === 'scheduling' && widgetCategory)
+    || (widgetCategoryResolver === 'student' && widgetCategory);
 
   // ── Grid layout — minimized widgets collapse to header height (h=1) ───────
   const gridLayout = useMemo(() => {
@@ -464,13 +470,17 @@ const DashboardEngine = React.forwardRef(({
   const handleChartClick = useCallback((widget, dataPoint) => {
     if (!canAddWidget()) return;
 
-    const drillWidget = resolveDrillDownListWidget(widget, dataPoint, t, lang);
+    const drillWidget = widgetCategoryResolver === 'student'
+      ? resolveStudentDrillDownListWidget(widget, dataPoint, t, lang)
+      : resolveDrillDownListWidget(widget, dataPoint, t, lang);
     if (drillWidget) {
       setWidgets((prev) => [...prev, drillWidget]);
       return;
     }
 
-    const parentTitle = getWidgetDisplayTitle(widget, t, lang);
+    const parentTitle = widgetCategoryResolver === 'student'
+      ? getStudentWidgetDisplayTitle(widget, t, lang)
+      : getWidgetDisplayTitle(widget, t, lang);
     const sliceLabel = dataPoint.label || dataPoint.lines?.[0] || t('not_specified') || 'Item';
     const newTitle = `${parentTitle} - ${sliceLabel}`;
     const newListWidget = {

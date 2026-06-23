@@ -3,6 +3,7 @@ import { useAuth } from '@contexts/AuthContext';
 import { getUsers } from '@services/business/userService';
 import { getPrograms, getSubjects } from '@services/business/programService';
 import { getClasses } from '@services/business/classService';
+import useDataScope from '@hooks/useDataScope';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 
 /**
@@ -21,6 +22,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';
  */
 const useStudentDashboardFilters = ({ isStaff = false } = {}) => {
   const { user, isAdmin, isInstructor, isHR, isSuperAdmin } = useAuth();
+  const { scope: dataScope, filterItems: filterByScope, isUnrestricted } = useDataScope();
 
   const shouldLoadStudents = isStaff || isAdmin || isInstructor || isHR || isSuperAdmin;
 
@@ -90,25 +92,15 @@ const useStudentDashboardFilters = ({ isStaff = false } = {}) => {
         shouldLoadStudents
       });
 
-      // Debug: Log first few students to understand data structure
-      if (studentsData.length > 0) {
-        info('[StudentDashboardFilters] Sample students:', studentsData.slice(0, 3).map(s => ({
-          id: s.id || s.docId,
-          displayName: s.displayName,
-          email: s.email,
-          role: s.role,
-          hasEnrollments: !!s.enrollments,
-          enrollmentCount: s.enrollments?.length || 0
-        })));
-      }
-
       setPrograms(programsData);
       setSubjects(subjectsData);
       setClasses(classesData);
       
-      const filteredStudents = shouldLoadStudents ? studentsData.filter(u => u.isStudent === true) : [];
-      info('[StudentDashboardFilters] Filtered students (isStudent=true):', filteredStudents.length);
-      setStudents(filteredStudents);
+      // Don't filter by role here - let UserSelect component handle role filtering
+      // This matches the enrollment page pattern
+      const allUsers = shouldLoadStudents ? studentsData : [];
+      info('[StudentDashboardFilters] Loaded users (no role filter):', allUsers.length);
+      setStudents(allUsers);
     } catch (error) {
       error('Failed to load dashboard filters', error);
     } finally {
@@ -120,18 +112,37 @@ const useStudentDashboardFilters = ({ isStaff = false } = {}) => {
     loadFilters();
   }, [loadFilters]);
 
-  // Derived: subjects filtered by selected program
+  // Derived: subjects filtered by selected program (and data scope for normal admin)
   const filteredSubjects = useMemo(() => {
-    if (!selectedProgramId || selectedProgramId === 'all') return subjects;
-    return subjects.filter(s => {
+    let result = subjects;
+    if (!isUnrestricted) {
+      result = filterByScope(result, {
+        idField: 'id',
+        categoryField: 'categoryId',
+        programField: 'programId',
+        subjectField: 'id',
+        classField: 'id',
+      });
+    }
+    if (!selectedProgramId || selectedProgramId === 'all') return result;
+    return result.filter(s => {
       const subProgramId = s.programId || s.program || '';
       return subProgramId === selectedProgramId;
     });
-  }, [subjects, selectedProgramId]);
+  }, [subjects, selectedProgramId, isUnrestricted, filterByScope]);
 
-  // Derived: classes filtered by selected subject (and program if no subject)
+  // Derived: classes filtered by selected subject (and program if no subject) and data scope
   const filteredClasses = useMemo(() => {
     let result = classes;
+    if (!isUnrestricted) {
+      result = filterByScope(result, {
+        idField: 'id',
+        categoryField: 'categoryId',
+        programField: 'programId',
+        subjectField: 'subjectId',
+        classField: 'id',
+      });
+    }
     if (selectedSubjectId && selectedSubjectId !== 'all') {
       result = result.filter(c => c.subjectId === selectedSubjectId);
     } else if (selectedProgramId && selectedProgramId !== 'all') {
@@ -139,45 +150,38 @@ const useStudentDashboardFilters = ({ isStaff = false } = {}) => {
       result = result.filter(c => subjectIds.has(c.subjectId));
     }
     return result;
-  }, [classes, selectedSubjectId, selectedProgramId, filteredSubjects]);
+  }, [classes, selectedSubjectId, selectedProgramId, filteredSubjects, isUnrestricted, filterByScope]);
 
-  // Derived: students filtered by selected class (via enrollments collection)
+  // Derived: students filtered by selected class/subject/program
   const filteredStudents = useMemo(() => {
-    if (!selectedClassId || selectedClassId === 'all') {
-      info('[StudentDashboardFilters] No class selected, returning all students:', students.length);
+    // If class is selected, filter students enrolled in that class
+    if (selectedClassId && selectedClassId !== 'all') {
+      const filtered = students.filter(s => {
+        if (s.enrollments && Array.isArray(s.enrollments)) {
+          return s.enrollments.some(enrollment => enrollment.classId === selectedClassId);
+        }
+        return s.classId === selectedClassId || s.enrolledClassIds?.includes(selectedClassId);
+      });
+      info('[StudentDashboardFilters] Filtered students for class', selectedClassId, ':', filtered.length, 'from', students.length);
+      return filtered;
+    }
+    
+    // If subject or program is selected, show all students (HR/Super Admin needs to see all to enroll them)
+    // Only filter by enrollment when a specific class is selected
+    if (selectedSubjectId && selectedSubjectId !== 'all') {
+      info('[StudentDashboardFilters] Subject selected but no class, showing all students:', students.length);
       return students;
     }
     
-    // Filter students who are enrolled in the selected class
-    const filtered = students.filter(s => {
-      // Check if student has enrollments array
-      if (s.enrollments && Array.isArray(s.enrollments)) {
-        const hasEnrollment = s.enrollments.some(enrollment => enrollment.classId === selectedClassId);
-        if (hasEnrollment) {
-          info('[StudentDashboardFilters] Student', s.displayName, 'has enrollment in class', selectedClassId);
-        }
-        return hasEnrollment;
-      }
-      // Fallback to direct classId property
-      const hasDirectClass = s.classId === selectedClassId ||
-             s.enrolledClassIds?.includes(selectedClassId);
-      if (hasDirectClass) {
-        info('[StudentDashboardFilters] Student', s.displayName, 'has direct class access', selectedClassId);
-      }
-      return hasDirectClass;
-    });
-    
-    info('[StudentDashboardFilters] Filtered students for class', selectedClassId, ':', filtered.length, 'from', students.length);
-    if (filtered.length === 0 && students.length > 0) {
-      info('[StudentDashboardFilters] No students found for class. Sample student data:', students.slice(0, 2).map(s => ({
-        displayName: s.displayName,
-        enrollments: s.enrollments,
-        classId: s.classId,
-        enrolledClassIds: s.enrolledClassIds
-      })));
+    if (selectedProgramId && selectedProgramId !== 'all') {
+      info('[StudentDashboardFilters] Program selected but no class, showing all students:', students.length);
+      return students;
     }
-    return filtered;
-  }, [students, selectedClassId]);
+    
+    // No filters selected, return all students
+    info('[StudentDashboardFilters] No filters selected, returning all students:', students.length);
+    return students;
+  }, [students, selectedClassId, selectedSubjectId, selectedProgramId]);
 
   // hasSelection: for staff, at least a class must be selected to trigger data load
   const hasSelection = useMemo(() => {
@@ -231,6 +235,10 @@ const useStudentDashboardFilters = ({ isStaff = false } = {}) => {
     // Meta
     loading,
     reload: loadFilters,
+
+    // Data scope
+    dataScope,
+    isUnrestricted,
   };
 };
 

@@ -55,8 +55,6 @@ const getDatabaseUserId = async (user) => {
  */
 export const getClasses = async (params = {}) => {
   try {
-    console.log('[Classes DB] Getting classes with params:', params);
-    
     const startTime = Date.now();
     
     const {
@@ -145,7 +143,7 @@ export const getClasses = async (params = {}) => {
         ownerEmail: true,
         term: true,
         year: true,
-        schedule: true, // Include schedule field
+        schedule: true,
         creator: {
           select: {
             id: true,

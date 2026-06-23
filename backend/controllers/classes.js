@@ -28,23 +28,18 @@ async function applyClassScope(result, req) {
 export const getAllClassesController = async (req, res) => {
   try {
     const result = await getAllClasses(req.query, req.user);
-    const scoped = await applyClassScope(result, req);
     
-    if (scoped.success) {
-      res.status(200).json({
-        success: true,
-        data: scoped.data,
-        total: scoped.total,
-        page: scoped.page,
-        limit: scoped.limit,
-        totalPages: scoped.totalPages
-      });
-    } else {
-      res.status(400).json({
-        success: false,
-        error: result.error
-      });
-    }
+    // Apply data scoping
+    const scopedResult = await applyClassScope(result, req);
+    
+    res.status(200).json({
+      success: true,
+      data: scopedResult.data,
+      total: scopedResult.total,
+      page: scopedResult.page,
+      limit: scopedResult.limit,
+      totalPages: scopedResult.totalPages
+    });
     
   } catch (error) {
     console.error('Error in getAllClassesController:', error);

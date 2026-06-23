@@ -10,16 +10,16 @@ import { getThemedIcon } from '@constants/iconTypes';
 import { ROLE_STRINGS } from '@constants';
 import ProgramsSelect from '@ui/Select/ProgramsSelect';
 import { info, error, warn, debug } from '@services/utils/logger.js';
+import { getUsers } from '@services/business/userService';
 
 import useStudentDashboardPermissions from '@hooks/useStudentDashboardPermissions';
 import useStudentDashboardFilters from '@hooks/useStudentDashboardFilters';
 import useStudentDashboardData from '@hooks/useStudentDashboardData';
 import useClassLevelMetrics from '@hooks/useClassLevelMetrics';
-import { getStudentsByClass } from '@services/business/enrollmentService';
 
 import {
   OverviewTab,
-  AttendanceTab,
+  PerformanceTab,
   MarksTab,
 } from '@components/student-dashboard';
 import styles from './StudentDashboardPage.module.css';
@@ -67,56 +67,28 @@ export default function StudentDashboardPage() {
     permissions.isStaff && !filters.hasSelection
   );
 
-  // Load class enrollments when a class is selected (for UserSelect)
-  const [classEnrollments, setClassEnrollments] = useState([]);
-  const [loadingClassEnrollments, setLoadingClassEnrollments] = useState(false);
-
+  // Load all users for UserSelect (like enrollment page pattern)
+  const [allUsers, setAllUsers] = useState([]);
+  
   useEffect(() => {
-    const loadClassEnrollments = async () => {
-      if (!permissions.isStaff || !filters.selectedClassId || filters.selectedClassId === 'all') {
-        setClassEnrollments([]);
-        return;
-      }
-
-      setLoadingClassEnrollments(true);
-      info('[StudentDashboardPage] Loading enrollments for class:', filters.selectedClassId);
-      
+    const loadAllUsers = async () => {
+      if (!permissions.isStaff) return;
       try {
-        const result = await getStudentsByClass(filters.selectedClassId);
+        const result = await getUsers();
         if (result.success) {
-          info('[StudentDashboardPage] Loaded class enrollments:', result.data.length, 'students');
-          // Transform enrollment data to student structure for compatibility
-          const students = result.data.map(enrollment => ({
-            id: enrollment.userId,
-            docId: enrollment.userId,
-            displayName: enrollment.user?.displayName || enrollment.user?.realName || enrollment.user?.email,
-            email: enrollment.user?.email,
-            realName: enrollment.user?.realName,
-            isDisabled: enrollment.isDisabled
-          }));
-          setClassEnrollments(students || []);
-        } else {
-          error('[StudentDashboardPage] Failed to load class enrollments:', result.error);
-          setClassEnrollments([]);
+          setAllUsers(result.data || []);
         }
       } catch (error) {
-        error('[StudentDashboardPage] Error loading class enrollments:', error);
-        setClassEnrollments([]);
-      } finally {
-        setLoadingClassEnrollments(false);
+        error('[StudentDashboardPage] Error loading users:', error);
       }
     };
+    loadAllUsers();
+  }, [permissions.isStaff]);
 
-    loadClassEnrollments();
-  }, [permissions.isStaff, filters.selectedClassId]);
-
-  // Only students should appear in the user dropdown (defensive in case role is missing)
+  // Students to display in dropdown - exclude current user
   const studentUsers = useMemo(() => {
-    return filters.filteredStudents.filter(u => {
-      const role = (u.role || '').toLowerCase();
-      return role === (ROLE_STRINGS.STUDENT || 'student');
-    });
-  }, [filters.filteredStudents]);
+    return allUsers.filter(u => u.email !== user?.email);
+  }, [allUsers, user?.email]);
 
   // ─── Selection prompt state (needed early for debugging) ─────────────────────
   const showSelectionPrompt = permissions.isStaff && !filters.hasSelection;
@@ -182,7 +154,7 @@ export default function StudentDashboardPage() {
   // ─── Memoized tabs configuration (Performance optimization) ─────────────────────
   const dashTabs = useMemo(() => [
     { value: 'overview',      label: t('dashboard.overview') || (lang === 'ar' ? 'نظرة عامة'   : 'Overview') },
-    { value: 'attendance',    label: t('dashboard.attendance') || (lang === 'ar' ? 'الحضور'       : 'Attendance') },
+    { value: 'performance',   label: t('dashboard.performance') || (lang === 'ar' ? 'الأداء'        : 'Performance') },
     { value: 'marks',         label: t('dashboard.marks') || (lang === 'ar' ? 'الدرجات'      : 'Marks') },
     /*{ value: 'penalties',     label: t('dashboard.penalties') || (lang === 'ar' ? 'العقوبات'     : 'Penalties') },
     { value: 'participations',label: t('dashboard.participations') || (lang === 'ar' ? 'المشاركات'    : 'Participations') },
@@ -224,16 +196,18 @@ export default function StudentDashboardPage() {
               />
               <UserSelect
                 ref={userSelectRef}
-                users={filters.selectedClassId && filters.selectedClassId !== 'all' ? classEnrollments : studentUsers}
+                users={studentUsers}
                 enrollments={dashData.enrollments}
+                classes={filters.classes}
                 value={filters.selectedStudentId}
-                onChange={e => filters.setSelectedStudentId(e.target.value)}
+                onChange={filters.setSelectedStudentId}
                 placeholder={t('filters.select_student') || (lang === 'ar' ? 'اختر طالب' : 'Select Student')}
                 roleFilter={[ROLE_STRINGS.STUDENT]}
-                showEnrollments={true}
-                showStatus={true}
-                searchable={true}
-                disabled={loadingClassEnrollments}
+                includeAll={false}
+                showEnrollments
+                searchable
+                fullWidth
+                disabled={filters.loading}
               />
               {/* Debug info for student filtering */}
               {import.meta.env.MODE === 'development' && (
@@ -242,28 +216,23 @@ export default function StudentDashboardPage() {
                     <strong>Debug - Student Selection</strong>
                   </summary>
                   <div style={{ padding: '1rem', background: '#f8fafc', border: '1px solid #3b82f6', borderTop: 'none', borderRadius: '0 0 8px 8px', fontSize: '0.8rem' }}>
-                    Selected Class: {filters.selectedClassId || 'None'}<br/>
-                    Class Name: {filters.selectedClassId ? filters.classes.find(c => (c.id || c.docId) === filters.selectedClassId)?.name || 'Unknown' : 'N/A'}<br/>
-                    Available Students: {studentUsers.length}<br/>
-                    Filtered Students: {filters.filteredStudents.length}<br/>
-                    Class Enrollments: {classEnrollments.length} students<br/>
-                    Loading Class Enrollments: {loadingClassEnrollments ? 'Yes' : 'No'}<br/>
-                    Enrollments Count: {dashData.enrollments?.length || 0}<br/>
-                    {filters.selectedClassId && filters.selectedClassId !== 'all' && (
-                      <>
-                        Query: getStudentsByClass('{filters.selectedClassId}')<br/>
-                        Class Enrollments: {dashData.enrollments?.filter(e => e.classId === filters.selectedClassId).length || 0}<br/>
-                      </>
-                    )}
-                    {classEnrollments.length > 0 && (
+                    Selected Program: {filters.selectedProgramId || 'All'}<br/>
+                    Selected Subject: {filters.selectedSubjectId || 'All'}<br/>
+                    Selected Class: {filters.selectedClassId || 'All'}<br/>
+                    Total Students: {filters.students.length}<br/>
+                    Filtered Students (shown in dropdown): {studentUsers.length}<br/>
+                    Selected Student: {filters.selectedStudentId || 'None'}<br/>
+                    Is Unrestricted: {filters.isUnrestricted ? 'Yes' : 'No'}<br/>
+                    {studentUsers.length > 0 && (
                       <details closed={true} style={{ marginTop: '0.5rem' }}>
-                        <summary style={{ cursor: 'pointer', fontSize: '0.7rem' }}>View Class Students</summary>
+                        <summary style={{ cursor: 'pointer', fontSize: '0.7rem' }}>View Filtered Students</summary>
                         <div style={{ fontSize: '0.6rem', background: '#f8fafc', padding: '0.5rem', borderRadius: '4px', marginTop: '0.25rem', maxHeight: '100px', overflow: 'auto' }}>
-                          {classEnrollments.map(student => (
+                          {studentUsers.slice(0, 10).map(student => (
                             <div key={student.id || student.docId}>
                               {student.displayName || student.email} ({student.id || student.docId})
                             </div>
                           ))}
+                          {studentUsers.length > 10 && <div>... and {studentUsers.length - 10} more</div>}
                         </div>
                       </details>
                     )}
@@ -327,10 +296,14 @@ export default function StudentDashboardPage() {
                   selectedSubjectId={filters.selectedSubjectId}
                   t={t}
                   lang={lang}
+                  dashData={dashData}
+                  lookupData={{ programs: filters.programs, subjects: filters.subjects, classes: filters.classes }}
+                  isRTL={lang === 'ar'}
+                  lastUpdatedAt={Date.now()}
                 />
               )}
-              {activeTab === 'attendance' && (
-                <AttendanceTab
+              {activeTab === 'performance' && (
+                <PerformanceTab
                   studentId={displayStudentId}
                   classId={filters.selectedClassId !== 'all' ? filters.selectedClassId : undefined}
                   attendance={dashData.attendance}
@@ -343,6 +316,10 @@ export default function StudentDashboardPage() {
                   onRefresh={dashData.reload}
                   t={t}
                   lang={lang}
+                  dashData={dashData}
+                  lookupData={{ programs: filters.programs, subjects: filters.subjects, classes: filters.classes }}
+                  isRTL={lang === 'ar'}
+                  lastUpdatedAt={Date.now()}
                 />
               )}
               {activeTab === 'marks' && (

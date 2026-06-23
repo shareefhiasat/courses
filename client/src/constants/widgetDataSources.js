@@ -11,6 +11,7 @@ export const SOURCE_CATEGORIES = [
   { id: 'content', labelKey: 'widget_cat_content' },
   { id: 'workflow', labelKey: 'widget_cat_workflow' },
   { id: 'scheduling', labelKey: 'widget_cat_scheduling' },
+  { id: 'student', labelKey: 'widget_cat_student' },
 ];
 
 const BASIC_CHARTS = ['bar', 'pie', 'donut', 'list', 'count'];
@@ -94,6 +95,40 @@ export const DATA_SOURCES = [
     chartTypes: ['count'],
     hiddenFromBuilder: true,
   },
+
+  // ── Student Dashboard ────────────────────────────────────────────────────
+  {
+    value: 'spOverviewStats',
+    labelKey: 'ds_student_overview_stats',
+    label: 'Student Overview Stats',
+    category: 'student',
+    groupBy: [],
+    isStatSource: true,
+    stats: [
+      countMetric('totalEnrollments', 'count_metric_total_enrollments', { statKey: 'totalEnrollments' }),
+      countMetric('totalCourses', 'count_metric_total_courses', { statKey: 'totalCourses' }),
+      countMetric('repeatedCount', 'count_metric_repeated_courses', { statKey: 'repeatedCount' }),
+      countMetric('totalAttendance', 'count_metric_total_attendance', { statKey: 'totalAttendance' }),
+      countMetric('presentCount', 'count_metric_present_attendance', { statKey: 'presentCount' }),
+      countMetric('absentCount', 'count_metric_absent_attendance', { statKey: 'absentCount' }),
+      countMetric('lateCount', 'count_metric_late_attendance', { statKey: 'lateCount' }),
+      countMetric('totalPenalties', 'count_metric_total_penalties', { statKey: 'totalPenalties' }),
+      countMetric('penaltyPoints', 'count_metric_penalty_points', { statKey: 'penaltyPoints' }),
+      countMetric('totalBehaviors', 'count_metric_total_behaviors', { statKey: 'totalBehaviors' }),
+      countMetric('totalParticipations', 'count_metric_total_participations', { statKey: 'totalParticipations' }),
+      countMetric('participationPoints', 'count_metric_participation_points', { statKey: 'participationPoints' }),
+      countMetric('netScore', 'count_metric_net_score', { statKey: 'netScore' }),
+      countMetric('gpa', 'count_metric_gpa', { statKey: 'gpa' }),
+    ],
+    chartTypes: ['count'],
+    hiddenFromBuilder: true,
+  },
+  { value: 'attendance', labelKey: 'attendance', category: 'student', groupBy: ['status', 'classId', 'subjectId', 'date', 'semester', 'year'], chartTypes: BASIC_CHARTS, countMetrics: [countMetric('total', 'count_metric_total_attendance')] },
+  { value: 'penalties', labelKey: 'penalties', category: 'student', groupBy: ['penaltyType', 'type', 'classId', 'subjectId', 'date', 'semester', 'year'], chartTypes: BASIC_CHARTS, countMetrics: [countMetric('total', 'count_metric_total_penalties')] },
+  { value: 'behaviors', labelKey: 'behaviors', category: 'student', groupBy: ['type', 'classId', 'subjectId', 'date', 'semester', 'year'], chartTypes: BASIC_CHARTS, countMetrics: [countMetric('total', 'count_metric_total_behaviors')] },
+  { value: 'participations', labelKey: 'participations', category: 'student', groupBy: ['type', 'classId', 'subjectId', 'date', 'semester', 'year'], chartTypes: BASIC_CHARTS, valueFields: ['points'], countMetrics: [countMetric('total', 'count_metric_total_participations')] },
+  { value: 'studentMarks', labelKey: 'ds_student_marks', category: 'student', groupBy: ['subjectId', 'classId', 'semester', 'year', 'date'], chartTypes: ['bar', 'line', 'pie', 'donut', 'list', 'count'], valueFields: ['totalMarks', 'midTermExam', 'finalExam', 'homework', 'quizzes', 'participation', 'attendance'], countMetrics: [countMetric('total', 'count_metric_total_marks')] },
+  { value: 'enrollments', labelKey: 'enrollments', category: 'student', groupBy: ['classId', 'subjectId', 'semester', 'academicYear', 'year'], chartTypes: BASIC_CHARTS, countMetrics: [countMetric('total', 'count_metric_total_enrollments')] },
   {
     value: 'schedulingPrograms',
     labelKey: 'programs',

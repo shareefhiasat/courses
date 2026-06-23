@@ -43,11 +43,13 @@ export const validateStatusTransition = (currentStatus, newStatus, session = nul
 };
 
 /**
- * Auto-mark past sessions as completed
+ * Auto-mark past sessions as completed and fix incorrect statuses
  */
 export const autoCompletePastSessions = async () => {
   const now = new Date();
-  const result = await prisma.scheduledSession.updateMany({
+  
+  // Mark past sessions as completed
+  const completedResult = await prisma.scheduledSession.updateMany({
     where: {
       status: { in: ['scheduled', 'in_progress'] },
       endDateTime: { lt: now },
@@ -56,7 +58,20 @@ export const autoCompletePastSessions = async () => {
     },
     data: { status: 'completed' }
   });
-  return result.count;
+  
+  // Fix future sessions incorrectly marked as in_progress - should be scheduled
+  const scheduledResult = await prisma.scheduledSession.updateMany({
+    where: {
+      status: 'in_progress',
+      startDateTime: { gt: now },
+      deletedAt: null,
+      isActive: true
+    },
+    data: { status: 'scheduled' }
+  });
+  
+  console.log(`[SessionStatus] Auto-completed ${completedResult.count} past sessions, fixed ${scheduledResult.count} future sessions`);
+  return { completedCount: completedResult.count, scheduledCount: scheduledResult.count };
 };
 
 /**

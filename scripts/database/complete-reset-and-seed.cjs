@@ -78,8 +78,16 @@ async function completeResetAndSeed() {
     await runScript('create-sample-behaviors.cjs');
     
     // Step 14: Create student enrollments
-    console.log('\n📋 Step 14/12: Creating student enrollments...');
+    console.log('\n📋 Step 14/16: Creating student enrollments...');
     await runScript('create-enrollments.cjs');
+    
+    // Step 15: Create sample marks
+    console.log('\n📋 Step 15/16: Creating sample student marks...');
+    await runScript('create-sample-marks.cjs');
+    
+    // Step 16: Create sample attendance
+    console.log('\n📋 Step 16/16: Creating sample attendance records...');
+    await runScript('create-sample-attendance.cjs');
     
     console.log('\n🎉 Complete database reset and seed finished successfully!');
     console.log('\n📊 Final State:');
@@ -93,6 +101,8 @@ async function completeResetAndSeed() {
     const participationCount = await prisma.participation.count();
     const behaviorCount = await prisma.behavior.count();
     const enrollmentCount = await prisma.enrollment.count();
+    const marksCount = await prisma.studentMarks.count();
+    const attendanceCount = await prisma.attendance.count();
     
     console.log(`  - Users: ${userCount}`);
     console.log(`  - Classes: ${classCount}`);
@@ -102,6 +112,8 @@ async function completeResetAndSeed() {
     console.log(`  - Participations: ${participationCount}`);
     console.log(`  - Behaviors: ${behaviorCount}`);
     console.log(`  - Enrollments: ${enrollmentCount}`);
+    console.log(`  - Student Marks: ${marksCount}`);
+    console.log(`  - Attendance Records: ${attendanceCount}`);
     
     console.log('\n✅ Super Admin is ID 1 (shareef.hiasat@gmail.com)');
     console.log('\n🚀 System is ready for testing!\n');

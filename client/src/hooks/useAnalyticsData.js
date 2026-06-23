@@ -473,6 +473,13 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
     return [{ label, value: stats[statKey] ?? 0 }];
   }
 
+  if (dataSource === 'spOverviewStats') {
+    const stats = rawData.spOverviewStats || {};
+    const statKey = widget.statKey || widget.countMetric || 'totalEnrollments';
+    const label = widget.titleKey && t ? t(widget.titleKey) : (widget.titleEn || widget.title || statKey);
+    return [{ label, value: stats[statKey] ?? 0 }];
+  }
+
   if (dataSource?.startsWith('scheduling')) {
     const dataset = rawData[dataSource] || [];
     if (widget.chartType === 'count') {
@@ -760,6 +767,9 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
       return sub ? `${sub.code || ''} - ${sub.name_en || sub.name || sId}`.trim() : sId;
     }
     if (groupBy === 'date') {
+      if (item.date) {
+        return new Date(item.date).toLocaleDateString('en-GB');
+      }
       const ts =
         item.when?.seconds ? item.when.seconds * 1000 :
         item.createdAt?.seconds ? item.createdAt.seconds * 1000 :

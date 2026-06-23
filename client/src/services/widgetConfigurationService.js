@@ -1,103 +1,20 @@
 import { ROLE_STRINGS } from '@utils/userUtils';
 import { info, error, warn, debug } from '@services/utils/logger.js';
+import {
+  STUDENT_OVERVIEW_DEFAULT_WIDGETS,
+  STUDENT_PERFORMANCE_DEFAULT_WIDGETS,
+} from '@constants/studentPerformanceWidgets';
 
 /**
  * Default widget configurations for each role and dashboard
  * These are used when no custom widgets are configured
  */
 export const DEFAULT_WIDGET_CONFIGURATIONS = {
-  // Student Dashboard - Overview Tab
-  [`${ROLE_STRINGS.STUDENT}_overview`]: [
-    {
-      id: 'student_overview_1',
-      title: 'Enrollment Status',
-      chartType: 'count',
-      dataSource: 'enrollments',
-      aggregation: 'count',
-      dateRange: 'current',
-      filters: [],
-      layout: { x: 0, y: 0, w: 4, h: 3 }
-    },
-    {
-      id: 'student_overview_2',
-      title: 'Attendance Rate',
-      chartType: 'pie',
-      dataSource: 'attendance',
-      groupBy: 'status',
-      aggregation: 'count',
-      dateRange: 'current',
-      filters: [],
-      layout: { x: 4, y: 0, w: 4, h: 3 }
-    },
-    {
-      id: 'student_overview_3',
-      title: 'Recent Marks',
-      chartType: 'line',
-      dataSource: 'marks',
-      groupBy: 'date',
-      aggregation: 'average',
-      dateRange: 'last30',
-      filters: [],
-      layout: { x: 8, y: 0, w: 4, h: 3 }
-    }
-  ],
+  // Student Dashboard - Overview Tab (uses DashboardEngine defaults)
+  [`${ROLE_STRINGS.STUDENT}_overview`]: STUDENT_OVERVIEW_DEFAULT_WIDGETS,
 
-  // Student Dashboard - Performance Tab
-  [`${ROLE_STRINGS.STUDENT}_performance`]: [
-    {
-      id: 'student_perf_1',
-      title: 'Grade Distribution',
-      chartType: 'bar',
-      dataSource: 'marks',
-      groupBy: 'subject',
-      aggregation: 'average',
-      dateRange: 'current',
-      filters: [],
-      layout: { x: 0, y: 0, w: 6, h: 4 }
-    },
-    {
-      id: 'student_perf_2',
-      title: 'Attendance Trend',
-      chartType: 'line',
-      dataSource: 'attendance',
-      groupBy: 'date',
-      aggregation: 'count',
-      dateRange: 'last90',
-      filters: [],
-      layout: { x: 6, y: 0, w: 6, h: 4 }
-    },
-    {
-      id: 'student_perf_3',
-      title: 'Participation Score',
-      chartType: 'gauge',
-      dataSource: 'participations',
-      aggregation: 'sum',
-      dateRange: 'current',
-      filters: [],
-      layout: { x: 0, y: 4, w: 4, h: 3 }
-    },
-    {
-      id: 'student_perf_4',
-      title: 'Behavior Summary',
-      chartType: 'pie',
-      dataSource: 'behaviors',
-      groupBy: 'type',
-      aggregation: 'count',
-      dateRange: 'current',
-      filters: [],
-      layout: { x: 4, y: 4, w: 4, h: 3 }
-    },
-    {
-      id: 'student_perf_5',
-      title: 'Penalties Overview',
-      chartType: 'count',
-      dataSource: 'penalties',
-      aggregation: 'count',
-      dateRange: 'current',
-      filters: [],
-      layout: { x: 8, y: 4, w: 4, h: 3 }
-    }
-  ],
+  // Student Dashboard - Performance Tab (uses DashboardEngine defaults)
+  [`${ROLE_STRINGS.STUDENT}_performance`]: STUDENT_PERFORMANCE_DEFAULT_WIDGETS,
 
   // Instructor Dashboard - Overview Tab
   [`${ROLE_STRINGS.INSTRUCTOR}_overview`]: [
