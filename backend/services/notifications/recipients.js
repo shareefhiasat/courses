@@ -23,7 +23,7 @@ export const byUserId = async (userId) => {
   try {
     const user = await prisma.user.findUnique({
       where: { id: userId },
-      select: { id: true, email: true, firstName: true, lastName: true, preferredLang: true }
+      select: { id: true, email: true, firstName: true, lastName: true }
     });
     
     if (!user) {
@@ -31,7 +31,7 @@ export const byUserId = async (userId) => {
       return [];
     }
     
-    return [{ userId: user.id, email: user.email, preferredLang: user.preferredLang || 'en' }];
+    return [{ userId: user.id, email: user.email, preferredLang: 'en' }];
   } catch (error) {
     log.error('Error resolving user by ID', { userId, error: error.message });
     return [];
@@ -47,13 +47,13 @@ export const byUserIds = async (userIds) => {
   try {
     const users = await prisma.user.findMany({
       where: { id: { in: userIds } },
-      select: { id: true, email: true, firstName: true, lastName: true, preferredLang: true }
+      select: { id: true, email: true, firstName: true, lastName: true }
     });
     
     return users.map(user => ({
       userId: user.id,
       email: user.email,
-      preferredLang: user.preferredLang || 'en'
+      preferredLang: 'en'
     }));
   } catch (error) {
     log.error('Error resolving users by IDs', { userIds, error: error.message });
@@ -83,7 +83,7 @@ export const byRole = async (roleCode) => {
       where: { roleId: role.id },
       include: {
         user: {
-          select: { id: true, email: true, firstName: true, lastName: true, preferredLang: true }
+          select: { id: true, email: true, firstName: true, lastName: true }
         }
       }
     });
@@ -91,7 +91,7 @@ export const byRole = async (roleCode) => {
     return roleAssignments.map(ra => ({
       userId: ra.user.id,
       email: ra.user.email,
-      preferredLang: ra.user.preferredLang || 'en'
+      preferredLang: 'en'
     }));
   } catch (error) {
     log.error('Error resolving users by role', { roleCode, error: error.message });
@@ -112,7 +112,7 @@ export const byClass = async (classId) => {
         enrollments: {
           include: {
             user: {
-              select: { id: true, email: true, firstName: true, lastName: true, preferredLang: true }
+              select: { id: true, email: true, firstName: true, lastName: true }
             }
           }
         }
@@ -127,7 +127,7 @@ export const byClass = async (classId) => {
     return classData.enrollments.map(e => ({
       userId: e.user.id,
       email: e.user.email,
-      preferredLang: e.user.preferredLang || 'en'
+      preferredLang: 'en'
     }));
   } catch (error) {
     log.error('Error resolving recipients by class', { classId, error: error.message });
@@ -163,7 +163,7 @@ export const byEnrollment = async ({ subjectId, programId }) => {
       where,
       include: {
         user: {
-          select: { id: true, email: true, firstName: true, lastName: true, preferredLang: true }
+          select: { id: true, email: true, firstName: true, lastName: true }
         }
       }
     });
@@ -171,7 +171,7 @@ export const byEnrollment = async ({ subjectId, programId }) => {
     return enrollments.map(e => ({
       userId: e.user.id,
       email: e.user.email,
-      preferredLang: e.user.preferredLang || 'en'
+      preferredLang: 'en'
     }));
   } catch (error) {
     log.error('Error resolving recipients by enrollment', { subjectId, programId, error: error.message });

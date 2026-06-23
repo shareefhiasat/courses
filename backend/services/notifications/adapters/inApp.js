@@ -9,6 +9,7 @@
 
 import { PrismaClient } from '@prisma/client';
 import { CHANNELS, DELIVERY_STATUS } from '../constants.js';
+import { mapNotification } from '../mapper.js';
 import log from '../logger.js';
 
 const prisma = new PrismaClient();
@@ -33,6 +34,30 @@ export const setWSEmitter = (emitter) => {
  */
 export const send = async (notification, recipient, rendered) => {
   try {
+    // Deduplicate: if groupKey exists, check for a recent duplicate within 5 minutes
+    const groupKey = rendered.groupKey || null;
+    if (groupKey) {
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+      const existing = await prisma.notification.findFirst({
+        where: {
+          userId: recipient.userId,
+          groupKey,
+          createdAt: { gte: fiveMinutesAgo },
+        },
+        select: { id: true },
+      });
+      if (existing) {
+        log.info('Duplicate notification skipped', { userId: recipient.userId, groupKey });
+        return {
+          channel: CHANNELS.IN_APP,
+          status: DELIVERY_STATUS.DELIVERED,
+          notificationId: existing.id,
+          deliveryId: null,
+          deduplicated: true,
+        };
+      }
+    }
+
     // Create notification record
     const createdNotification = await prisma.notification.create({
       data: {
@@ -64,7 +89,7 @@ export const send = async (notification, recipient, rendered) => {
     // Emit WebSocket event if emitter is available
     if (wsEmitter) {
       try {
-        wsEmitter(recipient.userId, 'notification:new', createdNotification);
+        wsEmitter(recipient.userId, 'notification:new', mapNotification(createdNotification));
         log.info('WS event emitted', { userId: recipient.userId, notificationId: createdNotification.id });
       } catch (wsError) {
         log.warn('Failed to emit WS event', { userId: recipient.userId, error: wsError.message });

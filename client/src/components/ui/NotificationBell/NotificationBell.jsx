@@ -1,4 +1,5 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
@@ -13,7 +14,17 @@ const NotificationBell = () => {
   const { unreadCount } = useNotificationsFeed({ limit: 10 });
   const [showDrawer, setShowDrawer] = useState(false);
   const [focused, setFocused] = useState(false);
+  const [balloonKey, setBalloonKey] = useState(0);
+  const prevUnreadRef = useRef(0);
   const rootRef = useRef(null);
+
+  // Trigger balloon animation when unread count increases
+  useEffect(() => {
+    if (unreadCount > prevUnreadRef.current) {
+      setBalloonKey(prev => prev + 1);
+    }
+    prevUnreadRef.current = unreadCount;
+  }, [unreadCount]);
 
   if (!user) return null;
 
@@ -43,27 +54,36 @@ const NotificationBell = () => {
           }}
         >
           {getThemedIcon('ui', 'bell', 18)}
-          {unreadCount > 0 && (
-            <span style={{
-              position: 'absolute',
-              top: '-5px',
-              right: '-5px',
-              background: 'rgb(255,215,31)',
-              color: 'white',
-              borderRadius: '50%',
-              width: '20px',
-              height: '20px',
-              fontSize: '0.7rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              fontWeight: 'bold',
-              border: '2px solid white',
-              boxSizing: 'border-box'
-            }}>
-              {unreadCount > 9 ? '9+' : unreadCount}
-            </span>
-          )}
+          <AnimatePresence>
+            {unreadCount > 0 && (
+              <motion.span
+                key={balloonKey}
+                initial={{ scale: 0, y: 5 }}
+                animate={{ scale: [0, 1.3, 1], y: 0 }}
+                exit={{ scale: 0 }}
+                transition={{ duration: 0.4, ease: 'easeOut' }}
+                style={{
+                  position: 'absolute',
+                  top: '-5px',
+                  right: '-5px',
+                  background: 'rgb(255,215,31)',
+                  color: 'white',
+                  borderRadius: '50%',
+                  width: '20px',
+                  height: '20px',
+                  fontSize: '0.7rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 'bold',
+                  border: '2px solid white',
+                  boxSizing: 'border-box'
+                }}
+              >
+                {unreadCount > 9 ? '9+' : unreadCount}
+              </motion.span>
+            )}
+          </AnimatePresence>
         </button>
       </div>
       <NotificationDrawer isOpen={showDrawer} onClose={() => setShowDrawer(false)} />

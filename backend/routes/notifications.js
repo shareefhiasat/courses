@@ -8,6 +8,7 @@ import { keycloakAuth } from '../middleware/keycloakAuth.js';
 import {
   getNotifications,
   markNotificationRead,
+  markNotificationUnread,
   markAllRead,
   archiveNotification,
   archiveAllRead,
@@ -25,6 +26,7 @@ router.use(keycloakAuth([]));
 // Notification CRUD
 router.get('/', getNotifications);
 router.patch('/:notificationId/read', markNotificationRead);
+router.patch('/:notificationId/unread', markNotificationUnread);
 router.post('/mark-all-read', markAllRead);
 router.patch('/:notificationId/archive', archiveNotification);
 router.post('/archive-all-read', archiveAllRead);

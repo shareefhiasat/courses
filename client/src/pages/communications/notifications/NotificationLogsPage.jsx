@@ -5,7 +5,7 @@ import { useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { getNotificationLogs } from '@services/business/notificationService';
 import { formatQatarStandard } from '@utils/qatarDate';
 import { SimpleLoading, Modal, Select, Button, Card, CardBody, Badge, AdvancedDataGrid, DatePicker, useToast } from '@ui';
-import { getNotificationTriggerOptions, getNotificationChannelOptions, NOTIFICATION_TRIGGERS, NOTIFICATION_CHANNELS } from '@constants/notificationTypes';
+import { getNotificationChannelOptions, NOTIFICATION_CHANNELS, NOTIFICATION_TYPES } from '@constants/notificationTypes';
 import { getThemedIcon } from '@constants/iconTypes';
 import { InfoTooltip } from '@ui';
 
@@ -30,8 +30,8 @@ const NotificationLogsPage = () => {
   
   const triggerOptions = useMemo(() => {
     const options = [{ value: '', label: t('all_triggers') || 'All Triggers' }];
-    Object.entries(NOTIFICATION_TRIGGERS).forEach(([key, value]) => {
-      options.push({ value, label: value.replace(/_/g, ' ').toUpperCase() });
+    Object.entries(NOTIFICATION_TYPES).forEach(([key, value]) => {
+      options.push({ value, label: value.charAt(0) + value.slice(1).toLowerCase() });
     });
     return options;
   }, [t]);

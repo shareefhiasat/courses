@@ -37,18 +37,19 @@ import { getPrograms, getSubjects } from '@services/business/programService';
 import { getClasses } from '@services/business/classService';
 
 const CATEGORY_COLORS = {
-  activity: '#3b82f6',
-  submission: '#3b82f6',
-  quiz: '#8b5cf6',
-  grade: '#10b981',
-  message: '#f59e0b',
-  chat: '#f59e0b',
-  announcement: '#06b6d4',
-  newsletter: '#06b6d4',
-  penalty: '#ef4444',
-  attendance: '#f97316',
-  absence: '#f97316',
-  resource: '#6366f1'
+  ASSESSMENT: '#3b82f6',
+  COMMUNICATION: '#f59e0b',
+  ANNOUNCEMENT: '#06b6d4',
+  ATTENDANCE: '#f97316',
+  WORKFLOW: '#8b5cf6',
+  BEHAVIOR: '#ec4899',
+  FILE: '#6366f1',
+  QR: '#14b8a6',
+  PARTICIPATION: '#22c55e',
+  PENALTY: '#ef4444',
+  RESOURCE: '#6366f1',
+  ACADEMIC: '#3b82f6',
+  SYSTEM: '#6b7280'
 };
 
 const getCategoryColor = (type) => CATEGORY_COLORS[type] || '#6b7280';
@@ -157,7 +158,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
       filtered = filtered.filter(n => n.metadata?.attendanceStatus === filterAttendanceStatus);
     }
 
-    if (filterAbsenceType !== 'all' && filterCategory === NOTIFICATION_TYPES.ABSENCE) {
+    if (filterAbsenceType !== 'all' && filterCategory === NOTIFICATION_TYPES.ATTENDANCE) {
       filtered = filtered.filter(n => n.metadata?.absenceType === filterAbsenceType);
     }
 
@@ -332,44 +333,70 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
 
     if (!n.isRead) await handleMarkAsRead(n.id);
 
-    if (n.type === 'activity' || n.type === 'submission') {
-      const activityId = n.data?.activityId;
-      const activityTitle = n.title || n.message || '';
-      if (activityId) {
-        navigate(`/activity/${activityId}`);
-      } else {
-        const term = activityTitle.replace(/^(New Activity|Activity):\s*/i, '').trim();
-        navigate(`/?mode=activities${term ? `&search=${encodeURIComponent(term)}` : ''}`);
-      }
-    } else if (n.type === 'quiz') {
-      const quizId = n.data?.quizId;
-      const quizTitle = n.title || n.message || '';
-      if (quizId) {
-        navigate(`/quiz/${quizId}`);
-      } else {
-        const term = quizTitle.replace(/^(New Quiz|Quiz):\s*/i, '').trim();
-        navigate(`/?mode=quizzes${term ? `&search=${encodeURIComponent(term)}` : ''}`);
-      }
-    } else if (n.type === 'resource') {
-      const resourceTitle = n.title || n.message || '';
-      const term = resourceTitle.replace(/^(New Resource|Resource):\s*/i, '').trim();
-      navigate(`/?mode=resources${term ? `&search=${encodeURIComponent(term)}` : ''}`);
-    } else if (n.type === 'grade') {
-      navigate('/?mode=quizzes');
-    } else if (n.type === 'message' || n.type === 'chat' || n.data?.messageId || n.data?.roomId) {
-      let dest = 'global';
-      if (n.data?.classId) dest = n.data.classId;
-      if (n.data?.roomId) dest = `dm:${n.data.roomId}`;
-      const msgId = n.data?.messageId;
-      navigate(msgId ? `/chat?dest=${encodeURIComponent(dest)}&msgId=${msgId}` : `/chat?dest=${encodeURIComponent(dest)}`);
-    } else if (n.type === RECORD_TYPES.ATTENDANCE || n.type === 'absence') {
-      navigate('/student-dashboard');
-    } else if (n.type === RECORD_TYPES.PENALTY) {
-      navigate('/student-dashboard');
-    } else if (n.type === 'announcement' || n.type === 'newsletter') {
+    // If the notification has a link, use it directly
+    if (n.link) {
+      navigate(n.link);
       return;
-    } else {
-      navigate('/');
+    }
+
+    const type = (n.type || n.category || '').toUpperCase();
+    const data = n.data || n.metadata || {};
+
+    switch (type) {
+      case NOTIFICATION_TYPES.ASSESSMENT:
+        if (data.activityId) navigate(`/activity/${data.activityId}`);
+        else if (data.quizId) navigate(`/quiz/${data.quizId}`);
+        else if (data.assignmentId) navigate(`/assignments/${data.assignmentId}`);
+        else navigate('/?mode=quizzes');
+        break;
+      case NOTIFICATION_TYPES.COMMUNICATION:
+        if (data.roomId || data.messageId) {
+          let dest = data.classId || 'global';
+          if (data.roomId) dest = `dm:${data.roomId}`;
+          navigate(data.messageId ? `/chat?dest=${encodeURIComponent(dest)}&msgId=${data.messageId}` : `/chat?dest=${encodeURIComponent(dest)}`);
+        } else {
+          navigate('/chat');
+        }
+        break;
+      case NOTIFICATION_TYPES.ANNOUNCEMENT:
+        if (data.announcementId) navigate(`/announcements/${data.announcementId}`);
+        else navigate('/announcements');
+        break;
+      case NOTIFICATION_TYPES.ATTENDANCE:
+        navigate('/student-dashboard');
+        break;
+      case NOTIFICATION_TYPES.WORKFLOW:
+        if (data.workflowId) navigate(`/workflows/${data.workflowId}`);
+        else navigate('/workflows');
+        break;
+      case NOTIFICATION_TYPES.BEHAVIOR:
+        navigate('/student-dashboard');
+        break;
+      case NOTIFICATION_TYPES.PARTICIPATION:
+        navigate('/student-dashboard');
+        break;
+      case NOTIFICATION_TYPES.PENALTY:
+        navigate('/student-dashboard');
+        break;
+      case NOTIFICATION_TYPES.FILE:
+        if (data.fileId) navigate(`/drive?fileId=${data.fileId}`);
+        else navigate('/drive');
+        break;
+      case NOTIFICATION_TYPES.RESOURCE:
+        if (data.resourceId) navigate(`/resources/${data.resourceId}`);
+        else navigate('/resources');
+        break;
+      case NOTIFICATION_TYPES.QR:
+        navigate('/qr-scanner');
+        break;
+      case NOTIFICATION_TYPES.ACADEMIC:
+        if (data.enrollmentId) navigate(`/enrollments/${data.enrollmentId}`);
+        else navigate('/');
+        break;
+      case NOTIFICATION_TYPES.SYSTEM:
+      default:
+        navigate('/');
+        break;
     }
   }, [navigate, handleMarkAsRead]);
 
@@ -522,7 +549,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
                 setFilterAttendanceStatus('all');
                 setFilterAbsenceType('all');
               }}
-              options={getNotificationTypeOptions(t, lang)}
+              options={[{ value: 'all', label: t('all_categories') || 'All' }, ...getNotificationTypeOptions(t, lang)]}
               size="small"
               style={{ flex: 1, minWidth: '80px', fontSize: '0.75rem' }}
             />
@@ -555,7 +582,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
                 style={{ flex: 1, minWidth: '100px', fontSize: '0.75rem' }}
               />
             )}
-            {filterCategory === NOTIFICATION_TYPES.ABSENCE && (
+            {filterCategory === NOTIFICATION_TYPES.ATTENDANCE && (
               <Select
                 value={filterAbsenceType}
                 onChange={(e) => setFilterAbsenceType(e.target.value)}

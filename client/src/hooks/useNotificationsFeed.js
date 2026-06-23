@@ -164,6 +164,28 @@ export const useNotificationsFeed = (options = {}) => {
     }
   }, []);
 
+  // Mark notification as unread
+  const markAsUnread = useCallback(async (notificationId) => {
+    try {
+      const result = await notificationService.markNotificationUnread(notificationId);
+      if (result.success) {
+        setNotifications(prev =>
+          prev.map(n =>
+            n.id === notificationId
+              ? { ...n, isRead: false, readAt: null }
+              : n
+          )
+        );
+        setUnreadCount(prev => prev + 1);
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('Failed to mark notification as unread:', err);
+      return false;
+    }
+  }, []);
+
   // Initialize on mount and when user changes
   useEffect(() => {
     if (user) {
@@ -172,9 +194,10 @@ export const useNotificationsFeed = (options = {}) => {
       // Initialize WebSocket connection
       initializeNotificationSocket().then(socket => {
         const handleNotification = (data) => {
-          // New notification received via WebSocket
-          setNotifications(prev => [data, ...prev]);
-          if (!data.isRead && !data.isArchived) {
+          // New notification received via WebSocket (already mapped by backend)
+          const mapped = data || {};
+          setNotifications(prev => [mapped, ...prev]);
+          if (!mapped.isRead && !mapped.isArchived) {
             setUnreadCount(prev => prev + 1);
           }
         };
@@ -232,6 +255,7 @@ export const useNotificationsFeed = (options = {}) => {
     socketConnected,
     refresh,
     markAsRead,
+    markAsUnread,
     markAllAsRead,
     archive,
     archiveAllRead,

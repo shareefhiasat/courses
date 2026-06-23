@@ -411,6 +411,24 @@ const RAW_TEMPLATES = {
   [EVENTS.USER_LOGIN]: {
     en: '{{userName}} logged in from {{location}}',
     ar: 'سجل {{userName}} الدخول من {{location}}'
+  },
+
+  // Chat events
+  [EVENTS.CHAT_MESSAGE_RECEIVED]: {
+    en: 'New message in {{roomName}} from {{senderName}}',
+    ar: 'رسالة جديدة في {{roomName}} من {{senderName}}'
+  },
+  [EVENTS.CHAT_DM_RECEIVED]: {
+    en: 'Direct message from {{senderName}}: {{messagePreview}}',
+    ar: 'رسالة مباشرة من {{senderName}}: {{messagePreview}}'
+  },
+  [EVENTS.CHAT_MENTION]: {
+    en: '{{senderName}} mentioned you in {{roomName}}',
+    ar: 'ذكرك {{senderName}} في {{roomName}}'
+  },
+  [EVENTS.CHAT_ROOM_CREATED]: {
+    en: 'New chat room created: {{roomName}}',
+    ar: 'تم إنشاء غرفة محادثة جديدة: {{roomName}}'
   }
 };
 

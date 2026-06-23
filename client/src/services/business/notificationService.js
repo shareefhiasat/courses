@@ -150,12 +150,27 @@ export const testNotification = async (data) => {
   }
 };
 
+/**
+ * Mark notification as unread
+ * @param {string} notificationId - Notification ID
+ * @returns {Promise<Object>} Result
+ */
+export const markNotificationUnread = async (notificationId) => {
+  try {
+    const response = await apiService.patch(`${API_BASE}/${notificationId}/unread`);
+    return response.data;
+  } catch (error) {
+    console.error('Failed to mark notification as unread:', error);
+    return { success: false, error: error.message };
+  }
+};
+
 // Legacy aliases for compatibility
 export const getAll = getNotifications;
 export const markAsRead = markNotificationRead;
 export const markAllAsRead = markAllRead;
-export const markNotificationUnread = (id) => markNotificationRead(id); // Simplified
 export const markAllNotificationsRead = markAllRead;
+export const markAsUnread = markNotificationUnread;
 export const deleteFn = deleteNotification;
 export const removeNotification = deleteNotification;
 
@@ -164,16 +179,21 @@ export const getNotificationSettings = getPreferences;
 export const updateNotificationSettings = updatePreferences;
 export const saveNotificationSettings = updatePreferences;
 
-// Other legacy functions (no-op or simplified)
 export const getById = async (id) => {
   const notifs = await getNotifications();
   return { success: true, data: notifs.notifications?.find(n => n.id === id) || null };
 };
 
-export const create = async (data) => ({ success: true, data, message: 'Created' });
-export const update = async (id, data) => ({ success: true, data, message: 'Updated' });
-export const markAsUnread = (id) => markNotificationRead(id);
-export const unarchiveNotification = (id) => archiveNotification(id);
+export const unarchiveNotification = async (notificationId) => {
+  try {
+    const response = await apiService.patch(`${API_BASE}/${notificationId}/archive`);
+    return response.data;
+  } catch (error) {
+    console.error('Failed to unarchive notification:', error);
+    return { success: false, error: error.message };
+  }
+};
+
 export const subscribeToNotifications = (userId, callback) => () => {};
 export const getUnreadCount = async () => {
   const result = await getNotifications();
@@ -242,9 +262,12 @@ export const addNotification = async (data) => {
   }
 };
 
+export const notifyQuizAvailable = sendQuizAvailable;
+
 export default {
   getNotifications,
   markNotificationRead,
+  markNotificationUnread,
   markAllRead,
   archiveNotification,
   archiveAllRead,
@@ -258,17 +281,15 @@ export default {
   getAll,
   markAsRead,
   markAllAsRead,
-  markNotificationUnread,
   markAllNotificationsRead,
+  markAsUnread,
   deleteFn,
   removeNotification,
+  notifyQuizAvailable,
   getNotificationSettings,
   updateNotificationSettings,
   saveNotificationSettings,
   getById,
-  create,
-  update,
-  markAsUnread,
   unarchiveNotification,
   subscribeToNotifications,
   getUnreadCount,

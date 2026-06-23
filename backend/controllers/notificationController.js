@@ -5,6 +5,7 @@
  */
 
 import { PrismaClient } from '@prisma/client';
+import { mapNotifications } from '../services/notifications/mapper.js';
 
 const prisma = new PrismaClient();
 
@@ -29,7 +30,7 @@ export async function getNotifications(req, res) {
       where: { userId, isRead: false, isArchived: false },
     });
     
-    return res.json({ success: true, notifications, unreadCount });
+    return res.json({ success: true, notifications: mapNotifications(notifications), unreadCount });
   } catch (error) {
     console.error('[notificationController.getNotifications]', error);
     return res.status(500).json({ success: false, error: error.message });
@@ -49,6 +50,23 @@ export async function markNotificationRead(req, res) {
     return res.json({ success: true });
   } catch (error) {
     console.error('[notificationController.markNotificationRead]', error);
+    return res.status(500).json({ success: false, error: error.message });
+  }
+}
+
+export async function markNotificationUnread(req, res) {
+  try {
+    const { notificationId } = req.params;
+    const userId = req.user?.dbId;
+    
+    await prisma.notification.updateMany({
+      where: { id: notificationId, userId },
+      data: { isRead: false, readAt: null },
+    });
+    
+    return res.json({ success: true });
+  } catch (error) {
+    console.error('[notificationController.markNotificationUnread]', error);
     return res.status(500).json({ success: false, error: error.message });
   }
 }
@@ -203,6 +221,7 @@ export async function testNotification(req, res) {
 export default {
   getNotifications,
   markNotificationRead,
+  markNotificationUnread,
   markAllRead,
   archiveNotification,
   archiveAllRead,

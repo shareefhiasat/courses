@@ -1,27 +1,24 @@
 /**
- * Notification Types Constants - ES6 Version
- * Centralized notification types used throughout the application
- * 
- * NOTE: NOTIFICATION_TRIGGERS removed - events are now defined in backend
- * services/notifications/constants.js and should be retrieved from the API
+ * Notification Types Constants
+ * Centralized notification types aligned with backend CATEGORIES.
+ * Values are uppercase to match Prisma NotificationCategory enum.
  */
 
-import { info, error, warn, debug } from '../services/utils/logger.js';
-
-// Notification Types
+// Notification Types (aligned with backend CATEGORIES)
 export const NOTIFICATION_TYPES = {
-  // System Notifications
-  SYSTEM: 'system',
-  USER: 'user',
-  ACADEMIC: 'academic',
-  ATTENDANCE: 'attendance',
-  ASSESSMENT: 'assessment',
-  COMMUNICATION: 'communication',
-  ANNOUNCEMENT: 'announcement',
-  WORKFLOW: 'workflow',
-  BEHAVIOR: 'behavior',
-  FILE: 'file',
-  QR: 'qr'
+  SYSTEM: 'SYSTEM',
+  ACADEMIC: 'ACADEMIC',
+  ATTENDANCE: 'ATTENDANCE',
+  ASSESSMENT: 'ASSESSMENT',
+  COMMUNICATION: 'COMMUNICATION',
+  ANNOUNCEMENT: 'ANNOUNCEMENT',
+  WORKFLOW: 'WORKFLOW',
+  BEHAVIOR: 'BEHAVIOR',
+  FILE: 'FILE',
+  QR: 'QR',
+  PARTICIPATION: 'PARTICIPATION',
+  PENALTY: 'PENALTY',
+  RESOURCE: 'RESOURCE'
 };
 
 export const NOTIFICATION_CHANNELS = {
@@ -31,26 +28,11 @@ export const NOTIFICATION_CHANNELS = {
   PUSH: 'push'
 };
 
-// Stub for backward compatibility - triggers are now defined in backend
-export const NOTIFICATION_TRIGGERS = {
-  ANNOUNCEMENTS: 'announcements',
-  ACTIVITIES: 'activities',
-  ACTIVITY_COMPLETE: 'activity_complete',
-  ACTIVITY_GRADED: 'activity_graded',
-  ENROLLMENTS: 'enrollments',
-  RESOURCES: 'resources',
-  CHAT_DIGEST: 'chat_digest',
-  PASSWORD_RESET: 'password_reset',
-  WELCOME_SIGNUP: 'welcome_signup',
-  QR_CODE: 'qr_code',
-  STUDENT_SUMMARY: 'student_summary'
-};
-
 export const NOTIFICATION_PRIORITIES = {
-  LOW: 'low',
-  NORMAL: 'normal',
-  HIGH: 'high',
-  URGENT: 'urgent'
+  LOW: 'LOW',
+  NORMAL: 'NORMAL',
+  HIGH: 'HIGH',
+  URGENT: 'URGENT'
 };
 
 export const NOTIFICATION_STATUSES = {
@@ -61,13 +43,21 @@ export const NOTIFICATION_STATUSES = {
   FAILED: 'failed'
 };
 
-export const NOTIFICATION_STATUS = NOTIFICATION_STATUSES; // Alias
+// Filter types for notification drawer/page (not delivery statuses)
+export const NOTIFICATION_FILTERS = {
+  ALL: 'all',
+  UNREAD: 'unread',
+  READ: 'read',
+  ARCHIVED: 'archived'
+};
+
+// Backward-compatible alias used by drawer/page components
+export const NOTIFICATION_STATUS = NOTIFICATION_FILTERS;
 
 // Helper functions
 export const getNotificationIcon = (type) => {
   const iconMap = {
     [NOTIFICATION_TYPES.SYSTEM]: 'Settings',
-    [NOTIFICATION_TYPES.USER]: 'User',
     [NOTIFICATION_TYPES.ACADEMIC]: 'BookOpen',
     [NOTIFICATION_TYPES.ATTENDANCE]: 'Calendar',
     [NOTIFICATION_TYPES.ASSESSMENT]: 'Clipboard',
@@ -76,17 +66,22 @@ export const getNotificationIcon = (type) => {
     [NOTIFICATION_TYPES.WORKFLOW]: 'Workflow',
     [NOTIFICATION_TYPES.BEHAVIOR]: 'Activity',
     [NOTIFICATION_TYPES.FILE]: 'File',
-    [NOTIFICATION_TYPES.QR]: 'QRCode'
+    [NOTIFICATION_TYPES.QR]: 'QRCode',
+    [NOTIFICATION_TYPES.PARTICIPATION]: 'Users',
+    [NOTIFICATION_TYPES.PENALTY]: 'AlertTriangle',
+    [NOTIFICATION_TYPES.RESOURCE]: 'FolderOpen'
   };
-  
+
   return iconMap[type] || 'Bell';
 };
 
 export const getNotificationStatusOptions = () => {
-  return Object.entries(NOTIFICATION_STATUSES).map(([key, value]) => ({
-    value: value,
-    label: key.charAt(0) + key.slice(1).toLowerCase().replace(/_/g, ' ')
-  }));
+  return [
+    { value: NOTIFICATION_FILTERS.ALL, label: 'All' },
+    { value: NOTIFICATION_FILTERS.UNREAD, label: 'Unread' },
+    { value: NOTIFICATION_FILTERS.READ, label: 'Read' },
+    { value: NOTIFICATION_FILTERS.ARCHIVED, label: 'Archived' }
+  ];
 };
 
 export const getNotificationPriorityOptions = () => {
@@ -103,13 +98,6 @@ export const getNotificationChannelOptions = () => {
   }));
 };
 
-export const getNotificationTriggerOptions = () => {
-  return Object.entries(NOTIFICATION_TRIGGERS).map(([key, value]) => ({
-    value: value,
-    label: key.charAt(0) + key.slice(1).toLowerCase().replace(/_/g, ' ')
-  }));
-};
-
 export const getNotificationTypeOptions = () => {
   return Object.entries(NOTIFICATION_TYPES).map(([key, value]) => ({
     value: value,
@@ -120,7 +108,6 @@ export const getNotificationTypeOptions = () => {
 export const getNotificationLabel = (type) => {
   const labels = {
     [NOTIFICATION_TYPES.SYSTEM]: 'System',
-    [NOTIFICATION_TYPES.USER]: 'User',
     [NOTIFICATION_TYPES.ACADEMIC]: 'Academic',
     [NOTIFICATION_TYPES.ATTENDANCE]: 'Attendance',
     [NOTIFICATION_TYPES.ASSESSMENT]: 'Assessment',
@@ -129,9 +116,12 @@ export const getNotificationLabel = (type) => {
     [NOTIFICATION_TYPES.WORKFLOW]: 'Workflow',
     [NOTIFICATION_TYPES.BEHAVIOR]: 'Behavior',
     [NOTIFICATION_TYPES.FILE]: 'File',
-    [NOTIFICATION_TYPES.QR]: 'QR Code'
+    [NOTIFICATION_TYPES.QR]: 'QR Code',
+    [NOTIFICATION_TYPES.PARTICIPATION]: 'Participation',
+    [NOTIFICATION_TYPES.PENALTY]: 'Penalty',
+    [NOTIFICATION_TYPES.RESOURCE]: 'Resource'
   };
-  
+
   return labels[type] || type;
 };
 
@@ -142,7 +132,7 @@ export const getNotificationPriorityLabel = (priority) => {
     [NOTIFICATION_PRIORITIES.HIGH]: 'High',
     [NOTIFICATION_PRIORITIES.URGENT]: 'Urgent'
   };
-  
+
   return labels[priority] || priority;
 };
 
@@ -164,12 +154,12 @@ export default {
   NOTIFICATION_CHANNELS,
   NOTIFICATION_PRIORITIES,
   NOTIFICATION_STATUSES,
+  NOTIFICATION_FILTERS,
   NOTIFICATION_STATUS,
   getNotificationIcon,
   getNotificationStatusOptions,
   getNotificationPriorityOptions,
   getNotificationChannelOptions,
-  getNotificationTriggerOptions,
   getNotificationTypeOptions,
   getNotificationLabel,
   getNotificationPriorityLabel,

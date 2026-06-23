@@ -118,6 +118,9 @@ enum NotificationCategory {
   FILE
   QR
   BEHAVIOR
+  PARTICIPATION
+  PENALTY
+  RESOURCE
 }
 
 enum WorkflowStatus {

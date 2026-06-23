@@ -1,14 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import { useAuth } from '@contexts/AuthContext';
-import { 
-  subscribeToNotifications,
-  archiveNotification,
-  markNotificationUnread,
-  deleteNotification,
-  markNotificationRead,
-  markAllNotificationsRead
-} from '@services/business/notificationService';
+import useNotificationsFeed from '@hooks/useNotificationsFeed';
 import { useLang } from '@contexts/LangContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { useNavigate } from 'react-router-dom';
@@ -28,8 +21,6 @@ import {
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import useNotifications from '@hooks/useNotifications';
 import { useLookupTypes } from '@hooks/useLookupTypes.js';
-// OLD: import { PENALTY_TYPES } from '@constants/penaltyTypes';
-// NOW: Using useLookupTypes hook for penalty types
 import { ABSENCE_TYPES } from '@constants/absenceTypes';
 import { ATTENDANCE_STATUS } from '@constants/attendanceTypes';
 import { getPrograms, getSubjects } from '@services/business/programService';
@@ -38,17 +29,24 @@ import { getClasses } from '@services/business/classService';
 const NotificationsPage = () => {
   const { user, loading: authLoading } = useAuth();
   const { t, lang } = useLang();
-  info('Current lang:', lang);
-  info('t function test:', t('all_types'));
   const { theme } = useTheme();
   const navigate = useNavigate();
   const { startLoading } = useGlobalLoading();
   const { data: lookupData } = useLookupTypes({
     types: ['penalty-types']
   });
-  const [notifications, setNotifications] = useState([]);
+  const {
+    notifications,
+    unreadCount,
+    loading: feedLoading,
+    refresh,
+    markAsRead,
+    markAsUnread,
+    markAllAsRead,
+    archive,
+    remove
+  } = useNotificationsFeed({ limit: 100, archived: false });
   const [loading, setLoading] = useState(false);
-  const [initialLoading, setInitialLoading] = useState(true);
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [vibrationEnabled, setVibrationEnabled] = useState(true);
   const [browserNotificationsEnabled, setBrowserNotificationsEnabled] = useState(true);
@@ -133,7 +131,7 @@ const NotificationsPage = () => {
     }
 
     // Filter by absence type
-    if (filterAbsenceType !== 'all' && filterCategory === NOTIFICATION_TYPES.ABSENCE) {
+    if (filterAbsenceType !== 'all' && filterCategory === NOTIFICATION_TYPES.ATTENDANCE) {
       filtered = filtered.filter(n => n.metadata?.absenceType === filterAbsenceType);
     }
 
@@ -214,7 +212,6 @@ const NotificationsPage = () => {
     return filtered;
   }, [notifications, filterType, filterCategory, filterPenaltyType, filterAttendanceStatus, filterAbsenceType, filterProgram, filterSubject, filterClass, filterYear, filterSemester, searchTerm, showArchived, subjects, classes]);
 
-  const unreadCount = notifications.filter(n => !n.isRead && !n.isArchived).length;
   const archivedCount = notifications.filter(n => n.isArchived).length;
 
   const formatTime = (timestamp) => {
@@ -233,7 +230,7 @@ const NotificationsPage = () => {
   const handleMarkAsRead = async (notificationId) => {
     setLoading(true);
     try {
-      await markNotificationRead(notificationId);
+      await markAsRead(notificationId);
     } finally {
       setLoading(false);
     }
@@ -242,7 +239,7 @@ const NotificationsPage = () => {
   const handleMarkAsUnread = async (notificationId) => {
     setLoading(true);
     try {
-      await markNotificationUnread(notificationId);
+      await markAsUnread(notificationId);
     } finally {
       setLoading(false);
     }
@@ -251,7 +248,7 @@ const NotificationsPage = () => {
   const handleArchive = async (notificationId) => {
     setLoading(true);
     try {
-      await archiveNotification(notificationId);
+      await archive(notificationId);
     } finally {
       setLoading(false);
     }
@@ -261,7 +258,7 @@ const NotificationsPage = () => {
     if (!confirm(t('notifications_delete_notification'))) return;
     setLoading(true);
     try {
-      await deleteNotification(notificationId);
+      await remove(notificationId);
     } finally {
       setLoading(false);
     }
@@ -271,7 +268,7 @@ const NotificationsPage = () => {
     if (unreadCount === 0) return;
     setLoading(true);
     try {
-      await markAllNotificationsRead(user.uid);
+      await markAllAsRead();
     } finally {
       setLoading(false);
     }
@@ -289,56 +286,65 @@ const NotificationsPage = () => {
 
   const gotoFromNotification = async (n) => {
     if (!n.isRead) await handleMarkAsRead(n.id);
-    
-    // Activity, quiz, homework, resource notifications
-    if (n.type === 'activity' || n.type === 'submission') {
-      const activityId = n.data?.activityId;
-      const activityTitle = n.title || n.message || '';
-      if (activityId) {
-        navigate(`/activity/${activityId}`);
-      } else {
-        // Auto-search with activity title
-        const searchTerm = activityTitle.replace(/^(New Activity|Activity):\s*/i, '').trim();
-        navigate(`/?mode=activities${searchTerm ? `&search=${encodeURIComponent(searchTerm)}` : ''}`);
-      }
-    } else if (n.type === 'quiz') {
-      const quizId = n.data?.quizId;
-      const quizTitle = n.title || n.message || '';
-      if (quizId) {
-        navigate(`/quiz/${quizId}`);
-      } else {
-        // Auto-search with quiz title
-        const searchTerm = quizTitle.replace(/^(New Quiz|Quiz):\s*/i, '').trim();
-        navigate(`/?mode=quizzes${searchTerm ? `&search=${encodeURIComponent(searchTerm)}` : ''}`);
-      }
-    } else if (n.type === 'resource') {
-      const resourceTitle = n.title || n.message || '';
-      // Auto-search with resource title
-      const searchTerm = resourceTitle.replace(/^(New Resource|Resource):\s*/i, '').trim();
-      navigate(`/?mode=resources${searchTerm ? `&search=${encodeURIComponent(searchTerm)}` : ''}`);
-    } else if (n.type === 'grade') {
-      navigate('/?mode=quizzes');
-    } else if (n.type === 'message' || n.type === 'chat' || n.data?.messageId || n.data?.roomId) {
-      // Chat/message notifications
-      let dest = 'global';
-      if (n.data?.classId) dest = n.data.classId;
-      if (n.data?.roomId) dest = `dm:${n.data.roomId}`;
-      const msgId = n.data?.messageId;
-      const url = msgId 
-        ? `/chat?dest=${encodeURIComponent(dest)}&msgId=${msgId}`
-        : `/chat?dest=${encodeURIComponent(dest)}`;
-      navigate(url);
-    } else if (n.type === RECORD_TYPES.ATTENDANCE || n.type === 'absence') {
-      // Attendance/absence - navigate to student dashboard for now
-      navigate('/student-dashboard');
-    } else if (n.type === RECORD_TYPES.PENALTY) {
-      // Penalty - navigate to student dashboard for now
-      navigate('/student-dashboard');
-    } else if (n.type === 'announcement' || n.type === 'newsletter') {
-      // Announcements and newsletters don't navigate anywhere
+
+    if (n.link) {
+      navigate(n.link);
       return;
-    } else {
-      navigate('/');
+    }
+
+    const type = (n.type || n.category || '').toUpperCase();
+    const data = n.data || n.metadata || {};
+
+    switch (type) {
+      case NOTIFICATION_TYPES.ASSESSMENT:
+        if (data.activityId) navigate(`/activity/${data.activityId}`);
+        else if (data.quizId) navigate(`/quiz/${data.quizId}`);
+        else navigate('/?mode=quizzes');
+        break;
+      case NOTIFICATION_TYPES.COMMUNICATION:
+        if (data.roomId || data.messageId) {
+          let dest = data.classId || 'global';
+          if (data.roomId) dest = `dm:${data.roomId}`;
+          navigate(data.messageId ? `/chat?dest=${encodeURIComponent(dest)}&msgId=${data.messageId}` : `/chat?dest=${encodeURIComponent(dest)}`);
+        } else {
+          navigate('/chat');
+        }
+        break;
+      case NOTIFICATION_TYPES.ANNOUNCEMENT:
+        if (data.announcementId) navigate(`/announcements/${data.announcementId}`);
+        else navigate('/announcements');
+        break;
+      case NOTIFICATION_TYPES.ATTENDANCE:
+        navigate('/student-dashboard');
+        break;
+      case NOTIFICATION_TYPES.WORKFLOW:
+        if (data.workflowId) navigate(`/workflows/${data.workflowId}`);
+        else navigate('/workflows');
+        break;
+      case NOTIFICATION_TYPES.BEHAVIOR:
+      case NOTIFICATION_TYPES.PARTICIPATION:
+      case NOTIFICATION_TYPES.PENALTY:
+        navigate('/student-dashboard');
+        break;
+      case NOTIFICATION_TYPES.FILE:
+        if (data.fileId) navigate(`/drive?fileId=${data.fileId}`);
+        else navigate('/drive');
+        break;
+      case NOTIFICATION_TYPES.RESOURCE:
+        if (data.resourceId) navigate(`/resources/${data.resourceId}`);
+        else navigate('/resources');
+        break;
+      case NOTIFICATION_TYPES.QR:
+        navigate('/qr-scanner');
+        break;
+      case NOTIFICATION_TYPES.ACADEMIC:
+        if (data.enrollmentId) navigate(`/enrollments/${data.enrollmentId}`);
+        else navigate('/');
+        break;
+      case NOTIFICATION_TYPES.SYSTEM:
+      default:
+        navigate('/');
+        break;
     }
   };
 
@@ -347,30 +353,17 @@ const NotificationsPage = () => {
     if (authLoading) return;
     if (!user) return;
 
-    let stopped = false;
     const stopGlobalLoading = startLoading();
-    const safeStop = () => {
-      if (stopped) return;
-      stopped = true;
+    // useNotificationsFeed handles loading automatically
+    // We just need to stop the global loading when feed is done
+    if (!feedLoading) {
+      stopGlobalLoading();
+    }
+
+    return () => {
       stopGlobalLoading();
     };
-
-    try {
-      // Subscribe to notifications
-      const unsubscribe = subscribeToNotifications(user.uid, (newNotifications) => {
-        setNotifications(newNotifications);
-        safeStop(); // Stop loading when data arrives
-      }, true);
-      
-      return () => {
-        safeStop();
-        if (unsubscribe) unsubscribe();
-      };
-    } catch (error) {
-      error('Error loading notifications:', error);
-      safeStop();
-    }
-  }, [authLoading, user, startLoading]);
+  }, [authLoading, user, startLoading, feedLoading]);
 
   return (
     <Container maxWidth="xl" style={{ padding: '2rem', minHeight: '100vh', background: isDark ? '#0f0f1e' : '#f9fafb' }}>
@@ -485,11 +478,7 @@ const NotificationsPage = () => {
               setFilterAttendanceStatus('all');
               setFilterAbsenceType('all');
             }}
-            options={(() => {
-              const options = getNotificationTypeOptions(t, lang);
-              info('Notification type options:', options);
-              return options;
-            })()}
+            options={[{ value: 'all', label: t('all_categories') || 'All' }, ...getNotificationTypeOptions(t, lang)]}
             size="small"
             fullWidth
           />
@@ -522,7 +511,7 @@ const NotificationsPage = () => {
               fullWidth
             />
           )}
-          {filterCategory === 'absence' && (
+          {filterCategory === NOTIFICATION_TYPES.ATTENDANCE && (
             <Select
               value={filterAbsenceType}
               onChange={(e) => setFilterAbsenceType(e.target.value)}
