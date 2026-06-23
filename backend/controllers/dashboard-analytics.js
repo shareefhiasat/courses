@@ -6,8 +6,9 @@ import dashboardAnalyticsDb from '../db/dashboard-analytics-postgres.js';
 
 const getAnalytics = async (req, res) => {
   try {
-    const { userId, role } = req.user;
+    const { userId, roles, isAdmin } = req.user;
     const { classId } = req.query;
+    const role = (roles && roles.some(r => ['SUPER_ADMIN', 'ADMIN', 'HR'].includes(r))) ? 'SUPER_ADMIN' : (isAdmin ? 'SUPER_ADMIN' : 'INSTRUCTOR');
 
     const result = await dashboardAnalyticsDb.getDashboardAnalytics({
       userId,
@@ -28,7 +29,8 @@ const getAnalytics = async (req, res) => {
 
 const getDriveAnalytics = async (req, res) => {
   try {
-    const { userId, role } = req.user;
+    const { userId, roles, isAdmin } = req.user;
+    const role = (roles && roles.some(r => ['SUPER_ADMIN', 'ADMIN', 'HR'].includes(r))) ? 'SUPER_ADMIN' : (isAdmin ? 'SUPER_ADMIN' : 'INSTRUCTOR');
     const result = await dashboardAnalyticsDb.getDriveAnalytics({ userId, role });
     res.status(200).json(result);
   } catch (error) {
@@ -38,7 +40,8 @@ const getDriveAnalytics = async (req, res) => {
 
 const getWorkflowAnalytics = async (req, res) => {
   try {
-    const { userId, role } = req.user;
+    const { userId, roles, isAdmin } = req.user;
+    const role = (roles && roles.some(r => ['SUPER_ADMIN', 'ADMIN', 'HR'].includes(r))) ? 'SUPER_ADMIN' : (isAdmin ? 'SUPER_ADMIN' : 'INSTRUCTOR');
     const result = await dashboardAnalyticsDb.getWorkflowAnalytics({ userId, role });
     res.status(200).json(result);
   } catch (error) {
@@ -48,7 +51,8 @@ const getWorkflowAnalytics = async (req, res) => {
 
 const getActivityAnalytics = async (req, res) => {
   try {
-    const { userId, role } = req.user;
+    const { userId, roles, isAdmin } = req.user;
+    const role = (roles && roles.some(r => ['SUPER_ADMIN', 'ADMIN', 'HR'].includes(r))) ? 'SUPER_ADMIN' : (isAdmin ? 'SUPER_ADMIN' : 'INSTRUCTOR');
     const { classId } = req.query;
     const result = await dashboardAnalyticsDb.getActivityAnalytics({ userId, role, classId });
     res.status(200).json(result);

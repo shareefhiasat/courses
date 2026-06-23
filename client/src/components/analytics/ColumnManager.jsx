@@ -184,6 +184,15 @@ export default function ColumnManager({
         { key: 'instructorName', label: t('gb_instructor') || 'Instructor', required: false },
         { key: 'sessionCount', label: t('vf_sessionCount') || 'Count', required: false },
       ],
+
+      driveRecentFiles: [
+        { key: 'name', label: t('name') || 'Name', required: true },
+        { key: 'mimeType', label: t('type') || 'Type', required: false },
+        { key: 'size', label: t('size') || 'Size', required: false },
+        { key: 'bucket', label: t('bucket') || 'Bucket', required: false },
+        { key: 'createdAt', label: t('created_date') || 'Created', required: false },
+        { key: 'id', label: t('id') || 'ID', required: false },
+      ],
     };
 
     // Determine chart type from data source
@@ -216,6 +225,8 @@ export default function ColumnManager({
       type = 'schedulingCourses';
     } else if (dataSource === 'schedulingAttendanceRecords') {
       type = 'schedulingAttendanceRecords';
+    } else if (dataSource === 'driveRecentFiles') {
+      type = 'driveRecentFiles';
     } else if (dataSource?.startsWith('scheduling')) {
       type = 'scheduling';
     }

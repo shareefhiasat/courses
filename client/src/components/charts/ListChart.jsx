@@ -382,6 +382,15 @@ function ListChart({
         { key: 'location', label: t('gb_location') || 'Location', width: '20%', isRelated: false },
         { key: 'capacity', label: t('capacity') || 'Capacity', width: '10%', isRelated: false },
       ];
+    } else if (widget.dataSource === 'driveRecentFiles') {
+      return [
+        { key: 'name', label: t('name') || 'Name', width: '35%', isRelated: false },
+        { key: 'mimeType', label: t('type') || 'Type', width: '12%', isRelated: false },
+        { key: 'size', label: t('size') || 'Size', width: '12%', isRelated: false },
+        { key: 'bucket', label: t('bucket') || 'Bucket', width: '15%', isRelated: false },
+        { key: 'createdAt', label: t('created_date') || 'Created', width: '15%', isRelated: false },
+        { key: 'id', label: t('id') || 'ID', width: '11%', isRelated: false },
+      ];
     } else if (widget.dataSource?.startsWith('scheduling')) {
       return [
         { key: 'title', label: t('title') || 'Title', width: '30%', isRelated: false },
@@ -429,7 +438,11 @@ function ListChart({
       isRepeated: t('repeated') || 'Repeated',
       term: t('term') || 'Term',
       year: t('year') || 'Year',
-      id: t('id') || 'ID'
+      id: t('id') || 'ID',
+      name: t('name') || 'Name',
+      mimeType: t('type') || 'Type',
+      size: t('size') || 'Size',
+      bucket: t('bucket') || 'Bucket',
     };
     return labels[key] || key;
   };
@@ -482,6 +495,10 @@ function ListChart({
       displayNameEn: '20%',
       displayNameAr: '20%',
       id: '10%',
+      name: '35%',
+      mimeType: '12%',
+      size: '12%',
+      bucket: '15%',
       // Related columns
       studentEmail: '18%',
       studentPhone: '12%',
@@ -742,6 +759,71 @@ function ListChart({
       case 'displayNameAr':
         return item.displayNameAr || item.display_name_ar || getLocalizedName(item, 'ar') || item.displayName || item.realName || '—';
       
+      case 'mimeType': {
+        const mime = item.mimeType || item.type;
+        if (!mime) return '—';
+        const MIME_TO_EXT = {
+          'application/pdf': 'PDF',
+          'image/png': 'PNG',
+          'image/jpeg': 'JPG',
+          'image/jpg': 'JPG',
+          'image/gif': 'GIF',
+          'image/webp': 'WEBP',
+          'image/svg+xml': 'SVG',
+          'image/bmp': 'BMP',
+          'image/tiff': 'TIFF',
+          'video/mp4': 'MP4',
+          'video/webm': 'WEBM',
+          'video/avi': 'AVI',
+          'video/mov': 'MOV',
+          'video/quicktime': 'MOV',
+          'audio/mpeg': 'MP3',
+          'audio/mp3': 'MP3',
+          'audio/wav': 'WAV',
+          'audio/ogg': 'OGG',
+          'application/msword': 'DOC',
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'DOCX',
+          'application/vnd.ms-excel': 'XLS',
+          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'XLSX',
+          'application/vnd.ms-powerpoint': 'PPT',
+          'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'PPTX',
+          'application/zip': 'ZIP',
+          'application/x-zip-compressed': 'ZIP',
+          'application/x-rar-compressed': 'RAR',
+          'application/x-7z-compressed': '7Z',
+          'application/json': 'JSON',
+          'application/xml': 'XML',
+          'text/xml': 'XML',
+          'text/plain': 'TXT',
+          'text/csv': 'CSV',
+          'text/html': 'HTML',
+          'text/css': 'CSS',
+          'text/javascript': 'JS',
+          'application/javascript': 'JS',
+          'application/x-pdf': 'PDF',
+          'application/octet-stream': 'FILE',
+          'application/x-directory': 'DIR',
+        };
+        const lower = mime.toLowerCase();
+        if (MIME_TO_EXT[lower]) return MIME_TO_EXT[lower];
+        const parts = lower.split('/');
+        if (parts.length > 1) {
+          return parts[parts.length - 1].replace(/^x-/, '').toUpperCase();
+        }
+        return mime.toUpperCase();
+      }
+
+      case 'size': {
+        const bytes = item.size || 0;
+        if (bytes === 0) return '0 B';
+        const units = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(1024));
+        return `${(bytes / Math.pow(1024, i)).toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
+      }
+
+      case 'bucket':
+        return item.bucket ? item.bucket.replace(/^lms-/, '').toUpperCase() : '—';
+
       case 'id':
         return truncateId(item.id || item.docId, 8);
       
