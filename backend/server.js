@@ -362,6 +362,7 @@ import workflowDocumentRoutes from "./routes/workflow-documents.js";
 import weeklySummaryRoutes from "./routes/weekly-summary.js";
 import auditExportRoutes from "./routes/audit-export.js";
 import attendanceAmendmentRoutes from "./routes/attendance-amendment.js";
+import chatRoutes from "./routes/chat.js";
 
 // Mount routes with versioning
 app.use(`/api/${API_VERSION}/programs`, programRoutes);
@@ -393,6 +394,7 @@ app.use(`/api/${API_VERSION}/drive`, driveRoutes);
 app.use(`/api/${API_VERSION}/p`, publicDriveRoutes);
 app.use(`/api/${API_VERSION}/workflows`, workflowRoutes);
 app.use(`/api/${API_VERSION}/notifications`, notificationRoutes);
+app.use(`/api/${API_VERSION}/chat`, chatRoutes);
 
 // Scheduling routes
 app.use(`/api/${API_VERSION}/classrooms`, classroomRoutes);

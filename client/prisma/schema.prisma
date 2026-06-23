@@ -678,6 +678,9 @@ model User {
   newInstructorHistory           InstructorAssignmentHistory[] @relation("NewInstructor")
   changedInstructorHistory       InstructorAssignmentHistory[] @relation("HistoryChanger")
   notificationLogs               NotificationLog[]          @relation("NotificationRecipient")
+  chatMessagesSent               ChatMessage[]              @relation("ChatMessageSender")
+  chatRoomsAsParticipantA        ChatRoom[]                 @relation("ChatRoomParticipantA")
+  chatRoomsAsParticipantB        ChatRoom[]                 @relation("ChatRoomParticipantB")
 
   @@map("users")
 }
@@ -806,6 +809,7 @@ model Class {
   scheduleSessions ScheduleSession[] @relation("ClassScheduleSessions")
   workflowDocuments WorkflowDocument[] @relation("WorkflowDocumentClass")
   instructorHistory InstructorAssignmentHistory[]
+  chatRooms        ChatRoom[]        @relation("ChatRoomClass")
 
   @@index([substituteInstructorId])
   @@map("classes")
@@ -1804,6 +1808,64 @@ model NotificationPreference {
   user         User @relation("UserNotificationPreferences", fields: [userId], references: [id], onDelete: Cascade)
 
   @@map("notification_preferences")
+}
+
+// ============================================================================
+// CHAT SYSTEM
+// ============================================================================
+
+model ChatRoom {
+  id           Int           @id @default(autoincrement())
+  type         String        // 'global', 'class', 'dm'
+  classId      Int?          // for class chats
+  participantA Int?          // for DM: user A
+  participantB Int?          // for DM: user B
+  name         String?       // optional custom name for DM
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  
+  class        Class?        @relation("ChatRoomClass", fields: [classId], references: [id], onDelete: Cascade)
+  userA        User?         @relation("ChatRoomParticipantA", fields: [participantA], references: [id], onDelete: Cascade)
+  userB        User?         @relation("ChatRoomParticipantB", fields: [participantB], references: [id], onDelete: Cascade)
+  messages     ChatMessage[]
+  
+  @@index([type, classId])
+  @@index([type, participantA, participantB])
+  @@unique([type, classId], name: "unique_class_chat")
+  @@unique([participantA, participantB], name: "unique_dm_pair")
+  @@map("chat_rooms")
+}
+
+model ChatMessage {
+  id          Int          @id @default(autoincrement())
+  roomId      Int
+  senderId    Int
+  type        String       @default("text") // text, voice, file, poll
+  content     String?      // text content or poll question
+  fileUrl     String?
+  filePath    String?
+  fileName    String?
+  fileType    String?
+  fileSize    Int?
+  pollOptions Json?        // [{ text, votes: [userId] }]
+  reactions   Json?        // { userId: reactionType }
+  isEdited    Boolean      @default(false)
+  editedAt    DateTime?
+  isDeleted   Boolean      @default(false)
+  deletedAt   DateTime?
+  replyToId   Int?
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+  
+  room        ChatRoom     @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  sender      User         @relation("ChatMessageSender", fields: [senderId], references: [id])
+  replyTo     ChatMessage? @relation("ChatReply", fields: [replyToId], references: [id])
+  replies     ChatMessage[] @relation("ChatReply")
+  
+  @@index([roomId, createdAt])
+  @@index([senderId])
+  @@index([isDeleted])
+  @@map("chat_messages")
 }
 
 // ============================================================================

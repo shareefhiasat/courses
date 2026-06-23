@@ -190,6 +190,10 @@ export const createNotificationWebSocketServer = (httpServer) => {
   
   console.log('[WebSocket] Server initialized on path:', process.env.NOTIFICATIONS_WS_PATH || '/ws/notifications');
   
+  // Expose emit and broadcast globally for chat controller
+  global.chatWSEmitter = emit;
+  global.chatWSBroadcast = broadcast;
+  
   return {
     wss,
     emit,
