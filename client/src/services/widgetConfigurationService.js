@@ -514,10 +514,10 @@ class WidgetConfigurationService {
   static filterWidgetsByPermissions(widgets, role) {
     // Define data source permissions by role
     const dataSourcePermissions = {
-      [ROLE_STRINGS.STUDENT]: ['enrollments', 'attendance', 'marks', 'participations', 'behaviors', 'penalties'],
-      [ROLE_STRINGS.INSTRUCTOR]: ['enrollments', 'attendance', 'marks', 'submissions', 'activityLogs', 'classes'],
-      [ROLE_STRINGS.HR]: ['users', 'trainings', 'leaves', 'departments', 'attendance', 'performanceReviews', 'surveys'],
-      [ROLE_STRINGS.ADMIN]: ['users', 'classes', 'enrollments', 'activityLogs', 'resources', 'metrics', 'system'],
+      [ROLE_STRINGS.STUDENT]: ['enrollments', 'attendance', 'marks', 'participations', 'behaviors', 'penalties', 'driveOverview', 'workflowOverview', 'activityOverview', 'driveFilesByMimeType', 'driveFilesByBucket', 'driveFileActivities', 'workflowByStatus', 'workflowByType', 'workflowByProgram', 'workflowTimeline', 'activitiesByType', 'activityTimeline', 'submissionsByStatus', 'submissionTimeline', 'resourcesByType', 'driveRecentFiles', 'workflowRecentDocuments', 'activityRecentActivities', 'activityRecentSubmissions'],
+      [ROLE_STRINGS.INSTRUCTOR]: ['enrollments', 'attendance', 'marks', 'submissions', 'activityLogs', 'classes', 'driveOverview', 'workflowOverview', 'activityOverview', 'driveFilesByMimeType', 'driveFilesByBucket', 'driveFileActivities', 'workflowByStatus', 'workflowByType', 'workflowByProgram', 'workflowTimeline', 'activitiesByType', 'activityTimeline', 'submissionsByStatus', 'submissionTimeline', 'resourcesByType', 'driveRecentFiles', 'workflowRecentDocuments', 'activityRecentActivities', 'activityRecentSubmissions'],
+      [ROLE_STRINGS.HR]: ['users', 'trainings', 'leaves', 'departments', 'attendance', 'performanceReviews', 'surveys', 'driveOverview', 'workflowOverview', 'activityOverview', 'driveFilesByMimeType', 'driveFilesByBucket', 'driveFileActivities', 'workflowByStatus', 'workflowByType', 'workflowByProgram', 'workflowTimeline', 'activitiesByType', 'activityTimeline', 'submissionsByStatus', 'submissionTimeline', 'resourcesByType', 'driveRecentFiles', 'workflowRecentDocuments', 'activityRecentActivities', 'activityRecentSubmissions'],
+      [ROLE_STRINGS.ADMIN]: ['users', 'classes', 'enrollments', 'activityLogs', 'resources', 'metrics', 'system', 'driveOverview', 'workflowOverview', 'activityOverview', 'driveFilesByMimeType', 'driveFilesByBucket', 'driveFileActivities', 'workflowByStatus', 'workflowByType', 'workflowByProgram', 'workflowTimeline', 'activitiesByType', 'activityTimeline', 'submissionsByStatus', 'submissionTimeline', 'resourcesByType', 'driveRecentFiles', 'workflowRecentDocuments', 'activityRecentActivities', 'activityRecentSubmissions'],
       [ROLE_STRINGS.SUPER_ADMIN]: ['*'] // Access to all data sources
     };
 

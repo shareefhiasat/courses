@@ -414,6 +414,57 @@ export const SCHEDULING_SUMMARY_DEFAULT_WIDGETS = [
 
 export const SCHEDULING_SUMMARY_MAX_WIDGETS = SCHEDULING_SUMMARY_DEFAULT_WIDGETS.length;
 
+// ── Attendance-only widgets (for separate Attendance Analytics section) ─────
+export const SCHEDULING_ATTENDANCE_STORAGE_KEY = 'scheduling_attendance';
+export const SCHEDULING_ATTENDANCE_DEFAULT_WIDGETS = [
+  countWidget('sched_att_cnt_total', 'schedulingAttendanceOverview', 'totalRecords', 'totalRecords', 'Total attendance records in period', { x: 0, y: 0, w: 3, h: 3 }),
+  countWidget('sched_att_cnt_class', 'schedulingAttendanceOverview', 'classRecords', 'classRecords', 'Class attendance records', { x: 3, y: 0, w: 3, h: 3 }),
+  countWidget('sched_att_cnt_daily', 'schedulingAttendanceOverview', 'dailyRecords', 'dailyRecords', 'Daily attendance records', { x: 6, y: 0, w: 3, h: 3 }),
+  countWidget('sched_att_cnt_present', 'schedulingAttendanceOverview', 'presentCount', 'presentCount', 'Present attendance records', { x: 9, y: 0, w: 3, h: 3 }),
+  countWidget('sched_att_cnt_absent', 'schedulingAttendanceOverview', 'absentCount', 'absentCount', 'Absent attendance records', { x: 0, y: 3, w: 3, h: 3 }),
+  countWidget('sched_att_cnt_late', 'schedulingAttendanceOverview', 'lateCount', 'lateCount', 'Late attendance records', { x: 3, y: 3, w: 3, h: 3 }),
+  countWidget('sched_att_cnt_students', 'schedulingAttendanceOverview', 'uniqueStudents', 'uniqueStudents', 'Unique students with attendance', { x: 6, y: 3, w: 3, h: 3 }),
+  countWidget('sched_att_cnt_classes', 'schedulingAttendanceOverview', 'uniqueClasses', 'uniqueClasses', 'Unique classes with attendance', { x: 9, y: 3, w: 3, h: 3 }),
+
+  attChart('sched_att_type_donut', 'class vs daily attendance volume', 'حضور الصف مقابل الحضور اليومي', 'donut', 'schedulingAttendanceByType', 'attendanceTypeLabel', { x: 0, y: 6, w: 6, h: 5 }),
+  attChart('sched_att_type_bar', 'class vs daily attendance volume', 'حضور الصف مقابل الحضور اليومي', 'bar', 'schedulingAttendanceByType', 'attendanceTypeLabel', { x: 6, y: 6, w: 6, h: 5 }),
+
+  attChart('sched_att_class_status_pie', 'class attendance by status', 'حضور الصف حسب الحالة', 'pie', 'schedulingClassAttendanceByStatus', 'status', { x: 0, y: 11, w: 6, h: 5 }, { drillScope: 'class' }),
+  attChart('sched_att_daily_status_pie', 'daily attendance by status', 'الحضور اليومي حسب الحالة', 'pie', 'schedulingDailyAttendanceByStatus', 'status', { x: 6, y: 11, w: 6, h: 5 }, { drillScope: 'daily' }),
+
+  attChart('sched_att_class_status_bar', 'class attendance by status', 'حضور الصف حسب الحالة', 'bar', 'schedulingClassAttendanceByStatus', 'status', { x: 0, y: 16, w: 6, h: 5 }, { drillScope: 'class' }),
+  attChart('sched_att_daily_status_bar', 'daily attendance by status', 'الحضور اليومي حسب الحالة', 'bar', 'schedulingDailyAttendanceByStatus', 'status', { x: 6, y: 16, w: 6, h: 5 }, { drillScope: 'daily' }),
+
+  attChart('sched_att_status_donut', 'all attendance by status', 'كل الحضور حسب الحالة', 'donut', 'schedulingAttendanceByStatus', 'status', { x: 0, y: 21, w: 6, h: 5 }),
+  attChart('sched_att_status_pie', 'all attendance by status', 'كل الحضور حسب الحالة', 'pie', 'schedulingAttendanceByStatus', 'status', { x: 6, y: 21, w: 6, h: 5 }),
+
+  attChart('sched_att_class_program_bar', 'class attendance by program', 'حضور الصف حسب البرنامج', 'bar', 'schedulingClassAttendanceByProgram', 'programName', { x: 0, y: 26, w: 6, h: 5 }, { drillScope: 'class' }),
+  attChart('sched_att_daily_program_bar', 'daily attendance by program', 'الحضور اليومي حسب البرنامج', 'bar', 'schedulingDailyAttendanceByProgram', 'programName', { x: 6, y: 26, w: 6, h: 5 }, { drillScope: 'daily' }),
+
+  attChart('sched_att_instructor_bar', 'class attendance by instructor', 'حضور الصف حسب المدرس', 'bar', 'schedulingAttendanceByInstructor', 'instructorName', { x: 0, y: 31, w: 6, h: 5 }, { drillScope: 'class' }),
+  attChart('sched_att_class_bar', 'class attendance by class', 'حضور الصف حسب الصف', 'bar', 'schedulingClassAttendanceByClass', 'className', { x: 6, y: 31, w: 6, h: 5 }, { drillScope: 'class' }),
+
+  attChart('sched_att_class_timeline_line', 'class attendance per day', 'حضور الصف يومياً', 'line', 'schedulingClassAttendanceTimeline', 'date', { x: 0, y: 36, w: 6, h: 5 }, { drillScope: 'class' }),
+  attChart('sched_att_daily_timeline_line', 'daily attendance per day', 'الحضور اليومي يومياً', 'line', 'schedulingDailyAttendanceTimeline', 'date', { x: 6, y: 36, w: 6, h: 5 }, { drillScope: 'daily' }),
+
+  attChart('sched_att_timeline_bar', 'all attendance records per day', 'كل سجلات الحضور يومياً', 'bar', 'schedulingAttendanceTimeline', 'date', { x: 0, y: 41, w: 12, h: 4 }),
+
+  {
+    id: 'sched_att_records_list',
+    titleEn: 'attendance records detail',
+    titleAr: 'تفاصيل سجلات الحضور',
+    chartType: 'list',
+    dataSource: 'schedulingAttendanceRecords',
+    groupBy: '',
+    aggregation: 'count',
+    dateRange: 'current',
+    listLimit: 200,
+    filters: [],
+    layout: { x: 0, y: 45, w: 12, h: 6 },
+  },
+];
+export const SCHEDULING_ATTENDANCE_MAX_WIDGETS = SCHEDULING_ATTENDANCE_DEFAULT_WIDGETS.length;
+
 const SOURCE_FILTER_MAP = {
   schedulingOverviewStats: 'overview',
   schedulingPrograms: 'overview',

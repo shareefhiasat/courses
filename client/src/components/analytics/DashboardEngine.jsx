@@ -15,6 +15,7 @@ import { normalizeAttendanceStatus, normalizeActivityType } from '@utils/listCha
 import { inferSchedulingWidgetCategory, getWidgetDisplayTitle, resolveDrillDownListWidget, SCHEDULING_SUMMARY_MAX_WIDGETS } from '@constants/schedulingSummaryWidgets';
 import { inferStudentWidgetCategory, getStudentWidgetDisplayTitle, resolveStudentDrillDownListWidget } from '@constants/studentPerformanceWidgets';
 import { inferClassWidgetCategory, getClassWidgetDisplayTitle, resolveClassDrillDownListWidget } from '@constants/classPerformanceWidgets';
+import { inferAnalyticsWidgetCategory } from '@constants/dashboardAnalyticsWidgets';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import { ConfirmModal } from '@ui';
 
@@ -166,7 +167,7 @@ const DashboardEngine = React.forwardRef(({
     const q = widgetSearch.trim().toLowerCase();
     return sortedWidgets.filter((widget) => {
       // 'overview' category shows all widgets (it's the default/general view)
-      if (widgetCategory && widgetCategory !== 'overview') {
+      if (widgetCategory && widgetCategory !== 'overview' && widgetCategory !== 'all') {
         if (widgetCategoryResolver === 'scheduling') {
           const cat = inferSchedulingWidgetCategory(widget);
           if (cat !== widgetCategory) return false;
@@ -177,6 +178,10 @@ const DashboardEngine = React.forwardRef(({
         }
         if (widgetCategoryResolver === 'class') {
           const cat = inferClassWidgetCategory(widget);
+          if (cat !== widgetCategory) return false;
+        }
+        if (widgetCategoryResolver === 'analytics') {
+          const cat = inferAnalyticsWidgetCategory(widget);
           if (cat !== widgetCategory) return false;
         }
       }
@@ -192,7 +197,8 @@ const DashboardEngine = React.forwardRef(({
   const isFilterActive = Boolean(widgetSearch.trim())
     || (widgetCategoryResolver === 'scheduling' && widgetCategory && widgetCategory !== 'overview')
     || (widgetCategoryResolver === 'student' && widgetCategory && widgetCategory !== 'overview')
-    || (widgetCategoryResolver === 'class' && widgetCategory && widgetCategory !== 'overview');
+    || (widgetCategoryResolver === 'class' && widgetCategory && widgetCategory !== 'overview')
+    || (widgetCategoryResolver === 'analytics' && widgetCategory && widgetCategory !== 'all');
 
   // ── Grid layout — minimized widgets collapse to header height (h=1) ───────
   const gridLayout = useMemo(() => {

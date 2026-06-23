@@ -5,48 +5,36 @@ import { getThemedIcon } from '@constants/iconTypes';
 import { DEFAULT_ACCENT, normalizeHexColor } from '@utils/color';
 import DashboardEngine from '@components/analytics/DashboardEngine';
 import {
-  LayoutDashboard, BarChart3, LineChart, ClipboardList, AlertTriangle,
-  User, Award, BookOpen, GraduationCap, History,
+  LayoutDashboard, BarChart3, LineChart, PieChart,
+  HardDrive, GitBranch, Activity, History,
 } from 'lucide-react';
-import StudentDashboardExport from '../StudentDashboardExport';
 import {
-  STUDENT_OVERVIEW_DEFAULT_WIDGETS,
-  STUDENT_OVERVIEW_STORAGE_KEY,
-  STUDENT_OVERVIEW_MAX_WIDGETS,
-  STUDENT_WIDGET_CATEGORIES,
-  buildStudentPerformanceRawData,
-} from '@constants/studentPerformanceWidgets';
+  DASHBOARD_ANALYTICS_DEFAULT_WIDGETS,
+  DASHBOARD_ANALYTICS_STORAGE_KEY,
+  DASHBOARD_ANALYTICS_MAX_WIDGETS,
+  ANALYTICS_WIDGET_CATEGORIES,
+  buildAnalyticsRawData,
+} from '@constants/dashboardAnalyticsWidgets';
 
 const CATEGORY_ICONS = {
-  overview: LayoutDashboard,
-  attendance: ClipboardList,
-  marks: GraduationCap,
-  penalties: AlertTriangle,
-  behaviors: User,
-  participations: Award,
-  enrollments: BookOpen,
+  all: LayoutDashboard,
+  drive: HardDrive,
+  workflow: GitBranch,
+  activity: Activity,
 };
 
-export default function OverviewAnalytics({
-  dashData,
-  lookupData,
-  isRTL,
-  onReload,
-  lastUpdatedAt,
-}) {
+export default function DashboardAnalyticsPanel({ analyticsData, loading, onReload, lastUpdatedAt }) {
   const { t, lang } = useLang();
   const { theme } = useTheme();
   const engineRef = useRef(null);
   const [editLayout, setEditLayout] = useState(false);
   const [widgetSearch, setWidgetSearch] = useState('');
-  const [widgetCategory, setWidgetCategory] = useState('overview');
+  const [widgetCategory, setWidgetCategory] = useState('all');
   const accentColor = DEFAULT_ACCENT;
 
-  const storageKey = STUDENT_OVERVIEW_STORAGE_KEY;
-
   const rawData = useMemo(
-    () => buildStudentPerformanceRawData(dashData, lookupData, isRTL),
-    [dashData, lookupData, isRTL],
+    () => buildAnalyticsRawData(analyticsData),
+    [analyticsData],
   );
 
   const handleAddWidget = useCallback(() => {
@@ -68,8 +56,16 @@ export default function OverviewAnalytics({
     cursor: 'pointer',
   });
 
+  if (loading) {
+    return (
+      <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--muted)' }}>
+        {t('common.loading') || 'Loading analytics...'}
+      </div>
+    );
+  }
+
   return (
-    <div data-testid="student-overview-analytics">
+    <div data-testid="dashboard-analytics-panel">
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
@@ -98,7 +94,7 @@ export default function OverviewAnalytics({
               color: theme === 'dark' ? '#f3f4f6' : '#1f2937',
             }}
           />
-          {STUDENT_WIDGET_CATEGORIES.map((cat) => {
+          {ANALYTICS_WIDGET_CATEGORIES.map((cat) => {
             const active = widgetCategory === cat.id;
             const Icon = CATEGORY_ICONS[cat.id] || BarChart3;
             const label = (lang === 'ar' ? cat.labelAr : cat.label) || cat.id;
@@ -131,7 +127,6 @@ export default function OverviewAnalytics({
           })}
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', alignItems: 'center', justifyContent: 'flex-end' }}>
-          <StudentDashboardExport dashData={dashData} lookupData={lookupData} isRTL={isRTL} />
           <button type="button" onClick={onReload} style={iconBtnStyle('#6b7280')} title={t('refresh')} aria-label={t('refresh')}>
             {getThemedIcon('ui', 'rotate_cw', 16, theme)}
           </button>
@@ -171,16 +166,16 @@ export default function OverviewAnalytics({
         globalFilters={{}}
         accentColor={normalizeHexColor(accentColor)}
         editLayout={editLayout}
-        defaultWidgets={STUDENT_OVERVIEW_DEFAULT_WIDGETS}
-        storageKey={storageKey}
-        isLoading={false}
+        defaultWidgets={DASHBOARD_ANALYTICS_DEFAULT_WIDGETS}
+        storageKey={DASHBOARD_ANALYTICS_STORAGE_KEY}
+        isLoading={loading}
         lastUpdatedAt={lastUpdatedAt}
         onSmartReload={onReload}
         widgetSearch={widgetSearch}
         widgetCategory={widgetCategory}
-        widgetCategoryResolver="student"
-        builderCategoryScope="student"
-        maxWidgets={STUDENT_OVERVIEW_MAX_WIDGETS}
+        widgetCategoryResolver="analytics"
+        builderCategoryScope="analytics"
+        maxWidgets={DASHBOARD_ANALYTICS_MAX_WIDGETS}
       />
     </div>
   );

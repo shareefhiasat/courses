@@ -16,6 +16,18 @@ import useStudentDashboardPermissions from '@hooks/useStudentDashboardPermission
 import useStudentDashboardFilters from '@hooks/useStudentDashboardFilters';
 import useStudentDashboardData from '@hooks/useStudentDashboardData';
 import useClassLevelMetrics from '@hooks/useClassLevelMetrics';
+import useDashboardAnalytics from '@hooks/useDashboardAnalytics';
+import DashboardAnalyticsPanel from '@components/analytics/DashboardAnalyticsPanel';
+import AttendanceAnalyticsPanel from '@components/analytics/AttendanceAnalyticsPanel';
+import CollapsibleSection from '@components/scheduling/CollapsibleSection';
+import { BarChart3, ClipboardList } from 'lucide-react';
+
+import {
+  STUDENT_ATTENDANCE_DEFAULT_WIDGETS,
+  STUDENT_ATTENDANCE_STORAGE_KEY,
+  STUDENT_ATTENDANCE_MAX_WIDGETS,
+  buildStudentPerformanceRawData,
+} from '@constants/studentPerformanceWidgets';
 
 import {
   OverviewTab,
@@ -67,6 +79,11 @@ export default function StudentDashboardPage() {
       ? filters.selectedClassId 
       : null,
     permissions.isStaff
+  );
+  const analyticsHook = useDashboardAnalytics(
+    permissions.isStaff && filters.selectedClassId && filters.selectedClassId !== 'all'
+      ? filters.selectedClassId
+      : null
   );
 
   // Load all users for UserSelect (like enrollment page pattern)
@@ -360,6 +377,46 @@ export default function StudentDashboardPage() {
                 />
               )}
             </div>
+
+            {/* ── Attendance Analytics ── */}
+            <CollapsibleSection
+              title={t('attendance_analytics') || 'Attendance Analytics'}
+              summary={`${STUDENT_ATTENDANCE_MAX_WIDGETS} ${t('widgets') || 'widgets'} · ${t('student_attendance') || 'Student Attendance'}`}
+              icon={ClipboardList}
+              defaultOpen={false}
+              testId="attendance-analytics-section"
+            >
+              <AttendanceAnalyticsPanel
+                rawData={buildStudentPerformanceRawData(
+                  dashData,
+                  { programs: filters.programs, subjects: filters.subjects, classes: filters.classes },
+                  lang === 'ar'
+                )}
+                defaultWidgets={STUDENT_ATTENDANCE_DEFAULT_WIDGETS}
+                storageKey={STUDENT_ATTENDANCE_STORAGE_KEY}
+                maxWidgets={STUDENT_ATTENDANCE_MAX_WIDGETS}
+                widgetCategoryResolver="student"
+                builderCategoryScope="student"
+                onReload={dashData.reload}
+                lastUpdatedAt={Date.now()}
+              />
+            </CollapsibleSection>
+
+            {/* ── Drive, Workflow & Activity Analytics ── */}
+            <CollapsibleSection
+              title={t('drive_workflow_activity_analytics') || 'Drive, Workflow & Activity Analytics'}
+              summary={`${analyticsHook.loading ? '…' : 'Ready'} · ${t('role_based_metrics') || 'Role-based metrics'}`}
+              icon={BarChart3}
+              defaultOpen={false}
+              testId="dashboard-analytics-section"
+            >
+              <DashboardAnalyticsPanel
+                analyticsData={analyticsHook.data}
+                loading={analyticsHook.loading}
+                onReload={analyticsHook.reload}
+                lastUpdatedAt={Date.now()}
+              />
+            </CollapsibleSection>
           </div>
         )}
 

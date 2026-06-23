@@ -12,6 +12,7 @@ export const SOURCE_CATEGORIES = [
   { id: 'workflow', labelKey: 'widget_cat_workflow' },
   { id: 'scheduling', labelKey: 'widget_cat_scheduling' },
   { id: 'student', labelKey: 'widget_cat_student' },
+  { id: 'analytics', labelKey: 'widget_cat_analytics' },
 ];
 
 const BASIC_CHARTS = ['bar', 'pie', 'donut', 'list', 'count'];
@@ -423,6 +424,159 @@ export const DATA_SOURCES = [
     valueFields: ['documentCount'],
     chartTypes: TREND_CHARTS,
   },
+
+  // ── Dashboard Analytics: Drive ───────────────────────────────────────────
+  {
+    value: 'driveOverview',
+    labelKey: 'ds_drive_overview',
+    label: 'Drive Overview',
+    category: 'analytics',
+    countMetrics: [
+      countMetric('totalFiles', 'stats_total_files', { statKey: 'totalFiles' }),
+      countMetric('totalFolders', 'stats_total_folders', { statKey: 'totalFolders' }),
+      countMetric('totalStorageSize', 'stats_total_storage', { statKey: 'totalStorageSize' }),
+      countMetric('totalActivities', 'stats_file_activities', { statKey: 'totalActivities' }),
+    ],
+    chartTypes: ['count'],
+  },
+  {
+    value: 'driveFilesByMimeType',
+    labelKey: 'ds_drive_files_by_mime',
+    label: 'Files by Type',
+    category: 'analytics',
+    groupBy: ['mimeType'],
+    valueFields: ['fileCount'],
+    chartTypes: BREAKDOWN_CHARTS,
+  },
+  {
+    value: 'driveFilesByBucket',
+    labelKey: 'ds_drive_files_by_bucket',
+    label: 'Files by Bucket',
+    category: 'analytics',
+    groupBy: ['bucket'],
+    valueFields: ['fileCount'],
+    chartTypes: BREAKDOWN_CHARTS,
+  },
+  {
+    value: 'driveFileActivities',
+    labelKey: 'ds_drive_file_activities',
+    label: 'File Activities',
+    category: 'analytics',
+    groupBy: ['action'],
+    valueFields: ['activityCount'],
+    chartTypes: BREAKDOWN_CHARTS,
+  },
+
+  // ── Dashboard Analytics: Workflow ────────────────────────────────────────
+  {
+    value: 'workflowOverview',
+    labelKey: 'ds_workflow_overview',
+    label: 'Workflow Overview',
+    category: 'analytics',
+    countMetrics: [
+      countMetric('totalDocuments', 'stats_total_documents', { statKey: 'totalDocuments' }),
+      countMetric('approvedCount', 'stats_approved', { statKey: 'approvedCount' }),
+      countMetric('pendingCount', 'stats_pending', { statKey: 'pendingCount' }),
+      countMetric('rejectedCount', 'stats_rejected', { statKey: 'rejectedCount' }),
+      countMetric('approvalRate', 'stats_approval_rate', { statKey: 'approvalRate' }),
+    ],
+    chartTypes: ['count'],
+  },
+  {
+    value: 'workflowByStatus',
+    labelKey: 'ds_workflow_by_status',
+    label: 'Workflows by Status',
+    category: 'analytics',
+    groupBy: ['status'],
+    valueFields: ['documentCount'],
+    chartTypes: BREAKDOWN_CHARTS,
+  },
+  {
+    value: 'workflowByType',
+    labelKey: 'ds_workflow_by_type',
+    label: 'Workflows by Type',
+    category: 'analytics',
+    groupBy: ['workflowType'],
+    valueFields: ['documentCount'],
+    chartTypes: BREAKDOWN_CHARTS,
+  },
+  {
+    value: 'workflowByProgram',
+    labelKey: 'ds_workflow_by_program',
+    label: 'Workflows by Program',
+    category: 'analytics',
+    groupBy: ['program'],
+    valueFields: ['documentCount'],
+    chartTypes: BREAKDOWN_CHARTS,
+  },
+  {
+    value: 'workflowTimeline',
+    labelKey: 'ds_workflow_timeline',
+    label: 'Workflow Timeline',
+    category: 'analytics',
+    groupBy: ['date'],
+    valueFields: ['documentCount'],
+    chartTypes: TREND_CHARTS,
+  },
+
+  // ── Dashboard Analytics: Activity ────────────────────────────────────────
+  {
+    value: 'activityOverview',
+    labelKey: 'ds_activity_overview',
+    label: 'Activity Overview',
+    category: 'analytics',
+    countMetrics: [
+      countMetric('totalActivities', 'stats_total_activities', { statKey: 'totalActivities' }),
+      countMetric('totalSubmissions', 'stats_total_submissions', { statKey: 'totalSubmissions' }),
+      countMetric('totalResources', 'stats_total_resources', { statKey: 'totalResources' }),
+    ],
+    chartTypes: ['count'],
+  },
+  {
+    value: 'activitiesByType',
+    labelKey: 'ds_activities_by_type',
+    label: 'Activities by Type',
+    category: 'analytics',
+    groupBy: ['activityType'],
+    valueFields: ['activityCount'],
+    chartTypes: BREAKDOWN_CHARTS,
+  },
+  {
+    value: 'activityTimeline',
+    labelKey: 'ds_activity_timeline',
+    label: 'Activity Timeline',
+    category: 'analytics',
+    groupBy: ['date'],
+    valueFields: ['activityCount'],
+    chartTypes: TREND_CHARTS,
+  },
+  {
+    value: 'submissionsByStatus',
+    labelKey: 'ds_submissions_by_status',
+    label: 'Submissions by Status',
+    category: 'analytics',
+    groupBy: ['status'],
+    valueFields: ['submissionCount'],
+    chartTypes: BREAKDOWN_CHARTS,
+  },
+  {
+    value: 'submissionTimeline',
+    labelKey: 'ds_submission_timeline',
+    label: 'Submission Timeline',
+    category: 'analytics',
+    groupBy: ['date'],
+    valueFields: ['submissionCount'],
+    chartTypes: TREND_CHARTS,
+  },
+  {
+    value: 'resourcesByType',
+    labelKey: 'ds_resources_by_type',
+    label: 'Resources by Type',
+    category: 'analytics',
+    groupBy: ['resourceType'],
+    valueFields: ['resourceCount'],
+    chartTypes: BREAKDOWN_CHARTS,
+  },
 ];
 
 export const LIST_ALLOWED_SOURCES = [
@@ -470,6 +624,10 @@ export const LIST_ALLOWED_SOURCES = [
   'smartDriveShares',
   'workflowDocuments',
   'workflowTasks',
+  'driveRecentFiles',
+  'workflowRecentDocuments',
+  'activityRecentActivities',
+  'activityRecentSubmissions',
 ];
 
 export function getSourcesForChartType(chartType, category = 'all') {

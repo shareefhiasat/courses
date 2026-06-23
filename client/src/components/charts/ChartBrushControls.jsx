@@ -11,6 +11,7 @@ const HORIZ_LABEL_MIN_SLOT = 38;
 export function brushCompactDate(label) {
   const s = String(label || '');
   if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(5);
+  if (/^\d{2}\/\d{2}\/\d{4}/.test(s)) return s.slice(0, 5);
   return s.length > 10 ? `${s.slice(0, 9)}…` : s;
 }
 

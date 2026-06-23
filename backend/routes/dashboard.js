@@ -7,6 +7,7 @@
 
 import express from 'express';
 import { getDashboardSummary, getTeacherDashboard } from '../controllers/dashboard.js';
+import dashboardAnalyticsController from '../controllers/dashboard-analytics.js';
 
 const router = express.Router();
 
@@ -70,5 +71,11 @@ router.get('/summary', dashboardController.getDashboardSummary);
  *         description: Server error
  */
 router.get('/teacher/:teacherUserId', dashboardController.getTeacherDashboard);
+
+// Analytics endpoints for dashboard widgets
+router.get('/analytics', dashboardAnalyticsController.getAnalytics);
+router.get('/analytics/drive', dashboardAnalyticsController.getDriveAnalytics);
+router.get('/analytics/workflow', dashboardAnalyticsController.getWorkflowAnalytics);
+router.get('/analytics/activity', dashboardAnalyticsController.getActivityAnalytics);
 
 export default router;

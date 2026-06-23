@@ -487,6 +487,27 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
     return [{ label, value: stats[statKey] ?? 0 }];
   }
 
+  if (dataSource === 'driveOverview') {
+    const stats = rawData.driveOverview || {};
+    const statKey = widget.statKey || widget.countMetric || 'totalFiles';
+    const label = widget.titleKey && t ? t(widget.titleKey) : (widget.titleEn || widget.title || statKey);
+    return [{ label, value: stats[statKey] ?? 0 }];
+  }
+
+  if (dataSource === 'workflowOverview') {
+    const stats = rawData.workflowOverview || {};
+    const statKey = widget.statKey || widget.countMetric || 'totalDocuments';
+    const label = widget.titleKey && t ? t(widget.titleKey) : (widget.titleEn || widget.title || statKey);
+    return [{ label, value: stats[statKey] ?? 0 }];
+  }
+
+  if (dataSource === 'activityOverview') {
+    const stats = rawData.activityOverview || {};
+    const statKey = widget.statKey || widget.countMetric || 'totalActivities';
+    const label = widget.titleKey && t ? t(widget.titleKey) : (widget.titleEn || widget.title || statKey);
+    return [{ label, value: stats[statKey] ?? 0 }];
+  }
+
   if (dataSource?.startsWith('scheduling')) {
     const dataset = rawData[dataSource] || [];
     if (widget.chartType === 'count') {
@@ -791,14 +812,17 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
     }
     if (groupBy === 'date') {
       if (item.date) {
-        return new Date(item.date).toLocaleDateString('en-GB');
+        const d = new Date(item.date);
+        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
       }
       const ts =
         item.when?.seconds ? item.when.seconds * 1000 :
         item.createdAt?.seconds ? item.createdAt.seconds * 1000 :
         item.submittedAt?.seconds ? item.submittedAt.seconds * 1000 :
         item.timestamp?.seconds ? item.timestamp.seconds * 1000 : 0;
-      return ts ? new Date(ts).toLocaleDateString('en-GB') : null;
+      if (!ts) return null;
+      const d = new Date(ts);
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     }
     if (groupBy === 'penaltyType' || (dataSource === 'penalties' && groupBy === 'type')) {
       const ptObj = item.penaltyType || item.type;

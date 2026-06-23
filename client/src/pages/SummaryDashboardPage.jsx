@@ -21,7 +21,7 @@ import TeacherEffortExport from '@components/scheduling/summary/TeacherEffortExp
 import SchedulingOverviewPanel from '@components/scheduling/SchedulingOverviewPanel';
 import CollapsibleSection from '@components/scheduling/CollapsibleSection';
 import {
-  CalendarDays, Coffee, User, DoorOpen, BarChart3, Palmtree, ExternalLink,
+  CalendarDays, Coffee, User, DoorOpen, BarChart3, Palmtree, ExternalLink, ClipboardList,
 } from 'lucide-react';
 import { getAllUsers, getUserRoles } from '@services/business/userService';
 import { getAllSubjects } from '@services/business/subjectService';
@@ -32,7 +32,16 @@ import {
   buildSchedulingOverviewCards,
   buildInstructorOverviewCards,
 } from '@utils/schedulingOverviewCards';
-import { SCHEDULING_SUMMARY_DEFAULT_WIDGETS } from '@constants/schedulingSummaryWidgets';
+import {
+  SCHEDULING_SUMMARY_DEFAULT_WIDGETS,
+  SCHEDULING_ATTENDANCE_DEFAULT_WIDGETS,
+  SCHEDULING_ATTENDANCE_STORAGE_KEY,
+  SCHEDULING_ATTENDANCE_MAX_WIDGETS,
+  buildSchedulingRawData,
+} from '@constants/schedulingSummaryWidgets';
+import DashboardAnalyticsPanel from '@components/analytics/DashboardAnalyticsPanel';
+import AttendanceAnalyticsPanel from '@components/analytics/AttendanceAnalyticsPanel';
+import useDashboardAnalytics from '@hooks/useDashboardAnalytics';
 
 const SummaryDashboardPage = () => {
   const { user, isAdmin, isHR, isSuperAdmin, isInstructor } = useAuth();
@@ -71,6 +80,7 @@ const SummaryDashboardPage = () => {
   const [endDate, setEndDate] = useState('');
   const [refreshInterval, setRefreshInterval] = useState(30000);
   const [lastUpdatedAt, setLastUpdatedAt] = useState(Date.now());
+  const analyticsHook = useDashboardAnalytics();
 
   const canView = canAccessScreen('summary-dashboard');
   const canExport = hasPermission('summary-dashboard.canExport');
@@ -447,6 +457,42 @@ const SummaryDashboardPage = () => {
               </div>
             </CollapsibleSection>
           )}
+
+          {dashboardData && (
+            <CollapsibleSection
+              title={t('attendance_analytics') || 'Attendance Analytics'}
+              summary={`${SCHEDULING_ATTENDANCE_MAX_WIDGETS} ${t('widgets') || 'widgets'} · ${t('class_and_daily') || 'Class & Daily'}`}
+              icon={ClipboardList}
+              defaultOpen={false}
+              testId="attendance-analytics-section"
+            >
+              <AttendanceAnalyticsPanel
+                rawData={buildSchedulingRawData(effortReport, dashboardData, isRTL)}
+                defaultWidgets={SCHEDULING_ATTENDANCE_DEFAULT_WIDGETS}
+                storageKey={SCHEDULING_ATTENDANCE_STORAGE_KEY}
+                maxWidgets={SCHEDULING_ATTENDANCE_MAX_WIDGETS}
+                widgetCategoryResolver="scheduling"
+                builderCategoryScope="scheduling"
+                onReload={loadAll}
+                lastUpdatedAt={lastUpdatedAt}
+              />
+            </CollapsibleSection>
+          )}
+
+          <CollapsibleSection
+            title={t('drive_workflow_activity_analytics') || 'Drive, Workflow & Activity Analytics'}
+            summary={`${analyticsHook.loading ? '…' : 'Ready'} · ${t('role_based_metrics') || 'Role-based metrics'}`}
+            icon={BarChart3}
+            defaultOpen={false}
+            testId="dashboard-analytics-section"
+          >
+            <DashboardAnalyticsPanel
+              analyticsData={analyticsHook.data}
+              loading={analyticsHook.loading}
+              onReload={analyticsHook.reload}
+              lastUpdatedAt={lastUpdatedAt}
+            />
+          </CollapsibleSection>
 
         </>
       )}

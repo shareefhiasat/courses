@@ -1,53 +1,35 @@
 import React, { useState, useCallback, useMemo, useRef } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
+import { useAuth } from '@contexts/AuthContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { DEFAULT_ACCENT, normalizeHexColor } from '@utils/color';
 import DashboardEngine from '@components/analytics/DashboardEngine';
-import {
-  LayoutDashboard, BarChart3, LineChart, ClipboardList, AlertTriangle,
-  User, Award, BookOpen, GraduationCap, History,
-} from 'lucide-react';
-import StudentDashboardExport from '../StudentDashboardExport';
-import {
-  STUDENT_OVERVIEW_DEFAULT_WIDGETS,
-  STUDENT_OVERVIEW_STORAGE_KEY,
-  STUDENT_OVERVIEW_MAX_WIDGETS,
-  STUDENT_WIDGET_CATEGORIES,
-  buildStudentPerformanceRawData,
-} from '@constants/studentPerformanceWidgets';
+import { History } from 'lucide-react';
 
-const CATEGORY_ICONS = {
-  overview: LayoutDashboard,
-  attendance: ClipboardList,
-  marks: GraduationCap,
-  penalties: AlertTriangle,
-  behaviors: User,
-  participations: Award,
-  enrollments: BookOpen,
-};
-
-export default function OverviewAnalytics({
-  dashData,
-  lookupData,
-  isRTL,
+/**
+ * Reusable panel for attendance analytics.
+ * Works with either scheduling rawData (summary dashboard)
+ * or student rawData (student dashboard).
+ */
+export default function AttendanceAnalyticsPanel({
+  rawData,
+  defaultWidgets,
+  storageKey,
+  maxWidgets,
+  widgetCategoryResolver = 'scheduling',
+  builderCategoryScope = 'scheduling',
   onReload,
   lastUpdatedAt,
 }) {
-  const { t, lang } = useLang();
+  const { t } = useLang();
   const { theme } = useTheme();
+  const { user } = useAuth();
   const engineRef = useRef(null);
   const [editLayout, setEditLayout] = useState(false);
   const [widgetSearch, setWidgetSearch] = useState('');
-  const [widgetCategory, setWidgetCategory] = useState('overview');
+  const [widgetCategory, setWidgetCategory] = useState('all');
   const accentColor = DEFAULT_ACCENT;
-
-  const storageKey = STUDENT_OVERVIEW_STORAGE_KEY;
-
-  const rawData = useMemo(
-    () => buildStudentPerformanceRawData(dashData, lookupData, isRTL),
-    [dashData, lookupData, isRTL],
-  );
 
   const handleAddWidget = useCallback(() => {
     engineRef.current?.openBuilder?.();
@@ -68,8 +50,14 @@ export default function OverviewAnalytics({
     cursor: 'pointer',
   });
 
+  const categories = useMemo(() => [
+    { id: 'all', label: t('widget_cat_all') || 'All' },
+    { id: 'overview', label: t('widget_cat_overview') || 'Overview' },
+    { id: 'attendance', label: t('widget_cat_attendance') || 'Attendance' },
+  ], [t]);
+
   return (
-    <div data-testid="student-overview-analytics">
+    <div data-testid="attendance-analytics-panel">
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
@@ -85,7 +73,7 @@ export default function OverviewAnalytics({
             onChange={(e) => setWidgetSearch(e.target.value)}
             placeholder={t('search_widgets') || 'Search widgets…'}
             aria-label={t('search_widgets') || 'Search widgets'}
-            data-testid="widget-search-input"
+            data-testid="att-widget-search-input"
             style={{
               minWidth: 160,
               flex: '1 1 160px',
@@ -98,18 +86,16 @@ export default function OverviewAnalytics({
               color: theme === 'dark' ? '#f3f4f6' : '#1f2937',
             }}
           />
-          {STUDENT_WIDGET_CATEGORIES.map((cat) => {
+          {categories.map((cat) => {
             const active = widgetCategory === cat.id;
-            const Icon = CATEGORY_ICONS[cat.id] || BarChart3;
-            const label = (lang === 'ar' ? cat.labelAr : cat.label) || cat.id;
             return (
               <button
                 key={cat.id}
                 type="button"
                 onClick={() => setWidgetCategory(cat.id)}
-                data-testid={`widget-cat-${cat.id}`}
-                title={label}
-                aria-label={label}
+                data-testid={`att-widget-cat-${cat.id}`}
+                title={cat.label}
+                aria-label={cat.label}
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
@@ -124,15 +110,13 @@ export default function OverviewAnalytics({
                   fontWeight: active ? 600 : 400,
                 }}
               >
-                <Icon size={13} strokeWidth={2} />
-                <span>{label}</span>
+                <span>{cat.label}</span>
               </button>
             );
           })}
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', alignItems: 'center', justifyContent: 'flex-end' }}>
-          <StudentDashboardExport dashData={dashData} lookupData={lookupData} isRTL={isRTL} />
-          <button type="button" onClick={onReload} style={iconBtnStyle('#6b7280')} title={t('refresh')} aria-label={t('refresh')}>
+          <button type="button" onClick={onReload} style={iconBtnStyle('#6b7280')} title={t('refresh') || 'Refresh'} aria-label={t('refresh') || 'Refresh'}>
             {getThemedIcon('ui', 'rotate_cw', 16, theme)}
           </button>
           <button
@@ -171,16 +155,16 @@ export default function OverviewAnalytics({
         globalFilters={{}}
         accentColor={normalizeHexColor(accentColor)}
         editLayout={editLayout}
-        defaultWidgets={STUDENT_OVERVIEW_DEFAULT_WIDGETS}
+        defaultWidgets={defaultWidgets}
         storageKey={storageKey}
         isLoading={false}
         lastUpdatedAt={lastUpdatedAt}
         onSmartReload={onReload}
         widgetSearch={widgetSearch}
         widgetCategory={widgetCategory}
-        widgetCategoryResolver="student"
-        builderCategoryScope="student"
-        maxWidgets={STUDENT_OVERVIEW_MAX_WIDGETS}
+        widgetCategoryResolver={widgetCategoryResolver}
+        builderCategoryScope={builderCategoryScope}
+        maxWidgets={maxWidgets}
       />
     </div>
   );

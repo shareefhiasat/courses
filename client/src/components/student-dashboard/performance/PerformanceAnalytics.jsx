@@ -8,6 +8,7 @@ import {
   LayoutDashboard, BarChart3, LineChart, ClipboardList, AlertTriangle,
   User, Award, BookOpen, GraduationCap, History,
 } from 'lucide-react';
+import StudentDashboardExport from '../StudentDashboardExport';
 import {
   STUDENT_PERFORMANCE_DEFAULT_WIDGETS,
   STUDENT_PERFORMANCE_STORAGE_KEY,
@@ -130,6 +131,7 @@ export default function PerformanceAnalytics({
           })}
         </div>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', alignItems: 'center', justifyContent: 'flex-end' }}>
+          <StudentDashboardExport dashData={dashData} lookupData={lookupData} isRTL={isRTL} />
           <button type="button" onClick={onReload} style={iconBtnStyle('#6b7280')} title={t('refresh')} aria-label={t('refresh')}>
             {getThemedIcon('ui', 'rotate_cw', 16, theme)}
           </button>

@@ -1,5 +1,5 @@
 import React, { useMemo, useState, memo, useEffect, useCallback, useRef } from 'react';
-import { Filter, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
+import { Filter, ZoomIn, ZoomOut, Maximize2, GripVertical } from 'lucide-react';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
@@ -94,6 +94,8 @@ function ListChart({
   const [filterSearch, setFilterSearch] = useState('');
   const [fontScale, setFontScale] = useState(1);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [draggedColKey, setDraggedColKey] = useState(null);
+  const [dragOverColKey, setDragOverColKey] = useState(null);
   const filterMenuRef = useRef(null);
 
   useEffect(() => {
@@ -500,6 +502,19 @@ function ListChart({
   };
 
   const columns = getColumns();
+
+  const handleColumnReorder = useCallback((fromKey, toKey) => {
+    if (fromKey === toKey) return;
+    const currentKeys = columns.map(c => c.key);
+    const fromIdx = currentKeys.indexOf(fromKey);
+    const toIdx = currentKeys.indexOf(toKey);
+    if (fromIdx === -1 || toIdx === -1) return;
+    const newKeys = [...currentKeys];
+    newKeys.splice(fromIdx, 1);
+    newKeys.splice(toIdx, 0, fromKey);
+    setSelectedColumns(newKeys);
+    onListColumnsChange?.(newKeys);
+  }, [columns, onListColumnsChange]);
 
   const getResolvedWidth = useCallback((col) => {
     if (collapsedCols.has(col.key)) return 28;
@@ -1039,6 +1054,12 @@ function ListChart({
             return (
             <div
               key={column.key}
+              draggable
+              onDragStart={(e) => { setDraggedColKey(column.key); e.dataTransfer.effectAllowed = 'move'; }}
+              onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setDragOverColKey(column.key); }}
+              onDragLeave={() => setDragOverColKey(null)}
+              onDrop={(e) => { e.preventDefault(); if (draggedColKey) handleColumnReorder(draggedColKey, column.key); setDraggedColKey(null); setDragOverColKey(null); }}
+              onDragEnd={() => { setDraggedColKey(null); setDragOverColKey(null); }}
               style={{
                 padding: '6px 8px',
                 width,
@@ -1046,15 +1067,18 @@ function ListChart({
                 maxWidth: width,
                 borderInlineEnd: '1px solid var(--border)',
                 overflow: 'visible',
-                cursor: 'default',
+                cursor: 'grab',
                 userSelect: 'none',
                 position: 'relative',
                 flexShrink: 0,
-                background: isSorted || filterActive ? `${accentColor}10` : 'transparent',
+                background: dragOverColKey === column.key ? `${accentColor}25` : (isSorted || filterActive ? `${accentColor}10` : 'transparent'),
+                opacity: draggedColKey === column.key ? 0.5 : 1,
+                borderInlineStart: dragOverColKey === column.key && draggedColKey !== column.key ? `2px solid ${accentColor}` : 'none',
               }}
               onDoubleClick={(e) => handleHeaderDblClick(column, e)}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: 3, overflow: 'hidden' }}>
+                <GripVertical size={10} style={{ flexShrink: 0, color: 'var(--muted)', opacity: 0.5, cursor: 'grab' }} />
                 <span
                   style={{
                     flex: 1,
@@ -1367,6 +1391,12 @@ function ListChart({
                   return (
                     <div
                       key={column.key}
+                      draggable
+                      onDragStart={(e) => { setDraggedColKey(column.key); e.dataTransfer.effectAllowed = 'move'; }}
+                      onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; setDragOverColKey(column.key); }}
+                      onDragLeave={() => setDragOverColKey(null)}
+                      onDrop={(e) => { e.preventDefault(); if (draggedColKey) handleColumnReorder(draggedColKey, column.key); setDraggedColKey(null); setDragOverColKey(null); }}
+                      onDragEnd={() => { setDraggedColKey(null); setDragOverColKey(null); }}
                       style={{
                         padding: `${8 * fontScale}px ${10 * fontScale}px`,
                         width,
@@ -1377,6 +1407,10 @@ function ListChart({
                         textOverflow: 'ellipsis',
                         whiteSpace: 'nowrap',
                         flexShrink: 0,
+                        cursor: 'grab',
+                        background: dragOverColKey === column.key ? `${accentColor}25` : 'transparent',
+                        opacity: draggedColKey === column.key ? 0.5 : 1,
+                        borderInlineStart: dragOverColKey === column.key && draggedColKey !== column.key ? `2px solid ${accentColor}` : 'none',
                       }}
                     >
                       {isCollapsed ? '·' : column.label}

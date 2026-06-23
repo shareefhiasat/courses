@@ -150,6 +150,24 @@ export const STUDENT_OVERVIEW_DEFAULT_WIDGETS = [
 
 export const STUDENT_OVERVIEW_MAX_WIDGETS = STUDENT_OVERVIEW_DEFAULT_WIDGETS.length;
 
+// ── Attendance-only widgets (for separate Attendance Analytics section) ─────
+export const STUDENT_ATTENDANCE_STORAGE_KEY = 'student_attendance';
+export const STUDENT_ATTENDANCE_DEFAULT_WIDGETS = [
+  countWidget('sa_cnt_attendance', 'spOverviewStats', 'totalAttendance', 'totalAttendance', 'Total Attendance', 'إجمالي الحضور', { x: 0, y: 0, w: 3, h: 3 }),
+  countWidget('sa_cnt_present', 'spOverviewStats', 'presentCount', 'presentCount', 'Present', 'حاضر', { x: 3, y: 0, w: 3, h: 3 }),
+  countWidget('sa_cnt_absent', 'spOverviewStats', 'absentCount', 'absentCount', 'Absent', 'غائب', { x: 6, y: 0, w: 3, h: 3 }),
+  countWidget('sa_cnt_late', 'spOverviewStats', 'lateCount', 'lateCount', 'Late', 'متأخر', { x: 9, y: 0, w: 3, h: 3 }),
+
+  chartWidget('sa_att_status_pie', 'Attendance Distribution', 'توزيع الحضور', 'pie', 'attendance', 'status', { x: 0, y: 3, w: 6, h: 5 }),
+  chartWidget('sa_att_status_donut', 'Attendance Distribution', 'توزيع الحضور', 'donut', 'attendance', 'status', { x: 6, y: 3, w: 6, h: 5 }),
+  chartWidget('sa_att_status_bar', 'Attendance Count by Status', 'عدد الحضور حسب الحالة', 'bar', 'attendance', 'status', { x: 0, y: 8, w: 6, h: 5 }),
+  chartWidget('sa_att_timeline_line', 'Attendance Records per Day', 'سجلات الحضور يومياً', 'line', 'attendance', 'date', { x: 6, y: 8, w: 6, h: 5 }),
+  chartWidget('sa_att_timeline_bar', 'Attendance Records per Day', 'سجلات الحضور يومياً', 'bar', 'attendance', 'date', { x: 0, y: 13, w: 12, h: 4 }),
+  chartWidget('sa_att_class_bar', 'Attendance by Class', 'الحضور حسب الصف', 'bar', 'attendance', 'classId', { x: 0, y: 17, w: 12, h: 5 }),
+  chartWidget('sa_att_records_list', 'Attendance Records Detail', 'تفاصيل سجلات الحضور', 'list', 'attendance', '', { x: 0, y: 22, w: 12, h: 6 }, { listLimit: 200 }),
+];
+export const STUDENT_ATTENDANCE_MAX_WIDGETS = STUDENT_ATTENDANCE_DEFAULT_WIDGETS.length;
+
 // ── Category definitions ───────────────────────────────────────────────────
 const SOURCE_FILTER_MAP = {
   spOverviewStats: 'overview',
@@ -317,11 +335,19 @@ export function buildStudentPerformanceRawData(dashData, lookupData = {}, isRTL 
                  : (prog.nameEn || prog.name || prog.nameAr || String(programId));
   };
 
+  // Helper to extract date string (YYYY-MM-DD) from createdAt or date field
+  const toDateStr = (item) => {
+    const d = item.date || item.createdAt;
+    if (!d) return null;
+    try { return new Date(d).toISOString().split('T')[0]; } catch { return String(d).substring(0, 10); }
+  };
+
   // Enrich attendance with semester/year/className/subjectName
   const enrichedAttendance = attendance.map(a => {
     const sem = classSemesterMap.get(String(a.classId)) || {};
     return {
       ...a,
+      date: toDateStr(a),
       semester: a.semester || sem.semester || 'Unknown',
       year: a.year || sem.year || sem.academicYear || new Date().getFullYear(),
       academicYear: a.academicYear || sem.academicYear || sem.year,
@@ -330,13 +356,6 @@ export function buildStudentPerformanceRawData(dashData, lookupData = {}, isRTL 
       programName: resolveProgramLabel(a.programId || sem.programId),
     };
   });
-
-  // Helper to extract date string (YYYY-MM-DD) from createdAt or date field
-  const toDateStr = (item) => {
-    const d = item.date || item.createdAt;
-    if (!d) return null;
-    try { return new Date(d).toISOString().split('T')[0]; } catch { return String(d).substring(0, 10); }
-  };
 
   // Helper to resolve type name from object or string
   const resolveTypeName = (typeVal, fallback = 'Unknown') => {
