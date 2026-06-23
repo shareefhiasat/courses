@@ -4,6 +4,11 @@
  * Values are uppercase to match Prisma NotificationCategory enum.
  */
 
+import {
+  Settings, BookOpen, Calendar, Clipboard, MessageSquare, Megaphone,
+  Workflow, Activity, File, QrCode, Users, AlertTriangle, FolderOpen, Bell
+} from 'lucide-react';
+
 // Notification Types (aligned with backend CATEGORIES)
 export const NOTIFICATION_TYPES = {
   SYSTEM: 'SYSTEM',
@@ -55,24 +60,25 @@ export const NOTIFICATION_FILTERS = {
 export const NOTIFICATION_STATUS = NOTIFICATION_FILTERS;
 
 // Helper functions
-export const getNotificationIcon = (type) => {
+export const getNotificationIcon = (type, size = 20) => {
   const iconMap = {
-    [NOTIFICATION_TYPES.SYSTEM]: 'Settings',
-    [NOTIFICATION_TYPES.ACADEMIC]: 'BookOpen',
-    [NOTIFICATION_TYPES.ATTENDANCE]: 'Calendar',
-    [NOTIFICATION_TYPES.ASSESSMENT]: 'Clipboard',
-    [NOTIFICATION_TYPES.COMMUNICATION]: 'MessageSquare',
-    [NOTIFICATION_TYPES.ANNOUNCEMENT]: 'Megaphone',
-    [NOTIFICATION_TYPES.WORKFLOW]: 'Workflow',
-    [NOTIFICATION_TYPES.BEHAVIOR]: 'Activity',
-    [NOTIFICATION_TYPES.FILE]: 'File',
-    [NOTIFICATION_TYPES.QR]: 'QRCode',
-    [NOTIFICATION_TYPES.PARTICIPATION]: 'Users',
-    [NOTIFICATION_TYPES.PENALTY]: 'AlertTriangle',
-    [NOTIFICATION_TYPES.RESOURCE]: 'FolderOpen'
+    [NOTIFICATION_TYPES.SYSTEM]: Settings,
+    [NOTIFICATION_TYPES.ACADEMIC]: BookOpen,
+    [NOTIFICATION_TYPES.ATTENDANCE]: Calendar,
+    [NOTIFICATION_TYPES.ASSESSMENT]: Clipboard,
+    [NOTIFICATION_TYPES.COMMUNICATION]: MessageSquare,
+    [NOTIFICATION_TYPES.ANNOUNCEMENT]: Megaphone,
+    [NOTIFICATION_TYPES.WORKFLOW]: Workflow,
+    [NOTIFICATION_TYPES.BEHAVIOR]: Activity,
+    [NOTIFICATION_TYPES.FILE]: File,
+    [NOTIFICATION_TYPES.QR]: QrCode,
+    [NOTIFICATION_TYPES.PARTICIPATION]: Users,
+    [NOTIFICATION_TYPES.PENALTY]: AlertTriangle,
+    [NOTIFICATION_TYPES.RESOURCE]: FolderOpen
   };
 
-  return iconMap[type] || 'Bell';
+  const IconComponent = iconMap[type] || Bell;
+  return <IconComponent size={size} />;
 };
 
 export const getNotificationStatusOptions = () => {

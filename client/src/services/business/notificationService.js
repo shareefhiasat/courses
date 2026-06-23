@@ -21,7 +21,7 @@ const API_BASE = '/notifications';
 export const getNotifications = async (options = {}) => {
   try {
     const response = await apiService.get(API_BASE, { params: options });
-    return response.data;
+    return response;
   } catch (error) {
     console.error('Failed to get notifications:', error);
     return {
@@ -41,7 +41,7 @@ export const getNotifications = async (options = {}) => {
 export const markNotificationRead = async (notificationId) => {
   try {
     const response = await apiService.patch(`${API_BASE}/${notificationId}/read`);
-    return response.data;
+    return response;
   } catch (error) {
     console.error('Failed to mark notification as read:', error);
     return { success: false, error: error.message };
@@ -55,7 +55,7 @@ export const markNotificationRead = async (notificationId) => {
 export const markAllRead = async () => {
   try {
     const response = await apiService.post(`${API_BASE}/mark-all-read`);
-    return response.data;
+    return response;
   } catch (error) {
     console.error('Failed to mark all notifications as read:', error);
     return { success: false, error: error.message };
@@ -70,7 +70,7 @@ export const markAllRead = async () => {
 export const archiveNotification = async (notificationId) => {
   try {
     const response = await apiService.patch(`${API_BASE}/${notificationId}/archive`);
-    return response.data;
+    return response;
   } catch (error) {
     console.error('Failed to archive notification:', error);
     return { success: false, error: error.message };
@@ -84,7 +84,7 @@ export const archiveNotification = async (notificationId) => {
 export const archiveAllRead = async () => {
   try {
     const response = await apiService.post(`${API_BASE}/archive-all-read`);
-    return response.data;
+    return response;
   } catch (error) {
     console.error('Failed to archive all read notifications:', error);
     return { success: false, error: error.message };
@@ -99,7 +99,7 @@ export const archiveAllRead = async () => {
 export const deleteNotification = async (notificationId) => {
   try {
     const response = await apiService.delete(`${API_BASE}/${notificationId}`);
-    return response.data;
+    return response;
   } catch (error) {
     console.error('Failed to delete notification:', error);
     return { success: false, error: error.message };
@@ -113,7 +113,7 @@ export const deleteNotification = async (notificationId) => {
 export const getPreferences = async () => {
   try {
     const response = await apiService.get(`${API_BASE}/preferences`);
-    return response.data;
+    return response;
   } catch (error) {
     console.error('Failed to get preferences:', error);
     return { success: false, error: error.message };
@@ -128,7 +128,7 @@ export const getPreferences = async () => {
 export const updatePreferences = async (preferences) => {
   try {
     const response = await apiService.put(`${API_BASE}/preferences`, preferences);
-    return response.data;
+    return response;
   } catch (error) {
     console.error('Failed to update preferences:', error);
     return { success: false, error: error.message };
@@ -143,7 +143,7 @@ export const updatePreferences = async (preferences) => {
 export const testNotification = async (data) => {
   try {
     const response = await apiService.post(`${API_BASE}/admin/test`, data);
-    return response.data;
+    return response;
   } catch (error) {
     console.error('Failed to test notification:', error);
     return { success: false, error: error.message };
@@ -158,7 +158,7 @@ export const testNotification = async (data) => {
 export const markNotificationUnread = async (notificationId) => {
   try {
     const response = await apiService.patch(`${API_BASE}/${notificationId}/unread`);
-    return response.data;
+    return response;
   } catch (error) {
     console.error('Failed to mark notification as unread:', error);
     return { success: false, error: error.message };
@@ -187,7 +187,7 @@ export const getById = async (id) => {
 export const unarchiveNotification = async (notificationId) => {
   try {
     const response = await apiService.patch(`${API_BASE}/${notificationId}/archive`);
-    return response.data;
+    return response;
   } catch (error) {
     console.error('Failed to unarchive notification:', error);
     return { success: false, error: error.message };

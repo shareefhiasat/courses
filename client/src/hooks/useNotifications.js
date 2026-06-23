@@ -20,9 +20,20 @@ export const useNotifications = () => {
     if (!user) return;
 
     try {
-      const result = await getNotificationSettings(user.uid);
-      if (result && result.success && result.data) {
-        setSettings(prev => ({ ...prev, ...result.data }));
+      const result = await getNotificationSettings();
+      if (result && result.success && result.preferences) {
+        const prefs = result.preferences;
+        setSettings(prev => ({
+          ...prev,
+          soundEnabled: prefs.soundEnabled ?? prev.soundEnabled,
+          vibrationEnabled: prefs.vibrationEnabled ?? prev.vibrationEnabled,
+          browserNotificationsEnabled: prefs.browserNotifEnabled ?? prev.browserNotificationsEnabled,
+          inAppEnabled: prefs.inAppEnabled ?? prev.inAppEnabled,
+          emailEnabled: prefs.emailEnabled ?? prev.emailEnabled,
+          smsEnabled: prefs.smsEnabled ?? prev.smsEnabled,
+          pushEnabled: prefs.pushEnabled ?? prev.pushEnabled,
+          permissionsRequested: true,
+        }));
       }
     } catch (error) {
       console.error('Failed to load notification settings:', error);
@@ -34,7 +45,16 @@ export const useNotifications = () => {
     if (!user) return false;
 
     try {
-      const result = await saveNotificationSettings(user.uid, newSettings);
+      const payload = {
+        soundEnabled: newSettings.soundEnabled,
+        vibrationEnabled: newSettings.vibrationEnabled,
+        browserNotifEnabled: newSettings.browserNotificationsEnabled,
+        inAppEnabled: newSettings.inAppEnabled ?? true,
+        emailEnabled: newSettings.emailEnabled ?? false,
+        smsEnabled: newSettings.smsEnabled ?? false,
+        pushEnabled: newSettings.pushEnabled ?? false,
+      };
+      const result = await saveNotificationSettings(payload);
       if (result && result.success) {
         setSettings(newSettings);
         return true;

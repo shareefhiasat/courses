@@ -141,15 +141,15 @@ const NotificationsPage = () => {
         const classId = n.data?.classId || n.classId;
         const subjectId = n.data?.subjectId || n.metadata?.subjectId;
         if (classId) {
-          const classItem = classes.find(c => (c.id || c.docId) === classId);
+          const classItem = classes.find(c => String(c.id || c.docId) === String(classId));
           if (classItem?.subjectId) {
-            const subject = subjects.find(s => (s.docId || s.id) === classItem.subjectId);
-            return subject?.programId === filterProgram;
+            const subject = subjects.find(s => String(s.docId || s.id) === String(classItem.subjectId));
+            return String(subject?.programId) === String(filterProgram);
           }
         }
         if (subjectId) {
-          const subject = subjects.find(s => (s.docId || s.id) === subjectId);
-          return subject?.programId === filterProgram;
+          const subject = subjects.find(s => String(s.docId || s.id) === String(subjectId));
+          return String(subject?.programId) === String(filterProgram);
         }
         return false;
       });
@@ -160,17 +160,17 @@ const NotificationsPage = () => {
         const classId = n.data?.classId || n.classId;
         const subjectId = n.data?.subjectId || n.metadata?.subjectId;
         if (classId) {
-          const classItem = classes.find(c => (c.id || c.docId) === classId);
-          return classItem?.subjectId === filterSubject;
+          const classItem = classes.find(c => String(c.id || c.docId) === String(classId));
+          return String(classItem?.subjectId) === String(filterSubject);
         }
-        return subjectId === filterSubject;
+        return String(subjectId) === String(filterSubject);
       });
     }
 
     if (filterClass !== 'all') {
       filtered = filtered.filter(n => {
         const classId = n.data?.classId || n.classId;
-        return classId === filterClass;
+        return String(classId) === String(filterClass);
       });
     }
 
@@ -178,7 +178,7 @@ const NotificationsPage = () => {
       filtered = filtered.filter(n => {
         const classId = n.data?.classId || n.classId;
         if (classId) {
-          const classItem = classes.find(c => (c.id || c.docId) === classId);
+          const classItem = classes.find(c => String(c.id || c.docId) === String(classId));
           if (classItem?.year && String(classItem.year) === filterYear) return true;
           if (classItem?.term && classItem.term.includes(' ')) {
             const parts = classItem.term.split(' ');
@@ -193,8 +193,8 @@ const NotificationsPage = () => {
       filtered = filtered.filter(n => {
         const subjectId = n.data?.subjectId || n.metadata?.subjectId;
         if (subjectId) {
-          const subject = subjects.find(s => (s.docId || s.id) === subjectId);
-          return subject?.semester === filterSemester;
+          const subject = subjects.find(s => String(s.docId || s.id) === String(subjectId));
+          return String(subject?.semester) === String(filterSemester);
         }
         return false;
       });
@@ -554,7 +554,7 @@ const NotificationsPage = () => {
             options={[
               { value: 'all', label: 'All Subjects' },
               ...(subjects || [])
-                .filter(s => filterProgram === 'all' || s.programId === filterProgram)
+                .filter(s => filterProgram === 'all' || String(s.programId) === String(filterProgram))
                 .map(s => ({
                   value: s.docId || s.id,
                   label: `${s.code || ''} - ${s.nameEn || s.name || s.docId}`.trim()
@@ -571,10 +571,10 @@ const NotificationsPage = () => {
               { value: 'all', label: 'All Classes' },
               ...(classes || [])
                 .filter(c => {
-                  if (filterSubject !== 'all' && c.subjectId !== filterSubject) return false;
+                  if (filterSubject !== 'all' && String(c.subjectId) !== String(filterSubject)) return false;
                   if (filterProgram !== 'all') {
                     const subject = subjects.find(s => (s.docId || s.id) === c.subjectId);
-                    if (!subject || subject.programId !== filterProgram) return false;
+                    if (!subject || String(subject.programId) !== String(filterProgram)) return false;
                   }
                   return true;
                 })
