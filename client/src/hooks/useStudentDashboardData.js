@@ -86,7 +86,7 @@ const useStudentDashboardData = (displayStudentId, hasSelection = true, classId 
           students = [];
         }
         
-        const studentIds = students.map(s => s.id || s.docId).filter(Boolean);
+        const studentIds = students.map(s => s.userId || s.id || s.docId).filter(Boolean);
         
         info('🔧 [StudentDashboardData] Processed students:', {
           classId,
@@ -100,9 +100,9 @@ const useStudentDashboardData = (displayStudentId, hasSelection = true, classId 
           Promise.allSettled([
             getEnrollments({ userId: studentId }),
             getAttendanceByStudent(studentId),
-            getPenalties(studentId),
-            getParticipations({ studentId }),
-            getBehaviors({ studentId }),
+            getPenalties({ userId: studentId }),
+            getParticipations({ userId: studentId }),
+            getBehaviors({ userId: studentId }),
             getStudentMarks(studentId),
             getSubmissionsByUser(studentId),
           ])
@@ -367,12 +367,25 @@ const useStudentDashboardData = (displayStudentId, hasSelection = true, classId 
 
   // ─── Derived: stats summary ────────────────────────────────────────────────
   const statsData = useMemo(() => {
+    const getAttStatus = (a) => {
+      if (typeof a.status === 'string') return a.status.toLowerCase();
+      if (a.status?.code) return a.status.code.toLowerCase();
+      if (a.status?.nameEn) return a.status.nameEn.toLowerCase();
+      if (a.statusId === 1) return 'present';
+      if (a.statusId === 2) return 'absent';
+      if (a.statusId === 3) return 'late';
+      return 'unknown';
+    };
     const totalAttendance = rawData.attendance.length;
-    const presentCount = rawData.attendance.filter(a => a.status === 'present').length;
-    const lateCount = rawData.attendance.filter(a => a.status === 'late').length;
-    const absentCount = rawData.attendance.filter(a =>
-      a.status === 'absent_no_excuse' || a.status === 'absent'
-    ).length;
+    const presentCount = rawData.attendance.filter(a => {
+      const s = getAttStatus(a);
+      return s === 'present' || s === 'excused';
+    }).length;
+    const lateCount = rawData.attendance.filter(a => getAttStatus(a) === 'late').length;
+    const absentCount = rawData.attendance.filter(a => {
+      const s = getAttStatus(a);
+      return s === 'absent_no_excuse' || s === 'absent';
+    }).length;
     const attendanceRate = totalAttendance > 0 ? (presentCount / totalAttendance) * 100 : 0;
 
     const gradesWithPoints = rawData.marks.filter(m => m.points !== undefined);

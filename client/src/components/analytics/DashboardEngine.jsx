@@ -14,6 +14,7 @@ import OptimizedChartRenderer from '../charts/OptimizedChartRenderer';
 import { normalizeAttendanceStatus, normalizeActivityType } from '@utils/listChartResolvers';
 import { inferSchedulingWidgetCategory, getWidgetDisplayTitle, resolveDrillDownListWidget, SCHEDULING_SUMMARY_MAX_WIDGETS } from '@constants/schedulingSummaryWidgets';
 import { inferStudentWidgetCategory, getStudentWidgetDisplayTitle, resolveStudentDrillDownListWidget } from '@constants/studentPerformanceWidgets';
+import { inferClassWidgetCategory, getClassWidgetDisplayTitle, resolveClassDrillDownListWidget } from '@constants/classPerformanceWidgets';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 
 const ResponsiveGrid = WidthProvider(GridLayout);
@@ -162,13 +163,20 @@ const DashboardEngine = React.forwardRef(({
   const filteredWidgets = useMemo(() => {
     const q = widgetSearch.trim().toLowerCase();
     return sortedWidgets.filter((widget) => {
-      if (widgetCategoryResolver === 'scheduling' && widgetCategory) {
-        const cat = inferSchedulingWidgetCategory(widget);
-        if (cat !== widgetCategory) return false;
-      }
-      if (widgetCategoryResolver === 'student' && widgetCategory) {
-        const cat = inferStudentWidgetCategory(widget);
-        if (cat !== widgetCategory) return false;
+      // 'overview' category shows all widgets (it's the default/general view)
+      if (widgetCategory && widgetCategory !== 'overview') {
+        if (widgetCategoryResolver === 'scheduling') {
+          const cat = inferSchedulingWidgetCategory(widget);
+          if (cat !== widgetCategory) return false;
+        }
+        if (widgetCategoryResolver === 'student') {
+          const cat = inferStudentWidgetCategory(widget);
+          if (cat !== widgetCategory) return false;
+        }
+        if (widgetCategoryResolver === 'class') {
+          const cat = inferClassWidgetCategory(widget);
+          if (cat !== widgetCategory) return false;
+        }
       }
       if (!q) return true;
       const title = String(widget.title || widget.titleEn || '').toLowerCase();
@@ -180,8 +188,9 @@ const DashboardEngine = React.forwardRef(({
   }, [sortedWidgets, widgetSearch, widgetCategory, widgetCategoryResolver]);
 
   const isFilterActive = Boolean(widgetSearch.trim())
-    || (widgetCategoryResolver === 'scheduling' && widgetCategory)
-    || (widgetCategoryResolver === 'student' && widgetCategory);
+    || (widgetCategoryResolver === 'scheduling' && widgetCategory && widgetCategory !== 'overview')
+    || (widgetCategoryResolver === 'student' && widgetCategory && widgetCategory !== 'overview')
+    || (widgetCategoryResolver === 'class' && widgetCategory && widgetCategory !== 'overview');
 
   // ── Grid layout — minimized widgets collapse to header height (h=1) ───────
   const gridLayout = useMemo(() => {
@@ -472,6 +481,8 @@ const DashboardEngine = React.forwardRef(({
 
     const drillWidget = widgetCategoryResolver === 'student'
       ? resolveStudentDrillDownListWidget(widget, dataPoint, t, lang)
+      : widgetCategoryResolver === 'class'
+      ? resolveClassDrillDownListWidget(widget, dataPoint, t, lang)
       : resolveDrillDownListWidget(widget, dataPoint, t, lang);
     if (drillWidget) {
       setWidgets((prev) => [...prev, drillWidget]);
@@ -480,6 +491,8 @@ const DashboardEngine = React.forwardRef(({
 
     const parentTitle = widgetCategoryResolver === 'student'
       ? getStudentWidgetDisplayTitle(widget, t, lang)
+      : widgetCategoryResolver === 'class'
+      ? getClassWidgetDisplayTitle(widget, t, lang)
       : getWidgetDisplayTitle(widget, t, lang);
     const sliceLabel = dataPoint.label || dataPoint.lines?.[0] || t('not_specified') || 'Item';
     const newTitle = `${parentTitle} - ${sliceLabel}`;

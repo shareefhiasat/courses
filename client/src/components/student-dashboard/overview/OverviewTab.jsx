@@ -39,12 +39,13 @@ const OverviewTab = memo(({
   // Memoize title based on context
   const title = useMemo(() => {
     if (selectedStudentId) {
-      return t('dashboard.student_overview') || (lang === 'ar' ? 'نظرة عامة على الطالب' : 'Student Overview');
+      const label = t('dashboard.student_overview');
+      return (label && label !== 'dashboard.student overview') ? label : (lang === 'ar' ? 'نظرة عامة على الطالب' : 'Student Overview');
     }
     if (selectedClassId && selectedClassId !== 'all') {
-      return t('dashboard.class_overview') || (lang === 'ar' ? 'نظرة عامة على الفصل' : 'Class Overview');
+      return lang === 'ar' ? 'نظرة عامة على الفصل' : 'Class Overview';
     }
-    return t('dashboard.overview') || (lang === 'ar' ? 'نظرة عامة' : 'Overview');
+    return lang === 'ar' ? 'نظرة عامة' : 'Overview';
   }, [selectedStudentId, selectedClassId, lang, t]);
 
   // Build summary text for collapsible header

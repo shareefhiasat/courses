@@ -1,0 +1,17 @@
+.container {
+  width: 100%;
+  padding: 16px 0;
+}
+
+.loading,
+.error,
+.empty {
+  padding: 40px 20px;
+  text-align: center;
+  color: var(--text-secondary, #666);
+  font-size: 14px;
+}
+
+.error {
+  color: var(--error, #dc2626);
+}

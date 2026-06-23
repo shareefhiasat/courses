@@ -275,13 +275,15 @@ export function buildStudentPerformanceRawData(dashData, lookupData = {}, isRTL 
   }
 
   // Build enrollment lookup: classId → semester/year
+  // Use class term/year from lookupData when enrollment doesn't have semester/year
   const classSemesterMap = new Map();
   for (const e of enrollments) {
     if (e.classId) {
+      const cls = classMap.get(String(e.classId));
       classSemesterMap.set(String(e.classId), {
-        semester: e.semester || 'Unknown',
-        year: e.academicYear || e.year || new Date().getFullYear(),
-        academicYear: e.academicYear || e.year,
+        semester: e.semester || cls?.term || 'Unknown',
+        year: e.academicYear || e.year || cls?.year || new Date().getFullYear(),
+        academicYear: e.academicYear || e.year || cls?.year,
         subjectId: e.subjectId,
         programId: e.programId,
       });
@@ -383,15 +385,18 @@ export function buildStudentPerformanceRawData(dashData, lookupData = {}, isRTL 
   });
 
   // Enrich enrollments
-  const enrichedEnrollments = enrollments.map(e => ({
-    ...e,
-    semester: e.semester || 'Unknown',
-    year: e.academicYear || e.year || new Date().getFullYear(),
-    academicYear: e.academicYear || e.year,
-    className: resolveClassLabel(e.classId),
-    subjectName: resolveSubjectLabel(e.subjectId),
-    programName: resolveProgramLabel(e.programId),
-  }));
+  const enrichedEnrollments = enrollments.map(e => {
+    const sem = classSemesterMap.get(String(e.classId)) || {};
+    return {
+      ...e,
+      semester: e.semester || sem.semester || 'Unknown',
+      year: e.academicYear || e.year || sem.year || new Date().getFullYear(),
+      academicYear: e.academicYear || e.year || sem.academicYear,
+      className: resolveClassLabel(e.classId),
+      subjectName: resolveSubjectLabel(e.subjectId),
+      programName: resolveProgramLabel(e.programId),
+    };
+  });
 
   // Count repeated courses
   const repeatedCount = enrollments.filter(e => e.isRepeated || e.repeated).length;

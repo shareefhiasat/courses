@@ -21,6 +21,7 @@ import {
   OverviewTab,
   PerformanceTab,
   MarksTab,
+  ClassTab,
 } from '@components/student-dashboard';
 import styles from './StudentDashboardPage.module.css';
 
@@ -59,12 +60,12 @@ export default function StudentDashboardPage() {
     permissions.isStaff && !filters.selectedStudentId && filters.selectedClassId ? filters.selectedClassId : null
   );
 
-  // Class-level metrics for staff when no student is selected
+  // Class-level metrics for staff when a class is selected
   const classMetrics = useClassLevelMetrics(
     permissions.isStaff && filters.selectedClassId && filters.selectedClassId !== 'all' 
       ? filters.selectedClassId 
       : null,
-    permissions.isStaff && !filters.hasSelection
+    permissions.isStaff
   );
 
   // Load all users for UserSelect (like enrollment page pattern)
@@ -74,7 +75,7 @@ export default function StudentDashboardPage() {
     const loadAllUsers = async () => {
       if (!permissions.isStaff) return;
       try {
-        const result = await getUsers();
+        const result = await getUsers({ limit: 100 });
         if (result.success) {
           setAllUsers(result.data || []);
         }
@@ -152,14 +153,20 @@ export default function StudentDashboardPage() {
   ], [filters.filteredStudents, lang, t]);
 
   // ─── Memoized tabs configuration (Performance optimization) ─────────────────────
-  const dashTabs = useMemo(() => [
-    { value: 'overview',      label: t('dashboard.overview') || (lang === 'ar' ? 'نظرة عامة'   : 'Overview') },
-    { value: 'performance',   label: t('dashboard.performance') || (lang === 'ar' ? 'الأداء'        : 'Performance') },
-    { value: 'marks',         label: t('dashboard.marks') || (lang === 'ar' ? 'الدرجات'      : 'Marks') },
-    /*{ value: 'penalties',     label: t('dashboard.penalties') || (lang === 'ar' ? 'العقوبات'     : 'Penalties') },
-    { value: 'participations',label: t('dashboard.participations') || (lang === 'ar' ? 'المشاركات'    : 'Participations') },
-    { value: 'behaviors',     label: t('dashboard.behaviors') || (lang === 'ar' ? 'السلوك'       : 'Behaviors') },*/
-  ], [lang, t]);
+  const dashTabs = useMemo(() => {
+    const tabs = [
+      { value: 'overview',      label: t('dashboard.overview') || (lang === 'ar' ? 'نظرة عامة'   : 'Overview') },
+      { value: 'performance',   label: t('dashboard.performance') || (lang === 'ar' ? 'الأداء'        : 'Performance') },
+      { value: 'marks',         label: t('dashboard.marks') || (lang === 'ar' ? 'الدرجات'      : 'Marks') },
+    ];
+    
+    // Add Class tab for staff roles only (Super Admin, HR, Instructor, Admin)
+    if (permissions.isStaff) {
+      tabs.push({ value: 'class', label: lang === 'ar' ? 'تحليلات الفصل' : 'Class' });
+    }
+    
+    return tabs;
+  }, [lang, t, permissions.isStaff]);
 
   if (authLoading) return <GlobalLoadingFallback />;
 
@@ -310,7 +317,6 @@ export default function StudentDashboardPage() {
                   participations={dashData.participations}
                   penalties={dashData.penalties}
                   behaviors={dashData.behaviors}
-                  students={classEnrollments}
                   canInlineEdit={permissions.canInlineEdit}
                   canDeleteRecords={permissions.canDeleteRecords}
                   onRefresh={dashData.reload}
@@ -331,6 +337,24 @@ export default function StudentDashboardPage() {
                   studentId={displayStudentId}
                   t={t}
                   lang={lang}
+                />
+              )}
+              {activeTab === 'class' && permissions.isStaff && (
+                <ClassTab
+                  classId={filters.selectedClassId}
+                  classMetrics={classMetrics.metrics}
+                  classRawData={classMetrics.rawData}
+                  loading={classMetrics.loading}
+                  error={classMetrics.error}
+                  onReload={classMetrics.reload}
+                  selectedProgramId={filters.selectedProgramId}
+                  selectedSubjectId={filters.selectedSubjectId}
+                  t={t}
+                  lang={lang}
+                  dashData={dashData}
+                  lookupData={{ programs: filters.programs, subjects: filters.subjects, classes: filters.classes }}
+                  isRTL={lang === 'ar'}
+                  lastUpdatedAt={Date.now()}
                 />
               )}
             </div>

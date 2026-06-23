@@ -283,11 +283,42 @@ function ListChart({
       ];
     } else if (chartType === 'attendance') {
       return [
-        { key: 'studentName', label: t('student_name') || 'Student Name', width: '25%', isRelated: false },
-        { key: 'studentNumber', label: t('student_number') || 'Student Number', width: '15%', isRelated: false },
-        { key: 'status', label: t('status') || 'Status', width: '15%', isRelated: false },
+        { key: 'studentName', label: t('student_name') || 'Student Name', width: '20%', isRelated: false },
+        { key: 'studentNumber', label: t('student_number') || 'Student Number', width: '12%', isRelated: false },
+        { key: 'status', label: t('status') || 'Status', width: '12%', isRelated: false },
         { key: 'date', label: t('date') || 'Date', width: '15%', isRelated: false },
-        { key: 'className', label: t('class_name') || 'Class', width: '20%', isRelated: false },
+        { key: 'className', label: t('class_name') || 'Class', width: '15%', isRelated: false },
+        { key: 'notes', label: t('notes') || 'Notes', width: '16%', isRelated: false },
+        { key: 'id', label: t('id') || 'ID', width: '10%', isRelated: false }
+      ];
+    } else if (chartType === 'penalty' || widget.dataSource === 'penalties') {
+      return [
+        { key: 'studentName', label: t('student_name') || 'Student Name', width: '18%', isRelated: false },
+        { key: 'penaltyType', label: t('type') || 'Type', width: '15%', isRelated: false },
+        { key: 'descriptionEn', label: t('description') || 'Description', width: '25%', isRelated: false },
+        { key: 'points', label: t('points') || 'Points', width: '8%', isRelated: false },
+        { key: 'date', label: t('date') || 'Date', width: '12%', isRelated: false },
+        { key: 'className', label: t('class_name') || 'Class', width: '12%', isRelated: false },
+        { key: 'id', label: t('id') || 'ID', width: '10%', isRelated: false }
+      ];
+    } else if (chartType === 'behavior' || widget.dataSource === 'behaviors') {
+      return [
+        { key: 'studentName', label: t('student_name') || 'Student Name', width: '18%', isRelated: false },
+        { key: 'behaviorType', label: t('type') || 'Type', width: '15%', isRelated: false },
+        { key: 'descriptionEn', label: t('description') || 'Description', width: '25%', isRelated: false },
+        { key: 'points', label: t('points') || 'Points', width: '8%', isRelated: false },
+        { key: 'date', label: t('date') || 'Date', width: '12%', isRelated: false },
+        { key: 'className', label: t('class_name') || 'Class', width: '12%', isRelated: false },
+        { key: 'id', label: t('id') || 'ID', width: '10%', isRelated: false }
+      ];
+    } else if (chartType === 'participation' || widget.dataSource === 'participations') {
+      return [
+        { key: 'studentName', label: t('student_name') || 'Student Name', width: '18%', isRelated: false },
+        { key: 'participationType', label: t('type') || 'Type', width: '15%', isRelated: false },
+        { key: 'descriptionEn', label: t('description') || 'Description', width: '25%', isRelated: false },
+        { key: 'points', label: t('points') || 'Points', width: '8%', isRelated: false },
+        { key: 'date', label: t('date') || 'Date', width: '12%', isRelated: false },
+        { key: 'className', label: t('class_name') || 'Class', width: '12%', isRelated: false },
         { key: 'id', label: t('id') || 'ID', width: '10%', isRelated: false }
       ];
     } else if (chartType === 'enrollment') {
@@ -468,14 +499,53 @@ function ListChart({
   // Enhanced cell rendering with smart data mapping
   const pickLocalized = (item, field) => {
     const arKey = `${field}Ar`;
-    if (lang === 'ar') return item[arKey] || item[field] || '—';
-    return item[field] || item[arKey] || '—';
+    const val = lang === 'ar' ? (item[arKey] || item[field]) : (item[field] || item[arKey]);
+    // Normalize object values from API (e.g., {id, code, nameEn, nameAr})
+    if (val && typeof val === 'object') return val.nameAr || val.nameEn || val.code || val.name || String(val.id || '') || '—';
+    return val || '—';
   };
 
   const renderCellValue = (item, column) => {
     if (column.isRelated) {
       return resolveRelatedColumn(item, column.key, rawData, t);
     }
+
+    // Helper to resolve nested user object from API
+    const resolveStudentName = (item) => {
+      if (item.studentName) return item.studentName;
+      if (item.user) {
+        const u = item.user;
+        if (lang === 'ar' && (u.displayNameAr || (u.firstNameAr && u.lastNameAr))) {
+          return u.displayNameAr || `${u.firstNameAr} ${u.lastNameAr}`.trim();
+        }
+        return u.displayName || (u.firstName && u.lastName ? `${u.firstName} ${u.lastName}`.trim() : '') || u.realName || u.email || '—';
+      }
+      return '—';
+    };
+
+    const resolveClassName = (item) => {
+      if (item.className) return item.className;
+      if (item.class) {
+        const c = item.class;
+        return lang === 'ar' ? (c.nameAr || c.nameEn || c.code || '—') : (c.nameEn || c.nameAr || c.code || '—');
+      }
+      return '—';
+    };
+
+    const resolveStudentNumber = (item) => {
+      if (item.studentNumber) return item.studentNumber;
+      if (item.user?.studentNumber) return item.user.studentNumber;
+      return '—';
+    };
+
+    const resolveTypeLabel = (typeObj) => {
+      if (!typeObj) return '—';
+      if (typeof typeObj === 'string') return typeObj;
+      if (typeof typeObj === 'object') {
+        return lang === 'ar' ? (typeObj.nameAr || typeObj.nameEn || typeObj.code || '—') : (typeObj.nameEn || typeObj.nameAr || typeObj.code || '—');
+      }
+      return String(typeObj);
+    };
 
     switch (column.key) {
       case 'type':
@@ -507,10 +577,13 @@ function ListChart({
         return item[column.key] ?? '—';
 
       case 'programName':
+        return pickLocalized(item, 'programName');
       case 'className':
+        return resolveClassName(item);
       case 'studentName':
+        return resolveStudentName(item);
       case 'markedBy':
-        return pickLocalized(item, column.key);
+        return pickLocalized(item, 'markedBy');
 
       case 'attendanceTypeLabel':
         if (item.attendanceType === 'daily') {
@@ -519,7 +592,7 @@ function ListChart({
         return lang === 'ar' ? (t('class_attendance') || 'حضور الصف') : (t('class_attendance_en') || 'Class attendance');
 
       case 'studentNumber':
-        return item.studentNumber ?? '—';
+        return resolveStudentNumber(item);
 
       case 'titleEn':
         return item.titleEn || getLocalizedName(item, 'en') || '—';
@@ -535,11 +608,38 @@ function ListChart({
         return formatDate(item.createdAt?.seconds ? new Date(item.createdAt.seconds * 1000) : item.createdAt, t);
 
       case 'status':
-        if (item.statusAr || item.status) return pickLocalized(item, 'status');
+        if (item.status) {
+          if (typeof item.status === 'object') {
+            return lang === 'ar' ? (item.status.nameAr || item.status.nameEn || item.status.code || '—') : (item.status.nameEn || item.status.nameAr || item.status.code || '—');
+          }
+          return normalizeAttendanceStatus(item.status, t);
+        }
+        if (item.statusAr) return pickLocalized(item, 'status');
         return normalizeAttendanceStatus(item.attendanceType || item.absenceType || item.attendanceStatus, t);
 
       case 'date':
-        return formatDate(item.date?.seconds ? new Date(item.date.seconds * 1000) : item.date, t);
+        if (item.date) return formatDate(item.date?.seconds ? new Date(item.date.seconds * 1000) : item.date, t);
+        if (item.createdAt) return formatDate(item.createdAt?.seconds ? new Date(item.createdAt.seconds * 1000) : item.createdAt, t);
+        return '—';
+
+      case 'penaltyType':
+        return resolveTypeLabel(item.penaltyType);
+
+      case 'behaviorType':
+        return resolveTypeLabel(item.behaviorType);
+
+      case 'participationType':
+        return resolveTypeLabel(item.participationType);
+
+      case 'descriptionEn':
+        if (lang === 'ar' && item.descriptionAr) return item.descriptionAr;
+        return item.descriptionEn || item.description || item.comment || '—';
+
+      case 'points':
+        return item.points ?? '—';
+
+      case 'notes':
+        return item.notes || item.comment || '—';
 
       case 'titleEn':
         return item.titleEn || getLocalizedName(item, 'en') || '—';

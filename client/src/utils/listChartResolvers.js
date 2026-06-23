@@ -139,6 +139,9 @@ export const normalizeAttendanceStatus = (status, t) => {
   const translate = t || ((key) => key);
   if (!status) return translate('not_specified');
   
+  // Normalize object status from API (e.g., {id, code, nameEn, nameAr})
+  if (typeof status === 'object') status = status.code || status.nameEn || status.name || String(status.id || '') || 'Unknown';
+  
   const statusMap = {
     'present': translate('present') || 'Present',
     'late': translate('late') || 'Late',
@@ -162,6 +165,9 @@ export const normalizeAttendanceStatus = (status, t) => {
 export const normalizeActivityType = (type, t) => {
   const translate = t || ((key) => key);
   if (!type) return translate('not_specified');
+  
+  // Normalize object type from API (e.g., {id, code, nameEn, nameAr})
+  if (typeof type === 'object') type = type.code || type.nameEn || type.name || String(type.id || '') || 'Unknown';
   
   const typeMap = {
     'homework': translate('homework') || 'Homework',

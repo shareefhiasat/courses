@@ -480,6 +480,13 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
     return [{ label, value: stats[statKey] ?? 0 }];
   }
 
+  if (dataSource === 'classOverviewStats') {
+    const stats = rawData.classOverviewStats || {};
+    const statKey = widget.statKey || widget.countMetric || 'totalStudents';
+    const label = widget.titleKey && t ? t(widget.titleKey) : (widget.titleEn || widget.title || statKey);
+    return [{ label, value: stats[statKey] ?? 0 }];
+  }
+
   if (dataSource?.startsWith('scheduling')) {
     const dataset = rawData[dataSource] || [];
     if (widget.chartType === 'count') {
@@ -665,7 +672,7 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
   });
 
   // --- Date range ---
-  if (dateRange && dateRange !== 'all'); {
+  if (dateRange && dateRange !== 'all' && dateRange !== 'current') {
     let cutoff, upperBound;
     if (dateRange === 'custom' && customDateFrom && customDateTo) {
       cutoff = new Date(customDateFrom).getTime();
@@ -690,6 +697,13 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
         ts = item.when?.seconds ? item.when.seconds * 1000 :
              item.createdAt?.seconds ? item.createdAt.seconds * 1000 :
              item.submittedAt?.seconds ? item.submittedAt.seconds * 1000 : 0;
+        // Handle ISO string dates from API (e.g., "2026-06-23T10:32:00.000Z")
+        if (ts === 0 && item.createdAt && typeof item.createdAt === 'string') {
+          ts = new Date(item.createdAt).getTime();
+        }
+        if (ts === 0 && item.date && typeof item.date === 'string') {
+          ts = new Date(item.date).getTime();
+        }
       }
       return ts >= cutoff && ts < upperBound;
     });
@@ -714,6 +728,15 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
     if (!groupBy || groupBy.trim() === '' || groupBy === 'undefined' || groupBy === 'null') {
       return 'All';
     }
+
+    // Helper: normalize a field value that may be an object from the API
+    const normField = (val) => {
+      if (val == null) return null;
+      if (typeof val === 'string') return val;
+      if (typeof val === 'number') return String(val);
+      if (typeof val === 'object') return val.code || val.nameEn || val.name || String(val.id || '') || 'Unknown';
+      return String(val);
+    };
     
     if (groupBy === 'programId' || groupBy === 'program') {
       const cId = item.classId || item.class || item.class_id;
@@ -778,17 +801,43 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
       return ts ? new Date(ts).toLocaleDateString('en-GB') : null;
     }
     if (groupBy === 'penaltyType' || (dataSource === 'penalties' && groupBy === 'type')) {
-      const pt = item.type || 'Unknown';
-      return (lookupData['penalty-types'] || []).find(p => p.id === pt)?.nameEn || pt;
+      const ptObj = item.penaltyType || item.type;
+      if (!ptObj) return 'Unknown';
+      if (typeof ptObj === 'string') return ptObj;
+      if (typeof ptObj === 'object') {
+        return lang === 'ar' ? (ptObj.nameAr || ptObj.nameEn || ptObj.code || 'Unknown') : (ptObj.nameEn || ptObj.nameAr || ptObj.code || 'Unknown');
+      }
+      return String(ptObj);
     }
-    if (groupBy === 'attendanceType' || (dataSource === 'attendance' && groupBy === 'status')); {
-      const status = item.status || 'Unknown';
+    if (groupBy === 'behaviorType' || (dataSource === 'behaviors' && groupBy === 'type')) {
+      const btObj = item.behaviorType || item.type;
+      if (!btObj) return 'Unknown';
+      if (typeof btObj === 'string') return btObj;
+      if (typeof btObj === 'object') {
+        return lang === 'ar' ? (btObj.nameAr || btObj.nameEn || btObj.code || 'Unknown') : (btObj.nameEn || btObj.nameAr || btObj.code || 'Unknown');
+      }
+      return String(btObj);
+    }
+    if (groupBy === 'participationType' || (dataSource === 'participations' && groupBy === 'type')) {
+      const ptObj = item.participationType || item.type;
+      if (!ptObj) return 'Unknown';
+      if (typeof ptObj === 'string') return ptObj;
+      if (typeof ptObj === 'object') {
+        return lang === 'ar' ? (ptObj.nameAr || ptObj.nameEn || ptObj.code || 'Unknown') : (ptObj.nameEn || ptObj.nameAr || ptObj.code || 'Unknown');
+      }
+      return String(ptObj);
+    }
+    if (groupBy === 'attendanceType' || (dataSource === 'attendance' && groupBy === 'status')) {
+      const status = normField(item.status) || 'Unknown';
       // Always return clean English labels for grouping keys
       const statusMap = {
         'present': 'Present',
+        'PRESENT': 'Present',
         'late': 'Late',
+        'LATE': 'Late',
         'absent_with_excuse': 'Absent (Excused)',
         'absent': 'Absent (No Excuse)',
+        'ABSENT': 'Absent (No Excuse)',
         'absent_no_excuse': 'Absent (No Excuse)',
         'excused_leave': 'Excused Leave',
         'human_case': 'Human Case',
@@ -818,9 +867,9 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
       return absenceType ? absenceType.label_en : status;
     }
     if (groupBy === 'status' && dataSource === 'attendance') {
-      let s = item.status || 'unknown';
-      if (s === 'absent') s = ATTENDANCE_STATUS.ABSENT_NO_EXCUSE;
-      if (s === 'excused') s = ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE;
+      let s = normField(item.status) || 'unknown';
+      if (s === 'absent' || s === 'ABSENT') s = ATTENDANCE_STATUS.ABSENT_NO_EXCUSE;
+      if (s === 'excused' || s === 'EXCUSED') s = ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE;
       return s;
     }
     if (groupBy === 'createdBy' || groupBy === 'performedBy') {
@@ -879,6 +928,13 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
                 return resolvedName;
       }
       
+      // Fallback: resolve from nested user object on the item (API responses)
+      if (item.user) {
+        const u = item.user;
+        const name = u.displayName || (u.firstName && u.lastName ? `${u.firstName} ${u.lastName}`.trim() : '') || u.realName || u.email;
+        if (name) return name;
+      }
+      
             return studentId;
     }
     if (groupBy === '_source') {
@@ -901,7 +957,7 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
       return sourceLabels[src] || src;
     }
     if (groupBy === 'type') {
-      const rawType = item.type || item._source || 'Unknown';
+      const rawType = normField(item.type) || item._source || 'Unknown';
       // Always return clean English labels for grouping keys
       const typeMap = {
         [ACTIVITY_TYPES.QUIZ]: ACTIVITY_TYPE_LABELS[ACTIVITY_TYPES.QUIZ],
@@ -923,7 +979,8 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
       };
       return typeMap[rawType] || rawType;
     }
-    return String(item[groupBy] || 'Unknown');
+    const fallbackVal = item[groupBy];
+    return typeof fallbackVal === 'object' ? normField(fallbackVal) : String(fallbackVal || 'Unknown');
   };
 
   const accumulate = (key, item) => {

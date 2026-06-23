@@ -34,6 +34,13 @@ const useClassLevelMetrics = (classId, shouldLoad = true) => {
     classDistribution: {},
     recentActivity: []
   });
+  const [rawData, setRawData] = useState({
+    enrollments: [],
+    attendance: [],
+    penalties: [],
+    behaviors: [],
+    participations: [],
+  });
 
   const loadClassMetrics = useCallback(async () => {
     if (!classId || !shouldLoad) {
@@ -47,6 +54,13 @@ const useClassLevelMetrics = (classId, shouldLoad = true) => {
         averageGPA: 0,
         classDistribution: {},
         recentActivity: []
+      });
+      setRawData({
+        enrollments: [],
+        attendance: [],
+        penalties: [],
+        behaviors: [],
+        participations: [],
       });
       return;
     }
@@ -93,10 +107,20 @@ const useClassLevelMetrics = (classId, shouldLoad = true) => {
       const totalStudents = enrollments.length;
       
       // Average attendance rate
+      const getAttendanceStatus = (a) => {
+        if (typeof a.status === 'string') return a.status.toLowerCase();
+        if (a.status?.code) return a.status.code.toLowerCase();
+        if (a.status?.nameEn) return a.status.nameEn.toLowerCase();
+        if (a.statusId === 1) return 'present';
+        if (a.statusId === 2) return 'absent';
+        if (a.statusId === 3) return 'late';
+        return 'unknown';
+      };
       const attendanceRates = enrollments.map(enrollment => {
-        const studentAttendance = attendance.filter(a => a.studentId === enrollment.studentId);
+        const studentId = enrollment.studentId || enrollment.userId;
+        const studentAttendance = attendance.filter(a => (a.studentId || a.userId) === studentId);
         if (studentAttendance.length === 0) return 0;
-        const presentCount = studentAttendance.filter(a => a.status === 'present').length;
+        const presentCount = studentAttendance.filter(a => getAttendanceStatus(a) === 'present').length;
         return (presentCount / studentAttendance.length) * 100;
       });
       const averageAttendance = attendanceRates.length > 0 
@@ -139,6 +163,7 @@ const useClassLevelMetrics = (classId, shouldLoad = true) => {
       };
 
       setMetrics(calculatedMetrics);
+      setRawData({ enrollments, attendance, penalties, behaviors, participations });
       
       info('[ClassLevelMetrics] Metrics calculated:', calculatedMetrics);
     } catch (err) {
@@ -156,6 +181,7 @@ const useClassLevelMetrics = (classId, shouldLoad = true) => {
 
   return {
     metrics,
+    rawData,
     loading,
     error,
     reload: loadClassMetrics

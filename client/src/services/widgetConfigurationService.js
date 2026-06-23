@@ -4,6 +4,7 @@ import {
   STUDENT_OVERVIEW_DEFAULT_WIDGETS,
   STUDENT_PERFORMANCE_DEFAULT_WIDGETS,
 } from '@constants/studentPerformanceWidgets';
+import { CLASS_ANALYTICS_DEFAULTS } from '@constants/classPerformanceWidgets';
 
 /**
  * Default widget configurations for each role and dashboard
@@ -15,6 +16,9 @@ export const DEFAULT_WIDGET_CONFIGURATIONS = {
 
   // Student Dashboard - Performance Tab (uses DashboardEngine defaults)
   [`${ROLE_STRINGS.STUDENT}_performance`]: STUDENT_PERFORMANCE_DEFAULT_WIDGETS,
+
+  // Class Analytics Tab (for all staff roles)
+  CLASS_analytics: CLASS_ANALYTICS_DEFAULTS,
 
   // Instructor Dashboard - Overview Tab
   [`${ROLE_STRINGS.INSTRUCTOR}_overview`]: [

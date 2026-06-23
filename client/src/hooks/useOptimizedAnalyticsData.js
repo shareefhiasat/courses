@@ -310,7 +310,7 @@ function processMultiSourceActivityData(widget, data, filters) {
     const typeDistribution = {};
     
     filtered.forEach(item => {
-      const rawType = item.type || 'Unknown';
+      const rawType = (typeof item.type === 'object' ? (item.type?.code || item.type?.nameEn || 'Unknown') : (item.type || 'Unknown'));
       typeDistribution[rawType] = (typeDistribution[rawType] || 0) + 1;
       
       // Enhanced activity type mapping for all activity types
@@ -590,21 +590,28 @@ function processAttendanceData(widget, data, filters) {
     const grouped = {};
     const statusDistribution = {};
     
+    const normStr = (v) => {
+      if (v == null) return 'Unknown';
+      if (typeof v === 'string') return v;
+      if (typeof v === 'object') return v.code || v.nameEn || v.name || String(v.id || '') || 'Unknown';
+      return String(v);
+    };
+
     filtered.forEach(item => {
       // Handle different data structures from multiple sources
       let status = 'Unknown';
       
       // From attendance collection
       if (item.status) {
-        status = item.status;
+        status = normStr(item.status);
       }
       // From absences collection
       else if (item.absenceType) {
-        status = item.absenceType;
+        status = normStr(item.absenceType);
       }
       // From attendanceSessions collection
       else if (item.attendanceStatus) {
-        status = item.attendanceStatus;
+        status = normStr(item.attendanceStatus);
       }
       
       // Clean, non-duplicate status mapping
@@ -629,7 +636,8 @@ function processAttendanceData(widget, data, filters) {
       };
       
       const key = statusMap[status.toLowerCase()] || status;
-      grouped[key] = (grouped[key] || 0) + 1;
+      const safeKey = typeof key === 'object' ? normStr(key) : key;
+      grouped[safeKey] = (grouped[safeKey] || 0) + 1;
       statusDistribution[status] = (statusDistribution[status] || 0) + 1;
     });
     
@@ -776,7 +784,7 @@ function processBehaviorData(widget, data, filters) {
     const typeDistribution = {};
     
     filtered.forEach(item => {
-      const rawType = item.type || 'Unknown';
+      const rawType = (typeof item.type === 'object' ? (item.type?.code || item.type?.nameEn || 'Unknown') : (item.type || 'Unknown'));
       typeDistribution[rawType] = (typeDistribution[rawType] || 0) + 1;
       
       // Clean, non-duplicate type mapping
@@ -931,10 +939,12 @@ function processGenericData(widget, data, filters, rawData, dataSourceName) {
         case 'absenceType':
         case 'attendanceType':
           key = item[widget.groupBy] || item.type || 'Unknown';
+          if (typeof key === 'object') key = key.code || key.nameEn || key.name || String(key.id || '') || 'Unknown';
           break;
           
         default:
           key = item[widget.groupBy] || 'Unknown';
+          if (typeof key === 'object') key = key.code || key.nameEn || key.name || String(key.id || '') || 'Unknown';
       }
       
       grouped[key] = (grouped[key] || 0) + 1;
