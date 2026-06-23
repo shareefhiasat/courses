@@ -248,6 +248,8 @@ export const getAllStudentMarksReport = async (filters = {}) => {
     if (filters.classId) params.append('classId', filters.classId);
     if (filters.year) params.append('year', filters.year);
     if (filters.term) params.append('term', filters.term);
+    if (filters.studentId) params.append('studentId', filters.studentId);
+    if (filters.userId) params.append('userId', filters.userId);
     if (filters.isRepeated !== undefined && filters.isRepeated !== '') {
       params.append('isRepeated', filters.isRepeated);
     }

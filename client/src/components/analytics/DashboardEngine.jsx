@@ -16,6 +16,7 @@ import { inferSchedulingWidgetCategory, getWidgetDisplayTitle, resolveDrillDownL
 import { inferStudentWidgetCategory, getStudentWidgetDisplayTitle, resolveStudentDrillDownListWidget } from '@constants/studentPerformanceWidgets';
 import { inferClassWidgetCategory, getClassWidgetDisplayTitle, resolveClassDrillDownListWidget } from '@constants/classPerformanceWidgets';
 import { info, error, warn, debug } from '@services/utils/logger.js';
+import { ConfirmModal } from '@ui';
 
 const ResponsiveGrid = WidthProvider(GridLayout);
 const GRID_COLS = 12;
@@ -91,6 +92,7 @@ const DashboardEngine = React.forwardRef(({
   const [showBuilder, setShowBuilder] = useState(false);
   const [editingWidget, setEditingWidget] = useState(null);
   const [widgetConfig, setWidgetConfig] = useState(DEFAULT_WIDGET_CONFIG);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
   // Per-widget: minimized state, refresh version counter (no Firebase call needed)
   const [minimizedIds, setMinimizedIds] = useState({});
@@ -284,15 +286,9 @@ const DashboardEngine = React.forwardRef(({
   useImperativeHandle(ref, () => ({
     openBuilder,
     resetToDefaults: () => {
-      if (window.confirm(t('reset_dashboard_confirm') || 'Reset dashboard to system defaults? Your custom layout will be lost.')) {
-        resetToDefaults();
-        setMinimizedIds({});
-        setOriginalSizes({});
-        setWidgetVersions({});
-        setWidgetUpdatedAt({});
-      }
+      setShowResetConfirm(true);
     },
-  }), [openBuilder, resetToDefaults, t]);
+  }), [openBuilder, t]);
 
   const handleSave = useCallback(() => {
     if (editingWidget) {
@@ -726,6 +722,26 @@ const DashboardEngine = React.forwardRef(({
         isEditing={!!editingWidget}
         accentColor={accentColor}
         categoryScope={builderCategoryScope ?? (storageKey === 'scheduling_summary' ? 'scheduling' : null)}
+      />
+
+      {/* ── Reset Confirmation Modal ── */}
+      <ConfirmModal
+        isOpen={showResetConfirm}
+        onClose={() => setShowResetConfirm(false)}
+        onConfirm={() => {
+          resetToDefaults();
+          setMinimizedIds({});
+          setOriginalSizes({});
+          setWidgetVersions({});
+          setWidgetUpdatedAt({});
+          setShowResetConfirm(false);
+        }}
+        title={t('reset_dashboard') || 'Reset Dashboard'}
+        message={t('reset_dashboard_confirm') || 'Reset dashboard to system defaults? Your custom layout will be lost.'}
+        confirmText={t('reset') || 'Reset'}
+        cancelText={t('cancel') || 'Cancel'}
+        variant="danger"
+        size="small"
       />
     </>
   );

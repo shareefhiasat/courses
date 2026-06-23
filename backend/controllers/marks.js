@@ -813,7 +813,8 @@ export {
  */
 const getAllStudentMarksReport = async (req, res) => {
   try {
-    const { programId, subjectId, classId, year, term, isRepeated } = req.query;
+    const { programId, subjectId, classId, year, term, isRepeated, userId, studentId } = req.query;
+    const filterUserId = userId || studentId;
     
     console.log('🔍 [MARKS DEBUG] getAllStudentMarksReport called with filters:', {
       programId,
@@ -821,7 +822,8 @@ const getAllStudentMarksReport = async (req, res) => {
       classId,
       year,
       term,
-      isRepeated
+      isRepeated,
+      userId: filterUserId
     });
     
     // Build where clause for classes
@@ -848,6 +850,7 @@ const getAllStudentMarksReport = async (req, res) => {
         status: {
           code: 'ENROLLED'
         },
+        ...(filterUserId && { userId: parseInt(filterUserId) }),
         ...(Object.keys(classWhere).length > 0 && {
           class: {
             ...classWhere

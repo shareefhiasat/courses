@@ -7,7 +7,7 @@ import { getAttendanceByStudent } from '@services/business/attendanceService';
 import { getPenalties } from '@services/business/penaltyService';
 import { getParticipations } from '@services/business/participationService';
 import { getBehaviors } from '@services/business/behaviorService';
-import { getStudentMarks } from '@services/business/enrollmentMarksService';
+import { getStudentMarks, getAllStudentMarksReport } from '@services/business/enrollmentMarksService';
 import { getActivitiesByClasses } from '@services/business/activitiesService';
 import { getSubmissionsByUser } from '@services/business/submissionsService';
 import { getLocalizedActionLabel } from '@utils/sharedTypes';
@@ -24,7 +24,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';
  *   When false (staff with no selection), data is not fetched.
  * @param {string|null} classId - The class ID to fetch data for all students when no specific student is selected.
  */
-const useStudentDashboardData = (displayStudentId, hasSelection = true, classId = null) => {
+const useStudentDashboardData = (displayStudentId, hasSelection = true, classId = null, programId = null) => {
   const { user } = useAuth();
   const toast = useToast();
   const { t, lang } = useLang();
@@ -100,15 +100,18 @@ const useStudentDashboardData = (displayStudentId, hasSelection = true, classId 
           Promise.allSettled([
             getEnrollments({ userId: studentId }),
             getAttendanceByStudent(studentId),
-            getPenalties({ userId: studentId }),
-            getParticipations({ userId: studentId }),
-            getBehaviors({ userId: studentId }),
-            getStudentMarks(studentId),
+            getPenalties({ userId: studentId, limit: 100 }),
+            getParticipations({ userId: studentId, limit: 100 }),
+            getBehaviors({ userId: studentId, limit: 100 }),
             getSubmissionsByUser(studentId),
           ])
         );
 
-        const results = await Promise.all(promises);
+        // Fetch marks for the class and also for the program (to get multi-year data)
+        const marksPromise = getAllStudentMarksReport({ classId });
+        const allMarksPromise = getAllStudentMarksReport({ programId });
+
+        const [results, marksResult, allMarksResult] = await Promise.all([Promise.all(promises), marksPromise, allMarksPromise]);
         
         // Aggregate results from all students
         const aggregatedData = {
@@ -124,12 +127,20 @@ const useStudentDashboardData = (displayStudentId, hasSelection = true, classId 
         results.forEach((studentResults, index) => {
           const studentId = studentIds[index];
           studentResults.forEach((result, resultIndex) => {
-            const dataKey = ['enrollments', 'attendance', 'penalties', 'participations', 'behaviors', 'marks', 'submissions'][resultIndex];
+            const dataKey = ['enrollments', 'attendance', 'penalties', 'participations', 'behaviors', 'submissions'][resultIndex];
             if (result.status === 'fulfilled' && result.value?.data) {
               aggregatedData[dataKey].push(...result.value.data);
             }
           });
         });
+
+        // Add marks from the class-level fetch, merged with program-wide marks (deduped by id)
+        const classMarks = marksResult?.data || [];
+        const programMarks = allMarksResult?.data || [];
+        const marksById = new Map();
+        for (const m of classMarks) { marksById.set(m.id, m); }
+        for (const m of programMarks) { if (!marksById.has(m.id)) marksById.set(m.id, m); }
+        aggregatedData.marks = [...marksById.values()];
 
         // Set the aggregated results
         enrollmentsRes = { status: 'fulfilled', value: { data: aggregatedData.enrollments } };
@@ -169,10 +180,10 @@ const useStudentDashboardData = (displayStudentId, hasSelection = true, classId 
         ] = await Promise.allSettled([
           getEnrollments({ userId: effectiveUserId }),
           getAttendanceByStudent(effectiveUserId),
-          getPenalties(effectiveUserId),
-          getParticipations({ studentId: effectiveUserId }),
-          getBehaviors({ studentId: effectiveUserId }),
-          getStudentMarks(effectiveUserId),
+          getPenalties({ userId: effectiveUserId, limit: 100 }),
+          getParticipations({ userId: effectiveUserId, limit: 100 }),
+          getBehaviors({ userId: effectiveUserId, limit: 100 }),
+          classId ? getAllStudentMarksReport({ classId }) : getStudentMarks(effectiveUserId),
           getSubmissionsByUser(effectiveUserId),
         ]);
       }

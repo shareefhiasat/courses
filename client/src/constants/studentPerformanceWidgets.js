@@ -331,11 +331,28 @@ export function buildStudentPerformanceRawData(dashData, lookupData = {}, isRTL 
     };
   });
 
+  // Helper to extract date string (YYYY-MM-DD) from createdAt or date field
+  const toDateStr = (item) => {
+    const d = item.date || item.createdAt;
+    if (!d) return null;
+    try { return new Date(d).toISOString().split('T')[0]; } catch { return String(d).substring(0, 10); }
+  };
+
+  // Helper to resolve type name from object or string
+  const resolveTypeName = (typeVal, fallback = 'Unknown') => {
+    if (!typeVal) return fallback;
+    if (typeof typeVal === 'string') return typeVal;
+    return typeVal.nameEn || typeVal.nameAr || typeVal.code || fallback;
+  };
+
   // Enrich penalties
   const enrichedPenalties = penalties.map(p => {
     const sem = classSemesterMap.get(String(p.classId)) || {};
     return {
       ...p,
+      date: toDateStr(p),
+      penaltyType: resolveTypeName(p.penaltyType),
+      studentId: p.userId,
       semester: p.semester || sem.semester || 'Unknown',
       year: p.year || sem.year || sem.academicYear || new Date().getFullYear(),
       className: resolveClassLabel(p.classId),
@@ -349,6 +366,9 @@ export function buildStudentPerformanceRawData(dashData, lookupData = {}, isRTL 
     const sem = classSemesterMap.get(String(b.classId)) || {};
     return {
       ...b,
+      date: toDateStr(b),
+      type: resolveTypeName(b.behaviorType, b.type),
+      studentId: b.userId,
       semester: b.semester || sem.semester || 'Unknown',
       year: b.year || sem.year || sem.academicYear || new Date().getFullYear(),
       className: resolveClassLabel(b.classId),
@@ -362,6 +382,9 @@ export function buildStudentPerformanceRawData(dashData, lookupData = {}, isRTL 
     const sem = classSemesterMap.get(String(p.classId)) || {};
     return {
       ...p,
+      date: toDateStr(p),
+      type: resolveTypeName(p.participationType, p.type),
+      studentId: p.userId,
       semester: p.semester || sem.semester || 'Unknown',
       year: p.year || sem.year || sem.academicYear || new Date().getFullYear(),
       className: resolveClassLabel(p.classId),
@@ -375,6 +398,7 @@ export function buildStudentPerformanceRawData(dashData, lookupData = {}, isRTL 
     const sem = classSemesterMap.get(String(m.classId)) || {};
     return {
       ...m,
+      studentId: m.userId || m.studentId,
       semester: m.semester || sem.semester || 'Unknown',
       year: m.year || sem.year || sem.academicYear || new Date().getFullYear(),
       academicYear: m.academicYear || sem.academicYear || sem.year,

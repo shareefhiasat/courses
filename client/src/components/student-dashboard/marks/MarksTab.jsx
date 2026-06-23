@@ -29,6 +29,7 @@ const MarksTab = React.memo(({
   statsData = {},
   canNavigateToMarksEntry = false,
   studentId,
+  classId,
   t,
   lang,
 }) => {
@@ -48,12 +49,12 @@ const MarksTab = React.memo(({
   const [historyLoading, setHistoryLoading] = useState(false);
   const [selectedHistoryStudent, setSelectedHistoryStudent] = useState(null);
 
-  // Load marks report data filtered by studentId
+  // Load marks report data filtered by studentId or classId
   const loadMarksReport = useCallback(async () => {
-    if (!studentId) return;
+    if (!studentId && !classId) return;
     setMarksReportLoading(true);
     try {
-      const filters = { studentId };
+      const filters = studentId ? { studentId } : { classId };
       const result = await getAllStudentMarksReport(filters);
       if (result.success) {
         setMarksReportData(result.data || []);
@@ -65,7 +66,7 @@ const MarksTab = React.memo(({
     } finally {
       setMarksReportLoading(false);
     }
-  }, [studentId]);
+  }, [studentId, classId]);
 
   useEffect(() => {
     loadMarksReport();

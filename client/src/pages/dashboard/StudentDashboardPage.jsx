@@ -57,7 +57,8 @@ export default function StudentDashboardPage() {
   const dashData = useStudentDashboardData(
     permissions.isStaff && !filters.hasSelection ? null : displayStudentId, 
     filters.hasSelection,
-    permissions.isStaff && !filters.selectedStudentId && filters.selectedClassId ? filters.selectedClassId : null
+    permissions.isStaff && !filters.selectedStudentId && filters.selectedClassId ? filters.selectedClassId : null,
+    filters.selectedProgramId !== 'all' ? filters.selectedProgramId : null
   );
 
   // Class-level metrics for staff when a class is selected
@@ -335,6 +336,7 @@ export default function StudentDashboardPage() {
                   statsData={dashData.statsData}
                   canNavigateToMarksEntry={permissions.canNavigateToMarksEntry}
                   studentId={displayStudentId}
+                  classId={filters.selectedClassId !== 'all' ? filters.selectedClassId : undefined}
                   t={t}
                   lang={lang}
                 />

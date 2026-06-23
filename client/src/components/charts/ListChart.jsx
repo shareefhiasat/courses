@@ -1,11 +1,12 @@
 import React, { useMemo, useState, memo, useEffect, useCallback, useRef } from 'react';
-import { Filter } from 'lucide-react';
+import { Filter, ZoomIn, ZoomOut, Maximize2 } from 'lucide-react';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import ColumnManager from '../analytics/ColumnManager';
 import PortalTooltip from '@ui/PortalTooltip';
+import { Modal } from '@ui';
 import {
   resolveUser,
   resolveClass,
@@ -91,6 +92,8 @@ function ListChart({
   const [columnFilters, setColumnFilters] = useState(widget.listColumnFilters || {});
   const [openFilterCol, setOpenFilterCol] = useState(null);
   const [filterSearch, setFilterSearch] = useState('');
+  const [fontScale, setFontScale] = useState(1);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const filterMenuRef = useRef(null);
 
   useEffect(() => {
@@ -329,6 +332,18 @@ function ListChart({
         { key: 'className', label: t('class_name') || 'Class', width: '20%', isRelated: false },
         { key: 'status', label: t('status') || 'Status', width: '10%', isRelated: false }
       ];
+    } else if (widget.dataSource === 'studentMarks') {
+      return [
+        { key: 'studentName', label: t('student_name') || 'Student Name', width: '15%', isRelated: false },
+        { key: 'subjectName', label: t('gb_subject') || 'Subject', width: '12%', isRelated: false },
+        { key: 'className', label: t('class_name') || 'Class', width: '12%', isRelated: false },
+        { key: 'totalMarks', label: t('total_marks') || 'Total', width: '8%', isRelated: false },
+        { key: 'letterGrade', label: t('grade') || 'Grade', width: '7%', isRelated: false },
+        { key: 'isRepeated', label: t('repeated') || 'Repeated', width: '8%', isRelated: false },
+        { key: 'term', label: t('term') || 'Term', width: '12%', isRelated: false },
+        { key: 'year', label: t('year') || 'Year', width: '8%', isRelated: false },
+        { key: 'id', label: t('id') || 'ID', width: '10%', isRelated: false }
+      ];
     } else if (widget.dataSource === 'schedulingAttendanceRecords') {
       return [
         { key: 'date', label: t('date') || 'Date', width: '12%', isRelated: false },
@@ -407,6 +422,11 @@ function ListChart({
       realNameAr: t('full_name_ar') || 'Full Name (AR)',
       displayNameEn: t('display_name_en') || 'Display Name (EN)',
       displayNameAr: t('display_name_ar') || 'Display Name (AR)',
+      totalMarks: t('total_marks') || 'Total Marks',
+      letterGrade: t('grade') || 'Grade',
+      isRepeated: t('repeated') || 'Repeated',
+      term: t('term') || 'Term',
+      year: t('year') || 'Year',
       id: t('id') || 'ID'
     };
     return labels[key] || key;
@@ -637,6 +657,23 @@ function ListChart({
 
       case 'points':
         return item.points ?? '—';
+
+      case 'totalMarks':
+        return item.totalMarks != null ? `${item.totalMarks}%` : '—';
+
+      case 'letterGrade':
+        return item.letterGrade || '—';
+
+      case 'isRepeated':
+        if (item.isRepeated === true) return t('yes') || 'Yes';
+        if (item.isRepeated === false) return t('no') || 'No';
+        return '—';
+
+      case 'term':
+        return item.term || '—';
+
+      case 'year':
+        return item.year || '—';
 
       case 'notes':
         return item.notes || item.comment || '—';
@@ -937,6 +974,22 @@ function ListChart({
               {getThemedIcon('ui', 'download', 12, theme)}
             </button>
           </PortalTooltip>
+          <PortalTooltip content={t('font_decrease') || 'Decrease font'} position="top">
+            <button type="button" onClick={() => setFontScale(s => Math.max(0.7, s - 0.1))} style={headerBtnStyle}>
+              <ZoomOut size={12} />
+            </button>
+          </PortalTooltip>
+          <span style={{ fontSize: 9, color: 'var(--muted)', minWidth: 28, textAlign: 'center' }}>{Math.round(fontScale * 100)}%</span>
+          <PortalTooltip content={t('font_increase') || 'Increase font'} position="top">
+            <button type="button" onClick={() => setFontScale(s => Math.min(2, s + 0.1))} style={headerBtnStyle}>
+              <ZoomIn size={12} />
+            </button>
+          </PortalTooltip>
+          <PortalTooltip content={t('fullscreen_view') || 'Full view'} position="top">
+            <button type="button" onClick={() => setIsFullscreen(true)} style={headerBtnStyle}>
+              <Maximize2 size={12} />
+            </button>
+          </PortalTooltip>
           <PortalTooltip content={t('manage_columns')} position="top">
         <button
           type="button"
@@ -964,7 +1017,7 @@ function ListChart({
           display: 'flex',
           background: 'var(--bg)',
           borderBottom: '1px solid var(--border)',
-          fontSize: '10px',
+          fontSize: `${10 * fontScale}px`,
           fontWeight: '600',
           color: 'var(--muted)',
           position: 'sticky',
@@ -1183,9 +1236,9 @@ function ListChart({
         </div>
 
         {/* Table Body */}
-        <div style={{ fontSize: '9px' }}>
+        <div style={{ fontSize: `${9 * fontScale}px` }}>
           {displayItems.length === 0 ? (
-            <div style={{ padding: '16px 12px', textAlign: 'center', color: 'var(--muted)', fontSize: 10 }}>
+            <div style={{ padding: '16px 12px', textAlign: 'center', color: 'var(--muted)', fontSize: 10 * fontScale }}>
               {columnFilteredItems.length === 0 && listItems.length > 0
                 ? (t('no_matching_rows') || 'No rows match the current filters')
                 : (t('no_data') || 'No data')}
@@ -1215,7 +1268,7 @@ function ListChart({
                 <div
                   key={column.key}
                   style={{
-                    padding: '6px 8px',
+                    padding: `${6 * fontScale}px ${8 * fontScale}px`,
                     width,
                     minWidth: isCollapsed ? 28 : 48,
                     maxWidth: width,
@@ -1255,6 +1308,129 @@ function ListChart({
             : `${t('showing') || 'Showing'} ${listItems.length} / ${totalCount} ${t('items') || 'items'}`}
         </div>
       )}
+
+      {/* Fullscreen Modal */}
+      <Modal
+        isOpen={isFullscreen}
+        onClose={() => setIsFullscreen(false)}
+        title={listTitle}
+        size="full"
+        showCloseButton={true}
+        closeOnOverlayClick={true}
+        closeOnEscape={true}
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            padding: '8px 12px',
+            borderBottom: '1px solid var(--border)',
+            fontSize: '13px',
+            fontWeight: '600',
+            color: accentColor,
+          }}>
+            <span>{listTitle} ({displayItems.length} {t('items_label') || t('items') || 'items'})</span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <button type="button" onClick={() => setFontScale(s => Math.max(0.7, s - 0.1))} style={{ ...headerBtnStyle, fontSize: '12px', padding: '4px 8px' }}>
+                <ZoomOut size={14} />
+              </button>
+              <span style={{ fontSize: 11, color: 'var(--muted)', minWidth: 36, textAlign: 'center' }}>{Math.round(fontScale * 100)}%</span>
+              <button type="button" onClick={() => setFontScale(s => Math.min(2, s + 0.1))} style={{ ...headerBtnStyle, fontSize: '12px', padding: '4px 8px' }}>
+                <ZoomIn size={14} />
+              </button>
+              <button type="button" onClick={handleCopy} style={{ ...headerBtnStyle, fontSize: '12px', padding: '4px 8px' }}>
+                {getThemedIcon('ui', 'copy', 14, theme)}
+              </button>
+              <button type="button" onClick={handleExport} style={{ ...headerBtnStyle, fontSize: '12px', padding: '4px 8px' }}>
+                {getThemedIcon('ui', 'download', 14, theme)}
+              </button>
+            </div>
+          </div>
+          <div style={{ flex: 1, overflow: 'auto', border: '1px solid var(--border)', background: 'var(--panel)' }}>
+            <div style={{ minWidth: tableMinWidth, width: 'max-content', paddingInlineEnd: 12, boxSizing: 'border-box' }}>
+              <div style={{
+                display: 'flex',
+                background: 'var(--bg)',
+                borderBottom: '1px solid var(--border)',
+                fontSize: `${12 * fontScale}px`,
+                fontWeight: '600',
+                color: 'var(--muted)',
+                position: 'sticky',
+                top: 0,
+                zIndex: 2,
+                minWidth: tableMinWidth,
+              }}>
+                {columns.map((column) => {
+                  const isCollapsed = collapsedCols.has(column.key);
+                  const width = getResolvedWidth(column);
+                  return (
+                    <div
+                      key={column.key}
+                      style={{
+                        padding: `${8 * fontScale}px ${10 * fontScale}px`,
+                        width,
+                        minWidth: isCollapsed ? 28 : 60,
+                        maxWidth: width,
+                        borderInlineEnd: '1px solid var(--border)',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                        flexShrink: 0,
+                      }}
+                    >
+                      {isCollapsed ? '·' : column.label}
+                    </div>
+                  );
+                })}
+              </div>
+              <div style={{ fontSize: `${11 * fontScale}px` }}>
+                {displayItems.length === 0 ? (
+                  <div style={{ padding: '24px', textAlign: 'center', color: 'var(--muted)', fontSize: 13 }}>
+                    {t('no_data') || 'No data'}
+                  </div>
+                ) : displayItems.map((item, idx) => (
+                  <div
+                    key={idx}
+                    style={{
+                      display: 'flex',
+                      borderBottom: '1px solid var(--border)',
+                      background: idx % 2 === 0 ? 'var(--panel)' : 'var(--bg)',
+                      minWidth: tableMinWidth,
+                    }}
+                  >
+                    {columns.map((column) => {
+                      const isCollapsed = collapsedCols.has(column.key);
+                      const width = getResolvedWidth(column);
+                      return (
+                        <div
+                          key={column.key}
+                          style={{
+                            padding: `${8 * fontScale}px ${10 * fontScale}px`,
+                            width,
+                            minWidth: isCollapsed ? 28 : 60,
+                            maxWidth: width,
+                            borderInlineEnd: '1px solid var(--border)',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            color: column.key === 'type' || column.key === 'status' ? 'var(--text)' : 'var(--muted)',
+                            fontWeight: column.key === 'type' || column.key === 'status' ? '500' : '400',
+                            flexShrink: 0,
+                          }}
+                          title={isCollapsed ? '' : renderCellValue(item, column)}
+                        >
+                          {isCollapsed ? '·' : renderCellValue(item, column)}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      </Modal>
 
       {/* Column Manager Dialog */}
       <ColumnManager
