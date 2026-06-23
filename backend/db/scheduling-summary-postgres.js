@@ -758,13 +758,13 @@ export const getSchedulingSummary = async (params = {}) => {
       sessionCount: ss._count.id,
     }));
 
-    const todayBreaks = await prisma.breakSession.findMany({
-      where: buildBreakWhere({ programId, instructorId, start: today, end: today }),
+    const rangeBreaks = await prisma.breakSession.findMany({
+      where: buildBreakWhere({ programId, instructorId, start, end }),
       include: {
         timeSlot: { select: { startTime: true, endTime: true, labelEn: true, labelAr: true } },
         instructor: { select: { id: true, displayName: true, displayNameAr: true } },
       },
-      orderBy: { timeSlot: { sortOrder: 'asc' } },
+      orderBy: [{ date: 'asc' }, { timeSlot: { sortOrder: 'asc' } }],
     });
 
     const enrichedTodaySessions = await Promise.all(
@@ -799,7 +799,7 @@ export const getSchedulingSummary = async (params = {}) => {
         holidays,
         teacherLoad,
         subjectSessions,
-        breakSessions: todayBreaks,
+        breakSessions: rangeBreaks,
         breakTypeDistribution: breakDistribution.data || [],
         holidayImpact: {
           affectedSessions: holidayImpact.affectedSessions,

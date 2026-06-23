@@ -17,6 +17,7 @@ const COUNT_TITLE_AR = {
   sched_cnt_rooms_used: 'القاعات المستخدمة بواسطة الجلسات المجدولة',
   sched_cnt_instructors: 'المدرسون المعينون على جلسات',
   sched_cnt_this_week: 'الجلسات المجدولة هذا الأسبوع',
+  sched_cnt_today: 'جلسات اليوم',
   sched_cnt_holidays: 'العطل القادمة في الفترة الحالية',
   sched_att_cnt_total: 'إجمالي سجلات الحضور في الفترة',
   sched_att_cnt_class: 'سجلات حضور الصف',
@@ -74,7 +75,7 @@ export const SCHEDULING_SUMMARY_DEFAULT_WIDGETS = [
   countWidget('sched_cnt_rooms_used', 'schedulingRooms', 'uniqueClassrooms', 'uniqueClassrooms', 'Rooms used by scheduled sessions', { x: 0, y: 6, w: 3, h: 3 }),
   countWidget('sched_cnt_instructors', 'schedulingTeachers', 'uniqueInstructors', 'uniqueInstructors', 'Instructors assigned to sessions', { x: 3, y: 6, w: 3, h: 3 }),
   countWidget('sched_cnt_this_week', 'schedulingSessions', 'thisWeekSessions', 'thisWeekSessions', 'Sessions scheduled this week', { x: 6, y: 6, w: 3, h: 3 }),
-  countWidget('sched_cnt_holidays', 'schedulingHolidays', 'holidayCount', 'holidayCount', 'Upcoming holidays in current period', { x: 9, y: 6, w: 3, h: 3 }),
+  countWidget('sched_cnt_today', 'schedulingOverviewStats', 'todaySessionCount', 'todaySessionCount', "Today's Sessions", { x: 9, y: 6, w: 3, h: 3 }),
 
   {
     id: 'sched_session_timeline_all',
@@ -465,13 +466,144 @@ export const SCHEDULING_ATTENDANCE_DEFAULT_WIDGETS = [
 ];
 export const SCHEDULING_ATTENDANCE_MAX_WIDGETS = SCHEDULING_ATTENDANCE_DEFAULT_WIDGETS.length;
 
+// ── Breaks & Holidays widgets (for separate Breaks & Holidays Analytics section) ──
+export const SCHEDULING_BREAKS_HOLIDAYS_STORAGE_KEY = 'scheduling_breaks_holidays';
+export const SCHEDULING_BREAKS_HOLIDAYS_DEFAULT_WIDGETS = [
+  countWidget('sched_bh_cnt_breaks', 'schedulingBreaksHolidaysOverview', 'breakCount', 'breakCount', 'Total Break Sessions', { x: 0, y: 0, w: 3, h: 3 }),
+  countWidget('sched_bh_cnt_holidays', 'schedulingBreaksHolidaysOverview', 'holidayCount', 'holidayCount', 'Holidays in Range', { x: 3, y: 0, w: 3, h: 3 }),
+  countWidget('sched_bh_cnt_affected', 'schedulingBreaksHolidaysOverview', 'sessionsAffected', 'sessionsAffected', 'Sessions Affected by Holidays', { x: 6, y: 0, w: 3, h: 3 }),
+  countWidget('sched_bh_cnt_today_sessions', 'schedulingBreaksHolidaysOverview', 'todaySessionCount', 'todaySessionCount', "Today's Sessions", { x: 9, y: 0, w: 3, h: 3 }),
+  countWidget('sched_bh_cnt_today_instructors', 'schedulingBreaksHolidaysOverview', 'instructorsWithSessionsToday', 'instructorsWithSessionsToday', 'Instructors with Sessions Today', { x: 0, y: 3, w: 3, h: 3 }),
+  countWidget('sched_bh_cnt_break_types', 'schedulingBreaksHolidaysOverview', 'breakTypeCount', 'breakTypeCount', 'Break Types', { x: 3, y: 3, w: 3, h: 3 }),
+  countWidget('sched_bh_cnt_holiday_types', 'schedulingBreaksHolidaysOverview', 'holidayTypeCount', 'holidayTypeCount', 'Holiday Types', { x: 6, y: 3, w: 3, h: 3 }),
+
+  {
+    id: 'sched_bh_breaks_donut',
+    titleEn: 'break sessions by break type',
+    titleAr: 'جلسات الاستراحة حسب نوع الاستراحة',
+    chartType: 'donut',
+    dataSource: 'schedulingBreaks',
+    groupBy: 'breakType',
+    aggregation: 'count',
+    dateRange: 'current',
+    filters: [],
+    layout: { x: 0, y: 6, w: 6, h: 5 },
+  },
+  {
+    id: 'sched_bh_breaks_bar',
+    titleEn: 'break sessions by break type',
+    titleAr: 'جلسات الاستراحة حسب نوع الاستراحة',
+    chartType: 'bar',
+    dataSource: 'schedulingBreaks',
+    groupBy: 'breakType',
+    aggregation: 'count',
+    dateRange: 'current',
+    filters: [],
+    layout: { x: 6, y: 6, w: 6, h: 5 },
+  },
+
+  {
+    id: 'sched_bh_holiday_overlap_donut',
+    titleEn: 'holiday impact (sessions affected vs unaffected)',
+    titleAr: 'تأثير العطل (جلسات متأثرة مقابل غير متأثرة)',
+    chartType: 'donut',
+    dataSource: 'schedulingHolidayOverlap',
+    groupBy: 'impactType',
+    aggregation: 'sum',
+    valueField: 'sessionCount',
+    dateRange: 'current',
+    filters: [],
+    layout: { x: 0, y: 11, w: 6, h: 5 },
+  },
+  {
+    id: 'sched_bh_holiday_overlap_bar',
+    titleEn: 'holiday impact (sessions affected vs unaffected)',
+    titleAr: 'تأثير العطل (جلسات متأثرة مقابل غير متأثرة)',
+    chartType: 'bar',
+    dataSource: 'schedulingHolidayOverlap',
+    groupBy: 'impactType',
+    aggregation: 'sum',
+    valueField: 'sessionCount',
+    dateRange: 'current',
+    filters: [],
+    layout: { x: 6, y: 11, w: 6, h: 5 },
+  },
+
+  {
+    id: 'sched_bh_holidays_type_pie',
+    titleEn: 'holidays by type',
+    titleAr: 'العطل حسب النوع',
+    chartType: 'pie',
+    dataSource: 'schedulingHolidays',
+    groupBy: 'type',
+    aggregation: 'count',
+    dateRange: 'current',
+    filters: [],
+    layout: { x: 0, y: 16, w: 6, h: 5 },
+  },
+  {
+    id: 'sched_bh_holidays_type_bar',
+    titleEn: 'holidays by type',
+    titleAr: 'العطل حسب النوع',
+    chartType: 'bar',
+    dataSource: 'schedulingHolidays',
+    groupBy: 'type',
+    aggregation: 'count',
+    dateRange: 'current',
+    filters: [],
+    layout: { x: 6, y: 16, w: 6, h: 5 },
+  },
+
+  {
+    id: 'sched_bh_recurrence_donut',
+    titleEn: 'recurring sessions vs one-off sessions',
+    titleAr: 'الجلسات المتكررة مقابل الجلسات لمرة واحدة',
+    chartType: 'donut',
+    dataSource: 'schedulingRecurrenceBreakdown',
+    groupBy: 'recurrenceType',
+    aggregation: 'sum',
+    valueField: 'sessionCount',
+    dateRange: 'current',
+    filters: [],
+    layout: { x: 0, y: 21, w: 6, h: 5 },
+  },
+
+  {
+    id: 'sched_bh_breaks_list',
+    titleEn: 'break sessions detail',
+    titleAr: 'تفاصيل جلسات الاستراحة',
+    chartType: 'list',
+    dataSource: 'schedulingBreaks',
+    groupBy: '',
+    aggregation: 'count',
+    dateRange: 'current',
+    listLimit: 200,
+    filters: [],
+    layout: { x: 0, y: 26, w: 6, h: 6 },
+  },
+  {
+    id: 'sched_bh_holidays_list',
+    titleEn: 'holidays detail',
+    titleAr: 'تفاصيل العطل',
+    chartType: 'list',
+    dataSource: 'schedulingHolidays',
+    groupBy: '',
+    aggregation: 'count',
+    dateRange: 'current',
+    listLimit: 200,
+    filters: [],
+    layout: { x: 6, y: 26, w: 6, h: 6 },
+  },
+];
+export const SCHEDULING_BREAKS_HOLIDAYS_MAX_WIDGETS = SCHEDULING_BREAKS_HOLIDAYS_DEFAULT_WIDGETS.length;
+
 const SOURCE_FILTER_MAP = {
   schedulingOverviewStats: 'overview',
   schedulingPrograms: 'overview',
   schedulingSubjects: 'overview',
   schedulingSessions: 'sessions',
   schedulingRecurrenceBreakdown: 'sessions',
-  schedulingHolidayOverlap: 'sessions',
+  schedulingHolidayOverlap: 'holidays',
   schedulingClassCoverage: 'sessions',
   schedulingSessionTimeline: 'timeline',
   schedulingTeachers: 'instructors',
@@ -482,6 +614,7 @@ const SOURCE_FILTER_MAP = {
   schedulingRooms: 'rooms',
   schedulingRoomAvailability: 'rooms',
   schedulingBreaks: 'breaks',
+  schedulingBreaksHolidaysOverview: 'breaks',
   schedulingHolidays: 'holidays',
   schedulingCalendar: 'calendar',
   schedulingAttendanceByStatus: 'attendance',
@@ -556,7 +689,13 @@ export function resolveDrillDownListWidget(widget, dataPoint, t, lang) {
 }
 
 export function inferSchedulingWidgetCategory(widget) {
-  if (widget?.chartType === 'count') return 'overview';
+  if (widget?.chartType === 'count') {
+    const sk = widget?.statKey || widget?.countMetric || '';
+    if (sk.includes('holiday') || sk === 'holidayCount' || sk === 'holidayTypeCount' || sk === 'sessionsAffected') return 'holidays';
+    if (sk.includes('break') || sk === 'breakCount' || sk === 'breakTypeCount') return 'breaks';
+    if (sk === 'todaySessionCount' || sk === 'instructorsWithSessionsToday') return 'breaks';
+    return 'overview';
+  }
   return SOURCE_FILTER_MAP[widget?.dataSource] || 'sessions';
 }
 
@@ -584,6 +723,7 @@ const WIDGET_HELP_KEYS = {
   schedulingRooms: 'widget_help_scheduling_rooms',
   schedulingCalendar: 'widget_help_scheduling_today',
   schedulingBreaks: 'widget_help_scheduling_breaks',
+  schedulingBreaksHolidaysOverview: 'widget_help_scheduling_breaks',
   schedulingHolidays: 'widget_help_scheduling_holidays',
   schedulingClassCoverage: 'widget_help_scheduling_class_coverage',
   schedulingAttendanceByStatus: 'widget_help_scheduling_attendance',
@@ -636,6 +776,7 @@ export function buildSchedulingRawData(effortReport, dashboardData, isRTL) {
     completedCount: overview.completedCount ?? 0,
     cancelledCount: overview.cancelledCount ?? 0,
     thisWeekSessions: overview.thisWeekSessions ?? 0,
+    todaySessionCount: (dashboardData?.todaySchedule || []).length,
     uniqueClassrooms: overview.uniqueClassrooms ?? 0,
     totalClassrooms: overview.totalClassrooms ?? dashboardData?.totalClassrooms ?? 0,
     unusedRooms: overview.unusedRooms ?? 0,
@@ -646,6 +787,20 @@ export function buildSchedulingRawData(effortReport, dashboardData, isRTL) {
     avgDuration: overview.avgDuration ?? 0,
     breakCount: dashboardData?.breakSessions?.length ?? 0,
     holidayCount: dashboardData?.holidays?.length ?? 0,
+  };
+
+  const todaySchedule = dashboardData?.todaySchedule || [];
+  const uniqueTodayInstructors = new Set(
+    todaySchedule.map((s) => s.instructor?.id || s.instructor?.displayName).filter(Boolean)
+  );
+  const schedulingBreaksHolidaysOverview = {
+    breakCount: dashboardData?.breakSessions?.length ?? 0,
+    holidayCount: dashboardData?.holidays?.length ?? 0,
+    sessionsAffected: dashboardData?.holidayImpact?.affectedSessions ?? 0,
+    todaySessionCount: todaySchedule.length,
+    instructorsWithSessionsToday: uniqueTodayInstructors.size,
+    breakTypeCount: new Set((dashboardData?.breakSessions || []).map((b) => b.breakType).filter(Boolean)).size,
+    holidayTypeCount: new Set((dashboardData?.holidays || []).map((h) => h.type).filter(Boolean)).size,
   };
 
   const teachers = (effortReport?.teachers || []).map((row) => ({
@@ -963,6 +1118,7 @@ export function buildSchedulingRawData(effortReport, dashboardData, isRTL) {
 
   return {
     schedulingOverviewStats,
+    schedulingBreaksHolidaysOverview,
     schedulingTeachers: teachers,
     schedulingCourses: courses,
     schedulingClasses,

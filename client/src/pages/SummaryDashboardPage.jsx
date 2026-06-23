@@ -37,10 +37,14 @@ import {
   SCHEDULING_ATTENDANCE_DEFAULT_WIDGETS,
   SCHEDULING_ATTENDANCE_STORAGE_KEY,
   SCHEDULING_ATTENDANCE_MAX_WIDGETS,
+  SCHEDULING_BREAKS_HOLIDAYS_DEFAULT_WIDGETS,
+  SCHEDULING_BREAKS_HOLIDAYS_STORAGE_KEY,
+  SCHEDULING_BREAKS_HOLIDAYS_MAX_WIDGETS,
   buildSchedulingRawData,
 } from '@constants/schedulingSummaryWidgets';
 import DashboardAnalyticsPanel from '@components/analytics/DashboardAnalyticsPanel';
 import AttendanceAnalyticsPanel from '@components/analytics/AttendanceAnalyticsPanel';
+import BreaksHolidaysAnalyticsPanel from '@components/analytics/BreaksHolidaysAnalyticsPanel';
 import useDashboardAnalytics from '@hooks/useDashboardAnalytics';
 
 const SummaryDashboardPage = () => {
@@ -423,7 +427,7 @@ const SummaryDashboardPage = () => {
           {dashboardData && (
             <CollapsibleSection
               title={t('breaks_and_holidays_analytics') || 'Breaks & Holidays Analytics'}
-              summary={`${dashboardData.breakSessions?.length ?? 0} ${t('breaks')} · ${dashboardData.holidays?.length ?? 0} ${t('holidays')}`}
+              summary={`${SCHEDULING_BREAKS_HOLIDAYS_MAX_WIDGETS} ${t('widgets') || 'widgets'} · ${dashboardData.breakSessions?.length ?? 0} ${t('breaks')} · ${dashboardData.holidays?.length ?? 0} ${t('holidays')}`}
               icon={Palmtree}
               defaultOpen={false}
               testId="breaks-holidays-section"
@@ -434,27 +438,16 @@ const SummaryDashboardPage = () => {
                 </button>
               )}
             >
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem' }}>
-                <Card>
-                  <CardBody>
-                    <h3 style={{ fontSize: '1rem', fontWeight: 500, marginBottom: '0.75rem' }}>{t('today_schedule')}</h3>
-                    {dashboardData.todaySchedule?.length > 0 ? (
-                      dashboardData.todaySchedule.map((session, index) => (
-                        <div key={index} style={{ padding: '0.5rem 0', borderBottom: `1px solid ${border}`, fontSize: '0.875rem' }}>
-                          {isRTL ? session.subject?.nameAr : session.subject?.nameEn || '—'}
-                          {' · '}{session.timeSlot?.startTime}–{session.timeSlot?.endTime}
-                        </div>
-                      ))
-                    ) : (
-                      <p style={{ color: muted, textAlign: 'center' }}>{t('no_sessions_today')}</p>
-                    )}
-                  </CardBody>
-                </Card>
-                <BreakSessionTimeline breaks={dashboardData.breakSessions} />
-                <UpcomingHolidaysList holidays={dashboardData.holidays} />
-                <HolidayImpactCard impact={dashboardData.holidayImpact} />
-                <BreakTypeDistributionCard distribution={dashboardData.breakTypeDistribution} />
-              </div>
+              <BreaksHolidaysAnalyticsPanel
+                rawData={buildSchedulingRawData(effortReport, dashboardData, isRTL)}
+                defaultWidgets={SCHEDULING_BREAKS_HOLIDAYS_DEFAULT_WIDGETS}
+                storageKey={SCHEDULING_BREAKS_HOLIDAYS_STORAGE_KEY}
+                maxWidgets={SCHEDULING_BREAKS_HOLIDAYS_MAX_WIDGETS}
+                widgetCategoryResolver="scheduling"
+                builderCategoryScope="scheduling"
+                onReload={loadAll}
+                lastUpdatedAt={lastUpdatedAt}
+              />
             </CollapsibleSection>
           )}
 

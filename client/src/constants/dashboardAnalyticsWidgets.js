@@ -45,7 +45,7 @@ export const DASHBOARD_ANALYTICS_DEFAULT_WIDGETS = [
   // ── DRIVE: Count widgets (top row) ───────────────────────────────────────
   cntWidget('da_cnt_files', 'driveOverview', 'totalFiles', 'Total Files', 'إجمالي الملفات', { x: 0, y: 0, w: 3, h: 3 }),
   cntWidget('da_cnt_folders', 'driveOverview', 'totalFolders', 'Total Folders', 'إجمالي المجلدات', { x: 3, y: 0, w: 3, h: 3 }),
-  cntWidget('da_cnt_storage', 'driveOverview', 'totalStorageSize', 'Total Storage', 'إجمالي التخزين', { x: 6, y: 0, w: 3, h: 3 }),
+  cntWidget('da_cnt_storage', 'driveOverview', 'totalStorageSize', 'Total Storage (MB)', 'إجمالي التخزين (م.ب)', { x: 6, y: 0, w: 3, h: 3 }),
   cntWidget('da_cnt_file_activities', 'driveOverview', 'totalActivities', 'File Activities', 'نشاطات الملفات', { x: 9, y: 0, w: 3, h: 3 }),
 
   // ── WORKFLOW: Count widgets ──────────────────────────────────────────────
@@ -61,12 +61,13 @@ export const DASHBOARD_ANALYTICS_DEFAULT_WIDGETS = [
   cntWidget('da_cnt_wf_approval_rate', 'workflowOverview', 'approvalRate', 'Approval Rate %', 'نسبة الموافقة', { x: 9, y: 6, w: 3, h: 3 }),
 
   // ── DRIVE: Charts ────────────────────────────────────────────────────────
-  chartWidget('da_files_mime_pie', 'Files by Type', 'الملفات حسب النوع', 'pie', 'driveFilesByMimeType', 'mimeType', { x: 0, y: 9, w: 6, h: 5 }, { valueField: 'fileCount' }),
-  chartWidget('da_files_mime_bar', 'Files by Type', 'الملفات حسب النوع', 'bar', 'driveFilesByMimeType', 'mimeType', { x: 6, y: 9, w: 6, h: 5 }, { valueField: 'fileCount' }),
+  chartWidget('da_files_mime_pie', 'Files by Type', 'الملفات حسب النوع', 'pie', 'driveFilesByMimeType', 'label', { x: 0, y: 9, w: 6, h: 5 }, { valueField: 'fileCount' }),
+  chartWidget('da_files_mime_bar', 'Files by Type', 'الملفات حسب النوع', 'bar', 'driveFilesByMimeType', 'label', { x: 6, y: 9, w: 6, h: 5 }, { valueField: 'fileCount' }),
   chartWidget('da_files_bucket_pie', 'Files by Bucket', 'الملفات حسب الدلو', 'pie', 'driveFilesByBucket', 'bucket', { x: 0, y: 14, w: 6, h: 5 }, { valueField: 'fileCount' }),
   chartWidget('da_files_bucket_bar', 'Files by Bucket', 'الملفات حسب الدلو', 'bar', 'driveFilesByBucket', 'bucket', { x: 6, y: 14, w: 6, h: 5 }, { valueField: 'fileCount' }),
   chartWidget('da_file_activity_pie', 'File Activity by Action', 'نشاط الملفات حسب الإجراء', 'pie', 'driveFileActivities', 'action', { x: 0, y: 19, w: 6, h: 5 }, { valueField: 'activityCount' }),
   chartWidget('da_file_activity_bar', 'File Activity by Action', 'نشاط الملفات حسب الإجراء', 'bar', 'driveFileActivities', 'action', { x: 6, y: 19, w: 6, h: 5 }, { valueField: 'activityCount' }),
+  chartWidget('da_storage_by_user_bar', 'Storage Usage by User (MB)', 'استخدام التخزين حسب المستخدم (م.ب)', 'bar', 'driveStorageByUser', 'label', { x: 0, y: 24, w: 12, h: 5 }, { valueField: 'storageMB', aggregation: 'sum' }),
 
   // ── WORKFLOW: Charts ─────────────────────────────────────────────────────
   chartWidget('da_wf_status_pie', 'Workflows by Status', 'سير العمل حسب الحالة', 'pie', 'workflowByStatus', 'status', { x: 0, y: 24, w: 6, h: 5 }, { valueField: 'documentCount' }),
@@ -117,6 +118,7 @@ export const ANALYTICS_SOURCE_FILTER_MAP = {
   driveFilesByMimeType: 'drive',
   driveFilesByBucket: 'drive',
   driveFileActivities: 'drive',
+  driveStorageByUser: 'drive',
   driveRecentFiles: 'drive',
   workflowOverview: 'workflow',
   workflowByStatus: 'workflow',
@@ -152,6 +154,7 @@ export function buildAnalyticsRawData(analyticsData) {
     driveFilesByMimeType: drive.filesByMimeType || [],
     driveFilesByBucket: drive.filesByBucket || [],
     driveFileActivities: drive.fileActivities || [],
+    driveStorageByUser: drive.storageByUser || [],
     driveRecentFiles: drive.recentFiles || [],
 
     // Workflow overview stats (for count widgets)

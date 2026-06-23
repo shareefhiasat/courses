@@ -307,7 +307,7 @@ export default function PieChart({ data = [], size = 300, donut = false, showLab
                 }}
                 title={`${slice.label}\n${slice.value} (${slice.percentage}%)`}
               >
-                <div style={{ width: 8, height: 8, borderRadius: 1, background: slice.color, marginTop: 3, flexShrink: 0 }} />
+                <div style={{ width: 10, height: 10, borderRadius: 2, background: slice.color, marginTop: 2, flexShrink: 0, boxShadow: '0 0 0 1px rgba(255,255,255,0.8), 0 1px 3px rgba(255,255,255,0.6)' }} />
                 <span style={{
                   ...PIE_LEGEND_TEXT_STYLE,
                   fontSize: legendFontSize,

@@ -22,7 +22,7 @@ async function getDriveAnalytics({ userId, role, scope = 'all' }) {
     folderWhere.ownerId = userId;
   }
 
-  const [totalFiles, totalFolders, totalStorageSize, filesByMime, filesByBucket, fileActivities, recentFiles] = await Promise.all([
+  const [totalFiles, totalFolders, totalStorageSize, filesByMime, filesByBucket, fileActivities, recentFiles, storageByUserRaw] = await Promise.all([
     prisma.file.count({ where: fileWhere }),
     prisma.folder.count({ where: folderWhere }),
     prisma.file.aggregate({ where: fileWhere, _sum: { size: true } }),
@@ -41,11 +41,98 @@ async function getDriveAnalytics({ userId, role, scope = 'all' }) {
       take: 50,
       select: { id: true, name: true, mimeType: true, size: true, bucket: true, createdAt: true, ownerId: true, folderId: true },
     }),
+    isAdmin ? prisma.file.groupBy({
+      by: ['ownerId'],
+      where: { isDeleted: false },
+      _sum: { size: true },
+      _count: { id: true },
+      orderBy: { _sum: { size: 'desc' } },
+      take: 50,
+    }) : Promise.resolve([]),
   ]);
+
+  // Resolve owner names for storage by user
+  let storageByUser = [];
+  if (isAdmin && storageByUserRaw.length > 0) {
+    const ownerIds = storageByUserRaw.map(s => s.ownerId).filter(Boolean);
+    const owners = await prisma.user.findMany({
+      where: { id: { in: ownerIds } },
+      select: { id: true, displayName: true, email: true },
+    }).catch(() => []);
+    const ownerMap = new Map(owners.map(o => [o.id, o]));
+    storageByUser = storageByUserRaw
+      .map(s => {
+        const owner = ownerMap.get(s.ownerId);
+        const totalBytes = s._sum.size || 0;
+        return {
+          ownerId: s.ownerId,
+          label: owner?.displayName || owner?.email || `User ${s.ownerId}`,
+          totalStorageSize: totalBytes,
+          storageMB: Math.round((totalBytes / (1024 * 1024)) * 100) / 100,
+          fileCount: s._count.id,
+        };
+      })
+      .filter(s => s.totalStorageSize > 0);
+  }
+
+  const MIME_TO_EXT = {
+    'application/pdf': 'PDF',
+    'image/png': 'PNG',
+    'image/jpeg': 'JPG',
+    'image/jpg': 'JPG',
+    'image/gif': 'GIF',
+    'image/webp': 'WEBP',
+    'image/svg+xml': 'SVG',
+    'image/bmp': 'BMP',
+    'image/tiff': 'TIFF',
+    'video/mp4': 'MP4',
+    'video/webm': 'WEBM',
+    'video/avi': 'AVI',
+    'video/mov': 'MOV',
+    'video/quicktime': 'MOV',
+    'audio/mpeg': 'MP3',
+    'audio/mp3': 'MP3',
+    'audio/wav': 'WAV',
+    'audio/ogg': 'OGG',
+    'application/msword': 'DOC',
+    'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'DOCX',
+    'application/vnd.ms-excel': 'XLS',
+    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'XLSX',
+    'application/vnd.ms-powerpoint': 'PPT',
+    'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'PPTX',
+    'application/zip': 'ZIP',
+    'application/x-zip-compressed': 'ZIP',
+    'application/x-rar-compressed': 'RAR',
+    'application/x-7z-compressed': '7Z',
+    'application/json': 'JSON',
+    'application/xml': 'XML',
+    'text/xml': 'XML',
+    'text/plain': 'TXT',
+    'text/csv': 'CSV',
+    'text/html': 'HTML',
+    'text/css': 'CSS',
+    'text/javascript': 'JS',
+    'application/javascript': 'JS',
+    'application/x-pdf': 'PDF',
+    'application/octet-stream': 'FILE',
+  };
+
+  function mimeToExt(mime) {
+    if (!mime) return 'FILE';
+    const lower = mime.toLowerCase();
+    if (MIME_TO_EXT[lower]) return MIME_TO_EXT[lower];
+    const parts = lower.split('/');
+    if (parts.length > 1) {
+      let ext = parts[parts.length - 1];
+      ext = ext.replace(/^x-/, '').replace(/^\./, '');
+      return ext.toUpperCase();
+    }
+    return mime.toUpperCase();
+  }
 
   const mimeTypeGroups = filesByMime.map(m => ({
     mimeType: m.mimeType,
-    label: m.mimeType,
+    label: mimeToExt(m.mimeType),
     fileCount: m._count.id,
   }));
 
@@ -76,6 +163,7 @@ async function getDriveAnalytics({ userId, role, scope = 'all' }) {
     filesByBucket: bucketGroups,
     fileActivities: activityGroups,
     recentFiles,
+    storageByUser,
   };
 }
 

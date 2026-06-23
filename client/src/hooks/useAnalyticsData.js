@@ -473,6 +473,13 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
     return [{ label, value: stats[statKey] ?? 0 }];
   }
 
+  if (dataSource === 'schedulingBreaksHolidaysOverview') {
+    const stats = rawData.schedulingBreaksHolidaysOverview || {};
+    const statKey = widget.statKey || widget.countMetric || 'breakCount';
+    const label = widget.titleKey && t ? t(widget.titleKey) : (widget.titleEn || widget.title || statKey);
+    return [{ label, value: stats[statKey] ?? 0 }];
+  }
+
   if (dataSource === 'spOverviewStats') {
     const stats = rawData.spOverviewStats || {};
     const statKey = widget.statKey || widget.countMetric || 'totalEnrollments';
@@ -491,7 +498,11 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
     const stats = rawData.driveOverview || {};
     const statKey = widget.statKey || widget.countMetric || 'totalFiles';
     const label = widget.titleKey && t ? t(widget.titleKey) : (widget.titleEn || widget.title || statKey);
-    return [{ label, value: stats[statKey] ?? 0 }];
+    let value = stats[statKey] ?? 0;
+    if (statKey === 'totalStorageSize') {
+      value = Math.round((value / (1024 * 1024)) * 100) / 100;
+    }
+    return [{ label, value }];
   }
 
   if (dataSource === 'workflowOverview') {

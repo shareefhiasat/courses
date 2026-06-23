@@ -257,6 +257,22 @@ export const DATA_SOURCES = [
     ],
   },
   {
+    value: 'schedulingBreaksHolidaysOverview',
+    labelKey: 'ds_scheduling_breaks_holidays_overview',
+    category: 'scheduling',
+    groupBy: [],
+    chartTypes: [],
+    countMetrics: [
+      countMetric('breakCount', 'stats_break_count', { statKey: 'breakCount' }),
+      countMetric('holidayCount', 'stats_holiday_count', { statKey: 'holidayCount' }),
+      countMetric('sessionsAffected', 'stats_sessions_affected', { statKey: 'sessionsAffected' }),
+      countMetric('todaySessionCount', 'stats_today_sessions', { statKey: 'todaySessionCount' }),
+      countMetric('instructorsWithSessionsToday', 'stats_instructors_today', { statKey: 'instructorsWithSessionsToday' }),
+      countMetric('breakTypeCount', 'stats_break_types', { statKey: 'breakTypeCount' }),
+      countMetric('holidayTypeCount', 'stats_holiday_types', { statKey: 'holidayTypeCount' }),
+    ],
+  },
+  {
     value: 'schedulingSessionTimeline',
     labelKey: 'ds_scheduling_session_timeline',
     category: 'scheduling',
@@ -444,7 +460,7 @@ export const DATA_SOURCES = [
     labelKey: 'ds_drive_files_by_mime',
     label: 'Files by Type',
     category: 'analytics',
-    groupBy: ['mimeType'],
+    groupBy: ['label', 'mimeType'],
     valueFields: ['fileCount'],
     chartTypes: BREAKDOWN_CHARTS,
   },
@@ -465,6 +481,15 @@ export const DATA_SOURCES = [
     groupBy: ['action'],
     valueFields: ['activityCount'],
     chartTypes: BREAKDOWN_CHARTS,
+  },
+  {
+    value: 'driveStorageByUser',
+    labelKey: 'ds_drive_storage_by_user',
+    label: 'Storage Usage by User',
+    category: 'analytics',
+    groupBy: ['label'],
+    valueFields: ['storageMB'],
+    chartTypes: ['bar', 'list'],
   },
 
   // ── Dashboard Analytics: Workflow ────────────────────────────────────────
@@ -598,6 +623,7 @@ export const LIST_ALLOWED_SOURCES = [
   'schedulingCalendar',
   'schedulingBreaks',
   'schedulingHolidays',
+  'schedulingBreaksHolidaysOverview',
   'schedulingRooms',
   'schedulingInstructorAvailability',
   'schedulingRoomAvailability',
@@ -628,6 +654,7 @@ export const LIST_ALLOWED_SOURCES = [
   'workflowRecentDocuments',
   'activityRecentActivities',
   'activityRecentSubmissions',
+  'driveStorageByUser',
 ];
 
 export function getSourcesForChartType(chartType, category = 'all') {
