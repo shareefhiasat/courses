@@ -268,3 +268,87 @@ export const DEFAULT_CHAT_LIMITATIONS = {
     'text/plain'
   ]
 };
+
+// ===== COMPATIBILITY FUNCTIONS (used by ChatPage.jsx) =====
+
+/**
+ * Get role config for a specific feature (compat with roleConfigExamples)
+ * @param {string} userRole - Role string
+ * @param {string} feature - Feature name ('chat', 'files', etc.)
+ * @returns {Object} Config object
+ */
+export const getRoleConfig = (userRole, feature = 'chat') => {
+  const roleKey = (userRole || 'student').toLowerCase().replace(/\s+/g, '');
+  const limitations = CHAT_LIMITATIONS[roleKey] || CHAT_LIMITATIONS.student;
+  
+  if (feature === 'chat') {
+    return {
+      maxVoiceRecordingTime: limitations.maxVoiceRecordingTime,
+      maxFileSize: limitations.maxFileSize,
+      allowedFileTypes: limitations.allowedFileTypes
+    };
+  }
+  if (feature === 'files') {
+    return {
+      maxFileSize: limitations.maxFileSize,
+      maxFilesPerUpload: 1,
+      allowedFileTypes: limitations.allowedFileTypes
+    };
+  }
+  return limitations;
+};
+
+/**
+ * Get role limit for a specific feature/property
+ */
+export const getRoleLimit = (userRole, feature, property) => {
+  const config = getRoleConfig(userRole, feature);
+  return config[property] || 0;
+};
+
+/**
+ * Check if file type is allowed for a role
+ */
+export const isFileTypeAllowedForRole = (userRole, feature, fileType) => {
+  const config = getRoleConfig(userRole, feature);
+  return config.allowedFileTypes?.includes(fileType) || false;
+};
+
+/**
+ * Check if user can upload a file
+ */
+export const canUserUploadFile = (userRole, fileSize, fileType) => {
+  const config = getRoleConfig(userRole, 'files');
+  return fileSize <= config.maxFileSize && (config.allowedFileTypes?.includes(fileType) || false);
+};
+
+/**
+ * Validate file upload for role
+ */
+export const validateFileUploadForRole = (userRole, files) => {
+  const config = getRoleConfig(userRole, 'files');
+  const maxFiles = config.maxFilesPerUpload || 1;
+  const maxSize = config.maxFileSize || 5 * 1024 * 1024;
+  const allowedTypes = config.allowedFileTypes || [];
+  
+  if (!files || files.length === 0) return { isValid: false, message: 'No files provided' };
+  if (files.length > maxFiles) return { isValid: false, message: `Max ${maxFiles} file(s) allowed` };
+  
+  for (const file of files) {
+    if (file.size > maxSize) return { isValid: false, message: 'File too large' };
+    if (!allowedTypes.includes(file.type)) return { isValid: false, message: 'File type not allowed' };
+  }
+  
+  return { isValid: true };
+};
+
+/**
+ * Get voice recording limits for a role
+ */
+export const getVoiceRecordingLimits = (userRole) => {
+  const config = getRoleConfig(userRole, 'chat');
+  return {
+    maxRecordingTime: config.maxVoiceRecordingTime || 5 * 60,
+    maxFileSize: config.maxFileSize || 5 * 1024 * 1024
+  };
+};

@@ -208,14 +208,14 @@ export const getOtherParticipant = (room, currentUserId) => {
  * Check if user can delete message
  */
 export const canDeleteMessage = (message, currentUserId, isAdmin) => {
-  return isAdmin || message.senderId === currentUserId;
+  return isAdmin || message.senderId === currentUserId || message.senderId === currentUserId?.toString();
 };
 
 /**
  * Check if user can edit message
  */
 export const canEditMessage = (message, currentUserId, isAdmin) => {
-  return (isAdmin || message.senderId === currentUserId) && 
+  return (isAdmin || message.senderId === currentUserId || message.senderId === currentUserId?.toString()) && 
          message.messageType === MESSAGE_TYPES.TEXT;
 };
 

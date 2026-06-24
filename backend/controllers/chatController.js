@@ -12,12 +12,24 @@ import { EVENTS } from '../services/notifications/constants.js';
 const prisma = new PrismaClient();
 
 /**
+ * Resolve Keycloak UUID to database user ID
+ */
+const resolveDbUserId = (req) => {
+  if (req.user?.dbId) return req.user.dbId;
+  if (req.actor?.userId) return req.actor.userId;
+  return null;
+};
+
+/**
  * Get user's chat rooms
  * GET /api/v1/chat/rooms
  */
 export const getRooms = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = resolveDbUserId(req);
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'User not found in database' });
+    }
     
     // Get user roles
     const user = await prisma.user.findUnique({
@@ -30,6 +42,10 @@ export const getRooms = async (req, res) => {
         }
       }
     });
+
+    if (!user) {
+      return res.status(404).json({ success: false, error: 'User not found' });
+    }
 
     const roles = user.roleAssignments.map(ra => ra.role.code);
 
@@ -64,7 +80,10 @@ export const getMessages = async (req, res) => {
   try {
     const { roomId } = req.params;
     const { limit, before, after } = req.query;
-    const userId = req.user.id;
+    const userId = resolveDbUserId(req);
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'User not found in database' });
+    }
 
     // Verify user has access to this room
     const room = await prisma.chatRoom.findUnique({
@@ -88,8 +107,20 @@ export const getMessages = async (req, res) => {
       });
     }
 
+    // Get user roles for access check
+    const userRecord = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { roleAssignments: { include: { role: true } } }
+    });
+    const userRoles = userRecord?.roleAssignments?.map(ra => ra.role.code) || [];
+    const isStaffAdmin = userRoles.some(r => {
+      const lc = r?.toLowerCase();
+      return lc === 'admin' || lc === 'super_admin' || lc === 'superadmin' || lc === 'hr' || lc === 'instructor';
+    });
+
     // Check access permissions
     const hasAccess = 
+      isStaffAdmin || // Admin/HR can access all rooms
       room.type === 'global' || // Everyone can access global
       (room.type === 'class' && room.class.enrollments.length > 0) || // Enrolled in class
       (room.type === 'class' && room.class.instructorId === userId) || // Instructor of class
@@ -128,7 +159,10 @@ export const getMessages = async (req, res) => {
 export const sendMessage = async (req, res) => {
   try {
     const { roomId } = req.params;
-    const userId = req.user.id;
+    const userId = resolveDbUserId(req);
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'User not found in database' });
+    }
     const messageData = req.body;
 
     // Verify room exists and user has access
@@ -168,6 +202,9 @@ export const sendMessage = async (req, res) => {
 
     // Emit WebSocket event (will be handled by websocketServer)
     if (global.chatWSEmitter) {
+      // Always emit to sender so they get real-time update of their own message
+      global.chatWSEmitter(userId, 'chat:message', message);
+
       // For class chats, emit to all enrolled students and instructor
       if (room.type === 'class') {
         const recipients = [
@@ -247,7 +284,10 @@ export const sendMessage = async (req, res) => {
 export const updateMessage = async (req, res) => {
   try {
     const { messageId } = req.params;
-    const userId = req.user.id;
+    const userId = resolveDbUserId(req);
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'User not found in database' });
+    }
     const { content } = req.body;
 
     // Verify message exists and user is sender
@@ -296,7 +336,10 @@ export const updateMessage = async (req, res) => {
 export const deleteMessage = async (req, res) => {
   try {
     const { messageId } = req.params;
-    const userId = req.user.id;
+    const userId = resolveDbUserId(req);
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'User not found in database' });
+    }
 
     // Verify message exists and user is sender or admin
     const existingMessage = await prisma.chatMessage.findUnique({
@@ -355,7 +398,10 @@ export const deleteMessage = async (req, res) => {
  */
 export const createDM = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = resolveDbUserId(req);
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'User not found in database' });
+    }
     const { recipientId } = req.body;
 
     if (!recipientId) {
@@ -386,7 +432,7 @@ export const createDM = async (req, res) => {
         }
       }
     });
-    const userRoles = user.roleAssignments.map(ra => ra.role.code);
+    const userRoles = user.roleAssignments.map(ra => ra.role.code.toLowerCase());
     const isStudent = userRoles.includes('student');
 
     if (isStudent) {
@@ -438,7 +484,10 @@ export const createDM = async (req, res) => {
 export const toggleReaction = async (req, res) => {
   try {
     const { messageId } = req.params;
-    const userId = req.user.id;
+    const userId = resolveDbUserId(req);
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'User not found in database' });
+    }
     const { reactionType, remove } = req.body;
 
     const message = await chatDb.toggleReaction(
@@ -473,7 +522,10 @@ export const toggleReaction = async (req, res) => {
 export const votePoll = async (req, res) => {
   try {
     const { messageId } = req.params;
-    const userId = req.user.id;
+    const userId = resolveDbUserId(req);
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'User not found in database' });
+    }
     const { optionIndex } = req.body;
 
     const message = await chatDb.votePoll(
@@ -506,7 +558,10 @@ export const votePoll = async (req, res) => {
  */
 export const getAvailableUsers = async (req, res) => {
   try {
-    const userId = req.user.id;
+    const userId = resolveDbUserId(req);
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'User not found in database' });
+    }
 
     // Get user roles
     const user = await prisma.user.findUnique({

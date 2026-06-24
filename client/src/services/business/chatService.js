@@ -6,7 +6,7 @@
 
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import chatSocket from '@services/realtime/chatSocket.js';
-import apiClient from '@services/api/apiClient.js';
+import { apiService as apiClient } from '@services/api/apiService.js';
 
 const serviceName = 'chatService';
 
@@ -131,8 +131,8 @@ export const subscribeToDirectRooms = (userId, callback) => {
  */
 export const getUserRooms = async () => {
   try {
-    const response = await apiClient.get('/chat/rooms');
-    return { success: true, data: response.data.data };
+    const data = await apiClient.get('/chat/rooms');
+    return { success: true, data: data.data || data };
   } catch (err) {
     error(`[${serviceName}] Error getting rooms:`, err);
     return { success: false, error: err.message, data: [] };
@@ -152,8 +152,8 @@ export const getRoomMessages = async (roomId, options = {}) => {
     if (options.before) params.append('before', options.before);
     if (options.after) params.append('after', options.after);
 
-    const response = await apiClient.get(`/chat/rooms/${roomId}/messages?${params}`);
-    return { success: true, data: response.data.data };
+    const data = await apiClient.get(`/chat/rooms/${roomId}/messages?${params}`);
+    return { success: true, data: data.data || data };
   } catch (err) {
     error(`[${serviceName}] Error getting messages:`, err);
     return { success: false, error: err.message, data: [] };
@@ -168,8 +168,8 @@ export const getRoomMessages = async (roomId, options = {}) => {
  */
 export const sendMessage = async (roomId, messageData) => {
   try {
-    const response = await apiClient.post(`/chat/rooms/${roomId}/messages`, messageData);
-    return { success: true, data: response.data.data };
+    const data = await apiClient.post(`/chat/rooms/${roomId}/messages`, messageData);
+    return { success: true, data: data.data || data };
   } catch (err) {
     error(`[${serviceName}] Error sending message:`, err);
     return { success: false, error: err.message };
@@ -184,8 +184,8 @@ export const sendMessage = async (roomId, messageData) => {
  */
 export const updateMessage = async (messageId, data) => {
   try {
-    const response = await apiClient.put(`/chat/messages/${messageId}`, data);
-    return { success: true, data: response.data.data };
+    const resp = await apiClient.put(`/chat/messages/${messageId}`, data);
+    return { success: true, data: resp.data || resp };
   } catch (err) {
     error(`[${serviceName}] Error updating message:`, err);
     return { success: false, error: err.message };
@@ -199,8 +199,8 @@ export const updateMessage = async (messageId, data) => {
  */
 export const deleteMessage = async (messageId) => {
   try {
-    const response = await apiClient.delete(`/chat/messages/${messageId}`);
-    return { success: true, data: response.data.data };
+    const data = await apiClient.delete(`/chat/messages/${messageId}`);
+    return { success: true, data: data.data || data };
   } catch (err) {
     error(`[${serviceName}] Error deleting message:`, err);
     return { success: false, error: err.message };
@@ -214,8 +214,8 @@ export const deleteMessage = async (messageId) => {
  */
 export const createDM = async (recipientId) => {
   try {
-    const response = await apiClient.post('/chat/dm', { recipientId });
-    return { success: true, data: response.data.data };
+    const data = await apiClient.post('/chat/dm', { recipientId });
+    return { success: true, data: data.data || data };
   } catch (err) {
     error(`[${serviceName}] Error creating DM:`, err);
     return { success: false, error: err.message };
@@ -231,11 +231,11 @@ export const createDM = async (recipientId) => {
  */
 export const toggleReaction = async (messageId, reactionType, remove = false) => {
   try {
-    const response = await apiClient.post(`/chat/messages/${messageId}/reactions`, {
+    const data = await apiClient.post(`/chat/messages/${messageId}/reactions`, {
       reactionType,
       remove
     });
-    return { success: true, data: response.data.data };
+    return { success: true, data: data.data || data };
   } catch (err) {
     error(`[${serviceName}] Error toggling reaction:`, err);
     return { success: false, error: err.message };
@@ -250,10 +250,10 @@ export const toggleReaction = async (messageId, reactionType, remove = false) =>
  */
 export const votePoll = async (messageId, optionIndex) => {
   try {
-    const response = await apiClient.post(`/chat/messages/${messageId}/vote`, {
+    const data = await apiClient.post(`/chat/messages/${messageId}/vote`, {
       optionIndex
     });
-    return { success: true, data: response.data.data };
+    return { success: true, data: data.data || data };
   } catch (err) {
     error(`[${serviceName}] Error voting on poll:`, err);
     return { success: false, error: err.message };
@@ -266,8 +266,8 @@ export const votePoll = async (messageId, optionIndex) => {
  */
 export const getAvailableDMUsers = async () => {
   try {
-    const response = await apiClient.get('/chat/users');
-    return { success: true, data: response.data.data };
+    const data = await apiClient.get('/chat/users');
+    return { success: true, data: data.data || data };
   } catch (err) {
     error(`[${serviceName}] Error getting available users:`, err);
     return { success: false, error: err.message, data: [] };
@@ -298,38 +298,528 @@ export const updateUserChatReads = async (userId, chatId, lastReadTimestamp) => 
   return { success: true };
 };
 
+// ============================================================================
+// COMPATIBILITY LAYER — Maps old Firebase-style API to new PostgreSQL API
+// ============================================================================
+// The old ChatPage.jsx calls chatService with Firebase-style signatures:
+//   chatService.subscribeToMessages(chatType, chatId, callback)
+//   chatService.sendMessage(messageData)  — single object with chatType/classId
+//   chatService.subscribeToClasses(callback) — callback receives [{docId, name}]
+//   etc.
+//
+// This wrapper translates those calls to the new REST API above.
+
+// Cache room lookups to avoid redundant API calls
+const roomCache = new Map(); // chatKey -> roomId
+const roomCachePromise = new Map(); // chatKey -> Promise<roomId>
+
 /**
- * Create poll message
- * @param {number} roomId - Room ID
- * @param {string} question - Poll question
- * @param {Array<string>} options - Poll options
+ * Resolve a chatType + chatId to a numeric room ID via the backend
+ */
+const resolveRoomId = async (chatType, chatId) => {
+  const cacheKey = `${chatType}:${chatId}`;
+  if (roomCache.has(cacheKey)) return roomCache.get(cacheKey);
+
+  if (chatType === 'global' || chatId === 'global' || (chatType === 'global' && !chatId)) {
+    // Find the global room
+    const result = await getUserRooms();
+    if (result.success) {
+      const globalRoom = result.data.find(r => r.type === 'global');
+      if (globalRoom) {
+        roomCache.set(cacheKey, globalRoom.id);
+        return globalRoom.id;
+      }
+    }
+    return null;
+  }
+
+  if (chatType === 'class') {
+    const result = await getUserRooms();
+    if (result.success) {
+      const classRoom = result.data.find(r => r.type === 'class' && r.classId == chatId);
+      if (classRoom) {
+        roomCache.set(cacheKey, classRoom.id);
+        return classRoom.id;
+      }
+    }
+    return null;
+  }
+
+  if (chatType === 'dm') {
+    // chatId is the room ID for DMs
+    const roomId = parseInt(chatId);
+    roomCache.set(cacheKey, roomId);
+    return roomId;
+  }
+
+  return null;
+};
+
+/**
+ * Wrap a message object in a Firebase-style doc
+ */
+const wrapDoc = (msg) => ({
+  id: String(msg.id),
+  data: () => ({
+    id: msg.id,
+    text: msg.content,
+    content: msg.content,
+    senderId: msg.senderId,
+    sender: msg.senderId,
+    userId: msg.senderId,
+    type: msg.type,
+    messageType: msg.type,
+    createdAt: {
+      toDate: () => new Date(msg.createdAt),
+      toMillis: () => new Date(msg.createdAt).getTime(),
+      seconds: Math.floor(new Date(msg.createdAt).getTime() / 1000),
+      nanoseconds: 0
+    },
+    timestamp: msg.createdAt,
+    fileUrl: msg.fileUrl,
+    fileName: msg.fileName,
+    fileType: msg.fileType,
+    filePath: msg.filePath,
+    voiceUrl: msg.fileUrl,
+    voicePath: msg.filePath,
+    pollOptions: msg.pollOptions,
+    pollVotes: msg.pollOptions ? {} : undefined,
+    reactions: msg.reactions || {},
+    isEdited: msg.isEdited,
+    isDeleted: msg.isDeleted,
+    replyTo: msg.replyToId,
+    roomId: msg.roomId,
+    senderInfo: msg.sender
+  })
+});
+
+/**
+ * COMPAT: Subscribe to messages (Firebase-style)
+ * @param {string} chatType - 'global', 'class', 'dm'
+ * @param {string} chatId - class ID, 'global', or DM room ID
+ * @param {Function} callback - Receives array of docs [{id, data: () => {...}}]
+ * @returns {Function} Unsubscribe function
+ */
+const compatSubscribeToMessages = (chatType, chatId, callback) => {
+  let unsubscribed = false;
+  let socketUnsub = null;
+  let allDocs = [];
+
+  (async () => {
+    const roomId = await resolveRoomId(chatType, chatId);
+    if (unsubscribed || !roomId) return;
+
+    // Initial load
+    const result = await getRoomMessages(roomId, { limit: 100 });
+    if (unsubscribed) return;
+
+    if (result.success) {
+      allDocs = result.data.map(wrapDoc);
+      callback(allDocs);
+    }
+
+    // Listen for real-time messages via WebSocket
+    socketUnsub = chatSocket.on('message', (message) => {
+      if (message.roomId === roomId) {
+        const newDoc = wrapDoc(message);
+        // Avoid duplicates
+        if (!allDocs.find(d => d.id === newDoc.id)) {
+          allDocs = [...allDocs, newDoc];
+        }
+        callback(allDocs);
+      }
+    });
+  })();
+
+  return () => {
+    unsubscribed = true;
+    if (socketUnsub) socketUnsub();
+  };
+};
+
+/**
+ * COMPAT: Subscribe to classes (Firebase-style)
+ * @param {Function} callback - Receives array of class objects [{docId, name, ...}]
+ * @returns {Function} Unsubscribe function
+ */
+const compatSubscribeToClasses = (callback, seeAll = false, uid = null, classIds = null) => {
+  let unsubscribed = false;
+
+  (async () => {
+    // If classIds are provided (from frontend's own API calls), use those directly
+    if (classIds && classIds.size > 0) {
+      const result = await getUserRooms();
+      if (unsubscribed) return;
+
+      // Build a map of classId -> roomId from chat rooms
+      const roomMap = new Map();
+      if (result.success) {
+        result.data.filter(r => r.type === 'class').forEach(room => {
+          roomMap.set(String(room.classId), room);
+        });
+      }
+
+      // Return classes based on the provided IDs
+      const classes = Array.from(classIds).map(classId => {
+        const room = roomMap.get(String(classId));
+        return {
+          docId: String(classId),
+          id: String(classId),
+          name: room?.class?.nameEn || `Class ${classId}`,
+          nameAr: room?.class?.nameAr,
+          code: room?.class?.code,
+          roomId: room?.id
+        };
+      });
+      callback(classes);
+      return;
+    }
+
+    // Fallback: get classes from chat rooms
+    const result = await getUserRooms();
+    if (unsubscribed) return;
+
+    if (result.success) {
+      const classRooms = result.data.filter(r => r.type === 'class');
+      const classes = classRooms.map(room => ({
+        docId: String(room.classId),
+        id: String(room.classId),
+        name: room.class?.nameEn || 'Class',
+        nameAr: room.class?.nameAr,
+        code: room.class?.code,
+        roomId: room.id
+      }));
+      callback(classes);
+    }
+  })();
+
+  return () => { unsubscribed = true; };
+};
+
+/**
+ * COMPAT: Subscribe to DM rooms (Firebase-style)
+ * @param {Function} callback - Receives Firebase-style snapshot with .forEach
+ * @returns {Function} Unsubscribe function
+ */
+const compatSubscribeToDirectRooms = (callback) => {
+  let unsubscribed = false;
+
+  const emitRooms = (rooms) => {
+    // Wrap in Firebase-style snapshot
+    const snapshot = {
+      forEach: (cb) => rooms.forEach(room => {
+        cb({
+          id: String(room.id),
+          data: () => ({
+            id: room.id,
+            participants: [room.participantA, room.participantB],
+            participantA: room.participantA,
+            participantB: room.participantB,
+            userA: room.userA,
+            userB: room.userB,
+            type: 'dm',
+            roomId: room.id,
+            lastMessage: null,
+            createdAt: room.createdAt
+          })
+        });
+      })
+    };
+    callback(snapshot);
+  };
+
+  (async () => {
+    const result = await getUserRooms();
+    if (unsubscribed) return;
+
+    if (result.success) {
+      const dmRooms = result.data.filter(r => r.type === 'dm');
+      emitRooms(dmRooms);
+    }
+  })();
+
+  return () => { unsubscribed = true; };
+};
+
+/**
+ * COMPAT: Send message (Firebase-style single object)
+ * @param {Object} messageData - { text, chatType, classId, roomId, messageType, ... }
  * @returns {Promise<Object>}
  */
-export const createPollMessage = async (roomId, question, options) => {
-  const pollOptions = options.map(text => ({ text, votes: [] }));
+const compatSendMessage = async (messageData) => {
+  const chatType = messageData.chatType || messageData.type || 'class';
+  const chatId = messageData.classId || messageData.roomId || messageData.chatId;
+  
+  const roomId = await resolveRoomId(chatType, chatId);
+  if (!roomId) {
+    error('[chatService] Could not resolve room for sendMessage');
+    return { success: false, error: 'Room not found' };
+  }
+
+  const payload = {
+    type: messageData.messageType || messageData.type || 'text',
+    content: messageData.text || messageData.content,
+    fileUrl: messageData.fileUrl || messageData.voiceUrl,
+    filePath: messageData.filePath || messageData.voicePath,
+    fileName: messageData.fileName,
+    fileType: messageData.fileType,
+    fileSize: messageData.fileSize,
+    pollOptions: messageData.pollOptions,
+    replyToId: messageData.replyTo
+  };
+
+  const result = await sendMessage(roomId, payload);
+  if (result.success && result.data) {
+    const doc = wrapDoc(result.data);
+    return { id: doc.id, ...doc.data(), success: true };
+  }
+  return result;
+};
+
+/**
+ * COMPAT: Create DM room (Firebase-style)
+ * @param {string} userUid - Current user UID
+ * @param {string} otherUserId - Other user ID
+ * @returns {Promise<string>} Room ID
+ */
+const compatCreateDMRoom = async (userUid, otherUserId) => {
+  const result = await createDM(parseInt(otherUserId));
+  if (result.success) {
+    return String(result.data.id);
+  }
+  throw new Error(result.error || 'Failed to create DM');
+};
+
+/**
+ * COMPAT: Edit message (Firebase-style)
+ * @param {string} messageId - Message ID
+ * @param {string} content - New content
+ * @returns {Promise<Object>}
+ */
+const compatEditMessage = async (messageId, content) => {
+  return updateMessage(parseInt(messageId), { content });
+};
+
+/**
+ * COMPAT: Delete message (Firebase-style)
+ * @param {string} messageId - Message ID
+ * @returns {Promise<Object>}
+ */
+const compatDeleteMessage = async (messageId) => {
+  return deleteMessage(parseInt(messageId));
+};
+
+/**
+ * COMPAT: Add reaction (Firebase-style)
+ * @param {string} messageId - Message ID
+ * @param {string} userUid - User UID
+ * @param {string} reaction - Reaction type
+ * @returns {Promise<Object>}
+ */
+const compatAddReaction = async (messageId, userUid, reaction) => {
+  return toggleReaction(parseInt(messageId), reaction, false);
+};
+
+/**
+ * COMPAT: Remove reaction (Firebase-style)
+ * @param {string} messageId - Message ID
+ * @param {string} userUid - User UID
+ * @returns {Promise<Object>}
+ */
+const compatRemoveReaction = async (messageId, userUid) => {
+  return toggleReaction(parseInt(messageId), 'remove', true);
+};
+
+/**
+ * COMPAT: Vote poll (Firebase-style)
+ * @param {string} messageId - Message ID
+ * @param {string} userUid - User UID
+ * @param {number} optionIndex - Option index
+ * @returns {Promise<Object>}
+ */
+const compatVotePoll = async (messageId, userUid, optionIndex) => {
+  return votePoll(parseInt(messageId), optionIndex);
+};
+
+/**
+ * COMPAT: Remove poll vote (Firebase-style)
+ */
+const compatRemovePollVote = async (messageId, userUid, optionIndex) => {
+  // Our API toggles, so removing a vote = voting again (toggle off)
+  // For simplicity, we just call votePoll which will remove if already voted
+  return votePoll(parseInt(messageId), optionIndex);
+};
+
+/**
+ * COMPAT: Create poll message (Firebase-style)
+ * @param {Object} pollData - { chatType, classId, roomId, pollQuestion, pollOptions, ... }
+ * @returns {Promise<Object>}
+ */
+const compatCreatePollMessage = async (pollData) => {
+  const chatType = pollData.chatType || pollData.type || 'class';
+  const chatId = pollData.classId || pollData.roomId || pollData.chatId;
+  
+  const roomId = await resolveRoomId(chatType, chatId);
+  if (!roomId) {
+    error('[chatService] Could not resolve room for poll');
+    return { success: false, error: 'Room not found' };
+  }
+
+  const options = (pollData.pollOptions || []).map(text => ({ text, votes: [] }));
   return sendMessage(roomId, {
     type: 'poll',
-    content: question,
-    pollOptions
+    content: pollData.pollQuestion || pollData.question,
+    pollOptions: options
   });
 };
 
-export default {
+/**
+ * COMPAT: Get class name
+ * @param {string} classId - Class ID
+ * @returns {Promise<string>} Class name
+ */
+const compatGetClassName = async (classId) => {
+  const result = await getUserRooms();
+  if (result.success) {
+    const room = result.data.find(r => r.type === 'class' && String(r.classId) === String(classId));
+    if (room && room.class) {
+      return room.class.nameEn || room.class.nameAr;
+    }
+  }
+  return null;
+};
+
+/**
+ * COMPAT: Sync user enrollment (no-op, handled by backend)
+ */
+const compatSyncUserEnrollment = async (userUid, classId) => {
+  return { success: true };
+};
+
+/**
+ * COMPAT: Sync user enrollments (no-op, handled by backend)
+ */
+const compatSyncUserEnrollments = async (userUid, ids) => {
+  return { success: true };
+};
+
+/**
+ * COMPAT: Update user chat reads (stub - returns current timestamp)
+ */
+const compatUpdateUserChatReads = async (userUid, chatKey) => {
+  return new Date().toISOString();
+};
+
+/**
+ * COMPAT: Get user chat reads (stub)
+ */
+const compatGetUserChatReads = async (userUid) => {
+  return {};
+};
+
+/**
+ * COMPAT: Subscribe to unread counts (stub - returns 0)
+ */
+const compatSubscribeToUnreadCounts = (chatReads, callback) => {
+  return () => {};
+};
+
+/**
+ * COMPAT: Subscribe to class unread counts (stub)
+ */
+const compatSubscribeToClassUnreadCounts = (classKey, chatReads, callback) => {
+  return () => {};
+};
+
+/**
+ * COMPAT: Subscribe to DM unread counts (stub)
+ */
+const compatSubscribeToDMUnreadCounts = (room, chatReads, callback) => {
+  return () => {};
+};
+
+/**
+ * COMPAT: Subscribe to user message color (stub)
+ */
+const compatSubscribeToUserMessageColor = (userUid, callback) => {
+  return () => {};
+};
+
+/**
+ * COMPAT: Subscribe to user read receipts (stub)
+ */
+const compatSubscribeToUserReadReceiptsCompat = (recips, key, callback) => {
+  return () => {};
+};
+
+/**
+ * COMPAT: Toggle star room (stub)
+ */
+const compatToggleStarRoom = async (roomId, userUid) => {
+  return { success: true };
+};
+
+/**
+ * COMPAT: Clear chat messages (stub)
+ */
+const compatClearChatMessages = async (roomId, mode, userUid) => {
+  return 0;
+};
+
+/**
+ * COMPAT: Delete direct room (stub)
+ */
+const compatDeleteDirectRoom = async (roomId) => {
+  return { success: true };
+};
+
+/**
+ * COMPAT: Update last message after deletion (stub)
+ */
+const compatUpdateLastMessageAfterDeletion = async (msg) => {
+  return { success: true };
+};
+
+// Named export for backward compatibility with ChatPage.jsx imports
+export const chatService = {
+  // New API
   initializeChatService,
   disconnectChatService,
-  subscribeToMessages,
-  subscribeToClasses,
-  subscribeToDirectRooms,
-  subscribeToUserReadReceipts,
-  updateUserChatReads,
   getUserRooms,
   getRoomMessages,
-  sendMessage,
+  sendMessage: compatSendMessage,
   updateMessage,
-  deleteMessage,
+  deleteMessage: compatDeleteMessage,
   createDM,
   toggleReaction,
   votePoll,
   getAvailableDMUsers,
-  createPollMessage
+  // Compatibility API (Firebase-style)
+  subscribeToMessages: compatSubscribeToMessages,
+  subscribeToClasses: compatSubscribeToClasses,
+  subscribeToDirectRooms: compatSubscribeToDirectRooms,
+  subscribeToUserReadReceipts: compatSubscribeToUserReadReceiptsCompat,
+  subscribeToUnreadCounts: compatSubscribeToUnreadCounts,
+  subscribeToClassUnreadCounts: compatSubscribeToClassUnreadCounts,
+  subscribeToDMUnreadCounts: compatSubscribeToDMUnreadCounts,
+  subscribeToUserMessageColor: compatSubscribeToUserMessageColor,
+  updateUserChatReads: compatUpdateUserChatReads,
+  getUserChatReads: compatGetUserChatReads,
+  syncUserEnrollment: compatSyncUserEnrollment,
+  syncUserEnrollments: compatSyncUserEnrollments,
+  sendMessageDirect: sendMessage,
+  editMessage: compatEditMessage,
+  createDMRoom: compatCreateDMRoom,
+  addReaction: compatAddReaction,
+  removeReaction: compatRemoveReaction,
+  votePoll: compatVotePoll,
+  removePollVote: compatRemovePollVote,
+  createPollMessage: compatCreatePollMessage,
+  getClassName: compatGetClassName,
+  toggleStarRoom: compatToggleStarRoom,
+  clearChatMessages: compatClearChatMessages,
+  deleteDirectRoom: compatDeleteDirectRoom,
+  updateLastMessageAfterDeletion: compatUpdateLastMessageAfterDeletion
 };
+
+export default chatService;

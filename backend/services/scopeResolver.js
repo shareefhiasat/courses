@@ -103,13 +103,12 @@ export async function getEffectiveDataScope(userId, roles = []) {
   if (hasRole(normalized, ROLES.INSTRUCTOR)) {
     const taughtClasses = await prisma.class.findMany({
       where: { instructorId: userId },
-      select: { id: true, programId: true, subjectId: true, categoryId: true },
+      select: { id: true, programId: true, subjectId: true },
     });
     taughtClasses.forEach((c) => {
       classIds.add(c.id);
       if (c.programId) programIds.add(c.programId);
       if (c.subjectId) subjectIds.add(c.subjectId);
-      if (c.categoryId) categoryIds.add(c.categoryId);
     });
   }
 

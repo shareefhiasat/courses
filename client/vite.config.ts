@@ -100,6 +100,12 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
+      '/ws/notifications': {
+        target: 'http://localhost:8001',
+        ws: true,
+        changeOrigin: true,
+        secure: false,
+      },
     },
   },
   define: {

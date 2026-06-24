@@ -82,6 +82,16 @@ export {
   ROLE_KEYS
 };
 
+// Export chat role config functions (used by ChatPage)
+export {
+  getRoleConfig,
+  isFileTypeAllowedForRole,
+  getRoleLimit,
+  validateFileUploadForRole,
+  canUserUploadFile,
+  getVoiceRecordingLimits
+} from './chatLimitations.js';
+
 // Export activity constants
 export {
   ACTIVITY_TYPES,

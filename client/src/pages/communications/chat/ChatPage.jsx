@@ -69,7 +69,7 @@ const ChatPage = memo(() => {
   const { startLoading } = useGlobalLoading();
   const location = useLocation();
   
-  logger.componentMount('ChatPage');
+  info('ChatPage mount');
   
   // Initialize minimal state hook for gradual migration
   const minimalState = useChatStateMinimal(user);
@@ -93,6 +93,12 @@ const ChatPage = memo(() => {
   const [chatReads, setChatReads] = useState({}); // { 'class:<id>': Timestamp, 'dm:<id>': Timestamp, 'global': Timestamp }
   const [unreadCounts, setUnreadCounts] = useState({}); // { 'class:<id>': number, 'dm:<id>': number, 'global': number }
   const [showDeleteDMConfirm, setShowDeleteDMConfirm] = useState(false);
+  const [showNewDMPicker, setShowNewDMPicker] = useState(false);
+  const [dmUserSearch, setDmUserSearch] = useState('');
+  const [availableDMUsers, setAvailableDMUsers] = useState([]);
+  const [dmUsersLoading, setDmUsersLoading] = useState(false);
+
+  const isStaffRole = isAdmin || isSuperAdmin || isHR || isInstructor;
   const [isRecording, setIsRecording] = useState(false);
   const [recordingTime, setRecordingTime] = useState(0);
   const [audioBlob, setAudioBlob] = useState(null);
@@ -199,6 +205,8 @@ const ChatPage = memo(() => {
     safeDirectRooms,
     isAdmin,
     isSuperAdmin,
+    isInstructor,
+    isHR,
     messageInputRef,
     setShowEmojiPicker,
     pollQuestion,
@@ -234,8 +242,42 @@ const ChatPage = memo(() => {
   
   // Handle class change
   const handleClassChange = useCallback((classId) => {
+    setUserHasInteracted(true);
     setSelectedClass(classId);
-  }, [setSelectedClass]);
+  }, [setSelectedClass, setUserHasInteracted]);
+
+  // Open New DM picker - load available users
+  const openNewDMPicker = useCallback(async () => {
+    setShowNewDMPicker(true);
+    setDmUserSearch('');
+    setDmUsersLoading(true);
+    try {
+      const result = await chatService.getAvailableDMUsers();
+      setAvailableDMUsers(result.success ? (result.data || []) : []);
+    } catch (err) {
+      error('Failed to load available DM users:', err);
+      setAvailableDMUsers([]);
+    } finally {
+      setDmUsersLoading(false);
+    }
+  }, []);
+
+  // Start DM with a user from the picker
+  const startDMFromPicker = useCallback(async (otherUser) => {
+    const otherUserId = otherUser?.id || otherUser?.docId || otherUser?.uid;
+    if (!otherUserId || otherUserId === user?.uid) return;
+    try {
+      const result = await chatService.createDM(otherUserId);
+      if (result.success && result.data) {
+        setSelectedClass(`dm:${result.data.id}`);
+        setUserHasInteracted(true);
+      }
+    } catch (err) {
+      error('Failed to start DM:', err);
+      toast?.showError?.('Failed to start conversation');
+    }
+    setShowNewDMPicker(false);
+  }, [user, setSelectedClass, setUserHasInteracted, toast]);
   
   // Helper function to get user's theme color
   const getUserThemeColor = () => {
@@ -707,6 +749,19 @@ const ChatPage = memo(() => {
     fetchUsers();
   }, []);
   
+  // Initialize chat WebSocket connection on mount
+  useEffect(() => {
+    const token = localStorage.getItem('keycloak_token');
+    if (token) {
+      chatService.initializeChatService(token);
+    }
+    // Don't disconnect on cleanup - React strict mode double-invokes effects
+    // The socket has its own reconnection logic
+    return () => {
+      // Only disconnect if page is truly unmounting (not strict mode re-mount)
+    };
+  }, []);
+  
   // Load/Reload messages when destination changes, ensuring previous listener is cleaned up
   useEffect(() => {
     if (!selectedClass) return;
@@ -1145,12 +1200,19 @@ const ChatPage = memo(() => {
           ))}
 
           {/* Direct Messages */}
-          {/* {!showFavoritesOnly && (
-            <div style={{ padding: '0.6rem 0.9rem', color: 'var(--muted)', fontWeight: 600, fontSize:'0.85rem', borderTop: '1px solid var(--border)' }}>
-              {t('chat_direct_messages')}
-            </div>
-          )} */}
-          {(isAdmin || isSuperAdmin) && (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.4rem 0.9rem', borderTop: '1px solid var(--border)' }}>
+            <span style={{ color: 'var(--muted)', fontWeight: 600, fontSize: '0.85rem' }}>Direct Messages</span>
+            {isStaffRole && (
+              <button
+                onClick={openNewDMPicker}
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--brand)', fontSize: '1.1rem', padding: '2px 6px', borderRadius: 4 }}
+                title="Start new conversation"
+              >
+                +
+              </button>
+            )}
+          </div>
+          {isStaffRole && (
             <input
               type="text"
               placeholder={t('chat_search_users')}
@@ -1171,12 +1233,11 @@ const ChatPage = memo(() => {
             if (showFavoritesOnly) {
               filtered = filtered.filter(r => (r.starBy || []).includes(user.uid));
             }
-            if (dmSearch && isAdmin) {
+            if (dmSearch && isStaffRole) {
               const search = dmSearch.toLowerCase();
               filtered = (Array.isArray(safeDirectRooms) ? safeDirectRooms : []).filter(room => {
-                const otherId = (room.participants || []).find(p => p !== user.uid);
-                const other = (Array.isArray(safeAllUsers) ? safeAllUsers : []).find(u => u.docId === otherId);
-                const name = other?.displayName || other?.email || '';
+                const otherUser = room.userA?.id === user?.dbId ? room.userB : room.userA;
+                const name = otherUser ? `${otherUser.firstName || ''} ${otherUser.lastName || ''}`.trim() || otherUser.email || '' : '';
                 return name.toLowerCase().includes(search);
               });
             }
@@ -1194,10 +1255,13 @@ const ChatPage = memo(() => {
             .filter(Boolean)
             .flatMap(x => Array.isArray(x) ? x : [x])
             .map(room => {
-            const otherId = (room.participants || []).find(p => p !== user.uid);
-            const other = (safeAllUsers || []).find(u => u.docId === otherId);
-            const label = other?.displayName || other?.email || 'Conversation';
-            const initial = (other?.displayName || other?.email || 'D')[0]?.toUpperCase();
+            // DM rooms have participantA/participantB (numeric DB IDs) and userA/userB (user data)
+            // user.uid is a Keycloak UUID, so we can't match participants directly
+            // Instead, use userA/userB data included in the room object
+            const otherUser = room.userA?.id === user.dbId ? room.userB : room.userA;
+            const otherId = otherUser?.id;
+            const label = otherUser ? `${otherUser.firstName || ''} ${otherUser.lastName || ''}`.trim() || otherUser.email || 'Conversation' : 'Conversation';
+            const initial = (label || 'D')[0]?.toUpperCase();
             const lastTime = room.lastMessageAt?.toDate?.();
             return (
               <div
@@ -1213,15 +1277,15 @@ const ChatPage = memo(() => {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   {(() => {
                     // For DM: show X only if deleted or disabled on user level
-                    const isDeleted = !other || other.deleted;
-                    const isDisabled = other?.disabled || other?.isDisabled;
+                    const isDeleted = !otherUser;
+                    const isDisabled = false;
                     const showIndicator = isDeleted || isDisabled;
                     const indicatorTitle = isDeleted ? 'Deleted User' : (isDisabled ? 'Disabled User' : '');
                     return (
                       <>
-                        {other?.photoURL ? (
+                        {otherUser?.profileImageUrl ? (
                           <div style={{ position: 'relative' }}>
-                            <img src={other.photoURL} alt={label} style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', opacity: showIndicator ? 0.5 : 1 }} />
+                            <img src={otherUser.profileImageUrl} alt={label} style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', opacity: showIndicator ? 0.5 : 1 }} />
                             {showIndicator && (
                               <div style={{ position: 'absolute', top: -2, right: -2, width: 12, height: 12, borderRadius: '50%', background: '#dc2626', border: '2px solid white', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title={indicatorTitle}>
                                 <span style={{ fontSize: 8, color: 'white' }}>✕</span>
@@ -1243,13 +1307,8 @@ const ChatPage = memo(() => {
                   })()}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                      <div style={{ fontWeight: 600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', flex:1, opacity: (!other || other.deleted) ? 0.6 : 1 }}>
-                        {other?.displayName || other?.email || 'Conversation'}
-                        {other?.studentNumber && (
-                          <span style={{ fontSize: '0.75rem', color: 'var(--muted)', marginLeft: '0.25rem', fontWeight: 'normal' }}>
-                            ({other.studentNumber})
-                          </span>
-                        )}
+                      <div style={{ fontWeight: 600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', flex:1, opacity: !otherUser ? 0.6 : 1 }}>
+                        {label}
                       </div>
                       {(() => { const c = unreadCounts[`dm:${room.id}`]||0; if (c>0) { return (<span style={{background:'var(--brand)',color:'white',borderRadius:'50%',minWidth:18,height:18,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.7rem',fontWeight:'bold',padding:'0 5px'}}>{c>99?'99+':c}</span>);} return null; })()}
                     </div>
@@ -1362,9 +1421,8 @@ const ChatPage = memo(() => {
                  (selectedClass?.startsWith('dm:')
                    ? (()=>{ 
                       const room = directRooms.find(r=>`dm:${r.id}`===selectedClass); 
-                      const otherId=(room?.participants||[]).find(p=>p!==user.uid); 
-                      const other=allUsers.find(u=>u.docId===otherId); 
-                      return other?.displayName || other?.realName || other?.studentNumber || other?.email || 'Direct Message';
+                      const otherUser = room?.userA?.id === user?.dbId ? room?.userB : room?.userA;
+                      return otherUser ? `${otherUser.firstName || ''} ${otherUser.lastName || ''}`.trim() || otherUser.email || 'Direct Message' : 'Direct Message';
                     })()
                    : (classes.find(c => c.docId === selectedClass)?.name || selectedClassName || 'Chat')
                  )}
@@ -1372,17 +1430,16 @@ const ChatPage = memo(() => {
               {/* Display name for DM conversations */}
               {selectedClass?.startsWith('dm:') && (()=>{ 
                 const room = directRooms.find(r=>`dm:${r.id}`===selectedClass); 
-                const otherId=(room?.participants||[]).find(p=>p!==user.uid); 
-                const other=allUsers.find(u=>u.docId===otherId); 
-                const displayName = other?.displayName;
-                const studentNumber = other?.studentNumber;
+                const otherUser = room?.userA?.id === user?.dbId ? room?.userB : room?.userA;
+                const displayName = otherUser ? `${otherUser.firstName || ''} ${otherUser.lastName || ''}`.trim() : null;
+                const email = otherUser?.email;
                 if (displayName) {
                   return (
                     <div style={{ fontSize: '0.9rem', color: '#666', marginTop: '0.25rem', fontWeight: 500 }}>
                       {displayName}
-                      {studentNumber && (
+                      {email && email !== displayName && (
                         <span style={{ fontSize: '0.8rem', color: '#888', marginLeft: '0.25rem' }}>
-                          ({studentNumber})
+                          ({email})
                         </span>
                       )}
                     </div>
@@ -1412,16 +1469,14 @@ const ChatPage = memo(() => {
             {/* DM Name (if any) - shown for DM conversations */}
             {selectedClass?.startsWith('dm:') && (()=>{ 
               const room = directRooms.find(r=>`dm:${r.id}`===selectedClass); 
-              const otherId=(room?.participants||[]).find(p=>p!==user.uid); 
-              const other=allUsers.find(u=>u.docId===otherId); 
-              return other?.displayName || other?.email;
+              const otherUser = room?.userA?.id === user?.dbId ? room?.userB : room?.userA;
+              return otherUser ? `${otherUser.firstName || ''} ${otherUser.lastName || ''}`.trim() || otherUser.email : null;
             })() && (
               <span style={{ fontSize: '0.9rem', color: '#666', fontWeight: 500 }}>
                 {(()=>{ 
                   const room = directRooms.find(r=>`dm:${r.id}`===selectedClass); 
-                  const otherId=(room?.participants||[]).find(p=>p!==user.uid); 
-                  const other=allUsers.find(u=>u.docId===otherId); 
-                  return other?.displayName || other?.email;
+                  const otherUser = room?.userA?.id === user?.dbId ? room?.userB : room?.userA;
+                  return otherUser ? `${otherUser.firstName || ''} ${otherUser.lastName || ''}`.trim() || otherUser.email : '';
                 })()}
               </span>
             )}
@@ -1558,7 +1613,7 @@ const ChatPage = memo(() => {
                 );
               }
               const msg = item;
-              const isOwnMessage = msg.senderId === user.uid;
+              const isOwnMessage = msg.senderId === user?.dbId || msg.senderId === user?.uid;
               const senderUser = allUsers.find(u => u.docId === msg.senderId);
               const isHighlighted = highlightedMsgId === msg.id;
               const myProfile = allUsers.find(u => u.docId === user?.uid);
@@ -1724,10 +1779,13 @@ const ChatPage = memo(() => {
                           {getThemedIcon('ui', 'bar_chart', 20, theme)} {msg.pollQuestion}
                         </div>
                         {msg.pollOptions?.map((option, idx) => {
-                          const votes = msg.pollVotes?.[idx] || [];
-                          const totalVotes = Object.values(msg.pollVotes || {}).flat().length;
-                          const percentage = totalVotes > 0 ? Math.round((votes.length / totalVotes) * 100) : 0;
-                          const hasVoted = votes.includes(user.uid);
+                          const optionText = typeof option === 'string' ? option : (option?.text || '');
+                          const optionVotes = typeof option === 'object' && option?.votes ? option.votes : (msg.pollVotes?.[idx] || []);
+                          const totalVotes = (msg.pollVotes && typeof msg.pollVotes === 'object') 
+                            ? Object.values(msg.pollVotes).flat().length 
+                            : (msg.pollOptions || []).reduce((sum, o) => sum + (o?.votes?.length || 0), 0);
+                          const percentage = totalVotes > 0 ? Math.round((optionVotes.length / totalVotes) * 100) : 0;
+                          const hasVoted = optionVotes.includes(user?.dbId?.toString()) || optionVotes.includes(user?.uid);
                           return (
                             <button
                               key={idx}
@@ -1777,14 +1835,16 @@ const ChatPage = memo(() => {
                                 transition: 'width 0.3s'
                               }} />
                               <div style={{ position: 'relative', display: 'flex', justifyContent: 'space-between', color: '#000000' }}>
-                                <span>{option}</span>
-                                <span style={{ fontWeight: 600 }}>{percentage}% ({votes.length})</span>
+                                <span>{optionText}</span>
+                                <span style={{ fontWeight: 600 }}>{percentage}% ({optionVotes.length})</span>
                               </div>
                             </button>
                           );
                         })}
                         <div style={{ fontSize: '0.8rem', color: 'var(--muted)', marginTop: '0.5rem' }}>
-                          {Object.values(msg.pollVotes || {}).flat().length} {t('votes') || 'votes'}
+                          {(msg.pollVotes && typeof msg.pollVotes === 'object' 
+                            ? Object.values(msg.pollVotes).flat().length 
+                            : (msg.pollOptions || []).reduce((sum, o) => sum + (o?.votes?.length || 0), 0))} {t('votes') || 'votes'}
                         </div>
                       </div>
                     ) : (
@@ -2273,7 +2333,7 @@ const ChatPage = memo(() => {
                     }}
                   />
                 ) : (
-                  <Paperclip size={20} style={{ color: '#666' }} />
+                  getThemedIcon('ui', 'paperclip', 20, theme)
                 )}
                 <div>
                   <div style={{ fontWeight: '500', fontSize: '0.9rem' }}>{attachedFile.name}</div>
@@ -2876,6 +2936,70 @@ const ChatPage = memo(() => {
           <div style={{ display:'flex', justifyContent:'flex-end', gap:8, marginTop:10 }}>
             <button onClick={()=>setEditingMsg(null)} style={{ background:'transparent', color:'var(--text)', border:'1px solid var(--border)', borderRadius:8, padding:'8px 12px', cursor:'pointer' }}>{t('cancel')||'Cancel'}</button>
             <button onClick={handleSaveEdit} style={{ background:'linear-gradient(135deg, #800020, #600018)', color:'#fff', border:'none', borderRadius:8, padding:'8px 12px', cursor:'pointer' }}>{t('save')||'Save'}</button>
+          </div>
+        </div>
+      </div>
+    )}
+
+    {/* New DM Picker Modal */}
+    {showNewDMPicker && (
+      <div style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setShowNewDMPicker(false)}>
+        <div onClick={(e) => e.stopPropagation()} style={{ background: 'var(--panel)', borderRadius: 12, width: 400, maxHeight: '70vh', display: 'flex', flexDirection: 'column', boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.5rem', borderBottom: '1px solid var(--border)' }}>
+            <h3 style={{ margin: 0, fontSize: '1.1rem' }}>Start New Conversation</h3>
+            <button onClick={() => setShowNewDMPicker(false)} style={{ background: 'transparent', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--text)' }}>✕</button>
+          </div>
+          <div style={{ padding: '0.75rem 1.5rem' }}>
+            <input
+              type="text"
+              placeholder="Search users..."
+              value={dmUserSearch}
+              onChange={(e) => setDmUserSearch(e.target.value)}
+              autoFocus
+              style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: '0.95rem', background: 'var(--bg)', color: 'var(--text)' }}
+            />
+          </div>
+          <div style={{ flex: 1, overflowY: 'auto', padding: '0 1.5rem 1rem' }}>
+            {dmUsersLoading ? (
+              <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--muted)' }}>Loading users...</div>
+            ) : availableDMUsers.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--muted)' }}>No users available</div>
+            ) : (
+              availableDMUsers
+                .filter(u => {
+                  if (!dmUserSearch) return true;
+                  const name = `${u.firstName || ''} ${u.lastName || ''}`.toLowerCase();
+                  const email = (u.email || '').toLowerCase();
+                  const search = dmUserSearch.toLowerCase();
+                  return name.includes(search) || email.includes(search);
+                })
+                .map(u => {
+                  const name = `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email || 'Unknown';
+                  const initials = name.charAt(0).toUpperCase();
+                  const roles = (u.roleAssignments || []).map(ra => ra.role?.code).filter(Boolean);
+                  const roleLabel = roles.includes('superadmin') ? 'Super Admin' : roles.includes('admin') ? 'Admin' : roles.includes('hr') ? 'HR' : roles.includes('instructor') ? 'Instructor' : roles.includes('student') ? 'Student' : '';
+                  return (
+                    <div
+                      key={u.id}
+                      onClick={() => startDMFromPicker(u)}
+                      style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '0.6rem 0.5rem', cursor: 'pointer', borderRadius: 8, borderBottom: '1px solid var(--border)' }}
+                      onMouseEnter={(e) => e.currentTarget.style.background = 'var(--hover)'}
+                      onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
+                    >
+                      <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#800020', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.9rem' }}>
+                        {initials}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{name}</div>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>{u.email}</div>
+                      </div>
+                      {roleLabel && (
+                        <span style={{ fontSize: '0.7rem', background: 'var(--brand)', color: 'white', padding: '2px 8px', borderRadius: 4, fontWeight: 600 }}>{roleLabel}</span>
+                      )}
+                    </div>
+                  );
+                })
+            )}
           </div>
         </div>
       </div>

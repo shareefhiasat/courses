@@ -84,14 +84,17 @@ export const getOrCreateRoom = async ({ type, classId, participantA, participant
  */
 export const getUserRooms = async (userId, roles = [], enrolledClassIds = []) => {
   try {
-    const isStudent = roles.includes('student');
-    const isStaff = roles.some(r => ['instructor', 'hr', 'admin', 'superadmin'].includes(r));
+    const isStudent = roles.some(r => r?.toLowerCase().includes('student'));
+    const isStaff = roles.some(r => {
+      const lc = r?.toLowerCase();
+      return lc === 'instructor' || lc === 'hr' || lc === 'admin' || lc === 'super_admin' || lc === 'superadmin';
+    });
 
     const rooms = [];
 
     // Global chat (all staff can access, students read-only)
     if (isStaff || isStudent) {
-      const globalRoom = await prisma.chatRoom.findFirst({
+      let globalRoom = await prisma.chatRoom.findFirst({
         where: { type: 'global' },
         include: {
           _count: {
@@ -99,11 +102,68 @@ export const getUserRooms = async (userId, roles = [], enrolledClassIds = []) =>
           }
         }
       });
-      if (globalRoom) rooms.push(globalRoom);
+      // Auto-create global room if it doesn't exist
+      if (!globalRoom) {
+        globalRoom = await prisma.chatRoom.create({
+          data: { type: 'global' },
+          include: {
+            _count: {
+              select: { messages: { where: { isDeleted: false } } }
+            }
+          }
+        });
+      }
+      rooms.push(globalRoom);
     }
 
-    // Class chats (enrolled classes for students, assigned/all for staff)
-    if (enrolledClassIds.length > 0) {
+    // Class chats (enrolled classes for students, all classes for staff)
+    if (isStaff) {
+      // Staff can see all class chat rooms
+      // First, auto-create chat rooms for any classes that don't have one yet
+      const allClasses = await prisma.class.findMany({
+        select: { id: true }
+      });
+      const allClassIds = allClasses.map(c => c.id);
+      const existingClassRooms = await prisma.chatRoom.findMany({
+        where: { type: 'class' },
+        select: { classId: true }
+      });
+      const existingClassIds = new Set(existingClassRooms.map(r => r.classId));
+      const missingClassIds = allClassIds.filter(id => !existingClassIds.has(id));
+      if (missingClassIds.length > 0) {
+        await prisma.chatRoom.createMany({
+          data: missingClassIds.map(classId => ({ type: 'class', classId }))
+        });
+      }
+
+      // Now fetch all class rooms
+      const classRooms = await prisma.chatRoom.findMany({
+        where: { type: 'class' },
+        include: {
+          class: {
+            select: { id: true, nameEn: true, nameAr: true, code: true }
+          },
+          _count: {
+            select: { messages: { where: { isDeleted: false } } }
+          }
+        }
+      });
+      rooms.push(...classRooms);
+    } else if (enrolledClassIds.length > 0) {
+      // Students see only their enrolled classes
+      // Auto-create chat rooms for enrolled classes that don't have one
+      const existingClassRooms = await prisma.chatRoom.findMany({
+        where: { type: 'class', classId: { in: enrolledClassIds } },
+        select: { classId: true }
+      });
+      const existingClassIds = new Set(existingClassRooms.map(r => r.classId));
+      const missingClassIds = enrolledClassIds.filter(id => !existingClassIds.has(id));
+      if (missingClassIds.length > 0) {
+        await prisma.chatRoom.createMany({
+          data: missingClassIds.map(classId => ({ type: 'class', classId }))
+        });
+      }
+
       const classRooms = await prisma.chatRoom.findMany({
         where: {
           type: 'class',
@@ -429,8 +489,9 @@ export const votePoll = async (messageId, userId, optionIndex) => {
  */
 export const getAvailableDMUsers = async (userId, userRoles = []) => {
   try {
-    const isStudent = userRoles.includes('student');
-    const isStaff = userRoles.some(r => ['instructor', 'hr', 'admin', 'superadmin'].includes(r));
+    const roles = userRoles.map(r => r.toLowerCase());
+    const isStudent = roles.includes('student');
+    const isStaff = roles.some(r => ['instructor', 'hr', 'admin', 'super_admin', 'superadmin'].includes(r));
 
     let where = {
       id: { not: userId },

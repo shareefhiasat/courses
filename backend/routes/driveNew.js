@@ -4,9 +4,10 @@
  */
 
 import { Router } from 'express';
+import multer from 'multer';
 import { keycloakAuth } from '../middleware/keycloakAuth.js';
 import { PrismaClient } from '@prisma/client';
-import { BUCKETS } from '../services/minioService.js';
+import { BUCKETS, putObject } from '../services/minioService.js';
 
 const prisma = new PrismaClient();
 
@@ -627,6 +628,31 @@ router.get('/files/:fileId/activities', getFileActivities);
 
 // ---------------- Misc ----------------
 router.get('/storage', getStorageUsage);
+
+// ---------------- Chat Upload ----------------
+const chatUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });
+router.post('/chat-upload', keycloakAuth, chatUpload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, error: 'No file provided' });
+    }
+    const filePath = req.body.filePath || `chat-attachments/${Date.now()}_${req.file.originalname}`;
+    const bucket = BUCKETS.PRIVATE;
+    const metaData = {
+      'Content-Type': req.file.mimetype,
+    };
+    await putObject(bucket, filePath, req.file.buffer, req.file.size, metaData);
+
+    const protocol = req.protocol;
+    const host = req.get('host');
+    const fileUrl = `${protocol}://${host}/api/v1/drive/files/preview/${encodeURIComponent(filePath)}`;
+
+    res.json({ success: true, data: { url: fileUrl, path: filePath, fileName: req.file.originalname, fileType: req.file.mimetype, fileSize: req.file.size } });
+  } catch (err) {
+    console.error('[driveNew] chat-upload error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
 
 export default router;
 export { wopiRouter };

@@ -164,15 +164,19 @@ export const useChatActions = (user, state, toast, t) => {
     
     setIsUploading(true);
     
-    // Check user participation
+    // Check user participation (skip for staff roles and global chat)
     try {
-      const participationCheck = canParticipate(profileName || user, []);
-      if (!participationCheck) {
-        toast?.showError?.('You cannot send messages. Your account is disabled, archived, or you have no active enrollments.');
-        setIsUploading(false);
-        return;
+      const isStaffRole = state?.isAdmin || state?.isSuperAdmin || state?.isInstructor || state?.isHR;
+      const isGlobalChat = selectedClass === 'global' || selectedClass === CHAT_TYPES.GLOBAL;
+      if (!isStaffRole && !isGlobalChat) {
+        const participationCheck = canParticipate(profileName || user, []);
+        if (!participationCheck) {
+          toast?.showError?.('You cannot send messages. Your account is disabled, archived, or you have no active enrollments.');
+          setIsUploading(false);
+          return;
+        }
       }
-    } catch (error) {
+    } catch (err) {
       // Continue anyway - don't block if status check fails
     }
     
@@ -280,15 +284,15 @@ export const useChatActions = (user, state, toast, t) => {
       }
       
       resetInputState();
-    } catch (error) {
-      error('Error sending message:', error);
+    } catch (err) {
+      error('Error sending message:', err);
       toast?.showError('Failed to send message');
     } finally {
       setIsUploading(false);
     }
   }, [
     newMessage, audioBlob, attachedFile, isUploading, selectedClass, user, 
-    profileName, toast, recordingTime, resetInputState
+    profileName, toast, recordingTime, resetInputState, state
   ]);
 
   // File selection
@@ -366,8 +370,8 @@ export const useChatActions = (user, state, toast, t) => {
         });
       }, 1000);
       
-    } catch (error) {
-      error('Error starting recording:', error);
+    } catch (err) {
+      error('Error starting recording:', err);
       toast?.showError('Microphone access denied');
     }
   }, [user, toast, state]);
@@ -393,7 +397,7 @@ export const useChatActions = (user, state, toast, t) => {
 
   // Message actions
   const handleDeleteMessage = useCallback(async (msg) => {
-    if (!canDeleteMessage(msg, user.uid, user.isAdmin)) return;
+    if (!canDeleteMessage(msg, user?.dbId ?? user.uid, user.isAdmin)) return;
     
     try {
       // Delete storage files if any
