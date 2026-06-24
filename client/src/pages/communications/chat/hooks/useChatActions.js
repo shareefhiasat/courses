@@ -410,6 +410,9 @@ export const useChatActions = (user, state, toast, t) => {
       
       await chatService.deleteMessage(msg.id);
       
+      // Immediately remove from local state for instant UI feedback
+      setMessages(prev => (prev || []).filter(m => m.id !== msg.id));
+      
       // Update lastMessage if needed
       if (msg.type === 'class' && msg.classId) {
         try {
@@ -428,7 +431,7 @@ export const useChatActions = (user, state, toast, t) => {
       error('Delete message failed:', err);
       toast?.showError('Failed to delete message');
     }
-  }, [user, toast]);
+  }, [user, toast, setMessages]);
 
   const handleSaveEdit = useCallback(async () => {
     if (!state.editingMsg || !state.editingMsg.id) {

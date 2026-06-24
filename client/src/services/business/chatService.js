@@ -46,8 +46,22 @@ export const subscribeToMessages = (roomId, callback) => {
     }
   };
 
+  const deleteHandler = (data) => {
+    if (data.roomId === roomId) {
+      callback([{ id: data.id, _deleted: true }]);
+    }
+  };
+
+  const updateHandler = (message) => {
+    if (message.roomId === roomId) {
+      callback([{ id: message.id, ...message, _updated: true }]);
+    }
+  };
+
   messageHandlers.add(handler);
   chatSocket.on('message', handler);
+  chatSocket.on('message_deleted', deleteHandler);
+  chatSocket.on('message_updated', updateHandler);
 
   // Initial load of messages
   getRoomMessages(roomId).then(messages => {
@@ -60,6 +74,8 @@ export const subscribeToMessages = (roomId, callback) => {
   return () => {
     messageHandlers.delete(handler);
     chatSocket.off('message', handler);
+    chatSocket.off('message_deleted', deleteHandler);
+    chatSocket.off('message_updated', updateHandler);
   };
 };
 
@@ -78,9 +94,11 @@ export const subscribeToClasses = (userId, callback) => {
       const classRooms = result.data.filter(r => r.type === 'class');
       const classes = classRooms.map(room => ({
         id: room.classId,
+        docId: room.classId,
         name: room.class?.nameEn || 'Class',
         nameAr: room.class?.nameAr,
         code: room.class?.code,
+        term: room.class?.term || '',
         roomId: room.id
       }));
       callback(classes);
@@ -383,7 +401,7 @@ const wrapDoc = (msg) => ({
     voiceUrl: msg.fileUrl,
     voicePath: msg.filePath,
     pollOptions: msg.pollOptions,
-    pollVotes: msg.pollOptions ? {} : undefined,
+    pollVotes: msg.pollOptions ? Object.fromEntries(msg.pollOptions.map((o, i) => [i, o?.votes || []])) : undefined,
     reactions: msg.reactions || {},
     isEdited: msg.isEdited,
     isDeleted: msg.isDeleted,
@@ -468,6 +486,7 @@ const compatSubscribeToClasses = (callback, seeAll = false, uid = null, classIds
           name: room?.class?.nameEn || `Class ${classId}`,
           nameAr: room?.class?.nameAr,
           code: room?.class?.code,
+          term: room?.class?.term || '',
           roomId: room?.id
         };
       });
@@ -487,6 +506,7 @@ const compatSubscribeToClasses = (callback, seeAll = false, uid = null, classIds
         name: room.class?.nameEn || 'Class',
         nameAr: room.class?.nameAr,
         code: room.class?.code,
+        term: room.class?.term || '',
         roomId: room.id
       }));
       callback(classes);

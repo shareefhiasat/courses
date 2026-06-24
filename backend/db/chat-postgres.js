@@ -141,7 +141,7 @@ export const getUserRooms = async (userId, roles = [], enrolledClassIds = []) =>
         where: { type: 'class' },
         include: {
           class: {
-            select: { id: true, nameEn: true, nameAr: true, code: true }
+            select: { id: true, nameEn: true, nameAr: true, code: true, term: true }
           },
           _count: {
             select: { messages: { where: { isDeleted: false } } }
@@ -171,7 +171,7 @@ export const getUserRooms = async (userId, roles = [], enrolledClassIds = []) =>
         },
         include: {
           class: {
-            select: { id: true, nameEn: true, nameAr: true, code: true }
+            select: { id: true, nameEn: true, nameAr: true, code: true, term: true }
           },
           _count: {
             select: { messages: { where: { isDeleted: false } } }

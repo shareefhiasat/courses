@@ -4,10 +4,10 @@ import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { Navigate, useLocation } from 'react-router-dom';
 import { ROLE_STRINGS } from '@utils/userUtils';
-import { getThemedIcon, getColoredIcon } from '@constants/iconTypes';
+import { getThemedIcon, getColoredIcon, getUserRoleIcon, getUserRoleColor } from '@constants/iconTypes';
 import { getClasses } from '@services/business/classService';
 import { getEnrollments } from '@services/business/enrollmentService';
-import { getUsers } from '@services/business/userService';
+import { getUsers, getUserRoles } from '@services/business/userService';
 import { getUserProfile, updateUser } from '@services/business/userService';
 import { addNotification } from '@services/business/notificationService';
 import { chatService } from '@services/business/chatService';
@@ -335,6 +335,21 @@ const ChatPage = memo(() => {
     }
     
     const unsubscribe = chatService.subscribeToMessages(chatType, chatId, (snapshot) => {
+      // Check if this is a real-time delta (delete/update) vs full load
+      const isDelta = snapshot.length === 1 && (snapshot[0]._deleted || snapshot[0]._updated);
+      
+      if (isDelta) {
+        const delta = snapshot[0];
+        if (delta._deleted) {
+          setMessages(prev => (prev || []).filter(m => m.id !== delta.id));
+          return;
+        }
+        if (delta._updated) {
+          setMessages(prev => (prev || []).map(m => m.id === delta.id ? { ...m, ...delta } : m));
+          return;
+        }
+      }
+      
       const msgs = [];
       snapshot.forEach((doc) => {
         msgs.push({ id: doc.id, ...doc.data() });
@@ -1614,9 +1629,9 @@ const ChatPage = memo(() => {
               }
               const msg = item;
               const isOwnMessage = msg.senderId === user?.dbId || msg.senderId === user?.uid;
-              const senderUser = allUsers.find(u => u.docId === msg.senderId);
+              const senderUser = allUsers.find(u => u.docId === msg.senderId || u.id === msg.senderId || String(u.id) === String(msg.senderId));
               const isHighlighted = highlightedMsgId === msg.id;
-              const myProfile = allUsers.find(u => u.docId === user?.uid);
+              const myProfile = allUsers.find(u => u.docId === user?.uid || u.id === user?.dbId || String(u.id) === String(user?.dbId));
               const bubbleColor = isOwnMessage
                 ? '#ffffff'  // Always white for own messages
                 : '#ffffff';
@@ -1681,7 +1696,33 @@ const ChatPage = memo(() => {
                         alignItems: 'center',
                         gap: '0.25rem'
                       }}>
-                        {msg.senderName}
+                        {msg.senderName || senderUser?.displayName || 'Unknown'}
+                        {(() => {
+                          if (!senderUser) return null;
+                          const roles = getUserRoles(senderUser);
+                          const primaryRole = roles.find(r => ['super_admin', 'superadmin', 'admin', 'instructor', 'hr'].includes(r));
+                          if (!primaryRole) return null;
+                          const roleIcon = getUserRoleIcon(primaryRole);
+                          const roleColor = getUserRoleColor(primaryRole);
+                          const roleLabel = { super_admin: 'Super Admin', superadmin: 'Super Admin', admin: 'Admin', instructor: 'Instructor', hr: 'HR' }[primaryRole] || primaryRole;
+                          return (
+                            <span style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '0.15rem',
+                              fontSize: '0.7rem',
+                              color: roleColor,
+                              background: `${roleColor}15`,
+                              borderRadius: '4px',
+                              padding: '0.1rem 0.3rem',
+                              fontWeight: '500',
+                              marginLeft: '0.25rem'
+                            }} title={roleLabel}>
+                              {roleIcon && <span style={{ display: 'inline-flex', alignItems: 'center' }}>{React.cloneElement(roleIcon, { size: 12 })}</span>}
+                              {roleLabel}
+                            </span>
+                          );
+                        })()}
                         {senderUser?.studentNumber && (
                           <span style={{ fontSize: '0.75rem', color: 'var(--muted)', marginLeft: '0.25rem', fontWeight: 'normal' }}>
                             ({senderUser.studentNumber})
@@ -1785,7 +1826,7 @@ const ChatPage = memo(() => {
                             ? Object.values(msg.pollVotes).flat().length 
                             : (msg.pollOptions || []).reduce((sum, o) => sum + (o?.votes?.length || 0), 0);
                           const percentage = totalVotes > 0 ? Math.round((optionVotes.length / totalVotes) * 100) : 0;
-                          const hasVoted = optionVotes.includes(user?.dbId?.toString()) || optionVotes.includes(user?.uid);
+                          const hasVoted = optionVotes.includes(user?.dbId) || optionVotes.includes(user?.dbId?.toString()) || optionVotes.includes(user?.uid);
                           return (
                             <button
                               key={idx}
@@ -1798,7 +1839,7 @@ const ChatPage = memo(() => {
                                   await Promise.all(
                                     msg.pollOptions.map(async (_, i) => {
                                       const currentOptionVotes = currentVotes[i] || [];
-                                      if (currentOptionVotes.includes(user.uid)) {
+                                      if (currentOptionVotes.includes(user?.dbId) || currentOptionVotes.includes(user?.dbId?.toString())) {
                                         await chatService.removePollVote(msg.id, user.uid, i);
                                       }
                                     })

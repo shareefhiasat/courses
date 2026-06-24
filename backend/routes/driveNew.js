@@ -631,7 +631,7 @@ router.get('/storage', getStorageUsage);
 
 // ---------------- Chat Upload ----------------
 const chatUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 25 * 1024 * 1024 } });
-router.post('/chat-upload', keycloakAuth, chatUpload.single('file'), async (req, res) => {
+router.post('/chat-upload', chatUpload.single('file'), async (req, res) => {
   try {
     if (!req.file) {
       return res.status(400).json({ success: false, error: 'No file provided' });
