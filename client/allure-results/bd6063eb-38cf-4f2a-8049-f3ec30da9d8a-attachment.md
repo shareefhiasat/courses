@@ -1,0 +1,129 @@
+# Instructions
+
+- Following Playwright test failed.
+- Explain why, be concise, respect Playwright best practices.
+- Provide a snippet of code with the fix, if possible.
+
+# Test info
+
+- Name: misc-pages-ui.spec.js >> Misc Pages UI — Unauthenticated >> TC-MISC-UI-030: HR attendance redirect to login
+- Location: tests/e2e/specs/misc-pages-ui.spec.js:262:3
+
+# Error details
+
+```
+Error: expect(received).toBe(expected) // Object.is equality
+
+Expected: true
+Received: false
+```
+
+# Test source
+
+```ts
+  166 |     const exportBtn = page.locator('button:has-text("Export"), button:has-text("Download"), [data-testid*="export"]').first();
+  167 |     const visible = await exportBtn.isVisible({ timeout: 3000 }).catch(() => false);
+  168 |     if (!visible) test.skip(true, 'No export button');
+  169 |   });
+  170 | 
+  171 |   test('TC-MISC-UI-020: HR attendance filter visible', async ({ page }) => {
+  172 |     const filter = page.locator('select, [data-testid*="filter"], input[type="date"]').first();
+  173 |     const visible = await filter.isVisible({ timeout: 3000 }).catch(() => false);
+  174 |     if (!visible) test.skip(true, 'No filter');
+  175 |   });
+  176 | });
+  177 | 
+  178 | test.describe('Announcements Page UI — Deep', () => {
+  179 |   test.beforeEach(async ({ page }) => {
+  180 |     await gotoWithAuth(page, '/dashboard#announcements', 'superAdmin');
+  181 |     await dismissOverlays(page);
+  182 |   });
+  183 | 
+  184 |   test('TC-MISC-UI-021: Announcements page loads', async ({ page }) => {
+  185 |     const hasContent = await waitForContent(page);
+  186 |     expect(hasContent).toBe(true);
+  187 |   });
+  188 | 
+  189 |   test('TC-MISC-UI-022: Announcements list renders', async ({ page }) => {
+  190 |     const list = page.locator('table, [data-testid*="announcement"], .card, .list').first();
+  191 |     const visible = await list.isVisible({ timeout: 5000 }).catch(() => false);
+  192 |     if (!visible) test.skip(true, 'No announcements list');
+  193 |   });
+  194 | 
+  195 |   test('TC-MISC-UI-023: Create announcement button', async ({ page }) => {
+  196 |     const btn = page.locator('button:has-text("Add"), button:has-text("Create"), [data-testid*="create"]').first();
+  197 |     const visible = await btn.isVisible({ timeout: 3000 }).catch(() => false);
+  198 |     if (!visible) test.skip(true, 'No create button');
+  199 |   });
+  200 | });
+  201 | 
+  202 | test.describe('Misc Pages UI — Role-Based Access (Deep)', () => {
+  203 |   test('TC-MISC-UI-024: Instructor can access categories', async ({ page }) => {
+  204 |     await gotoWithAuth(page, '/categories', 'instructor');
+  205 |     const denied = await isAccessDenied(page);
+  206 |     if (denied) test.skip(true, 'Instructor denied');
+  207 |     const hasContent = await waitForContent(page);
+  208 |     expect(hasContent).toBe(true);
+  209 |   });
+  210 | 
+  211 |   test('TC-MISC-UI-025: Student cannot access permission matrix', async ({ page }) => {
+  212 |     await gotoWithAuth(page, '/permission-matrix', 'student');
+  213 |     const denied = await isAccessDenied(page);
+  214 |     if (!denied) console.warn('BUG: Student can access permission matrix');
+  215 |     expect(true).toBe(true);
+  216 |   });
+  217 | 
+  218 |   test('TC-MISC-UI-026: Student cannot access HR attendance', async ({ page }) => {
+  219 |     await gotoWithAuth(page, '/hr-attendance', 'student');
+  220 |     const denied = await isAccessDenied(page);
+  221 |     if (!denied) console.warn('BUG: Student can access HR attendance');
+  222 |     expect(true).toBe(true);
+  223 |   });
+  224 | });
+  225 | 
+  226 | test.describe('Misc Pages UI — User Story', () => {
+  227 |   test('TC-MISC-UI-027: User story — admin opens category form and cancels', async ({ page }) => {
+  228 |     await gotoWithAuth(page, '/categories', 'superAdmin');
+  229 |     await dismissOverlays(page);
+  230 | 
+  231 |     const opened = await openForm(page, ['Add Category', 'Create Category', 'Add', 'Create']);
+  232 |     if (!opened) test.skip(true, 'Create form did not open');
+  233 | 
+  234 |     const nameField = page.locator('input[name*="name"], input[placeholder*="name" i]').first();
+  235 |     if (await nameField.isVisible({ timeout: 2000 }).catch(() => false)) {
+  236 |       await nameField.fill('Test Category E2E');
+  237 |     }
+  238 | 
+  239 |     await closeForm(page);
+  240 |     await page.waitForTimeout(1000);
+  241 |     const form = page.locator('form, [role="dialog"], .modal').first();
+  242 |     const stillOpen = await form.isVisible({ timeout: 1000 }).catch(() => false);
+  243 |     expect(stillOpen).toBe(false);
+  244 |   });
+  245 | });
+  246 | 
+  247 | test.describe('Misc Pages UI — Unauthenticated', () => {
+  248 |   test('TC-MISC-UI-028: Categories redirect to login', async ({ page }) => {
+  249 |     await page.goto(`${testConfig.baseUrl}/categories`);
+  250 |     await page.waitForLoadState('networkidle');
+  251 |     const url = page.url();
+  252 |     expect(url.includes('keycloak') || url.includes('login') || url.includes('8080')).toBe(true);
+  253 |   });
+  254 | 
+  255 |   test('TC-MISC-UI-029: Permission matrix redirect to login', async ({ page }) => {
+  256 |     await page.goto(`${testConfig.baseUrl}/permission-matrix`);
+  257 |     await page.waitForLoadState('networkidle');
+  258 |     const url = page.url();
+  259 |     expect(url.includes('keycloak') || url.includes('login') || url.includes('8080')).toBe(true);
+  260 |   });
+  261 | 
+  262 |   test('TC-MISC-UI-030: HR attendance redirect to login', async ({ page }) => {
+  263 |     await page.goto(`${testConfig.baseUrl}/hr-attendance`);
+  264 |     await page.waitForLoadState('networkidle');
+  265 |     const url = page.url();
+> 266 |     expect(url.includes('keycloak') || url.includes('login') || url.includes('8080')).toBe(true);
+      |                                                                                       ^ Error: expect(received).toBe(expected) // Object.is equality
+  267 |   });
+  268 | });
+  269 | 
+```

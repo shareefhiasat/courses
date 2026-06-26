@@ -1,0 +1,142 @@
+# Instructions
+
+- Following Playwright test failed.
+- Explain why, be concise, respect Playwright best practices.
+- Provide a snippet of code with the fix, if possible.
+
+# Test info
+
+- Name: workflow-pages-ui.spec.js >> Workflow Pages UI — Unauthenticated >> TC-WFP-UI-029: Inbox redirect to login
+- Location: tests/e2e/specs/workflow-pages-ui.spec.js:284:3
+
+# Error details
+
+```
+Error: page.goto: net::ERR_CONNECTION_TIMED_OUT at https://localhost:5174/workflow/inbox
+Call log:
+  - navigating to "https://localhost:5174/workflow/inbox", waiting until "load"
+
+```
+
+# Test source
+
+```ts
+  185 |     await page.waitForTimeout(2000);
+  186 |     const attachments = page.locator('[data-testid*="attachment"], .attachment, text=/attachment/i').first();
+  187 |     const visible = await attachments.isVisible({ timeout: 3000 }).catch(() => false);
+  188 |     if (!visible) test.skip(true, 'No attachments section');
+  189 |   });
+  190 | });
+  191 | 
+  192 | test.describe('Workflow Pages UI — Role-Based Access (Deep)', () => {
+  193 |   test('TC-WFP-UI-020: Instructor can access workflow inbox', async ({ page }) => {
+  194 |     await gotoWithAuth(page, INBOX_ROUTE, 'instructor');
+  195 |     const denied = await isAccessDenied(page);
+  196 |     if (denied) test.skip(true, 'Instructor denied');
+  197 |     const hasContent = await waitForContent(page);
+  198 |     expect(hasContent).toBe(true);
+  199 |   });
+  200 | 
+  201 |   test('TC-WFP-UI-021: Instructor can access compliance dashboard', async ({ page }) => {
+  202 |     await gotoWithAuth(page, COMPLIANCE_ROUTE, 'instructor');
+  203 |     const denied = await isAccessDenied(page);
+  204 |     if (denied) test.skip(true, 'Instructor denied');
+  205 |     const hasContent = await waitForContent(page);
+  206 |     expect(hasContent).toBe(true);
+  207 |   });
+  208 | 
+  209 |   test('TC-WFP-UI-022: Instructor can access workflow analytics', async ({ page }) => {
+  210 |     await gotoWithAuth(page, ANALYTICS_ROUTE, 'instructor');
+  211 |     const denied = await isAccessDenied(page);
+  212 |     if (denied) test.skip(true, 'Instructor denied');
+  213 |     const hasContent = await waitForContent(page);
+  214 |     expect(hasContent).toBe(true);
+  215 |   });
+  216 | 
+  217 |   test('TC-WFP-UI-023: Student cannot access workflow inbox', async ({ page }) => {
+  218 |     await gotoWithAuth(page, INBOX_ROUTE, 'student');
+  219 |     const denied = await isAccessDenied(page);
+  220 |     if (!denied) console.warn('BUG: Student can access workflow inbox');
+  221 |     expect(true).toBe(true);
+  222 |   });
+  223 | 
+  224 |   test('TC-WFP-UI-024: Student cannot access compliance dashboard', async ({ page }) => {
+  225 |     await gotoWithAuth(page, COMPLIANCE_ROUTE, 'student');
+  226 |     const denied = await isAccessDenied(page);
+  227 |     if (!denied) console.warn('BUG: Student can access compliance dashboard');
+  228 |     expect(true).toBe(true);
+  229 |   });
+  230 | });
+  231 | 
+  232 | test.describe('Workflow Pages UI — User Story', () => {
+  233 |   test('TC-WFP-UI-025: User story — admin reviews document and approves', async ({ page }) => {
+  234 |     await gotoWithAuth(page, INBOX_ROUTE, 'superAdmin');
+  235 |     await dismissOverlays(page);
+  236 | 
+  237 |     const docItem = page.locator('[data-testid*="document"], table tbody tr, .card').first();
+  238 |     if (!(await docItem.isVisible({ timeout: 3000 }).catch(() => false))) test.skip(true, 'No documents');
+  239 | 
+  240 |     await docItem.click();
+  241 |     await page.waitForTimeout(2000);
+  242 | 
+  243 |     const approveBtn = page.locator('button:has-text("Approve"), button:has-text("Accept")').first();
+  244 |     if (await approveBtn.isVisible({ timeout: 3000 }).catch(() => false)) {
+  245 |       const confirmDialog = page.locator('[role="dialog"], .modal, button:has-text("Confirm"), button:has-text("Yes")').first();
+  246 |       if (await confirmDialog.isVisible({ timeout: 1000 }).catch(() => false)) {
+  247 |         const cancelBtn = page.locator('button:has-text("Cancel"), button:has-text("No")').first();
+  248 |         if (await cancelBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
+  249 |           await cancelBtn.click();
+  250 |         }
+  251 |       }
+  252 |     }
+  253 |     const hasContent = await waitForContent(page);
+  254 |     expect(hasContent).toBe(true);
+  255 |   });
+  256 | 
+  257 |   test('TC-WFP-UI-026: User story — admin views compliance stats', async ({ page }) => {
+  258 |     await gotoWithAuth(page, COMPLIANCE_ROUTE, 'superAdmin');
+  259 |     await dismissOverlays(page);
+  260 |     const hasContent = await waitForContent(page);
+  261 |     expect(hasContent).toBe(true);
+  262 | 
+  263 |     const stats = page.locator('[data-testid*="stat"], .stat-card, .card').first();
+  264 |     const statsVisible = await stats.isVisible({ timeout: 3000 }).catch(() => false);
+  265 |     if (statsVisible) expect(statsVisible).toBe(true);
+  266 |   });
+  267 | });
+  268 | 
+  269 | test.describe('Workflow Pages UI — Unauthenticated', () => {
+  270 |   test('TC-WFP-UI-027: Compliance redirect to login', async ({ page }) => {
+  271 |     await page.goto(`${testConfig.baseUrl}/workflow/compliance`);
+  272 |     await page.waitForLoadState('networkidle');
+  273 |     const url = page.url();
+  274 |     expect(url.includes('keycloak') || url.includes('login') || url.includes('8080')).toBe(true);
+  275 |   });
+  276 | 
+  277 |   test('TC-WFP-UI-028: Analytics redirect to login', async ({ page }) => {
+  278 |     await page.goto(`${testConfig.baseUrl}/workflow/analytics`);
+  279 |     await page.waitForLoadState('networkidle');
+  280 |     const url = page.url();
+  281 |     expect(url.includes('keycloak') || url.includes('login') || url.includes('8080')).toBe(true);
+  282 |   });
+  283 | 
+  284 |   test('TC-WFP-UI-029: Inbox redirect to login', async ({ page }) => {
+> 285 |     await page.goto(`${testConfig.baseUrl}/workflow/inbox`);
+      |                ^ Error: page.goto: net::ERR_CONNECTION_TIMED_OUT at https://localhost:5174/workflow/inbox
+  286 |     await page.waitForLoadState('networkidle');
+  287 |     const url = page.url();
+  288 |     expect(url.includes('keycloak') || url.includes('login') || url.includes('8080')).toBe(true);
+  289 |   });
+  290 | });
+  291 | 
+  292 | test.describe('Workflow Pages UI — Edge Cases', () => {
+  293 |   test('TC-WFP-UI-030: Compliance dashboard refresh button', async ({ page }) => {
+  294 |     await gotoWithAuth(page, COMPLIANCE_ROUTE, 'superAdmin');
+  295 |     await dismissOverlays(page);
+  296 |     const refreshBtn = page.locator('button:has-text("Refresh"), [data-testid*="refresh"], [aria-label*="refresh" i]').first();
+  297 |     const visible = await refreshBtn.isVisible({ timeout: 3000 }).catch(() => false);
+  298 |     if (!visible) test.skip(true, 'No refresh button');
+  299 |   });
+  300 | });
+  301 | 
+```

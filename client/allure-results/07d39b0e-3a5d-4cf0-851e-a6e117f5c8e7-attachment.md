@@ -1,0 +1,171 @@
+# Instructions
+
+- Following Playwright test failed.
+- Explain why, be concise, respect Playwright best practices.
+- Provide a snippet of code with the fix, if possible.
+
+# Test info
+
+- Name: notifications-ui.spec.js >> Notifications UI — Role-Based Access (Deep) >> TC-NOT-UI-026: Student sees notification filters
+- Location: tests/e2e/specs/notifications-ui.spec.js:244:3
+
+# Error details
+
+```
+TimeoutError: page.goto: Timeout 30000ms exceeded.
+Call log:
+  - navigating to "https://localhost:5174/notifications", waiting until "load"
+
+```
+
+# Test source
+
+```ts
+  1   | /**
+  2   |  * UI Auth Helpers — Keycloak login via browser
+  3   |  */
+  4   | import { testConfig } from '../config/test.config.js';
+  5   | 
+  6   | /**
+  7   |  * Login via Keycloak UI. Call after navigating to a protected page.
+  8   |  * Detects Keycloak redirect and fills credentials.
+  9   |  */
+  10  | export async function loginAsRole(page, role = 'superAdmin') {
+  11  |   const user = testConfig[role];
+  12  |   if (!user) throw new Error(`Unknown role: ${role}`);
+  13  | 
+  14  |   // Wait for possible redirect to Keycloak (up to 10s)
+  15  |   await page.waitForTimeout(1000);
+  16  |   let currentUrl = page.url();
+  17  |   for (let i = 0; i < 10 && !(currentUrl.includes('keycloak') || currentUrl.includes('8080')); i++) {
+  18  |     await page.waitForTimeout(1000);
+  19  |     currentUrl = page.url();
+  20  |   }
+  21  | 
+  22  |   if (currentUrl.includes('keycloak') || currentUrl.includes('8080')) {
+  23  |     // Wait for the login form to be visible
+  24  |     const usernameField = page.locator('input[name="username"], input[type="email"], input#username').first();
+  25  |     const passwordField = page.locator('input[name="password"], input[type="password"], input#password').first();
+  26  |     const submitBtn = page.locator('button[type="submit"], input[type="submit"], button[name="login"]').first();
+  27  | 
+  28  |     await usernameField.waitFor({ state: 'visible', timeout: 10000 });
+  29  |     await usernameField.fill(user.email);
+  30  |     await passwordField.fill(user.password);
+  31  |     await submitBtn.click();
+  32  | 
+  33  |     // Wait for redirect back to app (30s timeout)
+  34  |     await page.waitForURL(url => !url.toString().includes('keycloak') && !url.toString().includes('8080'), {
+  35  |       timeout: 30000,
+  36  |     });
+  37  |     await page.waitForLoadState('networkidle').catch(() => {});
+  38  |   }
+  39  |   return user;
+  40  | }
+  41  | 
+  42  | /**
+  43  |  * Navigate to a path and handle Keycloak login if redirected.
+  44  |  */
+  45  | export async function gotoWithAuth(page, path, role = 'superAdmin') {
+> 46  |   await page.goto(`${testConfig.baseUrl}${path}`);
+      |              ^ TimeoutError: page.goto: Timeout 30000ms exceeded.
+  47  |   await page.waitForLoadState('networkidle');
+  48  |   await loginAsRole(page, role);
+  49  |   await page.waitForTimeout(1500);
+  50  | }
+  51  | 
+  52  | /**
+  53  |  * Logout from the application.
+  54  |  */
+  55  | export async function logout(page) {
+  56  |   const logoutSelectors = [
+  57  |     'button:has-text("Logout")',
+  58  |     'button:has-text("Sign Out")',
+  59  |     'a[href*="logout"]',
+  60  |     '[data-testid="logout-btn"]',
+  61  |   ];
+  62  |   for (const sel of logoutSelectors) {
+  63  |     const btn = page.locator(sel).first();
+  64  |     if (await btn.isVisible({ timeout: 2000 }).catch(() => false)) {
+  65  |       await btn.click();
+  66  |       break;
+  67  |     }
+  68  |   }
+  69  | }
+  70  | 
+  71  | /**
+  72  |  * Wait for main content to render. Checks for common content containers.
+  73  |  */
+  74  | export async function waitForContent(page) {
+  75  |   const selectors = [
+  76  |     'main',
+  77  |     '[role="main"]',
+  78  |     '.main-content',
+  79  |     'table',
+  80  |     '[role="grid"]',
+  81  |     '.card',
+  82  |     '.list',
+  83  |     'h1, h2, h3',
+  84  |   ];
+  85  |   for (const sel of selectors) {
+  86  |     if (await page.locator(sel).first().isVisible({ timeout: 5000 }).catch(() => false)) {
+  87  |       return true;
+  88  |     }
+  89  |   }
+  90  |   return false;
+  91  | }
+  92  | 
+  93  | /**
+  94  |  * Wait for a table or list to render.
+  95  |  */
+  96  | export async function waitForList(page, selectors = ['table', '[role="grid"]', '.list', '[data-testid*="list"]', 'main']) {
+  97  |   for (const sel of selectors) {
+  98  |     if (await page.locator(sel).first().isVisible({ timeout: 5000 }).catch(() => false)) {
+  99  |       return true;
+  100 |     }
+  101 |   }
+  102 |   return false;
+  103 | }
+  104 | 
+  105 | /**
+  106 |  * Check if access denied message is shown.
+  107 |  */
+  108 | export async function isAccessDenied(page) {
+  109 |   const denied = page.locator('text=/Access Denied/i, text=/unauthorized/i, text=/need.*privileges/i');
+  110 |   return await denied.first().isVisible({ timeout: 2000 }).catch(() => false);
+  111 | }
+  112 | 
+  113 | /**
+  114 |  * Dismiss any modal/overlay that might block clicks (clock overlay, etc).
+  115 |  */
+  116 | export async function dismissOverlays(page) {
+  117 |   // The app has a clock overlay that can intercept clicks
+  118 |   await page.evaluate(() => {
+  119 |     const overlays = document.querySelectorAll('.clock-content, .navbar-container');
+  120 |     overlays.forEach(el => {
+  121 |       if (el.style) el.style.pointerEvents = 'none';
+  122 |     });
+  123 |   }).catch(() => {});
+  124 | }
+  125 | 
+  126 | /**
+  127 |  * Try multiple selectors to find and click a button.
+  128 |  */
+  129 | export async function clickButton(page, textOptions) {
+  130 |   for (const text of textOptions) {
+  131 |     const btn = page.locator(`button:has-text("${text}"), [data-testid*="${text.toLowerCase().replace(/\s+/g, '-')}"]`).first();
+  132 |     if (await btn.isVisible({ timeout: 3000 }).catch(() => false)) {
+  133 |       await btn.click();
+  134 |       return true;
+  135 |     }
+  136 |   }
+  137 |   return false;
+  138 | }
+  139 | 
+  140 | /**
+  141 |  * Fill a form field by trying multiple selectors.
+  142 |  */
+  143 | export async function fillField(page, selectors, value) {
+  144 |   for (const sel of selectors) {
+  145 |     const field = page.locator(sel).first();
+  146 |     if (await field.isVisible({ timeout: 2000 }).catch(() => false)) {
+```

@@ -1,0 +1,584 @@
+# Instructions
+
+- Following Playwright test failed.
+- Explain why, be concise, respect Playwright best practices.
+- Provide a snippet of code with the fix, if possible.
+
+# Test info
+
+- Name: dark-mode-ui.spec.js >> TC-DM-UI-037: Chat renders correctly [Light Mode]
+- Location: tests/e2e/specs/dark-mode-ui.spec.js:183:5
+
+# Error details
+
+```
+Test timeout of 60000ms exceeded.
+```
+
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - navigation [ref=e4]:
+    - generic [ref=e5]:
+      - button "Menu" [ref=e6] [cursor=pointer]:
+        - img [ref=e7]
+      - button "Collapse navbar" [ref=e9] [cursor=pointer]:
+        - img [ref=e10]
+      - img "QAF" [ref=e14]
+      - generic [ref=e15]:
+        - generic [ref=e16]:
+          - generic [ref=e18]: 5:00 PM
+          - generic [ref=e19]:
+            - button [ref=e21] [cursor=pointer]:
+              - img [ref=e22]
+            - button [ref=e25] [cursor=pointer]:
+              - img [ref=e26]
+        - generic [ref=e28]: Jun 25, Thu 2026
+      - generic [ref=e29]:
+        - generic [ref=e30]:
+          - button [ref=e32] [cursor=pointer]:
+            - img [ref=e33]
+          - button "Switch to Arabic" [ref=e37] [cursor=pointer]:
+            - img [ref=e38]
+          - button "Help" [ref=e42] [cursor=pointer]:
+            - img [ref=e43]
+          - button "information" [ref=e47] [cursor=pointer]:
+            - img [ref=e48]
+          - button [ref=e51] [cursor=pointer]:
+            - img [ref=e52]
+        - generic [ref=e54] [cursor=pointer]:
+          - generic [ref=e57]: S
+          - generic [ref=e58]:
+            - img [ref=e61]
+            - img [ref=e65]
+  - generic [ref=e68]:
+    - generic "Resize" [ref=e69]
+    - generic [ref=e71]:
+      - generic [ref=e73]: S
+      - generic [ref=e74]:
+        - button "Switch to Dark" [ref=e75] [cursor=pointer]:
+          - img [ref=e76]
+        - button "Collapse" [ref=e78] [cursor=pointer]:
+          - img [ref=e79]
+        - button "enable auto hide" [ref=e81] [cursor=pointer]:
+          - img [ref=e82]
+        - button "disable sticky" [ref=e85] [cursor=pointer]:
+          - img [ref=e86]
+        - button [ref=e88] [cursor=pointer]:
+          - img [ref=e89]
+    - navigation [ref=e92]:
+      - generic [ref=e93]:
+        - button "Main" [ref=e94] [cursor=pointer]:
+          - generic [ref=e95]: Main
+          - img [ref=e96]
+        - generic [ref=e98]:
+          - generic [ref=e99]:
+            - link "Home" [ref=e100] [cursor=pointer]:
+              - /url: /
+              - img [ref=e102]
+              - generic [ref=e105]: Home
+            - button "Open in new tab" [ref=e106] [cursor=pointer]:
+              - img [ref=e107]
+            - button "pin" [ref=e111] [cursor=pointer]:
+              - img [ref=e112]
+          - generic [ref=e114]:
+            - link "Dashboard" [ref=e115] [cursor=pointer]:
+              - /url: /dashboard
+              - img [ref=e117]
+              - generic [ref=e122]: Dashboard
+            - button "Open in new tab" [ref=e123] [cursor=pointer]:
+              - img [ref=e124]
+            - button "pin" [ref=e128] [cursor=pointer]:
+              - img [ref=e129]
+          - generic [ref=e131]:
+            - link "Student Dashboard" [ref=e132] [cursor=pointer]:
+              - /url: /student-dashboard
+              - img [ref=e134]
+              - generic [ref=e139]: Student Dashboard
+            - button "Open in new tab" [ref=e140] [cursor=pointer]:
+              - img [ref=e141]
+            - button "pin" [ref=e145] [cursor=pointer]:
+              - img [ref=e146]
+      - button "Activity" [ref=e149] [cursor=pointer]:
+        - generic [ref=e150]: Activity
+        - img [ref=e151]
+      - button "Quiz" [ref=e154] [cursor=pointer]:
+        - generic [ref=e155]: Quiz
+        - img [ref=e156]
+      - button "Academic" [ref=e159] [cursor=pointer]:
+        - generic [ref=e160]: Academic
+        - img [ref=e161]
+      - button "Enrollments" [ref=e164] [cursor=pointer]:
+        - generic [ref=e165]: Enrollments
+        - img [ref=e166]
+      - button "Academic Records" [ref=e169] [cursor=pointer]:
+        - generic [ref=e170]: Academic Records
+        - img [ref=e171]
+      - button "Scheduling And Availabilities" [ref=e174] [cursor=pointer]:
+        - generic [ref=e175]: Scheduling And Availabilities
+        - img [ref=e176]
+      - button "Availability" [ref=e179] [cursor=pointer]:
+        - generic [ref=e180]: Availability
+        - img [ref=e181]
+      - button "Availability Setup" [ref=e184] [cursor=pointer]:
+        - generic [ref=e185]: Availability Setup
+        - img [ref=e186]
+      - button "Users" [ref=e189] [cursor=pointer]:
+        - generic [ref=e190]: Users
+        - img [ref=e191]
+      - button "Review Results" [ref=e194] [cursor=pointer]:
+        - generic [ref=e195]: Review Results
+        - img [ref=e196]
+      - button "Attendance" [ref=e199] [cursor=pointer]:
+        - generic [ref=e200]: Attendance
+        - img [ref=e201]
+      - button "Drive" [ref=e204] [cursor=pointer]:
+        - generic [ref=e205]: Drive
+        - img [ref=e206]
+      - button "Analytics" [ref=e209] [cursor=pointer]:
+        - generic [ref=e210]: Analytics
+        - img [ref=e211]
+      - button "Communication" [ref=e214] [cursor=pointer]:
+        - generic [ref=e215]: Communication
+        - img [ref=e216]
+      - button "Community" [ref=e219] [cursor=pointer]:
+        - generic [ref=e220]: Community
+        - img [ref=e221]
+      - button "Tools" [ref=e224] [cursor=pointer]:
+        - generic [ref=e225]: Tools
+        - img [ref=e226]
+      - button "Workspace Settings" [ref=e229] [cursor=pointer]:
+        - generic [ref=e230]: Workspace Settings
+        - img [ref=e231]
+    - generic [ref=e233]:
+      - generic [ref=e234]:
+        - generic: v1.0.0 - Jun 25, 2026
+      - generic [ref=e235]:
+        - button "العربية" [ref=e236] [cursor=pointer]:
+          - generic [ref=e237]: العربية
+        - button "Logout" [ref=e238] [cursor=pointer]:
+          - generic [ref=e239]: Logout
+  - main [ref=e240]:
+    - generic [ref=e241]:
+      - generic [ref=e242]:
+        - generic [ref=e243]:
+          - generic [ref=e245] [cursor=pointer]:
+            - img [ref=e246]
+            - generic [ref=e250]:
+              - generic [ref=e251]: Global Chat
+              - generic [ref=e252]: All Users
+          - generic [ref=e254] [cursor=pointer]:
+            - img [ref=e255]
+            - generic [ref=e257]:
+              - generic [ref=e258]:
+                - generic [ref=e259]: Class 61
+                - button "Archive" [ref=e260]:
+                  - img [ref=e261]
+              - generic [ref=e265]: "- undefined"
+          - generic [ref=e267] [cursor=pointer]:
+            - img [ref=e268]
+            - generic [ref=e270]:
+              - generic [ref=e271]:
+                - generic [ref=e272]: Class 60
+                - button "Archive" [ref=e273]:
+                  - img [ref=e274]
+              - generic [ref=e278]: "- undefined"
+          - generic [ref=e280] [cursor=pointer]:
+            - img [ref=e281]
+            - generic [ref=e283]:
+              - generic [ref=e284]:
+                - generic [ref=e285]: Class 58
+                - button "Archive" [ref=e286]:
+                  - img [ref=e287]
+              - generic [ref=e291]: "- undefined"
+          - generic [ref=e293] [cursor=pointer]:
+            - img [ref=e294]
+            - generic [ref=e296]:
+              - generic [ref=e297]:
+                - generic [ref=e298]: Class 57
+                - button "Archive" [ref=e299]:
+                  - img [ref=e300]
+              - generic [ref=e304]: "- undefined"
+          - generic [ref=e306] [cursor=pointer]:
+            - img [ref=e307]
+            - generic [ref=e309]:
+              - generic [ref=e310]:
+                - generic [ref=e311]: Class 56
+                - button "Archive" [ref=e312]:
+                  - img [ref=e313]
+              - generic [ref=e317]: "- undefined"
+          - generic [ref=e319] [cursor=pointer]:
+            - img [ref=e320]
+            - generic [ref=e322]:
+              - generic [ref=e323]:
+                - generic [ref=e324]: Class 54
+                - button "Archive" [ref=e325]:
+                  - img [ref=e326]
+              - generic [ref=e330]: "- undefined"
+          - generic [ref=e332] [cursor=pointer]:
+            - img [ref=e333]
+            - generic [ref=e335]:
+              - generic [ref=e336]:
+                - generic [ref=e337]: Class 46
+                - button "Archive" [ref=e338]:
+                  - img [ref=e339]
+              - generic [ref=e343]: "- undefined"
+          - generic [ref=e345] [cursor=pointer]:
+            - img [ref=e346]
+            - generic [ref=e348]:
+              - generic [ref=e349]:
+                - generic [ref=e350]: Class 45
+                - button "Archive" [ref=e351]:
+                  - img [ref=e352]
+              - generic [ref=e356]: "- undefined"
+          - generic [ref=e358] [cursor=pointer]:
+            - img [ref=e359]
+            - generic [ref=e361]:
+              - generic [ref=e362]:
+                - generic [ref=e363]: Class 44
+                - button "Archive" [ref=e364]:
+                  - img [ref=e365]
+              - generic [ref=e369]: "- undefined"
+          - generic [ref=e371] [cursor=pointer]:
+            - img [ref=e372]
+            - generic [ref=e374]:
+              - generic [ref=e375]:
+                - generic [ref=e376]: Class 43
+                - button "Archive" [ref=e377]:
+                  - img [ref=e378]
+              - generic [ref=e382]: "- undefined"
+          - generic [ref=e384] [cursor=pointer]:
+            - img [ref=e385]
+            - generic [ref=e387]:
+              - generic [ref=e388]:
+                - generic [ref=e389]: Class 42
+                - button "Archive" [ref=e390]:
+                  - img [ref=e391]
+              - generic [ref=e395]: "- undefined"
+          - generic [ref=e397] [cursor=pointer]:
+            - img [ref=e398]
+            - generic [ref=e400]:
+              - generic [ref=e401]:
+                - generic [ref=e402]: Class 41
+                - button "Archive" [ref=e403]:
+                  - img [ref=e404]
+              - generic [ref=e408]: "- undefined"
+          - generic [ref=e410] [cursor=pointer]:
+            - img [ref=e411]
+            - generic [ref=e413]:
+              - generic [ref=e414]:
+                - generic [ref=e415]: Class 40
+                - button "Archive" [ref=e416]:
+                  - img [ref=e417]
+              - generic [ref=e421]: "- undefined"
+          - generic [ref=e423] [cursor=pointer]:
+            - img [ref=e424]
+            - generic [ref=e426]:
+              - generic [ref=e427]:
+                - generic [ref=e428]: Class 39
+                - button "Archive" [ref=e429]:
+                  - img [ref=e430]
+              - generic [ref=e434]: "- undefined"
+          - generic [ref=e436] [cursor=pointer]:
+            - img [ref=e437]
+            - generic [ref=e439]:
+              - generic [ref=e440]:
+                - generic [ref=e441]: Class 38
+                - button "Archive" [ref=e442]:
+                  - img [ref=e443]
+              - generic [ref=e447]: "- undefined"
+          - generic [ref=e449] [cursor=pointer]:
+            - img [ref=e450]
+            - generic [ref=e452]:
+              - generic [ref=e453]:
+                - generic [ref=e454]: Class 37
+                - button "Archive" [ref=e455]:
+                  - img [ref=e456]
+              - generic [ref=e460]: "- undefined"
+          - generic [ref=e462] [cursor=pointer]:
+            - img [ref=e463]
+            - generic [ref=e465]:
+              - generic [ref=e466]:
+                - generic [ref=e467]: Class 36
+                - button "Archive" [ref=e468]:
+                  - img [ref=e469]
+              - generic [ref=e473]: "- undefined"
+          - generic [ref=e475] [cursor=pointer]:
+            - img [ref=e476]
+            - generic [ref=e478]:
+              - generic [ref=e479]:
+                - generic [ref=e480]: Class 35
+                - button "Archive" [ref=e481]:
+                  - img [ref=e482]
+              - generic [ref=e486]: "- undefined"
+          - generic [ref=e488] [cursor=pointer]:
+            - img [ref=e489]
+            - generic [ref=e491]:
+              - generic [ref=e492]:
+                - generic [ref=e493]: Class 34
+                - button "Archive" [ref=e494]:
+                  - img [ref=e495]
+              - generic [ref=e499]: "- undefined"
+          - generic [ref=e501] [cursor=pointer]:
+            - img [ref=e502]
+            - generic [ref=e504]:
+              - generic [ref=e505]:
+                - generic [ref=e506]: Class 33
+                - button "Archive" [ref=e507]:
+                  - img [ref=e508]
+              - generic [ref=e512]: "- undefined"
+          - generic [ref=e514] [cursor=pointer]:
+            - img [ref=e515]
+            - generic [ref=e517]:
+              - generic [ref=e518]:
+                - generic [ref=e519]: Class 32
+                - button "Archive" [ref=e520]:
+                  - img [ref=e521]
+              - generic [ref=e525]: "- undefined"
+          - generic [ref=e527] [cursor=pointer]:
+            - img [ref=e528]
+            - generic [ref=e530]:
+              - generic [ref=e531]:
+                - generic [ref=e532]: Class 31
+                - button "Archive" [ref=e533]:
+                  - img [ref=e534]
+              - generic [ref=e538]: "- undefined"
+          - generic [ref=e540] [cursor=pointer]:
+            - img [ref=e541]
+            - generic [ref=e543]:
+              - generic [ref=e544]:
+                - generic [ref=e545]: Class 30
+                - button "Archive" [ref=e546]:
+                  - img [ref=e547]
+              - generic [ref=e551]: "- undefined"
+          - generic [ref=e553] [cursor=pointer]:
+            - img [ref=e554]
+            - generic [ref=e556]:
+              - generic [ref=e557]:
+                - generic [ref=e558]: Class 29
+                - button "Archive" [ref=e559]:
+                  - img [ref=e560]
+              - generic [ref=e564]: "- undefined"
+          - generic [ref=e566] [cursor=pointer]:
+            - img [ref=e567]
+            - generic [ref=e569]:
+              - generic [ref=e570]:
+                - generic [ref=e571]: Class 28
+                - button "Archive" [ref=e572]:
+                  - img [ref=e573]
+              - generic [ref=e577]: "- undefined"
+          - generic [ref=e579] [cursor=pointer]:
+            - img [ref=e580]
+            - generic [ref=e582]:
+              - generic [ref=e583]:
+                - generic [ref=e584]: Class 27
+                - button "Archive" [ref=e585]:
+                  - img [ref=e586]
+              - generic [ref=e590]: "- undefined"
+          - generic [ref=e592] [cursor=pointer]:
+            - img [ref=e593]
+            - generic [ref=e595]:
+              - generic [ref=e596]:
+                - generic [ref=e597]: Class 26
+                - button "Archive" [ref=e598]:
+                  - img [ref=e599]
+              - generic [ref=e603]: "- undefined"
+          - generic [ref=e605] [cursor=pointer]:
+            - img [ref=e606]
+            - generic [ref=e608]:
+              - generic [ref=e609]:
+                - generic [ref=e610]: Class 25
+                - button "Archive" [ref=e611]:
+                  - img [ref=e612]
+              - generic [ref=e616]: "- undefined"
+          - generic [ref=e618] [cursor=pointer]:
+            - img [ref=e619]
+            - generic [ref=e621]:
+              - generic [ref=e622]:
+                - generic [ref=e623]: Class 24
+                - button "Archive" [ref=e624]:
+                  - img [ref=e625]
+              - generic [ref=e629]: "- undefined"
+          - generic [ref=e631] [cursor=pointer]:
+            - img [ref=e632]
+            - generic [ref=e634]:
+              - generic [ref=e635]:
+                - generic [ref=e636]: Class 23
+                - button "Archive" [ref=e637]:
+                  - img [ref=e638]
+              - generic [ref=e642]: "- undefined"
+          - generic [ref=e644] [cursor=pointer]:
+            - img [ref=e645]
+            - generic [ref=e647]:
+              - generic [ref=e648]:
+                - generic [ref=e649]: Class 22
+                - button "Archive" [ref=e650]:
+                  - img [ref=e651]
+              - generic [ref=e655]: "- undefined"
+          - generic [ref=e657] [cursor=pointer]:
+            - img [ref=e658]
+            - generic [ref=e660]:
+              - generic [ref=e661]:
+                - generic [ref=e662]: Class 21
+                - button "Archive" [ref=e663]:
+                  - img [ref=e664]
+              - generic [ref=e668]: "- undefined"
+          - generic [ref=e670] [cursor=pointer]:
+            - img [ref=e671]
+            - generic [ref=e673]:
+              - generic [ref=e674]:
+                - generic [ref=e675]: Class 20
+                - button "Archive" [ref=e676]:
+                  - img [ref=e677]
+              - generic [ref=e681]: "- undefined"
+          - generic [ref=e683] [cursor=pointer]:
+            - img [ref=e684]
+            - generic [ref=e686]:
+              - generic [ref=e687]:
+                - generic [ref=e688]: Class 19
+                - button "Archive" [ref=e689]:
+                  - img [ref=e690]
+              - generic [ref=e694]: "- undefined"
+          - generic [ref=e696] [cursor=pointer]:
+            - img [ref=e697]
+            - generic [ref=e699]:
+              - generic [ref=e700]:
+                - generic [ref=e701]: Class 18
+                - button "Archive" [ref=e702]:
+                  - img [ref=e703]
+              - generic [ref=e707]: "- undefined"
+          - generic [ref=e709] [cursor=pointer]:
+            - img [ref=e710]
+            - generic [ref=e712]:
+              - generic [ref=e713]:
+                - generic [ref=e714]: Class 17
+                - button "Archive" [ref=e715]:
+                  - img [ref=e716]
+              - generic [ref=e720]: "- undefined"
+          - generic [ref=e722] [cursor=pointer]:
+            - img [ref=e723]
+            - generic [ref=e725]:
+              - generic [ref=e726]:
+                - generic [ref=e727]: Class 16
+                - button "Archive" [ref=e728]:
+                  - img [ref=e729]
+              - generic [ref=e733]: "- undefined"
+          - generic [ref=e735] [cursor=pointer]:
+            - img [ref=e736]
+            - generic [ref=e738]:
+              - generic [ref=e739]:
+                - generic [ref=e740]: Class 5
+                - button "Archive" [ref=e741]:
+                  - img [ref=e742]
+              - generic [ref=e746]: "- undefined"
+          - generic [ref=e748] [cursor=pointer]:
+            - img [ref=e749]
+            - generic [ref=e751]:
+              - generic [ref=e752]:
+                - generic [ref=e753]: Class 4
+                - button "Archive" [ref=e754]:
+                  - img [ref=e755]
+              - generic [ref=e759]: "- undefined"
+          - generic [ref=e761] [cursor=pointer]:
+            - img [ref=e762]
+            - generic [ref=e764]:
+              - generic [ref=e765]:
+                - generic [ref=e766]: Class 3
+                - button "Archive" [ref=e767]:
+                  - img [ref=e768]
+              - generic [ref=e772]: "- undefined"
+          - generic [ref=e774] [cursor=pointer]:
+            - img [ref=e775]
+            - generic [ref=e777]:
+              - generic [ref=e778]:
+                - generic [ref=e779]: Class 1
+                - button "Archive" [ref=e780]:
+                  - img [ref=e781]
+              - generic [ref=e785]: "- undefined"
+          - generic [ref=e787] [cursor=pointer]:
+            - img [ref=e788]
+            - generic [ref=e790]:
+              - generic [ref=e791]:
+                - generic [ref=e792]: Class 11
+                - button "Archive" [ref=e793]:
+                  - img [ref=e794]
+              - generic [ref=e798]: "- undefined"
+          - generic [ref=e800] [cursor=pointer]:
+            - img [ref=e801]
+            - generic [ref=e803]:
+              - generic [ref=e804]:
+                - generic [ref=e805]: Class 9
+                - button "Archive" [ref=e806]:
+                  - img [ref=e807]
+              - generic [ref=e811]: "- undefined"
+          - generic [ref=e813] [cursor=pointer]:
+            - img [ref=e814]
+            - generic [ref=e816]:
+              - generic [ref=e817]:
+                - generic [ref=e818]: Class 10
+                - button "Archive" [ref=e819]:
+                  - img [ref=e820]
+              - generic [ref=e824]: "- undefined"
+          - generic [ref=e826] [cursor=pointer]:
+            - img [ref=e827]
+            - generic [ref=e829]:
+              - generic [ref=e830]:
+                - generic [ref=e831]: Class 8
+                - button "Archive" [ref=e832]:
+                  - img [ref=e833]
+              - generic [ref=e837]: "- undefined"
+          - generic [ref=e839] [cursor=pointer]:
+            - img [ref=e840]
+            - generic [ref=e842]:
+              - generic [ref=e843]:
+                - generic [ref=e844]: Class 7
+                - button "Archive" [ref=e845]:
+                  - img [ref=e846]
+              - generic [ref=e850]: "- undefined"
+          - generic [ref=e852] [cursor=pointer]:
+            - img [ref=e853]
+            - generic [ref=e855]:
+              - generic [ref=e856]:
+                - generic [ref=e857]: Class 6
+                - button "Archive" [ref=e858]:
+                  - img [ref=e859]
+              - generic [ref=e863]: "- undefined"
+          - generic [ref=e864]:
+            - generic [ref=e865]: Direct Messages
+            - button "+" [ref=e866] [cursor=pointer]
+          - textbox "Search users..." [ref=e867]
+          - generic [ref=e868]: No messages yet
+        - generic [ref=e869]:
+          - generic [ref=e870]:
+            - checkbox "show archived" [ref=e871]
+            - generic [ref=e872] [cursor=pointer]: show archived
+          - generic [ref=e873]:
+            - checkbox "favorites only" [ref=e874]
+            - generic [ref=e875] [cursor=pointer]: favorites only
+        - button "Collapse sidebar" [ref=e876] [cursor=pointer]:
+          - img [ref=e877]
+        - generic "Resize sidebar" [ref=e879]
+      - generic [ref=e880]:
+        - generic [ref=e881]:
+          - generic [ref=e882]:
+            - heading "Class 61" [level=3] [ref=e884]
+            - generic [ref=e885]: Class
+            - generic [ref=e886]: 0 messages
+          - button "Search messages..." [ref=e888] [cursor=pointer]:
+            - img [ref=e889]
+        - generic [ref=e893]:
+          - paragraph [ref=e894]:
+            - img [ref=e895]
+          - paragraph [ref=e897]: No messages yet. Start the conversation!
+        - generic [ref=e899]:
+          - textbox "Type a message..." [ref=e900]
+          - button "Emoji" [ref=e901] [cursor=pointer]:
+            - img [ref=e902]
+          - button "create poll" [ref=e905] [cursor=pointer]:
+            - img [ref=e906]
+          - generic "Attach File" [ref=e908] [cursor=pointer]:
+            - img [ref=e909]
+          - button "Record Voice" [ref=e911] [cursor=pointer]:
+            - img [ref=e912]
+```

@@ -1,0 +1,9 @@
+{
+  "reportName": "lms-e2e",
+  "buildName": "dev-2026-06-25",
+  "buildOrder": 1782395246745,
+  "name": "Playwright E2E",
+  "reportUrl": "http://localhost:5050/allure-docker-service/projects/lms-e2e/reports/latest/index.html",
+  "buildUrl": "",
+  "type": "playwright"
+}

@@ -1,0 +1,500 @@
+# Instructions
+
+- Following Playwright test failed.
+- Explain why, be concise, respect Playwright best practices.
+- Provide a snippet of code with the fix, if possible.
+
+# Test info
+
+- Name: resources-participations-behaviors-ui.spec.js >> Resources UI — Page Load & Structure >> TC-RES-UI-002: Resources list or empty state renders
+- Location: tests/e2e/specs/resources-participations-behaviors-ui.spec.js:43:3
+
+# Error details
+
+```
+Error: expect(received).toBe(expected) // Object.is equality
+
+Expected: true
+Received: false
+```
+
+# Page snapshot
+
+```yaml
+- generic [ref=e3]:
+  - navigation [ref=e4]:
+    - generic:
+      - button "Menu":
+        - img
+      - generic:
+        - button "Collapse navbar":
+          - img
+      - generic:
+        - generic:
+          - img "QAF"
+      - generic:
+        - generic:
+          - generic:
+            - generic: 2:33 PM
+          - generic:
+            - generic:
+              - button:
+                - img
+            - generic:
+              - button:
+                - img
+        - generic:
+          - generic: Jun 25, Thu 2026
+      - generic:
+        - generic:
+          - generic:
+            - button "Switch to Arabic":
+              - img
+          - generic:
+            - button "Help":
+              - img
+          - generic:
+            - button "information":
+              - img
+          - generic:
+            - button:
+              - img
+        - generic:
+          - generic:
+            - generic: D
+          - generic:
+            - generic:
+              - generic:
+                - img
+  - generic [ref=e5]:
+    - generic "Resize" [ref=e6]
+    - generic [ref=e8]:
+      - generic [ref=e10]: D
+      - generic [ref=e11]:
+        - button "Switch to Dark" [ref=e12] [cursor=pointer]:
+          - img [ref=e13]
+        - button "Collapse" [ref=e15] [cursor=pointer]:
+          - img [ref=e16]
+        - button "enable auto hide" [ref=e18] [cursor=pointer]:
+          - img [ref=e19]
+        - button "disable sticky" [ref=e22] [cursor=pointer]:
+          - img [ref=e23]
+        - button [ref=e25] [cursor=pointer]:
+          - img [ref=e26]
+    - navigation [ref=e29]:
+      - generic [ref=e30]:
+        - button "Main" [ref=e31] [cursor=pointer]:
+          - generic [ref=e32]: Main
+          - img [ref=e33]
+        - generic [ref=e35]:
+          - generic [ref=e36]:
+            - link "Home" [ref=e37] [cursor=pointer]:
+              - /url: /
+              - img [ref=e39]
+              - generic [ref=e42]: Home
+            - button "Open in new tab" [ref=e43] [cursor=pointer]:
+              - img [ref=e44]
+            - button "pin" [ref=e48] [cursor=pointer]:
+              - img [ref=e49]
+          - generic [ref=e51]:
+            - link "Dashboard" [ref=e52] [cursor=pointer]:
+              - /url: /dashboard
+              - img [ref=e54]
+              - generic [ref=e59]: Dashboard
+            - button "Open in new tab" [ref=e60] [cursor=pointer]:
+              - img [ref=e61]
+            - button "pin" [ref=e65] [cursor=pointer]:
+              - img [ref=e66]
+      - button "Activity" [ref=e69] [cursor=pointer]:
+        - generic [ref=e70]: Activity
+        - img [ref=e71]
+      - button "Quiz" [ref=e74] [cursor=pointer]:
+        - generic [ref=e75]: Quiz
+        - img [ref=e76]
+      - button "Academic" [ref=e79] [cursor=pointer]:
+        - generic [ref=e80]: Academic
+        - img [ref=e81]
+      - button "Enrollments" [ref=e84] [cursor=pointer]:
+        - generic [ref=e85]: Enrollments
+        - img [ref=e86]
+      - button "Academic Records" [ref=e89] [cursor=pointer]:
+        - generic [ref=e90]: Academic Records
+        - img [ref=e91]
+      - button "Scheduling And Availabilities" [ref=e94] [cursor=pointer]:
+        - generic [ref=e95]: Scheduling And Availabilities
+        - img [ref=e96]
+      - button "Availability" [ref=e99] [cursor=pointer]:
+        - generic [ref=e100]: Availability
+        - img [ref=e101]
+      - button "Review Results" [ref=e104] [cursor=pointer]:
+        - generic [ref=e105]: Review Results
+        - img [ref=e106]
+      - button "Attendance" [ref=e109] [cursor=pointer]:
+        - generic [ref=e110]: Attendance
+        - img [ref=e111]
+      - button "Drive" [ref=e114] [cursor=pointer]:
+        - generic [ref=e115]: Drive
+        - img [ref=e116]
+      - button "Analytics" [ref=e119] [cursor=pointer]:
+        - generic [ref=e120]: Analytics
+        - img [ref=e121]
+      - button "Community" [ref=e124] [cursor=pointer]:
+        - generic [ref=e125]: Community
+        - img [ref=e126]
+      - button "Tools" [ref=e129] [cursor=pointer]:
+        - generic [ref=e130]: Tools
+        - img [ref=e131]
+      - button "Workspace Settings" [ref=e134] [cursor=pointer]:
+        - generic [ref=e135]: Workspace Settings
+        - img [ref=e136]
+    - generic [ref=e138]:
+      - generic [ref=e139]:
+        - generic: v1.0.0 - Jun 25, 2026
+      - generic [ref=e140]:
+        - button "العربية" [ref=e141] [cursor=pointer]:
+          - generic [ref=e142]: العربية
+        - button "Logout" [ref=e143] [cursor=pointer]:
+          - generic [ref=e144]: Logout
+  - main [ref=e145]:
+    - generic [ref=e147]:
+      - generic [ref=e150]:
+        - button "Activities 0" [ref=e151] [cursor=pointer]:
+          - generic:
+            - img
+          - generic [ref=e152]: Activities
+          - generic [ref=e153]: "0"
+        - button "Resources 0" [ref=e155] [cursor=pointer]:
+          - generic:
+            - img
+          - generic [ref=e156]: Resources
+          - generic [ref=e157]: "0"
+        - button "Announcements 0" [ref=e158] [cursor=pointer]:
+          - generic:
+            - img
+          - generic [ref=e159]: Announcements
+          - generic [ref=e160]: "0"
+        - button "Review Results 0" [ref=e161] [cursor=pointer]:
+          - generic:
+            - img
+          - generic [ref=e162]: Review Results
+          - generic [ref=e163]: "0"
+      - generic [ref=e166]:
+        - button "All 0" [ref=e167] [cursor=pointer]:
+          - generic:
+            - img
+          - generic [ref=e168]: All
+          - generic [ref=e169]: "0"
+        - button "Quiz 0" [ref=e171] [cursor=pointer]:
+          - generic:
+            - img
+          - generic [ref=e172]: Quiz
+          - generic [ref=e173]: "0"
+        - button "Homework 0" [ref=e174] [cursor=pointer]:
+          - generic:
+            - img
+          - generic [ref=e175]: Homework
+          - generic [ref=e176]: "0"
+        - button "Training 0" [ref=e177] [cursor=pointer]:
+          - generic:
+            - img
+          - generic [ref=e178]: Training
+          - generic [ref=e179]: "0"
+        - button "Lab & Project 0" [ref=e180] [cursor=pointer]:
+          - generic:
+            - img
+          - generic [ref=e181]: Lab & Project
+          - generic [ref=e182]: "0"
+      - generic [ref=e185]:
+        - button "All 0" [ref=e186] [cursor=pointer]:
+          - generic:
+            - img
+          - generic [ref=e187]: All
+          - generic [ref=e188]: "0"
+        - button "Academic 0" [ref=e190] [cursor=pointer]:
+          - generic:
+            - img
+          - generic [ref=e191]: Academic
+          - generic [ref=e192]: "0"
+        - button "Administrative 0" [ref=e193] [cursor=pointer]:
+          - generic:
+            - img
+          - generic [ref=e194]: Administrative
+          - generic [ref=e195]: "0"
+        - button "Assignment 0" [ref=e196] [cursor=pointer]:
+          - generic:
+            - img
+          - generic [ref=e197]: Assignment
+          - generic [ref=e198]: "0"
+        - button "Exam Preparation 0" [ref=e199] [cursor=pointer]:
+          - generic:
+            - img
+          - generic [ref=e200]: Exam Preparation
+          - generic [ref=e201]: "0"
+        - button "General 0" [ref=e202] [cursor=pointer]:
+          - generic:
+            - img
+          - generic [ref=e203]: General
+          - generic [ref=e204]: "0"
+        - button "Lecture Notes 0" [ref=e205] [cursor=pointer]:
+          - generic:
+            - img
+          - generic [ref=e206]: Lecture Notes
+          - generic [ref=e207]: "0"
+        - button "Reading Material 0" [ref=e208] [cursor=pointer]:
+          - generic:
+            - img
+          - generic [ref=e209]: Reading Material
+          - generic [ref=e210]: "0"
+        - button "Reference 0" [ref=e211] [cursor=pointer]:
+          - generic:
+            - img
+          - generic [ref=e212]: Reference
+          - generic [ref=e213]: "0"
+        - button "Supplementary 0" [ref=e214] [cursor=pointer]:
+          - generic:
+            - img
+          - generic [ref=e215]: Supplementary
+          - generic [ref=e216]: "0"
+        - button "Technical 0" [ref=e217] [cursor=pointer]:
+          - generic:
+            - img
+          - generic [ref=e218]: Technical
+          - generic [ref=e219]: "0"
+        - button "Tutorial 0" [ref=e220] [cursor=pointer]:
+          - generic:
+            - img
+          - generic [ref=e221]: Tutorial
+          - generic [ref=e222]: "0"
+      - generic [ref=e223]:
+        - generic [ref=e225]:
+          - generic [ref=e226]:
+            - generic [ref=e227]:
+              - generic [ref=e229]:
+                - img [ref=e230]
+                - generic [ref=e233]: "0"
+              - generic [ref=e235]:
+                - img [ref=e236]
+                - generic [ref=e239]: "0"
+              - generic [ref=e241]:
+                - img [ref=e242]
+                - generic [ref=e245]: "0"
+              - generic [ref=e247]:
+                - img [ref=e248]
+                - generic [ref=e250]: "0"
+              - generic [ref=e252]:
+                - img [ref=e253]
+                - generic [ref=e255]: "0"
+              - generic [ref=e257]:
+                - img [ref=e258]
+                - generic [ref=e261]: "0"
+            - searchbox "Search activities" [ref=e263]
+          - group "Status filters" [ref=e265]:
+            - button "Completed not selected" [ref=e267] [cursor=pointer]:
+              - img [ref=e268]
+              - generic [ref=e271]: Completed
+              - generic [ref=e272]: "0"
+            - button "Not Started not selected" [ref=e274] [cursor=pointer]:
+              - img [ref=e275]
+              - generic [ref=e278]: Not Started
+              - generic [ref=e279]: "0"
+            - button "Required not selected" [ref=e281] [cursor=pointer]:
+              - img [ref=e282]
+              - generic [ref=e284]: Required
+              - generic [ref=e285]: "0"
+            - button "Optional not selected" [ref=e287] [cursor=pointer]:
+              - img [ref=e288]
+              - generic [ref=e290]: Optional
+              - generic [ref=e291]: "0"
+            - button "Overdue not selected" [ref=e293] [cursor=pointer]:
+              - img [ref=e294]
+              - generic [ref=e297]: Overdue
+              - generic [ref=e298]: "0"
+            - button "Submission not selected" [ref=e300] [cursor=pointer]:
+              - img [ref=e301]
+              - generic [ref=e304]: Submission
+              - generic [ref=e305]: "0"
+          - generic [ref=e307]:
+            - generic [ref=e308]:
+              - button "All Levels" [ref=e310] [cursor=pointer]:
+                - generic [ref=e311]: All Levels
+              - button "Beginner 0" [ref=e313] [cursor=pointer]:
+                - img [ref=e314]
+                - generic [ref=e317]: Beginner
+                - generic [ref=e318]: "0"
+              - button "Intermediate 0" [ref=e320] [cursor=pointer]:
+                - img [ref=e321]
+                - generic [ref=e324]: Intermediate
+                - generic [ref=e325]: "0"
+              - button "Advanced 0" [ref=e327] [cursor=pointer]:
+                - img [ref=e328]
+                - generic [ref=e331]: Advanced
+                - generic [ref=e332]: "0"
+            - generic [ref=e333]:
+              - button "Bookmarked 0" [ref=e334] [cursor=pointer]:
+                - img [ref=e335]
+                - generic [ref=e339]: Bookmarked
+                - generic [ref=e340]: "0"
+              - button "Featured 0" [ref=e341] [cursor=pointer]:
+                - img [ref=e342]
+                - generic [ref=e344]: Featured
+                - generic [ref=e345]: "0"
+              - button "Retakable 0" [ref=e346] [cursor=pointer]:
+                - img [ref=e347]
+                - generic [ref=e352]: Retakable
+                - generic [ref=e353]: "0"
+        - generic [ref=e355]:
+          - heading "No items found" [level=3] [ref=e356]
+          - paragraph [ref=e357]: Try adjusting your filters
+```
+
+# Test source
+
+```ts
+  1   | /**
+  2   |  * Resources, Participations & Behaviors UI Tests — Deep CRUD & User Stories
+  3   |  * Modules: resources (/?mode=resources), participations (/participation), behaviors (/behavior)
+  4   |  * Covers: TC-RES-UI-001-040, TC-PAR-UI-001-035, TC-BEH-UI-001-035
+  5   |  *
+  6   |  * Test depth per module:
+  7   |  * - Page load + list/empty state + create button + filter
+  8   |  * - Create: open form → fill → submit → verify
+  9   |  * - Read: search → verify filtered → clear → verify restored
+  10  |  * - Update: edit → modify → save → verify
+  11  |  * - Delete: confirm dialog → cancel → verify remains
+  12  |  * - Form validation: empty submit → errors
+  13  |  * - Role-based: student view-only, instructor can create
+  14  |  * - User story: instructor creates entity → verifies
+  15  |  */
+  16  | import { test, expect } from '@playwright/test';
+  17  | import { testConfig } from '../config/test.config.js';
+  18  | import { gotoWithAuth, waitForContent, isAccessDenied, dismissOverlays } from '../utils/ui-helpers.js';
+  19  | import {
+  20  |   openForm, closeForm, submitForm, verifyInList,
+  21  |   getRowCount, getTableHeaders,
+  22  | } from '../utils/crud-helpers.js';
+  23  | 
+  24  | const RES_ROUTE = '/?mode=resources';
+  25  | const PAR_ROUTE = '/participation';
+  26  | const BEH_ROUTE = '/behavior';
+  27  | 
+  28  | // ============================================================
+  29  | // RESOURCES
+  30  | // ============================================================
+  31  | 
+  32  | test.describe('Resources UI — Page Load & Structure', () => {
+  33  |   test.beforeEach(async ({ page }) => {
+  34  |     await gotoWithAuth(page, RES_ROUTE, 'instructor');
+  35  |     await dismissOverlays(page);
+  36  |   });
+  37  | 
+  38  |   test('TC-RES-UI-001: Resources page loads', async ({ page }) => {
+  39  |     const hasContent = await waitForContent(page);
+  40  |     expect(hasContent).toBe(true);
+  41  |   });
+  42  | 
+  43  |   test('TC-RES-UI-002: Resources list or empty state renders', async ({ page }) => {
+  44  |     const list = page.locator('table, [data-testid*="resource"], .card, .list, text=/No resources/i').first();
+  45  |     const visible = await list.isVisible({ timeout: 5000 }).catch(() => false);
+> 46  |     expect(visible).toBe(true);
+      |                     ^ Error: expect(received).toBe(expected) // Object.is equality
+  47  |   });
+  48  | 
+  49  |   test('TC-RES-UI-003: Upload/Add resource button visible', async ({ page }) => {
+  50  |     const btn = page.locator('button:has-text("Upload"), button:has-text("Add"), [data-testid*="create"]').first();
+  51  |     const visible = await btn.isVisible({ timeout: 5000 }).catch(() => false);
+  52  |     expect(visible).toBe(true);
+  53  |   });
+  54  | 
+  55  |   test('TC-RES-UI-004: Filter by class visible', async ({ page }) => {
+  56  |     const filter = page.locator('select, [data-testid*="class-filter"]').first();
+  57  |     const visible = await filter.isVisible({ timeout: 3000 }).catch(() => false);
+  58  |     if (!visible) test.skip(true, 'No class filter');
+  59  |   });
+  60  | });
+  61  | 
+  62  | test.describe('Resources UI — Create Flow (Deep)', () => {
+  63  |   test.beforeEach(async ({ page }) => {
+  64  |     await gotoWithAuth(page, RES_ROUTE, 'instructor');
+  65  |     await dismissOverlays(page);
+  66  |   });
+  67  | 
+  68  |   test('TC-RES-UI-005: Upload form opens', async ({ page }) => {
+  69  |     const opened = await openForm(page, ['Upload', 'Add Resource', 'Add', 'Upload Resource']);
+  70  |     if (!opened) test.skip(true, 'Upload form did not open');
+  71  | 
+  72  |     const form = page.locator('form, [role="dialog"], .modal, .drawer').first();
+  73  |     const formVisible = await form.isVisible({ timeout: 3000 }).catch(() => false);
+  74  |     expect(formVisible).toBe(true);
+  75  | 
+  76  |     await closeForm(page);
+  77  |   });
+  78  | 
+  79  |   test('TC-RES-UI-006: File input present in upload form', async ({ page }) => {
+  80  |     const opened = await openForm(page, ['Upload', 'Add Resource', 'Add']);
+  81  |     if (!opened) test.skip(true, 'Upload form did not open');
+  82  | 
+  83  |     const fileInput = page.locator('input[type="file"]').first();
+  84  |     const exists = await fileInput.count();
+  85  |     if (exists === 0) test.skip(true, 'No file input in form');
+  86  | 
+  87  |     await closeForm(page);
+  88  |   });
+  89  | 
+  90  |   test('TC-RES-UI-007: Cancel closes upload form', async ({ page }) => {
+  91  |     const opened = await openForm(page, ['Upload', 'Add Resource', 'Add']);
+  92  |     if (!opened) test.skip(true, 'Upload form did not open');
+  93  | 
+  94  |     await closeForm(page);
+  95  |     await page.waitForTimeout(1000);
+  96  | 
+  97  |     const form = page.locator('form, [role="dialog"], .modal, .drawer').first();
+  98  |     const stillOpen = await form.isVisible({ timeout: 1000 }).catch(() => false);
+  99  |     expect(stillOpen).toBe(false);
+  100 |   });
+  101 | });
+  102 | 
+  103 | test.describe('Resources UI — Delete & Role-Based (Deep)', () => {
+  104 |   test('TC-RES-UI-008: Delete resource button visible', async ({ page }) => {
+  105 |     await gotoWithAuth(page, RES_ROUTE, 'instructor');
+  106 |     await dismissOverlays(page);
+  107 |     const delBtn = page.locator('button:has-text("Delete"), [data-testid*="delete"]').first();
+  108 |     const visible = await delBtn.isVisible({ timeout: 3000 }).catch(() => false);
+  109 |     if (!visible) test.skip(true, 'No delete button');
+  110 |   });
+  111 | 
+  112 |   test('TC-RES-UI-009: Delete — confirm dialog appears, then cancel', async ({ page }) => {
+  113 |     await gotoWithAuth(page, RES_ROUTE, 'instructor');
+  114 |     await dismissOverlays(page);
+  115 |     const delBtn = page.locator('button:has-text("Delete"), [data-testid*="delete"]').first();
+  116 |     if (!(await delBtn.isVisible({ timeout: 3000 }).catch(() => false))) test.skip(true, 'No delete button');
+  117 | 
+  118 |     await delBtn.click();
+  119 |     await page.waitForTimeout(1000);
+  120 | 
+  121 |     const confirmDialog = page.locator(
+  122 |       '[role="dialog"], .modal, text=/confirm/i, text=/sure/i, ' +
+  123 |       'button:has-text("Confirm"), button:has-text("Yes"), button:has-text("OK")'
+  124 |     ).first();
+  125 |     const confirmVisible = await confirmDialog.isVisible({ timeout: 3000 }).catch(() => false);
+  126 | 
+  127 |     if (confirmVisible) {
+  128 |       const cancelBtn = page.locator('button:has-text("Cancel"), button:has-text("No")').first();
+  129 |       if (await cancelBtn.isVisible({ timeout: 1000 }).catch(() => false)) {
+  130 |         await cancelBtn.click();
+  131 |       } else {
+  132 |         await page.keyboard.press('Escape');
+  133 |       }
+  134 |     }
+  135 |     expect(true).toBe(true);
+  136 |   });
+  137 | 
+  138 |   test('TC-RES-UI-010: Student can view resources', async ({ page }) => {
+  139 |     await gotoWithAuth(page, RES_ROUTE, 'student');
+  140 |     const denied = await isAccessDenied(page);
+  141 |     if (denied) test.skip(true, 'Student redirected');
+  142 |     const hasContent = await waitForContent(page);
+  143 |     expect(hasContent).toBe(true);
+  144 |   });
+  145 | 
+  146 |   test('TC-RES-UI-011: Student cannot upload resources', async ({ page }) => {
+```
