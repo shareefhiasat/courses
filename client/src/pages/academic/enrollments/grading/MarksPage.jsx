@@ -1415,7 +1415,7 @@ const MarksPage = () => {
                     }
                   }
                 ]}
-                pageSize={10}
+                pageSize={50}
                 pageSizeOptions={[10, 25, 50, 100]}
                 checkboxSelection
                 disableRowSelectionOnClick

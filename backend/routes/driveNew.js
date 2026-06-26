@@ -51,6 +51,7 @@ import {
   updateFolder,
   softDeleteFolder,
   restoreFolder,
+  permanentDeleteFolder,
   toggleStarFolder,
   downloadFolder,
 } from '../controllers/folderController.js';
@@ -522,13 +523,15 @@ router.get('/files/:fileId/download', async (req, res, next) => {
         return next();
       }
 
-      console.log('[driveNew.js] Workflow participant denied download:', { fileId, userId: user.id, userRoles, workflowType: workflowDoc.workflowType });
-      return res.status(403).json({ success: false, error: 'No workflow access permission' });
+      console.log('[driveNew.js] Not a workflow participant — falling through to ACL permission check:', { fileId, userId: user.id, userRoles, workflowType: workflowDoc.workflowType });
+      // Do NOT return 403 here — fall through to the standard ACL check below so users
+      // with a valid fileShare on this file can still download it.
     }
 
-    // Check download permission (VIEW is sufficient for download)
+    // Standard ACL check: VIEW (or higher) share is sufficient for download.
     const { requireFilePermission } = await import('../services/permissionService.js');
-    await requireFilePermission(fileId, { userId: user.id, roles: req.user?.roles || [] }, 'VIEW');
+    const dbRoles = req.user?.roles || [];
+    await requireFilePermission(fileId, { userId: user.id, roles: dbRoles }, 'VIEW');
 
     // Permission granted, proceed with download
     next();
@@ -558,11 +561,19 @@ router.post('/files/:fileId/activity', async (req, res) => {
     }
 
     // Get database user ID from Keycloak ID
-    const user = await prisma.user.findUnique({ where: { keycloakId: actorUserId } });
+    const user = await prisma.user.findUnique({
+      where: { keycloakId: actorUserId },
+      include: { roleAssignments: { include: { role: true } } },
+    });
     if (!user) {
       console.error('[driveNew.js] User not found for Keycloak ID:', actorUserId);
       return res.status(404).json({ success: false, error: 'User not found' });
     }
+
+    // Require at least VIEW permission before accepting an activity log entry.
+    const { requireFilePermission } = await import('../services/permissionService.js');
+    const userRoles = user.roleAssignments?.map(ra => ra.role?.code?.toLowerCase()).filter(Boolean) || [];
+    await requireFilePermission(fileId, { userId: user.id, roles: userRoles }, 'VIEW');
 
     await prisma.fileActivity.create({
       data: {
@@ -574,6 +585,12 @@ router.post('/files/:fileId/activity', async (req, res) => {
 
     res.json({ success: true });
   } catch (error) {
+    if (error.status === 403) {
+      return res.status(403).json({ success: false, error: 'No permission to log activity on this file' });
+    }
+    if (error.status === 404) {
+      return res.status(404).json({ success: false, error: 'File not found' });
+    }
     console.error('[driveNew.js] Activity logging error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
@@ -591,6 +608,7 @@ router.post('/folders/legacy', createFolder);
 router.patch('/folders/:folderId', updateFolder);
 router.delete('/folders/:folderId/trash', softDeleteFolder);
 router.post('/folders/:folderId/restore', restoreFolder);
+router.delete('/folders/:folderId/permanent', permanentDeleteFolder);
 router.patch('/folders/:folderId/star', toggleStarFolder);
 router.get('/folders/:folderId/download', downloadFolder);
 
@@ -638,7 +656,9 @@ router.post('/chat-upload', chatUpload.single('file'), async (req, res) => {
     if (!req.file) {
       return res.status(400).json({ success: false, error: 'No file provided' });
     }
-    const filePath = req.body.filePath || `chat-attachments/${Date.now()}_${req.file.originalname}`;
+    // Scope path to the uploading user so files are user-isolated and never path-guessable.
+    const actorId = req.user?.keycloakId || 'unknown';
+    const filePath = `chat-attachments/${actorId}/${Date.now()}_${req.file.originalname}`;
     const bucket = BUCKETS.PRIVATE;
     const metaData = {
       'Content-Type': req.file.mimetype,

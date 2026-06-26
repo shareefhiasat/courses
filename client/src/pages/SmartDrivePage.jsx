@@ -29,11 +29,12 @@ import useUpload from '@hooks/useUpload';
 import useFilters from '@hooks/useFilters';
 import useToast from '@hooks/useToast';
 import useKeyboardShortcuts from '@hooks/useKeyboardShortcuts';
+import { isDriveFolder, isDriveFile, getRenamedFileName } from '@utils/driveUtils';
 
 export default function SmartDrivePage() {
   const { t, isRTL, lang } = useLang();
   const { theme } = useTheme();
-  const { user } = useAuth();
+  const { user, isSuperAdmin } = useAuth();
   const navigate = useNavigate();
 
   // Debug current user
@@ -119,6 +120,8 @@ export default function SmartDrivePage() {
     renameFolder,
     renameFile,
     deleteFolder,
+    restoreFolder,
+    permanentDeleteFolder,
     shareFolder,
   } = useDriveFiles(activeSpace, currentFolderId);
 
@@ -252,7 +255,7 @@ export default function SmartDrivePage() {
   };
 
   const visibleFolders = useMemo(() => {
-    let result = activeSpace === 'my-drive' ? folders || [] : [];
+    let result = (activeSpace === 'my-drive' || activeSpace === 'trash') ? folders || [] : [];
     const hasStarredFilter = filters.some(f => f.type === 'status' && f.value === 'starred');
     if (hasStarredFilter) {
       result = result.filter(f => f.starred);
@@ -260,6 +263,35 @@ export default function SmartDrivePage() {
     console.log('[SmartDrivePage] visibleFolders:', result, 'activeSpace:', activeSpace, 'folders:', folders);
     return result;
   }, [activeSpace, folders, filters]);
+
+  const refreshDriveUI = useCallback(async ({ reloadTree = true, reloadBreadcrumbs = true } = {}) => {
+    apiService.clearCache();
+    const filterParams = toAPIParams();
+    await Promise.all([
+      fetchFiles(filterParams),
+      fetchFolders(),
+    ]);
+
+    if (reloadTree && activeSpace === 'my-drive') {
+      const tree = await fetchFolderTree();
+      setFolderTree(tree);
+    }
+
+    if (reloadBreadcrumbs && currentFolderId) {
+      const result = await getFolderDetails(currentFolderId);
+      if (result.success) {
+        setBreadcrumbs(result.payload?.breadcrumb || []);
+      }
+    }
+  }, [
+    activeSpace,
+    currentFolderId,
+    fetchFiles,
+    fetchFolders,
+    fetchFolderTree,
+    getFolderDetails,
+    toAPIParams,
+  ]);
 
   const {
     uploads,
@@ -320,28 +352,20 @@ export default function SmartDrivePage() {
       return;
     }
     if (action === 'star') {
-      await Promise.all(items.map((item) => {
-        if (item.path !== undefined) {
-          // It's a folder
-          return starFolder(item.id);
-        } else {
-          // It's a file
-          return starFile(item.id);
-        }
-      }));
+      await Promise.all(items.map((item) => (
+        isDriveFolder(item) ? starFolder(item.id) : starFile(item.id)
+      )));
     } else if (action === 'open') {
       const item = items[0];
-      if (item && item.path === undefined) {
-        // It's a file - open preview
+      if (item && isDriveFile(item)) {
         setDetailsModalFile(item);
       }
     } else if (action === 'rename') {
-      // Handle rename for single item
       const item = items[0];
       if (item) {
-        // For files, show name without extension in the input
-        const isFile = item.path === undefined;
-        const displayName = isFile ? item.name.replace(/\.[^/.]+$/, '') : item.name;
+        const displayName = isDriveFile(item)
+          ? item.name.replace(/\.[^/.]+$/, '')
+          : item.name;
         setNewName(displayName);
         setRenameTarget(item);
         setRenameError('');
@@ -350,19 +374,32 @@ export default function SmartDrivePage() {
       setItemsToDelete(items);
       setDeleteConfirmOpen(true);
     } else if (action === 'restore') {
-      await Promise.all(items.map((item) => {
-        if (item.path !== undefined) {
-          // It's a folder
-          return restoreFolder(item.id);
-        } else {
-          // It's a file
-          return restoreFile(item.id);
-        }
-      }));
+      const results = await Promise.all(items.map((item) => (
+        isDriveFolder(item) ? restoreFolder(item.id) : restoreFile(item.id)
+      )));
+      handleClearSelection();
+      await refreshDriveUI();
+      const failed = results.filter((r) => !r.success);
+      if (failed.length > 0) {
+        error(failed[0].error?.message || failed[0].error || t('drive.restoreFailed') || 'Failed to restore');
+      } else {
+        success(t('drive.restored') || 'Restored successfully');
+      }
+    } else if (action === 'permanent-delete') {
+      const results = await Promise.all(items.map((item) => (
+        isDriveFolder(item) ? permanentDeleteFolder(item.id) : permanentDeleteFile(item.id)
+      )));
+      handleClearSelection();
+      await refreshDriveUI();
+      const failed = results.filter((r) => !r.success);
+      if (failed.length > 0) {
+        error(failed[0].error?.message || failed[0].error || t('drive.permanentDeleteFailed') || 'Failed to delete permanently');
+      } else {
+        success(t('drive.permanentlyDeleted') || 'Permanently deleted');
+      }
     } else if (action === 'download') {
       await Promise.all(items.map((item) => {
-        // Only download files, not folders
-        if (item.path === undefined) {
+        if (isDriveFile(item)) {
           return downloadFile(item.id);
         }
         return Promise.resolve();
@@ -370,8 +407,7 @@ export default function SmartDrivePage() {
     } else if (action === 'share') {
       if (items.length === 1) {
         const item = items[0];
-        if (item.path === undefined) {
-          // It's a file - open details modal on share tab
+        if (isDriveFile(item)) {
           setDetailsModalFile(item);
           setDetailsModalInitialTab('share');
         }
@@ -379,8 +415,7 @@ export default function SmartDrivePage() {
     } else if (action === 'create-workflow') {
       if (items.length === 1) {
         const item = items[0];
-        if (item.path === undefined) {
-          // It's a file - open workflow dialog
+        if (isDriveFile(item)) {
           setSelectedFileForWorkflow(item);
           setShowWorkflowDialog(true);
         }
@@ -388,38 +423,54 @@ export default function SmartDrivePage() {
     }
   };
 
-  const refreshFolderTree = async () => {
-    if (activeSpace !== 'my-drive') return;
-    const tree = await fetchFolderTree();
-    setFolderTree(tree);
+  const handleRenameConfirm = async () => {
+    if (!newName || renameError || !renameTarget) return;
+
+    const folderItem = isDriveFolder(renameTarget);
+    const finalName = folderItem
+      ? newName.trim()
+      : getRenamedFileName(renameTarget.name, newName.trim());
+
+    const result = folderItem
+      ? await renameFolder(renameTarget.id, finalName)
+      : await renameFile(renameTarget.id, finalName);
+
+    if (result.success) {
+      success(t('drive.renamed'));
+      await refreshDriveUI();
+    } else {
+      error(result.error?.message || result.error || t('drive.renameFailed'));
+    }
+
+    setRenameTarget(null);
+    setRenameError('');
   };
 
   const handleFolderAction = async (folder, action) => {
     if (action === 'delete') {
-      // Check if folder has children (files or subfolders)
-      const hasChildren = files.some(f => f.folderId === folder.id) || 
-                          folders.some(f => f.parentId === folder.id);
-      
-      if (hasChildren) {
-        // Show warning that folder contains items
-        error(t('drive.folderNotEmpty') || 'This folder contains items. Please delete them first.');
-      } else {
-        // Empty folder - allow deletion with confirmation
-        if (window.confirm(t('drive.confirmDeleteFolder') || 'Are you sure you want to delete this folder?')) {
-          const result = await deleteFolder(folder.id);
-          if (result.success) {
-            await refreshFolderTree();
-            success(t('drive.folderDeleted') || 'Folder deleted successfully');
-          } else {
-            error(t('drive.deleteFolderFailed') || 'Failed to delete folder');
-          }
-        }
-      }
+      setItemsToDelete([folder]);
+      setDeleteConfirmOpen(true);
     } else if (action === 'rename') {
       setNewName(folder.name);
       setRenameTarget(folder);
+      setRenameError('');
+    } else if (action === 'restore') {
+      const result = await restoreFolder(folder.id);
+      if (result.success) {
+        await refreshDriveUI();
+        success(t('drive.restored') || 'Restored successfully');
+      } else {
+        error(result.error?.message || result.error || t('drive.restoreFailed') || 'Failed to restore');
+      }
+    } else if (action === 'permanent-delete') {
+      const result = await permanentDeleteFolder(folder.id);
+      if (result.success) {
+        await refreshDriveUI();
+        success(t('drive.permanentlyDeleted') || 'Permanently deleted');
+      } else {
+        error(result.error?.message || result.error || t('drive.permanentDeleteFailed') || 'Failed to delete permanently');
+      }
     } else if (action === 'share') {
-      // Folders don't have share tab yet - show toast
       info(t('drive.folderShareNotAvailable') || 'Folder sharing not available');
     }
   };
@@ -440,15 +491,13 @@ export default function SmartDrivePage() {
 
   const handleShare = async (shareData) => {
     let result;
-    if (shareData.path !== undefined) {
-      // It's a folder
+    if (isDriveFolder(shareData)) {
       result = await shareFolder(shareData.id, shareData);
     } else {
-      // It's a file
       result = await shareFile(shareData.id, shareData);
     }
     if (result.success) {
-      refreshFiles();
+      await refreshDriveUI({ reloadTree: false });
       success(t('drive.shareSuccess'));
     } else {
       error(t('drive.shareFailed'));
@@ -536,8 +585,7 @@ export default function SmartDrivePage() {
     const results = await startUpload();
     clearCompleted();
     setUploadModalOpen(false);
-    refreshFiles();
-    await refreshFolderTree();
+    await refreshDriveUI();
 
     if (results.failed === 0) {
       success(results.completed === 1
@@ -553,40 +601,39 @@ export default function SmartDrivePage() {
 
   const handleEmptyTrash = async () => {
     const trashedFiles = visibleFiles.filter(f => f.isDeleted);
-    if (trashedFiles.length === 0) return;
+    const trashedFolders = visibleFolders.filter(f => f.isDeleted);
+    if (trashedFiles.length === 0 && trashedFolders.length === 0) return;
     setEmptyTrashConfirmOpen(true);
   };
 
   const confirmEmptyTrash = async () => {
     const trashedFiles = visibleFiles.filter(f => f.isDeleted);
-    if (trashedFiles.length === 0) return;
-    await Promise.all(trashedFiles.map(f => permanentDeleteFile(f.id)));
-    refreshFiles();
+    const trashedFolders = visibleFolders.filter(f => f.isDeleted);
+    if (trashedFiles.length === 0 && trashedFolders.length === 0) return;
+
+    await Promise.all([
+      ...trashedFiles.map(f => permanentDeleteFile(f.id)),
+      ...trashedFolders.map(f => permanentDeleteFolder(f.id)),
+    ]);
+    await refreshDriveUI();
     setEmptyTrashConfirmOpen(false);
     success(t('drive.trashEmptied') || 'Trash emptied');
   };
 
   const confirmDelete = async () => {
     try {
-      const results = await Promise.all(itemsToDelete.map((item) => {
-        if (item.path !== undefined) {
-          // It's a folder
-          return deleteFolder(item.id);
-        } else {
-          // It's a file
-          return trashFile(item.id);
-        }
-      }));
+      const results = await Promise.all(itemsToDelete.map((item) => (
+        isDriveFolder(item) ? deleteFolder(item.id) : trashFile(item.id)
+      )));
 
       const failed = results.filter(r => !r.success);
       handleClearSelection();
       setDeleteConfirmOpen(false);
       setItemsToDelete([]);
-      refreshFiles();
-      await refreshFolderTree();
+      await refreshDriveUI();
 
       if (failed.length > 0) {
-        const firstError = failed[0].error || t('drive.deleteFailed') || 'Failed to move items to trash';
+        const firstError = failed[0].error?.message || failed[0].error || t('drive.deleteFailed') || 'Failed to move items to trash';
         error(firstError);
       } else {
         success(t('drive.deleteSuccess') || 'Items moved to trash');
@@ -603,8 +650,7 @@ export default function SmartDrivePage() {
   const handleCreateFolder = async (name, parentId) => {
     const result = await createFolder(name, parentId);
     if (result.success) {
-      refreshFiles();
-      await refreshFolderTree();
+      await refreshDriveUI();
       success(t('drive.folderCreated'));
     } else {
       error(t('drive.createFolderFailed'));
@@ -1259,8 +1305,8 @@ export default function SmartDrivePage() {
           userCanEdit={(() => {
             const isOwner = detailsModalFile?.owner?.keycloakId === user?.id;
             const hasEditPermission = detailsModalFile?.permission === 'EDIT';
-            const result = isOwner || hasEditPermission;
-            console.log('[SmartDrivePage] userCanEdit check:', { isOwner, hasEditPermission, result, permission: detailsModalFile?.permission, ownerId: detailsModalFile?.owner?.keycloakId, userId: user?.id });
+            const result = isOwner || hasEditPermission || isSuperAdmin;
+            console.log('[SmartDrivePage] userCanEdit check:', { isOwner, hasEditPermission, isSuperAdmin, result, permission: detailsModalFile?.permission, ownerId: detailsModalFile?.owner?.keycloakId, userId: user?.id });
             return result;
           })()}
           onClose={() => {
@@ -1322,33 +1368,20 @@ export default function SmartDrivePage() {
               value={newName}
               onChange={(e) => {
                 const value = e.target.value;
-                // Allow only alphanumeric, spaces, dots, hyphens, underscores
-                const validChars = /^[a-zA-Z0-9\s._-]*$/;
+                const validChars = /^[\p{L}\p{N}\s._\-]*$/u;
                 if (validChars.test(value) && value.length <= 255) {
                   setNewName(value);
                   setRenameError('');
                 } else if (value.length > 255) {
-                  setRenameError('Name must be 255 characters or less');
+                  setRenameError(t('drive.renameTooLong') || 'Name must be 255 characters or less');
                 } else {
-                  setRenameError('Only letters, numbers, spaces, dots, hyphens, and underscores allowed');
+                  setRenameError(t('drive.renameInvalidChars') || 'Name contains invalid characters');
                 }
               }}
               autoFocus
               onKeyDown={async (e) => {
                 if (e.key === 'Enter' && newName && !renameError) {
-                  const isFolder = renameTarget.path !== undefined;
-                  // For files, append the original extension
-                  const finalName = isFolder ? newName : `${newName}.${renameTarget.name.split('.').pop()}`;
-                  const result = isFolder
-                    ? await renameFolder(renameTarget.id, finalName)
-                    : await renameFile(renameTarget.id, finalName);
-                  if (result.success) {
-                    success(t('drive.renamed'));
-                    if (isFolder) await refreshFolderTree();
-                  }
-                  else error(t('drive.renameFailed'));
-                  setRenameTarget(null);
-                  setRenameError('');
+                  await handleRenameConfirm();
                 } else if (e.key === 'Escape') {
                   setRenameTarget(null);
                   setRenameError('');
@@ -1384,23 +1417,7 @@ export default function SmartDrivePage() {
                 {t('common.cancel') || 'Cancel'}
               </Button>
               <Button
-                onClick={async () => {
-                  if (newName && !renameError) {
-                    const isFolder = renameTarget.path !== undefined;
-                    // For files, append the original extension
-                    const finalName = isFolder ? newName : `${newName}.${renameTarget.name.split('.').pop()}`;
-                    const result = isFolder
-                      ? await renameFolder(renameTarget.id, finalName)
-                      : await renameFile(renameTarget.id, finalName);
-                    if (result.success) {
-                      success(t('drive.renamed'));
-                      if (isFolder) await refreshFolderTree();
-                    }
-                    else error(t('drive.renameFailed'));
-                  }
-                  setRenameTarget(null);
-                  setRenameError('');
-                }}
+                onClick={handleRenameConfirm}
                 disabled={!newName || !!renameError}
               >
                 {t('drive.rename') || 'Rename'}

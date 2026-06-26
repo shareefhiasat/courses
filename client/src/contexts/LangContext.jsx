@@ -1503,6 +1503,9 @@ const DICT = {
     // SmartGrid & Buttons
     view_details: 'View Details',
     no_data: 'No data available',
+    grid_quick_filters: 'Quick filters',
+    grid_chip_clear_filter: 'Click to clear filter',
+    grid_chip_apply_filter: 'Click to filter',
     registered_users: 'Registered Users',
     recent_announcements: 'Recent Announcements',
     student_progress: 'Progress',
@@ -5234,6 +5237,7 @@ const DICT = {
 
     'workflow.dialog.title': 'Create Custom Workflow',
     'workflow.dialog.workflowType': 'Workflow Type',
+    'workflow.dialog.flowPreview': 'Approval path',
     'workflow.dialog.titleLabel': 'Title',
     'workflow.dialog.titlePlaceholder': 'Enter workflow title',
     'workflow.dialog.description': 'Description',
@@ -5244,6 +5248,17 @@ const DICT = {
     'workflow.dialog.errors.titleRequired': 'Title is required',
     'workflow.dialog.errors.reviewersRequired': 'At least one reviewer role is required',
     'workflow.dialog.errors.submitFailed': 'Failed to create workflow',
+
+    'workflow.types.requester': 'Requester',
+    'workflow.types.approved': 'Approved',
+    'workflow.types.GENERAL_HR.label': 'Requester → HR',
+    'workflow.types.GENERAL_HR.desc': 'You submit the document; HR reviews and approves.',
+    'workflow.types.GENERAL_ADMIN.label': 'Requester → Admin',
+    'workflow.types.GENERAL_ADMIN.desc': 'You submit the document; Admin reviews and approves.',
+    'workflow.types.GENERAL_MIXED_HR_ADMIN.label': 'Requester → HR → Admin',
+    'workflow.types.GENERAL_MIXED_HR_ADMIN.desc': 'HR reviews first, then Admin gives final approval.',
+    'workflow.types.GENERAL_MIXED_ADMIN_HR.label': 'Requester → Admin → HR',
+    'workflow.types.GENERAL_MIXED_ADMIN_HR.desc': 'Admin reviews first, then HR gives final approval.',
 
     'workflow.workspace.back': 'Back to Inbox',
     'workflow.workspace.title': 'Personal Drive Workspace',
@@ -5485,7 +5500,7 @@ const DICT = {
 
     // Upload Modal
     'drive.uploadFiles': 'Upload Files',
-    'drive.filesInQueue': 'files in queue',
+    'drive.filesInQueue': 'in queue',
     'drive.filters': 'Filters',
     'drive.clearAllFilters': 'Clear all',
     'drive.completed': 'completed',
@@ -7404,7 +7419,9 @@ const DICT = {
     // SmartGrid & Buttons
     view_details: 'عرض التفاصيل',
     no_data: 'لا توجد بيانات',
-    recent_announcements: 'الإعلانات الأخيرة',
+    grid_quick_filters: 'فلاتر سريعة',
+    grid_chip_clear_filter: 'انقر لإلغاء التصفية',
+    grid_chip_apply_filter: 'انقر للتصفية',
     student_progress: 'التقدم',
     course: 'المساق',
     visible: 'مرئي',
@@ -11173,6 +11190,7 @@ const DICT = {
 
     'workflow.dialog.title': 'إنشاء سير عمل مخصص',
     'workflow.dialog.workflowType': 'نوع سير العمل',
+    'workflow.dialog.flowPreview': 'مسار الموافقة',
     'workflow.dialog.titleLabel': 'العنوان',
     'workflow.dialog.titlePlaceholder': 'أدخل عنوان سير العمل',
     'workflow.dialog.description': 'الوصف',
@@ -11183,6 +11201,17 @@ const DICT = {
     'workflow.dialog.errors.titleRequired': 'العنوان مطلوب',
     'workflow.dialog.errors.reviewersRequired': 'مطلوب اختيار دور مراجع واحد على الأقل',
     'workflow.dialog.errors.submitFailed': 'فشل في إنشاء سير العمل',
+
+    'workflow.types.requester': 'مقدم الطلب',
+    'workflow.types.approved': 'موافق عليه',
+    'workflow.types.GENERAL_HR.label': 'مقدم الطلب ← الموارد البشرية',
+    'workflow.types.GENERAL_HR.desc': 'تقدم المستند؛ تقوم الموارد البشرية بالمراجعة والموافقة.',
+    'workflow.types.GENERAL_ADMIN.label': 'مقدم الطلب ← الإدارة',
+    'workflow.types.GENERAL_ADMIN.desc': 'تقدم المستند؛ تقوم الإدارة بالمراجعة والموافقة.',
+    'workflow.types.GENERAL_MIXED_HR_ADMIN.label': 'مقدم الطلب ← الموارد البشرية ← الإدارة',
+    'workflow.types.GENERAL_MIXED_HR_ADMIN.desc': 'تراجع الموارد البشرية أولاً، ثم تعطي الإدارة الموافقة النهائية.',
+    'workflow.types.GENERAL_MIXED_ADMIN_HR.label': 'مقدم الطلب ← الإدارة ← الموارد البشرية',
+    'workflow.types.GENERAL_MIXED_ADMIN_HR.desc': 'تراجع الإدارة أولاً، ثم تعطي الموارد البشرية الموافقة النهائية.',
 
     // Smart Drive translations
     'drive.smartDrive': 'محرك الأقراص الذكي',

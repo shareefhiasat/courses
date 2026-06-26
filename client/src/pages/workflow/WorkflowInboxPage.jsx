@@ -706,7 +706,7 @@ const WorkflowInboxPage = () => {
               loading={loading}
               getRowId={(row) => row.id}
               className="border-none"
-              pageSizeOptions={[25, 50, 100]}
+              pageSizeOptions={[10, 25, 50, 100]}
               pageSize={50}
             />
           </CardContent>

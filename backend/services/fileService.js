@@ -819,6 +819,21 @@ export async function permanentDeleteFile(fileId, actorUserId) {
 export async function getPreviewUrl(fileId, actorUserId, fileVersionId = null) {
   console.log('[fileService.getPreviewUrl] Request:', { fileId, actorUserId, fileVersionId });
   try {
+    // Permission gate: require at least VIEW access before generating any preview URL / WOPI token.
+    if (actorUserId) {
+      const { canAccessFile } = await import('./permissionService.js');
+      // Resolve the actor's roles from the DB for the permission check.
+      const actorRecord = await prisma.user.findUnique({
+        where: { id: actorUserId },
+        include: { roleAssignments: { include: { role: true } } },
+      });
+      const actorRoles = actorRecord?.roleAssignments?.map(ra => ra.role?.code?.toLowerCase()).filter(Boolean) || [];
+      const access = await canAccessFile(fileId, { userId: actorUserId, roles: actorRoles });
+      if (!access.allowed) {
+        return err('ACCESS_DENIED', 'No permission to preview this file');
+      }
+    }
+
     const file = await prisma.file.findUnique({ where: { id: fileId } });
     console.log('[fileService.getPreviewUrl] File found:', file ? { id: file.id, name: file.name, isDeleted: file.isDeleted, s3Key: file.s3Key } : null);
     if (!file || file.isDeleted) return err('FILE_NOT_FOUND', 'File not found');

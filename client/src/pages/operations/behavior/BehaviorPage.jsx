@@ -5,7 +5,7 @@ import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
-import { Button, Select, SimpleLoading, Textarea, useToast, AdvancedDataGrid, StudentSelect, Card, CardBody, Input, ProgramsSelect } from '@ui';
+import { Button, Select, SimpleLoading, Textarea, useToast, AdvancedDataGrid, StudentSelect, Card, CardBody, Input, ProgramsSelect, GridQuickFilterChips } from '@ui';
 import { useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { DeleteModal, useDeleteModal } from '@ui';
 import { getPrograms, getSubjects, fetchSubject, fetchProgram } from '@services/business/programService';
@@ -317,8 +317,14 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
     if (classFilter) {
       filtered = filtered.filter(b => b.classId === classFilter);
     }
-    if (typeFilter !== 'all') {
+    if (typeFilter !== 'all' && typeFilter !== 'points-positive' && typeFilter !== 'points-negative') {
       filtered = filtered.filter(b => b.type === typeFilter);
+    }
+    if (typeFilter === 'points-positive') {
+      filtered = filtered.filter(b => (b.points || 0) > 0);
+    }
+    if (typeFilter === 'points-negative') {
+      filtered = filtered.filter(b => (b.points || 0) < 0);
     }
     if (studentFilter) {
       filtered = filtered.filter(b => b.studentId === studentFilter);
@@ -1042,76 +1048,60 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
         </div>
       )}
 
-      {/* Summary Chips */}
-      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-        <div style={{ 
-          display: 'inline-flex', 
-          alignItems: 'center', 
-          gap: '0.5rem', 
-          padding: '0.5rem 0.75rem', 
-          background: '#fef2f2', 
-          border: '1px solid #fecaca', 
-          borderRadius: '9999px',
-          fontSize: '0.875rem',
-          fontWeight: '500',
-          color: '#991b1b'
-        }}>
-          {getThemedIcon('ui', 'target', 16, theme)}
-          {behaviorsRaw.length} {t('behavior_total_badge')}
-        </div>
-        <div style={{ 
-          display: 'inline-flex', 
-          alignItems: 'center', 
-          gap: '0.5rem', 
-          padding: '0.5rem 0.75rem', 
-          background: '#fef2f2', 
-          border: '1px solid #fecaca', 
-          borderRadius: '9999px',
-          fontSize: '0.875rem',
-          fontWeight: '500',
-          color: '#991b1b'
-        }}>
-          {getThemedIcon('ui', 'users', 16, theme)}
-          {new Set(behaviorsRaw.map(b => b.studentId)).size} {t('behavior_students_badge')}
-        </div>
-        <div style={{ 
-          display: 'inline-flex', 
-          alignItems: 'center', 
-          gap: '0.5rem', 
-          padding: '0.5rem 0.75rem', 
-          background: '#f0fdf4', 
-          border: '1px solid #bbf7d0', 
-          borderRadius: '9999px',
-          fontSize: '0.875rem',
-          fontWeight: '500',
-          color: '#166534'
-        }}>
-          {getThemedIcon('ui', 'trending_up', 16, theme)}
-          {behaviorsRaw.filter(b => (b.points || 0) > 0).reduce((sum, b) => sum + (b.points || 0), 0)} {t('behavior_positive')}
-        </div>
-        <div style={{ 
-          display: 'inline-flex', 
-          alignItems: 'center', 
-          gap: '0.5rem', 
-          padding: '0.5rem 0.75rem', 
-          background: '#fef2f2', 
-          border: '1px solid #fecaca', 
-          borderRadius: '9999px',
-          fontSize: '0.875rem',
-          fontWeight: '500',
-          color: '#991b1b'
-        }}>
-          {getThemedIcon('ui', 'trending_down', 16, theme)}
-          {behaviorsRaw.filter(b => (b.points || 0) < 0).reduce((sum, b) => sum + (b.points || 0), 0)} {t('behavior_negative')}
-        </div>
-      </div>
+      <GridQuickFilterChips
+        activeId={typeFilter === 'all' ? 'all' : String(typeFilter)}
+        onChange={(id) => setTypeFilter(id === 'all' ? 'all' : id)}
+        chips={[
+          {
+            id: 'all',
+            label: t('behavior_total_badge'),
+            count: behaviorsRaw.length,
+            icon: getThemedIcon('ui', 'target', 16, theme),
+            variant: 'red',
+          },
+          {
+            id: 'points-positive',
+            label: t('behavior_positive'),
+            count: behaviorsRaw.filter((b) => (b.points || 0) > 0).length,
+            icon: getThemedIcon('ui', 'trending_up', 16, theme),
+            variant: 'green',
+          },
+          {
+            id: 'points-negative',
+            label: t('behavior_negative'),
+            count: behaviorsRaw.filter((b) => (b.points || 0) < 0).length,
+            icon: getThemedIcon('ui', 'trending_down', 16, theme),
+            variant: 'red',
+          },
+          {
+            id: 'stat-students',
+            label: t('behavior_students_badge'),
+            count: new Set(behaviorsRaw.map((b) => b.studentId)).size,
+            icon: getThemedIcon('ui', 'users', 16, theme),
+            variant: 'red',
+            filterable: false,
+          },
+          ...(lookupData['behavior-types'] || []).map((bt) => {
+            const count = behaviorsRaw.filter((b) => b.type === bt.id).length;
+            if (count === 0) return null;
+            return {
+              id: String(bt.id),
+              label: lang === 'ar' ? (bt.nameAr || bt.nameEn) : bt.nameEn,
+              count,
+              icon: getThemedIcon('ui', 'tag', 16, theme),
+              variant: 'amber',
+            };
+          }).filter(Boolean),
+        ]}
+      />
 
       <div>
         <AdvancedDataGrid
+          gridId="behavior"
           rows={filteredBehaviors}
           getRowId={(row) => row.docId || row.id}
           columns={columns}
-          pageSize={10}
+          pageSize={50}
           pageSizeOptions={[10, 25, 50, 100]}
           checkboxSelection
           exportFileName="behaviors"

@@ -351,7 +351,9 @@ export const apiService = {
     try {
       // Check cache for GET requests (skip for blob responses)
       const isBlobRequest = config?.responseType === 'blob';
-      const cacheKey = url;
+      // Include query params in cache key so cache-busting works
+      const paramsStr = config?.params ? JSON.stringify(config.params) : '';
+      const cacheKey = `${url}?${paramsStr}`;
       const now = Date.now();
       const cached = requestCache.get(cacheKey);
 

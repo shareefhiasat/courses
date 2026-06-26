@@ -1,13 +1,15 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { usePermissions } from '@hooks/usePermissions';
+import { getAuthToken } from '@utils/authHelpers';
 import { ROLE_STRINGS } from '@utils/userUtils';
 import { getThemedIcon, getIcon } from '@constants/iconTypes';
 import Tabs from '@ui/Tabs/Tabs';
 import Select from '@ui/Select/Select';
 import Button from '@ui/Button/Button';
+import RoleMultiSelect, { DRIVE_SHARE_ROLES } from '@ui/RoleMultiSelect';
+import ShareUserSelect from '@ui/ShareUserSelect';
 import SharesList from '../SharesList';
-import { getAllUsers } from '@services/business/userService';
 
 // Permission constants
 const PERMISSIONS = {
@@ -29,49 +31,15 @@ export default function ShareTab({ fileId, onShare, onGenerateLink }) {
   const { hasPermission, roleCode } = usePermissions();
   const [shareType, setShareType] = useState(SHARE_TYPES.PEOPLE);
   const [selectedUserIds, setSelectedUserIds] = useState([]);
-  const [selectedRole, setSelectedRole] = useState('');
+  const [selectedRoles, setSelectedRoles] = useState([]);
   const [selectedPermissions, setSelectedPermissions] = useState([PERMISSIONS.VIEW]);
   const [expiryDays, setExpiryDays] = useState(null);
   const [publicLink, setPublicLink] = useState('');
   const [loading, setLoading] = useState(false);
   const [shareSuccess, setShareSuccess] = useState(false);
-  const [userOptions, setUserOptions] = useState([]);
-  const [searchingUsers, setSearchingUsers] = useState(false);
   const [sharesListKey, setSharesListKey] = useState(0);
   const [publicLinks, setPublicLinks] = useState([]);
   const [loadingLinks, setLoadingLinks] = useState(false);
-  const searchTimeoutRef = useRef(null);
-
-  const searchUsers = useCallback(async (query) => {
-    console.log('[ShareTab] searchUsers called with query:', query);
-    if (!query || query.length < 2) {
-      setUserOptions([]);
-      return;
-    }
-    if (searchTimeoutRef.current) clearTimeout(searchTimeoutRef.current);
-    searchTimeoutRef.current = setTimeout(async () => {
-      setSearchingUsers(true);
-      try {
-        console.log('[ShareTab] Calling getAllUsers with search:', query);
-        const result = await getAllUsers({ search: query, limit: 20, excludeStudents: true });
-        console.log('[ShareTab] getAllUsers result:', result);
-        if (result.success) {
-          const options = (result.data || []).map(u => ({
-            value: u.id,
-            label: u.displayName || u.email,
-            subtext: u.displayName && u.email && u.email !== u.displayName ? u.email : null,
-            icon: <div style={{ width: '2rem', height: '2rem', borderRadius: '9999px', background: 'var(--color-primary-alpha, rgba(37,99,235,0.1))', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{getThemedIcon('ui', 'user', 16, 'primary')}</div>,
-          }));
-          console.log('[ShareTab] Setting userOptions:', options);
-          setUserOptions(options);
-        }
-      } catch (err) {
-        console.error('[ShareTab] user search failed:', err);
-      } finally {
-        setSearchingUsers(false);
-      }
-    }, 300);
-  }, []);
 
   const isSuperAdmin = roleCode === ROLE_STRINGS.SUPER_ADMIN;
   const canShare = isSuperAdmin || hasPermission('drive.share');
@@ -111,21 +79,23 @@ export default function ShareTab({ fileId, onShare, onGenerateLink }) {
   };
 
   const handleShareWithRole = async () => {
-    if (!selectedRole || !canShare) return;
+    if (selectedRoles.length === 0 || !canShare) return;
     setLoading(true);
     setShareSuccess(false);
     try {
       const expiresAt = expiryDays ? new Date(Date.now() + expiryDays * 24 * 60 * 60 * 1000).toISOString() : null;
       const permission = getHighestPermission(selectedPermissions);
-      await onShare?.({
-        fileId, subjectType: 'ROLE', subjectId: selectedRole,
-        permission, expiresAt,
-      });
+      for (const roleCodeValue of selectedRoles) {
+        await onShare?.({
+          fileId, subjectType: 'ROLE', subjectId: roleCodeValue,
+          permission, expiresAt,
+        });
+      }
       setShareSuccess(true);
-      setSelectedRole('');
+      setSelectedRoles([]);
       setExpiryDays(null);
       setSelectedPermissions([PERMISSIONS.VIEW]);
-      setSharesListKey(prev => prev + 1);
+      setSharesListKey((prev) => prev + 1);
     } catch (error) {
       console.error('Share role error:', error);
     } finally {
@@ -160,7 +130,10 @@ export default function ShareTab({ fileId, onShare, onGenerateLink }) {
     if (!fileId) return;
     setLoadingLinks(true);
     try {
-      const response = await fetch(`/api/v1/drive/files/${fileId}/public-links`);
+      const token = getAuthToken();
+      const response = await fetch(`/api/v1/drive/files/${fileId}/public-links`, {
+        headers: { Authorization: token ? `Bearer ${token}` : '' },
+      });
       const data = await response.json();
       console.log('[ShareTab] fetchPublicLinks response:', data);
       if (data.success) {
@@ -184,8 +157,10 @@ export default function ShareTab({ fileId, onShare, onGenerateLink }) {
   const handleRevokeLink = async (linkId) => {
     if (!confirm(t('drive.confirmRevokeLink', 'Are you sure you want to revoke this public link?'))) return;
     try {
+      const token = getAuthToken();
       const response = await fetch(`/api/v1/drive/public-links/${linkId}`, {
         method: 'DELETE',
+        headers: { Authorization: token ? `Bearer ${token}` : '' },
       });
       const data = await response.json();
       if (data.success) {
@@ -254,19 +229,13 @@ export default function ShareTab({ fileId, onShare, onGenerateLink }) {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <Select
+                <ShareUserSelect
                   label={t('drive.selectUser')}
-                  options={userOptions}
                   value={selectedUserIds}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    setSelectedUserIds(Array.isArray(value) ? value : (value ? [value] : []));
-                  }}
-                  placeholder={t('drive.searchUsers')}
-                  searchPlaceholder={t('drive.searchUsers')}
-                  disabled={loading}
-                  onSearchChange={searchUsers}
+                  onChange={setSelectedUserIds}
                   multiple
+                  disabled={loading}
+                  excludeStudents
                 />
 
                 <Select
@@ -335,12 +304,6 @@ export default function ShareTab({ fileId, onShare, onGenerateLink }) {
               </div>
             </div>
 
-            {searchingUsers && (
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)', marginTop: '-1.25rem' }}>
-                {t('common.searching')}&hellip;
-              </div>
-            )}
-
             <Button
               onClick={handleShareWithUser}
               disabled={selectedUserIds.length === 0 || loading}
@@ -366,15 +329,12 @@ export default function ShareTab({ fileId, onShare, onGenerateLink }) {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <Select
-                  label={t('drive.selectRole') || 'Select Role'}
-                  options={[
-                    { value: ROLE_STRINGS.HR, label: t('roles.hr') },
-                    { value: ROLE_STRINGS.ADMIN, label: t('roles.admin') },
-                    { value: ROLE_STRINGS.INSTRUCTOR, label: t('roles.instructor') }
-                  ]}
-                  value={selectedRole}
-                  onChange={(e) => setSelectedRole(e.target.value)}
+                <RoleMultiSelect
+                  label={t('drive.selectRole')}
+                  value={selectedRoles}
+                  onChange={setSelectedRoles}
+                  includeRoles={DRIVE_SHARE_ROLES}
+                  placeholder={t('select_roles') || t('drive.selectRole')}
                   disabled={loading}
                 />
 
@@ -446,7 +406,7 @@ export default function ShareTab({ fileId, onShare, onGenerateLink }) {
 
             <Button
               onClick={handleShareWithRole}
-              disabled={!selectedRole || loading}
+              disabled={selectedRoles.length === 0 || loading}
               loading={loading}
               fullWidth
             >

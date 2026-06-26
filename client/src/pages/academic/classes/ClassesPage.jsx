@@ -23,6 +23,7 @@ import {
   Input, 
   Select, 
   AdvancedDataGrid, 
+  GridQuickFilterChips,
   useToast, 
   YearSelect,
   UserSelect
@@ -1145,63 +1146,44 @@ const handleCancelEdit = useCallback(() => {
         </div>
       )}
 
-      {/* Summary Chips */}
-      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-        <div style={{ 
-          display: 'inline-flex', 
-          alignItems: 'center', 
-          gap: '0.5rem', 
-          padding: '0.5rem 0.75rem', 
-          background: '#f0f9ff', 
-          border: '1px solid #bae6fd', 
-          borderRadius: '9999px',
-          fontSize: '0.875rem',
-          fontWeight: '500',
-          color: '#0369a1'
-        }}>
-          {getThemedIcon('ui', 'target', 16, theme)}
-          {classes.length} {lang === 'ar' ? 'إجمالي' : 'Total'}
-        </div>
-        <div style={{ 
-          display: 'inline-flex', 
-          alignItems: 'center', 
-          gap: '0.5rem', 
-          padding: '0.5rem 0.75rem', 
-          background: '#fef3c7', 
-          border: '1px solid #fde68a', 
-          borderRadius: '9999px',
-          fontSize: '0.875rem',
-          fontWeight: '500',
-          color: '#92400e'
-        }}>
-          {getThemedIcon('ui', 'book', 16, theme)}
-          {new Set(classes.map(c => c.subjectId)).size} {lang === 'ar' ? 'مواد' : 'Subjects'}
-        </div>
-        <div style={{ 
-          display: 'inline-flex', 
-          alignItems: 'center', 
-          gap: '0.5rem', 
-          padding: '0.5rem 0.75rem', 
-          background: '#f0fdf4', 
-          border: '1px solid #bbf7d0', 
-          borderRadius: '9999px',
-          fontSize: '0.875rem',
-          fontWeight: '500',
-          color: '#166534'
-        }}>
-          {getThemedIcon('ui', 'graduation_cap', 16, theme)}
-          {new Set(classes.map(c => c.programId)).size} {lang === 'ar' ? 'برامج' : 'Programs'}
-        </div>
-      </div>
+      <GridQuickFilterChips
+        chips={[
+          {
+            id: 'total',
+            label: lang === 'ar' ? 'إجمالي' : 'Total',
+            count: classes.length,
+            icon: getThemedIcon('ui', 'target', 16, theme),
+            variant: 'blue',
+            filterable: false,
+          },
+          {
+            id: 'subjects',
+            label: lang === 'ar' ? 'مواد' : 'Subjects',
+            count: new Set(classes.map((c) => c.subjectId)).size,
+            icon: getThemedIcon('ui', 'book', 16, theme),
+            variant: 'amber',
+            filterable: false,
+          },
+          {
+            id: 'programs',
+            label: lang === 'ar' ? 'برامج' : 'Programs',
+            count: new Set(classes.map((c) => c.programId)).size,
+            icon: getThemedIcon('ui', 'graduation_cap', 16, theme),
+            variant: 'green',
+            filterable: false,
+          },
+        ]}
+      />
 
       <div data-tour="classes-grid" style={{ marginTop: '1rem' }}>
         <AdvancedDataGrid
+          gridId="classes"
           key={classes.length} // Force re-render when classes data changes
           rows={filteredClasses}
           getRowId={(row) => row.docId || row.id}
           columns={gridColumns}
-          pageSize={10}
-          pageSizeOptions={[5, 10, 20, 50]}
+          pageSize={50}
+          pageSizeOptions={[10, 25, 50, 100]}
           checkboxSelection
           exportFileName="classes"
           showExportButton

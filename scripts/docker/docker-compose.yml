@@ -308,7 +308,7 @@ services:
 
   # Collabora Online Development Edition (CODE) - Free & Open Source Office Suite
   collabora:
-    image: collabora/code:latest
+    image: collabora/code:25.04.9.4
     container_name: lms-qaf-collabora
     restart: unless-stopped
     ports:

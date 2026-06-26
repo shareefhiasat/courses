@@ -13,10 +13,10 @@ export default function FileCard({ file, onDownload, onShare, onDelete, onVersio
   const [showMenu, setShowMenu] = useState(false);
 
   // Permission checks
-  const canDownload = hasPermission('drive', 'drive.download');
-  const canShare = hasPermission('drive', 'drive.share');
-  const canDelete = hasPermission('drive', 'drive.delete');
-  const canVersion = hasPermission('drive', 'drive.version');
+  const canDownload = hasPermission('drive.download');
+  const canShare = hasPermission('drive.share');
+  const canDelete = hasPermission('drive.delete');
+  const canVersion = hasPermission('drive.version');
 
   // Get file icon based on mime type
   const getFileIcon = () => {

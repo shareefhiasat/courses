@@ -458,7 +458,7 @@ const ProgramsPage = () => {
             rows={programs}
             getRowId={(row) => row.docId || row.id}
             columns={gridColumns}
-            pageSize={10}
+            pageSize={50}
             pageSizeOptions={[10, 25, 50, 100]}
             checkboxSelection
             exportFileName="programs"

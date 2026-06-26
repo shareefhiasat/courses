@@ -4,7 +4,7 @@ import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon, CATEGORY_ICONS } from '@constants';
-import { Button, Select, SimpleLoading, Textarea, useToast, AdvancedDataGrid, Card, CardBody, Input } from '@ui';
+import { Button, Select, SimpleLoading, Textarea, useToast, AdvancedDataGrid, Card, CardBody, Input, GridQuickFilterChips } from '@ui';
 import { DeleteModal, useDeleteModal } from '@ui';
 import { getCategories, addCategory, updateCategory, deleteCategory } from '@services/business/categoryService';
 import { useAuditGridColumns } from '@hooks/useAuditGridColumns.js';
@@ -118,6 +118,8 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
   }, [t]);
 
   // Dynamic category statistics
+  const [categoryChipFilter, setCategoryChipFilter] = useState('all');
+
   const categoryStats = useMemo(() => {
     const total = categories.length;
     const withIcons = categories.filter(cat => cat.icon).length;
@@ -129,6 +131,19 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
     
     return { total, withIcons, withColors, withDescriptions };
   }, [categories]);
+
+  const displayedCategories = useMemo(() => {
+    if (categoryChipFilter === 'all') return categories;
+    if (categoryChipFilter === 'withIcons') return categories.filter((cat) => cat.icon);
+    if (categoryChipFilter === 'withColors') return categories.filter((cat) => cat.color && cat.color !== '#3b82f6');
+    if (categoryChipFilter === 'withDescriptions') {
+      return categories.filter((cat) =>
+        (cat.descriptionEn && cat.descriptionEn.trim()) ||
+        (cat.descriptionAr && cat.descriptionAr.trim())
+      );
+    }
+    return categories;
+  }, [categories, categoryChipFilter]);
 
   useEffect(() => {
     // Update categories when lookup data changes (permission already checked above)
@@ -573,86 +588,48 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
           </div>
         </form>
 
-      {/* Dynamic Summary Chips */}
-      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-        <div style={{ 
-          display: 'inline-flex', 
-          alignItems: 'center', 
-          gap: '0.5rem', 
-          padding: '0.5rem 0.75rem', 
-          background: theme === 'dark' ? '#1f2937' : '#f8fafc', 
-          border: `1px solid ${theme === 'dark' ? '#374151' : '#e2e8f0'}`, 
-          borderRadius: '9999px',
-          fontSize: '0.875rem',
-          fontWeight: '500',
-          color: theme === 'dark' ? '#f3f4f6' : '#1f2937'
-        }}>
-          {getThemedIcon('ui', 'target', 16, theme)}
-          {categoryStats.total} {t('total_categories') || 'Total Categories'}
-        </div>
-        
-        {categoryStats.withIcons > 0 && (
-          <div style={{ 
-            display: 'inline-flex', 
-            alignItems: 'center', 
-            gap: '0.5rem', 
-            padding: '0.5rem 0.75rem', 
-            background: theme === 'dark' ? '#1e3a1f' : '#f0fdf4', 
-            border: `1px solid ${theme === 'dark' ? '#365314' : '#bbf7d0'}`, 
-            borderRadius: '9999px',
-            fontSize: '0.875rem',
-            fontWeight: '500',
-            color: theme === 'dark' ? '#bbf7d0' : '#166534'
-          }}>
-            {getThemedIcon('ui', 'star', 16, theme)}
-            {categoryStats.withIcons} {t('with_icons') || 'With Icons'}
-          </div>
-        )}
-        
-        {categoryStats.withColors > 0 && (
-          <div style={{ 
-            display: 'inline-flex', 
-            alignItems: 'center', 
-            gap: '0.5rem', 
-            padding: '0.5rem 0.75rem', 
-            background: theme === 'dark' ? '#1e1b4b' : '#eef2ff', 
-            border: `1px solid ${theme === 'dark' ? '#4338ca' : '#c7d2fe'}`, 
-            borderRadius: '9999px',
-            fontSize: '0.875rem',
-            fontWeight: '500',
-            color: theme === 'dark' ? '#c7d2fe' : '#4338ca'
-          }}>
-            {getThemedIcon('ui', 'droplet', 16, theme)}
-            {categoryStats.withColors} {t('with_custom_colors') || 'Custom Colors'}
-          </div>
-        )}
-        
-        {categoryStats.withDescriptions > 0 && (
-          <div style={{ 
-            display: 'inline-flex', 
-            alignItems: 'center', 
-            gap: '0.5rem', 
-            padding: '0.5rem 0.75rem', 
-            background: theme === 'dark' ? '#1f2937' : '#fef3c7', 
-            border: `1px solid ${theme === 'dark' ? '#374151' : '#fbbf24'}`, 
-            borderRadius: '9999px',
-            fontSize: '0.875rem',
-            fontWeight: '500',
-            color: theme === 'dark' ? '#fbbf24' : '#92400e'
-          }}>
-            {getThemedIcon('ui', 'file_text', 16, theme)}
-            {categoryStats.withDescriptions} {t('with_descriptions') || 'With Descriptions'
-          }
-          </div>
-        )}
-      </div>
+      <GridQuickFilterChips
+        activeId={categoryChipFilter}
+        onChange={setCategoryChipFilter}
+        chips={[
+          {
+            id: 'all',
+            label: t('total_categories') || 'Total Categories',
+            count: categoryStats.total,
+            icon: getThemedIcon('ui', 'target', 16, theme),
+            variant: 'slate',
+          },
+          ...(categoryStats.withIcons > 0 ? [{
+            id: 'withIcons',
+            label: t('with_icons') || 'With Icons',
+            count: categoryStats.withIcons,
+            icon: getThemedIcon('ui', 'star', 16, theme),
+            variant: 'green',
+          }] : []),
+          ...(categoryStats.withColors > 0 ? [{
+            id: 'withColors',
+            label: t('with_custom_colors') || 'Custom Colors',
+            count: categoryStats.withColors,
+            icon: getThemedIcon('ui', 'droplet', 16, theme),
+            variant: 'indigo',
+          }] : []),
+          ...(categoryStats.withDescriptions > 0 ? [{
+            id: 'withDescriptions',
+            label: t('with_descriptions') || 'With Descriptions',
+            count: categoryStats.withDescriptions,
+            icon: getThemedIcon('ui', 'file_text', 16, theme),
+            variant: 'amber',
+          }] : []),
+        ]}
+      />
 
       <div>
         <AdvancedDataGrid
-          rows={categories}
+          gridId="categories"
+          rows={displayedCategories}
           getRowId={(row) => row.docId || row.id}
           columns={columns}
-          pageSize={10}
+          pageSize={50}
           pageSizeOptions={[10, 25, 50, 100]}
           checkboxSelection
           exportFileName="categories"

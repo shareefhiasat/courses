@@ -4,7 +4,7 @@ import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { RECORD_TYPES } from '@utils/sharedTypes';
-import { Button, Select, useToast, AdvancedDataGrid, ProgramsSelect } from '@ui';
+import { Button, Select, useToast, AdvancedDataGrid, ProgramsSelect, GridQuickFilterChips } from '@ui';
 import { useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { DeleteModal, useDeleteModal } from '@ui';
 import { createParticipation, updateParticipation, deleteParticipation, getParticipations } from '@services/business/participationService';
@@ -674,7 +674,9 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
     }
     if (subjectFilter && participation.subjectId !== subjectFilter) return false;
     if (classFilter && participation.classId !== classFilter) return false;
-    if (typeFilter !== 'all' && participation.type !== typeFilter) return false;
+    if (typeFilter !== 'all' && typeFilter !== 'points-positive' && typeFilter !== 'points-negative' && participation.type !== typeFilter) return false;
+    if (typeFilter === 'points-positive' && (participation.points || 0) <= 0) return false;
+    if (typeFilter === 'points-negative' && (participation.points || 0) >= 0) return false;
     if (studentFilter && participation.studentId !== studentFilter) return false;
     return true;
   });
@@ -1264,98 +1266,59 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
         </div>
       )}
 
-      {/* Summary Chips */}
-      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-        <div style={{ 
-          display: 'inline-flex', 
-          alignItems: 'center', 
-          gap: '0.5rem', 
-          padding: '0.5rem 0.75rem', 
-          background: '#fef2f2', 
-          border: '1px solid #fecaca', 
-          borderRadius: '9999px',
-          fontSize: '0.875rem',
-          fontWeight: '500',
-          color: '#991b1b'
-        }}>
-          {getThemedIcon('ui', 'alert_circle', 16, theme)}
-          {t('total') || 'Total'} {participations.length}
-        </div>
-        <div style={{ 
-          display: 'inline-flex', 
-          alignItems: 'center', 
-          gap: '0.5rem', 
-          padding: '0.5rem 0.75rem', 
-          background: '#fef2f2', 
-          border: '1px solid #fecaca', 
-          borderRadius: '9999px',
-          fontSize: '0.875rem',
-          fontWeight: '500',
-          color: '#991b1b'
-        }}>
-          {getThemedIcon('ui', 'users', 16, theme)}
-          {new Set(participations.map(p => p.studentId)).size} {t('students') || 'Students'}
-        </div>
-        <div style={{ 
-          display: 'inline-flex', 
-          alignItems: 'center', 
-          gap: '0.5rem', 
-          padding: '0.5rem 0.75rem', 
-          background: '#f0fdf4', 
-          border: '1px solid #bbf7d0', 
-          borderRadius: '9999px',
-          fontSize: '0.875rem',
-          fontWeight: '500',
-          color: '#166534'
-        }}>
-          {getThemedIcon('ui', 'trending_up', 16, theme)}
-          {participations.filter(p => (p.points || 0) > 0).reduce((sum, p) => sum + (p.points || 0), 0)} {t('participation_positive')}
-        </div>
-        <div style={{ 
-          display: 'inline-flex', 
-          alignItems: 'center', 
-          gap: '0.5rem', 
-          padding: '0.5rem 0.75rem', 
-          background: '#fef2f2', 
-          border: '1px solid #fecaca', 
-          borderRadius: '9999px',
-          fontSize: '0.875rem',
-          fontWeight: '500',
-          color: '#991b1b'
-        }}>
-          {getThemedIcon('ui', 'trending_down', 16, theme)}
-          {participations.filter(p => (p.points || 0) < 0).reduce((sum, p) => sum + (p.points || 0), 0)} {t('participation_negative')}
-        </div>
-        
-        {/* Type-specific counter chips */}
-        {(lookupData['participation-types'] || []).map(pt => {
-          const count = participations.filter(p => p.type === pt.id).length;
-          if (count === 0) return null;
-          return (
-            <div key={pt.id} style={{ 
-              display: 'inline-flex', 
-              alignItems: 'center', 
-              gap: '0.5rem', 
-              padding: '0.5rem 0.75rem', 
-              background: '#fef3c7', 
-              border: '1px solid #fde68a', 
-              borderRadius: '9999px',
-              fontSize: '0.875rem',
-              fontWeight: '500',
-              color: '#92400e'
-            }}>
-              {PARTICIPATION_TYPE_ICONS[pt.id]}
-              {count} {lang === 'ar' ? pt.label_ar : pt.label_en}
-            </div>
-          );
-        })}
-      </div>
+      <GridQuickFilterChips
+        activeId={typeFilter === 'all' ? 'all' : String(typeFilter)}
+        onChange={(id) => setTypeFilter(id === 'all' ? 'all' : id)}
+        chips={[
+          {
+            id: 'all',
+            label: t('total') || 'Total',
+            count: participations.length,
+            icon: getThemedIcon('ui', 'alert_circle', 16, theme),
+            variant: 'red',
+          },
+          {
+            id: 'points-positive',
+            label: t('participation_positive'),
+            count: participations.filter((p) => (p.points || 0) > 0).length,
+            icon: getThemedIcon('ui', 'trending_up', 16, theme),
+            variant: 'green',
+          },
+          {
+            id: 'points-negative',
+            label: t('participation_negative'),
+            count: participations.filter((p) => (p.points || 0) < 0).length,
+            icon: getThemedIcon('ui', 'trending_down', 16, theme),
+            variant: 'red',
+          },
+          {
+            id: 'stat-students',
+            label: t('students') || 'Students',
+            count: new Set(participations.map((p) => p.studentId)).size,
+            icon: getThemedIcon('ui', 'users', 16, theme),
+            variant: 'red',
+            filterable: false,
+          },
+          ...(lookupData['participation-types'] || []).map((pt) => {
+            const count = participations.filter((p) => p.type === pt.id).length;
+            if (count === 0) return null;
+            return {
+              id: String(pt.id),
+              label: lang === 'ar' ? pt.label_ar : pt.label_en,
+              count,
+              icon: PARTICIPATION_TYPE_ICONS[pt.id],
+              variant: 'amber',
+            };
+          }).filter(Boolean),
+        ]}
+      />
 
       <div>
         <AdvancedDataGrid
+          gridId="participation"
           rows={filteredParticipations}
           columns={columns}
-          pageSize={10}
+          pageSize={50}
           pageSizeOptions={[10, 25, 50, 100]}
           checkboxSelection
           disableRowSelectionOnClick

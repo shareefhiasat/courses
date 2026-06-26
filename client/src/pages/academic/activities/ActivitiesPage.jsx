@@ -6,7 +6,7 @@ import { useAuth } from '@contexts/AuthContext';
 import { useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { useAuditGridColumns } from '@hooks/useAuditGridColumns.js';
 import { useToast } from '@ui';
-import { AdvancedDataGrid } from '@ui';
+import { AdvancedDataGrid, GridQuickFilterChips } from '@ui';
 import { getThemedIcon } from '@constants';
 import { formatQatarStandard, formatQatarForInput, parseQatarFromInput, getQatarNow } from '@utils/qatarDate';
 import { info, error, warn, debug } from '@services/utils/logger.js';
@@ -94,6 +94,7 @@ const ActivitiesPage = () => {
   const [activityTitleArFilter, setActivityTitleArFilter] = useState('');
   const [activityDescriptionEnFilter, setActivityDescriptionEnFilter] = useState('');
   const [activityDescriptionArFilter, setActivityDescriptionArFilter] = useState('');
+  const [activityChipFilter, setActivityChipFilter] = useState('all');
   
   const [activityForm, setActivityForm] = useState({
     id: '', titleEn: '', titleAr: '', descriptionEn: '', descriptionAr: '',
@@ -823,9 +824,154 @@ const ActivitiesPage = () => {
     if (activityTitleArFilter && (!activity.titleAr || !activity.titleAr.includes(activityTitleArFilter))) return false;
     if (activityDescriptionEnFilter && (!activity.descriptionEn || !activity.descriptionEn.toLowerCase().includes(activityDescriptionEnFilter.toLowerCase()))) return false;
     if (activityDescriptionArFilter && (!activity.descriptionAr || !activity.descriptionAr.includes(activityDescriptionArFilter))) return false;
+
+    if (activityChipFilter.startsWith('type:') && activity.type !== activityChipFilter.slice(5)) return false;
+    if (activityChipFilter.startsWith('difficulty:') && activity.difficulty !== activityChipFilter.slice(11)) return false;
+    if (activityChipFilter === 'visible' && activity.show === false) return false;
+    if (activityChipFilter === 'hidden' && activity.show !== false) return false;
+    if (activityChipFilter === 'featured' && activity.featured !== true) return false;
+    if (activityChipFilter === 'optional' && activity.optional !== true) return false;
+    if (activityChipFilter === 'required' && activity.optional === true) return false;
+    if (activityChipFilter === 'requiresSubmission' && activity.requiresSubmission !== true) return false;
+    if (activityChipFilter === 'retakable' && activity.allowRetake !== true) return false;
     
     return true;
   });
+
+  const handleActivityChipChange = useCallback((id) => {
+    setActivityChipFilter(id);
+    if (id === 'all') {
+      setActivityTypeFilter('');
+      setActivityDifficultyFilter('');
+    } else if (id.startsWith('type:')) {
+      setActivityTypeFilter(id.slice(5));
+      setActivityDifficultyFilter('');
+    } else if (id.startsWith('difficulty:')) {
+      setActivityDifficultyFilter(id.slice(11));
+      setActivityTypeFilter('');
+    }
+  }, []);
+
+  const activityChipActiveId = useMemo(() => {
+    if (activityTypeFilter) return `type:${activityTypeFilter}`;
+    if (activityDifficultyFilter) return `difficulty:${activityDifficultyFilter}`;
+    return activityChipFilter;
+  }, [activityTypeFilter, activityDifficultyFilter, activityChipFilter]);
+
+  const activityQuickFilterChips = useMemo(() => {
+    const chips = [
+      {
+        id: 'all',
+        label: t('total') || 'Total',
+        count: activities.length,
+        icon: getThemedIcon('ui', 'target', 16, theme),
+        variant: 'blue',
+      },
+    ];
+
+    Object.entries(ACTIVITY_TYPES).forEach(([, type]) => {
+      const config = getActivityTypeConfig(type);
+      const count = activities.filter((a) => a.type === type).length;
+      if (count === 0) return;
+      chips.push({
+        id: `type:${type}`,
+        label: config.text,
+        count,
+        icon: getThemedIcon('activity_type', config.icon, 16, theme),
+        variant: 'amber',
+      });
+    });
+
+    Object.entries(DIFFICULTY_TYPES).forEach(([, difficulty]) => {
+      const config = getDifficultyConfig(difficulty);
+      const count = activities.filter((a) => a.difficulty === difficulty).length;
+      if (count === 0) return;
+      chips.push({
+        id: `difficulty:${difficulty}`,
+        label: config.text,
+        count,
+        icon: getThemedIcon('activity_type', config.icon, 16, theme),
+        variant: 'green',
+      });
+    });
+
+    const visibleCount = activities.filter((a) => a.show !== false).length;
+    const hiddenCount = activities.filter((a) => a.show === false).length;
+    if (visibleCount > 0) {
+      chips.push({
+        id: 'visible',
+        label: t('visible') || 'Visible',
+        count: visibleCount,
+        icon: getThemedIcon('ui', 'eye', 16, theme),
+        variant: 'blue',
+      });
+    }
+    if (hiddenCount > 0) {
+      chips.push({
+        id: 'hidden',
+        label: t('hidden') || 'Hidden',
+        count: hiddenCount,
+        icon: getThemedIcon('ui', 'eye_off', 16, theme),
+        variant: 'gray',
+      });
+    }
+
+    const featuredCount = activities.filter((a) => a.featured === true).length;
+    if (featuredCount > 0) {
+      chips.push({
+        id: 'featured',
+        label: t('featured') || 'Featured',
+        count: featuredCount,
+        icon: getThemedIcon('ui', 'star', 16, theme),
+        variant: 'amber',
+      });
+    }
+
+    const optionalCount = activities.filter((a) => a.optional === true).length;
+    const requiredCount = activities.filter((a) => a.optional !== true).length;
+    if (optionalCount > 0) {
+      chips.push({
+        id: 'optional',
+        label: t('optional') || 'Optional',
+        count: optionalCount,
+        icon: getThemedIcon('ui', 'check_circle', 16, theme),
+        variant: 'sky',
+      });
+    }
+    if (requiredCount > 0) {
+      chips.push({
+        id: 'required',
+        label: t('required') || 'Required',
+        count: requiredCount,
+        icon: getThemedIcon('ui', 'alert_circle', 16, theme),
+        variant: 'indigo',
+      });
+    }
+
+    const submissionCount = activities.filter((a) => a.requiresSubmission === true).length;
+    if (submissionCount > 0) {
+      chips.push({
+        id: 'requiresSubmission',
+        label: t('requires_submission') || 'Requires Submission',
+        count: submissionCount,
+        icon: getThemedIcon('ui', 'upload', 16, theme),
+        variant: 'red',
+      });
+    }
+
+    const retakableCount = activities.filter((a) => a.allowRetake === true).length;
+    if (retakableCount > 0) {
+      chips.push({
+        id: 'retakable',
+        label: t('retakable') || 'Retakable',
+        count: retakableCount,
+        icon: getThemedIcon('ui', 'repeat', 16, theme),
+        variant: 'purple',
+      });
+    }
+
+    return chips;
+  }, [activities, t, theme]);
 
   return (
     <div className="activities-tab">
@@ -1294,217 +1440,23 @@ const ActivitiesPage = () => {
         </div>
       )}
       
-      {/* Summary Chips */}
-      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-        <div style={{ 
-          display: 'inline-flex', 
-          alignItems: 'center', 
-          gap: '0.5rem', 
-          padding: '0.5rem 0.75rem', 
-          background: isDark ? '#1e3a8a' : '#f0f9ff', 
-          border: isDark ? '1px solid #3b82f6' : '1px solid #bae6fd', 
-          borderRadius: '9999px',
-          fontSize: '0.875rem',
-          fontWeight: '500',
-          color: isDark ? '#dbeafe' : '#0369a1'
-        }}>
-          {getThemedIcon('ui', 'target', 16, theme)}
-          {activities.length} {t('total') || 'Total'}
-        </div>
-        
-        {/* Activity Type Chips */}
-        {Object.entries(ACTIVITY_TYPES).map(([key, type]) => {
-          const config = getActivityTypeConfig(type);
-          const count = activities.filter(a => a.type === type).length;
-          if (count === 0) return null;
-          return (
-            <div key={type} style={{ 
-              display: 'inline-flex', 
-              alignItems: 'center', 
-              gap: '0.5rem', 
-              padding: '0.5rem 0.75rem', 
-              background: isDark ? '#78350f' : '#fef3c7', 
-              border: isDark ? '1px solid #92400e' : '1px solid #fde68a', 
-              borderRadius: '9999px',
-              fontSize: '0.875rem',
-              fontWeight: '500',
-              color: isDark ? '#fef3c7' : '#92400e'
-            }}>
-              {getThemedIcon('activity_type', config.icon, 16, theme)}
-              {count} {config.text}
-            </div>
-          );
-        })}
-        
-        {/* Difficulty Chips */}
-        {Object.entries(DIFFICULTY_TYPES).map(([key, difficulty]) => {
-          const config = getDifficultyConfig(difficulty);
-          const count = activities.filter(a => a.difficulty === difficulty).length;
-          if (count === 0) return null;
-          return (
-            <div key={difficulty} style={{ 
-              display: 'inline-flex', 
-              alignItems: 'center', 
-              gap: '0.5rem', 
-              padding: '0.5rem 0.75rem', 
-              background: isDark ? '#14532d' : '#f0fdf4', 
-              border: isDark ? '1px solid #16a34a' : '1px solid #bbf7d0', 
-              borderRadius: '9999px',
-              fontSize: '0.875rem',
-              fontWeight: '500',
-              color: isDark ? '#dcfce7' : '#166534'
-            }}>
-              {getThemedIcon('activity_type', config.icon, 16, theme)}
-              {count} {config.text}
-            </div>
-          );
-        })}
-        
-        {/* Status Chips */}
-        {/* Visible Chip */}
-        {(() => {
-          const visibleCount = activities.filter(a => a.show !== false).length;
-          const hiddenCount = activities.filter(a => a.show === false).length;
-          return (
-            <div style={{ 
-              display: 'inline-flex', 
-              alignItems: 'center', 
-              gap: '0.5rem', 
-              padding: '0.5rem 0.75rem', 
-              background: isDark ? '#1e3a8a' : '#f0f9ff', 
-              border: isDark ? '1px solid #3b82f6' : '1px solid #bae6fd', 
-              borderRadius: '9999px',
-              fontSize: '0.875rem',
-              fontWeight: '500',
-              color: isDark ? '#dbeafe' : '#0369a1'
-            }}>
-              {getThemedIcon('ui', 'eye', 16, theme)}
-              {visibleCount} {t('visible') || 'Visible'}
-              {hiddenCount > 0 && (
-                <span style={{ 
-                  marginLeft: '0.25rem', 
-                  opacity: 0.7,
-                  fontSize: '0.75rem'
-                }}>
-                  ({hiddenCount} {t('hidden') || 'hidden'})
-                </span>
-              )}
-            </div>
-          );
-        })()}
-        
-        {/* Featured Chip */}
-        {(() => {
-          const featuredCount = activities.filter(a => a.featured === true).length;
-          if (featuredCount === 0) return null;
-          return (
-            <div style={{ 
-              display: 'inline-flex', 
-              alignItems: 'center', 
-              gap: '0.5rem', 
-              padding: '0.5rem 0.75rem', 
-              background: isDark ? '#713f12' : '#fef3c7', 
-              border: isDark ? '1px solid #f59e0b' : '1px solid #fde68a', 
-              borderRadius: '9999px',
-              fontSize: '0.875rem',
-              fontWeight: '500',
-              color: isDark ? '#fef3c7' : '#92400e'
-            }}>
-              {getThemedIcon('ui', 'star', 16, theme)}
-              {featuredCount} {t('featured') || 'Featured'}
-            </div>
-          );
-        })()}
-        
-        {/* Optional Chip */}
-        {(() => {
-          const optionalCount = activities.filter(a => a.optional === true).length;
-          const requiredCount = activities.filter(a => a.optional !== true).length;
-          return (
-            <div style={{ 
-              display: 'inline-flex', 
-              alignItems: 'center', 
-              gap: '0.5rem', 
-              padding: '0.5rem 0.75rem', 
-              background: isDark ? '#1e40af' : '#dbeafe', 
-              border: isDark ? '1px solid #3b82f6' : '1px solid #93c5fd', 
-              borderRadius: '9999px',
-              fontSize: '0.875rem',
-              fontWeight: '500',
-              color: isDark ? '#dbeafe' : '#1e40af'
-            }}>
-              {getThemedIcon('ui', 'check_circle', 16, theme)}
-              {optionalCount} {t('optional') || 'Optional'}
-              {requiredCount > 0 && (
-                <span style={{ 
-                  marginLeft: '0.25rem', 
-                  opacity: 0.7,
-                  fontSize: '0.75rem'
-                }}>
-                  ({requiredCount} {t('required') || 'required'})
-                </span>
-              )}
-            </div>
-          );
-        })()}
-        
-        {/* Requires Submission Chip */}
-        {(() => {
-          const submissionCount = activities.filter(a => a.requiresSubmission === true).length;
-          if (submissionCount === 0) return null;
-          return (
-            <div style={{ 
-              display: 'inline-flex', 
-              alignItems: 'center', 
-              gap: '0.5rem', 
-              padding: '0.5rem 0.75rem', 
-              background: isDark ? '#7f1d1d' : '#fee2e2', 
-              border: isDark ? '1px solid #dc2626' : '1px solid #fecaca', 
-              borderRadius: '9999px',
-              fontSize: '0.875rem',
-              fontWeight: '500',
-              color: isDark ? '#fecaca' : '#dc2626'
-            }}>
-              {getThemedIcon('ui', 'upload', 16, theme)}
-              {submissionCount} {t('requires_submission') || 'Requires Submission'}
-            </div>
-          );
-        })()}
-        
-        {/* Retakable Chip */}
-        {(() => {
-          const retakableCount = activities.filter(a => a.allowRetake === true).length;
-          if (retakableCount === 0) return null;
-          return (
-            <div style={{ 
-              display: 'inline-flex', 
-              alignItems: 'center', 
-              gap: '0.5rem', 
-              padding: '0.5rem 0.75rem', 
-              background: isDark ? '#1e3a8a' : '#e0e7ff', 
-              border: isDark ? '1px solid #6366f1' : '1px solid #c7d2fe', 
-              borderRadius: '9999px',
-              fontSize: '0.875rem',
-              fontWeight: '500',
-              color: isDark ? '#e0e7ff' : '#4338ca'
-            }}>
-              {getThemedIcon('ui', 'repeat', 16, theme)}
-              {retakableCount} {t('retakable') || 'Retakable'}
-            </div>
-          );
-        })()}
-      </div>
+      <GridQuickFilterChips
+        chips={activityQuickFilterChips}
+        activeId={activityChipActiveId}
+        onChange={handleActivityChipChange}
+      />
       
       <div data-tour="activities-grid" style={{ marginTop: '1rem' }}>
         <AdvancedDataGrid
+          gridId="activities"
           key={`activities-grid-${lang}`}
           rows={filteredActivities}
           getRowId={(row) => row.docId || row.id}
           direction={lang === 'ar' ? 'rtl' : 'ltr'}
           lang={lang}
           columns={gridColumns}
-          pageSize={10}
-          pageSizeOptions={[10, 20, 50, 100]}
+          pageSize={50}
+          pageSizeOptions={[10, 25, 50, 100]}
           checkboxSelection
           exportFileName="activities"
           showExportButton

@@ -1,21 +1,30 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useTheme } from '@contexts/ThemeContext';
+import { useLang } from '@contexts/LangContext';
+import selectStyles from './Select/Select.module.css';
 
 /**
  * MultiSelect Component - Professional multi-select dropdown
- * 
+ *
  * Features:
  * - Searchable dropdown
  * - Checkbox selection
  * - Pill display for selected items
  * - Keyboard navigation
  * - Theme-aware styling
+ * - Optional label (matches Select component)
  */
 const MultiSelect = ({
+  label,
+  required = false,
+  helperText,
+  error,
+  fullWidth = true,
   options = [],
   value = [],
   onChange,
-  placeholder = 'Select options...',
+  placeholder,
+  searchPlaceholder,
   searchable = true,
   disabled = false,
   maxVisibleItems = 6,
@@ -23,6 +32,7 @@ const MultiSelect = ({
   style = {}
 }) => {
   const { theme } = useTheme();
+  const { t } = useLang();
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [highlightedIndex, setHighlightedIndex] = useState(-1);
@@ -30,6 +40,14 @@ const MultiSelect = ({
   const searchInputRef = useRef(null);
 
   const isDark = theme === 'dark';
+  const localizedPlaceholder = placeholder || t('select_options') || 'Select options...';
+  const localizedSearchPlaceholder = searchPlaceholder || t('search') || 'Search...';
+
+  const wrapperClasses = [
+    selectStyles.selectWrapper,
+    fullWidth && selectStyles.fullWidth,
+    className,
+  ].filter(Boolean).join(' ');
 
   // Filter options based on search term
   const filteredOptions = options.filter(option =>
@@ -111,15 +129,22 @@ const MultiSelect = ({
   };
 
   return (
-    <div 
-      ref={dropdownRef}
-      className={`multi-select ${className}`}
-      style={{
-        position: 'relative',
-        width: '100%',
-        ...style
-      }}
-    >
+    <div className={wrapperClasses} style={style}>
+      {label && (
+        <label className={selectStyles.label}>
+          {label}
+          {required && <span className={selectStyles.required}>*</span>}
+        </label>
+      )}
+
+      <div
+        ref={dropdownRef}
+        className="multi-select"
+        style={{
+          position: 'relative',
+          width: '100%',
+        }}
+      >
       {/* Selected items display */}
       <div
         onClick={() => !disabled && setIsOpen(!isOpen)}
@@ -149,7 +174,7 @@ const MultiSelect = ({
             color: isDark ? '#9ca3af' : '#6b7280',
             fontSize: '14px'
           }}>
-            {placeholder}
+            {localizedPlaceholder}
           </span>
         ) : (
           getSelectedLabels().map((item, index) => (
@@ -235,7 +260,7 @@ const MultiSelect = ({
               <input
                 ref={searchInputRef}
                 type="text"
-                placeholder="Search..."
+                placeholder={localizedSearchPlaceholder}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 style={{
@@ -261,7 +286,7 @@ const MultiSelect = ({
                 color: isDark ? '#9ca3af' : '#6b7280',
                 fontSize: '14px'
               }}>
-                No options found
+                {t('no_options_found') || 'No options found'}
               </div>
             ) : (
               filteredOptions.map((option, index) => {
@@ -321,6 +346,13 @@ const MultiSelect = ({
             )}
           </div>
         </div>
+      )}
+      </div>
+
+      {(error || helperText) && (
+        <span className={error ? selectStyles.errorText : selectStyles.helperText}>
+          {error || helperText}
+        </span>
       )}
     </div>
   );

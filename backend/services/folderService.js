@@ -133,15 +133,17 @@ export async function getFolderTree(keycloakUser) {
 /**
  * List immediate children of a folder (or the root if parentId is null).
  */
-export async function listChildren(keycloakUser, { parentId = null, includeDeleted = false } = {}) {
+export async function listChildren(keycloakUser, { parentId = null, includeDeleted = false, deletedOnly = false } = {}) {
   try {
     const userId = await getDatabaseUserId(keycloakUser);
     if (!userId) return err('USER_NOT_FOUND', 'User not found');
 
-    const where = {
-      ownerId: userId,
-      ...(includeDeleted ? {} : { isDeleted: false }),
-    };
+    const where = { ownerId: userId };
+    if (deletedOnly) {
+      where.isDeleted = true;
+    } else if (!includeDeleted) {
+      where.isDeleted = false;
+    }
     if (parentId !== undefined && parentId !== null && parentId !== '') {
       where.parentId = parentId;
     } else {
@@ -296,6 +298,7 @@ export async function updateFolder(folderId, actorUserId, updates = {}) {
     const newName = patch.name ?? folder.name;
     const newPath = newParentPath ? `${newParentPath}/${newName}` : `/${newName}`;
     const oldPath = folder.path;
+    const suffixStart = oldPath.length + 1;
 
     const result = await prisma.$transaction(async (tx) => {
       const updated = await tx.folder.update({
@@ -305,17 +308,22 @@ export async function updateFolder(folderId, actorUserId, updates = {}) {
 
       // Rewrite paths of descendant folders.
       if (newPath !== oldPath) {
-        await tx.$executeRaw`
-          UPDATE folders
-          SET path = ${newPath} || substring(path FROM ${oldPath.length + 1})
-          WHERE path = ${oldPath} OR path LIKE ${oldPath + '/%'}
-        `;
+        // Prisma binds JS numbers as bigint; PostgreSQL substring() requires integer.
+        await tx.$executeRaw(
+          Prisma.sql`
+            UPDATE folders
+            SET path = ${newPath} || substring(path FROM ${Prisma.raw(String(suffixStart))})
+            WHERE path = ${oldPath} OR path LIKE ${oldPath + '/%'}
+          `
+        );
         // Denormalised folder_path on files is legacy; keep it in sync when present.
-        await tx.$executeRaw`
-          UPDATE files
-          SET "folderPath" = ${newPath} || substring("folderPath" FROM ${oldPath.length + 1})
-          WHERE "folderPath" = ${oldPath} OR "folderPath" LIKE ${oldPath + '/%'}
-        `;
+        await tx.$executeRaw(
+          Prisma.sql`
+            UPDATE files
+            SET "folderPath" = ${newPath} || substring("folderPath" FROM ${Prisma.raw(String(suffixStart))})
+            WHERE "folderPath" = ${oldPath} OR "folderPath" LIKE ${oldPath + '/%'}
+          `
+        );
       }
 
       return updated;
@@ -410,6 +418,41 @@ export async function restoreFolder(folderId, actorUserId) {
   } catch (error) {
     console.error('[folderService.restoreFolder]', error);
     return err('RESTORE_FOLDER_FAILED', error.message);
+  }
+}
+
+/**
+ * Hard-delete a trashed folder, its descendants, and all contained files.
+ */
+export async function permanentDeleteFolder(folderId, actorUserId) {
+  try {
+    const folder = await prisma.folder.findUnique({ where: { id: folderId } });
+    if (!folder) return err('FOLDER_NOT_FOUND', 'Folder not found');
+    if (folder.ownerId !== actorUserId) return err('ACCESS_DENIED', 'Only owner can hard-delete');
+    if (!folder.isDeleted) return err('NOT_IN_TRASH', 'Folder must be in trash before permanent delete');
+
+    const descendantRows = await prisma.$queryRaw`
+      SELECT id FROM folders WHERE path = ${folder.path} OR path LIKE ${folder.path + '/%'}
+    `;
+    const folderIds = descendantRows.map((row) => row.id);
+
+    const files = await prisma.file.findMany({
+      where: { folderId: { in: folderIds } },
+      select: { id: true },
+    });
+
+    const { permanentDeleteFile } = await import('./fileService.js');
+    for (const file of files) {
+      const result = await permanentDeleteFile(file.id, actorUserId);
+      if (!result.success) return result;
+    }
+
+    await prisma.folder.delete({ where: { id: folderId } });
+
+    return ok({ message: 'Folder permanently deleted', folderId });
+  } catch (error) {
+    console.error('[folderService.permanentDeleteFolder]', error);
+    return err('PERMANENT_DELETE_FOLDER_FAILED', error.message);
   }
 }
 
@@ -531,6 +574,7 @@ export default {
   updateFolder,
   softDeleteFolder,
   restoreFolder,
+  permanentDeleteFolder,
   toggleStarFolder,
   downloadFolder,
 };

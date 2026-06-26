@@ -7,11 +7,11 @@ import { useToast } from '@ui';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import { getQatarTimeAgo, formatQatarDate } from '@utils/timezone';
 import { getThemedIcon, getUserRoleIcon } from '@constants/iconTypes';
-import MultiSelect from '@components/ui/MultiSelect';
+import RoleMultiSelect from '@components/ui/RoleMultiSelect';
 import { ROLE_STRINGS } from '@utils/userUtils';
 import { getLocalizedUserName } from '@utils/localizedUserName';
 import { ACTIVITY_LOG_TYPES } from '@services/other/activityLogger';
-import { Button, Input, Select, ToggleSwitch, AdvancedDataGrid, Card, CardBody, ConfirmModal } from '@ui';
+import { Button, Input, Select, ToggleSwitch, AdvancedDataGrid, Card, CardBody, ConfirmModal, GridQuickFilterChips } from '@ui';
 import { DeleteModal, useDeleteModal } from '@ui';
 import { QREmailModal, useQREmailModal } from '@ui';
 import { ProgramsSelect } from '@ui';
@@ -64,6 +64,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
   const [subjectFilter, setSubjectFilter] = useState('');
   const [roleFilter, setRoleFilter] = useState('all');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [enrollmentStatusFilter, setEnrollmentStatusFilter] = useState('all');
   const [searchFilter, setSearchFilter] = useState('');
   
   // Form state
@@ -599,7 +600,9 @@ const UsersPage = ({ isDashboardTab = false }) => {
     }
     
     // Role filter
-    if (roleFilter && roleFilter !== 'all') {
+    if (roleFilter === 'admins') {
+      filtered = filtered.filter(user => user.role === ROLE_STRINGS.ADMIN || user.role === ROLE_STRINGS.SUPER_ADMIN);
+    } else if (roleFilter && roleFilter !== 'all') {
       filtered = filtered.filter(user => user.role === roleFilter);
     }
     
@@ -644,9 +647,59 @@ const UsersPage = ({ isDashboardTab = false }) => {
         );
       });
     }
+
+    // Enrollment status filter - filter users by enrollment status
+    if (enrollmentStatusFilter && enrollmentStatusFilter !== 'all') {
+      filtered = filtered.filter(user => {
+        const userEnrollments = enrollments.filter(e =>
+          e.userId === user.docId || e.userEmail === user.email
+        );
+
+        if (userEnrollments.length === 0) {
+          // Users with no enrollments - only show if filter is 'none'
+          return enrollmentStatusFilter === 'none';
+        }
+
+        // Debug: log enrollment data for first few users
+        if (filtered.indexOf(user) < 3) {
+          console.log('[UsersPage] User enrollments for', user.email, ':', userEnrollments.map(e => ({
+            status: e.status,
+            statusId: e.statusId,
+            isActive: e.isActive,
+            isDisabled: e.isDisabled
+          })));
+        }
+
+        // Check if any enrollment matches the filter
+        // Check multiple possible field names for enrollment status
+        if (enrollmentStatusFilter === 'active') {
+          return userEnrollments.some(e => {
+            const isActive = e.status === 'active' ||
+                            e.statusId === 1 ||
+                            e.isActive === true ||
+                            !e.isDisabled;
+            return isActive;
+          });
+        }
+        if (enrollmentStatusFilter === 'inactive') {
+          return userEnrollments.some(e => {
+            const isInactive = e.status === 'inactive' ||
+                              e.status === 'dropped' ||
+                              e.statusId === 7 ||
+                              e.isActive === false ||
+                              e.isDisabled === true;
+            return isInactive;
+          });
+        }
+        if (enrollmentStatusFilter === 'none') {
+          return false; // Already handled above
+        }
+        return true;
+      });
+    }
     
     return filtered;
-  }, [users, enrollments, searchFilter, roleFilter, statusFilter, programFilter, classFilter, subjectFilter]);
+  }, [users, enrollments, searchFilter, roleFilter, statusFilter, programFilter, classFilter, subjectFilter, enrollmentStatusFilter]);
 
   // Memoized options for dropdowns
   const roleOptions = useMemo(() => [
@@ -686,6 +739,14 @@ const UsersPage = ({ isDashboardTab = false }) => {
       )
     }
   ], [t, theme]);
+
+  // Memoized options for enrollment status filter
+  const enrollmentStatusOptions = useMemo(() => [
+    { value: 'all', label: t('all_enrollment_status') || 'All Enrollment Status' },
+    { value: 'active', label: t('enrollment_active') || 'Active' },
+    { value: 'inactive', label: t('enrollment_inactive') || 'Inactive/Dropped' },
+    { value: 'none', label: t('no_enrollment') || 'No Enrollment' }
+  ], [t]);
 
   // Memoized options for program, class, and subject filters
   const programOptions = useMemo(() => [
@@ -1492,10 +1553,18 @@ borderColor: theme === 'dark' ? '#374151' : 'transparent',
             placeholder={t('filter_by_status') || 'Filter by Status'}
             style={{ minWidth: '200px', flex: 1 }}
           />
+
+          <Select
+            value={enrollmentStatusFilter || 'all'}
+            onChange={(e) => setEnrollmentStatusFilter(e.target.value)}
+            options={enrollmentStatusOptions}
+            placeholder={t('filter_by_enrollment_status') || 'Filter by enrollment status'}
+            style={{ minWidth: '200px', flex: 1 }}
+          />
         </div>
       </div>
       
-      {(programFilter || subjectFilter || classFilter || roleFilter || statusFilter) && (
+      {(programFilter || subjectFilter || classFilter || roleFilter || statusFilter || enrollmentStatusFilter) && (
         <div style={{ 
           display: 'inline-flex',
           alignItems: 'center',
@@ -1514,89 +1583,48 @@ borderColor: theme === 'dark' ? '#374151' : 'transparent',
         </div>
       )}
 
-      {/* Summary Chips */}
-      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-        <div style={{ 
-          display: 'inline-flex', 
-          alignItems: 'center', 
-          gap: '0.5rem', 
-          padding: '0.5rem 0.75rem', 
-          background: theme === 'dark' ? '#1e293b' : '#f0f9ff', 
-          border: theme === 'dark' ? '1px solid #475569' : '1px solid #bae6fd', 
-          borderRadius: '9999px',
-          fontSize: '0.875rem',
-          fontWeight: '500',
-          color: theme === 'dark' ? '#94a3b8' : '#0369a1'
-        }}>
-          {getThemedIcon('ui', 'target', 16, theme)}
-          {users.length} {lang === 'ar' ? 'إجمالي' : 'Total'}
-        </div>
-        
-        {/* Role Chips - Always show counts */}
-        <div style={{ 
-          display: 'inline-flex', 
-          alignItems: 'center', 
-          gap: '0.5rem', 
-          padding: '0.5rem 0.75rem', 
-          background: theme === 'dark' ? '#451a03' : '#fef3c7', 
-          border: theme === 'dark' ? '1px solid #92400e' : '1px solid #fde68a', 
-          borderRadius: '9999px',
-          fontSize: '0.875rem',
-          fontWeight: '500',
-          color: theme === 'dark' ? '#fbbf24' : '#92400e'
-        }}>
-          {getRoleIconThemed(ROLE_STRINGS.STUDENT)}
-          {users.filter(u => u.role === ROLE_STRINGS.STUDENT).length} {lang === 'ar' ? 'طلاب' : 'Students'}
-        </div>
-        
-        <div style={{ 
-          display: 'inline-flex', 
-          alignItems: 'center', 
-          gap: '0.5rem', 
-          padding: '0.5rem 0.75rem', 
-          background: theme === 'dark' ? '#831843' : '#fce7f3', 
-          border: theme === 'dark' ? '1px solid #f9a8d4' : '1px solid #fbcfe8', 
-          borderRadius: '9999px',
-          fontSize: '0.875rem',
-          fontWeight: '500',
-          color: theme === 'dark' ? '#f9a8d4' : '#831843'
-        }}>
-          {getRoleIconThemed(ROLE_STRINGS.INSTRUCTOR)}
-          {users.filter(u => u.role === ROLE_STRINGS.INSTRUCTOR).length} {lang === 'ar' ? 'مدرسين' : 'Instructors'}
-        </div>
-        
-        <div style={{ 
-          display: 'inline-flex', 
-          alignItems: 'center', 
-          gap: '0.5rem', 
-          padding: '0.5rem 0.75rem', 
-          background: theme === 'dark' ? '#14532d' : '#f0fdf4', 
-          border: theme === 'dark' ? '1px solid #22c55e' : '1px solid #bbf7d0', 
-          borderRadius: '9999px',
-          fontSize: '0.875rem',
-          fontWeight: '500',
-          color: theme === 'dark' ? '#22c55e' : '#166534'
-        }}>
-          {getRoleIconThemed(ROLE_STRINGS.ADMIN)}
-          {users.filter(u => u.role === ROLE_STRINGS.ADMIN || u.role === ROLE_STRINGS.SUPER_ADMIN).length} {lang === 'ar' ? 'مدراء' : 'Admins'}
-        </div>
-        
-        <div style={{ 
-          display: 'inline-flex', 
-          alignItems: 'center', 
-          gap: '0.5rem', 
-          padding: '0.5rem 0.75rem', 
-          background: theme === 'dark' ? '#0c4a6e' : '#e0f2fe', 
-          border: theme === 'dark' ? '1px solid #0ea5e9' : '1px solid #7dd3fc', 
-          borderRadius: '9999px',
-          fontSize: '0.875rem',
-          fontWeight: '500',
-          color: theme === 'dark' ? '#0ea5e9' : '#0c4a6e'
-        }}>
-          {getRoleIconThemed(ROLE_STRINGS.HR)}
-          {users.filter(u => u.role === ROLE_STRINGS.HR).length} {lang === 'ar' ? 'موارد بشرية' : 'HR'}
-        </div>
-      </div>
+      {/* Summary Chips — role quick filters */}
+      <GridQuickFilterChips
+        activeId={roleFilter === 'all' ? 'all' : roleFilter}
+        onChange={(id) => setRoleFilter(id)}
+        chips={[
+          {
+            id: 'all',
+            label: lang === 'ar' ? 'إجمالي' : 'Total',
+            count: users.length,
+            icon: getThemedIcon('ui', 'target', 16, theme),
+            variant: 'slate',
+          },
+          {
+            id: ROLE_STRINGS.STUDENT,
+            label: lang === 'ar' ? 'طلاب' : 'Students',
+            count: users.filter(u => u.role === ROLE_STRINGS.STUDENT).length,
+            icon: getRoleIconThemed(ROLE_STRINGS.STUDENT),
+            variant: 'amber',
+          },
+          {
+            id: ROLE_STRINGS.INSTRUCTOR,
+            label: lang === 'ar' ? 'مدرسين' : 'Instructors',
+            count: users.filter(u => u.role === ROLE_STRINGS.INSTRUCTOR).length,
+            icon: getRoleIconThemed(ROLE_STRINGS.INSTRUCTOR),
+            variant: 'pink',
+          },
+          {
+            id: 'admins',
+            label: lang === 'ar' ? 'مدراء' : 'Admins',
+            count: users.filter(u => u.role === ROLE_STRINGS.ADMIN || u.role === ROLE_STRINGS.SUPER_ADMIN).length,
+            icon: getRoleIconThemed(ROLE_STRINGS.ADMIN),
+            variant: 'green',
+          },
+          {
+            id: ROLE_STRINGS.HR,
+            label: lang === 'ar' ? 'موارد بشرية' : 'HR',
+            count: users.filter(u => u.role === ROLE_STRINGS.HR).length,
+            icon: getRoleIconThemed(ROLE_STRINGS.HR),
+            variant: 'sky',
+          },
+        ]}
+      />
 
       {editingUser && (
         <div style={{ 
@@ -1682,20 +1710,11 @@ borderColor: theme === 'dark' ? '#374151' : 'transparent',
         </div>
 
         <div className="form-row">
-          {/* Multi-Role Select */}
-          <MultiSelect
-            options={[
-              { value: ROLE_STRINGS.STUDENT, label: t('student') || 'Student', icon: getRoleIconThemed(ROLE_STRINGS.STUDENT), color: getRoleIconColor(ROLE_STRINGS.STUDENT) },
-              { value: ROLE_STRINGS.INSTRUCTOR, label: t('instructor') || 'Instructor', icon: getRoleIconThemed(ROLE_STRINGS.INSTRUCTOR), color: getRoleIconColor(ROLE_STRINGS.INSTRUCTOR) },
-              { value: ROLE_STRINGS.HR, label: t('hr') || 'HR', icon: getRoleIconThemed(ROLE_STRINGS.HR), color: getRoleIconColor(ROLE_STRINGS.HR) },
-              { value: ROLE_STRINGS.ADMIN, label: t('admin') || 'Admin', icon: getRoleIconThemed(ROLE_STRINGS.ADMIN), color: getRoleIconColor(ROLE_STRINGS.ADMIN) },
-              { value: ROLE_STRINGS.SUPER_ADMIN, label: t('super_admin') || 'Super Admin', icon: getRoleIconThemed(ROLE_STRINGS.SUPER_ADMIN), color: getRoleIconColor(ROLE_STRINGS.SUPER_ADMIN) }
-            ]}
+          <RoleMultiSelect
             value={formData.roles}
             onChange={(newRoles) => {
               setFormData(prev => ({ ...prev, roles: newRoles }));
-              
-              // Update primary role to first selected role
+
               if (newRoles.length > 0) {
                 setFormData(prev => ({ ...prev, role: newRoles[0] }));
               } else {
@@ -1703,10 +1722,9 @@ borderColor: theme === 'dark' ? '#374151' : 'transparent',
               }
             }}
             placeholder={t('select_roles') || 'Select roles...'}
-            searchable={true}
+            searchable
             style={{ flex: 1 }}
           />
-          {/* Primary role text removed for cleaner UI */}
         </div>
 
         {!editingUser && (
@@ -1827,12 +1845,13 @@ borderColor: theme === 'dark' ? '#374151' : 'transparent',
             /> */}
             
             <AdvancedDataGrid
+              gridId="users"
               key={`users-grid-${gridRefreshKey}-${lang}`}
               rows={filteredUsers}
               getRowId={(row) => row.docId || row.id}
               columns={gridColumns}
-              pageSize={20}
-              pageSizeOptions={[10, 20, 50, 100]}
+              pageSize={50}
+              pageSizeOptions={[10, 25, 50, 100]}
               density="compact"
               checkboxSelection
               exportFileName="users"

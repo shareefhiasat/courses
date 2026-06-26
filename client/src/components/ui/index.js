@@ -62,6 +62,9 @@ export { default as Drawer } from './Drawer';
 export { default as StudentSelectOption } from './StudentSelectOption';
 export { default as StudentSelect } from './StudentSelect';
 export { default as UserSelect } from './UserSelect';
+export { default as MultiSelect } from './MultiSelect';
+export { default as RoleMultiSelect } from './RoleMultiSelect';
+export { default as ShareUserSelect } from './ShareUserSelect';
 
 // Feedback & Status
 export { default as Tag } from './Tag';
@@ -70,6 +73,7 @@ export { default as Skeleton } from './Skeleton';
 export { default as SimpleLoading, default as LoadingSpinner } from './SimpleLoading';
 export { default as CountdownLoading } from './CountdownLoading';
 export { default as AdvancedDataGrid } from './AdvancedDataGrid';
+export { default as GridQuickFilterChips, CHIP_VARIANTS } from './GridQuickFilterChips';
 export { default as ExpandablePanel } from './ExpandablePanel';
 export { default as CollapsibleDashboardSection } from './CollapsibleDashboardSection';
 export { default as CollapsibleSection } from './CollapsibleDashboardSection';

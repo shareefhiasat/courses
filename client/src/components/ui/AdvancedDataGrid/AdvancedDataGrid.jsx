@@ -1,4 +1,4 @@
-import React, { useRef, useMemo } from 'react';
+import React, { useRef, useMemo, useState, useCallback, useEffect } from 'react';
 import {
   DataGrid,
   GridToolbar,
@@ -19,11 +19,23 @@ import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * - Sorting, filtering, column visibility, export, quick filter
  * - Row selection, pagination, column reorder/resize
  */
+const COLUMN_VIS_STORAGE_PREFIX = 'lms-grid-col-vis-';
+
+const loadColumnVisibility = (gridId) => {
+  if (!gridId) return {};
+  try {
+    const raw = localStorage.getItem(`${COLUMN_VIS_STORAGE_PREFIX}${gridId}`);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+};
+
 const AdvancedDataGrid = ({
   rows = [],
   columns = [],
-  pageSize = 10,
-  pageSizeOptions = [5, 10, 20, 50, 100],
+  pageSize = 25,
+  pageSizeOptions = [10, 25, 50, 100],
   checkboxSelection = true,
   disableRowSelectionOnClick = true,
   density = 'compact',
@@ -35,6 +47,8 @@ const AdvancedDataGrid = ({
   loadingOverlayMessage,
   direction: directionProp,
   lang: langProp,
+  gridId,
+  persistColumnVisibility = true,
   ...rest
 }) => {
   const { theme } = useTheme();
@@ -43,6 +57,48 @@ const AdvancedDataGrid = ({
   const direction = directionProp ?? (isRTL ? 'rtl' : 'ltr');
   const resolvedExportLabel = exportLabel ?? t('export');
   const isDarkMode = theme === 'dark';
+
+  const {
+    columnVisibilityModel: columnVisibilityModelProp,
+    onColumnVisibilityModelChange: onColumnVisibilityModelChangeProp,
+    initialState: initialStateProp,
+    getRowId: getRowIdProp,
+    ...dataGridRest
+  } = rest;
+
+  const [columnVisibilityModel, setColumnVisibilityModel] = useState(() => {
+    if (columnVisibilityModelProp) return columnVisibilityModelProp;
+    return persistColumnVisibility && gridId ? loadColumnVisibility(gridId) : {};
+  });
+
+  useEffect(() => {
+    if (columnVisibilityModelProp) {
+      setColumnVisibilityModel(columnVisibilityModelProp);
+    }
+  }, [columnVisibilityModelProp]);
+
+  const handleColumnVisibilityChange = useCallback((model) => {
+    setColumnVisibilityModel(model);
+    onColumnVisibilityModelChangeProp?.(model);
+    if (persistColumnVisibility && gridId) {
+      try {
+        localStorage.setItem(`${COLUMN_VIS_STORAGE_PREFIX}${gridId}`, JSON.stringify(model));
+      } catch {
+        // ignore quota / private mode
+      }
+    }
+  }, [gridId, onColumnVisibilityModelChangeProp, persistColumnVisibility]);
+
+  const mergedInitialState = useMemo(() => ({
+    ...(initialStateProp || {}),
+    pagination: {
+      paginationModel: {
+        pageSize: initialStateProp?.pagination?.paginationModel?.pageSize ?? pageSize,
+        page: initialStateProp?.pagination?.paginationModel?.page ?? 0,
+      },
+    },
+  }), [initialStateProp, pageSize]);
+
   const gridTheme = useMemo(
     () => createTheme({
       direction,
@@ -218,9 +274,10 @@ const AdvancedDataGrid = ({
       <GridToolbar 
         csvOptions={{ fileName: exportFileName, delimiter: ',', utf8WithBom: true, fields: exportFields }}
         printOptions={{ disableToolbarButton: true }}
+        quickFilterProps={{ debounceMs: 300 }}
       />
     ),
-    ...(rest?.slots || {}) 
+    ...(dataGridRest?.slots || {}) 
   };
 
   const handleExternalExport = () => {
@@ -406,16 +463,17 @@ const AdvancedDataGrid = ({
       <MuiThemeProvider theme={gridTheme}>
       <RtlProvider value={isGridRtl}>
       <DataGrid
-        key={`data-grid-${lang}-${direction}`}
+        key={`data-grid-${gridId || 'default'}-${lang}-${direction}`}
         rows={safeRows}
         columns={safeColumns}
         autoHeight={autoHeight}
         pageSizeOptions={pageSizeOptions}
-        initialState={{ pagination: { paginationModel: { pageSize } } }}
+        initialState={mergedInitialState}
+        columnVisibilityModel={columnVisibilityModel}
+        onColumnVisibilityModelChange={handleColumnVisibilityChange}
         checkboxSelection={checkboxSelection}
         disableRowSelectionOnClick={disableRowSelectionOnClick}
         density={density}
-        // MUI v8 API
         slots={mergedSlots}
         localeText={gridLocaleText}
         sx={{
@@ -424,15 +482,13 @@ const AdvancedDataGrid = ({
         }}
         getRowId={(row) => {
           try {
-            // Use consumer-provided getRowId if passed through rest
-            const userGetRowId = rest?.getRowId;
-            const id = typeof userGetRowId === 'function' ? userGetRowId(row) : (row?.docId ?? row?.id ?? row?.__rid);
+            const id = typeof getRowIdProp === 'function' ? getRowIdProp(row) : (row?.docId ?? row?.id ?? row?.__rid);
             return id;
           } catch {
             return row?.__rid;
           }
         }}
-        {...rest}
+        {...dataGridRest}
       />
       </RtlProvider>
       </MuiThemeProvider>

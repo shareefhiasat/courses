@@ -6,7 +6,7 @@ import { useAuth } from '@contexts/AuthContext';
 import { useToast } from '@ui';
 import { useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { getThemedIcon } from '@constants/iconTypes';
-import { Button, Select, UserSelect, AdvancedDataGrid, SimpleLoading } from '@ui';
+import { Button, Select, UserSelect, AdvancedDataGrid, SimpleLoading, GridQuickFilterChips } from '@ui';
 import { ProgramsSelect } from '@ui';
 import { ROLE_STRINGS } from '@constants';
 import { ACTIVITY_LOG_TYPES, logActivity } from '@services/other/activityLogger';
@@ -72,6 +72,7 @@ const EnrollmentsManagementPage = () => {
   const [programFilter, setProgramFilter] = useState('');
   const [subjectFilter, setSubjectFilter] = useState('');
   const [classFilter, setClassFilter] = useState('');
+  const [statusChipFilter, setStatusChipFilter] = useState('all');
 
   const { startLoading } = useGlobalLoading();
 
@@ -284,6 +285,23 @@ const EnrollmentsManagementPage = () => {
     return rows;
   }, [enrollmentRows, localClasses, localSubjects, programFilter, subjectFilter, classFilter]);
 
+  const gridEnrollmentRows = useMemo(() => {
+    if (statusChipFilter === 'all') return filteredEnrollmentRows;
+    return filteredEnrollmentRows.filter((row) => {
+      const code = row.status?.code || 'ENROLLED';
+      return code === statusChipFilter;
+    });
+  }, [filteredEnrollmentRows, statusChipFilter]);
+
+  const enrollmentStatusCounts = useMemo(() => {
+    const counts = { ENROLLED: 0, SUSPENDED: 0, PENDING: 0, DROPPED: 0, ACTIVE: 0 };
+    filteredEnrollmentRows.forEach((row) => {
+      const code = row.status?.code || 'ENROLLED';
+      if (counts[code] != null) counts[code] += 1;
+    });
+    return counts;
+  }, [filteredEnrollmentRows]);
+
   const matchUserId = useCallback((left, right) => {
     if (left == null || right == null) return false;
     return String(left) === String(right);
@@ -463,75 +481,84 @@ const EnrollmentsManagementPage = () => {
         </div>
       </div>
 
-      {/* Summary Chips */}
-      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-        <div style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '0.5rem',
-          padding: '0.5rem 0.75rem',
-          background: '#eff6ff',
-          border: '1px solid #bfdbfe',
-          borderRadius: '9999px',
-          fontSize: '0.875rem',
-          fontWeight: '500',
-          color: '#1d4ed8'
-        }}>
-          {getThemedIcon('ui', 'layers', 16, theme)}
-          {(t('total_enrollments'))}: {enrollmentSummary.total}
-        </div>
-        <div style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '0.5rem',
-          padding: '0.5rem 0.75rem',
-          background: '#ecfdf3',
-          border: '1px solid #bbf7d0',
-          borderRadius: '9999px',
-          fontSize: '0.875rem',
-          fontWeight: '500',
-          color: '#15803d'
-        }}>
-          {getThemedIcon('ui', 'user', 16, theme)}
-          {(t('unique_students'))}: {enrollmentSummary.uniqueStudents}
-        </div>
-        <div style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: '0.5rem',
-          padding: '0.5rem 0.75rem',
-          background: '#fefce8',
-          border: '1px solid #fef9c3',
-          borderRadius: '9999px',
-          fontSize: '0.875rem',
-          fontWeight: '500',
-          color: '#854d0e'
-        }}>
-          {getThemedIcon('ui', 'home', 16, theme)}
-          {(t('unique_classes'))}: {enrollmentSummary.uniqueClasses}
-        </div>
-        {enrollmentSummary.uniquePrograms > 0 && (
-          <div style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '0.5rem',
-            padding: '0.5rem 0.75rem',
-            background: '#f5f3ff',
-            border: '1px solid #ddd6fe',
-            borderRadius: '9999px',
-            fontSize: '0.875rem',
-            fontWeight: '500',
-            color: '#6d28d9'
-          }}>
-            {getThemedIcon('ui', 'grid', 16, theme)}
-            {(t('unique_programs'))}: {enrollmentSummary.uniquePrograms}
-          </div>
-        )}
-      </div>
+      {/* Summary Chips — quick filters + stats */}
+      <GridQuickFilterChips
+        activeId={statusChipFilter}
+        onChange={setStatusChipFilter}
+        chips={[
+          {
+            id: 'all',
+            label: t('total_enrollments') || 'Total enrollments',
+            count: enrollmentSummary.total,
+            icon: getThemedIcon('ui', 'layers', 16, theme),
+            variant: 'blue',
+          },
+          {
+            id: 'ENROLLED',
+            label: getEnrollmentStatusLabel('ENROLLED'),
+            count: enrollmentStatusCounts.ENROLLED,
+            icon: getThemedIcon('ui', 'check_circle', 16, theme),
+            variant: 'green',
+          },
+          {
+            id: 'ACTIVE',
+            label: getEnrollmentStatusLabel('ACTIVE'),
+            count: enrollmentStatusCounts.ACTIVE,
+            icon: getThemedIcon('ui', 'user_check', 16, theme),
+            variant: 'green',
+          },
+          {
+            id: 'PENDING',
+            label: getEnrollmentStatusLabel('PENDING'),
+            count: enrollmentStatusCounts.PENDING,
+            icon: getThemedIcon('ui', 'clock', 16, theme),
+            variant: 'amber',
+          },
+          {
+            id: 'SUSPENDED',
+            label: getEnrollmentStatusLabel('SUSPENDED'),
+            count: enrollmentStatusCounts.SUSPENDED,
+            icon: getThemedIcon('ui', 'pause_circle', 16, theme),
+            variant: 'red',
+          },
+          {
+            id: 'DROPPED',
+            label: getEnrollmentStatusLabel('DROPPED'),
+            count: enrollmentStatusCounts.DROPPED,
+            icon: getThemedIcon('ui', 'user_x', 16, theme),
+            variant: 'gray',
+          },
+          {
+            id: 'stat-students',
+            label: t('unique_students') || 'Unique students',
+            count: enrollmentSummary.uniqueStudents,
+            icon: getThemedIcon('ui', 'user', 16, theme),
+            variant: 'green',
+            filterable: false,
+          },
+          {
+            id: 'stat-classes',
+            label: t('unique_classes') || 'Unique classes',
+            count: enrollmentSummary.uniqueClasses,
+            icon: getThemedIcon('ui', 'home', 16, theme),
+            variant: 'amber',
+            filterable: false,
+          },
+          ...(enrollmentSummary.uniquePrograms > 0 ? [{
+            id: 'stat-programs',
+            label: t('unique_programs') || 'Unique programs',
+            count: enrollmentSummary.uniquePrograms,
+            icon: getThemedIcon('ui', 'grid', 16, theme),
+            variant: 'violet',
+            filterable: false,
+          }] : []),
+        ]}
+      />
 
       <div data-tour="enroll-mgmt-grid" style={{ marginTop: '1rem' }}>
         <AdvancedDataGrid
-          rows={filteredEnrollmentRows}
+          gridId="manage-enrollments"
+          rows={gridEnrollmentRows}
           getRowId={(row) => row.docId || row.id}
           lang={lang}
           columns={[
@@ -540,6 +567,11 @@ const EnrollmentsManagementPage = () => {
             headerName: t('student') || 'Student', 
             flex: 1.5, 
             minWidth: 200,
+            valueGetter: (params) => {
+              const user = findUserById(params.row?.userId);
+              if (!user) return params.row?.userId || '';
+              return `${getLocalizedUserName(user, lang)} ${user.email || ''}`.trim();
+            },
             renderCell: (params) => {
               const user = findUserById(params.value);
               if (!user) return params.value || '—';
@@ -593,6 +625,10 @@ const EnrollmentsManagementPage = () => {
             field: 'status', 
             headerName: t('status') || 'STATUS', 
             width: 120,
+            valueGetter: (params) => {
+              const statusCode = params.row?.status?.code || 'ENROLLED';
+              return getEnrollmentStatusLabel(statusCode);
+            },
             renderCell: (params) => {
               const status = params.row.status;
               const statusCode = status?.code || 'ENROLLED';
@@ -802,8 +838,8 @@ const EnrollmentsManagementPage = () => {
             }
           }
         ]}
-          pageSize={10}
-          pageSizeOptions={[5, 10, 20, 50]}
+          pageSize={50}
+          pageSizeOptions={[10, 25, 50, 100]}
           checkboxSelection
           exportFileName="enrollments"
           showExportButton

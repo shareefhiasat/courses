@@ -4,6 +4,7 @@ import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { Input, Button, Checkbox } from '@ui';
 import StatusColumn from './StatusColumn';
+import { isDriveFolder } from '@utils/driveUtils';
 
 /**
  * FileRoster - Files grid with search, filters, multi-select & row actions.
@@ -172,7 +173,7 @@ export default function FileRoster({
   };
 
   const isPreviewable = (file) => {
-    if (!file || file.path !== undefined) return false; // Not a file
+    if (!file || isDriveFolder(file)) return false;
     const mt = file.mimeType || '';
     const name = file.name || '';
     // Images
@@ -234,7 +235,7 @@ export default function FileRoster({
           />
         </div>
 
-        {isTrashView && folders.length === 0 && files.length > 0 && (
+        {isTrashView && files.length + folders.length > 0 && (
           <button
             onClick={onEmptyTrash}
             style={{

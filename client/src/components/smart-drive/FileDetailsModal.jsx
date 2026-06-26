@@ -180,8 +180,9 @@ export default function FileDetailsModal({ file, onClose, onDownload, onShare, o
     setIsFullscreen(!isFullscreen);
   };
 
-  // Check if file is owned by current user or shared with them
-  const isOwnedByUser = file.canDelete !== false; // If canDelete is false, it's a shared file
+  // canDelete===true means the current user owns the file (owners can always delete).
+  // canDelete===false means the file is shared with the user but not owned by them.
+  const isOwnedByUser = file.canDelete === true;
   
   const tabs = [
     ...(isPreviewable ? [{ value: 'preview', label: t('drive.preview'), icon: getIcon('ui', 'eye') }] : []),

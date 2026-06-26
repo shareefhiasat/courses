@@ -14,41 +14,50 @@ export default function ToastContainer({ toasts, onDismiss }) {
     }
   };
 
-  const getColors = (type) => {
+  const getTypeVars = (type) => {
     switch (type) {
       case 'success':
-        return 'bg-[#1d4e1d] border-[#2d6a2d] text-[#a5d6a7]';
+        return { bg: 'var(--color-success-light)', color: 'var(--color-success)' };
       case 'error':
-        return 'bg-[#4e1d1d] border-[#6a2d2d] text-[#ffb4ab]';
+        return { bg: 'var(--color-danger-light)', color: 'var(--color-danger)' };
       case 'warning':
-        return 'bg-[#4e3d1d] border-[#6a5d2d] text-[#ffd699]';
+        return { bg: 'var(--color-warning-light)', color: 'var(--color-warning)' };
       default:
-        return 'bg-[#1d2d4e] border-[#2d3d6a] text-[#b4c5ff]';
+        return { bg: 'var(--color-info-light)', color: 'var(--color-info)' };
     }
   };
 
   if (toasts.length === 0) return null;
 
   return (
-    <div className="fixed top-4 end-4 z-[100] space-y-2 max-w-sm w-full">
+    <div className="fixed top-4 end-4 z-[1100] space-y-2 max-w-sm w-full">
       {toasts.map((toast) => {
         const icon = getIcon(toast.type);
-        const colors = getColors(toast.type);
+        const typeVars = getTypeVars(toast.type);
 
         return (
           <div
             key={toast.id}
-            className={`flex items-start gap-3 p-4 rounded-lg border shadow-lg animate-slide-in ${colors}`}
+            className="flex items-start gap-3 p-4 rounded-xl border shadow-lg"
+            style={{
+              background: 'var(--panel)',
+              borderColor: 'var(--border)',
+            }}
           >
-            {getThemedIcon('ui', icon, 20, 'light')}
-            <p className="flex-1 text-sm font-medium">
+            <div
+              className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center"
+              style={{ background: typeVars.bg, color: typeVars.color }}
+            >
+              {getThemedIcon('ui', icon, 18, 'currentColor')}
+            </div>
+            <p className="flex-1 text-sm font-medium" style={{ color: 'var(--text)' }}>
               {toast.message}
             </p>
             <button
               onClick={() => onDismiss(toast.id)}
-              className="flex-shrink-0 p-0.5 hover:opacity-70 transition-opacity"
+              className="flex-shrink-0 p-1 rounded-md transition-colors text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--panel-hover)]"
             >
-              {getThemedIcon('ui', 'x', 16, 'light')}
+              {getThemedIcon('ui', 'x', 16, 'currentColor')}
             </button>
           </div>
         );

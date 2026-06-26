@@ -6,7 +6,7 @@ import { useAuth } from '@contexts/AuthContext';
 import { useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { useToast } from '@ui';
 import { info, error, warn, debug } from '@services/utils/logger.js';
-import { AdvancedDataGrid } from '@ui';
+import { AdvancedDataGrid, GridQuickFilterChips } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 import { formatQatarStandard, getQatarNow } from '@utils/qatarDate';
 import { useAuditGridColumns } from '@hooks/useAuditGridColumns.js';
@@ -118,6 +118,7 @@ const AnnouncementsPage = ({ isDashboardTab = false }) => {
   const [announcementTitleArFilter, setAnnouncementTitleArFilter] = useState('');
   const [announcementContentEnFilter, setAnnouncementContentEnFilter] = useState('');
   const [announcementContentArFilter, setAnnouncementContentArFilter] = useState('');
+  const [announcementChipFilter, setAnnouncementChipFilter] = useState('all');
   
   const [emailOptions, setEmailOptions] = useState({
     sendEmail: false,
@@ -639,7 +640,13 @@ const AnnouncementsPage = ({ isDashboardTab = false }) => {
     if (announcementTitleArFilter && (!announcement.titleAr || !announcement.titleAr.includes(announcementTitleArFilter))) return false;
     if (announcementContentEnFilter && (!announcement.content || !announcement.content.toLowerCase().includes(announcementContentEnFilter.toLowerCase()))) return false;
     if (announcementContentArFilter && (!announcement.contentAr || !announcement.contentAr.includes(announcementContentArFilter))) return false;
-    
+
+    if (announcementChipFilter === 'global' && announcement.target !== 'global') return false;
+    if (announcementChipFilter === 'program' && !announcement.programId) return false;
+    if (announcementChipFilter === 'subject' && !announcement.subjectId) return false;
+    if (announcementChipFilter === 'class' && !announcement.classId) return false;
+    if (announcementChipFilter === 'email' && !announcement.sendEmail) return false;
+
     return true;
   });
 
@@ -900,117 +907,66 @@ const AnnouncementsPage = ({ isDashboardTab = false }) => {
         </div>
       )}
 
-      {/* Summary Chips */}
-      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-        <div style={{ 
-          display: 'inline-flex', 
-          alignItems: 'center', 
-          gap: '0.5rem', 
-          padding: '0.5rem 0.75rem', 
-          background: isDark ? '#1e3a8a' : '#f0f9ff', 
-          border: isDark ? '1px solid #3b82f6' : '1px solid #bae6fd', 
-          borderRadius: '9999px',
-          fontSize: '0.875rem',
-          fontWeight: '500',
-          color: isDark ? '#dbeafe' : '#0369a1'
-        }}>
-          {getThemedIcon('ui', 'target', 16, theme)}
-          {announcements.length} {t('total') || 'Total'}
-        </div>
-        
-        {/* Target Type Chips */}
-        <div style={{ 
-          display: 'inline-flex', 
-          alignItems: 'center', 
-          gap: '0.5rem', 
-          padding: '0.5rem 0.75rem', 
-          background: isDark ? '#78350f' : '#fef3c7', 
-          border: isDark ? '1px solid #92400e' : '1px solid #fde68a', 
-          borderRadius: '9999px',
-          fontSize: '0.875rem',
-          fontWeight: '500',
-          color: isDark ? '#fef3c7' : '#92400e'
-        }}>
-          {getThemedIcon('ui', 'megaphone', 16, theme)}
-          {announcements.filter(a => a.target === 'global').length} {lang === 'ar' ? 'عالمي' : 'Global'}
-        </div>
-        
-        <div style={{ 
-          display: 'inline-flex', 
-          alignItems: 'center', 
-          gap: '0.5rem', 
-          padding: '0.5rem 0.75rem', 
-          background: isDark ? '#831843' : '#fce7f3', 
-          border: isDark ? '1px solid #be185d' : '1px solid #fbcfe8', 
-          borderRadius: '9999px',
-          fontSize: '0.875rem',
-          fontWeight: '500',
-          color: isDark ? '#fce7f3' : '#831843'
-        }}>
-          {getThemedIcon('ui', 'graduation_cap', 16, theme)}
-          {announcements.filter(a => a.programId).length} {lang === 'ar' ? 'برامج' : 'Programs'}
-        </div>
-        
-        <div style={{ 
-          display: 'inline-flex', 
-          alignItems: 'center', 
-          gap: '0.5rem', 
-          padding: '0.5rem 0.75rem', 
-          background: isDark ? '#14532d' : '#f0fdf4', 
-          border: isDark ? '1px solid #16a34a' : '1px solid #bbf7d0', 
-          borderRadius: '9999px',
-          fontSize: '0.875rem',
-          fontWeight: '500',
-          color: isDark ? '#dcfce7' : '#166534'
-        }}>
-          {getThemedIcon('ui', 'book', 16, theme)}
-          {announcements.filter(a => a.subjectId).length} {lang === 'ar' ? 'مواد' : 'Subjects'}
-        </div>
-        
-        <div style={{ 
-          display: 'inline-flex', 
-          alignItems: 'center', 
-          gap: '0.5rem', 
-          padding: '0.5rem 0.75rem', 
-          background: isDark ? '#0c4a6e' : '#e0f2fe', 
-          border: isDark ? '1px solid #0ea5e9' : '1px solid #7dd3fc', 
-          borderRadius: '9999px',
-          fontSize: '0.875rem',
-          fontWeight: '500',
-          color: isDark ? '#e0f2fe' : '#0c4a6e'
-        }}>
-          {getThemedIcon('ui', 'users', 16, theme)}
-          {announcements.filter(a => a.classId).length} {lang === 'ar' ? 'فصول' : 'Classes'}
-        </div>
-        
-        {/* Email Notification Chips */}
-        <div style={{ 
-          display: 'inline-flex', 
-          alignItems: 'center', 
-          gap: '0.5rem', 
-          padding: '0.5rem 0.75rem', 
-          background: isDark ? '#581c87' : '#f3e8ff', 
-          border: isDark ? '1px solid #7c3aed' : '1px solid #c4b5fd', 
-          borderRadius: '9999px',
-          fontSize: '0.875rem',
-          fontWeight: '500',
-          color: isDark ? '#e9d5ff' : '#6b21a8'
-        }}>
-          {getThemedIcon('ui', 'mail', 16, theme)}
-          {announcements.filter(a => a.sendEmail).length} {lang === 'ar' ? 'إشعارات البريد الإلكتروني' : 'Email Notifications'}
-        </div>
-      </div>
+      <GridQuickFilterChips
+        activeId={announcementChipFilter}
+        onChange={setAnnouncementChipFilter}
+        chips={[
+          {
+            id: 'all',
+            label: t('total') || 'Total',
+            count: announcements.length,
+            icon: getThemedIcon('ui', 'target', 16, theme),
+            variant: 'blue',
+          },
+          {
+            id: 'global',
+            label: lang === 'ar' ? 'عالمي' : 'Global',
+            count: announcements.filter((a) => a.target === 'global').length,
+            icon: getThemedIcon('ui', 'megaphone', 16, theme),
+            variant: 'amber',
+          },
+          {
+            id: 'program',
+            label: lang === 'ar' ? 'برامج' : 'Programs',
+            count: announcements.filter((a) => a.programId).length,
+            icon: getThemedIcon('ui', 'graduation_cap', 16, theme),
+            variant: 'pink',
+          },
+          {
+            id: 'subject',
+            label: lang === 'ar' ? 'مواد' : 'Subjects',
+            count: announcements.filter((a) => a.subjectId).length,
+            icon: getThemedIcon('ui', 'book', 16, theme),
+            variant: 'green',
+          },
+          {
+            id: 'class',
+            label: lang === 'ar' ? 'فصول' : 'Classes',
+            count: announcements.filter((a) => a.classId).length,
+            icon: getThemedIcon('ui', 'users', 16, theme),
+            variant: 'sky',
+          },
+          {
+            id: 'email',
+            label: lang === 'ar' ? 'إشعارات البريد الإلكتروني' : 'Email Notifications',
+            count: announcements.filter((a) => a.sendEmail).length,
+            icon: getThemedIcon('ui', 'mail', 16, theme),
+            variant: 'purple',
+          },
+        ]}
+      />
 
       <div data-tour="announce-grid" style={{ marginTop: '1rem' }}>
         <AdvancedDataGrid
+          gridId="announcements"
           key={`announcements-grid-${lang}`}
           rows={filteredAnnouncements}
           getRowId={(row) => row.docId || row.id || `announcement-${Math.random().toString(36).substr(2, 9)}`}
           direction={lang === 'ar' ? 'rtl' : 'ltr'}
           lang={lang}
           columns={gridColumns}
-          pageSize={10}
-          pageSizeOptions={[10, 20, 50, 100]}
+          pageSize={50}
+          pageSizeOptions={[10, 25, 50, 100]}
           checkboxSelection
           exportFileName="announcements"
           showExportButton

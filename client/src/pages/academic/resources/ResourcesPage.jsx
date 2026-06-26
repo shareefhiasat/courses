@@ -5,7 +5,7 @@ import { useTheme } from '@contexts/ThemeContext';
 import { useAuth } from '@contexts/AuthContext';
 import { useToast } from '@ui';
 import { useGlobalLoading } from '@/contexts/GlobalLoadingContext';
-import { AdvancedDataGrid } from '@ui';
+import { AdvancedDataGrid, GridQuickFilterChips } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 import { formatQatarStandard, formatQatarForInput, parseQatarFromInput, getQatarNow } from '@utils/qatarDate';
 import { addResource, updateResource, deleteResource, getResources } from '@services/business/resourceService';
@@ -992,56 +992,39 @@ const ResourcesPage = () => {
         </div>
       )}
 
-      {/* Summary Chips */}
-      <div style={{ display: 'flex', gap: '0.75rem', marginBottom: '1.5rem', flexWrap: 'wrap' }}>
-        <div style={{ 
-          display: 'inline-flex', 
-          alignItems: 'center', 
-          gap: '0.5rem', 
-          padding: '0.5rem 0.75rem', 
-          background: isDark ? '#1e3a8a' : '#f0f9ff', 
-          border: isDark ? '1px solid #3b82f6' : '1px solid #bae6fd', 
-          borderRadius: '9999px',
-          fontSize: '0.875rem',
-          fontWeight: '500',
-          color: isDark ? '#dbeafe' : '#0369a1'
-        }}>
-          {getThemedIcon('ui', 'target', 16, theme)}
-          {resources.length} {lang === 'ar' ? 'إجمالي' : 'Total'}
-        </div>
-        
-        {/* Resource Type Chips - Dynamic based on database data */}
-        {resourceTypes.map(resourceType => {
-          const count = resources.filter(r => r.typeId === resourceType.id).length;
-          if (count === 0) return null;
-          
-          return (
-            <div key={resourceType.id} style={{ 
-              display: 'inline-flex', 
-              alignItems: 'center', 
-              gap: '0.5rem', 
-              padding: '0.5rem 0.75rem', 
-              background: isDark ? '#374151' : '#f3f4f6', 
-              border: isDark ? '1px solid #4b5563' : '1px solid #d1d5db', 
-              borderRadius: '9999px',
-              fontSize: '0.875rem',
-              fontWeight: '500',
-              color: isDark ? '#f3f4f6' : '#374151'
-            }}>
-              {getThemedIcon('ui', resourceType.code?.toLowerCase() || 'file', 16, theme)}
-              {count} {lang === 'ar' ? resourceType.nameAr : resourceType.nameEn}
-            </div>
-          );
-        })}
-      </div>
+      <GridQuickFilterChips
+        activeId={resourceTypeFilter ? String(resourceTypeFilter) : 'all'}
+        onChange={(id) => setResourceTypeFilter(id === 'all' ? '' : id)}
+        chips={[
+          {
+            id: 'all',
+            label: lang === 'ar' ? 'إجمالي' : 'Total',
+            count: resources.length,
+            icon: getThemedIcon('ui', 'target', 16, theme),
+            variant: 'blue',
+          },
+          ...resourceTypes.map((resourceType) => {
+            const count = resources.filter((r) => r.typeId === resourceType.id).length;
+            if (count === 0) return null;
+            return {
+              id: String(resourceType.id),
+              label: lang === 'ar' ? resourceType.nameAr : resourceType.nameEn,
+              count,
+              icon: getThemedIcon('ui', resourceType.code?.toLowerCase() || 'file', 16, theme),
+              variant: 'gray',
+            };
+          }).filter(Boolean),
+        ]}
+      />
 
       <div data-tour="resources-grid" style={{ marginTop: '1rem' }}>
         <AdvancedDataGrid
+          gridId="resources"
           rows={filteredResources}
           getRowId={(row) => row.id?.toString() || row.docId?.toString()}
           columns={gridColumns}
-          pageSize={10}
-          pageSizeOptions={[5, 10, 20, 50]}
+          pageSize={50}
+          pageSizeOptions={[10, 25, 50, 100]}
           checkboxSelection
           exportFileName="resources"
           showExportButton

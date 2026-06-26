@@ -61,6 +61,7 @@ const EnrollmentsPage = () => {
   const [classFilter, setClassFilter] = useState('all');
   const [yearFilter, setYearFilter] = useState('all');
   const [termFilter, setTermFilter] = useState('all');
+  const [enrollmentStatusFilter, setEnrollmentStatusFilter] = useState('all');
 
   const matchUserId = useCallback((left, right) => {
     if (left == null || right == null) return false;
@@ -279,15 +280,27 @@ const EnrollmentsPage = () => {
   };
 
   const filteredStudents = students.filter(s => {
-    if (!searchTerm) return true;
-    const term = searchTerm.toLowerCase();
-    const localizedName = getLocalizedUserName(s, lang, '').toLowerCase();
-    return (
-      localizedName.includes(term) ||
-      (s.displayName || '').toLowerCase().includes(term) ||
-      (s.email || '').toLowerCase().includes(term) ||
-      String(s.id || s.userId || '').toLowerCase().includes(term)
-    );
+    // Search filter
+    if (searchTerm) {
+      const term = searchTerm.toLowerCase();
+      const localizedName = getLocalizedUserName(s, lang, '').toLowerCase();
+      if (
+        !localizedName.includes(term) &&
+        !(s.displayName || '').toLowerCase().includes(term) &&
+        !(s.email || '').toLowerCase().includes(term) &&
+        !String(s.id || s.userId || '').toLowerCase().includes(term)
+      ) {
+        return false;
+      }
+    }
+
+    // Enrollment status filter
+    if (enrollmentStatusFilter !== 'all') {
+      if (enrollmentStatusFilter === 'active' && s.isDisabled) return false;
+      if (enrollmentStatusFilter === 'inactive' && !s.isDisabled) return false;
+    }
+
+    return true;
   });
 
   if (!isAdmin && !isInstructor && !isSuperAdmin) {
@@ -490,6 +503,18 @@ const EnrollmentsPage = () => {
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className={styles.searchInput}
                   style={{ flex: 1 }}
+                />
+
+                <Select
+                  value={enrollmentStatusFilter}
+                  onChange={(e) => setEnrollmentStatusFilter(e.target.value)}
+                  options={[
+                    { value: 'all', label: t('all_enrollment_status') || 'All Enrollment Status' },
+                    { value: 'active', label: t('enrollment_active') || 'Active' },
+                    { value: 'inactive', label: t('enrollment_inactive') || 'Inactive/Dropped' }
+                  ]}
+                  placeholder={t('filter_by_enrollment_status') || 'Filter by enrollment status'}
+                  style={{ minWidth: '180px' }}
                 />
                 
                 {/* Info Button */}

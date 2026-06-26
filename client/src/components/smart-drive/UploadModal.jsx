@@ -105,47 +105,6 @@ export default function UploadModal({
     return 'file';
   };
 
-  const getStatusConfig = (status) => {
-    switch (status) {
-      case 'completed':
-        return {
-          iconColor: 'text-green-600 dark:text-green-400',
-          badgeBg: 'bg-green-100 dark:bg-green-900/30',
-          badgeText: 'text-green-700 dark:text-green-400',
-          badgeBorder: 'border-green-300 dark:border-green-700',
-          progressBg: 'bg-green-500',
-          icon: 'check_circle'
-        };
-      case 'failed':
-        return {
-          iconColor: 'text-red-600 dark:text-red-400',
-          badgeBg: 'bg-red-100 dark:bg-red-900/30',
-          badgeText: 'text-red-700 dark:text-red-400',
-          badgeBorder: 'border-red-300 dark:border-red-700',
-          progressBg: 'bg-red-500',
-          icon: 'x_circle'
-        };
-      case 'uploading':
-        return {
-          iconColor: 'text-blue-600 dark:text-blue-400',
-          badgeBg: 'bg-blue-100 dark:bg-blue-900/30',
-          badgeText: 'text-blue-700 dark:text-blue-400',
-          badgeBorder: 'border-blue-300 dark:border-blue-700',
-          progressBg: 'bg-blue-500',
-          icon: 'refresh_cw'
-        };
-      default:
-        return {
-          iconColor: 'text-gray-500 dark:text-gray-400',
-          badgeBg: 'bg-gray-100 dark:bg-gray-800',
-          badgeText: 'text-gray-700 dark:text-gray-400',
-          badgeBorder: 'border-gray-300 dark:border-gray-700',
-          progressBg: 'bg-gray-400',
-          icon: 'clock'
-        };
-    }
-  };
-
   const queuedCount = uploads.filter(u => u.status === 'queued').length;
   const completedCount = uploads.filter(u => u.status === 'completed').length;
   const failedCount = uploads.filter(u => u.status === 'failed').length;
@@ -201,26 +160,24 @@ export default function UploadModal({
       )}
 
       {uploads.length > 0 && (
-        <div className="flex flex-wrap gap-2.5" style={{ marginBottom: '1.0rem' }}>
-          <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-md border border-blue-300 dark:border-blue-600 bg-blue-100 dark:bg-blue-50 text-blue-700 dark:text-blue-800">
-            {getThemedIcon('ui', 'clock', 18, 'light')}
-            <span className="text-base font-semibold">
-              {uploads.length} {t('drive.filesInQueue')}
+        <div className="flex flex-wrap items-center gap-2" style={{ marginBottom: '1rem' }}>
+          {queuedCount > 0 && (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border border-[var(--border)] bg-[var(--bg-primary)] text-[var(--text)]">
+              {getThemedIcon('ui', 'clock', 14, 'primary')}
+              {queuedCount} {t('drive.filesInQueue')}
             </span>
-          </div>
-          <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-md border border-green-300 dark:border-green-600 bg-green-100 dark:bg-green-50 text-green-700 dark:text-green-800">
-            {getThemedIcon('ui', 'check_circle', 18, 'light')}
-            <span className="text-base font-semibold">
+          )}
+          {completedCount > 0 && (
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border border-[var(--border)] bg-[var(--bg-primary)] text-[var(--text)]">
+              {getThemedIcon('ui', 'check_circle', 14, 'success')}
               {completedCount} {t('drive.completed')}
             </span>
-          </div>
+          )}
           {failedCount > 0 && (
-            <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-md border border-red-300 dark:border-red-600 bg-red-100 dark:bg-red-50 text-red-700 dark:text-red-800">
-              {getThemedIcon('ui', 'x_circle', 18, 'light')}
-              <span className="text-base font-semibold">
-                {failedCount} {t('drive.failed')}
-              </span>
-            </div>
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium border border-[var(--border)] bg-[var(--bg-primary)] text-[var(--text)]">
+              {getThemedIcon('ui', 'x_circle', 14, 'error')}
+              {failedCount} {t('drive.failed')}
+            </span>
           )}
         </div>
       )}
@@ -318,66 +275,79 @@ export default function UploadModal({
       )}
 
       {uploads.length > 0 && (
-        <div className="space-y-6 max-h-96 overflow-y-auto">
+        <div className="space-y-3 max-h-96 overflow-y-auto">
           {uploads.map((upload) => {
             const statusIcon = getStatusIcon(upload.status);
-            const statusConfig = getStatusConfig(upload.status);
             const fileTypeIcon = getFileTypeIcon(upload.file.name);
+            const statusTheme = upload.status === 'completed' ? 'success' : upload.status === 'failed' ? 'error' : upload.status === 'uploading' ? 'primary' : 'muted';
 
             return (
               <div
                 key={upload.id}
-                className="p-3 bg-white dark:bg-white rounded-lg border border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 transition-colors"
-                style={{ marginBottom: '1rem' }}
+                className="rounded-xl border border-[var(--border)] bg-[var(--panel)] transition-all hover:border-[var(--color-primary)] hover:bg-[var(--bg-primary)]"
+                style={{ padding: '0.875rem 1rem' }}
               >
-                <div className="flex items-center gap-6">
-                  <div className="flex-shrink-0">
-                    {getThemedIcon('ui', fileTypeIcon, 36, 'muted')}
+                <div className="flex items-center gap-3">
+                  <div
+                    style={{
+                      width: '2.5rem',
+                      height: '2.5rem',
+                      borderRadius: '0.625rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      background: 'var(--bg-primary)',
+                      color: 'var(--color-primary)',
+                      flexShrink: 0,
+                    }}
+                  >
+                    {getThemedIcon('ui', fileTypeIcon, 22, 'primary')}
                   </div>
 
                   <div className="flex-1 min-w-0">
-                    <p className="text-base font-semibold text-gray-900 dark:text-gray-900 truncate mb-2">
+                    <p className="text-sm font-medium truncate" style={{ color: 'var(--text)' }}>
                       {upload.file.name}
                     </p>
-                    <div className="flex items-center gap-4">
-                      <span className="text-sm text-gray-600 dark:text-gray-700">
+                    <div className="flex items-center gap-3 mt-0.5">
+                      <span className="text-xs" style={{ color: 'var(--text-muted)' }}>
                         {formatSize(upload.file.size)}
                       </span>
                       {upload.status === 'uploading' && (
-                        <span className="text-sm font-medium text-blue-600 dark:text-blue-700">
+                        <span className="text-xs font-medium" style={{ color: 'var(--color-primary)' }}>
                           {upload.progress}%
                         </span>
                       )}
                       {upload.status === 'failed' && upload.error && (
-                        <span className="text-sm font-medium text-red-600 dark:text-red-700">
+                        <span className="text-xs font-medium truncate" style={{ color: 'var(--color-primary)', maxWidth: '12rem' }}>
                           {upload.error}
                         </span>
                       )}
                     </div>
 
                     {upload.status === 'uploading' && (
-                      <div className="mt-3 h-2.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                      <div className="mt-2 h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--bg-primary)' }}>
                         <div
-                          className={`h-full ${statusConfig.progressBg} transition-all duration-300 rounded-full`}
-                          style={{ width: `${upload.progress}%` }}
+                          className="h-full transition-all duration-300 rounded-full"
+                          style={{ width: `${upload.progress}%`, background: 'var(--color-primary)' }}
                         />
                       </div>
                     )}
                   </div>
 
-                  <div className={`flex-shrink-0 ${statusConfig.iconColor}`}>
-                    {getThemedIcon('ui', statusIcon, 24, upload.status === 'uploading' ? 'primary' : 'light')}
+                  <div className="flex items-center gap-1 flex-shrink-0">
+                    <div className={upload.status === 'uploading' ? 'animate-spin' : ''} style={{ color: 'var(--text-muted)' }}>
+                      {getThemedIcon('ui', statusIcon, 20, statusTheme)}
+                    </div>
+                    {upload.status !== 'uploading' && (
+                      <button
+                        onClick={() => onRemove(upload.id)}
+                        className="p-2 rounded-lg transition-colors text-[var(--text-muted)] hover:text-red-500 hover:bg-[var(--bg-primary)]"
+                        aria-label={t('drive.removeFile')}
+                      >
+                        {getThemedIcon('ui', 'trash2', 18, 'currentColor')}
+                      </button>
+                    )}
                   </div>
-
-                  {upload.status !== 'uploading' && (
-                    <button
-                      onClick={() => onRemove(upload.id)}
-                      className="flex-shrink-0 p-2.5 text-gray-400 dark:text-gray-500 hover:text-red-600 dark:hover:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                      aria-label={t('drive.removeFile')}
-                    >
-                      {getThemedIcon('ui', 'trash2', 20, 'currentColor')}
-                    </button>
-                  )}
                 </div>
               </div>
             );

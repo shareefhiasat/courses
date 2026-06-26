@@ -81,6 +81,7 @@ export const listUsersController = async (req, res) => {
     const limit = Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : 5000;
 
     console.log('[listUsersController] Query params:', { studentsOnly, excludeStudents, search, limit });
+    console.log('[listUsersController] Auth user:', req.user?.id, req.user?.email);
 
     let where = { isActive: true };
 

@@ -1,6 +1,9 @@
-import React, { useState, useCallback, memo, useRef } from 'react';
+import React, { useState, memo, useRef, useMemo } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { Modal, Button, Select, Checkbox } from '@ui';
+import { WORKFLOW_TYPE_OPTIONS, WORKFLOW_TYPE_BY_VALUE } from '@constants/workflowTypeConfig';
+import WorkflowTypeFlowPreview from './WorkflowTypeFlowPreview';
+import styles from './CustomWorkflowDialog.module.css';
 
 /**
  * CustomWorkflowDialog Component
@@ -10,7 +13,7 @@ import { Modal, Button, Select, Checkbox } from '@ui';
  */
 const CustomWorkflowDialog = ({ isOpen, onClose, file, onSubmit }) => {
   const { t } = useLang();
-  
+
   const [workflowType, setWorkflowType] = useState('GENERAL_HR');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -21,18 +24,24 @@ const CustomWorkflowDialog = ({ isOpen, onClose, file, onSubmit }) => {
   const titleInputRef = useRef(null);
   const descriptionInputRef = useRef(null);
 
-  const workflowTypes = [
-    { value: 'GENERAL_HR', label: { en: 'General HR', ar: 'عام - الموارد البشرية' } },
-    { value: 'GENERAL_ADMIN', label: { en: 'General Admin', ar: 'عام - الإدارة' } },
-    { value: 'GENERAL_MIXED_HR_ADMIN', label: { en: 'General Mixed (HR → Admin)', ar: 'عام مختلط (الموارد البشرية → الإدارة)' } },
-    { value: 'GENERAL_MIXED_ADMIN_HR', label: { en: 'General Mixed (Admin → HR)', ar: 'عام مختلط (الإدارة → الموارد البشرية)' } }
-  ];
+  const workflowTypeOptions = useMemo(
+    () =>
+      WORKFLOW_TYPE_OPTIONS.map((type) => {
+        const label = t(type.labelKey, type.value);
+        const subtext = t(type.descKey, '');
+        return {
+          value: type.value,
+          label,
+          displayLabel: label,
+          subtext,
+          searchText: `${label} ${subtext}`.toLowerCase(),
+          icon: <WorkflowTypeFlowPreview steps={type.steps} size={14} showApproved={false} />,
+        };
+      }),
+    [t]
+  );
 
-  const reviewerRoles = [
-    { value: 'hr', label: { en: 'HR', ar: 'الموارد البشرية' } },
-    { value: 'admin', label: { en: 'Admin', ar: 'المسؤول' } },
-    { value: 'instructor', label: { en: 'Instructor', ar: 'المعلم' } }
-  ];
+  const selectedWorkflowConfig = WORKFLOW_TYPE_BY_VALUE[workflowType];
 
   const validateForm = () => {
     const newErrors = {};
@@ -107,83 +116,8 @@ const CustomWorkflowDialog = ({ isOpen, onClose, file, onSubmit }) => {
       size="sm"
       onClose={handleCancel}
       title={t('workflow.dialog.title', 'Create Custom Workflow')}
-    >
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Workflow Type */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            {t('workflow.dialog.workflowType', 'Workflow Type')}
-            <span className="text-red-500 ml-1">*</span>
-          </label>
-          <Select
-            value={workflowType}
-            onChange={(e) => setWorkflowType(e.value || e.target.value)}
-            options={workflowTypes.map(type => ({
-              value: type.value,
-              label: type.label.en
-            }))}
-            error={errors.workflowType}
-            className="focus:ring-blue-500 focus:border-blue-500"
-          />
-          {errors.workflowType && (
-            <p className="text-red-500 text-sm mt-1">{errors.workflowType}</p>
-          )}
-        </div>
-
-        {/* Title */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            {t('workflow.dialog.title', 'Title')}
-            <span className="text-red-500 ml-1">*</span>
-          </label>
-          <input
-            ref={titleInputRef}
-            type="text"
-            defaultValue={title}
-            placeholder={t('workflow.dialog.titlePlaceholder', 'Enter workflow title')}
-            className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white ${
-              errors.title ? 'border-red-500' : 'border-gray-300'
-            }`}
-          />
-          {errors.title && (
-            <p className="text-red-500 text-sm mt-1">{errors.title}</p>
-          )}
-        </div>
-
-        {/* Description */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 mb-1">
-            {t('workflow.dialog.description', 'Description')}
-          </label>
-          <textarea
-            ref={descriptionInputRef}
-            defaultValue={description}
-            placeholder={t('workflow.dialog.descriptionPlaceholder', 'Enter workflow description')}
-            rows={3}
-            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          />
-        </div>
-
-        {/* File Attachment */}
-        {file && (
-          <div>
-            <Checkbox
-              checked={attachFile}
-              onChange={() => setAttachFile(prev => !prev)}
-              label={`${t('workflow.dialog.attachFile', 'Attach file')} (${file.name})`}
-            />
-          </div>
-        )}
-
-        {/* Submit Error */}
-        {errors.submit && (
-          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg">
-            {errors.submit}
-          </div>
-        )}
-
-        {/* Actions */}
-        <div className="flex justify-end gap-3 pt-4 border-t">
+      footer={
+        <div className={styles.footerActions}>
           <Button
             type="button"
             onClick={handleCancel}
@@ -194,12 +128,104 @@ const CustomWorkflowDialog = ({ isOpen, onClose, file, onSubmit }) => {
           </Button>
           <Button
             type="submit"
+            form="custom-workflow-form"
             disabled={isSubmitting}
             loading={isSubmitting}
           >
             {t('common.submit', 'Submit')}
           </Button>
         </div>
+      }
+    >
+      <form id="custom-workflow-form" onSubmit={handleSubmit} className={styles.form}>
+        {/* Workflow Type */}
+        <div className={styles.field}>
+          <label className={styles.label} htmlFor="workflow-type-select">
+            {t('workflow.dialog.workflowType', 'Workflow Type')}
+            <span className={styles.required}>*</span>
+          </label>
+          <Select
+            id="workflow-type-select"
+            value={workflowType}
+            onChange={(e) => setWorkflowType(e.value || e.target.value)}
+            options={workflowTypeOptions}
+            error={errors.workflowType}
+            searchable={false}
+          />
+          {errors.workflowType && (
+            <p className={styles.errorText}>{errors.workflowType}</p>
+          )}
+        </div>
+
+        {selectedWorkflowConfig && (
+          <div className={styles.flowPreview} data-testid="workflow-type-flow-preview">
+            <p className={styles.flowPreviewTitle}>
+              {t('workflow.dialog.flowPreview', 'Approval path')}
+            </p>
+            <div className={styles.flowPreviewPath}>
+              <WorkflowTypeFlowPreview
+                steps={selectedWorkflowConfig.steps}
+                size={20}
+                showLabels
+              />
+            </div>
+            <p className={styles.flowPreviewDesc}>
+              {t(selectedWorkflowConfig.descKey, '')}
+            </p>
+          </div>
+        )}
+
+        {/* Title */}
+        <div className={styles.field}>
+          <label className={styles.label} htmlFor="workflow-title">
+            {t('workflow.dialog.titleLabel', 'Title')}
+            <span className={styles.required}>*</span>
+          </label>
+          <input
+            id="workflow-title"
+            ref={titleInputRef}
+            type="text"
+            defaultValue={title}
+            placeholder={t('workflow.dialog.titlePlaceholder', 'Enter workflow title')}
+            className={`${styles.textInput} ${errors.title ? styles.textInputError : ''}`}
+          />
+          {errors.title && (
+            <p className={styles.errorText}>{errors.title}</p>
+          )}
+        </div>
+
+        {/* Description */}
+        <div className={styles.field}>
+          <label className={styles.label} htmlFor="workflow-description">
+            {t('workflow.dialog.description', 'Description')}
+          </label>
+          <textarea
+            id="workflow-description"
+            ref={descriptionInputRef}
+            defaultValue={description}
+            placeholder={t('workflow.dialog.descriptionPlaceholder', 'Enter workflow description')}
+            rows={3}
+            className={styles.textArea}
+          />
+        </div>
+
+        {/* File Attachment */}
+        {file && (
+          <div className={styles.field}>
+            <Checkbox
+              checked={attachFile}
+              onChange={() => setAttachFile(prev => !prev)}
+              label={`${t('workflow.dialog.attachFile', 'Attach file')} (${file.name})`}
+            />
+          </div>
+        )}
+
+        {/* Submit Error */}
+        {errors.submit && (
+          <div className={styles.submitError}>
+            {errors.submit}
+          </div>
+        )}
       </form>
     </Modal>
   );

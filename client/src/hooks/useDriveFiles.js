@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { apiService } from '@services/api/apiService';
+import { apiService, apiService as apiServiceNamed } from '@services/api/apiService';
 
 const API_BASE = '/drive';
 
@@ -98,10 +98,12 @@ export function useDriveFiles(activeSpace = 'my-drive', folderId = null) {
         console.log('[useDriveFiles] payload:', payload);
         const files = normalizeFilesPayload(payload).map(normalizeDriveFile).filter(Boolean);
         console.log('[useDriveFiles] normalized files:', files);
+        console.log('[useDriveFiles] file names:', files.map(f => ({ id: f.id, name: f.name })));
         const folders = normalizeFoldersPayload(payload).map(f => ({ ...f, starred: f.isStarred || false })).filter(Boolean);
         // Deduplicate by ID to prevent duplicate key errors
         const uniqueFiles = Array.from(new Map(files.map(f => [f.id, f])).values());
         const uniqueFolders = Array.from(new Map(folders.map(f => [f.id, f])).values());
+        console.log('[useDriveFiles] setting files:', uniqueFiles.map(f => ({ id: f.id, name: f.name })));
         setFiles(uniqueFiles);
         // Only set folders if they're present in the response (don't overwrite with empty array)
         if (uniqueFolders.length > 0) {
@@ -122,12 +124,13 @@ export function useDriveFiles(activeSpace = 'my-drive', folderId = null) {
     try {
       console.log('[useDriveFiles] fetchFolders called with activeSpace:', activeSpace, 'folderId:', folderId);
       const params = new URLSearchParams();
-      if (activeSpace !== 'my-drive') {
+      if (activeSpace !== 'my-drive' && activeSpace !== 'trash') {
         setFolders([]);
-        console.log('[useDriveFiles] skipping folders fetch, not my-drive');
+        console.log('[useDriveFiles] skipping folders fetch, space:', activeSpace);
         return;
       }
       if (folderId) params.append('parentId', folderId);
+      if (activeSpace === 'trash') params.append('deletedOnly', 'true');
       params.append('_t', Date.now()); // Cache buster
 
       const url = `${API_BASE}/folders?${params.toString()}`;
@@ -157,6 +160,8 @@ export function useDriveFiles(activeSpace = 'my-drive', folderId = null) {
       }
       const url = `${API_BASE}/folders/tree`;
       console.log('[useDriveFiles] fetching folder tree from:', url);
+      // Clear cache to ensure fresh folder tree
+      apiServiceNamed.clearCache();
       const response = await apiService.get(url);
       console.log('[useDriveFiles] folder tree response:', response);
       if (response.success) {
@@ -194,9 +199,31 @@ export function useDriveFiles(activeSpace = 'my-drive', folderId = null) {
   }, [fetchFiles, fetchFolders]);
 
   const refreshFiles = useCallback(() => {
+    console.log('[useDriveFiles] refreshFiles called');
+    apiServiceNamed.clearCache();
     fetchFiles();
     fetchFolders();
   }, [fetchFiles, fetchFolders]);
+
+  const removeFromState = useCallback((itemId, type = 'file') => {
+    if (type === 'folder') {
+      setFolders((prev) => prev.filter((item) => item.id !== itemId));
+    } else {
+      setFiles((prev) => prev.filter((item) => item.id !== itemId));
+    }
+  }, []);
+
+  const renameInState = useCallback((itemId, newName, type = 'file') => {
+    if (type === 'folder') {
+      setFolders((prev) => prev.map((item) => (
+        item.id === itemId ? { ...item, name: newName } : item
+      )));
+    } else {
+      setFiles((prev) => prev.map((item) => (
+        item.id === itemId ? { ...item, name: newName } : item
+      )));
+    }
+  }, []);
 
   // --------------------------------------------------------------------------
   // File Actions
@@ -258,6 +285,7 @@ export function useDriveFiles(activeSpace = 'my-drive', folderId = null) {
     try {
       const response = await apiService.delete(`${API_BASE}/files/${fileId}/trash`);
       if (response.success) {
+        removeFromState(fileId, 'file');
         refreshFiles();
         return { success: true };
       }
@@ -266,12 +294,13 @@ export function useDriveFiles(activeSpace = 'my-drive', folderId = null) {
       console.error('[useDriveFiles] trash failed:', err);
       return { success: false, error: err.message };
     }
-  }, [refreshFiles]);
+  }, [refreshFiles, removeFromState]);
 
   const restoreFile = useCallback(async (fileId) => {
     try {
       const response = await apiService.post(`${API_BASE}/files/${fileId}/restore`);
       if (response.success) {
+        removeFromState(fileId, 'file');
         refreshFiles();
         return { success: true };
       }
@@ -280,12 +309,13 @@ export function useDriveFiles(activeSpace = 'my-drive', folderId = null) {
       console.error('[useDriveFiles] restore failed:', err);
       return { success: false, error: err.message };
     }
-  }, [refreshFiles]);
+  }, [refreshFiles, removeFromState]);
 
   const permanentDeleteFile = useCallback(async (fileId) => {
     try {
       const response = await apiService.delete(`${API_BASE}/files/${fileId}/permanent`);
       if (response.success) {
+        removeFromState(fileId, 'file');
         refreshFiles();
         return { success: true };
       }
@@ -294,7 +324,7 @@ export function useDriveFiles(activeSpace = 'my-drive', folderId = null) {
       console.error('[useDriveFiles] permanent delete failed:', err);
       return { success: false, error: err.message };
     }
-  }, [refreshFiles]);
+  }, [refreshFiles, removeFromState]);
 
   const downloadFile = useCallback(async (fileId) => {
     try {
@@ -377,7 +407,7 @@ export function useDriveFiles(activeSpace = 'my-drive', folderId = null) {
         parentId,
       });
       if (response.success) {
-        fetchFolders();
+        refreshFiles();
         return { success: true, payload: response.data?.payload };
       }
       return { success: false, error: response.error };
@@ -385,15 +415,18 @@ export function useDriveFiles(activeSpace = 'my-drive', folderId = null) {
       console.error('[useDriveFiles] create folder failed:', err);
       return { success: false, error: err.response?.data?.error || err.message };
     }
-  }, [fetchFolders]);
+  }, [refreshFiles]);
 
   const renameFolder = useCallback(async (folderId, newName) => {
+    console.log('[useDriveFiles] renameFolder called:', { folderId, newName });
     try {
       const response = await apiService.patch(`${API_BASE}/folders/${folderId}`, {
         name: newName,
       });
+      console.log('[useDriveFiles] renameFolder API response:', response);
       if (response.success) {
-        fetchFolders();
+        renameInState(folderId, newName, 'folder');
+        refreshFiles();
         return { success: true };
       }
       return { success: false, error: response.error };
@@ -401,14 +434,17 @@ export function useDriveFiles(activeSpace = 'my-drive', folderId = null) {
       console.error('[useDriveFiles] rename folder failed:', err);
       return { success: false, error: err.response?.data?.error || err.message };
     }
-  }, [fetchFolders]);
+  }, [refreshFiles, renameInState]);
 
   const renameFile = useCallback(async (fileId, newName) => {
+    console.log('[useDriveFiles] renameFile called:', { fileId, newName });
     try {
       const response = await apiService.put(`${API_BASE}/files/${fileId}`, {
         name: newName,
       });
+      console.log('[useDriveFiles] renameFile API response:', response);
       if (response.success) {
+        renameInState(fileId, newName, 'file');
         refreshFiles();
         return { success: true };
       }
@@ -417,13 +453,15 @@ export function useDriveFiles(activeSpace = 'my-drive', folderId = null) {
       console.error('[useDriveFiles] rename file failed:', err);
       return { success: false, error: err.response?.data?.error || err.message };
     }
-  }, [refreshFiles]);
+  }, [refreshFiles, renameInState]);
 
   const deleteFolder = useCallback(async (folderId) => {
+    console.log('[useDriveFiles] deleteFolder called:', { folderId });
     try {
       const response = await apiService.delete(`${API_BASE}/folders/${folderId}/trash`);
+      console.log('[useDriveFiles] deleteFolder API response:', response);
       if (response.success) {
-        fetchFolders();
+        removeFromState(folderId, 'folder');
         refreshFiles();
         return { success: true };
       }
@@ -432,7 +470,37 @@ export function useDriveFiles(activeSpace = 'my-drive', folderId = null) {
       console.error('[useDriveFiles] delete folder failed:', err);
       return { success: false, error: err.response?.data?.error || err.message };
     }
-  }, [fetchFolders, refreshFiles]);
+  }, [refreshFiles, removeFromState]);
+
+  const restoreFolder = useCallback(async (folderId) => {
+    try {
+      const response = await apiService.post(`${API_BASE}/folders/${folderId}/restore`);
+      if (response.success) {
+        removeFromState(folderId, 'folder');
+        refreshFiles();
+        return { success: true };
+      }
+      return { success: false, error: response.error };
+    } catch (err) {
+      console.error('[useDriveFiles] restore folder failed:', err);
+      return { success: false, error: err.response?.data?.error || err.message };
+    }
+  }, [refreshFiles, removeFromState]);
+
+  const permanentDeleteFolder = useCallback(async (folderId) => {
+    try {
+      const response = await apiService.delete(`${API_BASE}/folders/${folderId}/permanent`);
+      if (response.success) {
+        removeFromState(folderId, 'folder');
+        refreshFiles();
+        return { success: true };
+      }
+      return { success: false, error: response.error };
+    } catch (err) {
+      console.error('[useDriveFiles] permanent delete folder failed:', err);
+      return { success: false, error: err.response?.data?.error || err.message };
+    }
+  }, [refreshFiles, removeFromState]);
 
   const shareFolder = useCallback(async (folderId, shareData) => {
     try {
@@ -476,6 +544,8 @@ export function useDriveFiles(activeSpace = 'my-drive', folderId = null) {
     renameFolder,
     renameFile,
     deleteFolder,
+    restoreFolder,
+    permanentDeleteFolder,
     shareFolder,
   };
 }

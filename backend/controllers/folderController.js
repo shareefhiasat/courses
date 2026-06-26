@@ -24,6 +24,7 @@ export const listChildren = async (req, res) => {
   const result = await folderService.listChildren(req.user, {
     parentId: req.query.parentId || null,
     includeDeleted: req.query.includeDeleted === 'true',
+    deletedOnly: req.query.deletedOnly === 'true',
   });
   return jsonOrStatus(res, result);
 };
@@ -140,6 +141,11 @@ export const softDeleteFolder = async (req, res) => {
 
 export const restoreFolder = async (req, res) => {
   const result = await folderService.restoreFolder(req.params.folderId, req.user?.dbId);
+  return jsonOrStatus(res, result);
+};
+
+export const permanentDeleteFolder = async (req, res) => {
+  const result = await folderService.permanentDeleteFolder(req.params.folderId, req.user?.dbId);
   return jsonOrStatus(res, result);
 };
 
