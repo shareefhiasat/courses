@@ -5,11 +5,11 @@
 
 export const testConfig = {
   // Application URLs
-  baseUrl: process.env.BASE_URL || 'http://localhost:5174',
+  baseUrl: process.env.BASE_URL || 'https://localhost:5174',
   
   // Keycloak Configuration
   keycloakUrl: process.env.VITE_KEYCLOAK_URL || 'http://localhost:8080',
-  keycloakRealm: process.env.VITE_KEYCLOAK_REALM || 'military-lms',
+  keycloakRealm: process.env.VITE_KEYCLOAK_REALM || 'master',
   keycloakClientId: process.env.VITE_KEYCLOAK_CLIENT_ID || 'military-lms-app',
   keycloakClientSecret: process.env.KEYCLOAK_CLIENT_SECRET || 'military-lms-secret',
   
@@ -21,21 +21,27 @@ export const testConfig = {
   },
   
   admin: {
-    email: process.env.TEST_ADMIN_EMAIL || 'admin@test.com',
+    email: process.env.TEST_ADMIN_EMAIL || 'admin1',
     password: process.env.TEST_ADMIN_PASSWORD || 'Test123$',
     role: 'admin'
   },
   
   instructor: {
-    email: process.env.TEST_INSTRUCTOR_EMAIL || 'instructor@test.com',
+    email: process.env.TEST_INSTRUCTOR_EMAIL || 'instructor1',
     password: process.env.TEST_INSTRUCTOR_PASSWORD || 'Test123$',
     role: 'instructor'
   },
   
   student: {
-    email: process.env.TEST_STUDENT_EMAIL || 'student@test.com',
+    email: process.env.TEST_STUDENT_EMAIL || 'student1',
     password: process.env.TEST_STUDENT_PASSWORD || 'Test123$',
     role: 'student'
+  },
+
+  hr: {
+    email: process.env.TEST_HR_EMAIL || 'hr1@example.com',
+    password: process.env.TEST_HR_PASSWORD || 'hr123',
+    role: 'hr'
   },
   
   // Test Timeouts

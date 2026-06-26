@@ -144,7 +144,7 @@ export const listUsersController = async (req, res) => {
     
     if (studentsOnly === 'true') {
       filteredUsers = users.filter(user => {
-        const hasStudentRole = user.roleAssignments?.some(ra => ra.role?.code === 'student');
+        const hasStudentRole = user.roleAssignments?.some(ra => ra.role?.code?.toLowerCase() === 'student');
         return hasStudentRole;
       });
       console.log('[listUsersController] After studentsOnly filter:', filteredUsers.length);
@@ -152,7 +152,7 @@ export const listUsersController = async (req, res) => {
 
     if (excludeStudents === 'true') {
       filteredUsers = users.filter(user => {
-        const hasStudentRole = user.roleAssignments?.some(ra => ra.role?.code === 'student');
+        const hasStudentRole = user.roleAssignments?.some(ra => ra.role?.code?.toLowerCase() === 'student');
         return !hasStudentRole;
       });
       console.log('[listUsersController] After excludeStudents filter:', filteredUsers.length);

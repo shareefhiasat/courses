@@ -1,3 +1,0 @@
-🔍 Testing activity validation...
-🔍 Invalid activity creation response status: 400
-✅ Validation working correctly: Activity title is required

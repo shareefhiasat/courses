@@ -103,9 +103,9 @@ const HierarchyFilters = ({
   ], [students, selectedProgram, selectedSubject, selectedClass, t]);
 
   return (
-    <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', width: '100%' }}>
+    <div style={{ display: 'grid', gap: '0.35rem', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', width: '100%' }}>
       {showPrograms && programs.length > 0 && (
-        <div style={{ flex: 2, minWidth: '300px' }}>
+        <div style={{ minWidth: 0 }}>
           <Select
             value={selectedProgram}
             onChange={(value) => {
@@ -120,7 +120,7 @@ const HierarchyFilters = ({
       )}
       
       {showSubjects && subjects.length > 0 && (
-        <div style={{ flex: 1.5, minWidth: '250px' }}>
+        <div style={{ minWidth: 0 }}>
           <Select
             value={selectedSubject}
             onChange={(value) => {
@@ -134,7 +134,7 @@ const HierarchyFilters = ({
       )}
       
       {showClasses && classes.length > 0 && (
-        <div style={{ flex: 1.5, minWidth: '250px' }}>
+        <div style={{ minWidth: 0 }}>
           <Select
             value={selectedClass}
             onChange={setSelectedClass}
@@ -145,7 +145,7 @@ const HierarchyFilters = ({
       )}
 
       {showStudents && students.length > 0 && (
-        <div style={{ flex: 1, minWidth: '200px' }}>
+        <div style={{ minWidth: 0 }}>
           <Select
             value={selectedStudent}
             onChange={setSelectedStudent}
@@ -156,7 +156,7 @@ const HierarchyFilters = ({
       )}
 
       {showYears && years.length > 0 && (
-        <div style={{ flex: 1, minWidth: '150px' }}>
+        <div style={{ minWidth: 0 }}>
           <YearSelect
             value={selectedYear}
             onChange={setSelectedYear}
@@ -171,7 +171,7 @@ const HierarchyFilters = ({
       )}
 
       {showTerms && terms.length > 0 && (
-        <div style={{ flex: 1, minWidth: '150px' }}>
+        <div style={{ minWidth: 0 }}>
           <FilterSelect
             filterKey="terms"
             value={selectedTerm}

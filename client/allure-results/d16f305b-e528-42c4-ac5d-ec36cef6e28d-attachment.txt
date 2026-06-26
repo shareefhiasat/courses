@@ -1,3 +1,0 @@
-🔍 Testing attendances service layer with PostgreSQL backend...
-🔍 Attendances API response status: 200
-✅ Attendances API returned data: 0 attendances

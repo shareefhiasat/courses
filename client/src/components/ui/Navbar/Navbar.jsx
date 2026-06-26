@@ -485,8 +485,8 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                     </>
                   )}
                 </div>
-                {/* Multiple role badges stacked on the right side */}
-                <div style={{ position:'absolute', right:-8, top: '50%', transform: 'translateY(-50%)', display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                {/* Multiple role badges stacked on the outer side */}
+                <div style={{ position:'absolute', [lang === 'ar' ? 'left' : 'right']:-8, top: '50%', transform: 'translateY(-50%)', display: 'flex', flexDirection: 'column', gap: '2px' }}>
                   {isSuperAdmin && (
                     <PortalTooltip content={t('super_admin')} position="left">
                     <div style={{ background: getUserRoleColor('super_admin'), color:'#fff', borderRadius:'50%', width:18, height:18, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 0 2px rgba(255,255,255,0.8)' }}>
@@ -517,7 +517,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                   )}
                 </div>
                 {showDropdown && (
-                  <div className="dropdown-menu" style={{ right: 0, top: 48, zIndex: 9999 }}>
+                  <div className="dropdown-menu" style={{ [lang === 'ar' ? 'left' : 'right']: 0, top: 48, zIndex: 9999 }}>
                     <div className="dropdown-item user-info" style={{ padding: '10px 12px' }}>
                       <div className="user-name" style={{ fontWeight: 600, marginBottom: 4, fontSize: '1rem' }}>
                         {getLocalizedUserName(

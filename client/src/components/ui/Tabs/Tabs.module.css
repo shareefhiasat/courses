@@ -31,12 +31,21 @@
 }
 
 .tabsWrapper::-webkit-scrollbar {
-  height: 6px;
+  height: 8px;
+}
+
+.tabsWrapper::-webkit-scrollbar-track {
+  background: rgba(128, 0, 32, 0.1);
+  border-radius: 4px;
 }
 
 .tabsWrapper::-webkit-scrollbar-thumb {
-  background: var(--border, #d1d5db);
-  border-radius: 999px;
+  background: #800020;
+  border-radius: 4px;
+}
+
+.tabsWrapper::-webkit-scrollbar-thumb:hover {
+  background: #600018;
 }
 
 [data-theme="dark"] .tabsWrapper {

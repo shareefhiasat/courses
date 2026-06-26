@@ -1,242 +1,249 @@
-# 🚀 Run Tests Guide
+# E2E Test Guide
 
-## 📍 **Where to Run Tests From**
+## Where to Run Tests From
 
-### **From Root Directory** (Recommended)
+All commands run from the `client/` directory:
+
 ```bash
-# From: E:\QAF\Github\courses\
-npm run test                    # Run all tests
-npm run test:ui                 # Run with UI mode
-npm run test:programs:api       # Run programs API tests
-npm run test:programs:ui        # Run programs UI tests
-npm run test:demo               # Run demo test
-npm run test:report             # View HTML report
+cd client
 ```
 
-### **From Client Directory**
+## Test Commands
+
+### Run All Tests
 ```bash
-# From: E:\QAF\Github\courses\client\
-npx playwright test
-npx playwright test programs.crud.spec.js
-npx playwright test programs.ui.spec.js
-```
+# Run all tests
+pnpm test
 
----
+# Run all tests + generate Allure report
+pnpm test:allure
 
-## 🎯 **Available Test Commands**
-
-### **All Tests**
-```bash
-npm run test                    # All tests
-npm run test:ui                 # UI mode (interactive)
-npm run test:headed             # Run with visible browser
-npm run test:debug              # Debug mode
-```
-
-### **Programs Tests**
-```bash
-npm run test:programs:api       # API CRUD tests
-npm run test:programs:ui        # UI tests
-npm run test:programs           # All programs tests
-```
-
-### **Auth Tests**
-```bash
-npm run test:auth               # Authentication tests
-```
-
-### **Demo & Utility**
-```bash
-npm run test:demo               # Demo/test suite
-npm run test:api                # All API tests
-npm run test:ui                 # All UI tests
-```
-
-### **Reports**
-```bash
-npm run test:report             # View HTML report
-npm run test:allure:serve       # Start Allure server
-npm run test:allure:report      # Show Allure URL
-```
-
----
-
-## 📁 **Test Files Overview**
-
-### **API Tests** (`*.crud.spec.js`)
-- **`programs.crud.spec.js`** - Programs CRUD operations
-- Fast execution (no browser)
-- Direct GraphQL API calls
-- Perfect for CI/CD
-
-### **UI Tests** (`*.ui.spec.js`)
-- **`programs.ui.spec.js`** - Programs UI interactions
-- **`dashboard-programs.ui.spec.js`** - Dashboard programs
-- Browser automation
-- Full user experience testing
-
-### **Utility Tests** (`*.test.js`)
-- **`demo.test.js`** - Demo/test suite (4 tests)
-- **`basic.test.js`** - Basic connectivity
-- **`keycloak-api.test.js`** - Keycloak API tests
-- **`auth.spec.js`** - Authentication tests
-
----
-
-## 🎯 **Programs Tests Details**
-
-### **API CRUD Test** (`programs.crud.spec.js`)
-```
-✅ CREATE - Add new program
-✅ READ - Get program by ID  
-✅ UPDATE - Modify program details
-✅ LIST - Get all programs
-✅ DELETE - Remove program
-```
-
-**Features:**
-- Clean, visible console logs
-- Real GraphQL mutations
-- Proper cleanup
-- No hype, just results
-
-### **UI Test** (`programs.ui.spec.js`)
-```
-✅ CREATE - Add program via UI
-✅ READ - View program details
-✅ LIST - Verify programs list
-```
-
-**Features:**
-- Robust element detection
-- Multiple selector fallbacks
-- Debug screenshots on failure
-- Clear console logging
-
----
-
-## 📊 **Viewing Reports**
-
-### **Playwright HTML Report**
-```bash
-npm run test:report
-# Opens: http://localhost:5174/test-results/reports/html/index.html
-```
-
-**Features:**
-- Test execution timeline
-- Detailed test results
-- Console logs
-- Screenshots on failure
-- Test statistics
-
-### **Allure Report** (when Docker fixed)
-```bash
-npm run test:allure:serve
-npm run test:allure:report
-# URL: http://localhost:5050/allure-docker-service/projects/default/reports/latest/index.html
-```
-
----
-
-## 🔧 **Test Configuration**
-
-### **Environment Variables**
-```bash
-# Copy and configure
-cp .env.test .env.local
-
-# Key variables:
-TEST_SUPER_ADMIN_EMAIL=shareef.hiasat@gmail.com
-TEST_SUPER_ADMIN_PASSWORD=Jordan123$
-KEYCLOAK_CLIENT_SECRET=military-lms-secret
-```
-
-### **Test URLs**
-```
-Application: http://localhost:5174
-GraphQL: http://localhost:4001/graphql
-Keycloak: http://localhost:8080
-Allure: http://localhost:5050
-```
-
----
-
-## 🚀 **Quick Start Commands**
-
-### **First Time Setup**
-```bash
-# 1. Run demo test (verify everything works)
-npm run test:demo
-
-# 2. Check reports
-npm run test:report
-
-# 3. Run programs tests
-npm run test:programs:api
-npm run test:programs:ui
-```
-
-### **Development Workflow**
-```bash
-# Run specific test with UI mode
-npm run test:ui -- programs.crud.spec.js
-
-# Debug failing test
-npm run test:debug -- programs.ui.spec.js
+# Run specific spec
+npx playwright test --config=tests/e2e/playwright.config.js specs/programs-api.spec.js
 
 # Run with visible browser
-npm run test:headed -- programs.ui.spec.js
+HEADED=1 pnpm test
+
+# Run with UI mode (interactive)
+npx playwright test --config=tests/e2e/playwright.config.js --ui
 ```
 
-### **CI/CD Pipeline**
+### Run Per-Module (with Allure + Linear reporter)
+Each command runs the module's API + UI specs and generates an Allure report:
+
 ```bash
-# Fast API tests for CI
-npm run test:api
-
-# All tests for full validation
-npm run test
+pnpm run test:allure:auth           # Authentication
+pnpm run test:allure:activities     # Activities (API + UI)
+pnpm run test:allure:announcements  # Announcements (API + UI)
+pnpm run test:allure:attendance     # Attendance (API + UI)
+pnpm run test:allure:chat           # Chat (API + UI)
+pnpm run test:allure:classes        # Classes (API + UI)
+pnpm run test:allure:dashboard      # Dashboard (UI)
+pnpm run test:allure:drive          # Drive/File Manager (API + UI)
+pnpm run test:allure:enrollments    # Enrollments (API + UI)
+pnpm run test:allure:marks          # Marks/Grades (API + UI)
+pnpm run test:allure:notifications  # Notifications (API + UI)
+pnpm run test:allure:penalties      # Penalties (API + UI)
+pnpm run test:allure:programs       # Programs (API + UI)
+pnpm run test:allure:quizzes        # Quizzes (API + UI)
+pnpm run test:allure:resources      # Resources & Participations (API + UI)
+pnpm run test:allure:scheduling     # Scheduling (API + UI)
+pnpm run test:allure:subjects       # Subjects (API + UI)
+pnpm run test:allure:users          # Users (API + UI)
+pnpm run test:allure:workflow       # Workflow (API + UI)
+pnpm run test:allure:rbac           # RBAC / Roles (API)
+pnpm run test:allure:analytics      # Analytics (UI)
+pnpm run test:allure:profile        # Profile (UI)
+pnpm run test:allure:global         # Global pages, Home, Misc routes (UI)
+pnpm run test:allure:ui-misc        # Dark mode, Arabic/RTL (UI)
 ```
 
----
+## Allure Docker Dashboard (Persistent)
 
-## 🎯 **Best Practices**
+The Allure service is part of `docker-compose.dev.yml` (container: `lms-qaf-allure`).
 
-### **Running Tests**
-1. **Start with demo test** to verify setup
-2. **Use API tests** for fast validation
-3. **Use UI tests** for full user experience
-4. **Check reports** after each run
+### Start / Stop
+```bash
+# Start Allure Docker dashboard
+pnpm test:allure:docker
 
-### **Debugging**
-1. **Use UI mode** to see tests run
-2. **Use debug mode** to step through tests
-3. **Check screenshots** in test-results folder
-4. **Review console logs** for detailed info
+# Stop Allure container
+pnpm test:allure:docker:down
+```
 
-### **Test Development**
-1. **Follow naming convention**: `*.ui.spec.js`, `*.crud.spec.js`, `*.test.js`
-2. **Use testConfig** for credentials and URLs
-3. **Add console logs** for visibility
-4. **Clean up test data** after each test
+### Send Results & View
+```bash
+# 1. Run tests (generates allure-results)
+pnpm test:allure
 
----
+# 2. Send results to Allure Docker server
+pnpm test:allure:send
 
-## 📈 **Test Results Interpretation**
+# 3. Open dashboard in browser
+pnpm test:allure:open
+# URL: http://localhost:5050/allure-docker-service/projects/lms-e2e/reports/latest/index.html
+```
 
-### **Success Indicators**
-- ✅ All tests pass
-- ✅ Programs created/updated/deleted successfully
-- ✅ UI elements found and interacted with
-- ✅ No error messages in console
+### How It Works
+- `allure-setup.js` runs first — copies `environment.properties` and `categories.json` into `allure-results/`
+- Playwright outputs Allure results to `./allure-results/` (via allure-playwright)
+- `allure-enricher.js` runs after tests — adds labels (API/UI, module), tags, business story descriptions, and Linear links
+- The `lms-qaf-allure` Docker container mounts this directory as a volume
+- The container auto-detects new results every 3 seconds and regenerates the report
+- History is kept (KEEP_HISTORY=1) with persistent Docker volumes
+- Use `pnpm test:allure:send` to manually push results to the Allure server
 
-### **Common Issues**
-- **Element not found**: Check selectors and page load
-- **Authentication failed**: Verify credentials and Keycloak
-- **GraphQL errors**: Check API endpoints and permissions
-- **Timeout issues**: Increase wait times or check network
+### What You'll See in Allure Dashboard
+- **Environment tab**: Development env, URLs, framework info
+- **Categories tab**: Critical Failures, Skipped (No Data), Skipped (Test User Creation Failed), Flaky Tests
+- **Tags**: API, UI, module name, test case ID (e.g., TC-AUTH-024)
+- **Description**: Business story for each module
+- **Links**: Direct link to Linear issue for each test case ID
 
----
+## Skipped Tests — "Unable to create test user"
 
-*Last Updated: 2026-03-21*
-*Clean, visible, and hype-free testing!*
+Some older `.test.js` files (e.g., `announcements-api.test.js`, `enrollments-api.test.js`) try to create test users via `POST /api/v1/users` and skip when that fails. This happens because:
+
+1. The API endpoint requires specific scopes/permissions that may not be configured
+2. The user creation payload may be incomplete for the current schema
+
+These `.test.js` files are **legacy** and superseded by the newer `.spec.js` files. The `.spec.js` files use pre-configured test users from `test.config.js` instead of creating users on the fly.
+
+**To distinguish in Allure**: The categories tab groups these as "Skipped — Test User Creation Failed".
+
+## Distinguishing API vs UI Tests
+
+In the Allure dashboard:
+- **Tags** column shows `API` or `UI` (and the module name)
+- **testType** label filters by API/UI
+- **module** label filters by module (auth, activities, etc.)
+- File naming convention: `*-api.spec.js` = API tests, `*-ui.spec.js` = UI tests
+
+## Linear Integration (Test Failure Reporting)
+
+The custom Playwright→Linear reporter automatically creates or updates Linear issues when tests fail.
+
+### Setup
+The `LINEAR_API_KEY` is already set in `client/.env`:
+```
+LINEAR_API_KEY=lin_api_gGoGr7nHYYYapLdpWlDTF8r6XN38fCgRsfE6QKy9
+```
+
+The reporter is enabled in `playwright.config.js` with `dryRun: false`.
+
+### What It Does
+- On test failure, extracts the test case ID (e.g., `TC-PROG-006`) from the test title
+- Searches Linear for an existing issue with that test case ID
+- If found: adds a comment with the latest failure details
+- If not found: creates a new issue in team `SHA` with labels `qa` and `bug`
+- Includes: error message, stack trace, screenshot path, Allure report link
+- Writes a summary file to `test-results/reports/linear-failures.json`
+
+### Configuration
+To disable issue creation (dry-run mode), set `dryRun: true` in `playwright.config.js`:
+```js
+['./reporters/linear-reporter.js', {
+  teamKey: 'SHA',
+  labels: ['qa', 'bug'],
+  allureUrl: 'http://localhost:5050',
+  dryRun: true,  // Set false to create/update Linear issues
+}]
+```
+
+## Test Cleanup
+
+### CRUD Lifecycle Pattern
+Tests that create data follow a serial create → edit → delete lifecycle:
+- **API tests** (`programs-api.spec.js`): `test.describe.serial` with `afterAll` cleanup
+- **UI tests** (`penalties-ui.spec.js`, `activities-ui.spec.js`): `test.describe.serial` with `afterAll` cleanup
+
+### Cleanup Helpers
+`tests/e2e/utils/cleanup-helpers.js` provides API-based cleanup:
+- `cleanupByPrefix(endpoint, searchField)` — deletes all E2E-prefixed entities
+- `cleanupById(endpoint, id)` — deletes a specific entity by ID
+- `cleanupAll(targets)` — bulk cleanup across multiple endpoints
+
+All test-created entities use the `E2E` prefix for identification.
+
+## Test Credentials
+
+Configured in `tests/e2e/config/test.config.js`:
+
+| Role | Email | Password |
+|------|-------|----------|
+| Super Admin | shareef.hiasat@gmail.com | Jordan123$ |
+| Admin | admin1 | Test123$ |
+| Instructor | instructor1 | Test123$ |
+| Student | student1 | Test123$ |
+| HR | hr1 | hr123 |
+
+Override via environment variables:
+```bash
+TEST_SUPER_ADMIN_EMAIL=custom@email.com
+TEST_SUPER_ADMIN_PASSWORD=custompass
+```
+
+## Test Files Overview
+
+### API Tests (`*-api.spec.js`)
+- Direct API calls via `apiRequest()` helper
+- Authenticated through Keycloak token endpoint
+- Fast execution (no browser)
+
+### UI Tests (`*-ui.spec.js`)
+- Browser automation via Playwright
+- Full user experience testing
+- Uses `gotoWithAuth()` for authenticated navigation
+
+### Utilities
+- `utils/ui-helpers.js` — Login, navigation, content waiting
+- `utils/api-helpers.js` — Auth tokens, API requests
+- `utils/cleanup-helpers.js` — Post-test data cleanup
+- `utils/crud-helpers.js` — Form fill, submit, verify patterns
+- `reporters/linear-reporter.js` — Linear issue creation on failure
+
+## Viewing Reports
+
+### Playwright HTML Report
+```bash
+# Open HTML report
+open test-results/reports/html/index.html
+```
+
+### Allure Docker Dashboard
+```bash
+pnpm test:allure:open
+# http://localhost:5050/allure-docker-service/projects/lms-e2e/reports/latest/index.html
+```
+
+### JSON / JUnit Results
+- `test-results/reports/results.json`
+- `test-results/reports/junit.xml`
+- `test-results/reports/linear-failures.json`
+
+## Prerequisites
+
+1. Docker containers running (app-db, keycloak, minio, redis)
+2. Backend running on port 8001
+3. Frontend running on port 5174 (HTTPS)
+4. For Allure Docker: `pnpm test:allure:docker`
+5. For Linear: API key in `client/.env`
+
+## Quick Start
+
+```bash
+# 1. Start Allure dashboard
+pnpm test:allure:docker
+
+# 2. Run a specific module (e.g., auth)
+pnpm run test:allure:auth
+
+# 3. Send results to Allure server
+pnpm test:allure:send
+
+# 4. Open dashboard
+pnpm test:allure:open
+
+# Or run everything at once
+pnpm test:allure && pnpm test:allure:send && pnpm test:allure:open
+```

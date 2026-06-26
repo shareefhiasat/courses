@@ -1,3 +1,0 @@
-🔍 Testing enrollments service layer with PostgreSQL backend...
-🔍 Enrollments API response status: 200
-✅ Enrollments API returned data: 0 enrollments

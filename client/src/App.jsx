@@ -45,7 +45,6 @@ const BehaviorPage = lazy(() => import('./pages/operations/behavior/BehaviorPage
 const QRScannerPage = lazy(() => import('./pages/operations/attendance/QRScannerPage'));
 const QRCodeDisplayPage = lazy(() => import('./pages/operations/attendance/QRCodeDisplayPage'));
 const EnrollmentsPage = lazy(() => import('./pages/academic/enrollments/EnrollmentsPage'));
-const AnalyticsPage = lazy(() => import('./pages/feedback/analytics/AnalyticsPage'));
 const PermissionMatrixPage = lazy(() => import('./pages/system/PermissionMatrixPage'));
 // RoleAccessPro removed - now using Keycloak roles for RBAC
 const StudentProfilePage = lazy(() => import('./pages/users/StudentProfilePage'));
@@ -460,15 +459,6 @@ const AppContent = () => {
           {/* ============================================ */}
           {/* ANALYTICS ROUTES (Auth + Role Guard) */}
           {/* ============================================ */}
-          <Route 
-            path="/analytics" 
-            element={
-              <ProtectedRoute screenId="analytics" screenName="Analytics">
-                <AnalyticsPage />
-              </ProtectedRoute>
-            } 
-          />
-          
           <Route 
             path="/advanced-analytics" 
             element={

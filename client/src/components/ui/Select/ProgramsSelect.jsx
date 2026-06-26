@@ -198,8 +198,8 @@ const ProgramsSelect = ({
   ];
 
   return (
-    <div className={`flex flex-nowrap gap-2 ${className}`} style={style}>
-      <div className="flex-1 min-w-[270px]">
+    <div className={`flex flex-wrap gap-2 ${className}`} style={style}>
+      <div className="flex-1 min-w-[180px]">
         <Select
           label={showLabels ? (t('program') || 'Program') : ''}
           options={programOptions}
@@ -223,7 +223,7 @@ const ProgramsSelect = ({
       </div>
 
       {showSubjects && (
-        <div className="flex-1 min-w-[270px]">
+        <div className="flex-1 min-w-[180px]">
           <Select
             label={showLabels ? (t('subject') || 'Subject') : ''}
             options={subjectOptions}
@@ -246,7 +246,7 @@ const ProgramsSelect = ({
       )}
 
       {showClasses && showSubjects && (
-        <div className="flex-1 min-w-[270px]">
+        <div className="flex-1 min-w-[180px]">
           <Select
             label={showLabels ? (t('class') || 'Class') : ''}
             options={classOptions}
@@ -265,7 +265,7 @@ const ProgramsSelect = ({
       )}
 
       {showTerms && (
-        <div className="flex-1 min-w-[200px]">
+        <div className="flex-1 min-w-[150px]">
           <TermSelect
             label={showLabels ? (t('term') || 'Term') : ''}
             value={selectedTerm || ''}

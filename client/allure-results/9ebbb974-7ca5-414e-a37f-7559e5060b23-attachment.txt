@@ -1,3 +1,0 @@
-🔍 Testing programs service layer with PostgreSQL backend...
-🔍 Programs API response status: 200
-✅ Programs API returned data: 0 programs

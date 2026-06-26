@@ -1,63 +1,137 @@
-// Mock implementation since bookmark DB service has incompatible exports
+import { info, error, warn, debug } from '@services/utils/logger.js';
+
+const STORAGE_KEY = 'bookmarks';
+
+const getStoredBookmarks = () => {
+  try {
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return stored ? JSON.parse(stored) : getEmptyBookmarks();
+  } catch {
+    return getEmptyBookmarks();
+  }
+};
+
+const setStoredBookmarks = (bookmarks) => {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(bookmarks));
+  } catch (err) {
+    error('[bookmarkService] Failed to store bookmarks:', err);
+  }
+};
+
 export const getBookmarks = async (options = {}) => {
   try {
+    const bookmarks = getStoredBookmarks();
     return {
       success: true,
-      data: [],
-      total: 0
+      data: bookmarks,
+      total: Object.values(bookmarks).reduce((sum, items) => sum + Object.keys(items).length, 0)
     };
   } catch (error) {
+    error('[bookmarkService] getBookmarks error:', error);
     return {
       success: false,
       error: error.message,
-      data: []
+      data: getEmptyBookmarks()
     };
   }
 };
+
 export const getUserBookmarks = async (userId, options = {}) => {
   try {
+    const bookmarks = getStoredBookmarks();
     return {
       success: true,
-      data: [],
-      total: 0
+      data: bookmarks,
+      total: Object.values(bookmarks).reduce((sum, items) => sum + Object.keys(items).length, 0)
     };
   } catch (error) {
+    error('[bookmarkService] getUserBookmarks error:', error);
     return {
       success: false,
       error: error.message,
-      data: []
+      data: getEmptyBookmarks()
     };
   }
 };
-export const onBookmarksChange = () => {
-  // Mock function - no real-time updates
-  return () => {};
+
+export const onBookmarksChange = (userId, onUpdate, onError) => {
+  // Listen for storage events from other tabs
+  const handleStorageChange = (e) => {
+    if (e.key === STORAGE_KEY && e.newValue) {
+      try {
+        const updatedBookmarks = JSON.parse(e.newValue);
+        onUpdate(updatedBookmarks);
+      } catch (err) {
+        onError(err);
+      }
+    }
+  };
+  
+  window.addEventListener('storage', handleStorageChange);
+  
+  return () => {
+    window.removeEventListener('storage', handleStorageChange);
+  };
 };
-export const toggleBookmark = async (itemId, type, userId) => {
+
+export const toggleBookmark = async (userId, itemId, itemType, metadata = {}) => {
   try {
+    const bookmarks = getStoredBookmarks();
+    
+    if (!bookmarks[itemType]) {
+      bookmarks[itemType] = {};
+    }
+    
+    const isBookmarked = !!bookmarks[itemType][itemId];
+    
+    if (isBookmarked) {
+      delete bookmarks[itemType][itemId];
+    } else {
+      bookmarks[itemType][itemId] = {
+        bookmarked: true,
+        bookmarkedAt: Date.now(),
+        userId,
+        ...metadata
+      };
+    }
+    
+    setStoredBookmarks(bookmarks);
+    
+    debug('[bookmarkService] Bookmark toggled:', {
+      itemId,
+      itemType,
+      isBookmarked: !isBookmarked
+    });
+    
     return {
       success: true,
-      bookmarked: false
+      isBookmarked: !isBookmarked
     };
   } catch (error) {
+    error('[bookmarkService] toggleBookmark error:', error);
     return {
       success: false,
-      error: error.message,
-      bookmarked: false
+      isBookmarked: false,
+      error: error.message
     };
   }
 };
-export const isBookmarked = async (itemId, type, userId) => {
+
+export const isBookmarked = async (userId, itemId, itemType) => {
   try {
+    const bookmarks = getStoredBookmarks();
+    const bookmarked = !!bookmarks[itemType]?.[itemId];
     return {
       success: true,
-      bookmarked: false
+      bookmarked
     };
   } catch (error) {
+    error('[bookmarkService] isBookmarked error:', error);
     return {
       success: false,
-      error: error.message,
-      bookmarked: false
+      bookmarked: false,
+      error: error.message
     };
   }
 };
@@ -82,8 +156,8 @@ export const calculateBookmarkCount = (items = [], bookmarks = {}, mode = 'activ
     }).length;
     
     return count;
-  } catch (error) {
-    debug('[bookmarkService] calculateBookmarkCount error:', error);
+  } catch (err) {
+    console.warn('[bookmarkService] calculateBookmarkCount error:', err);
     return 0;
   }
 };

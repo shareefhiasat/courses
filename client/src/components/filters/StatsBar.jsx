@@ -1,5 +1,5 @@
 import React from 'react';
-import { getColoredIcon } from '@constants/iconTypes';
+import { getIconWithColor } from '@constants/iconTypes';
 import PortalTooltip from '@ui/PortalTooltip';
 
 
@@ -158,7 +158,7 @@ const StatsBar = ({
         <div 
           style={{ display: 'flex', alignItems: 'center', gap: 4 }}
         >
-          {getColoredIcon('ui', item.icon, 14, item.color, theme)}
+          {getIconWithColor('ui', item.icon, 14, item.color)}
           <span style={{ fontWeight: 700, color: item.color }}>{item.value}</span>
         </div>
         </PortalTooltip>

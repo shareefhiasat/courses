@@ -99,6 +99,97 @@ class AnnouncementDbService {
       return { success: false, error: error.message, data: null };
     }
   }
+
+  /**
+   * Create a new announcement
+   */
+  async create(announcementData) {
+    const startTime = Date.now();
+    try {
+      console.log(`[${this.serviceName}] Creating announcement:`, { data: announcementData });
+      
+      const result = await api.post('/announcements', announcementData);
+
+      const duration = Date.now() - startTime;
+      console.log(`[${this.serviceName}] ✅ Created announcement in ${duration}ms`, { announcementId: result.data?.id });
+
+      return {
+        success: result.success,
+        data: result.data,
+        error: result.error,
+        duration: `${duration}ms`
+      };
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      console.error(`[${this.serviceName}] ❌ Error creating announcement:`, error);
+      return { 
+        success: false, 
+        error: error.message,
+        data: null,
+        duration: `${duration}ms`
+      };
+    }
+  }
+
+  /**
+   * Update an existing announcement
+   */
+  async update(id, updateData) {
+    const startTime = Date.now();
+    try {
+      console.log(`[${this.serviceName}] Updating announcement:`, { id, data: updateData });
+      
+      const result = await api.put(`/announcements/${id}`, updateData);
+
+      const duration = Date.now() - startTime;
+      console.log(`[${this.serviceName}] ✅ Updated announcement in ${duration}ms`, { announcementId: id });
+
+      return {
+        success: result.success,
+        data: result.data,
+        error: result.error,
+        duration: `${duration}ms`
+      };
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      console.error(`[${this.serviceName}] ❌ Error updating announcement:`, error);
+      return { 
+        success: false, 
+        error: error.message,
+        data: null,
+        duration: `${duration}ms`
+      };
+    }
+  }
+
+  /**
+   * Delete an announcement (soft delete)
+   */
+  async delete(id) {
+    const startTime = Date.now();
+    try {
+      console.log(`[${this.serviceName}] Deleting announcement:`, { id });
+      
+      const result = await api.delete(`/announcements/${id}`);
+
+      const duration = Date.now() - startTime;
+      console.log(`[${this.serviceName}] ✅ Deleted announcement in ${duration}ms`, { announcementId: id });
+
+      return {
+        success: result.success,
+        error: result.error,
+        duration: `${duration}ms`
+      };
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      console.error(`[${this.serviceName}] ❌ Error deleting announcement:`, error);
+      return { 
+        success: false, 
+        error: error.message,
+        duration: `${duration}ms`
+      };
+    }
+  }
 }
 
 // Create singleton instance

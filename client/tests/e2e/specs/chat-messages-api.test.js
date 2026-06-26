@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Chat Messages API - CRUD Operations', () => {
-  const API_BASE_URL = 'http://localhost:3000';
+  const API_BASE_URL = 'http://localhost:8001';
   
   test('Chat Messages API - Service Layer Integration', async ({ request }) => {
     console.log('🔍 Testing chat messages service layer with PostgreSQL backend...');

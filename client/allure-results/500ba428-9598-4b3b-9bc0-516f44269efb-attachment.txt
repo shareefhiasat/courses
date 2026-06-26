@@ -1,3 +1,0 @@
-🔍 Getting announcements by type...
-🔍 Announcements by type response status: 200
-✅ Retrieved general announcements: 0

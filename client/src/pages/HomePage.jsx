@@ -1000,7 +1000,7 @@ const HomePage = memo(() => {
     bookmarkCount: hookFilterCounts.bookmark,
     mode,
     activityType,
-    bookmarksAvailable: Object.keys(bookmarks).length
+    bookmarksAvailable: Object.keys(bookmarks || {}).length
   });
 
   // Remove manual filterCounts since we're using the hook
@@ -1433,7 +1433,7 @@ const HomePage = memo(() => {
                   onSubjectChange={(val) => { setSelectedSubject(val); setSelectedClass('all'); }}
                   onClassChange={setSelectedClass}
                   showLabels={false}
-                  style={{ flex: 1 }}
+                  style={{ flex: '1 1 auto', minWidth: 0 }}
                   fullWidth
                 />
                 {canFilterByStudent && (
@@ -1448,14 +1448,14 @@ const HomePage = memo(() => {
                         label: s.displayName || s.email || s.uid
                       }))
                     ]}
-                    style={{ flex: 1 }}
+                    style={{ flex: '1 1 auto', minWidth: 180 }}
                     fullWidth
                     placeholder={t('all_students') || 'All Students'}
                   />
                 )}
                 {/* Year filter */}
                 {reviewAvailableYears.length > 0 && (
-                  <div style={{ minWidth: 120 }}>
+                  <div style={{ flex: '1 1 auto', minWidth: 120 }}>
                     <div style={{ fontSize: '0.75rem', fontWeight: 600, color: isDark ? '#9ca3af' : '#6b7280', marginBottom: '0.25rem' }}>{t('year') || 'Year'}</div>
                     <select value={selectedYear} onChange={e => setSelectedYear(e.target.value)} style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: isDark ? '1px solid #333' : '1px solid #e5e7eb', background: isDark ? '#0f172a' : '#fff', color: isDark ? '#f8fafc' : '#111', fontSize: '0.875rem', outline: 'none' }}>
                       <option value="all">{t('all') || 'All'}</option>
@@ -1465,7 +1465,7 @@ const HomePage = memo(() => {
                 )}
                 {/* Term filter */}
                 {reviewAvailableTerms.length > 0 && (
-                  <div style={{ minWidth: 120 }}>
+                  <div style={{ flex: '1 1 auto', minWidth: 120 }}>
                     <div style={{ fontSize: '0.75rem', fontWeight: 600, color: isDark ? '#9ca3af' : '#6b7280', marginBottom: '0.25rem' }}>{t('term') || 'Term'}</div>
                     <select value={selectedTerm} onChange={e => setSelectedTerm(e.target.value)} style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: isDark ? '1px solid #333' : '1px solid #e5e7eb', background: isDark ? '#0f172a' : '#fff', color: isDark ? '#f8fafc' : '#111', fontSize: '0.875rem', outline: 'none' }}>
                       <option value="all">{t('all') || 'All'}</option>
@@ -1641,32 +1641,33 @@ const HomePage = memo(() => {
             resourceTypes={mode === MODE_TYPES.RESOURCES ? [
               { 
                 value: RESOURCE_TYPES.ALL, 
-                label: getResourceTypeConfig(RESOURCE_TYPES.ALL, theme, lang).text, 
+                label: getResourceTypeConfig(RESOURCE_TYPES.ALL, theme, lang).label, 
                 count: resourceTypeCounts[RESOURCE_TYPES.ALL] || 0,
-                icon: getResourceTypeConfig(RESOURCE_TYPES.ALL, theme, lang).icon
+                icon: getResourceTypeConfig(RESOURCE_TYPES.ALL, theme, lang).icon,
+                color: getResourceTypeConfig(RESOURCE_TYPES.ALL, theme, lang).color
               },
               { 
                 value: RESOURCE_TYPES.VIDEO, 
-                label: getResourceTypeConfig(RESOURCE_TYPES.VIDEO, theme, lang).text, 
+                label: getResourceTypeConfig(RESOURCE_TYPES.VIDEO, theme, lang).label, 
                 count: resourceTypeCounts[RESOURCE_TYPES.VIDEO] || 0,
-                icon: getResourceTypeConfig(RESOURCE_TYPES.VIDEO, theme, lang).icon
+                icon: getResourceTypeConfig(RESOURCE_TYPES.VIDEO, theme, lang).icon,
+                color: getResourceTypeConfig(RESOURCE_TYPES.VIDEO, theme, lang).color
               },
               { 
                 value: RESOURCE_TYPES.LINK, 
-                label: getResourceTypeConfig(RESOURCE_TYPES.LINK, theme, lang).text, 
+                label: getResourceTypeConfig(RESOURCE_TYPES.LINK, theme, lang).label, 
                 count: resourceTypeCounts[RESOURCE_TYPES.LINK] || 0,
-                icon: getResourceTypeConfig(RESOURCE_TYPES.LINK, theme, lang).icon
+                icon: getResourceTypeConfig(RESOURCE_TYPES.LINK, theme, lang).icon,
+                color: getResourceTypeConfig(RESOURCE_TYPES.LINK, theme, lang).color
               },
               { 
                 value: RESOURCE_TYPES.DOCUMENT, 
-                label: getResourceTypeConfig(RESOURCE_TYPES.DOCUMENT, theme, lang).text, 
+                label: getResourceTypeConfig(RESOURCE_TYPES.DOCUMENT, theme, lang).label, 
                 count: resourceTypeCounts[RESOURCE_TYPES.DOCUMENT] || 0,
-                icon: getResourceTypeConfig(RESOURCE_TYPES.DOCUMENT, theme, lang).icon
+                icon: getResourceTypeConfig(RESOURCE_TYPES.DOCUMENT, theme, lang).icon,
+                color: getResourceTypeConfig(RESOURCE_TYPES.DOCUMENT, theme, lang).color
               }
             ] : []}
-            // Quiz type filter for activities
-            quizFilter={mode === MODE_TYPES.ACTIVITIES && activityType === ACTIVITY_TYPES.QUIZ ? 'quiz' : undefined}
-            showQuizFilter={mode === MODE_TYPES.ACTIVITIES && activityType === ACTIVITY_TYPES.QUIZ}
           />
         </div>
 
@@ -1728,7 +1729,7 @@ const HomePage = memo(() => {
                       activityType,
                       mode,
                       // Log all item properties to see what's available
-                      allItemProps: Object.keys(item),
+                      allItemProps: Object.keys(item || {}),
                       itemData: item
                     });
                   } else {

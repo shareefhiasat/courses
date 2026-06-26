@@ -39,12 +39,16 @@ export const useBookmarks = (options = {}) => {
         setLoading(true);
         setError(null);
         
-        const userBookmarks = await getUserBookmarks(user.uid);
+        const result = await getUserBookmarks(user.uid);
+        // getUserBookmarks may return an API response { success, data } or a bookmarks object
+        const userBookmarks = (result && result.success && result.data !== undefined)
+          ? (Array.isArray(result.data) ? getEmptyBookmarks() : (result.data || getEmptyBookmarks()))
+          : (result && typeof result === 'object' && !Array.isArray(result) ? result : getEmptyBookmarks());
         setBookmarks(userBookmarks);
         
         debug('[useBookmarks] Bookmarks loaded:', {
           userId: user.uid,
-          totalBookmarks: Object.values(userBookmarks).reduce((sum, items) => sum + Object.keys(items).length, 0)
+          totalBookmarks: Object.values(userBookmarks).reduce((sum, items) => sum + Object.keys(items || {}).length, 0)
         });
         
       } catch (err) {
@@ -88,6 +92,9 @@ export const useBookmarks = (options = {}) => {
         // Update local state immediately for better UX
         setBookmarks(prevBookmarks => {
           const nextBookmarks = { ...prevBookmarks };
+          if (!nextBookmarks[itemType]) {
+            nextBookmarks[itemType] = {};
+          }
           if (result.isBookmarked) {
             nextBookmarks[itemType][itemId] = {
               bookmarked: true,
@@ -127,8 +134,8 @@ export const useBookmarks = (options = {}) => {
 
   // Get total bookmark count
   const getTotalBookmarkCount = useCallback(() => {
-    return Object.values(bookmarks).reduce((total, typeBookmarks) => {
-      return total + Object.keys(typeBookmarks).length;
+    return Object.values(bookmarks || {}).reduce((total, typeBookmarks) => {
+      return total + Object.keys(typeBookmarks || {}).length;
     }, 0);
   }, [bookmarks]);
 

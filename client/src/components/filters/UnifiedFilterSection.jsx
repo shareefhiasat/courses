@@ -1,4 +1,14 @@
 import React from 'react';
+
+// Convert hex color to rgba with alpha
+const hexToRgba = (hex, alpha = 1) => {
+  const clean = hex.replace('#', '');
+  const r = parseInt(clean.substring(0, 2), 16);
+  const g = parseInt(clean.substring(2, 4), 16);
+  const b = parseInt(clean.substring(4, 6), 16);
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+};
+
 import StatsBar from './StatsBar';
 import StatusFilterChips from './StatusFilterChips';
 import DifficultyFilterChips from './DifficultyFilterChips';
@@ -99,9 +109,6 @@ const UnifiedFilterSection = ({
   resourceTypeFilter,
   setResourceTypeFilter,
   resourceTypes = [],
-  // Quiz filter
-  quizFilter,
-  showQuizFilter = false,
   // Filter counts for all chips
   filterCounts = {},
   // Hierarchy filters
@@ -251,23 +258,12 @@ const UnifiedFilterSection = ({
             {resourceTypes.map(type => {
               const isActive = resourceTypeFilter === type.value;
               // Define colors like difficulty chips
-              const colors = type.value === 'all' ? {
-                border: `${primaryColor}40`,
-                bg: `${primaryColor}15`,
-                activeBg: primaryColor,
-                text: primaryColor,
-                activeText: '#fff'
-              } : type.value === 'video' || type.value === 'link' ? {
-                border: '#bfdbfe',
-                bg: '#eff6ff',
-                activeBg: '#3b82f6',
-                text: '#3b82f6',
-                activeText: '#fff'
-              } : {
-                border: '#e5e7eb',
-                bg: '#f9fafb',
-                activeBg: '#6b7280',
-                text: '#6b7280',
+              const typeColor = type.color || primaryColor;
+              const colors = {
+                border: hexToRgba(typeColor, 0.5),
+                bg: hexToRgba(typeColor, 0.2),
+                activeBg: typeColor,
+                text: typeColor,
                 activeText: '#fff'
               };
 
@@ -309,21 +305,6 @@ const UnifiedFilterSection = ({
                 </button>
               );
             })}
-          </div>
-        )}
-
-        {/* Quiz filter indicator */}
-        {showQuizFilter && (
-          <div style={{ 
-            padding: '0.25rem 0.5rem',
-            borderRadius: '0.375rem',
-            backgroundColor: '#eef2ff',
-            border: '1px solid #e0e7ff',
-            color: '#4f46e5',
-            fontSize: '0.75rem',
-            fontWeight: '500'
-          }}>
-            {t('quiz') || 'Quiz'}
           </div>
         )}
 

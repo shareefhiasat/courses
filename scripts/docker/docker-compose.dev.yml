@@ -273,9 +273,13 @@ services:
       CLEAN_RESULTS_DIR: false
       HOST: 0.0.0.0
       PORT: 5050
+      SECURITY_USER: ""
+      SECURITY_PASS: ""
+      SECURITY_ENABLED: false
+      ALLURE_PROJECT_NAME: lms-e2e
     volumes:
-      - ../../client/test-results/allure-results:/app/allure-results
-      - ../../client/test-results/allure-reports:/app/default-reports
+      - ../../client/allure-results:/app/allure-results
+      - ../../client/test-results/reports/allure-report:/app/default-reports
     networks:
       - lms-qaf
     healthcheck:

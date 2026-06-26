@@ -1,3 +1,0 @@
-🔍 Testing classes service layer with PostgreSQL backend...
-🔍 Classes API response status: 200
-✅ Classes API returned data: 0 classes

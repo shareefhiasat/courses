@@ -11,8 +11,20 @@ import { getComplianceData } from '@services/api/workflow-documents-api.js';
 const CalendarCompliancePage = () => {
   const { t } = useLang();
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isStudent } = useAuth();
   const toast = useToast();
+
+  // Deny students access to compliance dashboard
+  if (isStudent) {
+    return (
+      <div className="dashboard-page">
+        <div className="access-denied">
+          <h2>{t('access_denied') || 'Access Denied'}</h2>
+          <p>{t('insufficient_privileges') || 'You need admin privileges to access this page.'}</p>
+        </div>
+      </div>
+    );
+  }
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);

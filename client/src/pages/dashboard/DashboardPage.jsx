@@ -237,6 +237,10 @@ const DashboardPage = () => {
     const filterRibbonItems = (items) => {
       if (isSuperAdmin) return items;
       return items.filter((item) => {
+        // Programs tab is super_admin only
+        if (item.key === 'programs') return false;
+        // Users tab is admin/HR only (not instructor/student)
+        if (item.key === 'users' && !isAdmin && !isHR) return false;
         const screenId = DASHBOARD_TAB_SCREEN_IDS[item.key] || item.key;
         return canAccessScreen(screenId);
       });
@@ -354,7 +358,7 @@ const DashboardPage = () => {
     return categories
       .map((cat) => ({ ...cat, items: filterRibbonItems(cat.items) }))
       .filter((cat) => cat.items.length > 0);
-  }, [t, isSuperAdmin, canAccessScreen]);
+  }, [t, isSuperAdmin, isAdmin, isHR, canAccessScreen]);
   // Initialize tour steps (localization-aware)
   useEffect(() => {
     const steps = [
@@ -440,10 +444,10 @@ const DashboardPage = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [location.hash, location.search]);
   useEffect(() => {
-    if (!authLoading && (!user || !(isAdmin || isSuperAdmin || isInstructor || isHR))) {
+    if (!authLoading && !user) {
       navigate('/');
     }
-  }, [user, isAdmin, isSuperAdmin, isInstructor, isHR, authLoading, navigate]);
+  }, [user, authLoading, navigate]);
   if (authLoading) {
     return <GlobalLoadingFallback />;
   }
@@ -549,7 +553,7 @@ const DashboardPage = () => {
             <LogsActivityPage />
           )}
           {activeTab === 'enrollments' && <EnrollmentsPage />}
-          {activeTab === 'users' && <UsersPage />}
+          {activeTab === 'users' && (isSuperAdmin || isAdmin || isHR) && <UsersPage />}
           {activeTab === 'categories' && <CategoriesPage isDashboardTab />}
           {activeTab === 'emailTemplates' && <EmailTemplatesPage />}
           {activeTab === 'notificationLogs' && <NotificationLogsPage />}

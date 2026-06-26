@@ -1,3 +1,0 @@
-🔍 Testing subjects service layer with PostgreSQL backend...
-🔍 Subjects API response status: 200
-✅ Subjects API returned data: 0 subjects

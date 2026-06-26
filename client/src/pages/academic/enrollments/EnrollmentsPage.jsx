@@ -16,7 +16,7 @@ import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadin
 import PortalTooltip from '@ui/PortalTooltip';
 
 const EnrollmentsPage = () => {
-  const { user, isAdmin, isInstructor } = useAuth();
+  const { user, isAdmin, isInstructor, isSuperAdmin } = useAuth();
   const { t, lang } = useLang();
   const { theme } = useTheme();
   const toast = useToast();
@@ -267,7 +267,7 @@ const EnrollmentsPage = () => {
     );
   });
 
-  if (!isAdmin && !isInstructor) {
+  if (!isAdmin && !isInstructor && !isSuperAdmin) {
     return (
       <Container maxWidth="md" className={styles.accessDenied}>
         {getThemedIcon('ui', 'shield', 48, theme)}

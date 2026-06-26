@@ -24,6 +24,11 @@ export const useFilterCounts = (items, options = {}) => {
     activityType = 'all'
   } = options;
 
+  // Guard against null (destructuring defaults only catch undefined)
+  const safeUserProgress = userProgress || {};
+  const safeSubmissions = submissions || {};
+  const safeBookmarks = bookmarks || {};
+
   return useMemo(() => {
     if (!items || items.length === 0) {
       return {
@@ -46,21 +51,21 @@ export const useFilterCounts = (items, options = {}) => {
 
     // Resources mode
     if (mode === 'resources') {
-      const completedCount = Object.values(userProgress).filter(p => p.completed).length;
+      const completedCount = Object.values(safeUserProgress).filter(p => p.completed).length;
       const requiredCount = items.filter(r => !r.optional).length;
       const optionalCount = items.filter(r => r.optional).length;
       const pendingCount = items.filter(r => {
         const rid = r.docId || r.id;
-        return !userProgress[rid]?.completed;
+        return !safeUserProgress[rid]?.completed;
       }).length;
       const overdueCount = items.filter(r => {
         if (!r.dueDate) return false;
         const dueDate = r.dueDate?.seconds ? new Date(r.dueDate.seconds * 1000) : new Date(r.dueDate);
         const rid = r.docId || r.id;
-        return dueDate < now && !userProgress[rid]?.completed;
+        return dueDate < now && !safeUserProgress[rid]?.completed;
       }).length;
       const requiresSubmissionCount = items.filter(r => r.requiresSubmission === true).length;
-      const bookmark = calculateBookmarkCount(items, bookmarks, mode, activityType);
+      const bookmark = calculateBookmarkCount(items, safeBookmarks, mode, activityType);
       
       // Calculate additional counts from item properties
       const featured = items.filter(r => r.featured).length;
@@ -94,7 +99,7 @@ export const useFilterCounts = (items, options = {}) => {
       const optionalCount = 0;
       const overdueCount = 0;
       const requiresSubmissionCount = items.filter(q => q.requiresSubmission === true).length;
-      const bookmark = calculateBookmarkCount(items, bookmarks, mode, activityType);
+      const bookmark = calculateBookmarkCount(items, safeBookmarks, mode, activityType);
       
       // Calculate additional counts from item properties
       const featured = items.filter(q => q.featured).length;
@@ -122,25 +127,25 @@ export const useFilterCounts = (items, options = {}) => {
     // Activities mode (default)
     const completedCount = items.filter(a => {
       const aid = a.docId || a.id;
-      return submissions[aid]?.status === 'graded' || submissions[aid]?.status === 'completed';
+      return safeSubmissions[aid]?.status === 'graded' || safeSubmissions[aid]?.status === 'completed';
     }).length;
     
     const pendingCount = items.filter(a => {
       const aid = a.docId || a.id;
-      return !submissions[aid] || (submissions[aid]?.status !== 'graded' && submissions[aid]?.status !== 'completed');
+      return !safeSubmissions[aid] || (safeSubmissions[aid]?.status !== 'graded' && safeSubmissions[aid]?.status !== 'completed');
     }).length;
     
     const overdueCount = items.filter(a => {
       if (!a.dueDate) return false;
       const dueDate = a.dueDate?.seconds ? new Date(a.dueDate.seconds * 1000) : new Date(a.dueDate);
       const aid = a.docId || a.id;
-      return dueDate < now && submissions[aid]?.status !== 'graded' && submissions[aid]?.status !== 'completed';
+      return dueDate < now && safeSubmissions[aid]?.status !== 'graded' && safeSubmissions[aid]?.status !== 'completed';
     }).length;
     
     const optionalCount = items.filter(a => a.optional).length;
     const requiredCount = items.filter(a => !a.optional).length;
     const requiresSubmissionCount = items.filter(a => a.requiresSubmission === true).length;
-    const bookmark = calculateBookmarkCount(items, bookmarks, mode, activityType);
+    const bookmark = calculateBookmarkCount(items, safeBookmarks, mode, activityType);
     
     // Calculate additional counts from item properties
     const featured = items.filter(a => a.featured).length;
@@ -163,7 +168,7 @@ export const useFilterCounts = (items, options = {}) => {
       intermediate,
       advanced
     };
-  }, [items, mode, userProgress, submissions, bookmarks, activityType]);
+  }, [items, mode, safeUserProgress, safeSubmissions, safeBookmarks, activityType]);
 };
 
 /**

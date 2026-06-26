@@ -1,3 +1,0 @@
-🔍 Testing enrollment validation...
-🔍 Invalid enrollment creation response status: 400
-✅ Validation working correctly: User ID is required

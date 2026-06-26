@@ -54,7 +54,7 @@ export default function QuizzesPage() {
   const lastSavedRef = useRef(null);
   const { t, lang } = useLang();
   const { theme } = useTheme();
-  const { user, isAdmin, isInstructor, loading: authLoading } = useAuth();
+  const { user, isAdmin, isInstructor, isStudent, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const quizId = searchParams.get('id');
@@ -1091,12 +1091,14 @@ export default function QuizzesPage() {
           {/* Stats Cards with Create Quiz on same line */}
           <div className={QuizManagementPageStyles.statsSection}>
             <div className={QuizManagementPageStyles.statsGrid} style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
+              {!isStudent && (
               <Card style={{ cursor: 'pointer', transition: 'all 0.2s', border: '2px dashed var(--color-primary, #800020)' }} onClick={handleAddNew}>
                 <CardBody style={{ padding: '1rem 1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', minHeight: '100px' }}>
                   {getThemedIcon('ui', 'plus', 24, theme)}
-                  <span style={{ fontWeight: 600, color: 'var(--color-primary, #800020)', fontSize: '0.875rem' }}>Create Quiz</span>
+                  <span style={{ fontWeight: 600, color: 'var(--color-primary, #800020)', fontSize: '0.875rem' }}>{t('create_quiz') || 'Create Quiz'}</span>
                 </CardBody>
               </Card>
+              )}
               
               <Card className={QuizManagementPageStyles.statCard}>
                 <CardBody>
@@ -1188,14 +1190,16 @@ export default function QuizzesPage() {
                 <CardBody className={QuizManagementPageStyles.emptyState}>
                   {getThemedIcon('ui', 'help_circle', 48, theme)}
                   <h3>No Quizzes Yet</h3>
-                  <p>Create your first quiz to get started</p>
+                  {!isStudent && <p>{t('create_quiz') || 'Create your first quiz to get started'}</p>}
+                  {!isStudent && (
                   <Button
                     variant="primary"
                     onClick={handleAddNew}
                   >
                     {getThemedIcon('ui', 'plus', 16, theme)}
-                    Create Quiz
+                    {t('create_quiz') || 'Create Quiz'}
                   </Button>
+                  )}
                 </CardBody>
               </Card>
             ) : (

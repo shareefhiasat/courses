@@ -296,6 +296,13 @@
   border: 1px solid var(--border, #e5e7eb);
 }
 
+[dir="rtl"] .dropdown-menu,
+html[dir="rtl"] .dropdown-menu,
+html[lang="ar"] .dropdown-menu {
+  right: auto;
+  left: 0;
+}
+
 [data-theme="dark"] .dropdown-menu {
   background: var(--panel, #1a1a1a);
   border-color: var(--border, #333333);

@@ -1,3 +1,0 @@
-🔍 Getting resource statistics...
-🔍 Resource stats response status: 404
-❌ Failed to get resource stats: 404

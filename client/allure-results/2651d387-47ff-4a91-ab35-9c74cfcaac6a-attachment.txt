@@ -1,3 +1,0 @@
-🔍 Testing attendance validation...
-🔍 Invalid attendance creation response status: 400
-✅ Validation working correctly: User ID is required

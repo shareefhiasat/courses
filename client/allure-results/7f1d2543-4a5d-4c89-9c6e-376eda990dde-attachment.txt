@@ -1,3 +1,0 @@
-🔍 Testing resources service layer with PostgreSQL backend...
-🔍 Resources API response status: 200
-✅ Resources API returned data: 0 resources

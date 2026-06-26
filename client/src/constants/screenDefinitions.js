@@ -192,12 +192,6 @@ export const SCREEN_DEFINITIONS = {
   },
   
   // ANALYTICS
-  analytics: {
-    id: 'analytics',
-    nameKey: 'analytics',
-    group: SCREEN_GROUPS.ANALYTICS,
-    descriptionKey: 'analytics_description'
-  },
   advancedAnalytics: {
     id: 'advancedAnalytics',
     nameKey: 'advanced_analytics',

@@ -1,4 +1,4 @@
-import { getThemedIcon, getColoredIcon } from './iconTypes';
+import { getIconWithColor } from './iconTypes';
 import { RESOURCE_TYPES } from '../utils/sharedTypes';
 import { info, error, warn, debug } from '../services/utils/logger.js';
 
@@ -39,13 +39,14 @@ export const getResourceTypeColor = (type) => {
 };
 
 export const getResourceTypeIcon = (type, theme = 'light', lang = 'en') => {
+  const color = getResourceTypeColor(type);
   const iconMap = {
-    all: getThemedIcon('ui', 'folder', 16, theme),
-    video: getThemedIcon('ui', 'video', 16, theme),
-    link: getThemedIcon('ui', 'link', 16, theme),
-    document: getThemedIcon('ui', 'file_text', 16, theme)
+    all: getIconWithColor('ui', 'folder', 16, color),
+    video: getIconWithColor('ui', 'video', 16, color),
+    link: getIconWithColor('ui', 'link', 16, color),
+    document: getIconWithColor('ui', 'file_text', 16, color)
   };
-  return iconMap[type] || getThemedIcon('ui', 'file', 16, theme);
+  return iconMap[type] || getIconWithColor('ui', 'file', 16, color);
 };
 
 export const getResourceTypeConfig = (type, theme = 'light', lang = 'en') => {

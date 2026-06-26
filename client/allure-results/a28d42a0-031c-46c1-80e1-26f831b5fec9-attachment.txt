@@ -1,3 +1,0 @@
-🔍 Deleting activity: cmn1mq25n00072ifc1n0vt2ca
-🔍 Delete activity response status: 204
-✅ Activity deleted successfully

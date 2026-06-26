@@ -1,3 +1,0 @@
-🔍 Getting active announcements...
-🔍 Active announcements response status: 404
-❌ Failed to get active announcements: 404

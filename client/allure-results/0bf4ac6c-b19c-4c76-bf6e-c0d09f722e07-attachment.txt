@@ -1,3 +1,0 @@
-🔍 Testing announcement validation...
-🔍 Invalid announcement creation response status: 400
-✅ Validation working correctly: Announcement title is required

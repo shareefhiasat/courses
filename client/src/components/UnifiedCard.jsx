@@ -1,6 +1,6 @@
 import React, { memo } from 'react';
 import { Button } from '@ui';
-import { formatDateTime } from '@utils/date';
+import { formatDateTime, formatDate } from '@utils/date';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon, getWhiteIcon, getIconWithColor, getColoredIcon } from '@constants/iconTypes';
 import { DIFFICULTY_TYPES } from '@constants/difficultyTypes';
@@ -8,6 +8,7 @@ import { useLookupTypes } from '@hooks/useLookupTypes.js';
 // OLD: import { ACTIVITY_TYPES } from '@constants/activityTypes';
 // NOW: Using useLookupTypes hook for all lookup data
 import { getResourceTypeConfig } from '@constants/resourceTypes';
+import { ACTIVITY_DISPLAY_NAMES } from '@constants/activityTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import PortalTooltip from '@ui/PortalTooltip';
@@ -145,50 +146,62 @@ const UnifiedCard = memo(({
     return typeof desc === 'string' && (desc.includes('<p>') || desc.includes('<b>') || desc.includes('<ul>') || desc.includes('<ol>') || desc.includes('<h') || desc.includes('<br'));
   };
 
-  const getTypeIcon = () => {
+  const getTypeIcon = (iconColor) => {
     if (flavor === RECORD_TYPES.QUIZ) {
-      return getColoredIcon('ui', 'help', 14, '#7c3aed', theme);
+      return getIconWithColor('ui', 'help', 14, iconColor || '#7c3aed');
     }
     if (flavor === RECORD_TYPES.RESOURCE) {
       const resourceConfig = getResourceTypeConfig(item.type || 'document', theme, lang);
       return resourceConfig.icon;
     }
     if (flavor === RECORD_TYPES.ANNOUNCEMENT) {
-      return getColoredIcon('ui', 'megaphone', 14, '#dc2626', theme);
+      return getIconWithColor('ui', 'megaphone', 14, iconColor || '#dc2626');
     }
     
     // For activities, use activity types constants
-    const type = item.type || ACTIVITY_TYPES.TRAINING;
+    const rawType = item.type;
+    const type = typeof rawType === 'string' ? rawType : (rawType?.code || rawType?.name || ACTIVITY_TYPES.TRAINING);
     if (type === ACTIVITY_TYPES.QUIZ) {
-      // Use purple color for quiz icon to match quiz text and border
-      return getIconWithColor('ui', 'help', 14, '#7c3aed');
+      return getIconWithColor('ui', 'help', 14, iconColor || '#7c3aed');
     }
     if (type === ACTIVITY_TYPES.HOMEWORK) {
-      return getColoredIcon('ui', 'clipboard_list', 14, '#f57c00', theme);
+      return getIconWithColor('ui', 'clipboard_list', 14, iconColor || '#f57c00');
     }
     if (type === ACTIVITY_TYPES.TRAINING) {
-      return getColoredIcon('ui', 'book_open', 14, '#0284c7', theme);
+      return getIconWithColor('ui', 'book_open', 14, iconColor || '#0284c7');
     }
     if (type === ACTIVITY_TYPES.LAB_AND_PROJECT) {
-      return getColoredIcon('ui', 'wrench', 14, '#7c3aed', theme);
+      return getIconWithColor('ui', 'wrench', 14, iconColor || '#7c3aed');
     }
-    return getColoredIcon('ui', 'book_open', 14, primaryColor, theme);
+    return getIconWithColor('ui', 'book_open', 14, iconColor || primaryColor);
   };
 
   const getTypeLabel = () => {
     if (flavor === RECORD_TYPES.QUIZ) {
-      return t('quiz') || 'Quiz';
+      const label = t('activity_type_quiz') || t('quiz') || 'quiz';
+      return label.charAt(0).toUpperCase() + label.slice(1).toLowerCase();
     }
     if (flavor === RECORD_TYPES.RESOURCE) {
-      // Use title case instead of uppercase
-      const type = item.type || 'document';
-      return type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
+      // Use title case (first letter uppercase, rest lowercase)
+      const rawType = item.type;
+      const type = typeof rawType === 'string' ? rawType : (rawType?.code || rawType?.name || 'document');
+      const key = `activity_type_${type}`;
+      const translated = t(key);
+      const fallbackText = key.replaceAll('_', ' ');
+      const label = translated === fallbackText ? (ACTIVITY_DISPLAY_NAMES[type] || type) : translated;
+      return label.charAt(0).toUpperCase() + label.slice(1).toLowerCase();
     }
     if (flavor === RECORD_TYPES.ANNOUNCEMENT) {
-      return t('announcement') || 'Announcement';
+      const label = t('activity_type_announcement') || t('announcement') || 'announcement';
+      return label.charAt(0).toUpperCase() + label.slice(1).toLowerCase();
     }
-    const type = item.type || ACTIVITY_TYPES.TRAINING;
-    return t(type) || type;
+    const rawType = item.type;
+    const type = typeof rawType === 'string' ? rawType : (rawType?.code || rawType?.name || ACTIVITY_TYPES.TRAINING);
+    const key = `activity_type_${type}`;
+    const translated = t(key);
+    const fallbackText = key.replaceAll('_', ' ');
+    const label = translated === fallbackText ? (ACTIVITY_DISPLAY_NAMES[type] || type) : translated;
+    return label.charAt(0).toUpperCase() + label.slice(1).toLowerCase();
   };
 
   const getTypeColors = () => {
@@ -202,7 +215,8 @@ const UnifiedCard = memo(({
     if (flavor === RECORD_TYPES.ANNOUNCEMENT) {
       return { bg: '#fee2e2', fg: '#dc2626', border: '#fecaca' };
     }
-    const type = item.type || ACTIVITY_TYPES.TRAINING;
+    const rawType = item.type;
+    const type = typeof rawType === 'string' ? rawType : (rawType?.code || rawType?.name || ACTIVITY_TYPES.TRAINING);
     if (type === ACTIVITY_TYPES.QUIZ) return { bg: '#eef2ff', fg: '#4f46e5', border: '#e0e7ff' };
     if (type === ACTIVITY_TYPES.HOMEWORK) return { bg: '#fff3e0', fg: '#b45309', border: '#ffe0b2' };
     if (type === ACTIVITY_TYPES.TRAINING) return { bg: '#e0f2fe', fg: '#0284c7', border: '#bae6fd' };
@@ -212,23 +226,19 @@ const UnifiedCard = memo(({
   };
 
   const getLevelColors = () => {
-    const level = item.level || item.difficulty || 'beginner';
+    const rawLevel = item.level || item.difficulty;
+    const level = typeof rawLevel === 'string' ? rawLevel : (rawLevel?.code || rawLevel?.name || 'beginner');
     if (level === 'intermediate') return { bg: '#fff7ed', fg: '#b45309' };
     if (level === 'advanced') return { bg: '#fee2e2', fg: '#b91c1c' };
     return { bg: '#e8f5e9', fg: '#2e7d32' };
   };
 
   const getLevelLabel = () => {
-    const level = item.level || item.difficulty || 'beginner';
+    const rawLevel = item.level || item.difficulty;
+    const level = typeof rawLevel === 'string' ? rawLevel : (rawLevel?.code || rawLevel?.name || 'beginner');
     return t(level) || level;
   };
 
-  const formatDate = (date) => {
-    if (!date) return '';
-    
-    // Use centralized formatDateTime function
-    return formatDateTime(date);
-  };
 
   // Get primary color for border
   const cardBorderColor = primaryColor || '#800020';
@@ -374,7 +384,8 @@ const UnifiedCard = memo(({
           <div style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap' }}>
             {/* Level/Difficulty - simplified like filter chips */}
             {(item.level || item.difficulty) && (() => {
-              const level = (item.level || item.difficulty || '').toLowerCase();
+              const rawLevel = item.level || item.difficulty;
+              const level = (typeof rawLevel === 'string' ? rawLevel : (rawLevel?.code || rawLevel?.name || '')).toLowerCase();
               let bg, fg, border;
               if (level === DIFFICULTY_TYPES.BEGINNER) {
                 bg = '#dcfce7'; fg = '#166534'; border = '#166534';
@@ -408,7 +419,8 @@ const UnifiedCard = memo(({
             {/* Type - simplified like filter chips */}
             {(() => {
               const typeColors = getTypeColors();
-              const type = (item.type || '').toLowerCase();
+              const rawType = item.type;
+              const type = (typeof rawType === 'string' ? rawType : (rawType?.code || rawType?.name || '')).toLowerCase();
               let bg, fg, border;
 
               if (flavor === 'resource') {
@@ -416,13 +428,13 @@ const UnifiedCard = memo(({
                 fg = typeColors.fg;
                 border = typeColors.border;
               } else {
-                if (type === ACTIVITY_TYPES.TRAINING) {
+                if (type === (ACTIVITY_TYPES.TRAINING || '').toLowerCase()) {
                   bg = '#e0f2fe'; fg = '#0284c7'; border = '#0284c7';
-                } else if (type === ACTIVITY_TYPES.LAB_AND_PROJECT) {
+                } else if (type === (ACTIVITY_TYPES.LAB_AND_PROJECT || '').toLowerCase()) {
                   bg = '#f3e8ff'; fg = '#7c3aed'; border = '#7c3aed';
-                } else if (type === ACTIVITY_TYPES.HOMEWORK) {
+                } else if (type === (ACTIVITY_TYPES.HOMEWORK || '').toLowerCase()) {
                   bg = '#fff3e0'; fg = '#f57c00'; border = '#f57c00';
-                } else if (type === ACTIVITY_TYPES.QUIZ) {
+                } else if (type === (ACTIVITY_TYPES.QUIZ || '').toLowerCase()) {
                   bg = '#f3e8ff'; fg = '#7c3aed'; border = '#7c3aed';
                 } else {
                   bg = typeColors.bg || '#f3f4f6';
@@ -448,7 +460,7 @@ const UnifiedCard = memo(({
                         fontWeight: 600,
                         cursor: 'default'
                       }}>
-                {getTypeIcon()}
+                {getTypeIcon(fg)}
                     <span>{getTypeLabel()}</span>
               </span>
               </PortalTooltip>
@@ -577,7 +589,7 @@ const UnifiedCard = memo(({
                   gap: 6,
                   color: '#16a34a'
                 }}>
-                  {getWhiteIcon('ui', 'check', 14)}
+                  {getIconWithColor('ui', 'check', 14, '#16a34a')}
                   <span>{formatDate(completedAt)}</span>
                 </div>
               </PortalTooltip>
@@ -678,7 +690,12 @@ const UnifiedCard = memo(({
 
               {/* Complete button for activities, resources, homework, labels (except announcements, not in review mode) */}
               {onComplete && flavor !== RECORD_TYPES.ANNOUNCEMENT && !isReviewMode && (
-                  <PortalTooltip content={isCompleted ? t('completed') : t('mark_complete')} position="top">
+                  <PortalTooltip content={(
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      {getIconWithColor('ui', 'check', 14, '#fff')}
+                      <span>{isCompleted ? t('completed') : t('mark_complete')}</span>
+                    </span>
+                  )} position="top">
                   <Button
                       variant={isCompleted ? 'success' : 'outline'}
                       size="small"

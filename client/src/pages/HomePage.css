@@ -299,8 +299,27 @@
 
   /* Filter buttons responsive fixes */
   .filter-container {
-    overflow-x: hidden;
+    overflow-x: auto;
     max-width: 100%;
+  }
+
+  /* Custom scrollbar for horizontal scroll */
+  .filter-container::-webkit-scrollbar {
+    height: 8px;
+  }
+
+  .filter-container::-webkit-scrollbar-track {
+    background: rgba(128, 0, 32, 0.1);
+    border-radius: 4px;
+  }
+
+  .filter-container::-webkit-scrollbar-thumb {
+    background: #800020;
+    border-radius: 4px;
+  }
+
+  .filter-container::-webkit-scrollbar-thumb:hover {
+    background: #600018;
   }
 
   .filter-row {

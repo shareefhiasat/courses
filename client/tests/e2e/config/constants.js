@@ -4,7 +4,7 @@
  */
 
 // Base URL Configuration
-export const BASE_URL = process.env.BASE_URL || 'http://localhost:5174';
+export const BASE_URL = process.env.BASE_URL || 'https://localhost:5174';
 
 // Test Timeouts (in milliseconds)
 export const TIMEOUTS = {

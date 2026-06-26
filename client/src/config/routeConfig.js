@@ -242,12 +242,6 @@ export const ROUTE_CONFIG = {
 
   // Analytics routes
   ANALYTICS: {
-    analytics: {
-      path: '/analytics',
-      requireAuth: true,
-      screenId: 'analytics',
-      screenName: 'Analytics'
-    },
     advancedAnalytics: {
       path: '/advanced-analytics',
       requireAuth: true,

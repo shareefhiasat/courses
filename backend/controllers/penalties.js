@@ -215,6 +215,13 @@ export const createPenaltyController = async (req, res) => {
     }
     
     // Find the penalty type (case-insensitive)
+    if (!type) {
+      return res.status(400).json({
+        success: false,
+        error: 'Penalty type is required'
+      });
+    }
+
     const penaltyType = await prisma.penaltyTypes.findFirst({
       where: { 
         OR: [
@@ -341,7 +348,7 @@ export const updatePenaltyController = async (req, res) => {
       updatedBy: currentUserId
     };
     
-    if (type !== undefined) {
+    if (type !== undefined && type) {
       const penaltyType = await prisma.penaltyTypes.findFirst({
         where: { 
           OR: [

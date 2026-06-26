@@ -1,3 +1,0 @@
-🔍 Publishing activity: 1774176181499
-🔍 Publish activity response status: 200
-✅ Activity published successfully

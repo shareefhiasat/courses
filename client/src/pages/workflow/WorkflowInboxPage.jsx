@@ -31,7 +31,19 @@ const WorkflowInboxPage = () => {
   const { triggerNotification } = useNotifications();
   const toast = useToast();
   const { startLoading } = useGlobalLoading();
-  const { user } = useAuth();
+  const { user, isStudent } = useAuth();
+
+  // Deny students access to workflow inbox
+  if (isStudent) {
+    return (
+      <div className="dashboard-page">
+        <div className="access-denied">
+          <h2>{t('access_denied') || 'Access Denied'}</h2>
+          <p>{t('insufficient_privileges') || 'You need admin privileges to access this page.'}</p>
+        </div>
+      </div>
+    );
+  }
 
   // Check if user is super admin
   const isSuperAdmin = user?.roleAssignments?.some(ra => 

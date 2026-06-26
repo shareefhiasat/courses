@@ -101,6 +101,97 @@ class SubjectDbService {
       return { success: false, error: error.message, data: null };
     }
   }
+
+  /**
+   * Create a new subject
+   */
+  async create(subjectData) {
+    const startTime = Date.now();
+    try {
+      console.log(`[${this.serviceName}] Creating subject:`, { data: subjectData });
+      
+      const result = await api.post('/subjects', subjectData);
+
+      const duration = Date.now() - startTime;
+      console.log(`[${this.serviceName}] ✅ Created subject in ${duration}ms`, { subjectId: result.data?.id });
+
+      return {
+        success: result.success,
+        data: result.data,
+        error: result.error,
+        duration: `${duration}ms`
+      };
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      console.error(`[${this.serviceName}] ❌ Error creating subject:`, error);
+      return { 
+        success: false, 
+        error: error.message,
+        data: null,
+        duration: `${duration}ms`
+      };
+    }
+  }
+
+  /**
+   * Update an existing subject
+   */
+  async update(id, updateData) {
+    const startTime = Date.now();
+    try {
+      console.log(`[${this.serviceName}] Updating subject:`, { id, data: updateData });
+      
+      const result = await api.put(`/subjects/${id}`, updateData);
+
+      const duration = Date.now() - startTime;
+      console.log(`[${this.serviceName}] ✅ Updated subject in ${duration}ms`, { subjectId: id });
+
+      return {
+        success: result.success,
+        data: result.data,
+        error: result.error,
+        duration: `${duration}ms`
+      };
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      console.error(`[${this.serviceName}] ❌ Error updating subject:`, error);
+      return { 
+        success: false, 
+        error: error.message,
+        data: null,
+        duration: `${duration}ms`
+      };
+    }
+  }
+
+  /**
+   * Delete a subject (soft delete)
+   */
+  async delete(id) {
+    const startTime = Date.now();
+    try {
+      console.log(`[${this.serviceName}] Deleting subject:`, { id });
+      
+      const result = await api.delete(`/subjects/${id}`);
+
+      const duration = Date.now() - startTime;
+      console.log(`[${this.serviceName}] ✅ Deleted subject in ${duration}ms`, { subjectId: id });
+
+      return {
+        success: result.success,
+        error: result.error,
+        duration: `${duration}ms`
+      };
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      console.error(`[${this.serviceName}] ❌ Error deleting subject:`, error);
+      return { 
+        success: false, 
+        error: error.message,
+        duration: `${duration}ms`
+      };
+    }
+  }
 }
 
 // Create singleton instance

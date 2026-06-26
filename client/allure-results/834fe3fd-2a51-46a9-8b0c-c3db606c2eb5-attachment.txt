@@ -1,3 +1,0 @@
-🔍 Getting activity by ID: 1774176175452
-🔍 Get activity response status: 200
-✅ Activity retrieved successfully

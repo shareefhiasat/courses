@@ -1,7 +1,7 @@
 import { test, expect } from '@playwright/test';
 
 test.describe('Enrollments API - CRUD Operations', () => {
-  const API_BASE_URL = 'http://localhost:3000';
+  const API_BASE_URL = 'http://localhost:8001';
   
   test('Enrollments API - Service Layer Integration', async ({ request }) => {
     console.log('🔍 Testing enrollments service layer with PostgreSQL backend...');

@@ -1,3 +1,0 @@
-🔍 Creating new activity...
-🔍 Create activity response status: 201
-✅ Activity created successfully: 1774176175388

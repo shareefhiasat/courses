@@ -106,11 +106,6 @@ const ActivitiesPage = () => {
   const [activeActivityFormTab, setActiveActivityFormTab] = useState('basic');
   const [formErrors, setFormErrors] = useState({});
   const [loading, setLoading] = useState(false);
-  const [emailOptions, setEmailOptions] = useState({
-    sendEmail: false,
-    createAnnouncement: false,
-    emailLang: 'en'
-  });
   const { deleteModal, deleteActivity, handleDeleteConfirm, hideDeleteModal } = useDeleteModal(t);
   const [categories, setCategories] = useState([]);
   const [programs, setPrograms] = useState([]);
@@ -216,11 +211,6 @@ const ActivitiesPage = () => {
     setActivityForm(prev => ({ ...prev, [field]: value }));
   }, []);
 
-  const handleEmailOptionChange = useCallback((field, value) => {
-    info('🔔 Activity bell toggle changed:', { field, value, previous: emailOptions[field] });
-    setEmailOptions(prev => ({ ...prev, [field]: value }));
-  }, [emailOptions]);
-
   // Optimized handlers for RichTextEditor to prevent re-renders
   const handleDescriptionEnChange = useCallback((html) => {
     setActivityForm(prev => ({ ...prev, descriptionEn: html }));
@@ -301,7 +291,7 @@ const ActivitiesPage = () => {
       }
 
       if (editingActivity && editingActivity.docId && editingActivity.docId !== 'new') {
-        await updateActivity(editingActivity.docId, activityData, user, emailOptions);
+        await updateActivity(editingActivity.docId, activityData, user);
         toast?.showSuccess(t('activities_updated_successfully'));
         
         // Update local activities array instead of reloading
@@ -345,7 +335,7 @@ const ActivitiesPage = () => {
       setLoading(false);
       logger.timeEnd('[PERF] handleActivitySubmit');
     }
-  }, [activityForm, editingActivity, user, toast, syncRefsToState, resetActivityForm, t, emailOptions, loadData]);
+  }, [activityForm, editingActivity, user, toast, syncRefsToState, resetActivityForm, t, loadData]);
 
   const handleEditActivity = useCallback((activity) => {
     // Convert dueDate to input format for editing
@@ -1138,31 +1128,6 @@ const ActivitiesPage = () => {
           />
         </div>
         
-        {/* Email Notification Options */}
-
-          <ToggleSwitch
-            key="toggle-sendEmail"
-            label={t('send_email_to_students') || 'Send email to students'}
-            checked={emailOptions.sendEmail}
-            onChange={(checked) => handleEmailOptionChange('sendEmail', checked)}
-          />
-          {emailOptions.sendEmail && (
-        <div>
-              <small>{t('language') || 'Language'}</small>
-              <Select
-                searchable
-                placeholder={t('language') || 'Language'}
-                value={emailOptions.emailLang}
-                onChange={(e) => handleEmailOptionChange('emailLang', e.target.value)}
-                options={[
-                  { value: 'en', label: lang === 'ar' ? 'الإنجليزية' : 'English' },
-                  { value: 'ar', label: lang === 'ar' ? 'العربية' : 'Arabic' },
-                  { value: 'both', label: lang === 'ar' ? 'ثنائي اللغة' : 'Bilingual' }
-                ]}
-              />
-            </div>
-          )}
-
         {/* Form Actions */}
         <div className="form-actions">
           <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', justifyContent: 'space-between' }}>

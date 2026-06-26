@@ -1,3 +1,0 @@
-🔍 Getting public resources...
-🔍 Public resources response status: 404
-❌ Failed to get public resources: 404

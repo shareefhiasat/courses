@@ -1,1 +1,26 @@
-[{"name":"Critical","matchedStatuses":["failed","broken"]},{"name":"Flaky","matchedStatuses":["passed"],"messageRegex":".*retry.*"}]
+[
+  {
+    "name": "Critical Failures",
+    "matchedStatuses": ["failed", "broken"]
+  },
+  {
+    "name": "Skipped — No Data",
+    "matchedStatuses": ["skipped"],
+    "messageRegex": ".*No.*exist.*"
+  },
+  {
+    "name": "Skipped — Test User Creation Failed",
+    "matchedStatuses": ["skipped"],
+    "messageRegex": ".*Unable to create test user.*"
+  },
+  {
+    "name": "Skipped — Previous Step Failed",
+    "matchedStatuses": ["skipped"],
+    "messageRegex": ".*step failed.*"
+  },
+  {
+    "name": "Flaky Tests",
+    "matchedStatuses": ["passed"],
+    "messageRegex": ".*retry.*"
+  }
+]

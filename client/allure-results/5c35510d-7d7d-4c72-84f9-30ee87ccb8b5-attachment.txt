@@ -1,3 +1,0 @@
-🔍 Getting announcement statistics...
-🔍 Announcement stats response status: 404
-❌ Failed to get announcement stats: 404

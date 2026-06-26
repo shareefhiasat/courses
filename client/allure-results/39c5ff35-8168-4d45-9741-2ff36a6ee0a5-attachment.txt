@@ -1,3 +1,0 @@
-🔍 Testing resource validation...
-🔍 Invalid resource creation response status: 400
-✅ Validation working correctly: Resource title is required

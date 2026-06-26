@@ -98,7 +98,6 @@ const PATH_ALIASES = {
   'scheduling-calendar': 'scheduling-calendar',
   'instructor-availability': 'instructor-availability-setup',
   'classroom-availability': 'room-availability-setup',
-  analytics: 'analytics',
   'advanced-analytics': 'advanced-analytics',
   chat: 'chat',
   notifications: 'notifications',

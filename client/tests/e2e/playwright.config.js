@@ -4,6 +4,7 @@ import { BASE_URL } from './config/constants.js';
 
 export default defineConfig({
   testDir: './specs',
+  globalSetup: './global-setup.js',
   timeout: 60 * 1000,
   expect: {
     timeout: 10000,
@@ -11,34 +12,29 @@ export default defineConfig({
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
-  workers: process.env.CI ? 2 : 1,
+  workers: process.env.CI ? 2 : 8,
   outputDir: '../../test-results',
   reporter: [
-    ['html', { outputFolder: '../../test-results/reports/html', open: 'never' }],
-    ['list'],
+    ['line'],
+    ['html', { outputFolder: '../../test-results-html', open: 'never' }],
     ['json', { outputFile: '../../test-results/reports/results.json' }],
     ['junit', { outputFile: '../../test-results/reports/junit.xml' }],
-    // Allure reporter for beautiful test reports
     ['allure-playwright', { 
       outputFolder: '../../test-results/reports/allure-results',
       detail: true,
       suiteTitle: true,
-      categories: [
-        {
-          name: 'Critical',
-          matchedStatuses: ['failed', 'broken']
-        },
-        {
-          name: 'Flaky',
-          matchedStatuses: ['passed'],
-          messageRegex: '.*retry.*'
-        }
-      ]
+    }],
+    ['./reporters/linear-reporter.js', {
+      teamKey: 'SHA',
+      labels: ['qa', 'bug'],
+      allureUrl: 'http://localhost:5050',
+      dryRun: false,
     }]
   ],
   use: {
     baseURL: BASE_URL,
-    headless: process.env.CI ? true : true,
+    headless: process.env.HEADED ? false : true,
+    ignoreHTTPSErrors: true,
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
@@ -48,7 +44,7 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium',
-      use: { ...devices['Desktop Chrome'] },
+      use: { ...devices['Desktop Chrome'], ignoreHTTPSErrors: true },
     },
     // Uncomment for cross-browser testing
     // {
@@ -60,10 +56,12 @@ export default defineConfig({
     //   use: { ...devices['Desktop Safari'] },
     // },
   ],
-  webServer: {
-    command: 'npm run dev',
-    url: BASE_URL,
-    reuseExistingServer: !process.env.CI,
-    timeout: 180 * 1000,
-  },
+  // webServer disabled — dev server is expected to be running already
+  // (HTTPS self-signed cert breaks Playwright's health check)
+  // webServer: {
+  //   command: 'npm run dev',
+  //   url: BASE_URL,
+  //   reuseExistingServer: !process.env.CI,
+  //   timeout: 180 * 1000,
+  // },
 });
