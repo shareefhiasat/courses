@@ -6,7 +6,8 @@ import { LangProvider } from '@contexts/LangContext';
 import { ThemeProvider } from '@contexts/ThemeContext';
 import { ColorThemeProvider } from '@contexts/ColorThemeContext';
 import { GlobalLoadingProvider, GlobalLoadingFallback } from '@contexts/GlobalLoadingContext';
-import { HelpProvider } from '@contexts/HelpContext';
+import HelpCommandPalette from './components/help/HelpCommandPalette.jsx';
+import HelpRedirect from './components/help/HelpRedirect.jsx';
 import { info, error, warn, debug } from './services/utils/logger.js';
 import { ROLE_STRINGS } from './utils/userUtils.js';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
@@ -20,7 +21,6 @@ import './utils/userRoleManager';
 
 // Direct imports — always-on shell components (not lazy, no barrel)
 import Navbar from '@ui/Navbar/Navbar';
-import HelpDrawer from '@ui/HelpDrawer.jsx';
 import SideDrawer from '@ui/SideDrawer/SideDrawer';
 import LoadingProgress from '@ui/LoadingProgress/LoadingProgress';
 import ToastProvider from '@ui/ToastProvider.jsx';
@@ -156,9 +156,8 @@ const AppContent = () => {
   }, [toggleSideDrawer]);
   
   return (
-    <HelpProvider>
-      <div className="app">
-        <LoadingProgress />
+    <div className="app">
+      <LoadingProgress />
         <PageTracker />
         {user && (
           <>
@@ -173,7 +172,7 @@ const AppContent = () => {
             />
           </>
         )}
-        <HelpDrawer />
+        {user && <HelpCommandPalette />}
         <main className="main-content">
         <Suspense fallback={<GlobalLoadingFallback />}>
         <Routes>
@@ -609,7 +608,6 @@ const AppContent = () => {
         </Suspense>
         </main>
       </div>
-    </HelpProvider>
   );
 };
 
@@ -625,6 +623,7 @@ function App() {
                   <Router>
                     <ErrorBoundary>
                       <Routes>
+                        <Route path="/help" element={<HelpRedirect />} />
                         <Route path="*" element={<AppContent />} />
                       </Routes>
                     </ErrorBoundary>

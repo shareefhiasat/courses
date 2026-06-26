@@ -4463,6 +4463,287 @@ const DICT = {
   'tour.cards_grid_content': 'Browse through your data and take actions using the available options',
   'tour.cards_grid_content_alt': 'Navigate through your content and manage items efficiently',
 
+  // Advanced Analytics Tour
+  'tour.advanced_analytics_toolbar': 'Use these buttons to add widgets, refresh data, toggle Edit Layout mode, or export all data as CSV.',
+  'tour.advanced_analytics_engine': 'This is the widget grid. Each card shows a chart or metric. In Edit Layout mode you can drag and resize widgets freely.',
+
+  // Analytics Dashboard Tour
+  'tour.analytics_filters': 'Use these filters to narrow down statistics by program, subject, and class.',
+  'tour.summary_cards': 'These cards show key counts for your accessible programs, classes, enrollments, activities, and resources.',
+  'tour.user_cards': 'This row shows user counts by role: students, instructors, HR, admins, and super admins.',
+  'tour.activity_cards': 'Here you can see totals for quizzes, announcements, penalties, behaviors, and participation records.',
+  'tour.analytics_refresh': 'Open the view-options menu to refresh the dashboard with the latest data.',
+
+  // Summary Dashboard Tour
+  'tour.summary_quick_actions': 'Use these buttons to quickly navigate to the Scheduling Calendar, manage Breaks & Holidays, Instructor Availability, and Room Availability.',
+  'tour.summary_auto_refresh': 'This refresh bar lets you manually reload data or set an automatic refresh interval to keep the dashboard up to date.',
+  'tour.summary_report_filters': 'Filter all sections below by Program, Subject, Class, Instructor, Term, and Year. Changes apply across every panel on this page.',
+  'tour.summary_time_range': 'Set the date range for all reports. Choose a preset (This Week, This Month, etc.) or enter a custom start and end date, then click Apply.',
+  'tour.summary_overview': 'Overview stat cards show total sessions, teaching hours, subject count, and class count at a glance.',
+  'tour.summary_analytics': 'The Analytics section contains widget charts for scheduling data. Expand or collapse it using the section header.',
+  'tour.summary_breaks': 'The Breaks & Holidays panel shows timelines and distribution charts for planned breaks and public holidays.',
+  'tour.summary_attendance': 'The Attendance Analytics panel provides charts and metrics for class-level and daily attendance data.',
+  'tour.summary_drive_analytics': 'The Drive, Workflow & Activity Analytics section shows role-based metrics for file uploads, workflow tasks, and activities.',
+
+  // Student Dashboard Tour
+  'tour.student_filters': 'Staff members can filter by Program, Subject, Class, and then select a specific student from the dropdown to view their data.',
+  'tour.student_tabs': 'Switch between Overview, Performance, Marks, and (for staff) Class tabs to explore different aspects of the student\'s record.',
+  'tour.student_overview': 'The Overview tab shows enrollment summary, semester progress, and key attendance metrics for the selected student or class.',
+  'tour.student_performance': 'The Performance tab lists attendance, participation, penalties, and behavior records. Staff can inline-edit or delete entries here.',
+  'tour.student_marks': 'The Marks tab displays quiz and assignment scores grouped by semester, with totals and averages.',
+  'tour.student_class_tab': 'The Class tab (staff only) shows aggregated class-level metrics, helping you compare all students in the selected class.',
+  'tour.student_attendance_analytics': 'The Attendance Analytics section contains interactive widgets for deeper attendance analysis. Expand it to explore charts.',
+  'tour.student_drive_analytics': 'The Drive, Workflow & Activity Analytics section shows role-based metrics for uploads, tasks, and academic activities.',
+
+  // Attendance Page (QR session) Tour
+  'tour.attendance_class_section': 'Expand this panel to select a class. Use the Program, Subject, Term, and Year filters to narrow down the list, then click a class to select it.',
+  'tour.attendance_settings': 'Admin-only: configure QR rotation speed (10–120 s), session duration, and strict device binding here, then save.',
+  'tour.attendance_qr_panel': 'Once a session is active the live QR code appears here. Students scan it with their phone. Resize it with the +/- buttons.',
+  'tour.attendance_manual_code': 'A 6-digit manual code rotates alongside the QR for students who cannot scan. It refreshes automatically.',
+  'tour.attendance_copy_link': 'Copy the direct attendance link to share with students via chat or messaging apps.',
+  'tour.attendance_export': 'Export the current session\'s attendance records to an Excel file.',
+  'tour.attendance_submit_hr': 'Instructors can submit the attendance report directly to HR for review after the session ends.',
+  'tour.attendance_start_btn': 'Click Start Session to generate the live QR code and begin recording attendance.',
+  'tour.attendance_late_mode': 'Toggle Late Mode during an active session to mark all new scans as "late" rather than "present".',
+  'tour.attendance_guidelines': 'Step-by-step instructions remind you of the full attendance workflow: select class → start → students scan → export.',
+  'tour.attendance_active_banner': 'This green banner confirms the session is active, showing elapsed time and the number of students who have already scanned.',
+
+  // QR Scanner (Daily Scan) Tour
+  'tour.qr_header_filters': 'Select Program, Subject, and Class here to load the student roster for the chosen class. In Standup mode only Program is needed.',
+  'tour.qr_mode_toggle': 'Switch between Regular attendance mode (QR scan per class) and Standup mode (morning roll-call by program).',
+  'tour.qr_date_picker': 'Choose the date you want to view or record attendance for. Defaults to today.',
+  'tour.qr_daily_report': 'Export a daily attendance report (Excel) for the selected class or program.',
+  'tour.qr_summary_report': 'Export a full semester summary report with cumulative attendance statistics.',
+  'tour.qr_violations_report': 'HR / Super Admin only: export an attendance violations report flagging students who exceed absence thresholds.',
+  'tour.qr_bulk_scan': 'Bulk Scan lets you mark multiple students present, late, or absent at once without scanning individual QR codes.',
+  'tour.qr_scanner_panel': 'The QR scanner camera panel reads student QR codes and instantly records their attendance status.',
+  'tour.qr_roster': 'The student roster lists everyone in the class with their current attendance status for the selected date.',
+  'tour.qr_student_actions': 'Click any student row to mark or change their attendance status, add participation points, log penalties, or record behavior.',
+  'tour.qr_stats_panel': 'The Stats panel shows a live summary of present, late, absent, and excused counts for today\'s session.',
+  'tour.qr_zap_panel': 'The Zap panel provides quick-action shortcuts for bulk status changes and common attendance operations.',
+
+  // ── Notification Drawer Tour ─────────────────────────────────────────────
+  'tour.notif_drawer_header': 'This is the Notifications Drawer. It slides in from the side and shows all your alerts in real-time.',
+  'tour.notif_drawer_search': 'Search and filter notifications by type, category, program, subject, or class.',
+  'tour.notif_drawer_mark_all': 'Mark all visible notifications as read with a single click.',
+  'tour.notif_drawer_settings': 'Toggle sound, vibration, and browser notification alerts from the settings panel.',
+  'tour.notif_drawer_list': 'Notification cards appear here. Each card shows type, title, message, and time. Click to navigate to the related record.',
+  'tour.notif_drawer_actions': 'Use the action buttons on each card to mark read/unread, archive, or delete individual notifications.',
+
+  // ── Notifications Page Tour ──────────────────────────────────────────────
+  'tour.notif_filters': 'Filter notifications by type, status, program, subject, and class to quickly find what you need.',
+  'tour.notif_search': 'Search notifications by keyword to locate a specific message.',
+  'tour.notif_type_toggle': 'Switch between viewing All, Unread, or Read notifications.',
+  'tour.notif_list': 'Your notification feed appears here. Each card shows the type icon, title, message, and timestamp.',
+  'tour.notif_mark_read': 'Mark individual notifications as read or bulk-mark all visible notifications at once.',
+  'tour.notif_actions': 'Use the action buttons on each notification to navigate to the related record or dismiss the alert.',
+  'tour.notif_realtime': 'Notifications update in real-time — new alerts appear automatically without refreshing the page.',
+
+  // ── Chat Page Tour ────────────────────────────────────────────────────────
+  'tour.chat_sidebar': 'The sidebar lists all available chat rooms and direct message threads. Click any to open it.',
+  'tour.chat_room_list': 'Rooms are grouped by type: class rooms, announcement channels, and direct messages.',
+  'tour.chat_search': 'Search messages or contacts using the search bar at the top of the sidebar.',
+  'tour.chat_message_area': 'Messages appear here in chronological order. Scroll up to load older messages.',
+  'tour.chat_input': 'Type your message here. Press Enter or click Send. You can also attach files, images, or voice notes.',
+  'tour.chat_reactions': 'Hover a message to react with an emoji, reply in a thread, or copy the message.',
+  'tour.chat_file_attach': 'Click the paperclip icon to attach files, images, or documents (subject to your role limits).',
+  'tour.chat_voice': 'Hold the microphone button to record a voice note and release to send.',
+  'tour.chat_members': 'Click the members icon to see who is in this room or channel.',
+
+  // ── Profile / Settings Tour ───────────────────────────────────────────────
+  'tour.profile_avatar': 'Your profile picture and display name appear here. Click to update your avatar.',
+  'tour.profile_info': 'View and edit your personal details: name, email, phone, and bio.',
+  'tour.profile_password': 'Change your login password from this section. Enter current and new password, then confirm.',
+  'tour.profile_preferences': 'Set your language, theme (light/dark), and notification preferences.',
+  'tour.profile_save': 'Click Save to apply any changes you have made to your profile.',
+
+  // ── Permission Matrix Tour ────────────────────────────────────────────────
+  'tour.perm_role_tabs': 'Select a role tab (Student, Instructor, HR, Admin, Super Admin) to view and edit its permissions.',
+  'tour.perm_category': 'Permissions are grouped by feature category. Expand a category to see individual permissions.',
+  'tour.perm_toggle': 'Toggle each permission on or off for the selected role. Changes take effect immediately after saving.',
+  'tour.perm_save': 'Click Save to commit all permission changes for the currently selected role.',
+  'tour.perm_reset': 'Reset resets all permissions for the selected role back to the system defaults.',
+
+  // ── Programs Page Tour ────────────────────────────────────────────────────
+  'tour.programs_search': 'Search for a program by name or code using this search box.',
+  'tour.programs_add': 'Click Add Program to create a new academic program. Fill in the name, code, and assign a coordinator.',
+  'tour.programs_grid': 'The data grid lists all programs. Click a row to select it. Use column headers to sort.',
+  'tour.programs_edit': 'Select a program and click Edit, or double-click a row, to modify its details.',
+  'tour.programs_delete': 'Select a program and click Delete to remove it (confirmation required).',
+  'tour.programs_export': 'Export the program list to Excel or CSV using the export button.',
+
+  // ── Subjects Page Tour ────────────────────────────────────────────────────
+  'tour.subjects_filters': 'Filter subjects by program to see only relevant subjects.',
+  'tour.subjects_add': 'Click Add Subject to create a new subject. Assign it to a program and set its type and requirements.',
+  'tour.subjects_grid': 'All subjects are listed here. Sort by name, program, or type using column headers.',
+  'tour.subjects_edit': 'Click a subject row then Edit to update its name, type, credit hours, or program assignment.',
+  'tour.subjects_delete': 'Remove a subject by selecting it and clicking Delete. Enrolled subjects cannot be deleted.',
+  'tour.subjects_export': 'Export the subject list to Excel for offline use.',
+
+  // ── Classes Page Tour ─────────────────────────────────────────────────────
+  'tour.classes_filters': 'Filter the class list by program and subject to narrow down results.',
+  'tour.classes_add': 'Click Add Class to create a new class. Assign an instructor, term, year, room, and schedule.',
+  'tour.classes_grid': 'All classes are listed here with instructor, subject, term, and enrollment count.',
+  'tour.classes_edit': 'Select a class and click Edit to update schedule, instructor, or room assignments.',
+  'tour.classes_delete': 'Delete a class (confirmation required). Active classes with enrolled students cannot be deleted.',
+  'tour.classes_export': 'Export the classes list to Excel.',
+
+  // ── Enrollments Page Tour ─────────────────────────────────────────────────
+  'tour.enrollments_filters': 'Filter enrollments by program, subject, class, or student to find specific records.',
+  'tour.enrollments_add': 'Enroll a student by clicking Add Enrollment, selecting the student and class, then saving.',
+  'tour.enrollments_grid': 'The grid shows all enrollment records with student name, class, status, and dates.',
+  'tour.enrollments_status': 'Change an enrollment status (Active, Suspended, Withdrawn, Completed) by editing the record.',
+  'tour.enrollments_bulk': 'Select multiple rows and use bulk actions to update status or export selected records.',
+  'tour.enrollments_export': 'Export the filtered enrollment list to Excel.',
+
+  // ── Manage Enrollments Tour ───────────────────────────────────────────────
+  'tour.manage_enroll_class': 'Select a class from the dropdown to manage its specific enrollment list.',
+  'tour.manage_enroll_list': 'This list shows all students enrolled in the selected class with their current status.',
+  'tour.manage_enroll_add': 'Add a student to this class using the Add Student button.',
+  'tour.manage_enroll_remove': 'Remove a student from this class by clicking the remove button on their row.',
+  'tour.manage_enroll_bulk': 'Use Select All and bulk actions to update multiple students at once.',
+
+  // ── Activities Page Tour ──────────────────────────────────────────────────
+  'tour.activities_filters': 'Filter activities by program, subject, class, type, and date range.',
+  'tour.activities_add': 'Create a new activity (quiz, assignment, lab, homework) using the Add Activity button.',
+  'tour.activities_grid': 'All activities are listed here. Click a row to view details or edit.',
+  'tour.activities_type': 'Activity types (Quiz, Lab, Homework, etc.) determine how marks and participation are tracked.',
+  'tour.activities_edit': 'Edit an activity to update its title, description, due date, or max marks.',
+  'tour.activities_delete': 'Delete an activity (confirmation required). Graded activities cannot be deleted.',
+  'tour.activities_export': 'Export activity records to Excel.',
+
+  // ── Resources Page Tour ───────────────────────────────────────────────────
+  'tour.resources_filters': 'Filter resources by category, program, subject, and class.',
+  'tour.resources_upload': 'Upload a new resource (document, video, link) using the Upload button. Set visibility and category.',
+  'tour.resources_grid': 'All resources are listed here. Click a row to preview or download.',
+  'tour.resources_category': 'Resources are categorised (Lecture Notes, Videos, Assignments, etc.) for easy browsing.',
+  'tour.resources_edit': 'Edit a resource to update its title, description, category, or file.',
+  'tour.resources_delete': 'Delete a resource by selecting it and clicking Delete.',
+  'tour.resources_export': 'Export the resource index to Excel.',
+
+  // ── Announcements Page Tour ───────────────────────────────────────────────
+  'tour.announce_filters': 'Filter announcements by program, subject, class, or date.',
+  'tour.announce_add': 'Click Add Announcement to create a new announcement. Set the target audience and priority.',
+  'tour.announce_grid': 'All announcements are listed here with title, target audience, date, and read status.',
+  'tour.announce_priority': 'High priority announcements are pinned at the top and highlighted in red.',
+  'tour.announce_edit': 'Edit an announcement to update its content, audience, or expiry date.',
+  'tour.announce_delete': 'Delete an announcement (confirmation required).',
+
+  // ── Drive Page Tour ───────────────────────────────────────────────────────
+  'tour.drive_sidebar': 'Navigate folders and drives in the left sidebar. Click a folder to open it.',
+  'tour.drive_toolbar': 'Use the toolbar to upload files, create folders, switch between list and grid view.',
+  'tour.drive_upload': 'Upload files by clicking Upload or dragging and dropping files into the file area.',
+  'tour.drive_file_list': 'Your files and folders appear here. Click a file to preview, download, or share.',
+  'tour.drive_search': 'Search for files by name using the search bar.',
+  'tour.drive_context_menu': 'Right-click a file or click the three-dot menu to rename, move, copy, share, or delete.',
+  'tour.drive_share': 'Share a file or folder with specific users or roles using the Share button.',
+  'tour.drive_breadcrumb': 'The breadcrumb bar shows your current location. Click any segment to navigate back.',
+
+  // ── Smart Drive Page Tour ─────────────────────────────────────────────────
+  'tour.smart_drive_search': 'Use the AI-powered search to find files by content, not just filename.',
+  'tour.smart_drive_filters': 'Filter results by file type, date, owner, or program/class.',
+  'tour.smart_drive_results': 'Smart search results appear here with relevance ranking and content previews.',
+  'tour.smart_drive_preview': 'Click a result to preview the file inline without downloading.',
+  'tour.smart_drive_bookmark': 'Bookmark frequently accessed files for quick access.',
+  'tour.smart_drive_tags': 'Add tags to files to improve future search accuracy and organisation.',
+
+  // ── Workflow Inbox Tour ───────────────────────────────────────────────────
+  'tour.workflow_tabs': 'Switch between My Tasks, Pending Approvals, Completed, and All Tasks using these tabs.',
+  'tour.workflow_filters': 'Filter tasks by priority, status, assignee, and due date.',
+  'tour.workflow_task_list': 'All workflow tasks are listed here. Click a task to view its details and take action.',
+  'tour.workflow_add': 'Create a new workflow task using the Add Task button. Set priority, assignee, and due date.',
+  'tour.workflow_approve': 'Approve or reject a pending task using the action buttons on the task detail panel.',
+  'tour.workflow_status': 'Task status (Open, In Progress, Completed, Rejected) is shown on each row.',
+  'tour.workflow_comments': 'Add comments or notes to a task to communicate with the assignee.',
+  'tour.workflow_priority': 'Priority levels (Urgent, High, Medium, Low) determine task ordering and badge colours.',
+
+  // ── Breaks & Holidays Tour ────────────────────────────────────────────────
+  'tour.breaks_calendar': 'The calendar view shows all scheduled breaks and public holidays for the selected term.',
+  'tour.breaks_add': 'Click Add Break/Holiday to schedule a new event. Set the name, date range, and type.',
+  'tour.breaks_list': 'The list view shows all breaks and holidays in tabular form with edit and delete options.',
+  'tour.breaks_type': 'Break types (National Holiday, Term Break, Emergency Closure) affect scheduling rules.',
+  'tour.breaks_edit': 'Edit a break to change its date range or description.',
+  'tour.breaks_delete': 'Delete a break from the system (confirmation required).',
+  'tour.breaks_export': 'Export the breaks and holidays list to Excel.',
+  'tour.breaks_import': 'Import breaks from an Excel template to add multiple events at once.',
+
+  // ── Instructor Availability Tour ──────────────────────────────────────────
+  'tour.instr_avail_filters': 'Filter by instructor name or program to view a specific instructor\'s availability.',
+  'tour.instr_avail_grid': 'The weekly grid shows each instructor\'s available and blocked time slots.',
+  'tour.instr_avail_add': 'Click a time slot to mark it as available or blocked for the selected instructor.',
+  'tour.instr_avail_bulk': 'Use bulk edit mode to update multiple slots across a week at once.',
+  'tour.instr_avail_export': 'Export availability data to Excel for scheduling review.',
+  'tour.instr_avail_conflict': 'Conflicting slots are highlighted in red. Resolve conflicts before finalising the schedule.',
+
+  // ── Room Availability Tour ────────────────────────────────────────────────
+  'tour.room_avail_filters': 'Filter rooms by building, capacity, or type to find suitable spaces.',
+  'tour.room_avail_grid': 'The grid shows room availability across the week. Green = free, Red = booked.',
+  'tour.room_avail_book': 'Click a free slot to book the room for a class session.',
+  'tour.room_avail_details': 'Click a booked slot to see which class is using the room and contact the instructor.',
+  'tour.room_avail_export': 'Export the room booking schedule to Excel.',
+
+  // ── Classroom Management Tour ─────────────────────────────────────────────
+  'tour.classrooms_search': 'Search for a classroom by name, building, or capacity.',
+  'tour.classrooms_add': 'Add a new classroom with its name, building, floor, capacity, and available equipment.',
+  'tour.classrooms_grid': 'All classrooms are listed here. Click a row to view or edit.',
+  'tour.classrooms_edit': 'Edit classroom details such as capacity, equipment, or availability restrictions.',
+  'tour.classrooms_delete': 'Remove a classroom that is no longer in use (confirmation required).',
+
+  // ── Session Availability Tour ─────────────────────────────────────────────
+  'tour.session_avail_calendar': 'The session calendar shows all scheduled class sessions for the selected period.',
+  'tour.session_avail_filters': 'Filter by program, subject, class, or instructor to narrow the session list.',
+  'tour.session_avail_add': 'Schedule a new session by clicking an empty slot on the calendar.',
+  'tour.session_avail_edit': 'Drag a session to reschedule it, or click it to edit details.',
+  'tour.session_avail_conflict': 'Conflicts (double-booked rooms or instructors) are highlighted in red.',
+  'tour.session_avail_export': 'Export the session schedule to Excel or PDF.',
+
+  // ── Penalty Types / Behavior Types / Participation Types Tour ─────────────
+  'tour.lookup_search': 'Search for a type by name to quickly locate it in the list.',
+  'tour.lookup_add': 'Click Add to create a new type. Set the name (English and Arabic), description, and colour.',
+  'tour.lookup_grid': 'All types are listed here. Click a row to edit or delete.',
+  'tour.lookup_edit': 'Edit a type to update its name, description, icon, or colour coding.',
+  'tour.lookup_delete': 'Delete a type that is no longer needed (confirmation required).',
+  'tour.lookup_color': 'The colour swatch shows how this type appears in reports and the attendance roster.',
+
+  // ── Marks / Grading Tour ──────────────────────────────────────────────────
+  'tour.marks_filters': 'Filter marks by program, subject, class, activity, and student.',
+  'tour.marks_grid': 'Marks are displayed in a grid with student names as rows and activities as columns.',
+  'tour.marks_enter': 'Click a cell to enter or edit a mark. Press Tab to move to the next student.',
+  'tour.marks_bulk': 'Use the bulk-fill option to set the same mark for all students at once.',
+  'tour.marks_save': 'Click Save to persist all mark changes. Unsaved changes are highlighted in yellow.',
+  'tour.marks_export': 'Export the marks sheet to Excel for offline review or printing.',
+  'tour.marks_stats': 'The statistics row at the bottom shows average, highest, and lowest marks for each activity.',
+
+  // ── Scheduling Calendar Tour ──────────────────────────────────────────────
+  'tour.sched_calendar_view': 'Switch between Day, Week, and Month views using the view selector.',
+  'tour.sched_calendar_filters': 'Filter the calendar by program, subject, class, instructor, or room.',
+  'tour.sched_calendar_add': 'Click an empty slot on the calendar to schedule a new session.',
+  'tour.sched_calendar_drag': 'Drag an existing session to reschedule it. Drop it on a new time slot.',
+  'tour.sched_calendar_conflict': 'Conflicts are shown in red. Hover to see which resource is double-booked.',
+  'tour.sched_calendar_export': 'Export the schedule to Excel, PDF, or iCal format.',
+  'tour.sched_calendar_today': 'Click Today to jump back to the current date.',
+
+  // ── User Roles Tour ───────────────────────────────────────────────────────
+  'tour.roles_list': 'All system roles are listed here with a description of their access level.',
+  'tour.roles_add': 'Create a custom role by clicking Add Role. Define its name and base permissions.',
+  'tour.roles_edit': 'Edit a role to change its name or reassign permissions.',
+  'tour.roles_delete': 'Delete a custom role. System roles cannot be deleted.',
+  'tour.roles_assign': 'Assign roles to users from the Users page or the permission matrix.',
+
+  // ── Dashboard (Admin) Tour ────────────────────────────────────────────────
+  'tour.admin_dash_stats': 'Key system stats (users, programs, classes, activities) are shown in these summary cards.',
+  'tour.admin_dash_recent': 'Recent activity feed shows the latest actions taken across the system.',
+  'tour.admin_dash_alerts': 'System alerts and warnings (e.g. permission issues, failed jobs) appear here.',
+  'tour.admin_dash_quick': 'Quick-action buttons let you jump to frequently used management sections.',
+
+  // Shared Joyride navigation labels
+  tour_back: 'Back',
+  tour_close: 'Close',
+  tour_finish: 'Finish',
+  tour_next: 'Next',
+  tour_skip: 'Skip',
+  tour_help: 'Start guided tour',
+
   // Activity Type translations for analytics legends
   activity_type_quiz: 'Quiz',
   activity_type_homework: 'Homework',
@@ -8396,6 +8677,287 @@ const DICT = {
     'tour.cards_grid': 'تعرض هذه البطاقات العناصر. استخدم الإجراءات للتفاعل مع العناصر',
     'tour.cards_grid_content': 'تصفح بياناتك واتخذ إجراءات باستخدام الخيارات المتاحة',
     'tour.cards_grid_content_alt': 'التنقل عبر المحتوى الخاص بك وإدارة العناصر بكفاءة',
+
+    // Advanced Analytics Tour
+    'tour.advanced_analytics_toolbar': 'استخدم هذه الأزرار لإضافة تقارير، تحديث البيانات، تفعيل وضع تعديل التخطيط، أو تصدير البيانات بصيغة CSV.',
+    'tour.advanced_analytics_engine': 'هذه شبكة التقارير. كل بطاقة تعرض رسماً بيانياً أو مقياساً. في وضع تعديل التخطيط يمكنك سحب وتغيير حجم التقارير بحرية.',
+
+    // Analytics Dashboard Tour
+    'tour.analytics_filters': 'استخدم هذه المرشحات لتضييق نطاق الإحصائيات حسب البرنامج والمادة والصف.',
+    'tour.summary_cards': 'تعرض هذه البطاقات العدد الرئيسي للبرامج والصفوف والتسجيلات والأنشطة والموارد المتاحة لك.',
+    'tour.user_cards': 'تعرض هذه الصفحة عدد المستخدمين حسب الدور: الطلاب والمدربون والموارد البشرية والمسؤولون.',
+    'tour.activity_cards': 'هنا يمكنك رؤية إجمالي الاختبارات والإعلانات والعقوبات والسلوكيات والمشاركات.',
+    'tour.analytics_refresh': 'افتح قائمة خيارات العرض لتحديث لوحة المعلومات بأحدث البيانات.',
+
+    // Summary Dashboard Tour (Arabic)
+    'tour.summary_quick_actions': 'استخدم هذه الأزرار للانتقال السريع إلى تقويم الجدول الزمني وإدارة الاستراحات والعطل وتوفر المدرسين وتوفر القاعات.',
+    'tour.summary_auto_refresh': 'يتيح لك هذا الشريط تحديث البيانات يدوياً أو ضبط فترة تحديث تلقائية للحفاظ على تحديث لوحة المعلومات.',
+    'tour.summary_report_filters': 'تصفية جميع الأقسام أدناه حسب البرنامج والمادة والصف والمدرس والفصل الدراسي والسنة. تنطبق التغييرات على كل لوحة في هذه الصفحة.',
+    'tour.summary_time_range': 'حدد نطاق التاريخ لجميع التقارير. اختر إعداداً مسبقاً (هذا الأسبوع، هذا الشهر، إلخ) أو أدخل تاريخ بداية ونهاية مخصصاً ثم انقر تطبيق.',
+    'tour.summary_overview': 'تعرض بطاقات الإحصاء العامة إجمالي الجلسات وساعات التدريس وعدد المواد والصفوف في لمحة.',
+    'tour.summary_analytics': 'يحتوي قسم التحليلات على رسوم بيانية ومقاييس لبيانات الجدول الزمني. قم بتوسيع أو طي القسم باستخدام رأس القسم.',
+    'tour.summary_breaks': 'تعرض لوحة الاستراحات والعطل جداول زمنية ومخططات توزيع للاستراحات المخططة والعطلات الرسمية.',
+    'tour.summary_attendance': 'تُقدم لوحة تحليلات الحضور مخططات ومقاييس لبيانات الحضور على مستوى الصف والحضور اليومي.',
+    'tour.summary_drive_analytics': 'يعرض قسم تحليلات المحرك والسير والأنشطة مقاييس قائمة على الأدوار لرفع الملفات ومهام السير والأنشطة.',
+
+    // Student Dashboard Tour (Arabic)
+    'tour.student_filters': 'يمكن للموظفين التصفية حسب البرنامج والمادة والصف ثم اختيار طالب محدد من القائمة المنسدلة لعرض بياناته.',
+    'tour.student_tabs': 'التبديل بين علامات تبويب نظرة عامة والأداء والدرجات وصف (للموظفين) لاستكشاف جوانب مختلفة من سجل الطالب.',
+    'tour.student_overview': 'تعرض علامة تبويب نظرة عامة ملخص التسجيل وتقدم الفصل الدراسي ومقاييس الحضور الرئيسية للطالب أو الصف المحدد.',
+    'tour.student_performance': 'تسرد علامة تبويب الأداء الحضور والمشاركة والعقوبات وسجلات السلوك. يمكن للموظفين تعديل الإدخالات أو حذفها.',
+    'tour.student_marks': 'تعرض علامة تبويب الدرجات درجات الاختبارات والواجبات مجمعة حسب الفصل الدراسي مع الإجماليات والمتوسطات.',
+    'tour.student_class_tab': 'تعرض علامة تبويب الصف (للموظفين فقط) مقاييس مجمعة على مستوى الصف لمساعدتك في مقارنة جميع الطلاب.',
+    'tour.student_attendance_analytics': 'يحتوي قسم تحليلات الحضور على أدوات تفاعلية لتحليل الحضور بعمق. قم بتوسيعه لاستكشاف الرسوم البيانية.',
+    'tour.student_drive_analytics': 'يعرض قسم تحليلات المحرك والسير والأنشطة مقاييس قائمة على الأدوار للتحميلات والمهام والأنشطة الأكاديمية.',
+
+    // Attendance Page (QR session) Tour (Arabic)
+    'tour.attendance_class_section': 'وسّع هذه اللوحة لاختيار صف. استخدم مرشحات البرنامج والمادة والفصل والسنة لتضييق القائمة ثم انقر على صف لتحديده.',
+    'tour.attendance_settings': 'للمسؤولين فقط: قم بضبط سرعة دوران رمز QR (10-120 ثانية) ومدة الجلسة وربط الجهاز الصارم هنا ثم احفظ.',
+    'tour.attendance_qr_panel': 'بمجرد بدء الجلسة يظهر رمز QR الحي هنا. يقوم الطلاب بمسحه بهواتفهم. يمكن تغيير حجمه بأزرار +/-.',
+    'tour.attendance_manual_code': 'يتناوب رمز مكون من 6 أرقام مع رمز QR للطلاب الذين لا يستطيعون المسح. يتجدد تلقائياً.',
+    'tour.attendance_copy_link': 'انسخ رابط الحضور المباشر لمشاركته مع الطلاب عبر الدردشة أو تطبيقات المراسلة.',
+    'tour.attendance_export': 'تصدير سجلات حضور الجلسة الحالية إلى ملف Excel.',
+    'tour.attendance_submit_hr': 'يمكن للمدرسين إرسال تقرير الحضور مباشرة إلى الموارد البشرية للمراجعة بعد انتهاء الجلسة.',
+    'tour.attendance_start_btn': 'انقر على "بدء الجلسة" لإنشاء رمز QR الحي وبدء تسجيل الحضور.',
+    'tour.attendance_late_mode': 'قم بتبديل وضع التأخر أثناء جلسة نشطة لتمييز جميع عمليات المسح الجديدة بـ "متأخر" بدلاً من "حاضر".',
+    'tour.attendance_guidelines': 'تذكّرك التعليمات خطوة بخطوة بسير عمل الحضور الكامل: اختر الصف ← ابدأ ← يمسح الطلاب ← تصدير.',
+    'tour.attendance_active_banner': 'يؤكد هذا الشريط الأخضر أن الجلسة نشطة ويعرض الوقت المنقضي وعدد الطلاب الذين قاموا بالمسح بالفعل.',
+
+    // QR Scanner (Daily Scan) Tour (Arabic)
+    'tour.qr_header_filters': 'حدد البرنامج والمادة والصف هنا لتحميل قائمة طلاب الصف المختار. في وضع الاستاند أب يكفي البرنامج فقط.',
+    'tour.qr_mode_toggle': 'التبديل بين وضع الحضور العادي (مسح QR لكل صف) ووضع الاستاند أب (حضور صباحي حسب البرنامج).',
+    'tour.qr_date_picker': 'اختر التاريخ الذي تريد عرض الحضور أو تسجيله. الافتراضي هو اليوم.',
+    'tour.qr_daily_report': 'تصدير تقرير الحضور اليومي (Excel) للصف أو البرنامج المحدد.',
+    'tour.qr_summary_report': 'تصدير تقرير ملخص كامل للفصل الدراسي مع إحصائيات الحضور التراكمية.',
+    'tour.qr_violations_report': 'للموارد البشرية والمسؤول الأعلى فقط: تصدير تقرير مخالفات الحضور يرصد الطلاب الذين تجاوزوا حدود الغياب.',
+    'tour.qr_bulk_scan': 'يتيح لك المسح الجماعي تمييز عدة طلاب حاضرين أو متأخرين أو غائبين دفعة واحدة دون مسح رموز QR الفردية.',
+    'tour.qr_scanner_panel': 'تقرأ لوحة كاميرا QR رموز الطلاب وتسجل حالة حضورهم على الفور.',
+    'tour.qr_roster': 'تسرد قائمة الطلاب جميع أفراد الصف مع حالة حضورهم الحالية للتاريخ المحدد.',
+    'tour.qr_student_actions': 'انقر على أي صف طالب لتغيير حالة حضوره أو إضافة نقاط مشاركة أو تسجيل عقوبات أو سجل السلوك.',
+    'tour.qr_stats_panel': 'تعرض لوحة الإحصائيات ملخصاً حياً للحاضرين والمتأخرين والغائبين والمعذورين لجلسة اليوم.',
+    'tour.qr_zap_panel': 'تُقدم لوحة زاب اختصارات إجراءات سريعة لتغييرات الحالة الجماعية وعمليات الحضور الشائعة.',
+
+    // ── Notification Drawer Tour (Arabic) ───────────────────────────────────
+    'tour.notif_drawer_header': 'هذا هو درج الإشعارات. ينزلق من الجانب ويعرض جميع تنبيهاتك في الوقت الفعلي.',
+    'tour.notif_drawer_search': 'ابحث وصفّح الإشعارات حسب النوع والفئة والبرنامج والمادة والصف.',
+    'tour.notif_drawer_mark_all': 'علّم جميع الإشعارات المرئية كمقروءة بنقرة واحدة.',
+    'tour.notif_drawer_settings': 'بدّل تنبيهات الصوت والاهتزاز وإشعارات المتصفح من لوحة الإعدادات.',
+    'tour.notif_drawer_list': 'تظهر بطاقات الإشعارات هنا. كل بطاقة تعرض النوع والعنوان والرسالة والوقت. انقر للانتقال إلى السجل المرتبط.',
+    'tour.notif_drawer_actions': 'استخدم أزرار الإجراءات في كل بطاقة لتعليمها مقروءة/غير مقروءة أو أرشفتها أو حذفها.',
+
+    // ── Notifications Page Tour (Arabic) ─────────────────────────────────────
+    'tour.notif_filters': 'تصفية الإشعارات حسب النوع والحالة والبرنامج والمادة والصف للعثور على ما تحتاجه بسرعة.',
+    'tour.notif_search': 'ابحث عن الإشعارات بالكلمات المفتاحية للعثور على رسالة محددة.',
+    'tour.notif_type_toggle': 'التبديل بين عرض الكل أو غير المقروء أو المقروء من الإشعارات.',
+    'tour.notif_list': 'تظهر خلاصة الإشعارات هنا. كل بطاقة تعرض الأيقونة والعنوان والرسالة والطابع الزمني.',
+    'tour.notif_mark_read': 'قم بتعليم الإشعارات الفردية كمقروءة أو عليم الكل دفعة واحدة.',
+    'tour.notif_actions': 'استخدم أزرار الإجراءات في كل إشعار للانتقال إلى السجل المرتبط أو رفض التنبيه.',
+    'tour.notif_realtime': 'تتحدث الإشعارات في الوقت الفعلي — تظهر التنبيهات الجديدة تلقائياً دون تحديث الصفحة.',
+
+    // ── Chat Page Tour (Arabic) ──────────────────────────────────────────────
+    'tour.chat_sidebar': 'يسرد الشريط الجانبي جميع غرف الدردشة والمحادثات المباشرة المتاحة. انقر على أي منها لفتحه.',
+    'tour.chat_room_list': 'الغرف مجمّعة حسب النوع: غرف الصفوف وقنوات الإعلانات والرسائل المباشرة.',
+    'tour.chat_search': 'ابحث في الرسائل أو جهات الاتصال باستخدام شريط البحث في أعلى الشريط الجانبي.',
+    'tour.chat_message_area': 'تظهر الرسائل هنا بالترتيب الزمني. مرر للأعلى لتحميل الرسائل الأقدم.',
+    'tour.chat_input': 'اكتب رسالتك هنا. اضغط Enter أو انقر إرسال. يمكنك أيضاً إرفاق ملفات وصور ومقاطع صوتية.',
+    'tour.chat_reactions': 'مرر مؤشرك فوق رسالة للتفاعل معها بإيموجي أو الرد في خيط أو نسخها.',
+    'tour.chat_file_attach': 'انقر على أيقونة المشبك لإرفاق ملفات وصور ومستندات (وفقاً لصلاحيات دورك).',
+    'tour.chat_voice': 'اضغط مع الاستمرار على زر الميكروفون لتسجيل مقطع صوتي وأفلت للإرسال.',
+    'tour.chat_members': 'انقر على أيقونة الأعضاء لرؤية من هو في هذه الغرفة أو القناة.',
+
+    // ── Profile / Settings Tour (Arabic) ────────────────────────────────────
+    'tour.profile_avatar': 'تظهر صورة ملفك الشخصي واسمك هنا. انقر لتحديث الصورة الشخصية.',
+    'tour.profile_info': 'اعرض وعدّل بياناتك الشخصية: الاسم والبريد الإلكتروني والهاتف والسيرة الذاتية.',
+    'tour.profile_password': 'غيّر كلمة مرور الدخول من هذا القسم. أدخل كلمة المرور الحالية والجديدة ثم أكّد.',
+    'tour.profile_preferences': 'اضبط لغتك والسمة (فاتح/داكن) وتفضيلات الإشعارات.',
+    'tour.profile_save': 'انقر حفظ لتطبيق أي تغييرات أجريتها على ملفك الشخصي.',
+
+    // ── Permission Matrix Tour (Arabic) ─────────────────────────────────────
+    'tour.perm_role_tabs': 'حدد علامة تبويب الدور (طالب، مدرب، موارد بشرية، مسؤول، مسؤول أعلى) لعرض أذوناته وتعديلها.',
+    'tour.perm_category': 'الأذونات مجمّعة حسب فئة الميزة. وسّع فئة لرؤية الأذونات الفردية.',
+    'tour.perm_toggle': 'بدّل كل إذن تشغيلاً أو إيقافاً للدور المحدد. تسري التغييرات بعد الحفظ مباشرة.',
+    'tour.perm_save': 'انقر حفظ لتأكيد جميع تغييرات الأذونات للدور المحدد حالياً.',
+    'tour.perm_reset': 'يعيد الإعادة جميع أذونات الدور المحدد إلى الإعدادات الافتراضية للنظام.',
+
+    // ── Programs Page Tour (Arabic) ──────────────────────────────────────────
+    'tour.programs_search': 'ابحث عن برنامج بالاسم أو الرمز باستخدام مربع البحث هذا.',
+    'tour.programs_add': 'انقر إضافة برنامج لإنشاء برنامج أكاديمي جديد. أدخل الاسم والرمز وعيّن منسقاً.',
+    'tour.programs_grid': 'تسرد شبكة البيانات جميع البرامج. انقر على صف لتحديده. استخدم رؤوس الأعمدة للفرز.',
+    'tour.programs_edit': 'حدد برنامجاً وانقر تعديل أو انقر نقراً مزدوجاً على صف لتعديل تفاصيله.',
+    'tour.programs_delete': 'حدد برنامجاً وانقر حذف لإزالته (تأكيد مطلوب).',
+    'tour.programs_export': 'صدّر قائمة البرامج إلى Excel أو CSV باستخدام زر التصدير.',
+
+    // ── Subjects Page Tour (Arabic) ──────────────────────────────────────────
+    'tour.subjects_filters': 'صفّح المواد حسب البرنامج لرؤية المواد ذات الصلة فقط.',
+    'tour.subjects_add': 'انقر إضافة مادة لإنشاء مادة جديدة. عيّنها لبرنامج وحدد نوعها ومتطلباتها.',
+    'tour.subjects_grid': 'جميع المواد مدرجة هنا. فرز حسب الاسم أو البرنامج أو النوع باستخدام رؤوس الأعمدة.',
+    'tour.subjects_edit': 'انقر على صف مادة ثم تعديل لتحديث اسمها أو نوعها أو ساعاتها الدراسية أو تعيين البرنامج.',
+    'tour.subjects_delete': 'احذف مادة بتحديدها والنقر على حذف. لا يمكن حذف المواد التي بها طلاب مسجلون.',
+    'tour.subjects_export': 'صدّر قائمة المواد إلى Excel للاستخدام دون اتصال.',
+
+    // ── Classes Page Tour (Arabic) ───────────────────────────────────────────
+    'tour.classes_filters': 'صفّح قائمة الصفوف حسب البرنامج والمادة لتضييق النتائج.',
+    'tour.classes_add': 'انقر إضافة صف لإنشاء صف جديد. عيّن مدرباً وفصلاً وسنة وقاعة وجدولاً.',
+    'tour.classes_grid': 'جميع الصفوف مدرجة هنا مع المدرب والمادة والفصل وعدد المسجلين.',
+    'tour.classes_edit': 'حدد صفاً وانقر تعديل لتحديث الجدول أو المدرب أو تعيينات القاعة.',
+    'tour.classes_delete': 'احذف صفاً (تأكيد مطلوب). لا يمكن حذف الصفوف النشطة ذات الطلاب المسجلين.',
+    'tour.classes_export': 'صدّر قائمة الصفوف إلى Excel.',
+
+    // ── Enrollments Page Tour (Arabic) ──────────────────────────────────────
+    'tour.enrollments_filters': 'صفّح التسجيلات حسب البرنامج أو المادة أو الصف أو الطالب للعثور على سجلات محددة.',
+    'tour.enrollments_add': 'سجّل طالباً بالنقر على إضافة تسجيل واختيار الطالب والصف ثم الحفظ.',
+    'tour.enrollments_grid': 'تعرض الشبكة جميع سجلات التسجيل مع اسم الطالب والصف والحالة والتواريخ.',
+    'tour.enrollments_status': 'غيّر حالة التسجيل (نشط، موقف، منسحب، مكتمل) بتعديل السجل.',
+    'tour.enrollments_bulk': 'حدد صفوفاً متعددة واستخدم الإجراءات الجماعية لتحديث الحالة أو تصدير السجلات المحددة.',
+    'tour.enrollments_export': 'صدّر قائمة التسجيلات المصفّاة إلى Excel.',
+
+    // ── Manage Enrollments Tour (Arabic) ────────────────────────────────────
+    'tour.manage_enroll_class': 'حدد صفاً من القائمة المنسدلة لإدارة قائمة تسجيله المحددة.',
+    'tour.manage_enroll_list': 'تعرض هذه القائمة جميع الطلاب المسجلين في الصف المحدد مع حالتهم الحالية.',
+    'tour.manage_enroll_add': 'أضف طالباً إلى هذا الصف باستخدام زر إضافة طالب.',
+    'tour.manage_enroll_remove': 'أزل طالباً من هذا الصف بالنقر على زر الإزالة في صفه.',
+    'tour.manage_enroll_bulk': 'استخدم تحديد الكل والإجراءات الجماعية لتحديث طلاب متعددين دفعة واحدة.',
+
+    // ── Activities Page Tour (Arabic) ────────────────────────────────────────
+    'tour.activities_filters': 'صفّح الأنشطة حسب البرنامج والمادة والصف والنوع ونطاق التاريخ.',
+    'tour.activities_add': 'أنشئ نشاطاً جديداً (اختبار، واجب، مختبر، تكليف) باستخدام زر إضافة نشاط.',
+    'tour.activities_grid': 'جميع الأنشطة مدرجة هنا. انقر على صف لعرض التفاصيل أو التعديل.',
+    'tour.activities_type': 'تحدد أنواع الأنشطة (اختبار، مختبر، واجب، إلخ) كيفية تتبع الدرجات والمشاركة.',
+    'tour.activities_edit': 'عدّل نشاطاً لتحديث عنوانه أو وصفه أو تاريخ استحقاقه أو الدرجة القصوى.',
+    'tour.activities_delete': 'احذف نشاطاً (تأكيد مطلوب). لا يمكن حذف الأنشطة التي صدرت فيها درجات.',
+    'tour.activities_export': 'صدّر سجلات الأنشطة إلى Excel.',
+
+    // ── Resources Page Tour (Arabic) ─────────────────────────────────────────
+    'tour.resources_filters': 'صفّح الموارد حسب الفئة والبرنامج والمادة والصف.',
+    'tour.resources_upload': 'ارفع مورداً جديداً (مستند، فيديو، رابط) باستخدام زر الرفع. حدد الرؤية والفئة.',
+    'tour.resources_grid': 'جميع الموارد مدرجة هنا. انقر على صف لمعاينته أو تنزيله.',
+    'tour.resources_category': 'الموارد مصنّفة (ملاحظات المحاضرات، مقاطع الفيديو، الواجبات، إلخ) لسهولة التصفح.',
+    'tour.resources_edit': 'عدّل مورداً لتحديث عنوانه أو وصفه أو فئته أو ملفه.',
+    'tour.resources_delete': 'احذف مورداً بتحديده والنقر على حذف.',
+    'tour.resources_export': 'صدّر فهرس الموارد إلى Excel.',
+
+    // ── Announcements Page Tour (Arabic) ────────────────────────────────────
+    'tour.announce_filters': 'صفّح الإعلانات حسب البرنامج أو المادة أو الصف أو التاريخ.',
+    'tour.announce_add': 'انقر إضافة إعلان لإنشاء إعلان جديد. حدد الجمهور المستهدف والأولوية.',
+    'tour.announce_grid': 'جميع الإعلانات مدرجة هنا مع العنوان والجمهور المستهدف والتاريخ وحالة القراءة.',
+    'tour.announce_priority': 'الإعلانات عالية الأولوية مثبّتة في الأعلى ومميّزة باللون الأحمر.',
+    'tour.announce_edit': 'عدّل إعلاناً لتحديث محتواه أو جمهوره أو تاريخ انتهاء صلاحيته.',
+    'tour.announce_delete': 'احذف إعلاناً (تأكيد مطلوب).',
+
+    // ── Drive Page Tour (Arabic) ──────────────────────────────────────────────
+    'tour.drive_sidebar': 'تصفّح المجلدات والمحركات في الشريط الجانبي الأيسر. انقر على مجلد لفتحه.',
+    'tour.drive_toolbar': 'استخدم شريط الأدوات لرفع الملفات وإنشاء المجلدات والتبديل بين عرض القائمة والشبكة.',
+    'tour.drive_upload': 'ارفع الملفات بالنقر على رفع أو سحب الملفات وإسقاطها في منطقة الملفات.',
+    'tour.drive_file_list': 'تظهر ملفاتك ومجلداتك هنا. انقر على ملف لمعاينته أو تنزيله أو مشاركته.',
+    'tour.drive_search': 'ابحث عن ملفات بالاسم باستخدام شريط البحث.',
+    'tour.drive_context_menu': 'انقر بزر الماوس الأيمن على ملف أو انقر على القائمة ثلاثية النقاط لإعادة التسمية أو النقل أو النسخ أو المشاركة أو الحذف.',
+    'tour.drive_share': 'شارك ملفاً أو مجلداً مع مستخدمين أو أدوار محددة باستخدام زر المشاركة.',
+    'tour.drive_breadcrumb': 'يعرض شريط التنقل موقعك الحالي. انقر على أي قسم للتنقل للخلف.',
+
+    // ── Smart Drive Page Tour (Arabic) ───────────────────────────────────────
+    'tour.smart_drive_search': 'استخدم البحث المدعوم بالذكاء الاصطناعي للعثور على الملفات حسب المحتوى وليس فقط اسم الملف.',
+    'tour.smart_drive_filters': 'صفّح النتائج حسب نوع الملف أو التاريخ أو المالك أو البرنامج/الصف.',
+    'tour.smart_drive_results': 'تظهر نتائج البحث الذكي هنا مع ترتيب الأهمية ومعاينات المحتوى.',
+    'tour.smart_drive_preview': 'انقر على نتيجة لمعاينة الملف مضمّناً دون تنزيل.',
+    'tour.smart_drive_bookmark': 'احفظ الملفات كثيرة الاستخدام في المفضلة للوصول السريع.',
+    'tour.smart_drive_tags': 'أضف وسوماً إلى الملفات لتحسين دقة البحث المستقبلي والتنظيم.',
+
+    // ── Workflow Inbox Tour (Arabic) ──────────────────────────────────────────
+    'tour.workflow_tabs': 'التبديل بين مهامي والموافقات المعلقة والمكتملة وجميع المهام باستخدام هذه التبويبات.',
+    'tour.workflow_filters': 'صفّح المهام حسب الأولوية والحالة والمكلّف وتاريخ الاستحقاق.',
+    'tour.workflow_task_list': 'جميع مهام سير العمل مدرجة هنا. انقر على مهمة لعرض تفاصيلها واتخاذ إجراء.',
+    'tour.workflow_add': 'أنشئ مهمة سير عمل جديدة باستخدام زر إضافة مهمة. حدد الأولوية والمكلّف وتاريخ الاستحقاق.',
+    'tour.workflow_approve': 'وافق على مهمة معلقة أو ارفضها باستخدام أزرار الإجراءات في لوحة تفاصيل المهمة.',
+    'tour.workflow_status': 'تظهر حالة المهمة (مفتوحة، قيد التنفيذ، مكتملة، مرفوضة) في كل صف.',
+    'tour.workflow_comments': 'أضف تعليقات أو ملاحظات إلى مهمة للتواصل مع المكلّف.',
+    'tour.workflow_priority': 'تحدد مستويات الأولوية (عاجل، عالي، متوسط، منخفض) ترتيب المهام وألوان الشارات.',
+
+    // ── Breaks & Holidays Tour (Arabic) ──────────────────────────────────────
+    'tour.breaks_calendar': 'يعرض عرض التقويم جميع الاستراحات والعطلات الرسمية المجدولة للفصل الدراسي المحدد.',
+    'tour.breaks_add': 'انقر إضافة استراحة/عطلة لجدولة حدث جديد. حدد الاسم ونطاق التاريخ والنوع.',
+    'tour.breaks_list': 'يعرض عرض القائمة جميع الاستراحات والعطلات في شكل جدولي مع خيارات التعديل والحذف.',
+    'tour.breaks_type': 'تؤثر أنواع الاستراحات (عطلة وطنية، استراحة الفصل، إغلاق طارئ) على قواعد الجدولة.',
+    'tour.breaks_edit': 'عدّل استراحة لتغيير نطاق تاريخها أو وصفها.',
+    'tour.breaks_delete': 'احذف استراحة من النظام (تأكيد مطلوب).',
+    'tour.breaks_export': 'صدّر قائمة الاستراحات والعطلات إلى Excel.',
+    'tour.breaks_import': 'استورد الاستراحات من قالب Excel لإضافة أحداث متعددة دفعة واحدة.',
+
+    // ── Instructor Availability Tour (Arabic) ────────────────────────────────
+    'tour.instr_avail_filters': 'صفّح حسب اسم المدرب أو البرنامج لعرض توفر مدرب محدد.',
+    'tour.instr_avail_grid': 'تعرض الشبكة الأسبوعية الفترات الزمنية المتاحة والمحجوبة لكل مدرب.',
+    'tour.instr_avail_add': 'انقر على فترة زمنية لتمييزها كمتاحة أو محجوبة للمدرب المحدد.',
+    'tour.instr_avail_bulk': 'استخدم وضع التعديل الجماعي لتحديث فترات متعددة عبر أسبوع دفعة واحدة.',
+    'tour.instr_avail_export': 'صدّر بيانات التوفر إلى Excel لمراجعة الجدول الزمني.',
+    'tour.instr_avail_conflict': 'الفترات المتعارضة مميّزة باللون الأحمر. حلّ التعارضات قبل الانتهاء من الجدول.',
+
+    // ── Room Availability Tour (Arabic) ──────────────────────────────────────
+    'tour.room_avail_filters': 'صفّح القاعات حسب المبنى أو الطاقة الاستيعابية أو النوع للعثور على المساحات المناسبة.',
+    'tour.room_avail_grid': 'تعرض الشبكة توفر القاعات عبر الأسبوع. أخضر = متاح، أحمر = محجوز.',
+    'tour.room_avail_book': 'انقر على فترة حرة لحجز القاعة لجلسة صف.',
+    'tour.room_avail_details': 'انقر على فترة محجوزة لرؤية الصف الذي يستخدم القاعة والتواصل مع المدرب.',
+    'tour.room_avail_export': 'صدّر جدول حجز القاعات إلى Excel.',
+
+    // ── Classroom Management Tour (Arabic) ───────────────────────────────────
+    'tour.classrooms_search': 'ابحث عن قاعة بالاسم أو المبنى أو الطاقة الاستيعابية.',
+    'tour.classrooms_add': 'أضف قاعة جديدة مع اسمها ومبناها وطابقها وطاقتها الاستيعابية والمعدات المتاحة.',
+    'tour.classrooms_grid': 'جميع القاعات مدرجة هنا. انقر على صف لعرضه أو تعديله.',
+    'tour.classrooms_edit': 'عدّل تفاصيل القاعة مثل الطاقة الاستيعابية أو المعدات أو قيود التوفر.',
+    'tour.classrooms_delete': 'احذف قاعة لم تعد مستخدمة (تأكيد مطلوب).',
+
+    // ── Session Availability Tour (Arabic) ───────────────────────────────────
+    'tour.session_avail_calendar': 'يعرض تقويم الجلسات جميع جلسات الصف المجدولة للفترة المحددة.',
+    'tour.session_avail_filters': 'صفّح حسب البرنامج أو المادة أو الصف أو المدرب لتضييق قائمة الجلسات.',
+    'tour.session_avail_add': 'جدوّل جلسة جديدة بالنقر على فترة فارغة في التقويم.',
+    'tour.session_avail_edit': 'اسحب جلسة لإعادة جدولتها أو انقر عليها لتعديل التفاصيل.',
+    'tour.session_avail_conflict': 'التعارضات (قاعات أو مدربون محجوزون مزدوجاً) مميّزة باللون الأحمر.',
+    'tour.session_avail_export': 'صدّر جدول الجلسات إلى Excel أو PDF.',
+
+    // ── Penalty / Behavior / Participation Types Tour (Arabic) ────────────────
+    'tour.lookup_search': 'ابحث عن نوع بالاسم للعثور عليه بسرعة في القائمة.',
+    'tour.lookup_add': 'انقر إضافة لإنشاء نوع جديد. حدد الاسم (بالإنجليزية والعربية) والوصف واللون.',
+    'tour.lookup_grid': 'جميع الأنواع مدرجة هنا. انقر على صف لتعديله أو حذفه.',
+    'tour.lookup_edit': 'عدّل نوعاً لتحديث اسمه أو وصفه أو أيقونته أو ترميزه اللوني.',
+    'tour.lookup_delete': 'احذف نوعاً لم يعد مطلوباً (تأكيد مطلوب).',
+    'tour.lookup_color': 'يعرض مربع اللون كيف يظهر هذا النوع في التقارير وسجل الحضور.',
+
+    // ── Marks / Grading Tour (Arabic) ────────────────────────────────────────
+    'tour.marks_filters': 'صفّح الدرجات حسب البرنامج والمادة والصف والنشاط والطالب.',
+    'tour.marks_grid': 'تُعرض الدرجات في شبكة مع أسماء الطلاب كصفوف والأنشطة كأعمدة.',
+    'tour.marks_enter': 'انقر على خلية لإدخال درجة أو تعديلها. اضغط Tab للانتقال إلى الطالب التالي.',
+    'tour.marks_bulk': 'استخدم خيار الملء الجماعي لتعيين الدرجة نفسها لجميع الطلاب دفعة واحدة.',
+    'tour.marks_save': 'انقر حفظ لتخزين جميع تغييرات الدرجات. التغييرات غير المحفوظة مميّزة بالأصفر.',
+    'tour.marks_export': 'صدّر جدول الدرجات إلى Excel للمراجعة دون اتصال أو الطباعة.',
+    'tour.marks_stats': 'يعرض صف الإحصائيات في الأسفل المتوسط والأعلى والأدنى لكل نشاط.',
+
+    // ── Scheduling Calendar Tour (Arabic) ────────────────────────────────────
+    'tour.sched_calendar_view': 'التبديل بين عروض اليوم والأسبوع والشهر باستخدام محدد العرض.',
+    'tour.sched_calendar_filters': 'صفّح التقويم حسب البرنامج أو المادة أو الصف أو المدرب أو القاعة.',
+    'tour.sched_calendar_add': 'انقر على فترة فارغة في التقويم لجدولة جلسة جديدة.',
+    'tour.sched_calendar_drag': 'اسحب جلسة موجودة لإعادة جدولتها. أسقطها على فترة زمنية جديدة.',
+    'tour.sched_calendar_conflict': 'تظهر التعارضات باللون الأحمر. مرر مؤشرك لرؤية المورد المحجوز مزدوجاً.',
+    'tour.sched_calendar_export': 'صدّر الجدول إلى Excel أو PDF أو iCal.',
+    'tour.sched_calendar_today': 'انقر اليوم للعودة إلى التاريخ الحالي.',
+
+    // ── User Roles Tour (Arabic) ──────────────────────────────────────────────
+    'tour.roles_list': 'جميع أدوار النظام مدرجة هنا مع وصف مستوى وصولها.',
+    'tour.roles_add': 'أنشئ دوراً مخصصاً بالنقر على إضافة دور. حدد اسمه والأذونات الأساسية.',
+    'tour.roles_edit': 'عدّل دوراً لتغيير اسمه أو إعادة تعيين أذوناته.',
+    'tour.roles_delete': 'احذف دوراً مخصصاً. لا يمكن حذف أدوار النظام.',
+    'tour.roles_assign': 'عيّن الأدوار للمستخدمين من صفحة المستخدمين أو مصفوفة الأذونات.',
+
+    // ── Dashboard (Admin) Tour (Arabic) ──────────────────────────────────────
+    'tour.admin_dash_stats': 'تظهر الإحصائيات الرئيسية للنظام (المستخدمون والبرامج والصفوف والأنشطة) في بطاقات الملخص.',
+    'tour.admin_dash_recent': 'يعرض خلاصة النشاط الأخيرة أحدث الإجراءات المتخذة عبر النظام.',
+    'tour.admin_dash_alerts': 'تنبيهات وتحذيرات النظام (مثل مشاكل الأذونات والمهام الفاشلة) تظهر هنا.',
+    'tour.admin_dash_quick': 'أزرار الإجراءات السريعة تتيح لك الانتقال إلى أقسام الإدارة الأكثر استخداماً.',
+
+    // Shared Joyride navigation labels
+    tour_back: 'السابق',
+    tour_close: 'إغلاق',
+    tour_finish: 'إنهاء',
+    tour_next: 'التالي',
+    tour_skip: 'تخطي',
+    tour_help: 'بدء الجولة التعريفية',
     
     // Access denied and unauthorized page localizations (Arabic)
     access_denied: 'الوصول مرفوض',

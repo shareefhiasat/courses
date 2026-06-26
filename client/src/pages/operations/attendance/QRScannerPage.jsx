@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import Joyride from 'react-joyride';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import { formatQatarDateOnly, getQatarNow } from '@utils/qatarDate';
 import { useAuth } from '@contexts/AuthContext';
@@ -160,6 +161,48 @@ const QRScannerPage = () => {
     return qatarNow.toISOString().split('T')[0]; // Format as yyyy-MM-dd
   });
   const [attendanceMode, setAttendanceMode] = useState(ATTENDANCE_TYPE_CATEGORY.REGULAR); // 'regular' or 'standup'
+
+  // ── Guided Tour ────────────────────────────────────────────────────────────
+  const [runTour, setRunTour] = useState(false);
+  const [tourSteps, setTourSteps] = useState([]);
+  const tourSeenKey = `qrScannerTourSeen_${lang}`;
+
+  useEffect(() => {
+    setTourSteps([
+      { target: '[data-tour="qr-header-filters"]', content: t('tour.qr_header_filters'), disableBeacon: true, placement: 'bottom' },
+      { target: '[data-tour="qr-mode-toggle"]', content: t('tour.qr_mode_toggle'), disableBeacon: true, placement: 'bottom' },
+      { target: '[data-tour="qr-date-picker"]', content: t('tour.qr_date_picker'), disableBeacon: true, placement: 'bottom' },
+      { target: '[data-tour="qr-daily-report"]', content: t('tour.qr_daily_report'), disableBeacon: true, placement: 'bottom' },
+      { target: '[data-tour="qr-summary-report"]', content: t('tour.qr_summary_report'), disableBeacon: true, placement: 'bottom' },
+      { target: '[data-tour="qr-violations-report"]', content: t('tour.qr_violations_report'), disableBeacon: true, placement: 'bottom' },
+      { target: '[data-tour="qr-bulk-scan"]', content: t('tour.qr_bulk_scan'), disableBeacon: true, placement: 'bottom' },
+      { target: '[data-tour="qr-scanner-panel"]', content: t('tour.qr_scanner_panel'), disableBeacon: true, placement: 'right' },
+      { target: '[data-tour="qr-roster"]', content: t('tour.qr_roster'), disableBeacon: true, placement: 'top' },
+      { target: '[data-tour="qr-stats-panel"]', content: t('tour.qr_stats_panel'), disableBeacon: true, placement: 'left' },
+      { target: '[data-tour="qr-zap-panel"]', content: t('tour.qr_zap_panel'), disableBeacon: true, placement: 'left' },
+    ]);
+  }, [lang, t]);
+
+  useEffect(() => {
+    const start = () => setRunTour(true);
+    window.addEventListener('app:joyride', start);
+    window.addEventListener('app:help', start);
+    return () => { window.removeEventListener('app:joyride', start); window.removeEventListener('app:help', start); };
+  }, []);
+
+  useEffect(() => {
+    try { if (!localStorage.getItem(tourSeenKey)) setRunTour(true); } catch {}
+  }, [tourSeenKey]);
+
+  const handleTourCallback = useCallback((data) => {
+    const { status } = data || {};
+    if (status === 'finished' || status === 'skipped') {
+      setRunTour(false);
+      try { localStorage.setItem(tourSeenKey, 'true'); } catch {}
+    }
+  }, [tourSeenKey]);
+  // ──────────────────────────────────────────────────────────────────────────
+
   const [highlightEnabled, setHighlightEnabled] = useState(() => {
     try {
       const saved = localStorage.getItem('qrScanner_highlightEnabled');
@@ -3809,6 +3852,33 @@ const QRScannerPage = () => {
       background: 'var(--background-secondary, #f9fafb)',
       fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
     }}>
+      <Joyride
+        continuous
+        run={runTour}
+        steps={tourSteps}
+        disableScrolling={false}
+        scrollOffset={100}
+        scrollToFirstStep
+        spotlightClicks={false}
+        callback={handleTourCallback}
+        locale={{
+          back: t('tour_back') || 'Back',
+          close: t('tour_close') || 'Close',
+          last: t('tour_finish') || 'Finish',
+          next: t('tour_next') || 'Next',
+          skip: t('tour_skip') || 'Skip',
+        }}
+        styles={{
+          options: {
+            primaryColor: 'var(--color-primary, #800020)',
+            textColor: theme === 'dark' ? '#e5e7eb' : '#000',
+            backgroundColor: theme === 'dark' ? '#1f2937' : '#fff',
+            overlayColor: 'rgba(0,0,0,0.5)',
+            arrowColor: theme === 'dark' ? '#1f2937' : '#fff',
+            zIndex: 10000,
+          },
+        }}
+      />
       {/* Top Bar with Filters */}
       <header style={{
         background: 'var(--panel, white)',
@@ -3824,7 +3894,7 @@ const QRScannerPage = () => {
           flexWrap: 'nowrap'
         }}>
           {/* Program/Subject/Class Selection */}
-          <div style={{ flex: '0 0 auto', minWidth: '250px', maxWidth: '350px' }}>
+          <div data-tour="qr-header-filters" style={{ flex: '0 0 auto', minWidth: '250px', maxWidth: '350px' }}>
             <ProgramsSelect
               programs={programs.map(p => ({ ...p, id: String(p.id) }))}
               subjects={subjects.map(s => ({ ...s, id: String(s.id), programId: s.programId ? String(s.programId) : null }))}
@@ -3858,7 +3928,7 @@ const QRScannerPage = () => {
           <div style={{ flex: '1', minWidth: '1rem' }} />
 
           {/* Mode toggle */}
-          <div style={{
+          <div data-tour="qr-mode-toggle" style={{
             display: 'flex',
             gap: '0.5rem',
             background: 'var(--background-secondary, #f3f4f6)',
@@ -3926,7 +3996,7 @@ const QRScannerPage = () => {
               </div>
 
               {/* Date picker */}
-              <div style={{ width: '180px' }}>
+              <div data-tour="qr-date-picker" style={{ width: '180px' }}>
                 {!gridLoading && (selectedClassId || (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP && selectedProgramId)) && (
                   <DatePicker
                     value={selectedDate}
@@ -3954,6 +4024,7 @@ const QRScannerPage = () => {
 
               {canExport && (
                 <button
+                    data-tour="qr-daily-report"
                     onClick={() => {
                       if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
                         if (!selectedProgramId || selectedProgramId === 'all') {
@@ -4003,6 +4074,7 @@ const QRScannerPage = () => {
 
               {canExportSummary && (
                   <button
+                    data-tour="qr-summary-report"
                     onClick={() => {
                       console.log('🔍 Summary Report button clicked');
                       
@@ -4043,6 +4115,7 @@ const QRScannerPage = () => {
 
               {(isHR || isSuperAdmin) && (
                   <button
+                    data-tour="qr-violations-report"
                     onClick={() => {
                       console.log('🔍 Attendance Violations button clicked');
                       
@@ -4082,6 +4155,7 @@ const QRScannerPage = () => {
 
               {canBulkScan && (
                 <button
+                  data-tour="qr-bulk-scan"
                   onClick={() => {
                     // In standup mode, allow bulk operations without class selection
                     if (attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && (!selectedClassId || selectedClassId === 'all')) {
@@ -4115,6 +4189,16 @@ const QRScannerPage = () => {
                   {t('bulk_scan') || 'Bulk Scan'}
                 </button>
               )}
+          <button
+            type="button"
+            onClick={() => setRunTour(true)}
+            title={t('tour_help') || 'Start guided tour'}
+            aria-label={t('tour_help') || 'Start guided tour'}
+            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.35rem 0.65rem', fontSize: '0.8125rem', borderRadius: '6px', border: 'none', background: 'var(--color-primary, #800020)', color: 'white', cursor: 'pointer', flexShrink: 0 }}
+          >
+            <span>?</span>
+            <span>{t('tour_help') || 'Tour'}</span>
+          </button>
           </div>
       </header>
 
@@ -4162,7 +4246,7 @@ const QRScannerPage = () => {
         margin: '0 auto'
       }}>
         {/* Sidebar with Scanner */}
-        <div style={{
+        <div data-tour="qr-scanner-panel" style={{
           display: 'flex',
           flexDirection: 'column',
           gap: '1.5rem',
@@ -4251,7 +4335,7 @@ const QRScannerPage = () => {
               </p>
             </div>
           ) : (
-            <div style={{ width: '100%', overflowX: 'auto' }}>
+            <div data-tour="qr-roster" style={{ width: '100%', overflowX: 'auto' }}>
               <StudentRoster
               students={paginatedStudents}
               onStudentSelect={handleStudentSelect}
@@ -4313,6 +4397,7 @@ const QRScannerPage = () => {
             })()}
             {attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && canUseStatsPanel && (
               <StudentActionStatsPanel
+                data-tour="qr-stats-panel"
                 student={selectedStudent}
                 onClose={handleClosePanel}
                 onBehaviorSubmit={handleBehaviorSubmit}
@@ -4343,6 +4428,7 @@ const QRScannerPage = () => {
         {selectedStudentForAction && attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && canUseZapPanel && (
           <>
             <StudentActionZapPanel
+              data-tour="qr-zap-panel"
               student={selectedStudentForAction}
               onClose={handleCloseActionPanel}
               onBehaviorSubmit={handleBehaviorSubmit}

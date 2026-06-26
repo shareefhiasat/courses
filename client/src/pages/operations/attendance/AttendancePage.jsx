@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback, useLayoutEffect } from 'react';
+import Joyride from 'react-joyride';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
@@ -62,7 +63,48 @@ const AttendancePage = () => {
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
   const [submitComments, setSubmitComments] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
+
+  // ── Guided Tour ────────────────────────────────────────────────────────────
+  const [runTour, setRunTour] = useState(false);
+  const [tourSteps, setTourSteps] = useState([]);
+  const tourSeenKey = `attendanceTourSeen_${lang}`;
+
+  useEffect(() => {
+    setTourSteps([
+      { target: '[data-tour="attendance-class-section"]', content: t('tour.attendance_class_section'), disableBeacon: true, placement: 'bottom' },
+      { target: '[data-tour="attendance-settings"]', content: t('tour.attendance_settings'), disableBeacon: true, placement: 'bottom' },
+      { target: '[data-tour="attendance-start-btn"]', content: t('tour.attendance_start_btn'), disableBeacon: true, placement: 'bottom' },
+      { target: '[data-tour="attendance-qr-panel"]', content: t('tour.attendance_qr_panel'), disableBeacon: true, placement: 'bottom' },
+      { target: '[data-tour="attendance-manual-code"]', content: t('tour.attendance_manual_code'), disableBeacon: true, placement: 'bottom' },
+      { target: '[data-tour="attendance-copy-link"]', content: t('tour.attendance_copy_link'), disableBeacon: true, placement: 'bottom' },
+      { target: '[data-tour="attendance-export"]', content: t('tour.attendance_export'), disableBeacon: true, placement: 'bottom' },
+      { target: '[data-tour="attendance-submit-hr"]', content: t('tour.attendance_submit_hr'), disableBeacon: true, placement: 'bottom' },
+      { target: '[data-tour="attendance-late-mode"]', content: t('tour.attendance_late_mode'), disableBeacon: true, placement: 'bottom' },
+      { target: '[data-tour="attendance-active-banner"]', content: t('tour.attendance_active_banner'), disableBeacon: true, placement: 'bottom' },
+      { target: '[data-tour="attendance-guidelines"]', content: t('tour.attendance_guidelines'), disableBeacon: true, placement: 'top' },
+    ]);
+  }, [lang, t]);
+
+  useEffect(() => {
+    const start = () => setRunTour(true);
+    window.addEventListener('app:joyride', start);
+    window.addEventListener('app:help', start);
+    return () => { window.removeEventListener('app:joyride', start); window.removeEventListener('app:help', start); };
+  }, []);
+
+  useEffect(() => {
+    try { if (!localStorage.getItem(tourSeenKey)) setRunTour(true); } catch {}
+  }, [tourSeenKey]);
+
+  const handleTourCallback = useCallback((data) => {
+    const { status } = data || {};
+    if (status === 'finished' || status === 'skipped') {
+      setRunTour(false);
+      try { localStorage.setItem(tourSeenKey, 'true'); } catch {}
+    }
+  }, [tourSeenKey]);
+  // ──────────────────────────────────────────────────────────────────────────
+
   const selectedClass = useMemo(() => classOptions.find(c => (c.id||c.docId) === classId), [classOptions, classId]);
 
   // Extract unique terms, years, instructors for filters
@@ -502,11 +544,53 @@ const AttendancePage = () => {
 
   return (
     <div className="content-section" style={{ maxWidth: 1400, margin: '0 auto', padding: '1rem 1.25rem' }}>
+      <Joyride
+        continuous
+        run={runTour}
+        steps={tourSteps}
+        disableScrolling={false}
+        scrollOffset={100}
+        scrollToFirstStep
+        spotlightClicks={false}
+        callback={handleTourCallback}
+        locale={{
+          back: t('tour_back') || 'Back',
+          close: t('tour_close') || 'Close',
+          last: t('tour_finish') || 'Finish',
+          next: t('tour_next') || 'Next',
+          skip: t('tour_skip') || 'Skip',
+        }}
+        styles={{
+          options: {
+            primaryColor: 'var(--color-primary, #800020)',
+            textColor: theme === 'dark' ? '#e5e7eb' : '#000',
+            backgroundColor: theme === 'dark' ? '#1f2937' : '#fff',
+            overlayColor: 'rgba(0,0,0,0.5)',
+            arrowColor: theme === 'dark' ? '#1f2937' : '#fff',
+            zIndex: 10000,
+          },
+        }}
+      />
+
+      {/* Tour help button */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.5rem' }}>
+        <button
+          type="button"
+          onClick={() => setRunTour(true)}
+          title={t('tour_help') || 'Start guided tour'}
+          aria-label={t('tour_help') || 'Start guided tour'}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.35rem 0.65rem', fontSize: '0.8125rem', borderRadius: '6px', border: 'none', background: 'var(--color-primary, #800020)', color: 'white', cursor: 'pointer' }}
+        >
+          <span>?</span>
+          <span>{t('tour_help') || 'Tour'}</span>
+        </button>
+      </div>
+
       {err && <div style={{ padding:'0.75rem', background:'#fee', border:'1px solid #fcc', borderRadius:8, color:'#c00', marginBottom:16 }}>{err}</div>}
 
       {/* Active Session Banner */}
       {sessionId && (
-        <div style={{
+        <div data-tour="attendance-active-banner" style={{
           marginBottom: 16,
           padding: '1rem 1.5rem',
           background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
@@ -555,7 +639,7 @@ const AttendancePage = () => {
       )}
 
       {/* Class Selection - Collapsible */}
-      <div style={{ marginBottom: 16, background:'var(--panel)', border:'1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+      <div data-tour="attendance-class-section" style={{ marginBottom: 16, background:'var(--panel)', border:'1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
         <button
           onClick={() => toggleSection('class')}
           style={{
@@ -685,7 +769,7 @@ const AttendancePage = () => {
 
       {/* Attendance Settings - Below Class Selection */}
       {isAdmin && (
-        <div style={{ marginBottom: 16, background:'var(--panel)', border:'1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
+        <div data-tour="attendance-settings" style={{ marginBottom: 16, background:'var(--panel)', border:'1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
           <button
             onClick={() => toggleSection('settings')}
             style={{
@@ -757,7 +841,7 @@ const AttendancePage = () => {
       )}
 
       {/* Main Container: QR Code + Buttons */}
-      <div style={{ background:'var(--panel)', border:'1px solid var(--border)', borderRadius: 12, padding: '1rem' }}>
+      <div data-tour="attendance-qr-panel" style={{ background:'var(--panel)', border:'1px solid var(--border)', borderRadius: 12, padding: '1rem' }}>
         {/* QR Code Display - Enhanced */}
         <div style={{
           padding:'1rem',
@@ -806,7 +890,7 @@ const AttendancePage = () => {
               }}
             />
             {sessionId && manualCode && (
-              <div style={{ marginTop:12, padding:'1rem', background:'#fff', border:'2px solid #800020', borderRadius:8, textAlign:'center' }}>
+              <div data-tour="attendance-manual-code" style={{ marginTop:12, padding:'1rem', background:'#fff', border:'2px solid #800020', borderRadius:8, textAlign:'center' }}>
                 <div style={{ fontSize:11, fontWeight:600, color:'var(--muted)', marginBottom:6 }}>{t('attendance_manual_code')}</div>
                 <div style={{ fontSize:32, fontWeight:700, letterSpacing:'0.2em', color:'#800020', fontFamily:'monospace' }}>{manualCode}</div>
                 <div style={{ fontSize:10, color:'var(--muted)', marginTop:6 }}>{t('attendance_rotates_every')} {cfg.rotationSeconds}s</div>
@@ -856,7 +940,7 @@ const AttendancePage = () => {
                   </div>
                 )}
                 <div style={{ marginTop:12, display:'flex', gap:8, flexWrap:'wrap' }}>
-                  <button onClick={() => {
+                  <button data-tour="attendance-copy-link" onClick={() => {
                     const origin = typeof window !== 'undefined' ? window.location.origin : '';
                     const link = `${origin}/my-attendance?sid=${sessionId}&t=${encodeURIComponent(token||'')}`;
                     navigator.clipboard && navigator.clipboard.writeText(link).catch(()=>{});
@@ -865,6 +949,7 @@ const AttendancePage = () => {
                     {t('attendance_copy_student_link')}
                   </button>
                   <Button 
+                    data-tour="attendance-export"
                     variant="secondary" 
                     icon={getThemedIcon('ui', 'download', 16, theme)}
                     onClick={async()=>{
@@ -886,6 +971,7 @@ const AttendancePage = () => {
                   </Button>
                   {isInstructor && (
                     <Button 
+                      data-tour="attendance-submit-hr"
                       variant="primary"
                       icon={getThemedIcon('ui', 'send', 16, theme)}
                       onClick={handleExportAndSubmit}
@@ -905,6 +991,7 @@ const AttendancePage = () => {
         <div style={{ display:'flex', gap:12, flexWrap:'wrap', justifyContent: 'center', paddingTop: 12, borderTop: '1px solid var(--border)' }}>
           {!sessionId ? (
             <button
+              data-tour="attendance-start-btn"
               onClick={startSession}
               disabled={!classId || loading}
               style={{
@@ -922,6 +1009,7 @@ const AttendancePage = () => {
             </button>
           ) : (
             <button
+              data-tour="attendance-late-mode"
               onClick={toggleLateMode}
               style={{
                 padding:'0.5rem 1.5rem',
@@ -940,7 +1028,7 @@ const AttendancePage = () => {
       </div>
 
       {/* Guidelines */}
-      <div style={{ padding:'1rem', background:'#eff6ff', border:'1px solid #800020', borderRadius: 12 }}>
+      <div data-tour="attendance-guidelines" style={{ padding:'1rem', background:'#eff6ff', border:'1px solid #800020', borderRadius: 12 }}>
         <div style={{ fontWeight: 700, marginBottom: 12, display:'flex', alignItems:'center', gap:8, color:'#1e40af' }}>
           <ListOrdered size={20} />
           <span>{t('attendance_how_to_use')}</span>

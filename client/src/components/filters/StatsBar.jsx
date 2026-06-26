@@ -12,7 +12,8 @@ const StatsBar = ({
   stats,
   theme = 'light',
   primaryColor = '#800020',
-  t = (key) => key
+  t = (key) => key,
+  lang = 'en'
 }) => {
   const isDark = theme === 'dark';
 
@@ -156,7 +157,11 @@ const StatsBar = ({
       {statItems.map((item, idx) => (
         <PortalTooltip key={idx} content={item.title} position="top">
         <div 
-          style={{ display: 'flex', alignItems: 'center', gap: 4 }}
+          style={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            gap: 4
+          }}
         >
           {getIconWithColor('ui', item.icon, 14, item.color)}
           <span style={{ fontWeight: 700, color: item.color }}>{item.value}</span>

@@ -111,7 +111,6 @@ export { default as Stack } from './Stack';
 
 // Additional UI Components
 export { default as ErrorBoundary } from './ErrorBoundary';
-export { default as HelpDrawer } from './HelpDrawer';
 export { default as SideDrawer } from './SideDrawer';
 // Navbar removed to avoid circular dependency - import directly from './Navbar/Navbar'
 export { default as RankDisplay } from './RankDisplay';

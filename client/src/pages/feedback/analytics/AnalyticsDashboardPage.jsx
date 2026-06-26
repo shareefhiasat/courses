@@ -1,8 +1,9 @@
-import React, { useState, useEffect, memo, useLayoutEffect } from 'react';
+import React, { useState, useEffect, memo, useLayoutEffect, useCallback } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useAuth } from '@contexts/AuthContext';
 import { useToast } from '@ui/Toast/Toast';
+import Joyride from 'react-joyride';
 import { CollapsibleDashboardSection, ProgramsSelect } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 import { getCardConfig, getShapeRadius } from '@utils/cardColors';
@@ -61,7 +62,87 @@ const AnalyticsDashboardPage = memo(() => {
   const [enrollmentProgramFilter, setEnrollmentProgramFilter] = useState('');
   const [enrollmentSubjectFilter, setEnrollmentSubjectFilter] = useState('');
   const [enrollmentClassFilter, setEnrollmentClassFilter] = useState('');
-  
+
+  // Joyride tour state
+  const [runTour, setRunTour] = useState(false);
+  const [tourSteps, setTourSteps] = useState([]);
+  const tourSeenKey = `analyticsDashboardTourSeen_${lang}`;
+
+  // Build localized Joyride steps
+  useEffect(() => {
+    setTourSteps([
+      {
+        target: '[data-tour="analytics-filters"]',
+        content: t('tour.analytics_filters') || 'Use these filters to narrow down statistics by program, subject, and class.',
+        disableBeacon: true,
+        placement: 'bottom'
+      },
+      {
+        target: '[data-tour="summary-cards"]',
+        content: t('tour.summary_cards') || 'These cards show key counts for your accessible programs, classes, enrollments, activities, and resources.',
+        disableBeacon: true,
+        placement: 'bottom'
+      },
+      {
+        target: '[data-tour="user-cards"]',
+        content: t('tour.user_cards') || 'This row shows user counts by role: students, instructors, HR, admins, and super admins.',
+        disableBeacon: true,
+        placement: 'bottom'
+      },
+      {
+        target: '[data-tour="activity-cards"]',
+        content: t('tour.activity_cards') || 'Here you can see totals for quizzes, announcements, penalties, behaviors, and participation records.',
+        disableBeacon: true,
+        placement: 'top'
+      },
+      {
+        target: '[data-tour="view-options"]',
+        content: t('tour.analytics_refresh') || 'Open the view-options menu to refresh the dashboard with the latest data.',
+        disableBeacon: true,
+        placement: 'top'
+      }
+    ]);
+  }, [lang, t]);
+
+  // Listen for navbar help / joyride events
+  useEffect(() => {
+    const start = () => setRunTour(true);
+    window.addEventListener('app:joyride', start);
+    window.addEventListener('app:help', start);
+    return () => {
+      window.removeEventListener('app:joyride', start);
+      window.removeEventListener('app:help', start);
+    };
+  }, []);
+
+  // Auto-start tour once if the user has never seen it on this screen
+  useEffect(() => {
+    try {
+      const seen = localStorage.getItem(tourSeenKey);
+      if (!seen) {
+        debug(`[AnalyticsDashboardPage] Starting tour for key: ${tourSeenKey}`);
+        setRunTour(true);
+      } else {
+        debug(`[AnalyticsDashboardPage] Tour already seen for key: ${tourSeenKey}`);
+      }
+    } catch {
+      // ignore localStorage errors
+    }
+  }, [tourSeenKey]);
+
+  const handleJoyrideCallback = useCallback((data) => {
+    const { status, type, index } = data || {};
+    debug(`[AnalyticsDashboardPage] Joyride event: ${type || status} (step ${index ?? '-'})`);
+    if (status === 'finished' || status === 'skipped') {
+      setRunTour(false);
+      try {
+        localStorage.setItem(tourSeenKey, 'true');
+      } catch {
+        // ignore localStorage errors
+      }
+    }
+  }, [tourSeenKey]);
+
   // Load all data function
   const loadAllData = async (isRefresh = false) => {
     if (isRefresh) {
@@ -203,43 +284,101 @@ const AnalyticsDashboardPage = memo(() => {
   const safePrograms = Array.isArray(programs) ? programs : [];
 
   return (
-    <CollapsibleDashboardSection
-      sectionId="summary-cards"
-      title={t('dashboard_statistics') || 'Dashboard Statistics'}
-      icon={getThemedIcon('ui', 'bar_chart', 20, theme)}
-      color="var(--color-primary, var(--primary-maroon, #800020))"
-      defaultMode="full"
-      data-tour="stats"
-      inlineFilters={
-        <ProgramsSelect
-          programs={safePrograms}
-          subjects={subjects}
-          classes={classes}
-          selectedProgram={enrollmentProgramFilter}
-          selectedSubject={enrollmentSubjectFilter}
-          selectedClass={enrollmentClassFilter}
-          onProgramChange={(value) => {
-            setEnrollmentProgramFilter(value);
-            setEnrollmentSubjectFilter('');
-            setEnrollmentClassFilter('');
-          }}
-          onSubjectChange={(value) => {
-            setEnrollmentSubjectFilter(value);
-            setEnrollmentClassFilter('');
-          }}
-          onClassChange={(value) => {
-            setEnrollmentClassFilter(value);
-          }}
-          showLabels={false}
-          fullWidth
-          className="flex-nowrap"
-          style={{ gap: '0.5rem', width: '100%' }}
-        />
+    <>
+      <Joyride
+        continuous
+        run={runTour}
+        steps={tourSteps}
+        disableScrolling={false}
+        scrollOffset={100}
+        scrollToFirstStep
+        spotlightClicks={false}
+        callback={handleJoyrideCallback}
+        locale={{
+          back: t('tour_back') || (lang === 'ar' ? 'السابق' : 'Back'),
+          close: t('tour_close') || (lang === 'ar' ? 'إغلاق' : 'Close'),
+          last: t('tour_finish') || (lang === 'ar' ? 'إنهاء' : 'Finish'),
+          next: t('tour_next') || (lang === 'ar' ? 'التالي' : 'Next'),
+          skip: t('tour_skip') || (lang === 'ar' ? 'تخطي' : 'Skip')
+        }}
+        styles={{
+          options: {
+            primaryColor: 'var(--color-primary, #800020)',
+            textColor: theme === 'dark' ? '#e5e7eb' : '#000',
+            backgroundColor: theme === 'dark' ? '#1f2937' : '#fff',
+            overlayColor: 'rgba(0,0,0,0.5)',
+            arrowColor: theme === 'dark' ? '#1f2937' : '#fff',
+            zIndex: 10000
+          }
+        }}
+      />
+      <CollapsibleDashboardSection
+        sectionId="summary-cards"
+        title={t('dashboard_statistics') || 'Dashboard Statistics'}
+        icon={getThemedIcon('ui', 'bar_chart', 20, theme)}
+        color="var(--color-primary, var(--primary-maroon, #800020))"
+        defaultMode="full"
+        data-tour="stats"
+        headerRight={
+          <button
+            type="button"
+            onClick={() => {
+              debug('[AnalyticsDashboardPage] Manual tour start clicked');
+              setRunTour(true);
+            }}
+            title={t('tour_help') || 'Start guided tour'}
+            aria-label={t('tour_help') || 'Start guided tour'}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '32px',
+              height: '32px',
+              borderRadius: '50%',
+              border: '1px solid var(--border-color, rgba(0,0,0,0.1))',
+              background: 'var(--bg-tertiary, rgba(0,0,0,0.03))',
+              color: 'var(--text-primary, currentColor)',
+              cursor: 'pointer',
+              transition: 'background 0.2s, transform 0.2s'
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-hover, rgba(0,0,0,0.08)'; }}
+            onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--bg-tertiary, rgba(0,0,0,0.03)'; }}
+          >
+            {getThemedIcon('ui', 'help', 18, theme)}
+          </button>
+        }
+        inlineFilters={
+        <div data-tour="analytics-filters" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', width: '100%' }}>
+          <ProgramsSelect
+            programs={safePrograms}
+            subjects={subjects}
+            classes={classes}
+            selectedProgram={enrollmentProgramFilter}
+            selectedSubject={enrollmentSubjectFilter}
+            selectedClass={enrollmentClassFilter}
+            onProgramChange={(value) => {
+              setEnrollmentProgramFilter(value);
+              setEnrollmentSubjectFilter('');
+              setEnrollmentClassFilter('');
+            }}
+            onSubjectChange={(value) => {
+              setEnrollmentSubjectFilter(value);
+              setEnrollmentClassFilter('');
+            }}
+            onClassChange={(value) => {
+              setEnrollmentClassFilter(value);
+            }}
+            showLabels={false}
+            fullWidth
+            className="flex-nowrap"
+            style={{ gap: '0.5rem', width: '100%' }}
+          />
+        </div>
       }
       onRefresh={() => loadAllData(true)}
       refreshing={isRefreshing}
     >
-      <div style={{ marginBottom: '0.75rem' }}>
+      <div style={{ marginBottom: '0.75rem' }} data-tour="summary-cards">
         {/* Summary Cards */}
         <div
           style={{
@@ -431,7 +570,7 @@ const AnalyticsDashboardPage = memo(() => {
 
       {/* Second Row - User Roles (Admin and Super Admin only) */}
       {(isAdmin || isSuperAdmin) && (
-        <div style={{ marginBottom: '0.75rem' }}>
+        <div style={{ marginBottom: '0.75rem' }} data-tour="user-cards">
           <div
             style={{
               display: 'grid',
@@ -542,7 +681,7 @@ const AnalyticsDashboardPage = memo(() => {
       )}
 
       {/* Third Row - Other Statistics */}
-      <div>
+      <div data-tour="activity-cards">
         <div
           style={{
             display: 'grid',
@@ -750,6 +889,7 @@ const AnalyticsDashboardPage = memo(() => {
         </div>
       </div>
     </CollapsibleDashboardSection>
+    </>
   );
 });
 

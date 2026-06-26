@@ -6,6 +6,7 @@
  */
 
 import React, { useMemo, useCallback, useEffect, useState } from 'react';
+import Joyride from 'react-joyride';
 import { useNavigate } from 'react-router-dom';
 import { format } from "date-fns";
 import { getSlaInfo } from '@utils/sla.js';
@@ -28,6 +29,31 @@ const WorkflowInboxPage = () => {
   const navigate = useNavigate();
   const { t, lang } = useLang();
   const { theme } = useTheme();
+
+  // ── Guided Tour ──────────────────────────────────────────────────────────
+  const [runTour, setRunTour] = useState(false);
+  const tourSeenKey = `workflowInboxTourSeen_${lang}`;
+  const tourSteps = useMemo(() => [
+    { target: 'body', content: t('tour.workflow_filters'), disableBeacon: true, placement: 'center' },
+    { target: '[data-tour="workflow-filters"]', content: t('tour.workflow_filters'), disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="workflow-status-filters"]', content: t('tour.workflow_tabs'), disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="workflow-grid"]', content: t('tour.workflow_task_list'), disableBeacon: true, placement: 'top' },
+    { target: '[data-tour="workflow-grid"]', content: t('tour.workflow_status'), disableBeacon: true, placement: 'top' },
+    { target: '[data-tour="workflow-grid"]', content: t('tour.workflow_approve'), disableBeacon: true, placement: 'top' },
+    { target: '[data-tour="workflow-grid"]', content: t('tour.workflow_priority'), disableBeacon: true, placement: 'top' },
+  ], [lang, t]);
+  useEffect(() => {
+    const start = () => setRunTour(true);
+    window.addEventListener('app:joyride', start);
+    window.addEventListener('app:help', start);
+    return () => { window.removeEventListener('app:joyride', start); window.removeEventListener('app:help', start); };
+  }, []);
+  useEffect(() => { try { if (!localStorage.getItem(tourSeenKey)) setRunTour(true); } catch {} }, [tourSeenKey]);
+  const handleTourCallback = useCallback((data) => {
+    const { status } = data || {};
+    if (status === 'finished' || status === 'skipped') { setRunTour(false); try { localStorage.setItem(tourSeenKey, 'true'); } catch {} }
+  }, [tourSeenKey]);
+  // ──────────────────────────────────────────────────────────────────────────
   const { triggerNotification } = useNotifications();
   const toast = useToast();
   const { startLoading } = useGlobalLoading();
@@ -556,12 +582,16 @@ const WorkflowInboxPage = () => {
 
   return (
     <div className="flex justify-center px-4 sm:px-6 lg:px-8 py-6">
+      <Joyride continuous run={runTour} steps={tourSteps} callback={handleTourCallback} scrollOffset={100} scrollToFirstStep
+        locale={{ back: t('tour_back'), close: t('tour_close'), last: t('tour_finish'), next: t('tour_next'), skip: t('tour_skip') }}
+        styles={{ options: { primaryColor: 'var(--color-primary,#800020)', textColor: theme === 'dark' ? '#e5e7eb' : '#111', backgroundColor: theme === 'dark' ? '#1f2937' : '#fff', zIndex: 10000 } }}
+      />
       <div className="max-w-[1600px] w-full space-y-6">
 
       {/* Filters */}
       <Card className="shadow-sm border-gray-200">
         <CardContent className="p-4">
-          <div className="flex items-center gap-4 flex-wrap">
+          <div data-tour="workflow-filters" className="flex items-center gap-4 flex-wrap">
             {/* Search - always visible */}
             <div className="relative flex-1 min-w-[200px] max-w-md">
               <div className="absolute left-3 top-1/2 transform -translate-y-1/2">
@@ -576,7 +606,7 @@ const WorkflowInboxPage = () => {
             </div>
 
             {/* Status Filter - badge toggles */}
-            <div className="flex items-center gap-2 flex-wrap">
+            <div data-tour="workflow-status-filters" className="flex items-center gap-2 flex-wrap">
               {statusFilterOptions.map((status) => {
                 const isSelected = filters.status === status.value;
                 return (
@@ -646,6 +676,7 @@ const WorkflowInboxPage = () => {
               >
                 {getThemedIcon('ui', 'refresh_cw', 16, theme)}
               </Button>
+              <button type="button" onClick={() => setRunTour(true)} style={{ display:'inline-flex', alignItems:'center', padding:'0.35rem 0.65rem', fontSize:'0.8125rem', borderRadius:'6px', border:'none', background:'var(--color-primary,#800020)', color:'white', cursor:'pointer', fontWeight:700 }}>?</button>
             </div>
           </div>
         </CardContent>
@@ -665,7 +696,7 @@ const WorkflowInboxPage = () => {
 
       {/* Data Grid */}
       {documents.length > 0 ? (
-        <Card className="shadow-sm border-gray-200">
+        <Card data-tour="workflow-grid" className="shadow-sm border-gray-200">
           <CardContent className="p-0">
             <AdvancedDataGrid
               rows={documents}

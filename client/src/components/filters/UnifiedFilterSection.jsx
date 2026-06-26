@@ -180,6 +180,7 @@ const UnifiedFilterSection = ({
             theme={theme}
             primaryColor={primaryColor}
             t={t}
+            lang={lang}
           />
         )}
         
@@ -246,6 +247,7 @@ const UnifiedFilterSection = ({
             theme={theme}
             primaryColor={primaryColor}
             t={t}
+            lang={lang}
             beginnerCount={filterCounts.beginner || 0}
             intermediateCount={filterCounts.intermediate || 0}
             advancedCount={filterCounts.advanced || 0}

@@ -9,6 +9,7 @@ import { Select, YearSelect, SimpleLoading, UserSelect } from '@ui';
 import { ROLE_STRINGS } from '@utils/userUtils';
 import useAnalyticsData, { processWidgetData } from '@hooks/useAnalyticsData';
 import DashboardEngine from './analytics/DashboardEngine';
+import Joyride from 'react-joyride';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import PortalTooltip from '@ui/PortalTooltip';
 
@@ -192,6 +193,62 @@ export default function AdvancedAnalytics({
     }
   }, []);
 
+  // ── Joyride tour ────────────────────────────────────────────────────────────
+  const [runTour, setRunTour] = useState(false);
+  const [tourSteps, setTourSteps] = useState([]);
+  const tourSeenKey = `advancedAnalyticsTourSeen_${lang}`;
+
+  useEffect(() => {
+    setTourSteps([
+      {
+        target: '[data-tour="advanced-analytics-filters"]',
+        content: t('tour.analytics_filters') || 'Use these filters to narrow down all widgets by program, subject, class, year, and student.',
+        disableBeacon: true,
+        placement: 'bottom'
+      },
+      {
+        target: '[data-tour="advanced-analytics-toolbar"]',
+        content: t('tour.advanced_analytics_toolbar') || 'Use these buttons to add widgets, refresh data, toggle edit layout mode, or export data as CSV.',
+        disableBeacon: true,
+        placement: 'bottom'
+      },
+      {
+        target: '[data-tour="advanced-analytics-engine"]',
+        content: t('tour.advanced_analytics_engine') || 'This is the widget grid. Each card shows a chart or metric. Drag widgets to reorder them in Edit Layout mode.',
+        disableBeacon: true,
+        placement: 'top'
+      }
+    ]);
+  }, [lang, t]);
+
+  useEffect(() => {
+    const start = () => { debug('[AdvancedAnalytics] Tour started via event'); setRunTour(true); };
+    window.addEventListener('app:joyride', start);
+    window.addEventListener('app:help', start);
+    return () => {
+      window.removeEventListener('app:joyride', start);
+      window.removeEventListener('app:help', start);
+    };
+  }, []);
+
+  useEffect(() => {
+    try {
+      if (!localStorage.getItem(tourSeenKey)) {
+        debug('[AdvancedAnalytics] Auto-starting tour');
+        setRunTour(true);
+      }
+    } catch {}
+  }, [tourSeenKey]);
+
+  const handleTourCallback = useCallback((data) => {
+    const { status } = data || {};
+    debug(`[AdvancedAnalytics] Joyride: ${status}`);
+    if (status === 'finished' || status === 'skipped') {
+      setRunTour(false);
+      try { localStorage.setItem(tourSeenKey, 'true'); } catch {}
+    }
+  }, [tourSeenKey]);
+
   // ── Local global filters (merged with externalFilters) ────────────────────
   const [localFilters, setLocalFilters] = useState({
     classId: '', term: '', year: '', programId: '', subjectId: '', semester: '', studentId: '', instructorId: ''
@@ -245,19 +302,49 @@ export default function AdvancedAnalytics({
   return (
     <div className="advanced-analytics-container" style={{ padding: '1.5rem 2rem', minHeight: '100vh', background: 'var(--bg)' }}>
 
+      <Joyride
+        continuous
+        run={runTour}
+        steps={tourSteps}
+        disableScrolling={false}
+        scrollOffset={100}
+        scrollToFirstStep
+        spotlightClicks={false}
+        callback={handleTourCallback}
+        locale={{
+          back: t('tour_back') || (lang === 'ar' ? 'السابق' : 'Back'),
+          close: t('tour_close') || (lang === 'ar' ? 'إغلاق' : 'Close'),
+          last: t('tour_finish') || (lang === 'ar' ? 'إنهاء' : 'Finish'),
+          next: t('tour_next') || (lang === 'ar' ? 'التالي' : 'Next'),
+          skip: t('tour_skip') || (lang === 'ar' ? 'تخطي' : 'Skip')
+        }}
+        styles={{
+          options: {
+            primaryColor: 'var(--color-primary, #800020)',
+            textColor: theme === 'dark' ? '#e5e7eb' : '#000',
+            backgroundColor: theme === 'dark' ? '#1f2937' : '#fff',
+            overlayColor: 'rgba(0,0,0,0.5)',
+            arrowColor: theme === 'dark' ? '#1f2937' : '#fff',
+            zIndex: 10000
+          }
+        }}
+      />
+
       {/* ── Header ── */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12, marginBottom: '1.5rem' }}>
         {title && (
           <h1 style={{ margin: 0, fontSize: 26, fontWeight: 800, color: 'var(--text)' }}>{title}</h1>
         )}
 
-        <div style={{ 
-          display: 'flex', 
-          gap: 10, 
-          alignItems: 'center', 
-          flexWrap: 'wrap',
-          justifyContent: 'center'
-        }}>
+        <div
+          data-tour="advanced-analytics-toolbar"
+          style={{ 
+            display: 'flex', 
+            gap: 10, 
+            alignItems: 'center', 
+            flexWrap: 'wrap',
+            justifyContent: 'center'
+          }}>
 
           {/* Auto-refresh selector */}
           <Select
@@ -338,6 +425,18 @@ export default function AdvancedAnalytics({
             {getThemedIcon('ui', 'calendar', 16, 'white')}
             {t('schedule_report') || 'Schedule Report'}
           </button>
+
+          {/* Help / Tour */}
+          <button
+            type="button"
+            onClick={() => { debug('[AdvancedAnalytics] Manual tour start'); setRunTour(true); }}
+            title={t('tour_help') || 'Start guided tour'}
+            aria-label={t('tour_help') || 'Start guided tour'}
+            style={btnStyle('var(--color-primary, #800020)')}
+          >
+            {getThemedIcon('ui', 'help', 16, 'white')}
+            {t('tour_help') || 'Tour'}
+          </button>
         </div>
       </div>
 
@@ -360,13 +459,15 @@ export default function AdvancedAnalytics({
 
       {/* ── Global Filters (hidden when externalFilters lock them) ── */}
       {!externalFilters.studentId && (
-        <div style={{ 
-          display: 'grid', 
-          gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', 
-          gap: 10, 
-          marginBottom: '1.25rem',
-          ...(lang === 'ar' ? { direction: 'rtl' } : { direction: 'ltr' })
-        }}>
+        <div
+          data-tour="advanced-analytics-filters"
+          style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', 
+            gap: 10, 
+            marginBottom: '1.25rem',
+            ...(lang === 'ar' ? { direction: 'rtl' } : { direction: 'ltr' })
+          }}>
           <Select
             value={localFilters.programId}
             onChange={e => setLocalFilters(f => ({ ...f, programId: e.target.value, subjectId: '' }))}
@@ -459,18 +560,20 @@ export default function AdvancedAnalytics({
       )}
 
       {/* ── Dashboard Engine ── */}
-      <DashboardEngine
-        ref={dashboardEngineRef}
-        rawData={rawData}
-        globalFilters={mergedFilters}
-        accentColor={accentColor}
-        editLayout={editLayout}
-        defaultWidgets={defaultWidgets}
-        storageKey={storageKey}
-        isLoading={loading}
-        lastUpdatedAt={lastUpdatedAt}
-        onSmartReload={smartReload}
-      />
+      <div data-tour="advanced-analytics-engine">
+        <DashboardEngine
+          ref={dashboardEngineRef}
+          rawData={rawData}
+          globalFilters={mergedFilters}
+          accentColor={accentColor}
+          editLayout={editLayout}
+          defaultWidgets={defaultWidgets}
+          storageKey={storageKey}
+          isLoading={loading}
+          lastUpdatedAt={lastUpdatedAt}
+          onSmartReload={smartReload}
+        />
+      </div>
     </div>
   );
 }

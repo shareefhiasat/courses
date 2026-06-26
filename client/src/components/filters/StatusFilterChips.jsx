@@ -133,8 +133,8 @@ const StatusFilterChips = ({
   ];
 
   return (
-    <div 
-      className={`filter-container flex flex-wrap gap-1 relative z-10 justify-center ${lang === 'ar' ? 'flex-row-reverse' : ''}`}
+    <div
+      className="filter-container flex flex-wrap gap-1 relative z-10 justify-center"
       role="group"
       aria-label={t('status_filters') || 'Status filters'}
     >
@@ -144,7 +144,7 @@ const StatusFilterChips = ({
           className={`filter-button inline-flex items-center justify-center cursor-pointer transition-all duration-200 ease-in-out hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-1 ${
             isMinified 
               ? 'w-8 h-8 rounded-full border-1 p-0' 
-              : `px-2 py-1 rounded-full border-1 text-xs font-semibold gap-1 ${lang === 'ar' ? 'flex-row-reverse' : ''}`
+              : 'px-2 py-1 rounded-full border-1 text-xs font-semibold gap-1'
           }`}
           onClick={chip.toggle}
           role="button"
@@ -162,12 +162,10 @@ const StatusFilterChips = ({
           }}
         >
           {getColoredIcon('ui', chip.icon, isMinified ? 14 : 12, chip.active ? chip.colors.activeText : chip.colors.text, theme)}
-          {!isMinified && <span className={`${lang === 'ar' ? 'ms-1' : 'me-1'}`}>{chip.label}</span>}
+          {!isMinified && <span>{chip.label}</span>}
           {chip.badge !== undefined && (
             <span 
-              className={`inline-flex items-center justify-center text-xs font-normal rounded-full ${
-                lang === 'ar' ? 'me-1' : 'ms-1'
-              }`}
+              className="inline-flex items-center justify-center text-xs font-normal rounded-full"
               style={{
                 backgroundColor: chip.active ? chip.colors.activeText : chip.colors.text,
                 color: chip.active ? chip.colors.activeBg : chip.colors.bg,

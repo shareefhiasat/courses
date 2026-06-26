@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
+import { useColorTheme } from '@contexts/ColorThemeContext';
 import { NotificationDrawer } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 import useNotificationsFeed from '@hooks/useNotificationsFeed';
@@ -11,6 +12,7 @@ const NotificationBell = () => {
   const { user } = useAuth();
   const { t } = useLang();
   const { theme } = useTheme();
+  const { primaryColor } = useColorTheme();
   const { unreadCount } = useNotificationsFeed({ limit: 10 });
   const [showDrawer, setShowDrawer] = useState(false);
   const [focused, setFocused] = useState(false);
@@ -67,7 +69,7 @@ const NotificationBell = () => {
                   top: '-5px',
                   right: '-5px',
                   background: 'rgb(255,215,31)',
-                  color: 'white',
+                  color: primaryColor || '#800020',
                   borderRadius: '50%',
                   width: '20px',
                   height: '20px',
@@ -76,7 +78,7 @@ const NotificationBell = () => {
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontWeight: 'bold',
-                  border: '2px solid white',
+                  border: `2px solid ${primaryColor || '#800020'}`,
                   boxSizing: 'border-box'
                 }}
               >

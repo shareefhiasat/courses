@@ -490,6 +490,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
       children: [
         { id: 'notifications', path: '/notifications', screenId: 'notifications', icon: getThemedIcon('ui', 'bell', 18, theme), label: nl('notifications', 'Notifications') },
         { id: 'profile', path: '/profile', screenId: 'profile', icon: getThemedIcon('ui', 'settings', 18, theme), label: nl('settings', 'Settings') },
+        { id: 'help', path: '/help', screenId: 'home', icon: getThemedIcon('ui', 'help_circle', 18, theme), label: nl('help_center', 'Help Center') },
       ]
     }
   ];
@@ -638,7 +639,8 @@ const SideDrawer = ({ isOpen, onClose }) => {
       children: [
         { id: 'notifications-admin', path: '/notifications', screenId: 'notifications', icon: getThemedIcon('ui', 'bell', 18, theme), label: nl('notifications', 'Notifications') },
         { id: 'student-profile', path: '/student-profile', screenId: 'student-profile', icon: getThemedIcon('ui', 'user', 18, theme), label: nl('student_profile', 'Student Profile') },
-        { id: 'profile-admin', path: '/profile', screenId: 'profile', icon: getThemedIcon('ui', 'settings', 18, theme), label: nl('settings', 'Settings') }
+        { id: 'profile-admin', path: '/profile', screenId: 'profile', icon: getThemedIcon('ui', 'settings', 18, theme), label: nl('settings', 'Settings') },
+        { id: 'help-admin', path: '/help', screenId: 'home', icon: getThemedIcon('ui', 'help_circle', 18, theme), label: nl('help_center', 'Help Center') }
       ]
     }
   ];
@@ -679,7 +681,8 @@ const SideDrawer = ({ isOpen, onClose }) => {
         { id: 'notifications-hr', path: '/notifications', screenId: 'notifications', icon: getThemedIcon('ui', 'bell', 18, theme), label: nl('notifications', 'Notifications') },
         { id: 'student-profile-hr', path: '/student-profile', screenId: 'student-profile', icon: getThemedIcon('ui', 'user', 18, theme), label: nl('student_profile', 'Student Profile') },
         { id: 'profile-hr', path: '/profile', screenId: 'profile', icon: getThemedIcon('ui', 'settings', 18, theme), label: nl('settings', 'Settings') },
-        { id: 'timerControl-hr', key: 'timerControl', icon: getThemedIcon('ui', 'timer', 18, theme), label: nl('timer', 'Timer') }
+        { id: 'timerControl-hr', key: 'timerControl', icon: getThemedIcon('ui', 'timer', 18, theme), label: nl('timer', 'Timer') },
+        { id: 'help-hr', path: '/help', screenId: 'home', icon: getThemedIcon('ui', 'help_circle', 18, theme), label: nl('help_center', 'Help Center') }
       ]
     }
   ];

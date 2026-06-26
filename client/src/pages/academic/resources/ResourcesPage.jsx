@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef, useLayoutEffect } from 'react';
+import Joyride from 'react-joyride';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useAuth } from '@contexts/AuthContext';
@@ -91,6 +92,31 @@ const ResourcesPage = () => {
   const [editingResource, setEditingResource] = useState(null);
   const [resourceEmailOptions, setResourceEmailOptions] = useState({ sendEmail: false, createAnnouncement: false });
   const { deleteModal, showDeleteModal, hideDeleteModal } = useDeleteModal(t);
+
+  // ── Guided Tour ──────────────────────────────────────────────────────────
+  const [runTour, setRunTour] = useState(false);
+  const tourSeenKey = `resourcesTourSeen_${lang}`;
+  const tourSteps = useMemo(() => [
+    { target: 'body', content: t('tour.resources_filters'), disableBeacon: true, placement: 'center' },
+    { target: '[data-tour="resources-form"]', content: t('tour.resources_upload'), disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="resources-grid"]', content: t('tour.resources_grid'), disableBeacon: true, placement: 'top' },
+    { target: '[data-tour="resources-grid"]', content: t('tour.resources_category'), disableBeacon: true, placement: 'top' },
+    { target: '[data-tour="resources-grid"]', content: t('tour.resources_edit'), disableBeacon: true, placement: 'top' },
+    { target: '[data-tour="resources-grid"]', content: t('tour.resources_delete'), disableBeacon: true, placement: 'top' },
+    { target: '[data-tour="resources-grid"]', content: t('tour.resources_export'), disableBeacon: true, placement: 'top' },
+  ], [lang, t]);
+  useEffect(() => {
+    const start = () => setRunTour(true);
+    window.addEventListener('app:joyride', start);
+    window.addEventListener('app:help', start);
+    return () => { window.removeEventListener('app:joyride', start); window.removeEventListener('app:help', start); };
+  }, []);
+  useEffect(() => { try { if (!localStorage.getItem(tourSeenKey)) setRunTour(true); } catch {} }, [tourSeenKey]);
+  const handleTourCallback = useCallback((data) => {
+    const { status } = data || {};
+    if (status === 'finished' || status === 'skipped') { setRunTour(false); try { localStorage.setItem(tourSeenKey, 'true'); } catch {} }
+  }, [tourSeenKey]);
+  // ──────────────────────────────────────────────────────────────────────────
   
   // Refs for text inputs — avoids re-rendering on every keystroke
   const titleEnRef = useRef(null);
@@ -680,6 +706,10 @@ const ResourcesPage = () => {
 
   return (
     <div className="resources-tab">
+      <Joyride continuous run={runTour} steps={tourSteps} callback={handleTourCallback} scrollOffset={100} scrollToFirstStep
+        locale={{ back: t('tour_back'), close: t('tour_close'), last: t('tour_finish'), next: t('tour_next'), skip: t('tour_skip') }}
+        styles={{ options: { primaryColor: 'var(--color-primary,#800020)', textColor: theme === 'dark' ? '#e5e7eb' : '#111', backgroundColor: theme === 'dark' ? '#1f2937' : '#fff', zIndex: 10000 } }}
+      />
       {editingResource && (
         <div style={{ 
           padding: '0.75rem 1rem', 
@@ -696,8 +726,10 @@ const ResourcesPage = () => {
         </div>
       )}
 
-      
-      <form onSubmit={handleResourceSubmit} className="dashboard-form">
+      <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:'0.5rem' }}>
+        <button type="button" onClick={() => setRunTour(true)} style={{ display:'inline-flex', alignItems:'center', gap:'0.35rem', padding:'0.35rem 0.65rem', fontSize:'0.8125rem', borderRadius:'6px', border:'none', background:'var(--color-primary,#800020)', color:'white', cursor:'pointer' }}><span style={{fontWeight:700}}>?</span><span>{t('tour_help') || 'Tour'}</span></button>
+      </div>
+      <form data-tour="resources-form" onSubmit={handleResourceSubmit} className="dashboard-form">
         {/* Basic Info Section */}
         <div className="form-row wide-cols">
           <ProgramsSelect
@@ -1003,7 +1035,7 @@ const ResourcesPage = () => {
         })}
       </div>
 
-      <div style={{ marginTop: '1rem' }}>
+      <div data-tour="resources-grid" style={{ marginTop: '1rem' }}>
         <AdvancedDataGrid
           rows={filteredResources}
           getRowId={(row) => row.id?.toString() || row.docId?.toString()}

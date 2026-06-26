@@ -12,7 +12,6 @@ import LanguageSwitcher from '../LanguageSwitcher/LanguageSwitcher';
 import { useTheme } from '@contexts/ThemeContext';
 import { useColorTheme } from '@contexts/ColorThemeContext';
 import { useGlobalLoading } from '@contexts/GlobalLoadingContext';
-import { useHelp } from '@contexts/HelpContext';
 import { getTimeFormatPreference, setTimeFormatPreference } from '@utils/date';
 import { adjustColor, hexToRgbString, normalizeHexColor, DEFAULT_ACCENT } from '@utils/color';
 import Select from '../Select/Select';
@@ -339,24 +338,10 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                 </button>
                 </PortalTooltip>
 
-                <PortalTooltip content={t('information')} position="bottom">
+                <PortalTooltip content={t('help_center') || 'Help Center'} position="bottom">
                 <button
                   className="nav-icon-btn"
-                  onClick={() => {
-                    try {
-                      // Toggle help drawer with full path including search params and hash
-                      const fullPath = location?.pathname || '/';
-                      const search = location?.search || '';
-                      const hash = location?.hash || '';
-                      window.dispatchEvent(new CustomEvent('app:help:toggle', { 
-                        detail: { 
-                          route: fullPath,
-                          search: search,
-                          hash: hash
-                        } 
-                      }));
-                    } catch {}
-                  }}
+                  onClick={() => navigate('/help')}
                   aria-label={t('information')}
                   style={{
                     border: theme === 'light' ? '1px solid var(--border)' : '1px solid rgba(255,255,255,0.2)',

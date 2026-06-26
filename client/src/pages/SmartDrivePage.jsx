@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
+import Joyride from 'react-joyride';
 import { useNavigate } from 'react-router-dom';
 import { DEFAULT_STORAGE_LIMIT, DRIVE_SPACES, getRefreshHandler } from '@constants/driveConstants';
 import { useLang } from '@contexts/LangContext';
@@ -43,6 +44,30 @@ export default function SmartDrivePage() {
     username: user?.username
   });
 
+  // ── Guided Tour ──────────────────────────────────────────────────────────
+  const [runTour, setRunTour] = useState(false);
+  const tourSeenKey = `smartDriveTourSeen_${lang}`;
+  const tourSteps = useMemo(() => [
+    { target: 'body', content: t('tour.smart_drive_search'), disableBeacon: true, placement: 'center' },
+    { target: '[data-tour="drive-sidebar"]', content: t('tour.drive_sidebar'), disableBeacon: true, placement: 'right' },
+    { target: '[data-tour="drive-search"]', content: t('tour.drive_search'), disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="drive-upload"]', content: t('tour.drive_upload'), disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="drive-breadcrumb"]', content: t('tour.drive_breadcrumb'), disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="drive-file-list"]', content: t('tour.drive_file_list'), disableBeacon: true, placement: 'top' },
+    { target: '[data-tour="drive-filters"]', content: t('tour.smart_drive_filters'), disableBeacon: true, placement: 'bottom' },
+  ], [lang, t]);
+  useEffect(() => {
+    const start = () => setRunTour(true);
+    window.addEventListener('app:joyride', start);
+    window.addEventListener('app:help', start);
+    return () => { window.removeEventListener('app:joyride', start); window.removeEventListener('app:help', start); };
+  }, []);
+  useEffect(() => { try { if (!localStorage.getItem(tourSeenKey)) setRunTour(true); } catch {} }, [tourSeenKey]);
+  const handleTourCallback = useCallback((data) => {
+    const { status } = data || {};
+    if (status === 'finished' || status === 'skipped') { setRunTour(false); try { localStorage.setItem(tourSeenKey, 'true'); } catch {} }
+  }, [tourSeenKey]);
+  // ─────────────────────────────────────────────────────────────────────────
   const [activeSpace, setActiveSpace] = useState('my-drive');
   const [currentFolderId, setCurrentFolderId] = useState(null);
   const [breadcrumbs, setBreadcrumbs] = useState([]);
@@ -639,6 +664,10 @@ export default function SmartDrivePage() {
           '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
       }}
     >
+      <Joyride continuous run={runTour} steps={tourSteps} callback={handleTourCallback} scrollOffset={100} scrollToFirstStep
+        locale={{ back: t('tour_back'), close: t('tour_close'), last: t('tour_finish'), next: t('tour_next'), skip: t('tour_skip') }}
+        styles={{ options: { primaryColor: 'var(--color-primary,#800020)', textColor: theme === 'dark' ? '#e5e7eb' : '#111', backgroundColor: theme === 'dark' ? '#1f2937' : '#fff', zIndex: 10000 } }}
+      />
       {/* Top Header */}
       <header
         style={{
@@ -697,7 +726,7 @@ export default function SmartDrivePage() {
           </div>
 
           {/* Search */}
-          <div style={{ flex: 1, minWidth: '220px', maxWidth: '560px' }}>
+          <div data-tour="drive-search" style={{ flex: 1, minWidth: '220px', maxWidth: '560px' }}>
             <Input
               type="text"
               value={searchQuery}
@@ -771,10 +800,14 @@ export default function SmartDrivePage() {
             )}
           </button>
 
+          {/* Tour Button */}
+          <button type="button" onClick={() => setRunTour(true)} style={{ display:'inline-flex', alignItems:'center', padding:'0.35rem 0.65rem', fontSize:'0.8125rem', borderRadius:'6px', border:'none', background:'var(--color-primary,#800020)', color:'white', cursor:'pointer', fontWeight:700 }}>?</button>
+
           {/* Action buttons */}
           {activeSpace === 'my-drive' && (
             <>
               <button
+                data-tour="drive-upload"
                 onClick={handleUpload}
                 style={{
                   ...gradientBtn,
@@ -831,6 +864,7 @@ export default function SmartDrivePage() {
       >
         {/* Sidebar */}
         <aside
+          data-tour="drive-sidebar"
           style={{
             width: isMobile ? '100%' : sidebarMinimized ? '72px' : '15%',
             flexShrink: 0,
@@ -869,6 +903,7 @@ export default function SmartDrivePage() {
           {/* Google-like breadcrumb */}
           {(activeSpace === 'my-drive' || currentFolderId) && (
             <div
+              data-tour="drive-breadcrumb"
               style={{
                 background: 'var(--background-secondary, #f9fafb)',
                 border: '1px solid var(--border-light, #f3f4f6)',
@@ -1083,6 +1118,7 @@ export default function SmartDrivePage() {
               onClearAll={clearAllFilters}
             />
           </div>
+          <div data-tour="drive-filters" style={{ display: 'none' }} />
 
           {/* Workflow status summary */}
           {activeSpace === 'workflow' && (
@@ -1118,6 +1154,7 @@ export default function SmartDrivePage() {
           )}
 
           {/* Files Roster / Loading / Empty */}
+          <div data-tour="drive-file-list" style={{ display: 'contents' }}>
           {filesLoading ? (
             <FileRosterSkeleton rows={8} />
           ) : visibleFiles.length === 0 && visibleFolders.length === 0 ? (
@@ -1148,6 +1185,7 @@ export default function SmartDrivePage() {
               onEmptyTrash={handleEmptyTrash}
             />
           )}
+          </div>
         </main>
       </div>
 

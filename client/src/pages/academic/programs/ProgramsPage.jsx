@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef, useLayoutEffect } from 'react';
+import Joyride from 'react-joyride';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
@@ -26,6 +27,30 @@ const ProgramsPage = () => {
   const [loading, setLoading] = useState(true);
   const [editingProgram, setEditingProgram] = useState(null);
   const { deleteModal, deleteProgram: deleteProgramModal, handleDeleteConfirm, hideDeleteModal } = useDeleteModal(t);
+
+  // ── Guided Tour ────────────────────────────────────────────────────────────
+  const [runTour, setRunTour] = useState(false);
+  const tourSeenKey = `programsTourSeen_${lang}`;
+  const tourSteps = useMemo(() => [
+    { target: 'body', content: t('tour.programs_search'), disableBeacon: true, placement: 'center' },
+    { target: '[data-tour="programs-form"]', content: t('tour.programs_add'), disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="programs-grid"]', content: t('tour.programs_grid'), disableBeacon: true, placement: 'top' },
+    { target: '[data-tour="programs-grid"]', content: t('tour.programs_edit'), disableBeacon: true, placement: 'top' },
+    { target: '[data-tour="programs-grid"]', content: t('tour.programs_delete'), disableBeacon: true, placement: 'top' },
+    { target: '[data-tour="programs-grid"]', content: t('tour.programs_export'), disableBeacon: true, placement: 'top' },
+  ], [lang, t]);
+  useEffect(() => {
+    const start = () => setRunTour(true);
+    window.addEventListener('app:joyride', start);
+    window.addEventListener('app:help', start);
+    return () => { window.removeEventListener('app:joyride', start); window.removeEventListener('app:help', start); };
+  }, []);
+  useEffect(() => { try { if (!localStorage.getItem(tourSeenKey)) setRunTour(true); } catch {} }, [tourSeenKey]);
+  const handleTourCallback = useCallback((data) => {
+    const { status } = data || {};
+    if (status === 'finished' || status === 'skipped') { setRunTour(false); try { localStorage.setItem(tourSeenKey, 'true'); } catch {} }
+  }, [tourSeenKey]);
+  // ──────────────────────────────────────────────────────────────────────────
   
   // Refs for performance (uncontrolled inputs)
   const nameEnRef = useRef(null);
@@ -328,6 +353,10 @@ const ProgramsPage = () => {
 
   return (
     <div className={styles.container}>
+      <Joyride continuous run={runTour} steps={tourSteps} callback={handleTourCallback} scrollOffset={100} scrollToFirstStep
+        locale={{ back: t('tour_back'), close: t('tour_close'), last: t('tour_finish'), next: t('tour_next'), skip: t('tour_skip') }}
+        styles={{ options: { primaryColor: 'var(--color-primary,#800020)', textColor: theme === 'dark' ? '#e5e7eb' : '#111', backgroundColor: theme === 'dark' ? '#1f2937' : '#fff', zIndex: 10000 } }}
+      />
       {editingProgram && (
         <div style={{ 
           padding: '0.75rem 1rem', 
@@ -343,7 +372,10 @@ const ProgramsPage = () => {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="dashboard-form">
+      <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:'0.5rem' }}>
+        <button type="button" onClick={() => setRunTour(true)} style={{ display:'inline-flex', alignItems:'center', gap:'0.35rem', padding:'0.35rem 0.65rem', fontSize:'0.8125rem', borderRadius:'6px', border:'none', background:'var(--color-primary,#800020)', color:'white', cursor:'pointer' }}><span style={{fontWeight:700}}>?</span><span>{t('tour_help') || 'Tour'}</span></button>
+      </div>
+      <form data-tour="programs-form" onSubmit={handleSubmit} className="dashboard-form">
         <div className="form-row">
           <Input
             ref={codeRef}
@@ -421,7 +453,7 @@ const ProgramsPage = () => {
         </div>
       </form>
 
-      <div className={styles.content}>
+      <div className={styles.content} data-tour="programs-grid">
         <AdvancedDataGrid
             rows={programs}
             getRowId={(row) => row.docId || row.id}

@@ -14,6 +14,7 @@ const DifficultyFilterChips = ({
   theme = 'light',
   primaryColor = '#800020',
   t = (key) => key,
+  lang = 'en',
   beginnerCount = 0,
   intermediateCount = 0,
   advancedCount = 0

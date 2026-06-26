@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, memo, useLayoutEffect, useCallback } from 'react';
+import Joyride from 'react-joyride';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
@@ -65,6 +66,32 @@ const ChatPage = memo(() => {
   const { user, isAdmin, isSuperAdmin, isHR, isInstructor, loading: authLoading } = useAuth();
   const { t, lang } = useLang();
   const { theme } = useTheme();
+
+  // ── Guided Tour ──────────────────────────────────────────────────────────
+  const [runTour, setRunTour] = useState(false);
+  const tourSeenKey = `chatTourSeen_${lang}`;
+  const tourSteps = useMemo(() => [
+    { target: 'body', content: t('tour.chat_message_area'), disableBeacon: true, placement: 'center' },
+    { target: '[data-tour="chat-sidebar"]', content: t('tour.chat_sidebar'), disableBeacon: true, placement: 'right' },
+    { target: '[data-tour="chat-room-list"]', content: t('tour.chat_room_list'), disableBeacon: true, placement: 'right' },
+    { target: '[data-tour="chat-search"]', content: t('tour.chat_search'), disableBeacon: true, placement: 'right' },
+    { target: '[data-tour="chat-members"]', content: t('tour.chat_members'), disableBeacon: true, placement: 'left' },
+    { target: '[data-tour="chat-input"]', content: t('tour.chat_input'), disableBeacon: true, placement: 'top' },
+    { target: '[data-tour="chat-file-attach"]', content: t('tour.chat_file_attach'), disableBeacon: true, placement: 'top' },
+    { target: '[data-tour="chat-voice"]', content: t('tour.chat_voice'), disableBeacon: true, placement: 'top' },
+  ], [lang, t]);
+  useEffect(() => {
+    const start = () => setRunTour(true);
+    window.addEventListener('app:joyride', start);
+    window.addEventListener('app:help', start);
+    return () => { window.removeEventListener('app:joyride', start); window.removeEventListener('app:help', start); };
+  }, []);
+  useEffect(() => { try { if (!localStorage.getItem(tourSeenKey)) setRunTour(true); } catch {} }, [tourSeenKey]);
+  const handleTourCallback = useCallback((data) => {
+    const { status } = data || {};
+    if (status === 'finished' || status === 'skipped') { setRunTour(false); try { localStorage.setItem(tourSeenKey, 'true'); } catch {} }
+  }, [tourSeenKey]);
+  // ──────────────────────────────────────────────────────────────────────────
   const toast = useToast();
   const { startLoading } = useGlobalLoading();
   const location = useLocation();
@@ -1035,9 +1062,13 @@ const ChatPage = memo(() => {
 
   return (
     <>
+    <Joyride continuous run={runTour} steps={tourSteps} callback={handleTourCallback} scrollOffset={100} scrollToFirstStep
+      locale={{ back: t('tour_back'), close: t('tour_close'), last: t('tour_finish'), next: t('tour_next'), skip: t('tour_skip') }}
+      styles={{ options: { primaryColor: 'var(--color-primary,#800020)', textColor: theme === 'dark' ? '#e5e7eb' : '#111', backgroundColor: theme === 'dark' ? '#1f2937' : '#fff', zIndex: 10000 } }}
+    />
     <div className="chat-page" data-theme={theme}>
       {/* Sidebar */}
-      <div className="chat-sidebar" style={{
+      <div data-tour="chat-sidebar" className="chat-sidebar" style={{
         width: isSidebarCollapsed ? 0 : sidebarWidth,
         background: 'var(--panel)',
         borderRight: isSidebarCollapsed ? 'none' : '1px solid var(--border)',
@@ -1094,7 +1125,7 @@ const ChatPage = memo(() => {
       )}
 
         {/* Class List */}
-        <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
+        <div data-tour="chat-room-list" style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
           {/* Global Chat */}
           {(
             <div
@@ -1497,9 +1528,14 @@ const ChatPage = memo(() => {
             )}
           </div>
           
+          {/* Tour Button */}
+          <div>
+            <button type="button" onClick={() => setRunTour(true)} style={{ display:'inline-flex', alignItems:'center', gap:'0.35rem', padding:'0.35rem 0.65rem', fontSize:'0.8125rem', borderRadius:'6px', border:'none', background:'var(--color-primary,#800020)', color:'white', cursor:'pointer' }}><span style={{fontWeight:700}}>?</span></button>
+          </div>
           {/* Search Button */}
           <div>
             <button
+              data-tour="chat-search"
               type="button"
               onClick={() => { setShowSearch(!showSearch); if (!showSearch) setTimeout(() => document.getElementById('msg-search')?.focus(), 100); }}
               title={t('search_messages') || 'Search messages'}
@@ -2447,7 +2483,7 @@ const ChatPage = memo(() => {
           )}
 
           {/* Input Form */}
-          <form onSubmit={handleSendMessage} className="form-actions" style={{ position: 'relative' }}>
+          <form data-tour="chat-input" onSubmit={handleSendMessage} className="form-actions" style={{ position: 'relative' }}>
             {/* Hide input during recording, show compact recording interface instead */}
             {isRecording ? (
               <div style={{
@@ -2650,7 +2686,7 @@ const ChatPage = memo(() => {
             
             {/* File Attachment */}
             {!audioBlob && !attachedFile && (
-              <label style={{
+              <label data-tour="chat-file-attach" style={{
                 padding: '0.6rem',
                 background: 'transparent',
                 color: 'var(--muted)',
@@ -2670,6 +2706,7 @@ const ChatPage = memo(() => {
 
             {/* Single primary button: Mic when empty, Send when has content */}
             <button
+              data-tour="chat-voice"
               type={(newMessage.trim() || audioBlob || attachedFile) ? 'submit' : 'button'}
               onClick={() => {
                 if (!(newMessage.trim() || audioBlob || attachedFile)) {
@@ -3050,7 +3087,7 @@ const ChatPage = memo(() => {
     {showMembers && (
       <div style={{ position: 'fixed', inset: 0, zIndex: 2000 }} onClick={()=>setShowMembers(false)}>
         {/* drawer */}
-        <div onClick={(e)=>e.stopPropagation()} style={{ position: 'absolute', top: 0, right: 0, height: '100%', width: 360, background: 'white', boxShadow: '-4px 0 16px rgba(0,0,0,0.15)', padding: '1rem', pointerEvents: 'auto', display: 'flex', flexDirection: 'column' }}>
+        <div data-tour="chat-members" onClick={(e)=>e.stopPropagation()} style={{ position: 'absolute', top: 0, right: 0, height: '100%', width: 360, background: 'white', boxShadow: '-4px 0 16px rgba(0,0,0,0.15)', padding: '1rem', pointerEvents: 'auto', display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
             <h3 style={{ margin: 0 }}>
               {selectedClass?.startsWith('dm:') ? 'Direct Message' : 'Class Members'}

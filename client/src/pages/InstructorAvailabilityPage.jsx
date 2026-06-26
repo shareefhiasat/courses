@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import Joyride from 'react-joyride';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
@@ -37,6 +38,30 @@ const InstructorAvailabilityPage = () => {
   const { theme } = useTheme();
   const toast = useToast();
   const { deleteModal, deleteEntity, handleDeleteConfirm, hideDeleteModal } = useDeleteModal(t);
+
+  // ── Guided Tour ───────────────────────────────────────────────────────────
+  const [runTour, setRunTour] = useState(false);
+  const tourSeenKey = `instrAvailTourSeen_${lang}`;
+  const tourSteps = useMemo(() => [
+    { target: 'body', content: t('tour.instr_avail_filters'), disableBeacon: true, placement: 'center' },
+    { target: '[data-tour="instr-avail-form"]', content: t('tour.instr_avail_filters'), disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="instr-avail-filters"]', content: t('tour.instr_avail_filters'), disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="instr-avail-grid"]', content: t('tour.instr_avail_grid'), disableBeacon: true, placement: 'top' },
+    { target: '[data-tour="instr-avail-grid"]', content: t('tour.instr_avail_conflict'), disableBeacon: true, placement: 'top' },
+    { target: '[data-tour="instr-avail-export"]', content: t('tour.instr_avail_export'), disableBeacon: true, placement: 'top' },
+  ], [lang, t]);
+  useEffect(() => {
+    const start = () => setRunTour(true);
+    window.addEventListener('app:joyride', start);
+    window.addEventListener('app:help', start);
+    return () => { window.removeEventListener('app:joyride', start); window.removeEventListener('app:help', start); };
+  }, []);
+  useEffect(() => { try { if (!localStorage.getItem(tourSeenKey)) setRunTour(true); } catch {} }, [tourSeenKey]);
+  const handleTourCallback = useCallback((data) => {
+    const { status } = data || {};
+    if (status === 'finished' || status === 'skipped') { setRunTour(false); try { localStorage.setItem(tourSeenKey, 'true'); } catch {} }
+  }, [tourSeenKey]);
+  // ─────────────────────────────────────────────────────────────────────────
 
   const [availabilities, setAvailabilities] = useState([]);
   const [instructors, setInstructors] = useState([]);
@@ -593,8 +618,12 @@ const InstructorAvailabilityPage = () => {
 
   return (
     <div style={{ padding: '1.5rem' }}>
+      <Joyride continuous run={runTour} steps={tourSteps} callback={handleTourCallback} scrollOffset={100} scrollToFirstStep
+        locale={{ back: t('tour_back'), close: t('tour_close'), last: t('tour_finish'), next: t('tour_next'), skip: t('tour_skip') }}
+        styles={{ options: { primaryColor: 'var(--color-primary,#800020)', textColor: theme === 'dark' ? '#e5e7eb' : '#111', backgroundColor: theme === 'dark' ? '#1f2937' : '#fff', zIndex: 10000 } }}
+      />
       {/* Form - Always visible */}
-      <form onSubmit={handleSaveAvailability} style={{ marginBottom: '2rem' }}>
+      <form data-tour="instr-avail-form" onSubmit={handleSaveAvailability} style={{ marginBottom: '2rem' }}>
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
@@ -751,7 +780,7 @@ const InstructorAvailabilityPage = () => {
       </form>
 
       {/* Filter Bar */}
-      <div style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1rem', alignItems: 'flex-end' }}>
+      <div data-tour="instr-avail-filters" style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap', marginBottom: '1rem', alignItems: 'flex-end' }}>
         <div style={{ flex: '2 1 180px' }}>
           <Input
             value={filterSearch}
@@ -851,13 +880,16 @@ const InstructorAvailabilityPage = () => {
         <h3 style={{ margin: 0, fontSize: '1.125rem', fontWeight: '500' }}>
           {t('instructor_availability_title', { count: `${filteredAvailabilities.length}${filteredAvailabilities.length !== availabilities.length ? ` / ${availabilities.length}` : ''}` })}
         </h3>
-        <Button variant="outline" size="sm" onClick={handleExport} disabled={filteredAvailabilities.length === 0}>
-          {t('export') || 'Export'}
-        </Button>
+        <div style={{ display: 'flex', gap: '0.5rem' }}>
+          <button type="button" onClick={() => setRunTour(true)} style={{ display:'inline-flex', alignItems:'center', padding:'0.35rem 0.65rem', fontSize:'0.8125rem', borderRadius:'6px', border:'none', background:'var(--color-primary,#800020)', color:'white', cursor:'pointer', fontWeight:700 }}>?</button>
+          <Button data-tour="instr-avail-export" variant="outline" size="sm" onClick={handleExport} disabled={filteredAvailabilities.length === 0}>
+            {t('export') || 'Export'}
+          </Button>
+        </div>
       </div>
 
       {/* Data Grid */}
-      <div style={{
+      <div data-tour="instr-avail-grid" style={{
         backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
         border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`,
         borderRadius: '0.5rem',

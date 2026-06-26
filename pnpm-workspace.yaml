@@ -1,6 +1,7 @@
 packages:
   - 'client'
   - 'backend'
+  - 'help-docs'
 
 allowBuilds:
   '@prisma/client': true

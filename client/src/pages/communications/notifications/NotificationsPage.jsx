@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
+import Joyride from 'react-joyride';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import { useAuth } from '@contexts/AuthContext';
 import useNotificationsFeed from '@hooks/useNotificationsFeed';
@@ -73,6 +74,31 @@ const NotificationsPage = () => {
   const [classes, setClasses] = useState([]);
   const [showArchived, setShowArchived] = useState(false);
   const isDark = theme === 'dark';
+
+  // ── Guided Tour ──────────────────────────────────────────────────────────
+  const [runTour, setRunTour] = useState(false);
+  const tourSeenKey = `notifTourSeen_${lang}`;
+  const tourSteps = useMemo(() => [
+    { target: 'body', content: t('tour.notif_realtime'), disableBeacon: true, placement: 'center' },
+    { target: '[data-tour="notif-search"]', content: t('tour.notif_search'), disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="notif-filters"]', content: t('tour.notif_filters'), disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="notif-type-toggle"]', content: t('tour.notif_type_toggle'), disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="notif-mark-read"]', content: t('tour.notif_mark_read'), disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="notif-list"]', content: t('tour.notif_list'), disableBeacon: true, placement: 'top' },
+    { target: '[data-tour="notif-list"]', content: t('tour.notif_actions'), disableBeacon: true, placement: 'top' },
+  ], [lang, t]);
+  useEffect(() => {
+    const start = () => setRunTour(true);
+    window.addEventListener('app:joyride', start);
+    window.addEventListener('app:help', start);
+    return () => { window.removeEventListener('app:joyride', start); window.removeEventListener('app:help', start); };
+  }, []);
+  useEffect(() => { try { if (!localStorage.getItem(tourSeenKey)) setRunTour(true); } catch {} }, [tourSeenKey]);
+  const handleTourCallback = useCallback((data) => {
+    const { status } = data || {};
+    if (status === 'finished' || status === 'skipped') { setRunTour(false); try { localStorage.setItem(tourSeenKey, 'true'); } catch {} }
+  }, [tourSeenKey]);
+  // ──────────────────────────────────────────────────────────────────────────
 
   // Sync notification settings with useNotifications hook
   useEffect(() => {
@@ -367,6 +393,10 @@ const NotificationsPage = () => {
 
   return (
     <Container maxWidth="xl" style={{ padding: '2rem', minHeight: '100vh', background: isDark ? '#0f0f1e' : '#f9fafb' }}>
+      <Joyride continuous run={runTour} steps={tourSteps} callback={handleTourCallback} scrollOffset={100} scrollToFirstStep
+        locale={{ back: t('tour_back'), close: t('tour_close'), last: t('tour_finish'), next: t('tour_next'), skip: t('tour_skip') }}
+        styles={{ options: { primaryColor: 'var(--color-primary,#800020)', textColor: isDark ? '#e5e7eb' : '#111', backgroundColor: isDark ? '#1f2937' : '#fff', zIndex: 10000 } }}
+      />
       {/* Header */}
       <div style={{
         marginBottom: '2rem',
@@ -380,6 +410,7 @@ const NotificationsPage = () => {
             Notifications
           </h1>
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <button type="button" onClick={() => setRunTour(true)} style={{ display:'inline-flex', alignItems:'center', gap:'0.35rem', padding:'0.35rem 0.65rem', fontSize:'0.8125rem', borderRadius:'6px', border:'none', background:'var(--color-primary,#800020)', color:'white', cursor:'pointer' }}><span style={{fontWeight:700}}>?</span><span>{t('tour_help') || 'Tour'}</span></button>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               {getThemedIcon('ui', 'volume2', 18, theme)}
               <ToggleSwitch
@@ -426,6 +457,7 @@ const NotificationsPage = () => {
             )}
             {unreadCount > 0 && (
               <Button
+                data-tour="notif-mark-read"
                 size="sm"
                 variant="ghost"
                 onClick={handleMarkAllAsRead}
@@ -438,7 +470,7 @@ const NotificationsPage = () => {
         </div>
 
         {/* Search */}
-        <div style={{ marginBottom: '1rem' }}>
+        <div data-tour="notif-search" style={{ marginBottom: '1rem' }}>
           <div style={{ position: 'relative' }}>
             {getThemedIcon('ui', 'search', 18, theme)}
             <Input
@@ -457,7 +489,7 @@ const NotificationsPage = () => {
         </div>
 
         {/* Filters */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '0.75rem' }}>
+        <div data-tour="notif-filters" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '0.75rem' }}>
           <Select
             value={filterType}
             onChange={(e) => setFilterType(e.target.value)}
@@ -620,7 +652,7 @@ const NotificationsPage = () => {
       </div>
 
       {/* Notifications List */}
-      <div style={{
+      <div data-tour="notif-list" style={{
         display: 'flex',
         flexDirection: 'column',
         gap: '0.75rem'

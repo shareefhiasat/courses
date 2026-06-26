@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef, useLayoutEffect } from 'react';
+import Joyride from 'react-joyride';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useAuth } from '@contexts/AuthContext';
@@ -107,6 +108,31 @@ const ActivitiesPage = () => {
   const [formErrors, setFormErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const { deleteModal, deleteActivity, handleDeleteConfirm, hideDeleteModal } = useDeleteModal(t);
+
+  // ── Guided Tour ──────────────────────────────────────────────────────────
+  const [runTour, setRunTour] = useState(false);
+  const tourSeenKey = `activitiesTourSeen_${lang}`;
+  const tourSteps = useMemo(() => [
+    { target: 'body', content: t('tour.activities_filters'), disableBeacon: true, placement: 'center' },
+    { target: '[data-tour="activities-form"]', content: t('tour.activities_add'), disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="activities-grid"]', content: t('tour.activities_grid'), disableBeacon: true, placement: 'top' },
+    { target: '[data-tour="activities-grid"]', content: t('tour.activities_type'), disableBeacon: true, placement: 'top' },
+    { target: '[data-tour="activities-grid"]', content: t('tour.activities_edit'), disableBeacon: true, placement: 'top' },
+    { target: '[data-tour="activities-grid"]', content: t('tour.activities_delete'), disableBeacon: true, placement: 'top' },
+    { target: '[data-tour="activities-grid"]', content: t('tour.activities_export'), disableBeacon: true, placement: 'top' },
+  ], [lang, t]);
+  useEffect(() => {
+    const start = () => setRunTour(true);
+    window.addEventListener('app:joyride', start);
+    window.addEventListener('app:help', start);
+    return () => { window.removeEventListener('app:joyride', start); window.removeEventListener('app:help', start); };
+  }, []);
+  useEffect(() => { try { if (!localStorage.getItem(tourSeenKey)) setRunTour(true); } catch {} }, [tourSeenKey]);
+  const handleTourCallback = useCallback((data) => {
+    const { status } = data || {};
+    if (status === 'finished' || status === 'skipped') { setRunTour(false); try { localStorage.setItem(tourSeenKey, 'true'); } catch {} }
+  }, [tourSeenKey]);
+  // ──────────────────────────────────────────────────────────────────────────
   const [categories, setCategories] = useState([]);
   const [programs, setPrograms] = useState([]);
   const [subjects, setSubjects] = useState([]);
@@ -803,6 +829,10 @@ const ActivitiesPage = () => {
 
   return (
     <div className="activities-tab">
+      <Joyride continuous run={runTour} steps={tourSteps} callback={handleTourCallback} scrollOffset={100} scrollToFirstStep
+        locale={{ back: t('tour_back'), close: t('tour_close'), last: t('tour_finish'), next: t('tour_next'), skip: t('tour_skip') }}
+        styles={{ options: { primaryColor: 'var(--color-primary,#800020)', textColor: theme === 'dark' ? '#e5e7eb' : '#111', backgroundColor: theme === 'dark' ? '#1f2937' : '#fff', zIndex: 10000 } }}
+      />
       {editingActivity && (
         <div style={{ 
           padding: '0.75rem 1rem', 
@@ -819,8 +849,10 @@ const ActivitiesPage = () => {
         </div>
       )}
 
-      
-      <form onSubmit={handleActivitySubmit} className="dashboard-form">
+      <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:'0.5rem' }}>
+        <button type="button" onClick={() => setRunTour(true)} style={{ display:'inline-flex', alignItems:'center', gap:'0.35rem', padding:'0.35rem 0.65rem', fontSize:'0.8125rem', borderRadius:'6px', border:'none', background:'var(--color-primary,#800020)', color:'white', cursor:'pointer' }}><span style={{fontWeight:700}}>?</span><span>{t('tour_help') || 'Tour'}</span></button>
+      </div>
+      <form data-tour="activities-form" onSubmit={handleActivitySubmit} className="dashboard-form">
         {/* Basic Info Section */}
         <div className="form-row">
           <ProgramsSelect
@@ -1463,7 +1495,7 @@ const ActivitiesPage = () => {
         })()}
       </div>
       
-      <div style={{ marginTop: '1rem' }}>
+      <div data-tour="activities-grid" style={{ marginTop: '1rem' }}>
         <AdvancedDataGrid
           key={`activities-grid-${lang}`}
           rows={filteredActivities}

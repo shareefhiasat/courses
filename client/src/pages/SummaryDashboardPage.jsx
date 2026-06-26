@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import Joyride from 'react-joyride';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
@@ -49,7 +50,7 @@ import useDashboardAnalytics from '@hooks/useDashboardAnalytics';
 
 const SummaryDashboardPage = () => {
   const { user, isAdmin, isHR, isSuperAdmin, isInstructor } = useAuth();
-  const { t, isRTL } = useLang();
+  const { t, lang, isRTL } = useLang();
   const { theme } = useTheme();
   const toast = useToast();
   const navigate = useNavigate();
@@ -85,6 +86,44 @@ const SummaryDashboardPage = () => {
   const [refreshInterval, setRefreshInterval] = useState(30000);
   const [lastUpdatedAt, setLastUpdatedAt] = useState(Date.now());
   const analyticsHook = useDashboardAnalytics();
+
+  // ── Guided Tour ────────────────────────────────────────────────────────────
+  const [runTour, setRunTour] = useState(false);
+  const [tourSteps, setTourSteps] = useState([]);
+  const tourSeenKey = `summaryDashboardTourSeen_${lang}`;
+
+  useEffect(() => {
+    setTourSteps([
+      { target: '[data-tour="summary-quick-actions"]', content: t('tour.summary_quick_actions'), disableBeacon: true, placement: 'bottom' },
+      { target: '[data-tour="summary-auto-refresh"]', content: t('tour.summary_auto_refresh'), disableBeacon: true, placement: 'bottom' },
+      { target: '[data-tour="summary-report-filters"]', content: t('tour.summary_report_filters'), disableBeacon: true, placement: 'bottom' },
+      { target: '[data-tour="summary-time-range"]', content: t('tour.summary_time_range'), disableBeacon: true, placement: 'bottom' },
+      { target: '[data-tour="summary-overview"]', content: t('tour.summary_overview'), disableBeacon: true, placement: 'bottom' },
+      { target: '[data-tour="summary-analytics"]', content: t('tour.summary_analytics'), disableBeacon: true, placement: 'top' },
+      { target: '[data-tour="summary-breaks"]', content: t('tour.summary_breaks'), disableBeacon: true, placement: 'top' },
+      { target: '[data-tour="summary-attendance"]', content: t('tour.summary_attendance'), disableBeacon: true, placement: 'top' },
+      { target: '[data-tour="summary-drive-analytics"]', content: t('tour.summary_drive_analytics'), disableBeacon: true, placement: 'top' },
+    ]);
+  }, [lang, t]);
+
+  useEffect(() => {
+    const start = () => setRunTour(true);
+    window.addEventListener('app:joyride', start);
+    window.addEventListener('app:help', start);
+    return () => { window.removeEventListener('app:joyride', start); window.removeEventListener('app:help', start); };
+  }, []);
+
+  useEffect(() => {
+    try { if (!localStorage.getItem(tourSeenKey)) setRunTour(true); } catch {}
+  }, [tourSeenKey]);
+
+  const handleTourCallback = useCallback((data) => {
+    const { status } = data || {};
+    if (status === 'finished' || status === 'skipped') {
+      setRunTour(false);
+      try { localStorage.setItem(tourSeenKey, 'true'); } catch {}
+    }
+  }, [tourSeenKey]);
 
   const canView = canAccessScreen('summary-dashboard');
   const canExport = hasPermission('summary-dashboard.canExport');
@@ -294,15 +333,17 @@ const SummaryDashboardPage = () => {
   };
 
   const quickActions = (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center', justifyContent: 'flex-end' }}>
-      <AutoRefreshBar
-        compact
-        showInterval={false}
-        showLastUpdated={false}
-        onRefresh={loadAll}
-        intervalMs={refreshInterval}
-        onIntervalChange={setRefreshInterval}
-      />
+    <div data-tour="summary-quick-actions" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center', justifyContent: 'flex-end' }}>
+      <div data-tour="summary-auto-refresh">
+        <AutoRefreshBar
+          compact
+          showInterval={false}
+          showLastUpdated={false}
+          onRefresh={loadAll}
+          intervalMs={refreshInterval}
+          onIntervalChange={setRefreshInterval}
+        />
+      </div>
       <button type="button" style={headerButtonStyle} onClick={() => navigate('/scheduling-calendar')} title={t('schedules_view_schedule')} aria-label={t('schedules_view_schedule')}>
         <CalendarDays size={16} />
         <span>{t('schedules_view_schedule')}</span>
@@ -322,6 +363,16 @@ const SummaryDashboardPage = () => {
         <span>{t('rooms') || 'Rooms'}</span>
         <ExternalLink size={13} aria-hidden style={{ opacity: 0.65 }} />
       </button>
+      <button
+        type="button"
+        onClick={() => setRunTour(true)}
+        title={t('tour_help') || 'Start guided tour'}
+        aria-label={t('tour_help') || 'Start guided tour'}
+        style={{ ...headerButtonStyle, background: 'var(--color-primary, #800020)', color: 'white', border: 'none' }}
+      >
+        <span>?</span>
+        <span>{t('tour_help') || 'Tour'}</span>
+      </button>
     </div>
   );
 
@@ -340,6 +391,33 @@ const SummaryDashboardPage = () => {
 
   return (
     <div style={{ padding: '1rem' }} data-testid="summary-dashboard-page">
+      <Joyride
+        continuous
+        run={runTour}
+        steps={tourSteps}
+        disableScrolling={false}
+        scrollOffset={100}
+        scrollToFirstStep
+        spotlightClicks={false}
+        callback={handleTourCallback}
+        locale={{
+          back: t('tour_back') || 'Back',
+          close: t('tour_close') || 'Close',
+          last: t('tour_finish') || 'Finish',
+          next: t('tour_next') || 'Next',
+          skip: t('tour_skip') || 'Skip',
+        }}
+        styles={{
+          options: {
+            primaryColor: 'var(--color-primary, #800020)',
+            textColor: theme === 'dark' ? '#e5e7eb' : '#000',
+            backgroundColor: theme === 'dark' ? '#1f2937' : '#fff',
+            overlayColor: 'rgba(0,0,0,0.5)',
+            arrowColor: theme === 'dark' ? '#1f2937' : '#fff',
+            zIndex: 10000,
+          },
+        }}
+      />
       <div style={{
         display: 'flex',
         justifyContent: 'space-between',
@@ -351,25 +429,29 @@ const SummaryDashboardPage = () => {
         {quickActions}
       </div>
 
-      <ReportFilterBar
-        programs={accessiblePrograms}
-        subjects={subjects}
-        classes={classes}
-        instructors={instructors}
-        filters={reportFilters}
-        onChange={setReportFilters}
-        showInstructor={!isSelfView}
-        isRTL={isRTL}
-        defaultOpen
-      />
+      <div data-tour="summary-report-filters">
+        <ReportFilterBar
+          programs={accessiblePrograms}
+          subjects={subjects}
+          classes={classes}
+          instructors={instructors}
+          filters={reportFilters}
+          onChange={setReportFilters}
+          showInstructor={!isSelfView}
+          isRTL={isRTL}
+          defaultOpen
+        />
+      </div>
 
-      <TimeRangeSelector
-        timeRange={timeRange}
-        startDate={startDate}
-        endDate={endDate}
-        onChange={handleTimeRangeChange}
-        onApply={loadAll}
-      />
+      <div data-tour="summary-time-range">
+        <TimeRangeSelector
+          timeRange={timeRange}
+          startDate={startDate}
+          endDate={endDate}
+          onChange={handleTimeRangeChange}
+          onApply={loadAll}
+        />
+      </div>
 
       {loading ? (
         <SimpleLoading />
@@ -380,14 +462,17 @@ const SummaryDashboardPage = () => {
       ) : (
         <>
           {overviewCards.length > 0 && (
-            <SchedulingOverviewPanel
-              title={isInstructorDetailView ? (t('instructor_overview') || 'Instructor Overview') : (t('scheduling_overview') || 'Scheduling Overview')}
-              stats={overviewStats}
-              cards={overviewCards}
-              defaultOpen
-            />
+            <div data-tour="summary-overview">
+              <SchedulingOverviewPanel
+                title={isInstructorDetailView ? (t('instructor_overview') || 'Instructor Overview') : (t('scheduling_overview') || 'Scheduling Overview')}
+                stats={overviewStats}
+                cards={overviewCards}
+                defaultOpen
+              />
+            </div>
           )}
 
+          <div data-tour="summary-analytics">
           <CollapsibleSection
             title={isInstructorDetailView ? (t('teacher_effort_report') || 'Teacher Effort') : (t('analytics') || 'Analytics')}
             summary={`${SCHEDULING_SUMMARY_DEFAULT_WIDGETS.length} ${t('widgets') || 'widgets'} · ${effortReport?.totals?.sessionCount ?? 0} ${t('sessions')} · ${effortReport?.totals?.teacherCount ?? 0} ${t('total_teachers')}`}
@@ -404,6 +489,7 @@ const SummaryDashboardPage = () => {
               lastUpdatedAt={lastUpdatedAt}
             />
           </CollapsibleSection>
+          </div>
 
           {isInstructorDetailView && teacherEffort && (
             <CollapsibleSection
@@ -425,67 +511,73 @@ const SummaryDashboardPage = () => {
           )}
 
           {dashboardData && (
-            <CollapsibleSection
-              title={t('breaks_and_holidays_analytics') || 'Breaks & Holidays Analytics'}
-              summary={`${SCHEDULING_BREAKS_HOLIDAYS_MAX_WIDGETS} ${t('widgets') || 'widgets'} · ${dashboardData.breakSessions?.length ?? 0} ${t('breaks')} · ${dashboardData.holidays?.length ?? 0} ${t('holidays')}`}
-              icon={Palmtree}
-              defaultOpen={false}
-              testId="breaks-holidays-section"
-              actions={(
-                <button type="button" style={headerButtonStyle} onClick={() => navigate('/scheduling-calendar')} title={t('manage_breaks_and_holidays')} aria-label={t('manage_breaks_and_holidays')}>
-                  <CalendarDays size={14} />
-                  <span>{t('manage_in_calendar') || 'Manage in Calendar'}</span>
-                </button>
-              )}
-            >
-              <BreaksHolidaysAnalyticsPanel
-                rawData={buildSchedulingRawData(effortReport, dashboardData, isRTL)}
-                defaultWidgets={SCHEDULING_BREAKS_HOLIDAYS_DEFAULT_WIDGETS}
-                storageKey={SCHEDULING_BREAKS_HOLIDAYS_STORAGE_KEY}
-                maxWidgets={SCHEDULING_BREAKS_HOLIDAYS_MAX_WIDGETS}
-                widgetCategoryResolver="scheduling"
-                builderCategoryScope="scheduling"
-                onReload={loadAll}
-                lastUpdatedAt={lastUpdatedAt}
-              />
-            </CollapsibleSection>
+            <div data-tour="summary-breaks">
+              <CollapsibleSection
+                title={t('breaks_and_holidays_analytics') || 'Breaks & Holidays Analytics'}
+                summary={`${SCHEDULING_BREAKS_HOLIDAYS_MAX_WIDGETS} ${t('widgets') || 'widgets'} · ${dashboardData.breakSessions?.length ?? 0} ${t('breaks')} · ${dashboardData.holidays?.length ?? 0} ${t('holidays')}`}
+                icon={Palmtree}
+                defaultOpen={false}
+                testId="breaks-holidays-section"
+                actions={(
+                  <button type="button" style={headerButtonStyle} onClick={() => navigate('/scheduling-calendar')} title={t('manage_breaks_and_holidays')} aria-label={t('manage_breaks_and_holidays')}>
+                    <CalendarDays size={14} />
+                    <span>{t('manage_in_calendar') || 'Manage in Calendar'}</span>
+                  </button>
+                )}
+              >
+                <BreaksHolidaysAnalyticsPanel
+                  rawData={buildSchedulingRawData(effortReport, dashboardData, isRTL)}
+                  defaultWidgets={SCHEDULING_BREAKS_HOLIDAYS_DEFAULT_WIDGETS}
+                  storageKey={SCHEDULING_BREAKS_HOLIDAYS_STORAGE_KEY}
+                  maxWidgets={SCHEDULING_BREAKS_HOLIDAYS_MAX_WIDGETS}
+                  widgetCategoryResolver="scheduling"
+                  builderCategoryScope="scheduling"
+                  onReload={loadAll}
+                  lastUpdatedAt={lastUpdatedAt}
+                />
+              </CollapsibleSection>
+            </div>
           )}
 
           {dashboardData && (
+            <div data-tour="summary-attendance">
+              <CollapsibleSection
+                title={t('attendance_analytics') || 'Attendance Analytics'}
+                summary={`${SCHEDULING_ATTENDANCE_MAX_WIDGETS} ${t('widgets') || 'widgets'} · ${t('class_and_daily') || 'Class & Daily'}`}
+                icon={ClipboardList}
+                defaultOpen={false}
+                testId="attendance-analytics-section"
+              >
+                <AttendanceAnalyticsPanel
+                  rawData={buildSchedulingRawData(effortReport, dashboardData, isRTL)}
+                  defaultWidgets={SCHEDULING_ATTENDANCE_DEFAULT_WIDGETS}
+                  storageKey={SCHEDULING_ATTENDANCE_STORAGE_KEY}
+                  maxWidgets={SCHEDULING_ATTENDANCE_MAX_WIDGETS}
+                  widgetCategoryResolver="scheduling"
+                  builderCategoryScope="scheduling"
+                  onReload={loadAll}
+                  lastUpdatedAt={lastUpdatedAt}
+                />
+              </CollapsibleSection>
+            </div>
+          )}
+
+          <div data-tour="summary-drive-analytics">
             <CollapsibleSection
-              title={t('attendance_analytics') || 'Attendance Analytics'}
-              summary={`${SCHEDULING_ATTENDANCE_MAX_WIDGETS} ${t('widgets') || 'widgets'} · ${t('class_and_daily') || 'Class & Daily'}`}
-              icon={ClipboardList}
+              title={t('drive_workflow_activity_analytics') || 'Drive, Workflow & Activity Analytics'}
+              summary={`${analyticsHook.loading ? '…' : 'Ready'} · ${t('role_based_metrics') || 'Role-based metrics'}`}
+              icon={BarChart3}
               defaultOpen={false}
-              testId="attendance-analytics-section"
+              testId="dashboard-analytics-section"
             >
-              <AttendanceAnalyticsPanel
-                rawData={buildSchedulingRawData(effortReport, dashboardData, isRTL)}
-                defaultWidgets={SCHEDULING_ATTENDANCE_DEFAULT_WIDGETS}
-                storageKey={SCHEDULING_ATTENDANCE_STORAGE_KEY}
-                maxWidgets={SCHEDULING_ATTENDANCE_MAX_WIDGETS}
-                widgetCategoryResolver="scheduling"
-                builderCategoryScope="scheduling"
-                onReload={loadAll}
+              <DashboardAnalyticsPanel
+                analyticsData={analyticsHook.data}
+                loading={analyticsHook.loading}
+                onReload={analyticsHook.reload}
                 lastUpdatedAt={lastUpdatedAt}
               />
             </CollapsibleSection>
-          )}
-
-          <CollapsibleSection
-            title={t('drive_workflow_activity_analytics') || 'Drive, Workflow & Activity Analytics'}
-            summary={`${analyticsHook.loading ? '…' : 'Ready'} · ${t('role_based_metrics') || 'Role-based metrics'}`}
-            icon={BarChart3}
-            defaultOpen={false}
-            testId="dashboard-analytics-section"
-          >
-            <DashboardAnalyticsPanel
-              analyticsData={analyticsHook.data}
-              loading={analyticsHook.loading}
-              onReload={analyticsHook.reload}
-              lastUpdatedAt={lastUpdatedAt}
-            />
-          </CollapsibleSection>
+          </div>
 
         </>
       )}

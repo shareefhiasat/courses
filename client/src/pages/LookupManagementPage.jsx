@@ -9,6 +9,7 @@
  */
 
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import Joyride from 'react-joyride';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useAuth } from '@contexts/AuthContext';
@@ -671,8 +672,70 @@ const LookupManagementPage = ({ lookupType }) => {
     );
   }
 
+  // ── Guided Tour ──────────────────────────────────────────────────────────
+  // (declared inside the render function because it is a returned JSX block, not a hook)
+  // NOTE: hooks can't be called conditionally, so we place them before the early-return guards
+  // This block is defined ABOVE the return statement
+  // eslint-disable-next-line react-hooks/rules-of-hooks
+
+  return (
+    <LookupPageWithTour
+      lookupType={lookupType}
+      theme={theme}
+      t={t}
+      lang={lang}
+      config={config}
+      localizedTitle={localizedTitle}
+      formState={formState}
+      setFormState={setFormState}
+      saving={saving}
+      renderField={renderField}
+      handleSubmit={handleSubmit}
+      handleCancel={handleCancel}
+      items={items}
+      gridColumns={gridColumns}
+      lookupLoading={lookupLoading}
+      deleteModal={deleteModal}
+      hideDeleteModal={hideDeleteModal}
+      handleDeleteConfirm={handleDeleteConfirm}
+    />
+  );
+};
+
+// Inner component so hooks are called unconditionally
+const LookupPageWithTour = ({
+  lookupType, theme, t, lang, config, localizedTitle,
+  formState, setFormState, saving, renderField, handleSubmit, handleCancel,
+  items, gridColumns, lookupLoading, deleteModal, hideDeleteModal, handleDeleteConfirm
+}) => {
+  const [runTour, setRunTour] = React.useState(false);
+  const tourSeenKey = `lookupTourSeen_${lookupType}_${lang}`;
+  const tourSteps = React.useMemo(() => [
+    { target: 'body', content: t('tour.lookup_search'), disableBeacon: true, placement: 'center' },
+    { target: '[data-tour="lookup-add-btn"]', content: t('tour.lookup_add'), disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="lookup-grid"]', content: t('tour.lookup_grid'), disableBeacon: true, placement: 'top' },
+    { target: '[data-tour="lookup-grid"]', content: t('tour.lookup_edit'), disableBeacon: true, placement: 'top' },
+    { target: '[data-tour="lookup-grid"]', content: t('tour.lookup_delete'), disableBeacon: true, placement: 'top' },
+    { target: '[data-tour="lookup-grid"]', content: t('tour.lookup_color'), disableBeacon: true, placement: 'top' },
+  ], [lookupType, lang, t]);
+  React.useEffect(() => {
+    const start = () => setRunTour(true);
+    window.addEventListener('app:joyride', start);
+    window.addEventListener('app:help', start);
+    return () => { window.removeEventListener('app:joyride', start); window.removeEventListener('app:help', start); };
+  }, []);
+  React.useEffect(() => { try { if (!localStorage.getItem(tourSeenKey)) setRunTour(true); } catch {} }, [tourSeenKey]);
+  const handleTourCb = React.useCallback((data) => {
+    const { status } = data || {};
+    if (status === 'finished' || status === 'skipped') { setRunTour(false); try { localStorage.setItem(tourSeenKey, 'true'); } catch {} }
+  }, [tourSeenKey]);
+
   return (
     <div style={{ padding: '1.5rem' }}>
+      <Joyride continuous run={runTour} steps={tourSteps} callback={handleTourCb} scrollOffset={100} scrollToFirstStep
+        locale={{ back: t('tour_back'), close: t('tour_close'), last: t('tour_finish'), next: t('tour_next'), skip: t('tour_skip') }}
+        styles={{ options: { primaryColor: 'var(--color-primary,#800020)', textColor: theme === 'dark' ? '#e5e7eb' : '#111', backgroundColor: theme === 'dark' ? '#1f2937' : '#fff', zIndex: 10000 } }}
+      />
       {/* Header */}
       <div style={{ 
         display: 'flex', 
@@ -696,12 +759,16 @@ const LookupManagementPage = ({ lookupType }) => {
             {t('lookup_manage_description', { type: localizedTitle })}
           </p>
         </div>
-        <Button
-          onClick={() => setFormState(FORM_STATES.CREATING)}
-          disabled={saving}
-        >
-          {t('create')} {localizedTitle}
-        </Button>
+        <div style={{ display:'flex', gap:'0.5rem', alignItems:'center' }}>
+          <button type="button" onClick={() => setRunTour(true)} style={{ display:'inline-flex', alignItems:'center', gap:'0.35rem', padding:'0.35rem 0.65rem', fontSize:'0.8125rem', borderRadius:'6px', border:'none', background:'var(--color-primary,#800020)', color:'white', cursor:'pointer' }}><span style={{fontWeight:700}}>?</span><span>{t('tour_help') || 'Tour'}</span></button>
+          <Button
+            data-tour="lookup-add-btn"
+            onClick={() => setFormState(FORM_STATES.CREATING)}
+            disabled={saving}
+          >
+            {t('create')} {localizedTitle}
+          </Button>
+        </div>
       </div>
 
       {/* Form */}
@@ -759,7 +826,7 @@ const LookupManagementPage = ({ lookupType }) => {
       )}
 
       {/* Data Grid */}
-      <div style={{
+      <div data-tour="lookup-grid" style={{
         backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
         border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`,
         borderRadius: '0.5rem',

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import Joyride from 'react-joyride';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@contexts/AuthContext';
 import {
@@ -75,6 +76,30 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
   const { user } = useAuth();
   const { t, lang } = useLang();
   const { theme } = useTheme();
+
+  // ── Guided Tour ──────────────────────────────────────────────────────────
+  const [runTour, setRunTour] = useState(false);
+  const tourSeenKey = `notifDrawerTourSeen_${lang}`;
+  const tourSteps = useMemo(() => [
+    { target: '[data-tour="notif-drawer-header"]', content: t('tour.notif_drawer_header'), disableBeacon: true, placement: 'left' },
+    { target: '[data-tour="notif-drawer-search"]', content: t('tour.notif_drawer_search'), disableBeacon: true, placement: 'left' },
+    { target: '[data-tour="notif-drawer-mark-all"]', content: t('tour.notif_drawer_mark_all'), disableBeacon: true, placement: 'left' },
+    { target: '[data-tour="notif-drawer-settings"]', content: t('tour.notif_drawer_settings'), disableBeacon: true, placement: 'left' },
+    { target: '[data-tour="notif-drawer-list"]', content: t('tour.notif_drawer_list'), disableBeacon: true, placement: 'left' },
+    { target: '[data-tour="notif-drawer-list"]', content: t('tour.notif_drawer_actions'), disableBeacon: true, placement: 'left' },
+  ], [lang, t]);
+  useEffect(() => {
+    const start = () => setRunTour(true);
+    window.addEventListener('app:joyride', start);
+    window.addEventListener('app:help', start);
+    return () => { window.removeEventListener('app:joyride', start); window.removeEventListener('app:help', start); };
+  }, []);
+  useEffect(() => { if (isOpen) { try { if (!localStorage.getItem(tourSeenKey)) setRunTour(true); } catch {} } }, [isOpen, tourSeenKey]);
+  const handleTourCallback = useCallback((data) => {
+    const { status } = data || {};
+    if (status === 'finished' || status === 'skipped') { setRunTour(false); try { localStorage.setItem(tourSeenKey, 'true'); } catch {} }
+  }, [tourSeenKey]);
+  // ──────────────────────────────────────────────────────────────────────────
   const navigate = useNavigate();
   const { data: lookupData } = useLookupTypes({
     types: ['penalty-types']
@@ -423,6 +448,10 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
 
   return (
     <>
+      <Joyride continuous run={runTour} steps={tourSteps} callback={handleTourCallback} scrollOffset={80} scrollToFirstStep
+        locale={{ back: t('tour_back'), close: t('tour_close'), last: t('tour_finish'), next: t('tour_next'), skip: t('tour_skip') }}
+        styles={{ options: { primaryColor: 'var(--color-primary,#800020)', textColor: theme === 'dark' ? '#e5e7eb' : '#111', backgroundColor: theme === 'dark' ? '#1f2937' : '#fff', zIndex: 10100 } }}
+      />
       <div
         onClick={onClose}
         style={{
@@ -436,6 +465,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
 
       <div
         ref={drawerRef}
+        data-tour="notif-drawer-header"
         style={{
           position: 'fixed',
           top: 0,
@@ -471,9 +501,10 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
               )}
             </div>
             <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
+              <button type="button" onClick={() => setRunTour(true)} style={{ display:'inline-flex', alignItems:'center', padding:'0.3rem 0.55rem', fontSize:'0.8rem', borderRadius:'6px', border:'none', background:'var(--color-primary,#800020)', color:'white', cursor:'pointer', fontWeight:700 }}>?</button>
               {unreadCount > 0 && (
                 <PortalTooltip content={t('notifications.mark_all_read')} position="top">
-                  <button onClick={handleMarkAllAsRead} style={iconBtnStyle(false)}
+                  <button data-tour="notif-drawer-mark-all" onClick={handleMarkAllAsRead} style={iconBtnStyle(false)}
                     onMouseEnter={(e) => { Object.assign(e.currentTarget.style, iconBtnStyle(true)) }}
                     onMouseLeave={(e) => { Object.assign(e.currentTarget.style, iconBtnStyle(false)) }}
                   >
@@ -483,6 +514,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
               )}
               <PortalTooltip content={t('notifications.settings') || 'Settings'} position="top">
                 <button
+                  data-tour="notif-drawer-settings"
                   onClick={(e) => { e.stopPropagation(); setShowSettings(!showSettings) }}
                   style={{
                     ...iconBtnStyle(false),
@@ -517,7 +549,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
           </div>
 
           {/* Search */}
-          <div style={{ marginBottom: '0.6rem' }}>
+          <div data-tour="notif-drawer-search" style={{ marginBottom: '0.6rem' }}>
             <Input
               type="text"
               placeholder={t('search_notifications') || 'Search notifications...'}
@@ -763,7 +795,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
         </div>
 
         {/* ── Notifications List ── */}
-        <div style={{
+        <div data-tour="notif-drawer-list" style={{
           flex: 1,
           overflowY: 'auto',
           padding: '0.5rem 0.75rem'

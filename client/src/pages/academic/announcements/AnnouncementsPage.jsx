@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef, useLayoutEffect } from 'react';
+import Joyride from 'react-joyride';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useAuth } from '@contexts/AuthContext';
@@ -123,6 +124,30 @@ const AnnouncementsPage = ({ isDashboardTab = false }) => {
     emailLang: 'en'
   });
   const { deleteModal, deleteEntity, handleDeleteConfirm, hideDeleteModal } = useDeleteModal(t);
+
+  // ── Guided Tour ──────────────────────────────────────────────────────────
+  const [runTour, setRunTour] = useState(false);
+  const tourSeenKey = `announcesTourSeen_${lang}`;
+  const tourSteps = useMemo(() => [
+    { target: 'body', content: t('tour.announce_filters'), disableBeacon: true, placement: 'center' },
+    { target: '[data-tour="announce-form"]', content: t('tour.announce_add'), disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="announce-grid"]', content: t('tour.announce_grid'), disableBeacon: true, placement: 'top' },
+    { target: '[data-tour="announce-grid"]', content: t('tour.announce_priority'), disableBeacon: true, placement: 'top' },
+    { target: '[data-tour="announce-grid"]', content: t('tour.announce_edit'), disableBeacon: true, placement: 'top' },
+    { target: '[data-tour="announce-grid"]', content: t('tour.announce_delete'), disableBeacon: true, placement: 'top' },
+  ], [lang, t]);
+  useEffect(() => {
+    const start = () => setRunTour(true);
+    window.addEventListener('app:joyride', start);
+    window.addEventListener('app:help', start);
+    return () => { window.removeEventListener('app:joyride', start); window.removeEventListener('app:help', start); };
+  }, []);
+  useEffect(() => { try { if (!localStorage.getItem(tourSeenKey)) setRunTour(true); } catch {} }, [tourSeenKey]);
+  const handleTourCallback = useCallback((data) => {
+    const { status } = data || {};
+    if (status === 'finished' || status === 'skipped') { setRunTour(false); try { localStorage.setItem(tourSeenKey, 'true'); } catch {} }
+  }, [tourSeenKey]);
+  // ──────────────────────────────────────────────────────────────────────────
   const { startLoading } = useGlobalLoading();
   
   // Refs for text inputs — avoids re-rendering the whole page on every keystroke
@@ -620,6 +645,10 @@ const AnnouncementsPage = ({ isDashboardTab = false }) => {
 
   return (
     <div className="announcements-tab">
+      <Joyride continuous run={runTour} steps={tourSteps} callback={handleTourCallback} scrollOffset={100} scrollToFirstStep
+        locale={{ back: t('tour_back'), close: t('tour_close'), last: t('tour_finish'), next: t('tour_next'), skip: t('tour_skip') }}
+        styles={{ options: { primaryColor: 'var(--color-primary,#800020)', textColor: theme === 'dark' ? '#e5e7eb' : '#111', backgroundColor: theme === 'dark' ? '#1f2937' : '#fff', zIndex: 10000 } }}
+      />
       {editingAnnouncement && (
         <div style={{
           padding: '0.75rem 1rem',
@@ -636,7 +665,10 @@ const AnnouncementsPage = ({ isDashboardTab = false }) => {
         </div>
       )}
 
-      <form onSubmit={handleAnnouncementSubmit} className="dashboard-form">
+      <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:'0.5rem' }}>
+        <button type="button" onClick={() => setRunTour(true)} style={{ display:'inline-flex', alignItems:'center', gap:'0.35rem', padding:'0.35rem 0.65rem', fontSize:'0.8125rem', borderRadius:'6px', border:'none', background:'var(--color-primary,#800020)', color:'white', cursor:'pointer' }}><span style={{fontWeight:700}}>?</span><span>{t('tour_help') || 'Tour'}</span></button>
+      </div>
+      <form data-tour="announce-form" onSubmit={handleAnnouncementSubmit} className="dashboard-form">
         {/* Program/Subject/Class Selection */}
         <div className="form-row">
           <ProgramsSelect
@@ -969,7 +1001,7 @@ const AnnouncementsPage = ({ isDashboardTab = false }) => {
         </div>
       </div>
 
-      <div style={{ marginTop: '1rem' }}>
+      <div data-tour="announce-grid" style={{ marginTop: '1rem' }}>
         <AdvancedDataGrid
           key={`announcements-grid-${lang}`}
           rows={filteredAnnouncements}

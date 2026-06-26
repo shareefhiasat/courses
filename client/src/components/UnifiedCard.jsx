@@ -13,6 +13,36 @@ import { RECORD_TYPES } from '@utils/sharedTypes';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import PortalTooltip from '@ui/PortalTooltip';
 
+// Hardcoded Arabic fallback display names (used when LangContext translations are not loaded)
+const ARABIC_ACTIVITY_DISPLAY_NAMES = {
+  exam: 'امتحان',
+  mid_exam: 'امتحان منتصف الفصل',
+  final_exam: 'امتحان نهائي',
+  quiz: 'اختبار',
+  homework: 'واجب منزلي',
+  assignment: 'مهمة',
+  lab: 'معمل',
+  lab_work: 'عمل معملي',
+  lab_project: 'معمل ومشروع',
+  workshop: 'ورشة عمل',
+  training: 'تدريب',
+  project: 'مشروع',
+  presentation: 'عرض تقديمي',
+  participation: 'مشاركة',
+  field_trip: 'رحلة ميدانية',
+  case_study: 'دراسة حالة',
+  research: 'بحث',
+  debate: 'مناظرة',
+  seminar: 'ندوة',
+  video: 'فيديو',
+  reading: 'قراءة',
+  activity: 'نشاط',
+  link: 'رابط',
+  announcement: 'إعلان',
+  resource: 'مورد',
+  unknown: 'غير معروف'
+};
+
 /**
  * Unified card component for activities, quizzes, resources, and home page items
  * @param {Object} props
@@ -184,11 +214,14 @@ const UnifiedCard = memo(({
     if (flavor === RECORD_TYPES.RESOURCE) {
       // Use title case (first letter uppercase, rest lowercase)
       const rawType = item.type;
-      const type = typeof rawType === 'string' ? rawType : (rawType?.code || rawType?.name || 'document');
+      const type = (typeof rawType === 'string' ? rawType : (rawType?.code || rawType?.name || 'document')).toLowerCase();
       const key = `activity_type_${type}`;
       const translated = t(key);
       const fallbackText = key.replaceAll('_', ' ');
-      const label = translated === fallbackText ? (ACTIVITY_DISPLAY_NAMES[type] || type) : translated;
+      const fallbackName = lang === 'ar'
+        ? (ARABIC_ACTIVITY_DISPLAY_NAMES[type] || ARABIC_ACTIVITY_DISPLAY_NAMES[type.replace('_work', '')] || type)
+        : (ACTIVITY_DISPLAY_NAMES[type] || type);
+      const label = translated === fallbackText ? fallbackName : translated;
       return label.charAt(0).toUpperCase() + label.slice(1).toLowerCase();
     }
     if (flavor === RECORD_TYPES.ANNOUNCEMENT) {
@@ -196,11 +229,14 @@ const UnifiedCard = memo(({
       return label.charAt(0).toUpperCase() + label.slice(1).toLowerCase();
     }
     const rawType = item.type;
-    const type = typeof rawType === 'string' ? rawType : (rawType?.code || rawType?.name || ACTIVITY_TYPES.TRAINING);
+    const type = (typeof rawType === 'string' ? rawType : (rawType?.code || rawType?.name || ACTIVITY_TYPES.TRAINING)).toLowerCase();
     const key = `activity_type_${type}`;
     const translated = t(key);
     const fallbackText = key.replaceAll('_', ' ');
-    const label = translated === fallbackText ? (ACTIVITY_DISPLAY_NAMES[type] || type) : translated;
+    const fallbackName = lang === 'ar'
+      ? (ARABIC_ACTIVITY_DISPLAY_NAMES[type] || ARABIC_ACTIVITY_DISPLAY_NAMES[type.replace('_work', '')] || type)
+      : (ACTIVITY_DISPLAY_NAMES[type] || type);
+    const label = translated === fallbackText ? fallbackName : translated;
     return label.charAt(0).toUpperCase() + label.slice(1).toLowerCase();
   };
 
@@ -248,6 +284,9 @@ const UnifiedCard = memo(({
   const cardShadow = isDark
       ? `0 2px 8px ${cardBorderColor}25, 0 1px 3px rgba(0,0,0,0.3)`
       : `0 2px 8px ${cardBorderColor}15, 0 1px 3px rgba(0,0,0,0.06)`;
+  const cardHoverShadow = isDark
+      ? `0 4px 16px ${cardBorderColor}45, 0 2px 6px rgba(0,0,0,0.4)`
+      : `0 4px 16px ${cardBorderColor}35, 0 2px 6px rgba(0,0,0,0.1)`;
 
   return (
       <div style={{
@@ -263,7 +302,16 @@ const UnifiedCard = memo(({
         minHeight: '340px', // Made taller from 200px
         transition: 'all 0.2s',
         color: cardText
-      }}>
+      }}
+      onMouseEnter={(e) => {
+        e.currentTarget.style.boxShadow = cardHoverShadow;
+        e.currentTarget.style.borderColor = `${cardBorderColor}60`;
+      }}
+      onMouseLeave={(e) => {
+        e.currentTarget.style.boxShadow = cardShadow;
+        e.currentTarget.style.border = cardBorder;
+      }}
+    >
         {/* Score Badge - Top Right Corner (review mode) */}
         {isReviewMode && scorePercent !== null && (
           <div

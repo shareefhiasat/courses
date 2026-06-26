@@ -27,7 +27,8 @@ const CollapsibleDashboardSection = ({
   animated = true,
   smartCollapse = false, // Auto-collapse based on user behavior
   onRefresh = null, // Refresh callback function
-  refreshing = false // Refresh state for visual feedback
+  refreshing = false, // Refresh state for visual feedback
+  'data-tour': dataTour = null // Guided tour target for the section wrapper
 }) => {
   const { t } = useLang();
   const [mode, setMode] = useState(defaultMode);
@@ -134,6 +135,7 @@ const CollapsibleDashboardSection = ({
       ref={sectionRef}
       className={`${styles.fullSection} ${animated ? styles.animated : ''} ${className}`}
       style={{ '--color': color }}
+      data-tour={dataTour}
     >
       <div className={styles.fullHeader}>
         <div className={styles.headerLeft}>
@@ -169,6 +171,7 @@ const CollapsibleDashboardSection = ({
             <PortalTooltip content={t('view_options')} position="top">
             <button
               className={styles.modeToggle}
+              data-tour="view-options"
               onClick={() => setIsModeMenuOpen(!isModeMenuOpen)}
             >
               {getThemedIcon('ui', 'more_vertical', 14)}
@@ -202,6 +205,7 @@ const CollapsibleDashboardSection = ({
                 }}
                 className={`${styles.refreshButton} ${refreshing ? styles.refreshing : ''}`}
                 disabled={refreshing}
+                data-tour="refresh"
               >
                 {getThemedIcon('ui', 'refresh', 14)}
                 {refreshing ? 'Refreshing...' : 'Refresh'}

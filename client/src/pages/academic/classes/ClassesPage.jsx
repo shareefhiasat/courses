@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef, useLayoutEffect } from 'react';
+import Joyride from 'react-joyride';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useAuth } from '@contexts/AuthContext';
@@ -49,6 +50,30 @@ const ClassesPage = () => {
   const [classForm, setClassForm] = useState({ id: '', nameEn: '', nameAr: '', code: '', term: '', year: '', locationEn: '', locationAr: '', descriptionEn: '', descriptionAr: '', ownerEmail: '', instructorId: '', substituteInstructorId: '', classroomId: '', subjectId: '', programId: '', classId: '', maxCapacity: '' });
   const [editingClass, setEditingClass] = useState(null);
   const { deleteModal, deleteClass: deleteClassModal, handleDeleteConfirm, hideDeleteModal } = useDeleteModal(t);
+
+  // ── Guided Tour ──────────────────────────────────────────────────────────
+  const [runTour, setRunTour] = useState(false);
+  const tourSeenKey = `classesTourSeen_${lang}`;
+  const tourSteps = useMemo(() => [
+    { target: 'body', content: t('tour.classes_filters'), disableBeacon: true, placement: 'center' },
+    { target: '[data-tour="classes-form"]', content: t('tour.classes_add'), disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="classes-grid"]', content: t('tour.classes_grid'), disableBeacon: true, placement: 'top' },
+    { target: '[data-tour="classes-grid"]', content: t('tour.classes_edit'), disableBeacon: true, placement: 'top' },
+    { target: '[data-tour="classes-grid"]', content: t('tour.classes_delete'), disableBeacon: true, placement: 'top' },
+    { target: '[data-tour="classes-grid"]', content: t('tour.classes_export'), disableBeacon: true, placement: 'top' },
+  ], [lang, t]);
+  useEffect(() => {
+    const start = () => setRunTour(true);
+    window.addEventListener('app:joyride', start);
+    window.addEventListener('app:help', start);
+    return () => { window.removeEventListener('app:joyride', start); window.removeEventListener('app:help', start); };
+  }, []);
+  useEffect(() => { try { if (!localStorage.getItem(tourSeenKey)) setRunTour(true); } catch {} }, [tourSeenKey]);
+  const handleTourCallback = useCallback((data) => {
+    const { status } = data || {};
+    if (status === 'finished' || status === 'skipped') { setRunTour(false); try { localStorage.setItem(tourSeenKey, 'true'); } catch {} }
+  }, [tourSeenKey]);
+  // ──────────────────────────────────────────────────────────────────────────
   
   // Refs for performance
   const nameRef = useRef(null);
@@ -815,6 +840,10 @@ const handleCancelEdit = useCallback(() => {
 
   return (
     <div className="classes-tab">
+      <Joyride continuous run={runTour} steps={tourSteps} callback={handleTourCallback} scrollOffset={100} scrollToFirstStep
+        locale={{ back: t('tour_back'), close: t('tour_close'), last: t('tour_finish'), next: t('tour_next'), skip: t('tour_skip') }}
+        styles={{ options: { primaryColor: 'var(--color-primary,#800020)', textColor: theme === 'dark' ? '#e5e7eb' : '#111', backgroundColor: theme === 'dark' ? '#1f2937' : '#fff', zIndex: 10000 } }}
+      />
       {editingClass && (
         <div style={{ 
           padding: '0.75rem 1rem', 
@@ -830,7 +859,10 @@ const handleCancelEdit = useCallback(() => {
         </div>
       )}
 
-      <form onSubmit={handleClassSubmit} className="dashboard-form">
+      <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:'0.5rem' }}>
+        <button type="button" onClick={() => setRunTour(true)} style={{ display:'inline-flex', alignItems:'center', gap:'0.35rem', padding:'0.35rem 0.65rem', fontSize:'0.8125rem', borderRadius:'6px', border:'none', background:'var(--color-primary,#800020)', color:'white', cursor:'pointer' }}><span style={{fontWeight:700}}>?</span><span>{t('tour_help') || 'Tour'}</span></button>
+      </div>
+      <form data-tour="classes-form" onSubmit={handleClassSubmit} className="dashboard-form">
         {/* Basic Info - First Row */}
         <div className="form-row">
           <Input
@@ -1162,7 +1194,7 @@ const handleCancelEdit = useCallback(() => {
         </div>
       </div>
 
-      <div style={{ marginTop: '1rem' }}>
+      <div data-tour="classes-grid" style={{ marginTop: '1rem' }}>
         <AdvancedDataGrid
           key={classes.length} // Force re-render when classes data changes
           rows={filteredClasses}

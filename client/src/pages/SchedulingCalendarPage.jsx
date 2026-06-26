@@ -1,4 +1,5 @@
 import React, { useState, useCallback, useEffect, useLayoutEffect, useMemo, useRef } from 'react';
+import Joyride from 'react-joyride';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import Calendar from '@toast-ui/react-calendar';
 import '@toast-ui/calendar/dist/toastui-calendar.min.css';
@@ -269,6 +270,32 @@ const SchedulingCalendarPage = () => {
   const { t, lang, isRTL } = useLang();
   const { theme } = useTheme();
   const toast = useToast();
+
+  // ── Guided Tour ──────────────────────────────────────────────────────────
+  const [runTour, setRunTour] = useState(false);
+  const tourSeenKey = `schedCalTourSeen_${lang}`;
+  const tourSteps = useMemo(() => [
+    { target: 'body', content: t('tour.sched_calendar_view'), disableBeacon: true, placement: 'center' },
+    { target: '[data-tour="sched-tabs"]', content: t('tour.sched_calendar_view'), disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="sched-filters"]', content: t('tour.sched_calendar_filters'), disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="sched-calendar"]', content: t('tour.sched_calendar_add'), disableBeacon: true, placement: 'top' },
+    { target: '[data-tour="sched-calendar"]', content: t('tour.sched_calendar_drag'), disableBeacon: true, placement: 'top' },
+    { target: '[data-tour="sched-calendar"]', content: t('tour.sched_calendar_conflict'), disableBeacon: true, placement: 'top' },
+    { target: '[data-tour="sched-stats"]', content: t('tour.sched_calendar_today'), disableBeacon: true, placement: 'bottom' },
+  ], [lang, t]);
+  useEffect(() => {
+    const start = () => setRunTour(true);
+    window.addEventListener('app:joyride', start);
+    window.addEventListener('app:help', start);
+    return () => { window.removeEventListener('app:joyride', start); window.removeEventListener('app:help', start); };
+  }, []);
+  useEffect(() => { try { if (!localStorage.getItem(tourSeenKey)) setRunTour(true); } catch {} }, [tourSeenKey]);
+  const handleTourCallback = useCallback((data) => {
+    const { status } = data || {};
+    if (status === 'finished' || status === 'skipped') { setRunTour(false); try { localStorage.setItem(tourSeenKey, 'true'); } catch {} }
+  }, [tourSeenKey]);
+  // ──────────────────────────────────────────────────────────────────────────
+
   const calendarRef = useRef(null);
   const sessionCalendarContainerRef = useRef(null);
   const currentDateRef = useRef(null);
@@ -2740,9 +2767,13 @@ const SchedulingCalendarPage = () => {
 
   return (
     <div style={containerStyle}>
+      <Joyride continuous run={runTour} steps={tourSteps} callback={handleTourCallback} scrollOffset={100} scrollToFirstStep
+        locale={{ back: t('tour_back'), close: t('tour_close'), last: t('tour_finish'), next: t('tour_next'), skip: t('tour_skip') }}
+        styles={{ options: { primaryColor: 'var(--color-primary,#800020)', textColor: theme === 'dark' ? '#e5e7eb' : '#111', backgroundColor: theme === 'dark' ? '#1f2937' : '#fff', zIndex: 10000 } }}
+      />
       {/* Statistics Bar - Collapsible */}
       {!isFullscreen && (
-        <div style={{
+        <div data-tour="sched-stats" style={{
           width: '100%',
           flexShrink: 0,
           backgroundColor: theme === 'dark' ? '#1f2937' : '#f9fafb',
@@ -2775,6 +2806,7 @@ const SchedulingCalendarPage = () => {
               )}
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+              <button type="button" onClick={() => setRunTour(true)} style={{ display:'inline-flex', alignItems:'center', padding:'0.35rem 0.65rem', fontSize:'0.8125rem', borderRadius:'6px', border:'none', background:'var(--color-primary,#800020)', color:'white', cursor:'pointer', fontWeight:700 }}>?</button>
               <Button
                 variant="outline"
                 size="sm"
@@ -2840,7 +2872,7 @@ const SchedulingCalendarPage = () => {
           {/* View Mode Selector and Filters */}
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap', marginBottom: '1rem', width: '100%' }}>
             {/* Tab Ribbon: Sessions | Availability → scope */}
-            <div style={{ 
+            <div data-tour="sched-tabs" style={{ 
               display: 'flex', 
               gap: '0.25rem', 
               flexWrap: 'wrap',
@@ -3065,6 +3097,7 @@ const SchedulingCalendarPage = () => {
             {/* Quick Search */}
             {!isClassesTab && (
             <Input
+              data-tour="sched-filters"
               placeholder={calendarSearchPlaceholder}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -4279,6 +4312,7 @@ const SchedulingCalendarPage = () => {
             ) : (
               <div
                 ref={sessionCalendarContainerRef}
+                data-tour="sched-calendar"
                 className="scheduling-sessions-calendar"
                 onDrop={handleCalendarDrop}
                 onDragOver={handleCalendarDragOver}

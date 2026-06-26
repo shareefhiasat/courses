@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useLayoutEffect, useRef } from 'react';
+import Joyride from 'react-joyride';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
@@ -47,6 +48,43 @@ export default function StudentDashboardPage() {
   const userSelectRef = useRef(null);
 
   const [activeTab, setActiveTab] = useState('overview');
+
+  // ── Guided Tour ────────────────────────────────────────────────────────────
+  const [runTour, setRunTour] = useState(false);
+  const [tourSteps, setTourSteps] = useState([]);
+  const tourSeenKey = `studentDashboardTourSeen_${lang}`;
+
+  useEffect(() => {
+    setTourSteps([
+      { target: '[data-tour="student-filters"]', content: t('tour.student_filters'), disableBeacon: true, placement: 'bottom' },
+      { target: '[data-tour="student-tabs"]', content: t('tour.student_tabs'), disableBeacon: true, placement: 'bottom' },
+      { target: '[data-tour="student-tab-overview"]', content: t('tour.student_overview'), disableBeacon: true, placement: 'bottom' },
+      { target: '[data-tour="student-tab-performance"]', content: t('tour.student_performance'), disableBeacon: true, placement: 'bottom' },
+      { target: '[data-tour="student-tab-marks"]', content: t('tour.student_marks'), disableBeacon: true, placement: 'bottom' },
+      { target: '[data-tour="student-attendance-analytics"]', content: t('tour.student_attendance_analytics'), disableBeacon: true, placement: 'top' },
+      { target: '[data-tour="student-drive-analytics"]', content: t('tour.student_drive_analytics'), disableBeacon: true, placement: 'top' },
+    ]);
+  }, [lang, t]);
+
+  useEffect(() => {
+    const start = () => setRunTour(true);
+    window.addEventListener('app:joyride', start);
+    window.addEventListener('app:help', start);
+    return () => { window.removeEventListener('app:joyride', start); window.removeEventListener('app:help', start); };
+  }, []);
+
+  useEffect(() => {
+    try { if (!localStorage.getItem(tourSeenKey)) setRunTour(true); } catch {}
+  }, [tourSeenKey]);
+
+  const handleTourCallback = useCallback((data) => {
+    const { status } = data || {};
+    if (status === 'finished' || status === 'skipped') {
+      setRunTour(false);
+      try { localStorage.setItem(tourSeenKey, 'true'); } catch {}
+    }
+  }, [tourSeenKey]);
+  // ──────────────────────────────────────────────────────────────────────────
 
   const permissions = useStudentDashboardPermissions();
   const filters = useStudentDashboardFilters({ isStaff: permissions.isStaff });
@@ -190,6 +228,33 @@ export default function StudentDashboardPage() {
 
   return (
     <div className={styles.dashboard}>
+      <Joyride
+        continuous
+        run={runTour}
+        steps={tourSteps}
+        disableScrolling={false}
+        scrollOffset={100}
+        scrollToFirstStep
+        spotlightClicks={false}
+        callback={handleTourCallback}
+        locale={{
+          back: t('tour_back') || 'Back',
+          close: t('tour_close') || 'Close',
+          last: t('tour_finish') || 'Finish',
+          next: t('tour_next') || 'Next',
+          skip: t('tour_skip') || 'Skip',
+        }}
+        styles={{
+          options: {
+            primaryColor: 'var(--color-primary, #800020)',
+            textColor: theme === 'dark' ? '#e5e7eb' : '#000',
+            backgroundColor: theme === 'dark' ? '#1f2937' : '#fff',
+            overlayColor: 'rgba(0,0,0,0.5)',
+            arrowColor: theme === 'dark' ? '#1f2937' : '#fff',
+            zIndex: 10000,
+          },
+        }}
+      />
       <Container maxWidth="xxl">
 
         {/* ── Header ── */}
@@ -199,13 +264,22 @@ export default function StudentDashboardPage() {
               {/* Empty header - no username display */}
             </div>
             <div className={styles.headerActions}>
-              {/* Export buttons removed */}
+              <button
+                type="button"
+                onClick={() => setRunTour(true)}
+                title={t('tour_help') || 'Start guided tour'}
+                aria-label={t('tour_help') || 'Start guided tour'}
+                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.35rem 0.65rem', fontSize: '0.8125rem', borderRadius: '6px', border: 'none', background: 'var(--color-primary, #800020)', color: 'white', cursor: 'pointer' }}
+              >
+                <span>?</span>
+                <span>{t('tour_help') || 'Tour'}</span>
+              </button>
             </div>
           </div>
 
           {/* ── Cascading filters for staff ── */}
           {permissions.isStaff && (
-            <div className={styles.filters}>
+            <div className={styles.filters} data-tour="student-filters">
               <ProgramsSelect
                 programs={filters.programs}
                 subjects={filters.subjects}
@@ -303,7 +377,14 @@ export default function StudentDashboardPage() {
         {/* ── Tabs + content (only when data is available) ── */}
         {!showSelectionPrompt && !dashData.loading && !dashData.error && !classMetrics.error && (
           <div className={styles.detailsSection}>
-            <Tabs tabs={dashTabs} activeTab={activeTab} onTabChange={setActiveTab} />
+            <div data-tour="student-tabs">
+              <Tabs tabs={dashTabs} activeTab={activeTab} onTabChange={setActiveTab} />
+            </div>
+            <div style={{ display: 'none' }}>
+              <span data-tour="student-tab-overview" />
+              <span data-tour="student-tab-performance" />
+              <span data-tour="student-tab-marks" />
+            </div>
 
             <div className={styles.detailContent}>
               {activeTab === 'overview' && (
@@ -379,30 +460,33 @@ export default function StudentDashboardPage() {
             </div>
 
             {/* ── Attendance Analytics ── */}
-            <CollapsibleSection
-              title={t('attendance_analytics') || 'Attendance Analytics'}
-              summary={`${STUDENT_ATTENDANCE_MAX_WIDGETS} ${t('widgets') || 'widgets'} · ${t('student_attendance') || 'Student Attendance'}`}
-              icon={ClipboardList}
-              defaultOpen={false}
-              testId="attendance-analytics-section"
-            >
-              <AttendanceAnalyticsPanel
-                rawData={buildStudentPerformanceRawData(
-                  dashData,
-                  { programs: filters.programs, subjects: filters.subjects, classes: filters.classes },
-                  lang === 'ar'
-                )}
-                defaultWidgets={STUDENT_ATTENDANCE_DEFAULT_WIDGETS}
-                storageKey={STUDENT_ATTENDANCE_STORAGE_KEY}
-                maxWidgets={STUDENT_ATTENDANCE_MAX_WIDGETS}
-                widgetCategoryResolver="student"
-                builderCategoryScope="student"
-                onReload={dashData.reload}
-                lastUpdatedAt={Date.now()}
-              />
-            </CollapsibleSection>
+            <div data-tour="student-attendance-analytics">
+              <CollapsibleSection
+                title={t('attendance_analytics') || 'Attendance Analytics'}
+                summary={`${STUDENT_ATTENDANCE_MAX_WIDGETS} ${t('widgets') || 'widgets'} · ${t('student_attendance') || 'Student Attendance'}`}
+                icon={ClipboardList}
+                defaultOpen={false}
+                testId="attendance-analytics-section"
+              >
+                <AttendanceAnalyticsPanel
+                  rawData={buildStudentPerformanceRawData(
+                    dashData,
+                    { programs: filters.programs, subjects: filters.subjects, classes: filters.classes },
+                    lang === 'ar'
+                  )}
+                  defaultWidgets={STUDENT_ATTENDANCE_DEFAULT_WIDGETS}
+                  storageKey={STUDENT_ATTENDANCE_STORAGE_KEY}
+                  maxWidgets={STUDENT_ATTENDANCE_MAX_WIDGETS}
+                  widgetCategoryResolver="student"
+                  builderCategoryScope="student"
+                  onReload={dashData.reload}
+                  lastUpdatedAt={Date.now()}
+                />
+              </CollapsibleSection>
+            </div>
 
             {/* ── Drive, Workflow & Activity Analytics ── */}
+            <div data-tour="student-drive-analytics">
             <CollapsibleSection
               title={t('drive_workflow_activity_analytics') || 'Drive, Workflow & Activity Analytics'}
               summary={`${analyticsHook.loading ? '…' : 'Ready'} · ${t('role_based_metrics') || 'Role-based metrics'}`}
@@ -417,6 +501,7 @@ export default function StudentDashboardPage() {
                 lastUpdatedAt={Date.now()}
               />
             </CollapsibleSection>
+            </div>
           </div>
         )}
 
