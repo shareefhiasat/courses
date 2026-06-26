@@ -3,11 +3,10 @@
  */
 
 import * as folderService from '../services/folderService.js';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../db/prismaClient.js';
 import notificationGateway from '../services/notifications/index.js';
 import { EVENTS } from '../services/notifications/constants.js';
 
-const prisma = new PrismaClient();
 
 const jsonOrStatus = (res, result, okStatus = 200) => {
   if (!result.success) {
@@ -51,7 +50,7 @@ export const createFolder = async (req, res) => {
       const folder = await prisma.folder.findUnique({
         where: { id: result.payload.id },
         include: {
-          user: { select: { displayName: true, firstName: true, lastName: true, displayNameAr: true, firstNameAr: true, lastNameAr: true } }
+          owner: { select: { displayName: true, firstName: true, lastName: true, displayNameAr: true, firstNameAr: true, lastNameAr: true } }
         }
       });
 
@@ -62,14 +61,14 @@ export const createFolder = async (req, res) => {
           select: { sharedWithId: true }
         });
 
-        const recipientIds = [folder.userId, ...parentShares.map(s => s.sharedWithId)].filter(id => id !== req.user?.dbId);
+        const recipientIds = [folder.ownerId, ...parentShares.map(s => s.sharedWithId)].filter(id => id !== req.user?.dbId);
 
         if (recipientIds.length > 0) {
           await notificationGateway.emit(
             EVENTS.DRIVE_FOLDER_CREATED,
             {
               folderName: folder.name,
-              createdBy: folder.user?.displayName || `${folder.user?.firstName} ${folder.user?.lastName}`
+              createdBy: folder.owner?.displayName || `${folder.owner?.firstName} ${folder.owner?.lastName}`
             },
             req.user,
             { userIds: recipientIds }
@@ -90,44 +89,53 @@ export const updateFolder = async (req, res) => {
 };
 
 export const softDeleteFolder = async (req, res) => {
-  // Get folder details before deletion
-  const folder = await prisma.folder.findUnique({
-    where: { id: req.params.folderId },
-    include: {
-      user: { select: { displayName: true, firstName: true, lastName: true, displayNameAr: true, firstNameAr: true, lastNameAr: true } }
-    }
-  });
-
-  const result = await folderService.softDeleteFolder(req.params.folderId, req.user?.dbId, req.user?.roles || []);
-  
-  // Emit notification for folder deletion if successful
-  if (result.success && folder) {
-    try {
-      // Get all users who have access to this folder
-      const folderShares = await prisma.folderShare.findMany({
-        where: { folderId: folder.id },
-        select: { sharedWithId: true }
-      });
-
-      const recipientIds = [folder.userId, ...folderShares.map(s => s.sharedWithId)].filter(id => id !== req.user?.dbId);
-
-      if (recipientIds.length > 0) {
-        await notificationGateway.emit(
-          EVENTS.DRIVE_FOLDER_DELETED,
-          {
-            folderName: folder.name,
-            deletedBy: folder.user?.displayName || `${folder.user?.firstName} ${folder.user?.lastName}`
-          },
-          req.user,
-          { userIds: recipientIds }
-        );
+  try {
+    // Get folder details before deletion
+    const folder = await prisma.folder.findUnique({
+      where: { id: req.params.folderId },
+      include: {
+        owner: { select: { displayName: true, firstName: true, lastName: true, displayNameAr: true, firstNameAr: true, lastNameAr: true } }
       }
-    } catch (notifError) {
-      console.error('[folderController] Failed to emit folder deletion notification:', notifError);
+    });
+
+    const result = await folderService.softDeleteFolder(req.params.folderId, req.user?.dbId, req.user?.roles || []);
+
+    // Emit notification for folder deletion if successful
+    if (result.success && folder) {
+      try {
+        // Get all users who have access to this folder
+        const folderShares = await prisma.folderShare.findMany({
+          where: { folderId: folder.id },
+          select: { sharedWithId: true }
+        });
+
+        const recipientIds = [folder.ownerId, ...folderShares.map(s => s.sharedWithId)].filter(id => id !== req.user?.dbId);
+
+        if (recipientIds.length > 0) {
+          await notificationGateway.emit(
+            EVENTS.DRIVE_FOLDER_DELETED,
+            {
+              folderName: folder.name,
+              deletedBy: folder.owner?.displayName || `${folder.owner?.firstName} ${folder.owner?.lastName}`
+            },
+            req.user,
+            { userIds: recipientIds }
+          );
+        }
+      } catch (notifError) {
+        console.error('[folderController] Failed to emit folder deletion notification:', notifError);
+      }
     }
+
+    return jsonOrStatus(res, result);
+  } catch (error) {
+    console.error('[folderController] softDeleteFolder error:', error);
+    return res.status(500).json({
+      success: false,
+      error: error.message || 'Failed to delete folder',
+      timestamp: Date.now()
+    });
   }
-  
-  return jsonOrStatus(res, result);
 };
 
 export const restoreFolder = async (req, res) => {

@@ -1527,11 +1527,6 @@ const ChatPage = memo(() => {
               </span>
             )}
           </div>
-          
-          {/* Tour Button */}
-          <div>
-            <button type="button" onClick={() => setRunTour(true)} style={{ display:'inline-flex', alignItems:'center', gap:'0.35rem', padding:'0.35rem 0.65rem', fontSize:'0.8125rem', borderRadius:'6px', border:'none', background:'var(--color-primary,#800020)', color:'white', cursor:'pointer' }}><span style={{fontWeight:700}}>?</span></button>
-          </div>
           {/* Search Button */}
           <div>
             <button

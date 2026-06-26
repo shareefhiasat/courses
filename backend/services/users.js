@@ -5,9 +5,8 @@
  * ARCHITECTURE: Controllers → Business Services → DB Services → PostgreSQL
  */
 
-import { PrismaClient } from '@prisma/client';
+import prisma from '../db/prismaClient.js';
 
-const prisma = new PrismaClient();
 
 export const getAllUsers = async (params = {}, user = null) => {
   try {

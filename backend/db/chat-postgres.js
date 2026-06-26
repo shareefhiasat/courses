@@ -4,9 +4,8 @@
  * Direct Prisma queries for chat operations
  */
 
-import { PrismaClient } from '@prisma/client';
+import prisma from './prismaClient.js';
 
-const prisma = new PrismaClient();
 
 /**
  * Get or create a chat room

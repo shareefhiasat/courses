@@ -7,12 +7,11 @@
  * 3. Emitting a WebSocket event to online recipients
  */
 
-import { PrismaClient } from '@prisma/client';
+import prisma from '../../../db/prismaClient.js';
 import { CHANNELS, DELIVERY_STATUS } from '../constants.js';
 import { mapNotification } from '../mapper.js';
 import log from '../logger.js';
 
-const prisma = new PrismaClient();
 
 // WebSocket emitter - will be set by the main gateway
 let wsEmitter = null;

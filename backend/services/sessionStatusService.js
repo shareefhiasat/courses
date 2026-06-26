@@ -1,6 +1,4 @@
-import pkg from '@prisma/client';
-const { PrismaClient } = pkg;
-const prisma = new PrismaClient();
+import prisma from '../db/prismaClient.js';
 
 /**
  * Base status transitions (timing-aware rules applied in validateStatusTransition)

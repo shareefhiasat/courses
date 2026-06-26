@@ -9,9 +9,8 @@ import { createAttendanceAmendment, getAttendanceAmendments, getAllAttendanceAme
 import { addWorkflowComment } from '../db/workflowDocuments-postgres.js';
 import { emit } from './notifications/index.js';
 import { EVENTS } from './notifications/constants.js';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../db/prismaClient.js';
 
-const prisma = new PrismaClient();
 
 /**
  * Amend attendance record

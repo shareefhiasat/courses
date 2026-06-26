@@ -13,14 +13,13 @@
  * Scheduling: add to cron / Windows Task Scheduler / GitHub Actions.
  */
 
-import { PrismaClient } from '@prisma/client';
+import prisma from '../db/prismaClient.js';
 import {
   BUCKETS,
   deleteObject,
   deleteObjectVersion,
 } from '../services/minioService.js';
 
-const prisma = new PrismaClient();
 const DEFAULT_DAYS = parseInt(process.env.PURGE_AFTER_DAYS || '30', 10);
 
 function resolveBucket(input) {

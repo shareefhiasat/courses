@@ -192,7 +192,9 @@ export default function UploadModal({
           <div className="inline-flex items-center gap-2.5 px-4 py-2 rounded-md border border-amber-300 dark:border-amber-600 bg-amber-100 dark:bg-amber-50 text-amber-700 dark:text-amber-800">
             {getThemedIcon('ui', 'info', 18, 'light')}
             <span className="text-base font-semibold">
-              {versionUploads} {versionUploads === 1 ? 'file will' : 'files will'} create a new version because {versionUploads === 1 ? 'it' : 'they'} {versionUploads === 1 ? 'has' : 'have'} the same name as an existing file.
+              {versionUploads === 1
+                ? t('drive.versionUploadWarningSingular')
+                : t('drive.versionUploadWarningPlural', { count: versionUploads })}
             </span>
           </div>
         </div>
@@ -236,27 +238,81 @@ export default function UploadModal({
           onDrop={handleDrop}
           onDragOver={handleDragOver}
           onClick={() => fileInputRef.current?.click()}
-          className="p-16 border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-xl hover:border-blue-500 dark:hover:border-blue-400 transition-all cursor-pointer bg-gray-50 dark:bg-white"
-          style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}
+          className="rounded-xl border-2 border-dashed border-[var(--border)] transition-all cursor-pointer hover:border-[var(--color-primary)] hover:bg-[var(--bg-primary)]"
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '2.5rem 1.5rem',
+            background: 'var(--panel)',
+            gap: '0.75rem',
+          }}
         >
-          {getThemedIcon('ui', 'upload', 80, 'primary')}
-          <p className="text-lg font-semibold text-gray-900 dark:text-gray-900 mb-3" style={{ textAlign: 'center' }}>
+          <div
+            style={{
+              width: '3.5rem',
+              height: '3.5rem',
+              borderRadius: '50%',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              background: 'var(--bg-primary)',
+              color: 'var(--color-primary)',
+              marginBottom: '0.25rem',
+            }}
+          >
+            {getThemedIcon('ui', 'upload', 32, 'primary')}
+          </div>
+          <p style={{ margin: 0, textAlign: 'center', fontSize: '1rem', fontWeight: 600, color: 'var(--text)' }}>
             {t('drive.dragDropFiles')}
           </p>
-          <p className="text-base font-medium text-gray-600 dark:text-gray-700 mb-8" style={{ textAlign: 'center' }}>
+          <p style={{ margin: 0, textAlign: 'center', fontSize: '0.875rem', color: 'var(--text-muted)' }}>
             {t('drive.orClickToSelect')}
           </p>
-          <div className="flex items-center justify-center gap-6 mb-6">
-            {getThemedIcon('ui', 'image', 28, 'muted')}
-            {getThemedIcon('ui', 'file_text', 28, 'muted')}
-            {getThemedIcon('ui', 'video', 28, 'muted')}
-            {getThemedIcon('ui', 'music', 28, 'muted')}
-            {getThemedIcon('ui', 'archive', 28, 'muted')}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.5rem',
+              marginTop: '0.25rem',
+            }}
+          >
+            {['image', 'file_text', 'video', 'music', 'archive'].map((icon) => (
+              <div
+                key={icon}
+                style={{
+                  width: '2rem',
+                  height: '2rem',
+                  borderRadius: '0.5rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  background: 'var(--bg-primary)',
+                  color: 'var(--text-muted)',
+                }}
+              >
+                {getThemedIcon('ui', icon, 18, 'muted')}
+              </div>
+            ))}
           </div>
-          <div className="flex items-center justify-center gap-4 text-sm text-gray-500 dark:text-gray-700">
-            <span className="font-medium">Max: 50MB</span>
-            <span className="text-gray-300 dark:text-gray-400">•</span>
-            <span>Images, Docs, Video, Audio, Archives</span>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '0.75rem',
+              marginTop: '0.25rem',
+              fontSize: '0.75rem',
+              color: 'var(--text-muted)',
+            }}
+          >
+            <span style={{ fontWeight: 500, padding: '0.25rem 0.625rem', background: 'var(--bg-primary)', borderRadius: '9999px' }}>
+              {t('drive.uploadMaxSize')}
+            </span>
+            <span>•</span>
+            <span>{t('drive.uploadAcceptedTypes')}</span>
           </div>
         </div>
       )}

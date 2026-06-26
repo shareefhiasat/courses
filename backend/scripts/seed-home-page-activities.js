@@ -4,9 +4,8 @@
  * Run: node backend/scripts/seed-home-page-activities.js
  */
 
-import { PrismaClient } from '@prisma/client';
+import prisma from '../db/prismaClient.js';
 
-const prisma = new PrismaClient();
 
 async function seedHomePageActivities() {
   console.log('🌱 Seeding home page test activities...\n');

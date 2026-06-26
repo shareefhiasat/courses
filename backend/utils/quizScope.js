@@ -2,10 +2,9 @@
  * Filter quizzes to activities within the user's data scope.
  */
 
-import { PrismaClient } from '@prisma/client';
+import prisma from '../db/prismaClient.js';
 import { getRequestScope, isRecordInScope } from './scopeAccess.js';
 
-const prisma = new PrismaClient();
 
 export async function filterQuizzesByScope(req, quizzes = []) {
   if (!req?.user || !quizzes.length) return quizzes;

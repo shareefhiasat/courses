@@ -12,11 +12,10 @@
  * Alternative providers can be added by implementing the send function.
  */
 
-import { PrismaClient } from '@prisma/client';
+import prisma from '../../../db/prismaClient.js';
 import { CHANNELS, DELIVERY_STATUS } from '../constants.js';
 import log from '../logger.js';
 
-const prisma = new PrismaClient();
 
 /**
  * Send SMS notification

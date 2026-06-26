@@ -2,9 +2,8 @@
  * User preferences — dashboard widget layouts stored in user_preferences.settings JSON.
  */
 
-import { PrismaClient } from '@prisma/client';
+import prisma from './prismaClient.js';
 
-const prisma = new PrismaClient();
 
 function emptyDashboardPayload() {
   return { widgets: [], pinnedIds: [] };

@@ -760,7 +760,7 @@ const LookupPageWithTour = ({
           </p>
         </div>
         <div style={{ display:'flex', gap:'0.5rem', alignItems:'center' }}>
-          <button type="button" onClick={() => setRunTour(true)} style={{ display:'inline-flex', alignItems:'center', gap:'0.35rem', padding:'0.35rem 0.65rem', fontSize:'0.8125rem', borderRadius:'6px', border:'none', background:'var(--color-primary,#800020)', color:'white', cursor:'pointer' }}><span style={{fontWeight:700}}>?</span><span>{t('tour_help') || 'Tour'}</span></button>
+          
           <Button
             data-tour="lookup-add-btn"
             onClick={() => setFormState(FORM_STATES.CREATING)}

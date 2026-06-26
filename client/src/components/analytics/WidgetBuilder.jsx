@@ -174,6 +174,7 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
 
   return (
     <div
+      data-tour="widget-builder-modal"
       style={{
         position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
         background: 'rgba(0,0,0,0.6)', display: 'flex',
@@ -191,9 +192,19 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
       >
         {/* Title bar */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-          <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: 'var(--text)' }}>
-            {isEditing ? (t('edit_widget') || 'Edit Widget') : (t('create_new_widget') || 'Create New Widget')}
-          </h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+            <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: 'var(--text)' }}>
+              {isEditing ? (t('edit_widget') || 'Edit Widget') : (t('create_new_widget') || 'Create New Widget')}
+            </h2>
+            <PortalTooltip content={t('widget_builder_help') || 'Choose the chart type, data source, grouping, date range, and layout size. Only options compatible with the selected source are enabled.'} position="top">
+              <span
+                style={{ display: 'flex', color: 'var(--muted)', cursor: 'help' }}
+                aria-label={t('widget_builder_help') || 'Widget builder help'}
+              >
+                {getThemedIcon('ui', 'help_circle', 16, theme)}
+              </span>
+            </PortalTooltip>
+          </div>
           <button
             onClick={onCancel}
             style={{ padding: '0.35rem', background: 'transparent', border: '1px solid var(--border)', borderRadius: 6, cursor: 'pointer', display: 'flex', color: 'var(--text)' }}
@@ -240,7 +251,7 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
           </div>
 
           {/* Chart Type */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 6 }}>
+          <div data-tour="widget-builder-chart-types" style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 6 }}>
             {CHART_TYPES.map(({ type, icon, label }) => {
                 const hasCompatibleSources = getSourcesForChartType(type, sourceCategory).length > 0;
                 return (
@@ -287,6 +298,7 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
           </div>
 
           {/* Data source */}
+          <div data-tour="widget-builder-data-source">
           <Field label={t('data_source') || 'Data Source'}>
             {categoryTabs.length > 1 && (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
@@ -347,6 +359,7 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
               fullWidth
             />
           </Field>
+          </div>
 
           {/* Count metric picker */}
           {showCountMetricPicker && (
@@ -523,6 +536,7 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
           </div>
 
           {/* Date Range */}
+          <div data-tour="widget-builder-date-range">
           <Field label={t('date_range') || 'Date Range'}>
           <div style={{
             display: 'flex',
@@ -568,6 +582,7 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
                 />
               </div>
             )}
+          </div>
 
           {/* Comparison Mode - Deprecated */}
           {/* <Field label="">
@@ -596,7 +611,7 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
           </Field> */}
 
           {/* Grid Size hint */}
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div data-tour="widget-builder-size" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
             <Field label={t('width_columns') || 'Width (columns 1–12)'}>
               <input
                 type="number"

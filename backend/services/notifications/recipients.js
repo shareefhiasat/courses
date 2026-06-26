@@ -9,10 +9,9 @@
  * - byEnrollment: students enrolled in a subject/program
  */
 
-import { PrismaClient } from '@prisma/client';
+import prisma from '../../db/prismaClient.js';
 import log from './logger.js';
 
-const prisma = new PrismaClient();
 
 /**
  * Resolve recipients by single user ID

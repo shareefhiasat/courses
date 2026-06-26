@@ -35,21 +35,21 @@ const ClassroomAvailabilityPage = () => {
 
   // ── Guided Tour ───────────────────────────────────────────────────────────
   const [runTour, setRunTour] = useState(false);
+  const [tourSteps, setTourSteps] = useState([]);
   const tourSeenKey = `roomAvailTourSeen_${lang}`;
-  const tourSteps = useMemo(() => [
-    { target: 'body', content: t('tour.room_avail_filters'), disableBeacon: true, placement: 'center' },
-    { target: '[data-tour="room-avail-form"]', content: t('tour.room_avail_filters'), disableBeacon: true, placement: 'bottom' },
+  const buildTourSteps = useCallback(() => [
+    { target: '[data-tour="room-avail-form"]',    content: t('tour.room_avail_filters'), disableBeacon: true, placement: 'bottom' },
     { target: '[data-tour="room-avail-filters"]', content: t('tour.room_avail_filters'), disableBeacon: true, placement: 'bottom' },
-    { target: '[data-tour="room-avail-grid"]', content: t('tour.room_avail_grid'), disableBeacon: true, placement: 'top' },
-    { target: '[data-tour="room-avail-export"]', content: t('tour.room_avail_export'), disableBeacon: true, placement: 'top' },
-  ], [lang, t]);
+    { target: '[data-tour="room-avail-grid"]',    content: t('tour.room_avail_grid'),    disableBeacon: true, placement: 'top' },
+    { target: '[data-tour="room-avail-export"]',  content: t('tour.room_avail_export'),  disableBeacon: true, placement: 'top' },
+  ].filter(s => !!document.querySelector(s.target)), [t]);
+  const startTour = useCallback(() => { const steps = buildTourSteps(); if (!steps.length) return; setTourSteps(steps); setRunTour(true); }, [buildTourSteps]);
   useEffect(() => {
-    const start = () => setRunTour(true);
-    window.addEventListener('app:joyride', start);
-    window.addEventListener('app:help', start);
-    return () => { window.removeEventListener('app:joyride', start); window.removeEventListener('app:help', start); };
-  }, []);
-  useEffect(() => { try { if (!localStorage.getItem(tourSeenKey)) setRunTour(true); } catch {} }, [tourSeenKey]);
+    window.addEventListener('app:joyride', startTour);
+    window.addEventListener('app:help', startTour);
+    return () => { window.removeEventListener('app:joyride', startTour); window.removeEventListener('app:help', startTour); };
+  }, [startTour]);
+  useEffect(() => { try { if (!localStorage.getItem(tourSeenKey)) startTour(); } catch {} }, [tourSeenKey, startTour]);
   const handleTourCallback = useCallback((data) => {
     const { status } = data || {};
     if (status === 'finished' || status === 'skipped') { setRunTour(false); try { localStorage.setItem(tourSeenKey, 'true'); } catch {} }
@@ -501,7 +501,7 @@ const ClassroomAvailabilityPage = () => {
 
   return (
     <div style={{ padding: '1.5rem' }}>
-      <Joyride continuous run={runTour} steps={tourSteps} callback={handleTourCallback} scrollOffset={100} scrollToFirstStep
+      <Joyride continuous run={runTour && tourSteps.length > 0} steps={tourSteps} callback={handleTourCallback} scrollOffset={100} scrollToFirstStep
         locale={{ back: t('tour_back'), close: t('tour_close'), last: t('tour_finish'), next: t('tour_next'), skip: t('tour_skip') }}
         styles={{ options: { primaryColor: 'var(--color-primary,#800020)', textColor: theme === 'dark' ? '#e5e7eb' : '#111', backgroundColor: theme === 'dark' ? '#1f2937' : '#fff', zIndex: 10000 } }}
       />
@@ -708,7 +708,7 @@ const ClassroomAvailabilityPage = () => {
           {t('room_availability_title', { count: `${filteredAvailabilities.length}${filteredAvailabilities.length !== availabilities.length ? ` / ${availabilities.length}` : ''}` })}
         </h3>
         <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <button type="button" onClick={() => setRunTour(true)} style={{ display:'inline-flex', alignItems:'center', padding:'0.35rem 0.65rem', fontSize:'0.8125rem', borderRadius:'6px', border:'none', background:'var(--color-primary,#800020)', color:'white', cursor:'pointer', fontWeight:700 }}>?</button>
+          
           <Button data-tour="room-avail-export" variant="outline" size="sm" onClick={handleExport} disabled={filteredAvailabilities.length === 0}>
             {t('export') || 'Export'}
           </Button>

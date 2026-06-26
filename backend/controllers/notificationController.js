@@ -4,10 +4,9 @@
  * HTTP handlers for notification management.
  */
 
-import { PrismaClient } from '@prisma/client';
+import prisma from '../db/prismaClient.js';
 import { mapNotifications } from '../services/notifications/mapper.js';
 
-const prisma = new PrismaClient();
 
 export async function getNotifications(req, res) {
   try {

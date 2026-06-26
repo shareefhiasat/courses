@@ -4,9 +4,8 @@
  * Role-based: HR/Super Admin see all, Admin/Instructor see own data only.
  */
 
-import { PrismaClient } from '@prisma/client';
+import prisma from './prismaClient.js';
 
-const prisma = new PrismaClient();
 
 /**
  * Get drive analytics (files, folders, file types, sizes, activity)

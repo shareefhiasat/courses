@@ -1,7 +1,5 @@
-import pkg from '@prisma/client';
-const { PrismaClient } = pkg;
+import prisma from '../db/prismaClient.js';
 
-const prisma = new PrismaClient();
 
 /**
  * Find available instructors for a given time slot

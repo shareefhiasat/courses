@@ -5,13 +5,12 @@
  * ARCHITECTURE: Controller → Business Service → DB Service → PostgreSQL
  */
 
-import { PrismaClient } from '@prisma/client';
+import prisma from '../db/prismaClient.js';
 import notificationGateway from './notifications/index.js';
 import { EVENTS } from './notifications/constants.js';
 import { buildLocalizedNameFields, buildNotificationNameVars } from '../utils/localizedUserName.js';
 import { USER_NAME_SELECT_WITH_ID } from '../utils/userNameFields.js';
 
-const prisma = new PrismaClient();
 
 /**
  * Get database user ID from Keycloak user object

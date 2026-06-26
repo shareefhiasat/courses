@@ -574,16 +574,7 @@ const AttendancePage = () => {
 
       {/* Tour help button */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.5rem' }}>
-        <button
-          type="button"
-          onClick={() => setRunTour(true)}
-          title={t('tour_help') || 'Start guided tour'}
-          aria-label={t('tour_help') || 'Start guided tour'}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.35rem 0.65rem', fontSize: '0.8125rem', borderRadius: '6px', border: 'none', background: 'var(--color-primary, #800020)', color: 'white', cursor: 'pointer' }}
-        >
-          <span>?</span>
-          <span>{t('tour_help') || 'Tour'}</span>
-        </button>
+        
       </div>
 
       {err && <div style={{ padding:'0.75rem', background:'#fee', border:'1px solid #fcc', borderRadius:8, color:'#c00', marginBottom:16 }}>{err}</div>}

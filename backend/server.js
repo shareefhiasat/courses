@@ -480,7 +480,7 @@ let server;
 try {
   // Use HTTP if explicitly disabled or in development without HTTPS requirement
   if (DISABLE_HTTPS || NODE_ENV === "development" || !fs.existsSync(SSL_KEY_PATH) || !fs.existsSync(SSL_CERT_PATH)) {
-    server = app.listen(PORT, () => {
+    server = app.listen(PORT, '0.0.0.0', () => {
       console.log(`
 🚀 ${process.env.APP_NAME || "Military LMS Backend API"} running on http://localhost:${PORT}
 📡 API Base URL: http://localhost:${PORT}/api/${API_VERSION}
@@ -505,9 +505,11 @@ try {
     const sslOptions = {
       key: fs.readFileSync(SSL_KEY_PATH),
       cert: fs.readFileSync(SSL_CERT_PATH),
+      minVersion: 'TLSv1.2',
+      maxVersion: 'TLSv1.3',
     };
 
-    server = https.createServer(sslOptions, app).listen(PORT, () => {
+    server = https.createServer(sslOptions, app).listen(PORT, '0.0.0.0', () => {
       console.log(`
 🚀 ${process.env.APP_NAME || "Military LMS Backend API"} running on https://localhost:${PORT}
 📡 API Base URL: https://localhost:${PORT}/api/${API_VERSION}

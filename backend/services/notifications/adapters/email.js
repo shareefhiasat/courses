@@ -6,11 +6,10 @@
  */
 
 import nodemailer from 'nodemailer';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../../../db/prismaClient.js';
 import { CHANNELS, DELIVERY_STATUS } from '../constants.js';
 import log from '../logger.js';
 
-const prisma = new PrismaClient();
 
 // Transporter instance (lazy-loaded)
 let transporter = null;

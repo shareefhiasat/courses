@@ -6,11 +6,10 @@
  */
 
 import * as fileService from '../services/fileService.js';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../db/prismaClient.js';
 import { LMS_ROLES } from '../services/keycloakAdminService.js';
 import { VALID_IMAGE_TYPES, VALID_FILE_MIME_TYPES, MAX_FILE_SIZE, getLocalizedMessage, IMAGE_TYPE_TO_TAG } from '../constants/fileConstants.js';
 
-const prisma = new PrismaClient();
 
 /**
  * Get language from request (Accept-Language header or query param)

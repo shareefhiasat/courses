@@ -460,7 +460,7 @@ const gridColumns = useMemo(() => [
       )}
 
       <div style={{ display:'flex', justifyContent:'flex-end', marginBottom:'0.5rem' }}>
-        <button type="button" onClick={() => setRunTour(true)} style={{ display:'inline-flex', alignItems:'center', gap:'0.35rem', padding:'0.35rem 0.65rem', fontSize:'0.8125rem', borderRadius:'6px', border:'none', background:'var(--color-primary,#800020)', color:'white', cursor:'pointer' }}><span style={{fontWeight:700}}>?</span><span>{t('tour_help') || 'Tour'}</span></button>
+        
       </div>
       <form data-tour="subjects-form" onSubmit={handleSubmit} className="dashboard-form">
         <div className="form-row">

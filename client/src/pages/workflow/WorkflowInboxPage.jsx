@@ -676,7 +676,7 @@ const WorkflowInboxPage = () => {
               >
                 {getThemedIcon('ui', 'refresh_cw', 16, theme)}
               </Button>
-              <button type="button" onClick={() => setRunTour(true)} style={{ display:'inline-flex', alignItems:'center', padding:'0.35rem 0.65rem', fontSize:'0.8125rem', borderRadius:'6px', border:'none', background:'var(--color-primary,#800020)', color:'white', cursor:'pointer', fontWeight:700 }}>?</button>
+              
             </div>
           </div>
         </CardContent>

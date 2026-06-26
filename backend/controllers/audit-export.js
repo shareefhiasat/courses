@@ -5,10 +5,9 @@
  * ARCHITECTURE: Controller → Service → DB
  */
 
-import { PrismaClient } from '@prisma/client';
+import prisma from '../db/prismaClient.js';
 import { getPermissionDenialLogs } from '../services/permissionDenialAuditService.js';
 
-const prisma = new PrismaClient();
 
 /**
  * GET /api/v1/audit-export/workflow-status-history

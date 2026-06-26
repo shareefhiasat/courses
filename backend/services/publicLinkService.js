@@ -14,11 +14,10 @@
  *     or folderId directly, so enumeration attacks are impossible.
  */
 
-import { PrismaClient } from '@prisma/client';
+import prisma from '../db/prismaClient.js';
 import bcrypt from 'bcryptjs';
 import crypto from 'node:crypto';
 
-const prisma = new PrismaClient();
 
 const ok = (payload) => ({ success: true, payload, timestamp: Date.now() });
 const err = (code, message) => ({

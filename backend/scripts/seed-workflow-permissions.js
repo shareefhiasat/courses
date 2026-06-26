@@ -1,6 +1,5 @@
-import { PrismaClient } from '@prisma/client';
+import prisma from '../db/prismaClient.js';
 
-const prisma = new PrismaClient();
 
 async function seedWorkflowPermissions() {
   console.log('🌱 Seeding MinIO Workflow permissions...');

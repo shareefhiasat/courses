@@ -6,9 +6,8 @@
  * and we never have to pass raw Prisma around.
  */
 
-import { PrismaClient } from '@prisma/client';
+import prisma from '../../db/prismaClient.js';
 
-const prisma = new PrismaClient();
 
 /**
  * Auto-create user in database if not found (sync from Keycloak)

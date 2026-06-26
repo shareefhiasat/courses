@@ -5,10 +5,9 @@
  * Run this when you have Keycloak users that don't have corresponding DB records.
  */
 
-import { PrismaClient } from '@prisma/client';
+import prisma from '../db/prismaClient.js';
 import { listUsers } from '../services/keycloakAdminService.js';
 
-const prisma = new PrismaClient();
 
 async function syncKeycloakUsers() {
   try {

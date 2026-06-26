@@ -10,11 +10,11 @@
  * backwards compatibility. New writes go exclusively through v2.
  */
 
-import { PrismaClient, Prisma } from '@prisma/client';
+import prisma from '../db/prismaClient.js';
+import { Prisma } from '@prisma/client';
 import { getDatabaseUserId } from '../utils/database/userResolver.js';
 import { SHARE_SUBJECT_TYPES, SHARE_PERMISSIONS } from '../constants/driveConstants.js';
 
-const prisma = new PrismaClient();
 
 const ok = (data) => ({ success: true, data, timestamp: Date.now() });
 const err = (code, message) => ({
@@ -126,7 +126,7 @@ export async function getFolderDetailsForNotification(folderId) {
     const folder = await prisma.folder.findUnique({
       where: { id: folderId },
       include: {
-        user: { select: { displayName: true, firstName: true, lastName: true, displayNameAr: true, firstNameAr: true, lastNameAr: true } }
+        owner: { select: { displayName: true, firstName: true, lastName: true, displayNameAr: true, firstNameAr: true, lastNameAr: true } }
       }
     });
     return ok(folder);

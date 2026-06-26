@@ -5,11 +5,10 @@
  * ARCHITECTURE: Business Services → DB Services → PostgreSQL
  */
 
-import { PrismaClient } from '@prisma/client';
+import prisma from './prismaClient.js';
 import { PRISMA_ERRORS, getPrismaErrorMessage, isPrismaError } from '../constants/prisma-errors.js';
 import { USER_NAME_SELECT_WITH_ID } from '../utils/userNameFields.js';
 
-const prisma = new PrismaClient();
 
 /**
  * Get database user ID from Keycloak user object

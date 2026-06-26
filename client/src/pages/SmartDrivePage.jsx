@@ -31,7 +31,7 @@ import useToast from '@hooks/useToast';
 import useKeyboardShortcuts from '@hooks/useKeyboardShortcuts';
 
 export default function SmartDrivePage() {
-  const { t, isRTL } = useLang();
+  const { t, isRTL, lang } = useLang();
   const { theme } = useTheme();
   const { user } = useAuth();
   const navigate = useNavigate();
@@ -46,23 +46,22 @@ export default function SmartDrivePage() {
 
   // ── Guided Tour ──────────────────────────────────────────────────────────
   const [runTour, setRunTour] = useState(false);
+  const [tourSteps, setTourSteps] = useState([]);
   const tourSeenKey = `smartDriveTourSeen_${lang}`;
-  const tourSteps = useMemo(() => [
-    { target: 'body', content: t('tour.smart_drive_search'), disableBeacon: true, placement: 'center' },
-    { target: '[data-tour="drive-sidebar"]', content: t('tour.drive_sidebar'), disableBeacon: true, placement: 'right' },
-    { target: '[data-tour="drive-search"]', content: t('tour.drive_search'), disableBeacon: true, placement: 'bottom' },
-    { target: '[data-tour="drive-upload"]', content: t('tour.drive_upload'), disableBeacon: true, placement: 'bottom' },
-    { target: '[data-tour="drive-breadcrumb"]', content: t('tour.drive_breadcrumb'), disableBeacon: true, placement: 'bottom' },
-    { target: '[data-tour="drive-file-list"]', content: t('tour.drive_file_list'), disableBeacon: true, placement: 'top' },
-    { target: '[data-tour="drive-filters"]', content: t('tour.smart_drive_filters'), disableBeacon: true, placement: 'bottom' },
-  ], [lang, t]);
+  const buildTourSteps = useCallback(() => [
+    { target: '[data-tour="drive-sidebar"]',   content: t('tour.drive_sidebar'),        disableBeacon: true, placement: 'right' },
+    { target: '[data-tour="drive-search"]',    content: t('tour.drive_search'),         disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="drive-upload"]',    content: t('tour.drive_upload'),         disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="drive-breadcrumb"]',content: t('tour.drive_breadcrumb'),     disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="drive-filters"]',   content: t('tour.smart_drive_filters'), disableBeacon: true, placement: 'bottom' },
+  ].filter(s => !!document.querySelector(s.target)), [t]);
+  const startTour = useCallback(() => { const steps = buildTourSteps(); if (!steps.length) return; setTourSteps(steps); setRunTour(true); }, [buildTourSteps]);
   useEffect(() => {
-    const start = () => setRunTour(true);
-    window.addEventListener('app:joyride', start);
-    window.addEventListener('app:help', start);
-    return () => { window.removeEventListener('app:joyride', start); window.removeEventListener('app:help', start); };
-  }, []);
-  useEffect(() => { try { if (!localStorage.getItem(tourSeenKey)) setRunTour(true); } catch {} }, [tourSeenKey]);
+    window.addEventListener('app:joyride', startTour);
+    window.addEventListener('app:help', startTour);
+    return () => { window.removeEventListener('app:joyride', startTour); window.removeEventListener('app:help', startTour); };
+  }, [startTour]);
+  useEffect(() => { try { if (!localStorage.getItem(tourSeenKey)) startTour(); } catch {} }, [tourSeenKey, startTour]);
   const handleTourCallback = useCallback((data) => {
     const { status } = data || {};
     if (status === 'finished' || status === 'skipped') { setRunTour(false); try { localStorage.setItem(tourSeenKey, 'true'); } catch {} }
@@ -389,6 +388,12 @@ export default function SmartDrivePage() {
     }
   };
 
+  const refreshFolderTree = async () => {
+    if (activeSpace !== 'my-drive') return;
+    const tree = await fetchFolderTree();
+    setFolderTree(tree);
+  };
+
   const handleFolderAction = async (folder, action) => {
     if (action === 'delete') {
       // Check if folder has children (files or subfolders)
@@ -403,6 +408,7 @@ export default function SmartDrivePage() {
         if (window.confirm(t('drive.confirmDeleteFolder') || 'Are you sure you want to delete this folder?')) {
           const result = await deleteFolder(folder.id);
           if (result.success) {
+            await refreshFolderTree();
             success(t('drive.folderDeleted') || 'Folder deleted successfully');
           } else {
             error(t('drive.deleteFolderFailed') || 'Failed to delete folder');
@@ -419,11 +425,17 @@ export default function SmartDrivePage() {
   };
 
   const handleStar = async (id, type) => {
-    if (type === 'folder') {
-      return await starFolder(id);
+    const result = type === 'folder'
+      ? await starFolder(id)
+      : await starFile(id);
+
+    if (result.success) {
+      success(result.newStarred ? t('drive.starred') : t('drive.unstarred'));
     } else {
-      return await starFile(id);
+      error(result.error || t('drive.starFailed') || 'Failed to star');
     }
+
+    return result;
   };
 
   const handleShare = async (shareData) => {
@@ -521,9 +533,22 @@ export default function SmartDrivePage() {
   };
 
   const handleStartUpload = async () => {
-    await startUpload();
+    const results = await startUpload();
+    clearCompleted();
+    setUploadModalOpen(false);
     refreshFiles();
-    success(t('drive.uploadComplete'));
+    await refreshFolderTree();
+
+    if (results.failed === 0) {
+      success(results.completed === 1
+        ? t('drive.uploadCompleteSingular')
+        : t('drive.uploadCompletePlural', { count: results.completed })
+      );
+    } else if (results.completed === 0) {
+      error(t('drive.uploadFailed') || 'Upload failed');
+    } else {
+      error(t('drive.uploadPartialFailure', { count: results.failed, total: results.completed + results.failed }) || `${results.failed} files failed`);
+    }
   };
 
   const handleEmptyTrash = async () => {
@@ -542,26 +567,44 @@ export default function SmartDrivePage() {
   };
 
   const confirmDelete = async () => {
-    await Promise.all(itemsToDelete.map((item) => {
-      if (item.path !== undefined) {
-        // It's a folder
-        return deleteFolder(item.id);
+    try {
+      const results = await Promise.all(itemsToDelete.map((item) => {
+        if (item.path !== undefined) {
+          // It's a folder
+          return deleteFolder(item.id);
+        } else {
+          // It's a file
+          return trashFile(item.id);
+        }
+      }));
+
+      const failed = results.filter(r => !r.success);
+      handleClearSelection();
+      setDeleteConfirmOpen(false);
+      setItemsToDelete([]);
+      refreshFiles();
+      await refreshFolderTree();
+
+      if (failed.length > 0) {
+        const firstError = failed[0].error || t('drive.deleteFailed') || 'Failed to move items to trash';
+        error(firstError);
       } else {
-        // It's a file
-        return trashFile(item.id);
+        success(t('drive.deleteSuccess') || 'Items moved to trash');
       }
-    }));
-    handleClearSelection();
-    setDeleteConfirmOpen(false);
-    setItemsToDelete([]);
-    refreshFiles();
-    success(t('drive.deleteSuccess') || 'Items moved to trash');
+    } catch (err) {
+      console.error('[SmartDrivePage] confirmDelete error:', err);
+      handleClearSelection();
+      setDeleteConfirmOpen(false);
+      setItemsToDelete([]);
+      error(err?.response?.data?.error || err.message || t('drive.deleteFailed') || 'Failed to move items to trash');
+    }
   };
 
   const handleCreateFolder = async (name, parentId) => {
     const result = await createFolder(name, parentId);
     if (result.success) {
       refreshFiles();
+      await refreshFolderTree();
       success(t('drive.folderCreated'));
     } else {
       error(t('drive.createFolderFailed'));
@@ -630,7 +673,8 @@ export default function SmartDrivePage() {
     onSelectAll: () => handleSelectAll(true),
     onDelete: () => {
       if (selectedIds.size > 0) {
-        handleFileAction('trash', selectedIds);
+        const selectedItems = [...visibleFolders, ...visibleFiles].filter(item => selectedIds.has(item.id));
+        handleFileAction('trash', selectedItems);
       }
     },
     onEscape: () => {
@@ -664,7 +708,7 @@ export default function SmartDrivePage() {
           '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
       }}
     >
-      <Joyride continuous run={runTour} steps={tourSteps} callback={handleTourCallback} scrollOffset={100} scrollToFirstStep
+      <Joyride continuous run={runTour && tourSteps.length > 0} steps={tourSteps} callback={handleTourCallback} scrollOffset={100} scrollToFirstStep
         locale={{ back: t('tour_back'), close: t('tour_close'), last: t('tour_finish'), next: t('tour_next'), skip: t('tour_skip') }}
         styles={{ options: { primaryColor: 'var(--color-primary,#800020)', textColor: theme === 'dark' ? '#e5e7eb' : '#111', backgroundColor: theme === 'dark' ? '#1f2937' : '#fff', zIndex: 10000 } }}
       />
@@ -799,9 +843,6 @@ export default function SmartDrivePage() {
               </span>
             )}
           </button>
-
-          {/* Tour Button */}
-          <button type="button" onClick={() => setRunTour(true)} style={{ display:'inline-flex', alignItems:'center', padding:'0.35rem 0.65rem', fontSize:'0.8125rem', borderRadius:'6px', border:'none', background:'var(--color-primary,#800020)', color:'white', cursor:'pointer', fontWeight:700 }}>?</button>
 
           {/* Action buttons */}
           {activeSpace === 'my-drive' && (
@@ -1154,7 +1195,7 @@ export default function SmartDrivePage() {
           )}
 
           {/* Files Roster / Loading / Empty */}
-          <div data-tour="drive-file-list" style={{ display: 'contents' }}>
+          <div style={{ display: 'contents' }}>
           {filesLoading ? (
             <FileRosterSkeleton rows={8} />
           ) : visibleFiles.length === 0 && visibleFolders.length === 0 ? (
@@ -1301,7 +1342,10 @@ export default function SmartDrivePage() {
                   const result = isFolder
                     ? await renameFolder(renameTarget.id, finalName)
                     : await renameFile(renameTarget.id, finalName);
-                  if (result.success) success(t('drive.renamed'));
+                  if (result.success) {
+                    success(t('drive.renamed'));
+                    if (isFolder) await refreshFolderTree();
+                  }
                   else error(t('drive.renameFailed'));
                   setRenameTarget(null);
                   setRenameError('');
@@ -1348,7 +1392,10 @@ export default function SmartDrivePage() {
                     const result = isFolder
                       ? await renameFolder(renameTarget.id, finalName)
                       : await renameFile(renameTarget.id, finalName);
-                    if (result.success) success(t('drive.renamed'));
+                    if (result.success) {
+                      success(t('drive.renamed'));
+                      if (isFolder) await refreshFolderTree();
+                    }
                     else error(t('drive.renameFailed'));
                   }
                   setRenameTarget(null);

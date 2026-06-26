@@ -39,7 +39,7 @@ const NotificationBell = () => {
           onBlur={() => setFocused(false)}
           style={{
             background: 'linear-gradient(135deg, #D4AF37, #FFD700)',
-            border: '1px solid rgba(255,255,255,0.7)',
+            border: '1px solid rgba(255,255,255,0.95)',
             cursor: 'pointer',
             position: 'relative',
             padding: 0,
@@ -69,7 +69,7 @@ const NotificationBell = () => {
                   top: '-5px',
                   right: '-5px',
                   background: 'rgb(255,215,31)',
-                  color: primaryColor || '#800020',
+                  color: '#15803d',
                   borderRadius: '50%',
                   width: '20px',
                   height: '20px',
@@ -78,8 +78,10 @@ const NotificationBell = () => {
                   alignItems: 'center',
                   justifyContent: 'center',
                   fontWeight: 'bold',
-                  border: `2px solid ${primaryColor || '#800020'}`,
-                  boxSizing: 'border-box'
+                  border: '2px solid #fff',
+                  boxSizing: 'border-box',
+                  textShadow: '0 0 2px rgba(255,255,255,0.8)',
+                  boxShadow: '0 0 6px 1px rgba(34,197,94,0.45)'
                 }}
               >
                 {unreadCount > 9 ? '9+' : unreadCount}

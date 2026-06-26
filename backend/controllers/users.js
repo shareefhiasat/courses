@@ -5,11 +5,10 @@
  * ARCHITECTURE: HTTP Requests → Controllers → Business Services → DB Services → PostgreSQL
  */
 
-import { PrismaClient } from '@prisma/client';
+import prisma from '../db/prismaClient.js';
 import { getDatabaseUserId, findUserByParam } from '../utils/database/userResolver.js';
 import { validateUserRemoval } from '../services/availabilityGuardService.js';
 
-const prisma = new PrismaClient();
 
 /**
  * GET /api/v1/users/me

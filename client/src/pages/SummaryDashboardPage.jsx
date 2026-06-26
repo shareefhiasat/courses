@@ -363,16 +363,7 @@ const SummaryDashboardPage = () => {
         <span>{t('rooms') || 'Rooms'}</span>
         <ExternalLink size={13} aria-hidden style={{ opacity: 0.65 }} />
       </button>
-      <button
-        type="button"
-        onClick={() => setRunTour(true)}
-        title={t('tour_help') || 'Start guided tour'}
-        aria-label={t('tour_help') || 'Start guided tour'}
-        style={{ ...headerButtonStyle, background: 'var(--color-primary, #800020)', color: 'white', border: 'none' }}
-      >
-        <span>?</span>
-        <span>{t('tour_help') || 'Tour'}</span>
-      </button>
+      
     </div>
   );
 
@@ -565,7 +556,7 @@ const SummaryDashboardPage = () => {
           <div data-tour="summary-drive-analytics">
             <CollapsibleSection
               title={t('drive_workflow_activity_analytics') || 'Drive, Workflow & Activity Analytics'}
-              summary={`${analyticsHook.loading ? '…' : 'Ready'} · ${t('role_based_metrics') || 'Role-based metrics'}`}
+              summary={`${analyticsHook.loading ? '…' : (t('ready') || 'Ready')} · ${t('role_based_metrics') || 'Role-based metrics'}`}
               icon={BarChart3}
               defaultOpen={false}
               testId="dashboard-analytics-section"

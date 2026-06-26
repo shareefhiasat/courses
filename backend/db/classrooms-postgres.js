@@ -5,11 +5,10 @@
  * ARCHITECTURE: Controllers → DB Services → PostgreSQL
  */
 
-import { PrismaClient } from '@prisma/client';
+import prisma from './prismaClient.js';
 import { validateClassroomRemoval } from '../services/availabilityGuardService.js';
 import { PRISMA_ERRORS, getPrismaErrorMessage, isPrismaError } from '../constants/prisma-errors.js';
 
-const prisma = new PrismaClient();
 
 /**
  * Get all classrooms from PostgreSQL database

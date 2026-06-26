@@ -3,14 +3,13 @@
  * Run: node backend/scripts/sync-permission-screens.js
  */
 
-import { PrismaClient } from '@prisma/client';
+import prisma from '../db/prismaClient.js';
 import {
   getAllSyncScreenDefinitions,
   getOperationDefsForScreen,
   QR_SCANNER_OPERATION_DEFINITIONS,
 } from '../../client/src/config/navigationRegistry.js';
 
-const prisma = new PrismaClient();
 
 const INSTRUCTOR_QR_OPS = new Set([
   'canMarkAttendance',

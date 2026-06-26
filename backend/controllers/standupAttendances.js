@@ -16,9 +16,8 @@ import {
   isRecordInScope,
   scopeForbidden,
 } from '../utils/scopeAccess.js';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../db/prismaClient.js';
 
-const prisma = new PrismaClient();
 
 function filterStandupResult(req, result) {
   if (!result?.success || !result.data) return result;

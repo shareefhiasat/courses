@@ -5,9 +5,8 @@
  * ARCHITECTURE: DB Services → Prisma → PostgreSQL
  */
 
-import { PrismaClient } from '@prisma/client';
+import prisma from './prismaClient.js';
 
-const prisma = new PrismaClient();
 
 /**
  * Create an attendance amendment record

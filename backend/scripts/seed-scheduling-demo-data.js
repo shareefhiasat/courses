@@ -3,9 +3,8 @@
  * Run: node backend/scripts/seed-scheduling-demo-data.js
  */
 
-import { PrismaClient } from '@prisma/client';
+import prisma from '../db/prismaClient.js';
 
-const prisma = new PrismaClient();
 
 function addDays(date, days) {
   const d = new Date(date);

@@ -3,6 +3,7 @@ title: Notifications
 tags: [notifications, alerts, inbox]
 route: /notifications
 order: 31
+keywords: [notifications, alerts, inbox, unread, read, mark as read, filter, announcement, quiz results, attendance alert, workflow task, chat message, scheduling change, email, push notifications]
 ---
 
 # Notifications
@@ -52,6 +53,16 @@ The Notifications screen shows all system notifications in one place — announc
 - You cannot delete notifications — only mark them as read or unread.
 - Email delivery of notifications depends on your profile settings and the email template configuration.
 - Push notifications (browser) require permission to be granted in the browser settings.
+
+## Troubleshooting
+
+| Problem | Solution |
+| --- | --- |
+| Unread badge shows wrong count | Refresh the page. The badge syncs on page load. If it persists, clear browser cache and reload. |
+| Not receiving email notifications | Check your notification preferences in [Profile & Settings](/en/profile). Verify your email address is correct. |
+| Browser push notifications not working | Check browser settings → Site Permissions → Notifications. Ensure notifications are allowed for this site. |
+| Old notifications disappeared | Notifications are retained for 90 days. Older ones are archived and no longer visible. |
+| Cannot mark notifications as read | Try refreshing the page. If the issue persists, check your network connection. |
 
 ## Related articles
 

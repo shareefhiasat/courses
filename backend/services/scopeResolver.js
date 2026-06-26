@@ -3,10 +3,9 @@
  * Super admin is always unrestricted.
  */
 
-import { PrismaClient } from '@prisma/client';
+import prisma from '../db/prismaClient.js';
 import { LMS_ROLES as ROLES } from '../services/keycloakAdminService.js';
 
-const prisma = new PrismaClient();
 
 function normalizeRoles(roles = []) {
   return roles.map((r) => {

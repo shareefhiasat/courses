@@ -21,7 +21,7 @@
  *        - Append a file_activity entry.
  */
 
-import { PrismaClient } from '@prisma/client';
+import prisma from '../db/prismaClient.js';
 import { v4 as uuidv4 } from 'uuid';
 import {
   generatePresignedPutUrl,
@@ -35,7 +35,6 @@ import { mapBucketName } from '../constants/driveConstants.js';
 import { getDatabaseUserId } from '../utils/database/userResolver.js';
 import { LMS_ROLES } from './keycloakAdminService.js';
 
-const prisma = new PrismaClient();
 
 const ok = (payload) => ({ success: true, payload, timestamp: Date.now() });
 const err = (code, message, extra = {}) => ({
@@ -867,14 +866,6 @@ export async function getPreviewUrl(fileId, actorUserId, fileVersionId = null) {
         console.error('[fileService.getPreviewUrl] Failed to list objects:', listError);
         return err('FILE_NOT_READY', 'File upload not completed');
       }
-    }
-
-    // Check if file has no versions
-    const versionCount = await prisma.fileVersion.count({ where: { fileId } });
-    console.log('[fileService.getPreviewUrl] Version count:', versionCount);
-    if (versionCount === 0) {
-      console.log('[fileService.getPreviewUrl] No versions found');
-      return err('FILE_NOT_READY', 'File upload not completed');
     }
 
     const bucketReal = resolveBucket(file.bucket);

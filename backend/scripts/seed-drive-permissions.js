@@ -1,6 +1,5 @@
-import { PrismaClient } from '@prisma/client';
+import prisma from '../db/prismaClient.js';
 
-const prisma = new PrismaClient();
 
 async function seedDrivePermissions() {
   console.log('🌱 Seeding MinIO Drive permissions...');

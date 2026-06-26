@@ -7,10 +7,9 @@
  * This is the SINGLE SOURCE OF TRUTH for all lookup data
  */
 
-import { PrismaClient } from '@prisma/client';
+import prisma from '../db/prismaClient.js';
 import { PRISMA_ERRORS, getPrismaErrorMessage, isPrismaError } from '../constants/prisma-errors.js';
 
-const prisma = new PrismaClient();
 
 // Mapping of lookup types to their database models and default fields
 const LOOKUP_CONFIG = {

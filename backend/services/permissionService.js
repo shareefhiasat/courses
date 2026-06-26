@@ -15,10 +15,9 @@
  * true iff the granted permission is at least the required level.
  */
 
-import { PrismaClient } from '@prisma/client';
+import prisma from '../db/prismaClient.js';
 import { getAncestorIds } from './folderService.js';
 
-const prisma = new PrismaClient();
 
 const RANK = { VIEW: 1, DOWNLOAD: 2, COMMENT: 3, EDIT: 4 };
 const SUPER_ADMIN_ROLE = 'super_admin';

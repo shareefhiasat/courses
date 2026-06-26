@@ -5,9 +5,8 @@
  * ARCHITECTURE: Controllers → Business Services → Database
  */
 
-import { PrismaClient } from '@prisma/client';
+import prisma from '../db/prismaClient.js';
 
-const prisma = new PrismaClient();
 
 /**
  * Log file activity

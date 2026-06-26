@@ -5,21 +5,7 @@
  * ARCHITECTURE: Business Services → DB Services → Prisma → PostgreSQL
  */
 
-import { PrismaClient } from '@prisma/client';
-
-console.log('[Programs DB Service] Initializing Prisma Client...');
-const prisma = new PrismaClient({
-  log: ['query', 'info', 'warn', 'error']
-});
-
-// Initialize connection
-prisma.$connect()
-  .then(() => {
-    console.log('[Programs DB Service] ✅ Prisma connected successfully');
-  })
-  .catch((err) => {
-    console.error('[Programs DB Service] ❌ Prisma connection failed:', err);
-  });
+import prisma from './prismaClient.js';
 
 /**
  * Get all programs from database

@@ -3,6 +3,7 @@ title: Scheduling
 tags: [scheduling, calendar, availability, classes, rooms, instructors]
 route: /scheduling-calendar
 order: 60
+keywords: [scheduling, calendar, session, instructor availability, room availability, rooms management, conflict detection, capacity check, recurring sessions, drag to reschedule, timezone, summary dashboard, export]
 ---
 
 # Scheduling
@@ -50,12 +51,28 @@ The Scheduling system manages class sessions, instructor availability, and room 
 - **Recurring sessions** — You can create recurring sessions (daily, weekly, bi-weekly) with an optional end date.
 - **Timezone** — All times are displayed in the user's local timezone but stored in UTC.
 
+## Prerequisites
+
+- Instructors and rooms must be set up in the system before scheduling sessions.
+- Instructor and room availability should be defined to avoid conflict warnings.
+- Classes must be created in the [Dashboard](/en/dashboard) Classes tab before they can be scheduled.
+
 ## Limitations
 
 - You cannot create sessions in the past.
 - The calendar view is limited to 90 days forward and 90 days backward.
 - Drag-to-reschedule is only available in the week view, not in day or month views.
 - Room capacity changes do not retroactively affect already-scheduled sessions.
+
+## Troubleshooting
+
+| Problem | Solution |
+| --- | --- |
+| Conflict warning when creating a session | The instructor or room is already booked. Choose a different time slot or resource. |
+| Cannot drag a session to a new time | Drag-to-reschedule only works in week view. Switch to week view and try again. |
+| Instructor not appearing in dropdown | Ensure the instructor has availability set up. Go to Instructor Availability screen. |
+| Room capacity exceeded warning | The enrolled class size exceeds the room's capacity. Choose a larger room or reduce the class size. |
+| Session not visible on calendar | Check the date range — the calendar shows 90 days forward/backward. Use the date picker to navigate. |
 
 ## Related articles
 

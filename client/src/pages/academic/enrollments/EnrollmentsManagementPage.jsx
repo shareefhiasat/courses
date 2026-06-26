@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
+import Joyride from 'react-joyride';
 import { useTheme } from '@contexts/ThemeContext';
 import { useLang } from '@contexts/LangContext';
 import { useAuth } from '@contexts/AuthContext';
@@ -27,6 +28,28 @@ const EnrollmentsManagementPage = () => {
   const { user } = useAuth();
   const toast = useToast();
   const { deleteModal, deleteEntity, handleDeleteConfirm, hideDeleteModal } = useDeleteModal(t);
+
+  // ── Guided Tour ───────────────────────────────────────────────────────────
+  const [runTour, setRunTour] = useState(false);
+  const [tourSteps, setTourSteps] = useState([]);
+  const tourSeenKey = `enrollMgmtTourSeen_${lang}`;
+  const buildTourSteps = useCallback(() => [
+    { target: '[data-tour="enroll-mgmt-form"]',    content: t('tour.enrollments_add'),     disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="enroll-mgmt-filters"]', content: t('tour.enrollments_filters'), disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="enroll-mgmt-grid"]',    content: t('tour.enrollments_grid'),    disableBeacon: true, placement: 'top' },
+  ].filter(s => !!document.querySelector(s.target)), [t]);
+  const startTour = useCallback(() => { const steps = buildTourSteps(); if (!steps.length) return; setTourSteps(steps); setRunTour(true); }, [buildTourSteps]);
+  useEffect(() => {
+    window.addEventListener('app:joyride', startTour);
+    window.addEventListener('app:help', startTour);
+    return () => { window.removeEventListener('app:joyride', startTour); window.removeEventListener('app:help', startTour); };
+  }, [startTour]);
+  useEffect(() => { try { if (!localStorage.getItem(tourSeenKey)) startTour(); } catch {} }, [tourSeenKey, startTour]);
+  const handleTourCallback = useCallback((data) => {
+    const { status } = data || {};
+    if (status === 'finished' || status === 'skipped') { setRunTour(false); try { localStorage.setItem(tourSeenKey, 'true'); } catch {} }
+  }, [tourSeenKey]);
+  // ─────────────────────────────────────────────────────────────────────────
 
   // Refs for form fields to avoid re-renders on keystroke
   // Internal state management
@@ -364,7 +387,11 @@ const EnrollmentsManagementPage = () => {
 
   return (
     <div className="enrollments-management">
-      <form onSubmit={handleEnrollmentSubmit} className="dashboard-form">
+      <Joyride continuous run={runTour && tourSteps.length > 0} steps={tourSteps} callback={handleTourCallback} scrollOffset={100} scrollToFirstStep
+        locale={{ back: t('tour_back'), close: t('tour_close'), last: t('tour_finish'), next: t('tour_next'), skip: t('tour_skip') }}
+        styles={{ options: { primaryColor: 'var(--color-primary,#800020)', textColor: theme === 'dark' ? '#e5e7eb' : '#111', backgroundColor: theme === 'dark' ? '#1f2937' : '#fff', zIndex: 10000 } }}
+      />
+      <form data-tour="enroll-mgmt-form" onSubmit={handleEnrollmentSubmit} className="dashboard-form">
         <div className="form-row wide-cols">
           <ProgramsSelect
             programs={localPrograms}
@@ -409,15 +436,16 @@ const EnrollmentsManagementPage = () => {
           />
         </div>
         
-        <div className="form-actions">
+        <div className="form-actions" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
           <Button type="submit" variant="primary" disabled={loading} size="medium">
             {t('save') || 'Save'}
           </Button>
+          
         </div>
       </form>
 
       {/* Filters */}
-      <div style={{ marginTop: '1rem', marginBottom: '1rem', padding: '0.75rem', background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 12 }}>
+      <div data-tour="enroll-mgmt-filters" style={{ marginTop: '1rem', marginBottom: '1rem', padding: '0.75rem', background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 12 }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: 16, alignItems: 'end' }}>
           <ProgramsSelect
             programs={localPrograms}
@@ -501,7 +529,7 @@ const EnrollmentsManagementPage = () => {
         )}
       </div>
 
-      <div style={{ marginTop: '1rem' }}>
+      <div data-tour="enroll-mgmt-grid" style={{ marginTop: '1rem' }}>
         <AdvancedDataGrid
           rows={filteredEnrollmentRows}
           getRowId={(row) => row.docId || row.id}

@@ -501,7 +501,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
               )}
             </div>
             <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
-              <button type="button" onClick={() => setRunTour(true)} style={{ display:'inline-flex', alignItems:'center', padding:'0.3rem 0.55rem', fontSize:'0.8rem', borderRadius:'6px', border:'none', background:'var(--color-primary,#800020)', color:'white', cursor:'pointer', fontWeight:700 }}>?</button>
+              
               {unreadCount > 0 && (
                 <PortalTooltip content={t('notifications.mark_all_read')} position="top">
                   <button data-tour="notif-drawer-mark-all" onClick={handleMarkAllAsRead} style={iconBtnStyle(false)}

@@ -2,7 +2,7 @@
  * Scheduling Summary Database Service — aggregated dashboard statistics.
  */
 
-import { PrismaClient } from '@prisma/client';
+import prisma from './prismaClient.js';
 import { buildLocalizedNameFields } from '../utils/localizedUserName.js';
 import {
   resolveDateRange,
@@ -17,7 +17,6 @@ import {
 import { intersectClassIdLists } from '../utils/schedulingScope.js';
 import { getBreakTypeDistribution } from './break-sessions-postgres.js';
 
-const prisma = new PrismaClient();
 
 async function countSessions(where) {
   return prisma.flexibleScheduleSession.count({ where });

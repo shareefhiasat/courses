@@ -11,7 +11,7 @@
  * s3Key AND records the native MinIO versionId for belt-and-suspenders safety.
  */
 
-import { PrismaClient } from '@prisma/client';
+import prisma from '../db/prismaClient.js';
 import { v4 as uuidv4 } from 'uuid';
 import {
   generatePresignedPutUrl,
@@ -21,7 +21,6 @@ import {
 } from './minioService.js';
 import { getDatabaseUserId } from '../utils/database/userResolver.js';
 
-const prisma = new PrismaClient();
 
 const ok = (payload) => ({ success: true, payload, timestamp: Date.now() });
 const err = (code, message) => ({

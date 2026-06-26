@@ -6,10 +6,9 @@
 import { Router } from 'express';
 import multer from 'multer';
 import { keycloakAuth } from '../middleware/keycloakAuth.js';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../db/prismaClient.js';
 import { BUCKETS, putObject } from '../services/minioService.js';
 
-const prisma = new PrismaClient();
 
 function resolveBucket(input) {
   if (!input) return BUCKETS.PRIVATE;
@@ -86,20 +85,23 @@ const wopiRouter = Router();
  * WOPI Discovery endpoint for Collabora
  */
 wopiRouter.get('/hosting/discovery', async (req, res) => {
+  // Collabora runs with SSL, but backend is HTTP - WOPI endpoints are HTTP
+  const collaboraUrl = process.env.COLLABORA_URL || 'https://localhost:9980';
+  const wopiBaseUrl = process.env.WOPI_BASE_URL || 'http://host.docker.internal:8001/api/v1/wopi';
   const discoveryXml = `<?xml version="1.0" encoding="utf-8"?>
 <wopi-discovery>
   <net-zone name="external-https">
     <app name="Collabora Online">
-      <action name="edit" ext="docx" urlsrc="${process.env.COLLABORA_URL || 'https://localhost:9980'}/browser/4610258811/cool.html?"/>
-      <action name="edit" ext="xlsx" urlsrc="${process.env.COLLABORA_URL || 'https://localhost:9980'}/browser/4610258811/cool.html?"/>
-      <action name="edit" ext="pptx" urlsrc="${process.env.COLLABORA_URL || 'https://localhost:9980'}/browser/4610258811/cool.html?"/>
-      <action name="view" ext="docx" urlsrc="${process.env.COLLABORA_URL || 'https://localhost:9980'}/browser/4610258811/cool.html?"/>
-      <action name="view" ext="xlsx" urlsrc="${process.env.COLLABORA_URL || 'https://localhost:9980'}/browser/4610258811/cool.html?"/>
-      <action name="view" ext="pptx" urlsrc="${process.env.COLLABORA_URL || 'https://localhost:9980'}/browser/4610258811/cool.html?"/>
+      <action name="edit" ext="docx" urlsrc="${collaboraUrl}/browser/4610258811/cool.html?WOPISrc=${wopiBaseUrl}/files/<id>&amp;access_token=<access_token>"/>
+      <action name="edit" ext="xlsx" urlsrc="${collaboraUrl}/browser/4610258811/cool.html?WOPISrc=${wopiBaseUrl}/files/<id>&amp;access_token=<access_token>"/>
+      <action name="edit" ext="pptx" urlsrc="${collaboraUrl}/browser/4610258811/cool.html?WOPISrc=${wopiBaseUrl}/files/<id>&amp;access_token=<access_token>"/>
+      <action name="view" ext="docx" urlsrc="${collaboraUrl}/browser/4610258811/cool.html?WOPISrc=${wopiBaseUrl}/files/<id>&amp;access_token=<access_token>"/>
+      <action name="view" ext="xlsx" urlsrc="${collaboraUrl}/browser/4610258811/cool.html?WOPISrc=${wopiBaseUrl}/files/<id>&amp;access_token=<access_token>"/>
+      <action name="view" ext="pptx" urlsrc="${collaboraUrl}/browser/4610258811/cool.html?WOPISrc=${wopiBaseUrl}/files/<id>&amp;access_token=<access_token>"/>
     </app>
   </net-zone>
 </wopi-discovery>`;
-  
+
   res.setHeader('Content-Type', 'application/xml');
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.send(discoveryXml);
@@ -220,10 +222,10 @@ wopiRouter.get('/files/:fileId/contents', async (req, res) => {
     const stream = await minioClient.getObject(bucketReal, s3Key);
 
     res.setHeader('Content-Type', file.mimeType);
-    res.setHeader('Content-Disposition', `inline; filename="${file.name}"`);
+    // Content-Disposition not needed for WOPI - Collabora handles filename from CheckFileInfo
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     res.setHeader('Access-Control-Allow-Credentials', 'true');
 
     stream.pipe(res);

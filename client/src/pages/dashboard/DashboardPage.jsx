@@ -359,44 +359,36 @@ const DashboardPage = () => {
       .map((cat) => ({ ...cat, items: filterRibbonItems(cat.items) }))
       .filter((cat) => cat.items.length > 0);
   }, [t, isSuperAdmin, isAdmin, isHR, canAccessScreen]);
-  // Initialize tour steps (localization-aware)
-  useEffect(() => {
-    const steps = [
-      {
-        target: '[data-tour="mode-switcher"]',
-        content: t('tour.mode_switcher_content'),
-        disableBeacon: true,
-        placement: 'bottom'
-      },
-      {
-        target: '[data-tour="stats"]',
-        content: t('tour.stats_content'),
-        disableBeacon: true,
-        placement: 'bottom'
-      },
-      {
-        target: '[data-tour="filters"]',
-        content: t('tour.filters_content'),
-        disableBeacon: true,
-        placement: 'bottom'
-      },
-      {
-        target: '[data-tour="cards-grid"]',
-        content: t('tour.cards_grid_content'),
-        disableBeacon: true,
-        placement: 'top'
-      }
+  // Build tour steps at start time — only include elements present in the DOM
+  const buildTourSteps = useCallback(() => {
+    const allSteps = [
+      { target: '[data-tour="mode-switcher"]', content: t('tour.mode_switcher_content'), disableBeacon: true, placement: 'bottom' },
+      { target: '[data-tour="stats"]',         content: t('tour.stats_content'),         disableBeacon: true, placement: 'bottom' },
+      { target: '[data-tour="filters"]',       content: t('tour.filters_content'),       disableBeacon: true, placement: 'bottom' },
+      { target: '[data-tour="cards-grid"]',    content: t('tour.cards_grid_content'),    disableBeacon: true, placement: 'top' },
     ];
+    return allSteps.filter(s => !!document.querySelector(s.target));
+  }, [t]);
+
+  const startTour = useCallback(() => {
+    const steps = buildTourSteps();
+    if (steps.length === 0) return;
     setTourSteps(steps);
-  }, [lang, t]);
+    setRunTour(true);
+  }, [buildTourSteps]);
+
+  useEffect(() => {
+    const tourSeenKey = `dashboardHelpSeen_${lang}`;
+    try { if (!localStorage.getItem(tourSeenKey)) startTour(); } catch {}
+  }, [lang, startTour]);
+
   // Auto-start on demand via app event in HomePage (optional)
   useEffect(() => {
-    const start = () => setRunTour(true);
-    window.addEventListener('app:joyride', start);
-    window.addEventListener('app:help', start);
+    window.addEventListener('app:joyride', startTour);
+    window.addEventListener('app:help', startTour);
     return () => {
-      window.removeEventListener('app:joyride', start);
-      window.removeEventListener('app:help', start);
+      window.removeEventListener('app:joyride', startTour);
+      window.removeEventListener('app:help', startTour);
     };
   }, []);
   // Delete confirmation modal (shared across child pages via context if needed)

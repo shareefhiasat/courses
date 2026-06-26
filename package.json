@@ -28,6 +28,7 @@
     "db:push": "cd client && pnpm db:push && pnpm db:generate",
     "db:migrate": "cd client && pnpm db:migrate",
     "db:reset": "cd client && pnpm db:reset --force && pnpm db:push && pnpm db:generate && cd .. && pnpm db:seed",
+    "lint:backend": "npx eslint backend/ --config eslint.config.js",
     "db:studio": "cd client && pnpm exec prisma studio --schema prisma/schema.prisma",
     "db:seed": "pnpm exec tsx prisma/seed-all.ts",
     "db:seed:comprehensive": "node seed-comprehensive-data.js",

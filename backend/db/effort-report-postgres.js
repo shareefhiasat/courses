@@ -2,12 +2,11 @@
  * Multi-teacher effort report — program, subject, class, term, year, date range.
  */
 
-import { PrismaClient } from '@prisma/client';
+import prisma from './prismaClient.js';
 import { buildLocalizedNameFields } from '../utils/localizedUserName.js';
 import { resolveDateRange, toDateStr, toDateTimeRange, resolveClassIds as resolveClassIdsUtil } from '../utils/schedulingDateRange.js';
 import { intersectClassIdLists } from '../utils/schedulingScope.js';
 
-const prisma = new PrismaClient();
 
 const sessionInclude = {
   class: {

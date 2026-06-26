@@ -2,13 +2,12 @@ import * as fileService from '../services/fileService.js';
 import * as fileVersionService from '../services/fileVersionService.js';
 import * as fileShareService from '../services/fileShareService.js';
 import { addFileComment, getFileComments, deleteFileComment } from '../services/fileCommentService.js';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../db/prismaClient.js';
 import { generatePresignedGetUrl, generatePresignedPutUrl, getBucketSize } from '../services/minioService.js';
 import { DEFAULT_STORAGE_LIMIT } from '../constants/driveConstants.js';
 import notificationGateway from '../services/notifications/index.js';
 import { EVENTS } from '../services/notifications/constants.js';
 
-const prisma = new PrismaClient();
 
 export const downloadFile = async (req, res) => {
   try {
@@ -111,7 +110,7 @@ export const completeUpload = async (req, res) => {
         const file = await prisma.file.findUnique({
           where: { id: fileId },
           include: {
-            user: { select: { displayName: true, firstName: true, lastName: true, displayNameAr: true, firstNameAr: true, lastNameAr: true } }
+            owner: { select: { displayName: true, firstName: true, lastName: true, displayNameAr: true, firstNameAr: true, lastNameAr: true } }
           }
         });
 
@@ -130,7 +129,7 @@ export const completeUpload = async (req, res) => {
               {
                 fileName: file.name,
                 folderName: file.folderId ? (await prisma.folder.findUnique({ where: { id: file.folderId } }))?.name : 'root',
-                uploadedBy: file.user?.displayName || `${file.user?.firstName} ${file.user?.lastName}`
+                uploadedBy: file.owner?.displayName || `${file.owner?.firstName} ${file.owner?.lastName}`
               },
               req.user,
               { userIds: recipientIds }
@@ -408,7 +407,7 @@ export const shareFile = async (req, res) => {
       const file = await prisma.file.findUnique({
         where: { id: fileId },
         include: {
-          user: { select: { displayName: true, firstName: true, lastName: true, displayNameAr: true, firstNameAr: true, lastNameAr: true } }
+          owner: { select: { displayName: true, firstName: true, lastName: true, displayNameAr: true, firstNameAr: true, lastNameAr: true } }
         }
       });
 
@@ -417,7 +416,7 @@ export const shareFile = async (req, res) => {
           EVENTS.DRIVE_FILE_SHARED,
           {
             fileName: file.name,
-            sharedBy: file.user?.displayName || `${file.user?.firstName} ${file.user?.lastName}`
+            sharedBy: file.owner?.displayName || `${file.owner?.firstName} ${file.owner?.lastName}`
           },
           req.user,
           { userId: sharedWithId }
@@ -449,7 +448,7 @@ export const unshareFile = async (req, res) => {
       include: {
         file: {
           include: {
-            user: { select: { displayName: true, firstName: true, lastName: true, displayNameAr: true, firstNameAr: true, lastNameAr: true } }
+            owner: { select: { displayName: true, firstName: true, lastName: true, displayNameAr: true, firstNameAr: true, lastNameAr: true } }
           }
         }
       }
@@ -468,7 +467,7 @@ export const unshareFile = async (req, res) => {
           EVENTS.DRIVE_PERMISSION_REVOKED,
           {
             itemName: existingShare.file.name,
-            revokedBy: existingShare.file.user?.displayName || `${existingShare.file.user?.firstName} ${existingShare.file.user?.lastName}`
+            revokedBy: existingShare.file.owner?.displayName || `${existingShare.file.owner?.firstName} ${existingShare.file.owner?.lastName}`
           },
           req.user,
           { userId: existingShare.sharedWithId }
@@ -535,7 +534,7 @@ export const addComment = async (req, res) => {
       const file = await prisma.file.findUnique({
         where: { id: fileId },
         include: {
-          user: { select: { displayName: true, firstName: true, lastName: true, displayNameAr: true, firstNameAr: true, lastNameAr: true } }
+          owner: { select: { displayName: true, firstName: true, lastName: true, displayNameAr: true, firstNameAr: true, lastNameAr: true } }
         }
       });
 
@@ -545,7 +544,7 @@ export const addComment = async (req, res) => {
         select: { sharedWithId: true }
       });
 
-      const recipientIds = [file.userId, ...shares.map(s => s.sharedWithId)].filter(id => id !== userId);
+      const recipientIds = [file.ownerId, ...shares.map(s => s.sharedWithId)].filter(id => id !== userId);
 
       if (file && recipientIds.length > 0) {
         const commentText = comment || content;
@@ -553,7 +552,7 @@ export const addComment = async (req, res) => {
           EVENTS.DRIVE_COMMENT_ADDED,
           {
             fileName: file.name,
-            commenter: file.user?.displayName || `${file.user?.firstName} ${file.user?.lastName}`,
+            commenter: file.owner?.displayName || `${file.owner?.firstName} ${file.owner?.lastName}`,
             commentText: commentText.length > 50 ? commentText.substring(0, 50) + '...' : commentText
           },
           req.user,

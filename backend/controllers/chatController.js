@@ -5,11 +5,10 @@
  */
 
 import chatDb from '../db/chat-postgres.js';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../db/prismaClient.js';
 import notificationGateway from '../services/notifications/index.js';
 import { EVENTS } from '../services/notifications/constants.js';
 
-const prisma = new PrismaClient();
 
 /**
  * Resolve Keycloak UUID to database user ID

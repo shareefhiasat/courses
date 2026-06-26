@@ -2,9 +2,8 @@
  * Seed Arabic name fields for users missing them.
  * Run: node backend/scripts/seed-arabic-names.js
  */
-import { PrismaClient } from '@prisma/client';
+import prisma from '../db/prismaClient.js';
 
-const prisma = new PrismaClient();
 
 const FIRST_NAME_AR = {
   shareef: 'شريف',

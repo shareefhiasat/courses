@@ -5,10 +5,9 @@
  * ARCHITECTURE: Business Services → Database Services → PostgreSQL
  */
 
-import { PrismaClient } from '@prisma/client';
+import prisma from './prismaClient.js';
 import { isPrismaError, getPrismaErrorMessage } from '../constants/prisma-errors.js';
 
-const prisma = new PrismaClient();
 
 /**
  * Get all target audience types

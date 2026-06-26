@@ -291,10 +291,11 @@ const DashboardEngine = React.forwardRef(({
   // Expose methods via ref
   useImperativeHandle(ref, () => ({
     openBuilder,
+    closeBuilder,
     resetToDefaults: () => {
       setShowResetConfirm(true);
     },
-  }), [openBuilder, t]);
+  }), [openBuilder, closeBuilder]);
 
   const handleSave = useCallback(() => {
     if (editingWidget) {
@@ -678,8 +679,12 @@ const DashboardEngine = React.forwardRef(({
           preventCollision={false}
           margin={[12, 12]}
         >
-          {filteredWidgets.map(widget => (
-            <div key={widget.id} style={{ display: 'flex', flexDirection: 'column' }}>
+          {filteredWidgets.map((widget, widgetIndex) => (
+            <div
+              key={widget.id}
+              data-tour={widgetIndex === 0 ? 'analytics-widget-card' : undefined}
+              style={{ display: 'flex', flexDirection: 'column' }}
+            >
               <WidgetWrapper
                 widget={widget}
                 accentColor={accentColor}

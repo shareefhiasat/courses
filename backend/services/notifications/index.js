@@ -11,7 +11,7 @@
  *   await notificationGateway.emit('workflow.assigned', { workflowName, ... }, user, { userId: 123 });
  */
 
-import { PrismaClient } from '@prisma/client';
+import prisma from '../../db/prismaClient.js';
 import { EVENTS, CATEGORIES, PRIORITIES, getCategoryFromEvent, getPriorityFromEvent } from './constants.js';
 import { registerAdapter, registerTemplate, getTemplate, getEnabledChannels, getAdapter } from './registry.js';
 import { resolveRecipients } from './recipients.js';
@@ -21,7 +21,6 @@ import emailAdapter from './adapters/email.js';
 import smsAdapter from './adapters/sms.js';
 import log from './logger.js';
 
-const prisma = new PrismaClient();
 
 // Register built-in adapters
 registerAdapter(inAppAdapter);

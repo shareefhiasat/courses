@@ -9,11 +9,10 @@
  * Or schedule with cron/systemd timer
  */
 
-import { PrismaClient } from '@prisma/client';
+import prisma from '../db/prismaClient.js';
 import notificationGateway from '../services/notifications/index.js';
 import { EVENTS } from '../services/notifications/constants.js';
 
-const prisma = new PrismaClient();
 
 const SLA_WARNING_THRESHOLD_PERCENT = 0.25; // Warn at 25% time remaining
 const DRY_RUN = process.argv.includes('--dry-run');

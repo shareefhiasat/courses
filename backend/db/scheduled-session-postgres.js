@@ -1,10 +1,8 @@
-import pkg from '@prisma/client';
-const { PrismaClient } = pkg;
+import prisma from './prismaClient.js';
 import * as schedulingEngine from '../services/schedulingEngine.js';
 import instructorHistoryService from '../services/instructorHistoryService.js';
 import { autoCompletePastSessions } from '../services/sessionStatusService.js';
 
-const prisma = new PrismaClient();
 
 /**
  * Get all scheduled sessions with filters

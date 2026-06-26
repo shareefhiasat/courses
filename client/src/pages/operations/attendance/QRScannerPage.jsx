@@ -4189,16 +4189,7 @@ const QRScannerPage = () => {
                   {t('bulk_scan') || 'Bulk Scan'}
                 </button>
               )}
-          <button
-            type="button"
-            onClick={() => setRunTour(true)}
-            title={t('tour_help') || 'Start guided tour'}
-            aria-label={t('tour_help') || 'Start guided tour'}
-            style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.35rem 0.65rem', fontSize: '0.8125rem', borderRadius: '6px', border: 'none', background: 'var(--color-primary, #800020)', color: 'white', cursor: 'pointer', flexShrink: 0 }}
-          >
-            <span>?</span>
-            <span>{t('tour_help') || 'Tour'}</span>
-          </button>
+          
           </div>
       </header>
 

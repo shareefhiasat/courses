@@ -3,6 +3,7 @@ title: Home
 tags: [home, dashboard, landing, widgets]
 route: /
 order: 1
+keywords: [home, landing page, widgets, dashboard, navigation, role-based widgets, quick access, command palette]
 ---
 
 # Home
@@ -49,6 +50,15 @@ The widgets shown depend on your role:
 
 - You cannot customise which widgets appear — they are determined by your role.
 - The home page does not show real-time updates; you need to refresh to see new data.
+
+## Troubleshooting
+
+| Problem | Solution |
+| --- | --- |
+| Widgets not loading | Check your network connection. If a backend service is down, the widget shows a retry button. Click it to reload. |
+| Home page shows stale data | The page caches content for 5 minutes. Do a hard refresh (`Ctrl+Shift+R` or `Cmd+Shift+R`) to bypass the cache. |
+| Navigation drawer won't open | Ensure JavaScript is enabled. Try a hard refresh. If the issue persists, clear browser cache. |
+| Help search (`Ctrl+K`) not responding | The command palette requires JavaScript. Ensure pop-ups are not blocked. Try clicking the search bar directly. |
 
 ## Related articles
 

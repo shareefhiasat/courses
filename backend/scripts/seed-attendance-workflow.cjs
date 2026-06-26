@@ -9,8 +9,7 @@
  * Run: node backend/scripts/seed-attendance-workflow.cjs
  */
 
-const { PrismaClient } = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../db/prismaClient.js');
 
 async function main() {
   console.log('🌱 Seeding Attendance Report Approval Workflow...\n');

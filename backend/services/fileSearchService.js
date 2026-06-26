@@ -9,10 +9,10 @@
  * controller forgets a filter.
  */
 
-import { PrismaClient, Prisma } from '@prisma/client';
+import prisma from '../db/prismaClient.js';
+import { Prisma } from '@prisma/client';
 import { getDatabaseUserId } from '../utils/database/userResolver.js';
 
-const prisma = new PrismaClient();
 
 const ok = (payload) => ({ success: true, payload, timestamp: Date.now() });
 const err = (code, message) => ({

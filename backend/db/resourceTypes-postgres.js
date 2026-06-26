@@ -1,7 +1,6 @@
-import { PrismaClient } from '@prisma/client';
+import prisma from './prismaClient.js';
 import { PRISMA_ERRORS, getPrismaErrorMessage, isPrismaError } from '../constants/prisma-errors.js';
 
-const prisma = new PrismaClient();
 
 /**
  * Get all resource types from PostgreSQL database

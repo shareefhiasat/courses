@@ -5,11 +5,10 @@
  * ARCHITECTURE: HTTP Requests → Controllers → Business Services → DB Services → PostgreSQL
  */
 
-import { PrismaClient } from '@prisma/client';
+import prisma from '../db/prismaClient.js';
 import { LMS_ROLES } from '../services/keycloakAdminService.js';
 import { approveWorkflow, rejectWorkflow, returnWorkflow, submitWorkflow, resubmitWorkflow } from '../workflows/workflowService.js';
 
-const prisma = new PrismaClient();
 import {
   createWorkflowDocumentWithUpload,
   getWorkflowDocument,
@@ -1055,8 +1054,7 @@ export const createCustomWorkflowDocumentController = async (req, res) => {
 
     // If attaching existing file, validate ownership (disable workflow on shared files)
     if (attachFile && fileId) {
-      const { PrismaClient } = await import('@prisma/client');
-      const prisma = new PrismaClient();
+const prisma = (await import('../db/prismaClient.js')).default;
       
       const file = await prisma.file.findUnique({
         where: { id: fileId },

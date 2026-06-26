@@ -141,8 +141,7 @@ export const createActivity = async (activityData, user = null) => {
         const classId = activity.classId;
         if (classId) {
           // Get all students enrolled in this class
-          const { PrismaClient } = await import('@prisma/client');
-          const prisma = new PrismaClient();
+const prisma = (await import('../db/prismaClient.js')).default;
           
           const enrollments = await prisma.enrollment.findMany({
             where: { classId: parseInt(classId) },

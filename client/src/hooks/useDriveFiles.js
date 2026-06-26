@@ -203,29 +203,53 @@ export function useDriveFiles(activeSpace = 'my-drive', folderId = null) {
   // --------------------------------------------------------------------------
 
   const starFile = useCallback(async (fileId) => {
+    // Optimistic toggle for instant UI feedback
+    let newStarred = false;
+    setFiles(prev => {
+      const file = prev.find(f => f.id === fileId);
+      newStarred = !file?.starred;
+      return prev.map(f => f.id === fileId ? { ...f, starred: newStarred } : f);
+    });
+
     try {
       const response = await apiService.patch(`${API_BASE}/files/${fileId}/star`);
       if (response.success) {
         refreshFiles();
-        return { success: true };
+        return { success: true, newStarred };
       }
+      // Revert on failure
+      setFiles(prev => prev.map(f => f.id === fileId ? { ...f, starred: !newStarred } : f));
       return { success: false, error: response.error };
     } catch (err) {
       console.error('[useDriveFiles] star failed:', err);
+      // Revert on error
+      setFiles(prev => prev.map(f => f.id === fileId ? { ...f, starred: !newStarred } : f));
       return { success: false, error: err.message };
     }
   }, [refreshFiles]);
 
   const starFolder = useCallback(async (folderId) => {
+    // Optimistic toggle for instant UI feedback
+    let newStarred = false;
+    setFolders(prev => {
+      const folder = prev.find(f => f.id === folderId);
+      newStarred = !folder?.starred;
+      return prev.map(f => f.id === folderId ? { ...f, starred: newStarred } : f);
+    });
+
     try {
       const response = await apiService.patch(`${API_BASE}/folders/${folderId}/star`);
       if (response.success) {
         refreshFiles();
-        return { success: true };
+        return { success: true, newStarred };
       }
+      // Revert on failure
+      setFolders(prev => prev.map(f => f.id === folderId ? { ...f, starred: !newStarred } : f));
       return { success: false, error: response.error };
     } catch (err) {
       console.error('[useDriveFiles] star folder failed:', err);
+      // Revert on error
+      setFolders(prev => prev.map(f => f.id === folderId ? { ...f, starred: !newStarred } : f));
       return { success: false, error: err.message };
     }
   }, [refreshFiles]);

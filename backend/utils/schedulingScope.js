@@ -2,10 +2,9 @@
  * Data-scope enforcement for scheduling summary / effort APIs.
  */
 
-import { PrismaClient } from '@prisma/client';
+import prisma from '../db/prismaClient.js';
 import { getRequestScope, assertClassInScope, assertProgramInScope } from './scopeAccess.js';
 
-const prisma = new PrismaClient();
 
 /** Intersect filter-derived class IDs with scope constraint (null scopeClassIds = unrestricted). */
 export function intersectClassIdLists(filterClassIds, scopeClassIds) {

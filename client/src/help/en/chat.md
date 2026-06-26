@@ -3,6 +3,7 @@ title: Chat
 tags: [chat, messaging, communication]
 route: /chat
 order: 30
+keywords: [chat, messaging, real-time, WebSocket, instant message, file attachment, contact list, unread badge, conversation, pin]
 ---
 
 # Chat
@@ -43,6 +44,16 @@ The Chat screen provides real-time messaging between users. It supports text mes
 - You cannot delete sent messages — only the recipient can delete them from their view.
 - Group chats are not currently supported — only one-to-one conversations.
 - Message search is limited to the last 90 days. Older messages are accessible by scrolling but not searchable.
+
+## Troubleshooting
+
+| Problem | Solution |
+| --- | --- |
+| Messages not sending | Check your network connection. If the WebSocket indicator shows "disconnected", wait for auto-reconnect or refresh the page. |
+| Contact list is empty | Ensure other users exist in the system. If you are a student, you may only see instructors and classmates. |
+| File attachment fails | File exceeds 50 MB limit. Share larger files via [Smart Drive](/en/smart-drive) instead. |
+| Messages appear out of order | Messages are ordered by server timestamp. If your device clock is off, enable automatic time sync. |
+| Unread badge not updating | Refresh the page. The badge updates on page load and via WebSocket events. |
 
 ## Related articles
 

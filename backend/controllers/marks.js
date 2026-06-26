@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import prisma from '../db/prismaClient.js';
 import { calculateLetterGrade, MANUAL_GRADES } from '../utils/formatting/gradingStandards.js';
 import notificationGateway from '../services/notifications/index.js';
 import { EVENTS } from '../services/notifications/constants.js';
@@ -6,7 +6,6 @@ import { buildLocalizedNameFields, buildNotificationNameVars } from '../utils/lo
 import { getRequestScope, isRecordInScope, scopeForbidden } from '../utils/scopeAccess.js';
 import { scopeArray } from '../utils/applyListScope.js';
 
-const prisma = new PrismaClient();
 
 // Get marks distribution for a subject
 const getMarksDistribution = async (req, res) => {

@@ -2,11 +2,10 @@
  * Teacher Effort Report Database Service
  */
 
-import { PrismaClient } from '@prisma/client';
+import prisma from './prismaClient.js';
 import { buildLocalizedNameFields } from '../utils/localizedUserName.js';
 import { resolveDateRange, toDateStr, buildSessionWhere, buildBreakWhere, buildHolidayOverlapWhere } from '../utils/schedulingDateRange.js';
 
-const prisma = new PrismaClient();
 
 async function getHolidayImpactForTeacher(instructorUserId, programId, start, end) {
   const holidayWhere = buildHolidayOverlapWhere(start, end);

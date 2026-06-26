@@ -5,11 +5,10 @@
  * ARCHITECTURE: HTTP Requests → Controllers → Business Services → DB Services → PostgreSQL
  */
 
-import { PrismaClient } from '@prisma/client';
+import prisma from '../db/prismaClient.js';
 import { USER_NAME_SELECT_WITH_ID } from '../utils/userNameFields.js';
 import { scopeArray } from '../utils/applyListScope.js';
 
-const prisma = new PrismaClient();
 
 /**
  * GET /api/v1/penalties

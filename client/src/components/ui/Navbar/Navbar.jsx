@@ -309,7 +309,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                 </button>
                 </PortalTooltip>
 
-                <PortalTooltip content={t('help')} position="bottom">
+                <PortalTooltip content={t('tour_help') || 'Start guided tour'} position="bottom">
                 <button
                   className="nav-icon-btn nav-help"
                   onClick={() => {
@@ -320,7 +320,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                       window.dispatchEvent(new CustomEvent('app:joyride', { detail: { route: fullPath, search, hash } }));
                     } catch {}
                   }}
-                  aria-label={t('help')}
+                  aria-label={t('tour_help') || 'Start guided tour'}
                   style={{
                     border: theme === 'light' ? '1px solid var(--border)' : '1px solid rgba(255,255,255,0.2)',
                     background: theme === 'light' ? 'var(--panel)' : 'rgba(0,0,0,0.3)',

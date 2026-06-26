@@ -5,10 +5,9 @@
  * ARCHITECTURE: Browser → API Server → Prisma → PostgreSQL
  */
 
-import { PrismaClient } from '@prisma/client';
+import prisma from './prismaClient.js';
 import { buildLocalizedNameFields, buildNotificationNameVars } from '../utils/localizedUserName.js';
 
-const prisma = new PrismaClient();
 
 /**
  * Get dashboard summary data

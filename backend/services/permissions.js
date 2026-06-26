@@ -5,9 +5,8 @@
  * ARCHITECTURE: Services → DB
  */
 
-import { PrismaClient } from '@prisma/client';
+import prisma from '../db/prismaClient.js';
 
-const prisma = new PrismaClient();
 
 /**
  * Get all permissions

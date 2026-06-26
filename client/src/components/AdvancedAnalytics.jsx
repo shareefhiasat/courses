@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
@@ -10,6 +10,7 @@ import { ROLE_STRINGS } from '@utils/userUtils';
 import useAnalyticsData, { processWidgetData } from '@hooks/useAnalyticsData';
 import DashboardEngine from './analytics/DashboardEngine';
 import Joyride from 'react-joyride';
+import TourTooltip from '@ui/TourTooltip/TourTooltip';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import PortalTooltip from '@ui/PortalTooltip';
 
@@ -197,9 +198,10 @@ export default function AdvancedAnalytics({
   const [runTour, setRunTour] = useState(false);
   const [tourSteps, setTourSteps] = useState([]);
   const tourSeenKey = `advancedAnalyticsTourSeen_${lang}`;
+  const TourTooltipComponent = useMemo(() => TourTooltip({ tourSeenKey }), [tourSeenKey]);
 
-  useEffect(() => {
-    setTourSteps([
+  const buildTourSteps = useCallback(() => {
+    const steps = [
       {
         target: '[data-tour="advanced-analytics-filters"]',
         content: t('tour.analytics_filters') || 'Use these filters to narrow down all widgets by program, subject, class, year, and student.',
@@ -213,41 +215,117 @@ export default function AdvancedAnalytics({
         placement: 'bottom'
       },
       {
+        target: '[data-tour="advanced-analytics-add-widget"]',
+        content: t('tour.advanced_analytics_add_widget') || 'Click Add Widget to create a new chart, list, or single-value counter.',
+        disableBeacon: true,
+        placement: 'bottom'
+      },
+      {
         target: '[data-tour="advanced-analytics-engine"]',
         content: t('tour.advanced_analytics_engine') || 'This is the widget grid. Each card shows a chart or metric. Drag widgets to reorder them in Edit Layout mode.',
         disableBeacon: true,
         placement: 'top'
+      },
+      {
+        target: '[data-tour="analytics-widget-card"]',
+        content: t('tour.advanced_analytics_widget_hover') || 'Hover over any widget to edit, duplicate, download as SVG, or delete it.',
+        disableBeacon: true,
+        placement: 'top'
+      },
+      {
+        target: '[data-tour="widget-builder-modal"]',
+        content: t('tour.advanced_analytics_builder_intro') || 'The widget builder lets you choose the chart type, data source, grouping, date range, and size.',
+        disableBeacon: true,
+        placement: 'top',
+        data: { openBuilder: true }
+      },
+      {
+        target: '[data-tour="widget-builder-chart-types"]',
+        content: t('tour.advanced_analytics_builder_chart_types') || 'Pick a visualisation: Bar, Line, Pie, Donut, List, or Count. Incompatible options are disabled for the chosen data source.',
+        disableBeacon: true,
+        placement: 'top'
+      },
+      {
+        target: '[data-tour="widget-builder-data-source"]',
+        content: t('tour.advanced_analytics_builder_data_source') || 'Choose the data source and how to group the data. Some sources also let you pick a numeric measure to sum or average.',
+        disableBeacon: true,
+        placement: 'top'
+      },
+      {
+        target: '[data-tour="widget-builder-date-range"]',
+        content: t('tour.advanced_analytics_builder_date_range') || 'Restrict the data to today, last 7/30/90 days, or a custom date range.',
+        disableBeacon: true,
+        placement: 'top'
+      },
+      {
+        target: '[data-tour="widget-builder-size"]',
+        content: t('tour.advanced_analytics_builder_size') || 'Set the widget width (1-12 grid columns) and height (rows) before saving.',
+        disableBeacon: true,
+        placement: 'top'
+      },
+      {
+        target: '[data-tour="advanced-analytics-edit-layout"]',
+        content: t('tour.advanced_analytics_edit_layout') || 'Edit Layout lets you drag and resize widgets. Click Reset to restore the default layout.',
+        disableBeacon: true,
+        placement: 'bottom'
       }
-    ]);
-  }, [lang, t]);
+    ].filter(s => !!document.querySelector(s.target));
+    return steps;
+  }, [t, lang]);
+
+  const startTour = useCallback(() => {
+    const steps = buildTourSteps();
+    if (!steps.length) return;
+    setTourSteps(steps);
+    setRunTour(true);
+  }, [buildTourSteps]);
 
   useEffect(() => {
-    const start = () => { debug('[AdvancedAnalytics] Tour started via event'); setRunTour(true); };
+    const start = () => { debug('[AdvancedAnalytics] Tour started via event'); startTour(); };
     window.addEventListener('app:joyride', start);
     window.addEventListener('app:help', start);
     return () => {
       window.removeEventListener('app:joyride', start);
       window.removeEventListener('app:help', start);
     };
-  }, []);
+  }, [startTour]);
 
   useEffect(() => {
     try {
       if (!localStorage.getItem(tourSeenKey)) {
         debug('[AdvancedAnalytics] Auto-starting tour');
-        setRunTour(true);
+        startTour();
       }
     } catch {}
-  }, [tourSeenKey]);
+  }, [tourSeenKey, startTour]);
 
   const handleTourCallback = useCallback((data) => {
-    const { status } = data || {};
-    debug(`[AdvancedAnalytics] Joyride: ${status}`);
+    const { status, type, index } = data || {};
+    debug(`[AdvancedAnalytics] Joyride: ${status || type}`);
+
     if (status === 'finished' || status === 'skipped') {
       setRunTour(false);
       try { localStorage.setItem(tourSeenKey, 'true'); } catch {}
+      // Close the builder if the tour ended while it was open
+      if (dashboardEngineRef.current?.closeBuilder) {
+        dashboardEngineRef.current.closeBuilder();
+      }
+      return;
     }
-  }, [tourSeenKey]);
+
+    // Open the widget builder before the builder-intro step
+    if (type === 'step:before' && tourSteps[index]?.data?.openBuilder) {
+      handleAddWidget();
+    }
+
+    // Close the builder after the last builder step
+    if (type === 'step:after' && tourSteps[index]?.data?.openBuilder) {
+      const lastBuilderIndex = tourSteps.findIndex(s => s.target === '[data-tour="widget-builder-size"]');
+      if (index === lastBuilderIndex && dashboardEngineRef.current?.closeBuilder) {
+        dashboardEngineRef.current.closeBuilder();
+      }
+    }
+  }, [tourSteps, tourSeenKey, handleAddWidget]);
 
   // ── Local global filters (merged with externalFilters) ────────────────────
   const [localFilters, setLocalFilters] = useState({
@@ -311,6 +389,7 @@ export default function AdvancedAnalytics({
         scrollToFirstStep
         spotlightClicks={false}
         callback={handleTourCallback}
+        tooltipComponent={TourTooltipComponent}
         locale={{
           back: t('tour_back') || (lang === 'ar' ? 'السابق' : 'Back'),
           close: t('tour_close') || (lang === 'ar' ? 'إغلاق' : 'Close'),
@@ -379,6 +458,7 @@ export default function AdvancedAnalytics({
 
           {/* Refresh */}
           <button
+            data-tour="advanced-analytics-refresh"
             onClick={handleReload}
             style={btnStyle('var(--text-muted, #6b7280)')}
           >
@@ -388,6 +468,7 @@ export default function AdvancedAnalytics({
 
           {/* Edit Layout toggle */}
           <button
+            data-tour="advanced-analytics-edit-layout"
             onClick={() => setEditLayout(v => !v)}
             style={btnStyle(editLayout ? 'var(--color-danger, #ef4444)' : 'var(--color-warning, #f97316)')}
           >
@@ -397,6 +478,7 @@ export default function AdvancedAnalytics({
 
           {/* Add Widget */}
           <button
+            data-tour="advanced-analytics-add-widget"
             onClick={() => handleAddWidget()}
             style={{
               display: 'flex', alignItems: 'center', gap: 8,
@@ -412,7 +494,11 @@ export default function AdvancedAnalytics({
           </button>
 
           {/* Export */}
-          <button onClick={handleExport} style={btnStyle('var(--color-success, #10b981)')}>
+          <button
+            data-tour="advanced-analytics-export"
+            onClick={handleExport}
+            style={btnStyle('var(--color-success, #10b981)')}
+          >
             {getThemedIcon('ui', 'download', 16, 'white')}
             {t('export') || 'Export'}
           </button>
@@ -424,18 +510,6 @@ export default function AdvancedAnalytics({
           >
             {getThemedIcon('ui', 'calendar', 16, 'white')}
             {t('schedule_report') || 'Schedule Report'}
-          </button>
-
-          {/* Help / Tour */}
-          <button
-            type="button"
-            onClick={() => { debug('[AdvancedAnalytics] Manual tour start'); setRunTour(true); }}
-            title={t('tour_help') || 'Start guided tour'}
-            aria-label={t('tour_help') || 'Start guided tour'}
-            style={btnStyle('var(--color-primary, #800020)')}
-          >
-            {getThemedIcon('ui', 'help', 16, 'white')}
-            {t('tour_help') || 'Tour'}
           </button>
         </div>
       </div>

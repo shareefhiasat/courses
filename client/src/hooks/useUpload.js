@@ -120,12 +120,20 @@ export function useUpload(existingFiles = []) {
     setUploading(true);
 
     const queuedUploads = uploads.filter(u => u.status === 'queued');
-    
+    const results = { completed: 0, failed: 0, errors: [] };
+
     for (const upload of queuedUploads) {
-      await uploadFile(upload);
+      const result = await uploadFile(upload);
+      if (result.success) {
+        results.completed++;
+      } else {
+        results.failed++;
+        results.errors.push({ name: upload.file.name, error: result.error });
+      }
     }
 
     setUploading(false);
+    return results;
   }, [uploads, uploadFile]);
 
   const removeUpload = useCallback((id) => {

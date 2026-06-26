@@ -3,6 +3,7 @@ title: Quizzes
 tags: [quiz, assessment, question, grade, test]
 route: /quizzes
 order: 10
+keywords: [quiz, test, assessment, questions, grades, auto-grading, question bank, time limit, passing score, due date, randomization, preview]
 ---
 
 # Quizzes
@@ -47,11 +48,27 @@ The Quizzes screen lets instructors create, manage, and preview quizzes. Student
 - **Auto-grading** — Multiple-choice and true/false questions are auto-graded. Essay questions require manual grading.
 - **Due date** — If set, students cannot start the quiz after the due date.
 
+## Prerequisites
+
+- For instructors: you must have a class or subject assigned in the [Dashboard](/en/dashboard) before creating a quiz.
+- For students: the quiz must be published and within the due date window.
+- The quiz must be assigned to a program or subject that you are enrolled in.
+
 ## Limitations
 
 - Students cannot pause a quiz once started — the timer continues running.
 - Instructors cannot edit questions after a student has submitted an attempt (to preserve integrity).
 - Quiz results feed into the [Dashboard](/en/dashboard) marks entry and analytics tabs.
+
+## Troubleshooting
+
+| Problem | Solution |
+| --- | --- |
+| Quiz not visible to students | Ensure the quiz is published and assigned to the correct program/subject. Check the due date. |
+| Student cannot start the quiz | Verify the student is enrolled in the assigned program. Check if the due date has passed. |
+| Auto-grading not working | Only multiple-choice and true/false questions are auto-graded. Essay questions require manual grading. |
+| Timer not counting down | Ensure JavaScript is enabled and the browser is not in power-saving mode. Try a hard refresh. |
+| Results not showing in Dashboard | Results sync periodically. Wait a few minutes or refresh the Marks Entry tab. |
 
 ## Related articles
 

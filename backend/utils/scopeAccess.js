@@ -2,10 +2,9 @@
  * Data-scope helpers for API controllers (category → program → subject → class).
  */
 
-import { PrismaClient } from '@prisma/client';
+import prisma from '../db/prismaClient.js';
 import { getEffectiveDataScope, filterByDataScope } from '../services/scopeResolver.js';
 
-const prisma = new PrismaClient();
 
 export async function getRequestScope(req) {
   if (req.dataScope) return req.dataScope;

@@ -15,10 +15,9 @@ export default function DetailsTab({ file }) {
 
   useEffect(() => {
     const fetchAdditionalDetails = async () => {
+      // Fetch workflow documents for this file
       try {
-        // Fetch workflow documents for this file
         const workflowRes = await axios.get(`/api/v1/workflow-documents?fileId=${file.id}`);
-        console.log('[DetailsTab] Workflow response:', workflowRes.data);
         if (workflowRes.data.success) {
           const workflows = workflowRes.data.data || [];
           const counts = {
@@ -31,55 +30,56 @@ export default function DetailsTab({ file }) {
           setWorkflowCounts(counts);
           setWorkflows(workflows);
         }
+      } catch (err) {
+        console.error('[DetailsTab] Error fetching workflows:', err);
+      }
 
-        // Fetch shares for this file
+      // Fetch shares for this file
+      try {
         const shareRes = await axios.get(`/api/v1/drive/files/${file.id}/shares`);
-        console.log('[DetailsTab] Share response:', shareRes.data);
         if (shareRes.data.success) {
           const shares = shareRes.data.data || shareRes.data.payload || [];
-          console.log('[DetailsTab] Shares array:', shares);
-          console.log('[DetailsTab] Shares subjectTypes:', shares.map(s => s.subjectType));
           const counts = {
             total: shares.length,
             people: shares.filter(s => s.subjectType === 'USER').length,
             roles: shares.filter(s => s.subjectType === 'ROLE').length
           };
-          console.log('[DetailsTab] Calculated counts:', counts);
           setShareCounts(counts);
         }
+      } catch (err) {
+        console.error('[DetailsTab] Error fetching shares:', err);
+      }
 
-        // Fetch comments for this file
+      // Fetch comments for this file
+      try {
         const commentRes = await axios.get(`/api/v1/drive/files/${file.id}/comments`);
-        console.log('[DetailsTab] Comment response:', commentRes.data);
         if (commentRes.data.success) {
           setCommentCount((commentRes.data.payload || []).length);
         }
+      } catch (err) {
+        console.error('[DetailsTab] Error fetching comments:', err);
+      }
 
-        // Fetch activity for this file
-        try {
-          const activityRes = await axios.get(`/api/v1/drive/files/${file.id}/activities`);
-          console.log('[DetailsTab] Activity response:', activityRes.data);
-          if (activityRes.data.success) {
-            setActivityCount((activityRes.data.payload || []).length);
-          }
-        } catch (err) {
-          console.error('[DetailsTab] Error fetching activity:', err);
-          setActivityCount(0);
+      // Fetch activity for this file
+      try {
+        const activityRes = await axios.get(`/api/v1/drive/files/${file.id}/activities`);
+        if (activityRes.data.success) {
+          setActivityCount((activityRes.data.payload || []).length);
         }
+      } catch (err) {
+        console.error('[DetailsTab] Error fetching activity:', err);
+        setActivityCount(0);
+      }
 
-        // Fetch versions for this file
-        try {
-          const versionRes = await axios.get(`/api/v1/drive/files/${file.id}/versions`);
-          console.log('[DetailsTab] Version response:', versionRes.data);
-          if (versionRes.data.success) {
-            setVersionCount((versionRes.data.payload || []).length);
-          }
-        } catch (err) {
-          console.error('[DetailsTab] Error fetching versions:', err);
-          setVersionCount(0);
+      // Fetch versions for this file
+      try {
+        const versionRes = await axios.get(`/api/v1/drive/files/${file.id}/versions`);
+        if (versionRes.data.success) {
+          setVersionCount((versionRes.data.payload || []).length);
         }
-      } catch (error) {
-        console.error('[DetailsTab] Error fetching additional details:', error);
+      } catch (err) {
+        console.error('[DetailsTab] Error fetching versions:', err);
+        setVersionCount(0);
       }
     };
 
@@ -104,6 +104,36 @@ export default function DetailsTab({ file }) {
     return d.toLocaleString();
   };
 
+  const formatMimeType = (mimeType) => {
+    if (!mimeType) return '\u2014';
+    
+    const mimeMap = {
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'PowerPoint',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'Word',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'Excel',
+      'application/pdf': 'PDF',
+      'image/jpeg': 'JPEG',
+      'image/png': 'PNG',
+      'image/gif': 'GIF',
+      'image/webp': 'WebP',
+      'image/svg+xml': 'SVG',
+      'video/mp4': 'MP4',
+      'video/webm': 'WebM',
+      'video/quicktime': 'MOV',
+      'audio/mpeg': 'MP3',
+      'audio/wav': 'WAV',
+      'text/plain': 'Text',
+      'text/html': 'HTML',
+      'text/css': 'CSS',
+      'text/javascript': 'JavaScript',
+      'application/zip': 'ZIP',
+      'application/json': 'JSON',
+      'application/xml': 'XML',
+    };
+    
+    return mimeMap[mimeType] || mimeType;
+  };
+
   const details = [
     {
       icon: 'file',
@@ -118,7 +148,7 @@ export default function DetailsTab({ file }) {
     {
       icon: 'file',
       label: t('drive.mimeType'),
-      value: file.mimeType || '\u2014',
+      value: formatMimeType(file.mimeType),
     },
     {
       icon: 'user',

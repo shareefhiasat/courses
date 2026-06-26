@@ -54,28 +54,33 @@ export default function StudentDashboardPage() {
   const [tourSteps, setTourSteps] = useState([]);
   const tourSeenKey = `studentDashboardTourSeen_${lang}`;
 
-  useEffect(() => {
-    setTourSteps([
-      { target: '[data-tour="student-filters"]', content: t('tour.student_filters'), disableBeacon: true, placement: 'bottom' },
-      { target: '[data-tour="student-tabs"]', content: t('tour.student_tabs'), disableBeacon: true, placement: 'bottom' },
-      { target: '[data-tour="student-tab-overview"]', content: t('tour.student_overview'), disableBeacon: true, placement: 'bottom' },
-      { target: '[data-tour="student-tab-performance"]', content: t('tour.student_performance'), disableBeacon: true, placement: 'bottom' },
-      { target: '[data-tour="student-tab-marks"]', content: t('tour.student_marks'), disableBeacon: true, placement: 'bottom' },
+  // All candidate steps — filtered at start time to only visible DOM nodes
+  const buildTourSteps = useCallback(() => {
+    const allSteps = [
+      { target: '[data-tour="student-filters"]',             content: t('tour.student_filters'),             disableBeacon: true, placement: 'bottom' },
+      { target: '[data-tour="student-tabs"]',                content: t('tour.student_tabs'),                disableBeacon: true, placement: 'bottom' },
       { target: '[data-tour="student-attendance-analytics"]', content: t('tour.student_attendance_analytics'), disableBeacon: true, placement: 'top' },
-      { target: '[data-tour="student-drive-analytics"]', content: t('tour.student_drive_analytics'), disableBeacon: true, placement: 'top' },
-    ]);
-  }, [lang, t]);
+      { target: '[data-tour="student-drive-analytics"]',     content: t('tour.student_drive_analytics'),     disableBeacon: true, placement: 'top' },
+    ];
+    return allSteps.filter(s => !!document.querySelector(s.target));
+  }, [t]);
+
+  const startTour = useCallback(() => {
+    const steps = buildTourSteps();
+    if (steps.length === 0) return;
+    setTourSteps(steps);
+    setRunTour(true);
+  }, [buildTourSteps]);
 
   useEffect(() => {
-    const start = () => setRunTour(true);
-    window.addEventListener('app:joyride', start);
-    window.addEventListener('app:help', start);
-    return () => { window.removeEventListener('app:joyride', start); window.removeEventListener('app:help', start); };
-  }, []);
+    window.addEventListener('app:joyride', startTour);
+    window.addEventListener('app:help', startTour);
+    return () => { window.removeEventListener('app:joyride', startTour); window.removeEventListener('app:help', startTour); };
+  }, [startTour]);
 
   useEffect(() => {
-    try { if (!localStorage.getItem(tourSeenKey)) setRunTour(true); } catch {}
-  }, [tourSeenKey]);
+    try { if (!localStorage.getItem(tourSeenKey)) startTour(); } catch {}
+  }, [tourSeenKey, startTour]);
 
   const handleTourCallback = useCallback((data) => {
     const { status } = data || {};
@@ -264,16 +269,7 @@ export default function StudentDashboardPage() {
               {/* Empty header - no username display */}
             </div>
             <div className={styles.headerActions}>
-              <button
-                type="button"
-                onClick={() => setRunTour(true)}
-                title={t('tour_help') || 'Start guided tour'}
-                aria-label={t('tour_help') || 'Start guided tour'}
-                style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', padding: '0.35rem 0.65rem', fontSize: '0.8125rem', borderRadius: '6px', border: 'none', background: 'var(--color-primary, #800020)', color: 'white', cursor: 'pointer' }}
-              >
-                <span>?</span>
-                <span>{t('tour_help') || 'Tour'}</span>
-              </button>
+              
             </div>
           </div>
 
@@ -489,7 +485,7 @@ export default function StudentDashboardPage() {
             <div data-tour="student-drive-analytics">
             <CollapsibleSection
               title={t('drive_workflow_activity_analytics') || 'Drive, Workflow & Activity Analytics'}
-              summary={`${analyticsHook.loading ? '…' : 'Ready'} · ${t('role_based_metrics') || 'Role-based metrics'}`}
+              summary={`${analyticsHook.loading ? '…' : (t('ready') || 'Ready')} · ${t('role_based_metrics') || 'Role-based metrics'}`}
               icon={BarChart3}
               defaultOpen={false}
               testId="dashboard-analytics-section"

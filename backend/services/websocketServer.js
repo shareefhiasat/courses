@@ -6,10 +6,9 @@
  */
 
 import { WebSocketServer } from 'ws';
-import { PrismaClient } from '@prisma/client';
+import prisma from '../db/prismaClient.js';
 import jwt from 'jsonwebtoken';
 
-const prisma = new PrismaClient();
 
 // Store connected clients: Map<userId, Set<WebSocket>>
 const clients = new Map();

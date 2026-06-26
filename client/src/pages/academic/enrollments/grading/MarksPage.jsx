@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useLayoutEffect, useRef } from 'react';
+import Joyride from 'react-joyride';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
@@ -38,6 +39,29 @@ const MarksPage = () => {
   const { lang, t } = useLang();
   const { theme, isDarkMode } = useTheme();
   const toast = useToast();
+
+  // ── Guided Tour ───────────────────────────────────────────────────────────
+  const [runTour, setRunTour] = useState(false);
+  const [tourSteps, setTourSteps] = useState([]);
+  const tourSeenKey = `marksTourSeen_${lang}`;
+  const buildTourSteps = useCallback(() => [
+    { target: '[data-tour="marks-filters"]',      content: t('tour.marks_filters'),  disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="marks-distribution"]', content: t('tour.marks_bulk'),     disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="marks-grid"]',         content: t('tour.marks_grid'),     disableBeacon: true, placement: 'top' },
+    { target: '[data-tour="marks-export"]',       content: t('tour.marks_export'),   disableBeacon: true, placement: 'top' },
+  ].filter(s => !!document.querySelector(s.target)), [t]);
+  const startTour = useCallback(() => { const steps = buildTourSteps(); if (!steps.length) return; setTourSteps(steps); setRunTour(true); }, [buildTourSteps]);
+  useEffect(() => {
+    window.addEventListener('app:joyride', startTour);
+    window.addEventListener('app:help', startTour);
+    return () => { window.removeEventListener('app:joyride', startTour); window.removeEventListener('app:help', startTour); };
+  }, [startTour]);
+  useEffect(() => { try { if (!localStorage.getItem(tourSeenKey)) startTour(); } catch {} }, [tourSeenKey, startTour]);
+  const handleTourCallback = useCallback((data) => {
+    const { status } = data || {};
+    if (status === 'finished' || status === 'skipped') { setRunTour(false); try { localStorage.setItem(tourSeenKey, 'true'); } catch {} }
+  }, [tourSeenKey]);
+  // ─────────────────────────────────────────────────────────────────────────
   const { startLoading } = useGlobalLoading();
   
   const [programs, setPrograms] = useState([]);
@@ -689,9 +713,13 @@ const MarksPage = () => {
 
   return (
     <Container maxWidth="xl" className={styles.page} style={{ padding: '1rem 0' }}>
+      <Joyride continuous run={runTour && tourSteps.length > 0} steps={tourSteps} callback={handleTourCallback} scrollOffset={100} scrollToFirstStep
+        locale={{ back: t('tour_back'), close: t('tour_close'), last: t('tour_finish'), next: t('tour_next'), skip: t('tour_skip') }}
+        styles={{ options: { primaryColor: 'var(--color-primary,#800020)', textColor: theme === 'dark' ? '#e5e7eb' : '#111', backgroundColor: theme === 'dark' ? '#1f2937' : '#fff', zIndex: 10000 } }}
+      />
       <Card style={{ marginBottom: '1.5rem' }}>
         <CardBody>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 8 }}>
+          <div data-tour="marks-filters" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 8 }}>
             <ProgramsSelect
               programs={programs}
               subjects={subjects}
@@ -710,7 +738,7 @@ const MarksPage = () => {
       </Card>
 
       {selectedSubject && marksDistribution && (
-        <Card style={{ marginBottom: '1.5rem' }}>
+        <Card data-tour="marks-distribution" style={{ marginBottom: '1.5rem' }}>
           <CardBody>
             <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: '0.5rem' }}>
               <div className={styles.distributionGrid} style={{ flex: 1, marginRight: '0.5rem' }}>
@@ -892,9 +920,12 @@ const MarksPage = () => {
       )}
 
       {selectedSubject && (
-        <Card>
+        <Card data-tour="marks-grid">
           <CardBody>
             <div style={{ marginBottom: '1rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.5rem' }}>
+                
+              </div>
               {/* Additional Filters */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 8, marginBottom: '1rem' }}>
               <Select

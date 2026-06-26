@@ -5,11 +5,10 @@
  * ARCHITECTURE: Controllers → Business Services → Nextcloud Service → Database
  */
 
-import { PrismaClient } from '@prisma/client';
+import prisma from '../db/prismaClient.js';
 import * as fileService from './fileService.js';
 import { getDatabaseUserId } from '../utils/database/userResolver.js';
 
-const prisma = new PrismaClient();
 
 /**
  * Share file with specific user

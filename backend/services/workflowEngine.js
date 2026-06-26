@@ -13,11 +13,10 @@
  *   - Full audit trail in workflow_history
  */
 
-import { PrismaClient } from '@prisma/client';
+import prisma from '../db/prismaClient.js';
 import notificationGateway from './notifications/index.js';
 import { EVENTS } from './notifications/constants.js';
 
-const prisma = new PrismaClient();
 
 const ok = (payload) => ({ success: true, payload, timestamp: Date.now() });
 const err = (code, message) => ({

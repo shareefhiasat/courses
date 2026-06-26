@@ -1,5 +1,4 @@
-import { PrismaClient } from '@prisma/client';
-const prisma = new PrismaClient();
+import prisma from '../db/prismaClient.js';
 
 /**
  * Add comment to file
@@ -78,7 +77,6 @@ export const getFileComments = async ({ fileId, userId }) => {
         content: true,
         userId: true,
         createdAt: true,
-        updatedAt: true,
         user: {
           select: { id: true, email: true, displayName: true }
         }

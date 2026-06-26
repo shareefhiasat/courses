@@ -229,12 +229,13 @@ const WidgetWrapper = ({
         onClick={isMinimized ? onMinimize : undefined}
         style={{
           padding: isMinimized ? '0.5rem 0.75rem' : '0.75rem 1rem',
-          border: `1px solid ${isHovered ? accentColor : 'var(--border)'}`,
-          borderInlineStart: `4px solid ${isHovered ? accentColor : 'transparent'}`,
+          border: `1px solid ${isHovered ? `${accentColor}60` : 'var(--border)'}`,
           borderRadius: 16,
           background: isMinimized && isHovered ? 'var(--hover, var(--panel))' : 'var(--panel)',
-          boxShadow: isHovered ? `0 4px 14px ${accentColor}18` : (editLayout ? '0 4px 12px rgba(0,0,0,0.1)' : '0 2px 8px rgba(0,0,0,0.04)'),
-          transition: 'box-shadow 0.2s ease, border-color 0.2s ease, border-inline-start-color 0.2s ease, padding 0.15s ease, background 0.15s ease',
+          boxShadow: isHovered
+            ? `0 4px 16px ${accentColor}35, 0 2px 6px rgba(0,0,0,0.1)`
+            : (editLayout ? '0 4px 12px rgba(0,0,0,0.1)' : '0 2px 8px rgba(0,0,0,0.04)'),
+          transition: 'box-shadow 0.2s ease, border-color 0.2s ease, padding 0.15s ease, background 0.15s ease',
           overflow: 'hidden',
           display: 'flex',
           flexDirection: 'column',

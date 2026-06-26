@@ -2,7 +2,7 @@
  * Break Sessions Database Service
  */
 
-import { PrismaClient } from '@prisma/client';
+import prisma from './prismaClient.js';
 import { buildBreakWhere } from '../utils/schedulingDateRange.js';
 import {
   expandRecurrenceDates,
@@ -10,7 +10,6 @@ import {
   generateSeriesId,
 } from '../utils/schedulingRecurrence.js';
 
-const prisma = new PrismaClient();
 
 const MAX_RECURRING_OCCURRENCES = 500;
 

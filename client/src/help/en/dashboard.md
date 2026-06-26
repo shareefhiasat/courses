@@ -3,6 +3,7 @@ title: Dashboard
 tags: [dashboard, activities, announcements, resources, programs, subjects, classes, admin]
 route: /dashboard
 order: 2
+keywords: [dashboard, admin, activities, announcements, resources, programs, subjects, classes, enrollments, marks, penalties, participation, users, scheduled reports]
 ---
 
 # Dashboard
@@ -93,6 +94,16 @@ The Dashboard is the main administrative hub. It uses a ribbon tab interface to 
 - You cannot rearrange tabs — the order is fixed by the system.
 - Some tabs load data lazily; switching to a tab for the first time may take a moment.
 - The dashboard does not auto-refresh; you need to switch tabs or refresh the page to see new data.
+
+## Troubleshooting
+
+| Problem | Solution |
+| --- | --- |
+| Tab is missing from the ribbon | You may lack `view` permission for that screen. Check with your administrator or see [Profile & Settings](/en/profile). |
+| Tab content not loading | First visit to a tab loads data lazily. Wait a moment. If it persists, check your network connection and refresh. |
+| Active tab not remembered | The tab is saved in local storage. If your browser blocks local storage, the default tab is shown. Check privacy settings. |
+| Delete confirmation not appearing | Ensure pop-ups are not blocked. The confirmation dialog requires JavaScript enabled. |
+| Deep link (`/dashboard#programs`) not working | Ensure the URL hash matches a valid tab name. Tab names are case-sensitive. |
 
 ## Related articles
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, memo, useLayoutEffect, useCallback } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
+import { useColorTheme } from '@contexts/ColorThemeContext';
 import { useAuth } from '@contexts/AuthContext';
 import { useToast } from '@ui/Toast/Toast';
 import Joyride from 'react-joyride';
@@ -38,6 +39,7 @@ import { ActivityLogger } from '@services/other/activityLogger';
 const AnalyticsDashboardPage = memo(() => {
   const { t, lang } = useLang();
   const { theme } = useTheme();
+  const { primaryColor } = useColorTheme();
   const { user, isAdmin, isSuperAdmin, isInstructor } = useAuth();
   const toast = useToast();
   
@@ -320,32 +322,7 @@ const AnalyticsDashboardPage = memo(() => {
         defaultMode="full"
         data-tour="stats"
         headerRight={
-          <button
-            type="button"
-            onClick={() => {
-              debug('[AnalyticsDashboardPage] Manual tour start clicked');
-              setRunTour(true);
-            }}
-            title={t('tour_help') || 'Start guided tour'}
-            aria-label={t('tour_help') || 'Start guided tour'}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '32px',
-              height: '32px',
-              borderRadius: '50%',
-              border: '1px solid var(--border-color, rgba(0,0,0,0.1))',
-              background: 'var(--bg-tertiary, rgba(0,0,0,0.03))',
-              color: 'var(--text-primary, currentColor)',
-              cursor: 'pointer',
-              transition: 'background 0.2s, transform 0.2s'
-            }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg-hover, rgba(0,0,0,0.08)'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--bg-tertiary, rgba(0,0,0,0.03)'; }}
-          >
-            {getThemedIcon('ui', 'help', 18, theme)}
-          </button>
+          
         }
         inlineFilters={
         <div data-tour="analytics-filters" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', width: '100%' }}>
@@ -499,8 +476,8 @@ const AnalyticsDashboardPage = memo(() => {
                 onMouseEnter={(e) => {
                   if (stat.onClick) {
                     e.currentTarget.style.transform = 'translateY(-1px)';
-                    e.currentTarget.style.boxShadow = theme === 'dark' ? '0 2px 6px rgba(0, 0, 0, 0.3)' : '0 2px 6px rgba(0, 0, 0, 0.08)';
-                    e.currentTarget.style.borderColor = config.iconColor;
+                    e.currentTarget.style.boxShadow = `0 4px 16px ${primaryColor || '#800020'}35, 0 2px 6px rgba(0,0,0,0.1)`;
+                    e.currentTarget.style.borderColor = `${primaryColor || '#800020'}60`;
                   }
                 }}
                 onMouseLeave={(e) => {
@@ -820,8 +797,8 @@ const AnalyticsDashboardPage = memo(() => {
                 onMouseEnter={(e) => {
                   if (stat.onClick) {
                     e.currentTarget.style.transform = 'translateY(-1px)';
-                    e.currentTarget.style.boxShadow = theme === 'dark' ? '0 2px 6px rgba(0, 0, 0, 0.3)' : '0 2px 6px rgba(0, 0, 0, 0.08)';
-                    e.currentTarget.style.borderColor = config.iconColor;
+                    e.currentTarget.style.boxShadow = `0 4px 16px ${primaryColor || '#800020'}35, 0 2px 6px rgba(0,0,0,0.1)`;
+                    e.currentTarget.style.borderColor = `${primaryColor || '#800020'}60`;
                   }
                 }}
                 onMouseLeave={(e) => {

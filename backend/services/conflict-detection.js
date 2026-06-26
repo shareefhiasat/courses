@@ -12,9 +12,8 @@
  * - HOLIDAY_CONFLICT: Date falls on a holiday
  */
 
-import { PrismaClient } from '@prisma/client';
+import prisma from '../db/prismaClient.js';
 
-const prisma = new PrismaClient();
 
 // Day mapping for weekend check
 const WEEKEND_DAYS = [5, 6]; // Friday=5, Saturday=6

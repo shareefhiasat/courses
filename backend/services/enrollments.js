@@ -165,8 +165,7 @@ export const createEnrollment = async (enrollmentData, user = null) => {
     if (result.success && result.data) {
       try {
         const enrollment = result.data;
-        const { PrismaClient } = await import('@prisma/client');
-        const prisma = new PrismaClient();
+const prisma = (await import('../db/prismaClient.js')).default;
 
         // Get student and course/program details
         const student = await prisma.user.findUnique({
@@ -269,8 +268,7 @@ export const updateEnrollment = async (id, updateData, user = null) => {
     if (result.success && result.data && updateData.statusId) {
       try {
         const enrollment = result.data;
-        const { PrismaClient } = await import('@prisma/client');
-        const prisma = new PrismaClient();
+const prisma = (await import('../db/prismaClient.js')).default;
 
         // Get student and course details
         const student = await prisma.user.findUnique({
@@ -377,8 +375,7 @@ export const deleteEnrollment = async (id, user = null) => {
     // Emit notification for enrollment deletion
     if (result.success) {
       try {
-        const { PrismaClient } = await import('@prisma/client');
-        const prisma = new PrismaClient();
+const prisma = (await import('../db/prismaClient.js')).default;
 
         // Get enrollment details before deletion
         const enrollment = await enrollmentDbService.getEnrollmentById(id);

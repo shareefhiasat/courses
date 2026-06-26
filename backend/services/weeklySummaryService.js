@@ -5,10 +5,9 @@
  * ARCHITECTURE: Controllers → Services → DB Services → Prisma → PostgreSQL
  */
 
-import { PrismaClient } from '@prisma/client';
+import prisma from '../db/prismaClient.js';
 import { createWorkflowDocumentWithUpload } from './workflowDocumentService.js';
 
-const prisma = new PrismaClient();
 
 /**
  * Generate weekly attendance summary

@@ -5,9 +5,8 @@
  * NOTE: Collabora is not available with MinIO migration - functions return errors
  */
 
-import { PrismaClient } from '@prisma/client';
+import prisma from '../db/prismaClient.js';
 
-const prisma = new PrismaClient();
 
 /**
  * Generate Collabora edit URL for a file

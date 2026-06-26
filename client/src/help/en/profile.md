@@ -3,6 +3,7 @@ title: Profile & Settings
 tags: [profile, settings, password, language, theme]
 route: /profile
 order: 90
+keywords: [profile, settings, password, change password, language, theme, accent color, notification preferences, permission matrix, RBAC, roles, self-lock prevention, audit log, Keycloak]
 ---
 
 # Profile & Settings
@@ -56,6 +57,16 @@ The Permission Matrix is a grid that shows which roles have access to which scre
 - You cannot change your email address — it is managed via Keycloak by the administrator.
 - Permission Matrix changes take effect immediately for new sessions. Users with active sessions may need to log out and log back in to see the updated permissions.
 - The Permission Matrix can only be accessed by Super Admins — there is no read-only view for other roles.
+
+## Troubleshooting
+
+| Problem | Solution |
+| --- | --- |
+| Password change fails | Ensure your current password is correct and the new password meets the 8-character minimum with letters and numbers. |
+| Language switch not persisting | Clear browser cache and cookies, then log in again. Language preference is stored in local storage. |
+| Permission Matrix tab not visible | Only Super Admins can see this tab. Verify your role with another Super Admin. |
+| Cannot remove a permission in the Matrix | The system prevents removing your own `view` permission for the Permission Matrix to avoid self-lockout. |
+| Permission changes not taking effect | Users with active sessions may need to log out and log back in. Changes apply immediately to new sessions. |
 
 ## Related articles
 

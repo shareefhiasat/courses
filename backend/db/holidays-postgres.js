@@ -5,7 +5,7 @@
  * ARCHITECTURE: Controllers → DB Services → PostgreSQL
  */
 
-import { PrismaClient } from '@prisma/client';
+import prisma from './prismaClient.js';
 import { PRISMA_ERRORS, getPrismaErrorMessage, isPrismaError } from '../constants/prisma-errors.js';
 import {
   expandRecurrenceDates,
@@ -13,7 +13,6 @@ import {
   generateSeriesId,
 } from '../utils/schedulingRecurrence.js';
 
-const prisma = new PrismaClient();
 
 const MAX_RECURRING_OCCURRENCES = 500;
 
