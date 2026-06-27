@@ -130,10 +130,10 @@ export const handleFilePreview = async (file, fileVersionId = null) => {
     return;
   }
 
-  // For PDFs, use the download endpoint (now supports inline for PDFs) with version support
+  // For PDFs, open in a new tab as inline preview with version support
   if (fileType === 'pdf') {
-    console.log('🔍 [fileUtils] Opening PDF');
-    await downloadFileWithAuth(file.id, fileVersionId);
+    console.log('🔍 [fileUtils] Opening PDF in new tab');
+    await previewFileWithAuth(file.id, fileVersionId);
     return;
   }
 
@@ -163,10 +163,42 @@ export const handleFilePreview = async (file, fileVersionId = null) => {
     return;
   }
 
-  // For other file types, just download with version support
-  console.log('🔍 [fileUtils] Unknown file type, downloading');
-  await downloadFileWithAuth(file.id, fileVersionId);
+  // For other file types, open in a new tab as preview with version support
+  console.log('🔍 [fileUtils] Opening file in new tab');
+  await previewFileWithAuth(file.id, fileVersionId);
 };
+
+/**
+ * Preview file with authentication — fetches blob and opens in a new tab
+ * @param {string} fileId - File ID
+ * @param {string|null} fileVersionId - Optional file version ID
+ * @returns {Promise<void>
+ */
+async function previewFileWithAuth(fileId, fileVersionId = null) {
+  try {
+    const { apiService } = await import('@services/api/apiService.js');
+    const url = fileVersionId
+      ? `/drive/files/${fileId}/download?versionId=${fileVersionId}`
+      : `/drive/files/${fileId}/download`;
+
+    const response = await apiService.get(url, {
+      responseType: 'blob'
+    });
+
+    if (!response.success && !response.data) {
+      throw new Error(response.error || 'Preview failed');
+    }
+
+    const blob = response.data || response;
+    const blobUrl = window.URL.createObjectURL(blob);
+    window.open(blobUrl, '_blank');
+    // Clean up blob URL after a delay to allow the tab to load
+    setTimeout(() => window.URL.revokeObjectURL(blobUrl), 60000);
+  } catch (error) {
+    console.error('❌ [fileUtils] Preview failed, falling back to download:', error);
+    await downloadFileWithAuth(fileId, fileVersionId);
+  }
+}
 
 /**
  * Download file with authentication using apiService

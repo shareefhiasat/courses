@@ -46,6 +46,32 @@ export const ALL_ROLES = Object.values(ROLE_STRINGS);
 
 export const ROLE_KEYS = Object.keys(ROLE_STRINGS);
 
+// Map workflow status to the assigned role (shared across components)
+export const STATUS_ROLE_MAP = {
+  UNDER_HR_REVIEW: ROLE_STRINGS.HR,
+  UNDER_REVIEW: ROLE_STRINGS.HR,
+  UNDER_ADMIN_REVIEW: ROLE_STRINGS.ADMIN,
+};
+
+export const getWorkflowRole = (workflow) => {
+  if (!workflow) return null;
+  return STATUS_ROLE_MAP[workflow.status?.toUpperCase()] || null;
+};
+
+// Extract role string from any user object (Prisma roleAssignments, roles array, or role string)
+export const getUserRoleFromObject = (user) => {
+  if (!user) return null;
+  if (user.roleAssignments && Array.isArray(user.roleAssignments) && user.roleAssignments.length > 0) {
+    const code = user.roleAssignments[0]?.role?.code;
+    if (code) return code.toLowerCase();
+  }
+  if (user.roles && Array.isArray(user.roles) && user.roles.length > 0) {
+    return user.roles[0]?.toLowerCase?.() || user.roles[0];
+  }
+  if (user.role) return user.role.toLowerCase?.() || user.role;
+  return null;
+};
+
 // Helper functions
 export const getUserRoleDisplay = (userOrRole, t, lang) => {
   // Handle user object with role property

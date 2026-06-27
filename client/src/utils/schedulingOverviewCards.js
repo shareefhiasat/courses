@@ -18,7 +18,7 @@ export function buildSchedulingOverviewCards(stats, t) {
     card(stats.totalSubjects ?? 0, t('stats_total_subjects') || t('subjects'), BookOpen, '#6366f1', '#e0e7ff'),
     card(stats.totalClasses ?? 0, t('stats_total_classes') || t('classes'), GraduationCap, '#8b5cf6', '#ede9fe'),
     card(stats.thisWeekSessions ?? 0, t('this_week'), CalendarIcon, STATUS_COLORS.scheduled, '#dbeafe'),
-    card(stats.todaySessionCount ?? 0, t('today_sessions') || "Today's Sessions", CalendarDays, '#0ea5e9', '#e0f2fe'),
+    card(stats.todaySessionCount ?? 0, t('stats_today_sessions'), CalendarDays, '#0ea5e9', '#e0f2fe'),
     card(stats.totalSessions ?? 0, t('total_sessions'), Clock, STATUS_COLORS.scheduled, '#dbeafe'),
     card(stats.scheduledCount ?? 0, t('scheduled'), Save, STATUS_COLORS.scheduled, '#dbeafe'),
     card(stats.inProgressCount ?? 0, t('in_progress'), Clock, STATUS_COLORS.in_progress, '#fef3c7'),

@@ -1,10 +1,11 @@
+import React, { useState, useEffect } from 'react';
 import { useLang } from '@contexts/LangContext';
-import { getThemedIcon } from '@constants/iconTypes';
+import { getThemedIcon, getUserRoleIcon, getUserRoleColor } from '@constants/iconTypes';
 import { WORKFLOW_STATUS_CONFIG } from '@constants/driveConstants';
 import { formatMimeType } from '@utils/fileUtils';
 import { formatQatarDate } from '@utils/timezone';
 import { getLocalizedUserName } from '@utils/localizedUserName';
-import { useState, useEffect } from 'react';
+import { getUserRoleFromObject } from '@utils/userUtils';
 import axios from 'axios';
 
 export default function DetailsTab({ file }) {
@@ -130,7 +131,16 @@ export default function DetailsTab({ file }) {
     {
       icon: 'user',
       label: t('drive.owner'),
-      value: getLocalizedUserName(file.owner, lang, '\u2014'),
+      value: (
+        <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+          {getLocalizedUserName(file.owner, lang, '\u2014')}
+          {(() => { const role = getUserRoleFromObject(file.owner); if (!role) return null; const icon = getUserRoleIcon(role); const color = getUserRoleColor(role); return icon ? (
+            <span title={t(`roles.${role}`, role)} style={{ display: 'flex', alignItems: 'center' }}>
+              {React.cloneElement(icon, { color, size: 12 })}
+            </span>
+          ) : null; })()}
+        </span>
+      ),
     },
     {
       icon: 'folder',

@@ -69,6 +69,16 @@ export const WORKFLOW_STATUS_CONFIG = {
     textClass: 'text-violet-700 dark:text-violet-400',
     borderClass: 'border-violet-300 dark:border-violet-700',
   },
+  under_review: {
+    icon: 'alert_triangle',
+    color: '#8b5cf6', // violet-500
+    bg: 'rgba(139, 92, 246, 0.1)',
+    borderColor: '#c4b5fd',
+    labelKey: 'workflow.status.underReview',
+    bgClass: 'bg-violet-100 dark:bg-violet-900/30',
+    textClass: 'text-violet-700 dark:text-violet-400',
+    borderClass: 'border-violet-300 dark:border-violet-700',
+  },
   under_hr_review: {
     icon: 'alert_triangle',
     color: '#8b5cf6', // violet-500

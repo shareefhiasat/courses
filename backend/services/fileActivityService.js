@@ -6,7 +6,7 @@
  */
 
 import prisma from '../db/prismaClient.js';
-import { USER_NAME_SELECT_WITH_ID } from '../utils/userNameFields.js';
+import { USER_NAME_SELECT_WITH_ROLE } from '../utils/userNameFields.js';
 
 
 /**
@@ -28,7 +28,7 @@ export const logFileActivity = async ({ fileId, userId, action, metadata = {} })
       },
       include: {
         user: {
-          select: USER_NAME_SELECT_WITH_ID
+          select: USER_NAME_SELECT_WITH_ROLE
         }
       }
     });
@@ -78,7 +78,7 @@ export const getFileActivities = async ({ fileId, userId, limit = 50 }) => {
       where: { fileId },
       include: {
         user: {
-          select: USER_NAME_SELECT_WITH_ID
+          select: USER_NAME_SELECT_WITH_ROLE
         }
       },
       orderBy: { createdAt: 'desc' },

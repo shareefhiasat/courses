@@ -25,11 +25,12 @@ import { SimpleLoading, EmptyState, Modal, Textarea, Input } from '@ui';
 import { approveWorkflowDocument, rejectWorkflowDocument, returnWorkflowDocument, resubmitWorkflowDocument, uploadSignedDocument, withdrawWorkflowDocument, updateWorkflowDocumentStatus } from '@services/api/workflow-documents-api.js';
 import WorkflowDiagram from '@components/workflow/WorkflowDiagram.jsx';
 import WorkflowHistory from '@components/workflow/WorkflowHistory.jsx';
-import CollapsibleDashboardSection from '@components/ui/CollapsibleDashboardSection/CollapsibleDashboardSection.jsx';
+import CollapsibleSection from '@components/scheduling/CollapsibleSection.jsx';
 import VersionsTab from '@components/smart-drive/tabs/VersionsTab.jsx';
 import WorkflowCommentsTab from '@components/workflow/WorkflowCommentsTab.jsx';
 import { getThemedIcon } from '@constants/iconTypes';
 import { getStatusVariant, WORKFLOW_STATUS } from '@constants/workflowStatusTypes';
+import { Workflow as WorkflowIcon, Paperclip, MessageSquare, Clock } from 'lucide-react';
 import { getWorkflowDocument } from '@services/api/workflow-documents-api.js';
 
 const WorkflowDocumentDetailPage = () => {
@@ -122,6 +123,19 @@ const WorkflowDocumentDetailPage = () => {
   useEffect(() => {
     fetchDocument();
   }, [fetchDocument]);
+
+  const getLocalizedStatus = (status) => {
+    const statusKeyMap = {
+      'DRAFT': 'workflow.status.draft',
+      'SUBMITTED': 'workflow.status.submitted',
+      'UNDER_HR_REVIEW': 'workflow.status.underReview',
+      'UNDER_ADMIN_REVIEW': 'workflow.status.underAdminReview',
+      'APPROVED': 'workflow.status.approved',
+      'REJECTED': 'workflow.status.rejected',
+    };
+    const key = statusKeyMap[status];
+    return key ? t(key, status) : status;
+  };
 
   // Check if user can perform review actions
   const canReview = () => {
@@ -563,7 +577,7 @@ const WorkflowDocumentDetailPage = () => {
   }
 
   return (
-    <div className="flex justify-center px-4 py-6">
+    <div className="flex justify-center px-4" style={{ paddingTop: '4.5rem', paddingBottom: '1.5rem' }}>
       <Joyride continuous run={runTour} steps={tourSteps} callback={handleTourCallback} scrollOffset={100} scrollToFirstStep showSkipButton showProgress tooltipComponent={TourTooltipComponent}
         locale={{ back: t('tour_back'), close: t('tour_close'), last: t('tour_finish'), next: t('tour_next'), skip: t('tour_skip') }}
         styles={{ options: { primaryColor: 'var(--color-primary,#800020)', textColor: theme === 'dark' ? '#e5e7eb' : '#111', backgroundColor: theme === 'dark' ? '#1f2937' : '#fff', zIndex: 10000 } }}
@@ -587,15 +601,16 @@ const WorkflowDocumentDetailPage = () => {
       </Card>
 
       {/* Top row: Workflow Progress (full width) */}
-      <div data-tour="doc-diagram">
-        <CollapsibleDashboardSection
+      <div data-tour="doc-diagram" style={{ marginTop: '0.5rem' }}>
+        <CollapsibleSection
           title={t('workflow.document.workflowProgress', 'Workflow Progress')}
-          icon={getThemedIcon('ui', 'workflow', 16)}
-          color="#8b5cf6"
-          sectionId="workflow-detail-diagram"
-          defaultMode="full"
-          data-tour="doc-diagram"
-          headerRight={
+          summary={document?.status ? getLocalizedStatus(document.status) : ''}
+          icon={WorkflowIcon}
+          defaultOpen
+          storageKey="workflow-detail-diagram"
+          testId="workflow-progress-section"
+          noHover
+          actions={
             <div data-tour="doc-actions" className="flex items-center gap-2 flex-nowrap">
               {canResubmit() && (
                 <Button
@@ -636,6 +651,9 @@ const WorkflowDocumentDetailPage = () => {
           {/* Status Legend */}
           <div data-tour="doc-legend" style={{ marginBottom: '1rem' }}>
             <div className="flex items-center gap-4 flex-wrap">
+              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: '0.025em' }}>
+                {t('workflow.statuses', 'Statuses')}:
+              </span>
               {[
                 { label: t('workflow.status.draft', 'Draft'), color: '#6b7280', icon: 'file_text' },
                 { label: t('workflow.status.submitted', 'Submitted'), color: '#3b82f6', icon: 'send' },
@@ -669,7 +687,7 @@ const WorkflowDocumentDetailPage = () => {
             onRefresh={refreshDocument}
             onStageFilterChange={setSelectedStage}
           />
-        </CollapsibleDashboardSection>
+        </CollapsibleSection>
       </div>
 
       {/* Bottom row: Attachments, Comments, and Status History */}
@@ -677,23 +695,21 @@ const WorkflowDocumentDetailPage = () => {
         <PanelGroup orientation="horizontal" id="workflow-detail-panels" defaultLayout={savedLayout} onLayoutChange={onLayoutChange}>
           {/* Attached Document and Versions */}
           <Panel id="attachments" defaultSize={40} minSize={20}>
+            <CollapsibleSection
+              title={t('workflow.document.attachments', 'Attached Document & Versions')}
+              icon={Paperclip}
+              defaultOpen
+              storageKey="workflow-detail-attachments"
+              testId="workflow-attachments-section"
+              noHover
+            >
               <div data-tour="doc-attachments" style={{
-                background: 'var(--panel, white)',
-                borderRadius: '0.75rem',
-                border: '1px solid var(--border, #e5e7eb)',
-                boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                padding: '1.5rem',
-                height: '100%',
+                padding: '0.5rem 0',
+                height: 'calc(100% - 3rem)',
                 overflowY: 'auto',
               }}>
             {document.file && (
             <>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-              {getThemedIcon('ui', 'paperclip', 20)}
-              <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--text, #111827)', margin: 0 }}>
-                {t('workflow.document.attachments', 'Attached Document & Versions')}
-              </h3>
-            </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             {/* Current file */}
             <div style={{
@@ -768,32 +784,32 @@ const WorkflowDocumentDetailPage = () => {
             </>
             )}
               </div>
+            </CollapsibleSection>
             </Panel>
             <PanelResizeHandle style={{ width: '6px', background: 'var(--border, #e5e7eb)', margin: '0 2px', borderRadius: '3px', cursor: 'col-resize' }} />
 
         {/* Comments */}
         <Panel id="comments" defaultSize={40} minSize={20}>
-          <div data-tour="doc-comments" style={{
-            background: 'var(--panel, white)',
-            borderRadius: '0.75rem',
-            border: '1px solid var(--border, #e5e7eb)',
-            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-            padding: '1.5rem',
-            height: '100%',
-            overflowY: 'auto',
-          }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-              {getThemedIcon('ui', 'message', 20)}
-              <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--text, #111827)', margin: 0 }}>
-                {t('workflow.document.comments', 'Comments')}
-              </h3>
-            </div>
+          <CollapsibleSection
+            title={t('workflow.document.comments', 'Comments')}
+            icon={MessageSquare}
+            defaultOpen
+            storageKey="workflow-detail-comments"
+            testId="workflow-comments-section"
+            noHover
+          >
+            <div data-tour="doc-comments" style={{
+              padding: '0.5rem 0',
+              height: 'calc(100% - 3rem)',
+              overflowY: 'auto',
+            }}>
             <WorkflowCommentsTab 
               workflowId={documentId} 
               selectedStage={selectedStage}
               onStageFilterChange={setSelectedStage}
             />
-          </div>
+            </div>
+          </CollapsibleSection>
         </Panel>
 
         {/* Status History */}
@@ -801,28 +817,23 @@ const WorkflowDocumentDetailPage = () => {
           <>
             <PanelResizeHandle style={{ width: '6px', background: 'var(--border, #e5e7eb)', margin: '0 2px', borderRadius: '3px', cursor: 'col-resize' }} />
             <Panel id="history" defaultSize={20} minSize={10}>
-              <div data-tour="doc-history" style={{
-                background: 'var(--panel, white)',
-                borderRadius: '0.75rem',
-                border: '1px solid var(--border, #e5e7eb)',
-                boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                padding: '1.5rem',
-                height: '100%',
-                overflowY: 'auto',
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-                  {getThemedIcon('ui', 'clock', 20)}
-                  <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--text, #111827)', margin: 0 }}>
-                    {t('workflow.document.statusHistory', 'Status History')}
-                  </h3>
-                  <Badge variant="secondary" style={{ marginLeft: 'auto' }}>
-                    {document.statusHistory.length}
-                  </Badge>
-                </div>
-                <div style={{ overflowY: 'auto' }}>
+              <CollapsibleSection
+                title={t('workflow.document.statusHistory', 'Status History')}
+                icon={Clock}
+                defaultOpen
+                storageKey="workflow-detail-history"
+                testId="workflow-history-section"
+                noHover
+                actions={<Badge variant="secondary">{document.statusHistory.length}</Badge>}
+              >
+                <div data-tour="doc-history" style={{
+                  padding: '0.5rem 0',
+                  height: 'calc(100% - 3rem)',
+                  overflowY: 'auto',
+                }}>
                   <WorkflowHistory statusHistory={document.statusHistory} />
                 </div>
-              </div>
+              </CollapsibleSection>
             </Panel>
           </>
         )}

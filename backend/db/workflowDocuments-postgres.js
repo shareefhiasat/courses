@@ -476,7 +476,19 @@ export async function getCommentsByWorkflowDocument(workflowDocumentId) {
         action: true,
         authorId: true,
         createdAt: true,
-        author: true
+        author: {
+          select: {
+            id: true,
+            displayName: true,
+            firstName: true,
+            lastName: true,
+            displayNameAr: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            email: true,
+            roleAssignments: { include: { role: true } }
+          }
+        }
       },
       orderBy: {
         createdAt: 'desc'

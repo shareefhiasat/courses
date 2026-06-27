@@ -1,14 +1,14 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useNavigate } from 'react-router-dom';
-import { getIcon, getIconWithColor, getThemedIcon } from '@constants/iconTypes';
+import { getIcon, getIconWithColor, getThemedIcon, getUserRoleIcon, getUserRoleColor } from '@constants/iconTypes';
 import { WORKFLOW_STATUS } from '@constants/workflowStatusTypes';
 import { apiService } from '@services/api/apiService';
 import workflowService from '@services/business/workflowService';
 import { updateWorkflowDocumentStatus, withdrawWorkflowDocument } from '@services/api/workflow-documents-api';
 import { WORKFLOW_STATUS_CONFIG } from '@constants/driveConstants';
 import { getWorkflowDisplayLabel, CATEGORY_BY_VALUE } from '@constants/workflowConfig';
-import { ROLE_STRINGS } from '@utils/userUtils';
+import { ROLE_STRINGS, getWorkflowRole, getUserRoleFromObject } from '@utils/userUtils';
 import { getLocalizedUserName } from '@utils/localizedUserName';
 import Modal from '@ui/Modal/Modal';
 import Select from '@ui/Select/Select';
@@ -85,6 +85,26 @@ const ASSIGNEE_TYPES = {
   ROLE: 'role'
 };
 
+// Statuses that are review-related (show role icon)
+const REVIEW_STATUSES = ['UNDER_HR_REVIEW', 'UNDER_REVIEW', 'UNDER_ADMIN_REVIEW'];
+
+const STATUS_FILTER_OPTIONS = [
+  { value: 'DRAFT', labelKey: 'workflow.status.draft' },
+  { value: 'SUBMITTED', labelKey: 'workflow.status.submitted' },
+  { value: 'UNDER_HR_REVIEW', labelKey: 'workflow.status.underReview' },
+  { value: 'UNDER_ADMIN_REVIEW', labelKey: 'workflow.status.underAdminReview' },
+  { value: 'APPROVED', labelKey: 'workflow.status.approved' },
+  { value: 'REJECTED', labelKey: 'workflow.status.rejected' },
+];
+
+const ROLE_FILTER_OPTIONS = [
+  { value: ROLE_STRINGS.HR, labelKey: 'roles.hr' },
+  { value: ROLE_STRINGS.ADMIN, labelKey: 'roles.admin' },
+  { value: ROLE_STRINGS.INSTRUCTOR, labelKey: 'roles.instructor' },
+  { value: ROLE_STRINGS.SUPER_ADMIN, labelKey: 'roles.super_admin' },
+  { value: ROLE_STRINGS.STUDENT, labelKey: 'roles.student' },
+];
+
 const getActionColor = (action) => ACTION_COLORS[action] || '#8b5cf6';
 const getActionIcon = (action) => ACTION_ICONS[action] || 'edit';
 
@@ -128,6 +148,8 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('');
+  const [statusFilter, setStatusFilter] = useState('');
+  const [roleFilter, setRoleFilter] = useState('');
   const [sortBy, setSortBy] = useState('date-desc');
   const [showSortMenu, setShowSortMenu] = useState(false);
   const sortMenuRef = useRef(null);
@@ -230,6 +252,24 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
     return workflows.reduce((acc, workflow) => {
       const status = workflow.status || 'UNKNOWN';
       acc[status] = (acc[status] || 0) + 1;
+      return acc;
+    }, {});
+  }, [workflows]);
+
+  const roleCounts = useMemo(() => {
+    return workflows.reduce((acc, workflow) => {
+      const role = getWorkflowRole(workflow);
+      if (role) {
+        acc[role] = (acc[role] || 0) + 1;
+      }
+      return acc;
+    }, {});
+  }, [workflows]);
+
+  const categoryCounts = useMemo(() => {
+    return workflows.reduce((acc, workflow) => {
+      const cat = workflow.workflowCategory || workflow.workflowType || 'GENERAL';
+      acc[cat] = (acc[cat] || 0) + 1;
       return acc;
     }, {});
   }, [workflows]);
@@ -434,6 +474,14 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
     if (categoryFilter) {
       filtered = filtered.filter((w) => w.workflowCategory === categoryFilter);
     }
+
+    if (statusFilter) {
+      filtered = filtered.filter((w) => w.status === statusFilter);
+    }
+
+    if (roleFilter) {
+      filtered = filtered.filter((w) => getWorkflowRole(w) === roleFilter);
+    }
     
     // Sort
     const sorted = [...filtered].sort((a, b) => {
@@ -460,7 +508,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
     }
 
     return sorted;
-  }, [workflows, searchQuery, sortBy, selectedDate, categoryFilter]);
+  }, [workflows, searchQuery, sortBy, selectedDate, categoryFilter, statusFilter, roleFilter]);
 
   // Group workflows by date for timeline
   const groupedWorkflows = useMemo(() => {
@@ -519,13 +567,19 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
       {/* Search and sort controls */}
       <div style={{
         display: 'flex',
-        alignItems: 'center',
-        gap: '0.75rem',
-        padding: '1rem',
+        flexDirection: 'column',
+        gap: '0.5rem',
+        padding: '0.5rem 0.75rem',
         background: 'var(--panel, white)',
         borderRadius: '0.75rem',
-        border: '1px solid var(--border, #e5e7eb)'
+        border: '1px solid var(--border, #e5e7eb)',
       }}>
+        {/* Row 1: search + refresh + view toggle + sort */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.75rem',
+        }}>
         <input
           type="text"
           placeholder={t('drive.searchWorkflows', 'Search workflows...')}
@@ -533,7 +587,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
           onChange={(e) => setSearchQuery(e.target.value)}
           style={{
             flex: 1,
-            maxWidth: '300px',
+            minWidth: '120px',
             padding: '0.625rem 0.875rem',
             borderRadius: '0.5rem',
             border: '1px solid var(--border, #e5e7eb)',
@@ -544,21 +598,6 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
           }}
           aria-label={t('drive.searchWorkflows', 'Search workflows...')}
         />
-        <div style={{ width: '220px', flexShrink: 0 }}>
-          <Select
-            value={categoryFilter}
-            onChange={(e) => setCategoryFilter(e.target.value)}
-            options={[
-              { value: '', label: t('workflow.filters.allCategories', 'All categories') },
-              ...Object.values(CATEGORY_BY_VALUE).map((cat) => ({
-                value: cat.value,
-                label: t(cat.labelKey, cat.value),
-              })),
-            ]}
-            placeholder={t('workflow.filters.allCategories', 'All categories')}
-            data-testid="workflow-category-filter"
-          />
-        </div>
         <button
           onClick={() => fetchWorkflow()}
           disabled={loading}
@@ -579,15 +618,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
         >
           {getIcon('ui', 'refresh', 16, 'var(--text, #374151)')}
         </button>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginLeft: 'auto' }}>
-          <span style={{ 
-            fontSize: '0.875rem', 
-            color: 'var(--text-muted, #6b7280)',
-            fontWeight: 500
-          }}>
-            {filteredAndSortedWorkflows.length} {filteredAndSortedWorkflows.length === 1 ? t('drive.workflow') : t('drive.workflows')}
-          </span>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginLeft: 'auto' }}>
             <button
               onClick={() => setViewMode(viewMode === 'grid' ? 'list' : 'grid')}
               style={{
@@ -622,7 +653,6 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                 }}
               >
                 {getIcon('ui', 'filter', 16)}
-                <span>{t('drive.sort', 'Sort')}</span>
                 {getIcon('ui', 'chevron_down', 16)}
               </button>
           {showSortMenu && (
@@ -669,6 +699,63 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
             </div>
           </div>
         </div>
+        {/* Row 2: filter dropdowns */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.75rem',
+        }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <Select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            options={[
+              { value: '', label: t('workflow.filters.allCategories', 'All categories') },
+              ...Object.values(CATEGORY_BY_VALUE).map((cat) => ({
+                value: cat.value,
+                label: t(cat.labelKey, cat.value),
+              })),
+            ]}
+            placeholder={t('workflow.filters.allCategories', 'All categories')}
+            data-testid="workflow-category-filter"
+          />
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <Select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            options={[
+              { value: '', label: t('workflow.filters.allStatuses', 'All statuses') },
+              ...STATUS_FILTER_OPTIONS.map((s) => {
+                const cfg = WORKFLOW_STATUS_CONFIG[s.value.toLowerCase()];
+                return {
+                  value: s.value,
+                  label: t(s.labelKey, s.value),
+                  icon: cfg ? getThemedIcon('ui', cfg.icon, 16, cfg.color) : null,
+                };
+              }),
+            ]}
+            placeholder={t('workflow.filters.allStatuses', 'All statuses')}
+            data-testid="workflow-status-filter"
+          />
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <Select
+            value={roleFilter}
+            onChange={(e) => setRoleFilter(e.target.value)}
+            options={[
+              { value: '', label: t('workflow.filters.allRoles', 'All roles') },
+              ...ROLE_FILTER_OPTIONS.map((r) => ({
+                value: r.value,
+                label: t(r.labelKey, r.value),
+                icon: (() => { const icon = getUserRoleIcon(r.value); const color = getUserRoleColor(r.value); return icon ? (() => { const el = icon; return React.cloneElement(el, { color, size: 16 }); })() : null; })(),
+              })),
+            ]}
+            placeholder={t('workflow.filters.allRoles', 'All roles')}
+            data-testid="workflow-role-filter"
+          />
+        </div>
+        </div>
       </div>
 
       {/* Status summary */}
@@ -686,9 +773,14 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
           const statusIcon = getStatusIcon(status);
           const config = WORKFLOW_STATUS_CONFIG[status?.toLowerCase()];
           const statusStyle = config ? { color: config.color, bg: config.bg } : { color: '#6b7280', bg: 'rgba(107, 114, 128, 0.1)' };
+          const isReviewStatus = REVIEW_STATUSES.includes(status?.toUpperCase());
+          const workflowWithStatus = workflows.find(w => w.status === status);
+          const reviewRole = getWorkflowRole(workflowWithStatus);
+          const isActive = statusFilter === status;
           return (
             <div
               key={status}
+              onClick={() => setStatusFilter(isActive ? '' : status)}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -696,18 +788,24 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                 padding: '0.5rem 0.75rem',
                 borderRadius: '0.5rem',
                 background: statusStyle.bg,
-                border: `1px solid ${statusStyle.borderColor}`,
+                border: `1px solid ${isActive ? statusStyle.color : statusStyle.borderColor}`,
                 fontSize: '0.875rem',
                 color: statusStyle.color,
-                cursor: 'default',
+                cursor: 'pointer',
                 transition: 'all 0.15s ease',
+                opacity: statusFilter && !isActive ? 0.5 : 1,
               }}
               title={getStatusDescription(status)}
               onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
               onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
             >
-              <span style={{ color: statusStyle.color, display: 'flex', alignItems: 'center' }}>
+              <span style={{ color: statusStyle.color, display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                 {getIcon('ui', statusIcon, 16, statusIcon === 'workflow' ? '#8b5cf6' : statusStyle.color)}
+                {reviewRole && (
+                  <span style={{ display: 'flex', alignItems: 'center' }}>
+                    {(() => { const icon = getUserRoleIcon(reviewRole); const color = getUserRoleColor(reviewRole); return icon ? React.cloneElement(icon, { color, size: 14 }) : null; })()}
+                  </span>
+                )}
               </span>
               <span style={{ fontWeight: 500 }}>{t(`workflow.status.${status.toLowerCase()}`, status)}</span>
               <span style={{ 
@@ -720,6 +818,76 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
             </div>
           );
         })}
+        {/* Role summary */}
+        {Object.entries(roleCounts).length > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginInlineStart: '0.5rem', paddingInlineStart: '0.75rem', borderInlineStart: '1px solid var(--border, #e5e7eb)' }}>
+            {Object.entries(roleCounts).map(([role, count]) => {
+              const isActive = roleFilter === role;
+              return (
+              <div
+                key={role}
+                onClick={() => setRoleFilter(isActive ? '' : role)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.375rem',
+                  padding: '0.375rem 0.625rem',
+                  borderRadius: '0.375rem',
+                  background: `${getUserRoleColor(role)}1A`,
+                  fontSize: '0.8125rem',
+                  color: getUserRoleColor(role),
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                  border: `1px solid ${isActive ? getUserRoleColor(role) : 'transparent'}`,
+                  opacity: roleFilter && !isActive ? 0.5 : 1,
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
+                onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+              >
+                {(() => { const icon = getUserRoleIcon(role); const color = getUserRoleColor(role); return icon ? React.cloneElement(icon, { color, size: 14 }) : null; })()}
+                {t(`roles.${role}`, role)}
+                <span style={{ fontWeight: 600, opacity: 0.9, background: 'rgba(255,255,255,0.3)', padding: '0.125rem 0.375rem', borderRadius: '0.25rem' }}>{count}</span>
+              </div>
+              );
+            })}
+          </div>
+        )}
+        {/* Category summary */}
+        {Object.entries(categoryCounts).length > 0 && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', marginInlineStart: '0.5rem', paddingInlineStart: '0.75rem', borderInlineStart: '1px solid var(--border, #e5e7eb)' }}>
+            {Object.entries(categoryCounts).map(([cat, count]) => {
+              const isActive = categoryFilter === cat;
+              const style = WORKFLOW_TYPE_STYLES[cat] || WORKFLOW_TYPE_STYLES.GENERAL;
+              return (
+                <div
+                  key={cat}
+                  onClick={() => setCategoryFilter(isActive ? '' : cat)}
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.375rem',
+                    padding: '0.375rem 0.625rem',
+                    borderRadius: '0.375rem',
+                    background: style.bg,
+                    fontSize: '0.8125rem',
+                    color: style.color,
+                    fontWeight: 500,
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease',
+                    border: `1px solid ${isActive ? style.color : 'transparent'}`,
+                    opacity: categoryFilter && !isActive ? 0.5 : 1,
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
+                  onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                >
+                  {getWorkflowDisplayLabel({ workflowCategory: cat }, t)}
+                  <span style={{ fontWeight: 600, opacity: 0.9, background: 'rgba(255,255,255,0.3)', padding: '0.125rem 0.375rem', borderRadius: '0.25rem' }}>{count}</span>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Workflow cards */}
@@ -812,7 +980,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                     <div
                       key={workflow.id}
                       style={{
-                        padding: '0.875rem 1rem',
+                        padding: '0.5rem 0.75rem',
                         borderRadius: '0.75rem',
                         border: '1px solid var(--border, #e5e7eb)',
                         background: 'var(--panel, white)',
@@ -822,6 +990,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                         transition: 'all 0.15s ease',
                         cursor: 'pointer',
                       }}
+                      onClick={() => handleViewWorkflowDetails(workflow.id)}
                       onMouseEnter={(e) => {
                         e.currentTarget.style.borderColor = 'var(--color-primary, #3b82f6)';
                         e.currentTarget.style.boxShadow = '0 2px 8px rgba(0,0,0,0.08)';
@@ -831,19 +1000,14 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                         e.currentTarget.style.boxShadow = 'none';
                       }}
                     >
-                      {/* Status icon */}
-                      <div style={{
-                        flexShrink: 0,
-                        width: '2.25rem',
-                        height: '2.25rem',
-                        borderRadius: '9999px',
-                        background: statusStyle.bg,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        border: `1px solid ${statusStyle.borderColor}`,
-                      }}>
-                        {getIconWithColor('ui', statusIcon, 18, statusStyle.color)}
+                      {/* Status icon + Role icon */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', flexShrink: 0 }}>
+                        {getIconWithColor('ui', statusIcon, 20, statusStyle.color)}
+                        {(() => { const role = getWorkflowRole(workflow); return role && (
+                          <span style={{ display: 'flex', alignItems: 'center' }}>
+                            {(() => { const icon = getUserRoleIcon(role); const color = getUserRoleColor(role); return icon ? React.cloneElement(icon, { color, size: 16 }) : null; })()}
+                          </span>
+                        ); })()}
                       </div>
 
                       {/* Content */}
@@ -872,6 +1036,11 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                           <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
                             {getIcon('ui', 'user', 14, 'var(--text-muted, #6b7280)')}
                             {getLocalizedUserName(workflow.submitter, lang, '\u2014')}
+                            {(() => { const role = getUserRoleFromObject(workflow.submitter); return role && (
+                              <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginInlineStart: '0.25rem' }} title={t(`roles.${role}`, role)}>
+                                {(() => { const icon = getUserRoleIcon(role); const color = getUserRoleColor(role); return icon ? React.cloneElement(icon, { color, size: 12 }) : null; })()}
+                              </span>
+                            ); })()}
                           </span>
                           <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
                             {getIcon('ui', 'calendar', 14, 'var(--text-muted, #6b7280)')}
@@ -1052,7 +1221,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
               <div
                 key={workflow.id}
                 style={{
-                  padding: '1.25rem',
+                  padding: '0.625rem 0.875rem',
                   borderRadius: '0.75rem',
                   border: '1px solid var(--border, #e5e7eb)',
                   background: 'var(--panel, white)',
@@ -1060,7 +1229,9 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                   flexDirection: 'column',
                   gap: '1rem',
                   transition: 'all 0.15s ease',
+                  cursor: 'pointer',
                 }}
+                onClick={() => handleViewWorkflowDetails(workflow.id)}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.borderColor = 'var(--color-primary, #3b82f6)';
                   e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.1)';
@@ -1096,6 +1267,11 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                   >
                     {getIcon('ui', statusIcon, 16)}
                     {t(`workflow.status.${workflow.status.toLowerCase()}`) || workflow.status}
+                    {(() => { const role = getWorkflowRole(workflow); return role && (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginInlineStart: '0.25rem', paddingInlineStart: '0.375rem', borderInlineStart: `1px solid ${statusStyle.borderColor}` }}>
+                        {(() => { const icon = getUserRoleIcon(role); const color = getUserRoleColor(role); return icon ? React.cloneElement(icon, { color, size: 14 }) : null; })()}
+                      </span>
+                    ); })()}
                   </span>
                 </div>
 
@@ -1119,6 +1295,11 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                     <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted, #6b7280)', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
                       {getIcon('ui', 'user', 14)}
                       {t('drive.assignedTo')}: {workflow.currentAssignee.displayName || workflow.currentAssignee.email}
+                      {(() => { const role = getWorkflowRole(workflow); return role && (
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginInlineStart: '0.25rem' }} title={t(`roles.${role}`, role)}>
+                          {(() => { const icon = getUserRoleIcon(role); const color = getUserRoleColor(role); return icon ? React.cloneElement(icon, { color, size: 12 }) : null; })()}
+                        </span>
+                      ); })()}
                     </span>
                   )}
                 </div>
@@ -1128,6 +1309,11 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                   <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
                     {getIcon('ui', 'user', 14)}
                     {workflow.submitter?.displayName || workflow.submitter?.email || '\u2014'}
+                    {(() => { const role = getUserRoleFromObject(workflow.submitter); return role && (
+                      <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginInlineStart: '0.25rem' }} title={t(`roles.${role}`, role)}>
+                        {(() => { const icon = getUserRoleIcon(role); const color = getUserRoleColor(role); return icon ? React.cloneElement(icon, { color, size: 12 }) : null; })()}
+                      </span>
+                    ); })()}
                   </span>
                   <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
                     {getIcon('ui', 'calendar', 14)}

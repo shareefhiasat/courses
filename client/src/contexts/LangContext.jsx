@@ -1425,6 +1425,7 @@ const DICT = {
     'roles.instructor': 'Instructor',
     'roles.instructorDesc': 'Can manage classes and grade students',
     'roles.student': 'Student',
+    'roles.super_admin': 'Super Admin',
     'roles.studentDesc': 'Can view and participate in assigned classes',
 
     // Schedule Overview localizations
@@ -5054,6 +5055,7 @@ const DICT = {
     'workflow.actions.closeSuccess': 'Document closed successfully',
 
     'workflow.status.draft': 'Draft',
+    'workflow.statuses': 'Statuses',
     'workflow.status.pending': 'Pending',
     'workflow.status.submitted': 'Submitted',
     'workflow.status.in_progress': 'In Progress',
@@ -5319,6 +5321,8 @@ const DICT = {
     'workflow.dialog.errors.attendanceRequired': 'Select at least one attendance record',
     'workflow.dialog.errors.attachmentRequired': 'Attachment is required for excuse workflows',
     'workflow.filters.allCategories': 'All categories',
+    'workflow.filters.allStatuses': 'All statuses',
+    'workflow.filters.allRoles': 'All roles',
     'workflow.inbox.category': 'Category',
     'workflow.category.GENERAL': 'General',
     'workflow.category.ATTENDANCE': 'Attendance',
@@ -6915,6 +6919,7 @@ const DICT = {
     'roles.instructor': 'مدرب',
     'roles.instructorDesc': 'يمكنه إدارة الفصول وتقييم الطلاب',
     'roles.student': 'طالب',
+    'roles.super_admin': 'مدير عام',
     'roles.studentDesc': 'يمكنه عرض والمشاركة في الفصول المعينة',
 
     // Additional Side Drawer localizations (Arabic)
@@ -11401,6 +11406,7 @@ const DICT = {
     'workflow.actions.closeSuccess': 'تم إغلاق المستند بنجاح',
 
     'workflow.status.draft': 'مسودة',
+    'workflow.statuses': 'الحالات',
     'workflow.status.pending': 'قيد الانتظار',
     'workflow.status.submitted': 'مُقدم',
     'workflow.status.in_progress': 'قيد التنفيذ',
@@ -11696,6 +11702,8 @@ const DICT = {
     'workflow.dialog.errors.attendanceRequired': 'اختر سجل حضور واحد على الأقل',
     'workflow.dialog.errors.attachmentRequired': 'المرفق مطلوب لطلبات العذر',
     'workflow.filters.allCategories': 'جميع الفئات',
+    'workflow.filters.allStatuses': 'جميع الحالات',
+    'workflow.filters.allRoles': 'جميع الأدوار',
     'workflow.inbox.category': 'الفئة',
     'workflow.category.GENERAL': 'عام',
     'workflow.category.ATTENDANCE': 'الحضور',

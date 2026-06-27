@@ -225,7 +225,7 @@ const WorkflowDiagram = ({ status, workflowType = 'GENERAL_HR', document, curren
   const [viewMode, setViewMode] = useState('flow'); // 'flow' or 'timeline'
   const [layoutMode, setLayoutMode] = useState('default'); // 'default', 'hierarchical', 'compact'
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [bgVariantIndex, setBgVariantIndex] = useState(0); // 0=Dots, 1=Grid, 2=Cross, 3=None
+  const [bgVariantIndex, setBgVariantIndex] = useState(3); // 0=Dots, 1=Grid, 2=Cross, 3=None
   const reactFlowInstance = useRef(null);
   const [nodes, setNodes] = useState([]);
   const [canvasHeight, setCanvasHeight] = useState(() => {

@@ -41,8 +41,8 @@ const Modal = ({
   const modalRef = useRef(null);
   const headerRef = useRef(null);
   const [position, setPosition] = useState({ x: 0, y: 0 });
-  const [isDragging, setIsDragging] = useState(false);
-  const dragStartPos = useRef({ x: 0, y: 0 });
+  const isDraggingRef = useRef(false);
+  const dragStateRef = useRef({ startX: 0, startY: 0, initialX: 0, initialY: 0 });
 
   // Handle escape key and focus management
   useEffect(() => {
@@ -83,23 +83,22 @@ const Modal = ({
     if (!draggable || !isOpen || !headerRef.current) return;
 
     const header = headerRef.current;
-    let startX = 0;
-    let startY = 0;
-    let initialX = 0;
-    let initialY = 0;
 
     const handleMouseDown = (e) => {
       if (e.target.closest('button')) return; // Don't drag if clicking a button
-      startX = e.clientX;
-      startY = e.clientY;
-      initialX = position.x;
-      initialY = position.y;
-      setIsDragging(true);
+      dragStateRef.current = {
+        startX: e.clientX,
+        startY: e.clientY,
+        initialX: position.x,
+        initialY: position.y,
+      };
+      isDraggingRef.current = true;
       e.preventDefault();
     };
 
     const handleMouseMove = (e) => {
-      if (!isDragging) return;
+      if (!isDraggingRef.current) return;
+      const { startX, startY, initialX, initialY } = dragStateRef.current;
       const deltaX = e.clientX - startX;
       const deltaY = e.clientY - startY;
       setPosition({
@@ -109,7 +108,7 @@ const Modal = ({
     };
 
     const handleMouseUp = () => {
-      setIsDragging(false);
+      isDraggingRef.current = false;
     };
 
     header.addEventListener('mousedown', handleMouseDown);
@@ -121,12 +120,12 @@ const Modal = ({
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [draggable, isOpen, isDragging, position]);
+  }, [draggable, isOpen]);
 
   if (!isOpen) return null;
 
   const handleOverlayClick = (e) => {
-    if (e.target === e.currentTarget && closeOnOverlayClick && !isDragging) {
+    if (e.target === e.currentTarget && closeOnOverlayClick && !isDraggingRef.current) {
       onClose();
     }
   };

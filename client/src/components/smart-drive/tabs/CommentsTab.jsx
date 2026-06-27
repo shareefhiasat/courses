@@ -1,11 +1,12 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useAuth } from '@contexts/AuthContext';
-import { getIcon } from '@constants/iconTypes';
+import { getIcon, getUserRoleIcon, getUserRoleColor } from '@constants/iconTypes';
 import { Button } from '@ui';
 import Modal from '@ui/Modal/Modal';
 import { formatQatarDate, formatQatarDateOnly } from '@utils/timezone';
 import { getLocalizedUserName } from '@utils/localizedUserName';
+import { getUserRoleFromObject } from '@utils/userUtils';
 import { Group as PanelGroup, Panel, Separator as PanelResizeHandle } from 'react-resizable-panels';
 import { usePanelLayout } from '@hooks/usePanelLayout';
 import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
@@ -353,7 +354,7 @@ export default function CommentsTab({ fileId, isOwnedByUser = true }) {
                     <article
                       key={comment.id}
                       style={{
-                        padding: '1rem',
+                        padding: '0.5rem 0.75rem',
                         background: 'var(--panel, white)',
                         borderRadius: '0.75rem',
                         border: '1px solid var(--border, #e5e7eb)',
@@ -378,6 +379,11 @@ export default function CommentsTab({ fileId, isOwnedByUser = true }) {
                               <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text, #111827)' }}>
                                 {getLocalizedUserName(comment.user, lang, t('drive.unknownUser'))}
                               </span>
+                              {(() => { const role = getUserRoleFromObject(comment.user); if (!role) return null; const icon = getUserRoleIcon(role); const color = getUserRoleColor(role); return icon ? (
+                                <span title={t(`roles.${role}`, role)} style={{ display: 'flex', alignItems: 'center' }}>
+                                  {React.cloneElement(icon, { color, size: 12 })}
+                                </span>
+                              ) : null; })()}
                             </div>
                             <p style={{ fontSize: '0.875rem', color: 'var(--text, #374151)', margin: 0, wordBreak: 'break-word' }}>
                               {comment.content}

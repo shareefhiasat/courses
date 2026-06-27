@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useLang } from '@contexts/LangContext';
-import { getIcon } from '@constants/iconTypes';
+import { getIcon, getUserRoleIcon, getUserRoleColor } from '@constants/iconTypes';
 import { formatQatarDate, formatQatarDateOnly } from '@utils/timezone';
 import { getLocalizedUserName } from '@utils/localizedUserName';
+import { getUserRoleFromObject } from '@utils/userUtils';
 import { Group as PanelGroup, Panel, Separator as PanelResizeHandle } from 'react-resizable-panels';
 import { usePanelLayout } from '@hooks/usePanelLayout';
 import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
@@ -294,7 +295,7 @@ export default function ActivityTab({ fileId }) {
           <div style={{ position: 'relative' }}>
             <div style={{ position: 'absolute', insetInlineStart: '1rem', top: 0, bottom: 0, width: '0.125rem', background: 'var(--border, #e5e7eb)' }} />
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
               {filteredActivities.map((activity) => {
                 const actionIcon = getActionIcon(activity.action);
 
@@ -318,7 +319,7 @@ export default function ActivityTab({ fileId }) {
                     </div>
 
                     <div style={{
-                      padding: '1rem',
+                      padding: '0.5rem 0.75rem',
                       background: 'var(--panel, white)',
                       borderRadius: '0.75rem',
                       border: '1px solid var(--border, #e5e7eb)',
@@ -331,6 +332,11 @@ export default function ActivityTab({ fileId }) {
                             {' \u00B7 '}
                             <span style={{ fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)', fontWeight: 400 }}>
                               {getLocalizedUserName(activity.user, lang, t('drive.unknownUser'))}
+                              {(() => { const role = getUserRoleFromObject(activity.user); if (!role) return null; const icon = getUserRoleIcon(role); const color = getUserRoleColor(role); return icon ? (
+                                <span title={t(`roles.${role}`, role)} style={{ display: 'inline-flex', alignItems: 'center', marginInlineStart: '0.25rem' }}>
+                                  {React.cloneElement(icon, { color, size: 12 })}
+                                </span>
+                              ) : null; })()}
                             </span>
                           </p>
                           {activity.metadata && Object.keys(activity.metadata).length > 0 && (

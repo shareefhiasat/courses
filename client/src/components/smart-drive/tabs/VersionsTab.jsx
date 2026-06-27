@@ -1,8 +1,9 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useLang } from '@contexts/LangContext';
-import { getIcon } from '@constants/iconTypes';
+import { getIcon, getUserRoleIcon, getUserRoleColor } from '@constants/iconTypes';
 import { formatQatarDate, formatQatarDateOnly } from '@utils/timezone';
 import { getLocalizedUserName } from '@utils/localizedUserName';
+import { getUserRoleFromObject } from '@utils/userUtils';
 import { Group as PanelGroup, Panel, Separator as PanelResizeHandle } from 'react-resizable-panels';
 import { usePanelLayout } from '@hooks/usePanelLayout';
 import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
@@ -321,7 +322,7 @@ export default function VersionsTab({ fileId, useWorkflowEndpoint = false }) {
             <div
               key={version.id}
               style={{
-                padding: '1rem',
+                padding: '0.5rem 0.75rem',
                 borderRadius: '0.75rem',
                 border: '2px solid',
                 borderColor: version.isCurrent ? '#10b981' : 'var(--border, #e5e7eb)',
@@ -358,6 +359,11 @@ export default function VersionsTab({ fileId, useWorkflowEndpoint = false }) {
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       {getIcon('ui', 'user', 14)}
                       {getUserName(version.uploadedBy)}
+                      {(() => { const role = getUserRoleFromObject(version.uploadedBy); if (!role) return null; const icon = getUserRoleIcon(role); const color = getUserRoleColor(role); return icon ? (
+                        <span title={t(`roles.${role}`, role)} style={{ display: 'flex', alignItems: 'center' }}>
+                          {React.cloneElement(icon, { color, size: 12 })}
+                        </span>
+                      ) : null; })()}
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       {getIcon('ui', 'download', 14)}

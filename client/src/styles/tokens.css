@@ -269,11 +269,9 @@ html[lang="ar"] textarea {
   font-family: var(--font-family-arabic);
 }
 
-/* Scale navbar icons proportionally with Arabic font scaling (1.125x) */
-html[lang="ar"] .nav-icon-btn svg,
-html[lang="ar"] .nav-actions svg,
-html[lang="ar"] .navbar-clock svg {
-  transform: scale(1.125);
+/* Scale all SVG icons proportionally with Arabic font scaling */
+html[lang="ar"] svg {
+  transform: scale(1.15);
 }
 
 /* ===== PRINT STYLES ===== */

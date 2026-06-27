@@ -83,7 +83,7 @@ export const listUsersController = async (req, res) => {
     console.log('[listUsersController] Query params:', { studentsOnly, excludeStudents, search, limit });
     console.log('[listUsersController] Auth user:', req.user?.id, req.user?.email);
 
-    let where = { isActive: true };
+    let where = { isActive: true, email: { not: { equals: 'admin@keycloak.local' } } };
 
     // Build search conditions
     const searchConditions = search ? [
