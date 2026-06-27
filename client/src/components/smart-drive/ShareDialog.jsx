@@ -158,7 +158,6 @@ export default function ShareDialog({ file, onShare, onGenerateLink, onClose }) 
 
               <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: '1rem' }}>
                 <ShareUserSelect
-                  label={t('drive.selectUser')}
                   value={selectedUserIds}
                   onChange={setSelectedUserIds}
                   multiple
@@ -167,7 +166,6 @@ export default function ShareDialog({ file, onShare, onGenerateLink, onClose }) 
                 />
 
                 <Select
-                  label={t('drive.permission')}
                   options={[
                     { value: 'VIEW', label: t('drive.permission.view') },
                     { value: 'DOWNLOAD', label: t('drive.permission.download') },
@@ -180,7 +178,6 @@ export default function ShareDialog({ file, onShare, onGenerateLink, onClose }) 
                 />
 
                 <Select
-                  label={`${t('drive.expiry')} (${t('common.optional')})`}
                   options={[
                     { value: '', label: t('drive.noExpiry') },
                     { value: 1, label: `1 ${t('common.day')}` },
@@ -191,6 +188,7 @@ export default function ShareDialog({ file, onShare, onGenerateLink, onClose }) 
                   value={expiryDays || ''}
                   onChange={(e) => setExpiryDays(e.target.value ? parseInt(e.target.value, 10) : null)}
                   disabled={loading}
+                  placeholder={t('drive.selectExpiry')}
                 />
               </div>
 
@@ -219,7 +217,6 @@ export default function ShareDialog({ file, onShare, onGenerateLink, onClose }) 
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '1rem' }}>
                 <RoleMultiSelect
-                  label={t('drive.selectRole')}
                   value={selectedRoles}
                   onChange={setSelectedRoles}
                   includeRoles={DRIVE_SHARE_ROLES}
@@ -228,7 +225,6 @@ export default function ShareDialog({ file, onShare, onGenerateLink, onClose }) 
                 />
 
                 <Select
-                  label={t('drive.permission')}
                   options={[
                     { value: 'VIEW', label: t('drive.permission.view') },
                     { value: 'DOWNLOAD', label: t('drive.permission.download') },
@@ -241,7 +237,6 @@ export default function ShareDialog({ file, onShare, onGenerateLink, onClose }) 
                 />
 
                 <Select
-                  label={`${t('drive.expiry')} (${t('common.optional')})`}
                   options={[
                     { value: '', label: t('drive.noExpiry') },
                     { value: 1, label: `1 ${t('common.day')}` },
@@ -252,6 +247,7 @@ export default function ShareDialog({ file, onShare, onGenerateLink, onClose }) 
                   value={expiryDays || ''}
                   onChange={(e) => setExpiryDays(e.target.value ? parseInt(e.target.value, 10) : null)}
                   disabled={loading}
+                  placeholder={t('drive.selectExpiry')}
                 />
               </div>
 
@@ -273,7 +269,6 @@ export default function ShareDialog({ file, onShare, onGenerateLink, onClose }) 
           {shareType === 'public' && canPublicLink && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
               <Select
-                label={t('drive.linkExpiry')}
                 options={[
                   { value: '', label: t('drive.noExpiry') },
                   { value: 1, label: `1 ${t('common.day')}` },
@@ -287,6 +282,7 @@ export default function ShareDialog({ file, onShare, onGenerateLink, onClose }) 
                   setPublicLink('');
                 }}
                 fullWidth
+                placeholder={t('drive.selectExpiry')}
               />
 
               <Button

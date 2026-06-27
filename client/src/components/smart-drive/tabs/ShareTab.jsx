@@ -229,7 +229,6 @@ export default function ShareTab({ fileId, onShare, onGenerateLink }) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <ShareUserSelect
-                  label={t('drive.selectUser')}
                   value={selectedUserIds}
                   onChange={setSelectedUserIds}
                   multiple
@@ -238,7 +237,6 @@ export default function ShareTab({ fileId, onShare, onGenerateLink }) {
                 />
 
                 <Select
-                  label={`${t('drive.expiry')} (${t('common.optional')})`}
                   options={[
                     { value: '', label: t('drive.noExpiry') },
                     { value: 1, label: `1 ${t('common.day')}` },
@@ -249,6 +247,7 @@ export default function ShareTab({ fileId, onShare, onGenerateLink }) {
                   value={expiryDays || ''}
                   onChange={(e) => setExpiryDays(e.target.value ? parseInt(e.target.value) : null)}
                   disabled={loading}
+                  placeholder={t('drive.selectExpiry')}
                 />
               </div>
 
@@ -329,7 +328,6 @@ export default function ShareTab({ fileId, onShare, onGenerateLink }) {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <RoleMultiSelect
-                  label={t('drive.selectRole')}
                   value={selectedRoles}
                   onChange={setSelectedRoles}
                   includeRoles={DRIVE_SHARE_ROLES}
@@ -338,7 +336,6 @@ export default function ShareTab({ fileId, onShare, onGenerateLink }) {
                 />
 
                 <Select
-                  label={`${t('drive.expiry')} (${t('common.optional')})`}
                   options={[
                     { value: '', label: t('drive.noExpiry') },
                     { value: 1, label: `1 ${t('common.day')}` },
@@ -349,6 +346,7 @@ export default function ShareTab({ fileId, onShare, onGenerateLink }) {
                   value={expiryDays || ''}
                   onChange={(e) => setExpiryDays(e.target.value ? parseInt(e.target.value) : null)}
                   disabled={loading}
+                  placeholder={t('drive.selectExpiry')}
                 />
               </div>
 
@@ -421,7 +419,6 @@ export default function ShareTab({ fileId, onShare, onGenerateLink }) {
         {shareType === SHARE_TYPES.PUBLIC && canPublicLink && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1.75rem' }}>
             <Select
-              label={t('drive.linkExpiry')}
               options={[
                 { value: '', label: t('drive.noExpiry') },
                 { value: 1, label: `1 ${t('common.day')}` },
@@ -435,6 +432,7 @@ export default function ShareTab({ fileId, onShare, onGenerateLink }) {
                 setPublicLink('');
               }}
               fullWidth
+              placeholder={t('drive.selectExpiry')}
             />
 
             <Button

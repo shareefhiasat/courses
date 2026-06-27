@@ -254,6 +254,28 @@
   }
 }
 
+/* ===== ARABIC FONT SCALING ===== */
+/* Arabic fonts render smaller at the same rem size, so bump by ~15% */
+html[lang="ar"] {
+  font-size: 112.5%; /* 18px base instead of 16px, scales all rem units up */
+  font-family: var(--font-family-arabic);
+}
+
+html[lang="ar"] body,
+html[lang="ar"] input,
+html[lang="ar"] button,
+html[lang="ar"] select,
+html[lang="ar"] textarea {
+  font-family: var(--font-family-arabic);
+}
+
+/* Scale navbar icons proportionally with Arabic font scaling (1.125x) */
+html[lang="ar"] .nav-icon-btn svg,
+html[lang="ar"] .nav-actions svg,
+html[lang="ar"] .navbar-clock svg {
+  transform: scale(1.125);
+}
+
 /* ===== PRINT STYLES ===== */
 @media print {
   :root {

@@ -2,12 +2,23 @@ import { useState, useRef, useEffect } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { getThemedIcon } from '@constants/iconTypes';
 
+const FILTER_TYPE_KEY_MAP = {
+  image: 'drive.filter.type.images',
+  spreadsheet: 'drive.filter.type.spreadsheets',
+  presentation: 'drive.filter.type.presentations',
+  document: 'drive.filter.type.documents',
+  video: 'drive.filter.type.videos',
+  audio: 'drive.filter.type.audio',
+  archive: 'drive.filter.type.archives',
+  'has-workflow': 'drive.filter.type.hasWorkflow',
+};
+
 /**
  * FilterMenu - Dropdown menu for adding filters
  * Categories: File Type, Date Range, Owner, Status
  */
 export default function FilterMenu({ onAddFilter }) {
-  const { t } = useLang();
+  const { t, isRTL } = useLang();
   const [isOpen, setIsOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState(null);
   const menuRef = useRef(null);
@@ -105,7 +116,7 @@ export default function FilterMenu({ onAddFilter }) {
       >
         {getThemedIcon('ui', 'filter', 14, 'light')}
         {t('drive.addFilter')}
-        {getThemedIcon('ui', 'chevron_down', 14, 'light', { transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' })}
+        {getThemedIcon('ui', 'chevron_down', 14, 'light', { style: { transform: isOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' } })}
       </button>
 
       {isOpen && (
@@ -138,7 +149,7 @@ export default function FilterMenu({ onAddFilter }) {
                       {getThemedIcon('ui', category.icon, 18, 'primary')}
                       <span className="text-sm">{category.label}</span>
                     </div>
-                    {getThemedIcon('ui', 'chevron_right', 16, 'muted')}
+                    {getThemedIcon('ui', 'chevron_right', 16, 'muted', { style: { transform: isRTL ? 'scaleX(-1)' : 'none' } })}
                   </button>
                 );
               })}
@@ -164,7 +175,7 @@ export default function FilterMenu({ onAddFilter }) {
                 onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text, inherit)'}
                 onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted, #8d90a0)'}
               >
-                {getThemedIcon('ui', 'chevron_left', 16, 'muted')}
+                {getThemedIcon('ui', 'chevron_left', 16, 'muted', { style: { transform: isRTL ? 'scaleX(-1)' : 'none' } })}
                 {t('common.back')}
               </button>
 

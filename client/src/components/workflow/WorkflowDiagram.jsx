@@ -16,7 +16,7 @@ import { useAuth } from '@contexts/AuthContext';
 import { getThemedIcon, getUserRoleIcon, getUserRoleColor } from '@constants/iconTypes';
 import { Tooltip } from '@ui';
 import { formatQatarDate } from '@utils/timezone';
-import { Send, RotateCcw, Download, Layout, Minimize, Maximize, X, Check, ArrowLeft, ArrowRight, Trash2, Eye, XCircle, List, GitBranch, MessageSquare } from 'lucide-react';
+import { Send, RotateCcw, Download, Layout, Minimize, Maximize, X, Check, ArrowLeft, ArrowRight, Trash2, Eye, XCircle, List, GitBranch, MessageSquare, Grid3x3, CircleDot, Square, Plus } from 'lucide-react';
 
 // Create Dagre graph instance
 const dagreGraph = new dagre.graphlib.Graph();
@@ -225,8 +225,57 @@ const WorkflowDiagram = ({ status, workflowType = 'GENERAL_HR', document, curren
   const [viewMode, setViewMode] = useState('flow'); // 'flow' or 'timeline'
   const [layoutMode, setLayoutMode] = useState('default'); // 'default', 'hierarchical', 'compact'
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [bgVariantIndex, setBgVariantIndex] = useState(0); // 0=Dots, 1=Grid, 2=Cross, 3=None
   const reactFlowInstance = useRef(null);
   const [nodes, setNodes] = useState([]);
+  const [canvasHeight, setCanvasHeight] = useState(() => {
+    const saved = localStorage.getItem('wf-diagram-canvas-height');
+    const parsed = saved ? parseInt(saved, 10) : 500;
+    return Number.isNaN(parsed) ? 500 : parsed;
+  });
+  const canvasResizeStartY = useRef(0);
+  const canvasResizeStartHeight = useRef(0);
+  const canvasResizeCleanup = useRef(null);
+
+  const handleCanvasResizeStart = useCallback((e) => {
+    e.preventDefault();
+    canvasResizeStartY.current = e.clientY;
+    canvasResizeStartHeight.current = canvasHeight;
+
+    const onMove = (ev) => {
+      const delta = ev.clientY - canvasResizeStartY.current;
+      const newHeight = Math.max(200, Math.min(900, canvasResizeStartHeight.current + delta));
+      setCanvasHeight(newHeight);
+    };
+    const onEnd = () => {
+      window.document.removeEventListener('mousemove', onMove);
+      window.document.removeEventListener('mouseup', onEnd);
+      canvasResizeCleanup.current = null;
+      setCanvasHeight((h) => {
+        localStorage.setItem('wf-diagram-canvas-height', String(h));
+        return h;
+      });
+    };
+    window.document.addEventListener('mousemove', onMove);
+    window.document.addEventListener('mouseup', onEnd);
+    canvasResizeCleanup.current = () => {
+      window.document.removeEventListener('mousemove', onMove);
+      window.document.removeEventListener('mouseup', onEnd);
+    };
+  }, [canvasHeight]);
+
+  useEffect(() => {
+    return () => {
+      if (canvasResizeCleanup.current) canvasResizeCleanup.current();
+    };
+  }, []);
+
+  const bgVariants = [
+    { variant: BackgroundVariant.Dots, icon: CircleDot, label: 'Dots' },
+    { variant: 'css-grid', icon: Grid3x3, label: 'Grid' },
+    { variant: BackgroundVariant.Cross, icon: Plus, label: 'Cross' },
+    { variant: null, icon: Square, label: 'None' },
+  ];
   
   // Helper to get all role codes from user object
   const getUserRoleCodes = useCallback((user) => {
@@ -530,21 +579,21 @@ const WorkflowDiagram = ({ status, workflowType = 'GENERAL_HR', document, curren
   // Dagre layout function for auto-arranging nodes
   const getLayoutedElements = (nodes, edges, direction = 'LR') => {
     const isRTL = lang === 'ar';
-    let nodeWidth = 180;
+    let nodeWidth = 162;
     let nodeHeight = 110;
-    let ranksep = 100;
+    let ranksep = 160;
     let nodesep = 100;
 
     // Adjust based on layout mode
     if (layoutMode === 'compact') {
-      nodeWidth = 150;
+      nodeWidth = 135;
       nodeHeight = 95;
-      ranksep = 50;
+      ranksep = 80;
       nodesep = 50;
     } else if (layoutMode === 'hierarchical') {
-      nodeWidth = 200;
+      nodeWidth = 180;
       nodeHeight = 130;
-      ranksep = 150;
+      ranksep = 200;
       nodesep = 120;
     }
 
@@ -582,7 +631,7 @@ const WorkflowDiagram = ({ status, workflowType = 'GENERAL_HR', document, curren
 
   // Generate nodes
   const initialNodes = useMemo(() => {
-    const nodeWidth = 200;
+    const nodeWidth = 162;
     const nodeHeight = 100;
 
     const generatedNodes = workflowStages.map((stage, index) => {
@@ -694,7 +743,7 @@ const WorkflowDiagram = ({ status, workflowType = 'GENERAL_HR', document, curren
                 {historyEntries && historyEntries.length > 0 && (
                   <div 
                     className="text-xs mt-0.5 font-medium cursor-pointer hover:underline flex items-center gap-1" 
-                    style={{ color: '#4b5563', lineHeight: '1.2' }} 
+                    style={{ color: '#4b5563', lineHeight: '1.2', flexDirection: lang === 'ar' ? 'row-reverse' : 'row' }} 
                     onClick={(e) => {
                       e.stopPropagation();
                       // Pass stage.status to match comment.action values (e.g., SUBMITTED vs submitted)
@@ -735,6 +784,7 @@ const WorkflowDiagram = ({ status, workflowType = 'GENERAL_HR', document, curren
           cursor: 'pointer',
           boxShadow: index === currentStageIndex ? '0 0 0 4px rgba(59, 130, 246, 0.2), 0 4px 12px rgba(0,0,0,0.15)' : '0 2px 8px rgba(0,0,0,0.1)',
           animation: index === currentStageIndex ? 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' : 'none',
+          borderStyle: index === currentStageIndex ? 'dashed' : 'solid',
           transition: 'all 0.3s ease'
         },
         className: index === currentStageIndex ? 'workflow-current-stage' : ''
@@ -778,14 +828,28 @@ const WorkflowDiagram = ({ status, workflowType = 'GENERAL_HR', document, curren
             target: targetStage.id,
             type: 'smoothstep',
             animated: shouldAnimate,
+            label: transitionName,
+            labelStyle: {
+              fill: isCompleted ? '#10b981' : (shouldAnimate ? '#3b82f6' : '#6b7280'),
+              fontWeight: 600,
+              fontSize: 12,
+              filter: 'drop-shadow(0 0 3px rgba(255,255,255,0.95)) drop-shadow(0 0 1px rgba(255,255,255,0.8))',
+            },
+            labelBgStyle: {
+              fill: 'transparent',
+              fillOpacity: 0,
+            },
+            labelBgPadding: [0, 0],
+            labelBgBorderRadius: 0,
+            labelShowBg: false,
             style: {
-              stroke: isCompleted ? '#10b981' : (shouldAnimate ? '#3b82f6' : '#6b7280'),
-              strokeWidth: 3,
+              stroke: isCompleted ? '#86efac' : (shouldAnimate ? '#93c5fd' : '#cbd5e1'),
+              strokeWidth: 2.5,
               strokeDasharray: isDashed ? '5,5' : 'none'
             },
             markerEnd: {
               type: MarkerType.ArrowClosed,
-              color: isCompleted ? '#10b981' : (shouldAnimate ? '#3b82f6' : '#6b7280'),
+              color: isCompleted ? '#86efac' : (shouldAnimate ? '#93c5fd' : '#cbd5e1'),
               width: 20,
               height: 20
             }
@@ -909,6 +973,22 @@ const WorkflowDiagram = ({ status, workflowType = 'GENERAL_HR', document, curren
         <div data-tour="doc-view-toggle" className="flex items-center gap-2">
           {viewMode === 'flow' && (
             <button
+              onClick={() => setBgVariantIndex((bgVariantIndex + 1) % bgVariants.length)}
+              style={{
+                padding: '0.5rem',
+                background: 'var(--panel, white)',
+                border: '1px solid var(--border, #e5e7eb)',
+                borderRadius: '0.375rem',
+                cursor: 'pointer',
+                color: 'var(--text, #111827)'
+              }}
+              title={bgVariants[bgVariantIndex].label}
+            >
+              {(() => { const BgIcon = bgVariants[bgVariantIndex].icon; return <BgIcon size={16} />; })()}
+            </button>
+          )}
+          {viewMode === 'flow' && (
+            <button
               onClick={handleResetLayout}
               style={{
                 padding: '0.5rem',
@@ -955,7 +1035,8 @@ const WorkflowDiagram = ({ status, workflowType = 'GENERAL_HR', document, curren
       </div>
 
       {viewMode === 'flow' ? (
-        <div className="w-full h-80 md:h-96 lg:h-[500px] workflow-scrollbar overflow-auto" style={{ marginTop: '0.75rem', border: '1px solid var(--border, #e5e7eb)', borderRadius: '0.5rem' }}>
+        <div style={{ marginTop: '0.75rem', border: '1px solid var(--border, #e5e7eb)', borderRadius: '0.5rem', overflow: 'hidden' }}>
+        <div className="w-full workflow-scrollbar overflow-auto" style={{ height: `${canvasHeight}px` }}>
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -980,14 +1061,72 @@ const WorkflowDiagram = ({ status, workflowType = 'GENERAL_HR', document, curren
               }, 100);
             }}
           >
-            <Background
-              variant={BackgroundVariant.Dots}
-              gap={12}
-              size={1}
-              color={theme === 'dark' ? '#374151' : '#e5e7eb'}
-            />
+            {(() => {
+              const currentBg = bgVariants[bgVariantIndex];
+              const isCross = currentBg.variant === BackgroundVariant.Cross;
+              const isCssGrid = currentBg.variant === 'css-grid';
+              const gridColor = theme === 'dark' ? '#6b7280' : '#9ca3af';
+              return (
+                <>
+                  {currentBg.variant && !isCssGrid && (
+                    <Background
+                      key={`bg-${bgVariantIndex}`}
+                      variant={currentBg.variant}
+                      gap={isCross ? 20 : 12}
+                      size={isCross ? 6 : 2}
+                      lineWidth={isCross ? 1.5 : undefined}
+                      color={gridColor}
+                    />
+                  )}
+                  {isCssGrid && (
+                    <div
+                      key={`bg-${bgVariantIndex}`}
+                      style={{
+                        position: 'absolute',
+                        inset: 0,
+                        pointerEvents: 'none',
+                        zIndex: 0,
+                        backgroundImage: `linear-gradient(${gridColor} 1px, transparent 1px), linear-gradient(90deg, ${gridColor} 1px, transparent 1px)`,
+                        backgroundSize: '20px 20px',
+                        opacity: 0.4,
+                      }}
+                    />
+                  )}
+                </>
+              );
+            })()}
             <Controls />
+            <MiniMap
+              pannable
+              zoomable
+              nodeColor={(node) => {
+                if (node.data?.isCurrent) return '#3b82f6';
+                if (node.data?.isCompleted) return '#10b981';
+                return '#d1d5db';
+              }}
+              nodeStrokeWidth={3}
+              maskColor={theme === 'dark' ? 'rgba(0,0,0,0.6)' : 'rgba(0,0,0,0.1)'}
+              style={{ background: theme === 'dark' ? '#1f2937' : '#f9fafb', width: 120, height: 80 }}
+            />
           </ReactFlow>
+        </div>
+        {/* Canvas resize handle */}
+        <div
+          onMouseDown={handleCanvasResizeStart}
+          style={{
+            height: '6px',
+            cursor: 'ns-resize',
+            background: 'var(--border, #e5e7eb)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            transition: 'background 0.15s',
+          }}
+          onMouseEnter={(e) => e.currentTarget.style.background = 'var(--color-primary, #2563eb)'}
+          onMouseLeave={(e) => e.currentTarget.style.background = 'var(--border, #e5e7eb)'}
+        >
+          <div style={{ width: '40px', height: '2px', background: 'var(--text-muted, #9ca3af)', borderRadius: '1px' }} />
+        </div>
         </div>
       ) : (
         <div className="px-4 workflow-scrollbar" style={{ maxHeight: '800px', overflowY: 'auto', marginTop: '0.75rem', border: '1px solid var(--border, #e5e7eb)', borderRadius: '0.5rem', paddingTop: '0.5rem' }}>

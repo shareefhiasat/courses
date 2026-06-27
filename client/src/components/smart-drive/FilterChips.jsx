@@ -1,6 +1,17 @@
 import { useLang } from '@contexts/LangContext';
 import { getThemedIcon } from '@constants/iconTypes';
 
+const FILTER_TYPE_KEY_MAP = {
+  image: 'drive.filter.type.images',
+  spreadsheet: 'drive.filter.type.spreadsheets',
+  presentation: 'drive.filter.type.presentations',
+  document: 'drive.filter.type.documents',
+  video: 'drive.filter.type.videos',
+  audio: 'drive.filter.type.audio',
+  archive: 'drive.filter.type.archives',
+  'has-workflow': 'drive.filter.type.hasWorkflow',
+};
+
 export default function FilterChips({ activeFilters, onRemoveFilter, onClearAll }) {
   const { t } = useLang();
 
@@ -19,7 +30,7 @@ export default function FilterChips({ activeFilters, onRemoveFilter, onClearAll 
 
     switch (type) {
       case 'type':
-        return t(`drive.filter.type.${value}`);
+        return t(FILTER_TYPE_KEY_MAP[value] || `drive.filter.type.${value}`);
       case 'date':
         return t(`drive.filter.date.${value}`);
       case 'owner':
@@ -37,10 +48,6 @@ export default function FilterChips({ activeFilters, onRemoveFilter, onClearAll 
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-      <span style={{ fontSize: '0.875rem', color: 'var(--text-muted, #8d90a0)' }}>
-        {t('drive.filters')}:
-      </span>
-
       {activeFilters.map((filter, idx) => {
         const icon = getFilterIcon(filter.type);
 
@@ -74,18 +81,29 @@ export default function FilterChips({ activeFilters, onRemoveFilter, onClearAll 
       {activeFilters.length > 1 && (
         <button
           onClick={onClearAll}
+          title={t('drive.clearAllFilters')}
           style={{
-            fontSize: '0.875rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '0.375rem',
             color: 'var(--text-muted, #8d90a0)',
             border: 'none',
             background: 'transparent',
             cursor: 'pointer',
-            textDecoration: 'underline',
+            borderRadius: '0.375rem',
+            transition: 'color 0.15s, background 0.15s',
           }}
-          onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text, #111827)'}
-          onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted, #8d90a0)'}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.color = 'var(--color-primary, #800020)';
+            e.currentTarget.style.background = 'rgba(128, 0, 32, 0.1)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.color = 'var(--text-muted, #8d90a0)';
+            e.currentTarget.style.background = 'transparent';
+          }}
         >
-          {t('drive.clearAllFilters')}
+          {getThemedIcon('ui', 'trash2', 16, 'light')}
         </button>
       )}
     </div>

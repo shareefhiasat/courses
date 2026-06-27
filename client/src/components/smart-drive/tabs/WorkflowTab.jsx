@@ -9,12 +9,31 @@ import { updateWorkflowDocumentStatus, withdrawWorkflowDocument } from '@service
 import { WORKFLOW_STATUS_CONFIG } from '@constants/driveConstants';
 import { getWorkflowDisplayLabel, CATEGORY_BY_VALUE } from '@constants/workflowConfig';
 import { ROLE_STRINGS } from '@utils/userUtils';
+import { getLocalizedUserName } from '@utils/localizedUserName';
 import Modal from '@ui/Modal/Modal';
 import Select from '@ui/Select/Select';
 import Tabs from '@ui/Tabs/Tabs';
 import { getAllUsers } from '@services/business/userService';
 import { handleFilePreview } from '@utils/fileUtils';
 import { formatQatarDate, formatQatarDateOnly } from '@utils/timezone';
+
+const formatRelativeTime = (date, lang, t) => {
+  if (!date) return '\u2014';
+  const now = new Date();
+  const d = new Date(date);
+  if (Number.isNaN(d.getTime())) return '\u2014';
+  
+  const seconds = Math.floor((now - d) / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+  
+  if (seconds < 60) return t('common.justNow', 'just now');
+  if (minutes < 60) return t('common.minutesAgo', { count: minutes }) || `${minutes}m ago`;
+  if (hours < 24) return t('common.hoursAgo', { count: hours }) || `${hours}h ago`;
+  if (days < 7) return t('common.daysAgo', { count: days }) || `${days}d ago`;
+  return formatQatarDateOnly(date);
+};
 
 const formatDateHeader = (dateStr, t) => {
   return formatQatarDateOnly(dateStr);
@@ -69,24 +88,6 @@ const ASSIGNEE_TYPES = {
 const getActionColor = (action) => ACTION_COLORS[action] || '#8b5cf6';
 const getActionIcon = (action) => ACTION_ICONS[action] || 'edit';
 
-function getRelativeTime(date) {
-  if (!date) return '\u2014';
-  const now = new Date();
-  const d = new Date(date);
-  if (Number.isNaN(d.getTime())) return '\u2014';
-  
-  const seconds = Math.floor((now - d) / 1000);
-  const minutes = Math.floor(seconds / 60);
-  const hours = Math.floor(minutes / 60);
-  const days = Math.floor(hours / 24);
-  
-  if (seconds < 60) return 'just now';
-  if (minutes < 60) return `${minutes}m ago`;
-  if (hours < 24) return `${hours}h ago`;
-  if (days < 7) return `${days}d ago`;
-  return formatQatarDateOnly(date);
-}
-
 function getStepBadgeStyle(status) {
   const config = WORKFLOW_STATUS_CONFIG[status?.toLowerCase()];
   if (!config) {
@@ -120,7 +121,7 @@ function getWorkflowTypeStyle(workflow) {
 }
 
 export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwnedByUser = true }) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const navigate = useNavigate();
   const [workflows, setWorkflows] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -129,6 +130,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
   const [categoryFilter, setCategoryFilter] = useState('');
   const [sortBy, setSortBy] = useState('date-desc');
   const [showSortMenu, setShowSortMenu] = useState(false);
+  const sortMenuRef = useRef(null);
   const [viewMode, setViewMode] = useState('list');
   const [selectedDate, setSelectedDate] = useState(null);
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, workflowId: null });
@@ -203,14 +205,25 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
     }
   }, [isActive, fetchWorkflow]);
 
+  // Close sort menu when clicking outside
+  useEffect(() => {
+    if (!showSortMenu) return;
+    const handleClickOutside = (e) => {
+      if (sortMenuRef.current && !sortMenuRef.current.contains(e.target)) {
+        setShowSortMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showSortMenu]);
+
   const getStatusIcon = (status) => {
     const config = WORKFLOW_STATUS_CONFIG[status?.toLowerCase()];
     return config?.icon || 'workflow';
   };
 
   const getStatusDescription = (status) => {
-    const config = WORKFLOW_STATUS_CONFIG[status?.toLowerCase()];
-    return t(`${config?.labelKey}.desc`, config?.labelKey || 'Unknown status');
+    return t(`workflow.status.${status?.toLowerCase()}`, status);
   };
 
   const statusCounts = useMemo(() => {
@@ -484,11 +497,11 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
     );
   }
 
-  if (filteredAndSortedWorkflows.length === 0) {
+  if (workflows.length === 0) {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)' }}>
         {getIcon('ui', 'workflow', 40, '#8b5cf6')}
-        {searchQuery ? t('drive.noWorkflowsFound', 'No workflows found') : t('drive.noWorkflow')}
+        {t('drive.noWorkflow')}
       </div>
     );
   }
@@ -504,74 +517,69 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
       padding: '0 1rem'
     }}>
       {/* Search and sort controls */}
-      <div style={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'space-between', 
-        gap: '1rem',
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: '0.75rem',
         padding: '1rem',
         background: 'var(--panel, white)',
         borderRadius: '0.75rem',
         border: '1px solid var(--border, #e5e7eb)'
       }}>
-        <div style={{ position: 'relative', flex: 1, maxWidth: '400px' }}>
-          <input
-            type="text"
-            placeholder={t('drive.searchWorkflows', 'Search workflows...')}
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            style={{
-              width: '100%',
-              padding: '0.625rem 0.875rem',
-              borderRadius: '0.5rem',
-              border: '1px solid var(--border, #e5e7eb)',
-              fontSize: '0.875rem',
-              transition: 'border-color 0.15s ease',
-            }}
-            onFocus={(e) => e.target.style.borderColor = 'var(--color-primary, #3b82f6)'}
-            onBlur={(e) => e.target.style.borderColor = 'var(--border, #e5e7eb)'}
-          />
-          <select
+        <input
+          type="text"
+          placeholder={t('drive.searchWorkflows', 'Search workflows...')}
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          style={{
+            flex: 1,
+            maxWidth: '300px',
+            padding: '0.625rem 0.875rem',
+            borderRadius: '0.5rem',
+            border: '1px solid var(--border, #e5e7eb)',
+            background: 'var(--panel, white)',
+            color: 'var(--text, #111827)',
+            fontSize: '0.875rem',
+            outline: 'none',
+          }}
+          aria-label={t('drive.searchWorkflows', 'Search workflows...')}
+        />
+        <div style={{ width: '220px', flexShrink: 0 }}>
+          <Select
             value={categoryFilter}
             onChange={(e) => setCategoryFilter(e.target.value)}
-            style={{
-              marginTop: '0.5rem',
-              width: '100%',
-              padding: '0.5rem 0.75rem',
-              borderRadius: '0.5rem',
-              border: '1px solid var(--border, #e5e7eb)',
-              fontSize: '0.875rem',
-            }}
+            options={[
+              { value: '', label: t('workflow.filters.allCategories', 'All categories') },
+              ...Object.values(CATEGORY_BY_VALUE).map((cat) => ({
+                value: cat.value,
+                label: t(cat.labelKey, cat.value),
+              })),
+            ]}
+            placeholder={t('workflow.filters.allCategories', 'All categories')}
             data-testid="workflow-category-filter"
-          >
-            <option value="">{t('workflow.filters.allCategories', 'All categories')}</option>
-            {Object.values(CATEGORY_BY_VALUE).map((cat) => (
-              <option key={cat.value} value={cat.value}>{t(cat.labelKey, cat.value)}</option>
-            ))}
-          </select>
+          />
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-          <button
-            onClick={() => fetchWorkflow()}
-            disabled={loading}
-            style={{
-              padding: '0.625rem 0.875rem',
-              borderRadius: '0.5rem',
-              border: '1px solid var(--border, #e5e7eb)',
-              background: 'var(--panel, white)',
-              color: 'var(--text, #374151)',
-              cursor: loading ? 'not-allowed' : 'pointer',
-              fontSize: '0.875rem',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem',
-              opacity: loading ? 0.6 : 1,
-            }}            
-          >
-            {getIcon('ui', 'refresh', 16, 'var(--text, #374151)')}
-          </button>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+        <button
+          onClick={() => fetchWorkflow()}
+          disabled={loading}
+          style={{
+            padding: '0.625rem 0.875rem',
+            borderRadius: '0.5rem',
+            border: '1px solid var(--border, #e5e7eb)',
+            background: 'var(--panel, white)',
+            color: 'var(--text, #374151)',
+            cursor: loading ? 'not-allowed' : 'pointer',
+            fontSize: '0.875rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.5rem',
+            opacity: loading ? 0.6 : 1,
+            flexShrink: 0,
+          }}
+        >
+          {getIcon('ui', 'refresh', 16, 'var(--text, #374151)')}
+        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginLeft: 'auto' }}>
           <span style={{ 
             fontSize: '0.875rem', 
             color: 'var(--text-muted, #6b7280)',
@@ -596,7 +604,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
             >
               {viewMode === 'grid' ? getIcon('ui', 'list', 16) : getIcon('ui', 'grid', 16)}
             </button>
-            <div style={{ position: 'relative' }}>
+            <div ref={sortMenuRef} style={{ position: 'relative' }}>
               <button
                 onClick={() => setShowSortMenu(!showSortMenu)}
                 style={{
@@ -621,10 +629,10 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
             <div style={{
               position: 'absolute',
               top: '100%',
-              right: 0,
+              insetInlineEnd: 0,
               marginTop: '0.25rem',
-              background: 'white',
-              border: '1px solid #e5e7eb',
+              background: 'var(--panel, white)',
+              border: '1px solid var(--border, #e5e7eb)',
               borderRadius: '0.5rem',
               boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
               zIndex: 10,
@@ -645,12 +653,12 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                   style={{
                     width: '100%',
                     padding: '0.5rem 0.75rem',
-                    textAlign: 'left',
-                    background: sortBy === option.value ? '#f3f4f6' : 'transparent',
+                    textAlign: 'start',
+                    background: sortBy === option.value ? 'var(--background-secondary, #f3f4f6)' : 'transparent',
                     border: 'none',
                     fontSize: '0.875rem',
                     cursor: 'pointer',
-                    color: '#374151',
+                    color: 'var(--text, #374151)',
                   }}
                 >
                   {option.label}
@@ -691,16 +699,17 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                 border: `1px solid ${statusStyle.borderColor}`,
                 fontSize: '0.875rem',
                 color: statusStyle.color,
-                cursor: 'help',
+                cursor: 'default',
                 transition: 'all 0.15s ease',
               }}
+              title={getStatusDescription(status)}
               onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
               onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
             >
               <span style={{ color: statusStyle.color, display: 'flex', alignItems: 'center' }}>
                 {getIcon('ui', statusIcon, 16, statusIcon === 'workflow' ? '#8b5cf6' : statusStyle.color)}
               </span>
-              <span style={{ fontWeight: 500 }}>{status}</span>
+              <span style={{ fontWeight: 500 }}>{t(`workflow.status.${status.toLowerCase()}`, status)}</span>
               <span style={{ 
                 fontWeight: 600, 
                 opacity: 0.9,
@@ -862,11 +871,11 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.8125rem', color: 'var(--text-muted, #6b7280)' }}>
                           <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
                             {getIcon('ui', 'user', 14, 'var(--text-muted, #6b7280)')}
-                            {workflow.submitter?.displayName || workflow.submitter?.email || '\u2014'}
+                            {getLocalizedUserName(workflow.submitter, lang, '\u2014')}
                           </span>
                           <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
                             {getIcon('ui', 'calendar', 14, 'var(--text-muted, #6b7280)')}
-                            {getRelativeTime(workflow.createdAt)}
+                            {formatRelativeTime(workflow.createdAt, lang, t)}
                           </span>
                           {workflow.fileVersionNumber && (
                             <span style={{
@@ -1027,7 +1036,12 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
           gridTemplateColumns: 'repeat(auto-fill, minmax(380px, 1fr))',
           gap: '1.25rem',
         }}>
-          {filteredAndSortedWorkflows.map((workflow) => {
+          {filteredAndSortedWorkflows.length === 0 ? (
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)', gridColumn: '1 / -1' }}>
+              {getIcon('ui', 'workflow', 40, '#8b5cf6')}
+              {t('drive.noWorkflowsFound', 'No workflows found')}
+            </div>
+          ) : filteredAndSortedWorkflows.map((workflow) => {
             const statusIcon = getStatusIcon(workflow.status);
             const StatusIcon = statusIcon;
             const config = WORKFLOW_STATUS_CONFIG[workflow.status?.toLowerCase()];
@@ -1117,7 +1131,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                   </span>
                   <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
                     {getIcon('ui', 'calendar', 14)}
-                    {getRelativeTime(workflow.createdAt)}
+                    {formatRelativeTime(workflow.createdAt, lang, t)}
                   </span>
                   {workflow.fileVersionNumber && (
                     <span style={{

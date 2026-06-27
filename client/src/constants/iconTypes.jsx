@@ -657,11 +657,11 @@ export const getUserRoleColor = (role) => {
 };
 
 // Color-aware icon functions
-export const getThemedIcon = (category, type, size = 16, theme = 'light') => {
+export const getThemedIcon = (category, type, size = 16, theme = 'light', props = {}) => {
   // Check if theme is an explicit color (like 'white') - if so, use it directly
   if (typeof theme === 'string' && (theme === 'white' || theme.startsWith('#') || theme === 'currentColor')) {
     const icon = getIconWithColor(category, type, size, theme);
-    return React.cloneElement(icon, { fill: 'none' });
+    return React.cloneElement(icon, { fill: 'none', ...props });
   }
   
   // Use dynamic theme colors from CSS variables
@@ -712,7 +712,7 @@ export const getThemedIcon = (category, type, size = 16, theme = 'light') => {
   
   const color = getThemeBasedColor();
   const icon = getIconWithColor(category, type, size, color);
-  return React.cloneElement(icon, { fill: 'none' });
+  return React.cloneElement(icon, { fill: 'none', ...props });
 };
 
 // White icon utility for navbar

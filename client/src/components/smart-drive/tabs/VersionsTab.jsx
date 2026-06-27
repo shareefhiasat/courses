@@ -2,13 +2,14 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { getIcon } from '@constants/iconTypes';
 import { formatQatarDate, formatQatarDateOnly } from '@utils/timezone';
+import { getLocalizedUserName } from '@utils/localizedUserName';
 import { Group as PanelGroup, Panel, Separator as PanelResizeHandle } from 'react-resizable-panels';
 import { usePanelLayout } from '@hooks/usePanelLayout';
 import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import axios from 'axios';
 
 export default function VersionsTab({ fileId, useWorkflowEndpoint = false }) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const [versions, setVersions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -121,6 +122,8 @@ export default function VersionsTab({ fileId, useWorkflowEndpoint = false }) {
     }
   };
 
+  const getUserName = (user) => getLocalizedUserName(user, lang, '\u2014');
+
   const formatSize = (bytes) => {
     if (!bytes && bytes !== 0) return '\u2014';
     if (bytes === 0) return '0 B';
@@ -207,35 +210,6 @@ export default function VersionsTab({ fileId, useWorkflowEndpoint = false }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      {/* Collapse/expand toggle */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.5rem' }}>
-        <button
-          onClick={() => {
-            if (timelineCollapsed) {
-              timelinePanelRef.current?.expand();
-              setTimelineCollapsed(false);
-            } else {
-              timelinePanelRef.current?.collapse();
-              setTimelineCollapsed(true);
-            }
-          }}
-          style={{
-            padding: '0.25rem 0.5rem',
-            background: 'var(--panel, white)',
-            border: '1px solid var(--border, #e5e7eb)',
-            borderRadius: '0.375rem',
-            cursor: 'pointer',
-            color: 'var(--text-muted, #6b7280)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.25rem',
-            fontSize: '0.75rem',
-          }}
-          title={timelineCollapsed ? t('workflow.expand', 'Expand') : t('workflow.collapse', 'Collapse')}
-        >
-          {timelineCollapsed ? <PanelLeftOpen size={14} /> : <PanelLeftClose size={14} />}
-        </button>
-      </div>
       <PanelGroup orientation="horizontal" id="workflow-versions-panels" style={{ flex: 1 }} defaultLayout={savedLayout} onLayoutChange={onLayoutChange}>
       {/* Left sidebar - Date timeline */}
       <Panel id="timeline" panelRef={timelinePanelRef} defaultSize={35} minSize={15} collapsible collapsedSize={0}>
@@ -294,14 +268,14 @@ export default function VersionsTab({ fileId, useWorkflowEndpoint = false }) {
       <Panel id="content" minSize={30}>
       <div style={{ flex: 1, overflowY: 'auto', height: '100%', paddingInlineStart: '0.5rem' }}>
         {/* Search filter */}
-        <div style={{ marginBottom: '1rem' }}>
+        <div style={{ marginBottom: '1rem', display: 'flex', gap: '0.5rem' }}>
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder={t('drive.searchVersions') || 'Search versions...'}
             style={{
-              width: '100%',
+              flex: 1,
               padding: '0.625rem 0.75rem',
               fontSize: '0.875rem',
               border: '1px solid var(--border, #e5e7eb)',
@@ -309,11 +283,33 @@ export default function VersionsTab({ fileId, useWorkflowEndpoint = false }) {
               background: 'var(--panel, white)',
               color: 'var(--text, #111827)',
               outline: 'none',
-              transition: 'border-color 0.15s',
             }}
-            onFocus={(e) => e.currentTarget.style.borderColor = 'var(--color-primary, #2563eb)'}
-            onBlur={(e) => e.currentTarget.style.borderColor = 'var(--border, #e5e7eb)'}
           />
+          <button
+            onClick={() => {
+              if (timelineCollapsed) {
+                timelinePanelRef.current?.expand();
+                setTimelineCollapsed(false);
+              } else {
+                timelinePanelRef.current?.collapse();
+                setTimelineCollapsed(true);
+              }
+            }}
+            style={{
+              padding: '0.5rem',
+              background: 'var(--panel, white)',
+              border: '1px solid var(--border, #e5e7eb)',
+              borderRadius: '0.5rem',
+              cursor: 'pointer',
+              color: 'var(--text-muted, #6b7280)',
+              display: 'flex',
+              alignItems: 'center',
+              flexShrink: 0,
+            }}
+            title={timelineCollapsed ? t('workflow.expand', 'Expand') : t('workflow.collapse', 'Collapse')}
+          >
+            {timelineCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+          </button>
         </div>
 
         <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--text, #111827)', marginBottom: '1rem' }}>
@@ -361,7 +357,7 @@ export default function VersionsTab({ fileId, useWorkflowEndpoint = false }) {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       {getIcon('ui', 'user', 14)}
-                      {version.uploadedBy?.displayName || version.uploadedBy?.email || '\u2014'}
+                      {getUserName(version.uploadedBy)}
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       {getIcon('ui', 'download', 14)}

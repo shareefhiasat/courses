@@ -144,35 +144,6 @@ export default function SharesList({ fileId, onRevoke, refreshKey, readOnly = fa
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      {/* Collapse/expand toggle */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.5rem' }}>
-        <button
-          onClick={() => {
-            if (timelineCollapsed) {
-              timelinePanelRef.current?.expand();
-              setTimelineCollapsed(false);
-            } else {
-              timelinePanelRef.current?.collapse();
-              setTimelineCollapsed(true);
-            }
-          }}
-          style={{
-            padding: '0.25rem 0.5rem',
-            background: 'var(--panel, white)',
-            border: '1px solid var(--border, #e5e7eb)',
-            borderRadius: '0.375rem',
-            cursor: 'pointer',
-            color: 'var(--text-muted, #6b7280)',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '0.25rem',
-            fontSize: '0.75rem',
-          }}
-          title={timelineCollapsed ? t('workflow.expand', 'Expand') : t('workflow.collapse', 'Collapse')}
-        >
-          {timelineCollapsed ? <PanelLeftOpen size={14} /> : <PanelLeftClose size={14} />}
-        </button>
-      </div>
       <PanelGroup orientation="horizontal" id="drive-shares-panels" style={{ flex: 1 }} defaultLayout={savedLayout} onLayoutChange={onLayoutChange}>
       {/* Left sidebar - Date timeline */}
       <Panel id="timeline" panelRef={timelinePanelRef} defaultSize={35} minSize={15} collapsible collapsedSize={0}>
@@ -231,14 +202,14 @@ export default function SharesList({ fileId, onRevoke, refreshKey, readOnly = fa
       <Panel id="content" minSize={30}>
       <div style={{ flex: 1, overflowY: 'auto', height: '100%', paddingInlineStart: '0.5rem' }}>
         {/* Search filter */}
-        <div style={{ position: 'relative', marginBottom: '1rem' }}>
+        <div style={{ position: 'relative', marginBottom: '1rem', display: 'flex', gap: '0.5rem' }}>
           <input
             type="text"
             value={filterText}
             onChange={(e) => setFilterText(e.target.value)}
             placeholder={t('drive.filterActivities') || 'Filter shares...'}
             style={{
-              width: '100%',
+              flex: 1,
               padding: '0.625rem 2.5rem 0.625rem 0.75rem',
               border: '1px solid var(--border, #d1d5db)',
               borderRadius: '0.5rem',
@@ -249,6 +220,31 @@ export default function SharesList({ fileId, onRevoke, refreshKey, readOnly = fa
             }}
             aria-label={t('drive.filterActivities') || 'Filter shares'}
           />
+          <button
+            onClick={() => {
+              if (timelineCollapsed) {
+                timelinePanelRef.current?.expand();
+                setTimelineCollapsed(false);
+              } else {
+                timelinePanelRef.current?.collapse();
+                setTimelineCollapsed(true);
+              }
+            }}
+            style={{
+              padding: '0.5rem',
+              background: 'var(--panel, white)',
+              border: '1px solid var(--border, #e5e7eb)',
+              borderRadius: '0.5rem',
+              cursor: 'pointer',
+              color: 'var(--text-muted, #6b7280)',
+              display: 'flex',
+              alignItems: 'center',
+              flexShrink: 0,
+            }}
+            title={timelineCollapsed ? t('workflow.expand', 'Expand') : t('workflow.collapse', 'Collapse')}
+          >
+            {timelineCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+          </button>
           {filterText && (
             <button
               onClick={() => setFilterText('')}

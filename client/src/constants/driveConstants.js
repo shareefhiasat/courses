@@ -51,29 +51,49 @@ export const WORKFLOW_STATUS_CONFIG = {
   },
   submitted: {
     icon: 'send',
-    color: '#10b981', // green-500
-    bg: 'rgba(16, 185, 129, 0.1)',
-    borderColor: '#6ee7b7',
+    color: '#3b82f6', // blue-500
+    bg: 'rgba(59, 130, 246, 0.1)',
+    borderColor: '#93c5fd',
     labelKey: 'workflow.status.submitted',
-    bgClass: 'bg-green-100 dark:bg-green-900/30',
-    textClass: 'text-green-700 dark:text-green-400',
-    borderClass: 'border-green-300 dark:border-green-700',
+    bgClass: 'bg-blue-100 dark:bg-blue-900/30',
+    textClass: 'text-blue-700 dark:text-blue-400',
+    borderClass: 'border-blue-300 dark:border-blue-700',
   },
   in_review: {
-    icon: 'clock',
-    color: '#d97706', // amber-600
-    bg: 'rgba(217, 119, 6, 0.1)',
-    borderColor: '#fcd34d',
+    icon: 'alert_triangle',
+    color: '#8b5cf6', // violet-500
+    bg: 'rgba(139, 92, 246, 0.1)',
+    borderColor: '#c4b5fd',
     labelKey: 'workflow.status.in_review',
-    bgClass: 'bg-amber-100 dark:bg-amber-900/30',
-    textClass: 'text-amber-700 dark:text-amber-400',
-    borderClass: 'border-amber-300 dark:border-amber-700',
+    bgClass: 'bg-violet-100 dark:bg-violet-900/30',
+    textClass: 'text-violet-700 dark:text-violet-400',
+    borderClass: 'border-violet-300 dark:border-violet-700',
+  },
+  under_hr_review: {
+    icon: 'alert_triangle',
+    color: '#8b5cf6', // violet-500
+    bg: 'rgba(139, 92, 246, 0.1)',
+    borderColor: '#c4b5fd',
+    labelKey: 'workflow.status.under_hr_review',
+    bgClass: 'bg-violet-100 dark:bg-violet-900/30',
+    textClass: 'text-violet-700 dark:text-violet-400',
+    borderClass: 'border-violet-300 dark:border-violet-700',
+  },
+  under_admin_review: {
+    icon: 'alert_triangle',
+    color: '#8b5cf6', // violet-500
+    bg: 'rgba(139, 92, 246, 0.1)',
+    borderColor: '#c4b5fd',
+    labelKey: 'workflow.status.under_admin_review',
+    bgClass: 'bg-violet-100 dark:bg-violet-900/30',
+    textClass: 'text-violet-700 dark:text-violet-400',
+    borderClass: 'border-violet-300 dark:border-violet-700',
   },
   approved: {
     icon: 'check_circle',
-    color: '#16a34a', // green-600
-    bg: 'rgba(22, 163, 74, 0.1)',
-    borderColor: '#86efac',
+    color: '#10b981', // green-500
+    bg: 'rgba(16, 185, 129, 0.1)',
+    borderColor: '#6ee7b7',
     labelKey: 'workflow.status.approved',
     bgClass: 'bg-green-100 dark:bg-green-900/30',
     textClass: 'text-green-700 dark:text-green-400',
@@ -81,8 +101,8 @@ export const WORKFLOW_STATUS_CONFIG = {
   },
   rejected: {
     icon: 'x_circle',
-    color: '#dc2626', // red-600
-    bg: 'rgba(220, 38, 38, 0.1)',
+    color: '#ef4444', // red-500
+    bg: 'rgba(239, 68, 68, 0.1)',
     borderColor: '#fca5a5',
     labelKey: 'workflow.status.rejected',
     bgClass: 'bg-red-100 dark:bg-red-900/30',
@@ -98,6 +118,16 @@ export const WORKFLOW_STATUS_CONFIG = {
     bgClass: 'bg-gray-100 dark:bg-gray-900/30',
     textClass: 'text-gray-700 dark:text-gray-400',
     borderClass: 'border-gray-300 dark:border-gray-700',
+  },
+  completed: {
+    icon: 'check_circle',
+    color: '#10b981', // green-500
+    bg: 'rgba(16, 185, 129, 0.1)',
+    borderColor: '#6ee7b7',
+    labelKey: 'workflow.status.completed',
+    bgClass: 'bg-green-100 dark:bg-green-900/30',
+    textClass: 'text-green-700 dark:text-green-400',
+    borderClass: 'border-green-300 dark:border-green-700',
   },
 };
 

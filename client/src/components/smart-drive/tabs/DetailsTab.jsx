@@ -1,13 +1,14 @@
 import { useLang } from '@contexts/LangContext';
 import { getThemedIcon } from '@constants/iconTypes';
-import { getSmartDriveWorkflowStatusStyle } from '@constants/workflowStatusTypes';
+import { WORKFLOW_STATUS_CONFIG } from '@constants/driveConstants';
 import { formatMimeType } from '@utils/fileUtils';
 import { formatQatarDate } from '@utils/timezone';
+import { getLocalizedUserName } from '@utils/localizedUserName';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 
 export default function DetailsTab({ file }) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const [workflowCounts, setWorkflowCounts] = useState(null);
   const [workflows, setWorkflows] = useState(null);
   const [shareCounts, setShareCounts] = useState(null);
@@ -27,7 +28,12 @@ export default function DetailsTab({ file }) {
             byType: workflows.reduce((acc, w) => {
               acc[w.workflowType] = (acc[w.workflowType] || 0) + 1;
               return acc;
-            }, {})
+            }, {}),
+            byStatus: workflows.reduce((acc, w) => {
+              const status = w.status || 'UNKNOWN';
+              acc[status] = (acc[status] || 0) + 1;
+              return acc;
+            }, {}),
           };
           setWorkflowCounts(counts);
           setWorkflows(workflows);
@@ -118,13 +124,13 @@ export default function DetailsTab({ file }) {
     },
     {
       icon: 'file',
-      label: t('drive.mimeType'),
+      label: t('drive.fileType'),
       value: formatMimeType(file.mimeType),
     },
     {
       icon: 'user',
       label: t('drive.owner'),
-      value: file.owner?.displayName || file.owner?.email || '\u2014',
+      value: getLocalizedUserName(file.owner, lang, '\u2014'),
     },
     {
       icon: 'folder',
@@ -145,24 +151,19 @@ export default function DetailsTab({ file }) {
       icon: 'workflow',
       label: t('drive.workflows'),
       value: workflowCounts ? (
-        <span style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-          <span>{workflowCounts.total} total</span>
-          {workflows && workflows.slice(0, 3).map((w, idx) => {
-            const statusStyle = getSmartDriveWorkflowStatusStyle(w.status);
+        <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', flexWrap: 'wrap' }}>
+          {Object.entries(workflowCounts.byStatus || {}).map(([status, count]) => {
+            const config = WORKFLOW_STATUS_CONFIG[status?.toLowerCase()];
+            const color = config?.color || '#6b7280';
+            const bgColor = config?.bg || 'rgba(107, 114, 128, 0.1)';
+            const borderColor = config?.borderColor || '#d1d5db';
             return (
-              <span key={idx} style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem' }}>
-                <span style={{
-                  width: '8px',
-                  height: '8px',
-                  borderRadius: '50%',
-                  background: statusStyle.color,
-                  border: `1px solid ${statusStyle.borderColor}`
-                }} />
-                {w.workflowType}: {w.status}
+              <span key={status} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', background: bgColor, border: `1px solid ${borderColor}`, borderRadius: '0.375rem', padding: '0.125rem 0.375rem', color }}>
+                {count} {t(`workflow.status.${status.toLowerCase()}`, status)}
               </span>
             );
           })}
-          {workflowCounts.total > 3 && <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)' }}>+{workflowCounts.total - 3} more</span>}
+          {workflowCounts.total === 0 && <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)' }}>0</span>}
         </span>
       ) : '\u2014',
     },

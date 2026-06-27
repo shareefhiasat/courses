@@ -5,13 +5,14 @@ import { getIcon } from '@constants/iconTypes';
 import { Button } from '@ui';
 import Modal from '@ui/Modal/Modal';
 import { formatQatarDate, formatQatarDateOnly } from '@utils/timezone';
+import { getLocalizedUserName } from '@utils/localizedUserName';
 import { Group as PanelGroup, Panel, Separator as PanelResizeHandle } from 'react-resizable-panels';
 import { usePanelLayout } from '@hooks/usePanelLayout';
 import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import axios from 'axios';
 
 export default function CommentsTab({ fileId, isOwnedByUser = true }) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const { user } = useAuth();
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
@@ -212,35 +213,6 @@ export default function CommentsTab({ fileId, isOwnedByUser = true }) {
           </div>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-            {/* Collapse/expand toggle */}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.5rem' }}>
-              <button
-                onClick={() => {
-                  if (timelineCollapsed) {
-                    timelinePanelRef.current?.expand();
-                    setTimelineCollapsed(false);
-                  } else {
-                    timelinePanelRef.current?.collapse();
-                    setTimelineCollapsed(true);
-                  }
-                }}
-                style={{
-                  padding: '0.25rem 0.5rem',
-                  background: 'var(--panel, white)',
-                  border: '1px solid var(--border, #e5e7eb)',
-                  borderRadius: '0.375rem',
-                  cursor: 'pointer',
-                  color: 'var(--text-muted, #6b7280)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.25rem',
-                  fontSize: '0.75rem',
-                }}
-                title={timelineCollapsed ? t('workflow.expand', 'Expand') : t('workflow.collapse', 'Collapse')}
-              >
-                {timelineCollapsed ? <PanelLeftOpen size={14} /> : <PanelLeftClose size={14} />}
-              </button>
-            </div>
             <PanelGroup orientation="horizontal" id="drive-comments-panels" style={{ flex: 1 }} defaultLayout={savedLayout} onLayoutChange={onLayoutChange}>
             {/* Left sidebar - Date timeline */}
             <Panel id="timeline" panelRef={timelinePanelRef} defaultSize={35} minSize={15} collapsible collapsedSize={0}>
@@ -299,14 +271,14 @@ export default function CommentsTab({ fileId, isOwnedByUser = true }) {
             <Panel id="content" minSize={30}>
             <div style={{ flex: 1, overflowY: 'auto', height: '100%', paddingInlineStart: '0.5rem' }}>
               {/* Search filter */}
-              <div style={{ position: 'relative', marginBottom: '1rem' }}>
+              <div style={{ position: 'relative', marginBottom: '1rem', display: 'flex', gap: '0.5rem' }}>
                 <input
                   type="text"
                   value={filterText}
                   onChange={(e) => setFilterText(e.target.value)}
                   placeholder={t('drive.filterComments')}
                   style={{
-                    width: '100%',
+                    flex: 1,
                     padding: '0.625rem 0.75rem',
                     border: '1px solid var(--border, #d1d5db)',
                     borderRadius: '0.5rem',
@@ -317,6 +289,31 @@ export default function CommentsTab({ fileId, isOwnedByUser = true }) {
                   }}
                   aria-label={t('drive.filterComments')}
                 />
+                <button
+                  onClick={() => {
+                    if (timelineCollapsed) {
+                      timelinePanelRef.current?.expand();
+                      setTimelineCollapsed(false);
+                    } else {
+                      timelinePanelRef.current?.collapse();
+                      setTimelineCollapsed(true);
+                    }
+                  }}
+                  style={{
+                    padding: '0.5rem',
+                    background: 'var(--panel, white)',
+                    border: '1px solid var(--border, #e5e7eb)',
+                    borderRadius: '0.5rem',
+                    cursor: 'pointer',
+                    color: 'var(--text-muted, #6b7280)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    flexShrink: 0,
+                  }}
+                  title={timelineCollapsed ? t('workflow.expand', 'Expand') : t('workflow.collapse', 'Collapse')}
+                >
+                  {timelineCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
+                </button>
                 {filterText && (
                   <button
                     onClick={() => setFilterText('')}
@@ -379,7 +376,7 @@ export default function CommentsTab({ fileId, isOwnedByUser = true }) {
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
                               <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text, #111827)' }}>
-                                {comment.user?.displayName || comment.user?.email || t('drive.unknownUser')}
+                                {getLocalizedUserName(comment.user, lang, t('drive.unknownUser'))}
                               </span>
                             </div>
                             <p style={{ fontSize: '0.875rem', color: 'var(--text, #374151)', margin: 0, wordBreak: 'break-word' }}>
