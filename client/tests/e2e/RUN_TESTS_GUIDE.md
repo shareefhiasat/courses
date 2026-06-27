@@ -124,9 +124,9 @@ In the Allure dashboard:
 The custom Playwright→Linear reporter automatically creates or updates Linear issues when tests fail.
 
 ### Setup
-The `LINEAR_API_KEY` is already set in `client/.env`:
+The `LINEAR_API_KEY` should be set in `client/.env`:
 ```
-LINEAR_API_KEY=lin_api_gGoGr7nHYYYapLdpWlDTF8r6XN38fCgRsfE6QKy9
+LINEAR_API_KEY=your_linear_api_key_here
 ```
 
 The reporter is enabled in `playwright.config.js` with `dryRun: false`.
