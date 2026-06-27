@@ -202,41 +202,40 @@ export default function DetailsTab({ file }) {
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.75rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '0.5rem' }}>
         {details.map(({ icon, label, value }, idx) => (
           <div
             key={idx}
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '1rem',
-              padding: '1rem',
+              gap: '0.625rem',
+              padding: '0.5rem 0.625rem',
               background: 'var(--panel, white)',
-              borderRadius: '0.75rem',
+              borderRadius: '0.5rem',
               border: '1px solid var(--border, #e5e7eb)',
-              boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
             }}
           >
             <div
               style={{
                 flexShrink: 0,
-                width: '2.5rem',
-                height: '2.5rem',
-                borderRadius: '0.5rem',
+                width: '1.75rem',
+                height: '1.75rem',
+                borderRadius: '0.375rem',
                 background: 'var(--color-primary-alpha, rgba(37, 99, 235, 0.1))',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
               }}
             >
-              {getThemedIcon('ui', icon, 20, 'primary')}
+              {getThemedIcon('ui', icon, 16, 'primary')}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontSize: '0.875rem', color: 'var(--text, #111827)', margin: 0, marginBottom: '0.125rem' }}>
+              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)', margin: 0, marginBottom: '0.125rem' }}>
                 {label}
               </p>
-              <p style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text, #111827)', margin: 0, wordBreak: 'break-all' }}>
+              <p style={{ fontSize: '0.8125rem', fontWeight: 500, color: 'var(--text, #111827)', margin: 0, wordBreak: 'break-all' }}>
                 {value}
               </p>
             </div>
@@ -247,12 +246,10 @@ export default function DetailsTab({ file }) {
       {file.checksumSha256 && (
         <div
           style={{
-            padding: '1rem',
+            padding: '0.5rem 0.625rem',
             background: 'var(--panel, white)',
-            borderRadius: '0.75rem',
+            borderRadius: '0.5rem',
             border: '1px solid var(--border, #e5e7eb)',
-            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-            marginTop: '0.75rem',
           }}
         >
           <p style={{ fontSize: '0.875rem', color: 'var(--text, #111827)', margin: 0, marginBottom: '0.25rem' }}>
