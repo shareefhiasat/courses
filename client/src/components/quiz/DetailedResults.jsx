@@ -6,10 +6,13 @@
 import React, { useState, useMemo } from 'react';
 import { getThemedIcon } from '@constants/iconTypes';
 import { Card, CardBody, Badge, Button, Chart } from '@ui';
+import { useLang } from '@contexts/LangContext';
 import styles from './DetailedResults.module.css';
 
 
-import { info, error, warn, debug } from '@services/utils/logger.js';const DetailedResults = ({ 
+import { info, error, warn, debug } from '@services/utils/logger.js';
+
+const DetailedResults = ({ 
   quiz, 
   submission, 
   classAverage = null, 
@@ -17,6 +20,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Detai
   onRetryIncorrect,
   onRetakeQuiz 
 }) => {
+  const { t } = useLang();
   const [activeTab, setActiveTab] = useState('questions'); // 'questions' | 'performance' | 'comparison'
 
   // Calculate detailed statistics
@@ -90,7 +94,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Detai
             <CardBody>
               <div className={styles.questionHeader}>
                 <div className={styles.questionNumber}>
-                  Question {index + 1}
+                  {t('question_label')} {index + 1}
                   {isCorrect ? (
                     getThemedIcon('ui', 'check_circle', 20)
                   ) : (
@@ -99,7 +103,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Detai
                 </div>
                 <div className={styles.questionMeta}>
                   <Badge variant={isCorrect ? 'success' : 'danger'}>
-                    {question.points || 1} {isCorrect ? 'earned' : 'missed'}
+                    {question.points || 1} {isCorrect ? t('earned') : t('missed')}
                   </Badge>
                   <span className={styles.time}>
                     {getThemedIcon('ui', 'clock', 14)} {timeSpent}s
@@ -148,7 +152,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Detai
 
               {question.explanation && (
                 <div className={styles.explanation}>
-                  <strong>Explanation:</strong>
+                  <strong>{t('explanation_label')}</strong>
                   <div dangerouslySetInnerHTML={{ __html: question.explanation }} />
                 </div>
               )}
@@ -164,7 +168,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Detai
       <div className={styles.statsGrid}>
         <Card>
           <CardBody>
-            <h3>By Topic</h3>
+            <h3>{t('by_topic')}</h3>
             <Chart
               type="bar"
               data={Object.entries(stats.byTopic).map(([topic, data]) => ({
@@ -180,7 +184,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Detai
 
         <Card>
           <CardBody>
-            <h3>By Question Type</h3>
+            <h3>{t('by_question_type')}</h3>
             <div className={styles.typeBreakdown}>
               {Object.entries(stats.byType).map(([type, data]) => (
                 <div key={type} className={styles.typeItem}>
@@ -196,7 +200,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Detai
 
         <Card>
           <CardBody>
-            <h3>By Difficulty</h3>
+            <h3>{t('by_difficulty')}</h3>
             <div className={styles.difficultyBreakdown}>
               {Object.entries(stats.byDifficulty).map(([difficulty, data]) => {
                 const percentage = (data.correct / data.total) * 100;
@@ -229,14 +233,14 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Detai
             <div className={styles.retrySection}>
               <h3>
                 {getThemedIcon('ui', 'refresh_cw', 20)}
-                Retry Incorrect Questions
+                {t('retry_incorrect_questions')}
               </h3>
-              <p>You got {stats.incorrectQuestions.length} questions wrong. Practice these to improve!</p>
+              <p>{t('you_got_wrong_practice').replace('{count}', stats.incorrectQuestions.length)}</p>
               <Button
                 onClick={() => onRetryIncorrect?.(stats.incorrectQuestions)}
                 variant="primary"
               >
-                Practice Incorrect Questions
+                {t('practice_incorrect_questions')}
               </Button>
             </div>
           </CardBody>
@@ -253,7 +257,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Detai
             <div className={styles.scoreStat}>
               {getThemedIcon('ui', 'target', 32)}
               <div>
-                <div className={styles.statLabel}>Your Score</div>
+                <div className={styles.statLabel}>{t('your_score')}</div>
                 <div className={styles.statValue}>{stats.percentage.toFixed(1)}%</div>
               </div>
             </div>
@@ -266,10 +270,10 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Detai
               <div className={styles.scoreStat}>
                 {getThemedIcon('ui', 'trending_up', 32)}
                 <div>
-                  <div className={styles.statLabel}>Class Average</div>
+                  <div className={styles.statLabel}>{t('class_average')}</div>
                   <div className={styles.statValue}>{classAverage.toFixed(1)}%</div>
                   <Badge variant={stats.percentage >= classAverage ? 'success' : 'warning'}>
-                    {stats.percentage >= classAverage ? 'Above Average' : 'Below Average'}
+                    {stats.percentage >= classAverage ? t('above_average') : t('below_average')}
                   </Badge>
                 </div>
               </div>
@@ -283,10 +287,10 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Detai
               <div className={styles.scoreStat}>
                 {getThemedIcon('ui', 'award', 32)}
                 <div>
-                  <div className={styles.statLabel}>Top Score</div>
+                  <div className={styles.statLabel}>{t('top_score')}</div>
                   <div className={styles.statValue}>{topScore.toFixed(1)}%</div>
                   <Badge variant={stats.percentage === topScore ? 'success' : 'info'}>
-                    {stats.percentage === topScore ? 'You got the top score!' : `${(topScore - stats.percentage).toFixed(1)}% away`}
+                    {stats.percentage === topScore ? t('you_got_top_score') : t('away_from_top').replace('{pct}', (topScore - stats.percentage).toFixed(1))}
                   </Badge>
                 </div>
               </div>
@@ -297,18 +301,18 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Detai
 
       <Card>
         <CardBody>
-          <h3>Study Recommendations</h3>
+          <h3>{t('study_recommendations')}</h3>
           <div className={styles.recommendations}>
             {Object.entries(stats.byTopic)
               .filter(([, data]) => (data.correct / data.total) < 0.7)
               .map(([topic, data]) => (
                 <div key={topic} className={styles.recommendation}>
                   <strong>{topic}</strong>
-                  <p>You got {data.correct}/{data.total} questions correct in this topic. Consider reviewing this material.</p>
+                  <p>{t('you_got_correct_in_topic').replace('{correct}', data.correct).replace('{total}', data.total)}</p>
                 </div>
               ))}
             {Object.entries(stats.byTopic).every(([, data]) => (data.correct / data.total) >= 0.7) && (
-              <p>Great job! You're performing well across all topics. 🎉</p>
+              <p>{t('great_job_all_topics')} 🎉</p>
             )}
           </div>
         </CardBody>
@@ -319,9 +323,9 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Detai
   return (
     <div className={styles.detailedResults}>
       <div className={styles.header}>
-        <h2>Quiz Results: {quiz.title}</h2>
+        <h2>{t('quiz_results')}: {quiz.title}</h2>
         <Button onClick={onRetakeQuiz} variant="outline">
-          {getThemedIcon('ui', 'refresh_cw', 16)} Retake Quiz
+          {getThemedIcon('ui', 'refresh_cw', 16)} {t('retake_quiz')}
         </Button>
       </div>
 
@@ -330,19 +334,19 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Detai
           onClick={() => setActiveTab('questions')}
           className={`${styles.tab} ${activeTab === 'questions' ? styles.active : ''}`}
         >
-          Questions
+          {t('questions_tab')}
         </button>
         <button
           onClick={() => setActiveTab('performance')}
           className={`${styles.tab} ${activeTab === 'performance' ? styles.active : ''}`}
         >
-          Performance
+          {t('performance_tab')}
         </button>
         <button
           onClick={() => setActiveTab('comparison')}
           className={`${styles.tab} ${activeTab === 'comparison' ? styles.active : ''}`}
         >
-          Comparison
+          {t('comparison_tab')}
         </button>
       </div>
 

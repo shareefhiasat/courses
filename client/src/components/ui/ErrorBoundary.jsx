@@ -1,5 +1,6 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useLang } from '@contexts/LangContext';
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -39,6 +40,7 @@ class ErrorBoundary extends React.Component {
 }
 
 const ErrorFallback = ({ error, errorInfo, resetError }) => {
+  const { t } = useLang();
   // Safe navigation with fallback
   let navigate = null;
   try {
@@ -105,7 +107,7 @@ const ErrorFallback = ({ error, errorInfo, resetError }) => {
           fontSize: '1.8rem',
           fontWeight: 700
         }}>
-          Oops! Something went wrong
+          {t('oops_something_wrong')}
         </h1>
 
         {/* Error Message */}
@@ -115,7 +117,7 @@ const ErrorFallback = ({ error, errorInfo, resetError }) => {
           marginBottom: '1.5rem',
           lineHeight: 1.6
         }}>
-          We encountered an unexpected error. Don't worry, this has been logged and we'll look into it.
+          {t('unexpected_error_logged')}
         </p>
 
         {/* Error Details (Collapsible) */}
@@ -134,7 +136,7 @@ const ErrorFallback = ({ error, errorInfo, resetError }) => {
               color: '#800020',
               marginBottom: '0.5rem'
             }}>
-              🔍 Technical Details
+              {t('technical_details')}
             </summary>
             <div style={{
               marginTop: '0.5rem',
@@ -144,11 +146,11 @@ const ErrorFallback = ({ error, errorInfo, resetError }) => {
               whiteSpace: 'pre-wrap',
               wordBreak: 'break-word'
             }}>
-              <strong>Error:</strong> {typeof error === 'function' ? 'Function Error' : (error?.toString?.() || String(error))}
+              <strong>{t('error_label')}</strong> {typeof error === 'function' ? 'Function Error' : (error?.toString?.() || String(error))}
               {errorInfo && (
                 <>
                   <br /><br />
-                  <strong>Stack Trace:</strong>
+                  <strong>{t('stack_trace')}</strong>
                   <br />
                   {errorInfo.componentStack}
                 </>
@@ -181,7 +183,7 @@ const ErrorFallback = ({ error, errorInfo, resetError }) => {
             onMouseEnter={(e) => e.target.style.transform = 'translateY(-2px)'}
             onMouseLeave={(e) => e.target.style.transform = 'translateY(0)'}
           >
-            🔑 Go to Login
+            {t('go_to_login')}
           </button>
 
           <button
@@ -206,7 +208,7 @@ const ErrorFallback = ({ error, errorInfo, resetError }) => {
               e.target.style.color = '#800020';
             }}
           >
-            🏠 Go Home
+            {t('go_home')}
           </button>
 
           <button
@@ -225,7 +227,7 @@ const ErrorFallback = ({ error, errorInfo, resetError }) => {
             onMouseEnter={(e) => e.target.style.opacity = '0.8'}
             onMouseLeave={(e) => e.target.style.opacity = '1'}
           >
-            🔄 Reload Page
+            {t('reload_page')}
           </button>
         </div>
 

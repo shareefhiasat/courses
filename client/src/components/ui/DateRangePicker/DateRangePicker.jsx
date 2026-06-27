@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { DayPicker } from 'react-day-picker';
 import { format, parseISO, isValid } from 'date-fns';
 import { useTheme } from '@contexts/ThemeContext';
+import { useLang } from '@contexts/LangContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { Button } from '@ui';
 import styles from './DateRangePicker.module.css';
@@ -30,6 +31,7 @@ const DateRangePicker = ({
   numberOfMonths = 2,
 }) => {
   const { theme } = useTheme();
+  const { t } = useLang();
   
   const [isOpen, setIsOpen] = useState(false);
   const popoverRef = useRef(null);
@@ -156,7 +158,7 @@ const DateRangePicker = ({
                 handleClear();
               }}
               disabled={disabled}
-              aria-label="Clear dates"
+              aria-label={t('clear')}
             >
               {getThemedIcon('ui', 'close', 14, theme)}
             </button>
@@ -211,7 +213,7 @@ const DateRangePicker = ({
                   size="sm"
                   onClick={() => setIsOpen(false)}
                 >
-                  Close
+                  {t('close')}
                 </Button>
                 {clearable && hasValue && (
                   <Button
@@ -219,7 +221,7 @@ const DateRangePicker = ({
                     size="sm"
                     onClick={handleClear}
                   >
-                    Clear
+                    {t('clear')}
                   </Button>
                 )}
               </div>

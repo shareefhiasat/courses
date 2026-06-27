@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Modal } from '@ui';
 import { useTheme } from '@contexts/ThemeContext';
+import { useLang } from '@contexts/LangContext';
 
 
 import { info, error, warn, debug } from '@services/utils/logger.js';// Compact inline Timer & Stopwatch widget
@@ -33,6 +34,7 @@ const usePersistedState = (key, initial) => {
 
 const TimerStopwatch = ({ compact = false, showTest = false }) => {
   const { theme } = useTheme();
+  const { t } = useLang();
   const isDark = theme === 'dark';
 
   const palette = useMemo(() => {
@@ -271,13 +273,13 @@ const TimerStopwatch = ({ compact = false, showTest = false }) => {
     <div style={containerStyle}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 6 }}>
         <div style={{ display: 'flex', gap: 6 }}>
-          <button onClick={() => setMode('stopwatch')} style={modeButtonStyle(mode === 'stopwatch')}>SW</button>
+          <button onClick={() => setMode('stopwatch')} style={modeButtonStyle(mode === 'stopwatch')}>{t('stopwatch_short')}</button>
           <button onClick={() => setMode('timer')} style={modeButtonStyle(mode === 'timer')}>T</button>
         </div>
         <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
           <button
             onClick={() => setSoundOn(v => !v)}
-            title={soundOn ? 'Sound: On' : 'Sound: Off'}
+            title={soundOn ? t('sound_on') : t('sound_off')}
             style={iconButtonStyle(soundOn)}
           >
             🔊
@@ -285,10 +287,10 @@ const TimerStopwatch = ({ compact = false, showTest = false }) => {
           {showTest && (
             <button
               onClick={() => { playBeep().catch(() => {}); }}
-              title="Test"
+              title={t('test')}
               style={iconButtonStyle(false)}
             >
-              Test
+              {t('test')}
             </button>
           )}
           {mode === 'timer' && (
@@ -316,11 +318,11 @@ const TimerStopwatch = ({ compact = false, showTest = false }) => {
           </div>
           <div style={{ display: 'flex', gap: 6, justifyContent: 'center' }}>
             {!swRunning ? (
-              <button onClick={() => setSwRunning(true)} style={startBtnStyle}>Start</button>
+              <button onClick={() => setSwRunning(true)} style={startBtnStyle}>{t('start')}</button>
             ) : (
-              <button onClick={() => setSwRunning(false)} style={pauseBtnStyle}>Pause</button>
+              <button onClick={() => setSwRunning(false)} style={pauseBtnStyle}>{t('pause')}</button>
             )}
-            <button onClick={resetStopwatch} style={resetBtnStyle}>Reset</button>
+            <button onClick={resetStopwatch} style={resetBtnStyle}>{t('reset')}</button>
           </div>
         </div>
       ) : (
@@ -340,27 +342,27 @@ const TimerStopwatch = ({ compact = false, showTest = false }) => {
                   cursor: tmRemain <= 0 ? 'not-allowed' : 'pointer',
                 }}
               >
-                Start
+                {t('start')}
               </button>
             ) : (
-              <button onClick={() => setTmRunning(false)} style={pauseBtnStyle}>Pause</button>
+              <button onClick={() => setTmRunning(false)} style={pauseBtnStyle}>{t('pause')}</button>
             )}
-            <button onClick={resetTimer} style={resetBtnStyle}>Reset</button>
+            <button onClick={resetTimer} style={resetBtnStyle}>{t('reset')}</button>
           </div>
         </div>
       )}
 
       <Modal
         open={showDone}
-        title={mode === 'timer' ? 'Time is up!' : 'Done'}
+        title={mode === 'timer' ? t('time_is_up') : t('done')}
         onClose={() => setShowDone(false)}
         actions={(
           <>
-            <button onClick={() => setShowDone(false)} className="btn btn-primary">OK</button>
+            <button onClick={() => setShowDone(false)} className="btn btn-primary">{t('ok')}</button>
           </>
         )}
       >
-        <p style={{ margin: 0 }}>{mode === 'timer' ? 'The countdown has finished.' : 'Completed.'}</p>
+        <p style={{ margin: 0 }}>{mode === 'timer' ? t('countdown_finished') : t('completed_label')}</p>
       </Modal>
     </div>
   );

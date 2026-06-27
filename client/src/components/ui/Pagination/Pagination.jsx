@@ -1,5 +1,6 @@
 import React from 'react';
 import { getThemedIcon } from '@constants/iconTypes';
+import { useLang } from '@contexts/LangContext';
 import styles from './Pagination.module.css';
 
 
@@ -16,6 +17,7 @@ const Pagination = ({
   maxVisible = 5,
   className = '',
 }) => {
+  const { t } = useLang();
   const getPageNumbers = () => {
     const pages = [];
     const halfVisible = Math.floor(maxVisible / 2);
@@ -49,7 +51,7 @@ const Pagination = ({
           className={styles.button}
           onClick={() => handlePageChange(1)}
           disabled={currentPage === 1}
-          aria-label="First page"
+          aria-label={t('first_page')}
         >
           {getThemedIcon('ui', 'chevrons_left', 16)}
         </button>
@@ -59,7 +61,7 @@ const Pagination = ({
         className={styles.button}
         onClick={() => handlePageChange(currentPage - 1)}
         disabled={currentPage === 1}
-        aria-label="Previous page"
+        aria-label={t('previous_page')}
       >
         {getThemedIcon('ui', 'chevron_left', 16)}
       </button>
@@ -78,7 +80,7 @@ const Pagination = ({
         className={styles.button}
         onClick={() => handlePageChange(currentPage + 1)}
         disabled={currentPage === totalPages}
-        aria-label="Next page"
+        aria-label={t('next_page')}
       >
         {getThemedIcon('ui', 'chevron_right', 16)}
       </button>
@@ -88,7 +90,7 @@ const Pagination = ({
           className={styles.button}
           onClick={() => handlePageChange(totalPages)}
           disabled={currentPage === totalPages}
-          aria-label="Last page"
+          aria-label={t('last_page')}
         >
           {getThemedIcon('ui', 'chevrons_right', 16)}
         </button>

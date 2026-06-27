@@ -103,7 +103,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const ChatI
 
   // Get button title based on state
   const getButtonTitle = () => {
-    if (isUploading) return 'Uploading...';
+    if (isUploading) return t('uploading');
     if (newMessage.trim() || audioBlob || attachedFile) return t('send') || 'Send';
     if (isRecording) return t('stop_recording') || 'Stop Recording';
     return t('record_voice') || 'Record Voice';
@@ -191,7 +191,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const ChatI
                 fontSize: '0.75rem'
               }}
             >
-              ✕ Remove
+              ✕ {t('remove')}
             </button>
           </div>
         )}
@@ -215,7 +215,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const ChatI
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               {getThemedIcon('ui', 'mic', 14, theme)}
               <span style={{ fontSize: '0.75rem', fontWeight: '500' }}>
-                Voice Message Ready
+                {t('voice_message_ready')}
               </span>
               <span style={{ 
                 fontSize: '0.7rem', 
@@ -240,7 +240,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const ChatI
                 fontSize: '0.65rem'
               }}
             >
-              Cancel
+              {t('cancel')}
             </button>
           </div>
         )}
@@ -292,7 +292,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const ChatI
                   animation: 'pulse 1s infinite'
                 }} />
                 <span style={{ fontSize: '0.75rem', fontWeight: '500' }}>
-                  Recording
+                  {t('recording')}
                 </span>
                 <span style={{ 
                   fontSize: '0.7rem', 

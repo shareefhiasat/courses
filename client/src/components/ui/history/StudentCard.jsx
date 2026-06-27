@@ -202,7 +202,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.125rem' : '0.25rem' }}>
               <CircleIcon style={{ width: '16px', height: '16px', stroke: '#9ca3af' }} />
-              <span style={{ fontSize: '0.75rem', color: '#9ca3af', fontWeight: 500 }}>None</span>
+              <span style={{ fontSize: '0.75rem', color: '#9ca3af', fontWeight: 500 }}>{t('none')}</span>
             </div>
           )}
         </div>
@@ -296,7 +296,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
         border: '1px solid #e2e8f0'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.125rem' : '0.25rem' }}>
-          <span style={{ fontSize: isMobile ? '0.625rem' : '0.7rem', color: 'var(--text-muted, #6b7280)' }}>Present:</span>
+          <span style={{ fontSize: isMobile ? '0.625rem' : '0.7rem', color: 'var(--text-muted, #6b7280)' }}>{t('present_label')}</span>
           <span style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -314,7 +314,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
           </span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.125rem' : '0.25rem' }}>
-          <span style={{ fontSize: isMobile ? '0.625rem' : '0.7rem', color: 'var(--text-muted, #6b7280)' }}>Late:</span>
+          <span style={{ fontSize: isMobile ? '0.625rem' : '0.7rem', color: 'var(--text-muted, #6b7280)' }}>{t('late_label')}</span>
           <span style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -332,7 +332,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
           </span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.125rem' : '0.25rem' }}>
-          <span style={{ fontSize: isMobile ? '0.625rem' : '0.7rem', color: 'var(--text-muted, #6b7280)' }}>Absent:</span>
+          <span style={{ fontSize: isMobile ? '0.625rem' : '0.7rem', color: 'var(--text-muted, #6b7280)' }}>{t('absent_label')}</span>
           <span style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -350,7 +350,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
           </span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.125rem' : '0.25rem' }}>
-          <span style={{ fontSize: isMobile ? '0.625rem' : '0.7rem', color: 'var(--text-muted, #6b7280)' }}>Absent Excused:</span>
+          <span style={{ fontSize: isMobile ? '0.625rem' : '0.7rem', color: 'var(--text-muted, #6b7280)' }}>{t('absent_excused_label')}</span>
           <span style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -368,7 +368,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
           </span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.125rem' : '0.25rem' }}>
-          <span style={{ fontSize: isMobile ? '0.625rem' : '0.7rem', color: 'var(--text-muted, #6b7280)' }}>Excused Leave:</span>
+          <span style={{ fontSize: isMobile ? '0.625rem' : '0.7rem', color: 'var(--text-muted, #6b7280)' }}>{t('excused_leave_label')}</span>
           <span style={{
             display: 'inline-flex',
             alignItems: 'center',
@@ -386,7 +386,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
           </span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.125rem' : '0.25rem' }}>
-          <span style={{ fontSize: isMobile ? '0.625rem' : '0.7rem', color: 'var(--text-muted, #6b7280)' }}>Humanitarian:</span>
+          <span style={{ fontSize: isMobile ? '0.625rem' : '0.7rem', color: 'var(--text-muted, #6b7280)' }}>{t('humanitarian_label')}</span>
           <span style={{
             display: 'inline-flex',
             alignItems: 'center',

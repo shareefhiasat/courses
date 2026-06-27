@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useLang } from '@contexts/LangContext';
 
 
 import { info, error, warn, debug } from '@services/utils/logger.js';const TURNSTILE_SITE_KEY = import.meta.env.VITE_TURNSTILE_SITE_KEY;
@@ -40,6 +41,7 @@ const loadTurnstileScript = () => {
 };
 
 const TurnstileWidget = ({ action = 'login', onVerify, theme = 'auto' }) => {
+  const { t } = useLang();
   const containerRef = useRef(null);
   const widgetIdRef = useRef(null);
   const [error, setError] = useState(null);
@@ -76,13 +78,13 @@ const TurnstileWidget = ({ action = 'login', onVerify, theme = 'auto' }) => {
             }
           },
           'error-callback': () => {
-            setError('Turnstile error. Please try again.');
+            setError(t('turnstile_error'));
             if (onVerify) {
               onVerify(null);
             }
           },
           'expired-callback': () => {
-            setError('Session expired. Please verify again.');
+            setError(t('session_expired_verify'));
             if (onVerify) {
               onVerify(null);
             }
@@ -93,7 +95,7 @@ const TurnstileWidget = ({ action = 'login', onVerify, theme = 'auto' }) => {
         setIsReady(true);
       } catch (err) {
         error('Turnstile init error:', err);
-        setError('Failed to load security check.');
+        setError(t('failed_to_load_security'));
       }
     };
 
@@ -141,7 +143,7 @@ const TurnstileWidget = ({ action = 'login', onVerify, theme = 'auto' }) => {
               marginLeft: '8px',
             }}
           >
-            Retry
+            {t('retry')}
           </button>
         </div>
       )}

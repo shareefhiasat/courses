@@ -1,9 +1,11 @@
 import { useState } from 'react';
 import { useToast } from '@ui';
+import { useLang } from '@contexts/LangContext';
 
 
 import { info, error, warn, debug } from '@services/utils/logger.js';const VariableHelper = ({ templateType = 'custom' }) => {
   const toast = useToast();
+  const { t } = useLang();
   const [activeCategory, setActiveCategory] = useState('common');
 
   const copyToClipboard = (variable) => {
@@ -122,9 +124,9 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Varia
       overflowY: 'auto',
       minWidth: '350px'
     }}>
-      <h3 style={{ margin: '0 0 1rem 0', color: '#333' }}>📋 Available Variables</h3>
+      <h3 style={{ margin: '0 0 1rem 0', color: '#333' }}>📋 {t('available_variables')}</h3>
       <p style={{ margin: '0 0 1.5rem 0', color: '#666', fontSize: '0.9rem' }}>
-        Click any variable to copy it to clipboard
+        {t('click_variable_to_copy')}
       </p>
 
       {/* Category Tabs */}
@@ -199,7 +201,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Varia
                 }}>
                   {`{{${variable.name}}}`}
                 </code>
-                <span style={{ fontSize: '0.75rem', color: '#999' }}>Click to copy</span>
+                <span style={{ fontSize: '0.75rem', color: '#999' }}>{t('click_to_copy')}</span>
               </div>
               <p style={{ margin: '0.5rem 0', color: '#555', fontSize: '0.85rem' }}>
                 {variable.description}
@@ -220,7 +222,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Varia
         borderRadius: 8,
         border: '1px solid #ffc107'
       }}>
-        <h4 style={{ margin: '0 0 0.5rem 0', color: '#856404', fontSize: '0.9rem' }}>💡 Quick Tips</h4>
+        <h4 style={{ margin: '0 0 0.5rem 0', color: '#856404', fontSize: '0.9rem' }}>💡 {t('quick_tips')}</h4>
         <ul style={{ margin: 0, paddingLeft: '1.5rem', color: '#856404', fontSize: '0.85rem' }}>
           <li>All dates use DD/MM/YYYY format and Qatar timezone (UTC+3)</li>
           <li>Use <code>En</code>/<code>Ar</code> suffix for bilingual versions (e.g., <code>{`{{titleEn}}`}</code>, <code>{`{{titleAr}}`}</code>)</li>

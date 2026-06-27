@@ -1,5 +1,6 @@
 import React, { forwardRef, useMemo } from 'react';
 import { getThemedIcon } from '@constants/iconTypes';
+import { useLang } from '@contexts/LangContext';
 import styles from './UrlInput.module.css';
 
 
@@ -44,6 +45,7 @@ const UrlInput = forwardRef(({
   name,
   id,
 }, ref) => {
+  const { t } = useLang();
   const valid = useMemo(() => isValidUrl(value), [value]);
   const hasError = !!error || !valid;
 
@@ -99,20 +101,20 @@ const UrlInput = forwardRef(({
           inputMode="url"
         />
         <span className={styles.actions}>
-          <button type="button" className={styles.actionBtn} onClick={handleOpen} title="Open in new tab" disabled={!value || !valid}> 
+          <button type="button" className={styles.actionBtn} onClick={handleOpen} title={t('open_in_new_tab')} disabled={!value || !valid}> 
             {getThemedIcon('ui', 'external_link', 14)}
           </button>
-          <button type="button" className={styles.actionBtn} onClick={handleCopy} title="Copy URL" disabled={!value}>
+          <button type="button" className={styles.actionBtn} onClick={handleCopy} title={t('copy_url')} disabled={!value}>
             {getThemedIcon('ui', 'copy', 14)}
           </button>
-          <button type="button" className={styles.actionBtn} onClick={handleClear} title="Clear">
+          <button type="button" className={styles.actionBtn} onClick={handleClear} title={t('clear')}>
             {getThemedIcon('ui', 'close', 14)}
           </button>
         </span>
       </div>
       {(hasError || helperText) && (
         <span className={hasError ? styles.errorText : styles.helperText}>
-          {hasError ? (error || 'Invalid URL') : helperText}
+          {hasError ? (error || t('invalid_url')) : helperText}
         </span>
       )}
     </div>

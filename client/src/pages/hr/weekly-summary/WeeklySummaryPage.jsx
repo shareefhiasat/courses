@@ -71,12 +71,12 @@ const WeeklySummaryPage = () => {
 
   const handleGenerate = async () => {
     if (!weekStart || !weekEnd) {
-      setError('Please select a date range');
+      setError(t('select_date_range_error'));
       return;
     }
 
     if (dailyDocuments.length === 0) {
-      setError('No daily attendance documents found for the selected date range');
+      setError(t('no_daily_documents_error'));
       return;
     }
 
@@ -92,27 +92,27 @@ const WeeklySummaryPage = () => {
       const result = await generateWeeklySummary(weekStart, weekEnd, comments);
 
       if (result.success) {
-        setSuccess(`Weekly summary generated successfully! Document ID: ${result.data.document.id}`);
+        setSuccess(t('weekly_summary_generated_successfully') + ` ${result.data.document.id}`);
         setShowPreview(false);
         setComments('');
         // Reload daily documents to reflect any changes
         await loadDailyDocuments();
       } else {
-        setError(result.error || 'Failed to generate weekly summary');
+        setError(result.error || t('failed_to_generate_weekly_summary'));
       }
     } catch (error) {
-      setError(error.message || 'Failed to generate weekly summary');
+      setError(error.message || t('failed_to_generate_weekly_summary'));
     } finally {
       setIsGenerating(false);
     }
   };
 
   if (authLoading) {
-    return <div>Loading...</div>;
+    return <div>{t('loading_dots')}</div>;
   }
 
   if (!isHR) {
-    return <div>Access denied. HR role required.</div>;
+    return <div>{t('access_denied_hr')}</div>;
   }
 
   return (

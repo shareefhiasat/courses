@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { getThemedIcon } from '@constants/iconTypes';
+import { useLang } from '@contexts/LangContext';
 import DatePicker from '../DatePicker/DatePicker';
 import styles from './DateRangeSlider.module.css';
 
@@ -29,6 +30,7 @@ const DateRangeSlider = ({
   className = '',
   clearable = true,
 }) => {
+  const { t } = useLang();
   const handleFromChange = (value) => {
     if (onChange) {
       onChange({
@@ -94,10 +96,10 @@ const DateRangeSlider = ({
               className={styles.clearAllButton}
               onClick={handleClearAll}
               disabled={disabled}
-              aria-label="Clear all dates"
+              aria-label={t('clear')}
             >
               {getThemedIcon('ui', 'close', 14)}
-              Clear
+              {t('clear')}
             </button>
           )}
         </div>
@@ -124,7 +126,7 @@ const DateRangeSlider = ({
                 className={styles.clearButton}
                 onClick={() => handleClear('from')}
                 disabled={disabled}
-                aria-label="Clear from date"
+                aria-label={t('clear')}
               >
                 {getThemedIcon('ui', 'close', 14)}
               </button>
@@ -134,7 +136,7 @@ const DateRangeSlider = ({
 
         {showFrom && showTo && (
           <div className={styles.separator}>
-            <span className={styles.separatorText}>to</span>
+            <span className={styles.separatorText}>{t('to')}</span>
           </div>
         )}
 
@@ -158,7 +160,7 @@ const DateRangeSlider = ({
                 className={styles.clearButton}
                 onClick={() => handleClear('to')}
                 disabled={disabled}
-                aria-label="Clear to date"
+                aria-label={t('clear')}
               >
                 {getThemedIcon('ui', 'close', 14)}
               </button>

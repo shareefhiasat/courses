@@ -75,14 +75,14 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Atten
             value={programFilter}
             onChange={(e) => setProgramFilter(e.target.value)}
             options={[
-              { value: 'all', label: 'All Programs' },
+              { value: 'all', label: t('all_programs') },
               ...programs.map(p => ({
                 value: p.docId || p.id,
                 label: p.nameEn || p.nameAr || p.code || p.docId
               }))
             ]}
             fullWidth
-            placeholder="Program"
+            placeholder={t('program')}
           />
         </div>
 
@@ -93,14 +93,14 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Atten
             value={subjectFilter}
             onChange={(e) => setSubjectFilter(e.target.value)}
             options={[
-              { value: 'all', label: 'All Subjects' },
+              { value: 'all', label: t('all_subjects') },
               ...filteredSubjects.map(s => ({
                 value: s.docId || s.id,
                 label: `${s.code || ''} - ${s.nameEn || s.nameAr || s.docId}`
               }))
             ]}
             fullWidth
-            placeholder="Subject"
+            placeholder={t('subject')}
           />
         </div>
 
@@ -130,11 +130,11 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Atten
               value={yearFilter}
               onChange={(e) => setYearFilter(e.target.value)}
               options={[
-                { value: 'all', label: 'All Years' },
+                { value: 'all', label: t('all_years') },
                 ...uniqueYears.map(year => ({ value: year, label: year }))
               ]}
               fullWidth
-              placeholder="Year"
+              placeholder={t('year')}
             />
           </div>
         )}
@@ -147,11 +147,11 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Atten
               value={termFilter}
               onChange={(e) => setTermFilter(e.target.value)}
               options={[
-                { value: 'all', label: 'All Terms' },
+                { value: 'all', label: t('all_terms') },
                 ...uniqueTerms.map(term => ({ value: term, label: term }))
               ]}
               fullWidth
-              placeholder="Term"
+              placeholder={t('term')}
             />
           </div>
         )}

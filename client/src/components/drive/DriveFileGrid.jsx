@@ -1,6 +1,7 @@
 import React from 'react';
 import FileCard from './FileCard';
 import FileListRow from './FileListRow';
+import { useLang } from '@contexts/LangContext';
 
 /**
  * DriveFileGrid Component
@@ -8,6 +9,7 @@ import FileListRow from './FileListRow';
  * Grid/list container that maps files to FileCard/FileListRow
  */
 const DriveFileGrid = ({ files, viewMode, selectedFiles, onSelect, onOpen, onEdit, onShare, onComment, onDownload, onDelete, onCreateWorkflow }) => {
+  const { t } = useLang();
   const isSelected = (file) => selectedFiles.has(file.path);
 
   if (viewMode === 'list') {
@@ -17,11 +19,11 @@ const DriveFileGrid = ({ files, viewMode, selectedFiles, onSelect, onOpen, onEdi
         <div className="flex items-center gap-3 px-4 py-3 bg-gray-50 border-b border-gray-200 text-xs font-medium text-gray-600 uppercase tracking-wider">
           <div className="w-4" />
           <div className="w-6" />
-          <div className="flex-1">Name</div>
-          <div className="hidden xl:block w-32">Creator</div>
-          <div className="hidden lg:block w-32">Created</div>
-          <div className="hidden md:block w-32">Modified</div>
-          <div className="hidden sm:block w-24 text-end">Size</div>
+          <div className="flex-1">{t('name')}</div>
+          <div className="hidden xl:block w-32">{t('creator')}</div>
+          <div className="hidden lg:block w-32">{t('created')}</div>
+          <div className="hidden md:block w-32">{t('modified')}</div>
+          <div className="hidden sm:block w-24 text-end">{t('size')}</div>
           <div className="w-10" />
         </div>
 
