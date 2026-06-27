@@ -12,6 +12,7 @@
  */
 
 import prisma from '../db/prismaClient.js';
+import { USER_NAME_SELECT_WITH_ID } from '../utils/userNameFields.js';
 import { v4 as uuidv4 } from 'uuid';
 import {
   generatePresignedPutUrl,
@@ -80,7 +81,7 @@ export async function listVersions(fileId, actorUserId, actorRoles = []) {
     const versions = await prisma.fileVersion.findMany({
       where: { fileId },
       include: {
-        uploadedBy: { select: { id: true, email: true, displayName: true } },
+        uploadedBy: { select: USER_NAME_SELECT_WITH_ID },
       },
       orderBy: { versionNumber: 'desc' },
     });

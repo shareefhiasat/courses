@@ -10,6 +10,7 @@
  */
 
 import prisma from '../db/prismaClient.js';
+import { USER_NAME_SELECT_WITH_ID } from '../utils/userNameFields.js';
 import { Prisma } from '@prisma/client';
 import { getDatabaseUserId } from '../utils/database/userResolver.js';
 import { LMS_ROLES } from './keycloakAdminService.js';
@@ -502,7 +503,7 @@ export async function downloadFolder(folderId, actorUserId, req, res) {
         isDeleted: false,
       },
       include: {
-        owner: { select: { id: true, email: true, displayName: true } },
+        owner: { select: USER_NAME_SELECT_WITH_ID },
       },
     });
 

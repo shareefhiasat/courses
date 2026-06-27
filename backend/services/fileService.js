@@ -22,6 +22,7 @@
  */
 
 import prisma from '../db/prismaClient.js';
+import { USER_NAME_SELECT_WITH_ID } from '../utils/userNameFields.js';
 import { v4 as uuidv4 } from 'uuid';
 import {
   generatePresignedPutUrl,
@@ -256,7 +257,7 @@ export async function getFileById(fileId, actorUserId, actorRoles = []) {
     const file = await prisma.file.findUnique({
       where: { id: fileId },
       include: {
-        owner: { select: { id: true, keycloakId: true, email: true, displayName: true } },
+        owner: { select: { ...USER_NAME_SELECT_WITH_ID, keycloakId: true } },
         folder: { select: { id: true, name: true, path: true } },
         currentVersion: true,
         versions: { orderBy: { versionNumber: 'desc' }, take: 10 },
@@ -410,7 +411,7 @@ export async function listFiles(keycloakUser, {
       prisma.file.findMany({
         where,
         include: {
-          owner: { select: { id: true, keycloakId: true, email: true, displayName: true, firstName: true, lastName: true, displayNameAr: true, firstNameAr: true, lastNameAr: true } },
+          owner: { select: { ...USER_NAME_SELECT_WITH_ID, keycloakId: true } },
           currentVersion: { select: { versionNumber: true, size: true, createdAt: true } },
         },
         orderBy: { [sortField]: sortOrder },
@@ -1188,7 +1189,7 @@ export async function getFileByPublicToken(token) {
   try {
     const link = await prisma.publicLink.findUnique({
       where: { token },
-      include: { file: { include: { owner: { select: { id: true, displayName: true } } } } },
+      include: { file: { include: { owner: { select: USER_NAME_SELECT_WITH_ID } } } },
     });
     if (!link || link.revokedAt) return err('INVALID_TOKEN', 'Invalid or revoked link');
     if (link.expiresAt && link.expiresAt < new Date()) return err('INVALID_TOKEN', 'Link expired');

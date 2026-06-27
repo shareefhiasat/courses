@@ -11,6 +11,7 @@
  */
 
 import prisma from '../db/prismaClient.js';
+import { USER_NAME_SELECT_WITH_ID } from '../utils/userNameFields.js';
 import { Prisma } from '@prisma/client';
 import { getDatabaseUserId } from '../utils/database/userResolver.js';
 import { SHARE_SUBJECT_TYPES, SHARE_PERMISSIONS } from '../constants/driveConstants.js';
@@ -307,7 +308,7 @@ export async function listSharedWithMe(actor) {
       include: {
         file: {
           include: {
-            owner: { select: { id: true, email: true, displayName: true } },
+            owner: { select: USER_NAME_SELECT_WITH_ID },
           },
         },
       },
@@ -325,7 +326,7 @@ export async function listSharedWithMe(actor) {
       include: {
         folder: {
           include: {
-            owner: { select: { id: true, email: true, displayName: true } },
+            owner: { select: USER_NAME_SELECT_WITH_ID },
           },
         },
       },
@@ -420,7 +421,7 @@ export async function listSharedByMe(actor) {
       include: {
         file: {
           include: {
-            owner: { select: { id: true, email: true, displayName: true } },
+            owner: { select: USER_NAME_SELECT_WITH_ID },
           },
         },
       },
@@ -438,7 +439,7 @@ export async function listSharedByMe(actor) {
       include: {
         folder: {
           include: {
-            owner: { select: { id: true, email: true, displayName: true } },
+            owner: { select: USER_NAME_SELECT_WITH_ID },
           },
         },
       },

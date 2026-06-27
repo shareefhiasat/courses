@@ -1,4 +1,5 @@
 import prisma from '../db/prismaClient.js';
+import { USER_NAME_SELECT_WITH_ID } from '../utils/userNameFields.js';
 
 /**
  * Add comment to file
@@ -25,7 +26,7 @@ export const addFileComment = async ({ fileId, userId, comment }) => {
       },
       include: {
         user: {
-          select: { id: true, email: true, displayName: true }
+          select: USER_NAME_SELECT_WITH_ID
         }
       }
     });
@@ -78,7 +79,7 @@ export const getFileComments = async ({ fileId, userId }) => {
         userId: true,
         createdAt: true,
         user: {
-          select: { id: true, email: true, displayName: true }
+          select: USER_NAME_SELECT_WITH_ID
         }
       },
       orderBy: { createdAt: 'asc' }
