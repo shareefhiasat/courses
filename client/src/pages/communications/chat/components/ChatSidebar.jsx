@@ -248,7 +248,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const ChatS
             e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
             e.currentTarget.style.background = 'var(--panel)';
           }}
-          title={t('expand_sidebar') || 'Expand sidebar'}
+          title={t('expand_sidebar')}
         >
           {getThemedIcon('ui', 'chevron_right', 14, theme)}
         </button>
@@ -292,7 +292,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const ChatS
                   {t('global_chat')}
                 </div>
                 <div style={{ fontSize: '0.75rem', color: '#666' }}>
-                  {t('all_users') || 'All users'}
+                  {t('all_users')}
                 </div>
                 {renderUnreadBadge(unreadCounts['global'] || 0)}
               </div>
@@ -334,7 +334,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const ChatS
                       e.stopPropagation();
                       await toggleClassArchive(cls);
                     }}
-                    title={archivedClasses[cls.docId] ? (t('unarchive') || 'Unarchive') : (t('archive') || 'Archive')}
+                    title={archivedClasses[cls.docId] ? t('unarchive') : t('archive')}
                     style={{ 
                       background:'transparent', 
                       border:'none', 
@@ -450,12 +450,12 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const ChatS
         {getFilteredRooms().map(room => {
           const otherId = (room.participants || []).find(p => p !== user.uid);
           const other = safeAllUsers.find(u => u.docId === otherId);
-          const label = other?.displayName || other?.email || 'Conversation';
+          const label = other?.displayName || other?.email || t('conversation');
           const lastTime = room.lastMessageAt?.toDate?.();
           const isDeleted = !other || other.deleted;
           const isDisabled = other?.disabled || other?.isDisabled;
           const showIndicator = isDeleted || isDisabled;
-          const indicatorTitle = isDeleted ? 'Deleted User' : (isDisabled ? 'Disabled User' : '');
+          const indicatorTitle = isDeleted ? t('deleted_user') : (isDisabled ? t('disabled_user') : '');
           
           return (
             <div
@@ -525,8 +525,8 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const ChatS
                         toggleStar(room); 
                       }}
                       title={(room.starBy || []).includes(user.uid) ? 
-                        (t('unfavorite') || 'Unfavorite') : 
-                        (t('favorite') || 'Favorite')}
+                        t('unfavorite') : 
+                        t('favorite')}
                       style={{ 
                         background:'transparent', 
                         border:'1px solid var(--border)', 
@@ -546,8 +546,8 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const ChatS
                         await toggleRoomArchive(room);
                       }}
                       title={archivedRooms[room.id] ? 
-                        (t('unarchive') || 'Unarchive') : 
-                        (t('archive') || 'Archive')}
+                        t('unarchive') : 
+                        t('archive')}
                       style={{ 
                         background:'transparent', 
                         border:'1px solid var(--border)', 
@@ -595,7 +595,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const ChatS
               cursor:'pointer' 
             }}
           >
-            {t('show_archived') || 'Show archived'}
+            {t('show_archived')}
           </label>
         </div>
         <div style={{ display:'flex', alignItems:'center', gap:8 }}>
@@ -613,7 +613,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const ChatS
               cursor:'pointer' 
             }}
           >
-            {t('favorites_only') || 'Favorites only'}
+            {t('favorites_only')}
           </label>
         </div>
       </div>
@@ -647,7 +647,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const ChatS
           e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
           e.currentTarget.style.background = 'var(--panel)';
         }}
-        title={t('collapse_sidebar') || 'Collapse sidebar'}
+        title={t('collapse_sidebar')}
       >
         {getThemedIcon('ui', 'chevron_left', 14, theme)}
       </button>
@@ -663,7 +663,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const ChatS
           width:6, 
           cursor:'col-resize' 
         }}
-        aria-label={t('resize_sidebar') || 'Resize sidebar'}
+        aria-label={t('resize_sidebar')}
       />
     </div>
   );

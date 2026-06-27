@@ -72,8 +72,8 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Messa
         </p>
         <p style={{ color: 'var(--muted)' }}>
           {msgQuery?.trim() || globalChatSearch ? 
-            (t('no_messages_found') || 'No messages found') : 
-            (t('no_messages') || 'No messages')
+            (t('no_messages_found')) : 
+            (t('no_messages'))
           }
         </p>
       </div>
@@ -87,8 +87,8 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Messa
           const today = formatDate(new Date());
           const yesterday = formatDate(new Date(Date.now() - 86400000));
           let label = item.dateStr;
-          if (item.dateStr === today) label = 'Today';
-          else if (item.dateStr === yesterday) label = 'Yesterday';
+          if (item.dateStr === today) label = t('today');
+          else if (item.dateStr === yesterday) label = t('yesterday');
           
           return (
             <div key={`date-${idx}`} style={{ 

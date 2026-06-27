@@ -118,7 +118,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Messa
                 alignItems: 'center',
                 justifyContent: 'center',
                 lineHeight: 1
-              }} title={senderUser?.deleted ? (t('deleted_user') || 'Deleted User') : (t('disabled_user') || 'Disabled User')}>✕</span>
+              }} title={senderUser?.deleted ? t('deleted_user') : t('disabled_user')}>✕</span>
             )}
           </div>
         )}

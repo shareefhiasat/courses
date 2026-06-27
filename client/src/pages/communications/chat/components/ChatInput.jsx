@@ -104,9 +104,9 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const ChatI
   // Get button title based on state
   const getButtonTitle = () => {
     if (isUploading) return t('uploading');
-    if (newMessage.trim() || audioBlob || attachedFile) return t('send') || 'Send';
-    if (isRecording) return t('stop_recording') || 'Stop Recording';
-    return t('record_voice') || 'Record Voice';
+    if (newMessage.trim() || audioBlob || attachedFile) return t('send');
+    if (isRecording) return t('stop_recording');
+    return t('record_voice');
   };
 
   // Get button icon based on state
@@ -158,7 +158,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const ChatI
               {imagePreview ? (
                 <img 
                   src={imagePreview} 
-                  alt={t('preview') || 'Preview'} 
+                  alt={t('preview')} 
                   style={{
                     width: 40,
                     height: 40,
@@ -344,7 +344,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const ChatI
               height: 32,
               transition: 'all 0.2s'
             }}
-            title={t('emoji') || 'Emoji'}
+            title={t('emoji')}
             onMouseOver={(e)=>{e.target.style.background='var(--background)'; e.target.style.borderColor='var(--brand)';}}
             onMouseOut={(e)=>{e.target.style.background='transparent'; e.target.style.borderColor='var(--border)';}}
           >
@@ -373,7 +373,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const ChatI
                   height: 32,
                   transition: 'all 0.2s'
                 }}
-                title={t('create_poll') || 'Create Poll'}
+                title={t('create_poll')}
                 onMouseOver={(e)=>{e.target.style.background='var(--background)'; e.target.style.borderColor='var(--brand)';}}
                 onMouseOut={(e)=>{e.target.style.background='transparent'; e.target.style.borderColor='var(--border)';}}
               >
@@ -391,7 +391,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const ChatI
               border: 'none',
               cursor: 'pointer',
               fontSize: '1.3rem'
-            }} title={t('attach') || 'Attach'}>
+            }} title={t('attach')}>
               {getThemedIcon('ui', 'attachment', 20, theme)}
               <input
                 type="file"
@@ -598,7 +598,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const ChatI
                 }}>
                   {getThemedIcon('ui', 'bar_chart', 18, theme)}
                 </div>
-                {t('create_poll') || 'Create Poll'}
+                {t('create_poll')}
               </h3>
               <button 
                 onClick={resetPoll} 
@@ -628,13 +628,13 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const ChatI
                 fontSize:'0.9rem', 
                 color:'var(--text)' 
               }}>
-                {t('question') || 'Question'}
+                {t('question')}
               </label>
               <input
                 type="text"
                 value={pollQuestion}
                 onChange={(e)=>setPollQuestion(e.target.value)}
-                placeholder={t('chat.question_placeholder', 'What would you like to know?')}
+                placeholder={t('chat_question_placeholder')}
                 style={{ 
                   width:'100%', 
                   padding:'0.875rem', 
@@ -660,7 +660,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const ChatI
                 fontSize:'0.9rem', 
                 color:'var(--text)' 
               }}>
-                {t('options') || 'Options'}
+                {t('options')}
               </label>
               <div style={{ 
                 background:'var(--background)', 
@@ -753,7 +753,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const ChatI
               onMouseOut={(e)=>{e.target.style.background='transparent'; e.target.style.color='var(--brand)';}}
             >
               {getThemedIcon('ui', 'plus', 18, theme)}
-              {t('add_option') || 'Add Option'}
+              {t('add_option')}
             </button>
             
             <div style={{ display:'flex', justifyContent:'flex-end', gap:'0.75rem' }}>
@@ -773,7 +773,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const ChatI
                 onMouseOver={(e)=>{e.target.style.background='var(--background)';}}
                 onMouseOut={(e)=>{e.target.style.background='transparent';}}
               >
-                {t('cancel')||'Cancel'}
+                {t('cancel')}
               </button>
               <button
                 onClick={handleCreatePoll}

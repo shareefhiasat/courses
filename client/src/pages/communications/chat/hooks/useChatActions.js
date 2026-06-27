@@ -216,7 +216,7 @@ export const useChatActions = (user, state, toast, t) => {
           messageData.content = '[Voice Message]';
         } catch (uploadError) {
           error('Voice upload failed:', uploadError);
-          toast?.showError('Failed to upload voice message. Please check your internet connection and try again.');
+          toast?.showError(t('voice_upload_failed'));
           setIsUploading(false);
           return;
         }
@@ -242,7 +242,7 @@ export const useChatActions = (user, state, toast, t) => {
         messageData.content = filteredContent;
         
         if (originalContent !== filteredContent) {
-          toast?.showWarning('Your message has been filtered for inappropriate content.');
+          toast?.showWarning(t('message_filtered_inappropriate'));
         }
       }
       
@@ -286,7 +286,7 @@ export const useChatActions = (user, state, toast, t) => {
       resetInputState();
     } catch (err) {
       error('Error sending message:', err);
-      toast?.showError('Failed to send message');
+      toast?.showError(t('failed_to_send'));
     } finally {
       setIsUploading(false);
     }
@@ -301,14 +301,14 @@ export const useChatActions = (user, state, toast, t) => {
     if (!file) return;
     
     if (!isFileTypeAllowed(file)) {
-      toast?.showError('File type not allowed');
+      toast?.showError(t('chat_file_type_not_allowed'));
       e.target.value = '';
       return;
     }
     
     if (file.size > FILE_UPLOAD_LIMITS.MAX_TOTAL_SIZE) {
       const maxSizeMB = FILE_UPLOAD_LIMITS.MAX_TOTAL_SIZE / (1024 * 1024);
-      toast?.showError(`File too large. Maximum size: ${maxSizeMB}MB`);
+      toast?.showError(t('file_too_large_max').replace('{max}', maxSizeMB));
       e.target.value = '';
       return;
     }
@@ -364,7 +364,7 @@ export const useChatActions = (user, state, toast, t) => {
           const maxTime = getMaxVoiceTimeDisplay(userRole);
           if (newTime >= parseInt(maxTime) * 60) {
             stopRecording();
-            toast?.showInfo(`Maximum recording time reached (${maxTime})`);
+            toast?.showInfo(t('max_recording_time_reached').replace('{max}', maxTime));
           }
           return newTime;
         });
@@ -372,7 +372,7 @@ export const useChatActions = (user, state, toast, t) => {
       
     } catch (err) {
       error('Error starting recording:', err);
-      toast?.showError('Microphone access denied');
+      toast?.showError(t('microphone_access_denied'));
     }
   }, [user, toast, state]);
 
@@ -426,10 +426,10 @@ export const useChatActions = (user, state, toast, t) => {
         } catch (e) {}
       }
       
-      toast?.showSuccess('Message deleted');
+      toast?.showSuccess(t('message_deleted'));
     } catch (err) {
       error('Delete message failed:', err);
-      toast?.showError('Failed to delete message');
+      toast?.showError(t('failed_to_delete_message'));
     }
   }, [user, toast, setMessages]);
 
@@ -481,7 +481,7 @@ export const useChatActions = (user, state, toast, t) => {
       setShowMembers(false);
     } catch (err) {
       error('Open DM failed:', err);
-      toast?.showError('Failed to start conversation');
+      toast?.showError(t('failed_to_start_conversation'));
     }
   }, [user, setSelectedClass, setShowMembers, toast]);
 
@@ -495,7 +495,7 @@ export const useChatActions = (user, state, toast, t) => {
 
   const clearDMMessages = useCallback(async (roomId, mode = CLEAR_MESSAGE_MODES.ALL) => {
     if (!user.isAdmin && (mode === CLEAR_MESSAGE_MODES.ALL || mode === CLEAR_MESSAGE_MODES.THEIRS)) {
-      toast?.showError(t('only_admins_can_clear') || 'Only admins can clear these messages');
+      toast?.showError(t('only_admins_can_clear'));
       return;
     }
     
@@ -503,13 +503,13 @@ export const useChatActions = (user, state, toast, t) => {
       const deletedCount = await chatService.clearChatMessages(roomId, mode, user.uid);
       
       setDmContextMenu(null);
-      const modeLabel = mode === CLEAR_MESSAGE_MODES.ALL ? (t('all_messages') || 'All messages') : 
-                       mode === CLEAR_MESSAGE_MODES.MINE ? (t('your_messages') || 'Your messages') : 
-                       (t('their_messages') || 'Their messages');
-      toast?.showSuccess(`${modeLabel} ${t('cleared') || 'cleared'}`);
+      const modeLabel = mode === CLEAR_MESSAGE_MODES.ALL ? t('all_messages') : 
+                       mode === CLEAR_MESSAGE_MODES.MINE ? t('your_messages') : 
+                       t('their_messages');
+      toast?.showSuccess(`${modeLabel} ${t('cleared')}`);
     } catch (err) {
       error('Clear messages failed:', err);
-      toast?.showError(t('failed_to_clear_messages') || 'Failed to clear messages');
+      toast?.showError(t('failed_to_clear_messages'));
     }
   }, [user, toast, t, setDmContextMenu]);
 
@@ -524,10 +524,10 @@ export const useChatActions = (user, state, toast, t) => {
       await chatService.deleteDirectRoom(roomId);
       setShowDeleteDMConfirm(false);
       setSelectedClass('global');
-      toast?.showSuccess(t('conversation_deleted') || 'Conversation deleted');
+      toast?.showSuccess(t('conversation_deleted'));
     } catch (err) {
       error('Delete conversation failed:', err);
-      toast?.showError(t('failed_to_delete_conversation') || 'Failed to delete conversation');
+      toast?.showError(t('failed_to_delete_conversation'));
     }
   }, [user, safeDirectRooms, selectedClass, setShowDeleteDMConfirm, setSelectedClass, toast]);
 
@@ -558,10 +558,10 @@ export const useChatActions = (user, state, toast, t) => {
       
       await chatService.createPollMessage(pollData);
       resetPollState();
-      toast?.showSuccess('Poll created!');
+      toast?.showSuccess(t('poll_created'));
     } catch (err) {
       error('Failed to create poll:', err);
-      toast?.showError('Failed to create poll');
+      toast?.showError(t('failed_to_create_poll'));
     }
   }, [pollQuestion, pollOptions, selectedClass, user, profileName, resetPollState, toast]);
 
@@ -583,18 +583,18 @@ export const useChatActions = (user, state, toast, t) => {
   const shareMessage = useCallback((messageId) => {
     const shareUrl = generateShareUrl(messageId, selectedClass);
     navigator.clipboard.writeText(shareUrl).then(() => {
-      toast?.showSuccess('Message link copied!');
+      toast?.showSuccess(t('message_link_copied'));
     }).catch(() => {
-      toast?.showError('Failed to copy link');
+      toast?.showError(t('failed_to_copy_link'));
     });
   }, [selectedClass, toast]);
 
   // Copy message
   const copyMessage = useCallback((content) => {
     navigator.clipboard.writeText(content).then(() => {
-      toast?.showSuccess('Message copied! Paste to forward');
+      toast?.showSuccess(t('message_copied'));
     }).catch(() => {
-      toast?.showError('Failed to copy');
+      toast?.showError(t('failed_to_copy'));
     });
   }, [toast]);
 

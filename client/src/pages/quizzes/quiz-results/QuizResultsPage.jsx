@@ -106,7 +106,7 @@ const QuizResultsPage = () => {
       }
     } catch (error) {
       error('Failed to load data:', error);
-      toast.error(t('quiz_results.load_failed', 'Failed to load data: ') + error.message);
+      toast.error(t('quiz_results.load_failed') + error.message);
     } finally {
       setLoading(false);
     }
@@ -318,7 +318,7 @@ const QuizResultsPage = () => {
         message: error.message,
         stack: error.stack
       });
-      toast?.error?.('Failed to load quiz results: ' + error.message);
+      toast?.error?.(t('failed_to_load_quiz_results') + error.message);
       // Set empty array on error to prevent showing stale data
       setQuizResults([]);
     } finally {
@@ -329,7 +329,7 @@ const QuizResultsPage = () => {
   const columns = [
     {
       field: 'studentName',
-      headerName: 'Student',
+      headerName: t('student'),
       flex: 1,
       minWidth: 150,
       valueGetter: (params) => {
@@ -346,7 +346,7 @@ const QuizResultsPage = () => {
     },
     {
       field: 'quizTitle',
-      headerName: 'Quiz',
+      headerName: t('quiz'),
       flex: 1,
       minWidth: 200,
       valueGetter: (params) => {
@@ -360,7 +360,7 @@ const QuizResultsPage = () => {
     },
     {
       field: 'programName',
-      headerName: 'Program',
+      headerName: t('program'),
       flex: 1,
       minWidth: 150,
       valueGetter: (params) => {
@@ -374,7 +374,7 @@ const QuizResultsPage = () => {
     },
     {
       field: 'subjectName',
-      headerName: 'Subject',
+      headerName: t('subject'),
       flex: 1,
       minWidth: 150,
       valueGetter: (params) => {
@@ -388,7 +388,7 @@ const QuizResultsPage = () => {
     },
     {
       field: 'className',
-      headerName: 'Class',
+      headerName: t('class'),
       flex: 1,
       minWidth: 150,
       valueGetter: (params) => {
@@ -402,7 +402,7 @@ const QuizResultsPage = () => {
     },
     {
       field: 'score',
-      headerName: 'Score',
+      headerName: t('score'),
       width: 200,
       renderCell: (params) => {
         const row = params.row;
@@ -421,16 +421,16 @@ const QuizResultsPage = () => {
                 {percentage}%
               </Badge>
               {isOverridden && (
-                <Badge variant="outline" color="warning" size="small" title="Score overridden">
+                <Badge variant="outline" color="warning" size="small" title={t('score_overridden_badge')}>
                   {getThemedIcon('ui', 'edit', 10, theme)}
                 </Badge>
               )}
               {isApproved ? (
-                <Badge variant="success" size="small" title="Approved">
+                <Badge variant="success" size="small" title={t('approved_badge')}>
                   {getThemedIcon('ui', 'check', 10, theme)}
                 </Badge>
               ) : isReviewed ? (
-                <Badge variant="warning" size="small" title="Reviewed but not approved">
+                <Badge variant="warning" size="small" title={t('reviewed_not_approved')}>
                   {getThemedIcon('ui', 'x', 10, theme)}
                 </Badge>
               ) : null}
@@ -443,7 +443,7 @@ const QuizResultsPage = () => {
                   setEditingResult(row);
                   setOverrideScore(score.toString());
                 }}
-                title="Override score"
+                title={t('override_score_title')}
               >
                 {getThemedIcon('ui', 'edit', 12, theme)}
               </Button>
@@ -454,7 +454,7 @@ const QuizResultsPage = () => {
     },
     {
       field: 'submittedAt',
-      headerName: 'Submitted',
+      headerName: t('submitted'),
       width: 180,
       valueGetter: (params) => {
         const date = params.row.submittedAt?.toDate ? params.row.submittedAt.toDate() : new Date(params.row.submittedAt || 0);
@@ -463,7 +463,7 @@ const QuizResultsPage = () => {
     },
     {
       field: 'actions',
-      headerName: 'Actions',
+      headerName: t('actions'),
       width: 250,
       sortable: false,
       filterable: false,
@@ -478,7 +478,7 @@ const QuizResultsPage = () => {
               variant="ghost"
               onClick={() => navigate(`/quiz-preview/${row.quizId}?resultId=${row.id}`)}
             >
-              View Details
+              {t('view_details')}
             </Button>
             {(isAdmin || isSuperAdmin || isInstructor) && (
               <>
@@ -487,7 +487,7 @@ const QuizResultsPage = () => {
                     size="sm"
                     variant="success"
                     onClick={() => handleApproveResult(row.id, true)}
-                    title="Approve and notify student"
+                    title={t('approve_and_notify_student')}
                   >
                     {getThemedIcon('ui', 'check', 12, theme)}
                   </Button>
@@ -496,7 +496,7 @@ const QuizResultsPage = () => {
                   size="sm"
                   variant="outline"
                   onClick={() => handleSendNotification(row)}
-                  title="Send notification"
+                  title={t('send_notification_title')}
                 >
                   {getThemedIcon('ui', 'send', 12, theme)}
                 </Button>
@@ -514,7 +514,7 @@ const QuizResultsPage = () => {
     
     const newScore = parseFloat(overrideScore);
     if (isNaN(newScore) || newScore < 0) {
-      toast.error(t('please_enter_valid_score') || 'Please enter a valid score');
+      toast.error(t('please_enter_valid_score'));
       return;
     }
 
@@ -534,12 +534,12 @@ const QuizResultsPage = () => {
           : r
       ));
 
-      toast.success(t('score_overridden_successfully') || 'Score overridden successfully');
+      toast.success(t('score_overridden_successfully'));
       setEditingResult(null);
       setOverrideScore('');
     } catch (error) {
       error('Error overriding score:', error);
-      toast.error(t('quiz_results.override_failed', 'Failed to override score: ') + error.message);
+      toast.error(t('quiz_results.override_failed') + error.message);
     }
   };
 
@@ -566,10 +566,10 @@ const QuizResultsPage = () => {
         await sendResultNotification(result, true);
       }
 
-      toast.success(t('quiz_results.approved_success', 'Result approved successfully'));
+      toast.success(t('quiz_results.approved_success'));
     } catch (error) {
       error('Error approving result:', error);
-      toast.error(t('quiz_results.approve_failed', 'Failed to approve result: ') + error.message);
+      toast.error(t('quiz_results.approve_failed') + error.message);
     }
   };
 
@@ -586,7 +586,7 @@ const QuizResultsPage = () => {
       ]);
 
       if (!quizDoc.exists() || !studentDoc.exists()) {
-        toast.error(t('quiz_results.not_found', 'Quiz or student not found'));
+        toast.error(t('quiz_results.not_found'));
         return;
       }
 
@@ -600,8 +600,8 @@ const QuizResultsPage = () => {
       if (sendInAppNotification) {
         await addNotification({
           userId: result.userId,
-          title: isApproval ? 'Quiz Graded and Approved' : 'Quiz Graded',
-          message: `Your quiz "${quiz.title || 'Quiz'}" has been ${isApproval ? 'graded and approved' : 'graded'}. Score: ${score}/${maxScore} (${percentage}%)`,
+          title: isApproval ? t('quiz_graded_and_approved') : t('quiz_graded'),
+          message: t('quiz_graded_message').replace('{title}', quiz.title || t('quiz')).replace('{status}', isApproval ? t('quiz_graded_and_approved') : t('quiz_graded')).replace('{score}', score).replace('{maxScore}', maxScore).replace('{percentage}', percentage),
           type: 'quiz',
           metadata: {
             quizId: result.quizId,
@@ -638,16 +638,16 @@ const QuizResultsPage = () => {
         });
       }
 
-      toast.success(t('quiz_results.notification_sent', 'Notification sent successfully'));
+      toast.success(t('quiz_results.notification_sent'));
     } catch (error) {
       error('Error sending notification:', error);
-      toast.error(t('quiz_results.notification_failed', 'Failed to send notification: ') + error.message);
+      toast.error(t('quiz_results.notification_failed') + error.message);
     }
   };
 
   const handleBulkApprove = async () => {
     if (selectedRows.length === 0) {
-      toast.error(t('quiz_results.select_result', 'Please select at least one result'));
+      toast.error(t('quiz_results.select_result'));
       return;
     }
 
@@ -689,13 +689,13 @@ const QuizResultsPage = () => {
           }
         }
 
-        toast.success(t('approved_results_successfully', { count }) || `Approved ${count} result(s) successfully`);
+        toast.success(t('approved_results_successfully'));
         setSelectedRows([]);
         setBulkActionModal({ open: false, action: null });
       }
     } catch (error) {
       error('Error bulk approving:', error);
-      toast.error(t('quiz_results.bulk_approve_failed', 'Failed to approve results: ') + error.message);
+      toast.error(t('quiz_results.bulk_approve_failed') + error.message);
     }
   };
 
@@ -882,13 +882,13 @@ const QuizResultsPage = () => {
                   setSelectedClass('all');
                 }}
                 options={[
-                  { value: 'all', label: 'All Programs' },
+                  { value: 'all', label: t('all_programs') },
                   ...programs.map(p => ({
                     value: p.docId || p.id,
                     label: p.nameEn || p.nameAr || p.code || p.docId
                   }))
                 ]}
-                placeholder={t('quiz_results.filter_by_program', 'Filter by Program')}
+                placeholder={t('quiz_results.filter_by_program')}
                 fullWidth
               />
               <Select
@@ -899,7 +899,7 @@ const QuizResultsPage = () => {
                   setSelectedClass('all');
                 }}
                 options={[
-                  { value: 'all', label: 'All Subjects' },
+                  { value: 'all', label: t('all_subjects') },
                   ...subjects
                     .filter(s => selectedProgram === 'all' || s.programId === selectedProgram)
                     .map(s => ({
@@ -907,7 +907,7 @@ const QuizResultsPage = () => {
                       label: `${s.code || ''} - ${s.nameEn || s.nameAr || s.docId}`.trim()
                     }))
                 ]}
-                placeholder={t('quiz_results.filter_by_subject', 'Filter by Subject')}
+                placeholder={t('quiz_results.filter_by_subject')}
                 fullWidth
               />
               <Select
@@ -915,13 +915,13 @@ const QuizResultsPage = () => {
                 value={selectedClass}
                 onChange={(e) => setSelectedClass(e.target.value)}
                 options={[
-                  { value: 'all', label: 'All Classes' },
+                  { value: 'all', label: t('all_classes') },
                   ...filteredClasses.map(c => ({
                     value: c.id || c.docId,
                     label: `${c.name || c.code || c.id}${c.term ? ` (${c.term})` : ''}`
                   }))
                 ]}
-                placeholder={t('quiz_results.filter_by_class', 'Filter by Class')}
+                placeholder={t('quiz_results.filter_by_class')}
                 fullWidth
               />
               <Select
@@ -929,13 +929,13 @@ const QuizResultsPage = () => {
                 value={selectedQuiz}
                 onChange={(e) => setSelectedQuiz(e.target.value)}
                 options={[
-                  { value: 'all', label: 'All Quizzes' },
+                  { value: 'all', label: t('all_quizzes') },
                   ...filteredQuizzes.map(q => ({
                     value: q.id || q.docId,
                     label: q.title || q.name || q.id
                   }))
                 ]}
-                placeholder={t('quiz_results.filter_by_quiz', 'Filter by Quiz')}
+                placeholder={t('quiz_results.filter_by_quiz')}
                 fullWidth
               />
               <Select
@@ -943,13 +943,13 @@ const QuizResultsPage = () => {
                 value={selectedStudent}
                 onChange={(e) => setSelectedStudent(e.target.value)}
                 options={[
-                  { value: 'all', label: t('all_students') || 'All Students' },
+                  { value: 'all', label: t('all_students') },
                   ...students.map(s => ({
                     value: s.id || s.docId,
                     label: `${s.displayName || s.email}${s.email ? ` (${s.email})` : ''}`
                   }))
                 ]}
-                placeholder={t('quiz_results.filter_by_student', 'Filter by Student')}
+                placeholder={t('quiz_results.filter_by_student')}
                 fullWidth
               />
             </div>
@@ -962,14 +962,14 @@ const QuizResultsPage = () => {
             <CardBody>
               <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
                 <span style={{ fontWeight: 600 }}>
-                  {selectedRows.length} result(s) selected
+                  {t('results_selected').replace('{count}', selectedRows.length)}
                 </span>
                 <Button
                   variant="success"
                   onClick={() => setBulkActionModal({ open: true, action: 'approve' })}
                 >
                   {getThemedIcon('ui', 'check_square', 14, theme)}
-                  Approve Selected
+                  {t('approve_selected')}
                 </Button>
                 <Button
                   variant="outline"
@@ -979,17 +979,17 @@ const QuizResultsPage = () => {
                       const result = quizResults.find(r => (r.id || r.docId) === rowId);
                       if (result) sendResultNotification(result, false);
                     });
-                    toast.success(`Sending notifications to ${selectedRows.length} student(s)...`);
+                    toast.success(t('sending_notifications').replace('{count}', selectedRows.length));
                   }}
                 >
                   {getThemedIcon('ui', 'send', 14, theme)}
-                  Send Notifications
+                  {t('send_notifications')}
                 </Button>
                 <Button
                   variant="ghost"
                   onClick={() => setSelectedRows([])}
                 >
-                  Clear Selection
+                  {t('clear_selection')}
                 </Button>
               </div>
             </CardBody>
@@ -1021,18 +1021,18 @@ const QuizResultsPage = () => {
             setEditingResult(null);
             setOverrideScore('');
           }}
-          title="Override Score"
+          title={t('override_score_modal_title')}
         >
           {editingResult && (
             <div style={{ padding: '1rem' }}>
               <div style={{ marginBottom: '1rem' }}>
-                <p><strong>Student:</strong> {editingResult.studentName}</p>
-                <p><strong>Quiz:</strong> {editingResult.quizTitle}</p>
-                <p><strong>Current Score:</strong> {editingResult.overrideScore !== undefined ? editingResult.overrideScore : editingResult.score}/{editingResult.maxScore}</p>
+                <p><strong>{t('student')}:</strong> {editingResult.studentName}</p>
+                <p><strong>{t('quiz')}:</strong> {editingResult.quizTitle}</p>
+                <p><strong>{t('current_score_label')}:</strong> {editingResult.overrideScore !== undefined ? editingResult.overrideScore : editingResult.score}/{editingResult.maxScore}</p>
               </div>
               <div style={{ marginBottom: '1rem' }}>
                 <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>
-                  New Score (0 - {editingResult.maxScore})
+                  {t('new_score_range').replace('{max}', editingResult.maxScore)}
                 </label>
                 <Input
                   type="number"
@@ -1051,13 +1051,13 @@ const QuizResultsPage = () => {
                     setOverrideScore('');
                   }}
                 >
-                  Cancel
+                  {t('cancel')}
                 </Button>
                 <Button
                   variant="primary"
                   onClick={handleOverrideScore}
                 >
-                  Save
+                  {t('save')}
                 </Button>
               </div>
             </div>
@@ -1068,22 +1068,22 @@ const QuizResultsPage = () => {
         <Modal
           open={bulkActionModal.open && bulkActionModal.action === 'approve'}
           onClose={() => setBulkActionModal({ open: false, action: null })}
-          title="Bulk Approve Results"
+          title={t('bulk_approve_results')}
         >
           <div style={{ padding: '1rem' }}>
             <p style={{ marginBottom: '1rem' }}>
-              Approve {selectedRows.length} selected result(s)? This will mark them as reviewed and approved.
+              {t('bulk_approve_confirm').replace('{count}', selectedRows.length)}
             </p>
             <div style={{ marginBottom: '1rem' }}>
               <Checkbox
-                label="Send in-app notification"
+                label={t('send_in_app_notification')}
                 checked={sendInAppNotification}
                 onChange={(checked) => setSendInAppNotification(checked)}
               />
             </div>
             <div style={{ marginBottom: '1rem' }}>
               <Checkbox
-                label="Send email notification"
+                label={t('send_email_notification_checkbox')}
                 checked={sendEmailNotification}
                 onChange={(checked) => setSendEmailNotification(checked)}
               />
@@ -1093,13 +1093,13 @@ const QuizResultsPage = () => {
                 variant="ghost"
                 onClick={() => setBulkActionModal({ open: false, action: null })}
               >
-                Cancel
+                {t('cancel')}
               </Button>
               <Button
                 variant="success"
                 onClick={handleBulkApprove}
               >
-                Approve & Notify
+                {t('approve_and_notify')}
               </Button>
             </div>
           </div>

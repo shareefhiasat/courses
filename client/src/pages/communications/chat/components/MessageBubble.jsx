@@ -112,7 +112,7 @@ const MessageBubble = memo(({
       await chatService.votePoll(msg.id, user.uid, optionIndex);
     } catch (err) {
       error('Poll vote error:', err);
-      toast?.showError('Failed to vote');
+      toast?.showError(t('failed_to_vote'));
     }
   }, [msg.id, msg.pollVotes, user.uid, toast, logger]);
 
@@ -145,7 +145,7 @@ const MessageBubble = memo(({
   };
 
   const renderFileContent = () => {
-    const fileName = msg.fileName || 'Attachment';
+    const fileName = msg.fileName || t('attachment');
     const fileType = fileName.split('.').pop()?.toLowerCase() || '';
     const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(fileType);
     const isVideo = ['mp4', 'webm', 'ogg', 'mov'].includes(fileType);
@@ -175,7 +175,7 @@ const MessageBubble = memo(({
             preload="metadata"
           >
             <source src={msg.fileUrl} type={`video/${fileType}`} />
-            {t('browser_no_video_support') || 'Your browser doesn\'t support video playback.'}
+            {t('browser_no_video_support')}
           </video>
           <div style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: 4 }}>
             {fileName} • {Math.ceil((msg.fileSize || 0) / 1024)} KB
@@ -252,7 +252,7 @@ const MessageBubble = memo(({
           );
         })}
         <div style={{ fontSize: '0.8rem', color: 'var(--muted)', marginTop: '0.5rem' }}>
-          {totalVotes} {t('votes') || 'votes'}
+          {totalVotes} {t('votes')}
         </div>
       </div>
     );
@@ -398,7 +398,7 @@ const MessageBubble = memo(({
         <button
           onMouseDown={(e)=>e.stopPropagation()}
           onClick={(e)=>{ e.stopPropagation(); onContextMenu?.(msg.id); }}
-          title={t('more') || 'More'}
+          title={t('more')}
           style={{ position:'absolute', top:4, right:4, background:'transparent', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:'1rem', padding:'2px 4px', lineHeight:1 }}
         >⋮</button>
       </>
@@ -480,7 +480,7 @@ const MessageBubble = memo(({
                 alignItems: 'center',
                 justifyContent: 'center',
                 lineHeight: 1
-              }} title={senderUser?.deleted ? (t('deleted_user') || 'Deleted User') : (t('disabled_user') || 'Disabled User')}>✕</span>
+              }} title={senderUser?.deleted ? t('deleted_user') : t('disabled_user')}>✕</span>
             )}
           </div>
         )}
@@ -508,7 +508,7 @@ const MessageBubble = memo(({
         {/* Reaction Button */}
         <button
           onClick={handleReactionClick}
-          title={t('react') || 'React'}
+          title={t('react')}
           style={{ 
             position:'absolute', 
             bottom: -12, 

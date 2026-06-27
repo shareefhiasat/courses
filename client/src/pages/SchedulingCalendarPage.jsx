@@ -1602,7 +1602,7 @@ const SchedulingCalendarPage = () => {
 
       const result = await scheduledSessionService.updateScheduledSession(session.id, updatePayload);
       if (result.success) {
-        toast.success('Session updated');
+        toast.success(t('session_updated_successfully'));
         console.log('[DRAG/RESIZE] Updating calendar with new data');
         
         // Update the calendar event directly
@@ -1621,7 +1621,7 @@ const SchedulingCalendarPage = () => {
           setScheduledSessions(sessionsResult.data || []);
         }
       } else {
-        toast.error(result.error || 'Failed to update session');
+        toast.error(result.error || t('failed_to_update_session'));
       }
       return result.success;
     }
@@ -1645,7 +1645,7 @@ const SchedulingCalendarPage = () => {
         user,
       });
       if (!slotResolution.success) {
-        toast.error('Failed to update break time slot');
+        toast.error(t('failed_to_update_break_time_slot'));
         console.error('[SchedulingCalendarPage] Break slot resolution failed:', slotResolution.error);
         return false;
       }
@@ -1662,7 +1662,7 @@ const SchedulingCalendarPage = () => {
       console.log('[DRAG/RESIZE] 📥 Backend response:', result.success ? '✅ SUCCESS' : '❌ FAILED');
 
       if (result.success) {
-        toast.success('Break updated');
+        toast.success(t('break_updated'));
         console.log('[DRAG/RESIZE] Updating calendar with new data');
         
         // Update the calendar event directly
@@ -1696,7 +1696,7 @@ const SchedulingCalendarPage = () => {
       }
       console.log('[DRAG/RESIZE] ❌ Break update failed');
       console.log('═══════════════════════════════════════════════════════');
-      toast.error(result.error || 'Failed to update break');
+      toast.error(result.error || t('failed_to_update_break'));
       return false;
     }
 
@@ -1710,7 +1710,7 @@ const SchedulingCalendarPage = () => {
       };
       const result = await holidayService.updateHoliday(holiday.id, updateData);
       if (result.success) {
-        toast.success('Holiday updated');
+        toast.success(t('holiday_updated'));
         console.log('[DRAG/RESIZE] Updating calendar with new data');
         
         // Update the calendar event directly
@@ -1733,7 +1733,7 @@ const SchedulingCalendarPage = () => {
           setHolidays(holidayResult.data || []);
         }
       } else {
-        toast.error(result.error || 'Failed to update holiday');
+        toast.error(result.error || t('failed_to_update_holiday'));
       }
       return result.success;
     }
@@ -1786,7 +1786,7 @@ const SchedulingCalendarPage = () => {
         });
         console.log('[DIALOG SAVE] Break dialog slot resolution:', slotResolution);
         if (!slotResolution.success) {
-          toast.error('Failed to update break time slot');
+          toast.error(t('failed_to_update_break_time_slot'));
           return;
         }
         if (slotResolution.timeSlots) {
@@ -1826,7 +1826,7 @@ const SchedulingCalendarPage = () => {
         console.log('[DIALOG SAVE] Break create result:', result);
       }
       if (result.success) {
-        toast.success(mode === 'edit' ? 'Break updated' : 'Break created');
+        toast.success(mode === 'edit' ? t('break_updated') : t('break_created'));
         console.log('[DIALOG SAVE] Updating calendar with new data');
         
         const cal = calendarRef.current?.getInstance();
@@ -1922,7 +1922,7 @@ const SchedulingCalendarPage = () => {
           setBreakSessions(breakResult.data || []);
         }
       } else {
-        toast.error(result.error || 'Failed to save break');
+        toast.error(result.error || t('failed_to_save_break'));
       }
     } else if (eventType === 'holiday') {
       console.log('[SchedulingCalendarPage] Processing holiday save', { mode, eventId: event?.id });
@@ -1934,7 +1934,7 @@ const SchedulingCalendarPage = () => {
         console.log('[SchedulingCalendarPage] Holiday create result:', result);
       }
       if (result.success) {
-        toast.success(mode === 'edit' ? 'Holiday updated' : 'Holiday created');
+        toast.success(mode === 'edit' ? t('holiday_updated') : t('holiday_created'));
         console.log('[DIALOG SAVE] Updating calendar with new data');
         
         const cal = calendarRef.current?.getInstance();
@@ -1977,7 +1977,7 @@ const SchedulingCalendarPage = () => {
           setHolidays(holidayResult.data || []);
         }
       } else {
-        toast.error(result.error || 'Failed to save holiday');
+        toast.error(result.error || t('failed_to_save_holiday'));
       }
     }
     if (result?.success) {
@@ -1995,7 +1995,7 @@ const SchedulingCalendarPage = () => {
     if (eventType === 'break') {
       result = await schedulingSummaryService.deleteBreakSession(event.id, deleteScope);
       if (result.success) {
-        toast.success('Break deleted');
+        toast.success(t('break_deleted'));
         console.log('[DELETE] Updating calendar with new data');
         
         const cal = calendarRef.current?.getInstance();
@@ -2016,14 +2016,14 @@ const SchedulingCalendarPage = () => {
           setBreakSessions(breakResult.data || []);
         }
       } else {
-        toast.error(result.error || 'Failed to delete break');
+        toast.error(result.error || t('failed_to_delete_break'));
       }
     } else if (eventType === 'holiday') {
       console.log('[DELETE] Deleting holiday:', { id: event.id, deleteScope });
       result = await holidayService.deleteHoliday(event.id, deleteScope);
       console.log('[DELETE] Holiday delete result:', result);
       if (result.success) {
-        toast.success('Holiday deleted');
+        toast.success(t('holiday_deleted'));
         console.log('[DELETE] Updating calendar with new data');
         
         const cal = calendarRef.current?.getInstance();
@@ -2044,7 +2044,7 @@ const SchedulingCalendarPage = () => {
           setHolidays(holidayResult.data || []);
         }
       } else {
-        toast.error(result.error || 'Failed to delete holiday');
+        toast.error(result.error || t('failed_to_delete_holiday'));
       }
     }
     if (result?.success) {
@@ -2064,7 +2064,7 @@ const SchedulingCalendarPage = () => {
       const session = event.raw.session;
       if (!session || !session.id) {
         console.error('Event data missing for delete:', event);
-        toast.error('Cannot delete session: missing session data');
+        toast.error(t('cannot_delete_session_missing'));
         return false;
       }
       setSessionToDelete(session);
@@ -2100,7 +2100,7 @@ const SchedulingCalendarPage = () => {
     );
     
     if (result.success) {
-      toast.success(result.message || 'Session deleted');
+      toast.success(result.message || t('session_deleted_successfully'));
       setShowDeleteModal(false);
       setSessionToDelete(null);
       setDeletionReason('');
@@ -2110,7 +2110,7 @@ const SchedulingCalendarPage = () => {
       setRequiresReason(true);
       toast.warning(result.error);
     } else {
-      toast.error(result.error || 'Failed to delete session');
+      toast.error(result.error || t('failed_to_delete_session'));
     }
   }, [sessionToDelete, user, deletionReason, toast, loadData]);
   
@@ -2127,7 +2127,7 @@ const SchedulingCalendarPage = () => {
     );
     
     if (result.success) {
-      toast.success(result.message || `Session status changed to ${newStatus}`);
+      toast.success(result.message || t('session_status_changed_to').replace('{status}', newStatus));
       setShowStatusModal(false);
       setSessionToChangeStatus(null);
       setNewStatus('');
@@ -2138,7 +2138,7 @@ const SchedulingCalendarPage = () => {
       }
       restoreSessionCalendarDate(visibleDateBeforeSave);
     } else {
-      toast.error(result.error || 'Failed to change status');
+      toast.error(result.error || t('failed_to_change_status'));
     }
   }, [
     sessionToChangeStatus,
@@ -2256,7 +2256,7 @@ const SchedulingCalendarPage = () => {
   // Handle session creation from modal
   const handleCreateSession = useCallback(async () => {
     if (!modalClassItem) {
-      toast.error('Class information is missing');
+      toast.error(t('class_information_missing'));
       return;
     }
     
@@ -2289,7 +2289,7 @@ const SchedulingCalendarPage = () => {
       const result = await scheduledSessionService.updateScheduledSession(editingSessionId, sessionData);
       
       if (result.success) {
-        toast.success('Session updated successfully!');
+        toast.success(t('session_updated_successfully') + '!');
         setShowCreateModal(false);
         setValidationResult(null);
         setEditingSessionId(null);
@@ -2299,7 +2299,7 @@ const SchedulingCalendarPage = () => {
         }
         restoreSessionCalendarDate(visibleDateBeforeSave);
       } else {
-        toast.error(result.error || 'Failed to update session');
+        toast.error(result.error || t('failed_to_update_session'));
       }
       return;
     }
@@ -2338,7 +2338,7 @@ const SchedulingCalendarPage = () => {
       const result = await schedulingService.createRecurringSessions(sessionData, recurrenceConfig);
       
       if (result.success) {
-        toast.success(`Recurring series created: ${result.data.totalCreated} sessions!`);
+        toast.success(t('recurring_series_created').replace('{count}', result.data.totalCreated));
         setShowCreateModal(false);
         setValidationResult(null);
         setIsRecurring(false);
@@ -2346,7 +2346,7 @@ const SchedulingCalendarPage = () => {
         setTimesPerDay([]);
         loadData();
       } else {
-        toast.error(result.error || 'Failed to create recurring sessions');
+        toast.error(result.error || t('failed_to_create_recurring_sessions'));
         if (result.conflicts) {
           setValidationResult({ valid: false, conflicts: result.conflicts });
         }
@@ -2376,12 +2376,12 @@ const SchedulingCalendarPage = () => {
       const result = await scheduledSessionService.createScheduledSession(sessionData);
       
       if (result.success) {
-        toast.success(`${getLocalizedClassName(modalClassItem, lang, modalClassItem.code)} scheduled successfully!`);
+        toast.success(t('session_scheduled_successfully').replace('{name}', getLocalizedClassName(modalClassItem, lang, modalClassItem.code)));
         setShowCreateModal(false);
         setValidationResult(null);
         loadData();
       } else {
-        toast.error(result.error || 'Failed to create session');
+        toast.error(result.error || t('failed_to_create_session'));
       }
     }
   }, [modalClassItem, modalClassroomId, modalInstructorId, modalStartDateTime, modalEndDateTime, isRecurring, recurrenceType, recurrenceDays, recurrenceEndDate, recurrenceCount, recurrenceEndMode, timesPerDay, toast, loadData, editingSessionId, t, lang, getVisibleSessionCalendarDate, restoreSessionCalendarDate]);
@@ -2735,10 +2735,10 @@ const SchedulingCalendarPage = () => {
     return (
       <div style={{ padding: '2rem', textAlign: 'center' }}>
         <div style={{ fontSize: '1.125rem', fontWeight: '500', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
-          Access Denied
+          {t('access_denied')}
         </div>
         <div style={{ fontSize: '0.875rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '0.5rem' }}>
-          You need admin or HR privileges to access scheduling.
+          {t('need_admin_or_hr_privileges')}
         </div>
       </div>
     );
@@ -2814,8 +2814,8 @@ const SchedulingCalendarPage = () => {
                 size="sm"
                 onClick={() => navigate('/summary-dashboard')}
                 data-testid="view-summary-btn"
-                title={t('view_summary') || 'View Summary'}
-                aria-label={t('view_summary') || 'View Summary'}
+                title={t('view_summary')}
+                aria-label={t('view_summary')}
               >
                 <LayoutDashboard size={16} />
               </Button>
@@ -3150,13 +3150,13 @@ const SchedulingCalendarPage = () => {
 
             {showFullCalendarNav && (
               <>
-                <button type="button" onClick={toolbarNavPrev} style={navBtnStyle} aria-label="Previous">
+                <button type="button" onClick={toolbarNavPrev} style={navBtnStyle} aria-label={t('previous')}>
                   <ChevronLeft size={16} />
                 </button>
                 <button type="button" onClick={toolbarNavToday} style={navBtnStyle} title={t('today')}>
                   <CalendarIcon size={16} />
                 </button>
-                <button type="button" onClick={toolbarNavNext} style={navBtnStyle} aria-label="Next">
+                <button type="button" onClick={toolbarNavNext} style={navBtnStyle} aria-label={t('next')}>
                   <ChevronRight size={16} />
                 </button>
                 {['day', 'week', 'month'].map((view) => (
@@ -3576,7 +3576,7 @@ const SchedulingCalendarPage = () => {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', fontWeight: '600', color: '#92400e' }}>
                   <BarChart3 size={16} />
-                  Suggested Alternatives
+                  {t('suggested_alternatives')}
                 </div>
                 <button onClick={() => setShowSuggestions(false)} style={{ background: 'none', border: 'none', cursor: 'pointer' }}>
                   <X size={16} color="#92400e" />
@@ -3596,7 +3596,7 @@ const SchedulingCalendarPage = () => {
                     if (suggestion.instructor && suggestion.classroom) {
                       toast.info(`${getLocalizedInstructorName(suggestion.instructor, lang)} — ${getLocalizedClassroomName(suggestion.classroom, lang)}`);
                     } else if (suggestion.startDateTime) {
-                      toast.info(`Suggested: ${new Date(suggestion.startDateTime).toLocaleString()}`);
+                      toast.info(t('suggested_time').replace('{time}', new Date(suggestion.startDateTime).toLocaleString()));
                     }
                     setShowSuggestions(false);
                   }}>
@@ -3606,7 +3606,7 @@ const SchedulingCalendarPage = () => {
                           {getLocalizedInstructorName(suggestion.instructor, lang)} • {getLocalizedClassroomName(suggestion.classroom, lang)}
                         </div>
                         <div style={{ color: '#78350f', marginTop: '0.25rem' }}>
-                          Score: {(suggestion.score * 100).toFixed(0)}% • Utilization: {suggestion.details?.capacityUtilization}%
+                          {t('score_label')}: {(suggestion.score * 100).toFixed(0)}% • {t('utilization_label')}: {suggestion.details?.capacityUtilization}%
                         </div>
                       </div>
                     ) : suggestion.startDateTime ? (
@@ -3615,7 +3615,7 @@ const SchedulingCalendarPage = () => {
                           {suggestion.dayOfWeek} {suggestion.timeSlot}
                         </div>
                         <div style={{ color: '#78350f', marginTop: '0.25rem' }}>
-                          {suggestion.daysFromNow} days from now
+                          {t('days_from_now').replace('{count}', suggestion.daysFromNow)}
                         </div>
                       </div>
                     ) : null}
@@ -3832,7 +3832,7 @@ const SchedulingCalendarPage = () => {
                                     }}
                                     data-testid={`view-workload-${instructor.id}`}
                                   >
-                                    {t('view_workload') || 'View Workload'}
+                                    {t('view_workload')}
                                   </button>
                                   <button
                                     type="button"
@@ -4261,7 +4261,7 @@ const SchedulingCalendarPage = () => {
                                   <td style={{ padding: '0.75rem' }}>
                                     {getLocalizedClassroomName(classroom, lang)}
                                     <span style={{ fontSize: '0.75rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginLeft: '0.5rem' }}>
-                                      ({classroom.capacity} seats)
+                                      ({classroom.capacity} {t('seats')})
                                     </span>
                                   </td>
                                   <td style={{ padding: '0.75rem', textAlign: 'center' }}>{sessionCount}</td>
@@ -4763,12 +4763,12 @@ const SchedulingCalendarPage = () => {
             overflow: 'auto'
           }}>
             <h2 style={{ fontSize: '1.25rem', fontWeight: '600', marginBottom: '1rem', color: '#ef4444' }}>
-              ⚠️ Delete Session
+              ⚠️ {t('delete_session')}
             </h2>
 
             <div style={{ marginBottom: '1rem' }}>
               <p style={{ marginBottom: '0.5rem' }}>
-                Are you sure you want to delete this session?
+                {t('delete_session_confirm')}
               </p>
               <div style={{ 
                 backgroundColor: theme === 'dark' ? '#374151' : '#f9fafb',
@@ -4793,18 +4793,18 @@ const SchedulingCalendarPage = () => {
                 fontSize: '0.875rem',
                 color: '#92400e'
               }}>
-                ⚠️ This session has attendance records. Please provide a reason for deletion.
+                {t('attendance_records_reason')}
               </div>
             )}
 
             <div style={{ marginBottom: '1rem' }}>
               <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem' }}>
-                Reason for Deletion {requiresReason && <span style={{ color: '#ef4444' }}>*</span>}
+                {t('reason_for_deletion')} {requiresReason && <span style={{ color: '#ef4444' }}>*</span>}
               </label>
               <textarea
                 value={deletionReason}
                 onChange={(e) => setDeletionReason(e.target.value)}
-                placeholder={requiresReason ? "Required: Why are you deleting this session?" : "Optional: Provide a reason for audit trail"}
+                placeholder={requiresReason ? t('deletion_reason_required_placeholder') : t('deletion_reason_optional_placeholder')}
                 style={{
                   width: '100%',
                   padding: '0.5rem',
@@ -4829,7 +4829,7 @@ const SchedulingCalendarPage = () => {
                 }}
                 style={{ backgroundColor: theme === 'dark' ? '#374151' : '#f9fafb', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}
               >
-                Cancel
+                {t('cancel')}
               </Button>
               <Button
                 onClick={handleConfirmDelete}
@@ -4841,7 +4841,7 @@ const SchedulingCalendarPage = () => {
                   cursor: (requiresReason && !deletionReason.trim()) ? 'not-allowed' : 'pointer'
                 }}
               >
-                Delete Session
+                {t('delete_session')}
               </Button>
             </div>
           </div>

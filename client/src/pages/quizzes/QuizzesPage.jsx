@@ -441,7 +441,7 @@ export default function QuizzesPage() {
       });
     });
     
-    toast?.showInfo?.(quizId ? 'Updating quiz...' : 'Creating quiz...');
+    toast?.showInfo?.(quizId ? t('updating_quiz') : t('creating_quiz'));
     try {
       let targetQuizId = quizId;
 
@@ -450,7 +450,7 @@ export default function QuizzesPage() {
         const result = await updateQuiz(quizId, quizDataToSend);
         if (result.success) {
           debug('[Save] Quiz updated successfully');
-          toast?.showSuccess?.('Quiz updated successfully!');
+          toast?.showSuccess?.(t('quiz_updated_successfully'));
           setViewMode('list');
           loadQuizzes();
         } else {
@@ -462,7 +462,7 @@ export default function QuizzesPage() {
         if (result.success) {
           targetQuizId = result.id;
           info('[Save] Quiz created successfully:', targetQuizId);
-          toast?.showSuccess?.('Quiz created successfully!');
+          toast?.showSuccess?.(t('quiz_created_successfully'));
           setViewMode('list');
           loadQuizzes();
         } else {
@@ -543,7 +543,7 @@ export default function QuizzesPage() {
           }))
         },
         warningMessage: quizSubmissions.length > 0 
-          ? `This quiz has ${quizSubmissions.length} submission(s) that should be deleted first.`
+          ? t('quiz_submission_warning').replace('{count}', quizSubmissions.length)
           : null
       });
     } catch (error) {
@@ -778,13 +778,13 @@ export default function QuizzesPage() {
   const getQuestionTypeLabel = (type) => {
     switch (type) {
       case QUESTION_TYPES.MULTIPLE_CHOICE:
-        return 'Multiple Choice';
+        return t('quiz_multiple_choice');
       case QUESTION_TYPES.SINGLE_CHOICE:
-        return 'Single Choice';
+        return t('quiz_single_choice');
       case QUESTION_TYPES.TRUE_FALSE:
-        return 'True/False';
+        return t('quiz_true_false');
       default:
-        return 'Question';
+        return t('question');
     }
   };
 
@@ -804,13 +804,13 @@ export default function QuizzesPage() {
   const getQuizTypeLabel = (type) => {
     switch (type) {
       case 'multiple_choice':
-        return 'Multiple Choice';
+        return t('quiz_multiple_choice');
       case 'single_choice':
-        return 'Single Choice';
+        return t('quiz_single_choice');
       case 'true_false':
-        return 'True/False';
+        return t('quiz_true_false');
       default:
-        return 'Quiz';
+        return t('quiz_type_quiz');
     }
   };
 
@@ -823,7 +823,7 @@ export default function QuizzesPage() {
       case DIFFICULTY_TYPES.HARD:
         return DIFFICULTY_LABELS[DIFFICULTY_TYPES.HARD];
       default:
-        return 'Medium';
+        return t('medium');
     }
   };
 
@@ -855,14 +855,14 @@ export default function QuizzesPage() {
     chips.push(
       <Badge key={`${quiz.id}-questions`} variant="subtle" color="info" size="small">
         {getThemedIcon('ui', 'list_checks', 12, theme)}
-        <span style={{ marginLeft: '0.25rem' }}>{quiz.questionCount || 0} {quiz.questionCount === 1 ? 'question' : 'questions'}</span>
+        <span style={{ marginLeft: '0.25rem' }}>{quiz.questionCount || 0} {quiz.questionCount === 1 ? t('quiz_question') : t('quiz_questions')}</span>
       </Badge>
     );
 
     chips.push(
       <Badge key={`${quiz.id}-points`} variant="subtle" color="warning" size="small">
         {getThemedIcon('ui', 'award', 12, theme)}
-        <span style={{ marginLeft: '0.25rem' }}>{totalPoints} {totalPoints === 1 ? 'point' : 'points'}</span>
+        <span style={{ marginLeft: '0.25rem' }}>{totalPoints} {totalPoints === 1 ? t('quiz_point') : t('quiz_points')}</span>
       </Badge>
     );
 
@@ -877,7 +877,7 @@ export default function QuizzesPage() {
       chips.push(
         <Badge key={`${quiz.id}-time`} variant="outline" color="danger" size="small">
           {getThemedIcon('ui', 'clock', 12, theme)}
-          <span style={{ marginLeft: '0.25rem' }}>{totalTimeLimit} min total</span>
+          <span style={{ marginLeft: '0.25rem' }}>{t('quiz_min_total').replace('{count}', totalTimeLimit)}</span>
         </Badge>
       );
     } else if (hasPerQuestionTime && totalPerQuestionTime > 0) {
@@ -885,23 +885,23 @@ export default function QuizzesPage() {
       chips.push(
         <Badge key={`${quiz.id}-time`} variant="outline" color="info" size="small">
           {getThemedIcon('ui', 'clock', 12, theme)}
-          <span style={{ marginLeft: '0.25rem' }}>~{totalMinutes} min (per question)</span>
+          <span style={{ marginLeft: '0.25rem' }}>{t('quiz_per_question_min').replace('{count}', totalMinutes)}</span>
         </Badge>
       );
     } else if (estimatedTime > 0) {
       chips.push(
         <Badge key={`${quiz.id}-time`} variant="subtle" color="info" size="small">
           {getThemedIcon('ui', 'clock', 12, theme)}
-          <span style={{ marginLeft: '0.25rem' }}>{estimatedTime} min</span>
+          <span style={{ marginLeft: '0.25rem' }}>{t('quiz_estimated_min').replace('{count}', estimatedTime)}</span>
         </Badge>
       );
     }
 
     // Use same difficulty label logic as builder
-    const difficultyLabel = quiz.difficulty === DIFFICULTY_TYPES.EASY ? 'Easy' 
-      : quiz.difficulty === DIFFICULTY_TYPES.MEDIUM ? 'Medium' 
-      : quiz.difficulty === DIFFICULTY_TYPES.HARD ? 'Hard' 
-      : 'Medium';
+    const difficultyLabel = quiz.difficulty === DIFFICULTY_TYPES.EASY ? t('easy') 
+      : quiz.difficulty === DIFFICULTY_TYPES.MEDIUM ? t('medium') 
+      : quiz.difficulty === DIFFICULTY_TYPES.HARD ? t('hard') 
+      : t('medium');
     
     chips.push(
       <Badge key={`${quiz.id}-difficulty`} variant="subtle" color={quiz.difficulty === DIFFICULTY_TYPES.EASY ? 'success' : quiz.difficulty === DIFFICULTY_TYPES.MEDIUM ? 'warning' : 'danger'} size="small">
@@ -914,7 +914,7 @@ export default function QuizzesPage() {
       chips.push(
         <Badge key={`${quiz.id}-retake`} variant="outline" color="info" size="small">
           {getThemedIcon('ui', 'repeat', 12, theme)}
-          <span style={{ marginLeft: '0.25rem' }}>Retake allowed</span>
+          <span style={{ marginLeft: '0.25rem' }}>{t('quiz_retake_allowed')}</span>
         </Badge>
       );
     }
@@ -924,7 +924,7 @@ export default function QuizzesPage() {
       chips.push(
         <Badge key={`${quiz.id}-shuffle-questions`} variant="outline" color="primary" size="small">
           {getThemedIcon('ui', 'shuffle', 12, theme)}
-          <span style={{ marginLeft: '0.25rem' }}>Shuffle questions</span>
+          <span style={{ marginLeft: '0.25rem' }}>{t('shuffle_questions')}</span>
         </Badge>
       );
     }
@@ -934,7 +934,7 @@ export default function QuizzesPage() {
       chips.push(
         <Badge key={`${quiz.id}-shuffle-options`} variant="outline" color="primary" size="small">
           {getThemedIcon('ui', 'shuffle', 12, theme)}
-          <span style={{ marginLeft: '0.25rem' }}>Shuffle options</span>
+          <span style={{ marginLeft: '0.25rem' }}>{t('shuffle_options')}</span>
         </Badge>
       );
     }
@@ -947,10 +947,10 @@ export default function QuizzesPage() {
   };
 
   const formatCreatedInfo = (quiz) => {
-    if (quiz.creatorName && quiz.creatorName !== 'Unknown') {
-      return `Created by ${quiz.creatorName}`;
+    if (quiz.creatorName && quiz.creatorName !== t('quiz_unknown_creator')) {
+      return `${t('created_by')} ${quiz.creatorName}`;
     }
-    return 'Created automatically';
+    return t('created_automatically');
   };
 
   const questionCount = quizData.questions?.length ?? 0;
@@ -992,14 +992,14 @@ export default function QuizzesPage() {
     chips.push(
       <Badge key="questions" variant="subtle" color="info" size="small">
         {getThemedIcon('ui', 'list_checks', 12, theme)}
-        <span style={{ marginLeft: '0.25rem' }}>{questionCount} {questionCount === 1 ? 'question' : 'questions'}</span>
+        <span style={{ marginLeft: '0.25rem' }}>{questionCount} {questionCount === 1 ? t('quiz_question') : t('quiz_questions')}</span>
       </Badge>
     );
 
     chips.push(
       <Badge key="points" variant="subtle" color="warning" size="small">
         {getThemedIcon('ui', 'award', 12, theme)}
-        <span style={{ marginLeft: '0.25rem' }}>{totalPoints} {totalPoints === 1 ? 'point' : 'points'}</span>
+        <span style={{ marginLeft: '0.25rem' }}>{totalPoints} {totalPoints === 1 ? t('quiz_point') : t('quiz_points')}</span>
       </Badge>
     );
 
@@ -1007,7 +1007,7 @@ export default function QuizzesPage() {
       chips.push(
         <Badge key="time-total" variant="outline" color="danger" size="small">
           {getThemedIcon('ui', 'clock', 12, theme)}
-          <span style={{ marginLeft: '0.25rem' }}>{totalTimeLimit} min total</span>
+          <span style={{ marginLeft: '0.25rem' }}>{t('quiz_min_total').replace('{count}', totalTimeLimit)}</span>
         </Badge>
       );
     } else if (hasPerQuestionTime && totalPerQuestionTime > 0) {
@@ -1015,14 +1015,14 @@ export default function QuizzesPage() {
       chips.push(
         <Badge key="time-per-question" variant="outline" color="info" size="small">
           {getThemedIcon('ui', 'clock', 12, theme)}
-          <span style={{ marginLeft: '0.25rem' }}>~{totalMinutes} min (per question)</span>
+          <span style={{ marginLeft: '0.25rem' }}>{t('quiz_per_question_min').replace('{count}', totalMinutes)}</span>
         </Badge>
       );
     } else {
       chips.push(
         <Badge key="time-estimated" variant="subtle" color="info" size="small">
           {getThemedIcon('ui', 'clock', 12, theme)}
-          <span style={{ marginLeft: '0.25rem' }}>{estimatedTime} min</span>
+          <span style={{ marginLeft: '0.25rem' }}>{t('quiz_estimated_min').replace('{count}', estimatedTime)}</span>
         </Badge>
       );
     }
@@ -1037,7 +1037,7 @@ export default function QuizzesPage() {
       chips.push(
         <Badge key="retake" variant="outline" color="info" size="small">
           {getThemedIcon('ui', 'repeat', 12, theme)}
-          <span style={{ marginLeft: '0.25rem' }}>Retake allowed</span>
+          <span style={{ marginLeft: '0.25rem' }}>{t('quiz_retake_allowed')}</span>
         </Badge>
       );
     }
@@ -1046,7 +1046,7 @@ export default function QuizzesPage() {
       chips.push(
         <Badge key="shuffle-questions" variant="outline" color="primary" size="small">
           {getThemedIcon('ui', 'shuffle', 12, theme)}
-          <span style={{ marginLeft: '0.25rem' }}>Shuffle questions</span>
+          <span style={{ marginLeft: '0.25rem' }}>{t('shuffle_questions')}</span>
         </Badge>
       );
     }
@@ -1055,7 +1055,7 @@ export default function QuizzesPage() {
       chips.push(
         <Badge key="shuffle-options" variant="outline" color="primary" size="small">
           {getThemedIcon('ui', 'shuffle', 12, theme)}
-          <span style={{ marginLeft: '0.25rem' }}>Shuffle options</span>
+          <span style={{ marginLeft: '0.25rem' }}>{t('shuffle_options')}</span>
         </Badge>
       );
     }
@@ -1108,7 +1108,7 @@ export default function QuizzesPage() {
                     </div>
                     <div className={QuizManagementPageStyles.statInfo}>
                       <h3 className={QuizManagementPageStyles.statValue}>{quizzes.length}</h3>
-                      <p className={QuizManagementPageStyles.statLabel}>Total Quizzes</p>
+                      <p className={QuizManagementPageStyles.statLabel}>{t('quiz_total_quizzes')}</p>
                     </div>
                   </div>
                 </CardBody>
@@ -1122,7 +1122,7 @@ export default function QuizzesPage() {
                     </div>
                     <div className={QuizManagementPageStyles.statInfo}>
                       <h3 className={QuizManagementPageStyles.statValue}>{totalAttempts}</h3>
-                      <p className={QuizManagementPageStyles.statLabel}>Total Attempts</p>
+                      <p className={QuizManagementPageStyles.statLabel}>{t('quiz_total_attempts_stat')}</p>
                     </div>
                   </div>
                 </CardBody>
@@ -1136,7 +1136,7 @@ export default function QuizzesPage() {
                     </div>
                     <div className={QuizManagementPageStyles.statInfo}>
                       <h3 className={QuizManagementPageStyles.statValue}>{averageScore}%</h3>
-                      <p className={QuizManagementPageStyles.statLabel}>Average Score</p>
+                      <p className={QuizManagementPageStyles.statLabel}>{t('average_score')}</p>
                     </div>
                   </div>
                 </CardBody>
@@ -1152,7 +1152,7 @@ export default function QuizzesPage() {
                       <h3 className={QuizManagementPageStyles.statValue}>
                         {quizzes.reduce((sum, q) => sum + (q.estimatedTime || 0), 0)}
                       </h3>
-                      <p className={QuizManagementPageStyles.statLabel}>Total Minutes</p>
+                      <p className={QuizManagementPageStyles.statLabel}>{t('quiz_total_minutes')}</p>
                     </div>
                   </div>
                 </CardBody>
@@ -1168,7 +1168,7 @@ export default function QuizzesPage() {
                       <h3 className={QuizManagementPageStyles.statValue}>
                         {quizzes.reduce((sum, q) => sum + (q.questionCount || 0), 0)}
                       </h3>
-                      <p className={QuizManagementPageStyles.statLabel}>Total Questions</p>
+                      <p className={QuizManagementPageStyles.statLabel}>{t('total_questions')}</p>
                     </div>
                   </div>
                 </CardBody>
@@ -1189,7 +1189,7 @@ export default function QuizzesPage() {
               <Card>
                 <CardBody className={QuizManagementPageStyles.emptyState}>
                   {getThemedIcon('ui', 'help_circle', 48, theme)}
-                  <h3>No Quizzes Yet</h3>
+                  <h3>{t('no_quizzes_yet')}</h3>
                   {!isStudent && <p>{t('create_quiz') || 'Create your first quiz to get started'}</p>}
                   {!isStudent && (
                   <Button
@@ -1212,8 +1212,8 @@ export default function QuizzesPage() {
                           {renderMetaChips(quiz)}
                           <h3 className={QuizManagementPageStyles.quizTitle}>
                             {lang === 'ar' 
-                              ? (quiz.titleAr || quiz.titleEn || quiz.title || 'Untitled Quiz')
-                              : (quiz.titleEn || quiz.titleAr || quiz.title || 'Untitled Quiz')}
+                              ? (quiz.titleAr || quiz.titleEn || quiz.title || t('student_quiz_untitled_quiz'))
+                              : (quiz.titleEn || quiz.titleAr || quiz.title || t('student_quiz_untitled_quiz'))}
                           </h3>
                           {(quiz.descriptionEn || quiz.descriptionAr || quiz.description) && (
                             <p className={QuizManagementPageStyles.quizDescription}>
@@ -1226,11 +1226,11 @@ export default function QuizzesPage() {
                           <div className={QuizManagementPageStyles.quizStats}>
                             <div className={QuizManagementPageStyles.statItem}>
                               {getThemedIcon('ui', 'users', 14, theme)}
-                              <span>{quiz.totalAttempts || 0} attempts</span>
+                              <span>{quiz.totalAttempts || 0} {t('attempts_label')}</span>
                             </div>
                             <div className={QuizManagementPageStyles.statItem}>
                               {getThemedIcon('ui', 'check_circle', 14, theme)}
-                              <span>{quiz.averageScore || 0}% avg score</span>
+                              <span>{quiz.averageScore || 0}% {t('avg_score_label')}</span>
                             </div>
                           </div>
                         </div>
@@ -1240,8 +1240,8 @@ export default function QuizzesPage() {
                             variant="outline"
                             size="sm"
                             className={QuizManagementPageStyles.iconButton}
-                            title="Preview quiz"
-                            aria-label="Preview quiz"
+                            title={t('preview_quiz')}
+                            aria-label={t('preview_quiz')}
                             onClick={() => handlePreview(quiz.id)}
                           >
                             {getThemedIcon('ui', 'play', 16, theme)}
@@ -1250,8 +1250,8 @@ export default function QuizzesPage() {
                             variant="outline"
                             size="sm"
                             className={QuizManagementPageStyles.iconButton}
-                            title="Edit quiz"
-                            aria-label="Edit quiz"
+                            title={t('edit_quiz')}
+                            aria-label={t('edit_quiz')}
                             onClick={() => handleEdit(quiz)}
                           >
                             {getThemedIcon('ui', 'edit', 16, theme)}
@@ -1262,8 +1262,8 @@ export default function QuizzesPage() {
                             className={QuizManagementPageStyles.iconButton}
                             onClick={() => handleDelete(quiz.id)}
                             disabled={deleting === quiz.id}
-                            title="Delete quiz"
-                            aria-label="Delete quiz"
+                            title={t('delete_quiz')}
+                            aria-label={t('delete_quiz')}
                           >
                             {deleting === quiz.id ? (
                               <Spinner size="sm" />
@@ -1302,17 +1302,17 @@ export default function QuizzesPage() {
           }}>
             <Card style={{ maxWidth: '400px', margin: '1rem' }}>
               <CardBody>
-                <h3>Delete Quiz</h3>
-                <p>Are you sure you want to delete this quiz? This action cannot be undone.</p>
+                <h3>{t('delete_quiz')}</h3>
+                <p>{t('delete_quiz_confirmation')}</p>
                 {deleteModal.warningMessage && (
                   <p style={{ color: '#dc2626', fontSize: '0.875rem' }}>{deleteModal.warningMessage}</p>
                 )}
                 <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
                   <Button variant="outline" onClick={() => setDeleteModal({ open: false, item: null, onConfirm: null, relatedData: null, warningMessage: null })}>
-                    Cancel
+                    {t('cancel')}
                   </Button>
                   <Button variant="primary" onClick={deleteModal.onConfirm || (() => {})} loading={deleting !== null} style={{ backgroundColor: '#dc2626' }}>
-                    Delete
+                    {t('delete_label')}
                   </Button>
                 </div>
               </CardBody>
@@ -1341,9 +1341,9 @@ export default function QuizzesPage() {
   // Progress stepper component
   const renderProgressStepper = () => {
     const steps = [
-      { id: 'setup', label: 'Setup', icon: 'settings' },
-      { id: 'build', label: 'Questions', icon: 'list_checks' },
-      { id: 'preview', label: 'Preview', icon: 'eye' }
+      { id: 'setup', label: t('setup_label'), icon: 'settings' },
+      { id: 'build', label: t('questions_sidebar'), icon: 'list_checks' },
+      { id: 'preview', label: t('preview_quiz'), icon: 'eye' }
     ];
 
     return (
@@ -1433,10 +1433,10 @@ export default function QuizzesPage() {
                   onClick={handleCancel}
                 >
                   {getIconWithColor('ui', 'arrow_left', 14, '#fff')}
-                  Back
+                  {t('back_label')}
                 </Badge>
                 <h1 style={{ fontSize: '1.5rem', fontWeight: 600 }}>
-                  {viewMode === 'edit' ? 'Edit Quiz' : 'Create New Quiz'}
+                  {viewMode === 'edit' ? t('edit_quiz') : t('create_new_quiz')}
                 </h1>
               </div>
 
@@ -1461,7 +1461,7 @@ export default function QuizzesPage() {
                 <div className={QuizBuilderPageStyles.formGrid}>
                   <div className={QuizBuilderPageStyles.formField}>
                     <Input
-                      placeholder={quizLang === 'en' ? 'Quiz Title (English)' : 'عنوان الاختبار (عربي)'}
+                      placeholder={quizLang === 'en' ? t('quiz_title_en_placeholder') : t('quiz_title_ar_placeholder')}
                       value={quizLang === 'en'
                         ? (quizData.titleEn || quizData.title || '')
                         : (quizData.titleAr || quizData.title || '')}
@@ -1484,7 +1484,7 @@ export default function QuizzesPage() {
                   </div>
                   <div className={QuizBuilderPageStyles.formField}>
                     <Input
-                      placeholder={quizLang === 'en' ? 'Quiz Description (optional)' : 'وصف الاختبار (اختياري)'}
+                      placeholder={quizLang === 'en' ? t('quiz_desc_en_placeholder') : t('quiz_desc_ar_placeholder')}
                       value={quizLang === 'en'
                         ? (quizData.descriptionEn || quizData.description || '')
                         : (quizData.descriptionAr || quizData.description || '')}
@@ -1507,7 +1507,7 @@ export default function QuizzesPage() {
                   variant="outline"
                   onClick={handleCancel}
                 >
-                  Cancel
+                  {t('cancel')}
                 </Button>
                 <Button
                   variant="primary"
@@ -1517,7 +1517,7 @@ export default function QuizzesPage() {
                   }}
                   disabled={!((quizData.titleEn || quizData.title || '').trim() && (quizData.titleAr || quizData.title || '').trim())}
                 >
-                  Continue to Questions
+                  {t('continue_to_questions')}
                 </Button>
               </div>
             </CardBody>
@@ -1535,7 +1535,7 @@ export default function QuizzesPage() {
                   onClick={() => setStep('setup')}
                 >
                   {getThemedIcon('ui', 'arrow_left', 14, theme)}
-                  Back
+                  {t('back_label')}
                 </Badge>
                 <div className={QuizBuilderPageStyles.headerSummary}>
                   <h1 className={QuizBuilderPageStyles.quizTitle}>
@@ -1544,7 +1544,7 @@ export default function QuizzesPage() {
                   {renderMetaChipsForBuilder()}
                   {viewMode === 'edit' && quizId && lastSavedRef.current && (
                     <span style={{ fontSize: '0.75rem', color: '#10b981', marginLeft: '1rem' }}>
-                      Last saved: {lastSavedRef.current.toLocaleTimeString()}
+                      {t('last_saved')} {lastSavedRef.current.toLocaleTimeString()}
                     </span>
                   )}
                 </div>
@@ -1553,7 +1553,7 @@ export default function QuizzesPage() {
                 <Button
                   variant="outline"
                   size="sm"
-                  aria-label="Preview quiz"
+                  aria-label={t('preview_quiz')}
                   onClick={() => setStep('preview')}
                   disabled={questionCount === 0}
                 >
@@ -1564,7 +1564,7 @@ export default function QuizzesPage() {
                   size="sm"
                   onClick={saveQuiz}
                   disabled={saving}
-                  aria-label="Save quiz"
+                  aria-label={t('save')}
                 >
                   {saving ? <Spinner size="sm" /> : getIconWithColor('ui', 'save', 16, '#fff')}
                 </Button>
@@ -1575,12 +1575,12 @@ export default function QuizzesPage() {
               {/* Questions Sidebar */}
               <div className={QuizBuilderPageStyles.questionsSidebar}>
                 <div className={QuizBuilderPageStyles.sidebarHeader}>
-                  <h3>Questions</h3>
+                  <h3>{t('questions_sidebar')}</h3>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={addQuestion}
-                    title="Add question"
+                    title={t('add_question_btn')}
                   >
                     {getThemedIcon('ui', 'plus', 14, theme)}
                   </Button>
@@ -1606,7 +1606,7 @@ export default function QuizzesPage() {
                             tempDiv.innerHTML = htmlText;
                             const text = tempDiv.textContent || tempDiv.innerText || '';
                             const words = text.trim().split(/\s+/).filter(w => w.length > 0);
-                            return words.length > 0 ? words.slice(0, 2).join(' ') : 'New Question';
+                            return words.length > 0 ? words.slice(0, 2).join(' ') : t('new_question');
                           })()}
                         </span>
                       </span>
@@ -1616,7 +1616,7 @@ export default function QuizzesPage() {
                           e.stopPropagation();
                           deleteQuestion(index);
                         }}
-                        aria-label={`Delete question ${index + 1}`}
+                        aria-label={`${t('delete_label')} ${t('question_n_label').replace('{n}', index + 1)}`}
                       >
                         {getThemedIcon('ui', 'trash', 14, theme)}
                       </button>
@@ -1624,9 +1624,9 @@ export default function QuizzesPage() {
                   ))}
                   {quizData.questions.length === 0 && (
                     <div className={QuizBuilderPageStyles.emptyQuestions}>
-                      <p>No questions yet</p>
+                      <p>{t('no_questions_yet')}</p>
                       <Button variant="outline" size="sm" onClick={addQuestion}>
-                        Add your first question
+                        {t('add_first_question')}
                       </Button>
                     </div>
                   )}
@@ -1639,11 +1639,11 @@ export default function QuizzesPage() {
                   <Card>
                     <CardBody>
                       <div className={QuizBuilderPageStyles.questionHeader}>
-                        <h3>Question {activeQuestionIndex + 1}</h3>
+                        <h3>{t('question_n_label').replace('{n}', activeQuestionIndex + 1)}</h3>
                       </div>
                       
                       <div className={QuizBuilderPageStyles.questionTypeSelector}>
-                        <label>Question Type</label>
+                        <label>{t('question_type_label')}</label>
                         <Select
                           value={quizData.questions[activeQuestionIndex]?.type || QUESTION_TYPES.MULTIPLE_CHOICE}
                           onChange={(e) => {
@@ -1678,18 +1678,18 @@ export default function QuizzesPage() {
                         <div className={QuizBuilderPageStyles.questionTextEditor}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                             <label style={{ fontSize: 14, fontWeight: 500 }}>
-                              {lang === 'ar' ? 'نص السؤال' : 'Question Text'}
+                              {t('question_text_label')}
                             </label>
                             <LanguageToggle value={questionLang} onChange={setQuestionLang} />
                           </div>
                           <RichTextEditor
                             key={`question-text-${questionLang}-${quizData.questions[activeQuestionIndex]?.id || activeQuestionIndex}`}
                             label={questionLang === 'en'
-                              ? (lang === 'ar' ? 'نص السؤال (إنجليزي)' : 'Question Text (English)')
-                              : (lang === 'ar' ? 'نص السؤال (عربي)' : 'Question Text (Arabic)')}
+                              ? t('question_text_en_label')
+                              : t('question_text_ar_label')}
                             placeholder={questionLang === 'en'
-                              ? (lang === 'ar' ? 'أدخل سؤالك هنا...' : 'Enter your question here...')
-                              : (lang === 'ar' ? 'أدخل سؤالك بالعربية هنا...' : 'Enter your question in Arabic here...')}
+                              ? t('enter_question_en')
+                              : t('enter_question_ar')}
                             value={questionLang === 'en'
                               ? (quizData.questions[activeQuestionIndex]?.question_en || quizData.questions[activeQuestionIndex]?.question || '')
                               : (quizData.questions[activeQuestionIndex]?.question_ar || '')}
@@ -1708,7 +1708,7 @@ export default function QuizzesPage() {
 
                         <div className={QuizBuilderPageStyles.optionsSection}>
                           <div className={QuizBuilderPageStyles.optionsHeader}>
-                            <h4>Answer Options</h4>
+                            <h4>{t('answer_options')}</h4>
                             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                               <LanguageToggle value={optionLang} onChange={setOptionLang} />
                             {quizData.questions[activeQuestionIndex]?.type !== QUESTION_TYPES.TRUE_FALSE && (
@@ -1716,7 +1716,7 @@ export default function QuizzesPage() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => addOption(activeQuestionIndex)}
-                                title="Add option"
+                                title={t('add_option')}
                               >
                                 {getThemedIcon('ui', 'plus', 14, theme)}
                               </Button>
@@ -1746,14 +1746,14 @@ export default function QuizzesPage() {
                                       color: option.correct ? '#fff' : (theme === 'light' ? '#6b7280' : 'rgba(255,255,255,0.5)'),
                                       border: option.correct ? '2px solid #10b981' : '1px solid ' + (theme === 'light' ? '#d1d5db' : 'rgba(255,255,255,0.2)')
                                     }}
-                                    title={option.correct ? 'Mark as incorrect' : 'Mark as correct'}
+                                    title={option.correct ? t('mark_as_incorrect') : t('mark_as_correct')}
                                   >
                                     {option.correct ? getThemedIcon('ui', 'check_circle', 16, theme) : getThemedIcon('ui', 'x_circle', 16, theme)}
                                   </button>
                                   <div style={{ flex: 1 }}>
                                     <RichTextEditor
                                       key={`option-${option.id}-${optionLang}-${activeQuestionIndex}-${quizData.questions[activeQuestionIndex]?.id || 'new'}`}
-                                      placeholder={`Option ${optIndex + 1}`}
+                                      placeholder={t('option_n_label').replace('{n}', optIndex + 1)}
                                       value={optionLang === 'en'
                                         ? (option.text_en || option.text || '')
                                         : (option.text_ar || option.text || '')}
@@ -1784,7 +1784,7 @@ export default function QuizzesPage() {
                                           deleteOption(activeQuestionIndex, option.id);
                                         }
                                       }}
-                                      title="Delete option"
+                                      title={t('delete_option_label')}
                                     >
                                       {getThemedIcon('ui', 'trash', 14, theme)}
                                     </button>
@@ -1797,7 +1797,7 @@ export default function QuizzesPage() {
 
                         <div className={QuizBuilderPageStyles.questionSettings}>
                           <div className={QuizBuilderPageStyles.settingRow}>
-                            <label>Points</label>
+                            <label>{t('points_label')}</label>
                             <Input
                               type="number"
                               value={quizData.questions[activeQuestionIndex]?.points || 1}
@@ -1808,7 +1808,7 @@ export default function QuizzesPage() {
                             />
                           </div>
                           <div className={QuizBuilderPageStyles.settingRow}>
-                            <label>Time Limit (seconds)</label>
+                            <label>{t('time_limit_seconds')}</label>
                             <Input
                               type="number"
                               value={quizData.questions[activeQuestionIndex]?.timeLimit || 0}
@@ -1820,14 +1820,14 @@ export default function QuizzesPage() {
                             />
                           </div>
                           <div className={QuizBuilderPageStyles.settingRow}>
-                            <label>Difficulty</label>
+                            <label>{t('difficulty_label')}</label>
                             <Select
                               value={quizData.questions[activeQuestionIndex]?.difficulty || 'medium'}
                               onChange={(e) => updateQuestion(activeQuestionIndex, { difficulty: e.target.value })}
                               options={[
-                                { value: 'easy', label: 'Easy' },
-                                { value: 'medium', label: 'Medium' },
-                                { value: 'hard', label: 'Hard' }
+                                { value: 'easy', label: t('easy') },
+                                { value: 'medium', label: t('medium') },
+                                { value: 'hard', label: t('hard') }
                               ]}
                               style={{ width: '120px' }}
                             />
@@ -1835,10 +1835,10 @@ export default function QuizzesPage() {
                         </div>
 
                         <div className={QuizBuilderPageStyles.quizSettingsSection} style={{ marginTop: '1.5rem', padding: '1rem', background: '#f9fafb', borderRadius: '8px' }}>
-                          <h4 style={{ marginBottom: '1rem', fontSize: '1rem', fontWeight: 600 }}>Quiz Settings</h4>
+                          <h4 style={{ marginBottom: '1rem', fontSize: '1rem', fontWeight: 600 }}>{t('quiz_settings')}</h4>
                           <div className={QuizBuilderPageStyles.togglesContainer}>
                             <ToggleSwitch
-                              label="Allow retake"
+                              label={t('allow_retake')}
                               checked={quizData.settings?.allowRetake || false}
                               onChange={(checked) => setQuizData(prev => ({
                                 ...prev,
@@ -1846,7 +1846,7 @@ export default function QuizzesPage() {
                               }))}
                             />
                             <ToggleSwitch
-                              label="Shuffle question order"
+                              label={t('shuffle_question_order')}
                               checked={quizData.settings?.randomizeOrder || false}
                               onChange={(checked) => setQuizData(prev => ({
                                 ...prev,
@@ -1854,7 +1854,7 @@ export default function QuizzesPage() {
                               }))}
                             />
                             <ToggleSwitch
-                              label="Shuffle answer options"
+                              label={t('shuffle_answer_options')}
                               checked={quizData.settings?.shuffleOptions || false}
                               onChange={(checked) => setQuizData(prev => ({
                                 ...prev,
@@ -1866,12 +1866,12 @@ export default function QuizzesPage() {
 
                         <div className={QuizBuilderPageStyles.explanationSection}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-                            <label style={{ fontWeight: 600 }}>Explanation (Optional)</label>
+                            <label style={{ fontWeight: 600 }}>{t('explanation_optional')}</label>
                             <LanguageToggle value={explanationLang} onChange={setExplanationLang} style={{ marginLeft: 'auto' }} />
                           </div>
                           <RichTextEditor
                             key={`explanation-${explanationLang}-${quizData.questions[activeQuestionIndex]?.id || activeQuestionIndex}`}
-                            label={explanationLang === 'ar' ? 'الشرح (عربي)' : 'Explanation (English)'}
+                            label={explanationLang === 'ar' ? t('explanation_ar_label') : t('explanation_en_label')}
                             value={explanationLang === 'ar' 
                               ? (quizData.questions[activeQuestionIndex]?.explanation_ar || '')
                               : (quizData.questions[activeQuestionIndex]?.explanation_en || quizData.questions[activeQuestionIndex]?.explanation || '')
@@ -1882,8 +1882,8 @@ export default function QuizzesPage() {
                                 : { explanation_en: html, explanation: html };
                               updateQuestion(activeQuestionIndex, update);
                             }}
-                            placeholder={explanationLang === 'ar' ? 'اشرح لماذا هذه الإجابة صحيحة...' : 'Describe why this answer is correct...'}
-                            helperText="Shown to students after they answer the question."
+                            placeholder={explanationLang === 'ar' ? t('describe_correct_ar') : t('describe_correct_en')}
+                            helperText={t('explanation_helper')}
                             height={120}
                           />
                         </div>
@@ -1894,11 +1894,11 @@ export default function QuizzesPage() {
                   <Card>
                     <CardBody className={QuizBuilderPageStyles.emptyEditor}>
                       {getThemedIcon('ui', 'help_circle', 48, theme)}
-                      <h3>No Questions Yet</h3>
-                      <p>Add your first question to get started</p>
+                      <h3>{t('no_questions_yet')}</h3>
+                      <p>{t('add_first_question_to_start')}</p>
                       <Button variant="primary" onClick={addQuestion}>
                         {getThemedIcon('ui', 'plus', 16, theme)}
-                        Add Question
+                        {t('add_question_btn')}
                       </Button>
                     </CardBody>
                   </Card>
@@ -1917,7 +1917,7 @@ export default function QuizzesPage() {
                   variant="outline"
                   onClick={() => setStep('build')}
                 >
-                  ← Back to Edit
+                  {t('back_to_edit')}
                 </Button>
                 <div className={QuizBuilderPageStyles.headerSummary}>
                   <h1 className={QuizBuilderPageStyles.quizTitle}>
@@ -1926,7 +1926,7 @@ export default function QuizzesPage() {
                   {renderMetaChipsForBuilder()}
                   {viewMode === 'edit' && quizId && lastSavedRef.current && (
                     <span style={{ fontSize: '0.75rem', color: '#10b981', marginLeft: '1rem' }}>
-                      Last saved: {lastSavedRef.current.toLocaleTimeString()}
+                      {t('last_saved')} {lastSavedRef.current.toLocaleTimeString()}
                     </span>
                   )}
                 </div>
@@ -1936,7 +1936,7 @@ export default function QuizzesPage() {
                     size="sm"
                     onClick={saveQuiz}
                     disabled={saving}
-                    aria-label="Save quiz"
+                    aria-label={t('save')}
                   >
                     {saving ? <Spinner size="sm" /> : getIconWithColor('ui', 'save', 16, '#fff')}
                   </Button>
@@ -1947,10 +1947,10 @@ export default function QuizzesPage() {
                 {questionCount === 0 ? (
                   <div className={QuizBuilderPageStyles.emptyPreview}>
                     {getThemedIcon('ui', 'help_circle', 48, theme)}
-                    <h3>No Questions to Preview</h3>
-                    <p>Add some questions to see how your quiz will look</p>
+                    <h3>{t('no_questions_preview')}</h3>
+                    <p>{t('add_questions_to_see')}</p>
                     <Button variant="outline" onClick={() => setStep('build')}>
-                      Add Questions
+                      {t('add_questions')}
                     </Button>
                   </div>
                 ) : (
@@ -1959,19 +1959,19 @@ export default function QuizzesPage() {
                       <Card key={question.id} className={QuizBuilderPageStyles.previewQuestionCard}>
                         <CardBody>
                           <div className={QuizBuilderPageStyles.previewQuestionHeader}>
-                            <div className={QuizBuilderPageStyles.questionNumber}>Question {qIndex + 1}</div>
+                            <div className={QuizBuilderPageStyles.questionNumber}>{t('question_n_label').replace('{n}', qIndex + 1)}</div>
                             <div className={QuizBuilderPageStyles.questionType}>
                               {getQuestionIcon(question.type)}
                               <span>{getQuestionTypeLabel(question.type)}</span>
                             </div>
                             <div className={QuizBuilderPageStyles.questionPoints}>
-                              {question.points || 1} point{question.points !== 1 ? 's' : ''}
+                              {question.points || 1} {question.points !== 1 ? t('quiz_points') : t('quiz_point')}
                             </div>
                           </div>
 
                           <div 
                             className={QuizBuilderPageStyles.previewQuestionText}
-                            dangerouslySetInnerHTML={{ __html: (lang === 'ar' ? (question.question_ar || question.question || '<p>No question text</p>') : (question.question_en || question.question || '<p>No question text</p>')) }}
+                            dangerouslySetInnerHTML={{ __html: (lang === 'ar' ? (question.question_ar || question.question || `<p>${t('no_question_text')}</p>`) : (question.question_en || question.question || `<p>${t('no_question_text')}</p>`)) }}
                           />
 
                           <div className={QuizBuilderPageStyles.previewOptions}>
@@ -1989,7 +1989,7 @@ export default function QuizzesPage() {
                                 </div>
                                 <div 
                                   className={QuizBuilderPageStyles.optionText}
-                                  dangerouslySetInnerHTML={{ __html: option.text || `Option ${oIndex + 1}` }}
+                                  dangerouslySetInnerHTML={{ __html: option.text || t('option_n_label').replace('{n}', oIndex + 1) }}
                                 />
                               </div>
                             ))}
@@ -1997,7 +1997,7 @@ export default function QuizzesPage() {
 
                           {question.explanation && (
                             <div className={QuizBuilderPageStyles.previewExplanation}>
-                              <h4>Explanation:</h4>
+                              <h4>{t('explanation_label')}</h4>
                               <div
                                 className={QuizBuilderPageStyles.previewExplanationContent}
                                 dangerouslySetInnerHTML={{ __html: question.explanation }}

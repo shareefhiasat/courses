@@ -298,7 +298,7 @@ export default function QuizBuilderPage() {
       return;
     }
     if (quizData.questions.length === 0) {
-      toast?.showError?.('Please add at least one question');
+      toast?.showError?.(t('quiz_add_question_required'));
       return;
     }
 
@@ -311,7 +311,7 @@ export default function QuizBuilderPage() {
       if (quizId) {
         const result = await updateQuiz(quizId, quizData, user);
         if (result.success) {
-          toast?.showSuccess?.('Quiz updated successfully!');
+          toast?.showSuccess?.(t('quiz_updated_successfully'));
         } else {
           throw new Error(result.error);
         }
@@ -319,7 +319,7 @@ export default function QuizBuilderPage() {
         const result = await createQuiz(quizData, user);
         if (result.success) {
           targetQuizId = result.id;
-          toast?.showSuccess?.('Quiz created successfully!');
+          toast?.showSuccess?.(t('quiz_created_successfully'));
           navigate(`/quiz-builder?id=${result.id}`);
         } else {
           throw new Error(result.error);
@@ -395,7 +395,7 @@ export default function QuizBuilderPage() {
 
     } catch (error) {
       error('Error saving quiz:', error);
-      toast?.showError?.('Failed to save quiz: ' + error.message);
+      toast?.showError?.(t('quiz_failed_to_save').replace('{error}', error.message));
     } finally {
       setSaving(false);
     }
@@ -533,13 +533,13 @@ export default function QuizBuilderPage() {
   const getQuestionTypeLabel = (type) => {
     switch (type) {
       case QUESTION_TYPES.MULTIPLE_CHOICE:
-        return 'Multiple Choice';
+        return t('quiz_multiple_choice');
       case QUESTION_TYPES.SINGLE_CHOICE:
-        return 'Single Choice';
+        return t('quiz_single_choice');
       case QUESTION_TYPES.TRUE_FALSE:
-        return 'True/False';
+        return t('quiz_true_false');
       default:
-        return 'Question';
+        return t('question');
     }
   };
 
@@ -595,7 +595,7 @@ export default function QuizBuilderPage() {
                   variant="outline"
                   onClick={() => setStep('build')}
                 >
-                  ← Back to Edit
+                  {t('back_to_edit')}
                 </Button>
                 <div className={styles.headerSummary}>
                   <h1 className={styles.quizTitle}>{lang === 'ar' ? (quizData.titleAr || quizData.title) : (quizData.titleEn || quizData.title)}</h1>
@@ -607,7 +607,7 @@ export default function QuizBuilderPage() {
                     size="sm"
                     onClick={saveQuiz}
                     disabled={saving}
-                    aria-label="Save quiz"
+                    aria-label={t('save')}
                   >
                     {saving ? <Spinner size="sm" /> : <Save size={16} />}
                   </Button>
@@ -618,10 +618,10 @@ export default function QuizBuilderPage() {
                 {questionCount === 0 ? (
                   <div className={styles.emptyPreview}>
                     <HelpCircle size={48} style={{ color: '#ccc', marginBottom: 16 }} />
-                    <h3>No Questions to Preview</h3>
-                    <p>Add some questions to see how your quiz will look</p>
+                    <h3>{t('no_questions_preview')}</h3>
+                    <p>{t('add_questions_to_see')}</p>
                     <Button variant="outline" onClick={() => setStep('build')}>
-                      Add Questions
+                      {t('add_questions')}
                     </Button>
                   </div>
                 ) : (
@@ -630,19 +630,19 @@ export default function QuizBuilderPage() {
                       <Card key={question.id} className={styles.previewQuestionCard}>
                         <CardBody>
                           <div className={styles.previewQuestionHeader}>
-                            <div className={styles.questionNumber}>Question {qIndex + 1}</div>
+                            <div className={styles.questionNumber}>{t('question_n_label').replace('{n}', qIndex + 1)}</div>
                             <div className={styles.questionType}>
                               {getQuestionIcon(question.type)}
                               <span>{getQuestionTypeLabel(question.type)}</span>
                             </div>
                             <div className={styles.questionPoints}>
-                              {question.points || 1} point{question.points !== 1 ? 's' : ''}
+                              {question.points || 1} {question.points !== 1 ? t('quiz_points') : t('quiz_point')}
                             </div>
                           </div>
 
                           <div 
                             className={styles.previewQuestionText}
-                            dangerouslySetInnerHTML={{ __html: (lang === 'ar' ? (question.question_ar || question.question || '<p>No question text</p>') : (question.question_en || question.question || '<p>No question text</p>')) }}
+                            dangerouslySetInnerHTML={{ __html: (lang === 'ar' ? (question.question_ar || question.question || `<p>${t('no_question_text')}</p>`) : (question.question_en || question.question || `<p>${t('no_question_text')}</p>`)) }}
                           />
 
                           <div className={styles.previewOptions}>
@@ -660,7 +660,7 @@ export default function QuizBuilderPage() {
                                 </div>
                                 <div 
                                   className={styles.optionText}
-                                  dangerouslySetInnerHTML={{ __html: (lang === 'ar' ? (option.text_ar || option.text_en || option.text) : (option.text_en || option.text_ar || option.text)) || `Option ${oIndex + 1}` }}
+                                  dangerouslySetInnerHTML={{ __html: (lang === 'ar' ? (option.text_ar || option.text_en || option.text) : (option.text_en || option.text_ar || option.text)) || t('option_n_label').replace('{n}', oIndex + 1) }}
                                 />
                               </div>
                             ))}
@@ -668,7 +668,7 @@ export default function QuizBuilderPage() {
 
                           {question.explanation && (
                             <div className={styles.previewExplanation}>
-                              <h4>Explanation:</h4>
+                              <h4>{t('explanation_label')}</h4>
                               <div
                                 className={styles.previewExplanationContent}
                                 dangerouslySetInnerHTML={{ __html: question.explanation }}
@@ -721,7 +721,7 @@ export default function QuizBuilderPage() {
                 <div className={styles.formGrid}>
                   <div className={styles.formField}>
                     <Input
-                      placeholder={quizLang === 'en' ? (t('quiz_title_english') || "Quiz Title (English)") : (t('quiz_title_arabic') || "عنوان الاختبار (عربي)")}
+                      placeholder={quizLang === 'en' ? t('quiz_title_en_placeholder') : t('quiz_title_ar_placeholder')}
                       value={quizLang === 'en' ? (quizData.titleEn || quizData.title || '') : (quizData.titleAr || quizData.title || '')}
                       onChange={(e) => {
                         const value = e.target.value;
@@ -736,7 +736,7 @@ export default function QuizBuilderPage() {
                   </div>
                   <div className={styles.formField}>
                     <Input
-                      placeholder={quizLang === 'en' ? (t('quiz_description_optional') || "Quiz Description (optional)") : (t('quiz_description_optional_arabic') || "وصف الاختبار (اختياري)")}
+                      placeholder={quizLang === 'en' ? t('quiz_desc_en_placeholder') : t('quiz_desc_ar_placeholder')}
                       value={quizLang === 'en' ? (quizData.descriptionEn || quizData.description || '') : (quizData.descriptionAr || quizData.description || '')}
                       onChange={(e) => {
                         const value = e.target.value;
@@ -758,7 +758,7 @@ export default function QuizBuilderPage() {
                   variant="outline"
                   onClick={handleCancel}
                 >
-                  Cancel
+                  {t('cancel')}
                 </Button>
                 <Button
                   variant="primary"
@@ -768,7 +768,7 @@ export default function QuizBuilderPage() {
                   }}
                   disabled={!((quizData.titleEn || quizData.title || '').trim() && (quizData.titleAr || quizData.title || '').trim())}
                 >
-                  Continue to Questions
+                  {t('continue_to_questions')}
                 </Button>
               </div>
             </CardBody>
@@ -788,7 +788,7 @@ export default function QuizBuilderPage() {
               variant="outline"
               onClick={() => setStep('setup')}
             >
-              ← Back
+              ← {t('back_label')}
             </Button>
             <div className={styles.headerSummary}>
               <h1 className={styles.quizTitle}>{lang === 'ar' ? (quizData.titleAr || quizData.title) : (quizData.titleEn || quizData.title)}</h1>
@@ -799,7 +799,7 @@ export default function QuizBuilderPage() {
             <Button
               variant="outline"
               size="sm"
-              aria-label="Preview quiz"
+              aria-label={t('preview_quiz')}
               onClick={() => setStep('preview')}
               disabled={questionCount === 0}
             >
@@ -810,7 +810,7 @@ export default function QuizBuilderPage() {
               size="sm"
               onClick={saveQuiz}
               disabled={saving}
-              aria-label="Save quiz"
+              aria-label={t('save')}
             >
               {saving ? <Spinner size="sm" /> : <Save size={16} />}
             </Button>
@@ -821,12 +821,12 @@ export default function QuizBuilderPage() {
           {/* Questions Sidebar */}
           <div className={styles.questionsSidebar}>
             <div className={styles.sidebarHeader}>
-              <h3>{t('questions') || 'Questions'}</h3>
+              <h3>{t('questions_sidebar')}</h3>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={addQuestion}
-                title="Add question"
+                title={t('add_question_btn')}
               >
                 <Plus size={14} />
               </Button>
@@ -906,7 +906,7 @@ export default function QuizBuilderPage() {
                           tempDiv.innerHTML = htmlText;
                           const text = tempDiv.textContent || tempDiv.innerText || '';
                           const words = text.trim().split(/\s+/).filter(w => w.length > 0);
-                          return words.length > 0 ? words.slice(0, 2).join(' ') : 'New Question';
+                          return words.length > 0 ? words.slice(0, 2).join(' ') : t('new_question');
                         })()}
                       </span>
                     </span>
@@ -916,7 +916,7 @@ export default function QuizBuilderPage() {
                         e.stopPropagation();
                         deleteQuestion(index);
                       }}
-                      aria-label={`Delete question ${index + 1}`}
+                      aria-label={`${t('delete_label')} ${t('question_n_label').replace('{n}', index + 1)}`}
                     >
                       <Trash2 size={14} />
                     </button>
@@ -925,9 +925,9 @@ export default function QuizBuilderPage() {
               })}
               {quizData.questions.length === 0 && (
                 <div className={styles.emptyQuestions}>
-                  <p>No questions yet</p>
+                  <p>{t('no_questions_yet')}</p>
                   <Button variant="outline" size="sm" onClick={addQuestion}>
-                    {t('add_first_question') || 'Add your first question'}
+                    {t('add_first_question')}
                   </Button>
                 </div>
               )}
@@ -940,11 +940,11 @@ export default function QuizBuilderPage() {
               <Card>
                 <CardBody>
                   <div className={styles.questionHeader}>
-                    <h3>Question {activeQuestionIndex + 1}</h3>
+                    <h3>{t('question_n_label').replace('{n}', activeQuestionIndex + 1)}</h3>
                   </div>
                   
                   <div className={styles.questionTypeSelector}>
-                    <label>Question Type</label>
+                    <label>{t('question_type_label')}</label>
                     <Select
                       value={quizData.questions[activeQuestionIndex]?.type || QUESTION_TYPES.MULTIPLE_CHOICE}
                       onChange={(e) => {
@@ -968,18 +968,18 @@ export default function QuizBuilderPage() {
                     <div className={styles.questionTextEditor}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
                         <label style={{ fontSize: 14, fontWeight: 500 }}>
-                          {lang === 'ar' ? 'نص السؤال' : 'Question Text'}
+                          {t('question_text_label')}
                         </label>
                         <LanguageToggle value={questionLang} onChange={setQuestionLang} />
                       </div>
                       <RichTextEditor
                         key={`question-text-${questionLang}-${quizData.questions[activeQuestionIndex]?.id || activeQuestionIndex}`}
                         label={questionLang === 'en' 
-                          ? (lang === 'ar' ? 'نص السؤال (إنجليزي)' : 'Question Text (English)')
-                          : (lang === 'ar' ? 'نص السؤال (عربي)' : 'Question Text (Arabic)')}
+                          ? t('question_text_en_label')
+                          : t('question_text_ar_label')}
                         placeholder={questionLang === 'en'
-                          ? (lang === 'ar' ? 'أدخل سؤالك هنا...' : 'Enter your question here...')
-                          : (lang === 'ar' ? 'أدخل سؤالك بالعربية هنا...' : 'Enter your question in Arabic here...')}
+                          ? t('enter_question_en')
+                          : t('enter_question_ar')}
                         value={questionLang === 'en'
                           ? (quizData.questions[activeQuestionIndex]?.question_en || quizData.questions[activeQuestionIndex]?.question || '')
                           : (quizData.questions[activeQuestionIndex]?.question_ar || '')}
@@ -1003,7 +1003,7 @@ export default function QuizBuilderPage() {
 
                       <div className={styles.optionsSection}>
                       <div className={styles.optionsHeader} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <h4>Answer Options</h4>
+                        <h4>{t('answer_options')}</h4>
                         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                           <LanguageToggle value={optionLang} onChange={setOptionLang} />
                           {quizData.questions[activeQuestionIndex]?.type !== QUESTION_TYPES.TRUE_FALSE && (
@@ -1011,7 +1011,7 @@ export default function QuizBuilderPage() {
                               variant="outline"
                               size="sm"
                               onClick={() => addOption(activeQuestionIndex)}
-                              title="Add option"
+                              title={t('add_option')}
                             >
                               <Plus size={14} />
                             </Button>
@@ -1038,7 +1038,7 @@ export default function QuizBuilderPage() {
                               <div style={{ flex: 1 }}>
                                 <RichTextEditor
                                     key={`option-${option.id}-${optionLang}-${activeQuestionIndex}-${quizData.questions[activeQuestionIndex]?.id || 'new'}`}
-                                    placeholder={`Option ${optIndex + 1}`}
+                                    placeholder={t('option_n_label').replace('{n}', optIndex + 1)}
                                     value={optionLang === 'en' 
                                       ? (option.text_en || option.text || '')
                                       : (option.text_ar || option.text || '')}
@@ -1080,7 +1080,7 @@ export default function QuizBuilderPage() {
 
                     <div className={styles.questionSettings}>
                       <div className={styles.settingRow}>
-                        <label>Points</label>
+                        <label>{t('points_label')}</label>
                         <Input
                           type="number"
                           value={quizData.questions[activeQuestionIndex]?.points || 1}
@@ -1091,7 +1091,7 @@ export default function QuizBuilderPage() {
                         />
                       </div>
                       <div className={styles.settingRow}>
-                        <label>Time Limit (seconds per question, 0 = unlimited)</label>
+                        <label>{t('quiz_time_limit_per_question')}</label>
                         <Input
                           type="number"
                           value={quizData.questions[activeQuestionIndex]?.timeLimit || 0}
@@ -1103,19 +1103,19 @@ export default function QuizBuilderPage() {
                         />
                         {quizData.questions[activeQuestionIndex]?.timeLimit > 0 && (
                           <span style={{ fontSize: '0.75rem', color: '#6b7280', marginLeft: '0.5rem' }}>
-                            (Total: {Math.round((quizData.questions[activeQuestionIndex]?.timeLimit || 0) * quizData.questions.length / 60)} min)
+                            (Total: {Math.round((quizData.questions[activeQuestionIndex]?.timeLimit || 0) * quizData.questions.length / 60)} {t('quiz_minutes_abbrev')})
                           </span>
                         )}
                       </div>
                       <div className={styles.settingRow}>
-                        <label>Difficulty</label>
+                        <label>{t('difficulty_label')}</label>
                         <Select
                           value={quizData.questions[activeQuestionIndex]?.difficulty || 'medium'}
                           onChange={(e) => updateQuestion(activeQuestionIndex, { difficulty: e.target.value })}
                           options={[
-                            { value: 'easy', label: 'Easy' },
-                            { value: 'medium', label: 'Medium' },
-                            { value: 'hard', label: 'Hard' }
+                            { value: 'easy', label: t('easy') },
+                            { value: 'medium', label: t('medium') },
+                            { value: 'hard', label: t('hard') }
                           ]}
                           style={{ width: '120px' }}
                         />
@@ -1123,10 +1123,10 @@ export default function QuizBuilderPage() {
                     </div>
 
                     <div className={styles.quizSettingsSection} style={{ marginTop: '1.5rem', padding: '1rem', background: '#f9fafb', borderRadius: '8px' }}>
-                      <h4 style={{ marginBottom: '1rem', fontSize: '1rem', fontWeight: 600 }}>Quiz Settings</h4>
+                      <h4 style={{ marginBottom: '1rem', fontSize: '1rem', fontWeight: 600 }}>{t('quiz_settings')}</h4>
                       <div className={styles.togglesContainer}>
                         <ToggleSwitch
-                          label="Allow retake"
+                          label={t('allow_retake')}
                           checked={quizData.settings?.allowRetake || false}
                           onChange={(checked) => setQuizData(prev => ({
                             ...prev,
@@ -1134,7 +1134,7 @@ export default function QuizBuilderPage() {
                           }))}
                         />
                         <ToggleSwitch
-                          label="Shuffle question order"
+                          label={t('shuffle_question_order')}
                           checked={quizData.settings?.randomizeOrder || false}
                           onChange={(checked) => setQuizData(prev => ({
                             ...prev,
@@ -1142,7 +1142,7 @@ export default function QuizBuilderPage() {
                           }))}
                         />
                         <ToggleSwitch
-                          label="Shuffle answer options"
+                          label={t('shuffle_answer_options')}
                           checked={quizData.settings?.shuffleOptions || false}
                           onChange={(checked) => setQuizData(prev => ({
                             ...prev,
@@ -1154,11 +1154,11 @@ export default function QuizBuilderPage() {
 
                     <div className={styles.explanationSection}>
                       <RichTextEditor
-                        label="Explanation (Optional)"
+                        label={t('explanation_optional')}
                         value={quizData.questions[activeQuestionIndex]?.explanation || ''}
                         onChange={(html) => updateQuestion(activeQuestionIndex, { explanation: html })}
-                        placeholder="Describe why this answer is correct..."
-                        helperText="Shown to students after they answer the question."
+                        placeholder={t('describe_correct_en')}
+                        helperText={t('explanation_helper')}
                         height={120}
                       />
                     </div>
@@ -1169,11 +1169,11 @@ export default function QuizBuilderPage() {
               <Card>
                 <CardBody className={styles.emptyEditor}>
                   <HelpCircle size={48} style={{ color: '#ccc', marginBottom: 16 }} />
-                  <h3>No Questions Yet</h3>
-                  <p>{t('add_first_question') || 'Add your first question'} to get started</p>
+                  <h3>{t('no_questions_yet')}</h3>
+                  <p>{t('add_first_question_to_start')}</p>
                   <Button variant="primary" onClick={addQuestion}>
                     <Plus size={16} style={{ marginRight: 6 }} />
-                    Add Question
+                    {t('add_question_btn')}
                   </Button>
                 </CardBody>
               </Card>
@@ -1196,12 +1196,12 @@ export default function QuizBuilderPage() {
                   variant="outline"
                   onClick={() => setStep('build')}
                 >
-                  ← Back to Edit
+                  {t('back_to_edit')}
                 </Button>
                 <div>
                   <h1 className={styles.quizTitle}>{lang === 'ar' ? (quizData.titleAr || quizData.title) : (quizData.titleEn || quizData.title)}</h1>
                   <p className={styles.quizMeta}>
-                    {quizData.questions.length} questions • {quizData.estimatedTime} min • {quizData.difficulty}
+                    {t('quiz_meta_info').replace('{count}', quizData.questions.length).replace('{time}', quizData.estimatedTime).replace('{difficulty}', quizData.difficulty)}
                   </p>
                 </div>
                 <div className={styles.previewActions}>
@@ -1211,7 +1211,7 @@ export default function QuizBuilderPage() {
                     disabled={saving}
                   >
                     {saving ? <Spinner size="sm" /> : <Save size={16} style={{ marginRight: 6 }} />}
-                    {saving ? 'Saving...' : 'Save Quiz'}
+                    {saving ? t('saving_label') : t('save_quiz_label')}
                   </Button>
                 </div>
               </div>
@@ -1220,10 +1220,10 @@ export default function QuizBuilderPage() {
                 {quizData.questions.length === 0 ? (
                   <div className={styles.emptyPreview}>
                     <HelpCircle size={48} style={{ color: '#ccc', marginBottom: 16 }} />
-                    <h3>No Questions to Preview</h3>
-                    <p>Add some questions to see how your quiz will look</p>
+                    <h3>{t('no_questions_preview')}</h3>
+                    <p>{t('add_questions_to_see')}</p>
                     <Button variant="outline" onClick={() => setStep('build')}>
-                      Add Questions
+                      {t('add_questions')}
                     </Button>
                   </div>
                 ) : (
@@ -1232,19 +1232,19 @@ export default function QuizBuilderPage() {
                       <Card key={question.id} className={styles.previewQuestionCard}>
                         <CardBody>
                           <div className={styles.previewQuestionHeader}>
-                            <div className={styles.questionNumber}>Question {qIndex + 1}</div>
+                            <div className={styles.questionNumber}>{t('question_n_label').replace('{n}', qIndex + 1)}</div>
                             <div className={styles.questionType}>
                               {getQuestionIcon(question.type)}
                               <span>{getQuestionTypeLabel(question.type)}</span>
                             </div>
                             <div className={styles.questionPoints}>
-                              {question.points || 1} point{question.points !== 1 ? 's' : ''}
+                              {question.points || 1} {question.points !== 1 ? t('quiz_points') : t('quiz_point')}
                             </div>
                           </div>
 
                           <div 
                             className={styles.previewQuestionText}
-                            dangerouslySetInnerHTML={{ __html: (lang === 'ar' ? (question.question_ar || question.question || '<p>No question text</p>') : (question.question_en || question.question || '<p>No question text</p>')) }}
+                            dangerouslySetInnerHTML={{ __html: (lang === 'ar' ? (question.question_ar || question.question || `<p>${t('no_question_text')}</p>`) : (question.question_en || question.question || `<p>${t('no_question_text')}</p>`)) }}
                           />
 
                           <div className={styles.previewOptions}>
@@ -1262,7 +1262,7 @@ export default function QuizBuilderPage() {
                                 </div>
                                 <div 
                                   className={styles.optionText}
-                                  dangerouslySetInnerHTML={{ __html: option.text || `Option ${oIndex + 1}` }}
+                                  dangerouslySetInnerHTML={{ __html: option.text || t('option_n_label').replace('{n}', oIndex + 1) }}
                                 />
                               </div>
                             ))}
@@ -1270,7 +1270,7 @@ export default function QuizBuilderPage() {
 
                           {question.explanation && (
                             <div className={styles.previewExplanation}>
-                              <h4>Explanation:</h4>
+                              <h4>{t('explanation_label')}</h4>
                               <div
                                 className={styles.previewExplanationContent}
                                 dangerouslySetInnerHTML={{ __html: question.explanation }}

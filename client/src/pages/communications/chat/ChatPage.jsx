@@ -937,8 +937,8 @@ const ChatPage = memo(() => {
 
       if (!classesResult.success) {
         error('Failed to load classes:', classesResult.error);
-        const errStr = typeof classesResult.error === 'string' ? classesResult.error : (classesResult.error?.message || 'Unknown error');
-        toast?.showError(`Failed to load classes: ${errStr}`);
+        const errStr = typeof classesResult.error === 'string' ? classesResult.error : (classesResult.error?.message || t('unknown'));
+        toast?.showError(t('failed_to_load_classes') + errStr);
         return;
       }
 
@@ -1089,9 +1089,9 @@ const ChatPage = memo(() => {
         <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.3)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:2100 }} onClick={()=>setReceiptsFor(null)}>
           <div style={{ background:'var(--panel)', color:'var(--text)', border:'1px solid var(--border)', borderRadius:12, minWidth:360, maxWidth:520 }} onClick={(e)=>e.stopPropagation()}>
             <div style={{ padding:'1rem 1.25rem', borderBottom:'1px solid var(--border)' }}>
-              <h3 style={{ margin:0, fontSize:'1.1rem', fontWeight:700 }}>{t('message_info') || 'Message Info'}</h3>
+              <h3 style={{ margin:0, fontSize:'1.1rem', fontWeight:700 }}>{t('message_info')}</h3>
               <div style={{ fontSize:'0.9rem', color:'var(--muted)', marginTop:4 }}>
-                {(() => { const seen = receiptsFor.list.filter(r=>!!r.readAt).length; return `Seen by ${seen} of ${receiptsFor.total}`; })()}
+                {(() => { const seen = receiptsFor.list.filter(r=>!!r.readAt).length; return `${t('seen_by')} ${seen} ${t('of')} ${receiptsFor.total}`; })()}
               </div>
             </div>
             <div style={{ maxHeight:'50vh', overflowY:'auto', padding:'0.75rem 0' }}>
@@ -1145,7 +1145,7 @@ const ChatPage = memo(() => {
                 <div style={{ flex:1, minWidth:0 }}>
                   <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                     <div style={{ fontWeight: '600', fontSize: '0.85rem', flex:1 }}>{t('global_chat')}</div>
-                    <div style={{ fontSize: '0.75rem', color: '#666' }}>{t('all_users') || 'All users'}</div>
+                    <div style={{ fontSize: '0.75rem', color: '#666' }}>{t('all_users')}</div>
                     {(() => { const c = unreadCounts['global']||0; if (c>0) { return (<span style={{background:'var(--brand)',color:'white',borderRadius:'50%',minWidth:18,height:18,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.7rem',fontWeight:'bold',padding:'0 5px'}}>{c>99?'99+':c}</span>);} return null; })()}
                   </div>
                   {/* <div style={{ display:'flex', gap:8, marginTop:6 }}>
@@ -1204,7 +1204,7 @@ const ChatPage = memo(() => {
                           await updateUser(user.uid, { archivedClasses: next });
                         } catch {}
                       }}
-                      title={archivedClasses[cls.docId] ? (t('unarchive') || 'Unarchive') : (t('archive') || 'Archive')}
+                      title={archivedClasses[cls.docId] ? t('unarchive') : t('archive')}
                       style={{ background:'transparent', border:'none', cursor:'pointer', color:'#888' }}
                     >{archivedClasses[cls.docId] ? getThemedIcon('ui', 'upload', 16, theme) : getThemedIcon('ui', 'download', 16, theme)}</button>
                   </div>
@@ -1308,8 +1308,8 @@ const ChatPage = memo(() => {
             // Instead, use userA/userB data included in the room object
             const otherUser = room.userA?.id === user.dbId ? room.userB : room.userA;
             const otherId = otherUser?.id;
-            const label = otherUser ? `${otherUser.firstName || ''} ${otherUser.lastName || ''}`.trim() || otherUser.email || 'Conversation' : 'Conversation';
-            const initial = (label || 'D')[0]?.toUpperCase();
+            const label = otherUser ? `${otherUser.firstName || ''} ${otherUser.lastName || ''}`.trim() || otherUser.email || t('conversation') : t('conversation');
+            const initial = (label || t('conversation'))[0]?.toUpperCase();
             const lastTime = room.lastMessageAt?.toDate?.();
             return (
               <div
@@ -1370,7 +1370,7 @@ const ChatPage = memo(() => {
                     <div style={{ display:'flex', gap:8, marginTop:6 }}>
                       <button
                         onClick={(e) => { e.stopPropagation(); toggleStar(room); }}
-                        title={(room.starBy || []).includes(user.uid) ? (t('unfavorite') || 'Unfavorite') : (t('favorite') || 'Favorite')}
+                        title={(room.starBy || []).includes(user.uid) ? t('unfavorite') : t('favorite')}
                         style={{ background:'transparent', border:'1px solid var(--border)', borderRadius:6, padding:'2px 6px', cursor:'pointer', color:'#666', fontSize:'0.9rem', lineHeight:1 }}
                       >{(room.starBy||[]).includes(user.uid)?'★':'☆'}</button>
                       <button
@@ -1383,7 +1383,7 @@ const ChatPage = memo(() => {
                             await updateUser(user.uid, { archivedRooms: next });
                           } catch {}
                         }}
-                        title={archivedRooms[room.id] ? (t('unarchive') || 'Unarchive') : (t('archive') || 'Archive')}
+                        title={archivedRooms[room.id] ? t('unarchive') : t('archive')}
                         style={{ background:'transparent', border:'1px solid var(--border)', borderRadius:6, padding:'2px 6px', cursor:'pointer', color:'#666', fontSize:'0.9rem', lineHeight:1 }}
                       >{archivedRooms[room.id] ? getThemedIcon('ui', 'upload', 14, theme) : getThemedIcon('ui', 'download', 14, theme)}</button>
                     </div>
@@ -1397,11 +1397,11 @@ const ChatPage = memo(() => {
         <div style={{ padding:'0.5rem 0.9rem', borderTop:'1px solid var(--border)', display:'flex', alignItems:'center', gap:16 }}>
           <div style={{ display:'flex', alignItems:'center', gap:8 }}>
             <input id="toggle-archived" type="checkbox" checked={showArchived} onChange={(e)=>setShowArchived(e.target.checked)} />
-            <label htmlFor="toggle-archived" style={{ fontSize:'0.85rem', color:'#666', cursor:'pointer' }}>{t('show_archived') || 'Show archived'}</label>
+            <label htmlFor="toggle-archived" style={{ fontSize:'0.85rem', color:'#666', cursor:'pointer' }}>{t('show_archived')}</label>
           </div>
           <div style={{ display:'flex', alignItems:'center', gap:8 }}>
             <input id="toggle-favorites" type="checkbox" checked={showFavoritesOnly} onChange={(e)=>setShowFavoritesOnly(e.target.checked)} />
-            <label htmlFor="toggle-favorites" style={{ fontSize:'0.85rem', color:'#666', cursor:'pointer' }}>{t('favorites_only') || 'Favorites only'}</label>
+            <label htmlFor="toggle-favorites" style={{ fontSize:'0.85rem', color:'#666', cursor:'pointer' }}>{t('favorites_only')}</label>
           </div>
         </div>
         {/* Toggle Button */}
@@ -1434,7 +1434,7 @@ const ChatPage = memo(() => {
             e.currentTarget.style.transform = 'translateY(-50%) scale(1)';
             e.currentTarget.style.background = 'var(--panel)';
           }}
-          title={isSidebarCollapsed ? (t('expand_sidebar') || 'Expand sidebar') : (t('collapse_sidebar') || 'Collapse sidebar')}
+          title={isSidebarCollapsed ? t('expand_sidebar') : t('collapse_sidebar')}
         >
           {getThemedIcon('ui', isSidebarCollapsed ? 'chevron_right' : 'chevron_left', 14, theme)}
         </button>
@@ -1444,7 +1444,7 @@ const ChatPage = memo(() => {
           <div
             onMouseDown={onDragStart}
             style={{ position:'absolute', right: -3, top:0, bottom:0, width:6, cursor:'col-resize' }}
-            aria-label={t('resize_sidebar') || 'Resize sidebar'}
+            aria-label={t('resize_sidebar')}
           />
         )}
       </div>
@@ -1470,9 +1470,9 @@ const ChatPage = memo(() => {
                    ? (()=>{ 
                       const room = directRooms.find(r=>`dm:${r.id}`===selectedClass); 
                       const otherUser = room?.userA?.id === user?.dbId ? room?.userB : room?.userA;
-                      return otherUser ? `${otherUser.firstName || ''} ${otherUser.lastName || ''}`.trim() || otherUser.email || 'Direct Message' : 'Direct Message';
+                      return otherUser ? `${otherUser.firstName || ''} ${otherUser.lastName || ''}`.trim() || otherUser.email || t('direct_message') : t('direct_message');
                     })()
-                   : (classes.find(c => c.docId === selectedClass)?.name || selectedClassName || 'Chat')
+                   : (classes.find(c => c.docId === selectedClass)?.name || selectedClassName || t('chat'))
                  )}
               </h3>
               {/* Display name for DM conversations */}
@@ -1535,7 +1535,7 @@ const ChatPage = memo(() => {
               data-tour="chat-search"
               type="button"
               onClick={() => { setShowSearch(!showSearch); if (!showSearch) setTimeout(() => document.getElementById('msg-search')?.focus(), 100); }}
-              title={t('search_messages') || 'Search messages'}
+              title={t('search_messages')}
               style={{ 
                 background:'transparent', 
                 border:'1px solid var(--border)',
@@ -1650,8 +1650,8 @@ const ChatPage = memo(() => {
                 const today = formatDate(new Date());
                 const yesterday = formatDate(new Date(Date.now() - 86400000));
                 let label = item.dateStr;
-                if (item.dateStr === today) label = 'Today';
-                else if (item.dateStr === yesterday) label = 'Yesterday';
+                if (item.dateStr === today) label = t('today');
+                else if (item.dateStr === yesterday) label = t('yesterday');
                 return (
                   <div key={`date-${idx}`} style={{ display:'flex', alignItems:'center', margin:'1.5rem 0 1rem' }}>
                     <div style={{ flex:1, height:1, background:'var(--border)' }} />
@@ -1729,7 +1729,7 @@ const ChatPage = memo(() => {
                         alignItems: 'center',
                         gap: '0.25rem'
                       }}>
-                        {msg.senderName || senderUser?.displayName || 'Unknown'}
+                        {msg.senderName || senderUser?.displayName || t('unknown')}
                         {(() => {
                           if (!senderUser) return null;
                           const roles = getUserRoles(senderUser);
@@ -1737,7 +1737,7 @@ const ChatPage = memo(() => {
                           if (!primaryRole) return null;
                           const roleIcon = getUserRoleIcon(primaryRole);
                           const roleColor = getUserRoleColor(primaryRole);
-                          const roleLabel = { super_admin: 'Super Admin', superadmin: 'Super Admin', admin: 'Admin', instructor: 'Instructor', hr: 'HR' }[primaryRole] || primaryRole;
+                          const roleLabel = { super_admin: t('super_admin'), superadmin: t('super_admin'), admin: t('admin'), instructor: t('instructor'), hr: t('hr') }[primaryRole] || primaryRole;
                           return (
                             <span style={{
                               display: 'inline-flex',
@@ -1773,7 +1773,7 @@ const ChatPage = memo(() => {
                             alignItems: 'center',
                             justifyContent: 'center',
                             lineHeight: 1
-                          }} title={senderUser?.deleted ? (t('deleted_user') || 'Deleted User') : (t('disabled_user') || 'Disabled User')}>✕</span>
+                          }} title={senderUser?.deleted ? t('deleted_user') : t('disabled_user')}>✕</span>
                         )}
                       </div>
                     )}
@@ -1792,7 +1792,7 @@ const ChatPage = memo(() => {
                       </div>
                     ) : msg.messageType === 'file' ? (
                       (() => {
-                        const fileName = msg.fileName || 'Attachment';
+                        const fileName = msg.fileName || t('attachment');
                         const fileType = fileName.split('.').pop()?.toLowerCase() || '';
                         const isImage = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg'].includes(fileType) || msg.fileUrl?.match(/\.(jpg|jpeg|png|gif|webp|svg)/i);
                         const isVideo = ['mp4', 'webm', 'ogg', 'mov'].includes(fileType) || msg.fileUrl?.match(/\.(mp4|webm|ogg|mov)/i);
@@ -1820,7 +1820,7 @@ const ChatPage = memo(() => {
                                 preload="metadata"
                               >
                                 <source src={msg.fileUrl} type={`video/${fileType}`} />
-                                {t('browser_no_video_support') || 'Your browser doesn\'t support video playback.'}
+                                {t('browser_no_video_support')}
                               </video>
                               <div style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: 4 }}>
                                 {fileName} • {(msg.fileSize ? Math.ceil(msg.fileSize/1024) : 0)} KB
@@ -1882,7 +1882,7 @@ const ChatPage = memo(() => {
                                   await chatService.votePoll(msg.id, user.uid, idx);
                                 } catch (err) {
                                   error('Poll vote error:', err);
-                                  toast?.showError('Failed to vote');
+                                  toast?.showError(t('failed_to_vote'));
                                 }
                               }}
                               style={{
@@ -1918,7 +1918,7 @@ const ChatPage = memo(() => {
                         <div style={{ fontSize: '0.8rem', color: 'var(--muted)', marginTop: '0.5rem' }}>
                           {(msg.pollVotes && typeof msg.pollVotes === 'object' 
                             ? Object.values(msg.pollVotes).flat().length 
-                            : (msg.pollOptions || []).reduce((sum, o) => sum + (o?.votes?.length || 0), 0))} {t('votes') || 'votes'}
+                            : (msg.pollOptions || []).reduce((sum, o) => sum + (o?.votes?.length || 0), 0))} {t('votes')}
                         </div>
                       </div>
                     ) : (
@@ -1961,7 +1961,7 @@ const ChatPage = memo(() => {
                           cursor: 'pointer',
                           transition: 'color 0.2s'
                         };
-                        const tooltip = `Seen by ${readCount} of ${recips.length}`;
+                        const tooltip = `${t('seen_by')} ${readCount} ${t('of')} ${recips.length}`;
                         return (
                           <span
                             style={style}
@@ -2124,7 +2124,7 @@ const ChatPage = memo(() => {
                         const rect = e.currentTarget.getBoundingClientRect();
                         setReactionMenu({ msgId: msg.id, x: rect.left, y: rect.bottom + 4 }); 
                       }}
-                      title={t('react') || 'React'}
+                      title={t('react')}
                       style={{ 
                         position:'absolute', 
                         bottom: -12, 
@@ -2239,7 +2239,7 @@ const ChatPage = memo(() => {
                       <button
                         onMouseDown={(e)=>e.stopPropagation()}
                         onClick={(e)=>{ e.stopPropagation(); setMenuOpenId(menuOpenId===msg.id?null:msg.id); }}
-                        title={t('more') || 'More'}
+                        title={t('more')}
                         style={{ position:'absolute', top:4, right:4, background:'transparent', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:'1rem', padding:'2px 4px', lineHeight:1 }}
                       >⋮</button>
                     )}
@@ -2304,16 +2304,16 @@ const ChatPage = memo(() => {
                           style={{ display:'flex', alignItems:'center', gap:'8px', background:'transparent', border:'none', padding:'8px 12px', width:'100%', textAlign:'start', cursor:'pointer', color:'var(--brand)', transition:'background 0.2s', borderBottom:'1px solid var(--border)' }}
                         >
                           {getThemedIcon('ui', 'info', 14, theme)}
-                          {t('info')||'Info'}
+                          {t('info')}
                         </button>
                         <button
                           onClick={()=>{
                             const shareUrl = `${window.location.origin}/chat?dest=${selectedClass}&msgId=${msg.id}`;
                             navigator.clipboard.writeText(shareUrl).then(()=>{
-                              toast?.showSuccess('Message link copied!');
+                              toast?.showSuccess(t('message_link_copied'));
                               setMenuOpenId(null);
                             }).catch(()=>{
-                              toast?.showError('Failed to copy link');
+                              toast?.showError(t('failed_to_copy_link'));
                             });
                           }}
                           onMouseEnter={(e)=>e.target.style.background='rgba(102,126,234,0.1)'}
@@ -2321,17 +2321,17 @@ const ChatPage = memo(() => {
                           style={{ display:'flex', alignItems:'center', gap:'8px', background:'transparent', border:'none', padding:'8px 12px', width:'100%', textAlign:'start', cursor:'pointer', color:'var(--brand)', transition:'background 0.2s', borderBottom:'1px solid var(--border)' }}
                         >
                           {getThemedIcon('ui', 'share', 14, theme)}
-                          {t('share')||'Share'}
+                          {t('share')}
                         </button>
                         <button
                           onClick={()=>{
                             // Copy message content for forwarding
-                            const content = msg.content || msg.pollQuestion || msg.fileName || 'Message';
+                            const content = msg.content || msg.pollQuestion || msg.fileName || t('message');
                             navigator.clipboard.writeText(content).then(()=>{
-                              toast?.showSuccess('Message copied! Paste to forward');
+                              toast?.showSuccess(t('message_copied'));
                               setMenuOpenId(null);
                             }).catch(()=>{
-                              toast?.showError('Failed to copy');
+                              toast?.showError(t('failed_to_copy'));
                             });
                           }}
                           onMouseEnter={(e)=>e.target.style.background='rgba(102,126,234,0.1)'}
@@ -2339,7 +2339,7 @@ const ChatPage = memo(() => {
                           style={{ display:'flex', alignItems:'center', gap:'8px', background:'transparent', border:'none', padding:'8px 12px', width:'100%', textAlign:'start', cursor:'pointer', color:'var(--brand)', transition:'background 0.2s', borderBottom:'1px solid var(--border)' }}
                         >
                           {getThemedIcon('ui', 'copy', 14, theme)}
-                          {t('copy')||'Copy'}
+                          {t('copy')}
                         </button>
                         {(isOwnMessage || isAdmin) && (
                           <button
@@ -2349,7 +2349,7 @@ const ChatPage = memo(() => {
                             style={{ display:'flex', alignItems:'center', gap:'8px', background:'transparent', border:'none', padding:'8px 12px', width:'100%', textAlign:'start', cursor:'pointer', color:'#dc3545', transition:'background 0.2s' }}
                           >
                             {getThemedIcon('ui', 'trash2', 14, theme)}
-                            {t('delete')||'Delete'}
+                            {t('delete')}
                           </button>
                         )}
                       </div>
@@ -2397,7 +2397,7 @@ const ChatPage = memo(() => {
                 {imagePreview ? (
                   <img 
                     src={imagePreview} 
-                    alt={t('preview') || 'Preview'} 
+                    alt={t('preview')} 
                     style={{
                       width: 40,
                       height: 40,
@@ -2574,7 +2574,7 @@ const ChatPage = memo(() => {
                 height: 32,
                 transition: 'all 0.2s'
               }}
-              title={t('emoji') || 'Emoji'}
+              title={t('emoji')}
               onMouseOver={(e)=>{e.target.style.background='var(--background)'; e.target.style.borderColor='var(--brand)';}}
               onMouseOut={(e)=>{e.target.style.background='transparent'; e.target.style.borderColor='var(--border)';}}
             >
@@ -2603,7 +2603,7 @@ const ChatPage = memo(() => {
                     height: 32,
                     transition: 'all 0.2s'
                   }}
-                  title={t('create_poll') || 'Create Poll'}
+                  title={t('create_poll')}
                   onMouseOver={(e)=>{e.target.style.background='var(--background)'; e.target.style.borderColor='var(--brand)';}}
                   onMouseOut={(e)=>{e.target.style.background='transparent'; e.target.style.borderColor='var(--border)';}}
                 >
@@ -2690,7 +2690,7 @@ const ChatPage = memo(() => {
                 border: 'none',
                 cursor: 'pointer',
                 fontSize: '1.3rem'
-              }} title={t('attach') || 'Attach'}>
+              }} title={t('attach')}>
                 {getThemedIcon('ui', 'attachment', 20, theme)}
                 <input
                   type="file"
@@ -2733,7 +2733,7 @@ const ChatPage = memo(() => {
                 position: 'relative',
                 opacity: isUploading ? 0.7 : 1
               }}
-              title={isUploading ? 'Uploading...' : ((newMessage.trim() || audioBlob || attachedFile) ? (t('send')||'Send') : (isRecording ? (t('stop_recording')||'Stop Recording') : (t('record_voice')||'Record Voice')))}
+              title={isUploading ? t('uploading') : ((newMessage.trim() || audioBlob || attachedFile) ? t('send') : (isRecording ? t('stop_recording') : t('record_voice')))}
             >
               {/* Recording Indicator with Waves */}
               {isRecording && (
@@ -2895,18 +2895,18 @@ const ChatPage = memo(() => {
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'1.5rem' }}>
             <h3 style={{ margin:0, fontSize:'1.25rem', fontWeight:700, display:'flex', alignItems:'center', gap:'0.5rem' }}>
               <div style={{ width:32, height:32, background:'linear-gradient(135deg, var(--brand), var(--brand2))', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', color:'white', fontSize:'1rem' }}>{getThemedIcon('ui', 'bar_chart', 18, theme)}</div>
-              {t('create_poll') || 'Create Poll'}
+              {t('create_poll')}
             </h3>
             <button onClick={()=>setShowPollModal(false)} style={{ background:'transparent', border:'none', cursor:'pointer', color:'var(--muted)', fontSize:'1.5rem', padding:0, width:24, height:24, display:'flex', alignItems:'center', justifyContent:'center' }}>×</button>
           </div>
           
           <div style={{ marginBottom:'1.5rem' }}>
-            <label style={{ display:'block', marginBottom:'0.5rem', fontWeight:600, fontSize:'0.9rem', color:'var(--text)' }}>{t('question') || 'Question'}</label>
+            <label style={{ display:'block', marginBottom:'0.5rem', fontWeight:600, fontSize:'0.9rem', color:'var(--text)' }}>{t('question')}</label>
             <input
               type="text"
               value={pollQuestion}
               onChange={(e)=>setPollQuestion(e.target.value)}
-              placeholder={t('chat.question_placeholder', 'What would you like to know?')}
+              placeholder={t('chat_question_placeholder')}
               style={{ width:'100%', padding:'0.875rem', border:'2px solid var(--border)', borderRadius:12, marginBottom:'0', background:'var(--panel)', color:'var(--text)', fontSize:'0.95rem', transition:'border-color 0.2s', outline:'none' }}
               onFocus={(e)=>e.target.style.borderColor='var(--brand)'}
               onBlur={(e)=>e.target.style.borderColor='var(--border)'}
@@ -2914,7 +2914,7 @@ const ChatPage = memo(() => {
           </div>
           
           <div style={{ marginBottom:'1.5rem' }}>
-            <label style={{ display:'block', marginBottom:'0.5rem', fontWeight:600, fontSize:'0.9rem', color:'var(--text)' }}>{t('options') || 'Options'}</label>
+            <label style={{ display:'block', marginBottom:'0.5rem', fontWeight:600, fontSize:'0.9rem', color:'var(--text)' }}>{t('options')}</label>
             <div style={{ background:'var(--background)', padding:'1rem', borderRadius:12, border:'1px solid var(--border)' }}>
               {pollOptions.map((opt, idx) => (
                 <div key={idx} style={{ display:'flex', gap:'0.75rem', marginBottom:'0.75rem', alignItems:'center' }}>
@@ -2952,7 +2952,7 @@ const ChatPage = memo(() => {
             onMouseOut={(e)=>{e.target.style.background='transparent'; e.target.style.color='var(--brand)';}}
           >
             {getThemedIcon('ui', 'plus', 18, theme)}
-            {t('add_option') || 'Add Option'}
+            {t('add_option')}
           </button>
           
           <div style={{ display:'flex', justifyContent:'flex-end', gap:'0.75rem' }}>
@@ -2962,12 +2962,12 @@ const ChatPage = memo(() => {
               onMouseOver={(e)=>{e.target.style.background='var(--background)';}}
               onMouseOut={(e)=>{e.target.style.background='transparent';}}
             >
-              {t('cancel')||'Cancel'}
+              {t('cancel')}
             </button>
             <button
               onClick={async ()=>{
                 if (!pollQuestion.trim() || pollOptions.filter(o=>o.trim()).length < 2) {
-                  toast?.showError('Please enter a question and at least 2 options');
+                  toast?.showError(t('please_enter_question_and_options'));
                   return;
                 }
                 try {
@@ -2987,15 +2987,15 @@ const ChatPage = memo(() => {
                   setShowPollModal(false);
                   setPollQuestion('');
                   setPollOptions(['','']);
-                  toast?.showSuccess('Poll created!');
+                  toast?.showSuccess(t('poll_created'));
                 } catch (err) {
                   error('Failed to create poll:', err);
-                  toast?.showError('Failed to create poll');
+                  toast?.showError(t('failed_to_create_poll'));
                 }
               }}
               style={{ padding:'0.75rem 1.5rem', background:'linear-gradient(135deg, var(--brand), var(--brand2))', color:'white', border:'none', borderRadius:10, cursor:'pointer', fontWeight:600, fontSize:'0.9rem', boxShadow:'0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
             >
-              {t('create')||'Create'}
+              {t('create')}
             </button>
           </div>
         </div>
@@ -3006,11 +3006,11 @@ const ChatPage = memo(() => {
     {editingMsg && (
       <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.4)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:2200 }} onClick={()=>setEditingMsg(null)}>
         <div style={{ background:'var(--panel)', color:'var(--text)', border:'1px solid var(--border)', padding:'1rem', borderRadius:12, minWidth:320, maxWidth:520, width:'90%' }} onClick={(e)=>e.stopPropagation()}>
-          <h3 style={{ marginTop:0, marginBottom:8 }}>{t('edit') || 'Edit'}</h3>
+          <h3 style={{ marginTop:0, marginBottom:8 }}>{t('edit')}</h3>
           <textarea rows={5} value={editingMsg.content} onChange={(e)=>setEditingMsg({ ...editingMsg, content: e.target.value })} style={{ width:'100%', background:'var(--panel)', color:'var(--text)', border:'1px solid var(--border)', borderRadius:8, padding:8 }} />
           <div style={{ display:'flex', justifyContent:'flex-end', gap:8, marginTop:10 }}>
-            <button onClick={()=>setEditingMsg(null)} style={{ background:'transparent', color:'var(--text)', border:'1px solid var(--border)', borderRadius:8, padding:'8px 12px', cursor:'pointer' }}>{t('cancel')||'Cancel'}</button>
-            <button onClick={handleSaveEdit} style={{ background:'linear-gradient(135deg, #800020, #600018)', color:'#fff', border:'none', borderRadius:8, padding:'8px 12px', cursor:'pointer' }}>{t('save')||'Save'}</button>
+            <button onClick={()=>setEditingMsg(null)} style={{ background:'transparent', color:'var(--text)', border:'1px solid var(--border)', borderRadius:8, padding:'8px 12px', cursor:'pointer' }}>{t('cancel')}</button>
+            <button onClick={handleSaveEdit} style={{ background:'linear-gradient(135deg, #800020, #600018)', color:'#fff', border:'none', borderRadius:8, padding:'8px 12px', cursor:'pointer' }}>{t('save')}</button>
           </div>
         </div>
       </div>
@@ -3021,13 +3021,13 @@ const ChatPage = memo(() => {
       <div style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setShowNewDMPicker(false)}>
         <div onClick={(e) => e.stopPropagation()} style={{ background: 'var(--panel)', borderRadius: 12, width: 400, maxHeight: '70vh', display: 'flex', flexDirection: 'column', boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.5rem', borderBottom: '1px solid var(--border)' }}>
-            <h3 style={{ margin: 0, fontSize: '1.1rem' }}>Start New Conversation</h3>
+            <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{t('start_new_conversation')}</h3>
             <button onClick={() => setShowNewDMPicker(false)} style={{ background: 'transparent', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--text)' }}>✕</button>
           </div>
           <div style={{ padding: '0.75rem 1.5rem' }}>
             <input
               type="text"
-              placeholder="Search users..."
+              placeholder={t('search_users')}
               value={dmUserSearch}
               onChange={(e) => setDmUserSearch(e.target.value)}
               autoFocus
@@ -3036,9 +3036,9 @@ const ChatPage = memo(() => {
           </div>
           <div style={{ flex: 1, overflowY: 'auto', padding: '0 1.5rem 1rem' }}>
             {dmUsersLoading ? (
-              <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--muted)' }}>Loading users...</div>
+              <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--muted)' }}>{t('loading_users')}</div>
             ) : availableDMUsers.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--muted)' }}>No users available</div>
+              <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--muted)' }}>{t('no_users_available')}</div>
             ) : (
               availableDMUsers
                 .filter(u => {
@@ -3049,10 +3049,10 @@ const ChatPage = memo(() => {
                   return name.includes(search) || email.includes(search);
                 })
                 .map(u => {
-                  const name = `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email || 'Unknown';
+                  const name = `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email || t('unknown');
                   const initials = name.charAt(0).toUpperCase();
                   const roles = (u.roleAssignments || []).map(ra => ra.role?.code).filter(Boolean);
-                  const roleLabel = roles.includes('superadmin') ? 'Super Admin' : roles.includes('admin') ? 'Admin' : roles.includes('hr') ? 'HR' : roles.includes('instructor') ? 'Instructor' : roles.includes('student') ? 'Student' : '';
+                  const roleLabel = roles.includes('superadmin') ? t('super_admin') : roles.includes('admin') ? t('admin') : roles.includes('hr') ? t('hr') : roles.includes('instructor') ? t('instructor') : roles.includes('student') ? t('student') : '';
                   return (
                     <div
                       key={u.id}
@@ -3087,7 +3087,7 @@ const ChatPage = memo(() => {
         <div data-tour="chat-members" onClick={(e)=>e.stopPropagation()} style={{ position: 'absolute', top: 0, right: 0, height: '100%', width: 360, background: 'white', boxShadow: '-4px 0 16px rgba(0,0,0,0.15)', padding: '1rem', pointerEvents: 'auto', display: 'flex', flexDirection: 'column' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
             <h3 style={{ margin: 0 }}>
-              {selectedClass?.startsWith('dm:') ? 'Direct Message' : 'Class Members'}
+              {selectedClass?.startsWith('dm:') ? t('direct_message') : t('chat_members')}
             </h3>
             <button onClick={()=>setShowMembers(false)} style={{ background: 'transparent', border: 'none', fontSize: 18, cursor: 'pointer' }}>✕</button>
           </div>
@@ -3096,7 +3096,7 @@ const ChatPage = memo(() => {
             <>
               <input
                 type="text"
-                placeholder="Search members..."
+                placeholder={t('chat_search_members')}
                 value={memberSearch}
                 onChange={(e) => setMemberSearch(e.target.value)}
                 style={{ padding: '8px 12px', border: '1px solid #ddd', borderRadius: 6, marginBottom: 8, fontSize: '0.95rem' }}
@@ -3107,15 +3107,15 @@ const ChatPage = memo(() => {
                   checked={studentsOnly}
                   onChange={(e) => setStudentsOnly(e.target.checked)}
                 />
-                <span style={{ fontSize: '0.9rem' }}>Students only</span>
+                <span style={{ fontSize: '0.9rem' }}>{t('students_only')}</span>
               </label>
             </>
           )}
           <div style={{ flex: 1, overflowY: 'auto', maxHeight: 'calc(100vh - 200px)' }}>
             {selectedClass?.startsWith('dm:') ? (
               <div style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
-                <p>This is a direct message conversation.</p>
-                <p style={{ fontSize: '0.9rem', marginTop: '0.5rem' }}>Only you and the other participant can see these messages.</p>
+                <p>{t('dm_conversation_description')}</p>
+                <p style={{ fontSize: '0.9rem', marginTop: '0.5rem' }}>{t('dm_private_messages')}</p>
               </div>
             ) : (
               (() => {
@@ -3178,7 +3178,7 @@ const ChatPage = memo(() => {
                       const isUnenrolled = selectedClass && selectedClass !== 'global' && !selectedClass.startsWith('dm:') && 
                         m.isStudent === true && !(Array.isArray(m.enrolledClasses) && m.enrolledClasses.includes(selectedClass));
                       const showIndicator = isDeleted || isDisabled || isUnenrolled;
-                      const indicatorTitle = isDeleted ? 'Deleted User' : (isDisabled ? 'Disabled User' : (isUnenrolled ? 'Unenrolled from this class' : ''));
+                      const indicatorTitle = isDeleted ? t('deleted_user') : (isDisabled ? t('disabled_user') : (isUnenrolled ? t('unenrolled_from_class') : ''));
                 
                 return (
                   <div key={m.docId} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid #f0f0f0' }}>
@@ -3202,7 +3202,7 @@ const ChatPage = memo(() => {
                           </span>
                         )}
                         {m.role === ROLE_STRINGS.ADMIN && (
-                          <span style={{ fontSize: '0.7rem', background: 'linear-gradient(135deg, #800020, #600018)', color: 'white', padding: '2px 6px', borderRadius: 4, fontWeight: 600 }}>Admin</span>
+                          <span style={{ fontSize: '0.7rem', background: 'linear-gradient(135deg, #800020, #600018)', color: 'white', padding: '2px 6px', borderRadius: 4, fontWeight: 600 }}>{t('admin')}</span>
                         )}
                       </div>
                       <div style={{ fontSize: 12, color: '#666' }}>{m.email}</div>
@@ -3245,7 +3245,7 @@ const ChatPage = memo(() => {
               console.error('[ChatPage] Error rendering member item:', { itemError, member: m, index });
               return (
                 <div key={`error-${index}`} style={{ padding: '0.5rem', color: '#999', fontStyle: 'italic' }}>
-                  Error loading member
+                  {t('error_loading_member')}
                 </div>
               );
             }
@@ -3254,7 +3254,7 @@ const ChatPage = memo(() => {
           console.error('[ChatPage] Error in member list rendering:', { error, classMembers, memberSearch, studentsOnly });
           return (
             <div style={{ textAlign: 'center', padding: '2rem', color: '#999' }}>
-              Unable to load members. Please refresh the page.
+              {t('unable_to_load_members')}
             </div>
           );
         }

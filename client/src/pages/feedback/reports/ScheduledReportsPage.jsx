@@ -245,7 +245,7 @@ const ScheduledReportsPage = () => {
       r.schedule === 'daily' ? t('scheduled_reports_daily') : r.schedule === 'weekly' ? t('scheduled_reports_weekly') : t('scheduled_reports_custom'),
       (r.recipients || []).join('; '),
       r.nextRunAt ? formatDateTime(new Date(r.nextRunAt)) : 'N/A',
-      r.lastRunAt ? formatDateTime(new Date(r.lastRunAt)) : 'Never',
+      r.lastRunAt ? formatDateTime(new Date(r.lastRunAt)) : t('scheduled_reports_never'),
       r.enabled !== false ? t('scheduled_reports_enabled') : t('scheduled_reports_disabled')
     ]);
     
@@ -307,8 +307,8 @@ const ScheduledReportsPage = () => {
     return (
       <Container>
         <div style={{ padding: '2rem', textAlign: 'center' }}>
-          <h2>Access Denied</h2>
-          <p>You don't have permission to view this page.</p>
+          <h2>{t('access_denied')}</h2>
+          <p>{t('no_permission_view_page')}</p>
         </div>
       </Container>
     );
@@ -323,10 +323,10 @@ const ScheduledReportsPage = () => {
             resetForm();
             setShowAddForm(!showAddForm);
           }}>
-            Schedule Report
+            {t('schedule_report_btn')}
           </Button>
           <Button size="sm" variant="outline" icon={<FileDown size={16} />} onClick={exportToCSV}>
-            Export
+            {t('export_btn')}
           </Button>
         </div>
       </div>
@@ -336,7 +336,7 @@ const ScheduledReportsPage = () => {
         <Input
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          placeholder={lang === 'ar' ? 'بحث التقارير...' : 'Search reports...'}
+          placeholder={t('search_reports_placeholder')}
           prefixIcon={getThemedIcon('ui', 'search', 16, theme)}
           style={{ maxWidth: 400 }}
           fullWidth
@@ -347,11 +347,11 @@ const ScheduledReportsPage = () => {
       {showAddForm && (
         <Card style={{ marginBottom: '1rem' }}>
           <CardBody>
-            <h3 style={{ marginBottom: '1rem' }}>{editingReport ? 'Edit Scheduled Report' : 'Schedule New Report'}</h3>
+            <h3 style={{ marginBottom: '1rem' }}>{editingReport ? t('edit_scheduled_report') : t('schedule_new_report')}</h3>
             <div style={{ display: 'grid', gap: '1rem' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
-                  <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>Title *</label>
+                  <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>{t('title_required_label')}</label>
                   <Input
                     value={formData.title}
                     onChange={(e) => setFormData({ ...formData, title: e.target.value })}
@@ -360,7 +360,7 @@ const ScheduledReportsPage = () => {
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>Report Type *</label>
+                  <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>{t('report_type_label')}</label>
                   <Select
                     value={formData.reportType}
                     onChange={(e) => setFormData({ ...formData, reportType: e.target.value })}
@@ -374,7 +374,7 @@ const ScheduledReportsPage = () => {
               </div>
 
               <div>
-                <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>Description</label>
+                <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>{t('description_label')}</label>
                 <Textarea
                   value={formData.description}
                   onChange={(e) => setFormData({ ...formData, description: e.target.value })}
@@ -386,25 +386,25 @@ const ScheduledReportsPage = () => {
 
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
                 <div>
-                  <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>Schedule *</label>
+                  <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>{t('schedule_label')}</label>
                   <Select
                     value={formData.schedule}
                     onChange={(e) => setFormData({ ...formData, schedule: e.target.value })}
                     options={[
-                      { value: 'daily', label: 'Daily', icon: <Calendar size={16} color="var(--text-secondary, #374151)" /> },
-                      { value: 'weekly', label: 'Weekly', icon: <Calendar size={16} color="var(--text-secondary, #374151)" /> },
-                      { value: 'custom', label: 'Custom', icon: <Calendar size={16} color="var(--text-secondary, #374151)" /> }
+                      { value: 'daily', label: t('scheduled_reports_daily'), icon: <Calendar size={16} color="var(--text-secondary, #374151)" /> },
+                      { value: 'weekly', label: t('scheduled_reports_weekly'), icon: <Calendar size={16} color="var(--text-secondary, #374151)" /> },
+                      { value: 'custom', label: t('scheduled_reports_custom'), icon: <Calendar size={16} color="var(--text-secondary, #374151)" /> }
                     ]}
                     fullWidth
                   />
                 </div>
                 <div>
-                  <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>Email Template *</label>
+                  <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>{t('email_template_label')}</label>
                   <Select
                     value={formData.templateId}
                     onChange={(e) => setFormData({ ...formData, templateId: e.target.value })}
                     options={[
-                      { value: '', label: 'Select a template...' },
+                      { value: '', label: t('select_template_placeholder') },
                       ...templates.map(t => ({
                         value: t.docId || t.id,
                         label: t.name || t.docId
@@ -417,7 +417,7 @@ const ScheduledReportsPage = () => {
 
               {formData.schedule === 'custom' && (
                 <div>
-                  <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>Next Run Date & Time *</label>
+                  <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>{t('next_run_date_time_label')}</label>
                   <Input
                     type="datetime-local"
                     value={formData.customSchedule}
@@ -428,17 +428,17 @@ const ScheduledReportsPage = () => {
               )}
 
               <div>
-                <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>Recipients *</label>
+                <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>{t('recipients_label')}</label>
                 <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
                   <Input
                     type="email"
                     value={recipientInput}
                     onChange={(e) => setRecipientInput(e.target.value)}
                     onKeyPress={(e) => e.key === 'Enter' && handleAddRecipient()}
-                    placeholder="Enter email address"
+                    placeholder={t('enter_email_address')}
                     style={{ flex: 1 }}
                   />
-                  <Button onClick={handleAddRecipient} variant="outline" size="sm">Add</Button>
+                  <Button onClick={handleAddRecipient} variant="outline" size="sm">{t('add_btn')}</Button>
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                   {formData.recipients.map((email, idx) => (
@@ -481,7 +481,7 @@ const ScheduledReportsPage = () => {
                     onChange={(checked) => setFormData({ ...formData, enabled: checked })}
                     size="small"
                   />
-                  <span>Enabled</span>
+                  <span>{t('enabled_label')}</span>
                 </label>
               </div>
 
@@ -493,14 +493,14 @@ const ScheduledReportsPage = () => {
                     resetForm();
                   }}
                 >
-                  Cancel
+                  {t('cancel')}
                 </Button>
                 <Button
                   variant="primary"
                   onClick={handleSave}
                   disabled={saving}
                 >
-                  {saving ? 'Saving...' : (editingReport ? 'Update' : 'Schedule')}
+                  {saving ? t('saving_label') : (editingReport ? t('update_btn') : t('schedule_btn'))}
                 </Button>
               </div>
             </div>
@@ -513,14 +513,14 @@ const ScheduledReportsPage = () => {
         {/* Left: List */}
         <Card>
           <CardBody>
-            <h3 style={{ marginTop: 0, marginBottom: '1rem' }}>All Reports ({filteredReports.length})</h3>
+            <h3 style={{ marginTop: 0, marginBottom: '1rem' }}>{t('all_reports_count').replace('{count}', filteredReports.length)}</h3>
             {filteredReports.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '2rem', color: '#6b7280' }}>
                 <Calendar size={48} style={{ marginBottom: '1rem', opacity: 0.5 }} />
-                <p>No scheduled reports found</p>
+                <p>{t('no_scheduled_reports_found')}</p>
                 {!searchTerm && (
                   <Button variant="primary" size="sm" onClick={() => setShowAddForm(true)} style={{ marginTop: '1rem' }}>
-                    Create First Report
+                    {t('create_first_report')}
                   </Button>
                 )}
               </div>
@@ -543,7 +543,7 @@ const ScheduledReportsPage = () => {
                       <div style={{ flex: 1 }}>
                         <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 600 }}>{report.title}</h4>
                         <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.875rem', color: '#6b7280' }}>
-                          {report.reportType === 'analytics' ? 'Analytics' : 'Student Dashboard'}
+                          {report.reportType === 'analytics' ? t('scheduled_reports_analytics') : t('scheduled_reports_student_dashboard')}
                         </p>
                       </div>
                       <ToggleSwitch
@@ -555,15 +555,15 @@ const ScheduledReportsPage = () => {
                     </div>
                     <div style={{ display: 'flex', gap: '1rem', fontSize: '0.875rem', color: '#6b7280', marginTop: '0.5rem' }}>
                       <span><Calendar size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />
-                        {report.schedule === 'daily' ? 'Daily' : report.schedule === 'weekly' ? 'Weekly' : 'Custom'}
+                        {report.schedule === 'daily' ? t('scheduled_reports_daily') : report.schedule === 'weekly' ? t('scheduled_reports_weekly') : t('scheduled_reports_custom')}
                       </span>
                       <span><Mail size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />
-                        {report.recipients?.length || 0} recipient(s)
+                        {t('recipient_count').replace('{count}', report.recipients?.length || 0)}
                       </span>
                     </div>
                     {report.nextRunAt && (
                       <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.5rem' }}>
-                        Next: {formatDateTime(new Date(report.nextRunAt))}
+                        {t('next_label')} {formatDateTime(new Date(report.nextRunAt))}
                       </div>
                     )}
                   </div>
@@ -579,47 +579,47 @@ const ScheduledReportsPage = () => {
             {selectedReport ? (
               <>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                  <h3 style={{ margin: 0 }}>Report Details</h3>
+                  <h3 style={{ margin: 0 }}>{t('report_details')}</h3>
                   <div style={{ display: 'flex', gap: '0.5rem' }}>
                     <Button size="sm" variant="outline" icon={<Edit size={14} />} onClick={() => handleEdit(selectedReport)}>
-                      Edit
+                      {t('edit')}
                     </Button>
                     <Button size="sm" variant="danger" icon={<Trash2 size={14} />} onClick={() => handleDelete(selectedReport.docId)}>
-                      Delete
+                      {t('delete')}
                     </Button>
                   </div>
                 </div>
                 <div style={{ display: 'grid', gap: '1rem' }}>
                   <div>
-                    <label style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 600 }}>Title</label>
+                    <label style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 600 }}>{t('title')}</label>
                     <p style={{ margin: '0.25rem 0 0 0', fontSize: '1rem' }}>{selectedReport.title}</p>
                   </div>
                   {selectedReport.description && (
                     <div>
-                      <label style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 600 }}>Description</label>
+                      <label style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 600 }}>{t('description_label')}</label>
                       <p style={{ margin: '0.25rem 0 0 0', fontSize: '1rem' }}>{selectedReport.description}</p>
                     </div>
                   )}
                   <div>
-                    <label style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 600 }}>Report Type</label>
+                    <label style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 600 }}>{t('report_type_label')}</label>
                     <p style={{ margin: '0.25rem 0 0 0', fontSize: '1rem' }}>
-                      {selectedReport.reportType === 'analytics' ? (t('advanced_analytics') || 'Advanced Analytics') : (t('student_dashboard_status') || 'Student Dashboard Status')}
+                      {selectedReport.reportType === 'analytics' ? t('scheduled_reports_analytics') : t('scheduled_reports_student_dashboard')}
                     </p>
                   </div>
                   <div>
-                    <label style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 600 }}>Schedule</label>
+                    <label style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 600 }}>{t('schedule_label')}</label>
                     <p style={{ margin: '0.25rem 0 0 0', fontSize: '1rem' }}>
-                      {selectedReport.schedule === 'daily' ? 'Daily' : selectedReport.schedule === 'weekly' ? 'Weekly' : 'Custom'}
+                      {selectedReport.schedule === 'daily' ? t('scheduled_reports_daily') : selectedReport.schedule === 'weekly' ? t('scheduled_reports_weekly') : t('scheduled_reports_custom')}
                     </p>
                   </div>
                   <div>
-                    <label style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 600 }}>Email Template</label>
+                    <label style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 600 }}>{t('email_template_label')}</label>
                     <p style={{ margin: '0.25rem 0 0 0', fontSize: '1rem' }}>
                       {templates.find(t => (t.docId || t.id) === selectedReport.templateId)?.name || selectedReport.templateId || 'N/A'}
                     </p>
                   </div>
                   <div>
-                    <label style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 600 }}>Recipients</label>
+                    <label style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 600 }}>{t('recipients_label')}</label>
                     <div style={{ marginTop: '0.5rem', display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                       {(selectedReport.recipients || []).map((email, idx) => (
                         <span key={idx} style={{ padding: '4px 12px', background: 'var(--border)', borderRadius: 16, fontSize: '0.875rem' }}>
@@ -629,21 +629,21 @@ const ScheduledReportsPage = () => {
                     </div>
                   </div>
                   <div>
-                    <label style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 600 }}>Next Run</label>
+                    <label style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 600 }}>{t('next_label')}</label>
                     <p style={{ margin: '0.25rem 0 0 0', fontSize: '1rem' }}>
-                      {selectedReport.nextRunAt ? formatDateTime(new Date(selectedReport.nextRunAt)) : 'Not scheduled'}
+                      {selectedReport.nextRunAt ? formatDateTime(new Date(selectedReport.nextRunAt)) : t('not_scheduled')}
                     </p>
                   </div>
                   {selectedReport.lastRunAt && (
                     <div>
-                      <label style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 600 }}>Last Run</label>
+                      <label style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 600 }}>{t('last_run')}</label>
                       <p style={{ margin: '0.25rem 0 0 0', fontSize: '1rem' }}>
                         {formatDateTime(new Date(selectedReport.lastRunAt))}
                       </p>
                     </div>
                   )}
                   <div>
-                    <label style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 600 }}>Status</label>
+                    <label style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 600 }}>{t('status')}</label>
                     <p style={{ margin: '0.25rem 0 0 0', fontSize: '1rem' }}>
                       <span style={{ 
                         padding: '4px 8px', 
@@ -653,7 +653,7 @@ const ScheduledReportsPage = () => {
                         fontSize: '0.875rem',
                         fontWeight: 600
                       }}>
-                        {selectedReport.enabled !== false ? 'Enabled' : 'Disabled'}
+                        {selectedReport.enabled !== false ? t('scheduled_reports_enabled') : t('scheduled_reports_disabled')}
                       </span>
                     </p>
                   </div>
@@ -662,7 +662,7 @@ const ScheduledReportsPage = () => {
             ) : (
               <div style={{ textAlign: 'center', padding: '2rem', color: '#6b7280' }}>
                 <FileText size={48} style={{ marginBottom: '1rem', opacity: 0.5 }} />
-                <p>Select a report to view details</p>
+                <p>{t('select_report_to_view')}</p>
               </div>
             )}
           </CardBody>
