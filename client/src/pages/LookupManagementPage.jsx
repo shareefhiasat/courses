@@ -10,6 +10,7 @@
 
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import Joyride from 'react-joyride';
+import TourTooltip from '@ui/TourTooltip/TourTooltip';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useAuth } from '@contexts/AuthContext';
@@ -726,13 +727,14 @@ const LookupPageWithTour = ({
   }, []);
   React.useEffect(() => { try { if (!localStorage.getItem(tourSeenKey)) setRunTour(true); } catch {} }, [tourSeenKey]);
   const handleTourCb = React.useCallback((data) => {
-    const { status } = data || {};
-    if (status === 'finished' || status === 'skipped') { setRunTour(false); try { localStorage.setItem(tourSeenKey, 'true'); } catch {} }
+    const { status, action } = data || {};
+    if (status === 'finished' || status === 'skipped' || action === 'close') { setRunTour(false); try { localStorage.setItem(tourSeenKey, 'true'); } catch {} }
   }, [tourSeenKey]);
+  const TourTooltipComponent = useMemo(() => TourTooltip({ tourSeenKey }), [tourSeenKey]);
 
   return (
     <div style={{ padding: '1.5rem' }}>
-      <Joyride continuous run={runTour} steps={tourSteps} callback={handleTourCb} scrollOffset={100} scrollToFirstStep
+      <Joyride continuous run={runTour} steps={tourSteps} callback={handleTourCb} scrollOffset={100} scrollToFirstStep showSkipButton showProgress tooltipComponent={TourTooltipComponent}
         locale={{ back: t('tour_back'), close: t('tour_close'), last: t('tour_finish'), next: t('tour_next'), skip: t('tour_skip') }}
         styles={{ options: { primaryColor: 'var(--color-primary,#800020)', textColor: theme === 'dark' ? '#e5e7eb' : '#111', backgroundColor: theme === 'dark' ? '#1f2937' : '#fff', zIndex: 10000 } }}
       />

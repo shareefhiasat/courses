@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import Joyride from 'react-joyride';
+import TourTooltip from '@ui/TourTooltip/TourTooltip';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import { formatQatarDateOnly, getQatarNow } from '@utils/qatarDate';
 import { useAuth } from '@contexts/AuthContext';
@@ -195,12 +196,13 @@ const QRScannerPage = () => {
   }, [tourSeenKey]);
 
   const handleTourCallback = useCallback((data) => {
-    const { status } = data || {};
-    if (status === 'finished' || status === 'skipped') {
+    const { status, action } = data || {};
+    if (status === 'finished' || status === 'skipped' || action === 'close') {
       setRunTour(false);
       try { localStorage.setItem(tourSeenKey, 'true'); } catch {}
     }
   }, [tourSeenKey]);
+  const TourTooltipComponent = useMemo(() => TourTooltip({ tourSeenKey }), [tourSeenKey]);
   // ──────────────────────────────────────────────────────────────────────────
 
   const [highlightEnabled, setHighlightEnabled] = useState(() => {
@@ -2790,8 +2792,8 @@ const QRScannerPage = () => {
           : '0.00';
 
         // Calculate attendance failure based on new rule:
-        // Absent with excuse + absent without excuse + human case (excluding excused leave) must be >= 8 classes
-        const attendanceFailure = totalAbsencesForFB >= 8 ? ABSENCE_THRESHOLDS.FAILURE_GRADE : '';
+        // Absent with excuse + absent without excuse + human case (excluding excused leave) must be >= ABSENCE_THRESHOLDS.FAILURE_ABSENCE_COUNT classes
+        const attendanceFailure = totalAbsencesForFB >= ABSENCE_THRESHOLDS.FAILURE_ABSENCE_COUNT ? ABSENCE_THRESHOLDS.FAILURE_GRADE : '';
 
         // Get grade from enrollment data
         const enrollment = enrollments.find(e => e.userId == studentId);
@@ -2987,9 +2989,9 @@ const QRScannerPage = () => {
               ? (((subjectData.present + subjectData.late) / subjectData.total) * 100).toFixed(2)
               : '0.00';
 
-            // Calculate per-subject FB status (>= 8 classes rule, excluding excused leave)
+            // Calculate per-subject FB status (>= ABSENCE_THRESHOLDS.FAILURE_ABSENCE_COUNT classes rule, excluding excused leave)
             const subjectAbsencesForFB = subjectData.absentNoExcuse + subjectData.absentWithExcuse + subjectData.humanCase;
-            const subjectAttendanceFailure = subjectAbsencesForFB >= 8 ? ABSENCE_THRESHOLDS.FAILURE_GRADE : '';
+            const subjectAttendanceFailure = subjectAbsencesForFB >= ABSENCE_THRESHOLDS.FAILURE_ABSENCE_COUNT ? ABSENCE_THRESHOLDS.FAILURE_GRADE : '';
 
             // Get per-subject grade (for now, use overall grade - could be enhanced to have subject-specific grades)
             const enrollment = enrollments.find(e => e.userId == studentId);
@@ -3139,9 +3141,9 @@ const QRScannerPage = () => {
               );
               subjectTotalSessions += subjectData.total;
 
-              // Calculate FB for this subject (>= 8 classes rule, excluding excused leave)
+              // Calculate FB for this subject (>= ABSENCE_THRESHOLDS.FAILURE_ABSENCE_COUNT classes rule, excluding excused leave)
               const subjectAbsencesForFB = subjectData.absentNoExcuse + subjectData.absentWithExcuse + subjectData.humanCase;
-              if (subjectAbsencesForFB >= 8) {
+              if (subjectAbsencesForFB >= ABSENCE_THRESHOLDS.FAILURE_ABSENCE_COUNT) {
                 subjectFbCount++;
               }
             }
@@ -3859,6 +3861,9 @@ const QRScannerPage = () => {
         disableScrolling={false}
         scrollOffset={100}
         scrollToFirstStep
+        showSkipButton
+        showProgress
+        tooltipComponent={TourTooltipComponent}
         spotlightClicks={false}
         callback={handleTourCallback}
         locale={{

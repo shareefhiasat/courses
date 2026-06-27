@@ -31,6 +31,8 @@ const useWorkflowInbox = (initialParams = {}, onNotification = null) => {
     viewMode: 'all', // 'all', 'needs_action', 'waiting', 'completed'
     status: '',
     workflowType: '',
+    workflowCategory: '',
+    attendanceSubtype: '',
     search: '',
     assignment: '', // 'assigned_to_me', 'assigned_to_my_role'
     sortBy: 'sla', // 'sla', 'createdAt', 'updatedAt'
@@ -144,6 +146,12 @@ const useWorkflowInbox = (initialParams = {}, onNotification = null) => {
       if (filters.workflowType) {
         apiParams.workflowType = filters.workflowType;
       }
+      if (filters.workflowCategory) {
+        apiParams.workflowCategory = filters.workflowCategory;
+      }
+      if (filters.attendanceSubtype) {
+        apiParams.attendanceSubtype = filters.attendanceSubtype;
+      }
       
       const result = await getWorkflowDocuments(apiParams);
       
@@ -199,7 +207,9 @@ const useWorkflowInbox = (initialParams = {}, onNotification = null) => {
             const descriptionMatch = (doc.description || '').toLowerCase().includes(searchTerm);
             const statusMatch = (doc.status || '').toLowerCase().includes(searchTerm);
             const nextStatusMatch = (doc.nextStatus || '').toLowerCase().includes(searchTerm);
-            const workflowTypeMatch = (doc.workflowType || '').toLowerCase().includes(searchTerm);
+            const workflowTypeMatch = (doc.workflowType || '').toLowerCase().includes(searchTerm)
+              || (doc.workflowCategory || '').toLowerCase().includes(searchTerm)
+              || (doc.attendanceSubtype || '').toLowerCase().includes(searchTerm);
             const programMatch = (doc.program || '').toLowerCase().includes(searchTerm);
             const subjectMatch = (doc.subject || '').toLowerCase().includes(searchTerm);
             
@@ -220,10 +230,10 @@ const useWorkflowInbox = (initialParams = {}, onNotification = null) => {
             // Search in role-based assignments (when assigneeId is null)
             const roleAssignmentMatch = 
               doc.currentAssigneeId === null && (
-                (doc.workflowType === 'GENERAL' && 'hr'.includes(searchTerm)) ||
-                (doc.workflowType === 'ATTENDANCE_WEEKLY' && 'admin'.includes(searchTerm)) ||
-                (doc.workflowType === 'GENERAL' && 'hr review'.includes(searchTerm)) ||
-                (doc.workflowType === 'ATTENDANCE_WEEKLY' && 'admin review'.includes(searchTerm))
+                (doc.workflowCategory === 'GENERAL' && 'hr'.includes(searchTerm)) ||
+                (doc.workflowCategory === 'ATTENDANCE' && doc.attendanceSubtype === 'WEEKLY_SUMMARY' && 'admin'.includes(searchTerm)) ||
+                (doc.workflowType === 'GENERAL_HR' && 'hr'.includes(searchTerm)) ||
+                (doc.workflowType === 'ATTENDANCE_WEEKLY' && 'admin'.includes(searchTerm))
               );
             
             // Search in class
@@ -263,21 +273,19 @@ const useWorkflowInbox = (initialParams = {}, onNotification = null) => {
               const isHR = userRoles.includes('HR');
               const isAdmin = userRoles.includes('ADMIN') || userRoles.includes('SUPER_ADMIN');
               
-              // HR can see GENERAL workflow documents
-              if (isHR && doc.workflowType === 'GENERAL') {
-                console.log('[WorkflowInbox] Document matches HR role filter (role-based):', {
-                  docId: doc.id,
-                  workflowType: doc.workflowType
-                });
+              const category = doc.workflowCategory || 'GENERAL';
+              const subtype = doc.attendanceSubtype;
+              const isHrCategory = category === 'GENERAL' || category === 'ATTENDANCE' || category === 'PENALTY' || category === 'BEHAVIOR' || category === 'DISCONTINUATION'
+                || doc.workflowType?.startsWith('GENERAL');
+              const isAdminCategory = (category === 'ATTENDANCE' && subtype === 'WEEKLY_SUMMARY')
+                || category === 'DISCONTINUATION'
+                || doc.workflowType === 'ATTENDANCE_WEEKLY';
+
+              if (isHR && isHrCategory) {
                 return true;
               }
-              
-              // Admin can see ATTENDANCE_WEEKLY workflow documents
-              if (isAdmin && doc.workflowType === 'ATTENDANCE_WEEKLY') {
-                console.log('[WorkflowInbox] Document matches Admin role filter (role-based):', {
-                  docId: doc.id,
-                  workflowType: doc.workflowType
-                });
+
+              if (isAdmin && isAdminCategory) {
                 return true;
               }
               

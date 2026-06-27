@@ -7,6 +7,7 @@ import { Router } from 'express';
 import multer from 'multer';
 import { keycloakAuth } from '../middleware/keycloakAuth.js';
 import prisma from '../db/prismaClient.js';
+import { isHrAccessibleWorkflow, isAdminAccessibleWorkflow } from '../utils/workflowTaxonomy.js';
 import { BUCKETS, putObject } from '../services/minioService.js';
 
 
@@ -477,6 +478,9 @@ router.get('/files/:fileId/download', async (req, res, next) => {
         submitterId: true,
         currentAssigneeId: true,
         workflowType: true,
+        workflowCategory: true,
+        attendanceSubtype: true,
+        approvalFlow: true,
         status: true
       }
     });
@@ -513,13 +517,13 @@ router.get('/files/:fileId/download', async (req, res, next) => {
         return next();
       }
 
-      if (isHR && workflowDoc.workflowType === 'GENERAL') {
-        console.log('[driveNew.js] HR allowed download for GENERAL workflow:', { fileId, userId: user.id });
+      if (isHR && isHrAccessibleWorkflow(workflowDoc)) {
+        console.log('[driveNew.js] HR allowed download for workflow:', { fileId, userId: user.id, category: workflowDoc.workflowCategory });
         return next();
       }
 
-      if (isAdmin && workflowDoc.workflowType === 'ATTENDANCE_WEEKLY') {
-        console.log('[driveNew.js] Admin allowed download for ATTENDANCE_WEEKLY workflow:', { fileId, userId: user.id });
+      if (isAdmin && isAdminAccessibleWorkflow(workflowDoc)) {
+        console.log('[driveNew.js] Admin allowed download for workflow:', { fileId, userId: user.id, category: workflowDoc.workflowCategory });
         return next();
       }
 

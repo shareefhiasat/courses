@@ -1,4 +1,4 @@
-import prisma from '../db/prismaClient.js';
+import { suggestAttendanceMarkComponent, listDeductionRules } from '../services/attendanceDeductionService.js';
 import { calculateLetterGrade, MANUAL_GRADES } from '../utils/formatting/gradingStandards.js';
 import notificationGateway from '../services/notifications/index.js';
 import { EVENTS } from '../services/notifications/constants.js';
@@ -796,6 +796,46 @@ const getFieldDisplayName = (field) => {
   return fieldNames[field] || field;
 };
 
+const getAttendanceDeductionSuggestion = async (req, res) => {
+  try {
+    const { userId, classId, dateFrom, dateTo } = req.query;
+    if (!userId || !classId) {
+      return res.status(400).json({
+        success: false,
+        error: 'userId and classId are required',
+      });
+    }
+
+    const distribution = await prisma.marksDistribution.findFirst({
+      where: { subject: { classes: { some: { id: parseInt(classId, 10) } } } },
+      select: { attendance: true },
+    });
+
+    const suggestion = await suggestAttendanceMarkComponent({
+      userId: parseInt(userId, 10),
+      classId: parseInt(classId, 10),
+      distributionAttendanceWeight: distribution?.attendance || 10,
+      dateFrom,
+      dateTo,
+    });
+
+    res.json({ success: true, data: suggestion });
+  } catch (error) {
+    console.error('Error calculating attendance deduction:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+const getAbsenceDeductionRules = async (req, res) => {
+  try {
+    const rules = await listDeductionRules();
+    res.json({ success: true, data: rules });
+  } catch (error) {
+    console.error('Error listing deduction rules:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
 export {
   getMarksDistribution,
   setMarksDistribution,
@@ -803,7 +843,9 @@ export {
   updateStudentMarks,
   getStudentMarksHistory,
   batchUpdateStudentMarks,
-  getAllStudentMarksReport
+  getAllStudentMarksReport,
+  getAttendanceDeductionSuggestion,
+  getAbsenceDeductionRules,
 };
 
 /**

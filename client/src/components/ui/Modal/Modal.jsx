@@ -15,7 +15,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * @param {string} props.title - Modal title
  * @param {React.ReactNode} props.children - Modal content
  * @param {React.ReactNode} props.footer - Modal footer content
- * @param {'small'|'medium'|'large'|'full'} props.size - Modal size
+ * @param {'small'|'medium'|'large'|'wide'|'full'} props.size - Modal size
  * @param {boolean} props.closeOnOverlayClick - Whether clicking overlay closes modal
  * @param {boolean} props.closeOnEscape - Whether pressing Escape closes modal
  * @param {boolean} props.showCloseButton - Whether to show close button

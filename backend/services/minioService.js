@@ -119,8 +119,9 @@ export async function deleteObjectVersion(bucket, objectKey, versionId) {
 }
 
 export async function copyObject(sourceBucket, sourceKey, destBucket, destKey) {
-  const conds = new minioClient.CopyConditions();
-  await minioClient.copyObject(destBucket, destKey, `/${sourceBucket}/${sourceKey}`, conds);
+  const stat = await minioClient.statObject(sourceBucket, sourceKey);
+  const stream = await minioClient.getObject(sourceBucket, sourceKey);
+  await minioClient.putObject(destBucket, destKey, stream, stat.size, stat.metaData || {});
   return { success: true };
 }
 

@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { usePermissions } from '@hooks/usePermissions';
 import { useLang } from '@contexts/LangContext';
 import { getThemedIcon } from '@constants/iconTypes';
+import { formatQatarDateOnly } from '@utils/timezone';
 
 /**
  * FileCard Component
@@ -42,7 +43,7 @@ export default function FileCard({ file, onDownload, onShare, onDelete, onVersio
   // Format date
   const formatDate = (date) => {
     if (!date) return '';
-    return new Date(date).toLocaleDateString();
+    return formatQatarDateOnly(date);
   };
 
   return (

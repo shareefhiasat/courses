@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback, useLayoutEffect } from 'react';
 import Joyride from 'react-joyride';
+import TourTooltip from '@ui/TourTooltip/TourTooltip';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
@@ -97,12 +98,13 @@ const AttendancePage = () => {
   }, [tourSeenKey]);
 
   const handleTourCallback = useCallback((data) => {
-    const { status } = data || {};
-    if (status === 'finished' || status === 'skipped') {
+    const { status, action } = data || {};
+    if (status === 'finished' || status === 'skipped' || action === 'close') {
       setRunTour(false);
       try { localStorage.setItem(tourSeenKey, 'true'); } catch {}
     }
   }, [tourSeenKey]);
+  const TourTooltipComponent = useMemo(() => TourTooltip({ tourSeenKey }), [tourSeenKey]);
   // ──────────────────────────────────────────────────────────────────────────
 
   const selectedClass = useMemo(() => classOptions.find(c => (c.id||c.docId) === classId), [classOptions, classId]);
@@ -551,6 +553,9 @@ const AttendancePage = () => {
         disableScrolling={false}
         scrollOffset={100}
         scrollToFirstStep
+        showSkipButton
+        showProgress
+        tooltipComponent={TourTooltipComponent}
         spotlightClicks={false}
         callback={handleTourCallback}
         locale={{

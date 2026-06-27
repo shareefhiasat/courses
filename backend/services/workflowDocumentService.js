@@ -21,39 +21,37 @@ import {
   getAnalyticsData as getAnalyticsDataDB,
   deleteWorkflowDocument as deleteWorkflowDocumentDB
 } from '../db/workflowDocuments-postgres.js';
+import prisma from '../db/prismaClient.js';
 import { putObject, deleteObject, BUCKETS, ensureBuckets, getObjectMetadata, listObjectVersions, streamObjectVersion, copyObject } from './minioService.js';
 import { byRole } from './notifications/recipients.js';
 import { v4 as uuidv4 } from 'uuid';
-import prisma from '../db/prismaClient.js';
+import { buildTaxonomyFields, resolveApprovalFlow } from '../utils/workflowTaxonomy.js';
+import { applyExcuseApprovalSideEffects } from './workflowExcuseApprovalService.js';
 
 
 /**
- * Get appropriate assignee based on workflow type
- * GENERAL_HR → HR user
- * GENERAL_ADMIN → Admin user
- * GENERAL_MIXED_HR_ADMIN → HR user (first stage)
- * GENERAL_MIXED_ADMIN_HR → Admin user (first stage)
- * Other types → HR user (or null for manual assignment)
+ * Get appropriate assignee based on approval flow.
  */
-async function getAssigneeForWorkflowType(workflowType) {
-  if (workflowType === 'GENERAL_ADMIN' || workflowType === 'GENERAL_MIXED_ADMIN_HR') {
-    // Assign to Admin for admin-first workflows
+async function getAssigneeForApprovalFlow(approvalFlow) {
+  if (approvalFlow === 'ADMIN_ONLY' || approvalFlow === 'ADMIN_THEN_HR') {
     const adminUsers = await byRole('admin');
     if (adminUsers.length > 0) {
-      // Return first admin user (could be enhanced with round-robin or workload-based selection)
       return adminUsers[0].userId;
     }
   }
-  
-  // For GENERAL_HR, GENERAL_MIXED_HR_ADMIN, and other types, assign to HR
+
   const hrUsers = await byRole('hr');
   if (hrUsers.length > 0) {
-    // Return first HR user (could be enhanced with round-robin or workload-based selection)
     return hrUsers[0].userId;
   }
-  
-  // Fallback: return null if no HR users found
+
   return null;
+}
+
+/** @deprecated use getAssigneeForApprovalFlow */
+async function getAssigneeForWorkflowType(workflowType) {
+  const taxonomy = buildTaxonomyFields({ workflowType });
+  return getAssigneeForApprovalFlow(taxonomy.approvalFlow);
 }
 
 /**
@@ -63,6 +61,9 @@ export async function createWorkflowDocumentWithUpload(data) {
   try {
     const {
       workflowType,
+      workflowCategory,
+      attendanceSubtype,
+      approvalFlow,
       title,
       description,
       fileData,
@@ -73,14 +74,24 @@ export async function createWorkflowDocumentWithUpload(data) {
       classId,
       instructorId,
       date,
+      dateFrom,
+      dateTo,
+      metadata: workflowMetadata,
+      attendanceIds,
       program,
       subject,
       createdBy,
       updatedBy
     } = data;
 
-    // Determine assignee based on workflow type
-    const assigneeId = currentAssigneeId || await getAssigneeForWorkflowType(workflowType);
+    const taxonomy = buildTaxonomyFields({
+      workflowType,
+      workflowCategory,
+      attendanceSubtype,
+      approvalFlow,
+    });
+
+    const assigneeId = currentAssigneeId || await getAssigneeForApprovalFlow(taxonomy.approvalFlow);
 
     // Generate structured file name
     const timestamp = Date.now();
@@ -100,8 +111,8 @@ export async function createWorkflowDocumentWithUpload(data) {
     });
 
     // Get object metadata to capture version ID
-    const metadata = await getObjectMetadata(BUCKETS.WORKFLOW, objectKey);
-    const minioVersionId = metadata.versionId;
+    const objectMetadata = await getObjectMetadata(BUCKETS.WORKFLOW, objectKey);
+    const minioVersionId = objectMetadata.versionId;
 
     // Create File record and WorkflowDocument in a transaction
     const result = await prisma.$transaction(async (tx) => {
@@ -149,7 +160,10 @@ export async function createWorkflowDocumentWithUpload(data) {
       // Create WorkflowDocument record
       const document = await tx.workflowDocument.create({
         data: {
-          workflowType,
+          workflowType: taxonomy.workflowType,
+          approvalFlow: taxonomy.approvalFlow,
+          workflowCategory: taxonomy.workflowCategory,
+          attendanceSubtype: taxonomy.attendanceSubtype,
           title,
           description,
           status: 'SUBMITTED',
@@ -159,6 +173,9 @@ export async function createWorkflowDocumentWithUpload(data) {
           classId,
           instructorId,
           date: date ? new Date(date) : null,
+          dateFrom: dateFrom ? new Date(dateFrom) : null,
+          dateTo: dateTo ? new Date(dateTo) : null,
+          metadata: workflowMetadata || undefined,
           program,
           subject,
           reviewCycleCount: 0,
@@ -173,6 +190,17 @@ export async function createWorkflowDocumentWithUpload(data) {
           class: true
         }
       });
+
+      // Link attendance records when provided
+      if (attendanceIds?.length) {
+        await tx.workflowDocumentAttendance.createMany({
+          data: attendanceIds.map((attendanceId) => ({
+            workflowDocumentId: document.id,
+            attendanceId,
+          })),
+          skipDuplicates: true,
+        });
+      }
 
       // Create initial status history
       await tx.workflowStatusHistory.create({
@@ -244,7 +272,17 @@ export async function getDocumentsByFileId(fileId) {
  * Update workflow document status
  */
 export async function updateStatus(id, status, actorId, reason) {
-  return await updateWorkflowDocumentStatus(id, status, actorId, reason);
+  const result = await updateWorkflowDocumentStatus(id, status, actorId, reason);
+
+  if (result.success && status === 'APPROVED') {
+    try {
+      await applyExcuseApprovalSideEffects(id, actorId);
+    } catch (excuseError) {
+      console.error('[updateStatus] Excuse approval side effects failed:', excuseError);
+    }
+  }
+
+  return result;
 }
 
 /**
@@ -824,6 +862,9 @@ export async function createCustomWorkflowDocument(data) {
   try {
     const {
       workflowType,
+      workflowCategory,
+      attendanceSubtype,
+      approvalFlow,
       title,
       description,
       reviewers,
@@ -834,28 +875,56 @@ export async function createCustomWorkflowDocument(data) {
       submitterId,
       createdBy,
       updatedBy,
-      fileId: originalFileId
+      fileId: originalFileId,
+      dateFrom,
+      dateTo,
+      metadata: workflowMetadata,
+      attendanceIds = [],
+      classId,
+      program,
+      subject,
+      instructorId,
+      date,
     } = data;
+
+    const taxonomy = buildTaxonomyFields({
+      workflowType,
+      workflowCategory,
+      attendanceSubtype,
+      approvalFlow,
+    });
 
     let filePath = null;
     let fileId = null;
     let fileVersionId = null;
 
-    // Copy file from Smart Drive to workflow bucket if attachFile is true
-    if (attachFile && sourceBucket && sourcePath && fileName) {
+    // Link existing Smart Drive file when fileId is provided (preferred path)
+    if (attachFile && originalFileId) {
+      const currentVersion = await prisma.fileVersion.findFirst({
+        where: {
+          fileId: originalFileId,
+          isCurrent: true,
+        },
+      });
+      if (currentVersion) {
+        fileVersionId = currentVersion.id;
+        filePath = currentVersion.s3Key;
+        console.log('[createCustomWorkflowDocument] Linked Smart Drive file version:', fileVersionId);
+      }
+    } else if (attachFile && sourceBucket && sourcePath && fileName) {
       await ensureBuckets();
 
       // Generate structured file name for workflow bucket
       const timestamp = Date.now();
       const fileExtension = fileName.split('.').pop();
-      const objectKey = `custom/${workflowType}/${timestamp}_${fileName}`;
+      const objectKey = `custom/${taxonomy.workflowCategory}/${timestamp}_${fileName}`;
 
       // Copy file from source bucket to workflow bucket
       await copyObject(sourceBucket, sourcePath, BUCKETS.WORKFLOW, objectKey);
 
       // Get object metadata to capture version ID
-      const metadata = await getObjectMetadata(BUCKETS.WORKFLOW, objectKey);
-      const minioVersionId = metadata.versionId;
+      const objectMetadata = await getObjectMetadata(BUCKETS.WORKFLOW, objectKey);
+      const minioVersionId = objectMetadata.versionId;
 
       // Create File record
       const file = await prisma.file.create({
@@ -865,7 +934,7 @@ export async function createCustomWorkflowDocument(data) {
           bucket: BUCKETS.WORKFLOW,
           name: fileName,
           mimeType: 'application/octet-stream', // Default MIME type for custom files
-          size: metadata.size,
+          size: objectMetadata.size,
           minioVersionId,
           uploadedBy: submitterId,
           createdBy,
@@ -875,24 +944,10 @@ export async function createCustomWorkflowDocument(data) {
 
       filePath = objectKey;
       fileId = file.id;
-    } else if (originalFileId) {
-      // If using original file ID from Smart Drive, capture the current version
-      const currentVersion = await prisma.fileVersion.findFirst({
-        where: {
-          fileId: originalFileId,
-          isCurrent: true
-        }
-      });
-      if (currentVersion) {
-        fileVersionId = currentVersion.id;
-        console.log('[createCustomWorkflowDocument] Captured current file version:', fileVersionId);
-      }
     }
 
-    // Get assignee based on reviewers (first reviewer in list)
     let currentAssigneeId = null;
     if (reviewers && reviewers.length > 0) {
-      // For now, assign to first reviewer (could be enhanced with role-based assignment)
       try {
         const reviewerUsers = await byRole(reviewers[0]);
         if (reviewerUsers.length > 0) {
@@ -900,23 +955,60 @@ export async function createCustomWorkflowDocument(data) {
         }
       } catch (error) {
         console.error('[createCustomWorkflowDocument] Error getting reviewer users:', error);
-        // Continue without assignee if role lookup fails
+      }
+    } else {
+      currentAssigneeId = await getAssigneeForApprovalFlow(taxonomy.approvalFlow);
+    }
+
+    const documentStatus = (reviewers && reviewers.length > 0) ? 'SUBMITTED' : 'DRAFT';
+
+    let resolvedProgram = data.program || null;
+    let resolvedSubject = data.subject || null;
+    let resolvedInstructorId = data.instructorId || null;
+    let attendanceDate = date;
+
+    if (classId) {
+      const cls = await prisma.class.findUnique({
+        where: { id: Number(classId) },
+        include: {
+          program: { select: { code: true } },
+          subject: { select: { code: true } },
+        },
+      });
+
+      if (cls) {
+        resolvedProgram = resolvedProgram || cls.program?.code || String(cls.programId);
+        resolvedSubject = resolvedSubject || cls.subject?.code || String(cls.subjectId);
+        resolvedInstructorId = resolvedInstructorId || cls.instructorId || submitterId;
       }
     }
 
-    // Create WorkflowDocument with DRAFT status if no reviewers, SUBMITTED if reviewers provided
-    const documentStatus = (reviewers && reviewers.length > 0) ? 'SUBMITTED' : 'DRAFT';
+    if (taxonomy.attendanceSubtype === 'DAILY' && dateFrom && !attendanceDate) {
+      attendanceDate = dateFrom;
+    }
     
     const documentResult = await createWorkflowDocument({
-      workflowType,
+      workflowType: taxonomy.workflowType,
+      workflowCategory: taxonomy.workflowCategory,
+      attendanceSubtype: taxonomy.attendanceSubtype,
+      approvalFlow: taxonomy.approvalFlow,
       title,
       description,
       status: documentStatus,
       submitterId,
       currentAssigneeId,
-      fileId: originalFileId || fileId, // Use original file ID if provided, otherwise use copied file ID
-      fileVersionId, // Store the specific version ID to preserve snapshot
+      fileId: originalFileId || fileId,
+      fileVersionId,
       filePath,
+      date: attendanceDate,
+      dateFrom,
+      dateTo,
+      metadata: workflowMetadata,
+      attendanceIds,
+      classId: classId ? Number(classId) : null,
+      instructorId: resolvedInstructorId,
+      program: resolvedProgram,
+      subject: resolvedSubject,
       createdBy,
       updatedBy
     });

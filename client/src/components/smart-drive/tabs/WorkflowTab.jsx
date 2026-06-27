@@ -7,26 +7,17 @@ import { apiService } from '@services/api/apiService';
 import workflowService from '@services/business/workflowService';
 import { updateWorkflowDocumentStatus, withdrawWorkflowDocument } from '@services/api/workflow-documents-api';
 import { WORKFLOW_STATUS_CONFIG } from '@constants/driveConstants';
+import { getWorkflowDisplayLabel, CATEGORY_BY_VALUE } from '@constants/workflowConfig';
 import { ROLE_STRINGS } from '@utils/userUtils';
 import Modal from '@ui/Modal/Modal';
 import Select from '@ui/Select/Select';
 import Tabs from '@ui/Tabs/Tabs';
 import { getAllUsers } from '@services/business/userService';
 import { handleFilePreview } from '@utils/fileUtils';
+import { formatQatarDate, formatQatarDateOnly } from '@utils/timezone';
 
 const formatDateHeader = (dateStr, t) => {
-  const date = new Date(dateStr);
-  const today = new Date();
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-
-  if (date.toDateString() === today.toDateString()) {
-    return t('drive.today') || 'Today';
-  } else if (date.toDateString() === yesterday.toDateString()) {
-    return t('drive.yesterday') || 'Yesterday';
-  } else {
-    return date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
-  }
+  return formatQatarDateOnly(dateStr);
 };
 
 const formatSize = (bytes) => {
@@ -93,7 +84,7 @@ function getRelativeTime(date) {
   if (minutes < 60) return `${minutes}m ago`;
   if (hours < 24) return `${hours}h ago`;
   if (days < 7) return `${days}d ago`;
-  return d.toLocaleDateString();
+  return formatQatarDateOnly(date);
 }
 
 function getStepBadgeStyle(status) {
@@ -111,22 +102,21 @@ function getStepBadgeStyle(status) {
 }
 
 const WORKFLOW_TYPE_STYLES = {
-  ATTENDANCE_DAILY: {
-    color: '#7c3aed',
-    bg: 'rgba(124, 58, 237, 0.1)',
-  },
-  ATTENDANCE_WEEKLY: {
-    color: '#db2777',
-    bg: 'rgba(219, 39, 119, 0.1)',
-  },
-  GENERAL: {
-    color: '#0891b2',
-    bg: 'rgba(8, 145, 178, 0.1)',
-  },
+  ATTENDANCE: { color: '#7c3aed', bg: 'rgba(124, 58, 237, 0.1)' },
+  PENALTY: { color: '#dc2626', bg: 'rgba(254, 226, 226, 0.8)' },
+  BEHAVIOR: { color: '#d97706', bg: 'rgba(254, 243, 199, 0.8)' },
+  DISCONTINUATION: { color: '#7c3aed', bg: 'rgba(237, 233, 254, 0.8)' },
+  GENERAL: { color: '#0891b2', bg: 'rgba(8, 145, 178, 0.1)' },
+  ATTENDANCE_DAILY: { color: '#7c3aed', bg: 'rgba(124, 58, 237, 0.1)' },
+  ATTENDANCE_WEEKLY: { color: '#db2777', bg: 'rgba(219, 39, 119, 0.1)' },
 };
 
-function getWorkflowTypeStyle(type) {
-  return WORKFLOW_TYPE_STYLES[type] || WORKFLOW_TYPE_STYLES.GENERAL;
+function getWorkflowTypeStyle(workflow) {
+  const category = workflow?.workflowCategory;
+  if (category && WORKFLOW_TYPE_STYLES[category]) {
+    return WORKFLOW_TYPE_STYLES[category];
+  }
+  return WORKFLOW_TYPE_STYLES[workflow?.workflowType] || WORKFLOW_TYPE_STYLES.GENERAL;
 }
 
 export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwnedByUser = true }) {
@@ -136,6 +126,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState('');
   const [sortBy, setSortBy] = useState('date-desc');
   const [showSortMenu, setShowSortMenu] = useState(false);
   const [viewMode, setViewMode] = useState('list');
@@ -419,10 +410,16 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
       filtered = filtered.filter(w => 
         w.title?.toLowerCase().includes(query) ||
         w.workflowType?.toLowerCase().includes(query) ||
+        w.workflowCategory?.toLowerCase().includes(query) ||
+        w.attendanceSubtype?.toLowerCase().includes(query) ||
         w.status?.toLowerCase().includes(query) ||
         w.submitter?.displayName?.toLowerCase().includes(query) ||
         w.submitter?.email?.toLowerCase().includes(query)
       );
+    }
+
+    if (categoryFilter) {
+      filtered = filtered.filter((w) => w.workflowCategory === categoryFilter);
     }
     
     // Sort
@@ -450,7 +447,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
     }
 
     return sorted;
-  }, [workflows, searchQuery, sortBy, selectedDate]);
+  }, [workflows, searchQuery, sortBy, selectedDate, categoryFilter]);
 
   // Group workflows by date for timeline
   const groupedWorkflows = useMemo(() => {
@@ -468,9 +465,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
 
   const formatDate = (date) => {
     if (!date) return '\u2014';
-    const d = new Date(date);
-    if (Number.isNaN(d.getTime())) return '\u2014';
-    return d.toLocaleString();
+    return formatQatarDate(date, 'dd/MM/yyyy HH:mm');
   };
 
   if (loading) {
@@ -536,6 +531,24 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
             onFocus={(e) => e.target.style.borderColor = 'var(--color-primary, #3b82f6)'}
             onBlur={(e) => e.target.style.borderColor = 'var(--border, #e5e7eb)'}
           />
+          <select
+            value={categoryFilter}
+            onChange={(e) => setCategoryFilter(e.target.value)}
+            style={{
+              marginTop: '0.5rem',
+              width: '100%',
+              padding: '0.5rem 0.75rem',
+              borderRadius: '0.5rem',
+              border: '1px solid var(--border, #e5e7eb)',
+              fontSize: '0.875rem',
+            }}
+            data-testid="workflow-category-filter"
+          >
+            <option value="">{t('workflow.filters.allCategories', 'All categories')}</option>
+            {Object.values(CATEGORY_BY_VALUE).map((cat) => (
+              <option key={cat.value} value={cat.value}>{t(cat.labelKey, cat.value)}</option>
+            ))}
+          </select>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
           <button
@@ -784,7 +797,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                   const statusIcon = getStatusIcon(workflow.status);
                   const config = WORKFLOW_STATUS_CONFIG[workflow.status?.toLowerCase()];
                   const statusStyle = config ? { color: config.color, bg: config.bg } : { color: '#6b7280', bg: 'rgba(107, 114, 128, 0.1)' };
-                  const typeStyle = getWorkflowTypeStyle(workflow.workflowType);
+                  const typeStyle = getWorkflowTypeStyle(workflow);
 
                   return (
                     <div
@@ -843,7 +856,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                               letterSpacing: '0.025em',
                             }}
                           >
-                            {workflow.workflowType?.replace('_', ' ') || 'GENERAL'}
+                            {getWorkflowDisplayLabel(workflow, t)}
                           </span>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.8125rem', color: 'var(--text-muted, #6b7280)' }}>
@@ -1019,7 +1032,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
             const StatusIcon = statusIcon;
             const config = WORKFLOW_STATUS_CONFIG[workflow.status?.toLowerCase()];
             const statusStyle = config ? { color: config.color, bg: config.bg } : { color: '#6b7280', bg: 'rgba(107, 114, 128, 0.1)' };
-            const typeStyle = getWorkflowTypeStyle(workflow.workflowType);
+            const typeStyle = getWorkflowTypeStyle(workflow);
 
             return (
               <div
@@ -1086,7 +1099,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                       letterSpacing: '0.025em',
                     }}
                   >
-                    {workflow.workflowType?.replace('_', ' ') || 'GENERAL'}
+                    {getWorkflowDisplayLabel(workflow, t)}
                   </span>
                   {workflow.currentAssignee && (
                     <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted, #6b7280)', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>

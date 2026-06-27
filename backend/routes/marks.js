@@ -6,7 +6,9 @@ import {
   updateStudentMarks,
   batchUpdateStudentMarks,
   getAllStudentMarksReport,
-  getStudentMarksHistory
+  getStudentMarksHistory,
+  getAttendanceDeductionSuggestion,
+  getAbsenceDeductionRules,
 } from '../controllers/marks.js';
 import { screenOps } from '../middleware/requirePermission.js';
 
@@ -295,5 +297,8 @@ router.get('/report', ops.view, getAllStudentMarksReport);
  *         description: Server error
  */
 router.get('/history/:userId/:subjectId/:classId', ops.view, getStudentMarksHistory);
+
+router.get('/attendance-deduction', ops.view, getAttendanceDeductionSuggestion);
+router.get('/absence-deduction-rules', ops.view, getAbsenceDeductionRules);
 
 export default router;

@@ -19,6 +19,7 @@ export { default as ContextMenu } from './ContextMenu';
 export { default as QREmailModal, useQREmailModal } from './QREmailModal';
 export { default as Tabs } from './Tabs';
 export { default as JoyrideTour } from './JoyrideTour';
+export { default as TourTooltip } from './TourTooltip/TourTooltip';
 export { default as StoryboardChip } from './StoryboardChip';
 export { default as StoryboardTabs } from './StoryboardTabs';
 

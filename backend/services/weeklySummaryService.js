@@ -52,16 +52,24 @@ export async function generateWeeklySummary(data) {
     // Create workflow document with ATTENDANCE_WEEKLY type
     const result = await createWorkflowDocumentWithUpload({
       workflowType: 'ATTENDANCE_WEEKLY',
+      workflowCategory: 'ATTENDANCE',
+      attendanceSubtype: 'WEEKLY_SUMMARY',
+      approvalFlow: 'HR_THEN_ADMIN',
       title: `Weekly Attendance Summary - ${weekStart} to ${weekEnd}`,
       description: comments || `Weekly summary aggregating ${dailyDocuments.length} daily attendance documents`,
       fileData: excelFile.data,
       fileName: excelFile.fileName,
       fileType: excelFile.fileType,
       submitterId: hrUserId,
-      currentAssigneeId: null, // Will be assigned to Admin role
+      currentAssigneeId: null,
       classId: null,
       instructorId: null,
       date: new Date(weekStart),
+      dateFrom: new Date(weekStart),
+      dateTo: new Date(weekEnd),
+      metadata: {
+        linkedDailyDocumentIds: dailyDocuments.map((d) => d.id),
+      },
       program: null,
       subject: null,
       createdBy: hrUserId,
@@ -178,12 +186,26 @@ function blobToBase64(blob) {
  */
 async function linkDailyDocuments(weeklyDocumentId, dailyDocumentIds) {
   try {
-    // In a real implementation, this could be a junction table or JSON field
-    // For now, we'll store the references in a metadata field or create a relation
-    // This would require schema changes or using an existing relation
-    
-    console.log(`Linking weekly document ${weeklyDocumentId} to ${dailyDocumentIds.length} daily documents`);
-    // Implementation depends on schema decision for document relationships
+    if (!dailyDocumentIds?.length) return;
+
+    const existing = await prisma.workflowDocument.findUnique({
+      where: { id: weeklyDocumentId },
+      select: { metadata: true },
+    });
+
+    const metadata = existing?.metadata && typeof existing.metadata === 'object'
+      ? existing.metadata
+      : {};
+
+    await prisma.workflowDocument.update({
+      where: { id: weeklyDocumentId },
+      data: {
+        metadata: {
+          ...metadata,
+          linkedDailyDocumentIds: dailyDocumentIds,
+        },
+      },
+    });
   } catch (error) {
     console.error('Error linking daily documents:', error);
   }

@@ -15,6 +15,7 @@ import { useTheme } from '@contexts/ThemeContext';
 import { useAuth } from '@contexts/AuthContext';
 import { getThemedIcon, getUserRoleIcon, getUserRoleColor } from '@constants/iconTypes';
 import { Tooltip } from '@ui';
+import { formatQatarDate } from '@utils/timezone';
 import { Send, RotateCcw, Download, Layout, Minimize, Maximize, X, Check, ArrowLeft, ArrowRight, Trash2, Eye, XCircle, List, GitBranch, MessageSquare } from 'lucide-react';
 
 // Create Dagre graph instance
@@ -169,6 +170,20 @@ const WORKFLOW_RULES = {
   }
 };
 
+const APPROVAL_FLOW_ALIASES = {
+  HR_ONLY: 'GENERAL_HR',
+  ADMIN_ONLY: 'GENERAL_ADMIN',
+  HR_THEN_ADMIN: 'GENERAL_MIXED_HR_ADMIN',
+  ADMIN_THEN_HR: 'GENERAL_MIXED_ADMIN_HR',
+  INSTRUCTOR_THEN_HR: 'GENERAL_HR',
+  ATTENDANCE_DAILY: 'GENERAL_HR',
+  ATTENDANCE_WEEKLY: 'GENERAL_MIXED_HR_ADMIN',
+};
+
+function resolveWorkflowDiagramType(workflowType) {
+  return APPROVAL_FLOW_ALIASES[workflowType] || workflowType || 'GENERAL_HR';
+}
+
 // Define workflow stages outside component
 const WORKFLOW_STAGES = {
   GENERAL_HR: [
@@ -248,6 +263,9 @@ const WorkflowDiagram = ({ status, workflowType = 'GENERAL_HR', document, curren
   }, []);
 
   const userRoleCodes = getUserRoleCodes(user);
+
+  // Status history — defined at component scope so both useMemo and render sections can access it
+  const statusHistory = document?.statusHistory || [];
 
   // Check user roles
   const isSuperAdmin = userRoleCodes.some(code => 
@@ -472,8 +490,11 @@ const WorkflowDiagram = ({ status, workflowType = 'GENERAL_HR', document, curren
   };
 
   // Get workflow rules and stages
-  const workflowRules = WORKFLOW_RULES[workflowType] || WORKFLOW_RULES.GENERAL_HR;
-  const workflowStages = WORKFLOW_STAGES[workflowType] || WORKFLOW_STAGES.GENERAL_HR;
+  const resolvedWorkflowType = resolveWorkflowDiagramType(
+    document?.approvalFlow || workflowType
+  );
+  const workflowRules = WORKFLOW_RULES[resolvedWorkflowType] || WORKFLOW_RULES.GENERAL_HR;
+  const workflowStages = WORKFLOW_STAGES[resolvedWorkflowType] || WORKFLOW_STAGES.GENERAL_HR;
 
   // Determine current stage index (must be before progressPercentage)
   const currentStageIndex = useMemo(() => {
@@ -498,9 +519,12 @@ const WorkflowDiagram = ({ status, workflowType = 'GENERAL_HR', document, curren
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
     const diffHours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
     
-    if (diffDays > 0) return `${diffDays}d ${diffHours}h`;
-    if (diffHours > 0) return `${diffHours}h`;
-    return '<1h';
+    const daysLabel = t('workflow.duration.days', 'd');
+    const hoursLabel = t('workflow.duration.hours', 'h');
+    
+    if (diffDays > 0) return `${diffDays} ${daysLabel} ${diffHours} ${hoursLabel}`;
+    if (diffHours > 0) return `${diffHours} ${hoursLabel}`;
+    return t('workflow.duration.lessThanHour', '<1h');
   };
 
   // Dagre layout function for auto-arranging nodes
@@ -561,9 +585,6 @@ const WorkflowDiagram = ({ status, workflowType = 'GENERAL_HR', document, curren
     const nodeWidth = 200;
     const nodeHeight = 100;
 
-    // Get status history for dates and actors
-    const statusHistory = document?.statusHistory || [];
-
     const generatedNodes = workflowStages.map((stage, index) => {
 
       // Determine node style based on status
@@ -607,13 +628,17 @@ const WorkflowDiagram = ({ status, workflowType = 'GENERAL_HR', document, curren
       const nextEntry = statusHistory[statusHistory.findIndex(h => h.fromStatus === stage.status) + 1];
       
       // For draft stage, use document owner and creation date if no history entry
-      let actorName = historyEntry?.actor?.name || historyEntry?.actor?.firstName || '-';
-      let entryDate = historyEntry?.createdAt ? new Date(historyEntry.createdAt).toLocaleString(lang === 'ar' ? 'ar-SA' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-';
+      let actorName = lang === 'ar'
+        ? (historyEntry?.actor?.displayNameAr || historyEntry?.actor?.firstNameAr || historyEntry?.actor?.lastNameAr ? `${historyEntry?.actor?.firstNameAr || ''} ${historyEntry?.actor?.lastNameAr || ''}`.trim() : historyEntry?.actor?.name || historyEntry?.actor?.firstName || '-')
+        : (historyEntry?.actor?.name || historyEntry?.actor?.firstName || '-');
+      let entryDate = historyEntry?.createdAt ? formatQatarDate(historyEntry.createdAt, 'dd/MM/yyyy HH:mm') : '-';
       let actorRole = historyEntry?.actor?.role || workflowRules[stage.id]?.roles[lang];
       
       if (stage.id === 'draft' && !historyEntry && document) {
-        actorName = document.submitter?.name || document.submitter?.firstName || '-';
-        entryDate = document.createdAt ? new Date(document.createdAt).toLocaleString(lang === 'ar' ? 'ar-SA' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-';
+        actorName = lang === 'ar'
+          ? (document.submitter?.displayNameAr || (document.submitter?.firstNameAr || document.submitter?.lastNameAr ? `${document.submitter?.firstNameAr || ''} ${document.submitter?.lastNameAr || ''}`.trim() : null) || document.submitter?.name || document.submitter?.firstName || '-')
+          : (document.submitter?.name || document.submitter?.firstName || '-');
+        entryDate = document.createdAt ? formatQatarDate(document.createdAt, 'dd/MM/yyyy HH:mm') : '-';
         actorRole = document.submitter?.role || workflowRules[stage.id]?.roles[lang];
       }
       
@@ -648,20 +673,18 @@ const WorkflowDiagram = ({ status, workflowType = 'GENERAL_HR', document, curren
               style={{ position: 'relative' }}
             >
               <div className="flex flex-col gap-1">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-1">
+                <div className="flex items-center gap-1" style={{ flexDirection: lang === 'ar' ? 'row-reverse' : 'row' }}>
                     {getRoleIcon(actorRole)}
                     {getThemedIcon('ui', statusIcon.icon, 16, statusIcon.color)}
                     <span className="font-bold text-xs" style={{ color: borderColor, whiteSpace: 'nowrap' }}>{stage.label[lang]}</span>
                   </div>
                   {duration && (
-                    <span className="text-xs font-medium px-1 py-0.5 rounded" style={{ background: '#e0f2fe', color: '#0369a1' }}>
+                    <span className="text-xs font-medium px-1 py-0.5 rounded self-start" style={{ background: '#e0f2fe', color: '#0369a1', whiteSpace: 'nowrap' }}>
                       {duration}
                     </span>
                   )}
-                </div>
               </div>
-              <div className="flex flex-col gap-0.5 mt-auto">
+              <div className="flex flex-col gap-0.5 mt-auto" style={{ textAlign: lang === 'ar' ? 'right' : 'left', alignItems: lang === 'ar' ? 'flex-end' : 'flex-start' }}>
                 <div className="text-xs font-semibold" style={{ color: '#111827' }}>
                   {actorName}
                 </div>
@@ -679,7 +702,7 @@ const WorkflowDiagram = ({ status, workflowType = 'GENERAL_HR', document, curren
                     }}
                   >
                     <MessageSquare size={12} />
-                    <span>Comments</span>
+                    <span>{t('workflow.legend.comments', 'Comments')}</span>
                     <span className="text-xs px-1 rounded" style={{ background: '#e5e7eb', color: '#6b7280' }}>
                       {historyEntries.length}
                     </span>
@@ -778,6 +801,13 @@ const WorkflowDiagram = ({ status, workflowType = 'GENERAL_HR', document, curren
   useEffect(() => {
     const { nodes: layoutedNodes } = getLayoutedElements(initialNodes, edges);
     setNodes(layoutedNodes);
+    // Use imperative API (same as handleResetLayout) to ensure nodes are updated synchronously
+    if (reactFlowInstance.current) {
+      reactFlowInstance.current.setNodes(layoutedNodes);
+      setTimeout(() => {
+        reactFlowInstance.current.fitView({ padding: 0.2 });
+      }, 100);
+    }
   }, [initialNodes, edges, layoutMode]);
 
   // Handle node position changes
@@ -831,7 +861,7 @@ const WorkflowDiagram = ({ status, workflowType = 'GENERAL_HR', document, curren
       `}</style>
 
       {/* Header with progress, legend and controls */}
-      <div className="flex items-center justify-between mb-4 px-4">
+      <div className="flex items-center justify-between mb-4 px-4" style={{ paddingBottom: '0.75rem', borderBottom: '1px solid var(--border, #e5e7eb)' }}>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
             <div className="text-sm font-medium" style={{ color: 'var(--text-secondary, #6b7280)' }}>
@@ -876,7 +906,23 @@ const WorkflowDiagram = ({ status, workflowType = 'GENERAL_HR', document, curren
         </div>
 
         {/* View mode toggle and fullscreen */}
-        <div className="flex items-center gap-2">
+        <div data-tour="doc-view-toggle" className="flex items-center gap-2">
+          {viewMode === 'flow' && (
+            <button
+              onClick={handleResetLayout}
+              style={{
+                padding: '0.5rem',
+                background: 'var(--panel, white)',
+                border: '1px solid var(--border, #e5e7eb)',
+                borderRadius: '0.375rem',
+                cursor: 'pointer',
+                color: 'var(--text, #111827)'
+              }}
+              title={t('workflow.resetLayout', 'Reset Layout')}
+            >
+              <Layout size={16} />
+            </button>
+          )}
           <button
             onClick={() => setViewMode(viewMode === 'flow' ? 'timeline' : 'flow')}
             style={{
@@ -909,7 +955,7 @@ const WorkflowDiagram = ({ status, workflowType = 'GENERAL_HR', document, curren
       </div>
 
       {viewMode === 'flow' ? (
-        <div className="w-full h-80 md:h-96 lg:h-[500px] workflow-scrollbar overflow-auto">
+        <div className="w-full h-80 md:h-96 lg:h-[500px] workflow-scrollbar overflow-auto" style={{ marginTop: '0.75rem', border: '1px solid var(--border, #e5e7eb)', borderRadius: '0.5rem' }}>
           <ReactFlow
             nodes={nodes}
             edges={edges}
@@ -926,7 +972,12 @@ const WorkflowDiagram = ({ status, workflowType = 'GENERAL_HR', document, curren
             onPaneContextMenu={onPaneContextMenu}
             onInit={(instance) => {
               reactFlowInstance.current = instance;
-              instance.fitView({ padding: 0.2 });
+              // Apply layouted nodes imperatively then fit view (same as handleResetLayout)
+              const { nodes: layoutedNodes } = getLayoutedElements(initialNodes, edges);
+              instance.setNodes(layoutedNodes);
+              setTimeout(() => {
+                instance.fitView({ padding: 0.2 });
+              }, 100);
             }}
           >
             <Background
@@ -939,7 +990,7 @@ const WorkflowDiagram = ({ status, workflowType = 'GENERAL_HR', document, curren
           </ReactFlow>
         </div>
       ) : (
-        <div className="px-4 workflow-scrollbar" style={{ maxHeight: '800px', overflowY: 'auto' }}>
+        <div className="px-4 workflow-scrollbar" style={{ maxHeight: '800px', overflowY: 'auto', marginTop: '0.75rem', border: '1px solid var(--border, #e5e7eb)', borderRadius: '0.5rem', paddingTop: '0.5rem' }}>
           <div className="relative" style={{ paddingLeft: lang === 'ar' ? 0 : '2rem', paddingRight: lang === 'ar' ? '2rem' : 0 }}>
             {/* Timeline line */}
             <div style={{
@@ -952,10 +1003,12 @@ const WorkflowDiagram = ({ status, workflowType = 'GENERAL_HR', document, curren
             }} />
             
             {workflowStages.map((stage, index) => {
-              const historyEntry = document?.statusHistory?.find(h => h.toStatus === stage.status);
-              const nextEntry = document?.statusHistory?.[document.statusHistory.findIndex(h => h.toStatus === stage.status) + 1];
-              const actorName = historyEntry?.actor?.name || historyEntry?.actor?.firstName || '-';
-              const entryDate = historyEntry?.createdAt ? new Date(historyEntry.createdAt).toLocaleString(lang === 'ar' ? 'ar-SA' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-';
+              const historyEntry = statusHistory.find(h => h.toStatus === stage.status);
+              const nextEntry = statusHistory[statusHistory.findIndex(h => h.toStatus === stage.status) + 1];
+              const actorName = lang === 'ar'
+                ? (historyEntry?.actor?.displayNameAr || (historyEntry?.actor?.firstNameAr || historyEntry?.actor?.lastNameAr ? `${historyEntry?.actor?.firstNameAr || ''} ${historyEntry?.actor?.lastNameAr || ''}`.trim() : null) || historyEntry?.actor?.name || historyEntry?.actor?.firstName || '-')
+                : (historyEntry?.actor?.name || historyEntry?.actor?.firstName || '-');
+              const entryDate = historyEntry?.createdAt ? formatQatarDate(historyEntry.createdAt, 'dd/MM/yyyy HH:mm') : '-';
               const duration = calculateDuration(historyEntry, nextEntry);
               const comment = historyEntry?.reason || '';
               const isCompleted = index < currentStageIndex;
@@ -993,6 +1046,10 @@ const WorkflowDiagram = ({ status, workflowType = 'GENERAL_HR', document, curren
                         <Send size={18} color={isCurrent ? '#3b82f6' : '#10b981'} />
                       ) : stage.id === 'draft' ? (
                         getThemedIcon('ui', 'file_text', 18, isCurrent ? '#3b82f6' : '#6b7280')
+                      ) : stage.id === 'approved' ? (
+                        getThemedIcon('ui', 'check_circle', 18, '#10b981')
+                      ) : stage.id === 'rejected' ? (
+                        getThemedIcon('ui', 'x_circle', 18, '#ef4444')
                       ) : isCompleted ? (
                         getThemedIcon('ui', 'check_circle', 18, '#10b981')
                       ) : isCurrent ? (
@@ -1049,23 +1106,45 @@ const WorkflowDiagram = ({ status, workflowType = 'GENERAL_HR', document, curren
             <h2 className="text-xl font-bold" style={{ color: '#111827' }}>
               {t('workflow.diagram', 'Workflow Diagram')}
             </h2>
-            <button
-              onClick={() => setIsFullscreen(false)}
-              style={{
-                padding: '0.5rem',
-                background: 'transparent',
-                color: '#111827',
-                border: '1px solid #d1d5db',
-                borderRadius: '0.375rem',
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}
-            >
-              <X size={20} />
-            </button>
+            <div className="flex items-center gap-2">
+              {viewMode === 'flow' && (
+                <button
+                  onClick={handleResetLayout}
+                  style={{
+                    padding: '0.5rem',
+                    background: 'transparent',
+                    color: '#111827',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '0.375rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                  title={t('workflow.resetLayout', 'Reset Layout')}
+                >
+                  <Layout size={20} />
+                </button>
+              )}
+              <button
+                onClick={() => setIsFullscreen(false)}
+                style={{
+                  padding: '0.5rem',
+                  background: 'transparent',
+                  color: '#111827',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '0.375rem',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center'
+                }}
+              >
+                <X size={20} />
+              </button>
+            </div>
           </div>
           
           <div style={{ flex: 1, overflow: 'auto' }}>
@@ -1116,12 +1195,16 @@ const WorkflowDiagram = ({ status, workflowType = 'GENERAL_HR', document, curren
                     const historyEntry = statusHistory.find(h => h.toStatus === stage.status);
                     const nextEntry = statusHistory[statusHistory.findIndex(h => h.toStatus === stage.status) + 1];
                     
-                    let actorName = historyEntry?.actor?.name || historyEntry?.actor?.firstName || '-';
-                    let entryDate = historyEntry?.createdAt ? new Date(historyEntry.createdAt).toLocaleString(lang === 'ar' ? 'ar-SA' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-';
+                    let actorName = lang === 'ar'
+                      ? (historyEntry?.actor?.displayNameAr || (historyEntry?.actor?.firstNameAr || historyEntry?.actor?.lastNameAr ? `${historyEntry?.actor?.firstNameAr || ''} ${historyEntry?.actor?.lastNameAr || ''}`.trim() : null) || historyEntry?.actor?.name || historyEntry?.actor?.firstName || '-')
+                      : (historyEntry?.actor?.name || historyEntry?.actor?.firstName || '-');
+                    let entryDate = historyEntry?.createdAt ? formatQatarDate(historyEntry.createdAt, 'dd/MM/yyyy HH:mm') : '-';
                     
                     if (stage.id === 'draft' && !historyEntry && document) {
-                      actorName = document.owner?.name || document.owner?.firstName || '-';
-                      entryDate = document.createdAt ? new Date(document.createdAt).toLocaleString(lang === 'ar' ? 'ar-SA' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-';
+                      actorName = lang === 'ar'
+                        ? (document.owner?.displayNameAr || (document.owner?.firstNameAr || document.owner?.lastNameAr ? `${document.owner?.firstNameAr || ''} ${document.owner?.lastNameAr || ''}`.trim() : null) || document.owner?.name || document.owner?.firstName || '-')
+                        : (document.owner?.name || document.owner?.firstName || '-');
+                      entryDate = document.createdAt ? formatQatarDate(document.createdAt, 'dd/MM/yyyy HH:mm') : '-';
                     }
                     
                     const duration = calculateDuration(historyEntry, nextEntry);
@@ -1158,6 +1241,10 @@ const WorkflowDiagram = ({ status, workflowType = 'GENERAL_HR', document, curren
                               <Send size={18} color={isCurrent ? '#3b82f6' : '#10b981'} />
                             ) : stage.id === 'draft' ? (
                               getThemedIcon('ui', 'file_text', 18, isCurrent ? '#3b82f6' : '#6b7280')
+                            ) : stage.id === 'approved' ? (
+                              getThemedIcon('ui', 'check_circle', 18, '#10b981')
+                            ) : stage.id === 'rejected' ? (
+                              getThemedIcon('ui', 'x_circle', 18, '#ef4444')
                             ) : isCompleted ? (
                               getThemedIcon('ui', 'check_circle', 18, '#10b981')
                             ) : isCurrent ? (

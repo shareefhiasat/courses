@@ -8,6 +8,7 @@ import { MODE_TYPES } from '@utils/sharedTypes';
 import { DASHBOARD_TAB_SCREEN_IDS } from '@config/navigationRegistry.js';
 import { usePermissions } from '@hooks/usePermissions';
 import Joyride from 'react-joyride';
+import TourTooltip from '@ui/TourTooltip/TourTooltip';
 import { Modal, Button, SimpleLoading } from '@ui';
 import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { InfoTooltip } from '@ui';
@@ -73,8 +74,8 @@ const DashboardPage = () => {
 
   // Memoized Joyride callback to persist tour completion
   const handleJoyrideCallback = useCallback((data) => {
-    const { status } = data || {};
-    if (status === 'finished' || status === 'skipped') {
+    const { status, action } = data || {};
+    if (status === 'finished' || status === 'skipped' || action === 'close') {
       setRunTour(false);
       try {
         localStorage.setItem(`dashboardHelpSeen_${lang}`, 'true');
@@ -83,6 +84,7 @@ const DashboardPage = () => {
       }
     }
   }, [lang]);
+  const TourTooltipComponent = useMemo(() => TourTooltip({ tourSeenKey: `dashboardHelpSeen_${lang}` }), [lang]);
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -463,6 +465,9 @@ const DashboardPage = () => {
           continuous
           run={runTour}
           steps={tourSteps}
+          showSkipButton
+          showProgress
+          tooltipComponent={TourTooltipComponent}
           callback={handleJoyrideCallback}
           locale={{
             back: t('tour_back') || (lang === 'ar' ? 'السابق' : 'Back'),

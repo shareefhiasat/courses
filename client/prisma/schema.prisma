@@ -150,6 +150,29 @@ enum WorkflowType {
   GENERAL_MIXED_ADMIN_HR
 }
 
+enum ApprovalFlow {
+  HR_ONLY
+  ADMIN_ONLY
+  HR_THEN_ADMIN
+  ADMIN_THEN_HR
+  INSTRUCTOR_THEN_HR
+}
+
+enum WorkflowCategory {
+  ATTENDANCE
+  PENALTY
+  BEHAVIOR
+  DISCONTINUATION
+  GENERAL
+}
+
+enum AttendanceWorkflowSubtype {
+  DAILY
+  WEEKLY_SUMMARY
+  EXCUSE
+  WARNING
+}
+
 enum SharePermission {
   VIEW
   DOWNLOAD
@@ -857,6 +880,8 @@ model Attendance {
   updater   User?                 @relation("AttendanceUpdater", fields: [updatedBy], references: [id])
   user      User                  @relation(fields: [userId], references: [id])
   amendments AttendanceAmendment[]
+  workflowLinks WorkflowDocumentAttendance[]
+  excuseApprovedAt DateTime?
 
   @@unique([userId, classId, date])
   @@map("attendances")
@@ -1156,6 +1181,7 @@ model Penalty {
   descriptionAr String?
   points        Int          @default(0)
   comment       String?
+  eventDate     DateTime?
   isActive      Boolean      @default(true)
   createdBy     Int
   updatedBy     Int?
@@ -1181,6 +1207,7 @@ model Behavior {
   descriptionAr String?
   points        Int           @default(0)
   comment       String?
+  eventDate     DateTime?
   isActive      Boolean       @default(true)
   createdBy     Int
   updatedBy     Int?
@@ -2046,6 +2073,9 @@ model ScheduleSession {
 model WorkflowDocument {
   id                  Int                 @id @default(autoincrement())
   workflowType        WorkflowType
+  approvalFlow        ApprovalFlow        @default(HR_ONLY)
+  workflowCategory    WorkflowCategory    @default(GENERAL)
+  attendanceSubtype   AttendanceWorkflowSubtype?
   title               String
   description         String?
   status              WorkflowDocumentStatus @default(DRAFT)
@@ -2056,8 +2086,11 @@ model WorkflowDocument {
   classId             Int?
   instructorId        Int?
   date                DateTime?
+  dateFrom            DateTime?
+  dateTo              DateTime?
   program             String?
   subject             String?
+  metadata            Json?
   reviewCycleCount     Int                 @default(0)
   createdBy           Int?
   updatedBy           Int?
@@ -2071,15 +2104,48 @@ model WorkflowDocument {
   class               Class?                  @relation("WorkflowDocumentClass", fields: [classId], references: [id])
   comments            WorkflowComment[]
   statusHistory       WorkflowStatusHistory[]
+  linkedAttendances   WorkflowDocumentAttendance[]
 
   @@index([submitterId])
   @@index([currentAssigneeId])
   @@index([status])
   @@index([workflowType])
   @@index([workflowType, status])
+  @@index([workflowCategory])
+  @@index([workflowCategory, attendanceSubtype])
+  @@index([approvalFlow])
   @@index([date, status])
   @@index([program, subject])
   @@map("workflow_documents")
+}
+
+model WorkflowDocumentAttendance {
+  id                 Int              @id @default(autoincrement())
+  workflowDocumentId Int
+  attendanceId       Int
+  createdAt          DateTime         @default(now())
+
+  workflowDocument   WorkflowDocument @relation(fields: [workflowDocumentId], references: [id], onDelete: Cascade)
+  attendance         Attendance       @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
+
+  @@unique([workflowDocumentId, attendanceId])
+  @@index([attendanceId])
+  @@map("workflow_document_attendances")
+}
+
+model AbsenceDeductionRule {
+  id            Int      @id @default(autoincrement())
+  statusCode    String?
+  absenceTypeId String?
+  deduction     Float
+  isExcused     Boolean  @default(false)
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([statusCode])
+  @@index([absenceTypeId])
+  @@map("absence_deduction_rules")
 }
 
 model WorkflowComment {

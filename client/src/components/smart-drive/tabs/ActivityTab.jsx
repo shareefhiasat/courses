@@ -1,6 +1,10 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { getIcon } from '@constants/iconTypes';
+import { formatQatarDate, formatQatarDateOnly } from '@utils/timezone';
+import { Group as PanelGroup, Panel, Separator as PanelResizeHandle } from 'react-resizable-panels';
+import { usePanelLayout } from '@hooks/usePanelLayout';
+import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import axios from 'axios';
 
 const ACTION_COLORS = {
@@ -100,26 +104,17 @@ export default function ActivityTab({ fileId }) {
     }
   };
 
+  const [timelineCollapsed, setTimelineCollapsed] = useState(false);
+  const timelinePanelRef = useRef(null);
+  const [savedLayout, onLayoutChange] = usePanelLayout('wf-activity-panels', { timeline: 35, content: 65 });
+
   const formatDateTime = (date) => {
     if (!date) return '\u2014';
-    const d = new Date(date);
-    if (Number.isNaN(d.getTime())) return '\u2014';
-    return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    return formatQatarDate(date, 'dd/MM/yyyy HH:mm');
   };
 
   const formatDateHeader = (dateStr) => {
-    const date = new Date(dateStr);
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-
-    if (date.toDateString() === today.toDateString()) {
-      return t('drive.today') || 'Today';
-    } else if (date.toDateString() === yesterday.toDateString()) {
-      return t('drive.yesterday') || 'Yesterday';
-    } else {
-      return date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
-    }
+    return formatQatarDateOnly(dateStr);
   };
 
   if (loading) {
@@ -148,15 +143,44 @@ export default function ActivityTab({ fileId }) {
   }
 
   return (
-    <div style={{ display: 'flex', height: '100%', gap: '1rem' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      {/* Collapse/expand toggle */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.5rem' }}>
+        <button
+          onClick={() => {
+            if (timelineCollapsed) {
+              timelinePanelRef.current?.expand();
+              setTimelineCollapsed(false);
+            } else {
+              timelinePanelRef.current?.collapse();
+              setTimelineCollapsed(true);
+            }
+          }}
+          style={{
+            padding: '0.25rem 0.5rem',
+            background: 'var(--panel, white)',
+            border: '1px solid var(--border, #e5e7eb)',
+            borderRadius: '0.375rem',
+            cursor: 'pointer',
+            color: 'var(--text-muted, #6b7280)',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.25rem',
+            fontSize: '0.75rem',
+          }}
+          title={timelineCollapsed ? t('workflow.expand', 'Expand') : t('workflow.collapse', 'Collapse')}
+        >
+          {timelineCollapsed ? <PanelLeftOpen size={14} /> : <PanelLeftClose size={14} />}
+        </button>
+      </div>
+      <PanelGroup orientation="horizontal" id="workflow-activity-panels" style={{ flex: 1 }} defaultLayout={savedLayout} onLayoutChange={onLayoutChange}>
       {/* Left sidebar - Date timeline */}
+      <Panel id="timeline" panelRef={timelinePanelRef} defaultSize={35} minSize={15} collapsible collapsedSize={0}>
       <div style={{ 
-        width: '200px', 
-        flexShrink: 0, 
         borderRight: '1px solid var(--border, #e5e7eb)', 
         paddingInlineEnd: '1rem',
         overflowY: 'auto',
-        maxHeight: '600px'
+        height: '100%',
       }}>
         <h4 style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-muted, #6b7280)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           {getIcon('ui', 'clock', 16)}
@@ -200,9 +224,12 @@ export default function ActivityTab({ fileId }) {
           ))}
         </div>
       </div>
+      </Panel>
+      <PanelResizeHandle style={{ width: '4px', background: 'var(--border, #e5e7eb)', margin: '0 2px', borderRadius: '2px', cursor: 'col-resize' }} />
 
       {/* Right content - Activities */}
-      <div style={{ flex: 1, overflowY: 'auto', maxHeight: '600px' }}>
+      <Panel id="content" minSize={30}>
+      <div style={{ flex: 1, overflowY: 'auto', height: '100%', paddingInlineStart: '0.5rem' }}>
         {/* Search filter */}
         <div style={{ position: 'relative', marginBottom: '1rem' }}>
           <input
@@ -302,7 +329,7 @@ export default function ActivityTab({ fileId }) {
                             <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                               {activity.metadata.linkId && <span style={{ color: 'var(--color-primary, #2563eb)' }}>{t('drive.linkCreated')}</span>}
                               {activity.metadata.expiresAt && (
-                                <span>{t('drive.expires')}: {new Date(activity.metadata.expiresAt).toLocaleDateString()}</span>
+                                <span>{t('drive.expires')}: {formatQatarDateOnly(activity.metadata.expiresAt)}</span>
                               )}
                               {activity.metadata.passwordProtected && (
                                 <span style={{ color: '#d97706' }}>{t('drive.passwordProtected')}</span>
@@ -322,6 +349,8 @@ export default function ActivityTab({ fileId }) {
           </div>
         )}
       </div>
+      </Panel>
+      </PanelGroup>
     </div>
   );
 }

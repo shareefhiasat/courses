@@ -59,6 +59,11 @@
   max-width: 900px;
 }
 
+.wide {
+  width: 85vw;
+  max-width: 85vw;
+}
+
 .full {
   width: 95vw;
   max-width: none;
@@ -146,7 +151,8 @@
   
   .small,
   .medium,
-  .large {
+  .large,
+  .wide {
     max-width: none;
     width: 100%;
   }

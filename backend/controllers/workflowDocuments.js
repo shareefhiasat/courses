@@ -5,6 +5,7 @@
  * ARCHITECTURE: HTTP Requests → Controllers → Business Services → DB Services → PostgreSQL
  */
 
+import { resolveApprovalFlow } from '../utils/workflowTaxonomy.js';
 import prisma from '../db/prismaClient.js';
 import { LMS_ROLES } from '../services/keycloakAdminService.js';
 import { approveWorkflow, rejectWorkflow, returnWorkflow, submitWorkflow, resubmitWorkflow } from '../workflows/workflowService.js';
@@ -172,7 +173,7 @@ export const getWorkflowDocumentController = async (req, res) => {
 export const getWorkflowDocumentsController = async (req, res) => {
   try {
     const { user } = req;
-    const { role, status, workflowType, limit, offset, fileId } = req.query;
+    const { role, status, workflowType, workflowCategory, attendanceSubtype, approvalFlow, limit, offset, fileId } = req.query;
 
     let result;
 
@@ -185,6 +186,9 @@ export const getWorkflowDocumentsController = async (req, res) => {
       result = await getAssigneeDocuments(user.dbId, {
         status,
         workflowType,
+        workflowCategory,
+        attendanceSubtype,
+        approvalFlow,
         limit: limit ? parseInt(limit) : 50,
         offset: offset ? parseInt(offset) : 0
       });
@@ -193,6 +197,9 @@ export const getWorkflowDocumentsController = async (req, res) => {
       result = await getSubmitterDocuments(user.dbId, {
         status,
         workflowType,
+        workflowCategory,
+        attendanceSubtype,
+        approvalFlow,
         limit: limit ? parseInt(limit) : 50,
         offset: offset ? parseInt(offset) : 0
       });
@@ -400,7 +407,14 @@ export const approveWorkflowDocumentController = async (req, res) => {
     // Get current document to determine workflow type and status
     const document = await prisma.workflowDocument.findUnique({
       where: { id: parseInt(id) },
-      select: { workflowType: true, status: true, updatedBy: true }
+      select: {
+        workflowType: true,
+        approvalFlow: true,
+        workflowCategory: true,
+        attendanceSubtype: true,
+        status: true,
+        updatedBy: true,
+      }
     });
 
     if (!document) {
@@ -428,13 +442,14 @@ export const approveWorkflowDocumentController = async (req, res) => {
     }
 
     // Use XState workflow service to determine next status
-    const { workflowType, status } = document;
+    const { status } = document;
+    const machineKey = resolveApprovalFlow(document);
     let nextStatus;
     
     try {
-      nextStatus = approveWorkflow(workflowType, status);
+      nextStatus = approveWorkflow(machineKey, status);
       console.log('[approveWorkflowDocumentController] XState transition:', {
-        workflowType,
+        machineKey,
         currentStatus: status,
         nextStatus
       });
@@ -529,7 +544,7 @@ export const rejectWorkflowDocumentController = async (req, res) => {
     // Use XState workflow service to determine next status
     let nextStatus;
     try {
-      nextStatus = rejectWorkflow(document.workflowType, document.status);
+      nextStatus = rejectWorkflow(resolveApprovalFlow(document), document.status);
       console.log('[rejectWorkflowDocumentController] XState transition:', {
         workflowType: document.workflowType,
         currentStatus: document.status,
@@ -621,8 +636,8 @@ export const returnWorkflowDocumentController = async (req, res) => {
     }
 
     const currentStatus = document.data.status;
-    const workflowType = document.data.workflowType;
-
+    const machineKey = resolveApprovalFlow(document.data);
+    
     // Prevent return if document is already approved
     if (currentStatus === 'APPROVED') {
       return res.status(400).json({
@@ -634,9 +649,9 @@ export const returnWorkflowDocumentController = async (req, res) => {
     // Use XState workflow service to determine previous status
     let previousStatus;
     try {
-      previousStatus = returnWorkflow(workflowType, currentStatus);
+      previousStatus = returnWorkflow(machineKey, currentStatus);
       console.log('[returnWorkflowDocumentController] XState transition:', {
-        workflowType,
+        machineKey,
         currentStatus,
         previousStatus
       });
@@ -1033,6 +1048,9 @@ export const createCustomWorkflowDocumentController = async (req, res) => {
     // Validate required fields
     const {
       workflowType,
+      workflowCategory,
+      attendanceSubtype,
+      approvalFlow,
       title,
       description,
       reviewers,
@@ -1040,22 +1058,57 @@ export const createCustomWorkflowDocumentController = async (req, res) => {
       sourceBucket,
       sourcePath,
       fileName,
-      fileId
+      fileId,
+      dateFrom,
+      dateTo,
+      metadata,
+      attendanceIds,
     } = req.body;
 
-    if (!workflowType || !title) {
+    if ((!workflowType && !workflowCategory) || !title) {
       return res.status(400).json({
         success: false,
-        error: 'Missing required fields: workflowType, title'
+        error: 'Missing required fields: workflowCategory (or workflowType), title'
       });
+    }
+
+    const resolvedCategory = workflowCategory || (workflowType?.startsWith('ATTENDANCE') ? 'ATTENDANCE' : 'GENERAL');
+    const resolvedSubtype = attendanceSubtype || null;
+
+    if (resolvedCategory === 'ATTENDANCE' && resolvedSubtype === 'DAILY') {
+      if (!req.body.classId) {
+        return res.status(400).json({
+          success: false,
+          error: 'Class is required for daily attendance approval'
+        });
+      }
+      if (!dateFrom) {
+        return res.status(400).json({
+          success: false,
+          error: 'Attendance date is required for daily attendance approval'
+        });
+      }
+    }
+
+    if (resolvedCategory === 'ATTENDANCE' && resolvedSubtype === 'WEEKLY_SUMMARY') {
+      if (!req.body.classId) {
+        return res.status(400).json({
+          success: false,
+          error: 'Class is required for weekly attendance summary'
+        });
+      }
+      if (!dateFrom || !dateTo) {
+        return res.status(400).json({
+          success: false,
+          error: 'Week start and end dates are required for weekly summary'
+        });
+      }
     }
 
     // Reviewers are now optional - can be assigned later from file details tab
 
     // If attaching existing file, validate ownership (disable workflow on shared files)
     if (attachFile && fileId) {
-const prisma = (await import('../db/prismaClient.js')).default;
-      
       const file = await prisma.file.findUnique({
         where: { id: fileId },
         select: { ownerId: true, isDeleted: true }
@@ -1098,6 +1151,9 @@ const prisma = (await import('../db/prismaClient.js')).default;
     // Create custom workflow document
     const result = await createCustomWorkflowDocument({
       workflowType,
+      workflowCategory,
+      attendanceSubtype,
+      approvalFlow,
       title,
       description,
       reviewers: reviewers || [],
@@ -1106,6 +1162,13 @@ const prisma = (await import('../db/prismaClient.js')).default;
       sourcePath,
       fileName,
       fileId,
+      dateFrom,
+      dateTo,
+      metadata,
+      attendanceIds: attendanceIds || [],
+      classId: req.body.classId || null,
+      program: req.body.program || null,
+      subject: req.body.subject || null,
       submitterId: user.dbId,
       createdBy: user.dbId,
       updatedBy: user.dbId

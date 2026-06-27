@@ -7,6 +7,7 @@
 
 import React, { useMemo, useCallback, useEffect, useState } from 'react';
 import Joyride from 'react-joyride';
+import TourTooltip from '@ui/TourTooltip/TourTooltip';
 import { useNavigate } from 'react-router-dom';
 import { format } from "date-fns";
 import { getSlaInfo } from '@utils/sla.js';
@@ -18,8 +19,9 @@ import { useTheme } from '@contexts/ThemeContext';
 import useNotifications from '@hooks/useNotifications';
 import useWorkflowInbox from "@hooks/useWorkflowInbox";
 import { useAuditGridColumns } from '@hooks/useAuditGridColumns.js';
-import { Button, useToast } from '@ui';
+import { Button, useToast, GridQuickFilterChips } from '@ui';
 import { Card, CardContent, CardHeader, CardTitle, Badge, Input, SimpleLoading, EmptyState, AdvancedDataGrid } from '@ui';
+import { getCategoryFilterChips, getWorkflowDisplayLabel } from '@constants/workflowConfig';
 import { useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { AlertCircle, Trash2 } from 'lucide-react';
 import { deleteWorkflowDocument } from '@services/business/workflowService';
@@ -50,9 +52,10 @@ const WorkflowInboxPage = () => {
   }, []);
   useEffect(() => { try { if (!localStorage.getItem(tourSeenKey)) setRunTour(true); } catch {} }, [tourSeenKey]);
   const handleTourCallback = useCallback((data) => {
-    const { status } = data || {};
-    if (status === 'finished' || status === 'skipped') { setRunTour(false); try { localStorage.setItem(tourSeenKey, 'true'); } catch {} }
+    const { status, action } = data || {};
+    if (status === 'finished' || status === 'skipped' || action === 'close') { setRunTour(false); try { localStorage.setItem(tourSeenKey, 'true'); } catch {} }
   }, [tourSeenKey]);
+  const TourTooltipComponent = useMemo(() => TourTooltip({ tourSeenKey }), [tourSeenKey]);
   // ──────────────────────────────────────────────────────────────────────────
   const { triggerNotification } = useNotifications();
   const toast = useToast();
@@ -167,6 +170,17 @@ const WorkflowInboxPage = () => {
     }
   };
 
+  const categoryFilterChips = useMemo(() => getCategoryFilterChips(t), [t]);
+  const activeCategoryId = filters.workflowCategory || 'all';
+
+  const handleCategoryChipChange = useCallback((chipId) => {
+    if (chipId === 'all') {
+      updateFilters({ workflowCategory: '', attendanceSubtype: '' });
+      return;
+    }
+    updateFilters({ workflowCategory: chipId, attendanceSubtype: '' });
+  }, [updateFilters]);
+
   const receivedColumn = useAuditGridColumns({
     includeCreator: false,
     includeUpdater: false,
@@ -192,6 +206,16 @@ const WorkflowInboxPage = () => {
           </div>
         );
       }
+    },
+    {
+      field: 'workflowCategory',
+      headerName: t('workflow.inbox.category', 'Category'),
+      width: 180,
+      renderCell: (params) => (
+        <Badge variant="outline">
+          {getWorkflowDisplayLabel(params.row, t)}
+        </Badge>
+      ),
     },
     {
       field: 'title',
@@ -425,16 +449,21 @@ const WorkflowInboxPage = () => {
         
         // If no assignee, show role based on workflow type
         if (!assignee) {
-          const workflowType = params.row.workflowType;
+          const category = params.row.workflowCategory || 'GENERAL';
+          const subtype = params.row.attendanceSubtype;
           let roleLabel = t('workflow.inbox.unassigned', 'Unassigned');
           let roleIcon = getThemedIcon('ui', 'user', 16, theme);
           let roleColor = theme;
-          
-          if (workflowType === 'ATTENDANCE_WEEKLY') {
+
+          if (category === 'ATTENDANCE' && subtype === 'WEEKLY_SUMMARY') {
             roleLabel = t('roles.admin', 'Admin');
             roleColor = getUserRoleColor('admin');
             roleIcon = React.cloneElement(getUserRoleIcon('admin'), { color: roleColor, size: 16 });
-          } else if (workflowType === 'GENERAL') {
+          } else if (category === 'DISCONTINUATION') {
+            roleLabel = t('roles.admin', 'Admin');
+            roleColor = getUserRoleColor('admin');
+            roleIcon = React.cloneElement(getUserRoleIcon('admin'), { color: roleColor, size: 16 });
+          } else {
             roleLabel = t('roles.hr', 'HR');
             roleColor = getUserRoleColor('hr');
             roleIcon = React.cloneElement(getUserRoleIcon('hr'), { color: roleColor, size: 16 });
@@ -582,7 +611,7 @@ const WorkflowInboxPage = () => {
 
   return (
     <div className="flex justify-center px-4 sm:px-6 lg:px-8 py-6">
-      <Joyride continuous run={runTour} steps={tourSteps} callback={handleTourCallback} scrollOffset={100} scrollToFirstStep
+      <Joyride continuous run={runTour} steps={tourSteps} callback={handleTourCallback} scrollOffset={100} scrollToFirstStep showSkipButton showProgress tooltipComponent={TourTooltipComponent}
         locale={{ back: t('tour_back'), close: t('tour_close'), last: t('tour_finish'), next: t('tour_next'), skip: t('tour_skip') }}
         styles={{ options: { primaryColor: 'var(--color-primary,#800020)', textColor: theme === 'dark' ? '#e5e7eb' : '#111', backgroundColor: theme === 'dark' ? '#1f2937' : '#fff', zIndex: 10000 } }}
       />
@@ -604,6 +633,12 @@ const WorkflowInboxPage = () => {
                 className="pl-10"
               />
             </div>
+
+            <GridQuickFilterChips
+              chips={categoryFilterChips}
+              activeId={activeCategoryId}
+              onChange={handleCategoryChipChange}
+            />
 
             {/* Status Filter - badge toggles */}
             <div data-tour="workflow-status-filters" className="flex items-center gap-2 flex-wrap">
@@ -660,6 +695,8 @@ const WorkflowInboxPage = () => {
                     search: '',
                     status: '',
                     workflowType: '',
+                    workflowCategory: '',
+                    attendanceSubtype: '',
                     assignment: ''
                   });
                 }}

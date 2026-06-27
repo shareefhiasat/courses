@@ -30,54 +30,62 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Class
   const setSubject = onChange[getSetterKey('subject')] || (() => {});
   const setClass = onChange[getSetterKey('class')] || (() => {});
 
-  // Filter subjects based on selected program
+  // Filter subjects based on selected program (normalize IDs — Select values are strings)
   const filteredSubjects = useMemo(() => {
     if (!programValue || programValue === 'all') {
       return subjects;
     }
-    return subjects.filter(subject => subject.programId === programValue);
+    const programKey = String(programValue);
+    return subjects.filter((subject) => {
+      const subjectProgramId = subject.programId ?? subject.program?.id;
+      return String(subjectProgramId) === programKey;
+    });
   }, [programValue, subjects]);
 
   // Filter classes based on selected subject and program
   const filteredClasses = useMemo(() => {
     let result = classes;
-    
-    // Filter by program
+
     if (programValue && programValue !== 'all') {
-      result = result.filter(cls => {
+      const programKey = String(programValue);
+      result = result.filter((cls) => {
         if (!cls.subjectId) return false;
-        const subject = subjects.find(s => (s.docId || s.id) === cls.subjectId);
+        const subject = subjects.find((s) => String(s.docId || s.id) === String(cls.subjectId));
         if (!subject) return false;
-        return subject.programId === programValue;
+        const subjectProgramId = subject.programId ?? subject.program?.id;
+        return String(subjectProgramId) === programKey;
       });
     }
-    
-    // Filter by subject
+
     if (subjectValue && subjectValue !== 'all') {
-      result = result.filter(cls => (cls.subjectId || '') === subjectValue);
+      const subjectKey = String(subjectValue);
+      result = result.filter((cls) => String(cls.subjectId || '') === subjectKey);
     }
-    
+
     return result;
   }, [programValue, subjectValue, classes, subjects]);
 
+  const emptyDependentValue = showAllOption ? 'all' : '';
+
   // Handle program change
   const handleProgramChange = (value) => {
-    setProgram(value);
-    // Reset dependent selections
-    setSubject('all');
-    setClass('all');
+    const nextValue = value?.value ?? value?.target?.value ?? value ?? '';
+    setProgram(nextValue);
+    setSubject(emptyDependentValue);
+    setClass(emptyDependentValue);
   };
 
   // Handle subject change
   const handleSubjectChange = (value) => {
-    setSubject(value);
-    // Reset class selection
-    setClass('all');
+    const nextValue = value?.value ?? value?.target?.value ?? value ?? '';
+    setSubject(nextValue);
+    setClass(emptyDependentValue);
   };
 
   // Handle class change
   const handleClassChange = (value) => {
-    setClass(value);
+    const nextValue = value?.value ?? value?.target?.value ?? value ?? '';
+    setClass(nextValue);
   };
 
   // Create options for selects
@@ -114,7 +122,9 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Class
     ];
   }, [filteredClasses, showAllOption, t]);
 
-  const gridColumns = compact ? 'repeat(auto-fit, minmax(120px, 1fr))' : 'repeat(auto-fit, minmax(140px, 1fr))';
+  const gridColumns = compact
+    ? 'repeat(auto-fit, minmax(120px, 1fr))'
+    : 'repeat(3, minmax(0, 1fr))';
 
   return (
     <div style={{ display: 'grid', gridTemplateColumns: gridColumns, gap: 8 }}>
@@ -123,7 +133,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Class
         <Select
           searchable
           value={programValue}
-          onChange={(e) => handleProgramChange(e.target.value)}
+          onChange={handleProgramChange}
           options={programOptions}
           placeholder={t('select_program') || 'Select Program'}
           required={required}
@@ -137,11 +147,11 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Class
         <Select
           searchable
           value={subjectValue}
-          onChange={(e) => handleSubjectChange(e.target.value)}
+          onChange={handleSubjectChange}
           options={subjectOptions}
           placeholder={t('select_subject') || 'Select Subject'}
           required={required}
-          disabled={disabled || (!programValue || programValue === 'all')}
+          disabled={disabled || !programValue || programValue === 'all'}
           fullWidth
         />
       </div>
@@ -151,11 +161,11 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Class
         <Select
           searchable
           value={classValue}
-          onChange={(e) => handleClassChange(e.target.value)}
+          onChange={handleClassChange}
           options={classOptions}
           placeholder={t('select_class') || 'Select Class'}
           required={required}
-          disabled={disabled || (!subjectValue || subjectValue === 'all')}
+          disabled={disabled || !subjectValue || subjectValue === 'all'}
           fullWidth
         />
       </div>
@@ -205,26 +215,31 @@ const ClassSelectorAdvanced = ({
     if (!programValue || programValue === 'all') {
       return subjects;
     }
-    return subjects.filter(subject => subject.programId === programValue);
+    const programKey = String(programValue);
+    return subjects.filter((subject) => {
+      const subjectProgramId = subject.programId ?? subject.program?.id;
+      return String(subjectProgramId) === programKey;
+    });
   }, [programValue, subjects]);
 
   // Filter classes based on selected subject, program, year, and term
   const filteredClasses = useMemo(() => {
     let result = classes;
-    
-    // Filter by program
+
     if (programValue && programValue !== 'all') {
-      result = result.filter(cls => {
+      const programKey = String(programValue);
+      result = result.filter((cls) => {
         if (!cls.subjectId) return false;
-        const subject = subjects.find(s => (s.docId || s.id) === cls.subjectId);
+        const subject = subjects.find((s) => String(s.docId || s.id) === String(cls.subjectId));
         if (!subject) return false;
-        return subject.programId === programValue;
+        const subjectProgramId = subject.programId ?? subject.program?.id;
+        return String(subjectProgramId) === programKey;
       });
     }
-    
-    // Filter by subject
+
     if (subjectValue && subjectValue !== 'all') {
-      result = result.filter(cls => (cls.subjectId || '') === subjectValue);
+      const subjectKey = String(subjectValue);
+      result = result.filter((cls) => String(cls.subjectId || '') === subjectKey);
     }
     
     // Filter by year
@@ -255,31 +270,37 @@ const ClassSelectorAdvanced = ({
     return result;
   }, [programValue, subjectValue, yearValue, termValue, classes, subjects]);
 
+  const emptyDependentValue = showAllOption ? 'all' : '';
+
   // Handle changes with cascade resets
   const handleProgramChange = (value) => {
-    setProgram(value);
-    setSubject('all');
-    setClass('all');
-    if (showYear) setYear('all');
-    if (showTerm) setTerm('all');
+    const nextValue = value?.value ?? value?.target?.value ?? value ?? '';
+    setProgram(nextValue);
+    setSubject(emptyDependentValue);
+    setClass(emptyDependentValue);
+    if (showYear) setYear(emptyDependentValue);
+    if (showTerm) setTerm(emptyDependentValue);
   };
 
   const handleSubjectChange = (value) => {
-    setSubject(value);
-    setClass('all');
-    if (showYear) setYear('all');
-    if (showTerm) setTerm('all');
+    const nextValue = value?.value ?? value?.target?.value ?? value ?? '';
+    setSubject(nextValue);
+    setClass(emptyDependentValue);
+    if (showYear) setYear(emptyDependentValue);
+    if (showTerm) setTerm(emptyDependentValue);
   };
 
   const handleYearChange = (value) => {
-    setYear(value);
-    setClass('all');
-    if (showTerm) setTerm('all');
+    const nextValue = value?.value ?? value?.target?.value ?? value ?? '';
+    setYear(nextValue);
+    setClass(emptyDependentValue);
+    if (showTerm) setTerm(emptyDependentValue);
   };
 
   const handleTermChange = (value) => {
-    setTerm(value);
-    setClass('all');
+    const nextValue = value?.value ?? value?.target?.value ?? value ?? '';
+    setTerm(nextValue);
+    setClass(emptyDependentValue);
   };
 
   // Create options

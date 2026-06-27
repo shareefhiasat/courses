@@ -300,10 +300,10 @@ export default function AdvancedAnalytics({
   }, [tourSeenKey, startTour]);
 
   const handleTourCallback = useCallback((data) => {
-    const { status, type, index } = data || {};
+    const { status, action, type, index } = data || {};
     debug(`[AdvancedAnalytics] Joyride: ${status || type}`);
 
-    if (status === 'finished' || status === 'skipped') {
+    if (status === 'finished' || status === 'skipped' || action === 'close') {
       setRunTour(false);
       try { localStorage.setItem(tourSeenKey, 'true'); } catch {}
       // Close the builder if the tour ended while it was open
@@ -387,6 +387,8 @@ export default function AdvancedAnalytics({
         disableScrolling={false}
         scrollOffset={100}
         scrollToFirstStep
+        showSkipButton
+        showProgress
         spotlightClicks={false}
         callback={handleTourCallback}
         tooltipComponent={TourTooltipComponent}

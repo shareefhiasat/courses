@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import Joyride from 'react-joyride';
+import TourTooltip from '@ui/TourTooltip/TourTooltip';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 
@@ -19,7 +20,10 @@ const TourOverlay = ({ run, steps, callback }) => {
       disableScrolling={false}
       scrollOffset={100}
       scrollToFirstStep
+      showSkipButton
+      showProgress
       spotlightClicks={false}
+      tooltipComponent={useMemo(() => TourTooltip({}), [])}
       callback={callback}
       locale={{
         back: t('tour_back') || 'Back',

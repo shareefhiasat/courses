@@ -3,6 +3,7 @@ import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { Button, Input } from '@ui';
+import { formatQatarDate } from '@utils/timezone';
 import WorkflowBadge from './WorkflowBadge';
 
 const DEFAULT_TASK_NAME = 'Workflow Approval';
@@ -99,7 +100,7 @@ export default function InboxDrawer({ isOpen, onClose, tasks, onApprove, onRejec
                     </p>
                     {task.steps?.[0]?.slaDeadline && (
                       <p className="text-xs text-blue-700 dark:text-blue-400 mt-1">
-                        {t('workflow.inbox.due')}: {new Date(task.steps[0].slaDeadline).toLocaleString()}
+                        {t('workflow.inbox.due')}: {formatQatarDate(task.steps[0].slaDeadline, 'dd/MM/yyyy HH:mm')}
                       </p>
                     )}
                   </div>

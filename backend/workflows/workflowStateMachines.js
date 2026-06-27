@@ -165,26 +165,92 @@ export const generalMixedAdminHRMachine = createMachine({
   }
 });
 
+// INSTRUCTOR_THEN_HR Workflow: Instructor submits → HR Review → Approved
+export const instructorThenHRMachine = createMachine({
+  id: 'instructorThenHR',
+  initial: 'DRAFT',
+  states: {
+    DRAFT: {
+      on: {
+        SUBMIT: { target: 'SUBMITTED' }
+      }
+    },
+    SUBMITTED: {
+      on: {
+        APPROVE: { target: 'UNDER_HR_REVIEW' },
+        REJECT: { target: 'REJECTED' },
+        RETURN: { target: 'DRAFT' }
+      }
+    },
+    UNDER_HR_REVIEW: {
+      on: {
+        APPROVE: { target: 'APPROVED' },
+        REJECT: { target: 'REJECTED' },
+        RETURN: { target: 'SUBMITTED' }
+      }
+    },
+    UNDER_REVIEW: {
+      on: {
+        APPROVE: { target: 'APPROVED' },
+        REJECT: { target: 'REJECTED' },
+        RETURN: { target: 'SUBMITTED' }
+      }
+    },
+    APPROVED: {
+      type: 'final'
+    },
+    REJECTED: {
+      on: {
+        RESUBMIT: { target: 'SUBMITTED' }
+      }
+    }
+  }
+});
+
+/**
+ * Resolve machine key from approvalFlow or legacy workflowType.
+ */
+export function resolveMachineKey(approvalFlowOrLegacyType) {
+  const legacyToFlow = {
+    GENERAL_HR: 'HR_ONLY',
+    GENERAL_ADMIN: 'ADMIN_ONLY',
+    GENERAL_MIXED_HR_ADMIN: 'HR_THEN_ADMIN',
+    GENERAL_MIXED_ADMIN_HR: 'ADMIN_THEN_HR',
+    ATTENDANCE_DAILY: 'INSTRUCTOR_THEN_HR',
+    ATTENDANCE_WEEKLY: 'HR_THEN_ADMIN',
+  };
+
+  return legacyToFlow[approvalFlowOrLegacyType] || approvalFlowOrLegacyType || 'HR_ONLY';
+}
+
 /**
  * Get the appropriate state machine for a workflow type
  */
-export const getWorkflowMachine = (workflowType) => {
+export const getWorkflowMachine = (approvalFlowOrLegacyType) => {
+  const key = resolveMachineKey(approvalFlowOrLegacyType);
   const machines = {
+    HR_ONLY: generalHRMachine,
+    ADMIN_ONLY: generalAdminMachine,
+    HR_THEN_ADMIN: generalMixedHRAdminMachine,
+    ADMIN_THEN_HR: generalMixedAdminHRMachine,
+    INSTRUCTOR_THEN_HR: instructorThenHRMachine,
     GENERAL_HR: generalHRMachine,
     GENERAL_ADMIN: generalAdminMachine,
     GENERAL_MIXED_HR_ADMIN: generalMixedHRAdminMachine,
-    GENERAL_MIXED_ADMIN_HR: generalMixedAdminHRMachine
+    GENERAL_MIXED_ADMIN_HR: generalMixedAdminHRMachine,
+    ATTENDANCE_DAILY: instructorThenHRMachine,
+    ATTENDANCE_WEEKLY: generalMixedHRAdminMachine,
   };
 
-  return machines[workflowType] || generalHRMachine;
+  return machines[key] || generalHRMachine;
 };
 
 /**
  * Get the next state for a given workflow type, current state, and event
  * Returns null if transition is invalid
  */
-export const getNextState = (workflowType, currentState, event) => {
-  const machine = getWorkflowMachine(workflowType);
+export const getNextState = (approvalFlowOrLegacyType, currentState, event) => {
+  const machine = getWorkflowMachine(approvalFlowOrLegacyType);
   
   // Get the current state node from config
   const currentStateNode = machine.config.states[currentState];
@@ -210,16 +276,16 @@ export const getNextState = (workflowType, currentState, event) => {
 /**
  * Check if a transition is valid for a workflow
  */
-export const isValidTransition = (workflowType, currentState, event) => {
-  const nextState = getNextState(workflowType, currentState, event);
+export const isValidTransition = (approvalFlowOrLegacyType, currentState, event) => {
+  const nextState = getNextState(approvalFlowOrLegacyType, currentState, event);
   return nextState !== null;
 };
 
 /**
  * Get all valid events for the current state
  */
-export const getValidEvents = (workflowType, currentState) => {
-  const machine = getWorkflowMachine(workflowType);
+export const getValidEvents = (approvalFlowOrLegacyType, currentState) => {
+  const machine = getWorkflowMachine(approvalFlowOrLegacyType);
   const stateNode = machine.config.states[currentState];
   
   if (!stateNode || !stateNode.on) {

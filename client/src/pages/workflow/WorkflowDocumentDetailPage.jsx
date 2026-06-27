@@ -6,13 +6,19 @@
  * NOTE: This is for WorkflowDocument system (Epic 1), not the existing Workflow system
  */
 
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
+import Joyride from 'react-joyride';
+import TourTooltip from '@ui/TourTooltip/TourTooltip';
 import { useParams, useNavigate } from 'react-router-dom';
+import { Group as PanelGroup, Panel, Separator as PanelResizeHandle } from 'react-resizable-panels';
+import { usePanelLayout } from '@hooks/usePanelLayout';
 import { apiService } from '@services/api/apiService';
 import { formatQatarDate } from '@utils/timezone';
+import { formatMimeType } from '@utils/fileUtils';
 import { getSlaInfo } from '@utils/sla.js';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
+import { useTheme } from '@contexts/ThemeContext';
 import { Button, useToast, CountdownLoading } from '@ui';
 import { Card, CardContent, CardHeader, CardTitle, Badge } from '@ui';
 import { SimpleLoading, EmptyState, Modal, Textarea, Input } from '@ui';
@@ -27,11 +33,41 @@ import { getStatusVariant, WORKFLOW_STATUS } from '@constants/workflowStatusType
 import { getWorkflowDocument } from '@services/api/workflow-documents-api.js';
 
 const WorkflowDocumentDetailPage = () => {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const { documentId } = useParams();
   const navigate = useNavigate();
   const auth = useAuth();
   const toast = useToast();
+  const { theme } = useTheme();
+
+  // ── Guided Tour ──────────────────────────────────────────────────────────
+  const [runTour, setRunTour] = useState(false);
+  const tourSeenKey = `workflowDocTourSeen_${lang}`;
+  const tourSteps = useMemo(() => [
+    { target: 'body', content: t('tour.workflow_doc_intro'), disableBeacon: true, placement: 'center' },
+    { target: '[data-tour="doc-title"]', content: t('tour.workflow_doc_title'), disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="doc-diagram"]', content: t('tour.workflow_doc_diagram'), disableBeacon: true, placement: 'right' },
+    { target: '[data-tour="doc-legend"]', content: t('tour.workflow_doc_legend'), disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="doc-view-toggle"]', content: t('tour.workflow_doc_view_toggle'), disableBeacon: true, placement: 'left' },
+    { target: '[data-tour="doc-diagram"]', content: t('tour.workflow_doc_context_menu'), disableBeacon: true, placement: 'right' },
+    { target: '[data-tour="doc-attachments"]', content: t('tour.workflow_doc_attachments'), disableBeacon: true, placement: 'right' },
+    { target: '[data-tour="doc-comments"]', content: t('tour.workflow_doc_comments'), disableBeacon: true, placement: 'left' },
+    { target: '[data-tour="doc-history"]', content: t('tour.workflow_doc_history'), disableBeacon: true, placement: 'left' },
+    { target: '[data-tour="doc-actions"]', content: t('tour.workflow_doc_actions'), disableBeacon: true, placement: 'left' },
+  ], [lang, t]);
+  useEffect(() => {
+    const start = () => setRunTour(true);
+    window.addEventListener('app:joyride', start);
+    window.addEventListener('app:help', start);
+    return () => { window.removeEventListener('app:joyride', start); window.removeEventListener('app:help', start); };
+  }, []);
+  useEffect(() => { try { if (!localStorage.getItem(tourSeenKey)) setRunTour(true); } catch {} }, [tourSeenKey]);
+  const handleTourCallback = useCallback((data) => {
+    const { status, action } = data || {};
+    if (status === 'finished' || status === 'skipped' || action === 'close') { setRunTour(false); try { localStorage.setItem(tourSeenKey, 'true'); } catch {} }
+  }, [tourSeenKey]);
+  const TourTooltipComponent = useMemo(() => TourTooltip({ tourSeenKey }), [tourSeenKey]);
+  // ──────────────────────────────────────────────────────────────────────────
 
   // Handle AuthContext not being available during lazy load
   if (!auth || auth.loading) {
@@ -52,6 +88,7 @@ const WorkflowDocumentDetailPage = () => {
   const [diagramKey, setDiagramKey] = useState(0);
   const [selectedStage, setSelectedStage] = useState(null);
   const commentInputRef = useRef(null);
+  const [savedLayout, onLayoutChange] = usePanelLayout('wf-detail-panels', { attachments: 40, comments: 40, history: 20 });
 
   // Handle visibility change
   useEffect(() => {
@@ -61,10 +98,10 @@ const WorkflowDocumentDetailPage = () => {
   }, []);
 
 
-  // Fetch document details
-  const fetchDocument = useCallback(async () => {
+  // Fetch document details (silent=true skips loading state for refreshes after actions)
+  const fetchDocument = useCallback(async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       setError(null);
 
       const response = await getWorkflowDocument(documentId);
@@ -77,7 +114,7 @@ const WorkflowDocumentDetailPage = () => {
     } catch (err) {
       setError(err.message || 'An unexpected error occurred');
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, [documentId]);
 
@@ -171,11 +208,9 @@ const WorkflowDocumentDetailPage = () => {
       const result = await approveWorkflowDocument(documentId, { comment: commentValue });
       if (result.success) {
         toast.success(t('workflow.document.approved', 'Document approved successfully'));
-        // Force immediate refresh before closing modal
-        await fetchDocument();
-        setDiagramKey(prev => prev + 1); // Force WorkflowDiagram re-render
+        await fetchDocument(true);
+        setDiagramKey(prev => prev + 1);
         setActionModal(null);
-        window.location.reload(); // Full page refresh to ensure UI updates
         setComment('');
       } else {
         toast.error(result.error || t('workflow.document.approveError', 'Failed to approve document'));
@@ -202,11 +237,9 @@ const WorkflowDocumentDetailPage = () => {
       if (result.success) {
         toast.success(t('workflow.document.rejected', 'Document rejected successfully'));
         console.log('[REJECT ACTION] Reject successful, new status:', result.data?.status);
-        // Force immediate refresh before closing modal
-        await fetchDocument();
-        setDiagramKey(prev => prev + 1); // Force WorkflowDiagram re-render
+        await fetchDocument(true);
+        setDiagramKey(prev => prev + 1);
         setActionModal(null);
-        window.location.reload(); // Full page refresh to ensure UI updates
       } else {
         toast.error(result.error || t('workflow.document.rejectError', 'Failed to reject document'));
       }
@@ -233,9 +266,8 @@ const WorkflowDocumentDetailPage = () => {
       if (result.success) {
         toast.success(t('workflow.document.returned', 'Document returned successfully'));
         console.log('[RETURN ACTION] Return successful, new status:', result.data?.status);
-        // Force immediate refresh before closing modal
-        await fetchDocument();
-        setDiagramKey(prev => prev + 1); // Force WorkflowDiagram re-render
+        await fetchDocument(true);
+        setDiagramKey(prev => prev + 1);
         setActionModal(null);
         setComment('');
       } else {
@@ -266,9 +298,8 @@ const WorkflowDocumentDetailPage = () => {
         });
         if (result.success) {
           toast.success(t('workflow.document.resubmitted', 'Document resubmitted successfully'));
-          // Force immediate refresh before closing modal
-          await fetchDocument();
-          setDiagramKey(prev => prev + 1); // Force WorkflowDiagram re-render
+          await fetchDocument(true);
+          setDiagramKey(prev => prev + 1);
           setActionModal(null);
           setComment('');
           setResubmitFile(null);
@@ -352,9 +383,8 @@ const WorkflowDocumentDetailPage = () => {
         });
         if (result.success) {
           toast.success(t('workflow.document.reuploaded', 'Document re-uploaded successfully'));
-          // Force immediate refresh before closing modal
-          await fetchDocument();
-          setDiagramKey(prev => prev + 1); // Force WorkflowDiagram re-render
+          await fetchDocument(true);
+          setDiagramKey(prev => prev + 1);
           setActionModal(null);
           setComment('');
           setResubmitFile(null);
@@ -399,9 +429,8 @@ const WorkflowDocumentDetailPage = () => {
         });
         if (result.success) {
           toast.success(t('workflow.document.signedUploaded', 'Signed document uploaded successfully'));
-          // Force immediate refresh before closing modal
-          await fetchDocument();
-          setDiagramKey(prev => prev + 1); // Force WorkflowDiagram re-render
+          await fetchDocument(true);
+          setDiagramKey(prev => prev + 1);
           setActionModal(null);
           setComment('');
           setSignedFile(null);
@@ -428,12 +457,10 @@ const WorkflowDocumentDetailPage = () => {
       const result = await updateWorkflowDocumentStatus(documentId, { status: 'SUBMITTED', reason: comment || 'Document submitted for review' });
       if (result.success) {
         toast.success(t('workflow.document.submitted', 'Document submitted successfully'));
-        await fetchDocument();
+        await fetchDocument(true);
         setDiagramKey(prev => prev + 1);
         setActionModal(null);
         setComment('');
-        // Full page refresh for submit
-        window.location.reload();
       } else {
         toast.error(result.error || t('workflow.document.submitError', 'Failed to submit document'));
       }
@@ -469,7 +496,7 @@ const WorkflowDocumentDetailPage = () => {
       const result = await updateWorkflowDocumentStatus(documentId, { status: nextStatus, reason: comment || 'Sent to next step' });
       if (result.success) {
         toast.success(t('workflow.document.sentToNext', 'Document sent to next step successfully'));
-        await fetchDocument();
+        await fetchDocument(true);
         setDiagramKey(prev => prev + 1);
         setActionModal(null);
         setComment('');
@@ -491,9 +518,8 @@ const WorkflowDocumentDetailPage = () => {
       const result = await withdrawWorkflowDocument(documentId, { comment: commentValue });
       if (result.success) {
         toast.success(t('workflow.document.withdrawn', 'Document withdrawn successfully'));
-        // Force immediate refresh before closing modal
-        await fetchDocument();
-        setDiagramKey(prev => prev + 1); // Force WorkflowDiagram re-render
+        await fetchDocument(true);
+        setDiagramKey(prev => prev + 1);
         setActionModal(null);
         setComment('');
       } else {
@@ -547,6 +573,10 @@ const WorkflowDocumentDetailPage = () => {
 
   return (
     <div className="flex justify-center px-4 py-6">
+      <Joyride continuous run={runTour} steps={tourSteps} callback={handleTourCallback} scrollOffset={100} scrollToFirstStep showSkipButton showProgress tooltipComponent={TourTooltipComponent}
+        locale={{ back: t('tour_back'), close: t('tour_close'), last: t('tour_finish'), next: t('tour_next'), skip: t('tour_skip') }}
+        styles={{ options: { primaryColor: 'var(--color-primary,#800020)', textColor: theme === 'dark' ? '#e5e7eb' : '#111', backgroundColor: theme === 'dark' ? '#1f2937' : '#fff', zIndex: 10000 } }}
+      />
       <div className="w-full space-y-8" style={{ maxWidth: '1400px' }}>
 
       {/* Auto-refresh countdown indicator */}
@@ -554,11 +584,12 @@ const WorkflowDocumentDetailPage = () => {
         <CountdownLoading 
           duration={10}
           isActive={isVisible}
+          onComplete={() => fetchDocument(true)}
         />
       )}
 
       {/* Document Title and Description */}
-      <Card className="shadow-sm">
+      <Card data-tour="doc-title" className="shadow-sm">
         <CardContent className="p-6">
           <div className="space-y-4">
             <div>
@@ -574,7 +605,7 @@ const WorkflowDocumentDetailPage = () => {
       </Card>
 
       {/* Top row: Workflow Progress (full width) */}
-      <div>
+      <div data-tour="doc-diagram">
         {/* Workflow Progress */}
         <div style={{
           background: 'var(--panel, white)',
@@ -590,7 +621,7 @@ const WorkflowDocumentDetailPage = () => {
                 {t('workflow.document.workflowProgress', 'Workflow Progress')}
               </h3>
             </div>
-            <div className="flex items-center gap-2 flex-nowrap">
+            <div data-tour="doc-actions" className="flex items-center gap-2 flex-nowrap">
               {/* Action buttons removed - use context menu on workflow diagram instead */}
               {/* {canReview() && isReviewable() && (
                 <>
@@ -675,15 +706,15 @@ const WorkflowDocumentDetailPage = () => {
           </div>
 
           {/* Status Legend */}
-          <div style={{ marginBottom: '1rem' }}>
+          <div data-tour="doc-legend" style={{ marginBottom: '1rem' }}>
             <div className="flex items-center gap-4 flex-wrap">
               {[
-                { label: 'Draft', color: '#6b7280', icon: 'file_text' },
-                { label: 'Submitted', color: '#3b82f6', icon: 'send' },
-                { label: 'HR Review', color: '#8b5cf6', icon: 'alert_triangle' },
-                { label: 'Admin Review', color: '#8b5cf6', icon: 'alert_triangle' },
-                { label: 'Completed', color: '#10b981', icon: 'check_circle' },
-                { label: 'Rejected', color: '#ef4444', icon: 'x_circle' }
+                { label: t('workflow.status.draft', 'Draft'), color: '#6b7280', icon: 'file_text' },
+                { label: t('workflow.status.submitted', 'Submitted'), color: '#3b82f6', icon: 'send' },
+                { label: t('workflow.status.underReview', 'HR Review'), color: '#8b5cf6', icon: 'alert_triangle' },
+                { label: t('workflow.status.underAdminReview', 'Admin Review'), color: '#8b5cf6', icon: 'alert_triangle' },
+                { label: t('workflow.status.completed', 'Completed'), color: '#10b981', icon: 'check_circle' },
+                { label: t('workflow.status.rejected', 'Rejected'), color: '#ef4444', icon: 'x_circle' }
               ].map((status) => (
                 <div key={status.label} className="flex items-center gap-2">
                   {getThemedIcon('ui', status.icon, 16, status.color)}
@@ -714,16 +745,21 @@ const WorkflowDocumentDetailPage = () => {
       </div>
 
       {/* Bottom row: Attachments, Comments, and Status History */}
-      <div className="grid grid-cols-1 lg:grid-cols-[40%_40%_20%]">
-        {/* Attached Document and Versions */}
-        {document.file && (
-          <div style={{
-            background: 'var(--panel, white)',
-            borderRadius: '0.75rem',
-            border: '1px solid var(--border, #e5e7eb)',
-            boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-            padding: '1.5rem',
-          }}>
+      <div style={{ height: '700px' }}>
+        <PanelGroup orientation="horizontal" id="workflow-detail-panels" defaultLayout={savedLayout} onLayoutChange={onLayoutChange}>
+          {/* Attached Document and Versions */}
+          <Panel id="attachments" defaultSize={40} minSize={20}>
+              <div data-tour="doc-attachments" style={{
+                background: 'var(--panel, white)',
+                borderRadius: '0.75rem',
+                border: '1px solid var(--border, #e5e7eb)',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                padding: '1.5rem',
+                height: '100%',
+                overflowY: 'auto',
+              }}>
+            {document.file && (
+            <>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
               {getThemedIcon('ui', 'paperclip', 20)}
               <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--text, #111827)', margin: 0 }}>
@@ -758,7 +794,7 @@ const WorkflowDocumentDetailPage = () => {
                   {document.file.name}
                 </div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)' }}>
-                  {document.file.mimeType} • {(document.file.size / 1024).toFixed(1)} KB
+                  {formatMimeType(document.file.mimeType)} • {(document.file.size / 1024).toFixed(1)} KB
                 </div>
               </div>
               <Button
@@ -801,53 +837,68 @@ const WorkflowDocumentDetailPage = () => {
               <VersionsTab fileId={document.file.id} useWorkflowEndpoint={true} />
             </div>
           </div>
-        </div>
-        )}
+            </>
+            )}
+              </div>
+            </Panel>
+            <PanelResizeHandle style={{ width: '6px', background: 'var(--border, #e5e7eb)', margin: '0 2px', borderRadius: '3px', cursor: 'col-resize' }} />
 
         {/* Comments */}
-        <div style={{
-          background: 'var(--panel, white)',
-          borderRadius: '0.75rem',
-          border: '1px solid var(--border, #e5e7eb)',
-          boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-          padding: '1.5rem',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-            {getThemedIcon('ui', 'message', 20)}
-            <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--text, #111827)', margin: 0 }}>
-              {t('workflow.document.comments', 'Comments')}
-            </h3>
-          </div>
-          <WorkflowCommentsTab 
-            workflowId={documentId} 
-            selectedStage={selectedStage}
-            onStageFilterChange={setSelectedStage}
-          />
-        </div>
-
-        {/* Status History */}
-        {document.statusHistory && document.statusHistory.length > 0 && (
-          <div style={{
+        <Panel id="comments" defaultSize={40} minSize={20}>
+          <div data-tour="doc-comments" style={{
             background: 'var(--panel, white)',
             borderRadius: '0.75rem',
             border: '1px solid var(--border, #e5e7eb)',
             boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
             padding: '1.5rem',
+            height: '100%',
+            overflowY: 'auto',
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
-              {getThemedIcon('ui', 'clock', 20)}
+              {getThemedIcon('ui', 'message', 20)}
               <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--text, #111827)', margin: 0 }}>
-                {t('workflow.document.statusHistory', 'Status History')}
+                {t('workflow.document.comments', 'Comments')}
               </h3>
-              <Badge variant="secondary" style={{ marginLeft: 'auto' }}>
-                {document.statusHistory.length}
-              </Badge>
             </div>
-            <div style={{ height: '500px', overflowY: 'auto' }}>
-              <WorkflowHistory statusHistory={document.statusHistory} />
-            </div>
+            <WorkflowCommentsTab 
+              workflowId={documentId} 
+              selectedStage={selectedStage}
+              onStageFilterChange={setSelectedStage}
+            />
           </div>
+        </Panel>
+
+        {/* Status History */}
+        {document.statusHistory && document.statusHistory.length > 0 && (
+          <>
+            <PanelResizeHandle style={{ width: '6px', background: 'var(--border, #e5e7eb)', margin: '0 2px', borderRadius: '3px', cursor: 'col-resize' }} />
+            <Panel id="history" defaultSize={20} minSize={10}>
+              <div data-tour="doc-history" style={{
+                background: 'var(--panel, white)',
+                borderRadius: '0.75rem',
+                border: '1px solid var(--border, #e5e7eb)',
+                boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+                padding: '1.5rem',
+                height: '100%',
+                overflowY: 'auto',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1rem' }}>
+                  {getThemedIcon('ui', 'clock', 20)}
+                  <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--text, #111827)', margin: 0 }}>
+                    {t('workflow.document.statusHistory', 'Status History')}
+                  </h3>
+                  <Badge variant="secondary" style={{ marginLeft: 'auto' }}>
+                    {document.statusHistory.length}
+                  </Badge>
+                </div>
+                <div style={{ overflowY: 'auto' }}>
+                  <WorkflowHistory statusHistory={document.statusHistory} />
+                </div>
+              </div>
+            </Panel>
+          </>
         )}
+        </PanelGroup>
       </div>
 
       {/* Step Details Modal */}
@@ -883,8 +934,8 @@ const WorkflowDocumentDetailPage = () => {
               : t('workflow.document.withdrawTitle', 'Withdraw Document')
           }
         >
-          <div className="space-y-4">
-            <p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <p style={{ margin: 0 }}>
               {actionModal === 'approve'
                 ? t('workflow.document.approveConfirm', 'Are you sure you want to approve this document?')
                 : actionModal === 'reject'
@@ -904,8 +955,8 @@ const WorkflowDocumentDetailPage = () => {
                 : t('workflow.document.withdrawConfirm', 'Are you sure you want to withdraw this document? It will be reverted to DRAFT status and you can resubmit it after making corrections.')}
             </p>
             {(actionModal === 'resubmit' || actionModal === 'reupload' || actionModal === 'upload-signed') && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                <label className="block text-sm font-medium text-gray-700">
                   {t('workflow.document.selectFile', 'Select File')}
                 </label>
                 <input
@@ -928,6 +979,7 @@ const WorkflowDocumentDetailPage = () => {
             )}
             <Input
               ref={commentInputRef}
+              style={{ marginTop: 0 }}
               placeholder={
                 actionModal === 'approve' || actionModal === 'withdraw'
                   ? t('workflow.document.optionalComment', 'Add optional comment...')
@@ -945,7 +997,6 @@ const WorkflowDocumentDetailPage = () => {
                 }}
                 disabled={actionLoading}
               >
-                {getThemedIcon('ui', 'x', 16)}
                 {t('common.cancel', 'Cancel')}
               </Button>
               <Button

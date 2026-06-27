@@ -54,15 +54,26 @@ export const getWorkflowDocuments = async (params = {}) => {
   try {
     console.log(`[${serviceName}] Getting workflow documents with params:`, params);
 
-    // Backend only accepts: role, status, workflowType, limit, offset
-    // Filter out unsupported params like createdBy, sortBy, sortOrder
-    const { role, status, workflowType, limit, offset } = params;
-    
-    // Build query string using URLSearchParams to match workflow-documents-api.js
+    const {
+      role,
+      status,
+      workflowType,
+      workflowCategory,
+      attendanceSubtype,
+      approvalFlow,
+      limit,
+      offset,
+      fileId,
+    } = params;
+
     const queryParams = new URLSearchParams();
     if (role) queryParams.append('role', role);
     if (status) queryParams.append('status', status);
     if (workflowType) queryParams.append('workflowType', workflowType);
+    if (workflowCategory) queryParams.append('workflowCategory', workflowCategory);
+    if (attendanceSubtype) queryParams.append('attendanceSubtype', attendanceSubtype);
+    if (approvalFlow) queryParams.append('approvalFlow', approvalFlow);
+    if (fileId) queryParams.append('fileId', fileId);
     if (limit) queryParams.append('limit', limit);
     if (offset) queryParams.append('offset', offset);
     

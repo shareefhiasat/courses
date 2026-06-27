@@ -7,6 +7,63 @@
 
 import prisma from './prismaClient.js';
 import { buildLocalizedNameFields, buildNotificationNameVars } from '../utils/localizedUserName.js';
+import { buildTaxonomyFields } from '../utils/workflowTaxonomy.js';
+
+function buildWhereFromFilters(filters = {}) {
+  const {
+    status,
+    workflowType,
+    workflowCategory,
+    attendanceSubtype,
+    approvalFlow,
+  } = filters;
+
+  return {
+    ...(status && { status }),
+    ...(workflowType && { workflowType }),
+    ...(workflowCategory && { workflowCategory }),
+    ...(attendanceSubtype && { attendanceSubtype }),
+    ...(approvalFlow && { approvalFlow }),
+  };
+}
+
+const workflowDocumentIncludes = {
+  file: {
+    include: {
+      currentVersion: true,
+    },
+  },
+  submitter: {
+    include: {
+      roleAssignments: {
+        include: {
+          role: true,
+        },
+      },
+    },
+  },
+  currentAssignee: {
+    include: {
+      roleAssignments: {
+        include: {
+          role: true,
+        },
+      },
+    },
+  },
+  class: true,
+  linkedAttendances: {
+    include: {
+      attendance: {
+        include: {
+          user: true,
+          status: true,
+          class: true,
+        },
+      },
+    },
+  },
+};
 
 
 /**
@@ -17,52 +74,83 @@ export async function createWorkflowDocument(data) {
   try {
     const { 
       workflowType, 
+      workflowCategory,
+      attendanceSubtype,
+      approvalFlow,
       title, 
       description, 
-      fileId, 
+      fileId,
+      fileVersionId,
+      status: requestedStatus,
       submitterId, 
       currentAssigneeId, 
       classId, 
       instructorId, 
-      date, 
+      date,
+      dateFrom,
+      dateTo,
+      metadata,
+      attendanceIds = [],
       program, 
       subject,
       createdBy,
       updatedBy
     } = data;
 
-    const workflowDocument = await prisma.workflowDocument.create({
-      data: {
-        workflowType,
-        title,
-        description,
-        status: 'SUBMITTED',
-        fileId,
-        submitterId,
-        currentAssigneeId,
-        classId,
-        instructorId,
-        date: date ? new Date(date) : null,
-        program,
-        subject,
-        reviewCycleCount: 0,
-        createdBy,
-        updatedBy
-      },
-      include: {
-        file: true,
-        submitter: true,
-        currentAssignee: true,
-        instructor: true,
-        class: true
+    const taxonomy = buildTaxonomyFields({
+      workflowType,
+      workflowCategory,
+      attendanceSubtype,
+      approvalFlow,
+    });
+
+    const workflowDocument = await prisma.$transaction(async (tx) => {
+      const doc = await tx.workflowDocument.create({
+        data: {
+          workflowType: taxonomy.workflowType,
+          approvalFlow: taxonomy.approvalFlow,
+          workflowCategory: taxonomy.workflowCategory,
+          attendanceSubtype: taxonomy.attendanceSubtype,
+          title,
+          description,
+          status: requestedStatus || 'SUBMITTED',
+          fileId,
+          fileVersionId,
+          submitterId,
+          currentAssigneeId,
+          classId,
+          instructorId,
+          date: date ? new Date(date) : null,
+          dateFrom: dateFrom ? new Date(dateFrom) : null,
+          dateTo: dateTo ? new Date(dateTo) : null,
+          metadata: metadata || undefined,
+          program,
+          subject,
+          reviewCycleCount: 0,
+          createdBy,
+          updatedBy,
+        },
+        include: workflowDocumentIncludes,
+      });
+
+      if (attendanceIds.length > 0) {
+        await tx.workflowDocumentAttendance.createMany({
+          data: attendanceIds.map((attendanceId) => ({
+            workflowDocumentId: doc.id,
+            attendanceId,
+          })),
+          skipDuplicates: true,
+        });
       }
+
+      return doc;
     });
 
     // Create initial status history for submission
     await createWorkflowStatusHistory({
       workflowDocumentId: workflowDocument.id,
       fromStatus: null,
-      toStatus: 'SUBMITTED',
+      toStatus: workflowDocument.status,
       actorId: submitterId,
       reason: 'Initial document submission'
     });
@@ -127,7 +215,18 @@ export async function getWorkflowDocumentById(id) {
             actor: true
           },
           orderBy: { createdAt: 'desc' }
-        }
+        },
+        linkedAttendances: {
+          include: {
+            attendance: {
+              include: {
+                user: true,
+                status: true,
+                class: true,
+              },
+            },
+          },
+        },
       }
     });
 
@@ -151,46 +250,20 @@ export async function getWorkflowDocumentById(id) {
  */
 export async function getWorkflowDocumentsBySubmitter(submitterId, filters = {}) {
   try {
-    const { status, workflowType, limit = 50, offset = 0 } = filters;
+    const { limit = 50, offset = 0 } = filters;
 
     console.log('[getWorkflowDocumentsBySubmitter] submitterId:', submitterId, 'filters:', filters);
 
     const where = {
       submitterId,
-      ...(status && { status }),
-      ...(workflowType && { workflowType })
+      ...buildWhereFromFilters(filters),
     };
 
     console.log('[getWorkflowDocumentsBySubmitter] where clause:', JSON.stringify(where, null, 2));
 
     const documents = await prisma.workflowDocument.findMany({
       where,
-      include: {
-        file: {
-          include: {
-            currentVersion: true
-          }
-        },
-        submitter: {
-          include: {
-            roleAssignments: {
-              include: {
-                role: true
-              }
-            }
-          }
-        },
-        currentAssignee: {
-          include: {
-            roleAssignments: {
-              include: {
-                role: true
-              }
-            }
-          }
-        },
-        class: true
-      },
+      include: workflowDocumentIncludes,
       orderBy: { createdAt: 'desc' },
       take: limit,
       skip: offset
@@ -228,15 +301,13 @@ export async function getWorkflowDocumentsByFileId(fileId) {
     const documents = await prisma.workflowDocument.findMany({
       where: { fileId },
       include: {
+        ...workflowDocumentIncludes,
         file: {
           include: {
             currentVersion: true,
-            versions: true
-          }
+            versions: true,
+          },
         },
-        currentAssignee: true,
-        class: true,
-        submitter: true
       },
       orderBy: { createdAt: 'desc' }
     });
@@ -272,7 +343,7 @@ export async function getWorkflowDocumentsByFileId(fileId) {
  */
 export async function getWorkflowDocumentsByAssignee(assigneeId, filters = {}) {
   try {
-    const { status, workflowType, limit = 50, offset = 0 } = filters;
+    const { limit = 50, offset = 0 } = filters;
 
     console.log('[getWorkflowDocumentsByAssignee] assigneeId:', assigneeId, 'filters:', filters);
 
@@ -280,49 +351,15 @@ export async function getWorkflowDocumentsByAssignee(assigneeId, filters = {}) {
       OR: [
         { currentAssigneeId: assigneeId },
         { currentAssigneeId: null }
-      ]
+      ],
+      ...buildWhereFromFilters(filters),
     };
-
-    // Add status filter if provided
-    if (status) {
-      where.status = status;
-    }
-
-    // Add workflowType filter if provided
-    if (workflowType) {
-      where.workflowType = workflowType;
-    }
 
     console.log('[getWorkflowDocumentsByAssignee] where clause:', JSON.stringify(where, null, 2));
 
     const documents = await prisma.workflowDocument.findMany({
       where,
-      include: {
-        file: {
-          include: {
-            currentVersion: true
-          }
-        },
-        submitter: {
-          include: {
-            roleAssignments: {
-              include: {
-                role: true
-              }
-            }
-          }
-        },
-        currentAssignee: {
-          include: {
-            roleAssignments: {
-              include: {
-                role: true
-              }
-            }
-          }
-        },
-        class: true
-      },
+      include: workflowDocumentIncludes,
       orderBy: { createdAt: 'desc' },
       take: limit,
       skip: offset

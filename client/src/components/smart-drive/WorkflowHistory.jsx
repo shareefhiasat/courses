@@ -1,6 +1,7 @@
 import { useLang } from '@contexts/LangContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { getStatusColorClasses } from '@constants/workflowStatusTypes';
+import { formatQatarDate } from '@utils/timezone';
 
 /**
  * WorkflowHistory Component
@@ -20,7 +21,7 @@ export default function WorkflowHistory({ history = [], onClose }) {
 
   const formatDate = (date) => {
     if (!date) return '';
-    return new Date(date).toLocaleString();
+    return formatQatarDate(date, 'dd/MM/yyyy HH:mm');
   };
 
   const getStatusColor = (status) => {

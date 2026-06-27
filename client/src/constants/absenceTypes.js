@@ -59,11 +59,12 @@ export const ABSENCE_TYPES = [
 ];
 
 export const ABSENCE_THRESHOLDS = {
-  WARNING_PERCENTAGE: 10, // 10% absence triggers warning
-  CRITICAL_PERCENTAGE: 15, // 15% absence triggers critical warning
-  FAILURE_PERCENTAGE: 20, // 20% absence triggers automatic failure
-  MAX_ALLOWED_ABSENCES: 5, // Maximum allowed absences per term
-  FAILURE_GRADE: "FB" // Grade for automatic failure
+  WARNING_PERCENTAGE: 10,
+  CRITICAL_PERCENTAGE: 15,
+  FAILURE_PERCENTAGE: 20,
+  MAX_ALLOWED_ABSENCES: 8,
+  FAILURE_ABSENCE_COUNT: 8,
+  FAILURE_GRADE: "FB"
 };
 
 export const getAbsenceTypeById = (id) => {

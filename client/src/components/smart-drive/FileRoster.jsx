@@ -5,6 +5,7 @@ import { getThemedIcon } from '@constants/iconTypes';
 import { Input, Button, Checkbox } from '@ui';
 import StatusColumn from './StatusColumn';
 import { isDriveFolder } from '@utils/driveUtils';
+import { formatQatarDate, formatQatarDateOnly } from '@utils/timezone';
 
 /**
  * FileRoster - Files grid with search, filters, multi-select & row actions.
@@ -145,18 +146,12 @@ export default function FileRoster({
 
   const formatDate = (date) => {
     if (!date) return '—';
-    const d = new Date(date);
-    if (Number.isNaN(d.getTime())) return '—';
-    return d.toLocaleDateString();
+    return formatQatarDateOnly(date);
   };
 
   const formatDateTime = (date) => {
     if (!date) return '—';
-    const d = new Date(date);
-    if (Number.isNaN(d.getTime())) return '—';
-    const dateStr = d.toLocaleDateString();
-    const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    return `${dateStr}\n${timeStr}`;
+    return formatQatarDate(date, 'dd/MM/yyyy HH:mm');
   };
 
   const getFileIconName = (file) => {

@@ -164,15 +164,25 @@ export const createCustomWorkflow = async (file, workflowData) => {
 
     // Prepare API payload
     const payload = {
-      workflowType: workflowData.workflowType || 'GENERAL',
+      workflowCategory: workflowData.workflowCategory || 'GENERAL',
+      attendanceSubtype: workflowData.attendanceSubtype || null,
+      approvalFlow: workflowData.approvalFlow,
+      workflowType: workflowData.workflowType,
       title: workflowData.title,
       description: workflowData.description || '',
-      reviewers: workflowData.reviewers || [], // Default to empty array
-      attachFile: workflowData.attachFile !== false, // Default to true
+      reviewers: workflowData.reviewers || [],
+      attachFile: workflowData.attachFile !== false,
       sourceBucket: 'lms-private',
-      sourcePath: file?.path || file?.filePath,
+      sourcePath: file?.path || file?.filePath || file?.s3Key,
       fileName: file?.name || file?.fileName,
-      fileId: file?.id || file?.fileId // Link to original file ID
+      fileId: file?.id || file?.fileId,
+      dateFrom: workflowData.dateFrom,
+      dateTo: workflowData.dateTo,
+      classId: workflowData.classId,
+      program: workflowData.program,
+      subject: workflowData.subject,
+      metadata: workflowData.metadata,
+      attendanceIds: workflowData.attendanceIds || [],
     };
 
     console.log('🔵 [workflowDocumentService] API Payload:', payload);

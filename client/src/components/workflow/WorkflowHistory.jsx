@@ -38,12 +38,33 @@ const STATUS_CONFIG = {
 };
 
 function WorkflowHistory({ statusHistory }) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
 
   if (!statusHistory || statusHistory.length === 0) return null;
 
   const getStatusConfig = (status) => {
     return STATUS_CONFIG[status] || STATUS_CONFIG.DRAFT;
+  };
+
+  const getLocalizedStatus = (status) => {
+    const statusKeyMap = {
+      'DRAFT': 'workflow.status.draft',
+      'SUBMITTED': 'workflow.status.submitted',
+      'UNDER_HR_REVIEW': 'workflow.status.underReview',
+      'UNDER_ADMIN_REVIEW': 'workflow.status.underAdminReview',
+      'APPROVED': 'workflow.status.approved',
+      'REJECTED': 'workflow.status.rejected',
+    };
+    const key = statusKeyMap[status];
+    return key ? t(key, status) : status;
+  };
+
+  const getActorName = (actor) => {
+    if (!actor) return '-';
+    if (lang === 'ar') {
+      return actor.displayNameAr || (actor.firstNameAr || actor.lastNameAr ? `${actor.firstNameAr || ''} ${actor.lastNameAr || ''}`.trim() : null) || actor.name || actor.firstName || '-';
+    }
+    return actor.name || actor.firstName || '-';
   };
 
   return (
@@ -63,15 +84,15 @@ function WorkflowHistory({ statusHistory }) {
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="font-medium text-gray-900 text-sm">
-                    {history.actor?.name || history.actor?.firstName || '-'}
+                    {getActorName(history.actor)}
                   </span>
                   <span className="text-xs text-gray-500">
-                    {formatQatarDate(new Date(history.createdAt), 'MMM d, yyyy HH:mm')}
+                    {formatQatarDate(history.createdAt, 'dd/MM/yyyy HH:mm')}
                   </span>
                 </div>
                 <p className="text-xs text-gray-600">
                   {history.fromStatus ? (
-                    <span className="line-through text-gray-400">{history.fromStatus}</span>
+                    <span className="line-through text-gray-400">{getLocalizedStatus(history.fromStatus)}</span>
                   ) : (
                     <span className="text-gray-400">-</span>
                   )}{' '}
@@ -80,7 +101,7 @@ function WorkflowHistory({ statusHistory }) {
                     className="font-medium px-2 py-0.5 rounded"
                     style={{ color: toConfig.color, background: toConfig.bgColor }}
                   >
-                    {history.toStatus}
+                    {getLocalizedStatus(history.toStatus)}
                   </span>
                 </p>
                 {history.reason && (

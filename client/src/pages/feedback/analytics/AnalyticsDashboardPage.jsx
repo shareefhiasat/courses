@@ -1,10 +1,11 @@
-import React, { useState, useEffect, memo, useLayoutEffect, useCallback } from 'react';
+import React, { useState, useEffect, memo, useLayoutEffect, useCallback, useMemo } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useColorTheme } from '@contexts/ColorThemeContext';
 import { useAuth } from '@contexts/AuthContext';
 import { useToast } from '@ui/Toast/Toast';
 import Joyride from 'react-joyride';
+import TourTooltip from '@ui/TourTooltip/TourTooltip';
 import { CollapsibleDashboardSection, ProgramsSelect } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 import { getCardConfig, getShapeRadius } from '@utils/cardColors';
@@ -133,9 +134,9 @@ const AnalyticsDashboardPage = memo(() => {
   }, [tourSeenKey]);
 
   const handleJoyrideCallback = useCallback((data) => {
-    const { status, type, index } = data || {};
+    const { status, action, type, index } = data || {};
     debug(`[AnalyticsDashboardPage] Joyride event: ${type || status} (step ${index ?? '-'})`);
-    if (status === 'finished' || status === 'skipped') {
+    if (status === 'finished' || status === 'skipped' || action === 'close') {
       setRunTour(false);
       try {
         localStorage.setItem(tourSeenKey, 'true');
@@ -144,6 +145,7 @@ const AnalyticsDashboardPage = memo(() => {
       }
     }
   }, [tourSeenKey]);
+  const TourTooltipComponent = useMemo(() => TourTooltip({ tourSeenKey }), [tourSeenKey]);
 
   // Load all data function
   const loadAllData = async (isRefresh = false) => {
@@ -294,6 +296,9 @@ const AnalyticsDashboardPage = memo(() => {
         disableScrolling={false}
         scrollOffset={100}
         scrollToFirstStep
+        showSkipButton
+        showProgress
+        tooltipComponent={TourTooltipComponent}
         spotlightClicks={false}
         callback={handleJoyrideCallback}
         locale={{

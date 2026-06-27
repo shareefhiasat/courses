@@ -1,6 +1,8 @@
 import { useLang } from '@contexts/LangContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { getSmartDriveWorkflowStatusStyle } from '@constants/workflowStatusTypes';
+import { formatMimeType } from '@utils/fileUtils';
+import { formatQatarDate } from '@utils/timezone';
 import { useState, useEffect } from 'react';
 import axios from 'axios';
 
@@ -99,40 +101,9 @@ export default function DetailsTab({ file }) {
 
   const formatDate = (date) => {
     if (!date) return '\u2014';
-    const d = new Date(date);
-    if (Number.isNaN(d.getTime())) return '\u2014';
-    return d.toLocaleString();
+    return formatQatarDate(date, 'dd/MM/yyyy HH:mm');
   };
 
-  const formatMimeType = (mimeType) => {
-    if (!mimeType) return '\u2014';
-    
-    const mimeMap = {
-      'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'PowerPoint',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'Word',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'Excel',
-      'application/pdf': 'PDF',
-      'image/jpeg': 'JPEG',
-      'image/png': 'PNG',
-      'image/gif': 'GIF',
-      'image/webp': 'WebP',
-      'image/svg+xml': 'SVG',
-      'video/mp4': 'MP4',
-      'video/webm': 'WebM',
-      'video/quicktime': 'MOV',
-      'audio/mpeg': 'MP3',
-      'audio/wav': 'WAV',
-      'text/plain': 'Text',
-      'text/html': 'HTML',
-      'text/css': 'CSS',
-      'text/javascript': 'JavaScript',
-      'application/zip': 'ZIP',
-      'application/json': 'JSON',
-      'application/xml': 'XML',
-    };
-    
-    return mimeMap[mimeType] || mimeType;
-  };
 
   const details = [
     {

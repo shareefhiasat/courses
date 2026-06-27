@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import Joyride from 'react-joyride';
 import { useTheme } from '@contexts/ThemeContext';
 import { useLang } from '@contexts/LangContext';
 import { MODE_TYPES } from '@utils/sharedTypes';
+import TourTooltip from '@ui/TourTooltip/TourTooltip';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 
 const JoyrideTour = ({ 
@@ -17,6 +18,7 @@ const JoyrideTour = ({
   const { theme } = useTheme();
   const { t } = useLang();
   const isDark = theme === 'dark';
+  const tooltipComponent = useMemo(() => TourTooltip({ tourSeenKey }), [tourSeenKey]);
 
   // Get primary color from CSS variable
   const getPrimaryColor = () => {
@@ -119,7 +121,7 @@ const JoyrideTour = ({
   const handleCallback = (data) => {
     debug('[JoyrideTour] Joyride callback:', data);
     
-    if (data.status === 'finished' || data.status === 'skipped') {
+    if (data.status === 'finished' || data.status === 'skipped' || data.action === 'close') {
       info('[JoyrideTour] Tour finished/skipped');
       
       // Save to localStorage if key is provided
@@ -146,8 +148,11 @@ const JoyrideTour = ({
       disableScrolling={false}
       scrollOffset={100}
       scrollToFirstStep={true}
+      showSkipButton={true}
+      showProgress={true}
       spotlightClicks={false}
       steps={tourSteps}
+      tooltipComponent={tooltipComponent}
       locale={{
         back: t('joyride_back') || 'Back',
         close: t('joyride_close') || 'Close',

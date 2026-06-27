@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import Joyride from 'react-joyride';
+import TourTooltip from '@ui/TourTooltip/TourTooltip';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
@@ -118,12 +119,13 @@ const SummaryDashboardPage = () => {
   }, [tourSeenKey]);
 
   const handleTourCallback = useCallback((data) => {
-    const { status } = data || {};
-    if (status === 'finished' || status === 'skipped') {
+    const { status, action } = data || {};
+    if (status === 'finished' || status === 'skipped' || action === 'close') {
       setRunTour(false);
       try { localStorage.setItem(tourSeenKey, 'true'); } catch {}
     }
   }, [tourSeenKey]);
+  const TourTooltipComponent = useMemo(() => TourTooltip({ tourSeenKey }), [tourSeenKey]);
 
   const canView = canAccessScreen('summary-dashboard');
   const canExport = hasPermission('summary-dashboard.canExport');
@@ -389,6 +391,9 @@ const SummaryDashboardPage = () => {
         disableScrolling={false}
         scrollOffset={100}
         scrollToFirstStep
+        showSkipButton
+        showProgress
+        tooltipComponent={TourTooltipComponent}
         spotlightClicks={false}
         callback={handleTourCallback}
         locale={{

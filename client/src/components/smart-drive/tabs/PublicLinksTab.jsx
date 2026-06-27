@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useAuth } from '@contexts/AuthContext';
 import { getIcon } from '@constants/iconTypes';
+import { formatQatarDate } from '@utils/timezone';
 
 export default function PublicLinksTab({ fileId }) {
   const { t } = useLang();
@@ -63,9 +64,7 @@ export default function PublicLinksTab({ fileId }) {
 
   const formatDateTime = (date) => {
     if (!date) return '—';
-    const d = new Date(date);
-    if (Number.isNaN(d.getTime())) return '—';
-    return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    return formatQatarDate(date, 'dd/MM/yyyy HH:mm');
   };
 
   const isExpired = (expiresAt) => {

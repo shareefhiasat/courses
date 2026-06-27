@@ -1,14 +1,17 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useAuth } from '@contexts/AuthContext';
 import { getIcon } from '@constants/iconTypes';
 import { Button } from '@ui';
 import Modal from '@ui/Modal/Modal';
 import workflowService from '@services/business/workflowService';
-import { Star, Shield, ShieldCheck } from 'lucide-react';
+import { formatQatarDate } from '@utils/timezone';
+import { Star, Shield, ShieldCheck, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { Group as PanelGroup, Panel, Separator as PanelResizeHandle } from 'react-resizable-panels';
+import { usePanelLayout } from '@hooks/usePanelLayout';
 
 export default function WorkflowCommentsTab({ workflowId, selectedStage, onStageFilterChange }) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const { user } = useAuth();
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
@@ -18,6 +21,9 @@ export default function WorkflowCommentsTab({ workflowId, selectedStage, onStage
   const [filterText, setFilterText] = useState('');
   const [selectedDate, setSelectedDate] = useState(null);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [timelineCollapsed, setTimelineCollapsed] = useState(false);
+  const timelinePanelRef = useRef(null);
+  const [savedLayout, onLayoutChange] = usePanelLayout('wf-comments-panels', { timeline: 35, content: 65 });
 
   // Helper to get stage icon based on action field
   const getStageIcon = (action) => {
@@ -83,8 +89,14 @@ export default function WorkflowCommentsTab({ workflowId, selectedStage, onStage
       console.log('[WorkflowCommentsTab] Comment result:', result);
       if (result.success) {
         console.log('[WorkflowCommentsTab] Comment added successfully');
+        // Optimistically add the new comment to the list immediately
+        if (result.data) {
+          setComments(prev => [result.data, ...prev]);
+        } else {
+          // Fallback: refetch if API didn't return the new comment
+          fetchComments();
+        }
         setNewComment('');
-        fetchComments();
         // Trigger notification for other users (in real app, this would be via socket)
         triggerNotification({ content: newComment.trim() }, 'comment');
       } else {
@@ -117,24 +129,11 @@ export default function WorkflowCommentsTab({ workflowId, selectedStage, onStage
 
   const formatDateTime = (date) => {
     if (!date) return '\u2014';
-    const d = new Date(date);
-    if (Number.isNaN(d.getTime())) return '\u2014';
-    return d.toLocaleString(undefined, { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+    return formatQatarDate(date, 'dd/MM/yyyy HH:mm');
   };
 
   const formatDateHeader = (dateStr) => {
-    const date = new Date(dateStr);
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(yesterday.getDate() - 1);
-
-    if (date.toDateString() === today.toDateString()) {
-      return t('drive.today') || 'Today';
-    } else if (date.toDateString() === yesterday.toDateString()) {
-      return t('drive.yesterday') || 'Yesterday';
-    } else {
-      return date.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
-    }
+    return formatQatarDate(dateStr, 'dd/MM/yyyy');
   };
 
   // Group comments by date
@@ -219,7 +218,18 @@ export default function WorkflowCommentsTab({ workflowId, selectedStage, onStage
           color: '#0369a1',
           border: '1px solid #bae6fd'
         }}>
-          <span>Filtering by stage: <strong>{selectedStage}</strong></span>
+          <span>{t('workflow.filteringByStage', 'Filtering by stage')}: <strong>{(() => {
+            const statusKeyMap = {
+              'DRAFT': 'workflow.status.draft',
+              'SUBMITTED': 'workflow.status.submitted',
+              'UNDER_HR_REVIEW': 'workflow.status.underReview',
+              'UNDER_ADMIN_REVIEW': 'workflow.status.underAdminReview',
+              'APPROVED': 'workflow.status.approved',
+              'REJECTED': 'workflow.status.rejected',
+            };
+            const key = statusKeyMap[selectedStage];
+            return key ? t(key, selectedStage) : selectedStage;
+          })()}</strong></span>
           <button
             onClick={() => onStageFilterChange?.(null)}
             style={{
@@ -232,7 +242,7 @@ export default function WorkflowCommentsTab({ workflowId, selectedStage, onStage
               fontWeight: 500
             }}
           >
-            Clear filter
+            {t('workflow.clearFilter', 'Clear filter')}
           </button>
         </div>
       )}
@@ -298,15 +308,44 @@ export default function WorkflowCommentsTab({ workflowId, selectedStage, onStage
           {t('drive.noComments', 'No comments yet')}
         </div>
       ) : (
-        <div style={{ display: 'flex', gap: '1rem', height: '100%' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+          {/* Collapse/expand toggle */}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.5rem' }}>
+            <button
+              onClick={() => {
+                if (timelineCollapsed) {
+                  timelinePanelRef.current?.expand();
+                  setTimelineCollapsed(false);
+                } else {
+                  timelinePanelRef.current?.collapse();
+                  setTimelineCollapsed(true);
+                }
+              }}
+              style={{
+                padding: '0.25rem 0.5rem',
+                background: 'var(--panel, white)',
+                border: '1px solid var(--border, #e5e7eb)',
+                borderRadius: '0.375rem',
+                cursor: 'pointer',
+                color: 'var(--text-muted, #6b7280)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.25rem',
+                fontSize: '0.75rem',
+              }}
+              title={timelineCollapsed ? t('workflow.expand', 'Expand') : t('workflow.collapse', 'Collapse')}
+            >
+              {timelineCollapsed ? <PanelLeftOpen size={14} /> : <PanelLeftClose size={14} />}
+            </button>
+          </div>
+          <PanelGroup orientation="horizontal" id="workflow-comments-panels" style={{ flex: 1 }} defaultLayout={savedLayout} onLayoutChange={onLayoutChange}>
           {/* Left sidebar - Date timeline */}
+          <Panel id="timeline" panelRef={timelinePanelRef} defaultSize={35} minSize={15} collapsible collapsedSize={0}>
           <div style={{ 
-            width: '200px', 
-            flexShrink: 0, 
             borderRight: '1px solid var(--border, #e5e7eb)', 
             paddingInlineEnd: '1rem',
             overflowY: 'auto',
-            maxHeight: '500px'
+            height: '100%',
           }}>
             <h4 style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-muted, #6b7280)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               {getIcon('ui', 'clock', 16)}
@@ -350,9 +389,12 @@ export default function WorkflowCommentsTab({ workflowId, selectedStage, onStage
               ))}
             </div>
           </div>
+          </Panel>
+          <PanelResizeHandle style={{ width: '4px', background: 'var(--border, #e5e7eb)', margin: '0 2px', borderRadius: '2px', cursor: 'col-resize' }} />
 
           {/* Right content - Comments */}
-          <div style={{ flex: 1, overflowY: 'auto', maxHeight: '500px' }}>
+          <Panel id="content" minSize={30}>
+          <div style={{ flex: 1, overflowY: 'auto', height: '100%', paddingInlineStart: '0.5rem' }}>
             {/* Search filter */}
             <div style={{ position: 'relative', marginBottom: '1rem' }}>
               <input
@@ -442,23 +484,19 @@ export default function WorkflowCommentsTab({ workflowId, selectedStage, onStage
                               fontWeight: 600,
                             }}>
                               {(() => {
-                                const firstName = comment.author?.firstName || '';
-                                const lastName = comment.author?.lastName || '';
-                                const displayName = comment.author?.displayName || '';
-                                const email = comment.author?.email || '';
-                                
-                                // Try to get initials from firstName + lastName
-                                if (firstName && lastName) {
-                                  return (firstName[0] + lastName[0]).toUpperCase();
+                                const a = comment.author;
+                                if (!a) return '?';
+                                if (lang === 'ar') {
+                                  if (a.firstNameAr && a.lastNameAr) return (a.firstNameAr[0] + a.lastNameAr[0]).toUpperCase();
+                                  if (a.displayNameAr && a.displayNameAr !== '-') return a.displayNameAr[0].toUpperCase();
                                 }
-                                // Fall back to displayName
-                                if (displayName && displayName !== '-') {
-                                  return displayName[0].toUpperCase();
-                                }
-                                // Fall back to email
-                                if (email) {
-                                  return email[0].toUpperCase();
-                                }
+                                const firstName = a.firstName || '';
+                                const lastName = a.lastName || '';
+                                const displayName = a.displayName || '';
+                                const email = a.email || '';
+                                if (firstName && lastName) return (firstName[0] + lastName[0]).toUpperCase();
+                                if (displayName && displayName !== '-') return displayName[0].toUpperCase();
+                                if (email) return email[0].toUpperCase();
                                 return '?';
                               })()}
                             </div>
@@ -484,23 +522,19 @@ export default function WorkflowCommentsTab({ workflowId, selectedStage, onStage
                             })()}
                             <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text, #111827)' }}>
                               {(() => {
-                                const firstName = comment.author?.firstName || '';
-                                const lastName = comment.author?.lastName || '';
-                                const displayName = comment.author?.displayName || '';
-                                const email = comment.author?.email || '';
-                                
-                                // Try to use firstName + lastName
-                                if (firstName && lastName) {
-                                  return `${firstName} ${lastName}`;
+                                const a = comment.author;
+                                if (!a) return t('drive.unknownUser', 'Unknown');
+                                const email = a.email || '';
+                                if (lang === 'ar') {
+                                  if (a.displayNameAr && a.displayNameAr !== '-') return a.displayNameAr;
+                                  if (a.firstNameAr || a.lastNameAr) return `${a.firstNameAr || ''} ${a.lastNameAr || ''}`.trim();
                                 }
-                                // Fall back to displayName (but not if it's just a hyphen)
-                                if (displayName && displayName !== '-') {
-                                  return displayName;
-                                }
-                                // Fall back to email
-                                if (email) {
-                                  return email;
-                                }
+                                const firstName = a.firstName || '';
+                                const lastName = a.lastName || '';
+                                const displayName = a.displayName || '';
+                                if (firstName && lastName) return `${firstName} ${lastName}`;
+                                if (displayName && displayName !== '-') return displayName;
+                                if (email) return email;
                                 return t('drive.unknownUser', 'Unknown');
                               })()}
                             </span>
@@ -563,6 +597,8 @@ export default function WorkflowCommentsTab({ workflowId, selectedStage, onStage
               </div>
             )}
           </div>
+          </Panel>
+          </PanelGroup>
         </div>
       )}
       </div>
