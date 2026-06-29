@@ -263,13 +263,10 @@ const StudentTableRow = ({
           textAlign: 'center',
           fontSize: '0.75rem',
           color: 'var(--text-muted, #6b7280)',
-          width: '90px',
+          width: '80px',
           fontWeight: 600
         }}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.1rem', lineHeight: 1.2 }}>
-            <span>{student.studentNumber || '—'}</span>
-            <span style={{ fontSize: '0.65rem', color: 'var(--text-muted, #9ca3af)', fontWeight: 400 }}>#{student.id}</span>
-          </div>
+          {student.studentNumber || student.id}
         </td>
         <td style={{ padding: '0.5rem 0.75rem' }}>
           {attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && (

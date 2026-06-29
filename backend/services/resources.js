@@ -13,6 +13,10 @@ import {
   deleteResource as deleteResourceInDb,
   getResourcesByClass as getResourcesByClassFromDb
 } from '../db/resources-postgres.js';
+import prisma from '../db/prismaClient.js';
+import notificationGateway from './notifications/index.js';
+import { EVENTS } from './notifications/constants.js';
+import { buildNotificationNameVars } from '../utils/localizedUserName.js';
 
 /**
  * Get all resources with business logic
@@ -116,6 +120,30 @@ export const createResource = async (resourceData, user = null) => {
     }
     
     const result = await createResourceInDb(resourceData, user);
+    
+    // Send notification if resource is tied to a class
+    if (result.success && result.data?.classId) {
+      try {
+        const creator = user?.dbId ? await prisma.user.findUnique({
+          where: { id: user.dbId },
+          select: { displayName: true, firstName: true, lastName: true, displayNameAr: true, firstNameAr: true, lastNameAr: true }
+        }) : null;
+        
+        await notificationGateway.emit(
+          EVENTS.RESOURCE_ADDED,
+          {
+            ...buildNotificationNameVars(creator, 'Unknown User'),
+            resourceTitle: result.data.titleEn || 'New Resource',
+            resourceType: result.data.type || 'Resource'
+          },
+          { id: user?.dbId },
+          { classId: result.data.classId }
+        );
+      } catch (notifError) {
+        console.error('[resources] Error sending added notification:', notifError);
+      }
+    }
+    
     return result;
   } catch (error) {
     console.error('Error in createResource:', error);
@@ -163,6 +191,30 @@ export const updateResource = async (resourceId, updateData, user = null) => {
     }
     
     const result = await updateResourceInDb(resourceId, updateData, user);
+    
+    // Send notification if resource is tied to a class
+    if (result.success && result.data?.classId) {
+      try {
+        const updater = user?.dbId ? await prisma.user.findUnique({
+          where: { id: user.dbId },
+          select: { displayName: true, firstName: true, lastName: true, displayNameAr: true, firstNameAr: true, lastNameAr: true }
+        }) : null;
+        
+        await notificationGateway.emit(
+          EVENTS.RESOURCE_UPDATED,
+          {
+            ...buildNotificationNameVars(updater, 'Unknown User'),
+            resourceTitle: result.data.titleEn || 'Resource',
+            resourceType: result.data.type || 'Resource'
+          },
+          { id: user?.dbId },
+          { classId: result.data.classId }
+        );
+      } catch (notifError) {
+        console.error('[resources] Error sending updated notification:', notifError);
+      }
+    }
+    
     return result;
   } catch (error) {
     console.error('Error in updateResource:', error);
@@ -194,7 +246,34 @@ export const deleteResource = async (resourceId, user = null) => {
     // Business rule: Check if user has permission to delete
     // This would typically involve checking user role and ownership
     
+    // Get resource before deletion to check classId
+    const existingResource = await getResourceByIdFromDb(resourceId);
+    
     const result = await deleteResourceInDb(resourceId, user);
+    
+    // Send notification if resource was tied to a class
+    if (result.success && existingResource.data?.classId) {
+      try {
+        const deleter = user?.dbId ? await prisma.user.findUnique({
+          where: { id: user.dbId },
+          select: { displayName: true, firstName: true, lastName: true, displayNameAr: true, firstNameAr: true, lastNameAr: true }
+        }) : null;
+        
+        await notificationGateway.emit(
+          EVENTS.RESOURCE_DELETED,
+          {
+            ...buildNotificationNameVars(deleter, 'Unknown User'),
+            resourceTitle: existingResource.data.titleEn || 'Resource',
+            resourceType: existingResource.data.type || 'Resource'
+          },
+          { id: user?.dbId },
+          { classId: existingResource.data.classId }
+        );
+      } catch (notifError) {
+        console.error('[resources] Error sending deleted notification:', notifError);
+      }
+    }
+    
     return result;
   } catch (error) {
     console.error('Error in deleteResource:', error);

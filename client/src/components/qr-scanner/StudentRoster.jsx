@@ -1380,7 +1380,7 @@ const StudentRoster = React.memo(function StudentRoster({
                     color: 'var(--text-muted, #6b7280)',
                     textTransform: 'uppercase',
                     letterSpacing: '0.05em',
-                    width: '90px'
+                    width: '80px'
                   }}
                 >
                   {t('student_number') || 'Student No.'} / {t('id') || 'ID'}

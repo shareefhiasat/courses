@@ -62,6 +62,8 @@ import { useChatStateMinimal } from './hooks/useChatStateMinimal';
 // Component wrappers for gradual extraction
 import MessageBubbleWrapper from './components/MessageBubbleWrapper';
 import { useChatActions } from './hooks/useChatActions';
+import GroupChatModal from './components/GroupChatModal';
+import ParticipantManagementModal from './components/ParticipantManagementModal';
 
 const withAuthToken = (url) => {
   if (!url) return url;
@@ -84,14 +86,15 @@ const RoleBadge = ({ userObj }) => {
   }
   if (!role && Array.isArray(userObj.roleAssignments) && userObj.roleAssignments.length > 0) {
     const priority = ['super_admin', 'admin', 'hr', 'instructor', 'student'];
-    const codes = userObj.roleAssignments.map(ra => ra?.role?.code).filter(Boolean);
+    const codes = userObj.roleAssignments.map(ra => ra?.role?.code?.toLowerCase()).filter(Boolean);
     role = priority.find(p => codes.includes(p)) || codes[0];
   }
   if (!role) return null;
   const color = getUserRoleColor(role);
-  const labelKey = `role_label_${role}`;
-  const label = t(labelKey) || ROLE_DISPLAY_NAMES[role?.toUpperCase()] || role;
-  const roleIcon = getIconWithColor('user_role', role, 12, color);
+  const normalizedRole = role?.toLowerCase();
+  const labelKey = `role_label_${normalizedRole}`;
+  const label = t(labelKey) || ROLE_DISPLAY_NAMES[role?.toUpperCase()] || normalizedRole;
+  const roleIcon = getIconWithColor('user_role', normalizedRole, 12, color);
   return (
     <span style={{
       display: 'inline-flex',
@@ -129,6 +132,9 @@ const ChatPage = memo(() => {
     { target: '[data-tour="chat-input"]', content: t('tour.chat_input'), disableBeacon: true, placement: 'top' },
     { target: '[data-tour="chat-file-attach"]', content: t('tour.chat_file_attach'), disableBeacon: true, placement: 'top' },
     { target: '[data-tour="chat-voice"]', content: t('tour.chat_voice'), disableBeacon: true, placement: 'top' },
+    { target: '[data-tour="chat-emoji-btn"]', content: t('tour.chat_emoji'), disableBeacon: true, placement: 'top' },
+    { target: '[data-tour="chat-poll-btn"]', content: t('tour.chat_poll'), disableBeacon: true, placement: 'top' },
+    { target: '[data-tour="chat-reaction-btn"]', content: t('tour.chat_reactions'), disableBeacon: true, placement: 'left' },
   ].filter(s => !!document.querySelector(s.target)), [t]);
   const startTour = useCallback(() => {
     const steps = buildTourSteps();
@@ -183,6 +189,8 @@ const ChatPage = memo(() => {
   const [dmUserSearch, setDmUserSearch] = useState('');
   const [availableDMUsers, setAvailableDMUsers] = useState([]);
   const [dmUsersLoading, setDmUsersLoading] = useState(false);
+  const [showGroupModal, setShowGroupModal] = useState(false);
+  const [showParticipantModal, setShowParticipantModal] = useState(false);
 
   const isStaffRole = isAdmin || isSuperAdmin || isHR || isInstructor;
   const [isRecording, setIsRecording] = useState(false);
@@ -1205,7 +1213,7 @@ const ChatPage = memo(() => {
                 return (
                   <div key={r.uid} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 1.25rem', borderBottom:'1px solid var(--border)' }}>
                     <div style={{ display:'flex', alignItems:'center', gap:8, flex:1 }}>
-                      <span style={{ fontSize:'1.1rem', fontWeight:700, color: hasRead ? '#3aa0ff' : '#999' }}>
+                      <span style={{ fontSize:'1.1rem', fontWeight:700, color: hasRead ? '#3aa0ff' : 'var(--muted)' }}>
                         {hasRead ? '✓✓' : '✓'}
                       </span>
                       <span style={{ fontWeight:500 }}>{r.name}</span>
@@ -1217,7 +1225,7 @@ const ChatPage = memo(() => {
                           <div>{r.readAt.toLocaleTimeString?.('en-GB', {hour:'2-digit',minute:'2-digit'}) || ''}</div>
                         </>
                       ) : (
-                        <div style={{ fontStyle:'italic' }}>Not seen yet</div>
+                        <div style={{ fontStyle:'italic' }}>{t('not_seen_yet')}</div>
                       )}
                     </div>
                   </div>
@@ -1285,7 +1293,7 @@ const ChatPage = memo(() => {
               style={{
                 padding: '0.6rem 0.9rem',
                 cursor: 'pointer',
-                background: selectedClass === cls.docId ? 'rgba(0,0,0,0.06)' : 'var(--panel)',
+                background: selectedClass === cls.docId ? 'var(--background)' : 'var(--panel)',
                 borderBottom: '1px solid var(--border)',
                 transition: 'background 0.2s'
               }}
@@ -1318,10 +1326,10 @@ const ChatPage = memo(() => {
                         } catch {}
                       }}
                       title={archivedClasses[cls.docId] ? t('unarchive') : t('archive')}
-                      style={{ background:'transparent', border:'none', cursor:'pointer', color:'#888' }}
+                      style={{ background:'transparent', border:'none', cursor:'pointer', color:'var(--muted)' }}
                     >{archivedClasses[cls.docId] ? getThemedIcon('ui', 'upload', 16, theme) : getThemedIcon('ui', 'download', 16, theme)}</button>
                   </div>
-                  <div style={{ fontSize: '0.85rem', color: '#666' }}>
+                  <div style={{ fontSize: '0.85rem', color: 'var(--muted)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
                       <span style={{ overflow:'hidden', textOverflow:'ellipsis' }}>{`${cls.term} - ${cls.code}`}</span>
                       {(() => {
@@ -1333,15 +1341,15 @@ const ChatPage = memo(() => {
                               alignItems: 'center',
                               gap: 3,
                               fontSize: '0.7rem',
-                              background: 'rgba(0,0,0,0.05)',
-                              color: '#666',
+                              background: 'var(--background)',
+                              color: 'var(--muted)',
                               padding: '1px 6px',
                               borderRadius: '10px',
                               fontWeight: 600,
                               whiteSpace: 'nowrap',
                               flexShrink: 0
                             }}>
-                              {getIconWithColor('user_role', 'student', 10, '#666')}
+                              {getIconWithColor('user_role', 'student', 10, 'var(--muted)')}
                               {count}
                             </span>
                           );
@@ -1351,8 +1359,8 @@ const ChatPage = memo(() => {
                     </div>
                     {cls.lastMessage && (
                       <div style={{ display:'flex', justifyContent:'space-between', gap:8, marginTop:2 }}>
-                        <span style={{ color:'#666' }}>{cls.lastMessage}</span>
-                        <span style={{ color:'#888', fontSize:'0.8rem' }}>{cls.lastMessageAt ? formatDateTime(cls.lastMessageAt) : ''}</span>
+                        <span style={{ color: 'var(--muted)' }}>{cls.lastMessage}</span>
+                        <span style={{ color: 'var(--muted)', fontSize: '0.8rem' }}>{cls.lastMessageAt ? formatDateTime(cls.lastMessageAt) : ''}</span>
                       </div>
                     )}
                   </div>
@@ -1362,12 +1370,12 @@ const ChatPage = memo(() => {
                       : allUsers.find(u => u.email === cls.ownerEmail);
                     if (!instructor) return null;
                     return (
-                      <div style={{ fontSize: '0.85rem', color: '#444', marginTop: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div style={{ fontSize: '0.85rem', color: 'var(--text)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
                         {getThemedIcon('ui', 'graduation_cap', 14, theme)}
                         <strong>{instructor.displayName || instructor.email}</strong>
                         <RoleBadge userObj={instructor} />
                         {instructor.studentNumber && (
-                          <span style={{ fontSize: '0.75rem', color: '#666', marginLeft: '0.25rem', fontWeight: 'normal' }}>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--muted)', marginLeft: '0.25rem', fontWeight: 'normal' }}>
                             ({instructor.studentNumber})
                           </span>
                         )}
@@ -1392,7 +1400,7 @@ const ChatPage = memo(() => {
         <div
           onMouseDown={onDividerDragStart}
           onDoubleClick={() => { setSidebarDividerHeight(null); try { localStorage.removeItem(LOCAL_STORAGE_KEYS.SIDEBAR_DIVIDER_HEIGHT); } catch {} }}
-          title="Drag to resize, double-click to reset"
+          title={t('drag_to_resize_reset')}
           style={{
             height: 6,
             flexShrink: 0,
@@ -1418,14 +1426,44 @@ const ChatPage = memo(() => {
           overflowX: 'hidden',
           minHeight: 60
         }}>
+          {/* Create Group Button (Staff Only) */}
+          {isStaffRole && (
+            <div style={{ padding: '0.5rem 0.9rem', borderTop: '1px solid var(--border)' }}>
+              <button
+                onClick={() => setShowGroupModal(true)}
+                style={{
+                  width: '100%',
+                  padding: '0.6rem',
+                  background: 'var(--brand)',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: 8,
+                  cursor: 'pointer',
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.5rem',
+                  transition: 'all 0.2s'
+                }}
+                onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)'; }}
+                onMouseOut={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}
+              >
+                {getThemedIcon('ui', 'users', 16, theme)}
+                <span>{t('chat_create_group')}</span>
+              </button>
+            </div>
+          )}
+          
           {/* Direct Messages */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.4rem 0.9rem', borderTop: '1px solid var(--border)' }}>
-            <span style={{ color: 'var(--muted)', fontWeight: 600, fontSize: '0.85rem' }}>Direct Messages</span>
+            <span style={{ color: 'var(--muted)', fontWeight: 600, fontSize: '0.85rem' }}>{t('chat_direct_messages')}</span>
             {isStaffRole && (
               <button
                 onClick={openNewDMPicker}
                 style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--brand)', fontSize: '1.1rem', padding: '2px 6px', borderRadius: 4 }}
-                title="Start new conversation"
+                title={t('start_new_conversation')}
               >
                 +
               </button>
@@ -1513,7 +1551,7 @@ const ChatPage = memo(() => {
                           </div>
                         ) : (
                           <div style={{ position: 'relative' }}>
-                            <div style={{ width: 28, height: 28, borderRadius: '50%', background: showIndicator ? '#999' : 'linear-gradient(135deg,var(--brand),var(--brand2))', color: 'white', display:'flex', alignItems:'center', justifyContent:'center', fontSize: 14, fontWeight: 700, opacity: showIndicator ? 0.5 : 1 }}>{initial}</div>
+                            <div style={{ width: 28, height: 28, borderRadius: '50%', background: showIndicator ? 'var(--muted)' : 'linear-gradient(135deg,var(--brand),var(--brand2))', color: 'white', display:'flex', alignItems:'center', justifyContent:'center', fontSize: 14, fontWeight: 700, opacity: showIndicator ? 0.5 : 1 }}>{initial}</div>
                             {showIndicator && (
                               <div style={{ position: 'absolute', top: -2, right: -2, width: 12, height: 12, borderRadius: '50%', background: '#dc2626', border: '2px solid white', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title={indicatorTitle}>
                                 <span style={{ fontSize: 8, color: 'white' }}>✕</span>
@@ -1534,7 +1572,7 @@ const ChatPage = memo(() => {
                     </div>
                     <div style={{ fontSize: '0.8rem', color: 'var(--muted)', display:'flex', justifyContent:'space-between', gap: 8 }}>
                       <span style={{ whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{room.lastMessage || ''}</span>
-                      <span style={{ color:'#888', marginLeft: 8 }}>
+                      <span style={{ color: 'var(--muted)', marginLeft: 8 }}>
                         {lastTime ? formatDateTime(lastTime) : ''}
                       </span>
                     </div>
@@ -1543,7 +1581,7 @@ const ChatPage = memo(() => {
                       <button
                         onClick={(e) => { e.stopPropagation(); toggleStar(room); }}
                         title={(room.starBy || []).includes(user.uid) ? t('unfavorite') : t('favorite')}
-                        style={{ background:'transparent', border:'1px solid var(--border)', borderRadius:6, padding:'2px 6px', cursor:'pointer', color:'#666', fontSize:'0.9rem', lineHeight:1 }}
+                        style={{ background:'transparent', border:'1px solid var(--border)', borderRadius:6, padding:'2px 6px', cursor:'pointer', color:'var(--muted)', fontSize:'0.9rem', lineHeight:1 }}
                       >{(room.starBy||[]).includes(user.uid)?'★':'☆'}</button>
                       <button
                         onClick={async (e) => {
@@ -1556,7 +1594,7 @@ const ChatPage = memo(() => {
                           } catch {}
                         }}
                         title={archivedRooms[room.id] ? t('unarchive') : t('archive')}
-                        style={{ background:'transparent', border:'1px solid var(--border)', borderRadius:6, padding:'2px 6px', cursor:'pointer', color:'#666', fontSize:'0.9rem', lineHeight:1 }}
+                        style={{ background:'transparent', border:'1px solid var(--border)', borderRadius:6, padding:'2px 6px', cursor:'pointer', color:'var(--muted)', fontSize:'0.9rem', lineHeight:1 }}
                       >{archivedRooms[room.id] ? getThemedIcon('ui', 'upload', 14, theme) : getThemedIcon('ui', 'download', 14, theme)}</button>
                     </div>
                   </div>
@@ -1570,11 +1608,11 @@ const ChatPage = memo(() => {
         <div style={{ padding:'0.5rem 0.9rem', borderTop:'1px solid var(--border)', display:'flex', alignItems:'center', gap:16 }}>
           <div style={{ display:'flex', alignItems:'center', gap:8 }}>
             <input id="toggle-archived" type="checkbox" checked={showArchived} onChange={(e)=>setShowArchived(e.target.checked)} />
-            <label htmlFor="toggle-archived" style={{ fontSize:'0.85rem', color:'#666', cursor:'pointer' }}>{t('show_archived')}</label>
+            <label htmlFor="toggle-archived" style={{ fontSize:'0.85rem', color:'var(--muted)', cursor:'pointer' }}>{t('show_archived')}</label>
           </div>
           <div style={{ display:'flex', alignItems:'center', gap:8 }}>
             <input id="toggle-favorites" type="checkbox" checked={showFavoritesOnly} onChange={(e)=>setShowFavoritesOnly(e.target.checked)} />
-            <label htmlFor="toggle-favorites" style={{ fontSize:'0.85rem', color:'#666', cursor:'pointer' }}>{t('favorites_only')}</label>
+            <label htmlFor="toggle-favorites" style={{ fontSize:'0.85rem', color:'var(--muted)', cursor:'pointer' }}>{t('favorites_only')}</label>
           </div>
         </div>
         {/* Toggle Button */}
@@ -1656,11 +1694,11 @@ const ChatPage = memo(() => {
                 const email = otherUser?.email;
                 if (displayName) {
                   return (
-                    <div style={{ fontSize: '0.9rem', color: '#666', marginTop: '0.25rem', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <div style={{ fontSize: '0.9rem', color: 'var(--muted)', marginTop: '0.25rem', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                       {displayName}
                       {otherUser && <RoleBadge userObj={otherUser} />}
                       {email && email !== displayName && (
-                        <span style={{ fontSize: '0.8rem', color: '#888', marginLeft: '0.25rem' }}>
+                        <span style={{ fontSize: '0.8rem', color: 'var(--muted)', marginLeft: '0.25rem', opacity: 0.7 }}>
                           ({email})
                         </span>
                       )}
@@ -1674,17 +1712,17 @@ const ChatPage = memo(() => {
             {/* Class Badge */}
             <span style={{
               fontSize: '0.75rem',
-              background: selectedClass === 'global' ? '#e3f2fd' : (selectedClass?.startsWith('dm:') ? '#fff3e0' : '#e8f5e9'),
+              background: selectedClass === 'global' ? 'rgba(25, 118, 210, 0.12)' : (selectedClass?.startsWith('dm:') ? 'rgba(239, 108, 0, 0.12)' : 'rgba(46, 125, 50, 0.12)'),
               color: selectedClass === 'global' ? '#1976d2' : (selectedClass?.startsWith('dm:') ? '#ef6c00' : '#2e7d32'),
               padding: '2px 8px',
               borderRadius: '12px',
               fontWeight: 600
             }}>
-              {selectedClass === 'global' ? 'Global' : (selectedClass?.startsWith('dm:') ? 'DM' : 'Class')}
+              {selectedClass === 'global' ? t('chat_global') : (selectedClass?.startsWith('dm:') ? t('chat_dm_label') : t('chat_class_label'))}
             </span>
             
             {/* Messages Count */}
-            <span style={{ fontSize: '0.9rem', color: '#666' }}>
+            <span style={{ fontSize: '0.9rem', color: 'var(--muted)' }}>
               {messages.length} {t('messages')}
             </span>
             
@@ -1694,7 +1732,7 @@ const ChatPage = memo(() => {
               const otherUser = (room?.userA?.id === user?.dbId || (user?.email && room?.userA?.email === user?.email)) ? room?.userB : room?.userA;
               return otherUser ? `${otherUser.firstName || ''} ${otherUser.lastName || ''}`.trim() || otherUser.email : null;
             })() && (
-              <span style={{ fontSize: '0.9rem', color: '#666', fontWeight: 500 }}>
+              <span style={{ fontSize: '0.9rem', color: 'var(--muted)', fontWeight: 500 }}>
                 {(()=>{ 
                   const room = directRooms.find(r=>`dm:${r.id}`===selectedClass); 
                   const otherUser = (room?.userA?.id === user?.dbId || (user?.email && room?.userA?.email === user?.email)) ? room?.userB : room?.userA;
@@ -1762,10 +1800,42 @@ const ChatPage = memo(() => {
 
         {/* Members button - moved to separate row */}
         {classMembers.length > 0 && !selectedClass?.startsWith('dm:') && (
-          <div style={{ padding: '0.5rem 1.5rem', background: 'var(--panel)', borderBottom: '1px solid var(--border)' }}>
-            <div onClick={() => setShowMembers(true)} style={{ fontSize: '0.9rem', color: '#666', cursor: 'pointer', textDecoration: 'underline', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <div style={{ padding: '0.5rem 1.5rem', background: 'var(--panel)', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div onClick={() => setShowMembers(true)} style={{ fontSize: '0.9rem', color: 'var(--muted)', cursor: 'pointer', textDecoration: 'underline', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               {getThemedIcon('ui', 'users', 16, theme)} {classMembers.length} {t('chat_members')}
             </div>
+            
+            {/* Manage Participants button for group chats (creator only) */}
+            {selectedClass?.startsWith('group:') && (() => {
+              const groupId = parseInt(selectedClass.split(':')[1]);
+              const currentRoom = classes.find(c => c.id === groupId && c.type === 'group') ||
+                                  directRooms.find(r => r.id === groupId && r.type === 'group');
+              return currentRoom?.createdBy === user?.id && (
+                <button
+                  onClick={() => setShowParticipantModal(true)}
+                  style={{
+                    padding: '0.4rem 0.8rem',
+                    background: 'var(--brand)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: 6,
+                    cursor: 'pointer',
+                    fontSize: '0.8rem',
+                    fontWeight: 500,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.4rem',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseOver={(e) => { e.currentTarget.style.opacity = '0.9'; }}
+                  onMouseOut={(e) => { e.currentTarget.style.opacity = '1'; }}
+                  title={t('chat_manage_participants')}
+                >
+                  {getThemedIcon('ui', 'settings', 14, theme)}
+                  <span>{t('chat_manage')}</span>
+                </button>
+              );
+            })()}
           </div>
         )}
 
@@ -1800,7 +1870,7 @@ const ChatPage = memo(() => {
                 <div style={{
                   textAlign: 'center',
                   padding: '3rem',
-                  color: '#999'
+                  color: 'var(--muted)'
                 }}>
                   <p style={{ fontSize: '3rem', margin: 0 }}>{getThemedIcon('ui', 'message_square', 42, theme)}</p>
                   <p style={{ color: 'var(--muted)' }}>{t('no_messages')}</p>
@@ -2117,7 +2187,7 @@ const ChatPage = memo(() => {
                       opacity: 0.7,
                       color: getUserThemeColor()
                     }}>
-                      {msg.createdAt?.toDate()?.toLocaleTimeString(lang === 'ar' ? 'ar-SA' : 'en-US', {
+                      {msg.createdAt?.toDate()?.toLocaleTimeString('en-US', {
                         hour: '2-digit',
                         minute: '2-digit'
                       })}
@@ -2241,7 +2311,7 @@ const ChatPage = memo(() => {
                                     }
                                   } catch {}
                                 }}
-                                title={`${count} ${count === 1 ? 'reaction' : 'reactions'}`}
+                                title={`${count} ${t('reactions')}`}
                                 style={{ 
                                   background: active ? `${reactionColor}20` : 'transparent',
                                   border: active ? `1px solid ${reactionColor}` : '1px solid var(--border)',
@@ -2290,6 +2360,7 @@ const ChatPage = memo(() => {
 
                     {/* Emoji reaction button (placed just outside bubble to avoid covering time) */}
                     <button
+                      data-tour="chat-reaction-btn"
                       onClick={(e)=>{ 
                         e.stopPropagation(); 
                         const rect = e.currentTarget.getBoundingClientRect();
@@ -2300,8 +2371,8 @@ const ChatPage = memo(() => {
                         position:'absolute', 
                         bottom: -12, 
                         [isOwnMessage?'right':'left']: -16, 
-                        background:'linear-gradient(135deg, #ffffff, #f8f9fa)', 
-                        border:'2px solid #e9ecef', 
+                        background:'var(--panel)', 
+                        border:'2px solid var(--border)', 
                         borderRadius:'50%', 
                         width:32, 
                         height:32, 
@@ -2540,7 +2611,7 @@ const ChatPage = memo(() => {
           <button
             onClick={() => { try { messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' }); } catch {} }}
             title={t('chat_jump_to_bottom')}
-            style={{ position:'fixed', right: 24, bottom: 110, background:'#fff', border:'1px solid var(--border)', borderRadius: 20, padding:'8px 10px', boxShadow:'0 4px 12px rgba(0,0,0,0.15)', cursor:'pointer', zIndex: 20 }}
+            style={{ position:'fixed', right: 24, bottom: 110, background:'var(--panel)', border:'1px solid var(--border)', borderRadius: 20, padding:'8px 10px', boxShadow:'0 4px 12px rgba(0,0,0,0.15)', cursor:'pointer', zIndex: 20 }}
           >
             {getThemedIcon('ui', 'download', 16, theme)}
           </button>
@@ -2561,7 +2632,7 @@ const ChatPage = memo(() => {
           {attachedFile && (
             <div style={{
               padding: '0.5rem',
-              background: '#f8f9fa',
+              background: 'var(--bg)',
               borderRadius: '6px',
               marginBottom: '0.5rem',
               display: 'flex',
@@ -2578,7 +2649,7 @@ const ChatPage = memo(() => {
                       height: 40,
                       objectFit: 'cover',
                       borderRadius: '6px',
-                      border: '1px solid #ddd'
+                      border: '1px solid var(--border)'
                     }}
                   />
                 ) : (
@@ -2606,7 +2677,7 @@ const ChatPage = memo(() => {
                   fontSize: '0.75rem'
                 }}
               >
-                ✕ Remove
+                ✕ {t('remove')}
               </button>
             </div>
           )}
@@ -2630,7 +2701,7 @@ const ChatPage = memo(() => {
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 {getThemedIcon('ui', 'mic', 14, theme)}
                 <span style={{ fontSize: '0.75rem', fontWeight: '500' }}>
-                  Voice Message Ready
+                  {t('voice_message_ready')}
                 </span>
                 <span style={{ fontSize: '0.7rem', fontFamily: 'monospace', background: 'rgba(255,255,255,0.15)', padding: '1px 4px', borderRadius: '2px' }}>
                   {formatTime(recordingTime)} / {getMaxVoiceTimeDisplay(user?.role || ROLE_STRINGS.STUDENT)}
@@ -2649,7 +2720,7 @@ const ChatPage = memo(() => {
                   fontSize: '0.65rem'
                 }}
               >
-                Cancel
+                {t('cancel')}
               </button>
             </div>
           )}
@@ -2701,7 +2772,7 @@ const ChatPage = memo(() => {
                     animation: 'pulse 1s infinite'
                   }} />
                   <span style={{ fontSize: '0.75rem', fontWeight: '500' }}>
-                    Recording
+                    {t('recording')}
                   </span>
                   <span style={{ fontSize: '0.7rem', fontFamily: 'monospace', background: 'rgba(255,255,255,0.15)', padding: '1px 4px', borderRadius: '2px' }}>
                     {formatTime(recordingTime)} / {getMaxVoiceTimeDisplay(user?.role || ROLE_STRINGS.STUDENT)}
@@ -2719,10 +2790,12 @@ const ChatPage = memo(() => {
                 style={{
                   flex: 1,
                   padding: '0.6rem 0.75rem',
-                  border: '1px solid #ddd',
+                  border: '1px solid var(--border)',
                   borderRadius: '8px',
                   fontSize: '0.95rem',
-                  outline: 'none'
+                  outline: 'none',
+                  background: 'var(--bg)',
+                  color: 'var(--text)',
                 }}
               />
             )}
@@ -2731,6 +2804,7 @@ const ChatPage = memo(() => {
             <button
               type="button"
               data-emoji-button="true"
+              data-tour="chat-emoji-btn"
               onClick={() => {
                 setShowEmojiPicker(!showEmojiPicker);
               }}
@@ -2762,6 +2836,7 @@ const ChatPage = memo(() => {
                 {/* Poll (Admin Only) */}
                 <button
                   type="button"
+                  data-tour="chat-poll-btn"
                   onClick={() => setShowPollModal(true)}
                   style={{
                     padding: '0.5rem',
@@ -2895,7 +2970,7 @@ const ChatPage = memo(() => {
               style={{
                 marginLeft: '0.5rem',
                 background: isUploading ? '#6c757d' : ((newMessage.trim() || audioBlob || attachedFile) ? '#25D366' : (isRecording ? '#dc3545' : '#25D366')),
-                color: (newMessage.trim() || audioBlob || attachedFile) ? '#fff' : (isRecording ? '#fff' : '#666'),
+                color: (newMessage.trim() || audioBlob || attachedFile) ? '#fff' : (isRecording ? '#fff' : 'var(--muted)'),
                 border: 'none',
                 borderRadius: '50%',
                 width: 36,
@@ -3260,20 +3335,22 @@ const ChatPage = memo(() => {
     {showMembers && (
       <div style={{ position: 'fixed', inset: 0, zIndex: 2000 }} onClick={()=>setShowMembers(false)}>
         {/* drawer */}
-        <div data-tour="chat-members" onClick={(e)=>e.stopPropagation()} style={{ position: 'absolute', top: 0, right: 0, height: '100%', width: 360, background: 'white', boxShadow: '-4px 0 16px rgba(0,0,0,0.15)', padding: '1rem', pointerEvents: 'auto', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: 12 }}>
-            <button onClick={()=>setShowMembers(false)} style={{ background: 'transparent', border: 'none', fontSize: 18, cursor: 'pointer' }}>✕</button>
-          </div>
-          {/* search + role filter chips - only show for class chats */}
-          {!selectedClass?.startsWith('dm:') && (
-            <>
+        <div data-tour="chat-members" onClick={(e)=>e.stopPropagation()} style={{ position: 'absolute', top: 0, right: 0, height: '100%', width: 420, background: 'var(--panel)', boxShadow: '-4px 0 16px rgba(0,0,0,0.15)', padding: '1rem', pointerEvents: 'auto', display: 'flex', flexDirection: 'column' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: 12 }}>
+            {!selectedClass?.startsWith('dm:') && (
               <input
                 type="text"
                 placeholder={t('chat_search_members')}
                 value={memberSearch}
                 onChange={(e) => setMemberSearch(e.target.value)}
-                style={{ padding: '8px 12px', border: '1px solid #ddd', borderRadius: 6, marginBottom: 8, fontSize: '0.95rem' }}
+                style={{ flex: 1, padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 6, fontSize: '0.95rem', background: 'var(--bg)', color: 'var(--text)' }}
               />
+            )}
+            <button onClick={()=>setShowMembers(false)} style={{ background: 'transparent', border: 'none', fontSize: 18, cursor: 'pointer', color: 'var(--text)', flexShrink: 0, padding: '4px 8px' }}>✕</button>
+          </div>
+          {/* role filter chips - only show for class chats */}
+          {!selectedClass?.startsWith('dm:') && (
+            <>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
                 {(isStaffRole
                   ? [{ key: 'all', label: t('chat_all'), icon: null, color: null },
@@ -3331,7 +3408,7 @@ const ChatPage = memo(() => {
           )}
           <div style={{ flex: 1, overflowY: 'auto', maxHeight: 'calc(100vh - 200px)' }}>
             {selectedClass?.startsWith('dm:') ? (
-              <div style={{ textAlign: 'center', padding: '2rem', color: '#666' }}>
+              <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--muted)' }}>
                 <p>{t('dm_conversation_description')}</p>
                 <p style={{ fontSize: '0.9rem', marginTop: '0.5rem' }}>{t('dm_private_messages')}</p>
               </div>
@@ -3408,12 +3485,16 @@ const ChatPage = memo(() => {
                       const indicatorTitle = isDeleted ? t('deleted_user') : (isDisabled ? t('disabled_user') : (isUnenrolled ? t('unenrolled_from_class') : ''));
                 
                 return (
-                  <div key={m.docId} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid #f0f0f0' }}>
+                  <div key={m.docId} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: '1px solid var(--border)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <div style={{ position: 'relative' }}>
-                      <div style={{ width: 32, height: 32, borderRadius: '50%', background: showIndicator ? '#999' : '#800020', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, opacity: showIndicator ? 0.5 : 1 }}>
-                        {(m.displayName || m.email || '?').charAt(0).toUpperCase()}
-                      </div>
+                      {m.profileImageUrl ? (
+                        <img src={m.profileImageUrl} alt={m.displayName || m.email} style={{ width: 32, height: 32, borderRadius: '50%', objectFit: 'cover', opacity: showIndicator ? 0.5 : 1 }} />
+                      ) : (
+                        <div style={{ width: 32, height: 32, borderRadius: '50%', background: showIndicator ? 'var(--muted)' : 'var(--brand)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, opacity: showIndicator ? 0.5 : 1 }}>
+                          {(m.displayName || m.email || '?').charAt(0).toUpperCase()}
+                        </div>
+                      )}
                       {showIndicator && (
                         <div style={{ position: 'absolute', top: -2, right: -2, width: 12, height: 12, borderRadius: '50%', background: '#dc2626', border: '2px solid white', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title={indicatorTitle}>
                           <span style={{ fontSize: 8, color: 'white' }}>✕</span>
@@ -3422,15 +3503,15 @@ const ChatPage = memo(() => {
                     </div>
                     <div>
                       <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
+                        <RoleBadge userObj={m} />
                         {m.displayName || m.email}
                         {m.studentNumber && (
-                          <span style={{ fontSize: '0.75rem', color: '#666', fontWeight: 'normal' }}>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--muted)', fontWeight: 'normal' }}>
                             ({m.studentNumber})
                           </span>
                         )}
-                        <RoleBadge userObj={m} />
                       </div>
-                      <div style={{ fontSize: 12, color: '#666' }}>{m.email}</div>
+                      <div style={{ fontSize: 12, color: 'var(--muted)' }}>{m.email}</div>
                     </div>
                   </div>
                   {m.docId !== user.uid && (
@@ -3469,7 +3550,7 @@ const ChatPage = memo(() => {
             } catch (itemError) {
               console.error('[ChatPage] Error rendering member item:', { itemError, member: m, index });
               return (
-                <div key={`error-${index}`} style={{ padding: '0.5rem', color: '#999', fontStyle: 'italic' }}>
+                <div key={`error-${index}`} style={{ padding: '0.5rem', color: 'var(--muted)', fontStyle: 'italic' }}>
                   {t('error_loading_member')}
                 </div>
               );
@@ -3478,7 +3559,7 @@ const ChatPage = memo(() => {
         } catch (error) {
           console.error('[ChatPage] Error in member list rendering:', { error, classMembers, memberSearch, studentsOnly });
           return (
-            <div style={{ textAlign: 'center', padding: '2rem', color: '#999' }}>
+            <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--muted)' }}>
               {t('unable_to_load_members')}
             </div>
           );
@@ -3489,6 +3570,39 @@ const ChatPage = memo(() => {
         </div>
       </div>
     )}
+    
+    {/* Group Chat Modals */}
+    <GroupChatModal
+      isOpen={showGroupModal}
+      onClose={() => setShowGroupModal(false)}
+      onGroupCreated={(newRoom) => {
+        // Refresh rooms to include new group
+        loadRooms?.();
+        // Select the new room if possible
+        if (newRoom?.id) {
+          setSelectedClass(`group:${newRoom.id}`);
+        }
+      }}
+    />
+    
+    <ParticipantManagementModal
+      isOpen={showParticipantModal}
+      onClose={() => setShowParticipantModal(false)}
+      room={(() => {
+        // Find the current room from classes/directRooms
+        if (selectedClass?.startsWith('group:')) {
+          const groupId = parseInt(selectedClass.split(':')[1]);
+          return classes.find(c => c.id === groupId && c.type === 'group') ||
+                 directRooms.find(r => r.id === groupId && r.type === 'group');
+        }
+        return null;
+      })()}
+      currentUserId={user?.id}
+      onParticipantsChanged={() => {
+        // Refresh rooms to get updated participant counts
+        loadRooms?.();
+      }}
+    />
     </>
   );
 });

@@ -15,6 +15,9 @@ import { USER_NAME_SELECT_WITH_ID } from '../utils/userNameFields.js';
 import { Prisma } from '@prisma/client';
 import { getDatabaseUserId } from '../utils/database/userResolver.js';
 import { SHARE_SUBJECT_TYPES, SHARE_PERMISSIONS } from '../constants/driveConstants.js';
+import notificationGateway from './notifications/index.js';
+import { EVENTS } from './notifications/constants.js';
+import { buildNotificationNameVars } from '../utils/localizedUserName.js';
 
 
 const ok = (data) => ({ success: true, data, timestamp: Date.now() });
@@ -109,6 +112,41 @@ export async function createShare(input, actor) {
       });
     }
 
+    // Send notification for new share (not updates)
+    if (!existing) {
+      try {
+        const sharer = await prisma.user.findUnique({
+          where: { id: actor.userId },
+          select: { displayName: true, firstName: true, lastName: true, displayNameAr: true, firstNameAr: true, lastNameAr: true }
+        });
+        
+        let itemName = '';
+        if (fileId) {
+          const file = await prisma.file.findUnique({ where: { id: fileId }, select: { name: true } });
+          itemName = file?.name || 'File';
+        } else if (folderId) {
+          const folder = await prisma.folder.findUnique({ where: { id: folderId }, select: { name: true } });
+          itemName = folder?.name || 'Folder';
+        }
+        
+        const event = fileId ? EVENTS.DRIVE_FILE_SHARED : EVENTS.DRIVE_FOLDER_SHARED;
+        const payload = {
+          ...buildNotificationNameVars(sharer, 'Unknown User'),
+          fileName: itemName,
+          folderName: itemName,
+          permission
+        };
+        
+        if (subjectType === 'USER') {
+          await notificationGateway.emit(event, payload, { id: actor.userId }, { userId: subjectUserId });
+        } else if (subjectType === 'ROLE') {
+          await notificationGateway.emit(event, payload, { id: actor.userId }, { role: subjectRole });
+        }
+      } catch (notifError) {
+        console.error('[fileShareService] Error sending share notification:', notifError);
+      }
+    }
+
     return ok(share);
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
@@ -170,6 +208,38 @@ export async function revokeShare(shareId, actor) {
         },
       });
     }
+    
+    // Send notification for revoked share
+    try {
+      const revoker = await prisma.user.findUnique({
+        where: { id: actor.userId },
+        select: { displayName: true, firstName: true, lastName: true, displayNameAr: true, firstNameAr: true, lastNameAr: true }
+      });
+      
+      let itemName = '';
+      if (share.fileId) {
+        const file = await prisma.file.findUnique({ where: { id: share.fileId }, select: { name: true } });
+        itemName = file?.name || 'File';
+      } else if (share.folderId) {
+        const folder = await prisma.folder.findUnique({ where: { id: share.folderId }, select: { name: true } });
+        itemName = folder?.name || 'Folder';
+      }
+      
+      const payload = {
+        ...buildNotificationNameVars(revoker, 'Unknown User'),
+        fileName: itemName,
+        folderName: itemName
+      };
+      
+      if (share.subjectType === 'USER' && share.subjectUserId) {
+        await notificationGateway.emit(EVENTS.DRIVE_PERMISSION_REVOKED, payload, { id: actor.userId }, { userId: share.subjectUserId });
+      } else if (share.subjectType === 'ROLE' && share.subjectRole) {
+        await notificationGateway.emit(EVENTS.DRIVE_PERMISSION_REVOKED, payload, { id: actor.userId }, { role: share.subjectRole });
+      }
+    } catch (notifError) {
+      console.error('[fileShareService] Error sending revoke notification:', notifError);
+    }
+    
     return ok({ shareId });
   } catch (error) {
     console.error('[fileShareService.revokeShare]', error);

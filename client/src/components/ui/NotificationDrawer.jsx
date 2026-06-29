@@ -26,7 +26,6 @@ import { getThemedIcon } from '@constants/iconTypes';
 import { formatDateTime } from '@utils/date';
 import Input from './Input';
 import Select from './Select';
-import Badge from './Badge';
 import ToggleSwitch from './ToggleSwitch';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { useLookupTypes } from '@hooks/useLookupTypes.js';
@@ -445,6 +444,12 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
         locale={{ back: t('tour_back'), close: t('tour_close'), last: t('tour_finish'), next: t('tour_next'), skip: t('tour_skip') }}
         styles={{ options: { primaryColor: 'var(--color-primary,#800020)', textColor: theme === 'dark' ? '#e5e7eb' : '#111', backgroundColor: theme === 'dark' ? '#1f2937' : '#fff', zIndex: 10100 } }}
       />
+      <style>{`
+        @keyframes notif-pulse {
+          0%, 100% { transform: scale(1); }
+          50% { transform: scale(1.08); }
+        }
+      `}</style>
       <div
         onClick={onClose}
         style={{
@@ -488,9 +493,24 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
                 {t('notifications.title')}
               </h2>
               {unreadCount > 0 && (
-                <Badge variant="danger" size="sm">
+                <div style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  minWidth: '24px',
+                  height: '24px',
+                  borderRadius: '50%',
+                  background: 'var(--color-primary, #800020)',
+                  color: '#fff',
+                  fontSize: '0.75rem',
+                  fontWeight: 700,
+                  padding: '0 6px',
+                  boxSizing: 'border-box',
+                  boxShadow: '0 0 0 2px rgba(255,255,255,0.9), 0 2px 6px rgba(128,0,32,0.4)',
+                  animation: 'notif-pulse 2s ease-in-out infinite',
+                }}>
                   {unreadCount > 99 ? '99+' : unreadCount}
-                </Badge>
+                </div>
               )}
             </div>
             <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>

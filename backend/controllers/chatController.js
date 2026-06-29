@@ -228,6 +228,17 @@ export const sendMessage = async (req, res) => {
           global.chatWSBroadcast('chat:message', message);
         }
       }
+      // For group chats, emit to all participants
+      else if (room.type === 'group') {
+        const participants = await prisma.chatRoomParticipant.findMany({
+          where: { roomId: parseInt(roomId) },
+          select: { userId: true }
+        });
+        const recipientIds = participants.map(p => p.userId).filter(id => id !== userId);
+        recipientIds.forEach(recipientId => {
+          global.chatWSEmitter(recipientId, 'chat:message', message);
+        });
+      }
     }
 
     // Send notifications
@@ -237,30 +248,107 @@ export const sendMessage = async (req, res) => {
     });
     const senderName = `${sender.firstName} ${sender.lastName}`;
 
+    // Parse @mentions from message content
+    const mentionedUserIds = [];
+    if (messageData.content && messageData.type === 'text') {
+      const mentionPattern = /@(\w+)/g;
+      const mentions = [...messageData.content.matchAll(mentionPattern)];
+      
+      if (mentions.length > 0) {
+        const mentionedNames = mentions.map(m => m[1].toLowerCase());
+        
+        // Resolve mentions to user IDs (match by firstName, lastName, or displayName)
+        const mentionedUsers = await prisma.user.findMany({
+          where: {
+            OR: [
+              { firstName: { in: mentionedNames, mode: 'insensitive' } },
+              { lastName: { in: mentionedNames, mode: 'insensitive' } },
+              { displayName: { in: mentionedNames, mode: 'insensitive' } }
+            ],
+            isActive: true
+          },
+          select: { id: true }
+        });
+        
+        mentionedUserIds.push(...mentionedUsers.map(u => u.id).filter(id => id !== userId));
+      }
+    }
+
+    // Send mention notifications to mentioned users
+    if (mentionedUserIds.length > 0) {
+      const roomName = room.type === 'class' 
+        ? room.class.nameEn 
+        : room.type === 'dm' 
+          ? 'Direct Message' 
+          : 'Global Chat';
+      
+      for (const mentionedUserId of mentionedUserIds) {
+        await notificationGateway.emit(
+          EVENTS.CHAT_MENTION,
+          {
+            senderName,
+            roomName,
+            messagePreview: messageData.content?.substring(0, 50) || '[File]'
+          },
+          { id: userId },
+          { userId: mentionedUserId }
+        );
+      }
+    }
+
     if (room.type === 'class') {
-      // Notify all class members except sender
-      await notificationGateway.emit(
-        EVENTS.CHAT_MESSAGE_RECEIVED,
-        {
-          roomName: room.class.nameEn,
-          senderName,
-          messagePreview: messageData.content?.substring(0, 50) || '[File]'
-        },
-        { id: userId },
-        { classId: room.classId }
-      );
+      // Notify all class members except sender and mentioned users
+      const classMembers = [
+        ...room.class.enrollments.map(e => e.userId),
+        room.class.instructorId
+      ].filter(id => id && id !== userId && !mentionedUserIds.includes(id));
+      
+      if (classMembers.length > 0) {
+        await notificationGateway.emit(
+          EVENTS.CHAT_MESSAGE_RECEIVED,
+          {
+            roomName: room.class.nameEn,
+            senderName,
+            messagePreview: messageData.content?.substring(0, 50) || '[File]'
+          },
+          { id: userId },
+          { userIds: classMembers }
+        );
+      }
     } else if (room.type === 'dm') {
-      // Notify the other participant
+      // Notify the other participant (only if not mentioned)
       const recipientId = room.participantA === userId ? room.participantB : room.participantA;
-      await notificationGateway.emit(
-        EVENTS.CHAT_DM_RECEIVED,
-        {
-          senderName,
-          messagePreview: messageData.content?.substring(0, 50) || '[File]'
-        },
-        { id: userId },
-        { userId: recipientId }
-      );
+      if (recipientId && !mentionedUserIds.includes(recipientId)) {
+        await notificationGateway.emit(
+          EVENTS.CHAT_DM_RECEIVED,
+          {
+            senderName,
+            messagePreview: messageData.content?.substring(0, 50) || '[File]'
+          },
+          { id: userId },
+          { userId: recipientId }
+        );
+      }
+    } else if (room.type === 'group') {
+      // Notify all group participants except sender and mentioned users
+      const participants = await prisma.chatRoomParticipant.findMany({
+        where: { roomId: parseInt(roomId) },
+        select: { userId: true }
+      });
+      const participantIds = participants.map(p => p.userId).filter(id => id !== userId && !mentionedUserIds.includes(id));
+      
+      if (participantIds.length > 0) {
+        await notificationGateway.emit(
+          EVENTS.CHAT_MESSAGE_RECEIVED,
+          {
+            roomName: room.name || 'Group Chat',
+            senderName,
+            messagePreview: messageData.content?.substring(0, 50) || '[File]'
+          },
+          { id: userId },
+          { userIds: participantIds }
+        );
+      }
     }
 
     res.json({
@@ -588,6 +676,262 @@ export const getAvailableUsers = async (req, res) => {
   }
 };
 
+/**
+ * Create group chat room (staff only)
+ * POST /api/v1/chat/rooms/group
+ */
+export const createGroupRoom = async (req, res) => {
+  try {
+    const userId = resolveDbUserId(req);
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'User not found in database' });
+    }
+
+    // Check if user is staff (instructor, hr, admin, super_admin)
+    const user = await prisma.user.findUnique({
+      where: { id: userId },
+      include: {
+        roleAssignments: {
+          include: { role: true }
+        }
+      }
+    });
+    const userRoles = user.roleAssignments.map(ra => ra.role.code);
+    const isStaff = userRoles.some(role => ['instructor', 'hr', 'admin', 'super_admin'].includes(role));
+    
+    if (!isStaff) {
+      return res.status(403).json({ success: false, error: 'Only staff can create group chats' });
+    }
+
+    const { name, participantIds } = req.body;
+    
+    if (!name || !name.trim()) {
+      return res.status(400).json({ success: false, error: 'Group name is required' });
+    }
+    
+    if (!participantIds || !Array.isArray(participantIds) || participantIds.length === 0) {
+      return res.status(400).json({ success: false, error: 'At least one participant is required' });
+    }
+
+    // Create group room
+    const room = await prisma.chatRoom.create({
+      data: {
+        type: 'group',
+        name: name.trim(),
+        createdBy: userId,
+        participants: {
+          create: [
+            { userId }, // Creator is automatically a participant
+            ...participantIds.filter(id => id !== userId).map(id => ({ userId: id }))
+          ]
+        }
+      },
+      include: {
+        participants: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                displayName: true,
+                firstName: true,
+                lastName: true,
+                profileImageUrl: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    res.status(201).json({
+      success: true,
+      data: room
+    });
+  } catch (error) {
+    console.error('[chatController] Error in createGroupRoom:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Add participant to group chat (creator only)
+ * POST /api/v1/chat/rooms/:roomId/participants
+ */
+export const addParticipant = async (req, res) => {
+  try {
+    const { roomId } = req.params;
+    const { userId: participantId } = req.body;
+    const userId = resolveDbUserId(req);
+    
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'User not found in database' });
+    }
+
+    // Check if room exists and user is creator
+    const room = await prisma.chatRoom.findUnique({
+      where: { id: parseInt(roomId) }
+    });
+
+    if (!room || room.type !== 'group') {
+      return res.status(404).json({ success: false, error: 'Group chat not found' });
+    }
+
+    if (room.createdBy !== userId) {
+      return res.status(403).json({ success: false, error: 'Only the group creator can add participants' });
+    }
+
+    // Add participant
+    const participant = await prisma.chatRoomParticipant.create({
+      data: {
+        roomId: parseInt(roomId),
+        userId: participantId
+      },
+      include: {
+        user: {
+          select: {
+            id: true,
+            displayName: true,
+            firstName: true,
+            lastName: true,
+            profileImageUrl: true
+          }
+        }
+      }
+    });
+
+    res.json({
+      success: true,
+      data: participant
+    });
+  } catch (error) {
+    console.error('[chatController] Error in addParticipant:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Remove participant from group chat (creator only)
+ * DELETE /api/v1/chat/rooms/:roomId/participants/:participantUserId
+ */
+export const removeParticipant = async (req, res) => {
+  try {
+    const { roomId, participantUserId } = req.params;
+    const userId = resolveDbUserId(req);
+    
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'User not found in database' });
+    }
+
+    // Check if room exists and user is creator
+    const room = await prisma.chatRoom.findUnique({
+      where: { id: parseInt(roomId) }
+    });
+
+    if (!room || room.type !== 'group') {
+      return res.status(404).json({ success: false, error: 'Group chat not found' });
+    }
+
+    if (room.createdBy !== userId) {
+      return res.status(403).json({ success: false, error: 'Only the group creator can remove participants' });
+    }
+
+    // Cannot remove creator
+    if (parseInt(participantUserId) === room.createdBy) {
+      return res.status(400).json({ success: false, error: 'Cannot remove group creator' });
+    }
+
+    // Remove participant
+    await prisma.chatRoomParticipant.deleteMany({
+      where: {
+        roomId: parseInt(roomId),
+        userId: parseInt(participantUserId)
+      }
+    });
+
+    res.json({
+      success: true,
+      message: 'Participant removed'
+    });
+  } catch (error) {
+    console.error('[chatController] Error in removeParticipant:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Update group chat name (creator only)
+ * PATCH /api/v1/chat/rooms/:roomId
+ */
+export const updateGroupRoom = async (req, res) => {
+  try {
+    const { roomId } = req.params;
+    const { name } = req.body;
+    const userId = resolveDbUserId(req);
+    
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'User not found in database' });
+    }
+
+    if (!name || !name.trim()) {
+      return res.status(400).json({ success: false, error: 'Group name is required' });
+    }
+
+    // Check if room exists and user is creator
+    const room = await prisma.chatRoom.findUnique({
+      where: { id: parseInt(roomId) }
+    });
+
+    if (!room || room.type !== 'group') {
+      return res.status(404).json({ success: false, error: 'Group chat not found' });
+    }
+
+    if (room.createdBy !== userId) {
+      return res.status(403).json({ success: false, error: 'Only the group creator can update the group' });
+    }
+
+    // Update room name
+    const updatedRoom = await prisma.chatRoom.update({
+      where: { id: parseInt(roomId) },
+      data: { name: name.trim() },
+      include: {
+        participants: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                displayName: true,
+                firstName: true,
+                lastName: true,
+                profileImageUrl: true
+              }
+            }
+          }
+        }
+      }
+    });
+
+    res.json({
+      success: true,
+      data: updatedRoom
+    });
+  } catch (error) {
+    console.error('[chatController] Error in updateGroupRoom:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+};
+
 export default {
   getRooms,
   getMessages,
@@ -597,5 +941,9 @@ export default {
   createDM,
   toggleReaction,
   votePoll,
-  getAvailableUsers
+  getAvailableUsers,
+  createGroupRoom,
+  addParticipant,
+  removeParticipant,
+  updateGroupRoom
 };

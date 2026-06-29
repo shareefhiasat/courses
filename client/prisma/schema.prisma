@@ -706,6 +706,8 @@ model User {
   chatMessagesSent               ChatMessage[]              @relation("ChatMessageSender")
   chatRoomsAsParticipantA        ChatRoom[]                 @relation("ChatRoomParticipantA")
   chatRoomsAsParticipantB        ChatRoom[]                 @relation("ChatRoomParticipantB")
+  chatRoomsCreated               ChatRoom[]                 @relation("ChatRoomCreator")
+  chatRoomParticipations         ChatRoomParticipant[]      @relation("ChatRoomParticipations")
 
   @@map("users")
 }
@@ -1845,25 +1847,44 @@ model NotificationPreference {
 // ============================================================================
 
 model ChatRoom {
-  id           Int           @id @default(autoincrement())
-  type         String        // 'global', 'class', 'dm'
-  classId      Int?          // for class chats
-  participantA Int?          // for DM: user A
-  participantB Int?          // for DM: user B
-  name         String?       // optional custom name for DM
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  id           Int                    @id @default(autoincrement())
+  type         String                 // 'global', 'class', 'dm', 'group'
+  classId      Int?                   // for class chats
+  participantA Int?                   // for DM: user A
+  participantB Int?                   // for DM: user B
+  name         String?                // optional custom name for DM or required for group
+  createdBy    Int?                   // for group chats: creator user ID
+  createdAt    DateTime               @default(now())
+  updatedAt    DateTime               @updatedAt
   
-  class        Class?        @relation("ChatRoomClass", fields: [classId], references: [id], onDelete: Cascade)
-  userA        User?         @relation("ChatRoomParticipantA", fields: [participantA], references: [id], onDelete: Cascade)
-  userB        User?         @relation("ChatRoomParticipantB", fields: [participantB], references: [id], onDelete: Cascade)
+  class        Class?                 @relation("ChatRoomClass", fields: [classId], references: [id], onDelete: Cascade)
+  userA        User?                  @relation("ChatRoomParticipantA", fields: [participantA], references: [id], onDelete: Cascade)
+  userB        User?                  @relation("ChatRoomParticipantB", fields: [participantB], references: [id], onDelete: Cascade)
+  creator      User?                  @relation("ChatRoomCreator", fields: [createdBy], references: [id], onDelete: SetNull)
   messages     ChatMessage[]
+  participants ChatRoomParticipant[]  // for group chats
   
   @@index([type, classId])
   @@index([type, participantA, participantB])
+  @@index([createdBy])
   @@unique([type, classId], name: "unique_class_chat")
   @@unique([participantA, participantB], name: "unique_dm_pair")
   @@map("chat_rooms")
+}
+
+model ChatRoomParticipant {
+  id        Int      @id @default(autoincrement())
+  roomId    Int
+  userId    Int
+  joinedAt  DateTime @default(now())
+  
+  room      ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  user      User     @relation("ChatRoomParticipations", fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([roomId, userId])
+  @@index([userId])
+  @@index([roomId])
+  @@map("chat_room_participants")
 }
 
 model ChatMessage {

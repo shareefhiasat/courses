@@ -499,6 +499,12 @@ try {
       const wsServer = createNotificationWebSocketServer(server);
       setWSEmitter(wsServer.emit);
       console.log(`[WebSocket] Server initialized on path: ${process.env.NOTIFICATIONS_WS_PATH || '/ws/notifications'}`);
+      
+      // Initialize cron jobs
+      import('./services/cronScheduler.js').then(({ initCronJobs }) => {
+        initCronJobs();
+        console.log('[CronScheduler] Scheduled jobs initialized');
+      }).catch(err => console.error('[CronScheduler] Failed to initialize:', err));
     });
   } else {
     // Try HTTPS (for production or nginx setup)
@@ -528,6 +534,12 @@ try {
       const wsServer = createNotificationWebSocketServer(server);
       setWSEmitter(wsServer.emit);
       console.log(`[WebSocket] Server initialized on path: ${process.env.NOTIFICATIONS_WS_PATH || '/ws/notifications'}`);
+      
+      // Initialize cron jobs
+      import('./services/cronScheduler.js').then(({ initCronJobs }) => {
+        initCronJobs();
+        console.log('[CronScheduler] Scheduled jobs initialized');
+      }).catch(err => console.error('[CronScheduler] Failed to initialize:', err));
     });
   }
 } catch (error) {
@@ -551,6 +563,12 @@ try {
     const wsServer = createNotificationWebSocketServer(server);
     setWSEmitter(wsServer.emit);
     console.log(`[WebSocket] Server initialized on path: ${process.env.NOTIFICATIONS_WS_PATH || '/ws/notifications'}`);
+    
+    // Initialize cron jobs
+    import('./services/cronScheduler.js').then(({ initCronJobs }) => {
+      initCronJobs();
+      console.log('[CronScheduler] Scheduled jobs initialized');
+    }).catch(err => console.error('[CronScheduler] Failed to initialize:', err));
   });
 }
 

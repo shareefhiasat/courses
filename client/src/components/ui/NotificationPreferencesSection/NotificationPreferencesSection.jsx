@@ -45,6 +45,10 @@ const NotificationPreferencesSection = forwardRef(function NotificationPreferenc
     { key: 'ASSESSMENT', label: t('profile_category_assessment'), icon: 'assessment' },
     { key: 'ANNOUNCEMENT', label: t('profile_category_announcement'), icon: 'announcement' },
     { key: 'BEHAVIOR', label: t('profile_category_behavior'), icon: 'behavior' },
+    { key: 'PARTICIPATION', label: t('profile_category_participation'), icon: 'users' },
+    { key: 'PENALTY', label: t('profile_category_penalty'), icon: 'alert-triangle' },
+    { key: 'RESOURCE', label: t('profile_category_resource'), icon: 'book-open' },
+    { key: 'COMMUNICATION', label: t('profile_category_communication'), icon: 'message-circle' },
     { key: 'FILE', label: t('profile_category_file'), icon: 'file' },
     { key: 'QR', label: t('profile_category_qr'), icon: 'qr' }
   ];

@@ -8,6 +8,9 @@
 import prisma from '../db/prismaClient.js';
 import { USER_NAME_SELECT_WITH_ID } from '../utils/userNameFields.js';
 import { scopeArray } from '../utils/applyListScope.js';
+import notificationGateway from '../services/notifications/index.js';
+import { EVENTS } from '../services/notifications/constants.js';
+import { buildNotificationNameVars } from '../utils/localizedUserName.js';
 
 
 /**
@@ -372,6 +375,12 @@ export const updatePenaltyController = async (req, res) => {
     if (comment !== undefined) updateData.comment = comment;
     if (isActive !== undefined) updateData.isActive = isActive;
     
+    // Get existing penalty to check if it was waived
+    const existingPenalty = await prisma.penalty.findUnique({
+      where: { id: parseInt(id) },
+      select: { isActive: true }
+    });
+    
     const penalty = await prisma.penalty.update({
       where: { id: parseInt(id) },
       data: updateData,
@@ -422,6 +431,24 @@ export const updatePenaltyController = async (req, res) => {
         }
       }
     });
+    
+    // Send notification if penalty was waived (isActive changed from true to false)
+    if (existingPenalty?.isActive === true && isActive === false) {
+      try {
+        await notificationGateway.emit(
+          EVENTS.PENALTY_WAIVED,
+          {
+            ...buildNotificationNameVars(penalty.user, 'Unknown Student'),
+            penaltyType: penalty.penaltyType?.nameEn || 'Penalty',
+            description: penalty.descriptionEn || ''
+          },
+          { id: currentUserId },
+          { userId: penalty.userId }
+        );
+      } catch (notifError) {
+        console.error('[penalties] Error sending waived notification:', notifError);
+      }
+    }
     
     res.status(200).json({
       success: true,

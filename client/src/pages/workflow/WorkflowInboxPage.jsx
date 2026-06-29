@@ -771,6 +771,16 @@ const WorkflowInboxPage = () => {
               className="border-none"
               pageSizeOptions={[10, 25, 50, 100]}
               pageSize={50}
+              sx={{
+                '& .MuiDataGrid-cell': {
+                  display: 'flex',
+                  alignItems: 'center',
+                },
+                '& .MuiDataGrid-cell > div, & .MuiDataGrid-cell > span': {
+                  display: 'flex',
+                  alignItems: 'center',
+                },
+              }}
             />
           </CardContent>
         </Card>

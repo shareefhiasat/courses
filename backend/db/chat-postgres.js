@@ -221,6 +221,46 @@ export const getUserRooms = async (userId, roles = [], enrolledClassIds = []) =>
     });
     rooms.push(...dmRooms);
 
+    // Group rooms (where user is a participant)
+    const groupRooms = await prisma.chatRoom.findMany({
+      where: {
+        type: 'group',
+        participants: {
+          some: {
+            userId: userId
+          }
+        }
+      },
+      include: {
+        creator: {
+          select: {
+            id: true,
+            firstName: true,
+            lastName: true,
+            displayName: true,
+            profileImageUrl: true
+          }
+        },
+        participants: {
+          include: {
+            user: {
+              select: {
+                id: true,
+                firstName: true,
+                lastName: true,
+                displayName: true,
+                profileImageUrl: true
+              }
+            }
+          }
+        },
+        _count: {
+          select: { messages: { where: { isDeleted: false } } }
+        }
+      }
+    });
+    rooms.push(...groupRooms);
+
     return rooms;
   } catch (error) {
     console.error('[chat-postgres] Error in getUserRooms:', error);
@@ -508,7 +548,11 @@ export const getAvailableDMUsers = async (userId, userRoles = []) => {
   try {
     const roles = userRoles.map(r => r.toLowerCase());
     const isStudent = roles.includes('student');
-    const isStaff = roles.some(r => ['instructor', 'hr', 'admin', 'super_admin', 'superadmin'].includes(r));
+    const isInstructor = roles.includes('instructor');
+    const isHR = roles.includes('hr');
+    const isAdmin = roles.includes('admin');
+    const isSuperAdmin = roles.includes('super_admin') || roles.includes('superadmin');
+    const isStaff = isInstructor || isHR || isAdmin || isSuperAdmin;
 
     let where = {
       id: { not: userId },
@@ -516,8 +560,7 @@ export const getAvailableDMUsers = async (userId, userRoles = []) => {
     };
 
     if (isStudent) {
-      // Students can only DM their instructors
-      // Get classes where user is enrolled
+      // Students can only DM their instructors + admins (not HR, super_admin, or other students)
       const enrollments = await prisma.enrollment.findMany({
         where: { userId },
         select: { classId: true }
@@ -531,11 +574,60 @@ export const getAvailableDMUsers = async (userId, userRoles = []) => {
       });
       const instructorIds = [...new Set(classes.map(c => c.instructorId).filter(Boolean))];
 
-      where.id = { in: instructorIds };
-    } else if (isStaff) {
-      // Staff can DM other staff and students
-      // No additional filtering needed
+      // Get admin user IDs
+      const adminUsers = await prisma.userRoleAssignment.findMany({
+        where: { role: { code: { equals: 'admin' } } },
+        select: { userId: true }
+      });
+      const adminIds = adminUsers.map(a => a.userId);
+
+      const allowedIds = [...new Set([...instructorIds, ...adminIds])];
+      where.id = { in: allowedIds };
+    } else if (isInstructor) {
+      // Instructors can DM their students + other staff (admins, HR, other instructors, super_admin)
+      // Get their class enrollments
+      const myClasses = await prisma.class.findMany({
+        where: { instructorId: userId },
+        select: { id: true }
+      });
+      const myClassIds = myClasses.map(c => c.id);
+
+      const enrollments = await prisma.enrollment.findMany({
+        where: { classId: { in: myClassIds } },
+        select: { userId: true }
+      });
+      const studentIds = [...new Set(enrollments.map(e => e.userId))];
+
+      // Get all staff user IDs
+      const staffRoles = ['instructor', 'hr', 'admin', 'super_admin', 'superadmin'];
+      const staffAssignments = await prisma.userRoleAssignment.findMany({
+        where: { role: { code: { in: staffRoles } } },
+        select: { userId: true }
+      });
+      const staffIds = [...new Set(staffAssignments.map(a => a.userId))];
+
+      const allowedIds = [...new Set([...studentIds, ...staffIds])];
+      where.id = { in: allowedIds };
+    } else if (isHR) {
+      // HR can DM students + admins + instructors (not super_admin)
+      const nonHrStaffRoles = ['instructor', 'admin'];
+      const staffAssignments = await prisma.userRoleAssignment.findMany({
+        where: { role: { code: { in: nonHrStaffRoles } } },
+        select: { userId: true }
+      });
+      const staffIds = [...new Set(staffAssignments.map(a => a.userId))];
+
+      // Get all student IDs
+      const studentAssignments = await prisma.userRoleAssignment.findMany({
+        where: { role: { code: 'student' } },
+        select: { userId: true }
+      });
+      const studentIds = [...new Set(studentAssignments.map(a => a.userId))];
+
+      const allowedIds = [...new Set([...staffIds, ...studentIds])];
+      where.id = { in: allowedIds };
     }
+    // Admins and super_admins: no filtering (can see everyone)
 
     const users = await prisma.user.findMany({
       where,

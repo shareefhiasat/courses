@@ -15,11 +15,14 @@ import { EVENTS } from '../services/notifications/constants.js';
 
 
 const SLA_WARNING_THRESHOLD_PERCENT = 0.25; // Warn at 25% time remaining
-const DRY_RUN = process.argv.includes('--dry-run');
 
-async function main() {
+/**
+ * Run SLA monitor check
+ * @param {boolean} dryRun - If true, don't send notifications or update DB
+ */
+export async function runSlaMonitor(dryRun = false) {
   console.log('🔔 SLA Monitor Starting...');
-  console.log(`   Mode: ${DRY_RUN ? 'DRY RUN' : 'LIVE'}`);
+  console.log(`   Mode: ${dryRun ? 'DRY RUN' : 'LIVE'}`);
   console.log(`   Time: ${new Date().toISOString()}\n`);
 
   try {
@@ -71,7 +74,7 @@ async function main() {
         const alreadyNotified = step.metadata?.slaOverdueNotified;
         
         if (!alreadyNotified) {
-          if (!DRY_RUN) {
+          if (!dryRun) {
             // Notify all approvers
             const approvers = await prisma.user.findMany({
               where: { roles: { hasSome: step.assignedRoles } },
@@ -115,7 +118,7 @@ async function main() {
         const alreadyWarned = step.metadata?.slaWarningNotified;
         
         if (!alreadyWarned) {
-          if (!DRY_RUN) {
+          if (!dryRun) {
             // Notify all approvers
             const approvers = await prisma.user.findMany({
               where: { roles: { hasSome: step.assignedRoles } },
@@ -167,10 +170,27 @@ async function main() {
 
   } catch (error) {
     console.error('❌ SLA Monitor Failed:', error);
+    throw error;
+  }
+}
+
+/**
+ * Main function for standalone CLI execution
+ */
+async function main() {
+  const DRY_RUN = process.argv.includes('--dry-run');
+  
+  try {
+    await runSlaMonitor(DRY_RUN);
+  } catch (error) {
+    console.error('❌ SLA Monitor Failed:', error);
     process.exit(1);
   } finally {
     await prisma.$disconnect();
   }
 }
 
-main();
+// Run if executed directly (not imported)
+if (import.meta.url === `file://${process.argv[1]}`) {
+  main();
+}

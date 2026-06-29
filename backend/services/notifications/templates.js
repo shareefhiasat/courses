@@ -93,8 +93,8 @@ const RAW_TEMPLATES = {
     ar: 'تم تسجيل {{studentName}} معذورًا في {{date}}'
   },
   [EVENTS.ATTENDANCE_THRESHOLD_WARNING]: {
-    en: 'Attendance warning: {{studentName}} has {{percentage}}% attendance',
-    ar: 'تحذير الحضور: {{studentName}} لديه نسبة حضور {{percentage}}%'
+    en: 'Attendance warning: {{studentName}} has {{absenceCount}} unexcused absences in {{className}}',
+    ar: 'تحذير الحضور: {{studentName}} لديه {{absenceCount}} غياب غير مبرر في {{className}}'
   },
   [EVENTS.ATTENDANCE_PATTERN_DETECTED]: {
     en: 'Attendance pattern detected for {{studentName}}',

@@ -219,4 +219,121 @@ router.post('/messages/:messageId/vote', chatController.votePoll);
  */
 router.get('/users', chatController.getAvailableUsers);
 
+/**
+ * @swagger
+ * /api/v1/chat/rooms/group:
+ *   post:
+ *     summary: Create group chat room (staff only)
+ *     tags: [Chat]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *               - participantIds
+ *             properties:
+ *               name:
+ *                 type: string
+ *               participantIds:
+ *                 type: array
+ *                 items:
+ *                   type: integer
+ *     responses:
+ *       201:
+ *         description: Group chat created
+ *       403:
+ *         description: Only staff can create groups
+ */
+router.post('/rooms/group', chatController.createGroupRoom);
+
+/**
+ * @swagger
+ * /api/v1/chat/rooms/{roomId}/participants:
+ *   post:
+ *     summary: Add participant to group chat (creator only)
+ *     tags: [Chat]
+ *     parameters:
+ *       - in: path
+ *         name: roomId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - userId
+ *             properties:
+ *               userId:
+ *                 type: integer
+ *     responses:
+ *       200:
+ *         description: Participant added
+ *       403:
+ *         description: Only creator can add participants
+ */
+router.post('/rooms/:roomId/participants', chatController.addParticipant);
+
+/**
+ * @swagger
+ * /api/v1/chat/rooms/{roomId}/participants/{participantUserId}:
+ *   delete:
+ *     summary: Remove participant from group chat (creator only)
+ *     tags: [Chat]
+ *     parameters:
+ *       - in: path
+ *         name: roomId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *       - in: path
+ *         name: participantUserId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Participant removed
+ *       403:
+ *         description: Only creator can remove participants
+ */
+router.delete('/rooms/:roomId/participants/:participantUserId', chatController.removeParticipant);
+
+/**
+ * @swagger
+ * /api/v1/chat/rooms/{roomId}:
+ *   patch:
+ *     summary: Update group chat name (creator only)
+ *     tags: [Chat]
+ *     parameters:
+ *       - in: path
+ *         name: roomId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - name
+ *             properties:
+ *               name:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Group chat updated
+ *       403:
+ *         description: Only creator can update group
+ */
+router.patch('/rooms/:roomId', chatController.updateGroupRoom);
+
 export default router;
