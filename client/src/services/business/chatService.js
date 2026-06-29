@@ -447,11 +447,55 @@ const compatSubscribeToMessages = (chatType, chatId, callback) => {
         callback(allDocs);
       }
     });
+
+    // Listen for message deletions
+    const delUnsub = chatSocket.on('message_deleted', (data) => {
+      const deletedId = String(data.id || data.messageId);
+      allDocs = allDocs.filter(d => d.id !== deletedId);
+      callback(allDocs);
+    });
+
+    // Listen for message edits/updates
+    const editUnsub = chatSocket.on('message_updated', (data) => {
+      const updatedId = String(data.id || data.messageId);
+      allDocs = allDocs.map(d => {
+        if (d.id !== updatedId) return d;
+        const updated = wrapDoc({ ...d.data(), ...data });
+        return updated;
+      });
+      callback(allDocs);
+    });
+
+    // Also listen for reaction updates
+    const reactionUnsub = chatSocket.on('reaction', (data) => {
+      const msgId = String(data.messageId || data.id);
+      allDocs = allDocs.map(d => {
+        if (d.id !== msgId) return d;
+        const existing = d.data();
+        return wrapDoc({ ...existing, reactions: data.reactions || existing.reactions });
+      });
+      callback(allDocs);
+    });
+
+    // Listen for poll vote updates
+    const pollVoteUnsub = chatSocket.on('poll_vote', (data) => {
+      const msgId = String(data.id || data.messageId);
+      allDocs = allDocs.map(d => {
+        if (d.id !== msgId) return d;
+        const existing = d.data();
+        return wrapDoc({ ...existing, ...data, pollVotes: data.pollVotes || existing.pollVotes, pollOptions: data.pollOptions || existing.pollOptions });
+      });
+      callback(allDocs);
+    });
   })();
 
   return () => {
     unsubscribed = true;
     if (socketUnsub) socketUnsub();
+    if (delUnsub) delUnsub();
+    if (editUnsub) editUnsub();
+    if (reactionUnsub) reactionUnsub();
+    if (pollVoteUnsub) pollVoteUnsub();
   };
 };
 
@@ -487,7 +531,8 @@ const compatSubscribeToClasses = (callback, seeAll = false, uid = null, classIds
           nameAr: room?.class?.nameAr,
           code: room?.class?.code,
           term: room?.class?.term || '',
-          roomId: room?.id
+          roomId: room?.id,
+          enrollmentCount: room?.class?._count?.enrollments ?? 0
         };
       });
       callback(classes);
@@ -507,7 +552,8 @@ const compatSubscribeToClasses = (callback, seeAll = false, uid = null, classIds
         nameAr: room.class?.nameAr,
         code: room.class?.code,
         term: room.class?.term || '',
-        roomId: room.id
+        roomId: room.id,
+        enrollmentCount: room.class?._count?.enrollments ?? 0
       }));
       callback(classes);
     }
@@ -603,7 +649,11 @@ const compatSendMessage = async (messageData) => {
  * @returns {Promise<string>} Room ID
  */
 const compatCreateDMRoom = async (userUid, otherUserId) => {
-  const result = await createDM(parseInt(otherUserId));
+  const numericId = typeof otherUserId === 'number' ? otherUserId : parseInt(otherUserId, 10);
+  if (!numericId || isNaN(numericId)) {
+    throw new Error('Invalid recipient ID: expected numeric DB user ID');
+  }
+  const result = await createDM(numericId);
   if (result.success) {
     return String(result.data.id);
   }

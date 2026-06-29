@@ -90,6 +90,7 @@ export const ANIMATION_DURATION = {
 export const LOCAL_STORAGE_KEYS = {
   SIDEBAR_WIDTH: 'chatSidebarWidth',
   SIDEBAR_COLLAPSED: 'chatSidebarCollapsed',
+  SIDEBAR_DIVIDER_HEIGHT: 'chatSidebarDividerHeight',
   NAVBAR_COLLAPSED: 'navbarCollapsed',
   USER_MESSAGE_COLOR: 'userMessageColor'
 };

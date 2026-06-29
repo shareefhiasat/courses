@@ -44,10 +44,16 @@ export const getOrCreateRoom = async ({ type, classId, participantA, participant
         include: {
           class: true,
           userA: {
-            select: { id: true, firstName: true, lastName: true, email: true }
+            select: {
+              id: true, firstName: true, lastName: true, email: true,
+              roleAssignments: { include: { role: { select: { code: true, nameEn: true } } } }
+            }
           },
           userB: {
-            select: { id: true, firstName: true, lastName: true, email: true }
+            select: {
+              id: true, firstName: true, lastName: true, email: true,
+              roleAssignments: { include: { role: { select: { code: true, nameEn: true } } } }
+            }
           }
         }
       });
@@ -58,10 +64,16 @@ export const getOrCreateRoom = async ({ type, classId, participantA, participant
         include: {
           class: true,
           userA: {
-            select: { id: true, firstName: true, lastName: true, email: true }
+            select: {
+              id: true, firstName: true, lastName: true, email: true,
+              roleAssignments: { include: { role: { select: { code: true, nameEn: true } } } }
+            }
           },
           userB: {
-            select: { id: true, firstName: true, lastName: true, email: true }
+            select: {
+              id: true, firstName: true, lastName: true, email: true,
+              roleAssignments: { include: { role: { select: { code: true, nameEn: true } } } }
+            }
           }
         }
       });
@@ -140,7 +152,7 @@ export const getUserRooms = async (userId, roles = [], enrolledClassIds = []) =>
         where: { type: 'class' },
         include: {
           class: {
-            select: { id: true, nameEn: true, nameAr: true, code: true, term: true }
+            select: { id: true, nameEn: true, nameAr: true, code: true, term: true, _count: { select: { enrollments: true } } }
           },
           _count: {
             select: { messages: { where: { isDeleted: false } } }
@@ -170,7 +182,7 @@ export const getUserRooms = async (userId, roles = [], enrolledClassIds = []) =>
         },
         include: {
           class: {
-            select: { id: true, nameEn: true, nameAr: true, code: true, term: true }
+            select: { id: true, nameEn: true, nameAr: true, code: true, term: true, _count: { select: { enrollments: true } } }
           },
           _count: {
             select: { messages: { where: { isDeleted: false } } }
@@ -191,10 +203,16 @@ export const getUserRooms = async (userId, roles = [], enrolledClassIds = []) =>
       },
       include: {
         userA: {
-          select: { id: true, firstName: true, lastName: true, email: true, profileImageUrl: true }
+          select: {
+            id: true, firstName: true, lastName: true, email: true, profileImageUrl: true,
+            roleAssignments: { include: { role: { select: { code: true, nameEn: true } } } }
+          }
         },
         userB: {
-          select: { id: true, firstName: true, lastName: true, email: true, profileImageUrl: true }
+          select: {
+            id: true, firstName: true, lastName: true, email: true, profileImageUrl: true,
+            roleAssignments: { include: { role: { select: { code: true, nameEn: true } } } }
+          }
         },
         _count: {
           select: { messages: { where: { isDeleted: false } } }

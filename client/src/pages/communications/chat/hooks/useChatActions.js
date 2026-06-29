@@ -473,17 +473,23 @@ export const useChatActions = (user, state, toast, t) => {
         toast?.showWarning(t('chat_message_filtered_inappropriate_content'));
       }
 
+      // Update local state immediately for instant UI feedback
+      setMessages(prev => (prev || []).map(m =>
+        m.id === state.editingMsg.id ? { ...m, content: filteredContent, edited: true, editedAt: new Date().toISOString() } : m
+      ));
+
       setEditingMsg(null);
       toast?.showSuccess(t('chat_saved'));
     } catch (e) {
       error('Edit failed', e);
       toast?.showError(t('chat_failed_to_save'));
     }
-  }, [state.editingMsg, user, toast, t, setEditingMsg]);
+  }, [state.editingMsg, user, toast, t, setEditingMsg, setMessages]);
 
   // DM actions
   const openDMWith = useCallback(async (otherUser) => {
     const otherUserId = otherUser?.docId || otherUser?.id || otherUser?.uid;
+    const otherUserDbId = otherUser?.id;
     
     if (!otherUserId || otherUserId === user.uid) {
       warn('openDMWith validation failed', { 
@@ -495,7 +501,7 @@ export const useChatActions = (user, state, toast, t) => {
     }
     
     try {
-      const roomId = await chatService.createDMRoom(user.uid, otherUserId);
+      const roomId = await chatService.createDMRoom(user.uid, otherUserDbId || otherUserId);
       setSelectedClass(`dm:${roomId}`);
       setShowMembers(false);
     } catch (err) {

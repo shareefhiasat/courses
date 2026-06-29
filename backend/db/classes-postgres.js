@@ -195,6 +195,9 @@ export const getClasses = async (params = {}) => {
             displayNameAr: true,
             email: true
           }
+        },
+        _count: {
+          select: { enrollments: true }
         }
       }
     });

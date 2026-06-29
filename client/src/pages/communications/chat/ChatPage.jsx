@@ -5,8 +5,8 @@ import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { Navigate, useLocation } from 'react-router-dom';
-import { ROLE_STRINGS } from '@utils/userUtils';
-import { getThemedIcon, getColoredIcon, getUserRoleIcon, getUserRoleColor } from '@constants/iconTypes';
+import { ROLE_STRINGS, ROLE_DISPLAY_NAMES } from '@utils/userUtils';
+import { getThemedIcon, getColoredIcon, getIconWithColor, getUserRoleIcon, getUserRoleColor } from '@constants/iconTypes';
 import { getClasses } from '@services/business/classService';
 import { getEnrollments } from '@services/business/enrollmentService';
 import { getUsers, getUserRoles } from '@services/business/userService';
@@ -71,6 +71,47 @@ const withAuthToken = (url) => {
   return `${url}${sep}token=${encodeURIComponent(token)}`;
 };
 
+const RoleBadge = ({ userObj }) => {
+  const { t } = useLang();
+  if (!userObj) return null;
+  let role = userObj.role;
+  if (!role) {
+    if (userObj.isSuperAdmin) role = 'super_admin';
+    else if (userObj.isAdmin) role = 'admin';
+    else if (userObj.isHR) role = 'hr';
+    else if (userObj.isInstructor) role = 'instructor';
+    else if (userObj.isStudent) role = 'student';
+  }
+  if (!role && Array.isArray(userObj.roleAssignments) && userObj.roleAssignments.length > 0) {
+    const priority = ['super_admin', 'admin', 'hr', 'instructor', 'student'];
+    const codes = userObj.roleAssignments.map(ra => ra?.role?.code).filter(Boolean);
+    role = priority.find(p => codes.includes(p)) || codes[0];
+  }
+  if (!role) return null;
+  const color = getUserRoleColor(role);
+  const labelKey = `role_label_${role}`;
+  const label = t(labelKey) || ROLE_DISPLAY_NAMES[role?.toUpperCase()] || role;
+  const roleIcon = getIconWithColor('user_role', role, 12, color);
+  return (
+    <span style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      gap: '0.2rem',
+      fontSize: '0.7rem',
+      background: `${color}15`,
+      color,
+      padding: '1px 6px',
+      borderRadius: '10px',
+      fontWeight: 600,
+      whiteSpace: 'nowrap',
+      textTransform: 'capitalize'
+    }}>
+      {roleIcon}
+      {label}
+    </span>
+  );
+};
+
 const ChatPage = memo(() => {
   const { user, isAdmin, isSuperAdmin, isHR, isInstructor, loading: authLoading } = useAuth();
   const { t, lang } = useLang();
@@ -132,6 +173,7 @@ const ChatPage = memo(() => {
   const [allUsers, setAllUsers] = useState([]);
   const [memberSearch, setMemberSearch] = useState('');
   const [studentsOnly, setStudentsOnly] = useState(false);
+  const [roleFilter, setRoleFilter] = useState(null);
   const [dmSearch, setDmSearch] = useState('');
   const [globalChatSearch, setGlobalChatSearch] = useState('');
   const [chatReads, setChatReads] = useState({}); // { 'class:<id>': Timestamp, 'dm:<id>': Timestamp, 'global': Timestamp }
@@ -161,6 +203,11 @@ const ChatPage = memo(() => {
   });
   const [selectedClassName, setSelectedClassName] = useState('');
   const resizingRef = useRef(false);
+  const [sidebarDividerHeight, setSidebarDividerHeight] = useState(() => {
+    const saved = parseInt(localStorage.getItem(LOCAL_STORAGE_KEYS.SIDEBAR_DIVIDER_HEIGHT) || '0', 10);
+    return Number.isFinite(saved) && saved > 0 ? saved : null; // null = auto/flex
+  });
+  const dividerDraggingRef = useRef(false);
   const [menuOpenId, setMenuOpenId] = useState(null); // current message actions menu id
   const [editingMsg, setEditingMsg] = useState(null); // { id, content }
   const [memberReads, setMemberReads] = useState({}); // { uid: Date }
@@ -951,6 +998,39 @@ const ChatPage = memo(() => {
     return () => { window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', up); };
   }, [onDragEnd]);
 
+  // Sidebar divider drag (vertical, between classes and DMs)
+  const onDividerDragStart = (e) => {
+    e.preventDefault();
+    dividerDraggingRef.current = true;
+    document.body.style.userSelect = 'none';
+    document.body.style.cursor = 'row-resize';
+  };
+  const onDividerDragMove = (e) => {
+    if (!dividerDraggingRef.current) return;
+    const sidebarEl = document.querySelector('[data-tour="chat-sidebar"]');
+    if (!sidebarEl) return;
+    const rect = sidebarEl.getBoundingClientRect();
+    const y = e.clientY - rect.top;
+    const min = 80;
+    const max = rect.height - 120;
+    const h = Math.min(max, Math.max(min, y));
+    setSidebarDividerHeight(h);
+  };
+  const onDividerDragEnd = () => {
+    if (!dividerDraggingRef.current) return;
+    dividerDraggingRef.current = false;
+    document.body.style.userSelect = '';
+    document.body.style.cursor = '';
+    try { localStorage.setItem(LOCAL_STORAGE_KEYS.SIDEBAR_DIVIDER_HEIGHT, String(sidebarDividerHeight)); } catch {}
+  };
+  useEffect(() => {
+    const move = (e) => onDividerDragMove(e);
+    const up = () => onDividerDragEnd();
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+    return () => { window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', up); };
+  }, [sidebarDividerHeight]);
+
   const loadClasses = async () => {
     setLoading(true);
     try {
@@ -997,7 +1077,7 @@ const ChatPage = memo(() => {
         try {
           const params = new URLSearchParams(location.search);
           const dest = params.get('dest');
-          if (!dest && !userHasInteractedRef.current && (!selectedClassRef.current || selectedClassRef.current === 'global') && mineClasses.length > 0) {
+          if (!dest && !userHasInteractedRef.current && (!selectedClassRef.current || selectedClassRef.current === 'global') && mineClasses.length > 0 && !isStaffRole) {
             info('Auto-selecting first class (location check)', { 
               reason: 'location_dest_check',
               currentSelectedClass: selectedClassRef.current,
@@ -1151,8 +1231,16 @@ const ChatPage = memo(() => {
         </div>
       )}
 
-        {/* Class List */}
-        <div data-tour="chat-room-list" style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden' }}>
+        {/* Class List + DM List with resizable divider */}
+        <div data-tour="chat-room-list" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        {/* Top Section: Global Chat + Classes */}
+        <div style={{
+          flex: sidebarDividerHeight ? '0 0 auto' : '1 1 0',
+          height: sidebarDividerHeight || undefined,
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          minHeight: 60
+        }}>
           {/* Global Chat */}
           {(
             <div
@@ -1234,7 +1322,33 @@ const ChatPage = memo(() => {
                     >{archivedClasses[cls.docId] ? getThemedIcon('ui', 'upload', 16, theme) : getThemedIcon('ui', 'download', 16, theme)}</button>
                   </div>
                   <div style={{ fontSize: '0.85rem', color: '#666' }}>
-                    <div style={{ whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{`${cls.term} - ${cls.code}`}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 6, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
+                      <span style={{ overflow:'hidden', textOverflow:'ellipsis' }}>{`${cls.term} - ${cls.code}`}</span>
+                      {(() => {
+                        const count = cls.enrollmentCount ?? cls._count?.enrollments ?? 0;
+                        if (count > 0) {
+                          return (
+                            <span style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 3,
+                              fontSize: '0.7rem',
+                              background: 'rgba(0,0,0,0.05)',
+                              color: '#666',
+                              padding: '1px 6px',
+                              borderRadius: '10px',
+                              fontWeight: 600,
+                              whiteSpace: 'nowrap',
+                              flexShrink: 0
+                            }}>
+                              {getIconWithColor('user_role', 'student', 10, '#666')}
+                              {count}
+                            </span>
+                          );
+                        }
+                        return null;
+                      })()}
+                    </div>
                     {cls.lastMessage && (
                       <div style={{ display:'flex', justifyContent:'space-between', gap:8, marginTop:2 }}>
                         <span style={{ color:'#666' }}>{cls.lastMessage}</span>
@@ -1251,6 +1365,7 @@ const ChatPage = memo(() => {
                       <div style={{ fontSize: '0.85rem', color: '#444', marginTop: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
                         {getThemedIcon('ui', 'graduation_cap', 14, theme)}
                         <strong>{instructor.displayName || instructor.email}</strong>
+                        <RoleBadge userObj={instructor} />
                         {instructor.studentNumber && (
                           <span style={{ fontSize: '0.75rem', color: '#666', marginLeft: '0.25rem', fontWeight: 'normal' }}>
                             ({instructor.studentNumber})
@@ -1272,6 +1387,37 @@ const ChatPage = memo(() => {
             </div>
           ))}
 
+        </div>
+        {/* Resizable Divider */}
+        <div
+          onMouseDown={onDividerDragStart}
+          onDoubleClick={() => { setSidebarDividerHeight(null); try { localStorage.removeItem(LOCAL_STORAGE_KEYS.SIDEBAR_DIVIDER_HEIGHT); } catch {} }}
+          title="Drag to resize, double-click to reset"
+          style={{
+            height: 6,
+            flexShrink: 0,
+            cursor: 'row-resize',
+            background: 'var(--border)',
+            borderTop: '1px solid var(--border)',
+            borderBottom: '1px solid var(--border)',
+            transition: 'background 0.2s',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}
+          onMouseOver={(e) => { e.currentTarget.style.background = 'var(--brand)'; }}
+          onMouseOut={(e) => { if (!dividerDraggingRef.current) e.currentTarget.style.background = 'var(--border)'; }}
+        >
+          <div style={{ width: 32, height: 2, borderRadius: 1, background: 'var(--muted)', opacity: 0.5 }} />
+        </div>
+
+        {/* Bottom Section: Direct Messages */}
+        <div style={{
+          flex: 1,
+          overflowY: 'auto',
+          overflowX: 'hidden',
+          minHeight: 60
+        }}>
           {/* Direct Messages */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.4rem 0.9rem', borderTop: '1px solid var(--border)' }}>
             <span style={{ color: 'var(--muted)', fontWeight: 600, fontSize: '0.85rem' }}>Direct Messages</span>
@@ -1383,6 +1529,7 @@ const ChatPage = memo(() => {
                       <div style={{ fontWeight: 600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', flex:1, opacity: !otherUser ? 0.6 : 1 }}>
                         {label}
                       </div>
+                      {otherUser && <RoleBadge userObj={otherUser} />}
                       {(() => { const c = unreadCounts[`dm:${room.id}`]||0; if (c>0) { return (<span style={{background:'var(--brand)',color:'white',borderRadius:'50%',minWidth:18,height:18,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.7rem',fontWeight:'bold',padding:'0 5px'}}>{c>99?'99+':c}</span>);} return null; })()}
                     </div>
                     <div style={{ fontSize: '0.8rem', color: 'var(--muted)', display:'flex', justifyContent:'space-between', gap: 8 }}>
@@ -1417,6 +1564,7 @@ const ChatPage = memo(() => {
               </div>
             );
           })}
+        </div>
         </div>
         {/* Sidebar footer: archived + favorites toggle */}
         <div style={{ padding:'0.5rem 0.9rem', borderTop:'1px solid var(--border)', display:'flex', alignItems:'center', gap:16 }}>
@@ -1508,8 +1656,9 @@ const ChatPage = memo(() => {
                 const email = otherUser?.email;
                 if (displayName) {
                   return (
-                    <div style={{ fontSize: '0.9rem', color: '#666', marginTop: '0.25rem', fontWeight: 500 }}>
+                    <div style={{ fontSize: '0.9rem', color: '#666', marginTop: '0.25rem', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                       {displayName}
+                      {otherUser && <RoleBadge userObj={otherUser} />}
                       {email && email !== displayName && (
                         <span style={{ fontSize: '0.8rem', color: '#888', marginLeft: '0.25rem' }}>
                           ({email})
@@ -1904,7 +2053,12 @@ const ChatPage = memo(() => {
                                   );
                                   
                                   // Add to selected option
-                                  await chatService.votePoll(msg.id, user.uid, idx);
+                                  const result = await chatService.votePoll(msg.id, user.uid, idx);
+                                  
+                                  // Update local state immediately
+                                  if (result?.success && result?.data) {
+                                    setMessages(prev => (prev || []).map(m => m.id === msg.id ? { ...m, pollVotes: result.data.pollVotes, pollOptions: result.data.pollOptions } : m));
+                                  }
                                 } catch (err) {
                                   error('Poll vote error:', err);
                                   toast?.showError(t('failed_to_vote'));
@@ -2021,25 +2175,13 @@ const ChatPage = memo(() => {
                       const getReactionDisplay = (reaction, color) => {
                         // Check if it's a reaction name (new format)
                         if (['ThumbsUp','Heart','Smile','Surprise','Frown','Pray'].includes(reaction)) {
-                          const getReactionIcon = (name, size, theme, iconColor) => {
-                            switch(name) {
-                              case 'ThumbsUp':
-                                return getColoredIcon('ui', 'thumbs_up', size, iconColor, theme);
-                              case 'Heart':
-                                return getColoredIcon('ui', 'heart', size, iconColor, theme);
-                              case 'Smile':
-                                return getColoredIcon('ui', 'smile', size, iconColor, theme);
-                              case 'Surprise':
-                                return getColoredIcon('ui', 'help_circle', size, iconColor, theme);
-                              case 'Frown':
-                                return getColoredIcon('ui', 'x_circle', size, iconColor, theme);
-                              case 'Pray':
-                                return getColoredIcon('ui', 'star', size, iconColor, theme);
-                              default:
-                                return getColoredIcon('ui', 'smile', size, iconColor, theme);
-                            }
-                          };
-                          return getReactionIcon(reaction, 14, theme, color);
+                          const iconName = reaction === 'ThumbsUp' ? 'thumbs_up' :
+                            reaction === 'Heart' ? 'heart' :
+                            reaction === 'Smile' ? 'smile' :
+                            reaction === 'Surprise' ? 'help_circle' :
+                            reaction === 'Frown' ? 'x_circle' :
+                            reaction === 'Pray' ? 'star' : 'smile';
+                          return getIconWithColor('ui', iconName, 14, color);
                         }
                         // Return emoji as-is (old format)
                         return reaction;
@@ -2088,10 +2230,14 @@ const ChatPage = memo(() => {
                               <button key={reaction}
                                 onClick={async ()=>{
                                   try {
+                                    let result;
                                     if (active) {
-                                      await chatService.removeReaction(msg.id, user.uid);
+                                      result = await chatService.removeReaction(msg.id, user.uid);
                                     } else {
-                                      await chatService.addReaction(msg.id, user.uid, reaction);
+                                      result = await chatService.addReaction(msg.id, user.uid, reaction);
+                                    }
+                                    if (result?.success && result?.data?.reactions) {
+                                      setMessages(prev => (prev || []).map(m => m.id === msg.id ? { ...m, reactions: result.data.reactions } : m));
                                     }
                                   } catch {}
                                 }}
@@ -2171,7 +2317,7 @@ const ChatPage = memo(() => {
                       onMouseEnter={(e)=>e.currentTarget.style.transform='scale(1.05)'}
                       onMouseLeave={(e)=>e.currentTarget.style.transform='scale(1)'}
                     >
-                      <span aria-hidden="true" style={{ display:'inline-block', transform:'translateY(1px)' }}>{getThemedIcon('ui', 'smile', 16, theme)}</span>
+                      <span aria-hidden="true" style={{ display:'inline-block', transform:'translateY(1px)' }}>{getIconWithColor('ui', 'smile', 16, '#eab308')}</span>
                     </button>
 
                     {/* Anchored Reaction Menu (sticky to this message) */}
@@ -2196,31 +2342,35 @@ const ChatPage = memo(() => {
                         onClick={(e) => e.stopPropagation()}
                       >
                         {['ThumbsUp','Heart','Smile','Surprise','Frown','Pray'].map((reactionName, index) => {
-                          const getReactionIcon = (name, size, theme) => {
-                            switch(name) {
-                              case 'ThumbsUp':
-                                return getThemedIcon('ui', 'thumbs_up', size, theme);
-                              case 'Heart':
-                                return getThemedIcon('ui', 'heart', size, theme);
-                              case 'Smile':
-                                return getThemedIcon('ui', 'smile', size, theme);
-                              case 'Surprise':
-                                return getThemedIcon('ui', 'help_circle', size, theme);
-                              case 'Frown':
-                                return getThemedIcon('ui', 'x_circle', size, theme);
-                              case 'Pray':
-                                return getThemedIcon('ui', 'star', size, theme);
-                              default:
-                                return getThemedIcon('ui', 'smile', size, theme);
-                            }
+                          const reactionColors = {
+                            'ThumbsUp': '#3b82f6',
+                            'Heart': '#ef4444',
+                            'Smile': '#eab308',
+                            'Surprise': '#f97316',
+                            'Frown': '#6b7280',
+                            'Pray': '#8b5cf6',
+                          };
+                          const reactionColor = reactionColors[reactionName] || '#6b7280';
+                          const getReactionIcon = (name, size) => {
+                            return getIconWithColor('ui', 
+                              name === 'ThumbsUp' ? 'thumbs_up' :
+                              name === 'Heart' ? 'heart' :
+                              name === 'Smile' ? 'smile' :
+                              name === 'Surprise' ? 'help_circle' :
+                              name === 'Frown' ? 'x_circle' :
+                              name === 'Pray' ? 'star' : 'smile',
+                              size, reactionColor);
                           };
                           return (
                             <button
                             key={reactionName}
                             onClick={async () => {
                               try {
-                                await chatService.addReaction(reactionMenu.msgId, user.uid, reactionName);
+                                const result = await chatService.addReaction(reactionMenu.msgId, user.uid, reactionName);
                                 setReactionMenu(null);
+                                if (result?.success && result?.data?.reactions) {
+                                  setMessages(prev => (prev || []).map(m => m.id === reactionMenu.msgId ? { ...m, reactions: result.data.reactions } : m));
+                                }
                               } catch {}
                             }}
                             style={{
@@ -2252,7 +2402,7 @@ const ChatPage = memo(() => {
                             }}
                             title={reactionName}
                           >
-                            {getReactionIcon(reactionName, 18, theme)}
+                            {getReactionIcon(reactionName, 18)}
                           </button>
                         );
                         })}
@@ -2671,6 +2821,7 @@ const ChatPage = memo(() => {
                   ].map((emoji, index) => (
                     <button
                       key={index}
+                      type="button"
                       onClick={() => {
                         setNewMessage(prev => prev + emoji);
                         messageInputRef.current?.focus();
@@ -3110,13 +3261,10 @@ const ChatPage = memo(() => {
       <div style={{ position: 'fixed', inset: 0, zIndex: 2000 }} onClick={()=>setShowMembers(false)}>
         {/* drawer */}
         <div data-tour="chat-members" onClick={(e)=>e.stopPropagation()} style={{ position: 'absolute', top: 0, right: 0, height: '100%', width: 360, background: 'white', boxShadow: '-4px 0 16px rgba(0,0,0,0.15)', padding: '1rem', pointerEvents: 'auto', display: 'flex', flexDirection: 'column' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <h3 style={{ margin: 0 }}>
-              {selectedClass?.startsWith('dm:') ? t('direct_message') : t('chat_members')}
-            </h3>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: 12 }}>
             <button onClick={()=>setShowMembers(false)} style={{ background: 'transparent', border: 'none', fontSize: 18, cursor: 'pointer' }}>✕</button>
           </div>
-          {/* search + filter - only show for class chats */}
+          {/* search + role filter chips - only show for class chats */}
           {!selectedClass?.startsWith('dm:') && (
             <>
               <input
@@ -3126,14 +3274,59 @@ const ChatPage = memo(() => {
                 onChange={(e) => setMemberSearch(e.target.value)}
                 style={{ padding: '8px 12px', border: '1px solid #ddd', borderRadius: 6, marginBottom: 8, fontSize: '0.95rem' }}
               />
-              <label style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12, cursor: 'pointer' }}>
-                <input
-                  type="checkbox"
-                  checked={studentsOnly}
-                  onChange={(e) => setStudentsOnly(e.target.checked)}
-                />
-                <span style={{ fontSize: '0.9rem' }}>{t('students_only')}</span>
-              </label>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
+                {(isStaffRole
+                  ? [{ key: 'all', label: t('chat_all'), icon: null, color: null },
+                     { key: 'student', label: t('chat_filter_students'), icon: 'student', color: getUserRoleColor('student') },
+                     { key: 'instructor', label: t('chat_filter_instructors'), icon: 'instructor', color: getUserRoleColor('instructor') },
+                     { key: 'admin', label: t('chat_filter_admins'), icon: 'admin', color: getUserRoleColor('admin') },
+                     { key: 'hr', label: t('chat_filter_hr'), icon: 'hr', color: getUserRoleColor('hr') }]
+                  : [{ key: 'all', label: t('chat_all'), icon: null, color: null },
+                     { key: 'student', label: t('chat_filter_students'), icon: 'student', color: getUserRoleColor('student') },
+                     { key: 'instructor', label: t('chat_filter_instructors'), icon: 'instructor', color: getUserRoleColor('instructor') }]
+                ).map(chip => {
+                  const isActive = (chip.key === 'all' && !studentsOnly && !roleFilter) ||
+                    (chip.key === 'student' && studentsOnly) ||
+                    (chip.key !== 'all' && roleFilter === chip.key);
+                  const chipColor = chip.color || '#6b7280';
+                  return (
+                    <button
+                      key={chip.key}
+                      type="button"
+                      onClick={() => {
+                        if (chip.key === 'all') {
+                          setStudentsOnly(false);
+                          setRoleFilter(null);
+                        } else if (chip.key === 'student') {
+                          setStudentsOnly(true);
+                          setRoleFilter(null);
+                        } else {
+                          setStudentsOnly(false);
+                          setRoleFilter(chip.key);
+                        }
+                      }}
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '0.25rem',
+                        padding: '3px 10px',
+                        borderRadius: '12px',
+                        border: `1px solid ${isActive ? chipColor : 'var(--border)'}`,
+                        background: isActive ? `${chipColor}15` : 'transparent',
+                        color: isActive ? chipColor : 'var(--text)',
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        cursor: 'pointer',
+                        transition: 'all 0.2s',
+                        whiteSpace: 'nowrap'
+                      }}
+                    >
+                      {chip.icon && getIconWithColor('user_role', chip.icon, 12, isActive ? chipColor : '#9ca3af')}
+                      {chip.label}
+                    </button>
+                  );
+                })}
+              </div>
             </>
           )}
           <div style={{ flex: 1, overflowY: 'auto', maxHeight: 'calc(100vh - 200px)' }}>
@@ -3172,6 +3365,15 @@ const ChatPage = memo(() => {
                     filtered = filtered.filter(m => {
                       if (!m || typeof m !== 'object') return false;
                       return m.isStudent === true;
+                    });
+                  }
+                  
+                  // Layer 4b: Apply role filter if needed
+                  if (roleFilter && Array.isArray(filtered) && filtered.length > 0) {
+                    filtered = filtered.filter(m => {
+                      if (!m || typeof m !== 'object') return false;
+                      const roles = getUserRoles(m);
+                      return roles.includes(roleFilter);
                     });
                   }
                   
@@ -3226,9 +3428,7 @@ const ChatPage = memo(() => {
                             ({m.studentNumber})
                           </span>
                         )}
-                        {m.role === ROLE_STRINGS.ADMIN && (
-                          <span style={{ fontSize: '0.7rem', background: 'linear-gradient(135deg, #800020, #600018)', color: 'white', padding: '2px 6px', borderRadius: 4, fontWeight: 600 }}>{t('admin')}</span>
-                        )}
+                        <RoleBadge userObj={m} />
                       </div>
                       <div style={{ fontSize: 12, color: '#666' }}>{m.email}</div>
                     </div>
