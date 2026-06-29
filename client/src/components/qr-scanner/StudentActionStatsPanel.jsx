@@ -226,7 +226,7 @@ export default function StudentActionStatsPanel({
         minor: allLogs.filter(log => log.type === RECORD_TYPES.PENALTY && log.severity === 'minor').length,
         major: allLogs.filter(log => log.type === RECORD_TYPES.PENALTY && log.severity === 'major').length,
         recentPenalties: allLogs.filter(log => log.type === RECORD_TYPES.PENALTY).slice(0, 3).map(log =>
-            `${log.label} (${new Date(log.time).toLocaleDateString()})`
+            `${log.label} (${new Date(log.time).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })})`
         ).join(', ')
       };
 
@@ -271,10 +271,10 @@ export default function StudentActionStatsPanel({
           overallGrade,
           reportPeriod: 'This Term',
           siteName: 'CS Learning Hub',
-          currentDate: new Date().toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
+          currentDate: new Date().toLocaleDateString('en-GB', {
+            day: '2-digit',
+            month: '2-digit',
+            year: 'numeric'
           })
         }
       });

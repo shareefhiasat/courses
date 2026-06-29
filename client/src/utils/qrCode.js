@@ -138,7 +138,7 @@ export const generateStudentQRCard = async (studentNumber, studentInfo = {}, opt
     ctx.fillText('Student ID Card', 200, 160);
     
     // Date issued
-    const today = new Date().toLocaleDateString();
+    const today = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
     ctx.fillText(`Issued: ${today}`, 200, 180);
     
     // Instructions

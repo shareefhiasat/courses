@@ -32,35 +32,22 @@ export const formatDateTime = (dateValue, lang = 'en', emptyLabel = '—') => {
       return emptyLabel;
     }
     
-    if (lang === 'ar') {
-      const datePart = date.toLocaleDateString('ar-QA', {
-        timeZone: 'Asia/Qatar',
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric',
-        numberingSystem: 'arab',
-      });
-      const timePart = date.toLocaleTimeString('ar-QA', {
-        timeZone: 'Asia/Qatar',
-        hour: '2-digit',
-        minute: '2-digit',
-        hour12: true,
-        numberingSystem: 'arab',
-      });
-      return `${datePart} في ${timePart}`;
-    }
-
-    const options = {
+    const locale = lang === 'ar' ? 'ar-QA' : 'en-GB';
+    const datePart = date.toLocaleDateString(locale, {
       timeZone: 'Asia/Qatar',
+      day: '2-digit',
+      month: '2-digit',
       year: 'numeric',
-      month: lang === 'ar' ? 'long' : 'short',
-      day: 'numeric',
+      numberingSystem: lang === 'ar' ? 'arab' : 'latn',
+    });
+    const timePart = date.toLocaleTimeString(locale, {
+      timeZone: 'Asia/Qatar',
       hour: '2-digit',
       minute: '2-digit',
-      hour12: lang === 'ar'
-    };
-    
-    return date.toLocaleString(lang === 'ar' ? 'ar-QA' : 'en-US', options);
+      hour12: true,
+      numberingSystem: lang === 'ar' ? 'arab' : 'latn',
+    });
+    return `${datePart}, ${timePart}`;
   } catch (error) {
     console.error('Error formatting date:', error);
     return emptyLabel;
@@ -84,12 +71,13 @@ export const formatDateOnly = (dateValue, lang = 'en') => {
     
     const options = {
       timeZone: 'Asia/Qatar',
+      day: '2-digit',
+      month: '2-digit',
       year: 'numeric',
-      month: lang === 'ar' ? 'long' : 'short',
-      day: 'numeric'
+      numberingSystem: lang === 'ar' ? 'arab' : 'latn'
     };
     
-    return date.toLocaleDateString(lang === 'ar' ? 'ar-QA' : 'en-US', options);
+    return date.toLocaleDateString(lang === 'ar' ? 'ar-QA' : 'en-GB', options);
   } catch (error) {
     console.error('Error formatting date:', error);
     return dateValue;

@@ -33,7 +33,14 @@ const ActivityList = ({
   const formatActivityTime = (time) => {
     try {
       const raw = time?.toDate ? time.toDate() : time ? new Date(time) : null;
-      if (!raw || isNaN(raw.getTime())) return '--:--';
+      if (!raw || isNaN(raw.getTime())) return '';
+      
+      const locale = lang === 'ar' ? 'ar-QA' : 'en-GB';
+      const dateStr = raw.toLocaleDateString(locale, {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
       
       // Check if the timestamp has time information (not just date)
       const hours = raw.getHours();
@@ -41,15 +48,19 @@ const ActivityList = ({
       const seconds = raw.getSeconds();
       
       // If all time components are 0, it's likely a date-only timestamp
-      // In this case, don't display a time
       if (hours === 0 && minutes === 0 && seconds === 0) {
-        return '--:--';
+        return dateStr;
       }
       
-      // Otherwise, display the time in local timezone
-      return raw.toLocaleTimeString(lang === 'ar' ? 'ar-SA' : 'en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+      // Otherwise, display both date and time
+      const timeStr = raw.toLocaleTimeString(locale, { 
+        hour: '2-digit', 
+        minute: '2-digit', 
+        hour12: true 
+      });
+      return `${dateStr}, ${timeStr}`;
     } catch (e) {
-      return '--:--';
+      return '';
     }
   };
 

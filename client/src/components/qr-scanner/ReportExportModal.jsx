@@ -102,6 +102,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Repor
               selectedProgramId={selectedProgramId}
               programs={programs}
               t={t}
+              lang={lang}
               attendanceMode={attendanceMode}
               selectedProgramsForReport={selectedProgramsForReport}
               setSelectedProgramsForReport={setSelectedProgramsForReport}
@@ -135,6 +136,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Repor
   selectedProgramId,
   programs,
   t,
+  lang,
   attendanceMode,
   selectedProgramsForReport,
   setSelectedProgramsForReport
@@ -166,10 +168,11 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Repor
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.5rem',
-                padding: '0.5rem',
+                gap: '0.625rem',
+                padding: '0.625rem',
+                fontSize: '0.95rem',
                 cursor: 'pointer',
-                borderRadius: '0.25rem',
+                borderRadius: '0.375rem',
                 transition: 'background-color 0.2s'
               }}
               onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
@@ -186,10 +189,10 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Repor
                     setSelectedProgramsForReport((selectedProgramsForReport || []).filter(id => id !== programId));
                   }
                 }}
-                style={{ width: '16px', height: '16px' }}
+                style={{ width: '1.125rem', height: '1.125rem', flexShrink: 0, margin: 0, cursor: 'pointer' }}
               />
-              <span style={{ fontSize: '0.875rem' }}>
-                {program.nameEn || program.name || 'Unknown Program'}
+              <span style={{ fontSize: '0.95rem' }}>
+                {lang === 'ar' ? (program.nameAr || program.nameEn || program.name || 'Unknown Program') : (program.nameEn || program.name || 'Unknown Program')}
               </span>
             </label>
           ))
@@ -203,10 +206,11 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Repor
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  gap: '0.5rem',
-                  padding: '0.5rem',
+                  gap: '0.625rem',
+                  padding: '0.625rem',
+                  fontSize: '0.95rem',
                   cursor: 'pointer',
-                  borderRadius: '0.25rem',
+                  borderRadius: '0.375rem',
                   transition: 'background-color 0.2s'
                 }}
                 onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f3f4f6'}
@@ -223,10 +227,10 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Repor
                       setSelectedSubjectsForReport(selectedSubjectsForReport.filter(id => id !== subjectId));
                     }
                   }}
-                  style={{ width: '16px', height: '16px' }}
+                  style={{ width: '1.125rem', height: '1.125rem', flexShrink: 0, margin: 0, cursor: 'pointer' }}
                 />
-                <span style={{ fontSize: '0.875rem' }}>
-                  {subject.nameEn || subject.name || 'Unknown Subject'}
+                <span style={{ fontSize: '0.95rem' }}>
+                  {lang === 'ar' ? (subject.nameAr || subject.nameEn || subject.name || 'Unknown Subject') : (subject.nameEn || subject.name || 'Unknown Subject')}
                 </span>
               </label>
             ))

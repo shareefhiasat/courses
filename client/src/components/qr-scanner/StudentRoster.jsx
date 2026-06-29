@@ -530,7 +530,7 @@ const StudentRoster = React.memo(function StudentRoster({
             // Trigger a refresh of the students data to update attendance status
             setTimeout(() => {
               onRefresh();
-            }, 100); // Small delay to ensure Firebase has processed the update
+            }, 500); // Delay to ensure backend has committed the transaction
           } else {
             debug(
                 'Not triggering onRefresh - missing status or onRefresh', {
@@ -793,10 +793,12 @@ const StudentRoster = React.memo(function StudentRoster({
           source: 'roster'
         });
 
-        // Trigger refresh if callback provided
-        if (onRefresh) {
-          onRefresh();
-        }
+        // Delay refresh slightly to ensure backend has committed the transaction
+        setTimeout(() => {
+          if (onRefresh) {
+            onRefresh();
+          }
+        }, 500);
 
         // Add haptic feedback if available
         if (navigator.vibrate) {

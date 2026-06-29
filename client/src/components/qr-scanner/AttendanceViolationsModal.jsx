@@ -79,7 +79,9 @@ const AttendanceViolationsModal = ({
                   style={{
                     display: 'flex',
                     alignItems: 'center',
+                    gap: '0.625rem',
                     padding: '0.75rem',
+                    fontSize: '0.95rem',
                     cursor: 'pointer',
                     borderRadius: '0.375rem',
                     transition: 'background 0.2s',
@@ -100,9 +102,15 @@ const AttendanceViolationsModal = ({
                     type="checkbox"
                     checked={selectedSubjects.includes(subject.id)}
                     onChange={() => toggleSubject(subject.id)}
-                    style={{ marginRight: '0.75rem', cursor: 'pointer' }}
+                    style={{
+                      width: '1.125rem',
+                      height: '1.125rem',
+                      flexShrink: 0,
+                      cursor: 'pointer',
+                      margin: 0
+                    }}
                   />
-                  <span style={{ color: 'var(--text-primary, #1f2937)' }}>
+                  <span style={{ color: 'var(--text-primary, #1f2937)', fontSize: '0.95rem' }}>
                     {lang === 'ar' ? (subject.nameAr || subject.nameEn || subject.name || subject.code) : (subject.nameEn || subject.name || subject.code)}
                   </span>
                 </label>
@@ -147,7 +155,9 @@ const AttendanceViolationsModal = ({
                 style={{
                   display: 'flex',
                   alignItems: 'center',
+                  gap: '0.625rem',
                   padding: '0.75rem',
+                  fontSize: '0.95rem',
                   cursor: 'pointer',
                   borderRadius: '0.375rem',
                   transition: 'background 0.2s',
@@ -168,9 +178,15 @@ const AttendanceViolationsModal = ({
                   type="checkbox"
                   checked={selectedViolationTypes[key]}
                   onChange={() => toggleViolationType(key)}
-                  style={{ marginRight: '0.75rem', cursor: 'pointer' }}
+                  style={{
+                    width: '1.125rem',
+                    height: '1.125rem',
+                    flexShrink: 0,
+                    cursor: 'pointer',
+                    margin: 0
+                  }}
                 />
-                <span style={{ color: 'var(--text-primary, #1f2937)' }}>
+                <span style={{ color: 'var(--text-primary, #1f2937)', fontSize: '0.95rem' }}>
                   {label}
                 </span>
               </label>

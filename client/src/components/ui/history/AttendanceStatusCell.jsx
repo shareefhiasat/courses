@@ -1,5 +1,5 @@
 import React from 'react';
-import { ATTENDANCE_STATUS_LABELS, getAttendanceColor, getAttendanceLabel } from '@constants/attendanceTypes.js';
+import { ATTENDANCE_STATUS_LABELS, getAttendanceColor, getLocalizedAttendanceLabel } from '@constants/attendanceTypes.js';
 import { CheckSmallIcon, ClockSmallIcon, XSmallIcon, HeartIcon, CircleIcon } from '@utils/icons.jsx';
 import { getThemedIcon } from '@constants/iconTypes';
 
@@ -21,7 +21,7 @@ const AttendanceStatusCell = ({ status, type = 'regular', t, lang }) => {
     }
 
     const color = getAttendanceColor(statusUpper);
-    const label = getAttendanceLabel(statusUpper);
+    const label = getLocalizedAttendanceLabel(statusUpper, lang);
 
     const getIcon = (s) => {
       switch(statusUpper) {

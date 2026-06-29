@@ -652,7 +652,8 @@ export const getUsersByIds = async (ids, params = {}) => {
     // Fetch all users and filter by IDs
     const result = await getAllUsers(params);
     if (result.success && result.data) {
-      const filteredData = result.data.filter(user => ids.includes(user.id));
+      const idSet = new Set(ids.map(id => Number(id)));
+      const filteredData = result.data.filter(user => idSet.has(Number(user.id)));
       return {
         success: true,
         data: filteredData,

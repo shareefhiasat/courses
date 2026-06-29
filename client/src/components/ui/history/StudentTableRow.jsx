@@ -4,7 +4,7 @@ import { Button } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 import { ACTIVITY_COLORS } from '@constants';
 import StudentRosterHistory from './StudentRosterHistory';
-import { ATTENDANCE_STATUS_LABELS, getAttendanceColor, getAttendanceLabel, getAttendanceIcon, ATTENDANCE_TYPE_CATEGORY, STANDUP_ATTENDANCE_TYPES } from '@constants/attendanceTypes';
+import { ATTENDANCE_STATUS_LABELS, getAttendanceColor, getAttendanceLabel, getLocalizedAttendanceLabel, getAttendanceIcon, ATTENDANCE_TYPE_CATEGORY, STANDUP_ATTENDANCE_TYPES } from '@constants/attendanceTypes';
 import { useNavigate } from 'react-router-dom';
 import { useLang } from '@contexts/LangContext';
 import PortalTooltip from '@ui/PortalTooltip';
@@ -67,8 +67,10 @@ const StudentTableRow = ({
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Use local override if available, otherwise fall back to student prop
-  // Today column always shows regular attendance, regardless of mode
-  const todayStatus = todayAttendanceOverrides[student.id] ?? student.attendance;
+  // In standup mode, use standupStatus; in regular mode, use attendance
+  const todayStatus = attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP
+    ? (todayAttendanceOverrides[student.id] ?? student.standupStatus)
+    : (todayAttendanceOverrides[student.id] ?? student.attendance);
 
   // Status for current mode (used for button disable logic)
   const currentModeStatus = attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? student.standupStatus : student.attendance;
@@ -80,10 +82,10 @@ const StudentTableRow = ({
 
   // Toggle logic: buttons are disabled based on current status, not just if any attendance exists
   // If marked as Present, disable Present button but enable Late button (and vice versa)
-  const isPresentButtonDisabled = hasAttendanceForMode && currentModeStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'standup_present' : 'present');
-  const isLateButtonDisabled = hasAttendanceForMode && currentModeStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'standup_late' : 'late');
-  const isAbsentButtonDisabled = hasAttendanceForMode && currentModeStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'standup_absent' : 'absent');
-  const isClinicButtonDisabled = hasAttendanceForMode && currentModeStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'standup_clinic' : 'clinic');
+  const isPresentButtonDisabled = hasAttendanceForMode && currentModeStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_PRESENT' : 'PRESENT');
+  const isLateButtonDisabled = hasAttendanceForMode && currentModeStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_LATE' : 'LATE');
+  const isAbsentButtonDisabled = hasAttendanceForMode && currentModeStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_ABSENT' : 'ABSENT');
+  const isClinicButtonDisabled = hasAttendanceForMode && currentModeStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_CLINIC' : 'CLINIC');
 
   // Log 1: Inside disabled check, log Student ID and the specific record object being compared
   console.log('🔍 [LOG 1] StudentTableRow - Button disabled logic:', {
@@ -138,7 +140,7 @@ const StudentTableRow = ({
     }
 
     const color = getAttendanceColor(status);
-    const label = getAttendanceLabel(status);
+    const label = getLocalizedAttendanceLabel(status, lang);
 
     const getIcon = (s) => {
       const statusUpper = s?.toUpperCase();
@@ -185,7 +187,7 @@ const StudentTableRow = ({
     // If attendance status is provided, use its color and icon
     if (attendanceStatus) {
       finalType = 'attendance';
-      finalMessage = message || getAttendanceLabel(attendanceStatus, lang);
+      finalMessage = message || getLocalizedAttendanceLabel(attendanceStatus, lang);
     }
     
     setResultModalData({ 
@@ -203,7 +205,7 @@ const StudentTableRow = ({
     // Check if student already has this status (use override if available)
     const currentStatus = todayStatus;
     if (currentStatus === status) {
-      showResult('info', `${t('already_marked_as')} ${getAttendanceLabel(status, lang)}`, status);
+      showResult('info', `${t('already_marked_as')} ${getLocalizedAttendanceLabel(status, lang)}`, status);
       return;
     }
 
@@ -212,14 +214,14 @@ const StudentTableRow = ({
     try {
       await onQuickAttendance(student, status, mode || attendanceMode, programIdParam || programId);
       // Show modal immediately, delay table refresh
-      showResult('success', `${t('successfully_marked')} ${getAttendanceLabel(status, lang)}`, status);
+      showResult('success', `${t('successfully_marked')} ${getLocalizedAttendanceLabel(status, lang)}`, status);
 
       // Delay to let user see the modal before table refresh
       setTimeout(() => {
         setIsSubmitting(false);
       }, 2000); // 2 seconds delay
     } catch (error) {
-      showResult('error', `${t('failed_to_mark')} ${getAttendanceLabel(status, lang)}: ${error.message}`, status);
+      showResult('error', `${t('failed_to_mark')} ${getLocalizedAttendanceLabel(status, lang)}: ${error.message}`, status);
 
       // Delay to let user see the error modal
       setTimeout(() => {
@@ -687,7 +689,7 @@ const StudentTableRow = ({
               margin: '0 0 0.5rem 0'
             }}>
               {resultModalData.attendanceStatus ? 
-                getAttendanceLabel(resultModalData.attendanceStatus, lang) :
+                getLocalizedAttendanceLabel(resultModalData.attendanceStatus, lang) :
                 (resultModalData.type === 'success' ? 'Success!' :
                   resultModalData.type === 'error' ? 'Error!' : 
                   resultModalData.type === 'info' ? 'Info' : 'Information')}

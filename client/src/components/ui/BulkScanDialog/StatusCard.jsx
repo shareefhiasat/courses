@@ -42,7 +42,7 @@ const StatusCard = ({
       disabled={disabled}
       className={`${styles.statusCard} ${styles[id]} ${selected ? styles.selected : ''} ${styles[theme]}`}
       style={{
-        padding: '0.5rem',
+        padding: '0.375rem 0.625rem',
         borderRadius: '0.375rem',
         border: `2px solid ${color || '#6b7280'}`,
         background: selected ? (color || '#6b7280') : (theme === 'dark' ? '#1f2937' : 'white'),
@@ -50,19 +50,17 @@ const StatusCard = ({
         cursor: disabled ? 'not-allowed' : 'pointer',
         opacity: disabled ? 0.5 : 1,
         display: 'flex',
-        flexDirection: 'column',
+        flexDirection: 'row',
         alignItems: 'center',
         gap: '0.25rem',
-        fontSize: '0.75rem',
+        fontSize: '0.8125rem',
         fontWeight: 500,
         transition: 'all 0.2s',
-        minWidth: '4rem'
+        minWidth: 'auto'
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-        {getThemedIcon('ui', iconConfig.icon, 14, selected ? 'white' : iconConfig.color)}
-      </div>
-      <span style={{ fontSize: '0.7rem', textAlign: 'center' }}>
+      {getThemedIcon('ui', iconConfig.icon, 14, selected ? 'white' : iconConfig.color)}
+      <span style={{ fontSize: '0.8125rem', textAlign: 'center' }}>
         {lang === 'ar' ? labelAr : labelEn}
       </span>
     </button>

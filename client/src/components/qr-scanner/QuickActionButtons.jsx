@@ -1,7 +1,7 @@
 import React from 'react';
 import PortalTooltip from '@ui/PortalTooltip';
 import { CheckSmallIcon, ClockSmallIcon } from '@utils/icons.jsx';
-import { getAttendanceColor, ATTENDANCE_STATUS } from '@constants/attendanceTypes';
+import { getAttendanceColor, ATTENDANCE_STATUS, ATTENDANCE_TYPE_CATEGORY } from '@constants/attendanceTypes';
 
 const QuickActionButtons = ({
   studentId,
@@ -15,14 +15,25 @@ const QuickActionButtons = ({
 }) => {
   const student = students.find(s => s.id === studentId);
 
-  // Check if student has any attendance for today
-  const studentAttendanceStatus = student?.attendance || student?.standupStatus;
-  const hasAttendance = !!studentAttendanceStatus;
+  if (!student) return null;
+
+  // Determine current status based on attendance mode
+  const currentStatus = attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP
+    ? student?.standupStatus
+    : student?.attendance;
+
+  const hasAttendance = !!currentStatus;
 
   // If attendance exists and user doesn't have edit permission, disable all buttons
   const shouldDisableAll = hasAttendance && !canEditAttendance;
 
-  if (!student) return null;
+  // Check if specific status matches (case-insensitive, handles both regular and standup variants)
+  const isPresent = hasAttendance && [
+    'PRESENT', 'STANDUP_PRESENT', 'present', 'standup_present'
+  ].includes(currentStatus);
+  const isLate = hasAttendance && [
+    'LATE', 'STANDUP_LATE', 'late', 'standup_late'
+  ].includes(currentStatus);
 
   const handlePresentClick = async (e) => {
     e.stopPropagation();
@@ -35,9 +46,6 @@ const QuickActionButtons = ({
     e.preventDefault();
     await onQuickAttendance(student, ATTENDANCE_STATUS.LATE, attendanceMode, programId);
   };
-
-  const isPresent = student?.attendance === 'present';
-  const isLate = student?.attendance === 'late';
 
   return (
     <div style={{

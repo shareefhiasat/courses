@@ -453,6 +453,20 @@ export const apiService = {
   clearCacheEntry: (url) => {
     requestCache.delete(url);
     debug('[API Service] Cache entry cleared for:', url);
+  },
+
+  /**
+   * Clear all cache entries whose URL starts with the given prefix
+   * Useful for invalidating cache after mutations that affect multiple endpoints
+   * @param {string} prefix - The URL prefix to match (e.g., 'standup-attendance')
+   */
+  clearCacheByPrefix: (prefix) => {
+    for (const key of requestCache.keys()) {
+      if (key.startsWith(prefix)) {
+        requestCache.delete(key);
+      }
+    }
+    debug('[API Service] Cache entries cleared for prefix:', prefix);
   }
 };
 

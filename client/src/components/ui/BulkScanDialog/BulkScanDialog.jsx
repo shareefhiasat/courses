@@ -9,6 +9,7 @@ import StatusCard from './StatusCard';
 import StudentChip from './StudentChip';
 import styles from './BulkScanDialog.module.css';
 import { exportGeneric } from '@services/export/excelExportService.js';
+import { getLocalizedUserName } from '@utils/localizedUserName.js';
 
 
 import { info, error, warn, debug } from '@services/utils/logger.js';
@@ -586,6 +587,7 @@ const BulkScanDialog = ({
                           onMove={moveToSelected}
                           disabled={loading}
                           hasEditPermission={hasEditPermission}
+                          lang={lang}
                         />
                       ))
                     )}
@@ -644,6 +646,7 @@ const BulkScanDialog = ({
                           onMove={moveToExcluded}
                           disabled={loading}
                           hasEditPermission={hasEditPermission}
+                          lang={lang}
                         />
                       ) : (
                         <div
@@ -654,13 +657,16 @@ const BulkScanDialog = ({
                         >
                           <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: '0.5rem' }}>
                             <span className={styles.chipText} style={{ fontWeight: '600' }}>
-                              {student.studentNumber}
+                              {student.studentNumber || student.id}
                             </span>
-                            {student.displayName && (
-                              <span className={styles.chipName} style={{ fontSize: '0.875rem', color: '#64748b' }}>
-                                {student.displayName}
-                              </span>
-                            )}
+                            {(() => {
+                              const name = getLocalizedUserName(student, lang, '');
+                              return name ? (
+                                <span className={styles.chipName} style={{ fontSize: '0.875rem', color: '#64748b' }}>
+                                  {name}
+                                </span>
+                              ) : null;
+                            })()}
                           </div>
                         </div>
                       )

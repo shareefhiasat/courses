@@ -65,7 +65,7 @@ const QuickAttendanceButtons = ({
             borderRadius: '0.375rem',
             transition: 'all 0.2s ease',
             boxShadow: (isPresentButtonDisabled || shouldDisableAll) ? 'none' : `0 2px 4px ${getAttendanceColor(attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_PRESENT' : 'PRESENT')}30`,
-            opacity: (isPresentButtonDisabled || shouldDisableAll) ? 0.5 : 1,
+            opacity: (isPresentButtonDisabled || shouldDisableAll) ? 0.35 : 1,
             cursor: (isPresentButtonDisabled || shouldDisableAll) ? 'not-allowed' : 'pointer'
           }}
           onMouseEnter={(e) => {
@@ -114,7 +114,7 @@ const QuickAttendanceButtons = ({
             borderRadius: '0.375rem',
             transition: 'all 0.2s ease',
             boxShadow: (isLateButtonDisabled || shouldDisableAll) ? 'none' : `0 2px 4px ${getAttendanceColor(attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_LATE' : 'LATE')}30`,
-            opacity: (isLateButtonDisabled || shouldDisableAll) ? 0.5 : 1,
+            opacity: (isLateButtonDisabled || shouldDisableAll) ? 0.35 : 1,
             cursor: (isLateButtonDisabled || shouldDisableAll) ? 'not-allowed' : 'pointer'
           }}
           onMouseEnter={(e) => {
@@ -164,7 +164,7 @@ const QuickAttendanceButtons = ({
               borderRadius: '0.375rem',
               transition: 'all 0.2s ease',
               boxShadow: (isAbsentButtonDisabled || shouldDisableAll) ? 'none' : `0 2px 4px ${getAttendanceColor('STANDUP_ABSENT')}30`,
-              opacity: (isAbsentButtonDisabled || shouldDisableAll) ? 0.5 : 1,
+              opacity: (isAbsentButtonDisabled || shouldDisableAll) ? 0.35 : 1,
               cursor: (isAbsentButtonDisabled || shouldDisableAll) ? 'not-allowed' : 'pointer'
             }}
             onMouseEnter={(e) => {
@@ -215,7 +215,7 @@ const QuickAttendanceButtons = ({
               borderRadius: '0.375rem',
               transition: 'all 0.2s ease',
               boxShadow: (isClinicButtonDisabled || shouldDisableAll) ? 'none' : `0 2px 4px ${getAttendanceColor('STANDUP_CLINIC')}30`,
-              opacity: (isClinicButtonDisabled || shouldDisableAll) ? 0.5 : 1,
+              opacity: (isClinicButtonDisabled || shouldDisableAll) ? 0.35 : 1,
               cursor: (isClinicButtonDisabled || shouldDisableAll) ? 'not-allowed' : 'pointer'
             }}
             onMouseEnter={(e) => {

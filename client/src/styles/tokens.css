@@ -255,9 +255,7 @@
 }
 
 /* ===== ARABIC FONT SCALING ===== */
-/* Arabic fonts render smaller at the same rem size, so bump by ~15% */
 html[lang="ar"] {
-  font-size: 112.5%; /* 18px base instead of 16px, scales all rem units up */
   font-family: var(--font-family-arabic);
 }
 
@@ -269,10 +267,7 @@ html[lang="ar"] textarea {
   font-family: var(--font-family-arabic);
 }
 
-/* Scale all SVG icons proportionally with Arabic font scaling */
-html[lang="ar"] svg {
-  transform: scale(1.15);
-}
+
 
 /* ===== PRINT STYLES ===== */
 @media print {

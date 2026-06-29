@@ -92,7 +92,7 @@ import { FeatureFlagWrapper } from '@ui/FeatureFlagWrapper';
 import { useFeatureFlags } from '@hooks/useFeatureFlags';
 import { ROLE_STRINGS } from '@utils/userUtils';
 
-export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteActivity, selectedProgramId, selectedSubjectId, selectedClassId, selectedProgramName, selectedSubjectName, selectedClassName, selectedProgramNameAr, selectedSubjectNameAr, selectedClassNameAr, loading = false, students = [], onMinimizeChange, forceMinimized = false, attendanceMode: propAttendanceMode }) {
+export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteActivity, selectedProgramId, selectedSubjectId, selectedClassId, selectedDate, selectedProgramName, selectedSubjectName, selectedClassName, selectedProgramNameAr, selectedSubjectNameAr, selectedClassNameAr, loading = false, students = [], onMinimizeChange, forceMinimized = false, attendanceMode: propAttendanceMode }) {
   const auth = useAuth();
   const { user, role, isSuperAdmin } = auth;
   const { t, lang, isRTL } = useLang();
@@ -1056,40 +1056,64 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       // Small delay to ensure Firestore has processed the update
       await new Promise(resolve => setTimeout(resolve, 500));
 
-      // Use local date string YYYY-MM-DD to avoid timezone shifts
-      const today = new Date();
-      const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+      // Use selectedDate (YYYY-MM-DD) for activity queries, fallback to today
+      const activityDate = (typeof selectedDate === 'string' && selectedDate) 
+        ? selectedDate 
+        : (() => {
+            const today = new Date();
+            return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+          })();
 
       // Get attendance records based on date filter and mode
       let attendanceRecords = [];
       if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
         // In standup mode, fetch from standup attendance table for the program using single efficient API call
         if (selectedProgramId && selectedProgramId !== 'all') {
-          const attendanceResponse = await getStandupAttendanceByProgramAndDate(selectedProgramId, todayStr);
+          const attendanceResponse = await getStandupAttendanceByProgramAndDate(selectedProgramId, activityDate);
           if (attendanceResponse.success && attendanceResponse.data) {
             attendanceRecords = attendanceResponse.data.map(r => ({ ...r, category: RECORD_TYPES.ATTENDANCE }));
           }
         }
       } else {
-        // In regular mode, fetch from regular attendance table for the class (today only)
-        const attendanceResponse = await getAttendanceByClass(classId, { date: todayStr });
+        // In regular mode, fetch from regular attendance table for the class
+        const attendanceResponse = await getAttendanceByClass(classId, { date: activityDate });
         attendanceRecords = attendanceResponse.success ? attendanceResponse.data.filter(r => r.status).map(r => ({ ...r, category: RECORD_TYPES.ATTENDANCE })) : [];
       }
 
-      // Get penalties for today only
+      // Get penalties, participations, behaviors for the selected date
+      // In standup mode, classId may be null — skip class-based queries
       let penaltyRecords = [];
-      const penaltiesResponse = await getPenaltiesByClassAndDate(classId, todayStr);
-      penaltyRecords = penaltiesResponse.success && penaltiesResponse.data ? penaltiesResponse.data.map(p => ({ ...p, category: RECORD_TYPES.PENALTY })) : [];
-
-      // Get participations for today only
       let participationRecords = [];
-      const participationsResponse = await getParticipationsByClassAndDate(classId, todayStr);
-      participationRecords = participationsResponse.success && participationsResponse.data ? participationsResponse.data.map(p => ({ ...p, category: RECORD_TYPES.PARTICIPATION })) : [];
-
-      // Get behaviors for today only
       let behaviorRecords = [];
-      const behaviorsResponse = await getBehaviorsByClassAndDate(classId, todayStr);
-      behaviorRecords = behaviorsResponse.success && behaviorsResponse.data ? behaviorsResponse.data.map(b => ({ ...b, category: RECORD_TYPES.BEHAVIOR })) : [];
+
+      if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
+        // In standup mode, fetch all and filter by student IDs from currentStudents
+        const studentIdSet = new Set(currentStudents.map(s => s.id));
+        const [penaltiesRes, participationsRes, behaviorsRes] = await Promise.all([
+          getPenaltiesByClassAndDate(null, activityDate),
+          getParticipationsByClassAndDate(null, activityDate),
+          getBehaviorsByClassAndDate(null, activityDate)
+        ]);
+        penaltyRecords = (penaltiesRes.success && penaltiesRes.data ? penaltiesRes.data : [])
+          .filter(p => studentIdSet.has(p.studentId))
+          .map(p => ({ ...p, category: RECORD_TYPES.PENALTY }));
+        participationRecords = (participationsRes.success && participationsRes.data ? participationsRes.data : [])
+          .filter(p => studentIdSet.has(p.studentId))
+          .map(p => ({ ...p, category: RECORD_TYPES.PARTICIPATION }));
+        behaviorRecords = (behaviorsRes.success && behaviorsRes.data ? behaviorsRes.data : [])
+          .filter(b => studentIdSet.has(b.studentId))
+          .map(b => ({ ...b, category: RECORD_TYPES.BEHAVIOR }));
+      } else {
+        // In regular mode, use classId-based queries
+        const [penaltiesResponse, participationsResponse, behaviorsResponse] = await Promise.all([
+          getPenaltiesByClassAndDate(classId, activityDate),
+          getParticipationsByClassAndDate(classId, activityDate),
+          getBehaviorsByClassAndDate(classId, activityDate)
+        ]);
+        penaltyRecords = penaltiesResponse.success && penaltiesResponse.data ? penaltiesResponse.data.map(p => ({ ...p, category: RECORD_TYPES.PENALTY })) : [];
+        participationRecords = participationsResponse.success && participationsResponse.data ? participationsResponse.data.map(p => ({ ...p, category: RECORD_TYPES.PARTICIPATION })) : [];
+        behaviorRecords = behaviorsResponse.success && behaviorsResponse.data ? behaviorsResponse.data.map(b => ({ ...b, category: RECORD_TYPES.BEHAVIOR })) : [];
+      }
 
       debug('[QR Scanner] Attendance records fetched:', attendanceRecords.length);
       const allRecords = [...attendanceRecords, ...penaltyRecords, ...participationRecords, ...behaviorRecords];
@@ -1097,6 +1121,8 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
       // Create student map for efficient lookup
       const studentMap = {};
+      const studentMapEn = {};
+      const studentMapAr = {};
       info('Creating student map from', currentStudents.length, 'students');
 
       // Only create student map if we have students
@@ -1114,7 +1140,9 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
       currentStudents.forEach((student) => {
         const studentId = student.id;
-        studentMap[studentId] = getLocalizedUserName(student, lang, unknownStudentLabel);
+        studentMapEn[studentId] = getLocalizedUserName(student, 'en', unknownStudentLabel);
+        studentMapAr[studentId] = getLocalizedUserName(student, 'ar', studentMapEn[studentId]);
+        studentMap[studentId] = lang === 'ar' ? studentMapAr[studentId] : studentMapEn[studentId];
       });
 
       info('QRScanner student map created:', currentStudents.length, 'students');
@@ -1155,11 +1183,8 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         } else {
           studentName = studentMap[studentId];
           if (studentName) {
-            const foundStudent = students.find(s => s.id === studentId);
-            if (foundStudent) {
-              studentNameEn = getLocalizedUserName(foundStudent, 'en', studentName);
-              studentNameAr = getLocalizedUserName(foundStudent, 'ar', studentNameEn);
-            }
+            studentNameEn = studentMapEn[studentId] || studentName;
+            studentNameAr = studentMapAr[studentId] || studentNameEn;
           }
         }
 
@@ -1327,58 +1352,15 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
       debug('[QR Scanner] Final unique logs:', uniqueLogs.length);
 
-      // Format time for display
-      const formattedLogs = uniqueLogs.map(log => {
-        let formattedTime = '';
-        if (log.time?.toDate) {
-          const date = log.time.toDate();
-          const hours = date.getHours();
-          const minutes = date.getMinutes();
-          const seconds = date.getSeconds();
-          
-          // If all time components are 0, it's likely a date-only timestamp
-          if (hours === 0 && minutes === 0 && seconds === 0) {
-            formattedTime = '';
-          } else {
-            formattedTime = date.toLocaleTimeString('en-US', {
-              hour: 'numeric',
-              minute: '2-digit',
-              hour12: true
-            });
-          }
-        } else if (log.time instanceof Date) {
-          const hours = log.time.getHours();
-          const minutes = log.time.getMinutes();
-          const seconds = log.time.getSeconds();
-          
-          // If all time components are 0, it's likely a date-only timestamp
-          if (hours === 0 && minutes === 0 && seconds === 0) {
-            formattedTime = '';
-          } else {
-            formattedTime = log.time.toLocaleTimeString('en-US', {
-              hour: 'numeric',
-              minute: '2-digit',
-              hour12: true
-            });
-          }
-        } else {
-          formattedTime = log.time || '';
-        }
-        
-        return {
-          ...log,
-          time: formattedTime
-        };
-      });
-
-      setRecentActivity(formattedLogs);
+      // Keep raw timestamps — ActivityList.formatActivityTime handles display formatting
+      setRecentActivity(uniqueLogs);
     } catch (err) {
       error('Error fetching recent activity:', err);
       setRecentActivity([]);
     } finally {
       setActivityLoading(false);
     }
-  }, [classId, students, user, selectedProgramName, selectedSubjectName, selectedClassName, lang, t, attendanceMode, selectedProgramId]);
+  }, [classId, students, user, selectedProgramName, selectedSubjectName, selectedClassName, lang, t, attendanceMode, selectedProgramId, selectedDate]);
 
   // Memoized helper functions for activity display - defined outside map for performance
   const getScanMethodDisplay = useCallback((scanMethod) => {
@@ -1451,15 +1433,15 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
   }, []);
 
   const getStatusIcon = useCallback((status, type, delta) => {
-    // Use white icons for participation, behavior, and penalty
+    // Use white icons with colored circle backgrounds for participation, behavior, and penalty
     if (type === RECORD_TYPES.PARTICIPATION || delta > 0) {
-      return <ParticipationIcon style={{ width: '12px', height: '12px', color: '#ffffff' }} />;
+      return <div style={{ backgroundColor: '#16a34a', borderRadius: '50%', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ParticipationIcon style={{ width: '12px', height: '12px', color: '#ffffff' }} /></div>;
     }
     if (type === RECORD_TYPES.PENALTY) {
-      return <PenaltyIcon style={{ width: '12px', height: '12px', color: '#ffffff' }} />;
+      return <div style={{ backgroundColor: '#f97316', borderRadius: '50%', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><PenaltyIcon style={{ width: '12px', height: '12px', color: '#ffffff' }} /></div>;
     }
     if (type === RECORD_TYPES.BEHAVIOR || delta < 0) {
-      return <ZapIcon style={{ width: '12px', height: '12px', color: '#ffffff' }} />;
+      return <div style={{ backgroundColor: '#f97316', borderRadius: '50%', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ZapIcon style={{ width: '12px', height: '12px', color: '#ffffff' }} /></div>;
     }
 
     // Use unified attendance icons for attendance types
@@ -1559,8 +1541,10 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       setCurrentAction(status);
 
       try {
-        const today = formatQatarDateOnly(getQatarNow());
-        const todayISO = getQatarNow().toISOString().split('T')[0]; // Use ISO format for database
+        // Use selectedDate if available, otherwise default to today
+        const dateStr = (typeof selectedDate === 'string' && selectedDate) 
+          ? selectedDate 
+          : getQatarNow().toISOString().split('T')[0];
 
         // Get the correct student ID - try multiple possible fields
         let studentId = lastScannedStudent?.id ||
@@ -1588,13 +1572,14 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
         debug('Using studentId:', studentId);
 
-        // Check if already marked with any attendance status today
-        const studentIdentifier = lastScannedStudent?.studentNumber || lastScannedStudent?.referenceId;
-        const isMarked = await isStudentMarkedToday(classId, studentIdentifier);
-        if (isMarked) {
-          showResult('info', 'Student is already marked for today.');
-          setShowScanDialog(false);
-          return;
+        // Check if already marked — only in regular mode (standup uses different table)
+        if (attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP) {
+          const isMarked = await isStudentMarkedToday(studentId);
+          if (isMarked) {
+            showResult('info', 'Student is already marked for today.');
+            setShowScanDialog(false);
+            return;
+          }
         }
 
         // Get performedBy fields using shared service
@@ -1604,7 +1589,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         let result = await markAttendance({
           userId: studentId,
           classId: attendanceMode === ATTENDANCE_TYPE_CATEGORY.REGULAR ? classId : undefined,
-          date: todayISO, // Use ISO format for database
+          date: dateStr,
           status: attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? status.toUpperCase() : status,
           notes: attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP
             ? getNoteTypeFromStatus(status, 'standup')
@@ -1710,7 +1695,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         showError('Failed to mark attendance');
       }
     }
-  }, [selectedClassId, selectedSubjectId, user, lastScannedStudent, students, classId, lang, t, onActivityUpdate, fetchRecentActivity, showResult, addDebugLog, showSuccess, showError, attendanceMode, selectedProgramId]);
+  }, [selectedClassId, selectedSubjectId, user, lastScannedStudent, students, classId, lang, t, onActivityUpdate, fetchRecentActivity, showResult, addDebugLog, showSuccess, showError, attendanceMode, selectedProgramId, selectedDate]);
 
   // Senior-Level Quick Attendance Handler
   const handleQuickAttendance = useCallback(async (student, status, mode, programIdParam) => {
@@ -1720,7 +1705,9 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     addDebugLog(`⚡ ${t('quick') || 'Quick'} marking ${student.displayName || student.name} as ${statusLabel}`, 'info');
 
     try {
-      const todayISO = getQatarNow().toISOString().split('T')[0];
+      const dateStr = (typeof selectedDate === 'string' && selectedDate) 
+        ? selectedDate 
+        : getQatarNow().toISOString().split('T')[0];
       const performedByFields = await getPerformedByFields(user);
       let result;
 
@@ -1738,7 +1725,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       result = await markAttendance({
         userId: student.id,
         classId: (mode || attendanceMode) === ATTENDANCE_TYPE_CATEGORY.REGULAR ? selectedClassId : undefined,
-        date: todayISO,
+        date: dateStr,
         status: status, // Keep original status format for proper icon/color mapping
         notes: getNoteTypeFromStatus(status, 'quick'),
         user: user,
@@ -1778,7 +1765,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       addDebugLog(`❌ Quick attendance error: ${err.message}`, 'error');
       showResult('error', `Failed to mark ${statusLabel}: ${err.message}`);
     }
-  }, [selectedClassId, user, lang, t, onActivityUpdate, fetchRecentActivity, showResult, addDebugLog, attendanceMode]);
+  }, [selectedClassId, user, lang, t, onActivityUpdate, fetchRecentActivity, showResult, addDebugLog, attendanceMode, selectedProgramId, selectedDate]);
 
   // Clear all standup attendance for current date/program
   const handleClearStandup = useCallback(async () => {
@@ -1787,10 +1774,11 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       return;
     }
 
-    // Count how many standup attendance records exist for today before showing modal
+    // Count how many standup attendance records exist for selected date before showing modal
     try {
-      const qatarNow = getQatarNow();
-      const dateStr = qatarNow.toISOString().split('T')[0];
+      const dateStr = (typeof selectedDate === 'string' && selectedDate) 
+        ? selectedDate 
+        : getQatarNow().toISOString().split('T')[0];
       let recordCount = 0;
 
       for (const student of students) {
@@ -1807,18 +1795,19 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     } catch (err) {
       showResult('error', `Failed to count attendance records: ${err.message}`);
     }
-  }, [selectedProgramId, showResult, t, students]);
+  }, [selectedProgramId, showResult, t, students, selectedDate]);
 
   // Actual clear standup logic (called when modal is confirmed)
   const confirmClearStandup = useCallback(async () => {
     setClearStandupModal(prev => ({ ...prev, loading: true }));
     try {
       addDebugLog('🗑️ Clearing standup attendance...', 'info');
-      addDebugLog(`🔍 Clearing for program: ${selectedProgramId}, date: ${getQatarNow().toISOString().split('T')[0]}`, 'info');
+      addDebugLog(`🔍 Clearing for program: ${selectedProgramId}, date: ${(typeof selectedDate === 'string' && selectedDate) ? selectedDate : getQatarNow().toISOString().split('T')[0]}`, 'info');
       setActivityLoading(true);
 
-      const qatarNow = getQatarNow();
-      const dateStr = qatarNow.toISOString().split('T')[0];
+      const dateStr = (typeof selectedDate === 'string' && selectedDate) 
+        ? selectedDate 
+        : getQatarNow().toISOString().split('T')[0];
       let deletedCount = 0;
 
       // Delete standup attendance for all students in the current program for today
@@ -1862,7 +1851,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       setActivityLoading(false);
       setClearStandupModal({ isOpen: false, loading: false });
     }
-  }, [students, selectedProgramId, t, showResult, addDebugLog, fetchRecentActivity]);
+  }, [students, selectedProgramId, t, showResult, addDebugLog, fetchRecentActivity, selectedDate]);
 
   // Clear all attendance for today in regular mode
   const handleClearRegular = useCallback(async () => {

@@ -141,7 +141,8 @@ const getEnrollments = async (params = {}) => {
             firstName: true,
             lastName: true,
             firstNameAr: true,
-            lastNameAr: true
+            lastNameAr: true,
+            studentNumber: true
           }
         },
         class: {
@@ -243,7 +244,8 @@ const getEnrollmentById = async (id) => {
             firstName: true,
             lastName: true,
             firstNameAr: true,
-            lastNameAr: true
+            lastNameAr: true,
+            studentNumber: true
           }
         },
         class: {

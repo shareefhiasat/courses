@@ -42,7 +42,7 @@ const ManualInputForm = ({
         type="text"
         value={manualStudentId}
         onChange={(e) => setManualStudentId(e.target.value)}
-        placeholder={t('enter_reference_id') || 'Enter reference ID (STU-XXXXXX)'}
+        placeholder={t('enter_reference_id') || 'Enter student number or reference ID (STU-XXXXXX)...'}
         style={{
           width: '100%',
           padding: '0.75rem',

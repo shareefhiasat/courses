@@ -104,9 +104,9 @@ const CollapsibleDashboardSection = ({
 
   const getModeLabel = () => {
     switch (mode) {
-      case 'full': return 'Full View';
-      case 'minimize': return 'Minimize';
-      default: return 'Full View';
+      case 'full': return t('full_view');
+      case 'minimize': return t('minimize');
+      default: return t('full_view');
     }
   };
 
@@ -187,14 +187,14 @@ const CollapsibleDashboardSection = ({
               className={mode === 'minimize' ? styles.active : ''}
             >
               {getThemedIcon('ui', 'minimize', 14)}
-              Minimize
+              {t('minimize')}
             </button>
             <button
               onClick={() => handleModeChange('full')}
               className={mode === 'full' ? styles.active : ''}
             >
               {getThemedIcon('ui', 'layout_grid', 14)}
-              Full View
+              {t('full_view')}
             </button>
             {onRefresh && (
               <PortalTooltip content={refreshing ? t('refreshing_data') : t('refresh_data')} position="top">
@@ -208,7 +208,7 @@ const CollapsibleDashboardSection = ({
                 data-tour="refresh"
               >
                 {getThemedIcon('ui', 'refresh', 14)}
-                {refreshing ? 'Refreshing...' : 'Refresh'}
+                {refreshing ? t('refreshing_data') : t('refresh_data')}
               </button>
               </PortalTooltip>
             )}

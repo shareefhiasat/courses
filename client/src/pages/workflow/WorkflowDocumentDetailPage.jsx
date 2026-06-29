@@ -577,7 +577,7 @@ const WorkflowDocumentDetailPage = () => {
   }
 
   return (
-    <div className="flex justify-center px-4" style={{ paddingTop: '4.5rem', paddingBottom: '1.5rem' }}>
+    <div className="flex justify-center px-4" style={{ paddingTop: '1.5rem', paddingBottom: '1.5rem' }}>
       <Joyride continuous run={runTour} steps={tourSteps} callback={handleTourCallback} scrollOffset={100} scrollToFirstStep showSkipButton showProgress tooltipComponent={TourTooltipComponent}
         locale={{ back: t('tour_back'), close: t('tour_close'), last: t('tour_finish'), next: t('tour_next'), skip: t('tour_skip') }}
         styles={{ options: { primaryColor: 'var(--color-primary,#800020)', textColor: theme === 'dark' ? '#e5e7eb' : '#111', backgroundColor: theme === 'dark' ? '#1f2937' : '#fff', zIndex: 10000 } }}

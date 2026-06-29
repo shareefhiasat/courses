@@ -59,6 +59,7 @@ import './QRScannerPage.module.css';
 import eventBus, { EVENTS } from '@utils/eventBus';
 import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import ErrorBoundary from '@/components/ui/ErrorBoundary';
+import { RECORD_TYPES } from '@utils/sharedTypes';
 
 const QRScannerPage = () => {
   const { user, loading: authLoading, isAdmin, isSuperAdmin, isHR, isInstructor, role } = useAuth();
@@ -364,7 +365,8 @@ const QRScannerPage = () => {
   // Handle activity refresh from QRScanner
   const handleActivityUpdate = useCallback((refreshFunction) => {
     if (refreshFunction) {
-      refreshFunction(); // Call the refresh function immediately
+      setActivityRefresh(() => refreshFunction);
+      refreshFunction();
     }
   }, []);
 
@@ -928,7 +930,7 @@ const QRScannerPage = () => {
           };
           const todayStandupStatus = todayStandupAttendanceRecord?.statusId 
             ? statusIdMap[todayStandupAttendanceRecord.statusId] || null
-            : (todayStandupAttendanceRecord?.status?.toLowerCase() || null);
+            : (todayStandupAttendanceRecord?.status?.toUpperCase() || null);
 
           // DEBUG: Log status assignment
           console.log('🔍 [DEBUG] Status assignment:', {
@@ -1191,18 +1193,39 @@ const QRScannerPage = () => {
 
   // Listen for real-time attendance updates with debouncing
   useEffect(() => {
+    let refreshTimer = null;
     const unsubscribe = eventBus.on(EVENTS.ATTENDANCE_MARKED, (data) => {
-      // In standup mode, refresh by program; in regular mode, refresh by class
-      if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
-        debug('🔄 Attendance marked event received in standup mode, refreshing students for program:', selectedProgramId);
-        loadStudents(selectedClassId, selectedDate, selectedProgramId);
-      } else if (data.classId === selectedClassId) {
-        debug('🔄 Attendance marked event received, refreshing students for class:', selectedClassId);
-        loadStudents(selectedClassId, selectedDate);
+      // Optimistic update: immediately update student's attendance status in local state
+      if (data.studentId && data.status) {
+        setStudents(prev => prev.map(s => {
+          if (s.id !== data.studentId) return s;
+          if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
+            const upperStatus = data.status.toUpperCase();
+            const standupStatus = upperStatus.startsWith('STANDUP_') ? upperStatus : (
+              { PRESENT: 'STANDUP_PRESENT', LATE: 'STANDUP_LATE', ABSENT: 'STANDUP_ABSENT', ABSENT_NO_EXCUSE: 'STANDUP_ABSENT', ABSENT_WITH_EXCUSE: 'STANDUP_ABSENT', HUMAN_CASE: 'STANDUP_CLINIC', EXCUSED_LEAVE: 'STANDUP_CLINIC' }[upperStatus] || upperStatus
+            );
+            return { ...s, standupStatus };
+          }
+          return { ...s, attendance: data.status };
+        }));
       }
+
+      // Debounce rapid events and delay to ensure backend commit
+      if (refreshTimer) clearTimeout(refreshTimer);
+      refreshTimer = setTimeout(() => {
+        // In standup mode, refresh by program; in regular mode, refresh by class
+        if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
+          debug('🔄 Attendance marked event received in standup mode, refreshing students for program:', selectedProgramId);
+          loadStudents(null, selectedDate, selectedProgramId);
+        } else if (data.classId == selectedClassId) {
+          debug('🔄 Attendance marked event received, refreshing students for class:', selectedClassId);
+          loadStudents(selectedClassId, selectedDate);
+        }
+      }, 500);
     });
 
     return () => {
+      if (refreshTimer) clearTimeout(refreshTimer);
       if (unsubscribe) unsubscribe();
     };
   }, [selectedClassId, selectedDate, selectedProgramId, attendanceMode, loadStudents]);
@@ -1696,7 +1719,7 @@ const QRScannerPage = () => {
         t('participation') || 'Participation',
         t('behavior') || 'Behavior',
         t('penalty') || 'Penalty',
-        t('total_attendance') || 'Total Attendance'
+        t('days_present') || 'Days Present'
       ];
       const csvContent = [
         headers.join(','),
@@ -1704,7 +1727,7 @@ const QRScannerPage = () => {
           student.studentNumber || student.id || '',
           `"${student.name || 'Unknown'}"`,
           student.email || '',
-          student.attendance || '',
+          student.attendance ? getLocalizedAttendanceLabel(student.attendance, lang) : (t('not_marked') || 'Not Marked'),
           student.participation || 0,
           student.behavior || 0,
           student.penalty || 0,
@@ -1730,15 +1753,15 @@ const QRScannerPage = () => {
       error('Error downloading CSV:', err);
       alert(t('failed_to_download_csv') || 'Failed to download CSV. Please try again.');
     }
-  }, [students, classes, subjects, selectedClassId, selectedSubjectId, selectedDate, t]);
+  }, [students, classes, subjects, selectedClassId, selectedSubjectId, selectedDate, t, lang]);
 
   const handleRefresh = useCallback(() => {
     // Reload students data
-    if (selectedClassId && selectedClassId !== 'all') {
-      loadStudents(selectedClassId, selectedDate);
-    } else if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP && selectedProgramId) {
-      // In standup mode with program selection, reload using null classId and programId to trigger program-based loading
+    if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP && selectedProgramId && selectedProgramId !== 'all') {
+      // In standup mode, always reload by program
       loadStudents(null, selectedDate, selectedProgramId);
+    } else if (selectedClassId && selectedClassId !== 'all') {
+      loadStudents(selectedClassId, selectedDate);
     } else {
       // Fallback to current classId or null
       loadStudents(selectedClassId || null, selectedDate);
@@ -3659,7 +3682,7 @@ const QRScannerPage = () => {
       filtered = filtered.filter(student =>
         student.name?.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
         student.email?.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
-        student.studentId?.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+        String(student.studentId ?? '').toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
         student.studentNumber?.toString().includes(debouncedSearchQuery)
       );
     }
@@ -3899,7 +3922,7 @@ const QRScannerPage = () => {
           flexWrap: 'nowrap'
         }}>
           {/* Program/Subject/Class Selection */}
-          <div data-tour="qr-header-filters" style={{ flex: '0 0 auto', minWidth: '250px', maxWidth: '350px' }}>
+          <div data-tour="qr-header-filters" style={{ flex: '1 1 auto', minWidth: '600px' }}>
             <ProgramsSelect
               programs={programs.map(p => ({ ...p, id: String(p.id) }))}
               subjects={subjects.map(s => ({ ...s, id: String(s.id), programId: s.programId ? String(s.programId) : null }))}
@@ -3925,12 +3948,40 @@ const QRScannerPage = () => {
                 setSelectedClassId(val);
               }}
               showLabels={false}
-              style={{ width: '100%' }}
+              style={{ width: '100%', flexWrap: 'nowrap' }}
             />
           </div>
 
           {/* Spacer to push controls to the right */}
           <div style={{ flex: '1', minWidth: '1rem' }} />
+
+              {/* Date picker */}
+              <div data-tour="qr-date-picker" style={{ width: '260px' }}>
+                {!gridLoading && (selectedClassId || (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP && selectedProgramId)) && (
+                  <DatePicker
+                    value={selectedDate}
+                    onChange={(date) => setSelectedDate(date)}
+                    format="yyyy-MM-dd"
+                    theme={theme}
+                    showIcon={true}
+                  />
+                )}
+                {gridLoading && (
+                  <div style={{
+                    height: '42px',
+                    background: '#f3f4f6',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '0.375rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#9ca3af',
+                    fontSize: '0.875rem'
+                  }}>
+                    {t('loading') || 'Loading...'}
+                  </div>
+                )}
+              </div>
 
           {/* Mode toggle */}
           <div data-tour="qr-mode-toggle" style={{
@@ -4000,33 +4051,6 @@ const QRScannerPage = () => {
                 )}
               </div>
 
-              {/* Date picker */}
-              <div data-tour="qr-date-picker" style={{ width: '180px' }}>
-                {!gridLoading && (selectedClassId || (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP && selectedProgramId)) && (
-                  <DatePicker
-                    value={selectedDate}
-                    onChange={(date) => setSelectedDate(date)}
-                    format="yyyy-MM-dd"
-                    theme={theme}
-                  />
-                )}
-                {gridLoading && (
-                  <div style={{
-                    height: '42px',
-                    background: '#f3f4f6',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '0.375rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#9ca3af',
-                    fontSize: '0.875rem'
-                  }}>
-                    {t('loading') || 'Loading...'}
-                  </div>
-                )}
-              </div>
-
               {canExport && (
                 <button
                     data-tour="qr-daily-report"
@@ -4044,7 +4068,10 @@ const QRScannerPage = () => {
                       }
                       
                       // Check if there's any attendance for today's date before opening dialog
-                      const hasAttendanceToday = students.some(student => student.attendance !== null && student.attendance !== undefined);
+                      const hasAttendanceToday = students.some(student => 
+                        (student.attendance !== null && student.attendance !== undefined) ||
+                        (student.standupStatus !== null && student.standupStatus !== undefined)
+                      );
                       if (!hasAttendanceToday) {
                         setShowNoAttendanceModal(true);
                         return;
@@ -4068,9 +4095,9 @@ const QRScannerPage = () => {
                       boxShadow: '0 2px 4px rgba(139, 92, 246, 0.2)',
                       minWidth: '100px',
                       justifyContent: 'center',
-                      opacity: isExporting ? 0.6 : 1
+                      opacity: (isExporting || (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || selectedProgramId === 'all' || !selectedSubjectId || selectedSubjectId === 'all' || !selectedClassId || selectedClassId === 'all'))) ? 0.5 : 1
                     }}
-                    disabled={gridLoading || isExporting || (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedClassId || selectedClassId === 'all'))}
+                    disabled={gridLoading || isExporting || (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || selectedProgramId === 'all' || !selectedSubjectId || selectedSubjectId === 'all' || !selectedClassId || selectedClassId === 'all'))}
                   >
                     {getThemedIcon('ui', 'file', 16, 'white')}
                     {t('daily_report') || 'Daily'}
@@ -4084,7 +4111,10 @@ const QRScannerPage = () => {
                       console.log('🔍 Summary Report button clicked');
                       
                       // Check if there's any attendance for today's date before opening dialog
-                      const hasAttendanceToday = students.some(student => student.attendance !== null && student.attendance !== undefined);
+                      const hasAttendanceToday = students.some(student => 
+                        (student.attendance !== null && student.attendance !== undefined) ||
+                        (student.standupStatus !== null && student.standupStatus !== undefined)
+                      );
                       if (!hasAttendanceToday) {
                         setShowNoAttendanceModal(true);
                         return;
@@ -4108,9 +4138,9 @@ const QRScannerPage = () => {
                       boxShadow: '0 2px 4px rgba(16, 185, 129, 0.2)',
                       minWidth: '100px',
                       justifyContent: 'center',
-                      opacity: isExporting ? 0.6 : 1
+                      opacity: (isExporting || (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || selectedProgramId === 'all' || !selectedSubjectId || selectedSubjectId === 'all' || !selectedClassId || selectedClassId === 'all'))) ? 0.5 : 1
                     }}
-                    disabled={gridLoading || isExporting || (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedClassId || selectedClassId === 'all'))}
+                    disabled={gridLoading || isExporting || (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || selectedProgramId === 'all' || !selectedSubjectId || selectedSubjectId === 'all' || !selectedClassId || selectedClassId === 'all'))}
                     title={t('export_summary_report') || 'Export comprehensive summary report'}
                   >
                     {getThemedIcon('ui', 'send', 16, 'white')}
@@ -4125,7 +4155,10 @@ const QRScannerPage = () => {
                       console.log('🔍 Attendance Violations button clicked');
                       
                       // Check if there's any attendance for today's date before opening dialog
-                      const hasAttendanceToday = students.some(student => student.attendance !== null && student.attendance !== undefined);
+                      const hasAttendanceToday = students.some(student => 
+                        (student.attendance !== null && student.attendance !== undefined) ||
+                        (student.standupStatus !== null && student.standupStatus !== undefined)
+                      );
                       if (!hasAttendanceToday) {
                         setShowNoAttendanceModal(true);
                         return;
@@ -4149,9 +4182,9 @@ const QRScannerPage = () => {
                       boxShadow: '0 2px 4px rgba(245, 158, 11, 0.2)',
                       minWidth: '100px',
                       justifyContent: 'center',
-                      opacity: isExportingBehavioral ? 0.6 : 1
+                      opacity: (isExportingBehavioral || (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || selectedProgramId === 'all' || !selectedSubjectId || selectedSubjectId === 'all' || !selectedClassId || selectedClassId === 'all'))) ? 0.5 : 1
                     }}
-                    disabled={isExportingBehavioral || (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedClassId || selectedClassId === 'all'))}
+                    disabled={isExportingBehavioral || (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || selectedProgramId === 'all' || !selectedSubjectId || selectedSubjectId === 'all' || !selectedClassId || selectedClassId === 'all'))}
                   >
                     {getThemedIcon('ui', 'alert_triangle', 16, 'white')}
                     {t('attendance') || 'Attendance'}
@@ -4305,6 +4338,7 @@ const QRScannerPage = () => {
               })()}
               loading={false}
               students={students}
+              selectedDate={selectedDate}
               onMinimizeChange={handleScannerMinimizeChange}
               forceMinimized={attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? isScannerMinimized : !showScanner} // Use isScannerMinimized in standup mode
             />
@@ -4328,6 +4362,18 @@ const QRScannerPage = () => {
             }}>
               <p style={{ color: 'var(--text-muted, #6b7280)', margin: 0 }}>
                 {t('select_filters_to_view_students')}
+              </p>
+            </div>
+          ) : attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP && (!selectedProgramId || selectedProgramId === 'all') ? (
+            <div style={{
+              background: 'white',
+              borderRadius: '0.75rem',
+              border: '1px solid #e5e7eb',
+              padding: '3rem',
+              textAlign: 'center'
+            }}>
+              <p style={{ color: 'var(--text-muted, #6b7280)', margin: 0 }}>
+                {t('select_program_to_view_students') || 'Please select a Program to view students'}
               </p>
             </div>
           ) : (

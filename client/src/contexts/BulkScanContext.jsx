@@ -522,12 +522,12 @@ export const BulkScanProvider = ({
 
           // Merge user data with enrollments
           if (usersResponse.success && usersResponse.data) {
-            const userMap = new Map(usersResponse.data.map(u => [u.id, u]));
+            const userMap = new Map(usersResponse.data.map(u => [Number(u.id), u]));
             studentsResponse.data = studentsResponse.data.map(enrollment => ({
               ...enrollment,
               user: {
                 ...enrollment.user,
-                studentNumber: userMap.get(enrollment.userId)?.studentNumber
+                studentNumber: enrollment.user?.studentNumber || userMap.get(Number(enrollment.userId))?.studentNumber
               }
             }));
           }
@@ -553,12 +553,12 @@ export const BulkScanProvider = ({
 
           // Merge user data with enrollments
           if (usersResponse.success && usersResponse.data) {
-            const userMap = new Map(usersResponse.data.map(u => [u.id, u]));
+            const userMap = new Map(usersResponse.data.map(u => [Number(u.id), u]));
             studentsResponse.data = studentsResponse.data.map(enrollment => ({
               ...enrollment,
               user: {
                 ...enrollment.user,
-                studentNumber: userMap.get(enrollment.userId)?.studentNumber
+                studentNumber: enrollment.user?.studentNumber || userMap.get(Number(enrollment.userId))?.studentNumber
               }
             }));
           }

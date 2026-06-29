@@ -154,12 +154,15 @@
   align-items: center;
   justify-content: space-between;
   margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 .tabActions {
   display: flex;
   gap: 0.5rem;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .tabActionButtons {
@@ -301,6 +304,8 @@
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .parseButton {
@@ -616,10 +621,11 @@
 }
 
 .controlsSection {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: 1rem;
-  padding: 1rem;
+  padding: 0.75rem;
   background: #f9fafb;
   border-radius: 0.5rem;
   border: 1px solid #e5e7eb;
@@ -632,14 +638,16 @@
 
 .controlGroup {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: center;
   gap: 0.5rem;
 }
 
 .statusCardsGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(4rem, 1fr));
-  gap: 0.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.375rem;
 }
 
 .statusCard {
@@ -670,14 +678,14 @@
 
 @media (max-width: 768px) {
   .statusCardsGrid {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 0.375rem;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.5rem;
   }
-  
+
   .statusCard {
-    padding: 0.375rem;
-    min-width: 3rem;
-    font-size: 0.625rem;
+    padding: 0.5rem;
+    min-width: 4.5rem;
+    font-size: 0.8125rem;
   }
 }
 

@@ -63,7 +63,7 @@
 .input {
   width: 100%;
   /* extra right padding to avoid overlap with the icon */
-  padding: 0.625rem 2.75rem 0.625rem 1rem;
+  padding: 0.625rem 4.5rem 0.625rem 1rem;
   font-size: var(--font-size-md, 1rem);
   color: var(--text, #212529);
   background: var(--input-bg, white);
@@ -78,7 +78,7 @@
 
 [dir="rtl"] .input {
   /* swap padding sides in RTL */
-  padding: 0.625rem 1rem 0.625rem 2.75rem;
+  padding: 0.625rem 1rem 0.625rem 3.25rem;
 }
 
 /* Always show the icon so users can open the calendar even when empty */

@@ -40,6 +40,20 @@ const STANDUP_STATUS_MAP = {
   'standup_late': 'STANDUP_LATE'
 };
 
+// Maps regular attendance statuses to their standup equivalents
+const REGULAR_TO_STANDUP_STATUS = {
+  'PRESENT': 'STANDUP_PRESENT',
+  'LATE': 'STANDUP_LATE',
+  'ABSENT': 'STANDUP_ABSENT',
+  'ABSENT_NO_EXCUSE': 'STANDUP_ABSENT',
+  'ABSENT_WITH_EXCUSE': 'STANDUP_ABSENT',
+  'EXCUSED': 'STANDUP_ABSENT',
+  'HUMAN_CASE': 'STANDUP_CLINIC',
+  'EARLY_DEPARTURE': 'STANDUP_CLINIC',
+  'EXCUSED_LEAVE': 'STANDUP_CLINIC',
+  'CLINIC': 'STANDUP_CLINIC'
+};
+
 /**
  * Convert status string to numeric ID
  */
@@ -134,11 +148,26 @@ export const markAttendance = async (attendanceData, user = null, attendanceMode
       };
     }
 
+    // In standup mode, convert regular status to standup equivalent
+    let effectiveStatus = attendanceData.status;
+    if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
+      const upperStatus = attendanceData.status?.toUpperCase();
+      // If already a standup status, keep it; otherwise convert from regular
+      if (upperStatus && !upperStatus.startsWith('STANDUP_')) {
+        effectiveStatus = REGULAR_TO_STANDUP_STATUS[upperStatus] || upperStatus;
+        console.log(' [DEBUG] Standup status conversion:', {
+          originalStatus: attendanceData.status,
+          convertedStatus: effectiveStatus
+        });
+      }
+    }
+
     // Convert status string to numeric ID
-    const statusId = getStatusId(attendanceData.status);
+    const statusId = getStatusId(effectiveStatus);
     
     console.log(' [DEBUG] Status ID conversion:', {
       originalStatus: attendanceData.status,
+      effectiveStatus,
       convertedStatusId: statusId
     });
 
@@ -206,13 +235,16 @@ export const markAttendance = async (attendanceData, user = null, attendanceMode
       
       const result = await api.post('/standup-attendance', {
         userId: parseInt(attendanceData.userId),
-        status: attendanceData.status?.toUpperCase(),
+        status: effectiveStatus?.toUpperCase(),
         statusId: statusId,
         date: attendanceData.date,
         notes: attendanceData.notes || null,
         programId: attendanceData.programId ? parseInt(attendanceData.programId) : null
       });
-      
+
+      // Clear cached standup-attendance GET responses so refetch gets fresh data
+      api.clearCacheByPrefix('/standup-attendance');
+
       return {
         success: result.success || result.status === 201,
         data: result.data || result,
@@ -316,6 +348,9 @@ export const deleteAttendance = async (id, attendanceMode = ATTENDANCE_TYPE_CATE
     if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
       // Use standup attendance API
       const result = await api.delete(`/standup-attendance/${id}`);
+      
+      // Clear cached standup-attendance GET responses so refetch gets fresh data
+      api.clearCacheByPrefix('/standup-attendance');
       
       return {
         success: result.success,

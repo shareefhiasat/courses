@@ -24,6 +24,7 @@ const DatePicker = ({
   fullWidth = false,
   className = '',
   theme = 'light',
+  showIcon = true,
 }) => {
   const [focused, setFocused] = useState(false);
   const inputRef = useRef(null);
@@ -66,12 +67,14 @@ const DatePicker = ({
           max={max}
           className={inputClasses}
         />
-        <div
-          className={styles.iconWrapper}
-          onClick={() => inputRef.current?.showPicker?.()}
-        >
-          {getThemedIcon('ui', 'calendar', 18, theme)}
-        </div>
+        {showIcon && (
+          <div
+            className={styles.iconWrapper}
+            onClick={() => inputRef.current?.showPicker?.()}
+          >
+            {getThemedIcon('ui', 'calendar', 18, theme)}
+          </div>
+        )}
       </div>
 
       {error && <span className={styles.errorText}>{error}</span>}
