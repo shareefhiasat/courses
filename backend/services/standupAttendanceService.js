@@ -358,6 +358,21 @@ export const getStandupAttendanceByProgramAndDate = async (programId, date) => {
             displayName: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
+            studentNumber: true,
+          },
+        },
+        creator: {
+          select: {
+            id: true,
+            displayName: true,
+            firstName: true,
+            lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
           },
         },
         status: {

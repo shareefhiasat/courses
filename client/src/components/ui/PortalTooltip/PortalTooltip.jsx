@@ -3,7 +3,35 @@ import { createPortal } from 'react-dom';
 import { useLang } from '@contexts/LangContext';
 
 
-import { info, error, warn, debug } from '@services/utils/logger.js';/**
+import { info, error, warn, debug } from '@services/utils/logger.js';
+
+const resolveColor = (color) => {
+  if (!color) return null;
+  if (color.startsWith('var(')) {
+    const match = color.match(/var\(\s*([^,\s]+)\s*(?:,\s*([^)]+))?\)/);
+    if (match) {
+      const cssVar = match[1];
+      const fallback = match[2] ? match[2].trim() : null;
+      if (typeof window !== 'undefined') {
+        const computed = getComputedStyle(document.documentElement).getPropertyValue(cssVar).trim();
+        if (computed) return computed;
+      }
+      if (fallback) return resolveColor(fallback);
+      return null;
+    }
+  }
+  return color;
+};
+
+const hexToRgba = (hex, alpha) => {
+  const resolved = resolveColor(hex);
+  if (!resolved) return hex;
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(resolved);
+  if (!result) return resolved;
+  return `rgba(${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}, ${alpha})`;
+};
+
+/**
  * PortalTooltip Component
  * 
  * Renders tooltips outside the component hierarchy to prevent overflow issues.
@@ -17,7 +45,8 @@ const PortalTooltip = ({
   className = '',
   disabled = false,
   textColor = 'white',
-  backgroundColor = 'var(--color-primary, #3b82f6)'
+  backgroundColor = 'var(--color-primary, #3b82f6)',
+  backgroundOpacity = 0.95
 }) => {
   const { isRTL } = useLang();
   const [isVisible, setIsVisible] = useState(false);
@@ -109,7 +138,7 @@ const PortalTooltip = ({
       style={{
         ...getTooltipStyle(),
         padding: '0.5rem 0.75rem',
-        background: backgroundColor,
+        background: hexToRgba(backgroundColor, backgroundOpacity),
         color: textColor,
         fontSize: '0.875rem',
         borderRadius: '8px',
@@ -128,7 +157,7 @@ const PortalTooltip = ({
           position: 'absolute',
           width: '8px',
           height: '8px',
-          background: backgroundColor,
+          background: hexToRgba(backgroundColor, backgroundOpacity),
           transform: 'rotate(45deg)',
           // Arrow positioning based on position
           ...(position === 'top' && {

@@ -63,6 +63,14 @@ import { useChatStateMinimal } from './hooks/useChatStateMinimal';
 import MessageBubbleWrapper from './components/MessageBubbleWrapper';
 import { useChatActions } from './hooks/useChatActions';
 
+const withAuthToken = (url) => {
+  if (!url) return url;
+  const token = localStorage.getItem('keycloak_token');
+  if (!token) return url;
+  const sep = url.includes('?') ? '&' : '?';
+  return `${url}${sep}token=${encodeURIComponent(token)}`;
+};
+
 const ChatPage = memo(() => {
   const { user, isAdmin, isSuperAdmin, isHR, isInstructor, loading: authLoading } = useAuth();
   const { t, lang } = useLang();
@@ -70,9 +78,9 @@ const ChatPage = memo(() => {
 
   // ── Guided Tour ──────────────────────────────────────────────────────────
   const [runTour, setRunTour] = useState(false);
+  const [tourSteps, setTourSteps] = useState([]);
   const tourSeenKey = `chatTourSeen_${lang}`;
-  const tourSteps = useMemo(() => [
-    { target: 'body', content: t('tour.chat_message_area'), disableBeacon: true, placement: 'center' },
+  const buildTourSteps = useCallback(() => [
     { target: '[data-tour="chat-sidebar"]', content: t('tour.chat_sidebar'), disableBeacon: true, placement: 'right' },
     { target: '[data-tour="chat-room-list"]', content: t('tour.chat_room_list'), disableBeacon: true, placement: 'right' },
     { target: '[data-tour="chat-search"]', content: t('tour.chat_search'), disableBeacon: true, placement: 'right' },
@@ -80,14 +88,19 @@ const ChatPage = memo(() => {
     { target: '[data-tour="chat-input"]', content: t('tour.chat_input'), disableBeacon: true, placement: 'top' },
     { target: '[data-tour="chat-file-attach"]', content: t('tour.chat_file_attach'), disableBeacon: true, placement: 'top' },
     { target: '[data-tour="chat-voice"]', content: t('tour.chat_voice'), disableBeacon: true, placement: 'top' },
-  ], [lang, t]);
+  ].filter(s => !!document.querySelector(s.target)), [t]);
+  const startTour = useCallback(() => {
+    const steps = buildTourSteps();
+    if (steps.length === 0) return;
+    setTourSteps(steps);
+    setRunTour(true);
+  }, [buildTourSteps]);
   useEffect(() => {
-    const start = () => setRunTour(true);
-    window.addEventListener('app:joyride', start);
-    window.addEventListener('app:help', start);
-    return () => { window.removeEventListener('app:joyride', start); window.removeEventListener('app:help', start); };
-  }, []);
-  useEffect(() => { try { if (!localStorage.getItem(tourSeenKey)) setRunTour(true); } catch {} }, [tourSeenKey]);
+    window.addEventListener('app:joyride', startTour);
+    window.addEventListener('app:help', startTour);
+    return () => { window.removeEventListener('app:joyride', startTour); window.removeEventListener('app:help', startTour); };
+  }, [startTour]);
+  useEffect(() => { try { if (!localStorage.getItem(tourSeenKey)) startTour(); } catch {} }, [tourSeenKey, startTour]);
   const handleTourCallback = useCallback((data) => {
     const { status, action } = data || {};
     if (status === 'finished' || status === 'skipped' || action === 'close') { setRunTour(false); try { localStorage.setItem(tourSeenKey, 'true'); } catch {} }
@@ -110,6 +123,8 @@ const ChatPage = memo(() => {
   const [newMessage, setNewMessage] = useState('');
   const [classes, setClasses] = useState([]);
   const [selectedClass, setSelectedClass] = useState(CHAT_TYPES.GLOBAL);
+  const selectedClassRef = useRef(selectedClass);
+  const userHasInteractedRef = useRef(false);
   const [classMembers, setClassMembers] = useState([]);
   const [showMembers, setShowMembers] = useState(false);
   const [directRooms, setDirectRooms] = useState([]);
@@ -242,7 +257,11 @@ const ChatPage = memo(() => {
     pollOptions,
     profileName,
     setAllUsers,
-    setClassMembers
+    setClassMembers,
+    isRecording,
+    setIsRecording,
+    recordingTime,
+    setRecordingTime
   };
 
   const {
@@ -271,7 +290,9 @@ const ChatPage = memo(() => {
   
   // Handle class change
   const handleClassChange = useCallback((classId) => {
+    userHasInteractedRef.current = true;
     setUserHasInteracted(true);
+    selectedClassRef.current = classId;
     setSelectedClass(classId);
   }, [setSelectedClass, setUserHasInteracted]);
 
@@ -685,17 +706,19 @@ const ChatPage = memo(() => {
 
   // Load class members when selected class changes
   const loadingClassMembersRef = useRef(new Set());
+  const loadClassMembersRef = useRef(loadClassMembers);
+  loadClassMembersRef.current = loadClassMembers;
   useEffect(() => {
-    if (selectedClass && user && selectedClass !== 'global' && !selectedClass.startsWith('dm:')) {
-      // Prevent loading the same class multiple times
-      if (loadingClassMembersRef.current.has(selectedClass)) {
+    if (selectedClass && user && !selectedClass.startsWith('dm:')) {
+      // Don't cache 'global' - it gets overwritten when auto-selecting a class
+      if (selectedClass !== 'global' && loadingClassMembersRef.current.has(selectedClass)) {
         info('Skipping loadClassMembers - already loaded', { selectedClass });
         return;
       }
       loadingClassMembersRef.current.add(selectedClass);
-      loadClassMembers(selectedClass);
+      loadClassMembersRef.current(selectedClass);
     }
-  }, [selectedClass, user?.uid]); // Use user.uid instead of user object
+  }, [selectedClass, user?.uid]);
 
   // Load classes and setup with real-time subscriptions
   useEffect(() => {
@@ -740,15 +763,16 @@ const ChatPage = memo(() => {
           setClasses(all);
           
           // Auto-select first class for students if needed (only if no user interaction)
-          if (!userHasInteracted && (!selectedClass || selectedClass === 'global')) {
+          if (!userHasInteractedRef.current && (!selectedClassRef.current || selectedClassRef.current === 'global')) {
             if (all.length > 0) {
               info('Auto-selecting first class', { 
                 reason: 'student_auto_select',
-                currentSelectedClass: selectedClass,
+                currentSelectedClass: selectedClassRef.current,
                 firstClassId: all[0].docId,
                 firstClassName: all[0].name,
-                userHasInteracted
+                userHasInteracted: userHasInteractedRef.current
               });
+              selectedClassRef.current = all[0].docId;
               setSelectedClass(all[0].docId);
               setSelectedClassName(all[0].name || '');
               loadClassMembers(all[0].docId);
@@ -780,7 +804,7 @@ const ChatPage = memo(() => {
     unsubs.push(unsub);
     
     return () => unsubs.forEach(u => u());
-  }, [user, isAdmin, isSuperAdmin, isHR, isInstructor, authLoading, selectedClass]); // Remove loadClassMembers from dependencies
+  }, [user, isAdmin, isSuperAdmin, isHR, isInstructor, authLoading]);
 
   // Load all users once for DM labels
   useEffect(() => {
@@ -973,15 +997,16 @@ const ChatPage = memo(() => {
         try {
           const params = new URLSearchParams(location.search);
           const dest = params.get('dest');
-          if (!dest && !userHasInteracted && (!selectedClass || selectedClass === 'global') && mineClasses.length > 0) {
+          if (!dest && !userHasInteractedRef.current && (!selectedClassRef.current || selectedClassRef.current === 'global') && mineClasses.length > 0) {
             info('Auto-selecting first class (location check)', { 
               reason: 'location_dest_check',
-              currentSelectedClass: selectedClass,
+              currentSelectedClass: selectedClassRef.current,
               firstClassId: mineClasses[0].docId,
               firstClassName: mineClasses[0].name,
               hasDest: !!dest,
-              userHasInteracted
+              userHasInteracted: userHasInteractedRef.current
             });
+            selectedClassRef.current = mineClasses[0].docId;
             setSelectedClass(mineClasses[0].docId);
             setSelectedClassName(mineClasses[0].name || '');
             await loadClassMembers(mineClasses[0].docId);
@@ -1284,7 +1309,7 @@ const ChatPage = memo(() => {
             if (dmSearch && isStaffRole) {
               const search = dmSearch.toLowerCase();
               filtered = (Array.isArray(safeDirectRooms) ? safeDirectRooms : []).filter(room => {
-                const otherUser = room.userA?.id === user?.dbId ? room.userB : room.userA;
+                const otherUser = (room.userA?.id === user?.dbId || (user?.email && room.userA?.email === user?.email)) ? room.userB : room.userA;
                 const name = otherUser ? `${otherUser.firstName || ''} ${otherUser.lastName || ''}`.trim() || otherUser.email || '' : '';
                 return name.toLowerCase().includes(search);
               });
@@ -1306,7 +1331,7 @@ const ChatPage = memo(() => {
             // DM rooms have participantA/participantB (numeric DB IDs) and userA/userB (user data)
             // user.uid is a Keycloak UUID, so we can't match participants directly
             // Instead, use userA/userB data included in the room object
-            const otherUser = room.userA?.id === user.dbId ? room.userB : room.userA;
+            const otherUser = (room.userA?.id === user?.dbId || (user?.email && room.userA?.email === user?.email)) ? room.userB : room.userA;
             const otherId = otherUser?.id;
             const label = otherUser ? `${otherUser.firstName || ''} ${otherUser.lastName || ''}`.trim() || otherUser.email || t('conversation') : t('conversation');
             const initial = (label || t('conversation'))[0]?.toUpperCase();
@@ -1469,7 +1494,7 @@ const ChatPage = memo(() => {
                  (selectedClass?.startsWith('dm:')
                    ? (()=>{ 
                       const room = directRooms.find(r=>`dm:${r.id}`===selectedClass); 
-                      const otherUser = room?.userA?.id === user?.dbId ? room?.userB : room?.userA;
+                      const otherUser = (room?.userA?.id === user?.dbId || (user?.email && room?.userA?.email === user?.email)) ? room?.userB : room?.userA;
                       return otherUser ? `${otherUser.firstName || ''} ${otherUser.lastName || ''}`.trim() || otherUser.email || t('direct_message') : t('direct_message');
                     })()
                    : (classes.find(c => c.docId === selectedClass)?.name || selectedClassName || t('chat'))
@@ -1478,7 +1503,7 @@ const ChatPage = memo(() => {
               {/* Display name for DM conversations */}
               {selectedClass?.startsWith('dm:') && (()=>{ 
                 const room = directRooms.find(r=>`dm:${r.id}`===selectedClass); 
-                const otherUser = room?.userA?.id === user?.dbId ? room?.userB : room?.userA;
+                const otherUser = (room?.userA?.id === user?.dbId || (user?.email && room?.userA?.email === user?.email)) ? room?.userB : room?.userA;
                 const displayName = otherUser ? `${otherUser.firstName || ''} ${otherUser.lastName || ''}`.trim() : null;
                 const email = otherUser?.email;
                 if (displayName) {
@@ -1517,13 +1542,13 @@ const ChatPage = memo(() => {
             {/* DM Name (if any) - shown for DM conversations */}
             {selectedClass?.startsWith('dm:') && (()=>{ 
               const room = directRooms.find(r=>`dm:${r.id}`===selectedClass); 
-              const otherUser = room?.userA?.id === user?.dbId ? room?.userB : room?.userA;
+              const otherUser = (room?.userA?.id === user?.dbId || (user?.email && room?.userA?.email === user?.email)) ? room?.userB : room?.userA;
               return otherUser ? `${otherUser.firstName || ''} ${otherUser.lastName || ''}`.trim() || otherUser.email : null;
             })() && (
               <span style={{ fontSize: '0.9rem', color: '#666', fontWeight: 500 }}>
                 {(()=>{ 
                   const room = directRooms.find(r=>`dm:${r.id}`===selectedClass); 
-                  const otherUser = room?.userA?.id === user?.dbId ? room?.userB : room?.userA;
+                  const otherUser = (room?.userA?.id === user?.dbId || (user?.email && room?.userA?.email === user?.email)) ? room?.userB : room?.userA;
                   return otherUser ? `${otherUser.firstName || ''} ${otherUser.lastName || ''}`.trim() || otherUser.email : '';
                 })()}
               </span>
@@ -1783,7 +1808,7 @@ const ChatPage = memo(() => {
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <audio
                           controls
-                          src={msg.voiceUrl}
+                          src={withAuthToken(msg.voiceUrl)}
                           style={{ width: '200px', height: '30px' }}
                         />
                         <span style={{ fontSize: '0.85rem', color: 'var(--muted)' }}>
@@ -1801,10 +1826,10 @@ const ChatPage = memo(() => {
                           return (
                             <div style={{ maxWidth: '300px' }}>
                               <img
-                                src={msg.fileUrl}
+                                src={withAuthToken(msg.fileUrl)}
                                 alt={fileName}
                                 style={{ width: '100%', borderRadius: 8, cursor: 'pointer' }}
-                                onClick={() => window.open(msg.fileUrl, '_blank')}
+                                onClick={() => window.open(withAuthToken(msg.fileUrl), '_blank')}
                               />
                               <div style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: 4 }}>
                                 {fileName} • {(msg.fileSize ? Math.ceil(msg.fileSize/1024) : 0)} KB
@@ -1819,7 +1844,7 @@ const ChatPage = memo(() => {
                                 style={{ width: '100%', borderRadius: 8 }}
                                 preload="metadata"
                               >
-                                <source src={msg.fileUrl} type={`video/${fileType}`} />
+                                <source src={withAuthToken(msg.fileUrl)} type={`video/${fileType}`} />
                                 {t('browser_no_video_support')}
                               </video>
                               <div style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: 4 }}>
@@ -1832,7 +1857,7 @@ const ChatPage = memo(() => {
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                               {getThemedIcon('ui', 'paperclip', 16, theme)}
                               <a
-                                href={msg.fileUrl}
+                                href={withAuthToken(msg.fileUrl)}
                                 target="_blank"
                                 rel="noopener noreferrer"
                                 style={{ color: 'var(--brand)', fontWeight: 600, textDecoration: 'underline' }}

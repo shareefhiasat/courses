@@ -18,7 +18,8 @@ import {
   NOTIFICATION_STATUS,
   getNotificationIcon,
   getNotificationTypeOptions,
-  getNotificationStatusOptions
+  getNotificationStatusOptions,
+  getCategoryColor
 } from '@constants/notificationTypes.jsx';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import useNotifications from '@hooks/useNotifications';
@@ -30,7 +31,7 @@ import { getClasses } from '@services/business/classService';
 
 const NotificationsPage = () => {
   const { user, loading: authLoading } = useAuth();
-  const { t, lang } = useLang();
+  const { t, lang, isRTL } = useLang();
   const { theme } = useTheme();
   const navigate = useNavigate();
   const { startLoading } = useGlobalLoading();
@@ -497,8 +498,8 @@ const NotificationsPage = () => {
             onChange={(e) => setFilterType(e.target.value)}
             options={getNotificationStatusOptions(t, lang).map(option => ({
               ...option,
-              label: option.value === 'unread' ? `Unread (${unreadCount})` : 
-                     option.value === 'archived' ? `Archived (${archivedCount})` : 
+              label: option.value === 'unread' ? `${t('unread') || 'Unread'} (${unreadCount})` : 
+                     option.value === 'archived' ? `${t('archived') || 'Archived'} (${archivedCount})` : 
                      option.label
             }))}
             size="small"
@@ -670,8 +671,8 @@ const NotificationsPage = () => {
             {getThemedIcon('ui', 'bell', 64, theme)}
             <p style={{ margin: 0, fontSize: '1rem', fontWeight: 500 }}>
               {searchTerm || filterType !== 'all' || filterCategory !== 'all'
-                ? 'No notifications match your filters'
-                : 'No notifications yet'}
+                ? t('no_notifications_match_filters') || 'No notifications match your filters'
+                : t('no_notifications_yet') || 'No notifications yet'}
             </p>
           </div>
         ) : (
@@ -688,6 +689,7 @@ const NotificationsPage = () => {
                 border: `1px solid ${notification.isRead 
                   ? (isDark ? 'rgba(255,255,255,0.05)' : '#e5e7eb')
                   : (isDark ? 'rgba(128,0,32,0.3)' : '#c7d2fe')}`,
+                [isRTL ? 'borderRight' : 'borderLeft']: `4px solid ${getCategoryColor(notification.type)}`,
                 cursor: 'pointer',
                 transition: 'all 0.2s',
                 position: 'relative',

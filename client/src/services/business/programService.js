@@ -87,9 +87,9 @@ export const updateProgram = async (id, updateData, user = null) => {
   }
 };
 
-export const deleteProgram = async (id, user = null) => {
+export const deleteProgram = async (id, user = null, options = {}) => {
   try {
-    info(`${serviceName}:deleteProgram`, { id });
+    info(`${serviceName}:deleteProgram`, { id, force: options.force });
     
     if (!id) {
       return {
@@ -100,7 +100,7 @@ export const deleteProgram = async (id, user = null) => {
     }
     
     // Use business service layer
-    const result = await programBusinessService.deleteProgram(id);
+    const result = await programBusinessService.deleteProgram(id, options);
     return result;
   } catch (err) {
     console.error(`${serviceName}:deleteProgram:error`, { error: err.message, id });

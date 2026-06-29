@@ -426,6 +426,7 @@ model PenaltyTypes {
   description String?
   severity    String?   @default("medium")
   color       String?
+  icon        String?
   isActive    Boolean   @default(true)
   createdBy   Int?
   updatedBy   Int?
@@ -447,6 +448,7 @@ model BehaviorTypes {
   category    String?    @default("neutral")
   points      Int        @default(0)
   color       String?
+  icon        String?
   isActive    Boolean    @default(true)
   createdBy   Int?
   updatedBy   Int?
@@ -1229,6 +1231,7 @@ model ParticipationTypes {
   nameAr         String?
   description    String?
   isPositive     Boolean         @default(true)
+  icon           String?
   isActive       Boolean         @default(true)
   createdBy      Int?
   updatedBy      Int?

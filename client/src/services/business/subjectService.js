@@ -117,9 +117,9 @@ export const updateSubject = async (id, updateData, user = null) => {
   }
 };
 
-export const deleteSubject = async (id, user = null) => {
+export const deleteSubject = async (id, user = null, options = {}) => {
   try {
-    info(`${serviceName}:deleteSubject`, { id });
+    info(`${serviceName}:deleteSubject`, { id, force: options.force });
     
     if (!id) {
       return {
@@ -130,13 +130,13 @@ export const deleteSubject = async (id, user = null) => {
     }
     
     // Use PostgreSQL database service
-    const result = await subjectDbService.delete(id);
+    const result = await subjectDbService.delete(id, options);
     return result;
   } catch (err) {
     error(`${serviceName}:deleteSubject:error`, { error: err.message, id });
     return {
       success: false,
-      error: error.message || 'Failed to delete subject',
+      error: err.message || 'Failed to delete subject',
       data: null
     };
   }

@@ -1,5 +1,6 @@
 import React, { useState, useCallback } from 'react';
-import { Button, Modal } from '@ui';
+import { createPortal } from 'react-dom';
+import { getThemedIcon } from '@constants/iconTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { getDeleteMessage, getDeleteTitle, createDeleteModalState, resetDeleteModalState } from '@utils/deleteMessages';
 import { info, error, warn, debug } from '@services/utils/logger.js';
@@ -38,17 +39,10 @@ const DeleteModal = ({
   theme = 'light',
   t = (key) => key 
 }) => {
-  // Generate title and message using utilities
-  const getTitle = () => {
-    if (customTitle) return customTitle;
-    return getDeleteTitle(entityType, t);
-  };
+  if (!isOpen) return null;
 
-  const getMessage = () => {
-    if (customMessage) return customMessage;
-    
-    return getDeleteMessage(entityType, entityName, { relatedRecords, theme }, t);
-  };
+  const title = customTitle || getDeleteTitle(entityType, t);
+  const message = customMessage || getDeleteMessage(entityType, entityName, { relatedRecords, theme }, t);
 
   const handleConfirm = useCallback(async () => {
     if (!loading && onConfirm) {
@@ -57,46 +51,127 @@ const DeleteModal = ({
         onClose();
       } catch (error) {
         console.error('Delete operation failed:', error);
-        // Still close modal on error
         onClose();
       }
     }
   }, [loading, onConfirm, onClose]);
 
-  const footer = (
-    <>
-      <Button 
-        variant="outline" 
-        onClick={onClose}
-        disabled={loading}
-      >
-        {t('cancel') || 'Cancel'}
-      </Button>
-      <Button 
-        variant="danger" 
-        onClick={handleConfirm} 
-        loading={loading}
-        style={{ backgroundColor: '#dc2626' }}
-      >
-        {t('delete') || 'Delete'}
-      </Button>
-    </>
-  );
+  const handleOverlayClick = (e) => {
+    if (e.target === e.currentTarget && !loading) {
+      onClose();
+    }
+  };
 
-  return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title={getTitle()}
-      footer={footer}
-      size="small"
-      closeOnOverlayClick={!loading}
-      closeOnEscape={!loading}
-      className="delete-modal compact-modal"
-      titleStyle={{ fontSize: '1.25rem', fontWeight: '600', textTransform: 'capitalize' }}
+  const isHtml = /<[a-z][\s\S]*>/i.test(message);
+
+  return createPortal(
+    <div
+      onClick={handleOverlayClick}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0, 0, 0, 0.5)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 9999
+      }}
     >
-      <div dangerouslySetInnerHTML={{ __html: getMessage() }} />
-    </Modal>
+      <div style={{
+        background: 'white',
+        borderRadius: '1rem',
+        padding: '2rem',
+        maxWidth: '400px',
+        width: '90%',
+        textAlign: 'center',
+        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)'
+      }}>
+        <div style={{
+          width: '60px',
+          height: '60px',
+          borderRadius: '50%',
+          background: '#dc2626',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          margin: '0 auto 1rem auto'
+        }}>
+          {getThemedIcon('ui', 'trash', 28, 'white')}
+        </div>
+
+        <h3 style={{
+          fontSize: '1.25rem',
+          fontWeight: '600',
+          color: '#111827',
+          margin: '0 0 0.5rem 0'
+        }}>
+          {title}
+        </h3>
+
+        {isHtml ? (
+          <div 
+            style={{ fontSize: '1rem', color: '#6b7280', margin: '0 0 1.5rem 0', lineHeight: '1.5' }}
+            dangerouslySetInnerHTML={{ __html: message }} 
+          />
+        ) : (
+          <p style={{
+            fontSize: '1rem',
+            color: '#6b7280',
+            margin: '0 0 1.5rem 0',
+            lineHeight: '1.5',
+            whiteSpace: 'pre-wrap'
+          }}>
+            {message}
+          </p>
+        )}
+
+        <div style={{
+          borderTop: '1px solid #e5e7eb',
+          margin: '0 -2rem -2rem -2rem',
+          padding: '1rem 2rem',
+          display: 'flex',
+          gap: '0.75rem'
+        }}>
+          <button
+            onClick={onClose}
+            disabled={loading}
+            style={{
+              flex: 1,
+              background: 'white',
+              color: '#374151',
+              border: '1px solid #d1d5db',
+              padding: '0.75rem 1.5rem',
+              borderRadius: '0.5rem',
+              fontSize: '1rem',
+              fontWeight: '500',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              opacity: loading ? 0.5 : 1
+            }}
+          >
+            {t('cancel') || 'Cancel'}
+          </button>
+          <button
+            onClick={handleConfirm}
+            disabled={loading}
+            style={{
+              flex: 1,
+              background: '#dc2626',
+              color: 'white',
+              border: 'none',
+              padding: '0.75rem 1.5rem',
+              borderRadius: '0.5rem',
+              fontSize: '1rem',
+              fontWeight: '500',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              opacity: loading ? 0.6 : 1
+            }}
+          >
+            {loading ? '...' : (t('delete') || 'Delete')}
+          </button>
+        </div>
+      </div>
+    </div>,
+    document.body
   );
 };
 

@@ -42,7 +42,6 @@ export const usePermissions = () => {
   useEffect(() => {
     const fetchPermissions = async () => {
       if (roleCodes.length === 0) {
-        setLoading(false);
         return;
       }
 

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef, useLayoutEffect } from 'react';
 import Joyride from 'react-joyride';
 import TourTooltip from '@ui/TourTooltip/TourTooltip';
+import { scheduleTourStart } from '@utils/tourScheduler';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useAuth } from '@contexts/AuthContext';
@@ -112,7 +113,7 @@ const ResourcesPage = () => {
     window.addEventListener('app:help', start);
     return () => { window.removeEventListener('app:joyride', start); window.removeEventListener('app:help', start); };
   }, []);
-  useEffect(() => { try { if (!localStorage.getItem(tourSeenKey)) setRunTour(true); } catch {} }, [tourSeenKey]);
+  useEffect(() => scheduleTourStart(tourSeenKey, lang, () => setRunTour(true)), [tourSeenKey, lang]);
   const handleTourCallback = useCallback((data) => {
     const { status, action } = data || {};
     if (status === 'finished' || status === 'skipped' || action === 'close') { setRunTour(false); try { localStorage.setItem(tourSeenKey, 'true'); } catch {} }

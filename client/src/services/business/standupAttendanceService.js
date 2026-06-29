@@ -30,6 +30,8 @@ export const createStandupAttendance = async (attendanceData, user = null) => {
       programId: attendanceData.programId ? parseInt(attendanceData.programId) : null
     });
 
+    api.clearCacheByPrefix('/standup-attendance');
+
     return {
       success: result.success || result.status === 201,
       data: result.data || result,
@@ -143,6 +145,7 @@ export const deleteStandupAttendance = async (id) => {
   try {
     info(`${serviceName}:deleteStandupAttendance`, { id });
     const result = await api.delete(`/standup-attendance/${id}`);
+    api.clearCacheByPrefix('/standup-attendance');
     return {
       success: true,
       message: 'Standup attendance deleted successfully'

@@ -64,7 +64,7 @@ const ProtectedRoute = ({
   if (!keycloak.authenticated && !hasValidToken && !allowPublic) {
     info('🚫 ProtectedRoute - Not authenticated, redirecting to login...');
     // Pass the current location to LoginPage so it can redirect back after login
-    return <Navigate to="/login" state={{ from: window.location.pathname }} replace />;
+    return <Navigate to="/login" state={{ from: window.location.pathname + window.location.search }} replace />;
   }
 
   // If Keycloak is not authenticated but has a valid token, wait a moment

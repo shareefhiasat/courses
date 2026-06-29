@@ -164,9 +164,9 @@ class ActivityDbService {
   /**
    * Delete an activity
    */
-  async delete(id) {
+  async delete(id, options = {}) {
     try {
-      const result = await api.delete(`/activities/${id}`);
+      const result = await api.delete(`/activities/${id}`, { data: { force: options.force || false } });
       return result;
     } catch (error) {
       console.error(`[${this.serviceName}] ❌ Error deleting activity:`, error);

@@ -402,6 +402,11 @@ export const BulkScanProvider = ({
         );
       }
 
+      // Emit event so activity list and roster refresh via event bus
+      if (failedCount === 0 && successfulCount > 0) {
+        eventBus.emit(EVENTS.ATTENDANCE_MARKED, { count: successfulCount });
+      }
+
       // Call onSuccess callback
       const currentOnSuccess = onSuccessRef.current;
       if (currentOnSuccess) {
@@ -451,7 +456,7 @@ export const BulkScanProvider = ({
     } finally {
       setLoading(false);
     }
-  }, [validatedStudents.found, selectedStatus, selectedDate, clearState]);
+  }, [validatedStudents.found, selectedStudents, selectedStatus, selectedDate, clearState]);
 
   const canSubmit = useMemo(() => {
     const result = (

@@ -7,8 +7,7 @@ import { useEffect, useRef, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import { getClasses } from '@services/business/classService';
 import { getEnrollments } from '@services/business/enrollmentService';
-import { getUsers } from '@services/business/userService';
-import { getUserProfile } from '@services/business/userService';
+import { getUsers, getUserRoles, getUserProfile } from '@services/business/userService';
 import { chatService } from '@services/business/chatService';
 import { ROLE_STRINGS } from '@utils/userUtils';
 import { ActivityLogger } from '@services/other/activityLogger';
@@ -16,6 +15,25 @@ import { info, error, warn, debug } from '@services/utils/logger.js';
 
 import { LOCAL_STORAGE_KEYS } from '../constants/chatConstants';
 import { getChatType, getChatId } from '../utils/chatHelpers';
+
+const normalizeUser = (u) => {
+  if (!u) return u;
+  if (u.docId) return u;
+  const roles = getUserRoles(u);
+  const roleCode = roles.includes('super_admin') ? 'super_admin'
+    : roles.includes('admin') ? 'admin'
+    : roles.includes('hr') ? 'hr'
+    : roles.includes('instructor') ? 'instructor'
+    : roles.includes('student') ? 'student' : undefined;
+  return {
+    ...u,
+    docId: u.keycloakId || u.uid || String(u.id),
+    uid: u.keycloakId || u.uid || String(u.id),
+    isStudent: roles.includes('student'),
+    role: roleCode,
+    enrolledClasses: u.enrolledClasses || []
+  };
+};
 
 export const useChatSubscriptions = (user, isAdmin, isHR, isInstructor, isSuperAdmin, state, actions) => {
   const location = useLocation();
@@ -166,7 +184,8 @@ export const useChatSubscriptions = (user, isAdmin, isHR, isInstructor, isSuperA
     const fetchUsers = async () => {
       try {
         const u = await getUsers();
-        setAllUsers(u.success ? (u.data || []) : []);
+        const all = (u.success ? (u.data || []) : []).map(normalizeUser);
+        setAllUsers(all);
       } catch {}
     };
     fetchUsers();

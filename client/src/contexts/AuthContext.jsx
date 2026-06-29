@@ -542,8 +542,10 @@ export const AuthProvider = ({ children }) => {
         else setRole(null);
 
         setUser(userObj);
+        setLoading(false);
+      }).catch(() => {
+        setLoading(false);
       });
-      setLoading(false);
       
       // Save token to localStorage for API calls and cookie for image proxy
       if (keycloak.token) {
@@ -657,7 +659,7 @@ export const AuthProvider = ({ children }) => {
   const getTokenExpiryLocalTime = () => {
     if (!keycloak.tokenParsed?.exp) return t('unknown') || 'Unknown';
     const expiryDate = new Date(keycloak.tokenParsed.exp * 1000);
-    return expiryDate.toLocaleTimeString(lang === 'ar' ? 'ar-QA' : 'en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    return expiryDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   };
 
   const getModalMessage = () => {

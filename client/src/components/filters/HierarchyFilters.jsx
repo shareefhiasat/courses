@@ -46,7 +46,7 @@ const HierarchyFilters = ({
   const subjectOptions = useMemo(() => [
     { value: 'all', label: t('all_subjects') || 'All Subjects' },
     ...subjects
-      .filter(s => selectedProgram === 'all' || s.programId === selectedProgram)
+      .filter(s => selectedProgram === 'all' || String(s.programId) === String(selectedProgram))
       .map(s => ({
         value: s.docId || s.id,
         label: lang === 'ar' ? (s.nameAr || s.nameEn || s.code) : (s.nameEn || s.nameAr || s.code)
@@ -57,10 +57,10 @@ const HierarchyFilters = ({
     { value: 'all', label: t('all_classes') || 'All Classes' },
     ...classes
       .filter(c => {
-        if (selectedSubject !== 'all') return c.subjectId === selectedSubject;
+        if (selectedSubject !== 'all') return String(c.subjectId) === String(selectedSubject);
         if (selectedProgram !== 'all') {
-          const subject = subjects.find(s => (s.docId || s.id) === c.subjectId);
-          return subject?.programId === selectedProgram;
+          const subject = subjects.find(s => String(s.docId || s.id) === String(c.subjectId));
+          return String(subject?.programId) === String(selectedProgram);
         }
         return true;
       })
@@ -81,17 +81,17 @@ const HierarchyFilters = ({
         
         // Filter by class if specified
         if (selectedClass !== 'all') {
-          return s.enrollments?.some(e => e.classId === selectedClass) || s.classId === selectedClass;
+          return s.enrollments?.some(e => String(e.classId) === String(selectedClass)) || String(s.classId) === String(selectedClass);
         }
         
         // Filter by subject if specified
         if (selectedSubject !== 'all') {
-          return s.enrollments?.some(e => e.subjectId === selectedSubject) || s.subjectId === selectedSubject;
+          return s.enrollments?.some(e => String(e.subjectId) === String(selectedSubject)) || String(s.subjectId) === String(selectedSubject);
         }
         
         // Filter by program if specified
         if (selectedProgram !== 'all') {
-          return s.enrollments?.some(e => e.programId === selectedProgram) || s.programId === selectedProgram;
+          return s.enrollments?.some(e => String(e.programId) === String(selectedProgram)) || String(s.programId) === String(selectedProgram);
         }
         
         return true;
@@ -108,8 +108,9 @@ const HierarchyFilters = ({
         <div style={{ minWidth: 0 }}>
           <Select
             value={selectedProgram}
-            onChange={(value) => {
-              setSelectedProgram(value);
+            onChange={(e) => {
+              const val = e?.target?.value ?? e?.value ?? e;
+              setSelectedProgram(val);
               if (setSelectedSubject) setSelectedSubject('all');
               if (setSelectedClass) setSelectedClass('all');
             }}
@@ -123,8 +124,9 @@ const HierarchyFilters = ({
         <div style={{ minWidth: 0 }}>
           <Select
             value={selectedSubject}
-            onChange={(value) => {
-              setSelectedSubject(value);
+            onChange={(e) => {
+              const val = e?.target?.value ?? e?.value ?? e;
+              setSelectedSubject(val);
               if (setSelectedClass) setSelectedClass('all');
             }}
             options={subjectOptions}
@@ -137,7 +139,10 @@ const HierarchyFilters = ({
         <div style={{ minWidth: 0 }}>
           <Select
             value={selectedClass}
-            onChange={setSelectedClass}
+            onChange={(e) => {
+              const val = e?.target?.value ?? e?.value ?? e;
+              setSelectedClass(val);
+            }}
             options={classOptions}
             fullWidth
           />
@@ -148,7 +153,10 @@ const HierarchyFilters = ({
         <div style={{ minWidth: 0 }}>
           <Select
             value={selectedStudent}
-            onChange={setSelectedStudent}
+            onChange={(e) => {
+              const val = e?.target?.value ?? e?.value ?? e;
+              setSelectedStudent(val);
+            }}
             options={studentOptions}
             fullWidth
           />
@@ -159,7 +167,10 @@ const HierarchyFilters = ({
         <div style={{ minWidth: 0 }}>
           <YearSelect
             value={selectedYear}
-            onChange={setSelectedYear}
+            onChange={(e) => {
+              const val = e?.target?.value ?? e?.value ?? e;
+              setSelectedYear(val);
+            }}
             includeAll
             allValue="all"
             allLabel={t('all_years') || 'All Years'}
@@ -175,7 +186,10 @@ const HierarchyFilters = ({
           <FilterSelect
             filterKey="terms"
             value={selectedTerm}
-            onChange={setSelectedTerm}
+            onChange={(e) => {
+              const val = e?.target?.value ?? e?.value ?? e;
+              setSelectedTerm(val);
+            }}
             data={terms}
             allLabel={t('all_terms') || 'All Terms'}
             fullWidth

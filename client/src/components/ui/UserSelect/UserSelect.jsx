@@ -3,7 +3,7 @@ import { Select } from '@ui';
 import { useLang } from '@contexts/LangContext';
 import { getLocalizedUserName } from '@utils/localizedUserName';
 import { getUserStatus, getUserStatusSummary, getStatusIconProps, getStatusDescription, USER_STATUS, USER_STATUS_LABELS } from '@utils/userStatus';
-import { getThemedIcon, getUserRoleIcon } from '@constants/iconTypes';
+import { getThemedIcon, getUserRoleIcon, getUserRoleColor } from '@constants/iconTypes';
 import { getThemeColor } from '@constants';
 import { ROLE_STRINGS } from '@constants';
 import { isInstructor, isAdmin, isHR, isSuperAdmin, isStudent, getUserRoles } from '@services/business/userService';
@@ -54,7 +54,7 @@ const UserSelect = ({
   theme = 'light',
   ...rest
 }) => {
-  const { lang } = useLang();
+  const { lang, t } = useLang();
   
   // Icon component mapping using centralized system
   const getIconComponent = (iconName) => {
@@ -104,12 +104,14 @@ const UserSelect = ({
 
     // Add "All Users" option if requested
     if (includeAll) {
+      const allLabel = t('user_select_all_users') || 'All Users';
       options.push({
         value: 'all',
+        displayLabel: allLabel,
         label: (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {getIconComponent('User')}
-            <span>All Users</span>
+            <span>{allLabel}</span>
           </div>
         )
       });
@@ -140,12 +142,12 @@ const UserSelect = ({
         }
         
         enrollmentCount = taughtClasses.length;
-        displayCount = enrollmentCount > 0 ? `${enrollmentCount} classes` : 'No classes';
+        displayCount = enrollmentCount > 0 ? `${enrollmentCount} ${t('user_select_classes') || 'classes'}` : (t('user_select_no_classes') || 'No classes');
       } else {
         // For students: count their enrollments
         const userEnrollments = enrollments.filter(e => e.userId === (u.docId || u.id));
         enrollmentCount = userEnrollments.length;
-        displayCount = enrollmentCount > 0 ? `${enrollmentCount} enrollments` : 'No enrollments';
+        displayCount = enrollmentCount > 0 ? `${enrollmentCount} ${t('user_select_enrollments') || 'enrollments'}` : (t('user_select_no_enrollments') || 'No enrollments');
       }
       
       // Get status information
@@ -204,13 +206,13 @@ const UserSelect = ({
       // Add role-specific icon based on user's primary role using centralized system
       let RoleIcon = null;
       if (userRoles.includes('super_admin')) {
-        RoleIcon = getUserRoleIcon('super_admin');
+        RoleIcon = React.cloneElement(getUserRoleIcon('super_admin'), { color: getUserRoleColor('super_admin'), size: 16 });
       } else if (userRoles.includes('admin')) {
-        RoleIcon = getUserRoleIcon('admin');
+        RoleIcon = React.cloneElement(getUserRoleIcon('admin'), { color: getUserRoleColor('admin'), size: 16 });
       } else if (userRoles.includes('hr') || userRoles.includes('human_resources')) {
-        RoleIcon = getUserRoleIcon('hr');
+        RoleIcon = React.cloneElement(getUserRoleIcon('hr'), { color: getUserRoleColor('hr'), size: 16 });
       } else if (userRoles.includes('instructor') || userRoles.includes('teacher')) {
-        RoleIcon = getUserRoleIcon('instructor');
+        RoleIcon = React.cloneElement(getUserRoleIcon('instructor'), { color: getUserRoleColor('instructor'), size: 16 });
       }
       
       if (RoleIcon) {
@@ -231,6 +233,7 @@ const UserSelect = ({
         displayLabel: localizedName,
         label: localizedName,
         icon: IconComponent,
+        subtext: showEnrollments ? displayCount : undefined,
         disabled: isDisabled
       });
     });

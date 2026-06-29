@@ -115,22 +115,24 @@ const updateClass = async (id, updateData, user = null) => {
   }
 };
 
-const deleteClass = async (id, user = null) => {
+const deleteClass = async (id, user = null, options = {}) => {
   try {
-    info(`${serviceName}:deleteClass`, { id });
+    info(`${serviceName}:deleteClass`, { id, force: options.force });
     
-    const result = await classDbService.delete(id);
+    const result = await classDbService.delete(id, options);
     
     if (result.success) {
       info(`${serviceName}:deleteClass:success`, { classId: id });
       return {
         success: true,
-        message: 'Class deactivated successfully'
+        message: result.message || 'Class deactivated successfully'
       };
     } else {
       return {
         success: false,
         error: result.error || 'Failed to deactivate class',
+        code: result.code,
+        dependencies: result.dependencies,
         data: null
       };
     }

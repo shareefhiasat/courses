@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef, useLayoutEffect } from 'react';
 import Joyride from 'react-joyride';
 import TourTooltip from '@ui/TourTooltip/TourTooltip';
+import { scheduleTourStart } from '@utils/tourScheduler';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useAuth } from '@contexts/AuthContext';
@@ -70,7 +71,7 @@ const ClassesPage = () => {
     window.addEventListener('app:help', start);
     return () => { window.removeEventListener('app:joyride', start); window.removeEventListener('app:help', start); };
   }, []);
-  useEffect(() => { try { if (!localStorage.getItem(tourSeenKey)) setRunTour(true); } catch {} }, [tourSeenKey]);
+  useEffect(() => scheduleTourStart(tourSeenKey, lang, () => setRunTour(true)), [tourSeenKey, lang]);
   const handleTourCallback = useCallback((data) => {
     const { status, action } = data || {};
     if (status === 'finished' || status === 'skipped' || action === 'close') { setRunTour(false); try { localStorage.setItem(tourSeenKey, 'true'); } catch {} }
@@ -537,12 +538,32 @@ const ClassesPage = () => {
               classCode: classItem.code
             });
           } catch (e) { warn('Failed to log activity:', e); }
-          toast?.showSuccess(t('classes_deleted_successfully'));
+          toast?.showSuccess(result.message || t('classes_deleted_successfully'));
           await loadData();
+        } else if (result.code === 'HAS_DEPENDENCIES' && result.dependencies) {
+          // Rollback and show force-delete confirmation
+          setClasses(prev => [...prev, classItem]);
+          const depList = result.dependencies.map(d => `${d.count} ${d.label}`).join(', ');
+          deleteClassModal(classItem, async () => {
+            setClasses(prev => prev.filter(c => (c.docId || c.id) !== (classItem.docId || classItem.id)));
+            try {
+              const forceResult = await deleteClass(classId, null, { force: true });
+              if (forceResult.success) {
+                toast?.showSuccess(forceResult.message || 'Class deactivated successfully');
+                await loadData();
+              } else {
+                setClasses(prev => [...prev, classItem]);
+                toast?.showError(forceResult.error || 'Failed to deactivate class');
+              }
+            } catch (err) {
+              setClasses(prev => [...prev, classItem]);
+              toast?.showError(err.message || 'Failed to deactivate class');
+            }
+          }, { relatedRecords: result.dependencies });
         } else {
           // Rollback
           setClasses(prev => [...prev, classItem]);
-          toast?.showError(t('classes_error_deleting', { error: result.error }));
+          toast?.showError(result.error || t('classes_error_deleting', { error: result.error }));
         }
       } catch (error) {
         // Rollback

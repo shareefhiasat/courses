@@ -106,6 +106,7 @@ export const listUsersController = async (req, res) => {
       where,
       select: {
         id: true,
+        keycloakId: true,
         displayName: true,
         displayNameAr: true,
         firstName: true,

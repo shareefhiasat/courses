@@ -135,7 +135,7 @@ export const updateSubject = async (subjectId, updateData, user = null) => {
 /**
  * Delete subject with business logic
  */
-export const deleteSubject = async (subjectId, user = null) => {
+export const deleteSubject = async (subjectId, user = null, options = {}) => {
   try {
     if (!subjectId) {
       return {
@@ -145,7 +145,7 @@ export const deleteSubject = async (subjectId, user = null) => {
       };
     }
     
-    const result = await deleteSubjectFromDb(subjectId, user);
+    const result = await deleteSubjectFromDb(subjectId, user, options);
     return result;
   } catch (error) {
     console.error('Error in deleteSubject:', error);

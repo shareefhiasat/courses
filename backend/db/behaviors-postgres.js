@@ -297,14 +297,14 @@ export const createBehavior = async (behaviorData, user = null) => {
     
     const newBehavior = await prisma.behavior.create({
       data: {
-        userId: behaviorData.userId,
-        classId: behaviorData.classId,
-        programId: behaviorData.programId,
-        subjectId: behaviorData.subjectId,
-        typeId: behaviorData.typeId,
+        userId: parseInt(behaviorData.userId),
+        classId: behaviorData.classId ? parseInt(behaviorData.classId) : null,
+        programId: behaviorData.programId ? parseInt(behaviorData.programId) : null,
+        subjectId: behaviorData.subjectId ? parseInt(behaviorData.subjectId) : null,
+        typeId: parseInt(behaviorData.typeId),
         points: behaviorData.points || 0,
-        descriptionEn: behaviorData.descriptionEn,
-        descriptionAr: behaviorData.descriptionAr,
+        descriptionEn: behaviorData.descriptionEn || '',
+        descriptionAr: behaviorData.descriptionAr || '',
         comment: behaviorData.comment,
         isActive: behaviorData.isActive !== undefined ? behaviorData.isActive : true,
         createdBy: createdBy || 1 // Default to admin if no user context

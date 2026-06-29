@@ -50,10 +50,10 @@ export const updateActivity = async (id, updateData, user = null) => {
   }
 };
 
-export const deleteActivity = async (id, user = null) => {
+export const deleteActivity = async (id, user = null, options = {}) => {
   try {
     const service = await getDbService();
-    return await service.delete(id);
+    return await service.delete(id, options);
   } catch (error) {
     console.error('activitiesService:deleteActivity error:', error);
     return { success: false, error: error.message, data: null };

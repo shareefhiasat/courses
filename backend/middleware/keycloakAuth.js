@@ -140,6 +140,10 @@ export const keycloakAuth = (requiredRoles = []) => {
       if (!token) {
         token = extractTokenFromCookie(req);
       }
+      // Fallback to query parameter for <audio>/<img> tag support
+      if (!token && req.query.token) {
+        token = req.query.token;
+      }
       if (!token) {
         console.log(`[keycloakAuth] No token found for ${req.originalUrl}`);
         return res.status(401).json({

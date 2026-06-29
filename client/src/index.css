@@ -414,3 +414,156 @@ html[data-density='compact'] .row-item {
   margin-top: 0.75rem;
   margin-bottom: 0.5rem;
 }
+
+/* ============================================
+   Global CSS Tooltip System
+   Uses [data-tooltip] attribute — replaces native title= tooltips
+   Matches PortalTooltip styling: themed background, white text, arrow
+   Positions: top (default), bottom, left, right
+   ============================================ */
+
+[data-tooltip] {
+  position: relative;
+}
+
+[data-tooltip]::before,
+[data-tooltip]::after {
+  position: absolute;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.2s ease, visibility 0.2s ease;
+  z-index: 100000;
+}
+
+[data-tooltip]::before {
+  content: attr(data-tooltip);
+  background: var(--color-primary, #3b82f6);
+  color: #fff;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  line-height: 1.4;
+  padding: 0.375rem 0.625rem;
+  border-radius: 6px;
+  white-space: nowrap;
+  max-width: 240px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15);
+  border: 1px solid var(--color-gray-700, #374151);
+}
+
+[data-tooltip]::after {
+  content: '';
+  width: 0;
+  height: 0;
+  border: 5px solid transparent;
+}
+
+/* Default: top position */
+[data-tooltip]:not([data-tooltip-pos="bottom"]):not([data-tooltip-pos="left"]):not([data-tooltip-pos="right"])::before {
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+[data-tooltip]:not([data-tooltip-pos="bottom"]):not([data-tooltip-pos="left"]):not([data-tooltip-pos="right"])::after {
+  bottom: calc(100% + 1px);
+  left: 50%;
+  transform: translateX(-50%);
+  border-top-color: var(--color-primary, #3b82f6);
+  border-bottom: 0;
+}
+
+/* Bottom position */
+[data-tooltip-pos="bottom"]::before {
+  top: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+[data-tooltip-pos="bottom"]::after {
+  top: calc(100% + 1px);
+  left: 50%;
+  transform: translateX(-50%);
+  border-bottom-color: var(--color-primary, #3b82f6);
+  border-top: 0;
+}
+
+/* Left position */
+[data-tooltip-pos="left"]::before {
+  right: calc(100% + 6px);
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+[data-tooltip-pos="left"]::after {
+  right: calc(100% + 1px);
+  top: 50%;
+  transform: translateY(-50%);
+  border-left-color: var(--color-primary, #3b82f6);
+  border-right: 0;
+}
+
+/* Right position */
+[data-tooltip-pos="right"]::before {
+  left: calc(100% + 6px);
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+[data-tooltip-pos="right"]::after {
+  left: calc(100% + 1px);
+  top: 50%;
+  transform: translateY(-50%);
+  border-right-color: var(--color-primary, #3b82f6);
+  border-left: 0;
+}
+
+/* Show on hover (with small delay via transition) */
+[data-tooltip]:hover::before,
+[data-tooltip]:hover::after {
+  opacity: 1;
+  visibility: visible;
+}
+
+/* Dark theme adjustments */
+.dark [data-tooltip]::before {
+  background: var(--color-primary, #8b5cf6);
+  border-color: var(--color-gray-600, #4b5563);
+}
+
+.dark [data-tooltip]:not([data-tooltip-pos="bottom"]):not([data-tooltip-pos="left"]):not([data-tooltip-pos="right"])::after {
+  border-top-color: var(--color-primary, #8b5cf6);
+}
+
+.dark [data-tooltip-pos="bottom"]::after {
+  border-bottom-color: var(--color-primary, #8b5cf6);
+}
+
+.dark [data-tooltip-pos="left"]::after {
+  border-left-color: var(--color-primary, #8b5cf6);
+}
+
+.dark [data-tooltip-pos="right"]::after {
+  border-right-color: var(--color-primary, #8b5cf6);
+}
+
+/* Arabic font size increase for RTL mode in roster and activity list */
+[dir="rtl"] [data-tour="activity-list"] span {
+  font-size: 0.9375rem !important;
+}
+
+[dir="rtl"] [data-tour="activity-list"] div[style*="font-size"] {
+  font-size: 0.875rem !important;
+}
+
+[dir="rtl"] table td span,
+[dir="rtl"] table td div {
+  font-size: 0.875rem !important;
+}
+
+[dir="rtl"] table th span,
+[dir="rtl"] table th div {
+  font-size: 0.8125rem !important;
+}

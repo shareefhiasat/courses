@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef, useLayoutEffect } from 'react';
 import Joyride from 'react-joyride';
 import TourTooltip from '@ui/TourTooltip/TourTooltip';
+import { scheduleTourStart } from '@utils/tourScheduler';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
@@ -56,7 +57,7 @@ const SubjectsPage = () => {
     window.addEventListener('app:help', start);
     return () => { window.removeEventListener('app:joyride', start); window.removeEventListener('app:help', start); };
   }, []);
-  useEffect(() => { try { if (!localStorage.getItem(tourSeenKey)) setRunTour(true); } catch {} }, [tourSeenKey]);
+  useEffect(() => scheduleTourStart(tourSeenKey, lang, () => setRunTour(true)), [tourSeenKey, lang]);
   const handleTourCallback = useCallback((data) => {
     const { status, action } = data || {};
     if (status === 'finished' || status === 'skipped' || action === 'close') { setRunTour(false); try { localStorage.setItem(tourSeenKey, 'true'); } catch {} }
@@ -306,8 +307,26 @@ const SubjectsPage = () => {
               subjectCode: subject.code
             });
           } catch (e) { /* Activity logging failed */ }
-          toast.success(t('subject_deleted_successfully') || 'Subject deleted successfully');
-          // Don't call loadData() here to prevent double loading
+          toast.success(result.message || t('subject_deleted_successfully') || 'Subject deleted successfully');
+        } else if (result.code === 'HAS_DEPENDENCIES' && result.dependencies) {
+          // Rollback and show force-delete confirmation
+          setSubjects(prev => [...prev, subject]);
+          deleteSubjectModal(subject, async () => {
+            setSubjects(prev => prev.filter(s => (s.docId || s.id) !== (subject.docId || subject.id)));
+            try {
+              const forceResult = await deleteSubject(subject.id, null, { force: true });
+              if (forceResult.success) {
+                toast.success(forceResult.message || 'Subject deactivated successfully');
+                await loadData();
+              } else {
+                setSubjects(prev => [...prev, subject]);
+                toast.error(forceResult.error || 'Failed to deactivate subject');
+              }
+            } catch (err) {
+              setSubjects(prev => [...prev, subject]);
+              toast.error(err.message || 'Failed to deactivate subject');
+            }
+          }, { relatedRecords: result.dependencies });
         } else {
           // Rollback
           setSubjects(prev => [...prev, subject]);

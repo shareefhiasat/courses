@@ -213,9 +213,9 @@ const updateProgram = async (id, updateData, user = null) => {
   }
 };
 
-const deleteProgram = async (id, user = null) => {
+const deleteProgram = async (id, user = null, options = {}) => {
   try {
-    info(`${serviceName}:deleteProgram`, { id });
+    info(`${serviceName}:deleteProgram`, { id, force: options.force });
     
     if (!id) {
       return {
@@ -225,25 +225,20 @@ const deleteProgram = async (id, user = null) => {
       };
     }
     
-    // Business rule: Check if program has active enrollments
-    const program = await getProgramById(id);
-    if (program.success && program.data) {
-      // In real implementation, check for active enrollments
-      // For now, proceed with soft delete
-    }
-    
-    const result = await programDbService.deleteProgram(id);
+    const result = await programDbService.deleteProgram(id, options);
     
     if (result.success) {
       info(`${serviceName}:deleteProgram:success`, { programId: id });
       return {
         success: true,
-        message: 'Program deleted successfully'
+        message: result.message || 'Program deleted successfully'
       };
     } else {
       return {
         success: false,
         error: result.error || 'Failed to delete program',
+        code: result.code,
+        dependencies: result.dependencies,
         data: null
       };
     }

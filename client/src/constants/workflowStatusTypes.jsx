@@ -13,6 +13,7 @@ import { CheckCircle, XCircle, Clock, AlertCircle, AlertTriangle, GitBranch, Sen
 export const WORKFLOW_STATUS = {
   DRAFT: 'DRAFT',
   SUBMITTED: 'SUBMITTED',
+  UNDER_HR_REVIEW: 'UNDER_HR_REVIEW',
   UNDER_REVIEW: 'UNDER_REVIEW',
   UNDER_ADMIN_REVIEW: 'UNDER_ADMIN_REVIEW',
   APPROVED: 'APPROVED',
@@ -26,6 +27,7 @@ export const WORKFLOW_STATUS = {
 export const WORKFLOW_STATUS_VARIANTS = {
   [WORKFLOW_STATUS.DRAFT]: 'secondary',
   [WORKFLOW_STATUS.SUBMITTED]: 'warning',
+  [WORKFLOW_STATUS.UNDER_HR_REVIEW]: 'info',
   [WORKFLOW_STATUS.UNDER_REVIEW]: 'info',
   [WORKFLOW_STATUS.UNDER_ADMIN_REVIEW]: 'info',
   [WORKFLOW_STATUS.APPROVED]: 'success',
@@ -108,6 +110,7 @@ export const getActionVariant = (action) => {
 export const WORKFLOW_STATUS_COLOR_CLASSES = {
   [WORKFLOW_STATUS.DRAFT]: 'bg-gray-100 text-gray-800',
   [WORKFLOW_STATUS.SUBMITTED]: 'bg-blue-100 text-blue-800',
+  [WORKFLOW_STATUS.UNDER_HR_REVIEW]: 'bg-blue-100 text-blue-800',
   [WORKFLOW_STATUS.UNDER_REVIEW]: 'bg-blue-100 text-blue-800',
   [WORKFLOW_STATUS.UNDER_ADMIN_REVIEW]: 'bg-purple-100 text-purple-800',
   [WORKFLOW_STATUS.APPROVED]: 'bg-gray-100 text-gray-800',
@@ -132,6 +135,7 @@ export const getStatusColorClasses = (status) => {
 export const WORKFLOW_STATUS_ICONS = {
   [WORKFLOW_STATUS.DRAFT]: FileText,
   [WORKFLOW_STATUS.SUBMITTED]: Send,
+  [WORKFLOW_STATUS.UNDER_HR_REVIEW]: AlertTriangle,
   [WORKFLOW_STATUS.UNDER_REVIEW]: AlertTriangle,
   [WORKFLOW_STATUS.UNDER_ADMIN_REVIEW]: AlertTriangle,
   [WORKFLOW_STATUS.APPROVED]: CircleCheckBig,

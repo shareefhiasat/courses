@@ -21,7 +21,7 @@ import useWorkflowInbox from "@hooks/useWorkflowInbox";
 import { useAuditGridColumns } from '@hooks/useAuditGridColumns.js';
 import { Button, useToast, GridQuickFilterChips } from '@ui';
 import { Card, CardContent, CardHeader, CardTitle, Badge, Input, SimpleLoading, EmptyState, AdvancedDataGrid } from '@ui';
-import { getCategoryFilterChips, getWorkflowDisplayLabel } from '@constants/workflowConfig';
+import { getCategoryFilterChips, getWorkflowDisplayLabel, WORKFLOW_CATEGORY_OPTIONS, CATEGORY_BY_VALUE } from '@constants/workflowConfig';
 import { useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { AlertCircle, Trash2 } from 'lucide-react';
 import { deleteWorkflowDocument } from '@services/business/workflowService';
@@ -153,6 +153,8 @@ const WorkflowInboxPage = () => {
         return '#6b7280';
       case 'SUBMITTED':
         return '#3b82f6';
+      case 'UNDER_HR_REVIEW':
+        return '#3b82f6';
       case 'UNDER_REVIEW':
         return '#3b82f6';
       case 'UNDER_ADMIN_REVIEW':
@@ -211,11 +213,25 @@ const WorkflowInboxPage = () => {
       field: 'workflowCategory',
       headerName: t('workflow.inbox.category', 'Category'),
       width: 180,
-      renderCell: (params) => (
-        <Badge variant="outline">
-          {getWorkflowDisplayLabel(params.row, t)}
-        </Badge>
-      ),
+      renderCell: (params) => {
+        const category = params.row.workflowCategory || 'GENERAL';
+        const catConfig = CATEGORY_BY_VALUE[category];
+        const variant = catConfig?.variant || 'slate';
+        const isDark = theme === 'dark';
+        const textColorMap = {
+          slate: isDark ? '#f3f4f6' : '#1f2937',
+          blue: isDark ? '#93c5fd' : '#0369a1',
+          red: isDark ? '#fca5a5' : '#991b1b',
+          amber: isDark ? '#fcd34d' : '#92400e',
+          purple: isDark ? '#d8b4fe' : '#6b21a8',
+        };
+        const color = textColorMap[variant] || textColorMap.slate;
+        return (
+          <span style={{ color, fontWeight: 600, fontSize: '0.8125rem', whiteSpace: 'nowrap' }}>
+            {getWorkflowDisplayLabel(params.row, t)}
+          </span>
+        );
+      },
     },
     {
       field: 'title',
@@ -235,11 +251,11 @@ const WorkflowInboxPage = () => {
       width: 250,
       renderCell: (params) => {
         const mimeType = params.row.file?.mimeType;
-        const icon = getThemedIcon('ui', getFileIconName(mimeType), 20, theme);
+        const icon = getThemedIcon('ui', getFileIconName(mimeType), 14, theme);
         const originalFileName = params.row.file?.name || params.row.file?.originalName || '-';
         
         return (
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
             <div className="flex-shrink-0 flex items-center">
               {icon}
             </div>
@@ -279,6 +295,10 @@ const WorkflowInboxPage = () => {
           case 'SUBMITTED':
             iconColor = '#3b82f6';
             statusText = t('workflow.inbox.statusSubmitted', 'Submitted');
+            break;
+          case 'UNDER_HR_REVIEW':
+            iconColor = '#3b82f6';
+            statusText = t('workflow.inbox.statusUnderHrReview', 'HR Review');
             break;
           case 'UNDER_REVIEW':
             iconColor = '#3b82f6';
@@ -330,8 +350,13 @@ const WorkflowInboxPage = () => {
             break;
           case 'SUBMITTED':
             nextStatus = t('workflow.inbox.nextStatusUnderHrReview', 'HR Review');
-            NextStatusIcon = getWorkflowStatusIcon('UNDER_REVIEW');
+            NextStatusIcon = getWorkflowStatusIcon('UNDER_HR_REVIEW');
             iconColor = '#3b82f6';
+            break;
+          case 'UNDER_HR_REVIEW':
+            nextStatus = t('workflow.inbox.nextStatusAdminReview', 'Admin Review');
+            NextStatusIcon = getWorkflowStatusIcon('UNDER_ADMIN_REVIEW');
+            iconColor = '#8b5cf6';
             break;
           case 'UNDER_REVIEW':
             nextStatus = t('workflow.inbox.nextStatusAdminReview', 'Admin Review');
@@ -589,7 +614,7 @@ const WorkflowInboxPage = () => {
   const statusFilterOptions = useMemo(() => [
     { value: 'DRAFT', label: t('workflow.inbox.statusDraft'), color: '#6b7280', icon: 'file_text' },
     { value: 'SUBMITTED', label: t('workflow.inbox.statusSubmitted'), color: '#3b82f6', icon: 'send' },
-    { value: 'UNDER_REVIEW', label: t('workflow.inbox.statusUnderHrReview'), color: '#8b5cf6', icon: 'alert_triangle' },
+    { value: 'UNDER_HR_REVIEW', label: t('workflow.inbox.statusUnderHrReview'), color: '#3b82f6', icon: 'alert_triangle' },
     { value: 'UNDER_ADMIN_REVIEW', label: t('workflow.inbox.statusUnderAdminReview'), color: '#8b5cf6', icon: 'alert_triangle' },
     { value: 'APPROVED', label: t('workflow.inbox.statusCompleted'), color: '#10b981', icon: 'check_circle' },
     { value: 'REJECTED', label: t('workflow.inbox.statusRejected'), color: '#ef4444', icon: 'x_circle' },
@@ -638,24 +663,25 @@ const WorkflowInboxPage = () => {
               chips={categoryFilterChips}
               activeId={activeCategoryId}
               onChange={handleCategoryChipChange}
+              style={{ marginBottom: 0 }}
             />
 
             {/* Status Filter - badge toggles */}
-            <div data-tour="workflow-status-filters" className="flex items-center gap-2 flex-wrap">
+            <div data-tour="workflow-status-filters" className="flex items-center gap-1.5 flex-wrap">
               {statusFilterOptions.map((status) => {
                 const isSelected = filters.status === status.value;
                 return (
                   <button
                     key={status.value}
                     onClick={() => updateFilters({ status: isSelected ? '' : status.value })}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all"
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-all"
                     style={{
                       backgroundColor: isSelected ? status.color : 'transparent',
                       color: isSelected ? 'white' : status.color,
-                      border: `1px solid ${isSelected ? status.color : status.color}20`
+                      border: `1px solid ${status.color}20`
                     }}
                   >
-                    {getThemedIcon('ui', status.icon, 14, isSelected ? 'white' : status.color)}
+                    {getThemedIcon('ui', status.icon, 12, isSelected ? 'white' : status.color)}
                     {status.label}
                   </button>
                 );
@@ -663,21 +689,21 @@ const WorkflowInboxPage = () => {
             </div>
 
             {/* Assignment Filter */}
-            <div className="flex items-center gap-2 flex-wrap">
+            <div className="flex items-center gap-1.5 flex-wrap">
               {assignmentFilterOptions.map((assignment) => {
                 const isSelected = filters.assignment === assignment.value;
                 return (
                   <button
                     key={assignment.value}
                     onClick={() => updateFilters({ assignment: isSelected ? '' : assignment.value })}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all"
+                    className="flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium transition-all"
                     style={{
                       backgroundColor: isSelected ? assignment.color : 'transparent',
                       color: isSelected ? 'white' : assignment.color,
-                      border: `1px solid ${isSelected ? assignment.color : assignment.color}20`
+                      border: `1px solid ${assignment.color}20`
                     }}
                   >
-                    {getThemedIcon('ui', assignment.icon, 14, isSelected ? 'white' : assignment.color)}
+                    {getThemedIcon('ui', assignment.icon, 12, isSelected ? 'white' : assignment.color)}
                     {assignment.label}
                   </button>
                 );

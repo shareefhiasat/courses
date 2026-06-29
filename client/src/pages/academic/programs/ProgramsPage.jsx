@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef, useLayoutEffect } from 'react';
 import Joyride from 'react-joyride';
 import TourTooltip from '@ui/TourTooltip/TourTooltip';
+import { scheduleTourStart } from '@utils/tourScheduler';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
@@ -46,7 +47,7 @@ const ProgramsPage = () => {
     window.addEventListener('app:help', start);
     return () => { window.removeEventListener('app:joyride', start); window.removeEventListener('app:help', start); };
   }, []);
-  useEffect(() => { try { if (!localStorage.getItem(tourSeenKey)) setRunTour(true); } catch {} }, [tourSeenKey]);
+  useEffect(() => scheduleTourStart(tourSeenKey, lang, () => setRunTour(true)), [tourSeenKey, lang]);
   const handleTourCallback = useCallback((data) => {
     const { status, action } = data || {};
     if (status === 'finished' || status === 'skipped' || action === 'close') { setRunTour(false); try { localStorage.setItem(tourSeenKey, 'true'); } catch {} }
@@ -243,8 +244,27 @@ const ProgramsPage = () => {
               programCode: program.code
             });
           } catch (e) { /* Activity logging failed */ }
-          toast.success(t('program_deleted_successfully') || 'Program deleted successfully');
+          toast.success(result.message || t('program_deleted_successfully') || 'Program deleted successfully');
           await loadPrograms();
+        } else if (result.code === 'HAS_DEPENDENCIES' && result.dependencies) {
+          // Rollback and show force-delete confirmation
+          setPrograms(prev => [...prev, program]);
+          deleteProgramModal(program, async () => {
+            setPrograms(prev => prev.filter(p => (p.docId || p.id) !== (program.docId || program.id)));
+            try {
+              const forceResult = await deleteProgram(program.id, null, { force: true });
+              if (forceResult.success) {
+                toast.success(forceResult.message || 'Program deactivated successfully');
+                await loadPrograms();
+              } else {
+                setPrograms(prev => [...prev, program]);
+                toast.error(forceResult.error || 'Failed to deactivate program');
+              }
+            } catch (err) {
+              setPrograms(prev => [...prev, program]);
+              toast.error(err.message || 'Failed to deactivate program');
+            }
+          }, { relatedRecords: result.dependencies });
         } else {
           // Rollback on failure
           setPrograms(prev => [...prev, program]);

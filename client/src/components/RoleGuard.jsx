@@ -48,9 +48,9 @@ const RoleGuard = ({
   if (!user) {
     return (
       <Navigate 
-        to={`/login?redirect=${encodeURIComponent(location.pathname)}`}
+        to={`/login?redirect=${encodeURIComponent(location.pathname + location.search)}`}
         replace 
-        state={{ from: location.pathname }}
+        state={{ from: location.pathname + location.search }}
       />
     );
   }
@@ -74,9 +74,9 @@ const RoleGuard = ({
     // Redirect to unauthorized page with context
     return (
       <Navigate 
-        to={`/unauthorized?backUrl=${encodeURIComponent(location.pathname)}${screenName ? `&screen=${encodeURIComponent(screenName)}` : ''}`}
+        to={`/unauthorized?backUrl=${encodeURIComponent(location.pathname + location.search)}${screenName ? `&screen=${encodeURIComponent(screenName)}` : ''}`}
         replace 
-        state={{ from: location.pathname }}
+        state={{ from: location.pathname + location.search }}
       />
     );
   }

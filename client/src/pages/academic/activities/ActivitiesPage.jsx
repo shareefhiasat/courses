@@ -12,6 +12,7 @@ import { getThemedIcon } from '@constants';
 import { formatQatarStandard, formatQatarForInput, parseQatarFromInput, getQatarNow } from '@utils/qatarDate';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import { useLookupTypes } from '@hooks/useLookupTypes.js';
+import { scheduleTourStart } from '@utils/tourScheduler';
 // OLD: import { ACTIVITY_TYPES, getActivityTypeConfig, ACTIVITY_TYPE_OPTIONS, getThemeColor } from '@constants';
 // NOW: Using useLookupTypes hook for all lookup data
 import { getActivityTypeConfig, ACTIVITY_TYPE_OPTIONS, getThemeColor } from '@constants';
@@ -129,7 +130,7 @@ const ActivitiesPage = () => {
     window.addEventListener('app:help', start);
     return () => { window.removeEventListener('app:joyride', start); window.removeEventListener('app:help', start); };
   }, []);
-  useEffect(() => { try { if (!localStorage.getItem(tourSeenKey)) setRunTour(true); } catch {} }, [tourSeenKey]);
+  useEffect(() => scheduleTourStart(tourSeenKey, lang, () => setRunTour(true)), [tourSeenKey, lang]);
   const handleTourCallback = useCallback((data) => {
     const { status, action } = data || {};
     if (status === 'finished' || status === 'skipped' || action === 'close') { setRunTour(false); try { localStorage.setItem(tourSeenKey, 'true'); } catch {} }
@@ -795,11 +796,30 @@ const ActivitiesPage = () => {
               try {
                 const result = await deleteActivityService(activity.docId, activity);
                 if (result.success) {
-                  toast?.showSuccess(t('activity_deleted_successfully') || 'Activity deleted successfully!');
+                  toast?.showSuccess(result.message || t('activity_deleted_successfully') || 'Activity deleted successfully!');
                   await loadData();
+                } else if (result.code === 'HAS_DEPENDENCIES' && result.dependencies) {
+                  // Rollback and show force-delete confirmation
+                  setActivities(prev => [...prev, activity].sort((a, b) => a.order - b.order));
+                  deleteActivity(activity, async () => {
+                    setActivities(prev => prev.filter(a => (a.docId || a.id) !== (activity.docId || activity.id)));
+                    try {
+                      const forceResult = await deleteActivityService(activity.docId, activity, { force: true });
+                      if (forceResult.success) {
+                        toast?.showSuccess(forceResult.message || 'Activity deactivated successfully');
+                        await loadData();
+                      } else {
+                        setActivities(prev => [...prev, activity].sort((a, b) => a.order - b.order));
+                        toast?.showError(forceResult.error || 'Failed to deactivate activity');
+                      }
+                    } catch (err) {
+                      setActivities(prev => [...prev, activity].sort((a, b) => a.order - b.order));
+                      toast?.showError(err.message || 'Failed to deactivate activity');
+                    }
+                  }, { relatedRecords: result.dependencies });
                 } else {
                   setActivities(prev => [...prev, activity].sort((a, b) => a.order - b.order));
-                  toast?.showError(t('error_deleting_activity') || 'Error deleting activity: ' + result.error);
+                  toast?.showError(result.error || t('error_deleting_activity') || 'Error deleting activity');
                 }
               } catch (error) {
                 setActivities(prev => [...prev, activity].sort((a, b) => a.order - b.order));

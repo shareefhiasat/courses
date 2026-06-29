@@ -121,12 +121,18 @@ export const bulkValidateStudents = async ({ studentNumbers, classId, programId,
         // Merge user data with enrollments
         if (usersResponse.success && usersResponse.data) {
           const userMap = new Map(usersResponse.data.map(u => [u.id, u]));
-          studentsResponse.data = studentsResponse.data.map(enrollment => ({
+          studentsResponse.data = studentsResponse.data.map(enrollment => {
+            const user = userMap.get(enrollment.userId);
+            return {
             ...enrollment,
-            studentNumber: userMap.get(enrollment.userId)?.studentNumber,
-            displayName: userMap.get(enrollment.userId)?.displayName || enrollment.user?.displayName || enrollment.user?.name,
-            name: userMap.get(enrollment.userId)?.name || enrollment.user?.name
-          }));
+            studentNumber: user?.studentNumber,
+            displayName: user?.displayName || enrollment.user?.displayName || enrollment.user?.name,
+            name: user?.name || enrollment.user?.name,
+            displayNameAr: user?.displayNameAr || enrollment.user?.displayNameAr,
+            firstNameAr: user?.firstNameAr || enrollment.user?.firstNameAr,
+            lastNameAr: user?.lastNameAr || enrollment.user?.lastNameAr,
+            };
+          });
           info(`${serviceName}:bulkValidateStudents - Merged user data with enrollments`);
         }
       }
@@ -156,12 +162,18 @@ export const bulkValidateStudents = async ({ studentNumbers, classId, programId,
         // Merge user data with enrollments
         if (usersResponse.success && usersResponse.data) {
           const userMap = new Map(usersResponse.data.map(u => [u.id, u]));
-          studentsResponse.data = studentsResponse.data.map(enrollment => ({
+          studentsResponse.data = studentsResponse.data.map(enrollment => {
+            const user = userMap.get(enrollment.userId);
+            return {
             ...enrollment,
-            studentNumber: userMap.get(enrollment.userId)?.studentNumber,
-            displayName: userMap.get(enrollment.userId)?.displayName || enrollment.user?.displayName || enrollment.user?.name,
-            name: userMap.get(enrollment.userId)?.name || enrollment.user?.name
-          }));
+            studentNumber: user?.studentNumber,
+            displayName: user?.displayName || enrollment.user?.displayName || enrollment.user?.name,
+            name: user?.name || enrollment.user?.name,
+            displayNameAr: user?.displayNameAr || enrollment.user?.displayNameAr,
+            firstNameAr: user?.firstNameAr || enrollment.user?.firstNameAr,
+            lastNameAr: user?.lastNameAr || enrollment.user?.lastNameAr,
+            };
+          });
           info(`${serviceName}:bulkValidateStudents - Merged user data with enrollments`);
         }
       }
@@ -234,6 +246,9 @@ export const bulkValidateStudents = async ({ studentNumbers, classId, programId,
           studentNumber:
             student.user?.studentNumber || student.studentNumber || student.studentId || student.id,
           displayName: student.user?.displayName || student.user?.realName || student.displayName || student.realName || student.name,
+          displayNameAr: student.user?.displayNameAr || student.displayNameAr,
+          firstNameAr: student.user?.firstNameAr || student.firstNameAr,
+          lastNameAr: student.user?.lastNameAr || student.lastNameAr,
           email: student.user?.email || student.email,
           ...student,
         });

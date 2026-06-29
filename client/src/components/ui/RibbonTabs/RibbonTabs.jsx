@@ -56,6 +56,7 @@ export default function RibbonTabs({ categories = [], activeCategory, activeItem
                 <div key={item.key} style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
                   <button
                     className={`tab-btn ${isActive ? 'active' : ''}`}
+                    data-tour={`tab-${item.key}`}
                     onClick={() => onChange?.({ category: category.id, item: item.key })}
                     style={{
                       display: 'inline-flex',

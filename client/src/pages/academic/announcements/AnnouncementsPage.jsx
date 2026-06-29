@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef, useLayoutEffect } from 'react';
 import Joyride from 'react-joyride';
 import TourTooltip from '@ui/TourTooltip/TourTooltip';
+import { scheduleTourStart } from '@utils/tourScheduler';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useAuth } from '@contexts/AuthContext';
@@ -144,7 +145,7 @@ const AnnouncementsPage = ({ isDashboardTab = false }) => {
     window.addEventListener('app:help', start);
     return () => { window.removeEventListener('app:joyride', start); window.removeEventListener('app:help', start); };
   }, []);
-  useEffect(() => { try { if (!localStorage.getItem(tourSeenKey)) setRunTour(true); } catch {} }, [tourSeenKey]);
+  useEffect(() => scheduleTourStart(tourSeenKey, lang, () => setRunTour(true)), [tourSeenKey, lang]);
   const handleTourCallback = useCallback((data) => {
     const { status, action } = data || {};
     if (status === 'finished' || status === 'skipped' || action === 'close') { setRunTour(false); try { localStorage.setItem(tourSeenKey, 'true'); } catch {} }
@@ -612,11 +613,11 @@ const AnnouncementsPage = ({ isDashboardTab = false }) => {
                   info('[DEBUG] Delete result:', result);
                   
                   if (result.success) {
-                    toast?.showSuccess(t('announcement_deleted_successfully') || 'Announcement deleted successfully!');
+                    toast?.showSuccess(result.message || t('announcement_deleted_successfully') || 'Announcement deleted successfully!');
                     await loadData();
                   } else {
                     setAnnouncements(prev => [...prev, announcement]);
-                    toast?.showError(t('error_deleting_announcement') || 'Error deleting announcement: ' + result.error);
+                    toast?.showError(result.error || t('error_deleting_announcement') || 'Error deleting announcement');
                   }
                 } catch (err) {
                   setAnnouncements(prev => [...prev, announcement]);

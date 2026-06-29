@@ -1,10 +1,11 @@
 import React from 'react';
 import PortalTooltip from '@ui/PortalTooltip';
 import { DeleteIcon, ChevronDownIcon } from '@utils/icons.jsx';
-import { PerformedBy } from '@ui';
 import QuickActionButtons from './QuickActionButtons.jsx';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { getLocalizedNoteText } from '@constants/noteTypes';
+import { getUserRoleDisplay, ROLE_DISPLAY_NAMES } from '@utils/userUtils';
+import { Shield, GraduationCap, UserCog, Crown, Heart } from 'lucide-react';
 
 const ActivityList = ({
   recentActivity,
@@ -65,7 +66,7 @@ const ActivityList = ({
   };
 
   return (
-    <div style={{
+    <div data-tour="activity-list" style={{
       display: 'flex',
       flexDirection: 'column',
       gap: '0.75rem',
@@ -124,11 +125,12 @@ const ActivityList = ({
                   <span style={{ marginLeft: '0.25rem' }}>({activity.points})</span>
                 )}
               </div>
-              <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary, #374151)', flex: 1 }}>
+              <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary, #374151)', flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>
                 {lang === 'ar' ? (activity.studentNameAr || activity.studentName) : (activity.studentName || activity.studentNameAr)}
               </span>
               
               {canUseQuickActions && activity.studentId && activity.type === RECORD_TYPES.ATTENDANCE && (
+                <div data-tour="activity-quick-actions">
                 <QuickActionButtons
                   studentId={activity.studentId}
                   students={students}
@@ -139,10 +141,12 @@ const ActivityList = ({
                   t={t}
                   isRTL={isRTL}
                 />
+                </div>
               )}
               
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.125rem' }}>
                 {onDeleteActivity && canDeleteAttendance && (
+                  <div data-tour="activity-delete">
                   <PortalTooltip content={t('delete_activity')} position="top">
                     <button
                       onClick={(e) => {
@@ -164,6 +168,7 @@ const ActivityList = ({
                       <DeleteIcon style={{ width: '14px', height: '14px' }} />
                     </button>
                   </PortalTooltip>
+                  </div>
                 )}
                 <ChevronDownIcon
                   style={{
@@ -208,22 +213,50 @@ const ActivityList = ({
                     {lang === 'ar' ? (activity.classAr || activity.class) : activity.class}
                   </div>
                 )}
-                <PerformedBy 
-                  performedByName={activity.performedByName}
-                  performedBy={activity.performedBy}
-                  user={activity.creator}
-                  lang={lang}
-                />
+                {(() => {
+                  const creator = activity.creator;
+                  const displayName = creator
+                    ? (lang === 'ar' ? (creator.displayNameAr || creator.displayName || creator.firstNameAr || creator.firstName) : (creator.displayName || creator.firstName))
+                    : (activity.performedByName || activity.performedBy);
+                  if (!displayName) return null;
+                  const roles = [];
+                  if (creator?.isSuperAdmin) roles.push('SUPER_ADMIN');
+                  if (creator?.isAdmin) roles.push('ADMIN');
+                  if (creator?.isHR) roles.push('HR');
+                  if (creator?.isInstructor) roles.push('INSTRUCTOR');
+                  if (roles.length === 0 && creator?.role) roles.push(creator.role.toUpperCase());
+                  const roleIcons = { SUPER_ADMIN: Crown, ADMIN: Shield, HR: UserCog, INSTRUCTOR: GraduationCap, STUDENT: Heart };
+                  return (
+                    <div style={{ marginBottom: '0.25rem' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.25rem', background: '#f0f9ff', borderRadius: '0.25rem', fontSize: '0.7rem', flexWrap: 'wrap' }}>
+                        <span style={{ color: '#0369a1', fontWeight: 500 }}>{displayName}</span>
+                        {roles.map(r => {
+                          const RoleIcon = roleIcons[r] || Heart;
+                          const label = ROLE_DISPLAY_NAMES[r] || r;
+                          return (
+                            <span key={r} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.125rem', padding: '0.0625rem 0.25rem', borderRadius: '0.25rem', background: 'rgba(59,130,246,0.1)', color: '#3b82f6', fontSize: '0.625rem', fontWeight: 600 }}>
+                              <RoleIcon size={10} />
+                              {label}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()}
                 {(activity.comment || activity.scanMethod) && (
                   <div style={{ marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                     {activity.comment && (
-                      <span>{(() => {
+                      <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                        {getStatusIcon(activity.status, activity.type, activity.delta)}
+                        {(() => {
                         // Check if it's a note constant (uppercase with underscores)
                         if (/^[A-Z_]+$/.test(activity.comment)) {
                           return getLocalizedNoteText(activity.comment, t) || activity.comment;
                         }
                         return activity.comment;
-                      })()}</span>
+                      })()}
+                      </span>
                     )}
                     {activity.scanMethod && (
                       <span style={{

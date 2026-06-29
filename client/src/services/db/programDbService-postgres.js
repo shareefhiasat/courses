@@ -112,12 +112,12 @@ const update = async (programId, updateData, user = null) => {
 /**
  * Delete program (soft delete by setting isActive to false)
  */
-const deleteProgram = async (programId) => {
+const deleteProgram = async (programId, options = {}) => {
   const startTime = Date.now();
   try {
-    console.log(`[ProgramDbService] Soft deleting program: ${programId}`);
+    console.log(`[ProgramDbService] Soft deleting program:`, { programId, force: options.force });
 
-    const result = await api.delete(`/programs/${programId}`);
+    const result = await api.delete(`/programs/${programId}`, { data: { force: options.force || false } });
 
     const duration = Date.now() - startTime;
     console.log(`[ProgramDbService] ✅ Soft deleted program in ${duration}ms`);

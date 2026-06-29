@@ -459,10 +459,27 @@ const LookupManagementPage = ({ lookupType }) => {
       const result = await api.delete(`/lookup/${lookupType}/${item.id}`, { data: requestData });
       
       if (result.success) {
-        toast?.showSuccess('Item deleted successfully');
+        toast?.showSuccess(result.message || 'Item deleted successfully');
         refetchLookup();
+      } else if (result.code === 'IN_USE' && result.dependencies) {
+        // Show force-delete confirmation with dependency details
+        const depList = result.dependencies.map(d => `${d.count} ${d.label}`).join(', ');
+        const confirmed = window.confirm(
+          `This lookup item is used by: ${depList}.\n\nDo you want to deactivate it anyway?`
+        );
+        if (confirmed) {
+          const forceResult = await api.delete(`/lookup/${lookupType}/${item.id}`, { 
+            data: { ...requestData, force: true } 
+          });
+          if (forceResult.success) {
+            toast?.showSuccess(forceResult.message || 'Item deactivated successfully');
+            refetchLookup();
+          } else {
+            toast?.showError(forceResult.error || forceResult.message || 'Deactivation failed');
+          }
+        }
       } else {
-        toast?.showError(result.error || 'Delete failed');
+        toast?.showError(result.error || result.message || 'Delete failed');
       }
     } catch (error) {
       logError('handleDelete error:', error);

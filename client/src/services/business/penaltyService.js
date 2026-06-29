@@ -69,6 +69,20 @@ export const createPenalty = async (penaltyData) => {
     if (payload.points !== undefined) {
       payload.points = Number(payload.points);
     }
+
+    // Map reason/description to descriptionEn (required by Prisma schema)
+    const descText = payload.reason || payload.description || '';
+    payload.descriptionEn = descText;
+    payload.descriptionAr = descText;
+    delete payload.reason;
+    delete payload.description;
+
+    // Ensure integer IDs
+    if (payload.userId) payload.userId = parseInt(payload.userId);
+    if (payload.classId) payload.classId = parseInt(payload.classId);
+    if (payload.subjectId) payload.subjectId = parseInt(payload.subjectId);
+    if (payload.programId) payload.programId = parseInt(payload.programId);
+    if (payload.typeId) payload.typeId = parseInt(payload.typeId);
     
     const result = await penaltyDbService.create(payload);
     return {

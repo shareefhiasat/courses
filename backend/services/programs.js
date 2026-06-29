@@ -281,7 +281,7 @@ const updateProgram = async (id, updateData, user = null) => {
  * @param {string} id - Program ID
  * @returns {Promise<object>} - Result object
  */
-const deleteProgram = async (id) => {
+const deleteProgram = async (id, options = {}) => {
   try {
     console.log(`[${serviceName}] Deleting program: ${id}`);
     
@@ -293,11 +293,7 @@ const deleteProgram = async (id) => {
       };
     }
     
-    // Business rule: Check if program has active enrollments
-    // In real implementation, you would check for active enrollments here
-    // For now, proceed with soft delete
-    
-    const result = await programDbService.deleteProgram(id);
+    const result = await programDbService.deleteProgram(id, options);
     
     if (result.success) {
       console.log(`[${serviceName}] Program deleted successfully: ${id}`);

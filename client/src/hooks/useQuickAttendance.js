@@ -68,7 +68,7 @@ export const useQuickAttendance = (user, selectedDate, selectedClassId, t, lang,
       });
 
       if (result.success) {
-        info(`✅ ${student.displayName || student.name} marked as ${getLocalizedAttendanceLabel(status, t, lang)}`);
+        info(`✅ ${student.displayName || student.name} marked as ${getLocalizedAttendanceLabel(status, lang)}`);
         setTodayAttendanceOverrides(prev => ({ ...prev, [student.id]: status }));
         fetchStudentHistory(student.id);
         

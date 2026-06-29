@@ -7,6 +7,7 @@
 
 import prisma from './prismaClient.js';
 import { PRISMA_ERRORS, getPrismaErrorMessage, isPrismaError } from '../constants/prisma-errors.js';
+import { checkDependencies, buildDependencyMessage, SUBJECT_DEPENDENCIES } from './deleteGuard.js';
 
 
 /**
@@ -575,9 +576,9 @@ export const updateSubject = async (subjectId, updateData, user = null) => {
  * @param {Object} user - User object for audit trail
  * @returns {Promise<Object>} - Result object with success status and data
  */
-export const deleteSubject = async (subjectId, user = null) => {
+export const deleteSubject = async (subjectId, user = null, options = {}) => {
   try {
-    console.log(`[Subjects DB] Deleting subject: ${subjectId}`);
+    console.log(`[Subjects DB] Deleting subject: ${subjectId}`, { force: options.force });
     
     const startTime = Date.now();
     
@@ -594,31 +595,38 @@ export const deleteSubject = async (subjectId, user = null) => {
       };
     }
     
-    // Check if subject has any dependencies (classes)
-    const classCount = await prisma.class.count({
-      where: { subjectId: parseInt(subjectId) }
-    });
+    // Check all dependencies (including inactive records)
+    const depCheck = await checkDependencies('subject', subjectId, SUBJECT_DEPENDENCIES);
     
-    if (classCount > 0) {
+    if (depCheck.hasDependencies && !options.force) {
       return {
         success: false,
-        error: 'Cannot delete subject with existing classes',
+        error: buildDependencyMessage(depCheck.dependencies),
+        code: 'HAS_DEPENDENCIES',
+        dependencies: depCheck.dependencies,
         data: null
       };
     }
     
-    // Delete the subject
-    await prisma.subject.delete({
-      where: { id: parseInt(subjectId) }
+    // Soft delete: set isActive = false
+    const dbUserId = await getDatabaseUserId(user);
+    await prisma.subject.update({
+      where: { id: parseInt(subjectId) },
+      data: {
+        isActive: false,
+        updatedBy: dbUserId || 1
+      }
     });
     
     const executionTime = Date.now() - startTime;
-    console.log(`[Subjects DB] ✅ Deleted subject in ${executionTime}ms`);
+    console.log(`[Subjects DB] ✅ Soft deleted subject in ${executionTime}ms`);
     
     return {
       success: true,
       data: { id: parseInt(subjectId) },
-      message: 'Subject deleted successfully'
+      message: depCheck.hasDependencies
+        ? 'Subject deactivated successfully (had dependencies)'
+        : 'Subject deleted successfully'
     };
     
   } catch (error) {

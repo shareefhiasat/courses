@@ -204,7 +204,7 @@ export const QR_SCANNER_OPERATION_DEFINITIONS = [
   { operationKey: 'qr-scanner.canBulkScan', nameEn: 'Bulk Scan', nameAr: 'مسح جماعي', category: 'create' },
   { operationKey: 'qr-scanner.canUseStatsPanel', nameEn: 'Stats Panel', nameAr: 'لوحة الإحصائيات', category: 'view' },
   { operationKey: 'qr-scanner.canUseZapPanel', nameEn: 'Zap Panel', nameAr: 'لوحة Zap', category: 'view' },
-  { operationKey: 'qr-scanner.canSeeStandupMode', nameEn: 'Standup Mode', nameAr: 'وضع الوقوف', category: 'view' },
+  { operationKey: 'qr-scanner.canSeeStandupMode', nameEn: 'Standup Mode', nameAr: 'وضع الطابور', category: 'view' },
   { operationKey: 'qr-scanner.canSeeQuickButtons', nameEn: 'Quick Buttons', nameAr: 'أزرار سريعة', category: 'view' },
   { operationKey: 'qr-scanner.canExport', nameEn: 'Export', nameAr: 'تصدير', category: 'view' },
   { operationKey: 'qr-scanner.canExportSummary', nameEn: 'Export Summary', nameAr: 'تصدير الملخص', category: 'view' },

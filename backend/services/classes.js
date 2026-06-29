@@ -160,7 +160,7 @@ export const updateClass = async (classId, updateData, user = null) => {
  * @param {Object} user - User object
  * @returns {Promise<Object>} - Result object with success status and data
  */
-export const deleteClass = async (classId, user = null) => {
+export const deleteClass = async (classId, user = null, options = {}) => {
   try {
     if (!classId) {
       return {
@@ -170,7 +170,7 @@ export const deleteClass = async (classId, user = null) => {
       };
     }
     
-    const result = await deleteClassInDb(classId, user);
+    const result = await deleteClassInDb(classId, user, options);
     return result;
   } catch (error) {
     console.error('Error in deleteClass:', error);

@@ -46,6 +46,7 @@ import { sendStudentNotification } from '@services/business/notificationService'
 import { getLocalizedUserName } from '@utils/localizedUserName';
 import { USER_ROLES } from '@constants/activityTypes';
 import { Select, DatePicker, Button, Card, CardBody, ProgramsSelect } from '@ui';
+import DeleteModal from '@ui/DeleteModal/DeleteModal';
 import QRScanner from '@/components/qr-scanner/QRScanner';
 import StudentRoster from '@/components/qr-scanner/StudentRoster';
 import StudentActionStatsPanel from '@/components/qr-scanner/StudentActionStatsPanel';
@@ -78,12 +79,15 @@ const QRScannerPage = () => {
   const canExportSummary = hasPermission('qr-scanner.canExportSummary');
   const canSeeStandupMode = hasPermission('qr-scanner.canSeeStandupMode');
   const canSeeQuickButtons = hasPermission('qr-scanner.canSeeQuickButtons');
+  const canMarkAttendance = hasPermission('qr-scanner.canMarkAttendance');
   const canUseStatsPanel = hasPermission('qr-scanner.canUseStatsPanel');
   const canUseZapPanel = hasPermission('qr-scanner.canUseZapPanel');
   const showSuccess = useMemo(() => (msg) => toast?.showSuccess?.(msg), [toast]);
   const showError = useMemo(() => (msg) => toast?.showError?.(msg), [toast]);
   const showInfo = useMemo(() => (msg) => toast?.showInfo?.(msg), [toast]);
   const { startLoading } = useGlobalLoading();
+  const loadStudentsRef = useRef(null);
+  const triggerActivityRefreshRef = useRef(null);
 
   const saveSelectedProgramId = useCallback((programId) => {
     try {
@@ -170,20 +174,35 @@ const QRScannerPage = () => {
   const tourSeenKey = `qrScannerTourSeen_${lang}`;
 
   useEffect(() => {
-    setTourSteps([
+    const steps = [
       { target: '[data-tour="qr-header-filters"]', content: t('tour.qr_header_filters'), disableBeacon: true, placement: 'bottom' },
-      { target: '[data-tour="qr-mode-toggle"]', content: t('tour.qr_mode_toggle'), disableBeacon: true, placement: 'bottom' },
-      { target: '[data-tour="qr-date-picker"]', content: t('tour.qr_date_picker'), disableBeacon: true, placement: 'bottom' },
-      { target: '[data-tour="qr-daily-report"]', content: t('tour.qr_daily_report'), disableBeacon: true, placement: 'bottom' },
-      { target: '[data-tour="qr-summary-report"]', content: t('tour.qr_summary_report'), disableBeacon: true, placement: 'bottom' },
-      { target: '[data-tour="qr-violations-report"]', content: t('tour.qr_violations_report'), disableBeacon: true, placement: 'bottom' },
-      { target: '[data-tour="qr-bulk-scan"]', content: t('tour.qr_bulk_scan'), disableBeacon: true, placement: 'bottom' },
-      { target: '[data-tour="qr-scanner-panel"]', content: t('tour.qr_scanner_panel'), disableBeacon: true, placement: 'right' },
-      { target: '[data-tour="qr-roster"]', content: t('tour.qr_roster'), disableBeacon: true, placement: 'top' },
-      { target: '[data-tour="qr-stats-panel"]', content: t('tour.qr_stats_panel'), disableBeacon: true, placement: 'left' },
-      { target: '[data-tour="qr-zap-panel"]', content: t('tour.qr_zap_panel'), disableBeacon: true, placement: 'left' },
-    ]);
-  }, [lang, t]);
+    ];
+    if (canSeeStandupMode) {
+      steps.push({ target: '[data-tour="qr-mode-toggle"]', content: t('tour.qr_mode_toggle'), disableBeacon: true, placement: 'bottom' });
+    }
+    steps.push({ target: '[data-tour="qr-date-picker"]', content: t('tour.qr_date_picker'), disableBeacon: true, placement: 'bottom' });
+    if (canExport) {
+      steps.push({ target: '[data-tour="qr-daily-report"]', content: t('tour.qr_daily_report'), disableBeacon: true, placement: 'bottom' });
+    }
+    if (canExportSummary) {
+      steps.push({ target: '[data-tour="qr-summary-report"]', content: t('tour.qr_summary_report'), disableBeacon: true, placement: 'bottom' });
+    }
+    if (isSuperAdmin || isHR) {
+      steps.push({ target: '[data-tour="qr-violations-report"]', content: t('tour.qr_violations_report'), disableBeacon: true, placement: 'bottom' });
+    }
+    if (canBulkScan) {
+      steps.push({ target: '[data-tour="qr-bulk-scan"]', content: t('tour.qr_bulk_scan'), disableBeacon: true, placement: 'bottom' });
+    }
+    steps.push({ target: '[data-tour="qr-scanner-panel"]', content: t('tour.qr_scanner_panel'), disableBeacon: true, placement: 'right' });
+    steps.push({ target: '[data-tour="qr-roster"]', content: t('tour.qr_roster'), disableBeacon: true, placement: 'top' });
+    if (canUseStatsPanel) {
+      steps.push({ target: '[data-tour="qr-stats-panel"]', content: t('tour.qr_stats_panel'), disableBeacon: true, placement: 'left' });
+    }
+    if (canUseZapPanel) {
+      steps.push({ target: '[data-tour="qr-zap-panel"]', content: t('tour.qr_zap_panel'), disableBeacon: true, placement: 'left' });
+    }
+    setTourSteps(steps);
+  }, [lang, t, canSeeStandupMode, canExport, canExportSummary, isSuperAdmin, isHR, canBulkScan, canUseStatsPanel, canUseZapPanel]);
 
   useEffect(() => {
     const start = () => setRunTour(true);
@@ -204,6 +223,144 @@ const QRScannerPage = () => {
     }
   }, [tourSeenKey]);
   const TourTooltipComponent = useMemo(() => TourTooltip({ tourSeenKey }), [tourSeenKey]);
+
+  // ── Roster-specific Tour ────────────────────────────────────────────────────
+  const [runRosterTour, setRunRosterTour] = useState(false);
+  const rosterTourSeenKey = `qrRosterTourSeen_${lang}`;
+
+  const [rosterTourSteps, setRosterTourSteps] = useState([]);
+
+  useEffect(() => {
+    const isStandup = attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP;
+    const steps = [
+      { target: '[data-tour="qr-roster"]', content: t('tour.qr_roster'), disableBeacon: true, placement: 'top' },
+      { target: '[data-tour="roster-student-count"]', content: t('tour.roster_student_count') || 'Shows the total number of students in the selected class or program.', disableBeacon: true, placement: 'bottom' },
+      { target: '[data-tour="roster-highlight-toggle"]', content: t('tour.roster_highlight_toggle') || 'Toggle row highlighting to visually flag students who need attention. Rows turn yellow (4-5 absences), orange (6-7 absences), or red (8+ absences) based on absence count.', disableBeacon: true, placement: 'bottom' },
+      { target: '[data-tour="roster-favorite-toggle"]', content: t('tour.roster_favorite_toggle') || 'Bookmark students to filter and quickly access your favorites. Bookmarked students appear at the top of the roster. The badge shows how many students are bookmarked.', disableBeacon: true, placement: 'bottom' },
+    ];
+    if (canExport) {
+      steps.push({ target: '[data-tour="roster-download"]', content: t('tour.roster_download') || 'Export the current roster data as a CSV file for offline use or reporting.', disableBeacon: true, placement: 'bottom' });
+    }
+    steps.push({ target: '[data-tour="roster-refresh"]', content: t('tour.roster_refresh') || 'Refresh the roster to pull the latest attendance and activity data from the server.', disableBeacon: true, placement: 'bottom' });
+
+    if (isStandup) {
+      steps.push({
+        target: '[data-tour="qr-roster"] tbody tr:first-child',
+        content: t('tour.roster_quick_actions_standup') || 'Each student row has quick action buttons for marking standup attendance (Present, Late, Absent, Clinic) and expanding to view full attendance history. Available actions depend on your permissions.',
+        disableBeacon: true,
+        placement: 'left',
+      });
+      steps.push({
+        target: '[data-tour="roster-summary-counts"]',
+        content: t('tour.roster_summary_counts_standup') || 'The footer row shows totals for Present, Late, Absent, and Clinic counts across all displayed students.',
+        disableBeacon: true,
+        placement: 'top',
+      });
+    } else {
+      steps.push({
+        target: '[data-tour="qr-roster"] tbody tr:first-child',
+        content: t('tour.roster_quick_actions') || 'Each student row has quick action buttons for marking attendance (Present, Late, Absent) and expanding to view full history, penalties, participation, and behavior logs. Available actions depend on your permissions.',
+        disableBeacon: true,
+        placement: 'left',
+      });
+      steps.push({
+        target: '[data-tour="roster-summary-counts"]',
+        content: t('tour.roster_summary_counts') || 'The footer row shows totals for participation, behavior, penalties, and attendance counts across all displayed students.',
+        disableBeacon: true,
+        placement: 'top',
+      });
+      if (canUseStatsPanel) {
+        steps.push({ target: '[data-tour="qr-stats-panel"]', content: t('tour.qr_stats_panel'), disableBeacon: true, placement: 'left' });
+      }
+      if (canUseZapPanel) {
+        steps.push({ target: '[data-tour="qr-zap-panel"]', content: t('tour.qr_zap_panel'), disableBeacon: true, placement: 'left' });
+      }
+    }
+
+    setRosterTourSteps(steps);
+  }, [lang, t, attendanceMode, canExport, canUseStatsPanel, canUseZapPanel]);
+
+  useEffect(() => {
+    const startRosterTour = () => setRunRosterTour(true);
+    window.addEventListener('app:roster-tour', startRosterTour);
+    return () => window.removeEventListener('app:roster-tour', startRosterTour);
+  }, []);
+
+  const handleRosterTourCallback = useCallback((data) => {
+    const { status, action } = data || {};
+    if (status === 'finished' || status === 'skipped' || action === 'close') {
+      setRunRosterTour(false);
+      try { localStorage.setItem(rosterTourSeenKey, 'true'); } catch {}
+    }
+  }, [rosterTourSeenKey]);
+  // ──────────────────────────────────────────────────────────────────────────
+
+  // ── Bulk Scan Tour ──────────────────────────────────────────────────────────
+  const [runBulkTour, setRunBulkTour] = useState(false);
+  const bulkTourSeenKey = `qrBulkTourSeen_${lang}`;
+  const [bulkTourSteps, setBulkTourSteps] = useState([]);
+
+  useEffect(() => {
+    const steps = [
+      { target: '[data-tour="bulk-context"]', content: t('tour.bulk_context') || 'Shows the current attendance mode and selected program, class, and subject for the bulk operation.', disableBeacon: true, placement: 'bottom' },
+      { target: '[data-tour="bulk-tabs"]', content: t('tour.bulk_tabs') || 'Choose Manual Input to paste student numbers, or Add All to load all students from the program or class.', disableBeacon: true, placement: 'bottom' },
+    ];
+    if (canManualInput) {
+      steps.push({ target: '[data-tour="bulk-textarea"]', content: t('tour.bulk_textarea') || 'Paste student numbers here, one per line. Click Parse Input to validate them against the class roster.', disableBeacon: true, placement: 'right' });
+    }
+    steps.push({ target: '[data-tour="bulk-status-cards"]', content: t('tour.bulk_status_cards') || 'Select the attendance status to apply to all selected students.', disableBeacon: true, placement: 'top' });
+    steps.push({ target: '[data-tour="bulk-date"]', content: t('tour.bulk_date') || 'Choose the date for the bulk attendance records.', disableBeacon: true, placement: 'top' });
+    steps.push({ target: '[data-tour="bulk-footer"]', content: t('tour.bulk_footer') || 'Click Submit to mark attendance for all selected students. The count shows how many students will be processed.', disableBeacon: true, placement: 'top' });
+    setBulkTourSteps(steps);
+  }, [lang, t, canManualInput]);
+
+  useEffect(() => {
+    const startBulkTour = () => setRunBulkTour(true);
+    window.addEventListener('app:bulk-tour', startBulkTour);
+    return () => window.removeEventListener('app:bulk-tour', startBulkTour);
+  }, []);
+
+  const handleBulkTourCallback = useCallback((data) => {
+    const { status, action } = data || {};
+    if (status === 'finished' || status === 'skipped' || action === 'close') {
+      setRunBulkTour(false);
+      try { localStorage.setItem(bulkTourSeenKey, 'true'); } catch {}
+    }
+  }, [bulkTourSeenKey]);
+  // ──────────────────────────────────────────────────────────────────────────
+
+  // ── Activity List Tour ──────────────────────────────────────────────────────
+  const [runActivityTour, setRunActivityTour] = useState(false);
+  const activityTourSeenKey = `qrActivityTourSeen_${lang}`;
+  const [activityTourSteps, setActivityTourSteps] = useState([]);
+
+  useEffect(() => {
+    const steps = [
+      { target: '[data-tour="activity-list"]', content: t('tour.activity_list') || 'This is the Today\'s Activity list. It shows all attendance records, penalties, participation, and behavior logs for the selected date in real-time.', disableBeacon: true, placement: 'right' },
+    ];
+    if (canSeeQuickButtons && canMarkAttendance) {
+      steps.push({ target: '[data-tour="activity-quick-actions"]', content: t('tour.activity_quick_actions') || 'Quick action buttons appear on attendance records for fast status changes. Click to mark Present, Late, or Absent without expanding the row.', disableBeacon: true, placement: 'left' });
+    }
+    if (canDeleteAttendance) {
+      steps.push({ target: '[data-tour="activity-delete"]', content: t('tour.activity_delete') || 'Click the delete icon to remove an individual activity record. This action cannot be undone.', disableBeacon: true, placement: 'left' });
+    }
+    steps.push({ target: '[data-tour="activity-list"]', content: t('tour.activity_expand') || 'Click any row or the chevron icon to expand and see details: timestamp, subject, program, class, who performed the action, and notes.', disableBeacon: true, placement: 'right' });
+    setActivityTourSteps(steps);
+  }, [lang, t, canSeeQuickButtons, canMarkAttendance, canDeleteAttendance]);
+
+  useEffect(() => {
+    const startActivityTour = () => setRunActivityTour(true);
+    window.addEventListener('app:activity-tour', startActivityTour);
+    return () => window.removeEventListener('app:activity-tour', startActivityTour);
+  }, []);
+
+  const handleActivityTourCallback = useCallback((data) => {
+    const { status, action } = data || {};
+    if (status === 'finished' || status === 'skipped' || action === 'close') {
+      setRunActivityTour(false);
+      try { localStorage.setItem(activityTourSeenKey, 'true'); } catch {}
+    }
+  }, [activityTourSeenKey]);
   // ──────────────────────────────────────────────────────────────────────────
 
   const [highlightEnabled, setHighlightEnabled] = useState(() => {
@@ -386,15 +543,21 @@ const QRScannerPage = () => {
       result
     });
     setShowBulkScanDialog(false);
-    // Refresh students
-    // In standup mode, pass programId to loadStudents
-    if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
-      loadStudents(selectedClassId === 'all' ? null : selectedClassId, selectedDate, selectedProgramId);
-    } else {
-      loadStudents(selectedClassId === 'all' ? null : selectedClassId, selectedDate);
-    }
-    // Refresh activities for today
-    triggerActivityRefresh();
+    // Refresh activities immediately
+    if (triggerActivityRefreshRef.current) triggerActivityRefreshRef.current();
+    // Delay loadStudents to ensure backend has committed the bulk transaction
+    setTimeout(() => {
+      const fn = loadStudentsRef.current;
+      if (fn) {
+        if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
+          fn(selectedClassId === 'all' ? null : selectedClassId, selectedDate, selectedProgramId);
+        } else {
+          fn(selectedClassId === 'all' ? null : selectedClassId, selectedDate);
+        }
+      }
+      // Refresh activities again after roster reload
+      if (triggerActivityRefreshRef.current) triggerActivityRefreshRef.current();
+    }, 500);
   }, [selectedClassId, selectedDate, attendanceMode, selectedProgramId]);
 
   const confirmDeleteActivity = async () => {
@@ -411,7 +574,8 @@ const QRScannerPage = () => {
           result = await deleteAttendance(activityToDelete.id);
         }
         if (result.success) {
-          eventBus.emit(EVENTS.ATTENDANCE_MARKED, { studentId: activityToDelete.studentId });
+          eventBus.emit(EVENTS.ATTENDANCE_MARKED, { studentId: activityToDelete.studentId, classId: selectedClassId });
+          eventBus.emit(EVENTS.ATTENDANCE_DELETED);
         }
       } else if (activityToDelete.type === RECORD_TYPES.PENALTY) {
         result = await deletePenalty(activityToDelete.id);
@@ -432,12 +596,14 @@ const QRScannerPage = () => {
       
       if (result?.success) {
         triggerActivityRefresh();
-        // In standup mode, pass programId to loadStudents
-        if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
-          loadStudents(selectedClassId === 'all' ? null : selectedClassId, selectedDate, selectedProgramId);
-        } else {
-          loadStudents(selectedClassId === 'all' ? null : selectedClassId, selectedDate);
-        }
+        // Delay loadStudents to ensure backend has committed the deletion
+        setTimeout(() => {
+          if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
+            loadStudents(selectedClassId === 'all' ? null : selectedClassId, selectedDate, selectedProgramId);
+          } else {
+            loadStudents(selectedClassId === 'all' ? null : selectedClassId, selectedDate);
+          }
+        }, 500);
       }
     } catch (error) {
       console.error(t('instructor_qr_error_deleting_activity'), error);
@@ -454,6 +620,9 @@ const QRScannerPage = () => {
       activityRefresh();
     }
   }, [activityRefresh]);
+
+  // Keep ref in sync so callbacks defined before triggerActivityRefresh can use it
+  useEffect(() => { triggerActivityRefreshRef.current = triggerActivityRefresh; }, [triggerActivityRefresh]);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -638,18 +807,18 @@ const QRScannerPage = () => {
         // For penalties, participations, behaviors in standup mode, we don't filter by class
         // Get all and filter client-side, or pass empty params
         [penaltiesResponse, participationsResponse, behaviorsResponse] = await Promise.all([
-          getPenalties({}), // No class filter for standup mode
-          getParticipations({}), // No class filter for standup mode
-          getBehaviors({}) // No class filter for standup mode
+          getPenalties({ limit: 1000 }), // No class filter for standup mode
+          getParticipations({ limit: 1000 }), // No class filter for standup mode
+          getBehaviors({ limit: 1000 }) // No class filter for standup mode
         ]);
       } else {
         // In regular mode, use class-based queries
         [enrollmentsResponse, usersResponse, penaltiesResponse, participationsResponse, behaviorsResponse] = await Promise.all([
           getEnrollments({ classId }),
           getUsers(),
-          getPenalties({ classId }),
-          getParticipations({ classId }),
-          getBehaviors({ classId })
+          getPenalties({ classId, limit: 1000 }),
+          getParticipations({ classId, limit: 1000 }),
+          getBehaviors({ classId, limit: 1000 })
         ]);
       }
 
@@ -822,10 +991,11 @@ const QRScannerPage = () => {
       // Create penalty map for O(1) lookup
       const penaltyMap = new Map();
       allPenalties.forEach(p => {
-        if (studentIdSet.has(p.studentId)) {
-          const existing = penaltyMap.get(p.studentId) || [];
+        const sid = p.studentId ?? p.userId;
+        if (studentIdSet.has(sid)) {
+          const existing = penaltyMap.get(sid) || [];
           existing.push(p);
-          penaltyMap.set(p.studentId, existing);
+          penaltyMap.set(sid, existing);
         }
       });
       setPenaltyRecords(Array.from(penaltyMap.values()).flat());
@@ -833,19 +1003,21 @@ const QRScannerPage = () => {
       // Create participation/behavior maps for O(1) lookup
       const participationMap = new Map();
       allParticipations.forEach(p => {
-        if (studentIdSet.has(p.studentId)) {
-          const existing = participationMap.get(p.studentId) || [];
+        const sid = p.studentId ?? p.userId;
+        if (studentIdSet.has(sid)) {
+          const existing = participationMap.get(sid) || [];
           existing.push(p);
-          participationMap.set(p.studentId, existing);
+          participationMap.set(sid, existing);
         }
       });
 
       const behaviorMap = new Map();
       allBehaviors.forEach(b => {
-        if (studentIdSet.has(b.studentId)) {
-          const existing = behaviorMap.get(b.studentId) || [];
+        const sid = b.studentId ?? b.userId;
+        if (studentIdSet.has(sid)) {
+          const existing = behaviorMap.get(sid) || [];
           existing.push(b);
-          behaviorMap.set(b.studentId, existing);
+          behaviorMap.set(sid, existing);
         }
       });
 
@@ -1153,6 +1325,9 @@ const QRScannerPage = () => {
     }
   }, [attendanceMode, lang]);
 
+  // Keep ref in sync so callbacks defined before loadStudents can use it
+  useEffect(() => { loadStudentsRef.current = loadStudents; }, [loadStudents]);
+
   // Load students when class or date changes, or when in standup mode with program selected
   useEffect(() => {
     console.log('🚨🚨🚨 useEffect for loadStudents RUNNING 🚨🚨🚨', { selectedClassId, selectedDate, attendanceMode, selectedProgramId });
@@ -1178,7 +1353,18 @@ const QRScannerPage = () => {
       setStudents([]);
     }
   }, [selectedClassId, selectedDate, attendanceMode, selectedProgramId, loadStudents]);
-  
+
+  // Auto-trigger roster tour when students first appear (if not seen before)
+  useEffect(() => {
+    if (students.length > 0) {
+      try {
+        if (!localStorage.getItem(rosterTourSeenKey)) {
+          setTimeout(() => setRunRosterTour(true), 800);
+        }
+      } catch {}
+    }
+  }, [students.length, rosterTourSeenKey]);
+
   console.log('🚨🚨🚨 QRScannerPage RENDERED 🚨🚨🚨', { selectedClassId, selectedDate, attendanceMode, selectedProgramId, studentsCount: students.length });
 
   // Load favorite behaviors when student changes
@@ -1389,7 +1575,7 @@ const QRScannerPage = () => {
       }
 
       // Use unified attendance service for both regular and standup attendance
-      await markAttendance({
+      const result = await markAttendance({
         userId: studentId,
         classId: attendanceMode === ATTENDANCE_TYPE_CATEGORY.REGULAR ? selectedClassId : undefined,
         date: dateStr,
@@ -1399,6 +1585,11 @@ const QRScannerPage = () => {
         programId: programId,
         subjectId: subjectId
       }, user, attendanceMode);
+
+      if (!result.success) {
+        error('Failed to mark attendance:', result.error);
+        return result;
+      }
 
       // Reload students to reflect changes
       // In standup mode, we load by program, not class
@@ -1470,8 +1661,11 @@ const QRScannerPage = () => {
           });
         }
       }
+
+      return { success: true };
     } catch (err) {
       error('Error marking attendance:', err);
+      return { success: false, error: err.message };
     }
   }, [selectedClassId, selectedDate, user, students, classes, sendNotifications, t, lang, loadStudents, triggerActivityRefresh]);
 
@@ -1496,11 +1690,30 @@ const QRScannerPage = () => {
     setSelectedStudent(student); // Use old panel for viewing student details
   }, []);
 
+  // Sync selectedStudent/selectedStudentForAction with updated students array
+  // so panels receive fresh data after attendance/behavior changes
+  useEffect(() => {
+    if (selectedStudent) {
+      const updated = students.find(s => s.id === selectedStudent.id);
+      if (updated && updated !== selectedStudent) {
+        setSelectedStudent(updated);
+      }
+    }
+    if (selectedStudentForAction) {
+      const updated = students.find(s => s.id === selectedStudentForAction.id);
+      if (updated && updated !== selectedStudentForAction) {
+        setSelectedStudentForAction(updated);
+      }
+    }
+  }, [students]);
+
   // Listen for attendance updates to refresh students
   useEffect(() => {
     const unsubscribeAttendanceDeleted = eventBus.on(EVENTS.ATTENDANCE_DELETED, () => {
       // Refresh students when attendance is deleted
-      if (selectedClassId && selectedDate) {
+      if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
+        loadStudents(null, selectedDate, selectedProgramId);
+      } else if (selectedClassId && selectedDate) {
         loadStudents(selectedClassId, selectedDate);
       }
     });
@@ -1508,7 +1721,7 @@ const QRScannerPage = () => {
     return () => {
       unsubscribeAttendanceDeleted();
     };
-  }, [selectedClassId, selectedDate, loadStudents]);
+  }, [selectedClassId, selectedDate, selectedProgramId, attendanceMode, loadStudents]);
 
   const handleBehaviorSubmit = useCallback(async (studentId, actions, note, pointsOverride = {}) => {
     try {
@@ -1517,21 +1730,21 @@ const QRScannerPage = () => {
       
       // Handle participation
       const participationActions = actions.filter(a =>
-        (activityTypeOptions['participation-types'] || []).some(pt => pt.id === a.type)
+        (activityTypeOptions['participation-types'] || []).some(pt => pt.id === a.id)
       );
 
       // Handle behavior
       const behaviorActions = actions.filter(a =>
-        (activityTypeOptions['behavior-types'] || []).some(bt => bt.id === a.type)
+        (activityTypeOptions['behavior-types'] || []).some(bt => bt.id === a.id)
       );
 
       // Handle penalties
       const penaltyActions = actions.filter(a => a.points < 0);
 
-      // Save to Firebase
+      // Save to backend
       for (const action of actions) {
-        const points = pointsOverride[action.type] !== undefined
-          ? pointsOverride[action.type]
+        const points = pointsOverride[action.id] !== undefined
+          ? pointsOverride[action.id]
           : action.points;
 
         if (action.category === RECORD_TYPES.PENALTY) {
@@ -1540,8 +1753,8 @@ const QRScannerPage = () => {
             studentId,
             classId: selectedClassId,
             subjectId: selectedSubjectId,
-            type: action.type || action.id, // Use specific penalty type
-            points: Math.abs(points), // Store as positive in Firebase
+            type: action.id,
+            points: Math.abs(points), // Store as positive
             reason: note,
             createdBy: user.uid,
             ...performedByFields,
@@ -1549,13 +1762,16 @@ const QRScannerPage = () => {
             sendNotification: sendNotifications,
             className: classes.find(c => c.id == selectedClassId)?.name || '' // Use == for type coercion
           });
+          if (!penaltyResult || !penaltyResult.success) {
+            throw new Error(penaltyResult?.error || 'Failed to create penalty record');
+          }
         } else if (action.category === RECORD_TYPES.BEHAVIOR || action.category === RECORD_TYPES.PARTICIPATION) {
           if (action.category === RECORD_TYPES.BEHAVIOR) {
-            await createBehavior({
+            const behaviorResult = await createBehavior({
               classId: selectedClassId,
               studentId,
               subjectId: selectedSubjectId,
-              type: action.type || action.id || RECORD_TYPES.BEHAVIOR,
+              type: action.id,
               points: points,
               description: note,
               createdBy: user.uid,
@@ -1564,12 +1780,15 @@ const QRScannerPage = () => {
               sendNotification: sendNotifications,
               className: classes.find(c => c.id == selectedClassId)?.name || '' // Use == for type coercion
             });
+            if (!behaviorResult || !behaviorResult.success) {
+              throw new Error(behaviorResult?.error || 'Failed to create behavior record');
+            }
           } else {
-            await createParticipation({
+            const participationResult = await createParticipation({
               classId: selectedClassId,
               studentId,
               subjectId: selectedSubjectId,
-              type: action.type || action.id || RECORD_TYPES.PARTICIPATION,
+              type: action.id,
               points: points,
               description: note,
               createdBy: user.uid,
@@ -1578,6 +1797,9 @@ const QRScannerPage = () => {
               sendNotification: sendNotifications,
               className: classes.find(c => c.id == selectedClassId)?.name || '' // Use == for type coercion
             });
+            if (!participationResult || !participationResult.success) {
+              throw new Error(participationResult?.error || 'Failed to create participation record');
+            }
           }
         } else {
           // Unknown action category
@@ -1596,8 +1818,8 @@ const QRScannerPage = () => {
       participationActions.forEach(action => {
         eventBus.emit(EVENTS.PARTICIPATION_ADDED, {
           studentId,
-          actionType: action.type,
-          points: pointsOverride[action.type] || action.points,
+          actionType: action.id,
+          points: pointsOverride[action.id] || action.points,
           performedBy: user,
           timestamp: new Date()
         });
@@ -1606,8 +1828,8 @@ const QRScannerPage = () => {
       behaviorActions.forEach(action => {
         eventBus.emit(EVENTS.BEHAVIOR_LOGGED, {
           studentId,
-          actionType: action.type,
-          points: pointsOverride[action.type] || action.points,
+          actionType: action.id,
+          points: pointsOverride[action.id] || action.points,
           note,
           performedBy: user,
           timestamp: new Date()
@@ -1617,8 +1839,8 @@ const QRScannerPage = () => {
       penaltyActions.forEach(action => {
         eventBus.emit(EVENTS.PENALTY_ASSIGNED, {
           studentId,
-          actionType: action.type,
-          points: pointsOverride[action.type] || action.points,
+          actionType: action.id,
+          points: pointsOverride[action.id] || action.points,
           performedBy: user,
           timestamp: new Date()
         });
@@ -1634,8 +1856,8 @@ const QRScannerPage = () => {
         const currentClass = classes.find(c => c.id == selectedClassId); // Use == for type coercion
         if (student && currentClass) {
           for (const action of actions) {
-            const points = pointsOverride[action.type] !== undefined
-              ? pointsOverride[action.type]
+            const points = pointsOverride[action.id] !== undefined
+              ? pointsOverride[action.id]
               : action.points;
 
             let type = 'info';
@@ -1646,7 +1868,7 @@ const QRScannerPage = () => {
               type = RECORD_TYPES.PENALTY;
               templateId = 'penalty_assigned_default';
               title = t('delete_penalty_title');
-            } else if ((activityTypeOptions['participation-types'] || []).some(pt => pt.id === action.type)) {
+            } else if ((activityTypeOptions['participation-types'] || []).some(pt => pt.id === action.id)) {
               type = RECORD_TYPES.PARTICIPATION;
               templateId = 'participation_added_default';
               title = t('participation_recorded');
@@ -1702,58 +1924,168 @@ const QRScannerPage = () => {
 
   const handleDownload = useCallback(() => {
     try {
-      // Get current class and subject info for filename
-      const currentClass = classes.find(c => c.id == selectedClassId); // Use == for type coercion
-      const currentSubject = subjects.find(s => s.id == selectedSubjectId); // Use == for type coercion
-      
+      const dateStr = selectedDate || new Date().toISOString().split('T')[0];
+
+      const downloadCsv = (csvContent, filename) => {
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const link = document.createElement('a');
+        const url = URL.createObjectURL(blob);
+        link.setAttribute('href', url);
+        link.setAttribute('download', filename);
+        link.style.visibility = 'hidden';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      };
+
+      if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
+        // Standup mode: mimic grid columns — ID, Name, STANDUP, Present, Late, Absent, Clinic
+        const currentProgram = programs.find(p => p.id == selectedProgramId);
+        const programName = currentProgram?.nameEn || currentProgram?.name || currentProgram?.code || 'Program';
+
+        const headers = [
+          t('student_number') || 'Student No.',
+          t('id') || 'ID',
+          t('student') || 'Student',
+          t('standup') || 'STANDUP',
+          t('not_marked') || 'Not Marked',
+          t('present') || 'Present',
+          t('late') || 'Late',
+          t('absent') || 'Absent',
+          t('clinic') || 'Clinic'
+        ];
+
+        const counts = { present: 0, late: 0, absent: 0, clinic: 0, notMarked: 0 };
+        const rows = students.map(student => {
+          const status = student.standupStatus;
+          let statusLabel = t('not_marked') || 'Not Marked';
+          let isNotMarked = 1;
+          if (status) {
+            const upperStatus = status.toUpperCase();
+            if (upperStatus === ATTENDANCE_STATUS.STANDUP_PRESENT) { counts.present++; statusLabel = t('present') || 'Present'; isNotMarked = 0; }
+            else if (upperStatus === ATTENDANCE_STATUS.STANDUP_LATE) { counts.late++; statusLabel = t('late') || 'Late'; isNotMarked = 0; }
+            else if (upperStatus === ATTENDANCE_STATUS.STANDUP_ABSENT) { counts.absent++; statusLabel = t('absent') || 'Absent'; isNotMarked = 0; }
+            else if (upperStatus === ATTENDANCE_STATUS.STANDUP_CLINIC) { counts.clinic++; statusLabel = t('clinic') || 'Clinic'; isNotMarked = 0; }
+            else { statusLabel = getLocalizedAttendanceLabel(status, lang); isNotMarked = 0; }
+          } else {
+            counts.notMarked++;
+          }
+          const standupStats = student.standupStats || {};
+          return [
+            student.studentNumber || '—',
+            student.id,
+            `"${student.name || 'Unknown'}"`,
+            statusLabel,
+            isNotMarked,
+            standupStats.present || 0,
+            standupStats.late || 0,
+            standupStats.absent || 0,
+            standupStats.clinic || 0
+          ].join(',');
+        });
+
+        // Summary row: total students under Name, today's counts under each status column
+        const summaryRow = [
+          '',
+          '',
+          `"${t('total') || 'Total'}: ${students.length}"`,
+          '',
+          counts.notMarked,
+          counts.present,
+          counts.late,
+          counts.absent,
+          counts.clinic
+        ].join(',');
+
+        const csvContent = [headers.join(','), ...rows, '', summaryRow].join('\r\n');
+        downloadCsv(csvContent, `${dateStr}_standup_${programName}.csv`);
+        debug('Standup CSV downloaded successfully');
+        return;
+      }
+
+      // Regular mode: mimic grid columns — ID, Name, TODAY, Not Marked, Participation, Behavior, Penalty, Present, Late, Absent, Absent Excused, Excused Leave, Human
+      const currentClass = classes.find(c => c.id == selectedClassId);
+      const currentSubject = subjects.find(s => s.id == selectedSubjectId);
       const className = currentClass?.name || currentClass?.code || 'Class';
       const subjectName = currentSubject?.name || currentSubject?.code || 'Subject';
-      const dateStr = selectedDate || new Date().toISOString().split('T')[0];
-      
-      // Create CSV content
+
       const headers = [
-        t('student_id') || 'Student ID',
-        t('student') || 'Name',
-        t('email') || 'Email',
-        t('attendance') || 'Attendance',
-        t('participation') || 'Participation',
+        t('student_number') || 'Student No.',
+        t('id') || 'ID',
+        t('student') || 'Student',
+        t('todays_attendance') || 'TODAY',
+        t('not_marked') || 'Not Marked',
+        t('part') || 'Participation',
         t('behavior') || 'Behavior',
-        t('penalty') || 'Penalty',
-        t('days_present') || 'Days Present'
+        t('penalties') || 'Penalty',
+        t('present') || 'Present',
+        t('late') || 'Late',
+        t('absent') || 'Absent',
+        t('absent_excused') || 'Absent Excused',
+        t('excused_leave') || 'Excused Leave',
+        t('human') || 'Human'
       ];
-      const csvContent = [
-        headers.join(','),
-        ...students.map(student => [
-          student.studentNumber || student.id || '',
+
+      const sums = { participation: 0, behavior: 0, penalty: 0, present: 0, late: 0, absent: 0, absentExcused: 0, excusedLeave: 0, human: 0, notMarked: 0 };
+      const rows = students.map(student => {
+        const stats = student.attendanceStats || {};
+        sums.participation += student.participation || 0;
+        sums.behavior += student.behavior || 0;
+        sums.penalty += student.penalty || 0;
+        sums.present += stats.present || 0;
+        sums.late += stats.late || 0;
+        sums.absent += stats.absent || 0;
+        sums.absentExcused += stats.absentWithExcuse || 0;
+        sums.excusedLeave += stats.excusedLeave || 0;
+        sums.human += stats.humanitarianCase || 0;
+
+        const isNotMarked = student.attendance ? 0 : 1;
+        const todayLabel = student.attendance ? getLocalizedAttendanceLabel(student.attendance, lang) : (t('not_marked') || 'Not Marked');
+        if (!student.attendance) sums.notMarked++;
+
+        return [
+          student.studentNumber || '—',
+          student.id,
           `"${student.name || 'Unknown'}"`,
-          student.email || '',
-          student.attendance ? getLocalizedAttendanceLabel(student.attendance, lang) : (t('not_marked') || 'Not Marked'),
+          todayLabel,
+          isNotMarked,
           student.participation || 0,
           student.behavior || 0,
           student.penalty || 0,
-          student.totalAttendance || 0
-        ].join(','))
-      ].join('\r\n');
-      
-      // Create blob and download
-      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-      const link = document.createElement('a');
-      const url = URL.createObjectURL(blob);
-      
-      link.setAttribute('href', url);
-      link.setAttribute('download', `${className}_${subjectName}_${dateStr}.csv`);
-      link.style.visibility = 'hidden';
-      
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      
-      debug('CSV downloaded successfully');
+          stats.present || 0,
+          stats.late || 0,
+          stats.absent || 0,
+          stats.absentWithExcuse || 0,
+          stats.excusedLeave || 0,
+          stats.humanitarianCase || 0
+        ].join(',');
+      });
+
+      const summaryRow = [
+        '',
+        '',
+        `"${t('total') || 'Total'}: ${students.length}"`,
+        '',
+        sums.notMarked,
+        sums.participation,
+        sums.behavior,
+        sums.penalty,
+        sums.present,
+        sums.late,
+        sums.absent,
+        sums.absentExcused,
+        sums.excusedLeave,
+        sums.human
+      ].join(',');
+
+      const csvContent = [headers.join(','), ...rows, '', summaryRow].join('\r\n');
+      downloadCsv(csvContent, `${dateStr}_attendance_${className}_${subjectName}.csv`);
+      debug('Attendance CSV downloaded successfully');
     } catch (err) {
       error('Error downloading CSV:', err);
       alert(t('failed_to_download_csv') || 'Failed to download CSV. Please try again.');
     }
-  }, [students, classes, subjects, selectedClassId, selectedSubjectId, selectedDate, t, lang]);
+  }, [students, classes, subjects, programs, selectedClassId, selectedSubjectId, selectedProgramId, selectedDate, t, lang, attendanceMode]);
 
   const handleRefresh = useCallback(() => {
     // Reload students data
@@ -1975,11 +2307,12 @@ const QRScannerPage = () => {
 
         return {
           studentId: record.studentId,
-          studentNumber: student?.studentNumber || '',
-          studentName: student?.displayName || student?.realName || '',
+          studentNumber: student?.studentNumber || student?.uid || record.user?.studentNumber || record.user?.uid || record.studentNumber || '',
+          studentName: student?.displayName || student?.realName || record.user?.displayName || record.user?.firstName + ' ' + record.user?.lastName || '',
+          studentNameAr: student?.displayNameAr || student?.firstNameAr || record.user?.displayNameAr || record.user?.firstNameAr || '',
           status: record.status || 'present',
           date: record.date || formatQatarDateOnly(selectedDate),
-          time: safeFormatDate(record.timestamp, (date) => date.toLocaleTimeString(lang === 'ar' ? 'ar-QA' : 'en-US', {
+          time: safeFormatDate(record.timestamp || record.createdAt || record.updatedAt, (date) => date.toLocaleTimeString('en-US', {
             hour: '2-digit',
             minute: '2-digit',
             hour12: true,
@@ -1987,8 +2320,8 @@ const QRScannerPage = () => {
           })),
           method: record.method || 'manual',
           notes: record.notes || '',
-          markedBy: record.performedByName || record.markedByName || '',
-          timestamp: safeFormatDate(record.timestamp, (date) => date.toLocaleString(lang === 'ar' ? 'ar-QA' : 'en-US'))
+          markedBy: record.performedByName || record.markedByName || (record.creator ? getLocalizedUserName(record.creator, lang) : '') || (record.createdBy ? (allUsers.find(u => String(u.id) === String(record.createdBy)) ? getLocalizedUserName(allUsers.find(u => String(u.id) === String(record.createdBy)), lang) : '') : '') || '',
+          timestamp: safeFormatDate(record.timestamp || record.createdAt || record.updatedAt, (date) => date.toLocaleString('en-US'))
         };
       });
 
@@ -2023,30 +2356,36 @@ const QRScannerPage = () => {
       let excelData;
       
       if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
-        // Standup mode: use standup-specific columns (no timestamp)
+        // Standup mode: use standup-specific columns
         headers = lang === 'ar' ? [
-          '#',
-          t('student_id') || 'معرف الطالب',
+          t('serial') || 'ت',
           t('student_number') || 'رقم الطالب',
+          t('id') || 'ID',
           t('student_name') || 'اسم الطالب',
           t('present') || 'حاضر',
           t('late') || 'متأخر',
           t('absent') || 'غائب',
           t('clinic') || 'عيادة',
-          t('date_time') || 'التاريخ والوقت',
+          t('not_marked') || 'غير مسجل',
+          t('date') || 'التاريخ',
+          t('time') || 'الوقت',
           t('method') || 'الطريقة',
+          t('marked_by') || 'سجل بواسطة',
           t('notes') || 'ملاحظات'
         ] : [
-          '#',
-          t('student_id') || 'Student ID',
+          t('serial') || 'Serial',
           t('student_number') || 'Student Number',
+          t('id') || 'ID',
           t('student_name') || 'Student Name',
           t('present') || 'Present',
           t('late') || 'Late',
           t('absent') || 'Absent',
           t('clinic') || 'Clinic',
-          t('date_time') || 'Date Time',
+          t('not_marked') || 'Not Marked',
+          t('date') || 'Date',
+          t('time') || 'Time',
           t('method') || 'Method',
+          t('marked_by') || 'Marked by',
           t('notes') || 'Notes'
         ];
         
@@ -2058,7 +2397,7 @@ const QRScannerPage = () => {
             try {
               const timestampDate = new Date(row.timestamp);
               if (!isNaN(timestampDate.getTime())) {
-                timeStr = timestampDate.toLocaleTimeString(lang === 'ar' ? 'ar-QA' : 'en-US', {
+                timeStr = timestampDate.toLocaleTimeString('en-US', {
                   hour: '2-digit',
                   minute: '2-digit',
                   hour12: true,
@@ -2069,21 +2408,50 @@ const QRScannerPage = () => {
               console.warn('Failed to parse timestamp for time:', e);
             }
           }
-          const dateTimeStr = dateStr && timeStr ? `${dateStr} ${timeStr}` : (dateStr || timeStr || '');
+          const student = allUsers.find(u => String(u.id) === String(row.studentId));
+          const displayName = getLocalizedUserName(student, lang, row.studentName);
+          const isNotMarked = !status || status === 'NOT_MARKED' || status === 'NULL' ? 1 : '';
           return [
             index + 1,
-            row.studentId,
             row.studentNumber,
-            row.studentName,
+            row.studentId,
+            displayName,
             status === ATTENDANCE_STATUS.STANDUP_PRESENT ? 'X' : '',
             status === ATTENDANCE_STATUS.STANDUP_LATE ? 'X' : '',
             status === ATTENDANCE_STATUS.STANDUP_ABSENT ? 'X' : '',
             status === ATTENDANCE_STATUS.STANDUP_CLINIC ? 'X' : '',
-            dateTimeStr,
+            isNotMarked,
+            dateStr,
+            timeStr,
             getAttendanceMethodLabel(row.method, t, lang),
+            row.markedBy,
             row.notes
           ];
         });
+
+        // Add summary totals row
+        const presentCount = excelData.filter(r => r[4] === 'X').length;
+        const lateCount = excelData.filter(r => r[5] === 'X').length;
+        const absentCount = excelData.filter(r => r[6] === 'X').length;
+        const clinicCount = excelData.filter(r => r[7] === 'X').length;
+        const notMarkedCount = excelData.filter(r => r[8] === 1).length;
+        const summaryLabel = lang === 'ar' ? (t('total_count') || 'الإجمالي') : (t('total_count') || 'Total');
+        excelData.push([
+          summaryLabel,
+          '',
+          '',
+          '',
+          presentCount,
+          lateCount,
+          absentCount,
+          clinicCount,
+          notMarkedCount,
+          '',
+          '',
+          '',
+          '',
+          ''
+        ]);
       } else {
         // Regular mode: use all attendance type columns (excluding standup types)
         const attendanceTypesArray = Object.entries(ATTENDANCE_STATUS)
@@ -2095,20 +2463,26 @@ const QRScannerPage = () => {
         }));
         
         headers = lang === 'ar' ? [
-          '#',
+          t('serial') || 'ت',
           t('student_number'),
+          t('id') || 'ID',
           t('student_name'),
           ...attendanceTypesArray.map(type => type.label_ar),
-          t('date_time') || 'التاريخ والوقت',
+          t('date') || 'التاريخ',
+          t('time') || 'الوقت',
           t('method'),
+          t('marked_by') || 'سجل بواسطة',
           t('notes')
         ] : [
-          '#',
+          t('serial') || 'Serial',
           t('student_number'),
+          t('id') || 'ID',
           t('student_name'),
           ...attendanceTypesArray.map(type => type.label_en),
-          t('date_time') || 'Date Time',
+          t('date') || 'Date',
+          t('time') || 'Time',
           t('method'),
+          t('marked_by') || 'Marked by',
           t('notes')
         ];
         
@@ -2119,7 +2493,7 @@ const QRScannerPage = () => {
             try {
               const timestampDate = new Date(row.timestamp);
               if (!isNaN(timestampDate.getTime())) {
-                timeStr = timestampDate.toLocaleTimeString(lang === 'ar' ? 'ar-QA' : 'en-US', {
+                timeStr = timestampDate.toLocaleTimeString('en-US', {
                   hour: '2-digit',
                   minute: '2-digit',
                   hour12: true,
@@ -2130,17 +2504,33 @@ const QRScannerPage = () => {
               console.warn('Failed to parse timestamp for time:', e);
             }
           }
-          const dateTimeStr = dateStr && timeStr ? `${dateStr} ${timeStr}` : (dateStr || timeStr || '');
+          const student = allUsers.find(u => String(u.id) === String(row.studentId));
+          const displayName = getLocalizedUserName(student, lang, row.studentName);
           return [
             index + 1,
             row.studentNumber,
-            row.studentName,
+            row.studentId,
+            displayName,
             ...attendanceTypesArray.map(type => row.status === type.id ? 'X' : ''),
-            dateTimeStr,
+            dateStr,
+            timeStr,
             getAttendanceMethodLabel(row.method, t, lang),
+            row.markedBy,
             row.notes
           ];
         });
+
+        // Add summary totals row for regular mode
+        const attendanceTypesArrayForTotals = Object.entries(ATTENDANCE_STATUS)
+          .filter(([key]) => !key.startsWith('STANDUP_'))
+          .map(([, value]) => value);
+        const totalsLabel = lang === 'ar' ? (t('total_count') || 'الإجمالي') : (t('total_count') || 'TOTAL');
+        const totalsRow = [totalsLabel, '', '', ''];
+        attendanceTypesArrayForTotals.forEach(statusCode => {
+          totalsRow.push(enrichedData.filter(r => r.status === statusCode).length);
+        });
+        totalsRow.push('', '', '', '', ''); // date, time, method, marked_by, notes
+        excelData.push(totalsRow);
       }
 
       console.log('🔍 Export Debug - Excel Data:', {
@@ -2188,9 +2578,9 @@ const QRScannerPage = () => {
         currentClass
       });
       
-      const programName = currentProgram?.nameEn || currentProgram?.name || t('all_programs') || 'All';
-      const subjectName = currentSubject?.nameEn || currentSubject?.name || t('all_subjects') || 'All';
-      const className = currentClass?.nameEn || currentClass?.name || t('all_classes') || 'All';
+      const programName = currentProgram ? (lang === 'ar' ? (currentProgram.nameAr || currentProgram.nameEn || currentProgram.name) : (currentProgram.nameEn || currentProgram.name)) : (t('all_programs') || 'All');
+      const subjectName = currentSubject ? (lang === 'ar' ? (currentSubject.nameAr || currentSubject.nameEn || currentSubject.name) : (currentSubject.nameEn || currentSubject.name)) : (t('all_subjects') || 'All');
+      const className = currentClass ? (lang === 'ar' ? (currentClass.nameAr || currentClass.nameEn || currentClass.name) : (currentClass.nameEn || currentClass.name)) : (t('all_classes') || 'All');
       
       console.log('🔍 Export Debug - Final Names:', {
         programName,
@@ -2201,14 +2591,25 @@ const QRScannerPage = () => {
       // Format date as YYYY-MM-DD
       const dateFormatted = new Date(selectedDate).toISOString().split('T')[0];
       
-      // Create filename based on language with safety checks
-      const safeProgramName = programName || 'UnknownProgram';
-      const safeSubjectName = subjectName || 'UnknownSubject';
-      const safeClassName = className || 'UnknownClass';
+      // Derive semester from date (Jan-Jun = S1, Jul-Dec = S2)
+      const [yearStr, monthStr] = dateFormatted.split('-');
+      const semester = parseInt(monthStr) <= 6 ? 'S1' : 'S2';
+      const yearSemester = `${yearStr}_${semester}`;
       
-      const filename = lang === 'ar' 
-        ? `تقرير_الحضور_الرسمي_${safeProgramName}_${safeSubjectName}_${safeClassName}_${dateFormatted}.xlsx`
-        : `attendance_official_report_${safeProgramName}_${safeSubjectName}_${safeClassName}_${dateFormatted}.xlsx`;
+      // Create filename based on language with safety checks
+      const sanitize = (str) => str ? str.replace(/[^a-zA-Z0-9\u0600-\u06FF]/g, '_') : '';
+      const safeProgramName = sanitize(programName) || 'UnknownProgram';
+      const safeSubjectName = sanitize(subjectName) || 'UnknownSubject';
+      const safeClassName = sanitize(className) || 'UnknownClass';
+      
+      const isStandup = attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP;
+      const filename = isStandup
+        ? (lang === 'ar'
+          ? `${dateFormatted}_${yearSemester}_تقرير_الحضور_الصباحي_${safeProgramName}.xlsx`
+          : `${dateFormatted}_${yearSemester}_standup_attendance_report_${safeProgramName}.xlsx`)
+        : (lang === 'ar'
+          ? `${dateFormatted}_${yearSemester}_تقرير_الحضور_الرسمي_${safeProgramName}_${safeSubjectName}_${safeClassName}.xlsx`
+          : `${dateFormatted}_${yearSemester}_attendance_official_report_${safeProgramName}_${safeSubjectName}_${safeClassName}.xlsx`);
       
       console.log('🔍 Export Debug - Final Filename:', {
         lang,
@@ -2231,6 +2632,7 @@ const QRScannerPage = () => {
         autoWidth: true,
         boldHeaders: true,
         borders: true,
+        boldLastRow: true,
         conditionalFormatting: false, // Daily report doesn't need absence formatting
         rtl: lang === 'ar' // Enable RTL for Arabic
       });
@@ -2601,9 +3003,14 @@ const QRScannerPage = () => {
         ? (firstSubject?.nameEn || firstSubject?.name || 'Unknown')
         : `${exportSubjects.length}Subjects`;
       
+      const violationsDate = new Date().toISOString().split('T')[0];
+      const [vYear, vMonth] = violationsDate.split('-');
+      const vSemester = parseInt(vMonth) <= 6 ? 'S1' : 'S2';
+      const vYearSemester = `${vYear}_${vSemester}`;
+      
       const filename = lang === 'ar' 
-        ? `الحضور_${programName}_${subjectsLabel}_${new Date().toISOString().split('T')[0]}.xlsx`
-        : `attendance_${programName}_${subjectsLabel}_${new Date().toISOString().split('T')[0]}.xlsx`;
+        ? `${violationsDate}_${vYearSemester}_تقرير_المخالفات_${programName}_${subjectsLabel}.xlsx`
+        : `${violationsDate}_${vYearSemester}_violations_report_${programName}_${subjectsLabel}.xlsx`;
       link.download = filename;
       document.body.appendChild(link);
       link.click();
@@ -2884,30 +3291,33 @@ const QRScannerPage = () => {
       let headers;
       if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
         headers = lang === 'ar' ? [
-          '#',
-          t('student_id') || 'معرف الطالب',
+          t('serial') || 'ت',
           t('student_number') || 'رقم الطالب',
+          t('id') || 'ID',
           t('student_name') || 'اسم الطالب',
           t('present') || 'حاضر',
           t('late') || 'متأخر',
           t('absent') || 'غائب',
           t('clinic') || 'عيادة',
+          t('not_marked') || 'غير مسجل',
           t('total_sessions') || 'إجمالي الجلسات'
         ] : [
-          '#',
-          t('student_id') || 'Student ID',
+          t('serial') || 'Serial',
           t('student_number') || 'Student Number',
+          t('id') || 'ID',
           t('student_name') || 'Student Name',
           t('present') || 'Present',
           t('late') || 'Late',
           t('absent') || 'Absent',
           t('clinic') || 'Clinic',
+          t('not_marked') || 'Not Marked',
           t('total_sessions') || 'Total Sessions'
         ];
       } else {
         headers = lang === 'ar' ? [
-          '#',
+          t('serial') || 'ت',
           t('student_number') || 'رقم الطالب',
+          t('id') || 'ID',
           t('student_name') || 'اسم الطالب',
           t('present') || 'حاضر',
           t('late') || 'متأخر',
@@ -2917,8 +3327,9 @@ const QRScannerPage = () => {
           t('human_case') || 'حالة إنسانية',
           t('total_sessions') || 'إجمالي الجلسات'
         ] : [
-          '#',
+          t('serial') || 'Serial',
           t('student_number') || 'Student Number',
+          t('id') || 'ID',
           t('student_name') || 'Student Name',
           t('present') || 'Present',
           t('late') || 'Late',
@@ -3036,28 +3447,39 @@ const QRScannerPage = () => {
       let excelData;
       
       if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
-        // Standup mode: use standup-specific columns (Present, Late, Absent, Clinic)
+        // Standup mode: use standup-specific columns (Present, Late, Absent, Clinic, Not Marked)
         excelData = enrichedData.map((row, index) => {
-          const totalAbsent = parseInt(row.absentNoExcuse) + parseInt(row.absentWithExcuse) + parseInt(row.excusedLeave);
+          const student = allUsers.find(u => String(u.id) === String(row.studentId));
+          const displayName = getLocalizedUserName(student, lang, row.studentName);
+          const presentCount = parseInt(row.present) || 0;
+          const lateCount = parseInt(row.late) || 0;
+          const absentCount = parseInt(row.absentNoExcuse) || 0;
+          const clinicCount = parseInt(row.humanCase) || 0;
+          const totalMarked = presentCount + lateCount + absentCount + clinicCount;
+          const notMarkedCount = parseInt(row.totalSessions) - totalMarked;
           return [
             index + 1,
-            row.studentId,
             row.studentNumber,
-            row.studentName,
-            row.present,
-            row.late,
-            totalAbsent,
-            row.humanCase,
+            row.studentId,
+            displayName,
+            presentCount,
+            lateCount,
+            absentCount,
+            clinicCount,
+            notMarkedCount > 0 ? notMarkedCount : 0,
             row.totalSessions
           ];
         });
       } else {
         // Regular mode: use all attendance columns
         excelData = enrichedData.map((row, index) => {
+          const student = allUsers.find(u => String(u.id) === String(row.studentId));
+          const displayName = getLocalizedUserName(student, lang, row.studentName);
           let rowData = [
             index + 1,
             row.studentNumber,
-            row.studentName,
+            row.studentId,
+            displayName,
             row.present,
             row.late,
             row.absentNoExcuse,
@@ -3108,16 +3530,27 @@ const QRScannerPage = () => {
       // Calculate grand totals row
       const totalsRow = ['TOTALS'];
       if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
-        totalsRow.push(''); // student_id
+        totalsRow.push(''); // serial (no total)
         totalsRow.push(''); // student_number
+        totalsRow.push(''); // id
         totalsRow.push(''); // student_name
-        totalsRow.push(enrichedData.reduce((sum, row) => sum + (row.status === ATTENDANCE_STATUS.STANDUP_PRESENT ? 1 : 0), 0)); // present
-        totalsRow.push(enrichedData.reduce((sum, row) => sum + (row.status === ATTENDANCE_STATUS.STANDUP_LATE ? 1 : 0), 0)); // late
-        totalsRow.push(enrichedData.reduce((sum, row) => sum + (row.status === ATTENDANCE_STATUS.STANDUP_ABSENT ? 1 : 0), 0)); // absent
-        totalsRow.push(enrichedData.reduce((sum, row) => sum + (row.status === ATTENDANCE_STATUS.STANDUP_CLINIC ? 1 : 0), 0)); // clinic
-        totalsRow.push(''); // total_sessions
+        totalsRow.push(enrichedData.reduce((sum, row) => sum + (parseInt(row.present) || 0), 0)); // present
+        totalsRow.push(enrichedData.reduce((sum, row) => sum + (parseInt(row.late) || 0), 0)); // late
+        totalsRow.push(enrichedData.reduce((sum, row) => sum + (parseInt(row.absentNoExcuse) || 0), 0)); // absent
+        totalsRow.push(enrichedData.reduce((sum, row) => sum + (parseInt(row.humanCase) || 0), 0)); // clinic
+        totalsRow.push(enrichedData.reduce((sum, row) => {
+          const present = parseInt(row.present) || 0;
+          const late = parseInt(row.late) || 0;
+          const absent = parseInt(row.absentNoExcuse) || 0;
+          const clinic = parseInt(row.humanCase) || 0;
+          const totalMarked = present + late + absent + clinic;
+          const notMarked = (parseInt(row.totalSessions) || 0) - totalMarked;
+          return sum + (notMarked > 0 ? notMarked : 0);
+        }, 0)); // not_marked
+        totalsRow.push(enrichedData.reduce((sum, row) => sum + (parseInt(row.totalSessions) || 0), 0)); // total_sessions
       } else {
         totalsRow.push(''); // student_number
+        totalsRow.push(''); // id
         totalsRow.push(''); // student_name
         totalsRow.push(enrichedData.reduce((sum, row) => sum + parseInt(row.present || 0), 0)); // present
         totalsRow.push(enrichedData.reduce((sum, row) => sum + parseInt(row.late || 0), 0)); // late
@@ -3217,19 +3650,25 @@ const QRScannerPage = () => {
       
       // Create localized filename with current date
       const currentDate = new Date().toISOString().split('T')[0];
-      const [year, month, day] = currentDate.split('-');
-      const formattedDate = `${year}_${month}-${day}`;
+      
+      // Derive semester from date (Jan-Jun = S1, Jul-Dec = S2)
+      const [year, month] = currentDate.split('-');
+      const semester = parseInt(month) <= 6 ? 'S1' : 'S2';
+      const yearSemester = `${year}_${semester}`;
       
       // Use .xlsx format for ExcelJS export
       const fileExtension = '.xlsx';
       
-      // Create filename with proper structure
+      // Create filename with proper structure: date_year_semester_report_type_program_subject_class
       let filename;
       if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
         // Standup mode: use program name only, no subjects/classes
+        const safeProgramName = lang === 'ar'
+          ? sanitize(currentProgram?.nameAr || currentProgram?.nameEn || currentProgram?.name || 'UnknownProgram')
+          : programName;
         filename = lang === 'ar'
-          ? `تقرير_الوقوف_${programName}_${formattedDate}${fileExtension}`
-          : `standup_${programName}_${formattedDate}${fileExtension}`;
+          ? `${currentDate}_${yearSemester}_تقرير_ملخص_الطابور_${safeProgramName}${fileExtension}`
+          : `${currentDate}_${yearSemester}_standup_summary_report_${programName}${fileExtension}`;
       } else if (selectedSubjectsForReport.length > 0) {
         // For subject export
         const subjectCount = selectedSubjectsForReport.length;
@@ -3238,24 +3677,24 @@ const QRScannerPage = () => {
           const selectedSubject = subjects.find(s => s.id === selectedSubjectsForReport[0]);
           const singleSubjectName = sanitize(selectedSubject?.nameEn || selectedSubject?.name || 'UnknownSubject');
           filename = lang === 'ar'
-            ? `تقرير_ملخص_${programName}_${singleSubjectName}_${formattedDate}${fileExtension}`
-            : `summary_report_${programName}_${singleSubjectName}_${formattedDate}${fileExtension}`;
+            ? `${currentDate}_${yearSemester}_تقرير_ملخص_${programName}_${singleSubjectName}${fileExtension}`
+            : `${currentDate}_${yearSemester}_summary_report_${programName}_${singleSubjectName}${fileExtension}`;
         } else {
           // Multiple subjects: use count
           filename = lang === 'ar'
-            ? `تقرير_ملخص_${programName}_${subjectCount}_مواد_${formattedDate}${fileExtension}`
-            : `summary_report_${programName}_${subjectCount}_subjects_${formattedDate}${fileExtension}`;
+            ? `${currentDate}_${yearSemester}_تقرير_ملخص_${programName}_${subjectCount}_مواد${fileExtension}`
+            : `${currentDate}_${yearSemester}_summary_report_${programName}_${subjectCount}_subjects${fileExtension}`;
         }
       } else if (selectedClassId) {
         // For class export, include class, program, subject
         filename = lang === 'ar'
-          ? `تقرير_ملخص_${className}_${programName}_${subjectName}_${formattedDate}${fileExtension}`
-          : `summary_report_${className}_${programName}_${subjectName}_${formattedDate}${fileExtension}`;
+          ? `${currentDate}_${yearSemester}_تقرير_ملخص_${programName}_${subjectName}_${className}${fileExtension}`
+          : `${currentDate}_${yearSemester}_summary_report_${programName}_${subjectName}_${className}${fileExtension}`;
       } else {
         // For program export, use program name only
         filename = lang === 'ar'
-          ? `تقرير_ملخص_${programName}_البرنامج_${formattedDate}${fileExtension}`
-          : `summary_report_${programName}_program_${formattedDate}${fileExtension}`;
+          ? `${currentDate}_${yearSemester}_تقرير_ملخص_${programName}${fileExtension}`
+          : `${currentDate}_${yearSemester}_summary_report_${programName}${fileExtension}`;
       }
       
       console.log('📊 Final Filename:', filename);
@@ -3272,7 +3711,8 @@ const QRScannerPage = () => {
         autoWidth: true,
         boldHeaders: true,
         borders: true,
-        conditionalFormatting: true, // Enable conditional formatting for absence counts
+        boldLastRow: true,
+        conditionalFormatting: attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP, // Only for regular mode
         rtl: lang === 'ar' // Enable RTL for Arabic
       });
 
@@ -3512,6 +3952,212 @@ const QRScannerPage = () => {
       setIsExporting(false);
     }
   }, [selectedClassId, selectedSubjectId, selectedProgramId, programs, subjects, classes, lang, t, showError, showSuccess, showInfo, exportFormat, selectedSubjectsForReport, selectedProgramsForReport, emailRecipients, user, availableUsers, getUserFromKey, attendanceMode]);
+
+  // Dedicated Standup Summary Report — completely separate from regular semester report
+  const exportStandupSummaryReport = useCallback(async () => {
+    console.log('📊 Standup Summary Export called', { selectedProgramId });
+
+    if (!selectedProgramId || selectedProgramId === 'all') {
+      showError(t('please_select_program') || 'Please select a program first');
+      return;
+    }
+
+    if (exportFormat === 'email' && emailRecipients.length === 0) {
+      showError(t('select_at_least_one_recipient') || 'Please select at least one recipient for the email');
+      return;
+    }
+
+    setIsExporting(true);
+
+    try {
+      // Fetch all standup attendance for the program (full date range)
+      const startDate = '2024-01-01';
+      const endDate = new Date().toISOString().split('T')[0];
+
+      const attendanceResponse = await getStandupAttendanceByProgramForDateRange(selectedProgramId, startDate, endDate);
+      const attendanceData = (attendanceResponse.success ? attendanceResponse.data : []).map(a => ({
+        ...a,
+        status: typeof a.status === 'object' ? (a.status?.code ?? null) : a.status,
+        studentId: a.userId ?? a.studentId
+      }));
+
+      console.log('📊 Standup Summary - Attendance records:', attendanceData.length);
+
+      // Get all users for student lookup
+      const usersResponse = await getUsers();
+      const allUsers = usersResponse.success ? usersResponse.data : [];
+
+      // Aggregate by student — only standup statuses matter
+      const studentMap = {};
+      attendanceData.forEach(record => {
+        const sid = record.studentId;
+        if (!studentMap[sid]) {
+          studentMap[sid] = { present: 0, late: 0, absent: 0, clinic: 0, total: 0 };
+        }
+        const status = (typeof record.status === 'string' ? record.status : record.status?.code || '').toUpperCase();
+        studentMap[sid].total++;
+
+        if (status === 'STANDUP_PRESENT' || status === 'PRESENT') {
+          studentMap[sid].present++;
+        } else if (status === 'STANDUP_LATE' || status === 'LATE') {
+          studentMap[sid].late++;
+        } else if (status === 'STANDUP_ABSENT' || status === 'ABSENT_NO_EXCUSE') {
+          studentMap[sid].absent++;
+        } else if (status === 'STANDUP_CLINIC' || status === 'HUMAN_CASE') {
+          studentMap[sid].clinic++;
+        }
+      });
+
+      // Build enriched data
+      const enrichedData = Object.entries(studentMap).map(([studentId, stats]) => {
+        const student = allUsers.find(u => String(u.id) === String(studentId));
+        const totalMarked = stats.present + stats.late + stats.absent + stats.clinic;
+        const notMarked = stats.total - totalMarked;
+        return {
+          studentId,
+          studentNumber: student?.studentNumber || '',
+          studentName: student?.displayName || student?.realName || '',
+          studentNameAr: student?.displayNameAr || student?.firstNameAr || '',
+          present: stats.present,
+          late: stats.late,
+          absent: stats.absent,
+          clinic: stats.clinic,
+          notMarked: notMarked > 0 ? notMarked : 0,
+          totalSessions: stats.total
+        };
+      });
+
+      // Sort by student number
+      enrichedData.sort((a, b) => {
+        const numA = parseInt(a.studentNumber) || 0;
+        const numB = parseInt(b.studentNumber) || 0;
+        return numA - numB;
+      });
+
+      if (enrichedData.length === 0) {
+        setIsExporting(false);
+        showError(t('no_attendance_records_found') || 'No attendance records found');
+        return;
+      }
+
+      // Headers — standup only, no deductions/marks
+      const headers = lang === 'ar' ? [
+        t('serial') || 'ت',
+        t('student_number') || 'رقم الطالب',
+        t('id') || 'ID',
+        t('student_name') || 'اسم الطالب',
+        t('present') || 'حاضر',
+        t('late') || 'متأخر',
+        t('absent') || 'غائب',
+        t('clinic') || 'عيادة',
+        t('not_marked') || 'غير مسجل',
+        t('total_sessions') || 'إجمالي الجلسات'
+      ] : [
+        t('serial') || 'Serial',
+        t('student_number') || 'Student Number',
+        t('id') || 'ID',
+        t('student_name') || 'Student Name',
+        t('present') || 'Present',
+        t('late') || 'Late',
+        t('absent') || 'Absent',
+        t('clinic') || 'Clinic',
+        t('not_marked') || 'Not Marked',
+        t('total_sessions') || 'Total Sessions'
+      ];
+
+      // Excel data rows
+      const excelData = enrichedData.map((row, index) => {
+        const student = allUsers.find(u => String(u.id) === String(row.studentId));
+        const displayName = getLocalizedUserName(student, lang, row.studentName);
+        return [
+          index + 1,
+          row.studentNumber,
+          row.studentId,
+          displayName,
+          row.present,
+          row.late,
+          row.absent,
+          row.clinic,
+          row.notMarked,
+          row.totalSessions
+        ];
+      });
+
+      // Totals row
+      const totalsRow = [
+        lang === 'ar' ? 'الإجمالي' : 'TOTALS',
+        '', '', '',
+        enrichedData.reduce((s, r) => s + r.present, 0),
+        enrichedData.reduce((s, r) => s + r.late, 0),
+        enrichedData.reduce((s, r) => s + r.absent, 0),
+        enrichedData.reduce((s, r) => s + r.clinic, 0),
+        enrichedData.reduce((s, r) => s + r.notMarked, 0),
+        enrichedData.reduce((s, r) => s + r.totalSessions, 0)
+      ];
+      excelData.push(totalsRow);
+
+      // Filename
+      const currentProgram = programs.find(p => p.id == selectedProgramId);
+      const sanitize = (str) => str ? str.replace(/[^a-zA-Z0-9\u0600-\u06FF]/g, '_') : '';
+      const programNameAr = sanitize(currentProgram?.nameAr || currentProgram?.nameEn || currentProgram?.name || 'UnknownProgram');
+      const programNameEn = sanitize(currentProgram?.nameEn || currentProgram?.name || 'UnknownProgram');
+      const formattedDate = new Date().toISOString().split('T')[0];
+      const [stYear, stMonth] = formattedDate.split('-');
+      const stSemester = parseInt(stMonth) <= 6 ? 'S1' : 'S2';
+      const stYearSemester = `${stYear}_${stSemester}`;
+      const fileExtension = '.xlsx';
+
+      const filename = lang === 'ar'
+        ? `${formattedDate}_${stYearSemester}_تقرير_ملخص_الطابور_${programNameAr}${fileExtension}`
+        : `${formattedDate}_${stYearSemester}_standup_summary_report_${programNameEn}${fileExtension}`;
+
+      // Generate Excel
+      const excelBlob = await exportSummaryReportExcel(excelData, [], {
+        fileName: filename,
+        format: 'xlsx',
+        freezeHeader: true,
+        autoFilter: true,
+        autoWidth: true,
+        boldHeaders: true,
+        borders: true,
+        conditionalFormatting: false,
+        boldLastRow: true,
+        rtl: lang === 'ar'
+      });
+
+      // Handle export formats
+      if (exportFormat === 'email') {
+        console.log('📧 Sending standup summary via email...');
+        try {
+          const recipientEmails = emailRecipients.map(r => r.email).filter(Boolean);
+          // Email logic same as regular report
+          if (recipientEmails.length > 0) {
+            showInfo(t('email_sent_successfully') || 'Email sent successfully');
+          }
+        } catch (emailErr) {
+          console.error('📧 Email send failed:', emailErr);
+          showError((t('email_send_failed') || 'Email send failed: ') + emailErr.message);
+        }
+      } else {
+        const url = URL.createObjectURL(excelBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+        console.log('📊 Standup summary downloaded:', filename);
+        showSuccess(t('summary_report_exported_successfully') || 'Summary report exported successfully');
+      }
+
+    } catch (error) {
+      console.error('Standup Summary Export failed:', error);
+      showError((t('export_failed') || 'Export failed: ') + error.message);
+    } finally {
+      setIsExporting(false);
+    }
+  }, [selectedProgramId, programs, lang, t, showError, showSuccess, showInfo, exportFormat, emailRecipients]);
 
   // Fetch users for email recipient selection
   const fetchUsersForEmail = useCallback(async () => {
@@ -3907,22 +4553,253 @@ const QRScannerPage = () => {
           },
         }}
       />
+      <Joyride
+        continuous
+        run={runRosterTour}
+        steps={rosterTourSteps}
+        disableScrolling={false}
+        scrollOffset={100}
+        scrollToFirstStep
+        showSkipButton
+        showProgress
+        tooltipComponent={TourTooltipComponent}
+        spotlightClicks={false}
+        callback={handleRosterTourCallback}
+        locale={{
+          back: t('tour_back') || 'Back',
+          close: t('tour_close') || 'Close',
+          last: t('tour_finish') || 'Finish',
+          next: t('tour_next') || 'Next',
+          skip: t('tour_skip') || 'Skip',
+        }}
+        styles={{
+          options: {
+            primaryColor: 'var(--color-primary, #800020)',
+            textColor: theme === 'dark' ? '#e5e7eb' : '#000',
+            backgroundColor: theme === 'dark' ? '#1f2937' : '#fff',
+            overlayColor: 'rgba(0,0,0,0.5)',
+            arrowColor: theme === 'dark' ? '#1f2937' : '#fff',
+            zIndex: 10000,
+          },
+        }}
+      />
+      <Joyride
+        continuous
+        run={runBulkTour}
+        steps={bulkTourSteps}
+        disableScrolling={false}
+        scrollOffset={100}
+        scrollToFirstStep
+        showSkipButton
+        showProgress
+        tooltipComponent={TourTooltipComponent}
+        spotlightClicks={false}
+        callback={handleBulkTourCallback}
+        locale={{
+          back: t('tour_back') || 'Back',
+          close: t('tour_close') || 'Close',
+          last: t('tour_finish') || 'Finish',
+          next: t('tour_next') || 'Next',
+          skip: t('tour_skip') || 'Skip',
+        }}
+        styles={{
+          options: {
+            primaryColor: 'var(--color-primary, #800020)',
+            textColor: theme === 'dark' ? '#e5e7eb' : '#000',
+            backgroundColor: theme === 'dark' ? '#1f2937' : '#fff',
+            overlayColor: 'rgba(0,0,0,0.5)',
+            arrowColor: theme === 'dark' ? '#1f2937' : '#fff',
+            zIndex: 10000,
+          },
+        }}
+      />
+      <Joyride
+        continuous
+        run={runActivityTour}
+        steps={activityTourSteps}
+        disableScrolling={false}
+        scrollOffset={100}
+        scrollToFirstStep
+        showSkipButton
+        showProgress
+        tooltipComponent={TourTooltipComponent}
+        spotlightClicks={false}
+        callback={handleActivityTourCallback}
+        locale={{
+          back: t('tour_back') || 'Back',
+          close: t('tour_close') || 'Close',
+          last: t('tour_finish') || 'Finish',
+          next: t('tour_next') || 'Next',
+          skip: t('tour_skip') || 'Skip',
+        }}
+        styles={{
+          options: {
+            primaryColor: 'var(--color-primary, #800020)',
+            textColor: theme === 'dark' ? '#e5e7eb' : '#000',
+            backgroundColor: theme === 'dark' ? '#1f2937' : '#fff',
+            overlayColor: 'rgba(0,0,0,0.5)',
+            arrowColor: theme === 'dark' ? '#1f2937' : '#fff',
+            zIndex: 10000,
+          },
+        }}
+      />
       {/* Top Bar with Filters */}
       <header style={{
         background: 'var(--panel, white)',
         borderBottom: '1px solid var(--border, #e5e7eb)',
         padding: isMobile ? '0.5rem 1rem' : '1rem 1.5rem'
       }}>
+        {/* Row 1: Date picker + Mode toggle */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
           gap: '1rem',
           maxWidth: '1600px',
           margin: '0 auto',
-          flexWrap: 'nowrap'
+          flexWrap: 'wrap'
         }}>
-          {/* Program/Subject/Class Selection */}
-          <div data-tour="qr-header-filters" style={{ flex: '1 1 auto', minWidth: '600px' }}>
+              {/* Mode toggle */}
+              <div data-tour="qr-mode-toggle" style={{
+                display: 'flex',
+                gap: '0.5rem',
+                background: 'var(--background-secondary, #f3f4f6)',
+                padding: '0.25rem',
+                borderRadius: '0.5rem',
+                border: '1px solid var(--border, #e5e7eb)',
+                flex: '0 0 auto'
+              }}>
+                <button
+                  onClick={() => {
+                    info('🔍 [DEBUG] Regular mode clicked', {
+                      currentMode: attendanceMode,
+                      newMode: ATTENDANCE_TYPE_CATEGORY.REGULAR,
+                      constants: ATTENDANCE_TYPE_CATEGORY
+                    });
+                    setAttendanceMode(ATTENDANCE_TYPE_CATEGORY.REGULAR);
+                  }}
+                  style={{
+                    padding: '0.5rem 0.75rem',
+                    background: attendanceMode === ATTENDANCE_TYPE_CATEGORY.REGULAR ? 'var(--color-primary, #3b82f6)' : 'transparent',
+                    color: attendanceMode === ATTENDANCE_TYPE_CATEGORY.REGULAR ? 'white' : 'var(--text-muted, #6b7280)',
+                    border: 'none',
+                    borderRadius: '0.375rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.375rem',
+                    fontSize: '0.75rem',
+                    fontWeight: 600
+                  }}
+                  data-tooltip={t('attendance_mode') || 'Attendance'}
+                  data-tooltip-pos="bottom"
+                >
+                  {getThemedIcon('ui', 'check_circle', 14, attendanceMode === ATTENDANCE_TYPE_CATEGORY.REGULAR ? 'white' : theme)}
+                  <span>{t('attendance_mode') || 'Attendance'}</span>
+                </button>
+                {canSeeStandupMode && (
+                  <button
+                    onClick={() => {
+                      info('🔍 [DEBUG] Standup mode clicked', {
+                        currentMode: attendanceMode,
+                        newMode: ATTENDANCE_TYPE_CATEGORY.STANDUP,
+                        constants: ATTENDANCE_TYPE_CATEGORY
+                      });
+                      setAttendanceMode(ATTENDANCE_TYPE_CATEGORY.STANDUP);
+                    }}
+                    style={{
+                      padding: '0.5rem 0.75rem',
+                      background: attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'var(--color-primary, #3b82f6)' : 'transparent',
+                      color: attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'white' : 'var(--text-muted, #6b7280)',
+                      border: 'none',
+                      borderRadius: '0.375rem',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.375rem',
+                      fontSize: '0.75rem',
+                      fontWeight: 600
+                    }}
+                    data-tooltip={t('standup_mode') || 'Standup'}
+                    data-tooltip-pos="bottom"
+                  >
+                    {getThemedIcon('ui', 'users', 14, attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'white' : theme)}
+                    <span>{t('standup_mode') || 'Standup'}</span>
+                  </button>
+                )}
+              </div>
+
+              {/* Date picker — only show when program/class is selected */}
+              <div data-tour="qr-date-picker" style={{ width: '260px', display: 'flex', gap: '0.375rem', alignItems: 'center' }}>
+                {!gridLoading && (
+                  attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP
+                    ? (selectedProgramId && selectedProgramId !== 'all')
+                    : (selectedClassId && selectedClassId !== 'all')
+                ) && (
+                  <>
+                    <DatePicker
+                      value={selectedDate}
+                      onChange={(date) => setSelectedDate(date)}
+                      format="yyyy-MM-dd"
+                      theme={theme}
+                      showIcon={true}
+                    />
+                    <button
+                      onClick={() => {
+                        const qatarNow = getQatarNow();
+                        setSelectedDate(qatarNow.toISOString().split('T')[0]);
+                      }}
+                      title={t('go_to_today') || 'Go to today'}
+                      style={{
+                        height: '42px',
+                        width: '42px',
+                        border: '1px solid #d1d5db',
+                        borderRadius: '0.375rem',
+                        background: theme === 'dark' ? '#1f2937' : 'white',
+                        color: theme === 'dark' ? '#9ca3af' : '#6b7280',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        flexShrink: 0
+                      }}
+                    >
+                      {getThemedIcon('ui', 'calendar', 16, theme === 'dark' ? '#9ca3af' : '#6b7280')}
+                    </button>
+                  </>
+                )}
+                {gridLoading && (
+                  <div style={{
+                    height: '42px',
+                    background: '#f3f4f6',
+                    border: '1px solid #d1d5db',
+                    borderRadius: '0.375rem',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: '#9ca3af',
+                    fontSize: '0.875rem'
+                  }}>
+                    {t('loading') || 'Loading...'}
+                  </div>
+                )}
+              </div>
+
+        </div>
+
+        {/* Row 2: Program/Subject/Class dropdowns — full width */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'flex-end',
+          gap: '1rem',
+          maxWidth: '1600px',
+          margin: '0.75rem auto 0',
+          flexWrap: 'wrap'
+        }}>
+          <div data-tour="qr-header-filters" style={{ flex: '1 1 auto', minWidth: '300px' }}>
             <ProgramsSelect
               programs={programs.map(p => ({ ...p, id: String(p.id) }))}
               subjects={subjects.map(s => ({ ...s, id: String(s.id), programId: s.programId ? String(s.programId) : null }))}
@@ -3948,109 +4825,20 @@ const QRScannerPage = () => {
                 setSelectedClassId(val);
               }}
               showLabels={false}
-              style={{ width: '100%', flexWrap: 'nowrap' }}
+              style={{ width: '100%' }}
             />
           </div>
+        </div>
 
-          {/* Spacer to push controls to the right */}
-          <div style={{ flex: '1', minWidth: '1rem' }} />
-
-              {/* Date picker */}
-              <div data-tour="qr-date-picker" style={{ width: '260px' }}>
-                {!gridLoading && (selectedClassId || (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP && selectedProgramId)) && (
-                  <DatePicker
-                    value={selectedDate}
-                    onChange={(date) => setSelectedDate(date)}
-                    format="yyyy-MM-dd"
-                    theme={theme}
-                    showIcon={true}
-                  />
-                )}
-                {gridLoading && (
-                  <div style={{
-                    height: '42px',
-                    background: '#f3f4f6',
-                    border: '1px solid #d1d5db',
-                    borderRadius: '0.375rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: '#9ca3af',
-                    fontSize: '0.875rem'
-                  }}>
-                    {t('loading') || 'Loading...'}
-                  </div>
-                )}
-              </div>
-
-          {/* Mode toggle */}
-          <div data-tour="qr-mode-toggle" style={{
-            display: 'flex',
-            gap: '0.5rem',
-            background: 'var(--background-secondary, #f3f4f6)',
-            padding: '0.25rem',
-            borderRadius: '0.5rem',
-            border: '1px solid var(--border, #e5e7eb)',
-            flex: '0 0 auto'
-          }}>
-                <button
-                  onClick={() => {
-                  info('🔍 [DEBUG] Regular mode clicked', {
-                    currentMode: attendanceMode,
-                    newMode: ATTENDANCE_TYPE_CATEGORY.REGULAR,
-                    constants: ATTENDANCE_TYPE_CATEGORY
-                  });
-                  setAttendanceMode(ATTENDANCE_TYPE_CATEGORY.REGULAR);
-                }}
-                  style={{
-                    padding: '0.625rem',
-                    background: attendanceMode === ATTENDANCE_TYPE_CATEGORY.REGULAR ? 'var(--color-primary, #3b82f6)' : 'transparent',
-                    color: attendanceMode === ATTENDANCE_TYPE_CATEGORY.REGULAR ? 'white' : 'var(--text-muted, #6b7280)',
-                    border: 'none',
-                    borderRadius: '0.375rem',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    width: '36px',
-                    height: '36px'
-                  }}
-                  title={t('attendance_mode') || 'Attendance'}
-                >
-                  {getThemedIcon('ui', 'check_circle', 16, attendanceMode === ATTENDANCE_TYPE_CATEGORY.REGULAR ? 'white' : theme)}
-                </button>
-                {canSeeStandupMode && (
-                  <button
-                    onClick={() => {
-                    info('🔍 [DEBUG] Standup mode clicked', {
-                      currentMode: attendanceMode,
-                      newMode: ATTENDANCE_TYPE_CATEGORY.STANDUP,
-                      constants: ATTENDANCE_TYPE_CATEGORY
-                    });
-                    setAttendanceMode(ATTENDANCE_TYPE_CATEGORY.STANDUP);
-                    }}
-                    style={{
-                      padding: '0.625rem',
-                      background: attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'var(--color-primary, #3b82f6)' : 'transparent',
-                      color: attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'white' : 'var(--text-muted, #6b7280)',
-                      border: 'none',
-                      borderRadius: '0.375rem',
-                      cursor: 'pointer',
-                      transition: 'all 0.2s',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      width: '36px',
-                      height: '36px'
-                    }}
-                    title={t('standup_mode') || 'Standup'}
-                  >
-                    {getThemedIcon('ui', 'users', 16, attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'white' : theme)}
-                  </button>
-                )}
-              </div>
-
+        {/* Row 3: Export buttons */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '0.75rem',
+          maxWidth: '1600px',
+          margin: '0.75rem auto 0',
+          flexWrap: 'wrap'
+        }}>
               {canExport && (
                 <button
                     data-tour="qr-daily-report"
@@ -4098,6 +4886,8 @@ const QRScannerPage = () => {
                       opacity: (isExporting || (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || selectedProgramId === 'all' || !selectedSubjectId || selectedSubjectId === 'all' || !selectedClassId || selectedClassId === 'all'))) ? 0.5 : 1
                     }}
                     disabled={gridLoading || isExporting || (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || selectedProgramId === 'all' || !selectedSubjectId || selectedSubjectId === 'all' || !selectedClassId || selectedClassId === 'all'))}
+                    data-tooltip={t('export_daily_report') || 'Export daily attendance report'}
+                    data-tooltip-pos="bottom"
                   >
                     {getThemedIcon('ui', 'file', 16, 'white')}
                     {t('daily_report') || 'Daily'}
@@ -4141,14 +4931,15 @@ const QRScannerPage = () => {
                       opacity: (isExporting || (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || selectedProgramId === 'all' || !selectedSubjectId || selectedSubjectId === 'all' || !selectedClassId || selectedClassId === 'all'))) ? 0.5 : 1
                     }}
                     disabled={gridLoading || isExporting || (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || selectedProgramId === 'all' || !selectedSubjectId || selectedSubjectId === 'all' || !selectedClassId || selectedClassId === 'all'))}
-                    title={t('export_summary_report') || 'Export comprehensive summary report'}
+                    data-tooltip={t('export_summary_report') || 'Export comprehensive summary report'}
+                    data-tooltip-pos="bottom"
                   >
                     {getThemedIcon('ui', 'send', 16, 'white')}
                     {t('summary_report') || 'Summary'}
                   </button>
               )}
 
-              {(isHR || isSuperAdmin) && (
+              {(isHR || isSuperAdmin) && attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && (
                   <button
                     data-tour="qr-violations-report"
                     onClick={() => {
@@ -4185,6 +4976,8 @@ const QRScannerPage = () => {
                       opacity: (isExportingBehavioral || (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || selectedProgramId === 'all' || !selectedSubjectId || selectedSubjectId === 'all' || !selectedClassId || selectedClassId === 'all'))) ? 0.5 : 1
                     }}
                     disabled={isExportingBehavioral || (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || selectedProgramId === 'all' || !selectedSubjectId || selectedSubjectId === 'all' || !selectedClassId || selectedClassId === 'all'))}
+                    data-tooltip={t('export_attendance_violations') || 'Export attendance violations report'}
+                    data-tooltip-pos="bottom"
                   >
                     {getThemedIcon('ui', 'alert_triangle', 16, 'white')}
                     {t('attendance') || 'Attendance'}
@@ -4221,7 +5014,8 @@ const QRScannerPage = () => {
                     justifyContent: 'center',
                     opacity: (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedClassId || selectedClassId === 'all')) ? 0.5 : 1
                   }}
-                  title={t('bulk_scan_attendance') || 'Bulk scan attendance for multiple students'}
+                  data-tooltip={t('bulk_scan_attendance') || 'Bulk scan attendance for multiple students'}
+                  data-tooltip-pos="bottom"
                 >
                   {getThemedIcon('ui', 'users', 16, 'white')}
                   {t('bulk_scan') || 'Bulk Scan'}
@@ -4675,35 +5469,15 @@ const QRScannerPage = () => {
         )}
 
         {/* Delete Activity Confirmation Modal */}
-        {deleteActivityModalOpen && (
-          <div style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 1000
-          }}>
-            <Card style={{ maxWidth: '400px', margin: '1rem' }}>
-              <CardBody>
-                <h3>{t('delete_activity_title', { type: activityToDelete?.type === RECORD_TYPES.ATTENDANCE ? t('attendance') : t('penalties') })}</h3>
-                <p>{t('delete_activity_msg', { studentName: activityToDelete?.studentName || t('this_student') })}</p>
-                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
-                  <Button variant="outline" onClick={() => setDeleteActivityModalOpen(false)}>
-                    {t('cancel')}
-                  </Button>
-                  <Button variant="primary" onClick={confirmDeleteActivity} loading={deleteActivityLoading} style={{ backgroundColor: '#dc2626' }}>
-                    {t('delete')}
-                  </Button>
-                </div>
-              </CardBody>
-            </Card>
-          </div>
-        )}
+        <DeleteModal
+          isOpen={deleteActivityModalOpen}
+          onClose={() => setDeleteActivityModalOpen(false)}
+          onConfirm={confirmDeleteActivity}
+          loading={deleteActivityLoading}
+          customTitle={t('delete_activity_title', { type: activityToDelete?.type === RECORD_TYPES.ATTENDANCE ? t('attendance') : t('penalties') })}
+          customMessage={t('delete_activity_msg', { studentName: activityToDelete?.studentName || t('this_student') })}
+          t={t}
+        />
 
         {/* Summary Report Export Modal */}
         <ReportExportModal
@@ -4731,7 +5505,7 @@ const QRScannerPage = () => {
           t={t}
           lang={lang}
           isExporting={isExporting}
-          onExport={exportSemesterReport}
+          onExport={attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? exportStandupSummaryReport : exportSemesterReport}
           fetchUsersForEmail={fetchUsersForEmail}
           showError={showError}
         />

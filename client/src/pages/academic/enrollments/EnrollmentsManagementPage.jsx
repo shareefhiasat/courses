@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
 import Joyride from 'react-joyride';
 import TourTooltip from '@ui/TourTooltip/TourTooltip';
+import { scheduleTourStart } from '@utils/tourScheduler';
 import { useTheme } from '@contexts/ThemeContext';
 import { useLang } from '@contexts/LangContext';
 import { useAuth } from '@contexts/AuthContext';
@@ -45,7 +46,7 @@ const EnrollmentsManagementPage = () => {
     window.addEventListener('app:help', startTour);
     return () => { window.removeEventListener('app:joyride', startTour); window.removeEventListener('app:help', startTour); };
   }, [startTour]);
-  useEffect(() => { try { if (!localStorage.getItem(tourSeenKey)) startTour(); } catch {} }, [tourSeenKey, startTour]);
+  useEffect(() => scheduleTourStart(tourSeenKey, lang, startTour), [tourSeenKey, lang, startTour]);
   const handleTourCallback = useCallback((data) => {
     const { status, action } = data || {};
     if (status === 'finished' || status === 'skipped' || action === 'close') { setRunTour(false); try { localStorage.setItem(tourSeenKey, 'true'); } catch {} }

@@ -15,7 +15,7 @@ export const KeycloakProvider = ({ children }) => {
             pkceMethod: 'S256',
             checkLoginIframe: false,
           }}
-          LoadingComponent={<SimpleLoading />}
+          LoadingComponent={<SimpleLoading fullscreen type="brand" size="lg" />}
       >
         {children}
       </ReactKeycloakProvider>

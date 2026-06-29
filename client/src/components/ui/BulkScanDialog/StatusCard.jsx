@@ -1,7 +1,7 @@
 /**
  * StatusCard Component
  *
- * Renders a status selection card for attendance marking
+ * Renders a checkbox-style status selection for attendance marking
  */
 
 import React from 'react';
@@ -28,7 +28,7 @@ const StatusCard = ({
     ABSENT_WITH_EXCUSE: { icon: 'x_circle', color: '#ef4444' },
     EXCUSED_LEAVE: { icon: 'heart', color: '#ec4899' },
     HUMAN_CASE: { icon: 'heart', color: '#8b5cf6' },
-    STANDUP_PRESENT: { icon: 'star', color: '#10b981' },
+    STANDUP_PRESENT: { icon: 'check_circle', color: '#10b981' },
     STANDUP_ABSENT: { icon: 'x', color: '#dc2626' },
     STANDUP_CLINIC: { icon: 'heart', color: '#ec4899' },
     STANDUP_LATE: { icon: 'clock', color: '#f59e0b' }

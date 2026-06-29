@@ -8,7 +8,7 @@ import multer from 'multer';
 import { keycloakAuth } from '../middleware/keycloakAuth.js';
 import prisma from '../db/prismaClient.js';
 import { isHrAccessibleWorkflow, isAdminAccessibleWorkflow } from '../utils/workflowTaxonomy.js';
-import { BUCKETS, putObject } from '../services/minioService.js';
+import { BUCKETS, putObject, streamObject, deleteObject } from '../services/minioService.js';
 
 
 function resolveBucket(input) {
@@ -671,11 +671,53 @@ router.post('/chat-upload', chatUpload.single('file'), async (req, res) => {
 
     const protocol = req.protocol;
     const host = req.get('host');
-    const fileUrl = `${protocol}://${host}/api/v1/drive/files/preview/${encodeURIComponent(filePath)}`;
+    const fileUrl = `${protocol}://${host}/api/v1/drive/chat-file-preview/${encodeURIComponent(filePath)}`;
 
     res.json({ success: true, data: { url: fileUrl, path: filePath, fileName: req.file.originalname, fileType: req.file.mimetype, fileSize: req.file.size } });
   } catch (err) {
     console.error('[driveNew] chat-upload error:', err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// ---------------- Chat File Preview (stream from MinIO by path) ----------------
+router.get('/chat-file-preview/:filePath', async (req, res) => {
+  try {
+    const filePath = decodeURIComponent(req.params.filePath);
+    const bucket = BUCKETS.PRIVATE;
+
+    // Determine filename and mime type from path
+    const filename = filePath.split('/').pop() || 'file';
+    const ext = filename.split('.').pop()?.toLowerCase() || '';
+    const mimeMap = {
+      webm: 'audio/webm', mp3: 'audio/mpeg', wav: 'audio/wav', ogg: 'audio/ogg',
+      png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif',
+      pdf: 'application/pdf', txt: 'text/plain', json: 'application/json',
+      mp4: 'video/mp4', webm_video: 'video/webm',
+    };
+    const mimeType = mimeMap[ext] || 'application/octet-stream';
+
+    await streamObject({ bucket, objectKey: filePath, req, res, filename, mimeType });
+  } catch (err) {
+    console.error('[driveNew] chat-file-preview error:', err);
+    if (!res.headersSent) {
+      res.status(404).json({ success: false, error: 'File not found' });
+    }
+  }
+});
+
+// ---------------- Chat File Delete (remove from MinIO by path) ----------------
+router.delete('/chat-file', async (req, res) => {
+  try {
+    const filePath = req.query.filePath;
+    if (!filePath) {
+      return res.status(400).json({ success: false, error: 'filePath is required' });
+    }
+    const bucket = BUCKETS.PRIVATE;
+    await deleteObject(bucket, filePath);
+    res.json({ success: true, message: 'File deleted' });
+  } catch (err) {
+    console.error('[driveNew] chat-file delete error:', err);
     res.status(500).json({ success: false, error: err.message });
   }
 });

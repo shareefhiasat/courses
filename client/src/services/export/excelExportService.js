@@ -17,7 +17,8 @@ const DEFAULT_OPTIONS = {
   boldHeaders: true,
   borders: true,
   conditionalFormatting: true,
-  rtl: false // RTL support for Arabic
+  rtl: false, // RTL support for Arabic
+  boldLastRow: false // Bold the last row (for summary/totals)
 };
 
 /**
@@ -81,7 +82,11 @@ const applyFormatting = async (worksheet, headerCount, rowCount, options) => {
     headerRow.fill = {
       type: 'pattern',
       pattern: 'solid',
-      fgColor: { argb: 'FFE0E0E0' }
+      fgColor: { argb: 'FFE5E7EB' }
+    };
+    headerRow.alignment = {
+      horizontal: 'center',
+      vertical: 'middle'
     };
   }
   
@@ -123,8 +128,8 @@ const applyFormatting = async (worksheet, headerCount, rowCount, options) => {
           right: { style: 'thin' }
         };
         
-        // Apply RTL alignment if enabled
-        if (options.rtl) {
+        // Apply RTL alignment if enabled (skip header row to preserve centering)
+        if (options.rtl && rowNumber > 1) {
           cell.alignment = {
             horizontal: 'right',
             readingOrder: 'rtl'
@@ -137,6 +142,21 @@ const applyFormatting = async (worksheet, headerCount, rowCount, options) => {
   // Apply conditional formatting for absence counts
   if (options.conditionalFormatting && options.absenceColumns) {
     await applyConditionalFormatting(worksheet, options.absenceColumns, rowCount);
+  }
+
+  // Bold the last row (for summary/totals)
+  if (options.boldLastRow && rowCount > 0) {
+    const lastRow = worksheet.getRow(rowCount + 1); // +1 for header
+    lastRow.font = { bold: true, size: 12 };
+    lastRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFE5E7EB' }
+    };
+    lastRow.alignment = {
+      horizontal: 'center',
+      vertical: 'middle'
+    };
   }
 };
 

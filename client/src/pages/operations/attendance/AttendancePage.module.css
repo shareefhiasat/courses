@@ -85,6 +85,15 @@
   padding: 0.5rem 0.625rem;
   border: 1px solid var(--border, #e0e0e0);
   border-radius: 8px;
+  transition: border-color 0.18s ease, background-color 0.18s ease;
+}
+
+.classOption:hover {
+  border-color: #810C29;
+}
+
+[data-theme="dark"] .classOption:hover {
+  border-color: #810C29;
 }
 
 .classRadio {
@@ -106,4 +115,9 @@
 [data-theme="dark"] .statsCard {
   background: #1f2937;
   border-color: #374151;
+}
+
+/* Content section dark mode text */
+[data-theme="dark"] .content-section {
+  color: #f3f4f6;
 }

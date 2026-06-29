@@ -150,8 +150,9 @@ export const updateActivityController = async (req, res) => {
 export const deleteActivityController = async (req, res) => {
   try {
     const { id } = req.params;
+    const options = { force: req.body?.force || req.query?.force === 'true' };
     
-    const result = await deleteActivity(id, req.user);
+    const result = await deleteActivity(id, req.user, options);
     
     if (result.success) {
       res.status(200).json({
@@ -163,7 +164,9 @@ export const deleteActivityController = async (req, res) => {
       const statusCode = result.error.includes('not found') ? 404 : 400;
       res.status(statusCode).json({
         success: false,
-        error: result.error
+        error: result.error,
+        code: result.code || undefined,
+        dependencies: result.dependencies || undefined
       });
     }
     

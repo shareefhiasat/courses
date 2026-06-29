@@ -9,21 +9,22 @@
 
 import prisma from '../db/prismaClient.js';
 import { PRISMA_ERRORS, getPrismaErrorMessage, isPrismaError } from '../constants/prisma-errors.js';
+import { checkLookupUsage, buildDependencyMessage } from '../db/deleteGuard.js';
 
 
 // Mapping of lookup types to their database models and default fields
 const LOOKUP_CONFIG = {
   'behavior-types': {
     model: 'behaviorTypes',
-    defaultFields: ['id', 'code', 'nameEn', 'nameAr', 'description', 'category', 'points', 'color', 'isActive', 'createdAt', 'updatedAt', 'createdBy', 'updatedBy']
+    defaultFields: ['id', 'code', 'nameEn', 'nameAr', 'description', 'category', 'points', 'color', 'icon', 'isActive', 'createdAt', 'updatedAt', 'createdBy', 'updatedBy']
   },
   'participation-types': {
     model: 'participationTypes', 
-    defaultFields: ['id', 'code', 'nameEn', 'nameAr', 'description', 'isPositive', 'isActive', 'createdAt', 'updatedAt', 'createdBy', 'updatedBy']
+    defaultFields: ['id', 'code', 'nameEn', 'nameAr', 'description', 'isPositive', 'icon', 'isActive', 'createdAt', 'updatedAt', 'createdBy', 'updatedBy']
   },
   'penalty-types': {
     model: 'penaltyTypes',
-    defaultFields: ['id', 'code', 'nameEn', 'nameAr', 'description', 'severity', 'color', 'isActive', 'createdAt', 'updatedAt', 'createdBy', 'updatedBy']
+    defaultFields: ['id', 'code', 'nameEn', 'nameAr', 'description', 'severity', 'color', 'icon', 'isActive', 'createdAt', 'updatedAt', 'createdBy', 'updatedBy']
   },
   'subject-types': {
     model: 'subjectTypes',
@@ -306,7 +307,7 @@ export async function updateLookupData(lookupType, id, data, userId = null) {
  * @param {string} userId - User ID for auditing
  * @returns {Promise<object>} - Result with success flag and data
  */
-export async function deleteLookupData(lookupType, id, userId = null) {
+export async function deleteLookupData(lookupType, id, userId = null, options = {}) {
   try {
     // Validate lookup type
     const config = LOOKUP_CONFIG[lookupType];
@@ -314,6 +315,19 @@ export async function deleteLookupData(lookupType, id, userId = null) {
       return {
         success: false,
         message: `Unknown lookup type: ${lookupType}. Available types: ${Object.keys(LOOKUP_CONFIG).join(', ')}`
+      };
+    }
+
+    // Check if this lookup record is used by any dependent model
+    const usageCheck = await checkLookupUsage(config.model, id);
+    
+    if (usageCheck.hasDependencies && !options.force) {
+      return {
+        success: false,
+        message: buildDependencyMessage(usageCheck.dependencies),
+        error: buildDependencyMessage(usageCheck.dependencies),
+        code: 'IN_USE',
+        dependencies: usageCheck.dependencies
       };
     }
 
@@ -341,7 +355,9 @@ export async function deleteLookupData(lookupType, id, userId = null) {
     return {
       success: true,
       data: result,
-      message: `${lookupType} deleted successfully`
+      message: usageCheck.hasDependencies
+        ? `${lookupType} deactivated successfully (was in use)`
+        : `${lookupType} deleted successfully`
     };
   } catch (error) {
     console.error(`Error deleting ${lookupType}:`, error);

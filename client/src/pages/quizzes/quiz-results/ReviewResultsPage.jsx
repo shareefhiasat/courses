@@ -420,22 +420,22 @@ const ReviewResultsPage = () => {
 
     // Program filter
     if (selectedProgram !== 'all') {
-      filtered = filtered.filter(sub => sub.programId === selectedProgram);
+      filtered = filtered.filter(sub => String(sub.programId) === String(selectedProgram));
     }
 
     // Subject filter
     if (selectedSubject !== 'all') {
-      filtered = filtered.filter(sub => sub.subjectId === selectedSubject);
+      filtered = filtered.filter(sub => String(sub.subjectId) === String(selectedSubject));
     }
 
     // Class filter
     if (selectedClass !== 'all') {
-      filtered = filtered.filter(sub => sub.classId === selectedClass);
+      filtered = filtered.filter(sub => String(sub.classId) === String(selectedClass));
     }
 
     // Student filter
     if (selectedStudent !== 'all') {
-      filtered = filtered.filter(sub => sub.userId === selectedStudent);
+      filtered = filtered.filter(sub => String(sub.userId) === String(selectedStudent));
     }
 
     // Difficulty filter

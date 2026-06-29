@@ -4,6 +4,7 @@ import AttendanceActionButtons from './AttendanceActionButtons.jsx';
 import { ATTENDANCE_STATUS, getAttendanceColor, ATTENDANCE_TYPE_CATEGORY } from '@constants/attendanceTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { info } from '@services/utils/logger.js';
+import { getLocalizedUserName } from '@utils/localizedUserName';
 
 const StudentScanDialog = ({
   showScanDialog,
@@ -15,6 +16,7 @@ const StudentScanDialog = ({
   actionLoading,
   currentAction,
   t,
+  lang,
   onClose,
   onMarkAttendance,
   onOpenPenalty,
@@ -120,7 +122,9 @@ const StudentScanDialog = ({
   };
 
   return (
-    <div style={{
+    <div
+      onClick={onClose}
+      style={{
       position: 'fixed',
       top: 0,
       left: 0,
@@ -131,9 +135,12 @@ const StudentScanDialog = ({
       alignItems: 'center',
       justifyContent: 'center',
       zIndex: 1000,
-      overflow: 'hidden'
+      overflow: 'hidden',
+      cursor: 'pointer'
     }}>
-      <div style={{
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
         background: 'white',
         borderRadius: isMobile ? '0' : '0.5rem',
         padding: isMobile ? '0.75rem' : '1rem',
@@ -145,7 +152,8 @@ const StudentScanDialog = ({
         overflow: 'auto',
         position: isMobile ? 'fixed' : 'relative',
         top: isMobile ? '0' : 'auto',
-        left: isMobile ? '0' : 'auto'
+        left: isMobile ? '0' : 'auto',
+        cursor: 'default'
       }}>
         <h3 style={{
           fontSize: '1.125rem',
@@ -164,11 +172,28 @@ const StudentScanDialog = ({
           fontSize: '0.875rem',
           color: '#6b7280'
         }}>
-          <strong>{t('scanned_student') || 'Scanned Student'}:</strong>
-          <div style={{ marginTop: '0.5rem' }}>
+          <div>
             {lastScannedStudent.name || lastScannedStudent.displayName || lastScannedStudent.email ? (
-              <div style={{ fontWeight: 500, color: '#111827' }}>
-                {lastScannedStudent.name || lastScannedStudent.displayName || lastScannedStudent.email}
+              <div style={{ fontWeight: 500, color: '#111827', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <span>{getLocalizedUserName(lastScannedStudent, lang)}</span>
+                {(() => {
+                  const sNum = lastScannedStudent.studentNumber || lastScannedStudent.referenceId || lastScannedStudent.studentId;
+                  if (!sNum) return null;
+                  return (
+                    <span style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      padding: '0.125rem 0.5rem',
+                      background: '#e0e7ff',
+                      color: '#3730a3',
+                      borderRadius: '0.25rem',
+                      fontSize: '0.75rem',
+                      fontWeight: 600
+                    }}>
+                      #{sNum}
+                    </span>
+                  );
+                })()}
               </div>
             ) : (
               <div style={{ fontStyle: 'italic' }}>
@@ -179,12 +204,6 @@ const StudentScanDialog = ({
             {lastScannedStudent.email && lastScannedStudent.name && (
               <div style={{ color: '#4b5563', marginTop: '0.25rem' }}>
                 {lastScannedStudent.email}
-              </div>
-            )}
-
-            {lastScannedStudent.studentNumber && (
-              <div style={{ color: '#6b7280', marginTop: '0.25rem', fontSize: '0.8rem' }}>
-                {t('student_number') || 'Student Number'}: {lastScannedStudent.studentNumber}
               </div>
             )}
           </div>

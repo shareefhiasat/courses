@@ -101,12 +101,12 @@ export const updateActivity = async (id, updateData, user = null) => {
 /**
  * Delete activity - public interface
  */
-export const deleteActivity = async (id, user = null) => {
+export const deleteActivity = async (id, user = null, options = {}) => {
   try {
-    info(`${serviceName}:deleteActivity`, { id });
+    info(`${serviceName}:deleteActivity`, { id, force: options.force });
     
     // Use business service layer
-    const result = await deleteActivityBusiness(id, user);
+    const result = await deleteActivityBusiness(id, user, options);
     return result;
   } catch (err) {
     error(`${serviceName}:deleteActivity:error`, { error: err.message, id });

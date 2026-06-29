@@ -654,7 +654,11 @@ export default function StudentActionStatsPanel({
 
     setShowLoadingOverlay(true);
     try {
-      await onMarkAttendance(studentId, status, programId, subjectId);
+      const result = await onMarkAttendance(studentId, status, programId, subjectId);
+      if (result && !result.success) {
+        showError(result.error || 'Failed to mark attendance');
+        return;
+      }
       // Update the current attendance status immediately for UI feedback
       setCurrentAttendanceStatus(status);
       // Force refresh the history by incrementing the key
@@ -663,6 +667,7 @@ export default function StudentActionStatsPanel({
       await fetchHistoricalLogs();
     } catch (err) {
       error('Error marking attendance:', err);
+      showError(err.message || 'Failed to mark attendance');
     } finally {
       setShowLoadingOverlay(false);
     }
@@ -1660,7 +1665,7 @@ export default function StudentActionStatsPanel({
                   minHeight: '3rem'
                 }}>
                   <div style={{ fontSize: '1rem', fontWeight: 600, color: 'var(--text-on-success, white)' }}>
-                    {student.behavior >= 0 ? '+' : ''}{student.behavior || 0}
+                    {student.behavior || 0}
                   </div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-on-success, white)', fontWeight: 500 }}>
                     {t('behavior')}
@@ -2100,7 +2105,7 @@ export default function StudentActionStatsPanel({
                             minWidth: '3rem',
                             textAlign: 'center'
                           }}>
-                            {t('total')}: {student.behavior > 0 ? '+' : ''}{student.behavior || 0}
+                            {t('total')}: {student.behavior || 0}
                           </div>
                           <div style={{
                             fontSize: '0.75rem',

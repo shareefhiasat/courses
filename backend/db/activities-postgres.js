@@ -8,6 +8,7 @@
 import prisma from './prismaClient.js';
 import { getDatabaseUserId } from '../utils/database/userResolver.js';
 import { PRISMA_ERRORS, getPrismaErrorMessage, isPrismaError } from '../constants/prisma-errors.js';
+import { checkDependencies, buildDependencyMessage, ACTIVITY_DEPENDENCIES } from './deleteGuard.js';
 
 
 /**
@@ -568,9 +569,9 @@ export const updateActivity = async (activityId, updateData, user = null) => {
  * @param {Object} user - User object for audit trail
  * @returns {Promise<Object>} - Result object with success status and data
  */
-export const deleteActivity = async (activityId, user = null) => {
+export const deleteActivity = async (activityId, user = null, options = {}) => {
   try {
-    console.log(`[Activities DB] Deleting activity: ${activityId}`);
+    console.log(`[Activities DB] Deleting activity: ${activityId}`, { force: options.force });
     
     const startTime = Date.now();
     
@@ -587,31 +588,34 @@ export const deleteActivity = async (activityId, user = null) => {
       };
     }
     
-    // Check if activity has any submissions
-    const submissionCount = await prisma.submission.count({
-      where: { activityId: parseInt(activityId) }
-    });
+    // Check dependencies (submissions)
+    const depCheck = await checkDependencies('activity', activityId, ACTIVITY_DEPENDENCIES);
     
-    if (submissionCount > 0) {
+    if (depCheck.hasDependencies && !options.force) {
       return {
         success: false,
-        error: 'Cannot delete activity with existing submissions',
+        error: buildDependencyMessage(depCheck.dependencies),
+        code: 'HAS_DEPENDENCIES',
+        dependencies: depCheck.dependencies,
         data: null
       };
     }
     
-    // Delete the activity
-    await prisma.activity.delete({
-      where: { id: parseInt(activityId) }
+    // Soft delete: set isActive = false
+    await prisma.activity.update({
+      where: { id: parseInt(activityId) },
+      data: { isActive: false }
     });
     
     const executionTime = Date.now() - startTime;
-    console.log(`[Activities DB] ✅ Deleted activity in ${executionTime}ms`);
+    console.log(`[Activities DB] ✅ Soft deleted activity in ${executionTime}ms`);
     
     return {
       success: true,
       data: { id: parseInt(activityId) },
-      message: 'Activity deleted successfully'
+      message: depCheck.hasDependencies
+        ? 'Activity deactivated successfully (had submissions)'
+        : 'Activity deleted successfully'
     };
     
   } catch (error) {

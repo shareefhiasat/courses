@@ -30,7 +30,7 @@ import VersionsTab from '@components/smart-drive/tabs/VersionsTab.jsx';
 import WorkflowCommentsTab from '@components/workflow/WorkflowCommentsTab.jsx';
 import { getThemedIcon } from '@constants/iconTypes';
 import { getStatusVariant, WORKFLOW_STATUS } from '@constants/workflowStatusTypes';
-import { Workflow as WorkflowIcon, Paperclip, MessageSquare, Clock } from 'lucide-react';
+import { Workflow as WorkflowIcon, Paperclip, MessageSquare, Clock, CheckCircle, Circle, AlertCircle } from 'lucide-react';
 import { getWorkflowDocument } from '@services/api/workflow-documents-api.js';
 
 const WorkflowDocumentDetailPage = () => {
@@ -48,7 +48,23 @@ const WorkflowDocumentDetailPage = () => {
     { target: 'body', content: t('tour.workflow_doc_intro'), disableBeacon: true, placement: 'center' },
     { target: '[data-tour="doc-title"]', content: t('tour.workflow_doc_title'), disableBeacon: true, placement: 'bottom' },
     { target: '[data-tour="doc-diagram"]', content: t('tour.workflow_doc_diagram'), disableBeacon: true, placement: 'right' },
-    { target: '[data-tour="doc-legend"]', content: t('tour.workflow_doc_legend'), disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="doc-legend"]', content: (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          <p style={{ margin: 0, marginBottom: 4 }}>{t('tour.workflow_doc_legend')}</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <CheckCircle size={18} style={{ color: '#10b981', flexShrink: 0 }} />
+            <span style={{ color: '#10b981', fontWeight: 600 }}>{t('workflow.legend.completed', 'Completed')}</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Circle size={18} style={{ color: '#3b82f6', fill: '#3b82f6', flexShrink: 0 }} />
+            <span style={{ color: '#3b82f6', fontWeight: 600 }}>{t('workflow.legend.current', 'Current')}</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <AlertCircle size={18} style={{ color: '#6b7280', flexShrink: 0 }} />
+            <span style={{ color: '#6b7280', fontWeight: 600 }}>{t('workflow.legend.pending', 'Pending')}</span>
+          </div>
+        </div>
+      ), disableBeacon: true, placement: 'bottom' },
     { target: '[data-tour="doc-view-toggle"]', content: t('tour.workflow_doc_view_toggle'), disableBeacon: true, placement: 'left' },
     { target: '[data-tour="doc-diagram"]', content: t('tour.workflow_doc_context_menu'), disableBeacon: true, placement: 'right' },
     { target: '[data-tour="doc-attachments"]', content: t('tour.workflow_doc_attachments'), disableBeacon: true, placement: 'right' },

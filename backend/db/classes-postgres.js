@@ -7,6 +7,7 @@
 
 import prisma from './prismaClient.js';
 import { PRISMA_ERRORS, getPrismaErrorMessage, isPrismaError } from '../constants/prisma-errors.js';
+import { checkDependencies, buildDependencyMessage, CLASS_DEPENDENCIES } from './deleteGuard.js';
 
 
 /**
@@ -643,9 +644,9 @@ export const updateClass = async (classId, updateData, user = null) => {
  * @param {Object} user - User object for audit trail
  * @returns {Promise<Object>} - Result object with success status and data
  */
-export const deleteClass = async (classId, user = null) => {
+export const deleteClass = async (classId, user = null, options = {}) => {
   try {
-    console.log(`[Classes DB] Deleting class: ${classId}`);
+    console.log(`[Classes DB] Deleting class: ${classId}`, { force: options.force });
     
     const startTime = Date.now();
     
@@ -662,39 +663,38 @@ export const deleteClass = async (classId, user = null) => {
       };
     }
     
-    // Check if class has any dependencies (enrollments, activities, attendances)
-    const enrollmentCount = await prisma.enrollment.count({
-      where: { classId: parseInt(classId) }
-    });
+    // Check all dependencies (including inactive records)
+    const depCheck = await checkDependencies('class', classId, CLASS_DEPENDENCIES);
     
-    const activityCount = await prisma.activity.count({
-      where: { classId: parseInt(classId) }
-    });
-    
-    const attendanceCount = await prisma.attendance.count({
-      where: { classId: parseInt(classId) }
-    });
-    
-    if (enrollmentCount > 0 || activityCount > 0 || attendanceCount > 0) {
+    if (depCheck.hasDependencies && !options.force) {
       return {
         success: false,
-        error: 'Cannot delete class with existing enrollments, activities, or attendances',
+        error: buildDependencyMessage(depCheck.dependencies),
+        code: 'HAS_DEPENDENCIES',
+        dependencies: depCheck.dependencies,
         data: null
       };
     }
     
-    // Delete the class
-    await prisma.class.delete({
-      where: { id: parseInt(classId) }
+    // Soft delete: set isActive = false
+    const dbUserId = await getDatabaseUserId(user);
+    const updatedClass = await prisma.class.update({
+      where: { id: parseInt(classId) },
+      data: {
+        isActive: false,
+        updatedBy: dbUserId || 1
+      }
     });
     
     const executionTime = Date.now() - startTime;
-    console.log(`[Classes DB] ✅ Deleted class in ${executionTime}ms`);
+    console.log(`[Classes DB] ✅ Soft deleted class in ${executionTime}ms`);
     
     return {
       success: true,
       data: { id: parseInt(classId) },
-      message: 'Class deleted successfully'
+      message: depCheck.hasDependencies
+        ? 'Class deactivated successfully (had dependencies)'
+        : 'Class deleted successfully'
     };
     
   } catch (error) {

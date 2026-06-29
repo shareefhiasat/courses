@@ -73,6 +73,20 @@ export const createParticipation = async (participationData) => {
     if (processedData.points !== undefined) {
       processedData.points = Number(processedData.points);
     }
+
+    // Map description to descriptionEn (backend expects descriptionEn)
+    const descText = processedData.description || processedData.reason || '';
+    processedData.descriptionEn = descText;
+    processedData.descriptionAr = descText;
+    delete processedData.description;
+    delete processedData.reason;
+
+    // Ensure integer IDs
+    if (processedData.userId) processedData.userId = parseInt(processedData.userId);
+    if (processedData.classId) processedData.classId = parseInt(processedData.classId);
+    if (processedData.subjectId) processedData.subjectId = parseInt(processedData.subjectId);
+    if (processedData.programId) processedData.programId = parseInt(processedData.programId);
+    if (processedData.typeId) processedData.typeId = parseInt(processedData.typeId);
     
     console.log('🔍 [DEBUG] Final processed data before sending to DB:', processedData);
     

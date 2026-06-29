@@ -193,6 +193,13 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
   const [studentForAction, setStudentForAction] = useState(null);
   const [todayAttendanceStatus, setTodayAttendanceStatus] = useState(null);
   const [attendanceMode, setAttendanceMode] = useState(propAttendanceMode || ATTENDANCE_TYPE_CATEGORY.REGULAR); // 'regular' or 'standup'
+
+  // Sync local attendanceMode when prop changes (parent controls the mode toggle)
+  useEffect(() => {
+    if (propAttendanceMode && propAttendanceMode !== attendanceMode) {
+      setAttendanceMode(propAttendanceMode);
+    }
+  }, [propAttendanceMode]);
   const [actionLoading, setActionLoading] = useState(false);
   const [currentAction, setCurrentAction] = useState(null);
   const [showManualInput, setShowManualInput] = useState(false); // Start with false
@@ -268,13 +275,17 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       ATTENDANCE_STATUS.ABSENT_NO_EXCUSE,
       ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE,
       ATTENDANCE_STATUS.EXCUSED_LEAVE,
-      ATTENDANCE_STATUS.HUMAN_CASE
+      ATTENDANCE_STATUS.HUMAN_CASE,
+      ATTENDANCE_STATUS.STANDUP_PRESENT,
+      ATTENDANCE_STATUS.STANDUP_LATE,
+      ATTENDANCE_STATUS.STANDUP_ABSENT,
+      ATTENDANCE_STATUS.STANDUP_CLINIC
     ].includes(attendanceStatus)) {
       finalType = attendanceStatus;
       // Add attendance icon to message if not already present
       const icon = getAttendanceIcon(attendanceStatus);
-      const label = getLocalizedAttendanceLabel(attendanceStatus, t, lang);
-      if (!message.includes(label)) {
+      const label = getLocalizedAttendanceLabel(attendanceStatus, lang);
+      if (typeof message === 'string' && !message.includes(label)) {
         finalMessage = `${label}: ${message}`;
       }
     }
@@ -1245,10 +1256,10 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           // For attendance records, check if we should show method label instead of notes
           if (record.method && shouldShowMethodLabel(record.method, activityLabel)) {
             // Use localized method label instead of notes
-            finalLabel = getAttendanceMethodLabel(record.method, t, lang) || getLocalizedAttendanceLabel(record.status, t, lang) || record.status || 'Attendance';
+            finalLabel = getAttendanceMethodLabel(record.method, t, lang) || getLocalizedAttendanceLabel(record.status, lang) || record.status || 'Attendance';
           } else {
             // Use original attendance status label
-            finalLabel = getLocalizedAttendanceLabel(record.status, t, lang) || record.status || 'Attendance';
+            finalLabel = getLocalizedAttendanceLabel(record.status, lang) || record.status || 'Attendance';
           }
         }
 
@@ -1409,7 +1420,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     }
     
     if (type === RECORD_TYPES.PARTICIPATION) {
-      return '#16a34a'; // Green for participation
+      return '#3b82f6'; // Blue for participation
     }
     
     // Use centralized type color system for other record types
@@ -1435,7 +1446,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
   const getStatusIcon = useCallback((status, type, delta) => {
     // Use white icons with colored circle backgrounds for participation, behavior, and penalty
     if (type === RECORD_TYPES.PARTICIPATION || delta > 0) {
-      return <div style={{ backgroundColor: '#16a34a', borderRadius: '50%', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ParticipationIcon style={{ width: '12px', height: '12px', color: '#ffffff' }} /></div>;
+      return <div style={{ backgroundColor: '#3b82f6', borderRadius: '50%', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><ParticipationIcon style={{ width: '12px', height: '12px', color: '#ffffff' }} /></div>;
     }
     if (type === RECORD_TYPES.PENALTY) {
       return <div style={{ backgroundColor: '#f97316', borderRadius: '50%', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}><PenaltyIcon style={{ width: '12px', height: '12px', color: '#ffffff' }} /></div>;
@@ -1576,7 +1587,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         if (attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP) {
           const isMarked = await isStudentMarkedToday(studentId);
           if (isMarked) {
-            showResult('info', 'Student is already marked for today.');
+            showResult('info', t('already_marked_for_today') || 'Student is already marked for today.');
             setShowScanDialog(false);
             return;
           }
@@ -1601,8 +1612,9 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
         if (result.success) {
           setShowScanDialog(false);
-          const statusLabel = getLocalizedAttendanceLabel(status, t, lang);
-          showResult('success', `Student marked as ${statusLabel} successfully!`, status);
+          const statusLabel = getLocalizedAttendanceLabel(status, lang);
+          const scannedStudentName = getLocalizedUserName(lastScannedStudent, lang);
+          showResult('success', <span>{t('student_marked_as', { name: scannedStudentName, status: statusLabel }) || `${scannedStudentName} marked as ${statusLabel}!`}<br/><b style={{ textDecoration: 'underline' }}>{scannedStudentName}</b></span>, status);
 
           // Emit proper attendance event
           eventBus.emit(EVENTS.ATTENDANCE_MARKED, {
@@ -1689,6 +1701,13 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           timestamp: new Date()
         });
 
+        // Trigger activity refresh
+        if (onActivityUpdate) {
+          onActivityUpdate(() => {
+            fetchRecentActivity();
+          });
+        }
+
         showSuccess('Attendance marked successfully');
       } catch (err) {
         error('Error marking attendance:', err);
@@ -1701,7 +1720,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
   const handleQuickAttendance = useCallback(async (student, status, mode, programIdParam) => {
     if (!student || !status) return;
 
-    const statusLabel = getLocalizedAttendanceLabel(status, t, lang);
+    const statusLabel = getLocalizedAttendanceLabel(status, lang);
     addDebugLog(`⚡ ${t('quick') || 'Quick'} marking ${student.displayName || student.name} as ${statusLabel}`, 'info');
 
     try {
@@ -1734,7 +1753,8 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       }, user, mode || attendanceMode);
 
       if (result.success) {
-        showResult('success', `${student.displayName || student.name} marked as ${statusLabel}!`, status);
+        const studentName = getLocalizedUserName(student, lang);
+        showResult('success', <span>{t('marked_as', { status: statusLabel }) || `Marked as ${statusLabel}!`}<br/><b style={{ textDecoration: 'underline' }}>{studentName}</b></span>, status);
 
         eventBus.emit(EVENTS.ATTENDANCE_MARKED, {
           studentId: student.id,
@@ -1843,7 +1863,8 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       }
 
       // Emit event to update student roster
-      eventBus.emit(EVENTS.ATTENDANCE_MARKED, { forceRefresh: true });
+      eventBus.emit(EVENTS.ATTENDANCE_MARKED, { forceRefresh: true, programId: selectedProgramId });
+      eventBus.emit(EVENTS.ATTENDANCE_DELETED);
     } catch (err) {
       addDebugLog(`❌ Error clearing standup: ${err.message}`, 'error');
       showResult('error', `Failed to clear standup: ${err.message}`);
@@ -1907,7 +1928,8 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       }
 
       // Emit events to update student roster and grid
-      eventBus.emit(EVENTS.ATTENDANCE_MARKED, { forceRefresh: true });
+      eventBus.emit(EVENTS.ATTENDANCE_MARKED, { forceRefresh: true, classId: selectedClassId });
+      eventBus.emit(EVENTS.ATTENDANCE_DELETED);
       eventBus.emit(EVENTS.REFRESH_RECENT_ACTIVITY);
       eventBus.emit(EVENTS.REFRESH_TODAY_ACTIVITY);
       eventBus.emit(EVENTS.REFRESH_STUDENT_DATA, { forceRefresh: true });
@@ -2139,14 +2161,16 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
                 {canManualInput && (
                   <PortalTooltip content={attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP
-                    ? (t('manual_input_not_available_in_standup_mode') || 'Manual input not available in standup mode')
-                    : ((!selectedProgramId || !selectedSubjectId || !selectedClassId)
+                    ? ((!selectedProgramId || selectedProgramId === 'all')
+                      ? (t('please_select_program') || 'Please select Program')
+                      : t('manual_student_id_input'))
+                    : ((!selectedProgramId || selectedProgramId === 'all' || !selectedSubjectId || selectedSubjectId === 'all' || !selectedClassId || selectedClassId === 'all')
                       ? (t('please_select_program_subject_class') || 'Please select Program, Subject, and Class')
                       : t('manual_student_id_input')
                       )
                     } position="top">
                     <button
-                        disabled={attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || !selectedSubjectId || !selectedClassId)}
+                        disabled={attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || selectedProgramId === 'all' || !selectedSubjectId || selectedSubjectId === 'all' || !selectedClassId || selectedClassId === 'all')}
                         onClick={() => {
                           // Check if all required fields are selected before allowing manual input
                           if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
@@ -2155,7 +2179,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                               return;
                             }
                           } else {
-                            if (!selectedProgramId || !selectedSubjectId || !selectedClassId) {
+                            if (!selectedProgramId || selectedProgramId === 'all' || !selectedSubjectId || selectedSubjectId === 'all' || !selectedClassId || selectedClassId === 'all') {
                               showResult('error', t('please_select_program_subject_class') || 'Please select Program, Subject, and Class before scanning');
                               return;
                             }
@@ -2169,13 +2193,13 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                           padding: '0.375rem 0.5rem',
                           borderRadius: '0.375rem',
                           border: '1px solid var(--border, #e5e7eb)',
-                          background: (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || !selectedSubjectId || !selectedClassId)) ? '#f3f4f6' : (showManualInput ? '#3b82f6' : 'white'),
-                          color: (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || !selectedSubjectId || !selectedClassId)) ? '#9ca3af' : (showManualInput ? 'white' : 'var(--text, #111827)'),
+                          background: (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || selectedProgramId === 'all' || !selectedSubjectId || selectedSubjectId === 'all' || !selectedClassId || selectedClassId === 'all')) ? '#f3f4f6' : (showManualInput ? '#3b82f6' : 'white'),
+                          color: (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || selectedProgramId === 'all' || !selectedSubjectId || selectedSubjectId === 'all' || !selectedClassId || selectedClassId === 'all')) ? '#9ca3af' : (showManualInput ? 'white' : 'var(--text, #111827)'),
                           fontSize: '0.75rem',
                           fontWeight: 500,
-                          cursor: (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || !selectedSubjectId || !selectedClassId)) ? 'not-allowed' : 'pointer',
+                          cursor: (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || selectedProgramId === 'all' || !selectedSubjectId || selectedSubjectId === 'all' || !selectedClassId || selectedClassId === 'all')) ? 'not-allowed' : 'pointer',
                           transition: 'all 0.2s',
-                          opacity: (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || !selectedSubjectId || !selectedClassId)) ? 0.6 : 1
+                          opacity: (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || selectedProgramId === 'all' || !selectedSubjectId || selectedSubjectId === 'all' || !selectedClassId || selectedClassId === 'all')) ? 0.6 : 1
                         }}
                   >
                     <UserInputIcon style={{ width: '14px', height: '14px' }} />
@@ -2184,7 +2208,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                 )}
 
                 {canBulkScan && (
-                  <PortalTooltip content={(attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || !selectedSubjectId || !selectedClassId)) ? t(attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'please_select_program' : 'please_select_program_subject_class') : (t('bulk_scan') || 'Bulk Scan')} position="top">
+                  <PortalTooltip content={(attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || selectedProgramId === 'all' || !selectedSubjectId || selectedSubjectId === 'all' || !selectedClassId || selectedClassId === 'all')) ? t(attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'please_select_program' : 'please_select_program_subject_class') : (t('bulk_scan') || 'Bulk Scan')} position="top">
                   <button
                       onClick={() => {
                         if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
@@ -2193,14 +2217,14 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                             return;
                           }
                         } else {
-                          if (!selectedProgramId || !selectedSubjectId || !selectedClassId) {
+                          if (!selectedProgramId || selectedProgramId === 'all' || !selectedSubjectId || selectedSubjectId === 'all' || !selectedClassId || selectedClassId === 'all') {
                             showResult('error', t('please_select_program_subject_class') || 'Please select Program, Subject, and Class before scanning');
                             return;
                           }
                         }
                         setShowBulkScanDialog(true);
                       }}
-                      disabled={attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || !selectedSubjectId || !selectedClassId)}
+                      disabled={attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || selectedProgramId === 'all' || !selectedSubjectId || selectedSubjectId === 'all' || !selectedClassId || selectedClassId === 'all')}
                       style={{
                         display: 'flex',
                         alignItems: 'center',
@@ -2208,13 +2232,13 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                         padding: '0.375rem 0.5rem',
                         borderRadius: '0.375rem',
                         border: '1px solid var(--border, #e5e7eb)',
-                        background: (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || !selectedSubjectId || !selectedClassId)) ? '#f3f4f6' : '#8b5cf6',
-                        color: (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || !selectedSubjectId || !selectedClassId)) ? '#9ca3af' : 'white',
+                        background: (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || selectedProgramId === 'all' || !selectedSubjectId || selectedSubjectId === 'all' || !selectedClassId || selectedClassId === 'all')) ? '#f3f4f6' : '#8b5cf6',
+                        color: (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || selectedProgramId === 'all' || !selectedSubjectId || selectedSubjectId === 'all' || !selectedClassId || selectedClassId === 'all')) ? '#9ca3af' : 'white',
                         fontSize: '0.75rem',
                         fontWeight: 500,
-                        cursor: (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || !selectedSubjectId || !selectedClassId)) ? 'not-allowed' : 'pointer',
+                        cursor: (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || selectedProgramId === 'all' || !selectedSubjectId || selectedSubjectId === 'all' || !selectedClassId || selectedClassId === 'all')) ? 'not-allowed' : 'pointer',
                         transition: 'all 0.2s',
-                        opacity: (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || !selectedSubjectId || !selectedClassId)) ? 0.6 : 1
+                        opacity: (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || selectedProgramId === 'all' || !selectedSubjectId || selectedSubjectId === 'all' || !selectedClassId || selectedClassId === 'all')) ? 0.6 : 1
                       }}
                     >
                       <Upload style={{ width: '14px', height: '14px' }} />
@@ -2257,6 +2281,37 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                       }} 
                     />
                     {/*{t('refresh_today') || 'Refresh Today'}*/}
+                  </button>
+                </PortalTooltip>
+
+                {/* Activity List Help Tour Button */}
+                <PortalTooltip content={t('activity_help_tour') || 'Take a tour of the activity list features'} position="top">
+                  <button
+                    onClick={() => {
+                      if (recentActivity.length === 0) {
+                        showResult('error', t('no_todays_transactions') || 'No transactions Today');
+                        return;
+                      }
+                      window.dispatchEvent(new Event('app:activity-tour'));
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      padding: '0.375rem 0.5rem',
+                      borderRadius: '0.375rem',
+                      border: '1px solid var(--border, #e5e7eb)',
+                      background: 'white',
+                      color: 'var(--text-secondary, #6b7280)',
+                      fontSize: '0.75rem',
+                      fontWeight: 700,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      width: '28px',
+                      height: '28px'
+                    }}
+                  >
+                    ?
                   </button>
                 </PortalTooltip>
 
@@ -2420,6 +2475,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
             actionLoading={actionLoading}
             currentAction={currentAction}
             t={t}
+            lang={lang}
             onClose={() => setShowScanDialog(false)}
             canEditAttendance={canEditAttendance}
             onMarkAttendance={handleMarkAttendance}
@@ -3011,9 +3067,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
             isOpen={clearStandupModal.isOpen}
             onClose={() => setClearStandupModal({ isOpen: false, loading: false, recordCount: 0 })}
             onConfirm={confirmClearStandup}
-            deleteType="standup_attendance"
-            studentName={t('today') || 'today'}
-            deleteLoading={clearStandupModal.loading}
+            loading={clearStandupModal.loading}
             customTitle={t('confirm_clear_standup') || 'Clear Standup Attendance'}
             customMessage={
               clearStandupModal.recordCount > 0
@@ -3028,9 +3082,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
             isOpen={clearRegularModal.isOpen}
             onClose={() => setClearRegularModal({ isOpen: false, loading: false, recordCount: 0 })}
             onConfirm={confirmClearRegular}
-            deleteType="attendance"
-            studentName={t('today') || 'today'}
-            deleteLoading={clearRegularModal.loading}
+            loading={clearRegularModal.loading}
             customTitle={t('confirm_clear_today') || 'Clear Today\'s Scans'}
             customMessage={
               clearRegularModal.recordCount > 0
@@ -3086,13 +3138,13 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
               <BulkSuccessModal
                 isOpen={!!bulkSuccessResult}
                 result={bulkSuccessResult}
-                programName={selectedProgramName || selectedProgramId}
+                programName={lang === 'ar' ? (selectedProgramNameAr || selectedProgramName || selectedProgramId) : (selectedProgramName || selectedProgramId)}
                 statusLabel={(() => {
                   if (!bulkSuccessResult) return '';
                   const statusFromResult = bulkSuccessResult?.results?.detailed?.[0]?.status;
                   const statusFromParam = bulkSuccessResult?.selectedStatus;
                   const statusToUse = statusFromParam || statusFromResult;
-                  return statusToUse ? getLocalizedAttendanceLabel(statusToUse, t, lang) : '';
+                  return statusToUse ? getLocalizedAttendanceLabel(statusToUse, lang) : '';
                 })()}
                 statusIcon={(() => {
                   if (!bulkSuccessResult) return null;

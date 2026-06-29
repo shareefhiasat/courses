@@ -198,8 +198,9 @@ const ProgramsSelect = ({
   ];
 
   return (
-    <div className={`flex flex-wrap gap-2 ${className}`} style={style}>
-      <div className="flex-1 min-w-[180px]">
+    <div className={className} style={{ ...style, display: 'flex', flexDirection: 'column', gap: '0.5rem', width: '100%' }}>
+      {/* Row 1: Program only — full width */}
+      <div style={{ width: '100%' }}>
         <Select
           label={showLabels ? (t('program') || 'Program') : ''}
           options={programOptions}
@@ -222,8 +223,10 @@ const ProgramsSelect = ({
         />
       </div>
 
+      {/* Row 2: Subject + Class (and optional terms/years) */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', width: '100%' }}>
       {showSubjects && (
-        <div className="flex-1 min-w-[180px]">
+        <div style={{ flex: '1 1 240px', minWidth: '240px' }}>
           <Select
             label={showLabels ? (t('subject') || 'Subject') : ''}
             options={subjectOptions}
@@ -246,7 +249,7 @@ const ProgramsSelect = ({
       )}
 
       {showClasses && showSubjects && (
-        <div className="flex-1 min-w-[180px]">
+        <div style={{ flex: '1.2 1 280px', minWidth: '280px' }}>
           <Select
             label={showLabels ? (t('class') || 'Class') : ''}
             options={classOptions}
@@ -265,7 +268,7 @@ const ProgramsSelect = ({
       )}
 
       {showTerms && (
-        <div className="flex-1 min-w-[150px]">
+        <div style={{ flex: '1 1 150px', minWidth: '150px' }}>
           <TermSelect
             label={showLabels ? (t('term') || 'Term') : ''}
             value={selectedTerm || ''}
@@ -285,7 +288,7 @@ const ProgramsSelect = ({
       )}
 
       {showYears && (
-        <div className="flex-1 min-w-[150px]">
+        <div style={{ flex: '1 1 150px', minWidth: '150px' }}>
           <YearSelect
             label={showLabels ? (t('year') || 'Year') : ''}
             value={selectedYear || ''}
@@ -304,6 +307,7 @@ const ProgramsSelect = ({
           />
         </div>
       )}
+      </div>
     </div>
   );
 };

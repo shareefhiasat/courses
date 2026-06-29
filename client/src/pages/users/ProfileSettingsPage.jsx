@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef, useLayoutEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useLayoutEffect, useMemo } from 'react';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
@@ -10,6 +10,8 @@ import { getThemedIcon, getUserRoleColor, getIconWithColor } from '@constants/ic
 import { Container, Card, CardBody, Button, Input, Spinner, useToast } from '@ui';
 import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { ToggleSwitch } from '@ui';
+import Joyride from 'react-joyride';
+import TourTooltip from '@ui/TourTooltip/TourTooltip';
 import styles from './ProfileSettingsPage.module.css';
 import { DEFAULT_ACCENT, normalizeHexColor, trySanitizeHexColor, adjustColor, hexToRgbString } from '@utils/color';
 import { applyAccentColorGlobally } from '@utils/theme';
@@ -56,6 +58,47 @@ const ProfileSettingsPage = () => {
   });
   const [loadingImages, setLoadingImages] = useState(false);
   const notificationPrefsRef = useRef(null);
+
+  // ── Guided Tour ──────────────────────────────────────────────────────────
+  const [runTour, setRunTour] = useState(false);
+  const [tourSteps, setTourSteps] = useState([]);
+  const tourSeenKey = `profileTourSeen_${lang}`;
+
+  const buildTourSteps = useCallback(() => [
+    { target: '[data-tour="profile-personal-info"]', content: t('tour.profile_personal_info') || 'Update your personal details. Some fields like email and display name are managed by Keycloak.', disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="profile-arabic-names"]', content: t('tour.profile_arabic_names') || 'Enter your name in Arabic for bilingual display.', disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="profile-images"]', content: t('tour.profile_images') || 'Upload your profile photo, QID, and military ID images.', disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="profile-appearance"]', content: t('tour.profile_appearance') || 'Customize your accent color, language preference, and security settings.', disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="profile-notifications"]', content: t('tour.profile_notifications') || 'Configure notification channels, device alerts, and category preferences.', disableBeacon: true, placement: 'top' },
+    { target: '[data-tour="profile-save"]', content: t('tour.profile_save') || 'Don\'t forget to save your changes when you\'re done.', disableBeacon: true, placement: 'top' },
+  ].filter(s => !!document.querySelector(s.target)), [t]);
+
+  const startTour = useCallback(() => {
+    const steps = buildTourSteps();
+    if (steps.length === 0) return;
+    setTourSteps(steps);
+    setRunTour(true);
+  }, [buildTourSteps]);
+
+  useEffect(() => {
+    window.addEventListener('app:joyride', startTour);
+    window.addEventListener('app:help', startTour);
+    return () => { window.removeEventListener('app:joyride', startTour); window.removeEventListener('app:help', startTour); };
+  }, [startTour]);
+
+  useEffect(() => {
+    try { if (!localStorage.getItem(tourSeenKey)) startTour(); } catch {}
+  }, [tourSeenKey, startTour]);
+
+  const handleTourCallback = useCallback((data) => {
+    const { status, action } = data || {};
+    if (status === 'finished' || status === 'skipped' || action === 'close') {
+      setRunTour(false);
+      try { localStorage.setItem(tourSeenKey, 'true'); } catch {}
+    }
+  }, [tourSeenKey]);
+  const TourTooltipComponent = useMemo(() => TourTooltip({ tourSeenKey }), [tourSeenKey]);
+  // ──────────────────────────────────────────────────────────────────────────
 
   // Callback handlers for image operations
   const handleImageUploadSuccess = useCallback((imageData) => {
@@ -317,8 +360,32 @@ const ProfileSettingsPage = () => {
 
   return (
     <Container maxWidth="lg" className={styles.page}>
+      <Joyride
+        continuous
+        run={runTour}
+        steps={tourSteps}
+        showSkipButton
+        showProgress
+        tooltipComponent={TourTooltipComponent}
+        callback={handleTourCallback}
+        locale={{
+          back: t('tour_back') || (lang === 'ar' ? 'السابق' : 'Back'),
+          close: t('tour_close') || (lang === 'ar' ? 'إغلاق' : 'Close'),
+          last: t('tour_finish') || (lang === 'ar' ? 'إنهاء' : 'Finish'),
+          next: t('tour_next') || (lang === 'ar' ? 'التالي' : 'Next'),
+          skip: t('tour_skip') || (lang === 'ar' ? 'تخطي' : 'Skip')
+        }}
+        styles={{
+          options: {
+            primaryColor: 'var(--color-primary, #1e90ff)',
+            textColor: theme === 'dark' ? '#e5e7eb' : '#000',
+            backgroundColor: theme === 'dark' ? '#1f2937' : '#fff',
+            overlayColor: 'rgba(0,0,0,0.5)'
+          }
+        }}
+      />
       <div className={styles.content}>
-        <Card>
+        <Card data-tour="profile-personal-info">
           <CardBody>
             <div className={styles.cardHeader}>
               {getThemedIcon('ui', 'user', 24, theme)}
@@ -389,7 +456,7 @@ const ProfileSettingsPage = () => {
                 maxLength={100}
               />
 
-              <div className={styles.formGridFull}>
+              <div className={styles.formGridFull} data-tour="profile-arabic-names">
                 <h3 className={styles.sectionHeading}>{t('arabic_name_section')}</h3>
                 <p className={styles.sectionHint}>{t('arabic_name_helper')}</p>
               </div>
@@ -430,7 +497,7 @@ const ProfileSettingsPage = () => {
           </CardBody>
         </Card>
 
-        <Card>
+        <Card data-tour="profile-images">
           <CardBody>
             <div className={styles.cardHeader}>
               {getThemedIcon('ui', 'image', 24, theme)}
@@ -477,7 +544,7 @@ const ProfileSettingsPage = () => {
           </CardBody>
         </Card>
 
-        <Card>
+        <Card data-tour="profile-appearance">
           <CardBody>
             <div className={styles.cardHeader}>
               {getThemedIcon('ui', 'palette', 24, theme)}
@@ -554,7 +621,7 @@ const ProfileSettingsPage = () => {
           </CardBody>
         </Card>
 
-        <Card>
+        <Card data-tour="profile-notifications">
           <CardBody>
             <div className={styles.cardHeader}>
               {getThemedIcon('ui', 'smartphone', 24, theme)}
@@ -760,7 +827,7 @@ const ProfileSettingsPage = () => {
           </CardBody>
         </Card>
 
-        <div className={styles.actions}>
+        <div className={styles.actions} data-tour="profile-save">
           <Button
             variant="primary"
             size="lg"

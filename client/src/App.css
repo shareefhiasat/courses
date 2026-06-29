@@ -6,12 +6,19 @@
 
 .main-content {
   flex: 1;
-  transition: margin-left 0.3s ease, padding-left 0.3s ease;
+  transition: margin-left 0.3s ease, margin-right 0.3s ease, padding-left 0.3s ease;
 }
 
 /* Sticky drawer mode - push content */
 .drawer-sticky-open .main-content {
   margin-left: var(--drawer-width, 320px);
+  transition: margin-left 0.3s ease, margin-right 0.3s ease, padding-left 0.3s ease;
+}
+
+/* RTL: drawer is on the right, push content with margin-right */
+[dir="rtl"].drawer-sticky-open .main-content {
+  margin-left: 0;
+  margin-right: var(--drawer-width, 320px);
 }
 
 /* Ensure body doesn't overflow when drawer is sticky */
@@ -22,6 +29,7 @@
 @media (max-width: 768px) {
   .drawer-sticky-open .main-content {
     margin-left: 0;
+    margin-right: 0;
   }
 }
 

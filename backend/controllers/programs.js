@@ -164,7 +164,8 @@ export const deleteProgramController = async (req, res) => {
       });
     }
     
-    const result = await programBusinessService.deleteProgram(id);
+    const options = { force: req.body?.force || req.query?.force === 'true' };
+    const result = await programBusinessService.deleteProgram(id, options);
     
     if (result.success) {
       res.status(200).json(result);

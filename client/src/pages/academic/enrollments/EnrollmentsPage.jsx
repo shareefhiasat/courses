@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import Joyride from 'react-joyride';
 import TourTooltip from '@ui/TourTooltip/TourTooltip';
+import { scheduleTourStart } from '@utils/tourScheduler';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
@@ -10,7 +11,7 @@ import { useTheme } from '@contexts/ThemeContext';
 import { getPrograms, getSubjects } from '@services/business/programService';
 import { getClasses } from '@services/business/classService';
 import { getStudentsByClass, toggleStudentAccess as toggleStudentAccessService } from '@services/business/enrollmentService';
-import { Container, Card, CardBody, Button, Input, Badge, EmptyState, useToast, Select, YearSelect } from '@ui';
+import { Container, Card, CardBody, Button, Input, EmptyState, useToast, Select, YearSelect } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 import { getAcademicTermOptions, getAcademicTermLabel } from '@constants/academicTerms';
 import styles from './EnrollmentsPage.module.css';
@@ -39,7 +40,7 @@ const EnrollmentsPage = () => {
     window.addEventListener('app:help', startTour);
     return () => { window.removeEventListener('app:joyride', startTour); window.removeEventListener('app:help', startTour); };
   }, [startTour]);
-  useEffect(() => { try { if (!localStorage.getItem(tourSeenKey)) startTour(); } catch {} }, [tourSeenKey, startTour]);
+  useEffect(() => scheduleTourStart(tourSeenKey, lang, startTour), [tourSeenKey, lang, startTour]);
   const handleTourCallback = useCallback((data) => {
     const { status, action } = data || {};
     if (status === 'finished' || status === 'skipped' || action === 'close') { setRunTour(false); try { localStorage.setItem(tourSeenKey, 'true'); } catch {} }
@@ -64,6 +65,7 @@ const EnrollmentsPage = () => {
   const [yearFilter, setYearFilter] = useState('all');
   const [termFilter, setTermFilter] = useState('all');
   const [enrollmentStatusFilter, setEnrollmentStatusFilter] = useState('all');
+  const [classSearch, setClassSearch] = useState('');
 
   const matchUserId = useCallback((left, right) => {
     if (left == null || right == null) return false;
@@ -107,6 +109,18 @@ const EnrollmentsPage = () => {
 
   const filteredClasses = useMemo(() => {
     let result = [...classes];
+    
+    // Quick text search across class name, code, year, term
+    if (classSearch) {
+      const q = classSearch.toLowerCase();
+      result = result.filter(cls => {
+        const name = (cls.name || '').toLowerCase();
+        const code = (cls.code || '').toLowerCase();
+        const year = String(cls.year || '');
+        const term = (cls.term || '').toLowerCase();
+        return name.includes(q) || code.includes(q) || year.includes(q) || term.includes(q);
+      });
+    }
     
     // Filter by program
     if (programFilter !== 'all') {
@@ -164,7 +178,7 @@ const EnrollmentsPage = () => {
     result.sort((a, b) => (a.name || a.code || '').localeCompare(b.name || b.code || ''));
     
     return result;
-  }, [classes, subjects, programFilter, subjectFilter, classFilter, yearFilter, termFilter]);
+  }, [classes, subjects, programFilter, subjectFilter, classFilter, yearFilter, termFilter, classSearch]);
 
   
   const loadData = async () => {
@@ -366,6 +380,17 @@ const EnrollmentsPage = () => {
               </div>
             )}
             
+            {/* Quick Search */}
+            <div style={{ marginBottom: '0.5rem' }}>
+              <Input
+                type="text"
+                placeholder={t('search_classes_quick') || 'Quick search: class name, code, year, semester...'}
+                value={classSearch}
+                onChange={(e) => setClassSearch(e.target.value)}
+                style={{ width: '100%' }}
+              />
+            </div>
+            
             {/* Filters */}
             <div data-tour="enroll-filters" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 8, marginBottom: '1rem' }}>
               <Select
@@ -504,7 +529,7 @@ const EnrollmentsPage = () => {
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className={styles.searchInput}
-                  style={{ flex: 1 }}
+                  style={{ flex: 3 }}
                 />
 
                 <Select
@@ -629,9 +654,23 @@ const EnrollmentsPage = () => {
                       <div className={styles.studentInfo}>
                         <div className={styles.studentName}>
                           {getLocalizedUserName(student, lang) || student.email}
-                          {student.isDisabled && (
-                            <Badge variant="danger" size="sm">{t('disabled') || 'DISABLED'}</Badge>
-                          )}
+                          <span style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            fontSize: '0.8rem',
+                            fontWeight: 500,
+                            color: student.isDisabled
+                              ? 'var(--color-danger, #dc2626)'
+                              : 'var(--color-success, #28a745)'
+                          }}>
+                            {student.isDisabled
+                              ? getThemedIcon('ui', 'user_x', 14, theme)
+                              : getThemedIcon('ui', 'check_circle', 14, theme)}
+                            {student.isDisabled
+                              ? (t('status_disabled') || 'Disabled')
+                              : (t('status_active') || 'Active')}
+                          </span>
                         </div>
                         <div className={styles.studentEmail}>
                           {student.email}

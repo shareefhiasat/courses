@@ -38,8 +38,9 @@ const BulkSuccessModal = ({
       title={t('bulk_operation_complete') || 'Bulk Operation Complete'}
       size="medium"
       showCloseButton={false}
-      closeOnOverlayClick={false}
-      closeOnEscape={false}
+      closeOnOverlayClick={true}
+      closeOnEscape={true}
+      titleStyle={{ fontSize: '1rem', fontWeight: '600' }}
     >
       <div style={{ padding: '1rem 0' }}>
         {/* Operation Details */}

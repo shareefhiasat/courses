@@ -4,9 +4,8 @@ import { Button, Input, Modal } from '@ui';
 import { useAuth } from '@contexts/AuthContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon, getIconWithColor } from '@constants/iconTypes';
-import { markAttendance, deleteAttendance } from '@services/business/attendanceServiceUnified.js';
+import { deleteAttendance } from '@services/business/attendanceServiceUnified.js';
 import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, ATTENDANCE_TYPE_CATEGORY, ATTENDANCE_TYPES, ATTENDANCE_COLORS, STANDUP_ATTENDANCE_TYPES, getAttendanceIcon, getAttendanceColor, getAttendanceLabel, getLocalizedAttendanceLabel } from '@constants/attendanceTypes';
-import { MANUAL_NOTE_TYPES, getNoteTypeFromStatus } from '@constants/noteTypes';
 import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
 import { useLookupTypes } from '@hooks/useLookupTypes.js';
 import { usePermissions } from '@hooks/usePermissions';
@@ -19,9 +18,6 @@ import { useLang } from '@contexts/LangContext';
 import { useToast } from '@ui';
 import PortalTooltip from '@ui/PortalTooltip';
 import PanelHeader from './PanelHeader';
-// Temporary import for deprecated functions until lookup system is fully migrated
-import { getBehaviorIcon, getBehaviorColor } from '@constants/behaviorTypes';
-import { getParticipationIcon, getParticipationColor } from '@constants/participationTypes';
 
 export default function StudentActionZapPanel({
   student,
@@ -171,37 +167,43 @@ export default function StudentActionZapPanel({
   }, []);
 
   const renderIcon = (iconName, style = {}) => {
-    const behaviorIcon = getBehaviorIcon(iconName);
-    const behaviorColor = getBehaviorColor(iconName);
-    
-    const participationIcon = getParticipationIcon(iconName);
-    const participationColor = getParticipationColor(iconName);
-    
-    let finalIconName = iconName;
-    let finalColor = style.color || '#374151';
-    
-    if ((lookupData['behavior-types'] || []).find(bt => bt.id === iconName)) {
-      finalIconName = behaviorIcon;
-      finalColor = behaviorColor;
-    } else if ((lookupData['participation-types'] || []).find(pt => pt.id === iconName)) {
-      finalIconName = participationIcon;
-      finalColor = participationColor;
-    }
-    
+    const iconColor = style.color || 'currentColor';
     const iconMap = {
-      MessageSquare: getThemedIcon('ui', 'message_square', style.width || 16, theme),
-      AlertCircleIcon: getThemedIcon('ui', 'alert_circle', style.width || 16, theme),
-      AlertTriangle: getThemedIcon('ui', 'alert_triangle', style.width || 16, theme),
-      CheckCircle: getThemedIcon('ui', 'check_circle', style.width || 16, theme),
-      Clock: getThemedIcon('ui', 'clock', style.width || 16, theme),
-      XCircle: getThemedIcon('ui', 'x_circle', style.width || 16, theme),
-      Heart: getThemedIcon('ui', 'heart', style.width || 16, theme),
-      HelpCircle: getThemedIcon('ui', 'help_circle', style.width || 16, theme),
-      Users: getThemedIcon('ui', 'users', style.width || 16, theme),
-      Bed: getThemedIcon('ui', 'bed', style.width || 16, theme),
+      MessageSquare: getThemedIcon('ui', 'message_square', style.width || 16, iconColor),
+      AlertCircle: getThemedIcon('ui', 'alert_circle', style.width || 16, iconColor),
+      AlertCircleIcon: getThemedIcon('ui', 'alert_circle', style.width || 16, iconColor),
+      AlertTriangle: getThemedIcon('ui', 'alert_triangle', style.width || 16, iconColor),
+      CheckCircle: getThemedIcon('ui', 'check_circle', style.width || 16, iconColor),
+      Clock: getThemedIcon('ui', 'clock', style.width || 16, iconColor),
+      XCircle: getThemedIcon('ui', 'x_circle', style.width || 16, iconColor),
+      Heart: getThemedIcon('ui', 'heart', style.width || 16, iconColor),
+      HelpCircle: getThemedIcon('ui', 'help_circle', style.width || 16, iconColor),
+      Users: getThemedIcon('ui', 'users', style.width || 16, iconColor),
+      Bed: getThemedIcon('ui', 'bed', style.width || 16, iconColor),
+      Smartphone: getThemedIcon('ui', 'smartphone', style.width || 16, iconColor),
+      Star: getThemedIcon('ui', 'star', style.width || 16, iconColor),
     };
-    
-    return iconMap[finalIconName] || iconMap.AlertCircleIcon;
+
+    // Look up behavior type by numeric ID in lookup data
+    const behaviorType = (lookupData['behavior-types'] || []).find(bt => bt.id === iconName);
+    if (behaviorType) {
+      return iconMap[behaviorType.icon] || iconMap.AlertTriangle;
+    }
+
+    // Look up participation type by numeric ID in lookup data
+    const participationType = (lookupData['participation-types'] || []).find(pt => pt.id === iconName);
+    if (participationType) {
+      return iconMap[participationType.icon] || iconMap.MessageSquare;
+    }
+
+    // Look up penalty type by numeric ID in lookup data
+    const penaltyType = (lookupData['penalty-types'] || []).find(pt => pt.id === iconName);
+    if (penaltyType) {
+      return iconMap[penaltyType.icon] || iconMap.AlertTriangle;
+    }
+
+    // Fallback: try iconMap directly, then default to alert circle
+    return iconMap[iconName] || iconMap.AlertCircle;
   };
 
 
@@ -764,7 +766,7 @@ export default function StudentActionZapPanel({
                         flexShrink: 0,
                         transition: 'all 0.2s ease'
                       }}>
-                        {renderIcon(option.icon, { width: viewMode === 'grid' ? '0.875rem' : '0.75rem', height: viewMode === 'grid' ? '0.875rem' : '0.75rem' })}
+                        {renderIcon(option.icon, { width: viewMode === 'grid' ? '0.875rem' : '0.75rem', height: viewMode === 'grid' ? '0.875rem' : '0.75rem', color: option.color })}
                       </div>
                       <span style={{
                         fontSize: viewMode === 'grid' ? '0.6875rem' : '0.75rem',
@@ -1022,13 +1024,14 @@ export default function StudentActionZapPanel({
         onClose={() => setConfirmModal({ isOpen: false, attendanceType: null, studentName: '' })}
         title={t('confirm_attendance') || 'Confirm Attendance'}
         size="small"
+        titleStyle={{ fontSize: '1rem', fontWeight: '600' }}
         showCloseButton={true}
         closeOnOverlayClick={true}
         closeOnEscape={true}
       >
         <div style={{ padding: '1rem 0' }}>
           <p style={{ 
-            fontSize: '0.875rem', 
+            fontSize: '1rem', 
             lineHeight: 1.5,
             color: 'var(--text, #111827)',
             marginBottom: '1.5rem'
@@ -1062,23 +1065,14 @@ export default function StudentActionZapPanel({
                 setIsSubmitting(true);
                 setConfirmModal({ isOpen: false, attendanceType: null, studentName: '' });
                 try {
-                  // Prepare attendance data
-                  const attendanceData = {
-                    userId: student.id,
-                    classId: classId || student.classId || selectedDate?.classId,
-                    programId: programId || student.programId,
-                    subjectId: subjectId || student.subjectId,
-                    status: confirmModal.attendanceType.status,
-                    date: selectedDate || new Date().toISOString().split('T')[0],
-                    notes: internalNote || getNoteTypeFromStatus(confirmModal.attendanceType.status, 'manual')
-                  };
+                  const result = await onMarkAttendance(
+                    student.id,
+                    confirmModal.attendanceType.status,
+                    programId || student.programId,
+                    subjectId || student.subjectId
+                  );
 
-                  info('🔧 [DEBUG] Marking attendance with data:', attendanceData);
-
-                  // Use the dual attendance service
-                  const result = await markAttendance(attendanceData, user, attendanceMode);
-                  
-                  if (result.success) {
+                  if (result && result.success) {
                     showSuccess(t('attendance_marked_successfully'));
                     // Call onUpdate to refresh student data
                     if (onUpdate) {
@@ -1090,7 +1084,7 @@ export default function StudentActionZapPanel({
                       onClose();
                     }, 800); // Brief delay to show reload state
                   } else {
-                    showError(result.error || t('failed_to_mark_attendance'));
+                    showError((result && result.error) || t('failed_to_mark_attendance'));
                     setIsSubmitting(false);
                   }
                 } catch (error) {

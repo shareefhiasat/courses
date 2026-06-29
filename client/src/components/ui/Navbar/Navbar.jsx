@@ -341,7 +341,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                 <PortalTooltip content={t('help_center') || 'Help Center'} position="bottom">
                 <button
                   className="nav-icon-btn"
-                  onClick={() => navigate('/help')}
+                  onClick={() => window.open(`${import.meta.env.VITE_HELP_URL || 'http://localhost:3000'}/${lang}`, '_blank', 'noopener,noreferrer')}
                   aria-label={t('information')}
                   style={{
                     border: theme === 'light' ? '1px solid var(--border)' : '1px solid rgba(255,255,255,0.2)',

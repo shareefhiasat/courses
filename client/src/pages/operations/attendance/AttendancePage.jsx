@@ -5,25 +5,31 @@ import { info, error, warn, debug } from '@services/utils/logger.js';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
-import { createSession, listOpenSessions, listenAttendanceSession, closeAttendanceSession } from '@services/business/attendanceService';
+import { createSession, listenAttendanceSession, closeAttendanceSession } from '@services/business/attendanceService';
 import {
   getAttendanceConfigDoc,
   saveAttendanceConfigDoc,
   closeAttendanceSessionLocal,
   updateAttendanceSessionLateMode,
   listenAttendanceMarksCount,
+  getAttendanceMarksForExport,
 } from '@services/business/attendanceService';
 import QRCode from 'qrcode';
 import { getThemedIcon } from '@constants/iconTypes';
-import { Button, Select, YearSelect, ProgramsSelect, TermSelect } from '@ui';
-import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
+import { Button, Select, ProgramsSelect, Badge, Modal, Textarea, UserSelect } from '@ui';
+import { useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { getPrograms, getSubjects } from '@services/business/programService';
 import { getClasses } from '@services/business/classService';
-import { ClipboardList, Play, Smartphone, CheckCircle, Copy, ListOrdered } from 'lucide-react';
+import { getUsers } from '@services/business/userService';
+import { ROLE_STRINGS } from '@constants';
+import { ClipboardList, Play, Smartphone, CheckCircle, Copy, ListOrdered, QrCode, Settings, Clock, Users, Square, AlertCircle } from 'lucide-react';
 import { getLocalizedClassName } from '@utils/schedulingDisplayUtils';
+import { getLocalizedUserName } from '@utils/localizedUserName';
 import PortalTooltip from '@ui/PortalTooltip';
 import { exportGeneric } from '@services/export/excelExportService.js';
 import { submitAttendanceReport } from '@services/business/workflowDocumentService.js';
+import CollapsibleSection from '@components/scheduling/CollapsibleSection';
+import SchedulingStatCard from '@components/scheduling/SchedulingStatCard';
 import styles from './AttendancePage.module.css';
 
 const AttendancePage = () => {
@@ -52,11 +58,10 @@ const AttendancePage = () => {
   const [termFilter, setTermFilter] = useState('');
   const [yearFilter, setYearFilter] = useState('');
   const [instructorFilter, setInstructorFilter] = useState('');
+  const [classQuickFilter, setClassQuickFilter] = useState('');
+  const [allUsers, setAllUsers] = useState([]);
   const [programs, setPrograms] = useState([]);
   const [subjects, setSubjects] = useState([]);
-  const [collapsedSections, setCollapsedSections] = useState(() => {
-    try { return JSON.parse(localStorage.getItem('attendance_collapsed') || '{"class":false,"settings":true}'); } catch { return { class: false, settings: true }; }
-  });
   const [qrSize, setQrSize] = useState(() => {
     try { return parseInt(localStorage.getItem('attendance_qr_size') || '200', 10); } catch { return 200; }
   });
@@ -112,7 +117,26 @@ const AttendancePage = () => {
   // Extract unique terms, years, instructors for filters
   const terms = useMemo(() => [...new Set(classOptions.map(c => c.term).filter(Boolean))], [classOptions]);
   const years = useMemo(() => [...new Set(classOptions.map(c => c.year).filter(Boolean))], [classOptions]);
-  const instructors = useMemo(() => [...new Set(classOptions.map(c => c.instructorId || c.instructor).filter(Boolean))], [classOptions]);
+  const instructors = useMemo(() => {
+    const map = new Map();
+    classOptions.forEach(c => {
+      const id = c.instructorId || c.instructor?.id;
+      if (!id) return;
+      if (map.has(id)) return;
+      const inst = c.instructor || {};
+      const name = inst.displayName || [inst.firstName, inst.lastName].filter(Boolean).join(' ') || inst.name || `Instructor ${id}`;
+      map.set(id, { id, name });
+    });
+    return [...map.values()];
+  }, [classOptions]);
+
+  const getInstructorName = useCallback((id) => {
+    if (!id) return '';
+    const inst = instructors.find(i => String(i.id) === String(id));
+    if (inst) return inst.name;
+    const user = allUsers.find(u => String(u.docId || u.id) === String(id));
+    return user ? getLocalizedUserName(user, lang, `Instructor ${id}`) : String(id);
+  }, [instructors, allUsers, lang]);
 
   // DEBUG: Log data changes
   useEffect(() => {
@@ -252,9 +276,25 @@ const AttendancePage = () => {
         year: c.year
       }))
     });
-    
+
+    const quick = classQuickFilter.trim().toLowerCase();
+    if (quick) {
+      return filtered.filter(c => {
+        const label = getLocalizedClassName(c, lang, c.name || c.code || '');
+        const code = (c.code || '').toLowerCase();
+        const term = (c.term || '').toLowerCase();
+        const year = String(c.year || '');
+        const instName = (getInstructorName(c.instructorId || c.instructor?.id) || '').toLowerCase();
+        return label.toLowerCase().includes(quick)
+          || code.includes(quick)
+          || term.includes(quick)
+          || year.includes(quick)
+          || instName.includes(quick);
+      });
+    }
+
     return filtered;
-  }, [classOptions, subjects, programFilter, subjectFilter, classFilter, termFilter, yearFilter, instructorFilter]);
+  }, [classOptions, subjects, programFilter, subjectFilter, classFilter, termFilter, yearFilter, instructorFilter, classQuickFilter, lang, getInstructorName]);
 
   // Load classes, programs, subjects (authorized roles only)
   useEffect(() => {
@@ -264,10 +304,11 @@ const AttendancePage = () => {
     (async () => {
       try {
         debug('[Attendance] Fetching data...');
-        const [classesResult, programsRes, subjectsRes] = await Promise.all([
+        const [classesResult, programsRes, subjectsRes, usersRes] = await Promise.all([
           getClasses(),
           getPrograms(),
-          getSubjects()
+          getSubjects(),
+          (isAdmin || isHR) ? getUsers({ limit: 500 }) : Promise.resolve({ success: false })
         ]);
         
         debug('[Attendance] Raw data results:', {
@@ -301,6 +342,9 @@ const AttendancePage = () => {
             name: s.nameEn || s.nameAr || s.name,
             programId: s.programId
           })));
+        }
+        if (usersRes.success) {
+          setAllUsers(usersRes.data || []);
         }
         if (!classId && opts.length === 1) setClassId(opts[0].id);
         setInitialLoading(false);
@@ -425,16 +469,8 @@ const AttendancePage = () => {
   };
 
   useEffect(() => {
-    try { localStorage.setItem('attendance_collapsed', JSON.stringify(collapsedSections)); } catch {}
-  }, [collapsedSections]);
-
-  useEffect(() => {
     try { localStorage.setItem('attendance_qr_size', String(qrSize)); } catch {}
   }, [qrSize]);
-
-  const toggleSection = (section) => {
-    setCollapsedSections(prev => ({ ...prev, [section]: !prev[section] }));
-  };
 
   const [durationDisplay, setDurationDisplay] = useState('0:00');
 
@@ -452,10 +488,6 @@ const AttendancePage = () => {
     }, 1000);
     return () => clearInterval(interval);
   }, [sessionStartTime]);
-
-  const getSessionDuration = () => {
-    return durationDisplay;
-  };
 
   const toggleLateMode = async () => {
     if (!sessionId) return;
@@ -544,6 +576,17 @@ const AttendancePage = () => {
     };
   }, [authLoading, user, isAdmin, isInstructor, isHR, initialLoading, startLoading]);
 
+  const panelBg = theme === 'dark' ? '#1f2937' : 'var(--panel)';
+  const mutedColor = theme === 'dark' ? '#9ca3af' : '#6b7280';
+  const textColor = theme === 'dark' ? '#f3f4f6' : '#1f2937';
+
+  const overviewCards = useMemo(() => [
+    { value: sessionId ? durationDisplay : '—', label: t('attendance_session_duration') || 'Duration', Icon: Clock, iconColor: '#6366f1', iconBg: 'rgba(99,102,241,0.12)' },
+    { value: attendanceCount, label: t('attendance_scanned') || 'Scanned', Icon: Users, iconColor: '#10b981', iconBg: 'rgba(16,185,129,0.12)' },
+    { value: filteredClasses.length, label: t('attendance_classes_available') || 'Classes', Icon: ClipboardList, iconColor: '#f59e0b', iconBg: 'rgba(245,158,11,0.12)' },
+    { value: selectedClass ? getLocalizedClassName(selectedClass, lang, selectedClass.name || selectedClass.code || '') : t('none') || 'None', label: t('attendance_selected_class') || 'Selected', Icon: CheckCircle, iconColor: '#800020', iconBg: 'rgba(128,0,32,0.12)' },
+  ], [sessionId, durationDisplay, attendanceCount, filteredClasses.length, selectedClass, lang, t]);
+
   return (
     <div className="content-section" style={{ maxWidth: 1400, margin: '0 auto', padding: '1rem 1.25rem' }}>
       <Joyride
@@ -577,12 +620,32 @@ const AttendancePage = () => {
         }}
       />
 
-      {/* Tour help button */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.5rem' }}>
-        
-      </div>
+      {err && (
+        <div style={{ padding:'0.75rem 1rem', background: theme === 'dark' ? 'rgba(239,68,68,0.15)' : '#fef2f2', border:`1px solid ${theme === 'dark' ? '#7f1d1d' : '#fecaca'}`, borderRadius:8, color: theme === 'dark' ? '#fca5a5' : '#dc2626', marginBottom:16, display:'flex', alignItems:'center', gap:'0.5rem', fontSize:'0.875rem' }}>
+          <AlertCircle size={16} style={{ flexShrink: 0 }} />
+          {err}
+        </div>
+      )}
 
-      {err && <div style={{ padding:'0.75rem', background:'#fee', border:'1px solid #fcc', borderRadius:8, color:'#c00', marginBottom:16 }}>{err}</div>}
+      {/* Overview Stat Cards */}
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+        gap: '0.5rem',
+        marginBottom: '0.75rem',
+      }}>
+        {overviewCards.map((card) => (
+          <SchedulingStatCard
+            key={card.label}
+            value={card.value}
+            label={card.label}
+            Icon={card.Icon}
+            iconColor={card.iconColor}
+            iconBg={card.iconBg}
+            theme={theme}
+          />
+        ))}
+      </div>
 
       {/* Active Session Banner */}
       {sessionId && (
@@ -612,9 +675,9 @@ const AttendancePage = () => {
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <div style={{ padding: '0.5rem 1rem', background: 'rgba(255,255,255,0.2)', borderRadius: 8, fontWeight: 600 }}>
+            <Badge style={{ background: 'rgba(255,255,255,0.2)', color: 'white', padding: '0.5rem 1rem', borderRadius: 8, fontWeight: 600, fontSize: '0.875rem' }}>
               {attendanceCount} {t('students') || 'Students'}
-            </div>
+            </Badge>
             <button
               onClick={endSession}
               disabled={loading}
@@ -625,38 +688,29 @@ const AttendancePage = () => {
                 background: 'rgba(239, 68, 68, 0.9)',
                 color: 'white',
                 fontWeight: 600,
-                cursor: loading ? 'not-allowed' : 'pointer'
+                cursor: loading ? 'not-allowed' : 'pointer',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '0.375rem',
+                fontSize: '0.875rem'
               }}
             >
-              {getThemedIcon('ui', 'square', 16, theme)}
+              <Square size={14} />
+              {t('attendance_end_session') || 'End Session'}
             </button>
           </div>
         </div>
       )}
 
       {/* Class Selection - Collapsible */}
-      <div data-tour="attendance-class-section" style={{ marginBottom: 16, background:'var(--panel)', border:'1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
-        <button
-          onClick={() => toggleSection('class')}
-          style={{
-            width: '100%',
-            padding: '1rem',
-            border: 'none',
-            background: 'transparent',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            cursor: 'pointer',
-            fontWeight: 600,
-            fontSize: '1rem',
-            color: '#1f2937'
-          }}
-        >
-          <span>{t('attendance_class_selection')}</span>
-          {collapsedSections.class ? getThemedIcon('ui', 'plus', 20, theme) : getThemedIcon('ui', 'minus', 20, theme)}
-        </button>
-        {!collapsedSections.class && (
-          <div style={{ padding: '0 1rem 1rem 1rem' }}>
+      <CollapsibleSection
+        title={t('attendance_class_selection')}
+        icon={ClipboardList}
+        defaultOpen
+        storageKey="attendance-class"
+        testId="attendance-class-section"
+      >
+        <div data-tour="attendance-class-section">
             {/* Filters */}
             <div style={{ marginBottom: 12 }}>
               {/* First Row: Program, Subject, Class */}
@@ -684,7 +738,7 @@ const AttendancePage = () => {
               
               {/* Second Row: Term, Year */}
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-                <div style={{ flex: 1, minWidth: '200px' }}>
+                <div style={{ width: 'calc(50% - 4px)', minWidth: '200px' }}>
                   <Select
                     value={termFilter}
                     onChange={(e) => setTermFilter(e.target.value)}
@@ -698,7 +752,7 @@ const AttendancePage = () => {
                     fullWidth
                   />
                 </div>
-                <div style={{ flex: 1, minWidth: '200px' }}>
+                <div style={{ width: 'calc(50% - 4px)', minWidth: '200px' }}>
                   <Select
                     value={yearFilter}
                     onChange={(e) => setYearFilter(e.target.value)}
@@ -715,27 +769,50 @@ const AttendancePage = () => {
                 </div>
               </div>
             </div>
-            {(isAdmin || isHR) && instructors.length > 0 && (
+            {(isAdmin || isHR) && allUsers.length > 0 && (
               <div style={{ marginBottom: 12 }}>
-                <Select
-                  searchable
+                <UserSelect
+                  users={allUsers}
+                  classes={classOptions}
                   value={instructorFilter}
-                  onChange={(e)=>setInstructorFilter(e.target.value)}
-                  options={[
-                    { value: '', label: t('all_instructors') || 'All Instructors' },
-                    ...instructors.map(inst => ({ value: inst, label: inst }))
-                  ]}
+                  onChange={(val) => setInstructorFilter(val === 'all' ? '' : (val || ''))}
+                  placeholder={t('attendance_filter_by_instructor') || 'Filter by Instructor'}
+                  roleFilter={[ROLE_STRINGS.INSTRUCTOR]}
+                  includeAll
+                  showEnrollments
+                  searchable
                   fullWidth
+                  theme={theme}
                 />
               </div>
             )}
 
+        {/* Quick Filter Input */}
+        <div style={{ position: 'relative', marginBottom: 8 }}>
+          <input
+            type="text"
+            value={classQuickFilter}
+            onChange={(e) => setClassQuickFilter(e.target.value)}
+            placeholder={t('attendance_quick_filter_classes') || 'Quick filter classes...'}
+            style={{
+              width: '100%',
+              padding: '0.5rem 0.75rem',
+              border: `1px solid ${theme === 'dark' ? '#374151' : 'var(--border)'}`,
+              borderRadius: 8,
+              background: panelBg,
+              color: textColor,
+              fontSize: '0.875rem',
+              outline: 'none',
+            }}
+          />
+        </div>
+
         {/* Class List */}
-        <div style={{ fontSize:12, color:'var(--muted)', marginBottom:8 }}>
+        <div style={{ fontSize:12, color: mutedColor, marginBottom:8 }}>
           {t('attendance_showing_of_classes', { shown: filteredClasses.length, total: classOptions.length })}
         </div>
         {filteredClasses.length === 0 && (
-          <div style={{ padding:'1rem', textAlign:'center', color:'var(--muted)' }}>
+          <div style={{ padding:'1rem', textAlign:'center', color: mutedColor }}>
             {t('attendance_no_classes_found')}
           </div>
         )}
@@ -745,11 +822,11 @@ const AttendancePage = () => {
             const label = getLocalizedClassName(c, lang, c.name || c.code || val || '—');
             const checked = classId === val;
             return (
-              <label key={val} className={styles.classOption} style={{ background: checked ? 'rgba(102,126,234,0.12)' : 'var(--panel)' }} onClick={()=>{ setClassId(val); try { localStorage.setItem('att_instructor_class', val); } catch {}; }}>
+              <label key={val} className={styles.classOption} style={{ background: checked ? 'rgba(102,126,234,0.12)' : panelBg }} onClick={()=>{ setClassId(val); try { localStorage.setItem('att_instructor_class', val); } catch {}; }}>
                 <input type="radio" name="classSelect" value={val} checked={checked} onChange={()=>{}} className={styles.classRadio} />
                 <div style={{ flex:1 }}>
-                  <div style={{ fontWeight:600 }}>{label}</div>
-                  <div style={{ fontSize:11, color:'var(--muted)', display:'flex', gap:8, flexWrap: 'wrap' }}>
+                  <div style={{ fontWeight:600, color: textColor }}>{label}</div>
+                  <div style={{ fontSize:11, color: mutedColor, display:'flex', gap:8, flexWrap: 'wrap' }}>
                     {c.term && <span>{t('attendance_term_label')}: {c.term}</span>}
                     {c.year && <span>{t('attendance_year_label')}: {c.year}</span>}
                     {c.code && <span>{t('attendance_code_label')}: {c.code}</span>}
@@ -758,35 +835,20 @@ const AttendancePage = () => {
               </label>
             );
           })}
-            </div>
-          </div>
-        )}
-      </div>
+        </div>
+        </div>
+      </CollapsibleSection>
 
-      {/* Attendance Settings - Below Class Selection */}
+      {/* Attendance Settings - Collapsible (Admin only) */}
       {isAdmin && (
-        <div data-tour="attendance-settings" style={{ marginBottom: 16, background:'var(--panel)', border:'1px solid var(--border)', borderRadius: 12, overflow: 'hidden' }}>
-          <button
-            onClick={() => toggleSection('settings')}
-            style={{
-              width: '100%',
-              padding: '0.75rem',
-              border: 'none',
-              background: 'transparent',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              cursor: 'pointer',
-              fontWeight: 600,
-              fontSize: '0.875rem',
-              color: '#1f2937'
-            }}
-          >
-            <span>{t('attendance_attendance_settings')}</span>
-            {collapsedSections.settings ? getThemedIcon('ui', 'plus', 18, theme) : getThemedIcon('ui', 'minus', 18, theme)}
-          </button>
-          {!collapsedSections.settings && (
-            <div style={{ padding: '0 0.75rem 0.75rem 0.75rem' }}>
+        <CollapsibleSection
+          title={t('attendance_attendance_settings')}
+          icon={Settings}
+          defaultOpen={false}
+          storageKey="attendance-settings"
+          testId="attendance-settings"
+        >
+        <div data-tour="attendance-settings">
               <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(120px,1fr))', gap: 8, marginBottom: 8 }}>
                 <div>
                   <label style={{ display:'block', marginBottom: 4, fontWeight: 600, fontSize:10, color: '#1f2937' }}>{t('attendance_rotation_seconds')}</label>
@@ -831,23 +893,67 @@ const AttendancePage = () => {
                   </button>
                 </div>
               )}
-            </div>
-          )}
         </div>
+        </CollapsibleSection>
       )}
 
-      {/* Main Container: QR Code + Buttons */}
-      <div data-tour="attendance-qr-panel" style={{ background:'var(--panel)', border:'1px solid var(--border)', borderRadius: 12, padding: '1rem' }}>
-        {/* QR Code Display - Enhanced */}
+      {/* Guidelines - Collapsible */}
+      <CollapsibleSection
+        title={t('attendance_how_to_use') || 'How to Use'}
+        icon={ListOrdered}
+        defaultOpen={false}
+        storageKey="attendance-guidelines"
+        testId="attendance-guidelines"
+      >
+      <div data-tour="attendance-guidelines" style={{ padding:'1rem', background: theme === 'dark' ? 'rgba(30,64,175,0.08)' : '#eff6ff', border:`1px solid ${theme === 'dark' ? '#1e3a8a' : '#800020'}`, borderRadius: 8 }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', gap: '0.5rem', fontSize: 13, color: theme === 'dark' ? '#93c5fd' : '#1e3a8a' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.5rem 0.75rem', background: 'rgba(255,255,255,0.7)', borderRadius: 6 }}>
+            <strong>1.</strong>
+            <span>{t('attendance_guide_step1')}</span>
+          </div>
+          {getThemedIcon('ui', 'chevron_right', 16, theme)}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.5rem 0.75rem', background: 'rgba(255,255,255,0.7)', borderRadius: 6 }}>
+            <strong>2.</strong>
+            <span>{t('attendance_guide_step2')}</span>
+          </div>
+          {getThemedIcon('ui', 'chevron_right', 16, theme)}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.5rem 0.75rem', background: 'rgba(255,255,255,0.7)', borderRadius: 6 }}>
+            <strong>3.</strong>
+            <span>{t('attendance_guide_step3')}</span>
+          </div>
+          {getThemedIcon('ui', 'chevron_right', 16, theme)}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.5rem 0.75rem', background: 'rgba(255,255,255,0.7)', borderRadius: 6 }}>
+            <strong>4.</strong>
+            <span>{t('attendance_guide_step4')}</span>
+          </div>
+          {getThemedIcon('ui', 'chevron_right', 16, theme)}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.5rem 0.75rem', background: 'rgba(255,255,255,0.7)', borderRadius: 6 }}>
+            <strong>5.</strong>
+            <span>{t('attendance_guide_step5')}</span>
+          </div>
+        </div>
+      </div>
+      </CollapsibleSection>
+
+      {/* QR Code Panel - Collapsible */}
+      <CollapsibleSection
+        title={t('attendance_live_qr') || 'Live QR Code'}
+        icon={QrCode}
+        defaultOpen
+        storageKey="attendance-qr"
+        testId="attendance-qr-panel"
+      >
+      <div data-tour="attendance-qr-panel">
+        {/* QR Code Display */}
         <div style={{
           padding:'1rem',
-          background: sessionId ? 'linear-gradient(135deg, rgba(16,185,129,0.1) 0%, rgba(5,150,105,0.05) 100%)' : 'var(--panel)',
-          border: sessionId ? '2px solid #10b981' : '1px solid var(--border)',
+          background: sessionId ? 'linear-gradient(135deg, rgba(16,185,129,0.1) 0%, rgba(5,150,105,0.05) 100%)' : panelBg,
+          border: sessionId ? '2px solid #10b981' : `1px solid ${theme === 'dark' ? '#374151' : 'var(--border)'}`,
           borderRadius: 12,
           transition: 'all 0.3s ease'
         }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-          <div style={{ fontWeight: 700, fontSize: '1rem' }}>
+          <div style={{ fontWeight: 700, fontSize: '1rem', color: textColor }}>
             {t('attendance_live_qr')}
           </div>
           {sessionId && (
@@ -898,8 +1004,8 @@ const AttendancePage = () => {
           </div>
           <div style={{ flex: 1, minWidth: '250px' }}>
             {!sessionId && (
-              <div style={{ fontSize: 14, color:'var(--muted)' }}>
-                <div style={{ marginBottom: 12, fontWeight: 600, color: '#1f2937' }}>
+              <div style={{ fontSize: 14, color: mutedColor }}>
+                <div style={{ marginBottom: 12, fontWeight: 600, color: textColor }}>
                   {t('attendance_how_to_start_session')}
                 </div>
                 <div style={{ lineHeight: 1.6 }}>
@@ -1022,126 +1128,49 @@ const AttendancePage = () => {
           )}
         </div>
       </div>
-
-      {/* Guidelines */}
-      <div data-tour="attendance-guidelines" style={{ padding:'1rem', background:'#eff6ff', border:'1px solid #800020', borderRadius: 12 }}>
-        <div style={{ fontWeight: 700, marginBottom: 12, display:'flex', alignItems:'center', gap:8, color:'#1e40af' }}>
-          <ListOrdered size={20} />
-          <span>{t('attendance_how_to_use')}</span>
-        </div>
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', gap: '0.5rem', fontSize: 13, color: '#1e3a8a' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.5rem 0.75rem', background: 'rgba(255,255,255,0.7)', borderRadius: 6 }}>
-            <strong>1.</strong>
-            <span>{t('attendance_guide_step1')}</span>
-          </div>
-          {getThemedIcon('ui', 'chevron_right', 16, theme)}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.5rem 0.75rem', background: 'rgba(255,255,255,0.7)', borderRadius: 6 }}>
-            <strong>2.</strong>
-            <span>{t('attendance_guide_step2')}</span>
-          </div>
-          {getThemedIcon('ui', 'chevron_right', 16, theme)}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.5rem 0.75rem', background: 'rgba(255,255,255,0.7)', borderRadius: 6 }}>
-            <strong>3.</strong>
-            <span>{t('attendance_guide_step3')}</span>
-          </div>
-          {getThemedIcon('ui', 'chevron_right', 16, theme)}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.5rem 0.75rem', background: 'rgba(255,255,255,0.7)', borderRadius: 6 }}>
-            <strong>4.</strong>
-            <span>{t('attendance_guide_step4')}</span>
-          </div>
-          {getThemedIcon('ui', 'chevron_right', 16, theme)}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.5rem 0.75rem', background: 'rgba(255,255,255,0.7)', borderRadius: 6 }}>
-            <strong>5.</strong>
-            <span>{t('attendance_guide_step5')}</span>
-          </div>
-        </div>
-      </div>
+      </CollapsibleSection>
 
       {/* Submission Confirmation Dialog */}
-      {showSubmitDialog && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 2000
-        }}>
-          <div style={{
-            background: 'white',
-            borderRadius: 12,
-            padding: '1.5rem',
-            maxWidth: '500px',
-            width: '90%',
-            boxShadow: '0 10px 40px rgba(0,0,0,0.2)'
-          }}>
-            <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.25rem', fontWeight: 600 }}>
-              {t('submit_attendance_report') || 'Submit Attendance Report for HR Review'}
-            </h3>
-            <p style={{ margin: '0 0 1rem 0', color: '#666' }}>
-              {t('submit_confirmation') || 'This will generate an attendance report and submit it to HR for review. Are you sure you want to proceed?'}
-            </p>
-            <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>
-                {t('optional_comments') || 'Optional Comments'}
-              </label>
-              <textarea
-                value={submitComments}
-                onChange={(e) => setSubmitComments(e.target.value)}
-                placeholder={t('add_submission_notes') || 'Add any notes for HR...'}
-                style={{
-                  width: '100%',
-                  minHeight: '80px',
-                  padding: '0.75rem',
-                  border: '1px solid #d1d5db',
-                  borderRadius: 8,
-                  fontSize: '0.875rem',
-                  resize: 'vertical'
-                }}
-              />
-            </div>
-            <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-              <button
-                onClick={() => {
-                  setShowSubmitDialog(false);
-                  setSubmitComments('');
-                }}
-                disabled={isSubmitting}
-                style={{
-                  padding: '0.625rem 1.25rem',
-                  border: '1px solid #d1d5db',
-                  borderRadius: 8,
-                  background: 'white',
-                  color: '#374151',
-                  fontWeight: 500,
-                  cursor: isSubmitting ? 'not-allowed' : 'pointer'
-                }}
-              >
-                {t('cancel') || 'Cancel'}
-              </button>
-              <button
-                onClick={confirmSubmission}
-                disabled={isSubmitting}
-                style={{
-                  padding: '0.625rem 1.25rem',
-                  border: 'none',
-                  borderRadius: 8,
-                  background: isSubmitting ? '#9ca3af' : '#10b981',
-                  color: 'white',
-                  fontWeight: 500,
-                  cursor: isSubmitting ? 'not-allowed' : 'pointer'
-                }}
-              >
-                {isSubmitting ? (t('submitting') || 'Submitting...') : (t('confirm_submit') || 'Confirm & Submit')}
-              </button>
-            </div>
+      <Modal
+        isOpen={showSubmitDialog}
+        onClose={() => { setShowSubmitDialog(false); setSubmitComments(''); }}
+        title={t('submit_attendance_report') || 'Submit Attendance Report for HR Review'}
+        size="medium"
+        footer={
+          <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
+            <Button
+              variant="secondary"
+              onClick={() => { setShowSubmitDialog(false); setSubmitComments(''); }}
+              disabled={isSubmitting}
+            >
+              {t('cancel') || 'Cancel'}
+            </Button>
+            <Button
+              variant="primary"
+              onClick={confirmSubmission}
+              disabled={isSubmitting}
+              style={{ background: isSubmitting ? '#9ca3af' : '#10b981' }}
+            >
+              {isSubmitting ? (t('submitting') || 'Submitting...') : (t('confirm_submit') || 'Confirm & Submit')}
+            </Button>
           </div>
+        }
+      >
+        <p style={{ margin: '0 0 1rem 0', color: mutedColor, fontSize: '0.875rem' }}>
+          {t('submit_confirmation') || 'This will generate an attendance report and submit it to HR for review. Are you sure you want to proceed?'}
+        </p>
+        <div>
+          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, color: textColor, fontSize: '0.875rem' }}>
+            {t('optional_comments') || 'Optional Comments'}
+          </label>
+          <Textarea
+            value={submitComments}
+            onChange={(e) => setSubmitComments(e.target.value)}
+            placeholder={t('add_submission_notes') || 'Add any notes for HR...'}
+            rows={3}
+          />
         </div>
-      )}
+      </Modal>
     </div>
   );
 };

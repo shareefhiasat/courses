@@ -6,6 +6,7 @@
  */
 
 import prisma from './prismaClient.js';
+import { checkDependencies, buildDependencyMessage, PROGRAM_DEPENDENCIES } from './deleteGuard.js';
 
 /**
  * Get all programs from database
@@ -247,10 +248,31 @@ const update = async (programId, updateData, user = null) => {
  * @param {string} programId - Program ID
  * @returns {Promise<object>} - Result object
  */
-const deleteProgram = async (programId) => {
+const deleteProgram = async (programId, options = {}) => {
   const startTime = Date.now();
   try {
-    console.log(`[Programs DB Service] Soft deleting program: ${programId}`);
+    console.log(`[Programs DB Service] Soft deleting program: ${programId}`, { force: options.force });
+    
+    // Check if program exists
+    const existing = await prisma.program.findUnique({
+      where: { id: programId }
+    });
+    
+    if (!existing) {
+      return { success: false, error: 'Program not found' };
+    }
+    
+    // Check all dependencies (including inactive records)
+    const depCheck = await checkDependencies('program', programId, PROGRAM_DEPENDENCIES);
+    
+    if (depCheck.hasDependencies && !options.force) {
+      return {
+        success: false,
+        error: buildDependencyMessage(depCheck.dependencies),
+        code: 'HAS_DEPENDENCIES',
+        dependencies: depCheck.dependencies
+      };
+    }
     
     const deletedProgram = await prisma.program.update({
       where: { id: programId },
@@ -263,7 +285,13 @@ const deleteProgram = async (programId) => {
     const duration = Date.now() - startTime;
     console.log(`[Programs DB Service] ✅ Soft deleted program in ${duration}ms`);
     
-    return { success: true, data: deletedProgram };
+    return { 
+      success: true, 
+      data: deletedProgram,
+      message: depCheck.hasDependencies
+        ? 'Program deactivated successfully (had dependencies)'
+        : 'Program deleted successfully'
+    };
   } catch (error) {
     const duration = Date.now() - startTime;
     console.error('[Programs DB Service] ❌ Error deleting program:', error);

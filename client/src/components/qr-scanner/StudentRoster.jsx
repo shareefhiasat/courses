@@ -105,6 +105,7 @@ const StudentRoster = React.memo(function StudentRoster({
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
   const [favoriteStudents, setFavoriteStudents] = useState([]);
   const [sendingEmails, setSendingEmails] = useState({}); // Track sending state per student
+  const [todayAttendanceOverrides, setTodayAttendanceOverrides] = useState({});
 
   const toYmd = useCallback((tsOrDate) => {
     if (!tsOrDate) return null;
@@ -161,16 +162,16 @@ const StudentRoster = React.memo(function StudentRoster({
         : attendanceRecords;
 
       const [penaltiesResponse, participationsResponse, behaviorsResponse] = await Promise.all([
-        getPenalties(studentId),
-        getParticipations(),
-        getBehaviors()
+        getPenalties({ userId: studentId, limit: 1000 }),
+        getParticipations({ userId: studentId, limit: 1000 }),
+        getBehaviors({ userId: studentId, limit: 1000 })
       ]);
       
       debug('🔧 fetchStudentHistory called getPenalties with studentId:', studentId);
 
       const studentPenalties = penaltiesResponse.success ? penaltiesResponse.data : [];
-      const studentParticipations = (participationsResponse.success ? participationsResponse.data : []).filter(p => p.studentId === studentId);
-      const studentBehaviors = (behaviorsResponse.success ? behaviorsResponse.data : []).filter(b => b.studentId === studentId);
+      const studentParticipations = (participationsResponse.success ? participationsResponse.data : []).filter(p => (p.studentId ?? p.userId) === studentId);
+      const studentBehaviors = (behaviorsResponse.success ? behaviorsResponse.data : []).filter(b => (b.studentId ?? b.userId) === studentId);
 
       // Combine and format logs
       const logs = [
@@ -201,7 +202,7 @@ const StudentRoster = React.memo(function StudentRoster({
             type: RECORD_TYPES.ATTENDANCE,
             date: record.date || toYmd(record.timestamp) || toYmd(record.updatedAt) || toYmd(record.createdAt),
             time: record.createdAt || record.updatedAt || record.timestamp,
-            label: getLocalizedAttendanceLabel(statusStr, t, lang) || statusStr || 'Unknown',
+            label: getLocalizedAttendanceLabel(statusStr, lang) || statusStr || 'Unknown',
             points: 0,
             comment: record.reason || record.notes || '',
             color: ATTENDANCE_STATUS_LABELS[statusStr]?.color || '#6b7280',
@@ -778,8 +779,11 @@ const StudentRoster = React.memo(function StudentRoster({
 
       if (result.success) {
         // Show success feedback
-        debug(`✅ ${student.displayName || student.name} marked as ${getLocalizedAttendanceLabel(status, t, lang)}`);
+        debug(`✅ ${student.displayName || student.name} marked as ${getLocalizedAttendanceLabel(status, lang)}`);
         
+        // Update override so buttons disable immediately
+        setTodayAttendanceOverrides(prev => ({ ...prev, [student.id]: status }));
+
         // Emit real-time event
         eventBus.emit(EVENTS.ATTENDANCE_MARKED, {
           studentId: student.id,
@@ -1061,7 +1065,7 @@ const StudentRoster = React.memo(function StudentRoster({
                strokeLinejoin="round">
             <polyline points="20 6 9 17 4 12"></polyline>
           </svg>
-            {getLocalizedAttendanceLabel(status, t, lang)}
+            {getLocalizedAttendanceLabel(status, lang)}
         </span>
       );
     }
@@ -1076,7 +1080,7 @@ const StudentRoster = React.memo(function StudentRoster({
           color: 'var(--text-on-colored, white)',
           border: `1px solid ${statusInfo.color}`
         }}>
-        {getLocalizedAttendanceLabel(status, t, lang)}
+        {getLocalizedAttendanceLabel(status, lang)}
       </span>
     );
   }, [lang, t]);
@@ -1151,14 +1155,37 @@ const StudentRoster = React.memo(function StudentRoster({
         marginBottom: '1.5rem'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <p style={{
-            fontSize: '0.875rem',
-            color: theme === 'dark' ? '#ffffff' : 'var(--text-muted, #6b7280)',
-            marginTop: '0.25rem',
-            marginBottom: 0
-          }}>
-            {totalStudents} {t('students') || 'Students'}
-          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <p data-tour="roster-student-count" style={{
+              fontSize: '0.875rem',
+              color: theme === 'dark' ? '#ffffff' : 'var(--text-muted, #6b7280)',
+              marginTop: '0.25rem',
+              marginBottom: 0
+            }}>
+              {totalStudents} {t('students') || 'Students'}
+            </p>
+            <PortalTooltip content={t('roster_help_tour') || 'Take a tour of the roster features'} position="bottom">
+              <button
+                onClick={() => window.dispatchEvent(new Event('app:roster-tour'))}
+                style={{
+                  padding: '0.25rem',
+                  background: 'transparent',
+                  color: 'var(--text-muted, #6b7280)',
+                  border: '1px solid var(--border, #e5e7eb)',
+                  borderRadius: '50%',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  width: '1.5rem',
+                  height: '1.5rem',
+                  transition: 'all 0.2s'
+                }}
+              >
+                <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>?</span>
+              </button>
+            </PortalTooltip>
+          </div>
           {isMobile && (
             <div style={{ display: 'flex', gap: '0.5rem' }}>
               <Button variant="ghost" size="icon" onClick={onFilter}>
@@ -1211,6 +1238,7 @@ const StudentRoster = React.memo(function StudentRoster({
             />
           </div>
           {/* Compact highlight toggle */}
+          <div data-tour="roster-highlight-toggle">
           <PortalTooltip content={highlightEnabled ? t('highlight_attention_rows') : (t('highlight_disabled') || 'Highlighting disabled')} position="top">
             <button
               onClick={() => onHighlightToggle?.(!highlightEnabled)}
@@ -1226,16 +1254,17 @@ const StudentRoster = React.memo(function StudentRoster({
                 justifyContent: 'center',
                 transition: 'all 0.2s'
               }}
-              title={highlightEnabled ? t('highlight_attention_rows') : (t('highlight_disabled') || 'Highlighting disabled')}
             >
               {getThemedIcon('ui', 'alert', 16, highlightEnabled ? 'white' : theme)}
             </button>
           </PortalTooltip>
+          </div>
           {!isMobile && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               {/* <Button variant="ghost" size="icon" onClick={onFilter}>
                 {getThemedIcon('ui', 'filter', 16, theme)}
               </Button> */}
+              <div data-tour="roster-favorite-toggle">
               <PortalTooltip 
                 content={`${showFavoritesOnly ? t('show_all_students') : t('show_favorites_only')} (${favoriteStudents.length} ${t('bookmarked') || 'bookmarked'})`} 
                 position="top"
@@ -1273,16 +1302,21 @@ const StudentRoster = React.memo(function StudentRoster({
                   )}
                 </Button>
               </PortalTooltip>
+              </div>
+              <div data-tour="roster-download">
               <PortalTooltip content={t('export_csv')} position="top">
                 <Button variant="ghost" size="icon" onClick={onDownload}>
                   {getThemedIcon('ui', 'download', 16, theme)}
                 </Button>
               </PortalTooltip>
+              </div>
+              <div data-tour="roster-refresh">
               <PortalTooltip content={t('refresh')} position="top">
                 <Button variant="ghost" size="icon" onClick={onRefresh}>
                   {getThemedIcon('ui', 'refresh', 16, theme)}
                 </Button>
               </PortalTooltip>
+              </div>
             </div>
           )}
         </div>
@@ -1346,10 +1380,10 @@ const StudentRoster = React.memo(function StudentRoster({
                     color: 'var(--text-muted, #6b7280)',
                     textTransform: 'uppercase',
                     letterSpacing: '0.05em',
-                    width: '80px'
+                    width: '90px'
                   }}
                 >
-                  {t('id')}
+                  {t('student_number') || 'Student No.'} / {t('id') || 'ID'}
                 </th>
                 <th style={{ width: '30px', padding: '0.5rem 0.5rem' }}></th>
                 <th 
@@ -1698,13 +1732,14 @@ const StudentRoster = React.memo(function StudentRoster({
                     toggleFilter={toggleFilter}
                     lang={lang}
                     historyLoading={historyLoading}
+                    todayAttendanceOverrides={todayAttendanceOverrides}
                     theme={theme}
                     rowHighlightStyle={rowHighlightStyle}
                   />
                 )})}
             </tbody>
             {/* Footer Row with Sums */}
-            <tfoot>
+            <tfoot data-tour="roster-summary-counts">
               <tr style={{
                 borderTop: '2px solid var(--border, #e5e7eb)',
                 background: 'var(--background-secondary, #f9fafb)',

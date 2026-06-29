@@ -17,6 +17,7 @@ import StudentStatsRow from './StudentStatsRow';
 import { CheckSmallIcon, ClockSmallIcon, XSmallIcon, HeartIcon, CircleIcon } from '@utils/icons.jsx';
 
 import { info, error, warn, debug } from '@services/utils/logger.js';
+import { getLocalizedUserName } from '@utils/localizedUserName';
 const StudentTableRow = ({
   student,
   isExpanded,
@@ -75,17 +76,17 @@ const StudentTableRow = ({
   // Status for current mode (used for button disable logic)
   const currentModeStatus = attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? student.standupStatus : student.attendance;
 
-  // Check if student has attendance for the current mode (already filtered by date in QRScannerPage)
+  // Check if student has attendance for the current mode (including overrides for immediate UI feedback)
   const hasAttendanceForMode = attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP
-    ? !!student.standupStatus
-    : !!student.attendance;
+    ? (!!student.standupStatus || !!todayAttendanceOverrides[student.id])
+    : (!!student.attendance || !!todayAttendanceOverrides[student.id]);
 
-  // Toggle logic: buttons are disabled based on current status, not just if any attendance exists
+  // Toggle logic: buttons are disabled based on current status (including overrides), not just if any attendance exists
   // If marked as Present, disable Present button but enable Late button (and vice versa)
-  const isPresentButtonDisabled = hasAttendanceForMode && currentModeStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_PRESENT' : 'PRESENT');
-  const isLateButtonDisabled = hasAttendanceForMode && currentModeStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_LATE' : 'LATE');
-  const isAbsentButtonDisabled = hasAttendanceForMode && currentModeStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_ABSENT' : 'ABSENT');
-  const isClinicButtonDisabled = hasAttendanceForMode && currentModeStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_CLINIC' : 'CLINIC');
+  const isPresentButtonDisabled = hasAttendanceForMode && todayStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_PRESENT' : 'PRESENT');
+  const isLateButtonDisabled = hasAttendanceForMode && todayStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_LATE' : 'LATE');
+  const isAbsentButtonDisabled = hasAttendanceForMode && todayStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_ABSENT' : 'ABSENT');
+  const isClinicButtonDisabled = hasAttendanceForMode && todayStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_CLINIC' : 'CLINIC');
 
   // Log 1: Inside disabled check, log Student ID and the specific record object being compared
   console.log('🔍 [LOG 1] StudentTableRow - Button disabled logic:', {
@@ -213,20 +214,14 @@ const StudentTableRow = ({
 
     try {
       await onQuickAttendance(student, status, mode || attendanceMode, programIdParam || programId);
-      // Show modal immediately, delay table refresh
-      showResult('success', `${t('successfully_marked')} ${getLocalizedAttendanceLabel(status, lang)}`, status);
-
-      // Delay to let user see the modal before table refresh
-      setTimeout(() => {
-        setIsSubmitting(false);
-      }, 2000); // 2 seconds delay
+      // Show success message with student name (same format as activity list)
+      const studentName = getLocalizedUserName(student, lang);
+      const statusLabel = getLocalizedAttendanceLabel(status, lang);
+      showResult('success', <span>{t('marked_as', { status: statusLabel }) || `Marked as ${statusLabel}!`}<br/><b style={{ textDecoration: 'underline' }}>{studentName}</b></span>, status);
     } catch (error) {
-      showResult('error', `${t('failed_to_mark')} ${getLocalizedAttendanceLabel(status, lang)}: ${error.message}`, status);
-
-      // Delay to let user see the error modal
-      setTimeout(() => {
-        setIsSubmitting(false);
-      }, 2000); // 2 seconds delay
+      const studentName = getLocalizedUserName(student, lang);
+      const statusLabel = getLocalizedAttendanceLabel(status, lang);
+      showResult('error', <span>{t('failed_to_mark')} {statusLabel}<br/><b style={{ textDecoration: 'underline' }}>{studentName}</b><br/>{error.message}</span>, status);
     }
   }, [isSubmitting, onQuickAttendance, showResult, lang, t, todayStatus, attendanceMode, programId]);
 
@@ -268,10 +263,13 @@ const StudentTableRow = ({
           textAlign: 'center',
           fontSize: '0.75rem',
           color: 'var(--text-muted, #6b7280)',
-          width: '80px',
+          width: '90px',
           fontWeight: 600
         }}>
-          {student.studentNumber || student.id}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.1rem', lineHeight: 1.2 }}>
+            <span>{student.studentNumber || '—'}</span>
+            <span style={{ fontSize: '0.65rem', color: 'var(--text-muted, #9ca3af)', fontWeight: 400 }}>#{student.id}</span>
+          </div>
         </td>
         <td style={{ padding: '0.5rem 0.75rem' }}>
           {attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && (
@@ -619,7 +617,7 @@ const StudentTableRow = ({
 
       {/* Result Modal - Rendered outside table using Portal */}
       {showResultModal && createPortal(
-        <div style={{
+        <div onClick={() => { setShowResultModal(false); setIsSubmitting(false); }} style={{
           position: 'fixed',
           top: 0,
           left: 0,
@@ -631,7 +629,7 @@ const StudentTableRow = ({
           justifyContent: 'center',
           zIndex: 9999
         }}>
-          <div style={{
+          <div onClick={(e) => e.stopPropagation()} style={{
             background: 'white',
             borderRadius: '1rem',
             padding: '2rem',
@@ -705,7 +703,7 @@ const StudentTableRow = ({
             </p>
 
             <Button
-              onClick={() => setShowResultModal(false)}
+              onClick={() => { setShowResultModal(false); setIsSubmitting(false); }}
               style={{
                 background: resultModalData.attendanceStatus ? 
                   getAttendanceColor(resultModalData.attendanceStatus) :

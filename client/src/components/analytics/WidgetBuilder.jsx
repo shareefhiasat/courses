@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useTheme } from '@contexts/ThemeContext';
 import { useLang } from '@contexts/LangContext';
 import { getThemedIcon } from '@constants/iconTypes';
-import { Select, DateRangeSlider } from '@ui';
+import { Select, DateRangeSlider, PortalTooltip } from '@ui';
 import {
   SOURCE_CATEGORIES,
   getCountMetricsForSource,

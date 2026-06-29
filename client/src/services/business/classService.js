@@ -98,7 +98,7 @@ export const getClass = getClassById;
 export const fetchClass = getClassById;
 export const addClass = createClass;
 
-export const deleteClass = async (id, user = null) => {
+export const deleteClass = async (id, user = null, options = {}) => {
   try {
     info(`${serviceName}:deleteClass`, { id });
     
@@ -110,7 +110,7 @@ export const deleteClass = async (id, user = null) => {
       };
     }
     
-    const result = await deleteClassBusiness(id, user);
+    const result = await deleteClassBusiness(id, user, options);
     return result;
   } catch (err) {
     console.error(`${serviceName}:deleteClass:error`, { error: err.message, id });

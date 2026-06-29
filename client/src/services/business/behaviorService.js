@@ -64,14 +64,15 @@ export async function createBehavior({
 
     const auditData = getCreateAuditData(user);
     const payload = {
-      classId,
-      userId: studentId,
-      ...(subjectId ? { subjectId } : {}),
-      ...(programId ? { programId } : {}),
+      classId: classId ? parseInt(classId) : null,
+      userId: parseInt(studentId),
+      ...(subjectId ? { subjectId: parseInt(subjectId) } : {}),
+      ...(programId ? { programId: parseInt(programId) } : {}),
       // Automatically map numeric type to typeId or fallback to 1
-      typeId: typeof type === 'number' ? type : 1,
+      typeId: typeof type === 'number' ? type : (typeof type === 'string' ? parseInt(type) || 1 : 1),
       points: typeof points !== 'undefined' ? Number(points) : 0,
-      description,
+      descriptionEn: description || '',
+      descriptionAr: description || '',
       date: todayStr,
       performedBy,
       performedByName,

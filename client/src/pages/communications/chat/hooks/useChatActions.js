@@ -7,12 +7,11 @@ import { useCallback, useRef } from 'react';
 import { chatService } from '@services/business/chatService';
 import { getChatServerTimestamp, uploadChatFile, deleteChatFile } from '@services/business/chatRealtimeService';
 import { addNotification } from '@services/business/notificationService';
-import { getUsers } from '@services/business/userService';
+import { getUsers, getUserRoles } from '@services/business/userService';
 import { filterBadWords } from '@utils/badWordFilter';
 import { canParticipate } from '@utils/userStatus';
 import { ActivityLogger } from '@services/other/activityLogger';
 import { info, error, warn, debug } from '@services/utils/logger.js';
-
 import {
   MESSAGE_TYPES,
   CHAT_TYPES,
@@ -32,6 +31,25 @@ import {
   canDeleteMessage,
   canEditMessage
 } from '../utils/chatHelpers';
+
+const normalizeUser = (u) => {
+  if (!u) return u;
+  if (u.docId) return u;
+  const roles = getUserRoles(u);
+  const roleCode = roles.includes('super_admin') ? 'super_admin'
+    : roles.includes('admin') ? 'admin'
+    : roles.includes('hr') ? 'hr'
+    : roles.includes('instructor') ? 'instructor'
+    : roles.includes('student') ? 'student' : undefined;
+  return {
+    ...u,
+    docId: u.keycloakId || u.uid || String(u.id),
+    uid: u.keycloakId || u.uid || String(u.id),
+    isStudent: roles.includes('student'),
+    role: roleCode,
+    enrolledClasses: u.enrolledClasses || []
+  };
+};
 
 export const useChatActions = (user, state, toast, t) => {
   const {
@@ -95,11 +113,12 @@ export const useChatActions = (user, state, toast, t) => {
       info('Loading global chat members');
       if (safeAllUsers.length > 0) {
         info('Using cached allUsers for global chat', { count: safeAllUsers.length });
-        state.setClassMembers(safeAllUsers.filter(u => u.docId !== user.uid && u.email !== user.email));
+        const normalized = safeAllUsers.map(normalizeUser);
+        state.setClassMembers(normalized.filter(u => u.docId !== user.uid && u.email !== user.email));
       } else {
         info('Fetching allUsers for global chat');
         const usersResult = await getUsers();
-        const all = usersResult.success ? (usersResult.data || []) : [];
+        const all = (usersResult.success ? (usersResult.data || []) : []).map(normalizeUser);
         info('Fetched allUsers', { count: all.length, success: usersResult.success });
         state.setAllUsers(all);
         state.setClassMembers(all.filter(u => u.docId !== user.uid && u.email !== user.email));
@@ -111,11 +130,11 @@ export const useChatActions = (user, state, toast, t) => {
     
     let allUsersToUse;
     if (safeAllUsers.length > 0) {
-      allUsersToUse = safeAllUsers;
+      allUsersToUse = safeAllUsers.map(normalizeUser);
     } else {
       info('Fetching allUsers for class members');
       const result = await getUsers();
-      allUsersToUse = result.success ? (result.data || []) : [];
+      allUsersToUse = (result.success ? (result.data || []) : []).map(normalizeUser);
     }
     
     let members = allUsersToUse.filter(u => 
@@ -208,10 +227,10 @@ export const useChatActions = (user, state, toast, t) => {
             }
           };
 
-          const { fileUrl: voiceUrl } = await uploadChatFile(voicePath, audioBlob, metadata);
+          const { fileUrl: voiceUrl, filePath: actualVoicePath } = await uploadChatFile(voicePath, audioBlob, metadata);
           messageData.messageType = MESSAGE_TYPES.VOICE;
           messageData.voiceUrl = voiceUrl;
-          messageData.voicePath = voicePath;
+          messageData.voicePath = actualVoicePath || voicePath;
           messageData.duration = recordingTime;
           messageData.content = '[Voice Message]';
         } catch (uploadError) {
@@ -224,11 +243,11 @@ export const useChatActions = (user, state, toast, t) => {
         // File attachment
         const safeName = sanitizeFilename(attachedFile.name);
         const filePath = `chat-attachments/${Date.now()}_${user.uid}_${safeName}`;
-        const { fileUrl } = await uploadChatFile(filePath, attachedFile);
+        const { fileUrl, filePath: actualFilePath } = await uploadChatFile(filePath, attachedFile);
         
         messageData.messageType = MESSAGE_TYPES.FILE;
         messageData.fileUrl = fileUrl;
-        messageData.filePath = filePath;
+        messageData.filePath = actualFilePath || filePath;
         messageData.fileName = attachedFile.name;
         messageData.fileSize = attachedFile.size;
         messageData.fileType = attachedFile.type;

@@ -52,7 +52,7 @@ const QuickActionButtons = ({
       display: 'flex',
       alignItems: 'center',
       gap: '0.25rem',
-      marginRight: '0.5rem'
+      marginRight: '0.125rem'
     }}>
       {/* Quick Present Button */}
       <PortalTooltip

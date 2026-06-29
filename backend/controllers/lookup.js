@@ -271,10 +271,11 @@ export const deleteLookupController = async (req, res) => {
     const { type, id } = req.params;
     // Use updatedBy from request body (database ID) instead of req.user?.id (Keycloak UUID)
     const userId = req.body?.updatedBy || req.user?.id;
+    const options = { force: req.body?.force || req.query?.force === 'true' };
     
     console.log('🔍 Delete controller:', { type, id, userId, body: req.body, user: req.user?.id });
     
-    const result = await deleteLookupData(type, id, userId);
+    const result = await deleteLookupData(type, id, userId, options);
     
     if (result.success) {
       res.status(200).json(result);

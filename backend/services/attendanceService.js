@@ -83,6 +83,9 @@ export const getAllAttendance = async (params = {}) => {
               displayName: true,
               firstName: true,
               lastName: true,
+              firstNameAr: true,
+              lastNameAr: true,
+              displayNameAr: true,
               studentNumber: true
             }
           },

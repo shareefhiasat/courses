@@ -18,7 +18,8 @@ import {
   NOTIFICATION_STATUS,
   getNotificationIcon,
   getNotificationTypeOptions,
-  getNotificationStatusOptions
+  getNotificationStatusOptions,
+  getCategoryColor
 } from '@constants/notificationTypes.jsx';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
@@ -38,24 +39,6 @@ import useNotificationsFeed from '@hooks/useNotificationsFeed';
 import { getPrograms, getSubjects } from '@services/business/programService';
 import { getClasses } from '@services/business/classService';
 
-const CATEGORY_COLORS = {
-  ASSESSMENT: '#3b82f6',
-  COMMUNICATION: '#f59e0b',
-  ANNOUNCEMENT: '#06b6d4',
-  ATTENDANCE: '#f97316',
-  WORKFLOW: '#8b5cf6',
-  BEHAVIOR: '#ec4899',
-  FILE: '#6366f1',
-  QR: '#14b8a6',
-  PARTICIPATION: '#22c55e',
-  PENALTY: '#ef4444',
-  RESOURCE: '#6366f1',
-  ACADEMIC: '#3b82f6',
-  SYSTEM: '#6b7280'
-};
-
-const getCategoryColor = (type) => CATEGORY_COLORS[type] || '#6b7280';
-
 const getDateGroup = (timestamp) => {
   if (!timestamp) return 'Earlier';
   const date = timestamp?.seconds ? new Date(timestamp.seconds * 1000) : new Date(timestamp);
@@ -71,7 +54,15 @@ const getDateGroup = (timestamp) => {
   return 'Earlier';
 };
 
-const GROUP_LABELS = { Today: 'Today', Yesterday: 'Yesterday', 'This Week': 'This Week', Earlier: 'Earlier' };
+const getGroupLabel = (group, t) => {
+  const labels = {
+    Today: t('notifications.today') || 'Today',
+    Yesterday: t('notifications.yesterday') || 'Yesterday',
+    'This Week': t('notifications.this_week') || 'This Week',
+    Earlier: t('notifications.earlier') || 'Earlier'
+  };
+  return labels[group] || group;
+};
 
 const NotificationDrawer = ({ isOpen, onClose }) => {
   const { user } = useAuth();
@@ -272,8 +263,8 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
       groups[group].push(n);
     });
     const order = ['Today', 'Yesterday', 'This Week', 'Earlier'];
-    return order.filter(g => groups[g]).map(g => ({ label: GROUP_LABELS[g], items: groups[g] }));
-  }, [filteredNotifications]);
+    return order.filter(g => groups[g]).map(g => ({ label: getGroupLabel(g, t), items: groups[g] }));
+  }, [filteredNotifications, t]);
 
   const archivedCount = notifications.filter(n => n.isArchived).length;
 
@@ -568,25 +559,49 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
               onChange={(e) => setFilterType(e.target.value)}
               options={getNotificationStatusOptions(t, lang).map(option => ({
                 ...option,
-                label: option.value === NOTIFICATION_STATUS.UNREAD ? `Unread (${unreadCount})` :
-                       option.value === NOTIFICATION_STATUS.ARCHIVED ? `Archived (${archivedCount})` :
+                label: option.value === NOTIFICATION_STATUS.UNREAD ? `${t('unread') || 'Unread'} (${unreadCount})` :
+                       option.value === NOTIFICATION_STATUS.ARCHIVED ? `${t('archived') || 'Archived'} (${archivedCount})` :
                        option.label
               }))}
               size="small"
               style={{ flex: 1, minWidth: '80px', fontSize: '0.75rem' }}
             />
-            <Select
-              value={filterCategory}
-              onChange={(e) => {
-                setFilterCategory(e.target.value);
-                setFilterPenaltyType('all');
-                setFilterAttendanceStatus('all');
-                setFilterAbsenceType('all');
-              }}
-              options={[{ value: 'all', label: t('all_categories') || 'All' }, ...getNotificationTypeOptions(t, lang)]}
-              size="small"
-              style={{ flex: 1, minWidth: '80px', fontSize: '0.75rem' }}
-            />
+            <div style={{ display: 'flex', flex: 1, minWidth: '80px', gap: '0.25rem', alignItems: 'center' }}>
+              <Select
+                value={filterCategory}
+                onChange={(e) => {
+                  setFilterCategory(e.target.value);
+                  setFilterPenaltyType('all');
+                  setFilterAttendanceStatus('all');
+                  setFilterAbsenceType('all');
+                }}
+                options={[{ value: 'all', label: t('all_categories') || 'All' }, ...getNotificationTypeOptions(t, lang)]}
+                size="small"
+                style={{ flex: 1, fontSize: '0.75rem' }}
+              />
+              <PortalTooltip content={t('advanced_filters') || 'Advanced filters'} position="top">
+                <button
+                  onClick={(e) => { e.stopPropagation(); setShowAdvanced(!showAdvanced) }}
+                  style={{
+                    background: showAdvanced ? 'rgba(128,0,32,0.15)' : 'transparent',
+                    border: 'none',
+                    color: showAdvanced ? 'var(--color-primary, #800020)' : (isDark ? '#9ca3af' : '#6b7280'),
+                    cursor: 'pointer',
+                    padding: '4px',
+                    borderRadius: '6px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'all 0.2s ease',
+                    flexShrink: 0
+                  }}
+                  onMouseEnter={(e) => { if (!showAdvanced) e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.05)' : '#f3f4f6' }}
+                  onMouseLeave={(e) => { if (!showAdvanced) e.currentTarget.style.background = 'transparent' }}
+                >
+                  {getThemedIcon('ui', 'sliders_horizontal', 16, theme)}
+                </button>
+              </PortalTooltip>
+            </div>
             {filterCategory === RECORD_TYPES.PENALTY && (
               <Select
                 value={filterPenaltyType}
@@ -628,39 +643,6 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
                 style={{ flex: 1, minWidth: '100px', fontSize: '0.75rem' }}
               />
             )}
-          </div>
-
-          {/* ── Advanced Toggle ── */}
-          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.4rem' }}>
-            <button
-              onClick={(e) => { e.stopPropagation(); setShowAdvanced(!showAdvanced) }}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: showAdvanced ? 'var(--color-primary, #800020)' : (isDark ? '#9ca3af' : '#6b7280'),
-                cursor: 'pointer',
-                fontSize: '0.7rem',
-                fontWeight: 500,
-                display: 'flex',
-                alignItems: 'center',
-                gap: '0.25rem',
-                padding: '0.2rem 0.4rem',
-                borderRadius: '4px'
-              }}
-              onMouseEnter={(e) => { e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.05)' : '#f3f4f6' }}
-              onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
-            >
-              {getThemedIcon('ui', 'filter', 13, theme)}
-              <span
-                style={{
-                  display: 'inline-block',
-                  minWidth: '6em',
-                  textAlign: 'center'
-                }}
-              >
-                {showAdvanced ? 'Hide advanced filters' : 'Advanced filters'}
-              </span>
-            </button>
           </div>
 
           {/* ── Collapsible Advanced Filters ── */}
@@ -849,7 +831,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
                       border: `1px solid ${notification.isRead
                         ? (isDark ? 'rgba(255,255,255,0.04)' : '#e5e7eb')
                         : (isDark ? 'rgba(128,0,32,0.25)' : '#c7d2fe')}`,
-                      borderLeft: `4px solid ${getCategoryColor(notification.type)}`,
+                      [isRTL ? 'borderRight' : 'borderLeft']: `4px solid ${getCategoryColor(notification.type)}`,
                       cursor: 'pointer',
                       transition: 'all 0.2s',
                       position: 'relative'

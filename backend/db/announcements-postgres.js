@@ -657,7 +657,7 @@ export const updateAnnouncement = async (announcementId, updateData, user = null
  * @param {Object} user - User object for audit trail
  * @returns {Promise<Object>} - Result object with success status and data
  */
-export const deleteAnnouncement = async (announcementId, user = null) => {
+export const deleteAnnouncement = async (announcementId, user = null, options = {}) => {
   try {
     console.log(`[Announcements DB] Deleting announcement: ${announcementId}`);
     
@@ -676,13 +676,14 @@ export const deleteAnnouncement = async (announcementId, user = null) => {
       };
     }
     
-    // Delete the announcement (no dependencies to check)
-    await prisma.announcement.delete({
-      where: { id: parseInt(announcementId) }
+    // Soft delete: set isActive = false
+    await prisma.announcement.update({
+      where: { id: parseInt(announcementId) },
+      data: { isActive: false }
     });
     
     const executionTime = Date.now() - startTime;
-    console.log(`[Announcements DB] ✅ Deleted announcement in ${executionTime}ms`);
+    console.log(`[Announcements DB] ✅ Soft deleted announcement in ${executionTime}ms`);
     
     return {
       success: true,

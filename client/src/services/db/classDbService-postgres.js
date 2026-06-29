@@ -165,12 +165,12 @@ class ClassDbService {
   /**
    * Delete a class (soft delete)
    */
-  async delete(id) {
+  async delete(id, options = {}) {
     const startTime = Date.now();
     try {
-      console.log(`[${this.serviceName}] Deleting class:`, { id });
+      console.log(`[${this.serviceName}] Deleting class:`, { id, force: options.force });
       
-      const result = await api.delete(`/classes/${id}`);
+      const result = await api.delete(`/classes/${id}`, { data: { force: options.force || false } });
 
       const duration = Date.now() - startTime;
       console.log(`[${this.serviceName}] ✅ Deleted class in ${duration}ms`, { classId: id });
@@ -178,6 +178,9 @@ class ClassDbService {
       return {
         success: result.success,
         error: result.error,
+        code: result.code,
+        dependencies: result.dependencies,
+        message: result.message,
         duration: `${duration}ms`
       };
     } catch (error) {

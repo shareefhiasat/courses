@@ -6,9 +6,10 @@
  */
 
 import React from 'react';
-import { Modal } from '@ui';
-import { getAttendanceIcon, getAttendanceColor } from '@constants/attendanceTypes';
+import { createPortal } from 'react-dom';
+import { getAttendanceIcon, getAttendanceColor, getLocalizedAttendanceLabel } from '@constants/attendanceTypes';
 import { getThemedIcon } from '@constants/iconTypes';
+import { useLang } from '@contexts/LangContext';
 
 const AttendanceResultModal = ({ 
   isOpen, 
@@ -18,81 +19,103 @@ const AttendanceResultModal = ({
   isSummary = false,
   attendanceStatus = null 
 }) => {
-  // If attendance status is provided, use its color and icon
-  let finalType = type;
-  let finalMessage = message;
-  let iconColor = '#6b7280'; // Default gray
+  const { lang, t } = useLang();
+  if (!isOpen) return null;
+
+  let iconColor = '#6b7280';
   let iconName = 'CheckCircle';
   
-  // Always prioritize attendance status for colors and icons
   if (attendanceStatus) {
     iconColor = getAttendanceColor(attendanceStatus);
     iconName = getAttendanceIcon(attendanceStatus);
   } else if (type) {
-    // Fallback to type-based colors for backward compatibility
-    iconColor = getAttendanceColor(type);
-    iconName = getAttendanceIcon(type);
+    if (type === 'success') { iconColor = '#16a34a'; iconName = 'CheckCircle'; }
+    else if (type === 'error') { iconColor = '#dc2626'; iconName = 'XCircle'; }
+    else if (type === 'info') { iconColor = '#3b82f6'; iconName = 'Info'; }
   }
 
-  return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title={isSummary ? 'Attendance Summary' : 'Attendance Result'}
-      size="small"
-      showCloseButton={false}
-      closeOnOverlayClick={false}
-      closeOnEscape={false}
+  const displayMessage = isSummary 
+    ? (typeof message === 'object' ? JSON.stringify(message) : message)
+    : message;
+
+  return createPortal(
+    <div
+      onClick={onClose}
+      style={{
+        position: 'fixed',
+        inset: 0,
+        background: 'rgba(0, 0, 0, 0.5)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 9999,
+        cursor: 'pointer'
+      }}
     >
-      <div style={{ 
-        padding: '1rem 0',
-        textAlign: 'center'
-      }}>
+      <div
+        onClick={(e) => e.stopPropagation()}
+        style={{
+          background: 'white',
+          borderRadius: '1rem',
+          padding: '2rem',
+          maxWidth: '400px',
+          width: '90%',
+          textAlign: 'center',
+          boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
+          cursor: 'default'
+        }}
+      >
         <div style={{
+          width: '60px',
+          height: '60px',
+          borderRadius: '50%',
+          background: iconColor,
           display: 'flex',
+          alignItems: 'center',
           justifyContent: 'center',
-          marginBottom: '1rem'
+          margin: '0 auto 1rem auto'
         }}>
-          <div style={{
-            width: '48px',
-            height: '48px',
-            borderRadius: '50%',
-            backgroundColor: `${iconColor}20`,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center'
-          }}>
-            {getThemedIcon('ui', iconName.toLowerCase(), 24, iconColor)}
-          </div>
+          {getThemedIcon('ui', iconName.toLowerCase(), 30, 'white')}
         </div>
-        
-        <p style={{ 
-          fontSize: '1rem', 
-          lineHeight: 1.5,
-          color: 'var(--text, #111827)',
-          margin: '0 0 1rem 0',
-          fontWeight: '500'
+
+        <h3 style={{
+          fontSize: '1.25rem',
+          fontWeight: '600',
+          color: '#111827',
+          margin: '0 0 0.5rem 0'
         }}>
-          {finalMessage}
+          {attendanceStatus ? getLocalizedAttendanceLabel(attendanceStatus, lang) : 
+            (type === 'success' ? (t('success') || 'Success') : type === 'error' ? (t('error') || 'Error') : type === 'info' ? (t('info') || 'Info') : (t('information') || 'Information'))}
+        </h3>
+
+        <p style={{
+          fontSize: '1rem',
+          color: '#6b7280',
+          margin: '0 0 1.5rem 0',
+          lineHeight: '1.5'
+        }}>
+          {displayMessage}
         </p>
-        
+
         <button
           onClick={onClose}
           style={{
-            padding: '0.5rem 1rem',
-            backgroundColor: iconColor,
+            background: iconColor,
             color: 'white',
             border: 'none',
-            borderRadius: '0.375rem',
+            padding: '0.75rem 1.5rem',
+            borderRadius: '0.5rem',
+            fontSize: '1rem',
+            fontWeight: '500',
             cursor: 'pointer',
-            fontSize: '0.875rem',
-            fontWeight: '500'
+            width: '100%'
           }}
         >
-          OK
+          {t('ok') || 'OK'}
         </button>
       </div>
-    </Modal>
+    </div>,
+    document.body
   );
 };
 

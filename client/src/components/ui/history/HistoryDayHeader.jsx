@@ -178,9 +178,6 @@ export const HistoryDayHeader = ({
         gap: '0.5rem',
         color: palette.textMuted
       }}>
-        <span style={{ fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.08em' }}>
-          {isDayExpanded ? t('collapse') ?? '' : t('expand') ?? ''}
-        </span>
         <svg
           style={{
             width: '20px',

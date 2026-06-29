@@ -263,7 +263,7 @@ export const updateActivity = async (activityId, updateData, user = null) => {
  * @param {Object} user - User object
  * @returns {Promise<Object>} - Result object with success status and data
  */
-export const deleteActivity = async (activityId, user = null) => {
+export const deleteActivity = async (activityId, user = null, options = {}) => {
   try {
     if (!activityId) {
       return {
@@ -273,10 +273,7 @@ export const deleteActivity = async (activityId, user = null) => {
       };
     }
     
-    // Business rule: Check if user has permission to delete
-    // This would typically involve checking user role and ownership
-    
-    const result = await deleteActivityInDb(activityId, user);
+    const result = await deleteActivityInDb(activityId, user, options);
     return result;
   } catch (error) {
     console.error('Error in deleteActivity:', error);

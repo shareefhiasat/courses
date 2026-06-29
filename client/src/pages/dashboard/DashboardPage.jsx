@@ -82,6 +82,8 @@ const DashboardPage = () => {
       } catch {
         // ignore
       }
+      // Notify child pages that the dashboard tour is done so they can start theirs
+      window.dispatchEvent(new CustomEvent('dashboard-tour-finished'));
     }
   }, [lang]);
   const TourTooltipComponent = useMemo(() => TourTooltip({ tourSeenKey: `dashboardHelpSeen_${lang}` }), [lang]);
@@ -365,12 +367,67 @@ const DashboardPage = () => {
   const buildTourSteps = useCallback(() => {
     const allSteps = [
       { target: '[data-tour="mode-switcher"]', content: t('tour.mode_switcher_content'), disableBeacon: true, placement: 'bottom' },
+    ];
+
+    // Add a step for each visible ribbon tab
+    const tabDescriptions = {
+      activities: t('tour.tab_activities') || 'Create and manage class activities, assignments, and quizzes.',
+      announcements: t('tour.tab_announcements') || 'Post announcements visible to students in their classes.',
+      resources: t('tour.tab_resources') || 'Upload and organize shared files and learning resources.',
+      programs: t('tour.tab_programs') || 'Define academic programs (e.g., Diploma, Bachelor).',
+      subjects: t('tour.tab_subjects') || 'Manage subjects offered under each program.',
+      classes: t('tour.tab_classes') || 'Create and manage individual class sections.',
+      enrollments: t('tour.tab_enrollments') || 'View and manage student enrollments across classes.',
+      'manage-enrollments': t('tour.tab_manage_enrollments') || 'Enable/disable student access per class.',
+      marks: t('tour.tab_marks') || 'Enter and manage student grades and marks.',
+      penalty: t('tour.tab_penalty') || 'Record and track student penalties.',
+      participation: t('tour.tab_participation') || 'Track student participation scores.',
+      behavior: t('tour.tab_behavior') || 'Log and monitor student behavior incidents.',
+      users: t('tour.tab_users') || 'Manage user accounts, roles, and permissions.',
+      'user-category-access': t('tour.tab_user_access') || 'Configure category-level access per user role.',
+      emailTemplates: t('tour.tab_email_templates') || 'Customize email notification templates.',
+      notificationLogs: t('tour.tab_notification_logs') || 'View sent notification history and delivery status.',
+      'scheduled-reports': t('tour.tab_scheduled_reports') || 'Configure automated report delivery schedules.',
+      categories: t('tour.tab_categories') || 'Manage classification categories for activities and resources.',
+      'activity-types': t('tour.tab_activity_types') || 'Configure activity type lookups (read-only).',
+      'behavior-types': t('tour.tab_behavior_types') || 'Configure behavior type lookups.',
+      'participation-types': t('tour.tab_participation_types') || 'Configure participation type lookups.',
+      'penalty-types': t('tour.tab_penalty_types') || 'Configure penalty type lookups.',
+      'summary-dashboard': t('tour.tab_summary_dashboard') || 'View scheduling overview and statistics.',
+      'scheduling-calendar': t('tour.tab_scheduling_calendar') || 'Plan and manage class schedules on a calendar.',
+      'instructor-availability': t('tour.tab_instructor_availability') || 'Set up instructor availability time slots.',
+      'classroom-availability': t('tour.tab_classroom_availability') || 'Set up room availability for scheduling.',
+      'classrooms-management': t('tour.tab_classrooms_management') || 'Manage classroom locations and capacities.',
+      'resource-types': t('tour.tab_resource_types') || 'View resource type lookups (read-only).',
+      'priority-types': t('tour.tab_priority_types') || 'View priority type lookups (read-only).',
+      'user-roles': t('tour.tab_user_roles') || 'View user role definitions (read-only).',
+      'subject-types': t('tour.tab_subject_types') || 'View subject type lookups (read-only).',
+      'assessment-types': t('tour.tab_assessment_types') || 'View assessment type lookups (read-only).',
+      'question-types': t('tour.tab_question_types') || 'View question type lookups (read-only).',
+      'attendance-status-types': t('tour.tab_attendance_status_types') || 'View attendance status lookups (read-only).',
+      'enrollment-status-types': t('tour.tab_enrollment_status_types') || 'View enrollment status lookups (read-only).',
+    };
+    ribbonCategories.forEach(cat => {
+      cat.items.forEach(item => {
+        const selector = `[data-tour="tab-${item.key}"]`;
+        if (document.querySelector(selector)) {
+          allSteps.push({
+            target: selector,
+            content: tabDescriptions[item.key] || item.label,
+            disableBeacon: true,
+            placement: 'bottom',
+          });
+        }
+      });
+    });
+
+    allSteps.push(
       { target: '[data-tour="stats"]',         content: t('tour.stats_content'),         disableBeacon: true, placement: 'bottom' },
       { target: '[data-tour="filters"]',       content: t('tour.filters_content'),       disableBeacon: true, placement: 'bottom' },
       { target: '[data-tour="cards-grid"]',    content: t('tour.cards_grid_content'),    disableBeacon: true, placement: 'top' },
-    ];
+    );
     return allSteps.filter(s => !!document.querySelector(s.target));
-  }, [t]);
+  }, [t, ribbonCategories]);
 
   const startTour = useCallback(() => {
     const steps = buildTourSteps();

@@ -126,24 +126,52 @@ export const STANDUP_ATTENDANCE_TYPES = {
   STANDUP_CLINIC: 'STANDUP_CLINIC'
 };
 
+// Normalize status values to canonical keys (case-insensitive + alias mapping)
+const STATUS_ALIASES = {
+  'ABSENT': 'ABSENT_NO_EXCUSE',
+  'ABSENT_NO_EXCUSE': 'ABSENT_NO_EXCUSE',
+  'ABSENT_WITH_EXCUSE': 'ABSENT_WITH_EXCUSE',
+  'EXCUSED': 'EXCUSED_LEAVE',
+  'EXCUSED_LEAVE': 'EXCUSED_LEAVE',
+  'HUMAN_CASE': 'HUMAN_CASE',
+  'HUMANITARIAN': 'HUMAN_CASE',
+  'CLINIC': 'HUMAN_CASE',
+  'PRESENT': 'PRESENT',
+  'LATE': 'LATE',
+  'STANDUP_PRESENT': 'STANDUP_PRESENT',
+  'STANDUP_LATE': 'STANDUP_LATE',
+  'STANDUP_ABSENT': 'STANDUP_ABSENT',
+  'STANDUP_CLINIC': 'STANDUP_CLINIC',
+};
+
+const normalizeStatus = (status) => {
+  if (!status) return status;
+  const upper = String(status).toUpperCase();
+  return STATUS_ALIASES[upper] || upper;
+};
+
 // Helper functions
 export const getAttendanceDisplayName = (status) => {
-  return ATTENDANCE_DISPLAY_NAMES[status] || status;
+  const normalized = normalizeStatus(status);
+  return ATTENDANCE_DISPLAY_NAMES[normalized] || status;
 };
 
 export const getAttendanceColor = (status) => {
-  return ATTENDANCE_COLORS[status] || '#6b7280';
+  const normalized = normalizeStatus(status);
+  return ATTENDANCE_COLORS[normalized] || '#6b7280';
 };
 
 export const getAttendanceIcon = (status) => {
-  return ATTENDANCE_ICONS[status] || 'HelpCircle';
+  const normalized = normalizeStatus(status);
+  return ATTENDANCE_ICONS[normalized] || 'HelpCircle';
 };
 
 // Add missing getAttendanceLabel function (alias for getAttendanceDisplayName)
 export const getAttendanceLabel = getAttendanceDisplayName;
 
 export const isValidAttendanceStatus = (status) => {
-  return Object.values(ATTENDANCE_STATUS).includes(status);
+  const normalized = normalizeStatus(status);
+  return Object.values(ATTENDANCE_STATUS).includes(normalized);
 };
 
 export const isValidAttendanceMethod = (method) => {
@@ -177,11 +205,12 @@ export const getLocalizedAttendanceLabel = (status, lang = 'en') => {
       [ATTENDANCE_STATUS.STANDUP_PRESENT]: 'حاضر',
       [ATTENDANCE_STATUS.STANDUP_LATE]: 'متأخر',
       [ATTENDANCE_STATUS.STANDUP_ABSENT]: 'غائب',
-      [ATTENDANCE_STATUS.STANDUP_CLINIC]: 'غائب عيادة'
+      [ATTENDANCE_STATUS.STANDUP_CLINIC]: 'عيادة'
     }
   };
 
-  return labels[lang]?.[status] || labels.en[status] || status;
+  const normalized = normalizeStatus(status);
+  return labels[lang]?.[normalized] || labels.en[normalized] || status;
 };
 
 export default {

@@ -72,7 +72,7 @@ const DatePicker = ({
             className={styles.iconWrapper}
             onClick={() => inputRef.current?.showPicker?.()}
           >
-            {getThemedIcon('ui', 'calendar', 18, theme)}
+            {getThemedIcon('ui', 'calendar', 14, theme)}
           </div>
         )}
       </div>

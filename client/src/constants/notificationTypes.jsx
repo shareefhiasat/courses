@@ -81,12 +81,12 @@ export const getNotificationIcon = (type, size = 20) => {
   return <IconComponent size={size} />;
 };
 
-export const getNotificationStatusOptions = () => {
+export const getNotificationStatusOptions = (t) => {
   return [
-    { value: NOTIFICATION_FILTERS.ALL, label: 'All' },
-    { value: NOTIFICATION_FILTERS.UNREAD, label: 'Unread' },
-    { value: NOTIFICATION_FILTERS.READ, label: 'Read' },
-    { value: NOTIFICATION_FILTERS.ARCHIVED, label: 'Archived' }
+    { value: NOTIFICATION_FILTERS.ALL, label: (t && t('all')) || 'All' },
+    { value: NOTIFICATION_FILTERS.UNREAD, label: (t && t('unread')) || 'Unread' },
+    { value: NOTIFICATION_FILTERS.READ, label: (t && t('read')) || 'Read' },
+    { value: NOTIFICATION_FILTERS.ARCHIVED, label: (t && t('archived')) || 'Archived' }
   ];
 };
 
@@ -104,10 +104,25 @@ export const getNotificationChannelOptions = () => {
   }));
 };
 
-export const getNotificationTypeOptions = () => {
+export const getNotificationTypeOptions = (t) => {
+  const labels = {
+    SYSTEM: (t && t('notif_type_system')) || 'System',
+    ACADEMIC: (t && t('notif_type_academic')) || 'Academic',
+    ATTENDANCE: (t && t('notif_type_attendance')) || 'Attendance',
+    ASSESSMENT: (t && t('notif_type_assessment')) || 'Assessment',
+    COMMUNICATION: (t && t('notif_type_communication')) || 'Communication',
+    ANNOUNCEMENT: (t && t('notif_type_announcement')) || 'Announcement',
+    WORKFLOW: (t && t('notif_type_workflow')) || 'Workflow',
+    BEHAVIOR: (t && t('notif_type_behavior')) || 'Behavior',
+    FILE: (t && t('notif_type_file')) || 'File',
+    QR: (t && t('notif_type_qr')) || 'QR Code',
+    PARTICIPATION: (t && t('notif_type_participation')) || 'Participation',
+    PENALTY: (t && t('notif_type_penalty')) || 'Penalty',
+    RESOURCE: (t && t('notif_type_resource')) || 'Resource'
+  };
   return Object.entries(NOTIFICATION_TYPES).map(([key, value]) => ({
     value: value,
-    label: key.charAt(0) + key.slice(1).toLowerCase()
+    label: labels[key] || key.charAt(0) + key.slice(1).toLowerCase()
   }));
 };
 
@@ -153,6 +168,25 @@ export const getNotificationStatusLabel = (status) => {
   
   return labels[status] || status;
 };
+
+// Shared category colors — used by NotificationDrawer and NotificationsPage
+export const CATEGORY_COLORS = {
+  ASSESSMENT: '#3b82f6',
+  COMMUNICATION: '#f59e0b',
+  ANNOUNCEMENT: '#06b6d4',
+  ATTENDANCE: '#f97316',
+  WORKFLOW: '#8b5cf6',
+  BEHAVIOR: '#ec4899',
+  FILE: '#6366f1',
+  QR: '#14b8a6',
+  PARTICIPATION: '#22c55e',
+  PENALTY: '#ef4444',
+  RESOURCE: '#6366f1',
+  ACADEMIC: '#3b82f6',
+  SYSTEM: '#6b7280'
+};
+
+export const getCategoryColor = (type) => CATEGORY_COLORS[type] || '#6b7280';
 
 // Default export
 export default {
