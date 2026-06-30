@@ -35,6 +35,19 @@ import { EVENTS } from '../services/notifications/constants.js';
 import { logPermissionDenial } from '../services/permissionDenialAuditService.js';
 
 /**
+ * Convert MinIO image keys in comment author objects to proxy URLs.
+ */
+const mapCommentAuthorImages = (comments) => {
+  if (!comments) return comments;
+  return comments.map(c => {
+    if (!c.author?.profileImageUrl) return c;
+    const url = c.author.profileImageUrl;
+    if (url.startsWith('http') || url.startsWith('/api/')) return c;
+    return { ...c, author: { ...c.author, profileImageUrl: `/api/v1/user-images/proxy/${c.author.keycloakId}/profile` } };
+  });
+};
+
+/**
  * POST /api/v1/workflow-documents
  * Create a new workflow document
  */
@@ -285,7 +298,7 @@ export const getWorkflowCommentsController = async (req, res) => {
     if (result.success) {
       res.status(200).json({
         success: true,
-        data: result.data
+        data: mapCommentAuthorImages(result.data)
       });
     } else {
       res.status(400).json({

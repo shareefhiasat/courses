@@ -18,6 +18,23 @@ import {
 import { applyListScope } from '../utils/applyListScope.js';
 
 /**
+ * Convert raw MinIO image keys in enrollment user objects to proxy URLs.
+ * Works on both single enrollment objects and arrays.
+ */
+const mapProfileImages = (data) => {
+  if (!data) return data;
+  const mapOne = (enrollment) => {
+    if (!enrollment?.user) return enrollment;
+    const u = enrollment.user;
+    if (u.profileImageUrl && !u.profileImageUrl.startsWith('http') && !u.profileImageUrl.startsWith('/api/')) {
+      return { ...enrollment, user: { ...u, profileImageUrl: `/api/v1/user-images/proxy/${u.keycloakId}/profile` } };
+    }
+    return enrollment;
+  };
+  return Array.isArray(data) ? data.map(mapOne) : mapOne(data);
+};
+
+/**
  * GET /api/v1/enrollments
  * Get all enrollments
  */
@@ -31,7 +48,7 @@ export const getAllEnrollmentsController = async (req, res) => {
     if (result.success) {
       res.status(200).json({
         success: true,
-        data: result.data,
+        data: mapProfileImages(result.data),
         total: result.total,
         page: result.page,
         limit: result.limit,
@@ -66,7 +83,7 @@ export const getEnrollmentByIdController = async (req, res) => {
     if (result.success) {
       res.status(200).json({
         success: true,
-        data: result.data
+        data: mapProfileImages(result.data)
       });
     } else {
       if (result.error.includes('not found')) {
@@ -102,7 +119,7 @@ export const createEnrollmentController = async (req, res) => {
     if (result.success) {
       res.status(201).json({
         success: true,
-        data: result.data,
+        data: mapProfileImages(result.data),
         message: 'Enrollment created successfully'
       });
     } else {
@@ -133,7 +150,7 @@ export const updateEnrollmentController = async (req, res) => {
     if (result.success) {
       res.status(200).json({
         success: true,
-        data: result.data,
+        data: mapProfileImages(result.data),
         message: 'Enrollment updated successfully'
       });
     } else {
@@ -208,7 +225,7 @@ export const getEnrollmentsByStudentController = async (req, res) => {
     if (result.success) {
       res.status(200).json({
         success: true,
-        data: result.data,
+        data: mapProfileImages(result.data),
         total: result.total
       });
     } else {
@@ -239,7 +256,7 @@ export const getEnrollmentsByClassController = async (req, res) => {
     if (result.success) {
       res.status(200).json({
         success: true,
-        data: result.data,
+        data: mapProfileImages(result.data),
         total: result.total
       });
     } else {
@@ -274,7 +291,7 @@ export const getStudentsByClassController = async (req, res) => {
     if (result.success) {
       res.status(200).json({
         success: true,
-        data: result.data,
+        data: mapProfileImages(result.data),
         total: result.total
       });
     } else {
@@ -304,7 +321,7 @@ export const getEnrollmentsByProgramController = async (req, res) => {
     if (result.success) {
       res.status(200).json({
         success: true,
-        data: result.data,
+        data: mapProfileImages(result.data),
         total: result.total
       });
     } else {

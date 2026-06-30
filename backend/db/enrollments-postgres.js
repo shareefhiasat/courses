@@ -135,6 +135,7 @@ const getEnrollments = async (params = {}) => {
         user: {
           select: {
             id: true,
+            keycloakId: true,
             displayName: true,
             displayNameAr: true,
             email: true,
@@ -142,7 +143,8 @@ const getEnrollments = async (params = {}) => {
             lastName: true,
             firstNameAr: true,
             lastNameAr: true,
-            studentNumber: true
+            studentNumber: true,
+            profileImageUrl: true
           }
         },
         class: {
@@ -238,6 +240,7 @@ const getEnrollmentById = async (id) => {
         user: {
           select: {
             id: true,
+            keycloakId: true,
             displayName: true,
             displayNameAr: true,
             email: true,
@@ -245,7 +248,8 @@ const getEnrollmentById = async (id) => {
             lastName: true,
             firstNameAr: true,
             lastNameAr: true,
-            studentNumber: true
+            studentNumber: true,
+            profileImageUrl: true
           }
         },
         class: {
@@ -450,13 +454,15 @@ const create = async (enrollmentData, user = null) => {
         user: {
           select: {
             id: true,
+            keycloakId: true,
             displayName: true,
             displayNameAr: true,
             email: true,
             firstName: true,
             lastName: true,
             firstNameAr: true,
-            lastNameAr: true
+            lastNameAr: true,
+            profileImageUrl: true
           }
         },
         class: {
@@ -557,13 +563,15 @@ const update = async (id, updateData, user = null) => {
         user: {
           select: {
             id: true,
+            keycloakId: true,
             displayName: true,
             displayNameAr: true,
             email: true,
             firstName: true,
             lastName: true,
             firstNameAr: true,
-            lastNameAr: true
+            lastNameAr: true,
+            profileImageUrl: true
           }
         },
         class: {

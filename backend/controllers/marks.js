@@ -100,6 +100,9 @@ const setMarksDistribution = async (req, res) => {
       });
     }
 
+    // Get current user ID for audit trail
+    const currentUserId = await getDatabaseUserId(req.user);
+
     // Upsert (create or update)
     const result = await prisma.marksDistribution.upsert({
       where: { subjectId: parseInt(subjectId) },
@@ -111,7 +114,7 @@ const setMarksDistribution = async (req, res) => {
         quizzes: processedDistribution.quizzes,
         participation: processedDistribution.participation,
         attendance: processedDistribution.attendance,
-        updatedBy: null // TODO: Get actual user ID from auth system
+        updatedBy: currentUserId
       },
       create: {
         subjectId: parseInt(subjectId),
@@ -122,7 +125,7 @@ const setMarksDistribution = async (req, res) => {
         quizzes: processedDistribution.quizzes,
         participation: processedDistribution.participation,
         attendance: processedDistribution.attendance,
-        createdBy: null // TODO: Get actual user ID from auth system
+        createdBy: currentUserId
       },
       include: {
         subject: {

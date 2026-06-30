@@ -479,6 +479,7 @@ export async function getCommentsByWorkflowDocument(workflowDocumentId) {
         author: {
           select: {
             id: true,
+            keycloakId: true,
             displayName: true,
             firstName: true,
             lastName: true,
@@ -486,6 +487,7 @@ export async function getCommentsByWorkflowDocument(workflowDocumentId) {
             firstNameAr: true,
             lastNameAr: true,
             email: true,
+            profileImageUrl: true,
             roleAssignments: { include: { role: true } }
           }
         }

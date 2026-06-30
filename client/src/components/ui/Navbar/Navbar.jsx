@@ -451,6 +451,16 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                         objectFit: 'cover'
                       }}
                     />
+                  ) : user?.profileImageUrl ? (
+                    <img
+                      src={user.profileImageUrl}
+                      alt="Profile"
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        objectFit: 'cover'
+                      }}
+                    />
                   ) : (
                     <>
                       {(!primaryColor || primaryColor === ACCENT_FALLBACK) && (
@@ -610,8 +620,14 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
               </PortalTooltip>
               
               <div className="navbar-user" onClick={() => setShowDropdown(!showDropdown)} ref={menuRef}>
-                <div className="user-avatar">
-                  {(displayName || user.email)?.charAt(0).toUpperCase()}
+                <div className="user-avatar" style={{ overflow: 'hidden' }}>
+                  {userImages?.profile?.url ? (
+                    <img src={userImages.profile.url} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : user?.profileImageUrl ? (
+                    <img src={user.profileImageUrl} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    (displayName || user.email)?.charAt(0).toUpperCase()
+                  )}
                 </div>
                 {showDropdown && (
                   <div className="dropdown-menu">

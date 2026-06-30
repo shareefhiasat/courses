@@ -44,9 +44,6 @@ export const AuthProvider = ({ children }) => {
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [role, setRole] = useState(null);
 
-  // Nextcloud authentication state
-  const [nextcloudAuth, setNextcloudAuth] = useState(null);
-
   // Permissions state (moved from usePermissions hook)
   const [permissions, setPermissions] = useState(null);
 
@@ -106,16 +103,6 @@ export const AuthProvider = ({ children }) => {
       console.log(`🔍 [SESSION DEBUG] ${message}`, data);
       lastSessionDebugRef.current = now;
     }
-  }, []);
-
-  /**
-   * Nextcloud provisioning removed - using MinIO instead
-   * Smart Drive now uses MinIO buckets directly
-   */
-  const fetchNextcloudAuth = useCallback(async () => {
-    // No-op - Nextcloud has been removed
-    console.log('[AuthContext] Nextcloud provisioning disabled - using MinIO');
-    setNextcloudAuth({ provisioned: false, error: 'Nextcloud removed - using MinIO' });
   }, []);
 
   /**
@@ -359,7 +346,7 @@ export const AuthProvider = ({ children }) => {
               if (keycloak.token) {
                 localStorage.setItem('keycloak_token', keycloak.token);
                 // Update cookie for image proxy
-                document.cookie = `kc_token=${keycloak.token}; path=/api; secure; samesite=strict`;
+                document.cookie = `kc_token=${keycloak.token}; path=/; samesite=lax`;
               }
 
               // Set refresh time
@@ -429,7 +416,7 @@ export const AuthProvider = ({ children }) => {
           // Update localStorage and cookie
           if (keycloak.token) {
             localStorage.setItem('keycloak_token', keycloak.token);
-            document.cookie = `kc_token=${keycloak.token}; path=/api; secure; samesite=strict`;
+            document.cookie = `kc_token=${keycloak.token}; path=/; samesite=lax`;
           }
 
           return refreshed;
@@ -513,6 +500,7 @@ export const AuthProvider = ({ children }) => {
             const data = await response.json();
             if (data.success && data.data) {
               userObj.dbId = data.data.id;
+              userObj.profileImageUrl = data.data.profileImageUrl || null;
               console.log('[AuthContext] Fetched dbId:', userObj.dbId);
             } else {
               console.warn('[AuthContext] /users/me returned non-success:', data);
@@ -551,7 +539,7 @@ export const AuthProvider = ({ children }) => {
       if (keycloak.token) {
         localStorage.setItem('keycloak_token', keycloak.token);
         // Set cookie for image proxy (path=/api so it goes to backend only)
-        document.cookie = `kc_token=${keycloak.token}; path=/api; secure; samesite=strict`;
+        document.cookie = `kc_token=${keycloak.token}; path=/; samesite=lax`;
         console.log('[AuthContext] ✅ Token saved to localStorage and cookie');
       }
       
@@ -571,9 +559,6 @@ export const AuthProvider = ({ children }) => {
       // Schedule idle timeout warning
       scheduleIdleWarning();
 
-      // Fetch Nextcloud authentication
-      fetchNextcloudAuth();
-
       // Fetch permissions (debounced, only once per session)
       fetchPermissions();
     } else if (initialized && !keycloak.authenticated) {
@@ -586,14 +571,14 @@ export const AuthProvider = ({ children }) => {
       setRole(null);
       setLoading(false);
     }
-  }, [initialized, keycloak, scheduleSessionWarning, scheduleIdleWarning, fetchNextcloudAuth, fetchPermissions]);
+  }, [initialized, keycloak, scheduleSessionWarning, scheduleIdleWarning, fetchPermissions]);
 
   // Update localStorage token when it changes
   useEffect(() => {
     if (keycloak.token) {
       localStorage.setItem('keycloak_token', keycloak.token);
       // Update cookie for image proxy
-      document.cookie = `kc_token=${keycloak.token}; path=/api; secure; samesite=strict`;
+      document.cookie = `kc_token=${keycloak.token}; path=/; samesite=lax`;
       // console.log('[AuthContext] ✅ Token updated in localStorage and cookie');
     }
   }, [keycloak.token]);
@@ -605,17 +590,15 @@ export const AuthProvider = ({ children }) => {
       // Clear all storage
       localStorage.removeItem('keycloak_token');
       localStorage.removeItem('lastRefreshTime');
-      localStorage.removeItem('nextcloud_token');
       localStorage.removeItem('permissions');
       localStorage.removeItem('keycloak_refresh_token');
 
-      // Clear Nextcloud auth and permissions state
-      setNextcloudAuth(null);
+      // Clear permissions state
       setPermissions(null);
       localStorage.clear();
       sessionStorage.clear();
       // Clear cookie
-      document.cookie = 'kc_token=; path=/api; expires=Thu, 01 Jan 1970 00:00:00 GMT';
+      document.cookie = 'kc_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT';
       console.log('[AuthContext] 🧹 Storage cleared');
 
       // Use Keycloak's logout method with redirect to app login page
@@ -869,6 +852,11 @@ export const AuthProvider = ({ children }) => {
     };
   }, []);
 
+  // Update profile image URL in user state (called after successful upload)
+  const updateUserProfileImage = useCallback((url) => {
+    setUser(prev => prev ? { ...prev, profileImageUrl: url } : prev);
+  }, []);
+
   const value = {
     user,
     loading,
@@ -885,8 +873,8 @@ export const AuthProvider = ({ children }) => {
     token: keycloak.token,
     refreshToken: keycloak.refreshToken,
     initialized,
-    nextcloudAuth,
-    permissions
+    permissions,
+    updateUserProfileImage
   };
 
   return (

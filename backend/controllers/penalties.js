@@ -341,9 +341,12 @@ export const updatePenaltyController = async (req, res) => {
         where: { keycloakId: currentUser.id },
         select: { id: true }
       });
-      currentUserId = currentUserRecord?.id || 1;
+      currentUserId = currentUserRecord?.id || null;
     } else {
-      currentUserId = 1;
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required'
+      });
     }
     
     const updateData = {

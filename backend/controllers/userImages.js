@@ -5,10 +5,12 @@
  * ARCHITECTURE: HTTP Routes → Controllers → MinIO Service → MinIO API
  */
 
-import * as fileService from '../services/fileService.js';
 import prisma from '../db/prismaClient.js';
 import { LMS_ROLES } from '../services/keycloakAdminService.js';
-import { VALID_IMAGE_TYPES, VALID_FILE_MIME_TYPES, MAX_FILE_SIZE, getLocalizedMessage, IMAGE_TYPE_TO_TAG } from '../constants/fileConstants.js';
+import { VALID_IMAGE_TYPES, VALID_FILE_MIME_TYPES, MAX_FILE_SIZE, getLocalizedMessage } from '../constants/fileConstants.js';
+import { putObject, deleteObject, streamObject } from '../services/minioService.js';
+
+const USER_IMAGES_BUCKET = process.env.MINIO_BUCKET_PRIVATE || 'lms-private';
 
 
 /**
@@ -73,27 +75,23 @@ const getImageTypeField = (type) => {
 /**
  * Check if user has permission to access target user's images
  */
-const checkImageAccessPermission = (currentUser, targetDatabaseUserId) => {
-  // Students can only access their own images
-  if (currentUser.roles.includes(LMS_ROLES.STUDENT)) {
-    // Since targetDatabaseUserId is already a database integer, we need to compare
-    // with the current user's database ID. For now, we'll allow access if the
-    // current user's Keycloak ID matches their own (simplified check)
-    // In production, we should look up the current user's database ID
-    return true; // Simplified for now - students can access their own images
-  }
-
-  // Instructors can view their students' images (read-only)
-  if (currentUser.roles.includes(LMS_ROLES.INSTRUCTOR)) {
-    // Instructors can view any student's images for now
-    // In production, this should check if the instructor teaches the target student
+const checkImageAccessPermission = async (currentUser, targetDatabaseUserId) => {
+  // Admins, super admins, and HR can access any user's images
+  if (currentUser.roles.includes(LMS_ROLES.ADMIN) ||
+      currentUser.roles.includes(LMS_ROLES.SUPER_ADMIN) ||
+      currentUser.roles.includes(LMS_ROLES.HR)) {
     return true;
   }
 
-  // Admins and HR can access any user's images
-  if (currentUser.roles.includes(LMS_ROLES.ADMIN) || 
-      currentUser.roles.includes(LMS_ROLES.SUPER_ADMIN) ||
-      currentUser.roles.includes(LMS_ROLES.HR)) {
+  // Students can only access their own images
+  if (currentUser.roles.includes(LMS_ROLES.STUDENT)) {
+    if (!currentUser.dbId) return false;
+    return currentUser.dbId === targetDatabaseUserId;
+  }
+
+  // Instructors can view their students' images
+  if (currentUser.roles.includes(LMS_ROLES.INSTRUCTOR)) {
+    // Instructors can view any student's profile image (needed for QR scanner, class roster, etc.)
     return true;
   }
 
@@ -104,24 +102,21 @@ const checkImageAccessPermission = (currentUser, targetDatabaseUserId) => {
  * Check if user has permission to upload/update images for target user
  */
 const checkImageWritePermission = (currentUser, targetDatabaseUserId) => {
-  // Students can only upload their own images
-  if (currentUser.roles.includes(LMS_ROLES.STUDENT)) {
-    // Since targetDatabaseUserId is already a database integer, we need to compare
-    // with the current user's database ID. For now, we'll allow access if the
-    // current user's Keycloak ID matches their own (simplified check)
-    // In production, we should look up the current user's database ID
-    return true; // Simplified for now - students can upload their own images
-  }
-
-  // Instructors can upload images for their students (for now, allow all)
-  if (currentUser.roles.includes(LMS_ROLES.INSTRUCTOR)) {
+  // Admins, super admins, and HR can upload images for any user
+  if (currentUser.roles.includes(LMS_ROLES.ADMIN) ||
+      currentUser.roles.includes(LMS_ROLES.SUPER_ADMIN) ||
+      currentUser.roles.includes(LMS_ROLES.HR)) {
     return true;
   }
 
-  // Admins and HR can upload images for any user
-  if (currentUser.roles.includes(LMS_ROLES.ADMIN) || 
-      currentUser.roles.includes(LMS_ROLES.SUPER_ADMIN) ||
-      currentUser.roles.includes(LMS_ROLES.HR)) {
+  // Students can only upload their own images
+  if (currentUser.roles.includes(LMS_ROLES.STUDENT)) {
+    if (!currentUser.dbId) return false;
+    return currentUser.dbId === targetDatabaseUserId;
+  }
+
+  // Instructors can upload images for students (e.g. scanning ID documents)
+  if (currentUser.roles.includes(LMS_ROLES.INSTRUCTOR)) {
     return true;
   }
 
@@ -235,55 +230,31 @@ export const uploadUserImageController = async (req, res) => {
 
     console.log(`[userImages] Upload: type=${type}, field=${fieldName}, newPath=${filePath}, existingPath=${user[fieldName]}`);
 
-    // Ensure folder exists
-    const folderResult = await ensureFolder(`Users/${databaseUserId}/images`);
-    if (!folderResult.success) {
-      return res.status(400).json({
-        success: false,
-        error: getLocalizedMessage('FAILED_PREPARE_FOLDER', lang),
-        details: folderResult.error?.message,
-        timestamp: Date.now()
+    // Upload file to MinIO (folders are implicit via key prefix)
+    try {
+      await putObject(USER_IMAGES_BUCKET, filePath, file.buffer, file.size, {
+        'Content-Type': file.mimetype,
       });
-    }
-
-    // Upload file to Nextcloud
-    const uploadResult = await uploadFile(filePath, file.buffer);
-    if (!uploadResult.success) {
+    } catch (uploadErr) {
+      console.error('[userImages] MinIO upload error:', uploadErr);
       return res.status(400).json({
         success: false,
         error: getLocalizedMessage('FAILED_UPLOAD_NEXTCLOUD', lang),
-        details: uploadResult.error?.message,
+        details: uploadErr.message,
         timestamp: Date.now()
       });
     }
 
-    // Update user model with Nextcloud file path
+    // Return relative proxy URL so cookies are sent by the browser (Vite proxy handles forwarding)
+    const proxyUrl = `/api/v1/user-images/proxy/${userId}/${type}`;
+
+    // Store the MinIO object key in the database
     const updateData = { [fieldName]: filePath };
 
     await prisma.user.update({
       where: { id: databaseUserId },
       data: updateData
     });
-
-    // Assign Nextcloud tag for document type (non-critical, doesn't fail upload)
-    const tag = IMAGE_TYPE_TO_TAG[type];
-    if (tag) {
-      const tagResult = await assignTag(filePath, tag);
-      if (tagResult.success) {
-        console.log(`[userImages] Tag assigned: ${tag} to ${filePath}`);
-      } else {
-        console.warn(`[userImages] Tag assignment failed for ${tag}:`, tagResult.error);
-      }
-    }
-
-    // Return proxy URL instead of raw Nextcloud URL to avoid auth dialog
-    // Use relative path for local development to avoid host.docker.internal issues
-    const protocol = req.headers['x-forwarded-proto'] || req.protocol;
-    const host = req.headers['x-forwarded-host'] || req.get('host') || 'localhost';
-    const isDocker = host.includes('docker.internal');
-    const proxyUrl = isDocker
-      ? `/api/v1/user-images/proxy/${userId}/${type}`
-      : `${protocol}://${host}/api/v1/user-images/proxy/${userId}/${type}`;
 
     return res.status(200).json({
       success: true,
@@ -340,7 +311,7 @@ export const getUserImageController = async (req, res) => {
     }
 
     // Check read permission
-    if (!checkImageAccessPermission(currentUser, databaseUserId)) {
+    if (!await checkImageAccessPermission(currentUser, databaseUserId)) {
       console.error(`[userImages] Unauthorized access attempt: user ${currentUser.id} trying to access user ${databaseUserId} images`);
       return res.status(403).json({
         success: false,
@@ -379,14 +350,8 @@ export const getUserImageController = async (req, res) => {
       });
     }
 
-    // Return proxy URL instead of raw Nextcloud URL to avoid auth dialog
-    // Use relative path for local development to avoid host.docker.internal issues
-    const protocol = req.headers['x-forwarded-proto'] || req.protocol;
-    const host = req.headers['x-forwarded-host'] || req.get('host') || 'localhost';
-    const isDocker = host.includes('docker.internal');
-    const proxyUrl = isDocker
-      ? `/api/v1/user-images/proxy/${userId}/${type}`
-      : `${protocol}://${host}/api/v1/user-images/proxy/${userId}/${type}`;
+    // Return relative proxy URL
+    const proxyUrl = `/api/v1/user-images/proxy/${userId}/${type}`;
 
     return res.status(200).json({
       success: true,
@@ -428,7 +393,7 @@ export const getAllUserImagesController = async (req, res) => {
     }
 
     // Check read permission
-    if (!checkImageAccessPermission(currentUser, databaseUserId)) {
+    if (!await checkImageAccessPermission(currentUser, databaseUserId)) {
       console.error(`[userImages] Unauthorized access attempt: user ${currentUser.id} trying to access user ${databaseUserId} images`);
       return res.status(403).json({
         success: false,
@@ -457,18 +422,13 @@ export const getAllUserImagesController = async (req, res) => {
     }
 
     // Generate proxy URLs for all images to avoid auth dialog
-    const protocol = req.headers['x-forwarded-proto'] || req.protocol;
-    const host = req.headers['x-forwarded-host'] || req.get('host') || 'localhost';
-    const isDocker = host.includes('docker.internal');
     const images = {};
     VALID_IMAGE_TYPES.forEach(type => {
       const fieldName = getImageTypeField(type);
       const imagePath = user[fieldName];
       if (imagePath) {
         images[type] = {
-          url: isDocker
-            ? `/api/v1/user-images/proxy/${userId}/${type}`
-            : `${protocol}://${host}/api/v1/user-images/proxy/${userId}/${type}`,
+          url: `/api/v1/user-images/proxy/${userId}/${type}`,
           path: imagePath
         };
       } else {
@@ -567,17 +527,16 @@ export const deleteUserImageController = async (req, res) => {
       });
     }
 
-    // Delete file from Nextcloud
-    console.log(`[userImages] Deleting from Nextcloud: ${imagePath}`);
-    const deleteResult = await deleteNode(imagePath);
-    console.log(`[userImages] Delete result:`, deleteResult);
-
-    if (!deleteResult.success) {
-      console.error(`[userImages] Failed to delete from Nextcloud:`, deleteResult.error);
+    // Delete file from MinIO
+    console.log(`[userImages] Deleting from MinIO: ${imagePath}`);
+    try {
+      await deleteObject(USER_IMAGES_BUCKET, imagePath);
+    } catch (deleteErr) {
+      console.error(`[userImages] Failed to delete from MinIO:`, deleteErr);
       return res.status(400).json({
         success: false,
         error: getLocalizedMessage('FAILED_DELETE_NEXTCLOUD', lang),
-        details: deleteResult.error?.message,
+        details: deleteErr.message,
         timestamp: Date.now()
       });
     }
@@ -606,20 +565,26 @@ export const deleteUserImageController = async (req, res) => {
   }
 };
 
-// In-memory cache for proxied images (5 minute TTL)
-const imageCache = new Map();
-const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+// In-memory cache disabled — MinIO streamObject handles response directly
 
 /**
- * Proxy image from Nextcloud
- * Fetches image from Nextcloud using admin credentials and streams to frontend
- * This prevents browser auth dialog and mixed content issues
+ * Proxy image from MinIO
+ * Streams image from MinIO to frontend to avoid auth dialog and mixed content issues
  */
 export const proxyImageController = async (req, res) => {
   try {
     const { userId, type } = req.params;
     const currentUser = req.user;
     const lang = getRequestLanguage(req);
+
+    // Validate image type
+    if (!VALID_IMAGE_TYPES.includes(type)) {
+      return res.status(400).json({
+        success: false,
+        error: getLocalizedMessage('INVALID_IMAGE_TYPE', lang),
+        timestamp: Date.now()
+      });
+    }
 
     // Convert Keycloak UUID to database ID
     const databaseUserId = await getDatabaseUserId(userId);
@@ -632,7 +597,7 @@ export const proxyImageController = async (req, res) => {
     }
 
     // Check read permission
-    if (!checkImageAccessPermission(currentUser, databaseUserId)) {
+    if (!await checkImageAccessPermission(currentUser, databaseUserId)) {
       console.error(`[userImages] Unauthorized proxy access: user ${currentUser.id} trying to access user ${databaseUserId} image`);
       return res.status(403).json({
         success: false,
@@ -653,65 +618,28 @@ export const proxyImageController = async (req, res) => {
     }
 
     const imagePath = user[fieldName];
-    const cacheKey = `${userId}-${type}`;
 
-    // Check cache first
-    const cached = imageCache.get(cacheKey);
-    if (cached && (Date.now() - cached.timestamp < CACHE_TTL)) {
-      res.setHeader('Content-Type', cached.contentType);
-      res.setHeader('Cache-Control', 'public, max-age=300'); // 5 minute browser cache
-      res.setHeader('X-Cache', 'HIT');
-      return res.send(cached.buffer);
-    }
-
-    // Fetch from Nextcloud using admin credentials
+    // Stream from MinIO directly to the response
     const normalizedPath = imagePath.startsWith('/') ? imagePath.slice(1) : imagePath;
-    const nextcloudUrl = `${NEXTCLOUD_CONFIG.baseUrl}/remote.php/dav/files/${NEXTCLOUD_CONFIG.username}/${normalizedPath}`;
-
-    const authHeader = Buffer.from(`${NEXTCLOUD_CONFIG.username}:${NEXTCLOUD_CONFIG.appPassword}`).toString('base64');
-
-    const response = await fetch(nextcloudUrl, {
-      headers: {
-        Authorization: `Basic ${authHeader}`
-      },
-      signal: AbortSignal.timeout(15000)
-    });
-
-    if (!response.ok) {
-      console.error('[userImages] Proxy fetch failed:', response.status);
-      return res.status(response.status).json({
-        success: false,
-        error: 'Failed to fetch image from Nextcloud',
-        timestamp: Date.now()
+    try {
+      await streamObject({
+        bucket: USER_IMAGES_BUCKET,
+        objectKey: normalizedPath,
+        req,
+        res,
+        filename: `${type}.jpg`,
+        mimeType: 'image/jpeg',
       });
-    }
-
-    // Convert Web ReadableStream to buffer and send (Node.js fetch doesn't have pipe)
-    const arrayBuffer = await response.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-    const contentType = response.headers.get('content-type') || 'image/jpeg';
-
-    // Cache the image
-    imageCache.set(cacheKey, {
-      buffer,
-      contentType,
-      timestamp: Date.now()
-    });
-
-    // Clean up old cache entries periodically
-    if (imageCache.size > 100) {
-      const now = Date.now();
-      for (const [key, value] of imageCache.entries()) {
-        if (now - value.timestamp > CACHE_TTL) {
-          imageCache.delete(key);
-        }
+    } catch (streamErr) {
+      console.error('[userImages] Proxy stream error:', streamErr);
+      if (!res.headersSent) {
+        return res.status(500).json({
+          success: false,
+          error: 'Failed to fetch image from storage',
+          timestamp: Date.now()
+        });
       }
     }
-
-    res.setHeader('Content-Type', contentType);
-    res.setHeader('Cache-Control', 'public, max-age=300'); // 5 minute browser cache
-    res.setHeader('X-Cache', 'MISS');
-    res.send(buffer);
 
   } catch (err) {
     console.error('[userImages] Proxy error:', err);

@@ -9,6 +9,17 @@ import prisma from '../db/prismaClient.js';
 import { getDatabaseUserId, findUserByParam } from '../utils/database/userResolver.js';
 import { validateUserRemoval } from '../services/availabilityGuardService.js';
 
+/**
+ * Convert a stored MinIO image key (e.g. "Users/123/images/profile.jpg")
+ * into a frontend-usable proxy URL. Returns null if the key is empty or
+ * already looks like a URL.
+ */
+const toProfileImageUrl = (keycloakId, key) => {
+  if (!key) return null;
+  if (key.startsWith('http') || key.startsWith('/api/')) return key;
+  return `/api/v1/user-images/proxy/${keycloakId}/profile`;
+};
+
 
 /**
  * GET /api/v1/users/me
@@ -40,6 +51,7 @@ export const getCurrentUserController = async (req, res) => {
             lastNameAr: true,
             realName: true,
             studentNumber: true,
+            profileImageUrl: true,
           }
         })
       : null;
@@ -58,6 +70,7 @@ export const getCurrentUserController = async (req, res) => {
         lastNameAr: dbUser?.lastNameAr ?? null,
         realName: dbUser?.realName ?? null,
         studentNumber: dbUser?.studentNumber ?? null,
+        profileImageUrl: toProfileImageUrl(authUser.keycloakId, dbUser?.profileImageUrl ?? null),
         dbId: authUser.dbId
       }
     });
@@ -115,6 +128,7 @@ export const listUsersController = async (req, res) => {
         lastNameAr: true,
         realName: true,
         email: true,
+        profileImageUrl: true,
         isActive: true,
         createdAt: true,
         updatedAt: true,
@@ -159,10 +173,16 @@ export const listUsersController = async (req, res) => {
       console.log('[listUsersController] After excludeStudents filter:', filteredUsers.length);
     }
 
+    // Convert MinIO image keys to proxy URLs for frontend use
+    const usersWithUrls = filteredUsers.map(u => ({
+      ...u,
+      profileImageUrl: toProfileImageUrl(u.keycloakId, u.profileImageUrl),
+    }));
+
     res.status(200).json({
       success: true,
-      data: filteredUsers,
-      total: filteredUsers.length
+      data: usersWithUrls,
+      total: usersWithUrls.length
     });
   } catch (error) {
     console.error('Error in listUsersController:', error);
@@ -252,8 +272,10 @@ export const createUserController = async (req, res) => {
       });
       currentUserId = currentUserRecord?.id || null;
     } else {
-      // For testing: use Shareef's user ID (1) when no auth
-      currentUserId = 1;
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required'
+      });
     }
     
     // Generate temporary password
@@ -403,9 +425,10 @@ export const updateUserController = async (req, res) => {
         console.log('⚠️ User not found in database with Keycloak ID:', currentUser.id);
       }
     } else {
-      // For testing: use Shareef's user ID (1) when no auth
-      currentUserId = 1;
-      console.log('🔧 Using fallback user ID: 1');
+      return res.status(401).json({
+        success: false,
+        error: 'Authentication required'
+      });
     }
     
     const existingUser = await findUserByParam(id, { id: true, keycloakId: true });
@@ -472,7 +495,7 @@ export const updateUserController = async (req, res) => {
               userId: targetUserId,
               roleId: role.id,
               assignedAt: new Date(),
-              assignedBy: 1 // TODO: Get actual admin user ID
+              assignedBy: currentUserId
             }
           });
         }

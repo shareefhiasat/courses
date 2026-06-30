@@ -56,9 +56,18 @@ const StudentInfoCell = ({ student, favoriteStudents, toggleFavorite, onStudentS
           justifyContent: 'center',
           fontWeight: 600,
           fontSize: '1rem',
-          flexShrink: 0
+          flexShrink: 0,
+          overflow: 'hidden'
         }}>
-          {avatarInitials}
+          {student.profileImageUrl ? (
+            <img
+              src={student.profileImageUrl}
+              alt={displayName}
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            />
+          ) : (
+            avatarInitials
+          )}
         </div>
 
         <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>

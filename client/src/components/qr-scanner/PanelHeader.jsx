@@ -37,9 +37,18 @@ export default function PanelHeader({ student, attendanceStatus, t, lang, isRTL,
         fontWeight: 500,
         background: avatarColor.bg,
         color: avatarColor.color,
-        flexShrink: 0
+        flexShrink: 0,
+        overflow: 'hidden'
       }}>
-        {getInitials(displayName)}
+        {student.profileImageUrl ? (
+          <img
+            src={student.profileImageUrl}
+            alt={displayName}
+            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+          />
+        ) : (
+          getInitials(displayName)
+        )}
       </div>
       <div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>

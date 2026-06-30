@@ -472,6 +472,12 @@ export default function WorkflowCommentsTab({ workflowId, selectedStage, onStage
                             <div style={{ color: getStageIcon(comment.action).color }}>
                               {getIcon('ui', getStageIcon(comment.action).icon, 20)}
                             </div>
+                          ) : comment.author?.profileImageUrl ? (
+                            <img
+                              src={comment.author.profileImageUrl}
+                              alt={comment.author.displayName || comment.author.email || ''}
+                              style={{ width: '100%', height: '100%', borderRadius: '9999px', objectFit: 'cover' }}
+                            />
                           ) : (
                             // Show author initials otherwise
                             <div style={{

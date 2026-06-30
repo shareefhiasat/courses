@@ -166,9 +166,9 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const ChatS
     
     return (
       <div style={{ position: 'relative' }}>
-        {user?.photoURL ? (
-          <img 
-            src={user.photoURL} 
+        {user?.profileImageUrl ? (
+          <img
+            src={user.profileImageUrl}
             alt={user.displayName || user.email} 
             style={{ 
               width: 28, 

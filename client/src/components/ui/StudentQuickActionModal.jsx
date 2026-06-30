@@ -411,8 +411,12 @@ const StudentQuickActionModal = ({
         {/* Compact Header */}
         <div className="compact-header">
           <div className="student-mini">
-            <div className="student-avatar">
-              {student.displayName?.charAt(0)?.toUpperCase() || student.email?.charAt(0)?.toUpperCase()}
+            <div className="student-avatar" style={{ overflow: 'hidden' }}>
+              {student.profileImageUrl ? (
+                <img src={student.profileImageUrl} alt={student.displayName || student.email || ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ) : (
+                student.displayName?.charAt(0)?.toUpperCase() || student.email?.charAt(0)?.toUpperCase()
+              )}
             </div>
             <div className="student-info">
               <div className="student-name">{student.displayName || 'Unknown Student'}</div>

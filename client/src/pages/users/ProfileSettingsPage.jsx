@@ -25,7 +25,7 @@ import UserImageUpload from '@components/ui/UserImageUpload/UserImageUpload';
 import NotificationPreferencesSection from '@components/ui/NotificationPreferencesSection/NotificationPreferencesSection';
 
 const ProfileSettingsPage = () => {
-  const { user, loading: authLoading, isSuperAdmin, isAdmin, isInstructor, isHR } = useAuth();
+  const { user, loading: authLoading, isSuperAdmin, isAdmin, isInstructor, isHR, updateUserProfileImage } = useAuth();
   const { t, lang, toggleLang } = useLang();
   const { theme } = useTheme();
   const { fontLtr, fontRtl, setFontLtr, setFontRtl, saveTypographyToServer } = useTypography();
@@ -49,7 +49,6 @@ const ProfileSettingsPage = () => {
     studentNumber: '',
     phoneNumber: '',
     messageColor: DEFAULT_ACCENT,
-    preferOTPLogin: false
   });
   const [customColorInput, setCustomColorInput] = useState(DEFAULT_ACCENT);
   const [userImages, setUserImages] = useState({
@@ -108,16 +107,22 @@ const ProfileSettingsPage = () => {
       ...prev,
       [imageData.type]: imageData.url
     }));
+    if (imageData.type === 'profile' && imageData.url) {
+      updateUserProfileImage(imageData.url);
+    }
     toast.success(t('user_images.upload_success', 'Image uploaded successfully'));
-  }, [t, toast]);
+  }, [t, toast, updateUserProfileImage]);
 
   const handleImageDeleteSuccess = useCallback((imageType) => {
     setUserImages(prev => ({
       ...prev,
       [imageType]: null
     }));
+    if (imageType === 'profile') {
+      updateUserProfileImage(null);
+    }
     toast.success(t('user_images.delete_success', 'Image deleted successfully'));
-  }, [t, toast]);
+  }, [t, toast, updateUserProfileImage]);
 
   const handleImageError = useCallback((error) => {
     toast.error(error || t('user_images.upload_error', 'Failed to upload image'));
@@ -143,7 +148,6 @@ const ProfileSettingsPage = () => {
             studentNumber: userProfile.studentNumber || '',
             phoneNumber: userProfile.phoneNumber || '',
             messageColor: resolvedColor,
-            preferOTPLogin: userProfile.preferOTPLogin || false
           });
           setCustomColorInput(resolvedColor);
           // Apply color on load
@@ -243,7 +247,6 @@ const ProfileSettingsPage = () => {
         lastNameAr: profileData.lastNameAr || null,
         phoneNumber: profileData.phoneNumber,
         messageColor: normalizedColor,
-        preferOTPLogin: profileData.preferOTPLogin
       });
 
       if (!updateResult?.success) {
@@ -638,16 +641,6 @@ const ProfileSettingsPage = () => {
                   />
                 </div>
 
-                <div className={styles.appearanceToggle}>
-                  <span className={styles.appearanceToggleLabel}>
-                    {getThemedIcon('ui', 'shield', 18, theme)}
-                    {t('profile_prefer_otp_login')}
-                  </span>
-                  <ToggleSwitch
-                    checked={profileData.preferOTPLogin}
-                    onChange={(checked) => handleChange('preferOTPLogin', checked)}
-                  />
-                </div>
               </div>
             </div>
           </CardBody>

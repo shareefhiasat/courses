@@ -948,9 +948,14 @@ const SideDrawer = ({ isOpen, onClose }) => {
                     justifyContent: 'center',
                     fontSize: '1.1rem',
                     fontWeight: 700,
-                    color: '#2E3B4E'
+                    color: '#2E3B4E',
+                    overflow: 'hidden'
                   }}>
-                    {(user?.displayName || user?.email || 'U').charAt(0).toUpperCase()}
+                    {user?.profileImageUrl ? (
+                      <img src={user.profileImageUrl} alt={user?.displayName || user?.email || ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      (user?.displayName || user?.email || 'U').charAt(0).toUpperCase()
+                    )}
                   </div>
                 </div>
                 

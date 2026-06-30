@@ -572,8 +572,12 @@ const StudentProfilePage = () => {
                             }}
                             className={styles.searchResultItem}
                           >
-                            <div className={styles.searchResultAvatar}>
-                              {(s.displayName || s.email || '').charAt(0).toUpperCase()}
+                            <div className={styles.searchResultAvatar} style={{ overflow: 'hidden' }}>
+                              {s.profileImageUrl ? (
+                                <img src={s.profileImageUrl} alt={s.displayName || s.email || ''} style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }} />
+                              ) : (
+                                (s.displayName || s.email || '').charAt(0).toUpperCase()
+                              )}
                             </div>
                             <div className={styles.searchResultInfo}>
                               <div className={styles.searchResultName}>
@@ -678,8 +682,12 @@ const StudentProfilePage = () => {
                       className="bg-gradient-to-br from-purple-50 to-blue-50 dark:from-gray-700 dark:to-gray-800 hover:from-purple-100 hover:to-blue-100 dark:hover:from-gray-600 dark:hover:to-gray-700 rounded-xl p-4 text-left transition-all transform hover:scale-105 shadow-md hover:shadow-xl border border-gray-200 dark:border-gray-600"
                     >
                       <div className="flex items-center gap-3 mb-3">
-                        <div className="w-12 h-12 bg-purple-600 dark:bg-purple-700 rounded-full flex items-center justify-center text-white font-bold text-lg">
-                          {(student.displayName || student.email || 'U').charAt(0).toUpperCase()}
+                        <div className="w-12 h-12 bg-purple-600 dark:bg-purple-700 rounded-full flex items-center justify-center text-white font-bold text-lg overflow-hidden">
+                          {student.profileImageUrl ? (
+                            <img src={student.profileImageUrl} alt={student.displayName || student.email || ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          ) : (
+                            (student.displayName || student.email || 'U').charAt(0).toUpperCase()
+                          )}
                         </div>
                         <div className="flex-1 min-w-0">
                           <h3 className="font-semibold text-gray-800 dark:text-white truncate">
