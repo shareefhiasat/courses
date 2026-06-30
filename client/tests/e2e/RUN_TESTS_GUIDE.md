@@ -126,7 +126,7 @@ The custom Playwright→Linear reporter automatically creates or updates Linear 
 ### Setup
 The `LINEAR_API_KEY` should be set in `client/.env`:
 ```
-LINEAR_API_KEY=your_linear_api_key_here
+LINEAR_API_KEY=<your-linear-api-key>
 ```
 
 The reporter is enabled in `playwright.config.js` with `dryRun: false`.
