@@ -4,6 +4,7 @@ import { Button, Input, Modal } from '@ui';
 import { useAuth } from '@contexts/AuthContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon, getIconWithColor } from '@constants/iconTypes';
+import { getLocalizedUserName } from '@utils/localizedUserName';
 import { deleteAttendance } from '@services/business/attendanceServiceUnified.js';
 import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, ATTENDANCE_TYPE_CATEGORY, ATTENDANCE_TYPES, ATTENDANCE_COLORS, STANDUP_ATTENDANCE_TYPES, getAttendanceIcon, getAttendanceColor, getAttendanceLabel, getLocalizedAttendanceLabel } from '@constants/attendanceTypes';
 import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
@@ -668,7 +669,7 @@ export default function StudentActionZapPanel({
                       setConfirmModal({
                         isOpen: true,
                         attendanceType: attendanceType,
-                        studentName: student.displayName || student.realName || student.name
+                        studentName: getLocalizedUserName(student, lang)
                       });
                     }
                   }}

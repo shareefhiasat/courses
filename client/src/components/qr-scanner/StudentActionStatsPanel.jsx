@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import { getThemedIcon, getIconWithColor } from '@constants/iconTypes';
+import { getLocalizedUserName } from '@utils/localizedUserName';
 import { Button } from '@ui';
 import { Card, CardBody } from '@ui';
 import { getAttendanceByStudent, deleteAttendance } from '@services/business/attendanceService';
@@ -238,7 +239,7 @@ export default function StudentActionStatsPanel({
         to: student.email,
         templateId: 'student_summary_report',
         templateData: {
-          studentName: student.displayName || student.realName || student.name,
+          studentName: getLocalizedUserName(student, lang),
           studentEmail: student.email,
           studentId: student.studentNumber || student.id,
           className: selectedClass?.name || selectedClass?.code || 'Class',
@@ -1300,7 +1301,7 @@ export default function StudentActionStatsPanel({
                   const referenceId = student.studentNumber ? `STU-${student.studentNumber}` : generateReferenceId(student.id);
                   const qrDataUrl = await generateStudentQRCode(referenceId, { width: 512, margin: 4 });
                   const newTab = window.open();
-                  newTab.document.write(`<html><head><title>QR Code</title></head><body style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;margin:0;background:#f3f4f6;"><img src="${qrDataUrl}" style="width:300px;height:300px;"/><h1 style="margin:1rem 0 0;">${student.displayName || student.name}</h1></body></html>`);
+                  newTab.document.write(`<html><head><title>QR Code</title></head><body style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;margin:0;background:#f3f4f6;"><img src="${qrDataUrl}" style="width:300px;height:300px;"/><h1 style="margin:1rem 0 0;">${getLocalizedUserName(student, lang)}</h1></body></html>`);
                 }}
               >
                 {getThemedIcon('ui', 'external_link', 20)}
@@ -2514,7 +2515,7 @@ export default function StudentActionStatsPanel({
                 <Card style={{ maxWidth: '400px', margin: '1rem' }}>
                   <CardBody>
                     <h3>{t('delete_activity_title', { type: deleteType === RECORD_TYPES.ATTENDANCE ? t('attendance') : t('penalty') })}</h3>
-                    <p>{t('delete_activity_msg', { studentName: student.displayName || student.name || t('this_student') })}</p>
+                    <p>{t('delete_activity_msg', { studentName: getLocalizedUserName(student, lang, t('this_student')) })}</p>
                     <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
                       <Button variant="outline" onClick={() => setDeleteModalOpen(false)}>
                         {t('cancel')}

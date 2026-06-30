@@ -2,6 +2,7 @@ import React from 'react';
 import { CircleIcon } from "@utils/icons.jsx";
 import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
 import { ATTENDANCE_STATUS_LABELS, ATTENDANCE_COLORS } from '@constants/attendanceTypes';
+import { getLocalizedUserName } from '@utils/localizedUserName';
 
 export default function PanelHeader({ student, attendanceStatus, t, lang, isRTL, theme = 'light' }) {
   console.log('🔍 PanelHeader - Props:', {
@@ -11,7 +12,8 @@ export default function PanelHeader({ student, attendanceStatus, t, lang, isRTL,
     isRTL
   });
 
-  const avatarColor = getAvatarColor(student?.name || '');
+  const displayName = getLocalizedUserName(student, lang, t('unknown_student'));
+  const avatarColor = getAvatarColor(displayName || '');
   const getInitials = (name) => {
     if (!name) return '';
     return name
@@ -37,12 +39,12 @@ export default function PanelHeader({ student, attendanceStatus, t, lang, isRTL,
         color: avatarColor.color,
         flexShrink: 0
       }}>
-        {getInitials(student.displayName || student.realName || student.name || '')}
+        {getInitials(displayName)}
       </div>
       <div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
           <h3 style={{ fontWeight: 600, color: theme === 'dark' ? '#ffffff' : 'var(--text, #111827)', margin: 0, fontSize: '1.0625rem' }}>
-            {student.displayName || student.realName || student.name || student.email || t('unknown_student')}
+            {displayName}
           </h3>
           <span style={{
             fontSize: '0.75rem',
