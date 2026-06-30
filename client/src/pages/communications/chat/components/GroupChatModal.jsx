@@ -265,7 +265,7 @@ const GroupChatModal = ({ isOpen, onClose, onGroupCreated }) => {
                         {(() => {
                           if (!role) return null;
                           return (
-                            <RoleBadge user={user} size={10} fontSize='0.7rem' style={{ borderRadius: 8, padding: '1px 5px' }} />
+                            <RoleBadge user={user} size={10} />
                           );
                         })()}
                         {role === 'student' && user.enrollmentCount > 0 && (

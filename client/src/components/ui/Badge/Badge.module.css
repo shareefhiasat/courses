@@ -11,21 +11,21 @@
 
 /* Sizes */
 .small {
-  padding: 2px 8px;
+  padding: calc(0.125 * var(--type-base)) calc(0.5 * var(--type-base));
   font-size: var(--font-size-xs, 0.75rem);
-  min-height: 18px;
+  min-height: calc(1.125 * var(--type-base));
 }
 
 .medium {
-  padding: 4px 12px;
+  padding: calc(0.25 * var(--type-base)) calc(0.75 * var(--type-base));
   font-size: var(--font-size-sm, 0.875rem);
-  min-height: 22px;
+  min-height: calc(1.375 * var(--type-base));
 }
 
 .large {
-  padding: 6px 16px;
+  padding: calc(0.375 * var(--type-base)) calc(1 * var(--type-base));
   font-size: var(--font-size-md, 1rem);
-  min-height: 28px;
+  min-height: calc(1.75 * var(--type-base));
 }
 
 /* Dot Variant */

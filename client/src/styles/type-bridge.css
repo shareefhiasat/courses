@@ -76,3 +76,29 @@ textarea:not(.MuiInputBase-input) {
 .react-joyride__tooltip {
   font-size: var(--font-size-sm) !important;
 }
+
+/* Icons scale with text size — Lucide SVGs and MUI adornments */
+svg.lucide {
+  flex-shrink: 0;
+}
+
+.MuiButton-startIcon,
+.MuiButton-endIcon,
+.MuiChip-icon,
+.MuiTab-iconWrapper {
+  font-size: var(--icon-size-md);
+}
+
+.MuiButton-startIcon svg,
+.MuiButton-endIcon svg,
+.MuiChip-icon svg,
+.MuiTab-iconWrapper svg {
+  width: 1em;
+  height: 1em;
+}
+
+/* Inline badges/chips with icons (chat role badges, etc.) */
+[role="status"] svg.lucide {
+  width: 1em !important;
+  height: 1em !important;
+}

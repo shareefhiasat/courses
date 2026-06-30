@@ -1270,7 +1270,7 @@ const ChatPage = memo(() => {
                         {hasRead ? '✓✓' : '✓'}
                       </span>
                       {recipientRole && (
-                        <RoleBadge user={recipientUser} size={10} fontSize='0.65rem' showLabel={true} style={{ borderRadius: 8, padding: '1px 5px' }} />
+                        <RoleBadge user={recipientUser} size={10} showLabel={true} />
                       )}
                       <span style={{ fontWeight:500, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{r.name}</span>
                     </div>
@@ -2303,7 +2303,7 @@ const ChatPage = memo(() => {
                       }}>
                         {msg.senderName || getChatUserDisplayName(senderUser, lang) || t('unknown')}
                         {senderUser && (
-                          <RoleBadge user={senderUser} size={12} fontSize='0.7rem' style={{ borderRadius: '4px', padding: '0.1rem 0.3rem', marginInlineStart: '0.25rem' }} />
+                          <RoleBadge user={senderUser} size={12} style={{ marginInlineStart: '0.25rem' }} />
                         )}
                         {senderUser?.studentNumber && (
                           <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--muted)', marginInlineStart: '0.25rem', fontWeight: 'normal' }}>
@@ -2682,7 +2682,8 @@ const ChatPage = memo(() => {
                         position:'absolute', 
                         bottom: -14, 
                         insetInlineStart: -14, 
-                        background:'var(--panel)', 
+                        background:'rgba(128,128,128,0.15)', 
+                        backdropFilter:'blur(4px)',
                         border:'2px solid var(--border)', 
                         borderRadius:'50%', 
                         width:30, 
@@ -2691,7 +2692,7 @@ const ChatPage = memo(() => {
                         alignItems:'center', 
                         justifyContent:'center', 
                         cursor:'pointer', 
-                        boxShadow:'0 4px 12px rgba(0,0,0,0.12), 0 2px 4px rgba(0,0,0,0.08)', 
+                        boxShadow:'0 2px 8px rgba(0,0,0,0.08)', 
                         transition:'all 0.2s ease',
                         fontSize:'1.2rem',
                         fontFamily:'"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "EmojiSymbols", sans-serif',
@@ -3752,7 +3753,7 @@ const ChatPage = memo(() => {
                       )}
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                          {role && <RoleBadge user={u} size={10} fontSize="0.7rem" style={{ borderRadius: 8, padding: '1px 5px' }} />}
+                          {role && <RoleBadge user={u} size={10} />}
                           {role === 'student' && u.enrollmentCount > 0 && (
                             <span title={t('enrolled_classes')} style={{ fontSize: '0.65rem', background: 'var(--bg)', color: 'var(--muted)', padding: '1px 5px', borderRadius: 8, fontWeight: 500, whiteSpace: 'nowrap' }}>
                               {u.enrollmentCount} {t('classes')}

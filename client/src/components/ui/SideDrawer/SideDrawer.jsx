@@ -8,11 +8,13 @@ import { useTheme } from '@contexts/ThemeContext';
 import { normalizeHexColor, DEFAULT_ACCENT, hexToRgbString } from '@utils/color';
 import { ROLE_STRINGS } from '@utils/userUtils';
 import { getThemedIcon } from '@constants/iconTypes';
+import { resolveIconSize, ICON_SIZE_VARS } from '@utils/iconSize';
 import { TimerStopwatch } from '@ui';
 import VersionDisplay from '@ui/VersionDisplay/VersionDisplay';
 import { resolveScreenIdFromNavItem } from '@config/navigationRegistry.js';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import { usePermissions } from '@hooks/usePermissions';
+import { useTypography } from '@contexts/TypographyContext';
 
 const DASHBOARD_HASH_TABS = {
   programs: 'programs',
@@ -59,6 +61,8 @@ const SideDrawer = ({ isOpen, onClose }) => {
   const location = useLocation();
   const navigate = useNavigate();
   const { canAccessScreen: checkScreenAccess, roleCode, loading: permissionsLoading } = usePermissions();
+  const { textSize } = useTypography();
+  const navIconSize = resolveIconSize(18);
   const [drawerWidth, setDrawerWidth] = useState(() => {
     try { return Math.min(600, Math.max(320, parseInt(localStorage.getItem('drawer_width') || '380', 10))); } catch { return 380; }
   });
@@ -297,14 +301,14 @@ const SideDrawer = ({ isOpen, onClose }) => {
     border: 'none',
     cursor: 'pointer',
     fontWeight: 600,
-    fontSize: collapsed ? '0.75rem' : '0.85rem',
+    fontSize: collapsed ? 'var(--font-size-xs)' : 'var(--font-size-sm)',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
     gap: '0.5rem',
     transition: 'transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease',
     boxShadow: footerShadowBase,
-  }), [collapsed, footerShadowBase]);
+  }), [collapsed, footerShadowBase, textSize]);
 
   const langButtonStyle = useMemo(() => ({
     ...footerButtonBase,
@@ -866,6 +870,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
               borderRight: lang==='ar' ? 'none' : (theme === 'light' ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.1)'),
               borderLeft: lang==='ar' ? (theme === 'light' ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.1)') : 'none',
               color: theme === 'light' ? '#0f172a' : 'white',
+              fontSize: 'var(--font-size-sm)',
               zIndex: stickyMode ? 1000 : 9999,
               display: 'flex',
               flexDirection: 'column',
@@ -946,7 +951,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '1.1rem',
+                    fontSize: 'var(--font-size-lg)',
                     fontWeight: 700,
                     color: '#2E3B4E',
                     overflow: 'hidden'
@@ -1058,7 +1063,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
                           background: neutralBg,
                           border: 'none',
                           color: theme==='light' ? '#111' : 'white',
-                          fontSize: '1.2rem',
+                          fontSize: 'var(--font-size-xl)',
                           cursor: 'pointer',
                           padding: '0.3rem',
                           borderRadius: '8px',
@@ -1175,7 +1180,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
                         background: 'transparent',
                         border: 'none',
                         color: theme==='light' ? 'rgba(17,24,39,0.6)' : 'rgba(255,255,255,0.5)',
-                        fontSize: lang === 'ar' ? '0.75rem' : '0.7rem',
+                        fontSize: 'var(--font-size-xs)',
                         textTransform: 'none',
                         letterSpacing: lang === 'ar' ? '0.5px' : '0.3px',
                         fontWeight: 600,
@@ -1222,9 +1227,9 @@ const SideDrawer = ({ isOpen, onClose }) => {
                             cursor:'pointer', flex:1,
                             transition: 'all 0.2s',
                             fontWeight: isActive(link.path, link.hash) ? 600 : 400,
-                            fontSize: lang === 'ar' ? '0.9rem' : '0.85rem',
+                            fontSize: 'var(--font-size-sm)',
                             boxSizing: 'border-box',
-                            height: '37.5px'
+                            minHeight: 'calc(2.35 * var(--type-base))'
                           }}
                           onMouseEnter={(e) => {
                           if (!isActive(link.path, link.hash)) {
@@ -1238,7 +1243,8 @@ const SideDrawer = ({ isOpen, onClose }) => {
                           }}
                         >
                           <span style={{ 
-                            width: '20px', 
+                            width: ICON_SIZE_VARS.lg, 
+                            minWidth: ICON_SIZE_VARS.lg,
                             display: 'flex', 
                             alignItems: 'center', 
                             justifyContent: 'center',
@@ -1247,7 +1253,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
                               : (theme==='light' ? '#6b7280' : '#9ca3af')
                           }}>
                             {React.cloneElement(link.icon, { 
-                              size: 18, 
+                              size: navIconSize, 
                               color: isActive(link.path, link.hash)
                                 ? userAccentColor
                                 : (theme==='light' ? '#6b7280' : '#9ca3af')
@@ -1279,7 +1285,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
                             : 'transparent',
                           transition: 'all 0.2s',
                           fontWeight: isActive(link.path, link.hash) ? 600 : 400,
-                          fontSize: lang === 'ar' ? '0.9rem' : '0.85rem',
+                          fontSize: 'var(--font-size-sm)',
                           flex: 1
                           }}
                           onMouseEnter={(e) => {
@@ -1294,7 +1300,8 @@ const SideDrawer = ({ isOpen, onClose }) => {
                           }}
                         >
                           <span style={{ 
-                            width: '20px', 
+                            width: ICON_SIZE_VARS.lg, 
+                            minWidth: ICON_SIZE_VARS.lg,
                             display: 'flex', 
                             alignItems: 'center', 
                             justifyContent: 'center',
@@ -1303,7 +1310,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
                               : (theme==='light' ? '#6b7280' : '#9ca3af')
                           }}>
                             {React.cloneElement(link.icon, { 
-                              size: 18, 
+                              size: navIconSize, 
                               color: isActive(link.path, link.hash)
                                 ? userAccentColor
                                 : (theme==='light' ? '#6b7280' : '#9ca3af')
@@ -1395,7 +1402,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
                   <VersionDisplay 
                     style={{
                       position: 'static',
-                      fontSize: '9px',
+                      fontSize: 'var(--font-size-xs)',
                       padding: '3px 8px',
                       background: theme === 'light' ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.1)',
                       borderRadius: '6px'

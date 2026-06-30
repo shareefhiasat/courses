@@ -281,7 +281,7 @@ const ParticipantManagementModal = ({ isOpen, onClose, room, currentUserId, onPa
                       )}
                       <div className={styles.userDetails}>
                         <div className={styles.userName}>
-                          <RoleBadge user={user} size={12} fontSize="0.7rem" />
+                          <RoleBadge user={user} size={12} />
                           {getChatUserDisplayName(user)}
                           {isRoomCreator && (
                             <span className={styles.creatorBadge}>
@@ -372,7 +372,7 @@ const ParticipantManagementModal = ({ isOpen, onClose, room, currentUserId, onPa
                           )}
                           <div className={styles.userDetails}>
                             <div className={styles.userName}>
-                              <RoleBadge user={user} size={12} fontSize="0.7rem" />
+                              <RoleBadge user={user} size={12} />
                               {getChatUserDisplayName(user)}
                             </div>
                             {user.email && (

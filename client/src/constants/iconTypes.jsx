@@ -3,6 +3,7 @@
 
 import React from 'react';
 import PortalTooltip from '@ui/PortalTooltip';
+import { resolveIconSize } from '@utils/iconSize';
 import {
   // User & Role Icons
   User, UserCheck, UserX, UserMinus, Users, Shield, Crown, UserPlus,
@@ -521,6 +522,7 @@ export const getThemeColor = (colorKey, theme = 'light') => {
 
 // Icon Utility Functions
 export const getIcon = (category, type, size = 16) => {
+  size = resolveIconSize(size);
   // Handle undefined/null type gracefully
   if (!type || typeof type !== 'string') {
     // Return a default icon based on category
@@ -590,6 +592,7 @@ export const getIcon = (category, type, size = 16) => {
 };
 
 export const getIconWithColor = (category, type, size = 16, color = 'currentColor') => {
+  size = resolveIconSize(size);
   // Skip warning for undefined types - we handle this gracefully
   if (type === undefined || type === null) {
     return <Info size={size} color={color} fill="none" />;

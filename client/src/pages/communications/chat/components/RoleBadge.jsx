@@ -9,12 +9,18 @@ import { getIconWithColor, getUserRoleColor } from '@constants/iconTypes';
  *
  * Props:
  * - user: user object (any format — Prisma, Keycloak, normalized)
- * - size: icon size in px (default 12)
- * - fontSize: label font size (default '0.7rem')
+ * - size: icon base size in px before type scaling (default 12)
+ * - fontSize: label font size (default token)
  * - showLabel: whether to show text label (default true)
  * - style: additional styles to merge
  */
-const RoleBadge = ({ user, size = 12, fontSize = '0.7rem', showLabel = true, style }) => {
+const RoleBadge = ({
+  user,
+  size = 12,
+  fontSize = 'var(--font-size-xs)',
+  showLabel = true,
+  style,
+}) => {
   const { t } = useLang();
   const role = resolveUserRole(user);
   if (!role) return null;
@@ -26,15 +32,17 @@ const RoleBadge = ({ user, size = 12, fontSize = '0.7rem', showLabel = true, sty
 
   return (
     <span
+      role="status"
       style={{
         display: 'inline-flex',
         alignItems: 'center',
-        gap: showLabel ? 2 : 0,
+        gap: showLabel ? '0.15em' : 0,
         fontSize,
+        lineHeight: 1.2,
         background: `${color}15`,
         color,
-        padding: '1px 5px',
-        borderRadius: 8,
+        padding: '0.1em 0.4em',
+        borderRadius: '0.5em',
         fontWeight: 600,
         whiteSpace: 'nowrap',
         flexShrink: 0,

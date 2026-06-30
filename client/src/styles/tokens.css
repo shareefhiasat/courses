@@ -99,6 +99,13 @@
   --type-body: var(--font-size-md);
   --type-title: var(--font-size-lg);
   --type-heading: var(--font-size-2xl);
+
+  /* Icon sizes — scale with type base (Lucide, MUI adornments, badges) */
+  --icon-size-xs: calc(var(--type-base) * 0.75);
+  --icon-size-sm: calc(var(--type-base) * 0.875);
+  --icon-size-md: var(--type-base);
+  --icon-size-lg: calc(var(--type-base) * 1.125);
+  --icon-size-xl: calc(var(--type-base) * 1.25);
   
   /* Font Weights */
   --font-weight-light: 300;

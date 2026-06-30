@@ -264,7 +264,7 @@ const GroupInfoPanel = ({ isOpen, onClose, roomId, roomName, isCreator, currentU
                       )}
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', minWidth: 0, flex: 1 }}>
                         <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 500, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                          <RoleBadge user={p.user} size={12} fontSize="0.7rem" />
+                          <RoleBadge user={p.user} size={12} />
                           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {getChatUserDisplayName(p.user)}
                           </span>
