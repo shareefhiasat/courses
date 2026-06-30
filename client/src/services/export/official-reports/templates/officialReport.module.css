@@ -1,0 +1,167 @@
+/* A4 official report styles — 210mm × 297mm at 96dpi ≈ 794×1123px */
+@import '../../../../styles/fonts.css';
+
+.officialPage {
+  width: 794px;
+  min-height: 1123px;
+  padding: 28px 32px;
+  box-sizing: border-box;
+  background: #fff;
+  color: #111;
+  font-family: 'IBM Plex Sans Arabic', 'IBM Plex Sans', 'Inter', sans-serif;
+  font-size: 11px;
+  position: relative;
+  overflow: hidden;
+}
+
+.officialPageRtl {
+  direction: rtl;
+  text-align: right;
+}
+
+.officialWatermark {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.12;
+  transform: rotate(-35deg);
+  font-size: 22px;
+  line-height: 1.5;
+  text-align: center;
+  white-space: pre-line;
+  color: #333;
+}
+
+.officialContent {
+  position: relative;
+  z-index: 1;
+}
+
+/* Daily official header band */
+.dailyHeaderBand {
+  background: #e8e8e8;
+  border: 1px solid #999;
+  padding: 10px 14px;
+  margin-bottom: 8px;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 8px;
+}
+
+.dailyLogo {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  justify-self: center;
+}
+
+.dailyMetaGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4px 24px;
+  font-size: 11px;
+  margin-bottom: 10px;
+}
+
+.dailyTitle {
+  text-align: center;
+  font-weight: 700;
+  font-size: 14px;
+  margin: 6px 0 10px;
+}
+
+/* Violations official header */
+.violationsTopRow {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: start;
+  gap: 8px;
+  font-size: 9px;
+  line-height: 1.35;
+  margin-bottom: 6px;
+}
+
+.violationsTopEn {
+  text-align: left;
+  direction: ltr;
+}
+
+.violationsTopAr {
+  text-align: right;
+}
+
+.violationsTitleBar {
+  background: #d9d9d9;
+  border: 1px solid #999;
+  text-align: center;
+  font-weight: 700;
+  font-size: 13px;
+  padding: 6px;
+  margin: 8px 0;
+}
+
+.violationsMeta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  margin-bottom: 8px;
+}
+
+/* Tables */
+.officialTable {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 10px;
+}
+
+.officialTable th,
+.officialTable td {
+  border: 1px solid #000;
+  padding: 4px 6px;
+  text-align: center;
+  vertical-align: middle;
+}
+
+.officialTable th {
+  background: #f0f0f0;
+  font-weight: 600;
+}
+
+.officialTable .nameCell {
+  text-align: right;
+  min-width: 140px;
+}
+
+.officialTable .notesCell {
+  min-width: 80px;
+}
+
+.dateGroupRow td {
+  background: #fff;
+  color: #c00;
+  font-weight: 700;
+  text-align: center;
+  font-size: 11px;
+}
+
+.signatureFooter {
+  margin-top: 24px;
+  font-size: 11px;
+  text-align: left;
+  direction: rtl;
+}
+
+.serialLine {
+  font-size: 9px;
+  color: #555;
+  margin-bottom: 4px;
+}
+
+.markCell {
+  font-weight: 700;
+}

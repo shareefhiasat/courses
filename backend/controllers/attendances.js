@@ -25,7 +25,7 @@ async function assertAttendanceRecordAccess(req, res, record) {
 // Get all attendance records
 export const getAllAttendance = async (req, res) => {
   try {
-    const { userId, classId, date, page = 1, limit = 100 } = req.query;
+    const { userId, classId, date, dateFrom, dateTo, subjectId, page = 1, limit = 100 } = req.query;
 
     if (classId) {
       const access = await assertClassInScope(req, classId);
@@ -35,7 +35,10 @@ export const getAllAttendance = async (req, res) => {
     const params = {
       userId: userId ? parseInt(userId) : undefined,
       classId: classId ? parseInt(classId) : undefined,
+      subjectId: subjectId ? parseInt(subjectId) : undefined,
       date,
+      dateFrom,
+      dateTo,
       page: parseInt(page),
       limit: parseInt(limit),
     };

@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { Button, Card, CardBody } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 import { REPORT_TYPE_IDS, RECIPIENT_ROLES } from '@constants/reportConstants';
+import { EXPORT_FORMAT } from '@services/export/official-reports/index.jsx';
 
 
 import { info, error, warn, debug } from '@services/utils/logger.js';const ReportExportModal = ({
@@ -31,7 +32,9 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Repor
   showError, // Add toast support
   attendanceMode, // Add attendance mode to distinguish between regular and standup
   selectedProgramsForReport,
-  setSelectedProgramsForReport // For standup mode: select programs instead of subjects
+  setSelectedProgramsForReport, // For standup mode: select programs instead of subjects
+  officialExportFormat,
+  setOfficialExportFormat,
 }) => {
   useEffect(() => {
     if (isOpen && availableUsers.students?.length > 20) {
@@ -48,6 +51,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Repor
 
   const isSummaryReport = reportType === REPORT_TYPE_IDS.SUMMARY;
   const isDailyReport = reportType === REPORT_TYPE_IDS.DAILY;
+  const isDailyOfficial = reportType === REPORT_TYPE_IDS.DAILY_OFFICIAL;
   const isStandupMode = attendanceMode === 'standup';
 
   return (
@@ -67,7 +71,11 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Repor
         <CardBody>
           {/* Report Type Header */}
           <div style={{
-            background: isSummaryReport ? 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)' : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+            background: isSummaryReport
+              ? 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)'
+              : isDailyOfficial
+                ? 'linear-gradient(135deg, #0d9488 0%, #0f766e 100%)'
+                : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
             color: 'white',
             padding: '1rem 1.5rem',
             borderRadius: '0.5rem',
@@ -81,11 +89,41 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Repor
             }}>
               {isSummaryReport ? (
                 (t('summary_report') || 'Summary')
+              ) : isDailyOfficial ? (
+                (t('daily_official') || 'Daily Official')
               ) : (
                 (t('daily_report') || 'Daily')
               )}
             </h2>
           </div>
+
+          {isDailyOfficial && setOfficialExportFormat && (
+            <div style={{ marginBottom: '1.5rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>
+                {t('export_format') || 'Export format'}
+              </label>
+              <div style={{ display: 'flex', gap: '1rem' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                  <input
+                    type="radio"
+                    name="dailyOfficialFormat"
+                    checked={officialExportFormat === EXPORT_FORMAT.PDF}
+                    onChange={() => setOfficialExportFormat(EXPORT_FORMAT.PDF)}
+                  />
+                  <span>{t('export_pdf') || 'PDF (watermarked)'}</span>
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
+                  <input
+                    type="radio"
+                    name="dailyOfficialFormat"
+                    checked={officialExportFormat === EXPORT_FORMAT.EXCEL}
+                    onChange={() => setOfficialExportFormat(EXPORT_FORMAT.EXCEL)}
+                  />
+                  <span>{t('export_excel') || 'Excel (no watermark)'}</span>
+                </label>
+              </div>
+            </div>
+          )}
 
           
           {isSummaryReport && (
@@ -121,6 +159,8 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Repor
             t={t}
             attendanceMode={attendanceMode}
             selectedProgramsForReport={selectedProgramsForReport}
+            officialExportFormat={officialExportFormat}
+            showError={showError}
           />
         </CardBody>
       </Card>
@@ -665,11 +705,22 @@ const ActionButtons = ({
   theme,
   t,
   attendanceMode,
-  selectedProgramsForReport
+  selectedProgramsForReport,
+  officialExportFormat,
+  showError,
 }) => {
   const isSummaryReport = reportType === REPORT_TYPE_IDS.SUMMARY;
+  const isDailyOfficial = reportType === REPORT_TYPE_IDS.DAILY_OFFICIAL;
   const isDailyReport = reportType === REPORT_TYPE_IDS.DAILY;
   const isStandupMode = attendanceMode === 'standup';
+
+  const exportLabel = isDailyOfficial
+    ? officialExportFormat === EXPORT_FORMAT.PDF
+      ? t('export_pdf') || 'Export PDF'
+      : t('export_excel') || 'Export Excel'
+    : exportFormat === 'email'
+      ? t('send_email') || 'Send Email'
+      : t('export_csv_excel') || 'Export CSV (Excel)';
 
   return (
     <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
@@ -737,10 +788,7 @@ const ActionButtons = ({
           gap: '0.5rem'
         }}
       >
-        {exportFormat === 'email' 
-          ? t('send_email') || 'Send Email'
-          : t('export_csv_excel') || 'Export CSV (Excel)'
-        }
+        {exportLabel}
       </Button>
     </div>
   );

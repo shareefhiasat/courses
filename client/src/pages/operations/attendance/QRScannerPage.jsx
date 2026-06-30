@@ -38,6 +38,13 @@ import { ABSENCE_THRESHOLDS } from '@/constants/absenceTypes';
 import { getNoteTypeFromStatus, getLocalizedNoteText } from '@constants/noteTypes';
 // import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes'; // Removed - notifications now handled by backend
 import { exportDailyReport as exportDailyReportExcel, exportSummaryReport as exportSummaryReportExcel, exportAttendanceViolationsReport } from '@services/export/excelExportService.js';
+import {
+  prepareDailyOfficialData,
+  prepareAttendanceOfficialData,
+  exportDailyOfficialReport,
+  exportAttendanceOfficialReport,
+  EXPORT_FORMAT,
+} from '@services/export/official-reports/index.jsx';
 import { useToast } from '@ui/ToastProvider.jsx';
 import ConfirmModal from '@ui/Modal/ConfirmModal.jsx';
 import { addNotification } from '@services/business/notificationService';
@@ -473,6 +480,8 @@ const QRScannerPage = () => {
   
   // Report export modal state (unified for both daily and summary)
   const [showDailyReportModal, setShowDailyReportModal] = useState(false);
+  const [showDailyOfficialModal, setShowDailyOfficialModal] = useState(false);
+  const [dailyOfficialExportFormat, setDailyOfficialExportFormat] = useState(EXPORT_FORMAT.PDF);
   const [showSemesterReportConfirm, setShowSemesterReportConfirm] = useState(false);
   const [showNoAttendanceModal, setShowNoAttendanceModal] = useState(false);
   const [exportFormat, setExportFormat] = useState('csv'); // 'csv', 'email'
@@ -487,6 +496,10 @@ const QRScannerPage = () => {
   const [usersLoading, setUsersLoading] = useState(false);
   const [isExportingBehavioral, setIsExportingBehavioral] = useState(false);
   const [showAttendanceViolationsModal, setShowAttendanceViolationsModal] = useState(false);
+  const [violationsModalMode, setViolationsModalMode] = useState('standard');
+  const [violationsDateFrom, setViolationsDateFrom] = useState('');
+  const [violationsDateTo, setViolationsDateTo] = useState('');
+  const [violationsExportFormat, setViolationsExportFormat] = useState(EXPORT_FORMAT.PDF);
   const [selectedSubjectsForViolations, setSelectedSubjectsForViolations] = useState([]);
   const [selectedViolationTypes, setSelectedViolationTypes] = useState({
     absentNoExcuse: true,
@@ -509,6 +522,25 @@ const QRScannerPage = () => {
     const selectedProgram = programs.find(p => p.id == selectedProgramId);
     return selectedProgram?.nameEn || selectedProgram?.name || selectedProgram?.code || 'Unknown Program';
   }, [selectedProgramId, programs]);
+
+  const getDefaultViolationsDateRange = useCallback((anchorDate) => {
+    const to = anchorDate || formatQatarDateOnly(getQatarNow());
+    const fromDate = new Date(`${to}T12:00:00`);
+    fromDate.setDate(fromDate.getDate() - 30);
+    const from = fromDate.toISOString().split('T')[0];
+    return { from, to };
+  }, []);
+
+  const openViolationsModal = useCallback((mode) => {
+    const { from, to } = getDefaultViolationsDateRange(selectedDate);
+    setViolationsDateFrom(from);
+    setViolationsDateTo(to);
+    setViolationsModalMode(mode);
+    if (selectedSubjectId && selectedSubjectId !== 'all') {
+      setSelectedSubjectsForViolations([selectedSubjectId]);
+    }
+    setShowAttendanceViolationsModal(true);
+  }, [getDefaultViolationsDateRange, selectedDate, selectedSubjectId]);
 
   // Handle QR scanner minimization changes
   const handleScannerMinimizeChange = useCallback((isMinimized) => {
@@ -2791,6 +2823,133 @@ const QRScannerPage = () => {
     }
   }, [selectedClassId, selectedDate, selectedProgramId, selectedSubjectId, programs, subjects, classes, lang, t, dailyExportFormat, dailyEmailRecipients, user, availableUsers, showError, showSuccess, attendanceMode]);
 
+  const exportDailyOfficial = useCallback(async () => {
+    const isStandup = attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP;
+    if (isStandup) {
+      if (!selectedProgramId || selectedProgramId === 'all') {
+        showError(t('please_select_program') || 'Please select a program first');
+        return;
+      }
+    } else if (!selectedClassId || selectedClassId === 'all') {
+      showError(t('please_select_class') || 'Please select a class first');
+      return;
+    }
+
+    try {
+      setIsExporting(true);
+      const formattedDate = formatQatarDateOnly(selectedDate);
+      let attendanceData = [];
+
+      if (isStandup) {
+        const res = await getStandupAttendanceByProgramAndDate(selectedProgramId, selectedDate);
+        attendanceData = (res.success ? res.data : []).map((a) => ({
+          ...a,
+          status: getStatusCodeFromRecord(a),
+          studentId: a.userId ?? a.studentId,
+        }));
+      } else {
+        const res = await getAttendanceByClass(selectedClassId, { date: selectedDate });
+        attendanceData = (res.success ? res.data : []).map((a) => ({
+          ...a,
+          status: getStatusCodeFromRecord(a),
+          studentId: a.studentId ?? a.userId,
+        }));
+      }
+
+      const attendanceByUserId = {};
+      attendanceData.forEach((record) => {
+        const uid = String(record.studentId ?? record.userId);
+        attendanceByUserId[uid] = record;
+      });
+
+      const roster = students.length > 0 ? students : attendanceData.map((r) => ({
+        id: r.studentId ?? r.userId,
+        studentNumber: r.studentNumber,
+        displayName: r.studentName,
+        attendance: r.status,
+        standupStatus: r.status,
+      }));
+
+      const programsResponse = await getPrograms();
+      const allPrograms = programsResponse.success ? programsResponse.data : [];
+      const currentProgram = allPrograms.find((p) => p.id == selectedProgramId);
+
+      const subjectsResponse = await getSubjects(selectedProgramId ? { programId: selectedProgramId } : {});
+      const allSubjects = subjectsResponse.success ? subjectsResponse.data : [];
+      const currentSubject = allSubjects.find((s) => s.id == selectedSubjectId);
+
+      const classesResponse = await getClasses(selectedSubjectId ? { subjectId: selectedSubjectId } : {});
+      const allClasses = classesResponse.success ? classesResponse.data : [];
+      const currentClass = allClasses.find((c) => c.id == selectedClassId);
+
+      const programName = currentProgram
+        ? lang === 'ar'
+          ? currentProgram.nameAr || currentProgram.nameEn || currentProgram.name
+          : currentProgram.nameEn || currentProgram.name
+        : '';
+      const subjectName = currentSubject
+        ? lang === 'ar'
+          ? currentSubject.nameAr || currentSubject.nameEn || currentSubject.name
+          : currentSubject.nameEn || currentSubject.name
+        : '';
+      const className = currentClass
+        ? lang === 'ar'
+          ? currentClass.nameAr || currentClass.nameEn || currentClass.name
+          : currentClass.nameEn || currentClass.name
+        : '';
+      const instructorName = currentClass?.instructor
+        ? getLocalizedUserName(currentClass.instructor, lang)
+        : '';
+
+      const reportData = prepareDailyOfficialData({
+        roster,
+        attendanceByUserId,
+        lang,
+        isStandup,
+        metadata: {
+          date: formattedDate,
+          programId: selectedProgramId,
+          classId: selectedClassId,
+          programName,
+          subjectName,
+          className,
+          year: currentClass?.year || '',
+          term: currentClass?.term || '',
+          instructorName,
+          watermarkUser: user,
+        },
+      });
+
+      const sanitize = (str) => (str ? String(str).replace(/[^a-zA-Z0-9\u0600-\u06FF]/g, '_') : '');
+      const filename = `${reportData.serial}_daily_official_${sanitize(programName)}`;
+
+      await exportDailyOfficialReport(reportData, {
+        format: dailyOfficialExportFormat,
+        filename,
+      });
+
+      showSuccess(t('report_exported_successfully') || 'Report exported successfully');
+    } catch (err) {
+      console.error('Daily official export failed:', err);
+      showError((t('export_failed') || 'Export failed: ') + err.message);
+    } finally {
+      setIsExporting(false);
+    }
+  }, [
+    attendanceMode,
+    selectedProgramId,
+    selectedClassId,
+    selectedSubjectId,
+    selectedDate,
+    students,
+    lang,
+    t,
+    user,
+    dailyOfficialExportFormat,
+    showError,
+    showSuccess,
+  ]);
+
   
   const toggleUserSelection = useCallback((user) => {
     const userKey = `${user.role}_${user.id}`;
@@ -2856,187 +3015,194 @@ const QRScannerPage = () => {
   }, [availableUsers, dailyEmailRecipients]);
 
   // Export Attendance Violations Report function
-  const handleExportAttendanceViolations = useCallback(async (subjectsToExport, violationTypesToExport) => {
-    // Prevent multiple simultaneous exports
+  const handleExportAttendanceViolations = useCallback(async (subjectsToExport, violationTypesToExport, options = {}) => {
     if (isExportingBehavioral) {
       console.log('⚠️ Export already in progress, skipping');
       return;
     }
 
-    // Use passed parameters or fall back to state
     const exportSubjects = subjectsToExport || selectedSubjectsForViolations;
     const exportViolationTypes = violationTypesToExport || selectedViolationTypes;
+    const {
+      dateFrom = violationsDateFrom,
+      dateTo = violationsDateTo,
+      format = violationsExportFormat,
+      mode = violationsModalMode,
+    } = options;
 
-    // Validate subject selection
     if (exportSubjects.length === 0) {
       showError(t('select_at_least_one_subject') || 'Please select at least one subject for the report');
       return;
     }
 
-    // Validate violation type selection
-    const hasSelectedViolationType = Object.values(exportViolationTypes).some(v => v);
+    const hasSelectedViolationType = Object.values(exportViolationTypes).some((v) => v);
     if (!hasSelectedViolationType) {
       showError(t('select_at_least_one_violation_type') || 'Please select at least one violation type');
       return;
     }
 
+    if (!dateFrom || !dateTo || dateFrom > dateTo) {
+      showError(t('date_range_invalid') || 'Please select a valid date range');
+      return;
+    }
+
     try {
       setIsExportingBehavioral(true);
-      console.log('🔍 Exporting Attendance Violations Report:', { 
-        selectedProgramId, 
-        exportSubjects, 
-        exportViolationTypes 
+
+      const attendancePromises = exportSubjects.map((subjectId) =>
+        getAttendanceRecords({
+          subjectId: Number(subjectId),
+          dateFrom,
+          dateTo,
+          limit: 5000,
+        })
+      );
+
+      const attendanceResults = await Promise.all(attendancePromises);
+      const allAttendanceData = attendanceResults
+        .filter((result) => result.success)
+        .flatMap((result) => result.data);
+
+      const deduplicatedData = Array.from(
+        new Map(allAttendanceData.map((record) => [record.id, record])).values()
+      );
+
+      const inRange = deduplicatedData.filter((record) => {
+        const raw = record.date || record.at || record.createdAt;
+        const dateKey =
+          typeof raw === 'string'
+            ? raw.split('T')[0]
+            : new Date(raw).toISOString().split('T')[0];
+        return dateKey >= dateFrom && dateKey <= dateTo;
       });
 
-      // Fetch attendance records for all selected subjects
-      console.log('🔍 Fetching attendance for subjects:', exportSubjects);
-      const attendancePromises = exportSubjects.map(subjectId =>
-        getAttendanceRecords({ subjectId: Number(subjectId) })
-      );
-      
-      const attendanceResults = await Promise.all(attendancePromises);
-      
-      console.log('🔍 Attendance results per subject:', attendanceResults.map((r, i) => ({
-        subjectId: exportSubjects[i],
-        success: r.success,
-        count: r.data?.length || 0,
-        sampleIds: r.data?.slice(0, 2).map(d => d.id)
-      })));
-      
-      const allAttendanceData = attendanceResults
-        .filter(result => result.success)
-        .flatMap(result => result.data);
-
-      console.log('🔍 Total attendance records before deduplication:', allAttendanceData.length);
-
-      // Deduplicate by ID (backend may still return duplicates until server restart)
-      const deduplicatedData = Array.from(
-        new Map(allAttendanceData.map(record => [record.id, record])).values()
-      );
-      console.log('🔍 Total attendance records after deduplication:', deduplicatedData.length);
-
-      // Log sample records to see actual status values
-      console.log('🔍 Sample attendance records:', deduplicatedData.slice(0, 5).map(r => ({
-        id: r.id,
-        status: r.status,
-        statusType: typeof r.status,
-        statusLower: String(r.status || '').toLowerCase()
-      })));
-
-      // Log all unique status values
-      const uniqueStatuses = [...new Set(deduplicatedData.map(r => r.status))];
-      console.log('🔍 All unique status values in dataset:', uniqueStatuses);
-
-      if (deduplicatedData.length === 0) {
-        console.log('⚠️ No attendance records found');
+      if (inRange.length === 0) {
         showError(t('no_attendance_records_found') || 'No attendance records found');
         return;
       }
 
-      // Filter by selected violation types
-      const filteredData = deduplicatedData.filter(record => {
-        const statusCode = record.status?.code || '';
-        
+      const enrichedData = inRange.map((record) => {
+        const recordClass = classes.find((c) => c.id === record.classId);
+        const recordSubject = subjects.find((s) => s.id == record.subjectId);
+        const studentName =
+          record.user?.displayName ||
+          [record.user?.firstName, record.user?.lastName].filter(Boolean).join(' ') ||
+          '';
+        const studentNumber = record.user?.studentNumber || '';
+
+        return {
+          ...record,
+          studentName,
+          studentNumber,
+          className:
+            lang === 'ar'
+              ? recordClass?.nameAr || recordClass?.name || recordClass?.nameEn || ''
+              : recordClass?.nameEn || recordClass?.name || '',
+          subjectName:
+            lang === 'ar'
+              ? recordSubject?.nameAr || recordSubject?.name || recordSubject?.nameEn || ''
+              : recordSubject?.nameEn || recordSubject?.name || '',
+          subject: recordSubject,
+          class: recordClass,
+        };
+      });
+
+      const filteredData = enrichedData.filter((record) => {
+        const statusCode = getStatusCodeFromRecord(record) || '';
         if (exportViolationTypes.absentNoExcuse && statusCode === ATTENDANCE_STATUS.ABSENT_NO_EXCUSE) return true;
         if (exportViolationTypes.absentWithExcuse && statusCode === ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE) return true;
         if (exportViolationTypes.excusedLeave && statusCode === ATTENDANCE_STATUS.EXCUSED_LEAVE) return true;
         if (exportViolationTypes.late && statusCode === ATTENDANCE_STATUS.LATE) return true;
         if (exportViolationTypes.humanCase && statusCode === ATTENDANCE_STATUS.HUMAN_CASE) return true;
-        
         return false;
       });
 
-      console.log('📊 Filtered attendance records:', filteredData.length);
-      console.log('🔍 Sample attendance record fields:', Object.keys(filteredData[0] || {}));
-      console.log('🔍 First attendance record:', filteredData[0]);
-
       if (filteredData.length === 0) {
-        console.log('⚠️ No records match selected violation types');
         showError(t('no_records_match_filters') || 'No records match the selected violation types');
         return;
       }
 
-      // Enrich data with student names, numbers, class names, subject names
-      // Note: Attendance records already have user object with student info
-      const enrichedData = filteredData.map(record => {
-        const recordClass = classes.find(c => c.id === record.classId);
-        const recordSubject = subjects.find(s => s.id == record.subjectId);
-        
-        // Use user object from attendance record for student info
-        const studentName = record.user?.displayName || record.user?.firstName + ' ' + record.user?.lastName || '';
-        const studentNumber = record.user?.studentNumber || '';
-        
-        console.log('🔍 Enriching record:', {
-          recordId: record.id,
-          userId: record.userId,
-          subjectId: record.subjectId,
-          studentName: studentName,
-          studentNumber: studentNumber,
-          subjectName: recordSubject?.nameEn || recordSubject?.name || '',
-          userObject: record.user,
-          userHasStudentNumber: !!record.user?.studentNumber,
-          userStudentNumberValue: record.user?.studentNumber
+      const selectedProgram = programs.find((p) => p.id == selectedProgramId);
+      const programName =
+        lang === 'ar'
+          ? selectedProgram?.nameAr || selectedProgram?.nameEn || selectedProgram?.name || ''
+          : selectedProgram?.nameEn || selectedProgram?.name || '';
+
+      if (mode === 'official') {
+        const reportData = prepareAttendanceOfficialData({
+          records: filteredData,
+          violationTypes: exportViolationTypes,
+          lang,
+          metadata: {
+            programId: selectedProgramId,
+            programName,
+            dateFrom,
+            dateTo,
+            watermarkUser: user,
+          },
         });
-        
-        return {
-          ...record,
-          studentName: studentName,
-          studentNumber: studentNumber,
-          className: lang === 'ar' 
-            ? (recordClass?.nameAr || recordClass?.name || recordClass?.nameEn || '')
-            : (recordClass?.nameEn || recordClass?.name || ''),
-          subjectName: lang === 'ar'
-            ? (recordSubject?.nameAr || recordSubject?.name || recordSubject?.nameEn || '')
-            : (recordSubject?.nameEn || recordSubject?.name || ''),
-          subject: recordSubject, // Include full subject object for Arabic name
-          class: recordClass // Include full class object for Arabic name
-        };
-      });
 
-      // Generate Excel file
-      const excelBlob = await exportAttendanceViolationsReport(enrichedData, {
-        lang: lang,
-        t: t
-      });
+        if (!reportData.dateGroups?.length) {
+          showError(t('no_records_match_filters') || 'No records match the selected violation types');
+          return;
+        }
 
-      // Download the file
-      const url = URL.createObjectURL(excelBlob);
-      const link = document.createElement('a');
-      link.href = url;
-      
-      // Generate filename: attendance_program_subjects
-      const selectedProgram = programs.find(p => p.id == selectedProgramId);
-      const firstSubject = subjects.find(s => s.id == exportSubjects[0]);
-      
-      const programName = selectedProgram?.nameEn || selectedProgram?.name || 'Unknown';
-      const subjectsLabel = exportSubjects.length === 1 
-        ? (firstSubject?.nameEn || firstSubject?.name || 'Unknown')
-        : `${exportSubjects.length}Subjects`;
-      
-      const violationsDate = new Date().toISOString().split('T')[0];
-      const [vYear, vMonth] = violationsDate.split('-');
-      const vSemester = parseInt(vMonth) <= 6 ? 'S1' : 'S2';
-      const vYearSemester = `${vYear}_${vSemester}`;
-      
-      const filename = lang === 'ar' 
-        ? `${violationsDate}_${vYearSemester}_تقرير_المخالفات_${programName}_${subjectsLabel}.xlsx`
-        : `${violationsDate}_${vYearSemester}_violations_report_${programName}_${subjectsLabel}.xlsx`;
-      link.download = filename;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url);
+        const sanitize = (str) => (str ? String(str).replace(/[^a-zA-Z0-9\u0600-\u06FF]/g, '_') : '');
+        await exportAttendanceOfficialReport(reportData, {
+          format,
+          filename: `${reportData.serial}_attendance_official_${sanitize(programName)}`,
+        });
+      } else {
+        const excelBlob = await exportAttendanceViolationsReport(filteredData, { lang, t });
+        const url = URL.createObjectURL(excelBlob);
+        const link = document.createElement('a');
+        link.href = url;
+        const violationsDate = new Date().toISOString().split('T')[0];
+        const [vYear, vMonth] = violationsDate.split('-');
+        const vSemester = parseInt(vMonth, 10) <= 6 ? 'S1' : 'S2';
+        const firstSubject = subjects.find((s) => s.id == exportSubjects[0]);
+        const subjectsLabel =
+          exportSubjects.length === 1
+            ? firstSubject?.nameEn || firstSubject?.name || 'Unknown'
+            : `${exportSubjects.length}Subjects`;
+        link.download =
+          lang === 'ar'
+            ? `${violationsDate}_${vYear}_${vSemester}_تقرير_المخالفات_${programName}_${subjectsLabel}.xlsx`
+            : `${violationsDate}_${vYear}_${vSemester}_violations_report_${programName}_${subjectsLabel}.xlsx`;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }
 
-      console.log('✅ Attendance Violations Report exported successfully');
-      showSuccess(t('attendance_violations_report_exported_successfully') || 'Attendance Violations Report exported successfully');
-
-    } catch (error) {
-      console.error('❌ Attendance Violations Report export failed:', error);
-      showError((t('export_failed') || 'Export failed: ') + error.message);
+      showSuccess(
+        t('attendance_violations_report_exported_successfully') ||
+          'Attendance violations report exported successfully'
+      );
+    } catch (exportError) {
+      console.error('❌ Attendance Violations Report export failed:', exportError);
+      showError((t('export_failed') || 'Export failed: ') + exportError.message);
     } finally {
       setIsExportingBehavioral(false);
     }
-  }, [selectedProgramId, selectedSubjectId, selectedClassId, enrollments, classes, subjects, programs, lang, t, showError, showSuccess, isExportingBehavioral]);
+  }, [
+    selectedProgramId,
+    selectedSubjectsForViolations,
+    selectedViolationTypes,
+    violationsDateFrom,
+    violationsDateTo,
+    violationsExportFormat,
+    violationsModalMode,
+    classes,
+    subjects,
+    programs,
+    lang,
+    t,
+    user,
+    showError,
+    showSuccess,
+    isExportingBehavioral,
+  ]);
 
   // Export Summary Report function
   const exportSemesterReport = useCallback(async () => {
@@ -4910,6 +5076,48 @@ const QRScannerPage = () => {
                   </button>
               )}
 
+              {canExport && (
+                <button
+                  data-tour="qr-daily-official"
+                  onClick={() => {
+                    if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
+                      if (!selectedProgramId || selectedProgramId === 'all') {
+                        showError(t('please_select_program') || 'Please select a program first');
+                        return;
+                      }
+                    } else if (!selectedClassId || selectedClassId === 'all') {
+                      showError(t('please_select_class') || 'Please select a class first');
+                      return;
+                    }
+                    setShowDailyOfficialModal(true);
+                  }}
+                  style={{
+                    padding: '1rem 1.5rem',
+                    background: isExporting ? '#94a3b8' : 'linear-gradient(135deg, #0d9488 0%, #0f766e 100%)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '0.5rem',
+                    fontSize: '0.875rem',
+                    fontWeight: 600,
+                    cursor: isExporting ? 'not-allowed' : 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    transition: 'all 0.2s',
+                    boxShadow: '0 2px 4px rgba(13, 148, 136, 0.2)',
+                    minWidth: '100px',
+                    justifyContent: 'center',
+                    opacity: (isExporting || (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || selectedProgramId === 'all' || !selectedSubjectId || selectedSubjectId === 'all' || !selectedClassId || selectedClassId === 'all'))) ? 0.5 : 1
+                  }}
+                  disabled={gridLoading || isExporting || (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || selectedProgramId === 'all' || !selectedSubjectId || selectedSubjectId === 'all' || !selectedClassId || selectedClassId === 'all'))}
+                  data-tooltip={t('export_daily_official') || 'Export official daily attendance report'}
+                  data-tooltip-pos="bottom"
+                >
+                  {getThemedIcon('ui', 'file_text', 16, 'white')}
+                  {t('daily_official') || 'Daily Official'}
+                </button>
+              )}
+
               {canExportSummary && (
                   <button
                     data-tour="qr-summary-report"
@@ -4971,7 +5179,7 @@ const QRScannerPage = () => {
                         return;
                       }
                       
-                      setShowAttendanceViolationsModal(true);
+                      openViolationsModal('standard');
                     }}
                     style={{
                       padding: '1rem 1.5rem',
@@ -4997,6 +5205,47 @@ const QRScannerPage = () => {
                   >
                     {getThemedIcon('ui', 'alert_triangle', 16, 'white')}
                     {t('attendance') || 'Attendance'}
+                  </button>
+              )}
+
+              {(isHR || isSuperAdmin) && attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && (
+                  <button
+                    data-tour="qr-attendance-official"
+                    onClick={() => {
+                      const hasAttendanceToday = students.some(student => 
+                        (student.attendance !== null && student.attendance !== undefined) ||
+                        (student.standupStatus !== null && student.standupStatus !== undefined)
+                      );
+                      if (!hasAttendanceToday) {
+                        setShowNoAttendanceModal(true);
+                        return;
+                      }
+                      openViolationsModal('official');
+                    }}
+                    style={{
+                      padding: '1rem 1.5rem',
+                      background: isExportingBehavioral ? '#94a3b8' : 'linear-gradient(135deg, #b45309 0%, #92400e 100%)',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '0.5rem',
+                      fontSize: '0.875rem',
+                      fontWeight: 600,
+                      cursor: isExportingBehavioral ? 'not-allowed' : 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      transition: 'all 0.2s',
+                      boxShadow: '0 2px 4px rgba(180, 83, 9, 0.2)',
+                      minWidth: '100px',
+                      justifyContent: 'center',
+                      opacity: (isExportingBehavioral || (!selectedProgramId || selectedProgramId === 'all' || !selectedSubjectId || selectedSubjectId === 'all' || !selectedClassId || selectedClassId === 'all')) ? 0.5 : 1
+                    }}
+                    disabled={isExportingBehavioral || (!selectedProgramId || selectedProgramId === 'all' || !selectedSubjectId || selectedSubjectId === 'all' || !selectedClassId || selectedClassId === 'all')}
+                    data-tooltip={t('export_attendance_official') || 'Export official attendance violations report'}
+                    data-tooltip-pos="bottom"
+                  >
+                    {getThemedIcon('ui', 'file_text', 16, 'white')}
+                    {t('attendance_official') || 'Attendance Official'}
                   </button>
               )}
 
@@ -5557,6 +5806,39 @@ const QRScannerPage = () => {
           showError={showError}
         />
 
+        {/* Daily Official Export Modal */}
+        <ReportExportModal
+          isOpen={showDailyOfficialModal}
+          onClose={() => setShowDailyOfficialModal(false)}
+          reportType={REPORT_TYPE_IDS.DAILY_OFFICIAL}
+          exportFormat={dailyExportFormat}
+          setExportFormat={setDailyExportFormat}
+          selectedSubjectsForReport={[]}
+          setSelectedSubjectsForReport={() => {}}
+          subjects={subjects}
+          selectedProgramId={selectedProgramId}
+          programs={programs}
+          attendanceMode={attendanceMode}
+          selectedProgramsForReport={[selectedProgramId]}
+          setSelectedProgramsForReport={() => {}}
+          emailRecipients={[]}
+          setEmailRecipients={() => {}}
+          usersLoading={usersLoading}
+          availableUsers={availableUsers}
+          toggleUserSelection={toggleDailyUserSelection}
+          toggleRoleSelection={toggleDailyRoleSelection}
+          user={user}
+          theme={theme}
+          t={t}
+          lang={lang}
+          isExporting={isExporting}
+          onExport={exportDailyOfficial}
+          fetchUsersForEmail={fetchUsersForEmail}
+          showError={showError}
+          officialExportFormat={dailyOfficialExportFormat}
+          setOfficialExportFormat={setDailyOfficialExportFormat}
+        />
+
         {/* Attendance Violations Export Modal */}
         <AttendanceViolationsModal
           isOpen={showAttendanceViolationsModal}
@@ -5566,10 +5848,16 @@ const QRScannerPage = () => {
           setSelectedSubjects={setSelectedSubjectsForViolations}
           selectedViolationTypes={selectedViolationTypes}
           setSelectedViolationTypes={setSelectedViolationTypes}
+          dateFrom={violationsDateFrom}
+          setDateFrom={setViolationsDateFrom}
+          dateTo={violationsDateTo}
+          setDateTo={setViolationsDateTo}
+          exportFormat={violationsExportFormat}
+          setExportFormat={setViolationsExportFormat}
+          mode={violationsModalMode}
           onExport={handleExportAttendanceViolations}
           isExporting={isExportingBehavioral}
           t={t}
-          theme={theme}
           lang={lang}
         />
 

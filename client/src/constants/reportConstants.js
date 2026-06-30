@@ -20,7 +20,9 @@ export const REPORT_TYPES = {
 // Report Type Identifiers for UI
 export const REPORT_TYPE_IDS = {
   DAILY: 'daily',
-  SUMMARY: 'summary'
+  SUMMARY: 'summary',
+  DAILY_OFFICIAL: 'daily_official',
+  ATTENDANCE_OFFICIAL: 'attendance_official',
 };
 
 // Role Categories for Email Recipients

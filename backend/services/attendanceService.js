@@ -50,23 +50,35 @@ const getDatabaseUserId = async (user) => {
   }
 };
 
+const startOfDay = (dateInput) => {
+  const d = new Date(dateInput);
+  d.setHours(0, 0, 0, 0);
+  return d;
+};
+
+const startOfNextDay = (dateInput) => {
+  const d = startOfDay(dateInput);
+  d.setDate(d.getDate() + 1);
+  return d;
+};
+
 // Get all attendance records with filtering
 export const getAllAttendance = async (params = {}) => {
   try {
-    const { userId, classId, date, subjectId, page = 1, limit = 100 } = params;
+    const { userId, classId, date, dateFrom, dateTo, subjectId, page = 1, limit = 100 } = params;
     
     const where = {};
     if (userId) where.userId = parseInt(userId);
     if (classId) where.classId = parseInt(classId);
     if (subjectId) where.subjectId = parseInt(subjectId);
-    if (date) {
-      // Handle date filtering - consider the whole day
-      const startDate = new Date(date);
-      const endDate = new Date(date);
-      endDate.setDate(endDate.getDate() + 1);
+    if (dateFrom || dateTo) {
+      where.date = {};
+      if (dateFrom) where.date.gte = startOfDay(dateFrom);
+      if (dateTo) where.date.lt = startOfNextDay(dateTo);
+    } else if (date) {
       where.date = {
-        gte: startDate,
-        lt: endDate
+        gte: startOfDay(date),
+        lt: startOfNextDay(date),
       };
     }
     
