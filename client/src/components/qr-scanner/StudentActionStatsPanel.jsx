@@ -538,7 +538,7 @@ export default function StudentActionStatsPanel({
       console.log('🔍 StudentActionStatsPanel - Setting logsLoading to FALSE (success)');
     } catch (err) {
       error('Error fetching historical logs:', err);
-      setLogsError('Failed to load history');
+      setLogsError(t('failed_to_load_history'));
       setHistoricalLogs([]);
       setTodayLogs([]);
       console.log('🔍 StudentActionStatsPanel - Setting logsLoading to FALSE (error)');
@@ -626,7 +626,7 @@ export default function StudentActionStatsPanel({
   const handleMarkAttendance = useCallback(async (studentId, status) => {
     // Check if attendance already exists and user doesn't have edit permission
     if (currentAttendanceStatus && !canEditAttendance) {
-      showError('You do not have permission to edit existing attendance');
+      showError(t('no_permission_edit_attendance'));
       return;
     }
 
@@ -634,7 +634,7 @@ export default function StudentActionStatsPanel({
     try {
       const result = await onMarkAttendance(studentId, status, programId, subjectId);
       if (result && !result.success) {
-        showError(result.error || 'Failed to mark attendance');
+        showError(result.error || t('failed_to_mark_attendance'));
         return;
       }
       // Update the current attendance status immediately for UI feedback
@@ -645,7 +645,7 @@ export default function StudentActionStatsPanel({
       await fetchHistoricalLogs();
     } catch (err) {
       error('Error marking attendance:', err);
-      showError(err.message || 'Failed to mark attendance');
+      showError(err.message || t('failed_to_mark_attendance'));
     } finally {
       setShowLoadingOverlay(false);
     }
@@ -698,7 +698,7 @@ export default function StudentActionStatsPanel({
           eventBus.emit(EVENTS.REFRESH_TODAY_ACTIVITY);
 
           // Show success feedback
-          showSuccess(`Successfully deleted ${penaltyLogs.length} penalty records`);
+          showSuccess(t('successfully_deleted_records', { count: penaltyLogs.length, type: t('penalties') }));
 
           // Close panel
           onClose();
@@ -720,7 +720,7 @@ export default function StudentActionStatsPanel({
           eventBus.emit(EVENTS.REFRESH_TODAY_ACTIVITY);
 
           // Show success feedback
-          showSuccess(`Successfully deleted ${participationLogs.length} participation records`);
+          showSuccess(t('successfully_deleted_records', { count: participationLogs.length, type: t('participation') }));
 
           // Close panel
           onClose();
@@ -742,7 +742,7 @@ export default function StudentActionStatsPanel({
           eventBus.emit(EVENTS.REFRESH_TODAY_ACTIVITY);
 
           // Show success feedback
-          showSuccess(`Successfully deleted ${behaviorLogs.length} behavior records`);
+          showSuccess(t('successfully_deleted_records', { count: behaviorLogs.length, type: t('behavior') }));
 
           // Close panel
           onClose();
@@ -775,10 +775,10 @@ export default function StudentActionStatsPanel({
             eventBus.emit(EVENTS.REFRESH_TODAY_ACTIVITY);
 
             // Show success feedback
-            showSuccess('Attendance record deleted successfully');
+            showSuccess(t('attendance_record_deleted'));
           } else {
             console.error('Failed to delete attendance record:', result.error);
-            showError('Failed to delete attendance record: ' + result.error);
+            showError(t('failed_to_delete_record', { type: t('attendance'), error: result.error }));
           }
         } else if (deleteType === RECORD_TYPES.PARTICIPATION) {
           result = await deleteParticipation(deleteLogId);
@@ -803,10 +803,10 @@ export default function StudentActionStatsPanel({
             eventBus.emit(EVENTS.REFRESH_TODAY_ACTIVITY);
 
             // Show success feedback
-            showSuccess('Participation record deleted successfully');
+            showSuccess(t('participation_record_deleted'));
           } else {
             error('Failed to delete participation record:', result.error);
-            showError('Failed to delete participation record: ' + result.error);
+            showError(t('failed_to_delete_record', { type: t('participation'), error: result.error }));
           }
         } else if (deleteType === RECORD_TYPES.PENALTY) {
           result = await deletePenalty(deleteLogId);
@@ -831,10 +831,10 @@ export default function StudentActionStatsPanel({
             eventBus.emit(EVENTS.REFRESH_TODAY_ACTIVITY);
 
             // Show success feedback
-            showSuccess('Penalty record deleted successfully');
+            showSuccess(t('penalty_record_deleted'));
           } else {
             error('Failed to delete penalty record:', result.error);
-            showError('Failed to delete penalty record: ' + result.error);
+            showError(t('failed_to_delete_record', { type: t('penalties'), error: result.error }));
           }
         } else if (deleteType === RECORD_TYPES.BEHAVIOR) {
           result = await deleteBehavior(deleteLogId);
@@ -859,16 +859,16 @@ export default function StudentActionStatsPanel({
             eventBus.emit(EVENTS.REFRESH_TODAY_ACTIVITY);
 
             // Show success feedback
-            showSuccess('Behavior record deleted successfully');
+            showSuccess(t('behavior_record_deleted'));
           } else {
             error('Failed to delete behavior record:', result.error);
-            showError('Failed to delete behavior record: ' + result.error);
+            showError(t('failed_to_delete_record', { type: t('behavior'), error: result.error }));
           }
         }
       }
     } catch (err) {
       error(`Error deleting ${deleteType} record:`, err);
-      showError(`Error deleting ${deleteType} record: ` + err.message);
+      showError(t("error_deleting_record", { type: deleteType, error: err.message }));
     } finally {
       setDeleteLoading(false);
       setDeleteModalOpen(false);
@@ -1826,7 +1826,7 @@ export default function StudentActionStatsPanel({
                       }}>
                         {(() => {
                           const stats = getDetailedStats();
-                          return (lookupData["participation-types"] || []).map(type => { console.log("🔴 StatsPanel participation type:", { id: type.id, nameAr: type.nameAr, nameEn: type.nameEn, lang });
+                          return (lookupData["participation-types"] || []).map(type => {
                             const stat = stats.participation[type.id];
                             return (
                                 <div key={type.id} style={{
@@ -1854,7 +1854,7 @@ export default function StudentActionStatsPanel({
                                     minWidth: '3rem',
                                     textAlign: 'center'
                                   }}>
-                                    Total: {stat.totalPoints}
+                                    {t("total")}: {stat.totalPoints}
                                   </div>
                                   <div style={{
                                     fontSize: '0.75rem',
@@ -1883,7 +1883,7 @@ export default function StudentActionStatsPanel({
                                       : getThemedIcon('ui', 'star', 14, theme)}
                                   </button>
                                   {stat.count > 0 && (
-                                      <PortalTooltip content={t('delete_all_entries').replace('{type}', type.nameEn)} position="top">
+                                      <PortalTooltip content={t('delete_all_entries', { type: lang === 'ar' ? (type.nameAr || type.nameEn) : type.nameEn })} position="top">
                                       <button
                                           onClick={() => {
                                             setDeleteType('participation');
@@ -1944,7 +1944,7 @@ export default function StudentActionStatsPanel({
                             minWidth: '3rem',
                             textAlign: 'center'
                           }}>
-                            Total: {student.participation || 0}
+                            {t("total")}: {student.participation || 0}
                           </div>
                           <div style={{
                             fontSize: '0.75rem',
@@ -2059,7 +2059,7 @@ export default function StudentActionStatsPanel({
                                       : getThemedIcon('ui', 'star', 14, theme)}
                                   </button>
                                   {stat.count > 0 && (
-                                      <PortalTooltip content={t('delete_all_entries').replace('{type}', type.nameEn)} position="top">
+                                      <PortalTooltip content={t('delete_all_entries', { type: lang === 'ar' ? (type.nameAr || type.nameEn) : type.nameEn })} position="top">
                                       <button
                                           onClick={() => {
                                             setDeleteType('behavior');
@@ -2206,7 +2206,7 @@ export default function StudentActionStatsPanel({
                                     minWidth: '3rem',
                                     textAlign: 'center'
                                   }}>
-                                    Total: {stat.totalPoints}
+                                    {t("total")}: {stat.totalPoints}
                                   </div>
                                   <div style={{
                                     fontSize: '0.75rem',
@@ -2235,7 +2235,7 @@ export default function StudentActionStatsPanel({
                                       : getThemedIcon('ui', 'star', 14, theme)}
                                   </button>
                                   {stat.count > 0 && (
-                                      <PortalTooltip content={t('delete_all_entries').replace('{type}', type.nameEn)} position="top">
+                                      <PortalTooltip content={t('delete_all_entries', { type: lang === 'ar' ? (type.nameAr || type.nameEn) : type.nameEn })} position="top">
                                       <button
                                           onClick={() => {
                                             setDeleteType('penalty');
@@ -2517,10 +2517,10 @@ export default function StudentActionStatsPanel({
                     <p>{t('delete_activity_msg', { studentName: student.displayName || student.name || t('this_student') })}</p>
                     <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
                       <Button variant="outline" onClick={() => setDeleteModalOpen(false)}>
-                        {t('cancel') || 'Cancel'}
+                        {t('cancel')}
                       </Button>
                       <Button variant="primary" onClick={handleConfirmDelete} loading={deleteLoading} style={{ backgroundColor: '#dc2626' }}>
-                        {t('delete') || 'Delete'}
+                        {t('delete')}
                       </Button>
                     </div>
                   </CardBody>

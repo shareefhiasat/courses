@@ -744,7 +744,7 @@ export default function StudentActionZapPanel({
               const aLabel = lang === 'ar' ? (a.label_ar || a.label_en || '') : (a.label_en || a.label_ar || '');
               const bLabel = lang === 'ar' ? (b.label_ar || b.label_en || '') : (b.label_en || b.label_ar || '');
               return aLabel.localeCompare(bLabel);
-            }).map((option) => { console.log('🔴 ZapPanel option:', { id: option.id, label_ar: option.label_ar, label_en: option.label_en, lang });
+            }).map((option) => {
               const isSelected = selectedActions.some(a => a.id === option.id);
 
               return (
@@ -1052,7 +1052,7 @@ export default function StudentActionZapPanel({
       <Modal
         isOpen={confirmModal.isOpen}
         onClose={() => setConfirmModal({ isOpen: false, attendanceType: null, studentName: '' })}
-        title={t('confirm_attendance') || 'Confirm Attendance'}
+        title={t('confirm_attendance')}
         size="small"
         titleStyle={{ fontSize: '1rem', fontWeight: '600' }}
         showCloseButton={true}
@@ -1085,7 +1085,7 @@ export default function StudentActionZapPanel({
             variant="ghost"
             onClick={() => setConfirmModal({ isOpen: false, attendanceType: null, studentName: '' })}
           >
-            {t('cancel') || 'Cancel'}
+            {t('cancel')}
           </Button>
           <Button
             onClick={async () => {
@@ -1126,7 +1126,7 @@ export default function StudentActionZapPanel({
             }}
             disabled={isSubmitting}
           >
-            {t('confirm') || 'Confirm'}
+            {t('confirm')}
           </Button>
         </div>
       </Modal>
