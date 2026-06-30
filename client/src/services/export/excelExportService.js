@@ -313,64 +313,233 @@ export const exportDailyReport = async (data, options = {}) => {
 
 /**
  * Export summary attendance report to Excel
+ * Uses grouped merged headers: parent row shows metric names (Present, Absent, etc.),
+ * sub-row shows subject names. This avoids repeating long subject names in every column.
  * @param {Array} data - Summary report data
  * @param {Array} programSubjects - Program subjects for per-subject columns
  * @param {Object} options - Export options
  * @returns {Promise<Blob>} Excel file as Blob
  */
 export const exportSummaryReport = async (data, programSubjects, options = {}) => {
-  const headers = [
-    '#',
-    'Student Number',
-    'Student Name',
-    'Present',
-    'Late',
-    'Absent (No Excuse)',
-    'Absent (With Excuse)',
-    'Excused Leave',
-    'Human Case',
-    'Total Sessions',
-    'Absent No Excuse Deduction',
-    'Late Deduction',
-    'Absent With Excuse Deduction',
-    'Excused Leave Deduction',
-    'Human Case Deduction',
-    'Total Mark Deduction',
-    'Grade',
-    'Attendance Failure'
+  const mergedOpts = { ...DEFAULT_OPTIONS, ...options };
+  const isRTL = mergedOpts.rtl;
+
+  // ── Define column groups ──────────────────────────────────────────────
+  // Fixed (non-subject) columns — these get a single merged header (rows 1+2)
+  const fixedColumns = [
+    '#', 'Student Number', 'Student Name',
+    'Present', 'Late', 'Absent (No Excuse)', 'Absent excused',
+    'Excused Leave', 'Human Case', 'Total Sessions',
+    'Absent No Excuse Deduction', 'Late Deduction', 'Absent With Excuse Deduction',
+    'Excused Leave Deduction', 'Human Case Deduction', 'Total Mark Deduction',
+    'Grade', 'Attendance Failure'
   ];
-  
-  // Add per-subject headers
-  const subjectColumnStart = headers.length + 1;
-  programSubjects.forEach(subject => {
-    const subjectName = subject.nameEn || subject.name || 'Unknown Subject';
-    headers.push(`${subjectName} - Present`);
-    headers.push(`${subjectName} - Absent`);
-    headers.push(`${subjectName} - Percentage`);
-    headers.push(`${subjectName} - Deduction`);
-    headers.push(`${subjectName} - FB`);
-    headers.push(`${subjectName} - Grade`);
+
+  // Per-subject metric names (the parent group headers)
+  const subjectMetrics = ['Present', 'Absent', 'Percentage', 'Deduction', 'FB', 'Grade'];
+  const metricsPerSubject = subjectMetrics.length;
+
+  // Shorten subject names for display
+  const shortenName = (name) => {
+    if (!name) return 'Unknown';
+    // Abbreviate common words
+    return name
+      .replace(/Information Technology/gi, 'IT')
+      .replace(/Web Development/gi, 'Web Dev')
+      .replace(/Basics/gi, 'Basic')
+      .replace(/Introduction/gi, 'Intro')
+      .replace(/Fundamentals/gi, 'Fund')
+      .replace(/Programming/gi, 'Prog');
+  };
+
+  const subjectNames = programSubjects.map(s => shortenName(s.nameEn || s.name || 'Unknown'));
+
+  // Total columns
+  const totalColumns = fixedColumns.length + programSubjects.length * metricsPerSubject;
+
+  // ── Create workbook ───────────────────────────────────────────────────
+  const workbook = new ExcelJS.Workbook();
+  const worksheet = workbook.addWorksheet(mergedOpts.sheetName || 'Summary Attendance');
+
+  if (isRTL) {
+    worksheet.views = [{ rightToLeft: true }];
+  }
+
+  // ── Row 1: Parent headers (metric names for subject groups, fixed headers span both rows) ──
+  const headerRow1 = [];
+  const headerRow2 = [];
+
+  // Fixed columns: merge row 1 and row 2 vertically
+  fixedColumns.forEach(col => {
+    headerRow1.push(col);
+    headerRow2.push(col);
   });
-  
-  // Identify absence columns for conditional formatting
-  const absenceColumns = [];
-  // Overall absence columns (1-based indices)
-  absenceColumns.push(6);  // Absent (No Excuse)
-  absenceColumns.push(7);  // Absent (With Excuse)
-  absenceColumns.push(9);  // Human Case
-  
-  // Per-subject absence columns
-  let currentCol = subjectColumnStart;
-  programSubjects.forEach(() => {
-    absenceColumns.push(currentCol + 1); // Absent column for each subject
-    absenceColumns.push(currentCol + 4); // FB column for each subject
-    currentCol += 6;
+
+  // Subject columns: parent = metric name, child = subject name
+  subjectMetrics.forEach(metric => {
+    programSubjects.forEach((subject, idx) => {
+      headerRow1.push(metric);
+      headerRow2.push(subjectNames[idx]);
+    });
   });
-  
-  return exportToExcel(data, headers, {
-    ...options,
-    sheetName: 'Summary Attendance',
-    absenceColumns
+
+  // Add both header rows
+  worksheet.addRow(headerRow1);
+  worksheet.addRow(headerRow2);
+
+  // ── Merge cells ───────────────────────────────────────────────────────
+  // Merge fixed columns vertically (row 1 + row 2)
+  for (let col = 1; col <= fixedColumns.length; col++) {
+    const colLetter = getColumnLetter(col);
+    worksheet.mergeCells(`${colLetter}1:${colLetter}2`);
+  }
+
+  // Merge subject metric groups horizontally (row 1 only)
+  // Each metric spans all subjects
+  let currentCol = fixedColumns.length;
+  subjectMetrics.forEach(metric => {
+    if (programSubjects.length > 1) {
+      const startCol = currentCol + 1;
+      const endCol = currentCol + programSubjects.length;
+      const startLetter = getColumnLetter(startCol);
+      const endLetter = getColumnLetter(endCol);
+      worksheet.mergeCells(`${startLetter}1:${endLetter}1`);
+    }
+    currentCol += programSubjects.length;
+  });
+
+  // ── Add data rows ─────────────────────────────────────────────────────
+  data.forEach(row => {
+    worksheet.addRow(row);
+  });
+
+  // ── Style header rows ─────────────────────────────────────────────────
+  const row1 = worksheet.getRow(1);
+  const row2 = worksheet.getRow(2);
+  [row1, row2].forEach(row => {
+    row.font = { bold: true, size: 11 };
+    row.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFE5E7EB' }
+    };
+    row.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+    row.height = 30;
+  });
+
+  // ── Freeze panes (freeze first 2 header rows + first 3 info columns) ──
+  worksheet.views = [{
+    state: 'frozen',
+    xSplit: 3,
+    ySplit: 2,
+    ...(isRTL ? { rightToLeft: true } : {})
+  }];
+
+  // ── Auto-filter on row 2 (the sub-header row) ─────────────────────────
+  worksheet.autoFilter = {
+    from: { row: 2, column: 1 },
+    to: { row: 2, column: totalColumns }
+  };
+
+  // ── Column widths ─────────────────────────────────────────────────────
+  // Fixed columns
+  const fixedWidths = [
+    5,   // #
+    18,  // Student Number
+    25,  // Student Name
+    10,  // Present
+    10,  // Late
+    12,  // Absent (No Excuse)
+    12,  // Absent (With Excuse)
+    12,  // Excused Leave
+    12,  // Human Case
+    12,  // Total Sessions
+    14,  // Absent No Excuse Deduction
+    14,  // Late Deduction
+    14,  // Absent With Excuse Deduction
+    14,  // Excused Leave Deduction
+    14,  // Human Case Deduction
+    14,  // Total Mark Deduction
+    10,  // Grade
+    12,  // Attendance Failure
+  ];
+
+  const allWidths = [...fixedWidths];
+  // Subject columns: each subject gets a width based on its name length
+  const subjectWidth = Math.max(...subjectNames.map(n => n.length + 2), 12);
+  for (let i = 0; i < programSubjects.length * metricsPerSubject; i++) {
+    allWidths.push(subjectWidth);
+  }
+
+  worksheet.columns = allWidths.map(w => ({ width: w }));
+
+  // ── Borders on all cells ──────────────────────────────────────────────
+  const totalRows = data.length + 2; // +2 for two header rows
+  for (let r = 1; r <= totalRows; r++) {
+    const row = worksheet.getRow(r);
+    for (let c = 1; c <= totalColumns; c++) {
+      const cell = row.getCell(c);
+      cell.border = {
+        top: { style: 'thin' },
+        left: { style: 'thin' },
+        bottom: { style: 'thin' },
+        right: { style: 'thin' }
+      };
+      if (r > 2) {
+        cell.alignment = {
+          horizontal: isRTL ? 'right' : 'left',
+          vertical: 'middle'
+        };
+      }
+    }
+  }
+
+  // ── Bold last row (totals) ────────────────────────────────────────────
+  if (mergedOpts.boldLastRow && data.length > 0) {
+    const lastRow = worksheet.getRow(totalRows);
+    lastRow.font = { bold: true, size: 11 };
+    lastRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: 'FFE5E7EB' }
+    };
+    lastRow.alignment = { horizontal: 'center', vertical: 'middle' };
+  }
+
+  // ── Conditional formatting for absence columns ───────────────────────
+  if (mergedOpts.conditionalFormatting !== false && programSubjects.length > 0) {
+    // Overall absence columns (1-based, accounting for 2 header rows so data starts at row 3)
+    const overallAbsenceCols = [6, 7, 9]; // Absent (No Excuse), Absent (With Excuse), Human Case
+    // Per-subject absence columns: "Absent" is the 2nd metric (index 1), "FB" is 5th (index 4)
+    const subjectAbsenceCols = [];
+    for (let i = 0; i < programSubjects.length; i++) {
+      subjectAbsenceCols.push(fixedColumns.length + 1 + i * metricsPerSubject + 1); // Absent
+      subjectAbsenceCols.push(fixedColumns.length + 1 + i * metricsPerSubject + 4); // FB
+    }
+    const allAbsenceCols = [...overallAbsenceCols, ...subjectAbsenceCols];
+
+    for (const colIndex of allAbsenceCols) {
+      const colLetter = getColumnLetter(colIndex);
+      const range = `${colLetter}3:${colLetter}${totalRows}`;
+      [2, 4, 6, 8].forEach(threshold => {
+        worksheet.addConditionalFormatting({
+          ref: range,
+          rules: [{
+            type: 'cellIs',
+            operator: 'equal',
+            formulae: [String(threshold)],
+            style: { fill: { type: 'pattern', pattern: 'solid', fgColor: { argb: ABSENCE_COLORS[threshold]?.fill || 'FFFF00' } } }
+          }]
+        });
+      });
+    }
+  }
+
+  // ── Generate buffer ───────────────────────────────────────────────────
+  const buffer = await workbook.xlsx.writeBuffer();
+
+  return new Blob([buffer], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
   });
 };
 
@@ -549,7 +718,7 @@ export const exportAttendanceViolationsReport = async (data, options = {}) => {
 
         // Map status code to attendance type and calculate deduction
         if (statusCode === ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE) {
-          attendanceType = lang === 'ar' ? 'غياب معذور' : 'Absent with excuse';
+          attendanceType = lang === 'ar' ? 'غياب معذور' : 'Absent excused';
           deduction = DEDUCTION_RULES.absentWithExcuse;
         } else if (statusCode === ATTENDANCE_STATUS.ABSENT_NO_EXCUSE) {
           attendanceType = lang === 'ar' ? 'غياب بدون عذر' : 'Absent without excuse';

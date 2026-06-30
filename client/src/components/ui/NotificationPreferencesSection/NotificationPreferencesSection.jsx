@@ -8,10 +8,10 @@
 import React, { useState, useEffect, useImperativeHandle, forwardRef } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
-import { useToast } from '@ui';
-import { ToggleSwitch, Spinner } from '@ui';
+import { useToast, Spinner, ToggleSwitch } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 import { apiService } from '@services/api/apiService';
+import PortalTooltip from '@ui/PortalTooltip';
 import styles from './NotificationPreferencesSection.module.css';
 
 const CHANNEL_PREF_KEYS = {
@@ -76,7 +76,7 @@ const NotificationPreferencesSection = forwardRef(function NotificationPreferenc
         const { inAppEnabled, emailEnabled, smsEnabled, pushEnabled, matrix } = response.preferences;
         setPreferences({
           inAppEnabled: inAppEnabled ?? true,
-          emailEnabled: emailEnabled ?? true,
+          emailEnabled: emailEnabled ?? false,
           smsEnabled: smsEnabled ?? false,
           pushEnabled: pushEnabled ?? false,
           matrix: matrix || {},
@@ -157,19 +157,21 @@ const NotificationPreferencesSection = forwardRef(function NotificationPreferenc
       <div>
         <h3 className={styles.subsectionTitle}>{t('profile_master_channels')}</h3>
         <p className={styles.subsectionDesc}>{t('profile_master_channels_desc')}</p>
-        <div className={styles.masterGrid}>
-          {channels.map(channel => (
-            <div key={channel.key} className={styles.masterItem}>
-              <span className={styles.masterLabel}>
-                {getThemedIcon('ui', channel.icon, 16, theme)}
-                {channel.label}
-              </span>
-              <ToggleSwitch
-                checked={isChannelEnabled(channel.key)}
-                onChange={(value) => handleMasterToggle(channel.key, value)}
-              />
-            </div>
-          ))}
+        <div className={styles.channelGrid}>
+          {channels.map(channel => {
+            const enabled = isChannelEnabled(channel.key);
+            return (
+              <PortalTooltip key={channel.key} content={channel.label} position="top">
+                <button
+                  className={`${styles.channelBtn} ${enabled ? styles.channelActive : ''}`}
+                  onClick={() => handleMasterToggle(channel.key, !enabled)}
+                >
+                  {getThemedIcon('ui', channel.icon, 22, enabled ? '#fff' : theme)}
+                  <span className={styles.channelLabel}>{channel.label}</span>
+                </button>
+              </PortalTooltip>
+            );
+          })}
         </div>
       </div>
 

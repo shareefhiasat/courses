@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { info, error, warn, debug } from '@services/utils/logger.js';
-import { getThemedIcon } from '@constants/iconTypes';
+import { getThemedIcon, getIconWithColor } from '@constants/iconTypes';
 import { Button } from '@ui';
 import { Card, CardBody } from '@ui';
 import { getAttendanceByStudent, deleteAttendance } from '@services/business/attendanceService';
@@ -11,7 +11,8 @@ import { getFunctions } from '@services/other/config';
 import eventBus, { EVENTS } from '@utils/eventBus';
 import { SimpleLoading } from '@ui';
 import { useLookupTypes } from '@hooks/useLookupTypes.js';
-import { usePermissions } from '@hooks/usePermissions';
+import { useQRPermissions } from '@hooks/useQRPermissions';
+import { useMobileDetect } from '@hooks/useMobileDetect';
 // OLD: import { BEHAVIOR_TYPES } from '@constants/behaviorTypes';
 // OLD: import { PARTICIPATION_TYPES } from '@constants/participationTypes';
 // OLD: import { PENALTY_TYPES } from '@constants/penaltyTypes';
@@ -21,7 +22,7 @@ import {ParticipationIcon, PenaltyIcon, StudentHistory, DeleteModal} from '@ui/h
 import {CircleIcon, CheckSmallIcon, ClockSmallIcon, XSmallIcon, HeartIcon, HelpCircleIcon, UserIcon, ZapIcon} from "@utils/icons.jsx";
 import PanelHeader from './PanelHeader';
 import { getAttendanceMethodLabel, shouldShowMethodLabel } from '@constants/attendanceMethods';
-import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, ATTENDANCE_COLORS, ATTENDANCE_TYPE_CATEGORY, getAttendanceIcon, getAttendanceColor, getAttendanceLabel, getLocalizedAttendanceLabel } from '@constants/attendanceTypes';
+import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, ATTENDANCE_COLORS, ATTENDANCE_TYPE_CATEGORY, getAttendanceIcon, getAttendanceColor, getAttendanceLabel, getLocalizedAttendanceLabel, DB_CODE_TO_FRONTEND_STATUS, getStatusCodeFromRecord } from '@constants/attendanceTypes';
 import { MANUAL_NOTE_TYPES, getNoteTypeFromStatus, getLocalizedNoteText } from '@constants/noteTypes';
 import PortalTooltip from '@ui/PortalTooltip';
 import { useAuth } from '@contexts/AuthContext';
@@ -50,9 +51,7 @@ export default function StudentActionStatsPanel({
   const { t, lang, isRTL } = useLang();
   const { theme } = useTheme();
   const { showSuccess, showError } = useToast();
-  const { hasPermission } = usePermissions();
-  const canDeleteAttendance = hasPermission('qr-scanner.canDeleteAttendance');
-  const canEditAttendance = hasPermission('qr-scanner.canEditAttendance');
+  const { canDeleteAttendance, canEditAttendance } = useQRPermissions();
   const { data: lookupData, loading: lookupLoading, error: lookupError } = useLookupTypes({
     types: ['behavior-types', 'participation-types', 'penalty-types']
   });
@@ -83,7 +82,7 @@ export default function StudentActionStatsPanel({
   });
   
   const [selectedActions, setSelectedActions] = useState([]);
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const { isMobile } = useMobileDetect();
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteType, setDeleteType] = useState('');
   const [deleteLogId, setDeleteLogId] = useState('');
@@ -129,33 +128,12 @@ export default function StudentActionStatsPanel({
   // Initialize current attendance status from student data
   useEffect(() => {
     if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
-      if (student?.standupStatus) {
-        setCurrentAttendanceStatus(student.standupStatus);
-      }
+      setCurrentAttendanceStatus(student?.standupStatus || null);
     } else {
       // Regular attendance mode - use attendance field and normalize to uppercase
-      if (student?.attendance) {
-        const normalizedStatus = student.attendance.toUpperCase();
-        setCurrentAttendanceStatus(normalizedStatus);
-      }
+      setCurrentAttendanceStatus(student?.attendance ? student.attendance.toUpperCase() : null);
     }
   }, [student?.attendance, student?.standupStatus, attendanceMode]);
-
-  // Debounced resize handler for performance
-  useEffect(() => {
-    let timeoutId;
-    const handleResize = () => {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => {
-        setIsMobile(window.innerWidth <= 768);
-      }, 150);
-    };
-    window.addEventListener('resize', handleResize);
-    return () => {
-      clearTimeout(timeoutId);
-      window.removeEventListener('resize', handleResize);
-    };
-  }, []);
 
   // Send QR code email
   const sendQRCodeEmail = async () => {
@@ -284,8 +262,8 @@ export default function StudentActionStatsPanel({
       } else {
         error('Failed to send student summary email:', result.message);
       }
-    } catch (error) {
-      error('Error sending student summary email:', error);
+    } catch (err) {
+      error('Error sending student summary email:', err);
     } finally {
       setSendingSummary(false);
     }
@@ -333,7 +311,7 @@ export default function StudentActionStatsPanel({
       stats.behavior[type.id] = {
         count: 0,
         totalPoints: 0,
-        label: type.nameEn,
+        label: lang === 'ar' ? (type.nameAr || type.nameEn) : type.nameEn,
         color: type.color,
         icon: type.icon
       };
@@ -345,7 +323,7 @@ export default function StudentActionStatsPanel({
       stats.participation[type.id] = {
         count: 0,
         totalPoints: 0,
-        label: type.nameEn,
+        label: lang === 'ar' ? (type.nameAr || type.nameEn) : type.nameEn,
         color: '#3b82f6',
         icon: type.icon
       };
@@ -419,7 +397,7 @@ export default function StudentActionStatsPanel({
       const attendanceResponse = await getAttendanceByStudent(student.id);
       const attendanceRecords = (attendanceResponse.success ? attendanceResponse.data : []).map(r => ({
         ...r,
-        status: typeof r.status === 'object' ? (r.status?.code ?? null) : r.status,
+        status: getStatusCodeFromRecord(r),
         studentId: r.studentId ?? r.userId
       }));
 
@@ -448,7 +426,7 @@ export default function StudentActionStatsPanel({
               ? getRecordTypeLabel(RECORD_TYPES.PARTICIPATION, lang)
               : (record.category === RECORD_TYPES.BEHAVIOR
                   ? getRecordTypeLabel(RECORD_TYPES.BEHAVIOR, lang)
-                  : (ATTENDANCE_STATUS_LABELS[record.status]?.[lang] || ATTENDANCE_STATUS_LABELS[record.status?.toLowerCase?.()]?.[lang] || record.status || t('unknown') || 'Unknown')),
+                  : (getLocalizedAttendanceLabel(record.status, lang) || record.status || t('unknown') || 'Unknown')),
           points: record.delta || 0,
           comment: (() => {
             const noteContent = record.reason || record.notes || '';
@@ -463,7 +441,7 @@ export default function StudentActionStatsPanel({
               ? '#3b82f6'
               : (record.category === RECORD_TYPES.BEHAVIOR
                   ? '#f97316'
-                  : (ATTENDANCE_STATUS_LABELS[record.status]?.color || '#6b7280'))
+                  : (getAttendanceColor(record.status) || '#6b7280'))
         })),
         ...studentBehaviors.map(behavior => ({
           id: behavior.id,
@@ -471,7 +449,7 @@ export default function StudentActionStatsPanel({
           date: behavior.date || new Date(behavior.createdAt).toISOString().split('T')[0],
           time: behavior.createdAt,
           data: behavior,
-          label: behavior.type ? ((lookupData['behavior-types'] || []).find(bt => bt.id === behavior.type)?.nameEn || behavior.type) : getRecordTypeLabel(RECORD_TYPES.BEHAVIOR, lang),
+          label: behavior.type ? (() => { const bt = (lookupData['behavior-types'] || []).find(b => b.id === behavior.type); return bt ? (lang === 'ar' ? (bt.nameAr || bt.nameEn) : bt.nameEn) : behavior.type; })() : getRecordTypeLabel(RECORD_TYPES.BEHAVIOR, lang),
           points: behavior.points || 0,
           comment: behavior.comment || behavior.description || behavior.reason || '',
           severity: behavior.severity || 'medium',
@@ -483,7 +461,7 @@ export default function StudentActionStatsPanel({
           date: participation.date || new Date(participation.createdAt).toISOString().split('T')[0],
           time: participation.createdAt,
           data: participation,
-          label: participation.type ? ((lookupData['participation-types'] || []).find(pt => pt.id === participation.type)?.nameEn || participation.type) : getRecordTypeLabel(RECORD_TYPES.PARTICIPATION, lang),
+          label: participation.type ? (() => { const pt = (lookupData['participation-types'] || []).find(p => p.id === participation.type); return pt ? (lang === 'ar' ? (pt.nameAr || pt.nameEn) : pt.nameEn) : participation.type; })() : getRecordTypeLabel(RECORD_TYPES.PARTICIPATION, lang),
           points: participation.points || 0,
           comment: participation.comment || participation.description || participation.reason || '',
           severity: 'low',
@@ -501,7 +479,7 @@ export default function StudentActionStatsPanel({
             time: penalty.createdAt,
             data: penalty,
             label: penaltyType
-                ? (penaltyType.nameEn || penaltyType.nameAr)
+                ? (lang === 'ar' ? (penaltyType.nameAr || penaltyType.nameEn) : penaltyType.nameEn)
                 : (penalty.reason || penalty.description || penaltyTypeId || getRecordTypeLabel(RECORD_TYPES.PENALTY, lang)),
             points: penalty.points !== undefined ? -Math.abs(penalty.points) : (penaltyType ? -Math.abs(penaltyType.points) : -1), // Always negative for penalties
             comment: penalty.comment || penalty.description || penalty.reason || '',
@@ -1087,12 +1065,12 @@ export default function StudentActionStatsPanel({
   const attendanceStatus = useMemo(() => {
     // First check currentAttendanceStatus (from student prop) - this is the most up-to-date
     if (currentAttendanceStatus) {
-      const statusLabel = ATTENDANCE_STATUS_LABELS[currentAttendanceStatus];
-      const statusColor = ATTENDANCE_COLORS[currentAttendanceStatus];
+      const statusLabel = getLocalizedAttendanceLabel(currentAttendanceStatus, lang);
+      const statusColor = getAttendanceColor(currentAttendanceStatus);
       if (statusLabel && statusColor) {
         return {
           en: statusLabel,
-          ar: statusLabel, // TODO: Add Arabic translations
+          ar: getLocalizedAttendanceLabel(currentAttendanceStatus, 'ar'),
           color: statusColor
         };
       }
@@ -1114,7 +1092,7 @@ export default function StudentActionStatsPanel({
       ar: t('none') || 'لا شيء',
       color: '#9ca3af'
     };
-  }, [hasTodayAttendance, todayLogs, currentAttendanceStatus, t]);
+  }, [hasTodayAttendance, todayLogs, currentAttendanceStatus, t, lang]);
 
   // Helper variable to check if attendance status is None (no attendance recorded)
   // Consider both todayLogs and currentAttendanceStatus from student prop
@@ -1233,7 +1211,7 @@ export default function StudentActionStatsPanel({
           top: 0,
           [isRTL ? 'left' : 'right']: 0,
           width: isMobile ? '100%' : '100%',
-          maxWidth: isMobile ? '100%' : '32.2rem',
+          maxWidth: isMobile ? '100%' : '36rem',
           height: '100%',
           background: 'var(--panel, white)',
           boxShadow: isRTL ? '4px 0 24px rgba(0,0,0,0.1)' : '-4px 0 24px rgba(0,0,0,0.1)',
@@ -1355,8 +1333,8 @@ export default function StudentActionStatsPanel({
                     }}
                     disabled={showLoadingOverlay || (!isAttendanceNone && currentAttendanceStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_PRESENT' : 'PRESENT'))}
                     style={{
-                      padding: '0.375rem',
-                      borderRadius: '0.25rem',
+                      padding: '0.625rem',
+                      borderRadius: '0.375rem',
                       border: '2px solid #10b981',
                       background: !isAttendanceNone && currentAttendanceStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_PRESENT' : 'PRESENT') ? 'var(--color-success, #10b981)' : 'var(--panel, white)',
                       color: !isAttendanceNone && currentAttendanceStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_PRESENT' : 'PRESENT') ? 'var(--text-on-success, white)' : 'var(--color-success, #10b981)',
@@ -1365,15 +1343,15 @@ export default function StudentActionStatsPanel({
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
-                      gap: '0.125rem',
-                      fontSize: '0.75rem',
+                      gap: '0.25rem',
+                      fontSize: '0.8125rem',
                       fontWeight: 500,
                       transition: 'all 0.2s',
-                      minWidth: '3rem'
+                      minWidth: '3.5rem'
                     }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                    <CheckSmallIcon style={{ width: '12px', height: '12px' }} />
+                    <CheckSmallIcon style={{ width: '16px', height: '16px' }} />
                     {/*{attendanceStats.present && Number(attendanceStats.present) > 0 ? (*/}
                     {/*  <span style={{*/}
                     {/*    fontSize: '0.5rem',*/}
@@ -1398,8 +1376,8 @@ export default function StudentActionStatsPanel({
                     }}
                     disabled={showLoadingOverlay || (!isAttendanceNone && currentAttendanceStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_LATE' : 'LATE'))}
                     style={{
-                      padding: '0.375rem',
-                      borderRadius: '0.25rem',
+                      padding: '0.625rem',
+                      borderRadius: '0.375rem',
                       border: '2px solid #f59e0b',
                       background: !isAttendanceNone && currentAttendanceStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_LATE' : 'LATE') ? 'var(--color-warning, #f59e0b)' : 'var(--panel, white)',
                       color: !isAttendanceNone && currentAttendanceStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_LATE' : 'LATE') ? 'var(--text-on-success, white)' : 'var(--color-warning, #f59e0b)',
@@ -1408,15 +1386,15 @@ export default function StudentActionStatsPanel({
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
-                      gap: '0.125rem',
-                      fontSize: '0.75rem',
+                      gap: '0.25rem',
+                      fontSize: '0.8125rem',
                       fontWeight: 500,
                       transition: 'all 0.2s',
-                      minWidth: '3rem'
+                      minWidth: '3.5rem'
                     }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                    <ClockSmallIcon style={{ width: '12px', height: '12px' }} />
+                    <ClockSmallIcon style={{ width: '16px', height: '16px' }} />
                     {/*{attendanceStats.late && Number(attendanceStats.late) > 0 ? (*/}
                     {/*  <span style={{*/}
                     {/*    fontSize: '0.5rem',*/}
@@ -1440,8 +1418,8 @@ export default function StudentActionStatsPanel({
                     }}
                     disabled={showLoadingOverlay || (!isAttendanceNone && currentAttendanceStatus === ATTENDANCE_STATUS.ABSENT_NO_EXCUSE)}
                     style={{
-                      padding: '0.375rem',
-                      borderRadius: '0.25rem',
+                      padding: '0.625rem',
+                      borderRadius: '0.375rem',
                       border: '2px solid var(--color-danger, #ef4444)',
                       background: !isAttendanceNone && currentAttendanceStatus === ATTENDANCE_STATUS.ABSENT_NO_EXCUSE ? 'var(--color-danger, #ef4444)' : 'var(--panel, white)',
                       color: !isAttendanceNone && currentAttendanceStatus === ATTENDANCE_STATUS.ABSENT_NO_EXCUSE ? 'var(--text-on-primary, white)' : 'var(--color-danger, #ef4444)',
@@ -1450,15 +1428,15 @@ export default function StudentActionStatsPanel({
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
-                      gap: '0.125rem',
-                      fontSize: '0.75rem',
+                      gap: '0.25rem',
+                      fontSize: '0.8125rem',
                       fontWeight: 500,
                       transition: 'all 0.2s',
-                      minWidth: '3rem'
+                      minWidth: '3.5rem'
                     }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                    <XSmallIcon style={{ width: '12px', height: '12px' }} />
+                    <XSmallIcon style={{ width: '16px', height: '16px' }} />
                     {/*{attendanceStats.absent_no_excuse && Number(attendanceStats.absent_no_excuse) > 0 ? (*/}
                     {/*  <span style={{*/}
                     {/*    fontSize: '0.5rem',*/}
@@ -1482,8 +1460,8 @@ export default function StudentActionStatsPanel({
                     }}
                     disabled={showLoadingOverlay || (!isAttendanceNone && currentAttendanceStatus === ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE)}
                     style={{
-                      padding: '0.375rem',
-                      borderRadius: '0.25rem',
+                      padding: '0.625rem',
+                      borderRadius: '0.375rem',
                       border: '2px solid #ef4444',
                       background: !isAttendanceNone && currentAttendanceStatus === ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE ? 'var(--color-danger, #ef4444)' : 'var(--panel, white)',
                       color: !isAttendanceNone && currentAttendanceStatus === ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE ? 'var(--text-on-success, white)' : 'var(--color-danger, #ef4444)',
@@ -1492,15 +1470,15 @@ export default function StudentActionStatsPanel({
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
-                      gap: '0.125rem',
-                      fontSize: '0.75rem',
+                      gap: '0.25rem',
+                      fontSize: '0.8125rem',
                       fontWeight: 500,
                       transition: 'all 0.2s',
-                      minWidth: '3rem'
+                      minWidth: '3.5rem'
                     }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                    <XSmallIcon style={{ width: '12px', height: '12px' }} />
+                    <XSmallIcon style={{ width: '16px', height: '16px' }} />
                     {/*{attendanceStats.absent_with_excuse && Number(attendanceStats.absent_with_excuse) > 0 && (*/}
                     {/*  <span style={{*/}
                     {/*    fontSize: '0.5rem',*/}
@@ -1524,8 +1502,8 @@ export default function StudentActionStatsPanel({
                     }}
                     disabled={showLoadingOverlay || (!isAttendanceNone && currentAttendanceStatus === ATTENDANCE_STATUS.EXCUSED_LEAVE)}
                     style={{
-                      padding: '0.375rem',
-                      borderRadius: '0.25rem',
+                      padding: '0.625rem',
+                      borderRadius: '0.375rem',
                       border: '2px solid #ec4899',
                       background: !isAttendanceNone && currentAttendanceStatus === ATTENDANCE_STATUS.EXCUSED_LEAVE ? '#ec4899' : 'var(--panel, white)',
                       color: !isAttendanceNone && currentAttendanceStatus === ATTENDANCE_STATUS.EXCUSED_LEAVE ? 'white' : '#ec4899',
@@ -1534,15 +1512,15 @@ export default function StudentActionStatsPanel({
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
-                      gap: '0.125rem',
-                      fontSize: '0.75rem',
+                      gap: '0.25rem',
+                      fontSize: '0.8125rem',
                       fontWeight: 500,
                       transition: 'all 0.2s',
-                      minWidth: '3rem'
+                      minWidth: '3.5rem'
                     }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                    <HeartIcon style={{ width: '12px', height: '12px' }} />
+                    <HeartIcon style={{ width: '16px', height: '16px' }} />
                     {/*{attendanceStats.excused_leave && Number(attendanceStats.excused_leave) > 0 && (*/}
                     {/*  <span style={{*/}
                     {/*    fontSize: '0.5rem',*/}
@@ -1566,8 +1544,8 @@ export default function StudentActionStatsPanel({
                     }}
                     disabled={showLoadingOverlay || (!isAttendanceNone && currentAttendanceStatus === ATTENDANCE_STATUS.HUMAN_CASE)}
                     style={{
-                      padding: '0.375rem',
-                      borderRadius: '0.25rem',
+                      padding: '0.625rem',
+                      borderRadius: '0.375rem',
                       border: '2px solid #8b5cf6',
                       background: !isAttendanceNone && currentAttendanceStatus === ATTENDANCE_STATUS.HUMAN_CASE ? 'var(--color-purple, #8b5cf6)' : 'var(--panel, white)',
                       color: !isAttendanceNone && currentAttendanceStatus === ATTENDANCE_STATUS.HUMAN_CASE ? 'var(--text-on-success, white)' : 'var(--color-purple, #8b5cf6)',
@@ -1576,16 +1554,16 @@ export default function StudentActionStatsPanel({
                       display: 'flex',
                       flexDirection: 'column',
                       alignItems: 'center',
-                      gap: '0.125rem',
-                      fontSize: '0.75rem',
+                      gap: '0.25rem',
+                      fontSize: '0.8125rem',
                       fontWeight: 500,
                       transition: 'all 0.2s',
-                      minWidth: '3rem',
+                      minWidth: '3.5rem',
                       position: 'relative'
                     }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                    <HeartIcon style={{ width: '12px', height: '12px' }} />
+                    <HeartIcon style={{ width: '16px', height: '16px' }} />
                     {/*{attendanceStats.human_case && Number(attendanceStats.human_case) > 0 && (*/}
                     {/*  <span style={{*/}
                     {/*    fontSize: '0.5rem',*/}
@@ -1848,7 +1826,7 @@ export default function StudentActionStatsPanel({
                       }}>
                         {(() => {
                           const stats = getDetailedStats();
-                          return (lookupData['participation-types'] || []).map(type => {
+                          return (lookupData["participation-types"] || []).map(type => { console.log("🔴 StatsPanel participation type:", { id: type.id, nameAr: type.nameAr, nameEn: type.nameEn, lang });
                             const stat = stats.participation[type.id];
                             return (
                                 <div key={type.id} style={{
@@ -1867,7 +1845,7 @@ export default function StudentActionStatsPanel({
                                     color: 'var(--color-info-dark, #1e3a8a)', // Dark blue text
                                     flex: 1
                                   }}>
-                                    {lang === 'ar' ? (type.label_ar || type.label_en) : type.label_en}
+                                    {lang === 'ar' ? (type.nameAr || type.nameEn) : type.nameEn}
                                   </div>
                                   <div style={{
                                     fontSize: '0.75rem',
@@ -1886,12 +1864,30 @@ export default function StudentActionStatsPanel({
                                   }}>
                                     Count: ({stat.count})
                                   </div>
+                                  {/* Favorite star toggle */}
+                                  <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        onToggleFavorite(type.id);
+                                      }}
+                                      style={{
+                                        background: 'none',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        padding: '0.25rem',
+                                        flexShrink: 0
+                                      }}
+                                  >
+                                    {favoriteBehaviors.includes(type.id)
+                                      ? getIconWithColor('ui', 'star', 14, '#fbbf24')
+                                      : getThemedIcon('ui', 'star', 14, theme)}
+                                  </button>
                                   {stat.count > 0 && (
-                                      <PortalTooltip content={t('delete_all_entries').replace('{type}', type.label_en)} position="top">
+                                      <PortalTooltip content={t('delete_all_entries').replace('{type}', type.nameEn)} position="top">
                                       <button
                                           onClick={() => {
                                             setDeleteType('participation');
-                                            setBulkDeleteType({ type: 'participation', typeId: type.id, typeName: type.label_en });
+                                            setBulkDeleteType({ type: 'participation', typeId: type.id, typeName: type.nameEn });
                                             setDeleteModalOpen(true);
                                           }}
                                           style={{
@@ -2025,7 +2021,7 @@ export default function StudentActionStatsPanel({
                                     color: 'var(--color-warning-dark, #9a3412)', // Dark orange text
                                     flex: 1
                                   }}>
-                                    {lang === 'ar' ? (type.label_ar || type.label_en) : type.label_en}
+                                    {lang === 'ar' ? (type.nameAr || type.nameEn) : type.nameEn}
                                   </div>
                                   <div style={{
                                     fontSize: '0.75rem',
@@ -2044,12 +2040,30 @@ export default function StudentActionStatsPanel({
                                   }}>
                                     {t('count')}: ({stat.count})
                                   </div>
+                                  {/* Favorite star toggle */}
+                                  <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        onToggleFavorite(type.id);
+                                      }}
+                                      style={{
+                                        background: 'none',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        padding: '0.25rem',
+                                        flexShrink: 0
+                                      }}
+                                  >
+                                    {favoriteBehaviors.includes(type.id)
+                                      ? getIconWithColor('ui', 'star', 14, '#fbbf24')
+                                      : getThemedIcon('ui', 'star', 14, theme)}
+                                  </button>
                                   {stat.count > 0 && (
-                                      <PortalTooltip content={t('delete_all_entries').replace('{type}', type.label_en)} position="top">
+                                      <PortalTooltip content={t('delete_all_entries').replace('{type}', type.nameEn)} position="top">
                                       <button
                                           onClick={() => {
                                             setDeleteType('behavior');
-                                            setBulkDeleteType({ type: 'behavior', typeId: type.id, typeName: type.label_en });
+                                            setBulkDeleteType({ type: 'behavior', typeId: type.id, typeName: type.nameEn });
                                             setDeleteModalOpen(true);
                                           }}
                                           style={{
@@ -2183,7 +2197,7 @@ export default function StudentActionStatsPanel({
                                     color: 'var(--color-danger, #dc2626)',
                                     flex: 1
                                   }}>
-                                    {lang === 'ar' ? (type.label_ar || type.label_en) : type.label_en}
+                                    {lang === 'ar' ? (type.nameAr || type.nameEn) : type.nameEn}
                                   </div>
                                   <div style={{
                                     fontSize: '0.75rem',
@@ -2202,12 +2216,30 @@ export default function StudentActionStatsPanel({
                                   }}>
                                     Count: ({stat.count})
                                   </div>
+                                  {/* Favorite star toggle */}
+                                  <button
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        onToggleFavorite(type.id);
+                                      }}
+                                      style={{
+                                        background: 'none',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        padding: '0.25rem',
+                                        flexShrink: 0
+                                      }}
+                                  >
+                                    {favoriteBehaviors.includes(type.id)
+                                      ? getIconWithColor('ui', 'star', 14, '#fbbf24')
+                                      : getThemedIcon('ui', 'star', 14, theme)}
+                                  </button>
                                   {stat.count > 0 && (
-                                      <PortalTooltip content={t('delete_all_entries').replace('{type}', type.label_en)} position="top">
+                                      <PortalTooltip content={t('delete_all_entries').replace('{type}', type.nameEn)} position="top">
                                       <button
                                           onClick={() => {
                                             setDeleteType('penalty');
-                                            setBulkDeleteType({ type: 'penalty', typeId: type.id, typeName: type.label_en });
+                                            setBulkDeleteType({ type: 'penalty', typeId: type.id, typeName: type.nameEn });
                                             setDeleteModalOpen(true);
                                           }}
                                           style={{
@@ -2322,7 +2354,7 @@ export default function StudentActionStatsPanel({
                         whiteSpace: 'nowrap'
                       }}
                   >
-                    <UserIcon style={{ width: '12px', height: '12px' }} />
+                    <UserIcon style={{ width: '16px', height: '16px' }} />
                     {t('attendance')}
                   </button>
                   <button
@@ -2342,7 +2374,7 @@ export default function StudentActionStatsPanel({
                         whiteSpace: 'nowrap'
                       }}
                   >
-                    <ParticipationIcon style={{ width: '12px', height: '12px' }} />
+                    <ParticipationIcon style={{ width: '16px', height: '16px' }} />
                     {t('participation')}
                   </button>
                   <button
@@ -2362,7 +2394,7 @@ export default function StudentActionStatsPanel({
                         whiteSpace: 'nowrap'
                       }}
                   >
-                    <ZapIcon style={{ width: '12px', height: '12px' }} />
+                    <ZapIcon style={{ width: '16px', height: '16px' }} />
                     {t('behavior')}
                   </button>
                   <button
@@ -2382,7 +2414,7 @@ export default function StudentActionStatsPanel({
                         whiteSpace: 'nowrap'
                       }}
                   >
-                    <PenaltyIcon style={{ width: '12px', height: '12px' }}/>
+                    <PenaltyIcon style={{ width: '16px', height: '16px' }}/>
                     {t('penalties')}
                   </button>
                 </div>

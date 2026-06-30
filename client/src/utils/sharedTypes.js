@@ -9,7 +9,7 @@
 // OLD: import { ABSENCE_TYPES, getAbsenceTypeById, getAbsenceLabel, getAbsenceIcon, getAbsenceColor } from '../constants/absenceTypes';
 // OLD: import { PENALTY_TYPES, getPenaltyTypeById, getPenaltyLabel, getPenaltyIcon, getPenaltyColor } from '../constants/penaltyTypes';
 // NOTE: These functions now accept lookup data from useLookupTypes hook instead of hardcoded constants
-import { ATTENDANCE_STATUS_LABELS, getAttendanceLabel } from '../constants/attendanceTypes';
+import { ATTENDANCE_STATUS_LABELS, getAttendanceLabel, getLocalizedAttendanceLabel, getAttendanceColor, getAttendanceIcon } from '../constants/attendanceTypes';
 
 import { info, error, warn, debug } from '@services/utils/logger.js';
 
@@ -270,16 +270,13 @@ const createTypeMappings = (lookupData = {}) => {
     types: ATTENDANCE_STATUS_LABELS,
     getById: (id) => ATTENDANCE_STATUS_LABELS[id] || null,
     getLabel: (id, lang = 'en') => {
-      const status = ATTENDANCE_STATUS_LABELS[id];
-      return status ? (lang === 'ar' ? status.label_ar : status.label_en) : id;
+      return getLocalizedAttendanceLabel(id, lang) || id;
     },
     getIcon: (id) => {
-      const status = ATTENDANCE_STATUS_LABELS[id];
-      return status ? status.icon : 'Users';
+      return getAttendanceIcon(id) || 'Users';
     },
     getColor: (id) => {
-      const status = ATTENDANCE_STATUS_LABELS[id];
-      return status ? status.color : '#6b7280';
+      return getAttendanceColor(id) || '#6b7280';
     }
   }
   };

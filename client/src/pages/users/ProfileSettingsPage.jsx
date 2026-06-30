@@ -18,6 +18,8 @@ import { applyAccentColorGlobally } from '@utils/theme';
 import useNotifications from '@hooks/useNotifications';
 import notificationManager from '@utils/notifications';
 import { ActivityLogger } from '@services/other/activityLogger';
+import { useMobileDetect } from '@hooks/useMobileDetect';
+import PortalTooltip from '@ui/PortalTooltip';
 import UserImageUpload from '@components/ui/UserImageUpload/UserImageUpload';
 import NotificationPreferencesSection from '@components/ui/NotificationPreferencesSection/NotificationPreferencesSection';
 
@@ -27,14 +29,12 @@ const ProfileSettingsPage = () => {
   const { theme } = useTheme();
   const toast = useToast();
   const { startLoading } = useGlobalLoading();
-  const { 
-    settings: notificationSettings, 
-    isInitializing: notificationsInitializing,
-    initializeNotifications,
+  const {
+    settings: notificationSettings,
     updateSetting,
-    checkSupport,
-    isMobile
+    checkSupport
   } = useNotifications();
+  const { isMobile: isMobileDevice } = useMobileDetect();
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -205,22 +205,26 @@ const ProfileSettingsPage = () => {
   }, [user]);
 
   const handleTestBrowserNotification = async () => {
-    if (checkSupport().notification) {
-      try {
-        notificationManager.smartNotification('default', t('profile_test_notification'), t('profile_test_notification_message'), {
-            settings: {
-              sound: notificationSettings.soundEnabled,
-              vibration: notificationSettings.vibrationEnabled,
-              browser: notificationSettings.browserNotificationsEnabled
-            }
-          });
-        toast.success(t('profile_test_notification_sent'));
-      } catch (error) {
-        error('Failed to send test notification:', error);
-        toast.error(t('notifications_failed_to_send_test_notification'));
-      }
-    } else {
-      toast.error(t('profile_browser_not_supported'));
+    if (!checkSupport().notification) {
+      toast.error(t('notifications_browser_not_supported') || 'Your browser does not support notifications.');
+      return;
+    }
+    if (typeof Notification !== 'undefined' && Notification.permission === 'denied') {
+      toast.error(t('notifications_permission_denied') || 'Notification permission was denied. Please enable it in your browser settings.');
+      return;
+    }
+    try {
+      await notificationManager.smartNotification('default', t('profile_test_notification') || 'Test Notification', t('profile_test_notification_message') || 'This is a test notification.', {
+        settings: {
+          sound: notificationSettings.soundEnabled,
+          vibration: notificationSettings.vibrationEnabled,
+          browser: true
+        }
+      });
+      toast.success(t('profile_test_notification_sent') || 'Test notification sent.');
+    } catch (err) {
+      error('Failed to send test notification:', err);
+      toast.error(t('notifications_failed_to_send_test_notification') || 'Failed to send test notification.');
     }
   };
 
@@ -265,7 +269,7 @@ const ProfileSettingsPage = () => {
   };
 
   const statusLabel = (enabled) => (enabled ? t('enabled') : t('disabled'));
-  const deviceLabel = isMobile() ? t('mobile') : t('desktop');
+  const deviceLabel = isMobileDevice ? t('mobile') : t('desktop');
 
   const handleChange = (field, value) => {
     setProfileData(prev => ({
@@ -293,9 +297,7 @@ const ProfileSettingsPage = () => {
 
     const loadData = async () => {
       try {
-        await Promise.all([
-          initializeNotifications()
-        ]);
+        // Notification settings are loaded by useNotifications hook automatically
       } catch (err) {
         console.error('Error loading profile data:', err);
       } finally {
@@ -309,7 +311,7 @@ const ProfileSettingsPage = () => {
       safeStop();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [authLoading, user, initializeNotifications, startLoading]);
+  }, [authLoading, user, startLoading]);
 
   if (!user) return <Navigate to="/login" />;
 
@@ -629,195 +631,100 @@ const ProfileSettingsPage = () => {
             </div>
 
             <div className={`${styles.formSection} ${styles.notificationsLayout}`}>
-              {isMobile() && (
+              {isMobileDevice && (
                 <div className={styles.mobileBanner}>
                   {t('profile_mobile_device_detected')}
                 </div>
               )}
 
-              {!notificationSettings.permissionsRequested && (
-                <div className={styles.permissionBlock}>
-                  <Button
-                    variant="primary"
-                    onClick={async () => {
-                      await initializeNotifications();
-                      toast.success(t('profile_permissions_requested'));
-                    }}
-                    disabled={notificationsInitializing}
-                    loading={notificationsInitializing}
-                    icon={getThemedIcon('ui', 'settings', 16, theme)}
-                  >
-                    {notificationsInitializing
-                      ? t('profile_requesting')
-                      : t('profile_enable_notifications')}
-                  </Button>
-                  <p className={styles.helpText}>
-                    {t('profile_permission_description')}
-                  </p>
-                </div>
-              )}
-
-              <div className={styles.notificationsTopGrid}>
-                <div className={styles.notificationPanel}>
-                  <div className={styles.panelHeader}>
-                    <span className={styles.panelTitle}>{t('profile_device_alerts')}</span>
-                    <span className={styles.deviceBadge}>
-                      {isMobile()
-                        ? getThemedIcon('ui', 'smartphone', 12, theme)
-                        : getThemedIcon('ui', 'monitor', 12, theme)}
-                      {deviceLabel}
-                    </span>
-                  </div>
-
-                  <div className={styles.settingList}>
-                    <div className={styles.settingRow}>
-                      <div className={styles.settingInfo}>
-                        {getThemedIcon('ui', 'volume2', 18, theme)}
-                        <div className={styles.settingText}>
-                          <div className={styles.settingLabel}>{t('profile_sound_effects')}</div>
-                          <div className={styles.settingStatus}>
-                            {statusLabel(notificationSettings.soundEnabled)}
-                          </div>
-                        </div>
-                      </div>
-                      <div className={styles.settingActions}>
-                        <ToggleSwitch
-                          checked={notificationSettings.soundEnabled}
-                          onChange={async (checked) => {
-                            const success = await updateSetting('soundEnabled', checked);
-                            if (success) {
-                              toast.success(checked ? t('profile_sound_enabled') : t('profile_sound_disabled'));
-                            }
-                          }}
-                        />
-                        {notificationSettings.soundEnabled && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              import('@utils/notifications').then(({ default: nm }) => {
-                                nm.playNotificationSound('default');
-                              });
-                            }}
-                            title={t('profile_test_sound')}
-                          >
-                            {getThemedIcon('ui', 'volume2', 14, theme)}
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-
-                    {checkSupport().vibration && (
-                      <div className={styles.settingRow}>
-                        <div className={styles.settingInfo}>
-                          {getThemedIcon('ui', 'vibrate', 18, theme)}
-                          <div className={styles.settingText}>
-                            <div className={styles.settingLabel}>{t('profile_vibration')}</div>
-                            <div className={styles.settingStatus}>
-                              {statusLabel(notificationSettings.vibrationEnabled)}
-                            </div>
-                          </div>
-                        </div>
-                        <div className={styles.settingActions}>
-                          <ToggleSwitch
-                            checked={notificationSettings.vibrationEnabled}
-                            onChange={async (checked) => {
-                              const success = await updateSetting('vibrationEnabled', checked);
-                              if (success) {
-                                toast.success(checked ? t('profile_vibration_enabled') : t('profile_vibration_disabled'));
-                              }
-                            }}
-                          />
-                          {notificationSettings.vibrationEnabled && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => {
-                                import('@utils/notifications').then(({ default: nm }) => {
-                                  nm.vibrate('default');
-                                });
-                              }}
-                              title={t('profile_test_vibration')}
-                            >
-                              {getThemedIcon('ui', 'vibrate', 14, theme)}
-                            </Button>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {checkSupport().notification && (
-                      <div className={styles.settingRow}>
-                        <div className={styles.settingInfo}>
-                          {getThemedIcon('ui', 'bell', 18, theme)}
-                          <div className={styles.settingText}>
-                            <div className={styles.settingLabel}>{t('profile_browser_notifications')}</div>
-                            <div className={styles.settingStatus}>
-                              {statusLabel(notificationSettings.browserNotificationsEnabled)}
-                            </div>
-                          </div>
-                        </div>
-                        <div className={styles.settingActions}>
-                          <ToggleSwitch
-                            checked={notificationSettings.browserNotificationsEnabled}
-                            onChange={async (checked) => {
-                              const success = await updateSetting('browserNotificationsEnabled', checked);
-                              if (success) {
-                                toast.success(
-                                  checked
-                                    ? t('profile_browser_notifications_enabled')
-                                    : t('profile_browser_notifications_disabled')
-                                );
-                              }
-                            }}
-                          />
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={handleTestBrowserNotification}
-                            title={t('profile_test_notification_button')}
-                          >
-                            {getThemedIcon('ui', 'test_tube', 14, theme)}
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </div>
+              <div className={styles.notificationPanel}>
+                <div className={styles.panelHeader}>
+                  <span className={styles.panelTitle}>{t('profile_notification_channels') || 'Notification Channels'}</span>
+                  <span className={styles.deviceBadge}>
+                    {isMobileDevice
+                      ? getThemedIcon('ui', 'smartphone', 12, theme)
+                      : getThemedIcon('ui', 'monitor', 12, theme)}
+                    {deviceLabel}
+                  </span>
                 </div>
 
-                <div className={styles.notificationPanel}>
-                  <div className={styles.panelHeader}>
-                    <span className={styles.panelTitle}>{t('profile_supported_features')}</span>
-                    <span className={styles.deviceBadge}>
-                      {isMobile()
-                        ? getThemedIcon('ui', 'smartphone', 12, theme)
-                        : getThemedIcon('ui', 'monitor', 12, theme)}
-                      {deviceLabel}
-                    </span>
-                  </div>
+                <div className={styles.channelGrid}>
+                  {/* Sound */}
+                  <PortalTooltip content={t('notifications_sound_enabled') || 'Sound Effects'} position="top">
+                    <button
+                      className={`${styles.channelBtn} ${notificationSettings.soundEnabled ? styles.channelActive : ''}`}
+                      onClick={async () => {
+                        const next = !notificationSettings.soundEnabled;
+                        await updateSetting('soundEnabled', next);
+                        if (next) notificationManager.playNotificationSound('default');
+                        toast.success(next ? t('profile_sound_enabled') : t('profile_sound_disabled'));
+                      }}
+                    >
+                      {getThemedIcon('ui', 'volume2', 22, notificationSettings.soundEnabled ? '#fff' : theme)}
+                      <span className={styles.channelLabel}>{t('profile_sound_effects') || 'Sound'}</span>
+                    </button>
+                  </PortalTooltip>
 
-                  <div className={styles.settingList}>
-                    {[
-                      { icon: 'volume2', label: t('profile_sound_effects'), supported: checkSupport().audio },
-                      { icon: 'bell', label: t('profile_browser_notifications'), supported: checkSupport().notification },
-                      { icon: 'vibrate', label: t('profile_vibration'), supported: checkSupport().vibration },
-                      { icon: 'settings', label: t('profile_service_worker'), supported: checkSupport().serviceWorker }
-                    ].map((feature) => (
-                      <div
-                        key={feature.icon}
-                        className={`${styles.capabilityRow} ${feature.supported ? styles.supported : styles.unsupported}`}
+                  {/* Vibration — only on mobile */}
+                  {checkSupport().vibration && (
+                    <PortalTooltip content={t('notifications_vibration_enabled') || 'Vibration'} position="top">
+                      <button
+                        className={`${styles.channelBtn} ${notificationSettings.vibrationEnabled ? styles.channelActive : ''}`}
+                        onClick={async () => {
+                          const next = !notificationSettings.vibrationEnabled;
+                          await updateSetting('vibrationEnabled', next);
+                          if (next) notificationManager.vibrate('default');
+                          toast.success(next ? t('profile_vibration_enabled') : t('profile_vibration_disabled'));
+                        }}
                       >
-                        <span className={styles.capabilityLabel}>
-                          {getThemedIcon('ui', feature.icon, 16, theme)}
-                          {feature.label}
-                        </span>
-                        <span className={`${styles.capabilityIcon} ${feature.supported ? styles.supported : styles.unsupported}`}>
-                          {feature.supported ? '✓' : '✗'}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
+                        {getThemedIcon('ui', 'vibrate', 22, notificationSettings.vibrationEnabled ? '#fff' : theme)}
+                        <span className={styles.channelLabel}>{t('profile_vibration') || 'Vibrate'}</span>
+                      </button>
+                    </PortalTooltip>
+                  )}
+
+                  {/* Browser notifications */}
+                  {checkSupport().notification && (
+                    <PortalTooltip content={t('notifications_browser_notifications') || 'Browser Notifications'} position="top">
+                      <button
+                        className={`${styles.channelBtn} ${notificationSettings.browserNotificationsEnabled ? styles.channelActive : ''}`}
+                        onClick={async () => {
+                          const next = !notificationSettings.browserNotificationsEnabled;
+                          if (next && typeof Notification !== 'undefined' && Notification.permission === 'default') {
+                            await Notification.requestPermission();
+                          }
+                          await updateSetting('browserNotificationsEnabled', next);
+                          toast.success(next ? t('profile_browser_notifications_enabled') : t('profile_browser_notifications_disabled'));
+                        }}
+                      >
+                        {getThemedIcon('ui', 'bell', 22, notificationSettings.browserNotificationsEnabled ? '#fff' : theme)}
+                        <span className={styles.channelLabel}>{t('profile_browser_notifications') || 'Browser'}</span>
+                      </button>
+                    </PortalTooltip>
+                  )}
+
+                  {/* Test notification */}
+                  <PortalTooltip content={t('notifications_test_browser_notification') || 'Test Browser Notification'} position="top">
+                    <button
+                      className={styles.channelBtn}
+                      onClick={handleTestBrowserNotification}
+                    >
+                      {getThemedIcon('ui', 'test_tube', 22, theme)}
+                      <span className={styles.channelLabel}>{t('profile_test_notification_button') || 'Test'}</span>
+                    </button>
+                  </PortalTooltip>
                 </div>
+
+                {/* Browser permission status */}
+                {checkSupport().notification && (
+                  <div className={styles.permissionHint}>
+                    {typeof Notification !== 'undefined' && Notification.permission === 'granted'
+                      ? `✓ ${t('profile_browser_notifications_enabled') || 'Browser notifications enabled'}`
+                      : typeof Notification !== 'undefined' && Notification.permission === 'denied'
+                        ? `⚠ ${t('notifications_permission_denied') || 'Permission denied — enable in browser settings'}`
+                        : `ℹ ${t('profile_permission_description') || 'Click the bell icon to request permission'}`}
+                  </div>
+                )}
               </div>
 
               <div className={styles.notificationsDivider} />

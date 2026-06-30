@@ -15,6 +15,53 @@ export const ATTENDANCE_STATUS = {
   STANDUP_CLINIC: 'STANDUP_CLINIC'
 };
 
+// Maps DB status type IDs to canonical status codes (matches attendance_status_types table)
+export const STATUS_ID_MAP = {
+  1: 'PRESENT',
+  2: 'ABSENT',
+  3: 'LATE',
+  4: 'EXCUSED',
+  5: 'SICK_LEAVE',
+  6: 'EARLY_DEPARTURE',
+  7: 'STANDUP_PRESENT',
+  8: 'STANDUP_LATE',
+  9: 'STANDUP_ABSENT',
+  10: 'STANDUP_CLINIC',
+  11: 'ABSENT_WITH_EXCUSE'
+};
+
+// Reverse mapping: DB status codes → frontend canonical status codes
+// The DB stores short codes (ABSENT, EXCUSED, EARLY_DEPARTURE) but the frontend
+// uses more specific codes (ABSENT_NO_EXCUSE, EXCUSED_LEAVE, HUMAN_CASE).
+// This mapping normalizes DB codes back to frontend codes for display.
+export const DB_CODE_TO_FRONTEND_STATUS = {
+  'ABSENT': 'ABSENT_NO_EXCUSE',
+  'EXCUSED': 'EXCUSED_LEAVE',
+  'EARLY_DEPARTURE': 'HUMAN_CASE',
+  'SICK_LEAVE': 'EXCUSED_LEAVE'
+};
+
+// Extract a status code string from a record that may have statusId, status as object, or status as string
+// Returns the FRONTEND canonical status code (e.g. ABSENT_NO_EXCUSE, not ABSENT)
+export const getStatusCodeFromRecord = (record) => {
+  if (!record) return null;
+  if (record.statusId && STATUS_ID_MAP[record.statusId]) {
+    const dbCode = STATUS_ID_MAP[record.statusId];
+    return DB_CODE_TO_FRONTEND_STATUS[dbCode] || dbCode;
+  }
+  if (typeof record.status === 'object') {
+    const code = record.status?.code || record.status?.nameEn || null;
+    if (!code) return null;
+    const upper = code.toUpperCase();
+    return DB_CODE_TO_FRONTEND_STATUS[upper] || upper;
+  }
+  if (record.status) {
+    const upper = record.status.toUpperCase();
+    return DB_CODE_TO_FRONTEND_STATUS[upper] || upper;
+  }
+  return null;
+};
+
 // Attendance Methods
 export const ATTENDANCE_METHODS = {
   MANUAL: 'manual',
@@ -31,7 +78,7 @@ export const ATTENDANCE_DISPLAY_NAMES = {
   [ATTENDANCE_STATUS.PRESENT]: 'Present',
   [ATTENDANCE_STATUS.ABSENT_NO_EXCUSE]: 'Absent',
   [ATTENDANCE_STATUS.LATE]: 'Late',
-  [ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE]: 'Absent with excuse',
+  [ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE]: 'Absent excused',
   [ATTENDANCE_STATUS.EXCUSED_LEAVE]: 'Excused Leave',
   [ATTENDANCE_STATUS.HUMAN_CASE]: 'Human Case',
   // Standup types (matching database codes)
@@ -46,7 +93,7 @@ export const ATTENDANCE_STATUS_LABELS = {
   [ATTENDANCE_STATUS.PRESENT]: 'Present',
   [ATTENDANCE_STATUS.ABSENT_NO_EXCUSE]: 'Absent',
   [ATTENDANCE_STATUS.LATE]: 'Late',
-  [ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE]: 'Absent with excuse',
+  [ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE]: 'Absent excused',
   [ATTENDANCE_STATUS.EXCUSED_LEAVE]: 'Excused Leave',
   [ATTENDANCE_STATUS.HUMAN_CASE]: 'Human Case',
   // Standup types (matching database codes)
@@ -136,6 +183,8 @@ const STATUS_ALIASES = {
   'HUMAN_CASE': 'HUMAN_CASE',
   'HUMANITARIAN': 'HUMAN_CASE',
   'CLINIC': 'HUMAN_CASE',
+  'SICK_LEAVE': 'EXCUSED_LEAVE',
+  'EARLY_DEPARTURE': 'HUMAN_CASE',
   'PRESENT': 'PRESENT',
   'LATE': 'LATE',
   'STANDUP_PRESENT': 'STANDUP_PRESENT',
@@ -185,7 +234,7 @@ export const getLocalizedAttendanceLabel = (status, lang = 'en') => {
       [ATTENDANCE_STATUS.PRESENT]: 'Present',
       [ATTENDANCE_STATUS.ABSENT_NO_EXCUSE]: 'Absent',
       [ATTENDANCE_STATUS.LATE]: 'Late',
-      [ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE]: 'Absent with excuse',
+      [ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE]: 'Absent excused',
       [ATTENDANCE_STATUS.EXCUSED_LEAVE]: 'Excused Leave',
       [ATTENDANCE_STATUS.HUMAN_CASE]: 'Human Case',
       // Standup types (matching database codes)
@@ -215,6 +264,9 @@ export const getLocalizedAttendanceLabel = (status, lang = 'en') => {
 
 export default {
   ATTENDANCE_STATUS,
+  STATUS_ID_MAP,
+  DB_CODE_TO_FRONTEND_STATUS,
+  getStatusCodeFromRecord,
   ATTENDANCE_METHODS,
   ATTENDANCE_DISPLAY_NAMES,
   ATTENDANCE_STATUS_LABELS,

@@ -7,7 +7,7 @@ import { useCallback, useRef } from 'react';
 import { chatService } from '@services/business/chatService';
 import { getChatServerTimestamp, uploadChatFile, deleteChatFile } from '@services/business/chatRealtimeService';
 import { addNotification } from '@services/business/notificationService';
-import { getUsers, getUserRoles } from '@services/business/userService';
+import { getUsers } from '@services/business/userService';
 import { filterBadWords } from '@utils/badWordFilter';
 import { canParticipate } from '@utils/userStatus';
 import { ActivityLogger } from '@services/other/activityLogger';
@@ -29,27 +29,9 @@ import {
   sanitizeFilename,
   generateShareUrl,
   canDeleteMessage,
-  canEditMessage
+  canEditMessage,
+  normalizeChatUser
 } from '../utils/chatHelpers';
-
-const normalizeUser = (u) => {
-  if (!u) return u;
-  if (u.docId) return u;
-  const roles = getUserRoles(u);
-  const roleCode = roles.includes('super_admin') ? 'super_admin'
-    : roles.includes('admin') ? 'admin'
-    : roles.includes('hr') ? 'hr'
-    : roles.includes('instructor') ? 'instructor'
-    : roles.includes('student') ? 'student' : undefined;
-  return {
-    ...u,
-    docId: u.keycloakId || u.uid || String(u.id),
-    uid: u.keycloakId || u.uid || String(u.id),
-    isStudent: roles.includes('student'),
-    role: roleCode,
-    enrolledClasses: u.enrolledClasses || []
-  };
-};
 
 export const useChatActions = (user, state, toast, t) => {
   const {
@@ -75,6 +57,7 @@ export const useChatActions = (user, state, toast, t) => {
     profileName,
     safeAllUsers,
     safeDirectRooms,
+    setDirectRooms,
     safeClassMembers,
     memberReads,
     receiptsFor,
@@ -113,12 +96,12 @@ export const useChatActions = (user, state, toast, t) => {
       info('Loading global chat members');
       if (safeAllUsers.length > 0) {
         info('Using cached allUsers for global chat', { count: safeAllUsers.length });
-        const normalized = safeAllUsers.map(normalizeUser);
+        const normalized = safeAllUsers.map(normalizeChatUser);
         state.setClassMembers(normalized.filter(u => u.docId !== user.uid && u.email !== user.email));
       } else {
         info('Fetching allUsers for global chat');
         const usersResult = await getUsers();
-        const all = (usersResult.success ? (usersResult.data || []) : []).map(normalizeUser);
+        const all = (usersResult.success ? (usersResult.data || []) : []).map(normalizeChatUser);
         info('Fetched allUsers', { count: all.length, success: usersResult.success });
         state.setAllUsers(all);
         state.setClassMembers(all.filter(u => u.docId !== user.uid && u.email !== user.email));
@@ -130,11 +113,11 @@ export const useChatActions = (user, state, toast, t) => {
     
     let allUsersToUse;
     if (safeAllUsers.length > 0) {
-      allUsersToUse = safeAllUsers.map(normalizeUser);
+      allUsersToUse = safeAllUsers.map(normalizeChatUser);
     } else {
       info('Fetching allUsers for class members');
       const result = await getUsers();
-      allUsersToUse = (result.success ? (result.data || []) : []).map(normalizeUser);
+      allUsersToUse = (result.success ? (result.data || []) : []).map(normalizeChatUser);
     }
     
     let members = allUsersToUse.filter(u => 
@@ -207,9 +190,10 @@ export const useChatActions = (user, state, toast, t) => {
         senderId: user.uid,
         senderName: user.displayName || profileName || user.email,
         senderEmail: user.email,
+        chatType: chatType,
         type: chatType,
         classId: chatType === CHAT_TYPES.CLASS ? chatId : null,
-        roomId: chatType === CHAT_TYPES.DM ? chatId : null,
+        roomId: (chatType === CHAT_TYPES.DM || chatType === CHAT_TYPES.GROUP) ? chatId : null,
         createdAt: getChatServerTimestamp(),
         readBy: [user.uid]
       };
@@ -512,11 +496,21 @@ export const useChatActions = (user, state, toast, t) => {
 
   const toggleStar = useCallback(async (room) => {
     try {
-      await chatService.toggleStarRoom(room.id, user.uid);
+      const result = await chatService.toggleStarRoom(room.id, user.uid);
+      if (result?.success) {
+        // Update local state so UI reflects the change immediately
+        const starredSet = new Set(result.starred || []);
+        if (setDirectRooms) {
+          setDirectRooms(prev => (Array.isArray(prev) ? prev : []).map(r => ({
+            ...r,
+            starBy: starredSet.has(String(r.id)) ? [user.uid] : []
+          })));
+        }
+      }
     } catch (e) { 
       /* noop */ 
     }
-  }, [user]);
+  }, [user, setDirectRooms]);
 
   const clearDMMessages = useCallback(async (roomId, mode = CLEAR_MESSAGE_MODES.ALL) => {
     if (!user.isAdmin && (mode === CLEAR_MESSAGE_MODES.ALL || mode === CLEAR_MESSAGE_MODES.THEIRS)) {
@@ -569,9 +563,10 @@ export const useChatActions = (user, state, toast, t) => {
       const chatId = getChatId(selectedClass);
       
       const pollData = {
+        chatType: chatType,
         type: chatType,
         classId: chatType === CHAT_TYPES.CLASS ? chatId : null,
-        roomId: chatType === CHAT_TYPES.DM ? chatId : null,
+        roomId: (chatType === CHAT_TYPES.DM || chatType === CHAT_TYPES.GROUP) ? chatId : null,
         senderId: user.uid,
         senderName: profileName || user.displayName || user.email,
         messageType: MESSAGE_TYPES.POLL,

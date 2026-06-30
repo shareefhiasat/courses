@@ -7,7 +7,7 @@ import { useTheme } from '@contexts/ThemeContext';
 import { useColorTheme } from '@contexts/ColorThemeContext';
 import { useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { getThemedIcon } from '@constants/iconTypes';
-import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS } from '@constants/attendanceTypes';
+import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, getAttendanceColor, getLocalizedAttendanceLabel } from '@constants/attendanceTypes';
 import { getPrograms, getSubjects } from '@services/business/programService';
 import { getClasses } from '@services/business/classService';
 import attendanceService from '@services/business/attendanceService';
@@ -1265,12 +1265,12 @@ const HRAttendancePage = () => {
               {/* Summary Stats */}
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))', gap: 8, marginBottom: 12 }}>
                 {[
-                  { key: ATTENDANCE_STATUS.PRESENT, label: ATTENDANCE_STATUS_LABELS.present },
-                  { key: ATTENDANCE_STATUS.LATE, label: ATTENDANCE_STATUS_LABELS.late },
-                  { key: ATTENDANCE_STATUS.ABSENT_NO_EXCUSE, label: ATTENDANCE_STATUS_LABELS.absent_no_excuse },
-                  { key: ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE, label: ATTENDANCE_STATUS_LABELS.absent_with_excuse },
-                  { key: ATTENDANCE_STATUS.EXCUSED_LEAVE, label: ATTENDANCE_STATUS_LABELS.excused_leave },
-                  { key: ATTENDANCE_STATUS.HUMAN_CASE, label: ATTENDANCE_STATUS_LABELS.human_case }
+                  { key: ATTENDANCE_STATUS.PRESENT, label: getLocalizedAttendanceLabel(ATTENDANCE_STATUS.PRESENT) },
+                  { key: ATTENDANCE_STATUS.LATE, label: getLocalizedAttendanceLabel(ATTENDANCE_STATUS.LATE) },
+                  { key: ATTENDANCE_STATUS.ABSENT_NO_EXCUSE, label: getLocalizedAttendanceLabel(ATTENDANCE_STATUS.ABSENT_NO_EXCUSE) },
+                  { key: ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE, label: getLocalizedAttendanceLabel(ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE) },
+                  { key: ATTENDANCE_STATUS.EXCUSED_LEAVE, label: getLocalizedAttendanceLabel(ATTENDANCE_STATUS.EXCUSED_LEAVE) },
+                  { key: ATTENDANCE_STATUS.HUMAN_CASE, label: getLocalizedAttendanceLabel(ATTENDANCE_STATUS.HUMAN_CASE) }
                 ].map(({ key, label }) => {
                   const count = marks.filter(m => {
                     const status = m.status || 'present';
@@ -1280,8 +1280,8 @@ const HRAttendancePage = () => {
                     if (key === ATTENDANCE_STATUS.EXCUSED_LEAVE && (status === 'leave' || status === 'excused_leave')) return true;
                     return status === key;
                   }).length;
-                  const color = label.color || '#6b7280';
-                  const displayLabel = label.en || key;
+                  const color = getAttendanceColor(key) || '#6b7280';
+                  const displayLabel = label;
                   return (
                     <div key={key} style={{ padding: '0.5rem 0.75rem', background: color + '15', border: `1px solid ${color}`, borderRadius: 6, textAlign: 'center' }}>
                       <div style={{ fontSize: 18, fontWeight: 700, color: color, lineHeight: 1.2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
@@ -1311,9 +1311,8 @@ const HRAttendancePage = () => {
                     // Handle legacy statuses
                     const normalizedStatus = status === 'absent' ? ATTENDANCE_STATUS.ABSENT_NO_EXCUSE : 
                                            status === 'leave' ? ATTENDANCE_STATUS.EXCUSED_LEAVE : status;
-                    const statusInfo = ATTENDANCE_STATUS_LABELS[normalizedStatus] || ATTENDANCE_STATUS_LABELS.present;
-                    const statusColor = statusInfo.color || '#6b7280';
-                    const statusLabel = statusInfo.en || status;
+                    const statusColor = getAttendanceColor(normalizedStatus) || '#6b7280';
+                    const statusLabel = getLocalizedAttendanceLabel(normalizedStatus, 'en') || status;
                     const uniqueKey = mark.uid || `mark-${idx}`;
                     return (
                       <div key={uniqueKey} style={{ 
@@ -1392,32 +1391,32 @@ const HRAttendancePage = () => {
                                 options={[
                                   { 
                                     value: ATTENDANCE_STATUS.PRESENT, 
-                                    label: `${ATTENDANCE_STATUS_LABELS.present.en} - ${ATTENDANCE_STATUS_LABELS.present.ar}`,
+                                    label: `${getLocalizedAttendanceLabel(ATTENDANCE_STATUS.PRESENT, 'en')} - ${getLocalizedAttendanceLabel(ATTENDANCE_STATUS.PRESENT, 'ar')}`,
                                     icon: getThemedIcon('ui', 'check', 16, '#10b981')
                                   },
                                   { 
                                     value: ATTENDANCE_STATUS.LATE, 
-                                    label: `${ATTENDANCE_STATUS_LABELS.late.en} - ${ATTENDANCE_STATUS_LABELS.late.ar}`,
+                                    label: `${getLocalizedAttendanceLabel(ATTENDANCE_STATUS.LATE, 'en')} - ${getLocalizedAttendanceLabel(ATTENDANCE_STATUS.LATE, 'ar')}`,
                                     icon: getThemedIcon('ui', 'clock', 16, '#f59e0b')
                                   },
                                   { 
                                     value: ATTENDANCE_STATUS.ABSENT_NO_EXCUSE, 
-                                    label: `${ATTENDANCE_STATUS_LABELS.absent_no_excuse.en} - ${ATTENDANCE_STATUS_LABELS.absent_no_excuse.ar}`,
+                                    label: `${getLocalizedAttendanceLabel(ATTENDANCE_STATUS.ABSENT_NO_EXCUSE, 'en')} - ${getLocalizedAttendanceLabel(ATTENDANCE_STATUS.ABSENT_NO_EXCUSE, 'ar')}`,
                                     icon: getThemedIcon('ui', 'x_circle', 16, '#ef4444')
                                   },
                                   { 
                                     value: ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE, 
-                                    label: `${ATTENDANCE_STATUS_LABELS.absent_with_excuse.en} - ${ATTENDANCE_STATUS_LABELS.absent_with_excuse.ar}`,
+                                    label: `${getLocalizedAttendanceLabel(ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE, 'en')} - ${getLocalizedAttendanceLabel(ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE, 'ar')}`,
                                     icon: getThemedIcon('ui', 'x_circle', 16, '#ef4444')
                                   },
                                   { 
                                     value: ATTENDANCE_STATUS.EXCUSED_LEAVE, 
-                                    label: `${ATTENDANCE_STATUS_LABELS.excused_leave.en} - ${ATTENDANCE_STATUS_LABELS.excused_leave.ar}`,
+                                    label: `${getLocalizedAttendanceLabel(ATTENDANCE_STATUS.EXCUSED_LEAVE, 'en')} - ${getLocalizedAttendanceLabel(ATTENDANCE_STATUS.EXCUSED_LEAVE, 'ar')}`,
                                     icon: getThemedIcon('ui', 'x_circle', 16, '#ef4444')
                                   },
                                   { 
                                     value: ATTENDANCE_STATUS.HUMAN_CASE, 
-                                    label: `${ATTENDANCE_STATUS_LABELS.human_case.en} - ${ATTENDANCE_STATUS_LABELS.human_case.ar}`,
+                                    label: `${getLocalizedAttendanceLabel(ATTENDANCE_STATUS.HUMAN_CASE, 'en')} - ${getLocalizedAttendanceLabel(ATTENDANCE_STATUS.HUMAN_CASE, 'ar')}`,
                                     icon: getThemedIcon('ui', 'heart', 16, '#8b5cf6')
                                   }
                                 ]}

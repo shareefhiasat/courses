@@ -146,10 +146,14 @@ export const normalizeAttendanceStatus = (status, t) => {
     'present': translate('present') || 'Present',
     'late': translate('late') || 'Late',
     'absent': translate('absent_no_excuse') || 'Absent',
+    'absent_no_excuse': translate('absent_no_excuse') || 'Absent',
     'absent_with_excuse': translate('absent_excused') || 'Absent Excused',
     'absent_without_excuse': translate('absent_no_excuse') || 'Absent',
     'excused': translate('absent_excused') || 'Absent Excused',
+    'excused_leave': translate('excused_leave') || 'Excused Leave',
+    'early_departure': translate('human_case') || 'Human Case',
     'human_case': translate('human_case') || 'Human Case',
+    'sick_leave': translate('excused_leave') || 'Excused Leave',
     'not_specified': translate('not_specified') || 'Not Specified'
   };
   

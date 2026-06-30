@@ -309,6 +309,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const ChatI
             <input
               ref={messageInputRef}
               type="text"
+              autoComplete="off"
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
               placeholder={t('chat_type_a_message')}
@@ -632,6 +633,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const ChatI
               </label>
               <input
                 type="text"
+                autoComplete="off"
                 value={pollQuestion}
                 onChange={(e)=>setPollQuestion(e.target.value)}
                 placeholder={t('chat_question_placeholder')}
@@ -692,6 +694,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const ChatI
                     </div>
                     <input
                       type="text"
+                      autoComplete="off"
                       value={opt}
                       onChange={(e)=>handlePollOptionChange(idx, e.target.value)}
                       placeholder={`Option ${idx + 1}`}

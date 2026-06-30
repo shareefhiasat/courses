@@ -34,7 +34,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Statu
       icon: '✗'
     },
     'absent_with_excuse': {
-      label: 'Absent (With Excuse)',
+      label: 'Absent excused',
       color: '#f59e0b',
       bgColor: '#f59e0b20',
       icon: '⚠'

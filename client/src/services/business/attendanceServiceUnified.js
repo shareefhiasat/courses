@@ -15,17 +15,18 @@ import { getDatabaseUserId } from './authService.js';
 
 const serviceName = 'attendanceServiceUnified';
 
-// Status code to ID mapping (based on database seed order)
+// Status code to ID mapping (matches attendance_status_types table)
 const STATUS_CODE_TO_ID = {
   'PRESENT': 1,
-  'ABSENT_NO_EXCUSE': 2,
   'ABSENT': 2,
-  'ABSENT_WITH_EXCUSE': 4,
-  'EXCUSED': 4,
+  'ABSENT_NO_EXCUSE': 2,
   'LATE': 3,
-  'EXCUSED_LEAVE': 5,
-  'HUMAN_CASE': 6,
+  'EXCUSED': 4,
+  'ABSENT_WITH_EXCUSE': 11,
+  'EXCUSED_LEAVE': 4,
+  'SICK_LEAVE': 5,
   'EARLY_DEPARTURE': 6,
+  'HUMAN_CASE': 6,
   'STANDUP_PRESENT': 7,
   'STANDUP_LATE': 8,
   'STANDUP_ABSENT': 9,

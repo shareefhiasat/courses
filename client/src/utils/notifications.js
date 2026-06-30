@@ -19,9 +19,10 @@ class NotificationManager {
   }
 
   checkSupport() {
+    const isMobile = this.isMobile();
     return {
       audio: !!(window.AudioContext || window.webkitAudioContext),
-      vibration: 'vibrate' in navigator,
+      vibration: isMobile && 'vibrate' in navigator,
       notification: 'Notification' in window,
       serviceWorker: 'serviceWorker' in navigator,
       pushManager: 'serviceWorker' in navigator && 'PushManager' in window
@@ -179,7 +180,22 @@ class NotificationManager {
   }
 
   async showBrowserNotification(title, options = {}) {
-    if (!this.isSupported.notification || this.permissions.notification !== 'granted') {
+    if (!this.isSupported.notification) {
+      return false;
+    }
+
+    // Sync with browser's actual permission state
+    if (typeof Notification !== 'undefined' && Notification.permission) {
+      this.permissions.notification = Notification.permission;
+    }
+
+    // Request permission if not yet decided
+    if (this.permissions.notification === 'default') {
+      const granted = await this.requestNotificationPermission();
+      if (!granted) return false;
+    }
+
+    if (this.permissions.notification !== 'granted') {
       return false;
     }
 
@@ -187,7 +203,7 @@ class NotificationManager {
       // Try service worker first for better mobile support
       if (serviceWorkerManager.isReady()) {
         return await serviceWorkerManager.showLocalNotification(title, {
-          body: options.body || message,
+          body: options.body || '',
           vibrate: options.vibrate || [100, 50, 100],
           requireInteraction: false,
           silent: false,
@@ -198,8 +214,8 @@ class NotificationManager {
 
       // Fallback to regular Notification API
       const notification = new Notification(title, {
-        icon: '/favicon.ico',
-        badge: '/favicon.ico',
+        icon: '/qaf_logo_transparent.png',
+        badge: '/qaf_logo_transparent.png',
         vibrate: options.vibrate || [100, 50, 100],
         requireInteraction: false,
         silent: false,
@@ -294,17 +310,25 @@ class NotificationManager {
   async smartNotification(type, title, message, options = {}) {
     const isMobile = this.isMobile();
     const isVisible = this.isPageVisible();
+    const settings = options.settings || { sound: true, vibration: true, browser: true };
 
-    // If page is visible and not mobile, just play sound
-    if (isVisible && !isMobile) {
-      if (options.settings?.sound) {
-        this.playNotificationSound(type);
-      }
-      return;
+    // Always play sound if enabled
+    if (settings.sound && this.permissions.sound) {
+      this.playNotificationSound(type);
     }
 
-    // If page is not visible or mobile, use full notification
-    await this.triggerNotification(type, title, message, options);
+    // Vibrate if enabled and on mobile
+    if (settings.vibration && this.permissions.vibration && isMobile) {
+      this.vibrate(type);
+    }
+
+    // Show browser notification if enabled — always, not just when page hidden
+    if (settings.browser && title) {
+      await this.showBrowserNotification(title, {
+        body: message,
+        ...options
+      });
+    }
   }
 }
 

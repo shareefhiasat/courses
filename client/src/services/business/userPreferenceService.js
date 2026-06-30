@@ -69,9 +69,9 @@ export const getFavoriteBehaviors = async (userId) => {
 
     return mockFavorites;
 
-  } catch (error) {
+  } catch (err) {
     error(`${serviceName}:getFavoriteBehaviors:error`, { 
-      error: error.message, 
+      error: err.message, 
       userId 
     });
 
@@ -136,16 +136,16 @@ export const addFavoriteBehavior = async (userId, behaviorId) => {
       data: userPrefs.favoriteBehaviors
     };
 
-  } catch (error) {
+  } catch (err) {
     error(`${serviceName}:addFavoriteBehavior:error`, { 
-      error: error.message, 
+      error: err.message, 
       userId, 
       behaviorId 
     });
 
     return {
       success: false,
-      error: error.message || 'Failed to add favorite behavior',
+      error: err.message || 'Failed to add favorite behavior',
       data: []
     };
   }
@@ -211,16 +211,16 @@ export const removeFavoriteBehavior = async (userId, behaviorId) => {
       data: userPrefs.favoriteBehaviors
     };
 
-  } catch (error) {
+  } catch (err) {
     error(`${serviceName}:removeFavoriteBehavior:error`, { 
-      error: error.message, 
+      error: err.message, 
       userId, 
       behaviorId 
     });
 
     return {
       success: false,
-      error: error.message || 'Failed to remove favorite behavior',
+      error: err.message || 'Failed to remove favorite behavior',
       data: []
     };
   }
@@ -253,9 +253,9 @@ export const getFavoriteParticipations = async (userId) => {
     debug(`${serviceName}:getFavoriteParticipations:no_data`, { userId });
     return [];
 
-  } catch (error) {
+  } catch (err) {
     error(`${serviceName}:getFavoriteParticipations:error`, { 
-      error: error.message, 
+      error: err.message, 
       userId 
     });
 
@@ -319,16 +319,16 @@ export const addFavoriteParticipation = async (userId, participationId) => {
       data: userPrefs.favoriteParticipations
     };
 
-  } catch (error) {
+  } catch (err) {
     error(`${serviceName}:addFavoriteParticipation:error`, { 
-      error: error.message, 
+      error: err.message, 
       userId, 
       participationId 
     });
 
     return {
       success: false,
-      error: error.message || 'Failed to add favorite participation',
+      error: err.message || 'Failed to add favorite participation',
       data: []
     };
   }
@@ -393,16 +393,16 @@ export const removeFavoriteParticipation = async (userId, participationId) => {
       data: userPrefs.favoriteParticipations
     };
 
-  } catch (error) {
+  } catch (err) {
     error(`${serviceName}:removeFavoriteParticipation:error`, { 
-      error: error.message, 
+      error: err.message, 
       userId, 
       participationId 
     });
 
     return {
       success: false,
-      error: error.message || 'Failed to remove favorite participation',
+      error: err.message || 'Failed to remove favorite participation',
       data: []
     };
   }
@@ -449,9 +449,9 @@ export const getUserPreferences = async (userId) => {
     debug(`${serviceName}:getUserPreferences:default`, { userId });
     return defaultPrefs;
 
-  } catch (error) {
+  } catch (err) {
     error(`${serviceName}:getUserPreferences:error`, { 
-      error: error.message, 
+      error: err.message, 
       userId 
     });
 
@@ -501,16 +501,16 @@ export const updateUserSettings = async (userId, settings) => {
       data: userPrefs.settings
     };
 
-  } catch (error) {
+  } catch (err) {
     error(`${serviceName}:updateUserSettings:error`, { 
-      error: error.message, 
+      error: err.message, 
       userId, 
       settings 
     });
 
     return {
       success: false,
-      error: error.message || 'Failed to update settings',
+      error: err.message || 'Failed to update settings',
       data: null
     };
   }
@@ -550,8 +550,8 @@ export const getFavoriteStudents = async (userId) => {
     });
 
     return mockFavorites;
-  } catch (error) {
-    error(`${serviceName}:getFavoriteStudents:error`, { error: error.message, userId });
+  } catch (err) {
+    error(`${serviceName}:getFavoriteStudents:error`, { error: err.message, userId });
     return [];
   }
 };
@@ -600,11 +600,11 @@ export const addFavoriteStudent = async (userId, studentId) => {
       data: updatedFavorites,
       message: 'Student added to favorites successfully'
     };
-  } catch (error) {
-    error(`${serviceName}:addFavoriteStudent:error`, { error: error.message, userId, studentId });
+  } catch (err) {
+    error(`${serviceName}:addFavoriteStudent:error`, { error: err.message, userId, studentId });
     return {
       success: false,
-      error: error.message || 'Failed to add student to favorites',
+      error: err.message || 'Failed to add student to favorites',
       data: null
     };
   }
@@ -654,11 +654,11 @@ export const removeFavoriteStudent = async (userId, studentId) => {
       data: updatedFavorites,
       message: 'Student removed from favorites successfully'
     };
-  } catch (error) {
-    error(`${serviceName}:removeFavoriteStudent:error`, { error: error.message, userId, studentId });
+  } catch (err) {
+    error(`${serviceName}:removeFavoriteStudent:error`, { error: err.message, userId, studentId });
     return {
       success: false,
-      error: error.message || 'Failed to remove student from favorites',
+      error: err.message || 'Failed to remove student from favorites',
       data: null
     };
   }

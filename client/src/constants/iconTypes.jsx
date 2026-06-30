@@ -37,13 +37,13 @@ import {
   // Missing icons from HomePage
   Monitor, Code, Folder, Hourglass, Repeat, Droplet,
   // Notification settings icons
-  Volume2, Vibrate,
+  Volume2, Vibrate, SlidersHorizontal, FlaskConical,
   // Additional icons for CategoriesPage
   Cloud, Layers, Package, Bookmark,
 } from 'lucide-react';
 
 // Additional imports for UI badge functions
-import { ATTENDANCE_STATUS_LABELS } from '@constants/attendanceTypes';
+import { ATTENDANCE_STATUS_LABELS, getAttendanceColor, getLocalizedAttendanceLabel } from '@constants/attendanceTypes';
 import { Tooltip } from '@ui';
 
 
@@ -373,7 +373,7 @@ export const ICON_TYPES = {
     git_branch: <GitBranch size={16} />,
     // Missing icons causing warnings
     volume2: <Volume2 size={16} />,
-    test_tube: <Monitor size={16} />,
+    test_tube: <FlaskConical size={16} />,
     palette: <Sun size={16} />,
     smartphone: <Phone size={16} />,
     clipboard: <Clipboard size={16} />,
@@ -383,6 +383,7 @@ export const ICON_TYPES = {
     // Missing icons from HomePage
     monitor: <Monitor size={16} />,
     code2: <Code size={16} />,
+    sliders_horizontal: <SlidersHorizontal size={16} />,
     // Missing icons for loading states
     loader: <RefreshCw size={16} />,
     // Additional icons for various components
@@ -645,6 +646,7 @@ export const getUserRoleIcon = (role) => {
 // Role color configuration
 export const ROLE_COLORS = {
   super_admin: '#f59e0b',
+  superadmin: '#f59e0b',
   admin: '#4f46e5',
   instructor: '#0ea5e9',
   hr: '#8b5cf6',
@@ -827,10 +829,9 @@ export const createClassStatBadge = (count, iconType, color, tooltipText, theme)
  * Gets attendance status color and label
  */
 export const getAttendanceStatusInfo = (status, lang = 'en') => {
-  const statusInfo = ATTENDANCE_STATUS_LABELS[status] || ATTENDANCE_STATUS_LABELS.present;
   return {
-    color: statusInfo.color || '#6b7280',
-    label: lang === 'ar' ? (statusInfo.ar || statusInfo.en) : (statusInfo.en || status),
+    color: getAttendanceColor(status) || '#6b7280',
+    label: getLocalizedAttendanceLabel(status, lang) || status,
     icon: getAttendanceIcon(status)
   };
 };
@@ -840,17 +841,17 @@ export const getAttendanceStatusInfo = (status, lang = 'en') => {
  */
 export const createAttendanceSummaryStats = (marks, theme) => {
   const stats = [
-    { key: 'present', label: ATTENDANCE_STATUS_LABELS.present },
-    { key: 'late', label: ATTENDANCE_STATUS_LABELS.late },
-    { key: 'absent_no_excuse', label: ATTENDANCE_STATUS_LABELS.absent_no_excuse },
-    { key: 'absent_with_excuse', label: ATTENDANCE_STATUS_LABELS.absent_with_excuse },
-    { key: 'excused_leave', label: ATTENDANCE_STATUS_LABELS.excused_leave },
-    { key: 'human_case', label: ATTENDANCE_STATUS_LABELS.human_case }
+    { key: 'present', statusKey: 'PRESENT' },
+    { key: 'late', statusKey: 'LATE' },
+    { key: 'absent_no_excuse', statusKey: 'ABSENT_NO_EXCUSE' },
+    { key: 'absent_with_excuse', statusKey: 'ABSENT_WITH_EXCUSE' },
+    { key: 'excused_leave', statusKey: 'EXCUSED_LEAVE' },
+    { key: 'human_case', statusKey: 'HUMAN_CASE' }
   ];
 
-  return stats.map(({ key, label }) => {
+  return stats.map(({ key, statusKey }) => {
     const count = marks.filter(m => {
-      const status = m.status || 'present';
+      const status = (m.status || 'present').toLowerCase();
       // Handle legacy statuses
       if (key === 'absent_no_excuse' && (status === 'absent' || status === 'absent_no_excuse')) return true;
       if (key === 'absent_with_excuse' && status === 'absent_with_excuse') return true;
@@ -858,8 +859,8 @@ export const createAttendanceSummaryStats = (marks, theme) => {
       return status === key;
     }).length;
     
-    const color = label.color || '#6b7280';
-    const displayLabel = label.en || key;
+    const color = getAttendanceColor(statusKey) || '#6b7280';
+    const displayLabel = getLocalizedAttendanceLabel(statusKey, 'en') || key;
     const icon = getAttendanceIcon(key);
     
     return {

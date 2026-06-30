@@ -8,7 +8,8 @@ import { info, error, warn, debug } from '@services/utils/logger.js';
 export const CHAT_TYPES = {
   GLOBAL: 'global',
   CLASS: 'class',
-  DM: 'dm'
+  DM: 'dm',
+  GROUP: 'group'
 };
 
 export const MESSAGE_TYPES = {

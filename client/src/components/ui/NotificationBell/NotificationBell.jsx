@@ -13,7 +13,8 @@ const NotificationBell = () => {
   const { t } = useLang();
   const { theme } = useTheme();
   const { primaryColor } = useColorTheme();
-  const { unreadCount } = useNotificationsFeed({ limit: 10 });
+  const feed = useNotificationsFeed({ limit: 100, archived: false });
+  const { unreadCount } = feed;
   const [showDrawer, setShowDrawer] = useState(false);
   const [focused, setFocused] = useState(false);
   const [balloonKey, setBalloonKey] = useState(0);
@@ -90,7 +91,7 @@ const NotificationBell = () => {
           </AnimatePresence>
         </button>
       </div>
-      <NotificationDrawer isOpen={showDrawer} onClose={() => setShowDrawer(false)} />
+      <NotificationDrawer isOpen={showDrawer} onClose={() => setShowDrawer(false)} feed={feed} />
     </>
   );
 };

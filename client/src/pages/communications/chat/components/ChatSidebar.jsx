@@ -433,6 +433,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const ChatS
         {isAdmin && (
           <input
             type="text"
+            autoComplete="off"
             placeholder={t('chat_search_users')}
             value={dmSearch}
             onChange={(e) => setDmSearch(e.target.value)}

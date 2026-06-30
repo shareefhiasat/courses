@@ -1826,7 +1826,7 @@ model NotificationPreference {
   userId     Int      @unique
   // master toggles
   inAppEnabled Boolean @default(true)
-  emailEnabled Boolean @default(true)
+  emailEnabled Boolean @default(false)
   smsEnabled   Boolean @default(false)
   pushEnabled  Boolean @default(false)
   // matrix: { [category]: { in_app, email, sms, push } }
@@ -1905,6 +1905,8 @@ model ChatMessage {
   isDeleted   Boolean      @default(false)
   deletedAt   DateTime?
   replyToId   Int?
+  starredBy   Json?        // [userId, userId, ...] — users who starred this message
+  pinnedById  Int?         // user ID who pinned this message (group chats: only one pinned message per room)
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
   

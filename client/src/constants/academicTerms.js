@@ -34,7 +34,31 @@ export const ACADEMIC_TERMS = {
 
 // Helper functions
 export const getAcademicTermLabel = (term, lang = 'en') => {
-  const termConfig = Object.values(ACADEMIC_TERMS).find(t => t.value === term);
+  if (!term) return term;
+  const termStr = String(term);
+  
+  // Try exact match first
+  let termConfig = Object.values(ACADEMIC_TERMS).find(t => t.value === termStr);
+  
+  // Try case-insensitive match (e.g., "Fall" -> "fall")
+  if (!termConfig) {
+    termConfig = Object.values(ACADEMIC_TERMS).find(t => t.value === termStr.toLowerCase());
+  }
+  
+  // Try extracting term from compound format like "2025-SPRING" or "2024-FALL"
+  if (!termConfig) {
+    const match = termStr.match(/^(\d{4})-([a-zA-Z]+)$/);
+    if (match) {
+      const year = match[1];
+      const termPart = match[2].toLowerCase();
+      termConfig = Object.values(ACADEMIC_TERMS).find(t => t.value === termPart);
+      if (termConfig) {
+        const localizedTerm = termConfig.label[lang] || termConfig.label.en || termPart;
+        return `${year}-${localizedTerm}`;
+      }
+    }
+  }
+  
   if (!termConfig) return term;
   return termConfig.label[lang] || termConfig.label.en || term;
 };

@@ -3,13 +3,6 @@ import Joyride from 'react-joyride';
 import TourTooltip from '@ui/TourTooltip/TourTooltip';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@contexts/AuthContext';
-import {
-  markNotificationRead,
-  markAllNotificationsRead,
-  archiveNotification,
-  markNotificationUnread,
-  deleteNotification
-} from '@services/business/notificationService';
 import { useLang } from '@contexts/LangContext';
 import { useNavigate } from 'react-router-dom';
 import { warn, error } from '@services/utils/logger.js';
@@ -24,9 +17,9 @@ import {
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { formatDateTime } from '@utils/date';
+import { formatNotificationTime, filterNotifications as filterNotificationsUtil, groupNotificationsByDate, gotoFromNotification as gotoFromNotificationUtil } from '@utils/notificationHelpers';
 import Input from './Input';
 import Select from './Select';
-import ToggleSwitch from './ToggleSwitch';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { useLookupTypes } from '@hooks/useLookupTypes.js';
 import { ABSENCE_TYPES } from '@constants/absenceTypes';
@@ -34,36 +27,11 @@ import PortalTooltip from './PortalTooltip/PortalTooltip';
 import { ATTENDANCE_STATUS } from '@constants/attendanceTypes';
 import { ActivityLogger } from '@services/other/activityLogger';
 import useNotifications from '@hooks/useNotifications';
-import useNotificationsFeed from '@hooks/useNotificationsFeed';
 import { getPrograms, getSubjects } from '@services/business/programService';
 import { getClasses } from '@services/business/classService';
 
-const getDateGroup = (timestamp) => {
-  if (!timestamp) return 'Earlier';
-  const date = timestamp?.seconds ? new Date(timestamp.seconds * 1000) : new Date(timestamp);
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-  const notifDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
 
-  if (notifDate.getTime() === today.getTime()) return 'Today';
-  if (notifDate.getTime() === yesterday.getTime()) return 'Yesterday';
-  if (now - date < 7 * 86400000) return 'This Week';
-  return 'Earlier';
-};
-
-const getGroupLabel = (group, t) => {
-  const labels = {
-    Today: t('notifications.today') || 'Today',
-    Yesterday: t('notifications.yesterday') || 'Yesterday',
-    'This Week': t('notifications.this_week') || 'This Week',
-    Earlier: t('notifications.earlier') || 'Earlier'
-  };
-  return labels[group] || group;
-};
-
-const NotificationDrawer = ({ isOpen, onClose }) => {
+const NotificationDrawer = ({ isOpen, onClose, feed }) => {
   const { user } = useAuth();
   const { t, lang } = useLang();
   const { theme } = useTheme();
@@ -106,8 +74,13 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
   const {
     notifications,
     unreadCount,
-    refresh
-  } = useNotificationsFeed({ limit: 100, archived: false });
+    refresh,
+    markAsRead: hookMarkAsRead,
+    markAllAsRead: hookMarkAllAsRead,
+    markAsUnread: hookMarkAsUnread,
+    archive: hookArchive,
+    remove: hookRemove
+  } = feed || {};
 
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all');
@@ -116,7 +89,6 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
   const [filterAttendanceStatus, setFilterAttendanceStatus] = useState('all');
   const [filterAbsenceType, setFilterAbsenceType] = useState('all');
   const [showArchived, setShowArchived] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [filterProgram, setFilterProgram] = useState('all');
   const [filterSubject, setFilterSubject] = useState('all');
@@ -151,154 +123,42 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
   }, [isOpen, showAdvanced]);
 
   const filteredNotifications = useMemo(() => {
-    let filtered = notifications;
-
-    if (filterType === NOTIFICATION_STATUS.UNREAD) {
-      filtered = filtered.filter(n => !n.isRead && !n.isArchived);
-    } else if (filterType === NOTIFICATION_STATUS.READ) {
-      filtered = filtered.filter(n => n.isRead && !n.isArchived);
-    } else if (filterType === NOTIFICATION_STATUS.ARCHIVED) {
-      filtered = filtered.filter(n => n.isArchived);
-    } else if (!showArchived) {
-      filtered = filtered.filter(n => !n.isArchived);
-    }
-
-    if (filterCategory !== 'all') {
-      filtered = filtered.filter(n => n.type === filterCategory);
-    }
-
-    if (filterPenaltyType !== 'all' && filterCategory === RECORD_TYPES.PENALTY) {
-      filtered = filtered.filter(n => n.metadata?.penaltyType === filterPenaltyType);
-    }
-
-    if (filterAttendanceStatus !== 'all' && filterCategory === RECORD_TYPES.ATTENDANCE) {
-      filtered = filtered.filter(n => n.metadata?.attendanceStatus === filterAttendanceStatus);
-    }
-
-    if (filterAbsenceType !== 'all' && filterCategory === NOTIFICATION_TYPES.ATTENDANCE) {
-      filtered = filtered.filter(n => n.metadata?.absenceType === filterAbsenceType);
-    }
-
-    if (searchTerm.trim()) {
-      const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(n =>
-        (n.title || '').toLowerCase().includes(term) ||
-        (n.message || '').toLowerCase().includes(term)
-      );
-    }
-
-    if (filterProgram !== 'all') {
-      filtered = filtered.filter(n => {
-        const classId = n.data?.classId || n.classId;
-        const subjectId = n.data?.subjectId || n.metadata?.subjectId;
-        if (classId) {
-          const classItem = classes.find(c => (c.id || c.docId) === classId);
-          if (classItem?.subjectId) {
-            const subject = subjects.find(s => (s.docId || s.id) === classItem.subjectId);
-            return subject?.programId === filterProgram;
-          }
-        }
-        if (subjectId) {
-          const subject = subjects.find(s => (s.docId || s.id) === subjectId);
-          return subject?.programId === filterProgram;
-        }
-        return false;
-      });
-    }
-
-    if (filterSubject !== 'all') {
-      filtered = filtered.filter(n => {
-        const classId = n.data?.classId || n.classId;
-        const subjectId = n.data?.subjectId || n.metadata?.subjectId;
-        if (classId) {
-          const classItem = classes.find(c => (c.id || c.docId) === classId);
-          return classItem?.subjectId === filterSubject;
-        }
-        return subjectId === filterSubject;
-      });
-    }
-
-    if (filterClass !== 'all') {
-      filtered = filtered.filter(n => {
-        const classId = n.data?.classId || n.classId;
-        return classId === filterClass;
-      });
-    }
-
-    if (filterYear !== 'all') {
-      filtered = filtered.filter(n => {
-        const classId = n.data?.classId || n.classId;
-        if (classId) {
-          const classItem = classes.find(c => (c.id || c.docId) === classId);
-          if (classItem?.year && String(classItem.year) === filterYear) return true;
-          if (classItem?.term && classItem.term.includes(' ')) {
-            const parts = classItem.term.split(' ');
-            if (parts.length > 1 && parts[parts.length - 1] === filterYear) return true;
-          }
-        }
-        return false;
-      });
-    }
-
-    if (filterSemester !== 'all') {
-      filtered = filtered.filter(n => {
-        const subjectId = n.data?.subjectId || n.metadata?.subjectId;
-        if (subjectId) {
-          const subject = subjects.find(s => (s.docId || s.id) === subjectId);
-          return subject?.semester === filterSemester;
-        }
-        return false;
-      });
-    }
-
-    return filtered;
+    return filterNotificationsUtil({
+      notifications,
+      filterType,
+      filterCategory,
+      filterPenaltyType,
+      filterAttendanceStatus,
+      filterAbsenceType,
+      searchTerm,
+      showArchived,
+      filterProgram,
+      filterSubject,
+      filterClass,
+      filterYear,
+      filterSemester,
+      subjects,
+      classes
+    });
   }, [notifications, filterType, filterCategory, filterPenaltyType, filterAttendanceStatus, filterAbsenceType, searchTerm, showArchived, filterProgram, filterSubject, filterClass, filterYear, filterSemester, subjects, classes]);
 
   const groupedNotifications = useMemo(() => {
-    const groups = {};
-    filteredNotifications.forEach(n => {
-      const group = getDateGroup(n.createdAt);
-      if (!groups[group]) groups[group] = [];
-      groups[group].push(n);
-    });
-    const order = ['Today', 'Yesterday', 'This Week', 'Earlier'];
-    return order.filter(g => groups[g]).map(g => ({ label: getGroupLabel(g, t), items: groups[g] }));
+    return groupNotificationsByDate(filteredNotifications, t);
   }, [filteredNotifications, t]);
 
   const archivedCount = notifications.filter(n => n.isArchived).length;
 
   const formatTime = useCallback((timestamp) => {
-    if (!timestamp) return '';
-    const date = timestamp.seconds ? new Date(timestamp.seconds * 1000) : new Date(timestamp);
-    const now = new Date();
-    const diff = now - date;
-
-    if (diff < 60000) return t('notifications.just_now');
-    if (diff < 3600000) return `${Math.floor(diff / 60000)}${t('notifications.minutes_ago')}`;
-    if (diff < 86400000) return `${Math.floor(diff / 3600000)}${t('notifications.hours_ago')}`;
-    if (diff < 604800000) return `${Math.floor(diff / 86400000)}${t('notifications.days_ago')}`;
-    return formatDateTime(date);
-  }, [formatDateTime, t]);
+    return formatNotificationTime(timestamp, t);
+  }, [t]);
 
   const [soundEnabled, setSoundEnabled] = useState(true);
-  const [vibrationEnabled, setVibrationEnabled] = useState(true);
   const [browserNotificationsEnabled, setBrowserNotificationsEnabled] = useState(true);
 
   useEffect(() => {
     setSoundEnabled(notificationSettings.soundEnabled);
-    setVibrationEnabled(notificationSettings.vibrationEnabled);
     setBrowserNotificationsEnabled(notificationSettings.browserNotificationsEnabled);
   }, [notificationSettings]);
-
-  const handleTestBrowserNotification = useCallback(async () => {
-    if (checkSupport().notification) {
-      try {
-        await triggerNotification('default', t('test_notification') || 'Test Notification', t('test_browser_notification_message') || 'This is a test browser notification!');
-      } catch (err) {
-        error('Failed to send test notification:', err);
-      }
-    }
-  }, [checkSupport, triggerNotification, t]);
 
   const handleMarkAsRead = useCallback(async (notificationId, e) => {
     e?.stopPropagation();
@@ -308,38 +168,38 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
       warn('Failed to log notification dismissed activity:', logError);
     }
     try {
-      await markNotificationRead(notificationId);
+      await hookMarkAsRead(notificationId);
     } catch {}
-  }, []);
+  }, [hookMarkAsRead]);
 
   const handleMarkAsUnread = useCallback(async (notificationId, e) => {
     e?.stopPropagation();
     try {
-      await markNotificationUnread(notificationId);
+      await hookMarkAsUnread(notificationId);
     } catch {}
-  }, []);
+  }, [hookMarkAsUnread]);
 
   const handleArchive = useCallback(async (notificationId, e) => {
     e?.stopPropagation();
     try {
-      await archiveNotification(notificationId);
+      await hookArchive(notificationId);
     } catch {}
-  }, []);
+  }, [hookArchive]);
 
   const handleDelete = useCallback(async (notificationId, e) => {
     e?.stopPropagation();
     if (!confirm(t('notifications.delete_confirmation'))) return;
     try {
-      await deleteNotification(notificationId);
+      await hookRemove(notificationId);
     } catch {}
-  }, [t]);
+  }, [t, hookRemove]);
 
   const handleMarkAllAsRead = useCallback(async () => {
     if (unreadCount === 0) return;
     try {
-      await markAllNotificationsRead(user.uid);
+      await hookMarkAllAsRead();
     } catch {}
-  }, [unreadCount, markAllNotificationsRead, user]);
+  }, [unreadCount, hookMarkAllAsRead]);
 
   const gotoFromNotification = useCallback(async (n) => {
     try {
@@ -347,74 +207,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
     } catch (logError) {
       warn('Failed to log notification clicked activity:', logError);
     }
-
-    if (!n.isRead) await handleMarkAsRead(n.id);
-
-    // If the notification has a link, use it directly
-    if (n.link) {
-      navigate(n.link);
-      return;
-    }
-
-    const type = (n.type || n.category || '').toUpperCase();
-    const data = n.data || n.metadata || {};
-
-    switch (type) {
-      case NOTIFICATION_TYPES.ASSESSMENT:
-        if (data.activityId) navigate(`/activity/${data.activityId}`);
-        else if (data.quizId) navigate(`/quiz/${data.quizId}`);
-        else if (data.assignmentId) navigate(`/assignments/${data.assignmentId}`);
-        else navigate('/?mode=quizzes');
-        break;
-      case NOTIFICATION_TYPES.COMMUNICATION:
-        if (data.roomId || data.messageId) {
-          let dest = data.classId || 'global';
-          if (data.roomId) dest = `dm:${data.roomId}`;
-          navigate(data.messageId ? `/chat?dest=${encodeURIComponent(dest)}&msgId=${data.messageId}` : `/chat?dest=${encodeURIComponent(dest)}`);
-        } else {
-          navigate('/chat');
-        }
-        break;
-      case NOTIFICATION_TYPES.ANNOUNCEMENT:
-        if (data.announcementId) navigate(`/announcements/${data.announcementId}`);
-        else navigate('/announcements');
-        break;
-      case NOTIFICATION_TYPES.ATTENDANCE:
-        navigate('/student-dashboard');
-        break;
-      case NOTIFICATION_TYPES.WORKFLOW:
-        if (data.workflowId) navigate(`/workflows/${data.workflowId}`);
-        else navigate('/workflows');
-        break;
-      case NOTIFICATION_TYPES.BEHAVIOR:
-        navigate('/student-dashboard');
-        break;
-      case NOTIFICATION_TYPES.PARTICIPATION:
-        navigate('/student-dashboard');
-        break;
-      case NOTIFICATION_TYPES.PENALTY:
-        navigate('/student-dashboard');
-        break;
-      case NOTIFICATION_TYPES.FILE:
-        if (data.fileId) navigate(`/drive?fileId=${data.fileId}`);
-        else navigate('/drive');
-        break;
-      case NOTIFICATION_TYPES.RESOURCE:
-        if (data.resourceId) navigate(`/resources/${data.resourceId}`);
-        else navigate('/resources');
-        break;
-      case NOTIFICATION_TYPES.QR:
-        navigate('/qr-scanner');
-        break;
-      case NOTIFICATION_TYPES.ACADEMIC:
-        if (data.enrollmentId) navigate(`/enrollments/${data.enrollmentId}`);
-        else navigate('/');
-        break;
-      case NOTIFICATION_TYPES.SYSTEM:
-      default:
-        navigate('/');
-        break;
-    }
+    await gotoFromNotificationUtil(n, navigate, handleMarkAsRead);
   }, [navigate, handleMarkAsRead]);
 
   if (!isOpen || !user) return null;
@@ -469,7 +262,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
           top: 0,
           [isRTL ? 'left' : 'right']: 0,
           height: '100vh',
-          width: 'min(420px, 90vw)',
+          width: 'min(840px, 90vw)',
           background: isDark ? '#1a1a2e' : '#ffffff',
           boxShadow: isRTL ? '2px 0 20px rgba(0,0,0,0.15)' : '-2px 0 20px rgba(0,0,0,0.15)',
           zIndex: 1002,
@@ -515,6 +308,39 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
             </div>
             <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
               
+              {/* Pushable settings icon buttons */}
+              <PortalTooltip content={t('notifications_sound_enabled') || 'Sound'} position="top">
+                <button
+                  onClick={(e) => { e.stopPropagation(); updateSetting('soundEnabled', !soundEnabled) }}
+                  style={{
+                    ...iconBtnStyle(false),
+                    background: soundEnabled ? 'rgba(128,0,32,0.15)' : 'transparent',
+                    color: soundEnabled ? 'var(--color-primary, #800020)' : (isDark ? '#9ca3af' : '#6b7280'),
+                    opacity: soundEnabled ? 1 : 0.4
+                  }}
+                  onMouseEnter={(e) => { if (!soundEnabled) Object.assign(e.currentTarget.style, iconBtnStyle(true)) }}
+                  onMouseLeave={(e) => { if (!soundEnabled) Object.assign(e.currentTarget.style, { ...iconBtnStyle(false), opacity: 0.4 }) }}
+                >
+                  {getThemedIcon('ui', 'volume', 18, soundEnabled ? 'var(--color-primary, #800020)' : (isDark ? '#9ca3af' : '#6b7280'))}
+                </button>
+              </PortalTooltip>
+              {checkSupport().notification && (
+                <PortalTooltip content={t('notifications_browser_notifications') || 'Browser Notifications'} position="top">
+                  <button
+                    onClick={(e) => { e.stopPropagation(); updateSetting('browserNotificationsEnabled', !browserNotificationsEnabled) }}
+                    style={{
+                      ...iconBtnStyle(false),
+                      background: browserNotificationsEnabled ? 'rgba(128,0,32,0.15)' : 'transparent',
+                      color: browserNotificationsEnabled ? 'var(--color-primary, #800020)' : (isDark ? '#9ca3af' : '#6b7280'),
+                      opacity: browserNotificationsEnabled ? 1 : 0.4
+                    }}
+                    onMouseEnter={(e) => { if (!browserNotificationsEnabled) Object.assign(e.currentTarget.style, iconBtnStyle(true)) }}
+                    onMouseLeave={(e) => { if (!browserNotificationsEnabled) Object.assign(e.currentTarget.style, { ...iconBtnStyle(false), opacity: 0.4 }) }}
+                  >
+                    {getThemedIcon('ui', 'monitor', 18, browserNotificationsEnabled ? 'var(--color-primary, #800020)' : (isDark ? '#9ca3af' : '#6b7280'))}
+                  </button>
+                </PortalTooltip>
+              )}
               {unreadCount > 0 && (
                 <PortalTooltip content={t('notifications.mark_all_read')} position="top">
                   <button data-tour="notif-drawer-mark-all" onClick={handleMarkAllAsRead} style={iconBtnStyle(false)}
@@ -525,17 +351,13 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
                   </button>
                 </PortalTooltip>
               )}
-              <PortalTooltip content={t('notifications.settings') || 'Settings'} position="top">
+              <PortalTooltip content={t('notifications_notification_settings') || 'Notification Settings'} position="top">
                 <button
                   data-tour="notif-drawer-settings"
-                  onClick={(e) => { e.stopPropagation(); setShowSettings(!showSettings) }}
-                  style={{
-                    ...iconBtnStyle(false),
-                    background: showSettings ? 'rgba(128,0,32,0.15)' : 'transparent',
-                    color: showSettings ? 'var(--color-primary, #800020)' : (isDark ? '#9ca3af' : '#6b7280')
-                  }}
-                  onMouseEnter={(e) => { if (!showSettings) Object.assign(e.currentTarget.style, iconBtnStyle(true)) }}
-                  onMouseLeave={(e) => { if (!showSettings) Object.assign(e.currentTarget.style, iconBtnStyle(false)) }}
+                  onClick={(e) => { e.stopPropagation(); onClose(); navigate('/profile'); }}
+                  style={iconBtnStyle(false)}
+                  onMouseEnter={(e) => { Object.assign(e.currentTarget.style, iconBtnStyle(true)) }}
+                  onMouseLeave={(e) => { Object.assign(e.currentTarget.style, iconBtnStyle(false)) }}
                 >
                   {getThemedIcon('ui', 'settings', 18, theme)}
                 </button>
@@ -643,7 +465,7 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
                   { value: ATTENDANCE_STATUS.PRESENT, label: t('present') || 'Present' },
                   { value: ATTENDANCE_STATUS.LATE, label: t('late') || 'Late' },
                   { value: ATTENDANCE_STATUS.ABSENT_NO_EXCUSE, label: t('absent_no_excuse') || 'Absent (No Excuse)' },
-                  { value: ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE, label: t('absent_with_excuse') || 'Absent (With Excuse)' },
+                  { value: ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE, label: t('absent_with_excuse') || 'Absent excused' },
                   { value: ATTENDANCE_STATUS.EXCUSED_LEAVE, label: t('excused_leave') || 'Excused Leave' },
                   { value: ATTENDANCE_STATUS.HUMAN_CASE, label: t('human_case') || 'Human Case' }
                 ]}
@@ -677,125 +499,90 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
               >
                 <div style={{
                   marginTop: '0.4rem',
-                  display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))',
+                  display: 'flex',
+                  flexDirection: 'column',
                   gap: '0.3rem'
                 }}>
-                  <Select
-                    value={filterProgram}
-                    onChange={(e) => { setFilterProgram(e.target.value); setFilterSubject('all'); setFilterClass('all') }}
-                    options={[
-                      { value: 'all', label: t('all_programs') || 'All Programs' },
-                      ...(programs || []).map(p => ({ value: p.docId || p.id, label: p.nameEn || p.name || p.code || p.docId }))
-                    ]}
-                    size="small" searchable fullWidth style={{ fontSize: '0.75rem' }}
-                  />
-                  <Select
-                    value={filterSubject}
-                    onChange={(e) => { setFilterSubject(e.target.value); setFilterClass('all') }}
-                    options={[
-                      { value: 'all', label: t('all_subjects') || 'All Subjects' },
-                      ...(subjects || []).filter(s => filterProgram === 'all' || s.programId === filterProgram).map(s => ({
-                        value: s.docId || s.id,
-                        label: `${s.code || ''} - ${s.nameEn || s.name || s.docId}`.trim()
-                      }))
-                    ]}
-                    size="small" searchable fullWidth style={{ fontSize: '0.75rem' }}
-                  />
-                  <Select
-                    value={filterClass}
-                    onChange={(e) => setFilterClass(e.target.value)}
-                    options={[
-                      { value: 'all', label: t('all_classes') || 'All Classes' },
-                      ...(classes || []).filter(c => {
-                        if (filterSubject !== 'all' && c.subjectId !== filterSubject) return false;
-                        if (filterProgram !== 'all') {
-                          const subject = subjects.find(s => (s.docId || s.id) === c.subjectId);
-                          if (!subject || subject.programId !== filterProgram) return false;
-                        }
-                        return true;
-                      }).map(c => ({ value: c.id || c.docId, label: `${c.name || c.code || 'Unnamed'}${c.term ? ` (${c.term})` : ''}` }))
-                    ]}
-                    size="small" searchable fullWidth style={{ fontSize: '0.75rem' }}
-                  />
-                  <Select
-                    value={filterYear}
-                    onChange={(e) => setFilterYear(e.target.value)}
-                    options={[
-                      { value: 'all', label: t('notifications.all_years') },
-                      ...Array.from(new Set((classes || []).map(c => {
-                        if (c.year) return String(c.year);
-                        if (c.term && c.term.includes(' ')) {
-                          const parts = c.term.split(' ');
-                          if (parts.length > 1 && !isNaN(parts[parts.length - 1])) return parts[parts.length - 1];
-                        }
-                        return null;
-                      }).filter(Boolean))).sort((a, b) => Number(b) - Number(a)).map(y => ({ value: y, label: y }))
-                    ]}
-                    size="small" fullWidth
-                  />
-                  <Select
-                    value={filterSemester}
-                    onChange={(e) => setFilterSemester(e.target.value)}
-                    options={[
-                      { value: 'all', label: t('notifications.all_semesters') },
-                      ...Array.from(new Set((subjects || []).map(s => s.semester).filter(Boolean))).map(v => ({ value: v, label: v }))
-                    ]}
-                    size="small" fullWidth
-                  />
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))',
+                    gap: '0.3rem'
+                  }}>
+                    <Select
+                      value={filterProgram}
+                      onChange={(e) => { setFilterProgram(e.target.value); setFilterSubject('all'); setFilterClass('all') }}
+                      options={[
+                        { value: 'all', label: t('all_programs') || 'All Programs' },
+                        ...(programs || []).map(p => ({ value: p.docId || p.id, label: p.nameEn || p.name || p.code || p.docId }))
+                      ]}
+                      size="small" searchable fullWidth style={{ fontSize: '0.75rem' }}
+                    />
+                    <Select
+                      value={filterSubject}
+                      onChange={(e) => { setFilterSubject(e.target.value); setFilterClass('all') }}
+                      options={[
+                        { value: 'all', label: t('all_subjects') || 'All Subjects' },
+                        ...(subjects || []).filter(s => filterProgram === 'all' || s.programId === filterProgram).map(s => ({
+                          value: s.docId || s.id,
+                          label: `${s.code || ''} - ${s.nameEn || s.name || s.docId}`.trim()
+                        }))
+                      ]}
+                      size="small" searchable fullWidth style={{ fontSize: '0.75rem' }}
+                    />
+                    <Select
+                      value={filterClass}
+                      onChange={(e) => setFilterClass(e.target.value)}
+                      options={[
+                        { value: 'all', label: t('all_classes') || 'All Classes' },
+                        ...(classes || []).filter(c => {
+                          if (filterSubject !== 'all' && c.subjectId !== filterSubject) return false;
+                          if (filterProgram !== 'all') {
+                            const subject = subjects.find(s => (s.docId || s.id) === c.subjectId);
+                            if (!subject || subject.programId !== filterProgram) return false;
+                          }
+                          return true;
+                        }).map(c => ({ value: c.id || c.docId, label: `${c.name || c.code || 'Unnamed'}${c.term ? ` (${c.term})` : ''}` }))
+                      ]}
+                      size="small" searchable fullWidth style={{ fontSize: '0.75rem' }}
+                    />
+                  </div>
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: '1fr 1fr',
+                    gap: '0.3rem'
+                  }}>
+                    <Select
+                      value={filterYear}
+                      onChange={(e) => setFilterYear(e.target.value)}
+                      options={[
+                        { value: 'all', label: t('notifications.all_years') },
+                        ...Array.from(new Set((classes || []).map(c => {
+                          if (c.year) return String(c.year);
+                          if (c.term && c.term.includes(' ')) {
+                            const parts = c.term.split(' ');
+                            if (parts.length > 1 && !isNaN(parts[parts.length - 1])) return parts[parts.length - 1];
+                          }
+                          return null;
+                        }).filter(Boolean))).sort((a, b) => Number(b) - Number(a)).map(y => ({ value: y, label: y }))
+                      ]}
+                      size="small" fullWidth
+                    />
+                    <Select
+                      value={filterSemester}
+                      onChange={(e) => setFilterSemester(e.target.value)}
+                      options={[
+                        { value: 'all', label: t('notifications.all_semesters') },
+                        ...Array.from(new Set((subjects || []).map(s => s.semester).filter(Boolean))).map(v => ({ value: v, label: v }))
+                      ]}
+                      size="small" fullWidth
+                    />
+                  </div>
                 </div>
               </motion.div>
             )}
           </AnimatePresence>
 
-          {/* ── Collapsible Settings Panel ── */}
-          <AnimatePresence>
-            {showSettings && (
-              <motion.div
-                initial={{ height: 0, opacity: 0 }}
-                animate={{ height: 'auto', opacity: 1 }}
-                exit={{ height: 0, opacity: 0 }}
-                transition={{ duration: 0.2 }}
-                style={{ overflow: 'hidden' }}
-              >
-                <div style={{
-                  marginTop: '0.6rem',
-                  padding: '0.6rem 0.75rem',
-                  borderRadius: '8px',
-                  background: isDark ? 'rgba(255,255,255,0.04)' : '#f3f4f6',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '1rem',
-                  flexWrap: 'wrap'
-                }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                    {getThemedIcon('ui', 'volume', 16, theme)}
-                    <ToggleSwitch label="" checked={soundEnabled} onChange={async (c) => { await updateSetting('soundEnabled', c) }} />
-                  </div>
-                  {checkSupport().vibration && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                      {getThemedIcon('ui', 'vibrate', 16, theme)}
-                      <ToggleSwitch label="" checked={vibrationEnabled} onChange={async (c) => { await updateSetting('vibrationEnabled', c) }} />
-                    </div>
-                  )}
-                  {checkSupport().notification && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                      {getThemedIcon('ui', 'bell', 16, theme)}
-                      <ToggleSwitch label="" checked={browserNotificationsEnabled} onChange={async (c) => { await updateSetting('browserNotificationsEnabled', c) }} />
-                      <PortalTooltip content={t('test_browser_notification')} position="top">
-                        <button onClick={handleTestBrowserNotification} style={iconBtnStyle(false)}
-                          onMouseEnter={(e) => { Object.assign(e.currentTarget.style, iconBtnStyle(true)) }}
-                          onMouseLeave={(e) => { Object.assign(e.currentTarget.style, iconBtnStyle(false)) }}
-                        >
-                          {getThemedIcon('ui', 'test', 14, theme)}
-                        </button>
-                      </PortalTooltip>
-                    </div>
-                  )}
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {/* ── Settings Panel removed — settings are now in Profile page ── */}
         </div>
 
         {/* ── Notifications List ── */}
@@ -906,59 +693,69 @@ const NotificationDrawer = ({ isOpen, onClose }) => {
                           alignItems: 'center'
                         }}>
                           <span>{formatTime(notification.createdAt)}</span>
+                        </div>
 
-                          {/* Hover-reveal action buttons */}
-                          <AnimatePresence>
-                            {hoveredCard === notification.id && (
-                              <motion.div
-                                initial={{ opacity: 0, x: 4 }}
-                                animate={{ opacity: 1, x: 0 }}
-                                exit={{ opacity: 0, x: 4 }}
-                                transition={{ duration: 0.15 }}
-                                style={{ display: 'flex', gap: '1px' }}
-                                onClick={(e) => e.stopPropagation()}
-                              >
-                                {notification.isRead ? (
-                                  <PortalTooltip content={t('mark_as_unread')} position="top">
-                                    <button onClick={(e) => handleMarkAsUnread(notification.id, e)} style={{...iconBtnStyle(false), padding: '3px'}}
-                                      onMouseEnter={(e) => { Object.assign(e.currentTarget.style, {...iconBtnStyle(true), padding: '3px'}) }}
-                                      onMouseLeave={(e) => { Object.assign(e.currentTarget.style, {...iconBtnStyle(false), padding: '3px'}) }}
-                                    >
-                                      {getThemedIcon('ui', 'eye_off', 13, theme)}
-                                    </button>
-                                  </PortalTooltip>
-                                ) : (
-                                  <PortalTooltip content={t('mark_as_read')} position="top">
-                                    <button onClick={(e) => handleMarkAsRead(notification.id, e)} style={{...iconBtnStyle(false), padding: '3px'}}
-                                      onMouseEnter={(e) => { Object.assign(e.currentTarget.style, {...iconBtnStyle(true), padding: '3px'}) }}
-                                      onMouseLeave={(e) => { Object.assign(e.currentTarget.style, {...iconBtnStyle(false), padding: '3px'}) }}
-                                    >
-                                      {getThemedIcon('ui', 'eye', 13, theme)}
-                                    </button>
-                                  </PortalTooltip>
-                                )}
-                                {!notification.isArchived && (
-                                  <PortalTooltip content={t('archive')} position="top">
-                                    <button onClick={(e) => handleArchive(notification.id, e)} style={{...iconBtnStyle(false), padding: '3px'}}
-                                      onMouseEnter={(e) => { Object.assign(e.currentTarget.style, {...iconBtnStyle(true), padding: '3px'}) }}
-                                      onMouseLeave={(e) => { Object.assign(e.currentTarget.style, {...iconBtnStyle(false), padding: '3px'}) }}
-                                    >
-                                      {getThemedIcon('ui', 'archive', 13, theme)}
-                                    </button>
-                                  </PortalTooltip>
-                                )}
-                                <PortalTooltip content={t('delete')} position="top">
-                                  <button onClick={(e) => handleDelete(notification.id, e)} style={{...iconBtnStyle(false), padding: '3px'}}
-                                    onMouseEnter={(e) => { Object.assign(e.currentTarget.style, {...iconBtnStyle(true), padding: '3px'}) }}
-                                    onMouseLeave={(e) => { Object.assign(e.currentTarget.style, {...iconBtnStyle(false), padding: '3px'}) }}
+                        {/* Hover-reveal action buttons — absolutely positioned to avoid height change */}
+                        <AnimatePresence>
+                          {hoveredCard === notification.id && (
+                            <motion.div
+                              initial={{ opacity: 0 }}
+                              animate={{ opacity: 1 }}
+                              exit={{ opacity: 0 }}
+                              transition={{ duration: 0.15 }}
+                              style={{
+                                position: 'absolute',
+                                bottom: '0.5rem',
+                                [isRTL ? 'left' : 'right']: '0.5rem',
+                                display: 'flex',
+                                gap: '2px',
+                                background: isDark ? 'rgba(26,26,46,0.95)' : 'rgba(255,255,255,0.95)',
+                                borderRadius: '6px',
+                                padding: '2px',
+                                boxShadow: isDark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.1)'
+                              }}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              {notification.isRead ? (
+                                <PortalTooltip content={t('mark_as_unread')} position="top">
+                                  <button onClick={(e) => handleMarkAsUnread(notification.id, e)} style={{...iconBtnStyle(false), padding: '4px'}}
+                                    onMouseEnter={(e) => { Object.assign(e.currentTarget.style, {...iconBtnStyle(true), padding: '4px'}) }}
+                                    onMouseLeave={(e) => { Object.assign(e.currentTarget.style, {...iconBtnStyle(false), padding: '4px'}) }}
                                   >
-                                    {getThemedIcon('ui', 'trash', 13, theme)}
+                                    {getThemedIcon('ui', 'eye_off', 14, hoveredCard === notification.id ? 'currentColor' : theme)}
                                   </button>
                                 </PortalTooltip>
-                              </motion.div>
-                            )}
-                          </AnimatePresence>
-                        </div>
+                              ) : (
+                                <PortalTooltip content={t('mark_as_read')} position="top">
+                                  <button onClick={(e) => handleMarkAsRead(notification.id, e)} style={{...iconBtnStyle(false), padding: '4px'}}
+                                    onMouseEnter={(e) => { Object.assign(e.currentTarget.style, {...iconBtnStyle(true), padding: '4px'}) }}
+                                    onMouseLeave={(e) => { Object.assign(e.currentTarget.style, {...iconBtnStyle(false), padding: '4px'}) }}
+                                  >
+                                    {getThemedIcon('ui', 'eye', 14, hoveredCard === notification.id ? 'currentColor' : theme)}
+                                  </button>
+                                </PortalTooltip>
+                              )}
+                              {!notification.isArchived && (
+                                <PortalTooltip content={t('archive')} position="top">
+                                  <button onClick={(e) => handleArchive(notification.id, e)} style={{...iconBtnStyle(false), padding: '4px'}}
+                                    onMouseEnter={(e) => { Object.assign(e.currentTarget.style, {...iconBtnStyle(true), padding: '4px'}) }}
+                                    onMouseLeave={(e) => { Object.assign(e.currentTarget.style, {...iconBtnStyle(false), padding: '4px'}) }}
+                                  >
+                                    {getThemedIcon('ui', 'archive', 14, hoveredCard === notification.id ? 'currentColor' : theme)}
+                                  </button>
+                                </PortalTooltip>
+                              )}
+                              <PortalTooltip content={t('delete')} position="top">
+                                <button onClick={(e) => handleDelete(notification.id, e)} style={{...iconBtnStyle(false), padding: '4px'}}
+                                  onMouseEnter={(e) => { Object.assign(e.currentTarget.style, {...iconBtnStyle(true), padding: '4px'}) }}
+                                  onMouseLeave={(e) => { Object.assign(e.currentTarget.style, {...iconBtnStyle(false), padding: '4px'}) }}
+                                >
+                                  {getThemedIcon('ui', 'trash', 14, hoveredCard === notification.id ? 'currentColor' : theme)}
+                                </button>
+                              </PortalTooltip>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                       </div>
                     </div>
                   </motion.div>

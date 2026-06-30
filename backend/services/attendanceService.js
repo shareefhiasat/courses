@@ -205,7 +205,7 @@ export const createAttendance = async (attendanceData, user = null) => {
     const { userId, classId, status, date, notes, checkInTime, programId, subjectId } = attendanceData;
     
     // Validate required fields
-    if (!userId || !classId || !status || !date) {
+    if (!userId || !classId || (!status && !attendanceData.statusId) || !date) {
       return {
         success: false,
         error: 'Missing required fields: userId, classId, status, date',
@@ -213,12 +213,25 @@ export const createAttendance = async (attendanceData, user = null) => {
       };
     }
     
-    // Find the status ID from the status code
-    const attendanceStatus = await prisma.attendanceStatusTypes.findUnique({
-      where: { code: status }
-    });
+    // Resolve status: prefer statusId if provided, otherwise look up by code
+    let statusId = attendanceData.statusId;
+    if (!statusId && status) {
+      const attendanceStatus = await prisma.attendanceStatusTypes.findUnique({
+        where: { code: status }
+      });
+      if (!attendanceStatus) {
+        return {
+          success: false,
+          error: `Invalid attendance status: ${status}`,
+          data: null
+        };
+      }
+      statusId = attendanceStatus.id;
+    } else if (statusId) {
+      statusId = parseInt(statusId);
+    }
     
-    if (!attendanceStatus) {
+    if (!statusId) {
       return {
         success: false,
         error: `Invalid attendance status: ${status}`,
@@ -243,7 +256,7 @@ export const createAttendance = async (attendanceData, user = null) => {
       const updatedAttendance = await prisma.attendance.update({
         where: { id: existingAttendance.id },
         data: {
-          statusId: attendanceStatus.id,
+          statusId: statusId,
           notes: notes || null,
           updatedBy: updatedBy || null,
           updatedAt: new Date(),
@@ -320,7 +333,7 @@ export const createAttendance = async (attendanceData, user = null) => {
       data: {
         userId: parseInt(userId),
         classId: parseInt(classId),
-        statusId: attendanceStatus.id,
+        statusId: statusId,
         date: new Date(date),
         notes: notes || null,
         createdBy: createdBy || null,
@@ -423,13 +436,27 @@ export const updateAttendance = async (id, updateData, user = null) => {
       updatedAt: new Date()
     };
     
-    if (status) {
-      // Find the status ID from the status code
-      const attendanceStatus = await prisma.attendanceStatusTypes.findUnique({
-        where: { code: status }
-      });
+    if (status || updateData.statusId) {
+      // Resolve status: prefer statusId if provided, otherwise look up by code
+      let statusId = updateData.statusId;
+      if (!statusId && status) {
+        const attendanceStatus = await prisma.attendanceStatusTypes.findUnique({
+          where: { code: status }
+        });
+        
+        if (!attendanceStatus) {
+          return {
+            success: false,
+            error: `Invalid attendance status: ${status}`,
+            data: null
+          };
+        }
+        statusId = attendanceStatus.id;
+      } else if (statusId) {
+        statusId = parseInt(statusId);
+      }
       
-      if (!attendanceStatus) {
+      if (!statusId) {
         return {
           success: false,
           error: `Invalid attendance status: ${status}`,
@@ -437,7 +464,7 @@ export const updateAttendance = async (id, updateData, user = null) => {
         };
       }
       
-      data.statusId = attendanceStatus.id;
+      data.statusId = statusId;
     }
     
     if (notes !== undefined) {
@@ -583,6 +610,7 @@ export const getClassAttendanceStats = async (classId, date) => {
           stats.late++;
           break;
         case 'EXCUSED':
+        case 'ABSENT_WITH_EXCUSE':
         case 'SICK_LEAVE':
         case 'EARLY_DEPARTURE':
           stats.excused++;

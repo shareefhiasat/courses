@@ -336,4 +336,85 @@ router.delete('/rooms/:roomId/participants/:participantUserId', chatController.r
  */
 router.patch('/rooms/:roomId', chatController.updateGroupRoom);
 
+/**
+ * @swagger
+ * /api/v1/chat/rooms/{roomId}/stats:
+ *   get:
+ *     summary: Get group chat room stats (participants only)
+ *     tags: [Chat]
+ *     parameters:
+ *       - in: path
+ *         name: roomId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Room stats with message counts, media, documents, links
+ */
+router.get('/rooms/:roomId/stats', chatController.getRoomStats);
+
+/**
+ * @swagger
+ * /api/v1/chat/messages/{messageId}/star:
+ *   post:
+ *     summary: Toggle star on a message (any chat type)
+ *     tags: [Chat]
+ *     parameters:
+ *       - in: path
+ *         name: messageId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Star toggled
+ */
+router.post('/messages/:messageId/star', chatController.toggleStarMessage);
+
+/**
+ * @swagger
+ * /api/v1/chat/messages/{messageId}/pin:
+ *   post:
+ *     summary: Toggle pin on a message (group chats only, one pin per room)
+ *     tags: [Chat]
+ *     parameters:
+ *       - in: path
+ *         name: messageId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Pin toggled
+ */
+router.post('/messages/:messageId/pin', chatController.togglePinMessage);
+
+/**
+ * @swagger
+ * /api/v1/chat/rooms/{roomId}/assign-admin:
+ *   patch:
+ *     summary: Assign a new admin (transfer creator role) for a group chat
+ *     tags: [Chat]
+ *     parameters:
+ *       - in: path
+ *         name: roomId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               newAdminId:
+ *                 type: integer
+ *     responses:
+ *       200:
+ *         description: Admin assigned successfully
+ */
+router.patch('/rooms/:roomId/assign-admin', chatController.assignGroupAdmin);
+
 export default router;

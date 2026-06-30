@@ -8,7 +8,7 @@ import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { useLang } from '@contexts/LangContext';
 import PortalTooltip from '@ui/PortalTooltip';
-import { ATTENDANCE_STATUS_LABELS, getAttendanceColor, getAttendanceLabel, getLocalizedAttendanceLabel, ATTENDANCE_STATUS, ATTENDANCE_TYPE_CATEGORY } from '@constants/attendanceTypes';
+import { ATTENDANCE_STATUS_LABELS, getAttendanceColor, getAttendanceLabel, getLocalizedAttendanceLabel, ATTENDANCE_STATUS, ATTENDANCE_TYPE_CATEGORY, getStatusCodeFromRecord } from '@constants/attendanceTypes';
 import { calculateAttentionScore, getRowHighlightStyle } from '@utils/attendanceHighlight.js';
 import { getNoteTypeFromStatus } from '@constants/noteTypes';
 import { getAttendanceByStudent, rosterQuickAction, deleteAttendance, getStudentAttendanceByDate, markAttendance } from '@services/business/attendanceServiceUnified.js';
@@ -30,7 +30,8 @@ import { StudentHistory, StudentRosterHistory } from '@ui/history';
 import { DeleteModal } from '@ui';
 import { StudentCard, StudentTableRow } from '@ui/history';
 import { getLocalizedUserName } from '@utils/localizedUserName';
-import { usePermissions } from '@hooks/usePermissions';
+import { useQRPermissions } from '@hooks/useQRPermissions';
+import { useMobileDetect } from '@hooks/useMobileDetect';
 
 const StudentRoster = React.memo(function StudentRoster({
   students,
@@ -66,14 +67,15 @@ const StudentRoster = React.memo(function StudentRoster({
   const { data: lookupData } = useLookupTypes({
     types: ['penalty-types', 'behavior-types', 'participation-types']
   });
-  const { hasPermission } = usePermissions();
-  const canSeeStandupMode = hasPermission('qr-scanner.canSeeStandupMode');
-  const canDeleteAttendance = hasPermission('qr-scanner.canDeleteAttendance');
-  const canEditAttendance = hasPermission('qr-scanner.canEditAttendance');
-  const canUseStatsPanel = hasPermission('qr-scanner.canUseStatsPanel');
-  const canUseZapPanel = hasPermission('qr-scanner.canUseZapPanel');
-  const canSeeQuickButtons = hasPermission('qr-scanner.canSeeQuickButtons');
-  const canMarkAttendance = hasPermission('qr-scanner.canMarkAttendance');
+  const {
+    canSeeStandupMode,
+    canDeleteAttendance,
+    canEditAttendance,
+    canUseStatsPanel,
+    canUseZapPanel,
+    canSeeQuickButtons,
+    canMarkAttendance
+  } = useQRPermissions();
   const canUseQuickAttendance = canSeeQuickButtons && canMarkAttendance;
   
   // Force attendanceMode to REGULAR if user doesn't have canSeeStandupMode permission
@@ -82,18 +84,13 @@ const StudentRoster = React.memo(function StudentRoster({
   // DEBUG: Log attendanceMode
   console.log('🔍 StudentRoster - attendanceMode:', attendanceMode, 'effective:', effectiveAttendanceMode);
   const [expandedRows, setExpandedRows] = useState(new Set());
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
+  const { isMobile } = useMobileDetect();
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
   const [deleteType, setDeleteType] = useState('');
   const [deleteLogId, setDeleteLogId] = useState('');
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [historyLoading, setHistoryLoading] = useState({});
 
-  useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth <= 768);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
   const [studentHistory, setStudentHistory] = useState({});
   const [expandedDays, setExpandedDays] = useState(new Set());
   const [activeFilters, setActiveFilters] = useState({
@@ -176,26 +173,8 @@ const StudentRoster = React.memo(function StudentRoster({
       // Combine and format logs
       const logs = [
         ...allAttendanceRecords.filter(r => r.status || r.statusId).map(record => {
-          // Map statusId to status string for both regular and standup attendance
-          const statusIdMap = {
-            1: 'PRESENT',
-            2: 'LATE',
-            3: 'ABSENT',
-            4: 'ABSENT_NO_EXCUSE',
-            5: 'ABSENT_WITH_EXCUSE',
-            6: 'HUMAN_CASE',
-            7: 'STANDUP_PRESENT',
-            8: 'STANDUP_LATE',
-            9: 'STANDUP_ABSENT',
-            10: 'STANDUP_CLINIC'
-          };
-          
-          // Ensure status is a string for display
-          const statusStr = record.statusId 
-            ? statusIdMap[record.statusId] || 'Unknown'
-            : (typeof record.status === 'object' 
-              ? (record.status?.code || record.status?.nameEn || 'Unknown') 
-              : record.status);
+          // Use shared helper to extract status code consistently
+          const statusStr = getStatusCodeFromRecord(record) || 'Unknown';
           
           const logEntry = {
             id: record.id,
@@ -205,8 +184,8 @@ const StudentRoster = React.memo(function StudentRoster({
             label: getLocalizedAttendanceLabel(statusStr, lang) || statusStr || 'Unknown',
             points: 0,
             comment: record.reason || record.notes || '',
-            color: ATTENDANCE_STATUS_LABELS[statusStr]?.color || '#6b7280',
-            status: record.status,  // ← Keep original status object for other uses
+            color: getAttendanceColor(statusStr) || '#6b7280',
+            status: statusStr,  // Use extracted string so icon and label stay in sync
             method: record.method, // ← Add method field for localization
             // Add user information - use creator from database first, then fallback to markedBy/performedBy
             performedBy: record.creator?.id || record.markedBy || record.performedBy,
@@ -367,71 +346,27 @@ const StudentRoster = React.memo(function StudentRoster({
     setDeleteModalOpen(true);
   };
 
-  // Handle actual deletion after confirmation
+  // Handle actual deletion after confirmation — unified for all record types
   const handleConfirmDelete = async () => {
+    const DELETE_CONFIG = {
+      [RECORD_TYPES.ATTENDANCE]: { fn: deleteAttendance, event: EVENTS.ATTENDANCE_MARKED, extraEvent: EVENTS.ATTENDANCE_DELETED },
+      [RECORD_TYPES.PENALTY]: { fn: deletePenalty, event: EVENTS.PENALTY_ASSIGNED },
+      [RECORD_TYPES.PARTICIPATION]: { fn: deleteParticipation, event: EVENTS.PARTICIPATION_ADDED, extraPayload: { status: 'deleted' } },
+      [RECORD_TYPES.BEHAVIOR]: { fn: deleteBehavior, event: EVENTS.BEHAVIOR_LOGGED, extraPayload: { status: 'deleted' } },
+    };
+
+    const config = DELETE_CONFIG[deleteType];
+    if (!config) return;
+
     setDeleteLoading(true);
     try {
-      let result;
-      if (deleteType === RECORD_TYPES.ATTENDANCE) {
-        result = await deleteAttendance(deleteLogId);
-        if (result.success) {
-          // Find the student ID from the log or refresh all
-          students.forEach(student => {
-            fetchStudentHistory(student.id);
-          });
-          // Extract studentId from logId if it's in string format (e.g., "attendance_91")
-          const studentId = typeof deleteLogId === 'string' ? deleteLogId.split('_')[1] : null;
-          eventBus.emit(EVENTS.ATTENDANCE_MARKED, {studentId});
-          eventBus.emit(EVENTS.ATTENDANCE_DELETED, {studentId});
-          // Refresh students list to update totals
-          if (onRefresh) {
-            onRefresh();
-          }
-        }
-      } else if (deleteType === RECORD_TYPES.PENALTY) {
-        result = await deletePenalty(deleteLogId);
-        if (result.success) {
-          // Find the student ID from the log or refresh all
-          students.forEach(student => {
-            fetchStudentHistory(student.id);
-          });
-          // Extract studentId from logId if it's in string format (e.g., "penalty_91")
-          const studentId = typeof deleteLogId === 'string' ? deleteLogId.split('_')[1] : null;
-          eventBus.emit(EVENTS.PENALTY_ASSIGNED, {studentId});
-          // Refresh students list to update totals
-          if (onRefresh) {
-            onRefresh();
-          }
-        }
-      } else if (deleteType === RECORD_TYPES.PARTICIPATION) {
-        result = await deleteParticipation(deleteLogId);
-        if (result.success) {
-          // Find the student ID from the log or refresh all
-          students.forEach(student => {
-            fetchStudentHistory(student.id);
-          });
-          // Extract studentId from logId if it's in string format (e.g., "participation_91")
-          const studentId = typeof deleteLogId === 'string' ? deleteLogId.split('_')[1] : null;
-          eventBus.emit(EVENTS.PARTICIPATION_ADDED, {studentId, status: 'deleted'});
-          // Refresh students list to update totals
-          if (onRefresh) {
-            onRefresh();
-          }
-        }
-      } else if (deleteType === RECORD_TYPES.BEHAVIOR) {
-        result = await deleteBehavior(deleteLogId);
-        if (result.success) {
-          students.forEach(student => {
-            fetchStudentHistory(student.id);
-          });
-          // Extract studentId from logId if it's in string format (e.g., "behavior_91")
-          const studentId = typeof deleteLogId === 'string' ? deleteLogId.split('_')[1] : null;
-          eventBus.emit(EVENTS.BEHAVIOR_LOGGED, {studentId, status: 'deleted'});
-          // Refresh students list to update totals
-          if (onRefresh) {
-            onRefresh();
-          }
-        }
+      const result = await config.fn(deleteLogId);
+      if (result?.success) {
+        students.forEach(student => fetchStudentHistory(student.id));
+        const studentId = typeof deleteLogId === 'string' ? deleteLogId.split('_')[1] : null;
+        eventBus.emit(config.event, { studentId, ...config.extraPayload });
+        if (config.extraEvent) eventBus.emit(config.extraEvent, { studentId });
+        if (onRefresh) onRefresh();
       }
     } catch (err) {
       error(`Error deleting ${deleteType}:`, err);
@@ -1025,9 +960,11 @@ const StudentRoster = React.memo(function StudentRoster({
       );
     }
 
+    // Normalize status to uppercase for lookup (student.attendance may be lowercase)
+    const normalizedStatus = status.toUpperCase();
 
     // Use the proper attendance status labels from lookup
-    const statusInfo = ATTENDANCE_STATUS_LABELS[status];
+    const statusInfo = ATTENDANCE_STATUS_LABELS[normalizedStatus];
     if (!statusInfo) {
       // If status is not found in lookup, show None
       return (
@@ -1076,9 +1013,9 @@ const StudentRoster = React.memo(function StudentRoster({
           borderRadius: '0.375rem',
           fontSize: '0.75rem',
           fontWeight: 500,
-          background: statusInfo.color,
+          background: getAttendanceColor(normalizedStatus),
           color: 'var(--text-on-colored, white)',
-          border: `1px solid ${statusInfo.color}`
+          border: `1px solid ${getAttendanceColor(normalizedStatus)}`
         }}>
         {getLocalizedAttendanceLabel(status, lang)}
       </span>
@@ -1383,7 +1320,7 @@ const StudentRoster = React.memo(function StudentRoster({
                     width: '80px'
                   }}
                 >
-                  {t('student_number') || 'Student No.'} / {t('id') || 'ID'}
+                  {t('student_number') || 'Student Number'}
                 </th>
                 <th style={{ width: '30px', padding: '0.5rem 0.5rem' }}></th>
                 <th 

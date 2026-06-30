@@ -5,8 +5,10 @@ import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { Navigate, useLocation } from 'react-router-dom';
-import { ROLE_STRINGS, ROLE_DISPLAY_NAMES } from '@utils/userUtils';
+import { ROLE_STRINGS, ROLE_PRIORITY_CHAT, resolveUserRole, getChatUserDisplayName } from '@utils/userUtils';
 import { getThemedIcon, getColoredIcon, getIconWithColor, getUserRoleIcon, getUserRoleColor } from '@constants/iconTypes';
+import { getAcademicTermLabel } from '@constants/academicTerms';
+import RoleBadge from './components/RoleBadge';
 import { getClasses } from '@services/business/classService';
 import { getEnrollments } from '@services/business/enrollmentService';
 import { getUsers, getUserRoles } from '@services/business/userService';
@@ -64,6 +66,8 @@ import MessageBubbleWrapper from './components/MessageBubbleWrapper';
 import { useChatActions } from './hooks/useChatActions';
 import GroupChatModal from './components/GroupChatModal';
 import ParticipantManagementModal from './components/ParticipantManagementModal';
+import GroupInfoPanel from './components/GroupInfoPanel';
+import ChatWallpaperPicker, { getWallpaperStyle, getStoredWallpaper } from './components/ChatWallpaperPicker';
 
 const withAuthToken = (url) => {
   if (!url) return url;
@@ -73,51 +77,11 @@ const withAuthToken = (url) => {
   return `${url}${sep}token=${encodeURIComponent(token)}`;
 };
 
-const RoleBadge = ({ userObj }) => {
-  const { t } = useLang();
-  if (!userObj) return null;
-  let role = userObj.role;
-  if (!role) {
-    if (userObj.isSuperAdmin) role = 'super_admin';
-    else if (userObj.isAdmin) role = 'admin';
-    else if (userObj.isHR) role = 'hr';
-    else if (userObj.isInstructor) role = 'instructor';
-    else if (userObj.isStudent) role = 'student';
-  }
-  if (!role && Array.isArray(userObj.roleAssignments) && userObj.roleAssignments.length > 0) {
-    const priority = ['super_admin', 'admin', 'hr', 'instructor', 'student'];
-    const codes = userObj.roleAssignments.map(ra => ra?.role?.code?.toLowerCase()).filter(Boolean);
-    role = priority.find(p => codes.includes(p)) || codes[0];
-  }
-  if (!role) return null;
-  const color = getUserRoleColor(role);
-  const normalizedRole = role?.toLowerCase();
-  const labelKey = `role_label_${normalizedRole}`;
-  const label = t(labelKey) || ROLE_DISPLAY_NAMES[role?.toUpperCase()] || normalizedRole;
-  const roleIcon = getIconWithColor('user_role', normalizedRole, 12, color);
-  return (
-    <span style={{
-      display: 'inline-flex',
-      alignItems: 'center',
-      gap: '0.2rem',
-      fontSize: '0.7rem',
-      background: `${color}15`,
-      color,
-      padding: '1px 6px',
-      borderRadius: '10px',
-      fontWeight: 600,
-      whiteSpace: 'nowrap',
-      textTransform: 'capitalize'
-    }}>
-      {roleIcon}
-      {label}
-    </span>
-  );
-};
 
 const ChatPage = memo(() => {
   const { user, isAdmin, isSuperAdmin, isHR, isInstructor, loading: authLoading } = useAuth();
   const { t, lang } = useLang();
+  const isRTL = lang === 'ar';
   const { theme } = useTheme();
 
   // ── Guided Tour ──────────────────────────────────────────────────────────
@@ -181,6 +145,7 @@ const ChatPage = memo(() => {
   const [studentsOnly, setStudentsOnly] = useState(false);
   const [roleFilter, setRoleFilter] = useState(null);
   const [dmSearch, setDmSearch] = useState('');
+  const [groupSearch, setGroupSearch] = useState('');
   const [globalChatSearch, setGlobalChatSearch] = useState('');
   const [chatReads, setChatReads] = useState({}); // { 'class:<id>': Timestamp, 'dm:<id>': Timestamp, 'global': Timestamp }
   const [unreadCounts, setUnreadCounts] = useState({}); // { 'class:<id>': number, 'dm:<id>': number, 'global': number }
@@ -189,8 +154,11 @@ const ChatPage = memo(() => {
   const [dmUserSearch, setDmUserSearch] = useState('');
   const [availableDMUsers, setAvailableDMUsers] = useState([]);
   const [dmUsersLoading, setDmUsersLoading] = useState(false);
+  const [dmRoleFilter, setDmRoleFilter] = useState(null);
   const [showGroupModal, setShowGroupModal] = useState(false);
   const [showParticipantModal, setShowParticipantModal] = useState(false);
+  const [showGroupInfoPanel, setShowGroupInfoPanel] = useState(false);
+  const [classInfoRoomId, setClassInfoRoomId] = useState(null);
 
   const isStaffRole = isAdmin || isSuperAdmin || isHR || isInstructor;
   const [isRecording, setIsRecording] = useState(false);
@@ -302,6 +270,7 @@ const ChatPage = memo(() => {
     safeAllUsers,
     safeClassMembers,
     safeDirectRooms,
+    setDirectRooms,
     isAdmin,
     isSuperAdmin,
     isInstructor,
@@ -343,6 +312,47 @@ const ChatPage = memo(() => {
     sendMessage(e); // Pass the event to the hook's sendMessage
   }, [sendMessage]);
   
+  // Handle star message toggle
+  const handleToggleStar = useCallback(async (msg) => {
+    try {
+      const result = await chatService.toggleStarMessage(msg.id);
+      if (result.success) {
+        setMessages(prev => (prev || []).map(m =>
+          m.id === msg.id
+            ? { ...m, starredBy: result.data.starredBy }
+            : m
+        ));
+        toast?.showSuccess(result.data.isStarred ? (t('message_starred') || 'Message starred') : (t('message_unstarred') || 'Message unstarred'));
+      }
+    } catch (err) {
+      error('Failed to toggle star:', err);
+      toast?.showError(t('failed_to_star') || 'Failed to star message');
+    }
+  }, [t, toast, setMessages]);
+
+  // Handle pin message toggle (group only)
+  const handleTogglePin = useCallback(async (msg) => {
+    try {
+      const result = await chatService.togglePinMessage(msg.id);
+      if (result.success) {
+        setMessages(prev => (prev || []).map(m => {
+          if (m.id === msg.id) {
+            return { ...m, pinnedById: result.data.isPinned ? (user?.dbId || user?.uid) : null };
+          }
+          // Unpin any other pinned message in the same room
+          if (m.pinnedById !== null && m.pinnedById !== undefined) {
+            return { ...m, pinnedById: null };
+          }
+          return m;
+        }));
+        toast?.showSuccess(result.data.isPinned ? (t('message_pinned') || 'Message pinned') : (t('message_unpinned') || 'Message unpinned'));
+      }
+    } catch (err) {
+      error('Failed to toggle pin:', err);
+      toast?.showError(t('failed_to_pin') || 'Failed to pin message');
+    }
+  }, [t, toast, setMessages, user]);
+
   // Handle class change
   const handleClassChange = useCallback((classId) => {
     userHasInteractedRef.current = true;
@@ -355,6 +365,7 @@ const ChatPage = memo(() => {
   const openNewDMPicker = useCallback(async () => {
     setShowNewDMPicker(true);
     setDmUserSearch('');
+    setDmRoleFilter(null);
     setDmUsersLoading(true);
     try {
       const result = await chatService.getAvailableDMUsers();
@@ -383,7 +394,21 @@ const ChatPage = memo(() => {
     }
     setShowNewDMPicker(false);
   }, [user, setSelectedClass, setUserHasInteracted, toast]);
-  
+
+  // Helper to merge starBy from localStorage into rooms
+  const mergeStarData = useCallback((rooms) => {
+    try {
+      const starred = JSON.parse(localStorage.getItem(`chat_starred_${user?.uid}`) || '[]');
+      const starredSet = new Set(starred);
+      return rooms.map(r => ({
+        ...r,
+        starBy: starredSet.has(String(r.id)) ? [user.uid] : []
+      }));
+    } catch {
+      return rooms;
+    }
+  }, [user?.uid]);
+
   // Helper function to get user's theme color
   const getUserThemeColor = () => {
     // Try to get from localStorage first (from ProfileSettings)
@@ -416,6 +441,17 @@ const ChatPage = memo(() => {
   const messagesEndRef = useRef(null);
   const [myMessageColor, setMyMessageColor] = useState(null);
   const hasHighlightedRef = useRef(null);
+  const [chatWallpaper, setChatWallpaper] = useState(() => getStoredWallpaper());
+  const [wallpaperNonce, setWallpaperNonce] = useState(0);
+
+  useEffect(() => {
+    const handler = () => {
+      setChatWallpaper(getStoredWallpaper());
+      setWallpaperNonce(n => n + 1);
+    };
+    window.addEventListener('chatWallpaperChange', handler);
+    return () => window.removeEventListener('chatWallpaperChange', handler);
+  }, []);
 
   const loadMessages = useCallback(() => {
     let chatType, chatId;
@@ -426,6 +462,9 @@ const ChatPage = memo(() => {
     } else if (selectedClass?.startsWith('dm:')) {
       chatType = 'dm';
       chatId = selectedClass.slice(3);
+    } else if (selectedClass?.startsWith('group:')) {
+      chatType = 'group';
+      chatId = selectedClass.slice(6);
     } else {
       // Defensive: ensure users/{uid}.enrolledClasses contains selectedClass to satisfy rules
       (async () => {
@@ -818,7 +857,8 @@ const ChatPage = memo(() => {
           setClasses(all);
           
           // Auto-select first class for students if needed (only if no user interaction)
-          if (!userHasInteractedRef.current && (!selectedClassRef.current || selectedClassRef.current === 'global')) {
+          const urlDest = new URLSearchParams(location.search).get('dest');
+          if (!userHasInteractedRef.current && (!selectedClassRef.current || selectedClassRef.current === 'global') && !urlDest) {
             if (all.length > 0) {
               info('Auto-selecting first class', { 
                 reason: 'student_auto_select',
@@ -854,6 +894,14 @@ const ChatPage = memo(() => {
     const unsub = chatService.subscribeToDirectRooms((snap) => {
       const rooms = [];
       snap.forEach(d => rooms.push({ id: d.id, ...d.data() }));
+      // Merge starBy from localStorage
+      try {
+        const starred = JSON.parse(localStorage.getItem(`chat_starred_${user?.uid}`) || '[]');
+        const starredSet = new Set(starred);
+        rooms.forEach(r => {
+          r.starBy = starredSet.has(String(r.id)) ? [user.uid] : [];
+        });
+      } catch {}
       setDirectRooms(rooms);
     });
     unsubs.push(unsub);
@@ -945,6 +993,7 @@ const ChatPage = memo(() => {
   };
 
   // Handle URL parameters for message highlighting (share links, notifications)
+  const urlDestInitializedRef = useRef(false);
   useEffect(() => {
     const params = new URLSearchParams(location.search);
     const msgId = params.get('msgId');
@@ -952,13 +1001,15 @@ const ChatPage = memo(() => {
 
     if (!msgId || !dest) return;
 
-    // Ensure destination is selected
-    if (dest !== selectedClass) {
-      setSelectedClass(dest);
-      return;
+    // Only force selection from URL once on initial load
+    if (!urlDestInitializedRef.current) {
+      urlDestInitializedRef.current = true;
+      if (dest !== selectedClass) {
+        setSelectedClass(dest);
+      }
     }
 
-    // Only highlight once per msgId per mount (don't retrigger on new messages)
+    // Once we've already highlighted this msgId, don't re-process
     if (hasHighlightedRef.current === msgId) return;
 
     // Try repeatedly until the message DOM exists
@@ -969,8 +1020,7 @@ const ChatPage = memo(() => {
         el.scrollIntoView({ behavior: 'smooth', block: 'center' });
         setHighlightedMsgId(msgId);
         setTimeout(() => setHighlightedMsgId(null), 3000);
-        hasHighlightedRef.current = msgId; // Track which msgId we highlighted
-        // Keep msgId in URL (don't remove it)
+        hasHighlightedRef.current = msgId;
         return;
       }
       attempts += 1;
@@ -1210,15 +1260,21 @@ const ChatPage = memo(() => {
             <div style={{ maxHeight:'50vh', overflowY:'auto', padding:'0.75rem 0' }}>
               {(receiptsFor.list || []).map(r => {
                 const hasRead = !!r.readAt;
+                const recipientUser = (allUsers || []).find(u => u.docId === r.uid);
+                const recipientRole = recipientUser ? resolveUserRole(recipientUser) : null;
+                const recipientRoleColor = recipientRole ? getUserRoleColor(recipientRole) : '#6b7280';
                 return (
                   <div key={r.uid} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 1.25rem', borderBottom:'1px solid var(--border)' }}>
-                    <div style={{ display:'flex', alignItems:'center', gap:8, flex:1 }}>
-                      <span style={{ fontSize:'1.1rem', fontWeight:700, color: hasRead ? '#3aa0ff' : 'var(--muted)' }}>
+                    <div style={{ display:'flex', alignItems:'center', gap:8, flex:1, minWidth:0 }}>
+                      <span style={{ fontSize:'1.1rem', fontWeight:700, color: hasRead ? '#3aa0ff' : 'var(--muted)', flexShrink:0 }}>
                         {hasRead ? '✓✓' : '✓'}
                       </span>
-                      <span style={{ fontWeight:500 }}>{r.name}</span>
+                      {recipientRole && (
+                        <RoleBadge user={recipientUser} size={10} fontSize='0.65rem' showLabel={true} style={{ borderRadius: 8, padding: '1px 5px' }} />
+                      )}
+                      <span style={{ fontWeight:500, overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{r.name}</span>
                     </div>
-                    <div style={{ fontSize:'0.85rem', color:'var(--muted)', textAlign:'right' }}>
+                    <div style={{ fontSize:'0.85rem', color:'var(--muted)', textAlign:'right', flexShrink:0, marginLeft:8 }}>
                       {r.readAt ? (
                         <>
                           <div>{r.readAt.toLocaleDateString?.('en-GB') || ''}</div>
@@ -1331,7 +1387,7 @@ const ChatPage = memo(() => {
                   </div>
                   <div style={{ fontSize: '0.85rem', color: 'var(--muted)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
-                      <span style={{ overflow:'hidden', textOverflow:'ellipsis' }}>{`${cls.term} - ${cls.code}`}</span>
+                      <span style={{ overflow:'hidden', textOverflow:'ellipsis' }}>{`${getAcademicTermLabel(cls.term, lang)} - ${cls.code}`}</span>
                       {(() => {
                         const count = cls.enrollmentCount ?? cls._count?.enrollments ?? 0;
                         if (count > 0) {
@@ -1373,7 +1429,7 @@ const ChatPage = memo(() => {
                       <div style={{ fontSize: '0.85rem', color: 'var(--text)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
                         {getThemedIcon('ui', 'graduation_cap', 14, theme)}
                         <strong>{instructor.displayName || instructor.email}</strong>
-                        <RoleBadge userObj={instructor} />
+                        <RoleBadge user={instructor} />
                         {instructor.studentNumber && (
                           <span style={{ fontSize: '0.75rem', color: 'var(--muted)', marginLeft: '0.25rem', fontWeight: 'normal' }}>
                             ({instructor.studentNumber})
@@ -1450,11 +1506,73 @@ const ChatPage = memo(() => {
                 onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)'; }}
                 onMouseOut={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}
               >
-                {getThemedIcon('ui', 'users', 16, theme)}
+                {getThemedIcon('ui', 'user_plus', 16, theme)}
                 <span>{t('chat_create_group')}</span>
               </button>
             </div>
           )}
+          
+          {/* Group Chats */}
+          {(() => {
+            const groupRooms = (Array.isArray(safeDirectRooms) ? safeDirectRooms : []).filter(r => r.type === 'group');
+            if (groupRooms.length === 0) return null;
+            const filteredGroupRooms = groupSearch
+              ? groupRooms.filter(r => (r.name || '').toLowerCase().includes(groupSearch.toLowerCase()))
+              : groupRooms;
+            return (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.4rem 0.9rem', borderTop: '1px solid var(--border)' }}>
+                  <span style={{ color: 'var(--muted)', fontWeight: 600, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: 4 }}>
+                    {getThemedIcon('ui', 'users', 14, theme)}
+                    {t('chat_group_chats')}
+                  </span>
+                </div>
+                {groupRooms.length > 3 && (
+                  <input
+                    type="text"
+                    autoComplete="off"
+                    placeholder={t('chat_search_groups') || t('chat_search_users')}
+                    value={groupSearch}
+                    onChange={(e) => setGroupSearch(e.target.value)}
+                    style={{ margin: '0.5rem 1rem', padding: '6px 10px', border: '1px solid #ddd', borderRadius: 6, fontSize: '0.85rem', width: 'calc(100% - 2rem)' }}
+                  />
+                )}
+                {filteredGroupRooms.map(room => {
+                  const isCreator = room.createdBy === user?.dbId;
+                  const participantCount = room.participants?.length || 0;
+                  return (
+                    <div
+                      key={room.id}
+                      onClick={() => handleClassChange(`group:${room.id}`)}
+                      style={{
+                        padding: '0.4rem 0.6rem', cursor: 'pointer',
+                        background: selectedClass === `group:${room.id}` ? 'rgba(0,0,0,0.06)' : 'var(--panel)',
+                        borderBottom: '1px solid var(--border)', transition: 'background 0.2s'
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                        <div style={{ width: 28, height: 28, borderRadius: 6, background: 'linear-gradient(135deg, #7e57c2, #5e35b1)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700 }}>
+                          {(room.name || 'G')[0]?.toUpperCase()}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <div style={{ fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1 }}>
+                              {room.name || t('group_chat')}
+                            </div>
+                            {isCreator && getIconWithColor('ui', 'crown', 12, '#ffc107')}
+                            {(() => { const c = unreadCounts[`group:${room.id}`] || 0; if (c > 0) { return (<span style={{ background: 'var(--brand)', color: 'white', borderRadius: '50%', minWidth: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 'bold', padding: '0 5px' }}>{c > 99 ? '99+' : c}</span>); } return null; })()}
+                          </div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--muted)', display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                            <span>{participantCount} {t('chat_members')}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </>
+            );
+          })()}
           
           {/* Direct Messages */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.4rem 0.9rem', borderTop: '1px solid var(--border)' }}>
@@ -1469,9 +1587,13 @@ const ChatPage = memo(() => {
               </button>
             )}
           </div>
-          {isStaffRole && (
+          {(() => {
+            const dmRooms = (Array.isArray(safeDirectRooms) ? safeDirectRooms : []).filter(r => r.type !== 'group');
+            return dmRooms.length > 3;
+          })() && (
             <input
               type="text"
+              autoComplete="off"
               placeholder={t('chat_search_users')}
               value={dmSearch}
               onChange={(e) => setDmSearch(e.target.value)}
@@ -1484,17 +1606,19 @@ const ChatPage = memo(() => {
           {(() => {
             if (archivedRooms === null) return []; // Return empty array instead of null
             let filtered = Array.isArray(safeDirectRooms) ? safeDirectRooms : [];
+            // Only show DM rooms in the DM section (groups have their own section)
+            filtered = filtered.filter(r => r.type !== 'group');
             // hide archived unless showArchived is on
             filtered = filtered.filter(r => showArchived || !archivedRooms[r.id]);
             // favorites only filter
             if (showFavoritesOnly) {
               filtered = filtered.filter(r => (r.starBy || []).includes(user.uid));
             }
-            if (dmSearch && isStaffRole) {
+            if (dmSearch) {
               const search = dmSearch.toLowerCase();
-              filtered = (Array.isArray(safeDirectRooms) ? safeDirectRooms : []).filter(room => {
+              filtered = filtered.filter(room => {
                 const otherUser = (room.userA?.id === user?.dbId || (user?.email && room.userA?.email === user?.email)) ? room.userB : room.userA;
-                const name = otherUser ? `${otherUser.firstName || ''} ${otherUser.lastName || ''}`.trim() || otherUser.email || '' : '';
+                const name = otherUser ? getChatUserDisplayName(otherUser, lang) || otherUser.email || '' : '';
                 return name.toLowerCase().includes(search);
               });
             }
@@ -1517,7 +1641,7 @@ const ChatPage = memo(() => {
             // Instead, use userA/userB data included in the room object
             const otherUser = (room.userA?.id === user?.dbId || (user?.email && room.userA?.email === user?.email)) ? room.userB : room.userA;
             const otherId = otherUser?.id;
-            const label = otherUser ? `${otherUser.firstName || ''} ${otherUser.lastName || ''}`.trim() || otherUser.email || t('conversation') : t('conversation');
+            const label = otherUser ? getChatUserDisplayName(otherUser, lang) || otherUser.email || t('conversation') : t('conversation');
             const initial = (label || t('conversation'))[0]?.toUpperCase();
             const lastTime = room.lastMessageAt?.toDate?.();
             return (
@@ -1567,7 +1691,7 @@ const ChatPage = memo(() => {
                       <div style={{ fontWeight: 600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', flex:1, opacity: !otherUser ? 0.6 : 1 }}>
                         {label}
                       </div>
-                      {otherUser && <RoleBadge userObj={otherUser} />}
+                      {otherUser && <RoleBadge user={otherUser} />}
                       {(() => { const c = unreadCounts[`dm:${room.id}`]||0; if (c>0) { return (<span style={{background:'var(--brand)',color:'white',borderRadius:'50%',minWidth:18,height:18,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.7rem',fontWeight:'bold',padding:'0 5px'}}>{c>99?'99+':c}</span>);} return null; })()}
                     </div>
                     <div style={{ fontSize: '0.8rem', color: 'var(--muted)', display:'flex', justifyContent:'space-between', gap: 8 }}>
@@ -1581,7 +1705,7 @@ const ChatPage = memo(() => {
                       <button
                         onClick={(e) => { e.stopPropagation(); toggleStar(room); }}
                         title={(room.starBy || []).includes(user.uid) ? t('unfavorite') : t('favorite')}
-                        style={{ background:'transparent', border:'1px solid var(--border)', borderRadius:6, padding:'2px 6px', cursor:'pointer', color:'var(--muted)', fontSize:'0.9rem', lineHeight:1 }}
+                        style={{ background:'transparent', border:'1px solid var(--border)', borderRadius:6, padding:'2px 6px', cursor:'pointer', color:(room.starBy||[]).includes(user.uid)?'#facc15':'var(--muted)', fontSize:'0.9rem', lineHeight:1 }}
                       >{(room.starBy||[]).includes(user.uid)?'★':'☆'}</button>
                       <button
                         onClick={async (e) => {
@@ -1672,31 +1796,37 @@ const ChatPage = memo(() => {
           alignItems: 'center'
         }}>
           {/* Left Container (flex: 1) */}
-          <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '1rem' }}>
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '1rem', minWidth: 0 }}>
             {/* Title */}
-            <div>
+            <div style={{ flex: 1, minWidth: 0 }}>
               <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700 }}>
                 {selectedClass === 'global' ? t('global_chat') :
                  (selectedClass?.startsWith('dm:')
                    ? (()=>{ 
                       const room = directRooms.find(r=>`dm:${r.id}`===selectedClass); 
                       const otherUser = (room?.userA?.id === user?.dbId || (user?.email && room?.userA?.email === user?.email)) ? room?.userB : room?.userA;
-                      return otherUser ? `${otherUser.firstName || ''} ${otherUser.lastName || ''}`.trim() || otherUser.email || t('direct_message') : t('direct_message');
+                      return otherUser ? getChatUserDisplayName(otherUser, lang) || otherUser.email || t('direct_message') : t('direct_message');
                     })()
-                   : (classes.find(c => c.docId === selectedClass)?.name || selectedClassName || t('chat'))
+                   : selectedClass?.startsWith('group:')
+                     ? (()=>{ 
+                        const groupId = parseInt(selectedClass.split(':')[1]);
+                        const grp = directRooms.find(r => r.id === groupId && r.type === 'group');
+                        return grp?.name || t('group_chat');
+                      })()
+                     : (classes.find(c => c.docId === selectedClass)?.name || selectedClassName || t('chat'))
                  )}
               </h3>
               {/* Display name for DM conversations */}
               {selectedClass?.startsWith('dm:') && (()=>{ 
                 const room = directRooms.find(r=>`dm:${r.id}`===selectedClass); 
                 const otherUser = (room?.userA?.id === user?.dbId || (user?.email && room?.userA?.email === user?.email)) ? room?.userB : room?.userA;
-                const displayName = otherUser ? `${otherUser.firstName || ''} ${otherUser.lastName || ''}`.trim() : null;
+                const displayName = otherUser ? getChatUserDisplayName(otherUser, lang) : null;
                 const email = otherUser?.email;
                 if (displayName) {
                   return (
                     <div style={{ fontSize: '0.9rem', color: 'var(--muted)', marginTop: '0.25rem', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                       {displayName}
-                      {otherUser && <RoleBadge userObj={otherUser} />}
+                      {otherUser && <RoleBadge user={otherUser} />}
                       {email && email !== displayName && (
                         <span style={{ fontSize: '0.8rem', color: 'var(--muted)', marginLeft: '0.25rem', opacity: 0.7 }}>
                           ({email})
@@ -1707,19 +1837,148 @@ const ChatPage = memo(() => {
                 }
                 return null;
               })()}
+              {/* DM info button */}
+              {selectedClass?.startsWith('dm:') && (() => {
+                const dmId = parseInt(selectedClass.split(':')[1]);
+                const room = directRooms.find(r => r.id === dmId);
+                if (!room) return null;
+                return (
+                  <div style={{ fontSize: '0.9rem', color: 'var(--muted)', marginTop: '0.25rem', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <button
+                      onClick={() => setShowGroupInfoPanel(true)}
+                      style={{
+                        fontSize: '0.7rem', background: 'transparent', color: 'var(--muted)',
+                        border: '1px solid var(--border)', borderRadius: 6, padding: '2px 8px',
+                        cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3,
+                        transition: 'all 0.2s',
+                      }}
+                      onMouseEnter={(e) => { e.target.style.borderColor = 'var(--brand)'; e.target.style.color = 'var(--brand)'; }}
+                      onMouseLeave={(e) => { e.target.style.borderColor = 'var(--border)'; e.target.style.color = 'var(--muted)'; }}
+                      title={t('chat_group_info') || 'Info'}
+                    >
+                      {getThemedIcon('ui', 'info', 12, theme)}
+                      {t('chat_group_info') || 'Info'}
+                    </button>
+                  </div>
+                );
+              })()}
+              {/* Group info: participant count, admin badge, leave button */}
+              {selectedClass?.startsWith('group:') && (()=>{
+                const groupId = parseInt(selectedClass.split(':')[1]);
+                const grp = directRooms.find(r => r.id === groupId && r.type === 'group');
+                if (!grp) return null;
+                const isCreator = grp.createdBy === user?.dbId;
+                const participantCount = grp.participants?.length || 0;
+                return (
+                  <div style={{ fontSize: '0.9rem', color: 'var(--muted)', marginTop: '0.25rem', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                    <span
+                      onClick={() => setShowParticipantModal(true)}
+                      style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', textDecoration: 'underline' }}
+                      title={t('chat_manage_participants')}
+                    >
+                      {getThemedIcon('ui', 'users', 14, theme)}
+                      {participantCount} {t('chat_members')}
+                    </span>
+                    <button
+                      onClick={() => setShowGroupInfoPanel(true)}
+                      style={{
+                        fontSize: '0.7rem', background: 'transparent', color: 'var(--muted)',
+                        border: '1px solid var(--border)', borderRadius: 6, padding: '2px 8px',
+                        cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3,
+                        transition: 'all 0.2s',
+                      }}
+                      onMouseEnter={(e) => { e.target.style.borderColor = 'var(--brand)'; e.target.style.color = 'var(--brand)'; }}
+                      onMouseLeave={(e) => { e.target.style.borderColor = 'var(--border)'; e.target.style.color = 'var(--muted)'; }}
+                      title={t('chat_group_info') || 'Group Info'}
+                    >
+                      {getThemedIcon('ui', 'info', 12, theme)}
+                      {t('chat_group_info') || 'Info'}
+                    </button>
+                    {isCreator && (
+                      <span style={{ fontSize: '0.7rem', background: 'rgba(255, 193, 7, 0.12)', color: '#ffc107', padding: '1px 6px', borderRadius: 8, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
+                        {getIconWithColor('ui', 'crown', 10, '#ffc107')}
+                        {t('chat_group_admin')}
+                      </span>
+                    )}
+                    {!isCreator && (
+                      <button
+                        onClick={async () => {
+                          if (!confirm(t('chat_leave_group_confirm'))) return;
+                          try {
+                            const result = await chatService.leaveGroupRoom(groupId, user?.dbId);
+                            if (result.success) {
+                              toast?.showSuccess(t('chat_left_group'));
+                              setSelectedClass('global');
+                              // Refresh rooms to remove the left group from sidebar
+                              try {
+                                const roomsResult = await chatService.getUserRooms();
+                                if (roomsResult.success) {
+                                  const rooms = [];
+                                  roomsResult.data.forEach(r => {
+                                    if (r.type === 'dm') {
+                                      rooms.push({
+                                        id: r.id,
+                                        participantA: r.participantA,
+                                        participantB: r.participantB,
+                                        userA: r.userA,
+                                        userB: r.userB,
+                                        type: 'dm',
+                                        lastMessage: null,
+                                        createdAt: r.createdAt
+                                      });
+                                    } else if (r.type === 'group') {
+                                      rooms.push({
+                                        id: r.id,
+                                        type: 'group',
+                                        name: r.name,
+                                        createdBy: r.createdBy,
+                                        participants: r.participants,
+                                        creator: r.creator,
+                                        lastMessage: null,
+                                        createdAt: r.createdAt
+                                      });
+                                    }
+                                  });
+                                  setDirectRooms(rooms);
+                                }
+                              } catch (e) {
+                                error('Failed to refresh rooms after leaving group:', e);
+                              }
+                            } else {
+                              toast?.showError(t('chat_leave_group_failed'));
+                            }
+                          } catch (err) {
+                            error('Failed to leave group:', err);
+                            toast?.showError(t('chat_leave_group_failed'));
+                          }
+                        }}
+                        style={{ fontSize: '0.7rem', background: 'transparent', color: '#dc2626', border: '1px solid #dc262640', borderRadius: 6, padding: '2px 8px', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3, transition: 'all 0.2s' }}
+                        onMouseEnter={(e) => { e.target.style.background = '#dc2626'; e.target.style.color = 'white'; }}
+                        onMouseLeave={(e) => { e.target.style.background = 'transparent'; e.target.style.color = '#dc2626'; }}
+                      >
+                        {getThemedIcon('ui', 'x', 10, theme)}
+                        {t('chat_leave_group')}
+                      </button>
+                    )}
+                  </div>
+                );
+              })()}
             </div>
             
             {/* Class Badge */}
-            <span style={{
-              fontSize: '0.75rem',
-              background: selectedClass === 'global' ? 'rgba(25, 118, 210, 0.12)' : (selectedClass?.startsWith('dm:') ? 'rgba(239, 108, 0, 0.12)' : 'rgba(46, 125, 50, 0.12)'),
-              color: selectedClass === 'global' ? '#1976d2' : (selectedClass?.startsWith('dm:') ? '#ef6c00' : '#2e7d32'),
-              padding: '2px 8px',
-              borderRadius: '12px',
-              fontWeight: 600
-            }}>
-              {selectedClass === 'global' ? t('chat_global') : (selectedClass?.startsWith('dm:') ? t('chat_dm_label') : t('chat_class_label'))}
-            </span>
+            {(() => {
+              const isGlobal = selectedClass === 'global';
+              const isDM = selectedClass?.startsWith('dm:');
+              const isGroup = selectedClass?.startsWith('group:');
+              const bg = isGlobal ? 'rgba(25, 118, 210, 0.12)' : isDM ? 'rgba(239, 108, 0, 0.12)' : isGroup ? 'rgba(126, 87, 194, 0.12)' : 'rgba(46, 125, 50, 0.12)';
+              const color = isGlobal ? '#1976d2' : isDM ? '#ef6c00' : isGroup ? '#7e57c2' : '#2e7d32';
+              const label = isGlobal ? t('chat_global') : isDM ? t('chat_dm_label') : isGroup ? t('chat_group_label') : t('chat_class_label');
+              return (
+                <span style={{ fontSize: '0.75rem', background: bg, color, padding: '2px 8px', borderRadius: '12px', fontWeight: 600 }}>
+                  {label}
+                </span>
+              );
+            })()}
             
             {/* Messages Count */}
             <span style={{ fontSize: '0.9rem', color: 'var(--muted)' }}>
@@ -1742,7 +2001,7 @@ const ChatPage = memo(() => {
             )}
           </div>
           {/* Search Button */}
-          <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <button
               data-tour="chat-search"
               type="button"
@@ -1768,6 +2027,7 @@ const ChatPage = memo(() => {
             >
               {getThemedIcon('ui', 'search', 16, theme)}
             </button>
+            <ChatWallpaperPicker theme={theme} t={t} />
           </div>
         </div>
 
@@ -1779,6 +2039,7 @@ const ChatPage = memo(() => {
             background: 'var(--panel)'
           }}>
             <input
+              autoComplete="off"
               value={msgQuery}
               onChange={(e)=>setMsgQuery(e.target.value)}
               onBlur={() => { if (!msgQuery.trim()) setShowSearch(false); }}
@@ -1798,44 +2059,86 @@ const ChatPage = memo(() => {
           </div>
         )}
 
+        {/* Pinned message banner — group chats only */}
+        {selectedClass?.startsWith('group:') && (() => {
+          const pinnedMsg = (safeMessages || []).find(m => m.pinnedById !== null && m.pinnedById !== undefined && !m.isDeleted);
+          if (!pinnedMsg) return null;
+          const pinnedSender = (allUsers || []).find(u => u.docId === pinnedMsg.senderId || u.id === pinnedMsg.senderId || String(u.id) === String(pinnedMsg.senderId));
+          const pinnedSenderName = pinnedMsg.senderName || getChatUserDisplayName(pinnedSender, lang) || t('unknown') || 'Unknown';
+          return (
+            <div
+              style={{
+                padding: '0.5rem 1rem',
+                background: 'var(--panel)',
+                borderBottom: '1px solid var(--border)',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.5rem',
+                cursor: 'pointer',
+                transition: 'background 0.2s'
+              }}
+              onClick={() => {
+                const el = document.getElementById(`msg-${pinnedMsg.id}`);
+                if (el) {
+                  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                  setHighlightedMsgId(pinnedMsg.id);
+                  setTimeout(() => setHighlightedMsgId(null), 2000);
+                }
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--background)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'var(--panel)'; }}
+            >
+              {getThemedIcon('ui', 'pin', 14, theme)}
+              <div style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--brand)', marginRight: '0.25rem' }}>
+                  {t('pinned_message') || 'Pinned'}
+                </span>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text)', opacity: 0.8 }}>
+                  {pinnedMsg.content || pinnedMsg.pollQuestion || pinnedMsg.fileName || '...'}
+                </span>
+              </div>
+              <span style={{ fontSize: '0.7rem', color: 'var(--muted)', flexShrink: 0 }}>
+                {pinnedSenderName}
+              </span>
+            </div>
+          );
+        })()}
+
         {/* Members button - moved to separate row */}
-        {classMembers.length > 0 && !selectedClass?.startsWith('dm:') && (
+        {classMembers.length > 0 && !selectedClass?.startsWith('dm:') && !selectedClass?.startsWith('group:') && (
           <div style={{ padding: '0.5rem 1.5rem', background: 'var(--panel)', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div onClick={() => setShowMembers(true)} style={{ fontSize: '0.9rem', color: 'var(--muted)', cursor: 'pointer', textDecoration: 'underline', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               {getThemedIcon('ui', 'users', 16, theme)} {classMembers.length} {t('chat_members')}
             </div>
-            
-            {/* Manage Participants button for group chats (creator only) */}
-            {selectedClass?.startsWith('group:') && (() => {
-              const groupId = parseInt(selectedClass.split(':')[1]);
-              const currentRoom = classes.find(c => c.id === groupId && c.type === 'group') ||
-                                  directRooms.find(r => r.id === groupId && r.type === 'group');
-              return currentRoom?.createdBy === user?.id && (
-                <button
-                  onClick={() => setShowParticipantModal(true)}
-                  style={{
-                    padding: '0.4rem 0.8rem',
-                    background: 'var(--brand)',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: 6,
-                    cursor: 'pointer',
-                    fontSize: '0.8rem',
-                    fontWeight: 500,
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.4rem',
-                    transition: 'all 0.2s'
-                  }}
-                  onMouseOver={(e) => { e.currentTarget.style.opacity = '0.9'; }}
-                  onMouseOut={(e) => { e.currentTarget.style.opacity = '1'; }}
-                  title={t('chat_manage_participants')}
-                >
-                  {getThemedIcon('ui', 'settings', 14, theme)}
-                  <span>{t('chat_manage')}</span>
-                </button>
-              );
-            })()}
+            <button
+              onClick={async () => {
+                if (selectedClass === 'global') {
+                  const rid = await chatService.resolveRoomId('global', 'global');
+                  if (rid) {
+                    setClassInfoRoomId(rid);
+                    setShowGroupInfoPanel(true);
+                  }
+                } else if (selectedClass && selectedClass !== 'global') {
+                  const rid = await chatService.resolveRoomId('class', selectedClass);
+                  if (rid) {
+                    setClassInfoRoomId(rid);
+                    setShowGroupInfoPanel(true);
+                  }
+                }
+              }}
+              style={{
+                fontSize: '0.7rem', background: 'transparent', color: 'var(--muted)',
+                border: '1px solid var(--border)', borderRadius: 6, padding: '2px 8px',
+                cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3,
+                transition: 'all 0.2s',
+              }}
+              onMouseEnter={(e) => { e.target.style.borderColor = 'var(--brand)'; e.target.style.color = 'var(--brand)'; }}
+              onMouseLeave={(e) => { e.target.style.borderColor = 'var(--border)'; e.target.style.color = 'var(--muted)'; }}
+              title={t('chat_group_info') || 'Info'}
+            >
+              {getThemedIcon('ui', 'info', 12, theme)}
+              {t('chat_group_info') || 'Info'}
+            </button>
           </div>
         )}
 
@@ -1844,7 +2147,7 @@ const ChatPage = memo(() => {
           flex: 1,
           overflowY: 'auto',
           padding: '0.9rem',
-          background: 'var(--bg)'
+          ...getWallpaperStyle(chatWallpaper, theme === 'dark')
         }}>
           {(() => {
             const q = (msgQuery || '').trim().toLowerCase();
@@ -1868,12 +2171,37 @@ const ChatPage = memo(() => {
             if (!list || list.length === 0) {
               return (
                 <div style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  minHeight: '60%',
+                  padding: '2rem',
                   textAlign: 'center',
-                  padding: '3rem',
-                  color: 'var(--muted)'
                 }}>
-                  <p style={{ fontSize: '3rem', margin: 0 }}>{getThemedIcon('ui', 'message_square', 42, theme)}</p>
-                  <p style={{ color: 'var(--muted)' }}>{t('no_messages')}</p>
+                  <div style={{
+                    width: 80,
+                    height: 80,
+                    borderRadius: '50%',
+                    background: theme === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginBottom: '1rem',
+                    fontSize: '2rem',
+                  }}>
+                    {(msgQuery?.trim() || globalChatSearch) ? '🔍' : '💬'}
+                  </div>
+                  <p style={{
+                    color: theme === 'dark' ? 'rgba(255,255,255,0.45)' : 'rgba(100,110,130,0.7)',
+                    fontSize: '1.15rem',
+                    fontWeight: 600,
+                    margin: 0,
+                    maxWidth: 320,
+                    lineHeight: 1.6,
+                  }}>
+                    {(msgQuery?.trim() || globalChatSearch) ? (t('no_messages_found')) : (t('no_messages'))}
+                  </p>
                 </div>
               );
             }
@@ -1925,7 +2253,7 @@ const ChatPage = memo(() => {
                   style={{
                     display: 'flex',
                     justifyContent: isOwnMessage ? 'flex-end' : 'flex-start',
-                    marginBottom: '1rem',
+                    marginBottom: '1.75rem',
                     transition: 'all 0.3s ease'
                   }}
                 >
@@ -1954,8 +2282,8 @@ const ChatPage = memo(() => {
                     background: isHighlighted ? '#fff3cdCC' : transparentBubbleColor,
                     color: textColor,
                     padding: '0.5rem 0.75rem',
-                    paddingRight: (isOwnMessage || isAdmin) ? '2.5rem' : '0.75rem',
-                    paddingBottom: '1.5rem',
+                    paddingInlineEnd: (isOwnMessage || isAdmin) ? '2.5rem' : '0.75rem',
+                    paddingBottom: '1.75rem',
                     borderRadius: '12px',
                     boxShadow: isHighlighted ? '0 0 20px rgba(255,193,7,0.5)' : '0 2px 4px rgba(0,0,0,0.08)',
                     border: isHighlighted ? '2px solid #ffc107' : '1px solid var(--border)',
@@ -1973,35 +2301,12 @@ const ChatPage = memo(() => {
                         alignItems: 'center',
                         gap: '0.25rem'
                       }}>
-                        {msg.senderName || senderUser?.displayName || t('unknown')}
-                        {(() => {
-                          if (!senderUser) return null;
-                          const roles = getUserRoles(senderUser);
-                          const primaryRole = roles.find(r => ['super_admin', 'superadmin', 'admin', 'instructor', 'hr'].includes(r));
-                          if (!primaryRole) return null;
-                          const roleIcon = getUserRoleIcon(primaryRole);
-                          const roleColor = getUserRoleColor(primaryRole);
-                          const roleLabel = { super_admin: t('super_admin'), superadmin: t('super_admin'), admin: t('admin'), instructor: t('instructor'), hr: t('hr') }[primaryRole] || primaryRole;
-                          return (
-                            <span style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '0.15rem',
-                              fontSize: '0.7rem',
-                              color: roleColor,
-                              background: `${roleColor}15`,
-                              borderRadius: '4px',
-                              padding: '0.1rem 0.3rem',
-                              fontWeight: '500',
-                              marginLeft: '0.25rem'
-                            }} title={roleLabel}>
-                              {roleIcon && <span style={{ display: 'inline-flex', alignItems: 'center' }}>{React.cloneElement(roleIcon, { size: 12 })}</span>}
-                              {roleLabel}
-                            </span>
-                          );
-                        })()}
+                        {msg.senderName || getChatUserDisplayName(senderUser, lang) || t('unknown')}
+                        {senderUser && (
+                          <RoleBadge user={senderUser} size={12} fontSize='0.7rem' style={{ borderRadius: '4px', padding: '0.1rem 0.3rem', marginInlineStart: '0.25rem' }} />
+                        )}
                         {senderUser?.studentNumber && (
-                          <span style={{ fontSize: '0.75rem', color: 'var(--muted)', marginLeft: '0.25rem', fontWeight: 'normal' }}>
+                          <span style={{ fontSize: '0.75rem', color: 'var(--muted)', marginInlineStart: '0.25rem', fontWeight: 'normal' }}>
                             ({senderUser.studentNumber})
                           </span>
                         )}
@@ -2180,17 +2485,20 @@ const ChatPage = memo(() => {
                       })()
                     )}
 
-                    {/* Timestamp + receipts */}
+                    {/* Timestamp + receipts — dedicated bottom row */}
                     <div style={{
+                      position: 'absolute',
+                      bottom: '0.35rem',
+                      insetInlineEnd: '0.75rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
                       fontSize: '0.7rem',
-                      marginTop: '0.25rem',
                       opacity: 0.7,
-                      color: getUserThemeColor()
+                      color: getUserThemeColor(),
+                      whiteSpace: 'nowrap',
+                      lineHeight: 1
                     }}>
-                      {msg.createdAt?.toDate()?.toLocaleTimeString('en-US', {
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
                       {isOwnMessage && (() => {
                         const msgTime = msg.createdAt?.toDate() || new Date();
                         const recips = selectedClass === 'global'
@@ -2202,18 +2510,18 @@ const ChatPage = memo(() => {
                         const readCount = recips.filter(id => memberReads[id] && memberReads[id] >= msgTime).length;
                         const allRead = recips.length > 0 && readCount === recips.length;
                         const anyRead = readCount > 0;
-                        const style = { 
-                          marginLeft: 8, 
+                        const tickStyle = { 
                           fontSize: '1.1rem',
                           fontWeight: 700, 
                           color: allRead ? getUserThemeColor() : (anyRead ? `${getUserThemeColor()}99` : `${getUserThemeColor()}66`), 
                           cursor: 'pointer',
-                          transition: 'color 0.2s'
+                          transition: 'color 0.2s',
+                          lineHeight: 1
                         };
                         const tooltip = `${t('seen_by')} ${readCount} ${t('of')} ${recips.length}`;
                         return (
                           <span
-                            style={style}
+                            style={tickStyle}
                             title={tooltip}
                             onClick={(e)=>{
                               e.stopPropagation();
@@ -2227,6 +2535,10 @@ const ChatPage = memo(() => {
                           >{anyRead ? '✓✓' : '✓'}</span>
                         );
                       })()}
+                      <span>{msg.createdAt?.toDate()?.toLocaleTimeString('en-US', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      })}</span>
                     </div>
                     {/* Icon/Emoji Reactions - Single per user */}
                     {msg.reactions && Object.keys(msg.reactions).length > 0 && (() => {
@@ -2251,7 +2563,7 @@ const ChatPage = memo(() => {
                             reaction === 'Surprise' ? 'help_circle' :
                             reaction === 'Frown' ? 'x_circle' :
                             reaction === 'Pray' ? 'star' : 'smile';
-                          return getIconWithColor('ui', iconName, 14, color);
+                          return getIconWithColor('ui', iconName, 18, color);
                         }
                         // Return emoji as-is (old format)
                         return reaction;
@@ -2280,18 +2592,17 @@ const ChatPage = memo(() => {
                       return (
                         <div style={{ 
                           position:'absolute', 
-                          left: isOwnMessage? -22 : 'auto', 
-                          right: isOwnMessage? 'auto' : -22, 
+                          insetInlineStart: -22, 
                           top: '50%', 
                           transform:'translateY(-50%)', 
                           display:'flex', 
                           flexDirection:'row', 
                           gap:6,
-                          padding: '4px',
-                          background: 'var(--panel)',
-                          border: '1px solid var(--border)',
+                          padding: '2px',
+                          background: 'transparent',
+                          border: 'none',
                           borderRadius: 16,
-                          boxShadow: '0 4px 12px rgba(0,0,0,0.12), 0 2px 4px rgba(0,0,0,0.08)'
+                          boxShadow: 'none'
                         }}>
                           {topList.map(([reaction, count]) => {
                             const active = msg.reactions[user.uid] === reaction;
@@ -2314,12 +2625,12 @@ const ChatPage = memo(() => {
                                 title={`${count} ${t('reactions')}`}
                                 style={{ 
                                   background: active ? `${reactionColor}20` : 'transparent',
-                                  border: active ? `1px solid ${reactionColor}` : '1px solid var(--border)',
+                                  border: active ? `1px solid ${reactionColor}` : 'none',
                                   borderRadius:12, 
                                   padding:'4px 8px', 
                                   fontSize:'0.85rem', 
                                   cursor:'pointer', 
-                                  boxShadow:'0 2px 4px rgba(0,0,0,0.08)', 
+                                  boxShadow:'none', 
                                   opacity: active?1:0.9,
                                   transition:'all 0.2s ease',
                                   display:'flex',
@@ -2369,13 +2680,13 @@ const ChatPage = memo(() => {
                       title={t('react')}
                       style={{ 
                         position:'absolute', 
-                        bottom: -12, 
-                        [isOwnMessage?'right':'left']: -16, 
+                        bottom: -14, 
+                        insetInlineStart: -14, 
                         background:'var(--panel)', 
                         border:'2px solid var(--border)', 
                         borderRadius:'50%', 
-                        width:32, 
-                        height:32, 
+                        width:30, 
+                        height:30, 
                         display:'flex', 
                         alignItems:'center', 
                         justifyContent:'center', 
@@ -2383,7 +2694,8 @@ const ChatPage = memo(() => {
                         boxShadow:'0 4px 12px rgba(0,0,0,0.12), 0 2px 4px rgba(0,0,0,0.08)', 
                         transition:'all 0.2s ease',
                         fontSize:'1.2rem',
-                        fontFamily:'"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "EmojiSymbols", sans-serif'
+                        fontFamily:'"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "EmojiSymbols", sans-serif',
+                        zIndex: 2
                       }}
                       onMouseEnter={(e)=>e.currentTarget.style.transform='scale(1.05)'}
                       onMouseLeave={(e)=>e.currentTarget.style.transform='scale(1)'}
@@ -2391,22 +2703,31 @@ const ChatPage = memo(() => {
                       <span aria-hidden="true" style={{ display:'inline-block', transform:'translateY(1px)' }}>{getIconWithColor('ui', 'smile', 16, '#eab308')}</span>
                     </button>
 
-                    {/* Anchored Reaction Menu (sticky to this message) */}
-                    {reactionMenu?.msgId === msg.id && (
+                    {/* Anchored Reaction Menu (fixed positioning to avoid overflow) */}
+                    {reactionMenu?.msgId === msg.id && (() => {
+                      const menuW = 280;
+                      const menuH = 44;
+                      let mx = reactionMenu.x;
+                      let my = reactionMenu.y;
+                      // Clamp to viewport
+                      if (mx + menuW > window.innerWidth) mx = window.innerWidth - menuW - 8;
+                      if (mx < 8) mx = 8;
+                      if (my + menuH > window.innerHeight) my = reactionMenu.y - menuH - 24;
+                      if (my < 8) my = 8;
+                      return (
                       <div
                         className="pop-in"
                         ref={reactionMenuRef}
                         style={{
-                          position: 'absolute',
-                          top: '50%',
-                          transform: 'translateY(-50%)',
-                          [isOwnMessage ? 'right' : 'left']: 'calc(100% + 8px)',
+                          position: 'fixed',
+                          left: mx,
+                          top: my,
                           background: 'var(--panel)',
                           border: '1px solid var(--border)',
                           borderRadius: 16,
                           padding: '0.4rem 0.6rem',
                           boxShadow: '0 10px 24px rgba(0,0,0,0.35)',
-                          zIndex: 50,
+                          zIndex: 9999,
                           display: 'flex',
                           gap: '0.35rem'
                         }}
@@ -2478,20 +2799,34 @@ const ChatPage = memo(() => {
                         );
                         })}
                       </div>
-                    )}
+                      );
+                    })()}
 
-                    {/* Three-dots inline menu */}
-                    {(isOwnMessage || isAdmin) && (
-                      <button
-                        onMouseDown={(e)=>e.stopPropagation()}
-                        onClick={(e)=>{ e.stopPropagation(); setMenuOpenId(menuOpenId===msg.id?null:msg.id); }}
-                        title={t('more')}
-                        style={{ position:'absolute', top:4, right:4, background:'transparent', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:'1rem', padding:'2px 4px', lineHeight:1 }}
-                      >⋮</button>
-                    )}
+                    {/* Star indicator (if starred by current user) */}
+                    {(() => {
+                      const starredBy = Array.isArray(msg.starredBy) ? msg.starredBy : [];
+                      const isStarred = starredBy.includes(user?.dbId) || starredBy.includes(user?.uid);
+                      if (!isStarred) return null;
+                      return (
+                        <span
+                          style={{ position:'absolute', top:-10, insetInlineStart: -10, display:'flex', alignItems:'center', justifyContent:'center', width:24, height:24, background:'var(--panel)', borderRadius:'50%', boxShadow:'0 2px 8px rgba(0,0,0,0.15)', border:'2px solid #facc15' }}
+                          title={t('starred') || 'Starred'}
+                        >
+                          {getIconWithColor('ui', 'star', 16, '#facc15')}
+                        </span>
+                      );
+                    })()}
+
+                    {/* Three-dots inline menu — visible to all users for star/pin */}
+                    <button
+                      onMouseDown={(e)=>e.stopPropagation()}
+                      onClick={(e)=>{ e.stopPropagation(); setMenuOpenId(menuOpenId===msg.id?null:msg.id); }}
+                      title={t('more')}
+                      style={{ position:'absolute', top:4, insetInlineEnd: 4, background:'transparent', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:'1rem', padding:'2px 4px', lineHeight:1, opacity:0.6 }}
+                    >⋮</button>
                     {menuOpenId===msg.id && (
                       <div
-                        style={{ position:'absolute', top:26, right:6, background:'var(--panel)', color:'var(--text)', border:'1px solid var(--border)', borderRadius:8, boxShadow:'0 6px 16px rgba(0,0,0,0.2)', zIndex:5 }}
+                        style={{ position:'absolute', top:26, insetInlineEnd: 6, background:'var(--panel)', color:'var(--text)', border:'1px solid var(--border)', borderRadius:8, boxShadow:'0 6px 16px rgba(0,0,0,0.2)', zIndex:5 }}
                         onMouseDown={(e)=>e.stopPropagation()}
                       >
                         {(isOwnMessage || isAdmin) && msg.messageType !== 'voice' && msg.messageType !== 'file' && msg.messageType !== 'poll' && (
@@ -2503,6 +2838,32 @@ const ChatPage = memo(() => {
                           >
                             {getThemedIcon('ui', 'edit', 14, theme)}
                             {t('edit')||'Edit'}
+                          </button>
+                        )}
+                        {/* Star button — available to all users in all chat types */}
+                        <button
+                          onClick={()=>{ setMenuOpenId(null); handleToggleStar(msg); }}
+                          onMouseEnter={(e)=>e.target.style.background='rgba(250,204,21,0.1)'}
+                          onMouseLeave={(e)=>e.target.style.background='transparent'}
+                          style={{ display:'flex', alignItems:'center', gap:'8px', background:'transparent', border:'none', padding:'8px 12px', width:'100%', textAlign:'start', cursor:'pointer', color:'var(--text)', transition:'background 0.2s', borderBottom:'1px solid var(--border)' }}
+                        >
+                          {getThemedIcon('ui', 'star', 14, theme)}
+                          {(() => {
+                            const starredBy = Array.isArray(msg.starredBy) ? msg.starredBy : [];
+                            const isStarred = starredBy.includes(user?.dbId) || starredBy.includes(user?.uid);
+                            return isStarred ? (t('unstar') || 'Unstar') : (t('star') || 'Star');
+                          })()}
+                        </button>
+                        {/* Pin button — group chats only */}
+                        {selectedClass?.startsWith('group:') && (
+                          <button
+                            onClick={()=>{ setMenuOpenId(null); handleTogglePin(msg); }}
+                            onMouseEnter={(e)=>e.target.style.background='rgba(102,126,234,0.1)'}
+                            onMouseLeave={(e)=>e.target.style.background='transparent'}
+                            style={{ display:'flex', alignItems:'center', gap:'8px', background:'transparent', border:'none', padding:'8px 12px', width:'100%', textAlign:'start', cursor:'pointer', color: msg.pinnedById ? 'var(--brand)' : 'var(--text)', transition:'background 0.2s', borderBottom:'1px solid var(--border)' }}
+                          >
+                            {getThemedIcon('ui', 'pin', 14, theme)}
+                            {msg.pinnedById ? (t('unpin') || 'Unpin') : (t('pin') || 'Pin')}
                           </button>
                         )}
                         <button
@@ -2567,7 +2928,7 @@ const ChatPage = memo(() => {
                           style={{ display:'flex', alignItems:'center', gap:'8px', background:'transparent', border:'none', padding:'8px 12px', width:'100%', textAlign:'start', cursor:'pointer', color:'var(--brand)', transition:'background 0.2s', borderBottom:'1px solid var(--border)' }}
                         >
                           {getThemedIcon('ui', 'share', 14, theme)}
-                          {t('share')}
+                          {t('chat_share_message') || 'Share'}
                         </button>
                         <button
                           onClick={()=>{
@@ -2585,7 +2946,7 @@ const ChatPage = memo(() => {
                           style={{ display:'flex', alignItems:'center', gap:'8px', background:'transparent', border:'none', padding:'8px 12px', width:'100%', textAlign:'start', cursor:'pointer', color:'var(--brand)', transition:'background 0.2s', borderBottom:'1px solid var(--border)' }}
                         >
                           {getThemedIcon('ui', 'copy', 14, theme)}
-                          {t('copy')}
+                          {t('chat_copy_message') || 'Copy'}
                         </button>
                         {(isOwnMessage || isAdmin) && (
                           <button
@@ -2783,6 +3144,7 @@ const ChatPage = memo(() => {
               <input
                 ref={messageInputRef}
                 type="text"
+                autoComplete="off"
                 value={newMessage}
                 onChange={(e) => setNewMessage(e.target.value)}
                 placeholder={t('chat_type_a_message')}
@@ -3142,38 +3504,43 @@ const ChatPage = memo(() => {
     {/* Poll Creation Modal */}
     {showPollModal && (
       <div style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.5)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:2200 }} onClick={()=>setShowPollModal(false)}>
-        <div style={{ background:'var(--panel)', color:'var(--text)', border:'1px solid var(--border)', padding:'2rem', borderRadius:16, minWidth:450, maxWidth:550, width:'90%', boxShadow:'0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }} onClick={(e)=>e.stopPropagation()}>
-          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'1.5rem' }}>
-            <h3 style={{ margin:0, fontSize:'1.25rem', fontWeight:700, display:'flex', alignItems:'center', gap:'0.5rem' }}>
+        <div style={{ background:'var(--panel)', color:'var(--text)', border:'1px solid var(--border)', padding:'1.5rem', borderRadius:16, minWidth:450, maxWidth:550, width:'90%', boxShadow:'0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }} onClick={(e)=>e.stopPropagation()}>
+          <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'1.25rem' }}>
+            <h3 style={{ margin:0, fontSize:'1.15rem', fontWeight:700, display:'flex', alignItems:'center', gap:'0.5rem' }}>
               <div style={{ width:32, height:32, background:'linear-gradient(135deg, var(--brand), var(--brand2))', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', color:'white', fontSize:'1rem' }}>{getThemedIcon('ui', 'bar_chart', 18, theme)}</div>
               {t('create_poll')}
             </h3>
-            <button onClick={()=>setShowPollModal(false)} style={{ background:'transparent', border:'none', cursor:'pointer', color:'var(--muted)', fontSize:'1.5rem', padding:0, width:24, height:24, display:'flex', alignItems:'center', justifyContent:'center' }}>×</button>
+            <button onClick={()=>setShowPollModal(false)} style={{ background:'transparent', border:'none', cursor:'pointer', color:'var(--muted)', fontSize:'1.25rem', padding:'4px 8px', borderRadius:8, display:'flex', alignItems:'center', justifyContent:'center', transition:'all 0.2s' }}
+              onMouseEnter={(e)=>{e.target.style.background='var(--background)'; e.target.style.color='var(--text)';}}
+              onMouseLeave={(e)=>{e.target.style.background='transparent'; e.target.style.color='var(--muted)';}}
+            >✕</button>
           </div>
           
-          <div style={{ marginBottom:'1.5rem' }}>
-            <label style={{ display:'block', marginBottom:'0.5rem', fontWeight:600, fontSize:'0.9rem', color:'var(--text)' }}>{t('question')}</label>
+          <div style={{ marginBottom:'1.25rem' }}>
+            <label style={{ display:'block', marginBottom:'0.4rem', fontWeight:600, fontSize:'0.85rem', color:'var(--text)', textTransform:'capitalize' }}>{t('question')}</label>
             <input
               type="text"
+              autoComplete="off"
               value={pollQuestion}
               onChange={(e)=>setPollQuestion(e.target.value)}
-              placeholder={t('chat_question_placeholder')}
-              style={{ width:'100%', padding:'0.875rem', border:'2px solid var(--border)', borderRadius:12, marginBottom:'0', background:'var(--panel)', color:'var(--text)', fontSize:'0.95rem', transition:'border-color 0.2s', outline:'none' }}
+              placeholder={t('chat_question_placeholder') || 'What would you like to know?'}
+              style={{ width:'100%', padding:'0.75rem', border:'2px solid var(--border)', borderRadius:10, background:'var(--panel)', color:'var(--text)', fontSize:'0.9rem', transition:'border-color 0.2s', outline:'none' }}
               onFocus={(e)=>e.target.style.borderColor='var(--brand)'}
               onBlur={(e)=>e.target.style.borderColor='var(--border)'}
             />
           </div>
           
-          <div style={{ marginBottom:'1.5rem' }}>
-            <label style={{ display:'block', marginBottom:'0.5rem', fontWeight:600, fontSize:'0.9rem', color:'var(--text)' }}>{t('options')}</label>
-            <div style={{ background:'var(--background)', padding:'1rem', borderRadius:12, border:'1px solid var(--border)' }}>
+          <div style={{ marginBottom:'1rem' }}>
+            <label style={{ display:'block', marginBottom:'0.4rem', fontWeight:600, fontSize:'0.85rem', color:'var(--text)', textTransform:'capitalize' }}>{t('options')}</label>
+            <div style={{ background:'var(--background)', padding:'0.75rem', borderRadius:10, border:'1px solid var(--border)' }}>
               {pollOptions.map((opt, idx) => (
-                <div key={idx} style={{ display:'flex', gap:'0.75rem', marginBottom:'0.75rem', alignItems:'center' }}>
-                  <div style={{ width:24, height:24, borderRadius:'50%', background:'var(--brand)', color:'white', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'0.75rem', fontWeight:600, flexShrink:0 }}>
+                <div key={idx} style={{ display:'flex', gap:'0.5rem', marginBottom: idx < pollOptions.length - 1 ? '0.5rem' : 0, alignItems:'center' }}>
+                  <div style={{ width:22, height:22, borderRadius:'50%', background:'var(--brand)', color:'white', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'0.7rem', fontWeight:700, flexShrink:0 }}>
                     {String.fromCharCode(65 + idx)}
                   </div>
                   <input
                     type="text"
+                    autoComplete="off"
                     value={opt}
                     onChange={(e)=>{
                       const newOpts = [...pollOptions];
@@ -3181,14 +3548,19 @@ const ChatPage = memo(() => {
                       setPollOptions(newOpts);
                     }}
                     placeholder={t('chat.option_number', { number: idx + 1 }) || `Option ${idx + 1}`}
-                    style={{ flex:1, padding:'0.625rem 0.875rem', border:'1px solid var(--border)', borderRadius:8, background:'var(--panel)', color:'var(--text)', fontSize:'0.9rem' }}
+                    style={{ flex:1, padding:'0.5rem 0.75rem', border:'1px solid var(--border)', borderRadius:8, background:'var(--panel)', color:'var(--text)', fontSize:'0.85rem', transition:'border-color 0.2s', outline:'none' }}
+                    onFocus={(e)=>e.target.style.borderColor='var(--brand)'}
+                    onBlur={(e)=>e.target.style.borderColor='var(--border)'}
                   />
                   {pollOptions.length > 2 && (
                     <button
                       onClick={()=>setPollOptions(pollOptions.filter((_,i)=>i!==idx))}
-                      style={{ width:32, height:32, background:'var(--danger)', color:'white', border:'none', borderRadius:'50%', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'1rem', flexShrink:0 }}
+                      style={{ width:28, height:28, background:'transparent', color:'var(--muted)', border:'1px solid var(--border)', borderRadius:'50%', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'0.9rem', flexShrink:0, transition:'all 0.2s' }}
+                      onMouseEnter={(e)=>{e.target.style.background='#ef4444'; e.target.style.color='white'; e.target.style.borderColor='#ef4444';}}
+                      onMouseLeave={(e)=>{e.target.style.background='transparent'; e.target.style.color='var(--muted)'; e.target.style.borderColor='var(--border)';}}
+                      title={t('remove') || 'Remove'}
                     >
-                      ×
+                      ✕
                     </button>
                   )}
                 </div>
@@ -3198,20 +3570,20 @@ const ChatPage = memo(() => {
           
           <button
             onClick={()=>setPollOptions([...pollOptions, ''])}
-            style={{ width:'100%', padding:'0.75rem', background:'transparent', color:'var(--brand)', border:'2px dashed var(--brand)', borderRadius:12, cursor:'pointer', marginBottom:'1.5rem', fontWeight:600, display:'flex', alignItems:'center', justifyContent:'center', gap:'0.5rem', transition:'all 0.2s' }}
-            onMouseOver={(e)=>{e.target.style.background='var(--brand)'; e.target.style.color='white';}}
-            onMouseOut={(e)=>{e.target.style.background='transparent'; e.target.style.color='var(--brand)';}}
+            style={{ width:'100%', padding:'0.6rem', background:'transparent', color:'var(--brand)', border:'2px dashed var(--border)', borderRadius:10, cursor:'pointer', marginBottom:'1.25rem', fontWeight:600, fontSize:'0.85rem', display:'flex', alignItems:'center', justifyContent:'center', gap:'0.5rem', transition:'all 0.2s' }}
+            onMouseEnter={(e)=>{e.target.style.borderColor='var(--brand)'; e.target.style.background='var(--brand)10';}}
+            onMouseLeave={(e)=>{e.target.style.borderColor='var(--border)'; e.target.style.background='transparent';}}
           >
-            {getThemedIcon('ui', 'plus', 18, theme)}
+            {getThemedIcon('ui', 'plus', 16, theme)}
             {t('add_option')}
           </button>
           
-          <div style={{ display:'flex', justifyContent:'flex-end', gap:'0.75rem' }}>
+          <div style={{ display:'flex', justifyContent:'flex-end', gap:'0.5rem' }}>
             <button 
               onClick={()=>{setShowPollModal(false); setPollQuestion(''); setPollOptions(['','']);}} 
-              style={{ padding:'0.75rem 1.5rem', background:'transparent', color:'var(--muted)', border:'1px solid var(--border)', borderRadius:10, cursor:'pointer', fontWeight:600, fontSize:'0.9rem', transition:'all 0.2s' }}
-              onMouseOver={(e)=>{e.target.style.background='var(--background)';}}
-              onMouseOut={(e)=>{e.target.style.background='transparent';}}
+              style={{ padding:'0.6rem 1.25rem', background:'transparent', color:'var(--muted)', border:'1px solid var(--border)', borderRadius:8, cursor:'pointer', fontWeight:600, fontSize:'0.85rem', transition:'all 0.2s' }}
+              onMouseOver={(e)=>{e.target.style.background='var(--background)'; e.target.style.color='var(--text)';}}
+              onMouseOut={(e)=>{e.target.style.background='transparent'; e.target.style.color='var(--muted)';}}
             >
               {t('cancel')}
             </button>
@@ -3244,7 +3616,9 @@ const ChatPage = memo(() => {
                   toast?.showError(t('failed_to_create_poll'));
                 }
               }}
-              style={{ padding:'0.75rem 1.5rem', background:'linear-gradient(135deg, var(--brand), var(--brand2))', color:'white', border:'none', borderRadius:10, cursor:'pointer', fontWeight:600, fontSize:'0.9rem', boxShadow:'0 4px 6px -1px rgba(0, 0, 0, 0.1)' }}
+              style={{ padding:'0.6rem 1.25rem', background:'linear-gradient(135deg, var(--brand), var(--brand2))', color:'white', border:'none', borderRadius:8, cursor:'pointer', fontWeight:600, fontSize:'0.85rem', boxShadow:'0 2px 4px rgba(0,0,0,0.08)', transition:'all 0.2s' }}
+              onMouseEnter={(e)=>{e.target.style.transform='translateY(-1px)'; e.target.style.boxShadow='0 4px 8px rgba(0,0,0,0.12)';}}
+              onMouseLeave={(e)=>{e.target.style.transform='translateY(0)'; e.target.style.boxShadow='0 2px 4px rgba(0,0,0,0.08)';}}
             >
               {t('create')}
             </button>
@@ -3267,17 +3641,71 @@ const ChatPage = memo(() => {
       </div>
     )}
 
-    {/* New DM Picker Modal */}
+    {/* New DM Picker Drawer */}
     {showNewDMPicker && (
-      <div style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => setShowNewDMPicker(false)}>
-        <div onClick={(e) => e.stopPropagation()} style={{ background: 'var(--panel)', borderRadius: 12, width: 400, maxHeight: '70vh', display: 'flex', flexDirection: 'column', boxShadow: '0 8px 32px rgba(0,0,0,0.2)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.5rem', borderBottom: '1px solid var(--border)' }}>
-            <h3 style={{ margin: 0, fontSize: '1.1rem' }}>{t('start_new_conversation')}</h3>
-            <button onClick={() => setShowNewDMPicker(false)} style={{ background: 'transparent', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--text)' }}>✕</button>
+      <div style={{ position: 'fixed', inset: 0, zIndex: 2000, background: 'rgba(0,0,0,0.45)' }} onClick={() => setShowNewDMPicker(false)}>
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            position: 'absolute',
+            top: 0,
+            [lang === 'ar' ? 'left' : 'right']: 0,
+            height: '100%',
+            width: '100%',
+            maxWidth: 480,
+            background: 'var(--panel)',
+            boxShadow: lang === 'ar' ? '4px 0 24px rgba(0,0,0,0.2)' : '-4px 0 24px rgba(0,0,0,0.2)',
+            display: 'flex',
+            flexDirection: 'column',
+            overflow: 'hidden',
+            animation: lang === 'ar' ? 'slideInLeft 0.25s ease-out' : 'slideInRight 0.25s ease-out',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 1.25rem', borderBottom: '1px solid var(--border)', flexShrink: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              {getThemedIcon('ui', 'message_square', 20, theme)}
+              <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700 }}>{t('start_new_conversation')}</h3>
+            </div>
+            <button onClick={() => setShowNewDMPicker(false)} style={{ background: 'transparent', border: 'none', fontSize: 20, cursor: 'pointer', color: 'var(--muted)', padding: '4px 8px', borderRadius: 6 }}>✕</button>
           </div>
-          <div style={{ padding: '0.75rem 1.5rem' }}>
+
+          {/* Role Filter Chips */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, padding: '0.75rem 1.5rem 0' }}>
+            {[{ key: 'all', label: t('chat_all'), icon: null, color: null },
+              { key: 'student', label: t('chat_filter_students'), icon: 'student', color: getUserRoleColor('student') },
+              { key: 'instructor', label: t('chat_filter_instructors'), icon: 'instructor', color: getUserRoleColor('instructor') },
+              { key: 'admin', label: t('chat_filter_admins'), icon: 'admin', color: getUserRoleColor('admin') },
+              { key: 'hr', label: t('chat_filter_hr'), icon: 'hr', color: getUserRoleColor('hr') },
+            ].map(chip => {
+              const isActive = (chip.key === 'all' && !dmRoleFilter) || dmRoleFilter === chip.key;
+              const chipColor = chip.color || '#6b7280';
+              return (
+                <button
+                  key={chip.key}
+                  type="button"
+                  onClick={() => setDmRoleFilter(chip.key === 'all' ? null : chip.key)}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '0.25rem',
+                    padding: '3px 10px', borderRadius: 12,
+                    border: `1px solid ${isActive ? chipColor : 'var(--border)'}`,
+                    background: isActive ? `${chipColor}15` : 'transparent',
+                    color: isActive ? chipColor : 'var(--text)',
+                    fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer',
+                    transition: 'all 0.2s', whiteSpace: 'nowrap',
+                  }}
+                >
+                  {chip.icon && getIconWithColor('user_role', chip.icon, 12, isActive ? chipColor : '#9ca3af')}
+                  {chip.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Search */}
+          <div style={{ padding: '0.75rem 1.25rem', flexShrink: 0 }}>
             <input
               type="text"
+              autoComplete="off"
               placeholder={t('search_users')}
               value={dmUserSearch}
               onChange={(e) => setDmUserSearch(e.target.value)}
@@ -3285,7 +3713,7 @@ const ChatPage = memo(() => {
               style={{ width: '100%', padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 8, fontSize: '0.95rem', background: 'var(--bg)', color: 'var(--text)' }}
             />
           </div>
-          <div style={{ flex: 1, overflowY: 'auto', padding: '0 1.5rem 1rem' }}>
+          <div style={{ flex: 1, overflowY: 'auto', padding: '0 1.25rem 1rem' }}>
             {dmUsersLoading ? (
               <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--muted)' }}>{t('loading_users')}</div>
             ) : availableDMUsers.length === 0 ? (
@@ -3299,11 +3727,14 @@ const ChatPage = memo(() => {
                   const search = dmUserSearch.toLowerCase();
                   return name.includes(search) || email.includes(search);
                 })
+                .filter(u => {
+                  if (!dmRoleFilter) return true;
+                  return resolveUserRole(u) === dmRoleFilter;
+                })
                 .map(u => {
-                  const name = `${u.firstName || ''} ${u.lastName || ''}`.trim() || u.email || t('unknown');
+                  const name = getChatUserDisplayName(u, lang);
                   const initials = name.charAt(0).toUpperCase();
-                  const roles = (u.roleAssignments || []).map(ra => ra.role?.code).filter(Boolean);
-                  const roleLabel = roles.includes('superadmin') ? t('super_admin') : roles.includes('admin') ? t('admin') : roles.includes('hr') ? t('hr') : roles.includes('instructor') ? t('instructor') : roles.includes('student') ? t('student') : '';
+                  const role = resolveUserRole(u);
                   return (
                     <div
                       key={u.id}
@@ -3312,16 +3743,31 @@ const ChatPage = memo(() => {
                       onMouseEnter={(e) => e.currentTarget.style.background = 'var(--hover)'}
                       onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                     >
-                      <div style={{ width: 36, height: 36, borderRadius: '50%', background: '#800020', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.9rem' }}>
-                        {initials}
-                      </div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{name}</div>
+                      {u.profileImageUrl ? (
+                        <img src={u.profileImageUrl} alt={name} style={{ width: 36, height: 36, borderRadius: '50%', objectFit: 'cover' }} />
+                      ) : (
+                        <div style={{ width: 36, height: 36, borderRadius: '50%', background: 'linear-gradient(135deg,var(--brand),var(--brand2))', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 700, fontSize: '0.9rem' }}>
+                          {initials}
+                        </div>
+                      )}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                          {role && <RoleBadge user={u} size={10} fontSize="0.7rem" style={{ borderRadius: 8, padding: '1px 5px' }} />}
+                          {role === 'student' && u.enrollmentCount > 0 && (
+                            <span title={t('enrolled_classes')} style={{ fontSize: '0.65rem', background: 'var(--bg)', color: 'var(--muted)', padding: '1px 5px', borderRadius: 8, fontWeight: 500, whiteSpace: 'nowrap' }}>
+                              {u.enrollmentCount} {t('classes')}
+                            </span>
+                          )}
+                          {role === 'instructor' && u.classCount > 0 && (
+                            <span title={t('teaching_classes')} style={{ fontSize: '0.65rem', background: 'var(--bg)', color: 'var(--muted)', padding: '1px 5px', borderRadius: 8, fontWeight: 500, whiteSpace: 'nowrap' }}>
+                              {u.classCount} {t('classes')}
+                            </span>
+                          )}
+                          <span style={{ fontWeight: 600, fontSize: '0.9rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
+                        </div>
                         <div style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>{u.email}</div>
                       </div>
-                      {roleLabel && (
-                        <span style={{ fontSize: '0.7rem', background: 'var(--brand)', color: 'white', padding: '2px 8px', borderRadius: 4, fontWeight: 600 }}>{roleLabel}</span>
-                      )}
+                      {getThemedIcon('ui', 'message_square', 16, theme)}
                     </div>
                   );
                 })
@@ -3340,6 +3786,7 @@ const ChatPage = memo(() => {
             {!selectedClass?.startsWith('dm:') && (
               <input
                 type="text"
+                autoComplete="off"
                 placeholder={t('chat_search_members')}
                 value={memberSearch}
                 onChange={(e) => setMemberSearch(e.target.value)}
@@ -3478,7 +3925,7 @@ const ChatPage = memo(() => {
                     try {
                       // For class members: show X if unenrolled from this specific class
                       const isDeleted = !m || m.deleted;
-                      const isDisabled = m?.disabled || m?.isDisabled;
+                      const isDisabled = m?.disabled || m?.isDisabled || m?.isActive === false;
                       const isUnenrolled = selectedClass && selectedClass !== 'global' && !selectedClass.startsWith('dm:') && 
                         m.isStudent === true && !(Array.isArray(m.enrolledClasses) && m.enrolledClasses.includes(selectedClass));
                       const showIndicator = isDeleted || isDisabled || isUnenrolled;
@@ -3503,7 +3950,7 @@ const ChatPage = memo(() => {
                     </div>
                     <div>
                       <div style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 6 }}>
-                        <RoleBadge userObj={m} />
+                        <RoleBadge user={m} />
                         {m.displayName || m.email}
                         {m.studentNumber && (
                           <span style={{ fontSize: '0.75rem', color: 'var(--muted)', fontWeight: 'normal' }}>
@@ -3575,10 +4022,42 @@ const ChatPage = memo(() => {
     <GroupChatModal
       isOpen={showGroupModal}
       onClose={() => setShowGroupModal(false)}
-      onGroupCreated={(newRoom) => {
-        // Refresh rooms to include new group
-        loadRooms?.();
-        // Select the new room if possible
+      onGroupCreated={async (newRoom) => {
+        // Manually refresh rooms since subscription doesn't auto-update
+        try {
+          const result = await chatService.getUserRooms();
+          if (result.success) {
+            const rooms = [];
+            result.data.forEach(r => {
+              if (r.type === 'dm') {
+                rooms.push({
+                  id: r.id,
+                  participantA: r.participantA,
+                  participantB: r.participantB,
+                  userA: r.userA,
+                  userB: r.userB,
+                  type: 'dm',
+                  lastMessage: null,
+                  createdAt: r.createdAt
+                });
+              } else if (r.type === 'group') {
+                rooms.push({
+                  id: r.id,
+                  type: 'group',
+                  name: r.name,
+                  createdBy: r.createdBy,
+                  participants: r.participants,
+                  creator: r.creator,
+                  lastMessage: null,
+                  createdAt: r.createdAt
+                });
+              }
+            });
+            setDirectRooms(mergeStarData(rooms));
+          }
+        } catch (e) {
+          error('Failed to refresh rooms after group creation:', e);
+        }
         if (newRoom?.id) {
           setSelectedClass(`group:${newRoom.id}`);
         }
@@ -3597,10 +4076,134 @@ const ChatPage = memo(() => {
         }
         return null;
       })()}
-      currentUserId={user?.id}
-      onParticipantsChanged={() => {
-        // Refresh rooms to get updated participant counts
-        loadRooms?.();
+      currentUserId={user?.dbId}
+      onParticipantsChanged={async () => {
+        // Manually refresh rooms to get updated participant counts
+        try {
+          const result = await chatService.getUserRooms();
+          if (result.success) {
+            const rooms = [];
+            result.data.forEach(r => {
+              if (r.type === 'dm') {
+                rooms.push({
+                  id: r.id,
+                  participantA: r.participantA,
+                  participantB: r.participantB,
+                  userA: r.userA,
+                  userB: r.userB,
+                  type: 'dm',
+                  lastMessage: null,
+                  createdAt: r.createdAt
+                });
+              } else if (r.type === 'group') {
+                rooms.push({
+                  id: r.id,
+                  type: 'group',
+                  name: r.name,
+                  createdBy: r.createdBy,
+                  participants: r.participants,
+                  creator: r.creator,
+                  lastMessage: null,
+                  createdAt: r.createdAt
+                });
+              }
+            });
+            setDirectRooms(mergeStarData(rooms));
+          }
+        } catch (e) {
+          error('Failed to refresh rooms after participant change:', e);
+        }
+      }}
+    />
+
+    <GroupInfoPanel
+      isOpen={showGroupInfoPanel}
+      onClose={() => setShowGroupInfoPanel(false)}
+      roomId={(() => {
+        if (selectedClass?.startsWith('group:')) {
+          return parseInt(selectedClass.split(':')[1]);
+        }
+        if (selectedClass?.startsWith('dm:')) {
+          return parseInt(selectedClass.split(':')[1]);
+        }
+        if (classInfoRoomId) {
+          return classInfoRoomId;
+        }
+        return null;
+      })()}
+      roomName={(() => {
+        if (selectedClass === 'global') return t('global_chat');
+        if (selectedClass?.startsWith('group:')) {
+          const groupId = parseInt(selectedClass.split(':')[1]);
+          const grp = directRooms.find(r => r.id === groupId && r.type === 'group');
+          return grp?.name || t('group_chat');
+        }
+        if (selectedClass?.startsWith('dm:')) {
+          const dmId = parseInt(selectedClass.split(':')[1]);
+          const room = directRooms.find(r => r.id === dmId);
+          const otherUser = (room?.userA?.id === user?.dbId || (user?.email && room?.userA?.email === user?.email)) ? room?.userB : room?.userA;
+          return otherUser ? getChatUserDisplayName(otherUser, lang) : t('direct_message');
+        }
+        if (classInfoRoomId) {
+          return classes.find(c => c.docId === selectedClass)?.name || selectedClassName || t('chat');
+        }
+        return null;
+      })()}
+      isCreator={(() => {
+        if (selectedClass?.startsWith('group:')) {
+          const groupId = parseInt(selectedClass.split(':')[1]);
+          const grp = directRooms.find(r => r.id === groupId && r.type === 'group');
+          return grp?.createdBy === user?.dbId;
+        }
+        return false;
+      })()}
+      currentUser={user}
+      roomType={(() => {
+        if (selectedClass === 'global') return 'global';
+        if (selectedClass?.startsWith('group:')) return 'group';
+        if (selectedClass?.startsWith('dm:')) return 'dm';
+        if (classInfoRoomId) return 'class';
+        return null;
+      })()}
+      onLeaveGroup={async () => {
+        if (selectedClass?.startsWith('group:')) {
+          const groupId = parseInt(selectedClass.split(':')[1]);
+          setSelectedClass('global');
+          try {
+            const result = await chatService.getUserRooms();
+            if (result.success) {
+              const rooms = [];
+              result.data.forEach(r => {
+                if (r.type === 'dm') {
+                  rooms.push({ id: r.id, participantA: r.participantA, participantB: r.participantB, userA: r.userA, userB: r.userB, type: 'dm', lastMessage: r.lastMessage || null, lastMessageAt: r.lastMessageAt || null, createdAt: r.createdAt, starBy: r.starBy || [] });
+                } else if (r.type === 'group') {
+                  rooms.push({ id: r.id, type: 'group', name: r.name, createdBy: r.createdBy, participants: r.participants, creator: r.creator, lastMessage: r.lastMessage || null, lastMessageAt: r.lastMessageAt || null, createdAt: r.createdAt, starBy: r.starBy || [] });
+                }
+              });
+              setDirectRooms(mergeStarData(rooms));
+            }
+          } catch (e) {
+            error('Failed to refresh rooms after leaving group:', e);
+          }
+        }
+      }}
+      onAdminChanged={async () => {
+        try {
+          const result = await chatService.getUserRooms();
+          if (result.success) {
+            const rooms = [];
+            result.data.forEach(r => {
+              if (r.type === 'dm') {
+                rooms.push({ id: r.id, participantA: r.participantA, participantB: r.participantB, userA: r.userA, userB: r.userB, type: 'dm', lastMessage: r.lastMessage || null, lastMessageAt: r.lastMessageAt || null, createdAt: r.createdAt, starBy: r.starBy || [] });
+              } else if (r.type === 'group') {
+                rooms.push({ id: r.id, type: 'group', name: r.name, createdBy: r.createdBy, participants: r.participants, creator: r.creator, lastMessage: r.lastMessage || null, lastMessageAt: r.lastMessageAt || null, createdAt: r.createdAt, starBy: r.starBy || [] });
+              }
+            });
+            setDirectRooms(mergeStarData(rooms));
+          }
+        } catch (e) {
+          error('Failed to refresh rooms after admin change:', e);
+        }
       }}
     />
     </>

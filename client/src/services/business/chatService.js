@@ -261,6 +261,36 @@ export const toggleReaction = async (messageId, reactionType, remove = false) =>
 };
 
 /**
+ * Toggle star on a message
+ * @param {number} messageId - Message ID
+ * @returns {Promise<Object>} { success, data }
+ */
+export const toggleStarMessage = async (messageId) => {
+  try {
+    const data = await apiClient.post(`/chat/messages/${messageId}/star`);
+    return { success: true, data: data.data || data };
+  } catch (err) {
+    error(`[${serviceName}] Error toggling star:`, err);
+    return { success: false, error: err.message };
+  }
+};
+
+/**
+ * Toggle pin on a message (group chats only)
+ * @param {number} messageId - Message ID
+ * @returns {Promise<Object>} { success, data }
+ */
+export const togglePinMessage = async (messageId) => {
+  try {
+    const data = await apiClient.post(`/chat/messages/${messageId}/pin`);
+    return { success: true, data: data.data || data };
+  } catch (err) {
+    error(`[${serviceName}] Error toggling pin:`, err);
+    return { success: false, error: err.message };
+  }
+};
+
+/**
  * Vote on a poll
  * @param {number} messageId - Message ID
  * @param {number} optionIndex - Poll option index
@@ -289,6 +319,69 @@ export const getAvailableDMUsers = async () => {
   } catch (err) {
     error(`[${serviceName}] Error getting available users:`, err);
     return { success: false, error: err.message, data: [] };
+  }
+};
+
+/**
+ * Leave a group chat room (remove self as participant)
+ * @param {number} roomId - Group room ID
+ * @param {number} userId - User ID to remove (self)
+ * @returns {Promise<Object>} { success }
+ */
+export const leaveGroupRoom = async (roomId, userId) => {
+  try {
+    await apiClient.delete(`/chat/rooms/${roomId}/participants/${userId}`);
+    return { success: true };
+  } catch (err) {
+    error(`[${serviceName}] Error leaving group:`, err);
+    return { success: false, error: err.message };
+  }
+};
+
+/**
+ * Update group chat name (creator only)
+ * @param {number} roomId - Group room ID
+ * @param {string} name - New group name
+ * @returns {Promise<Object>} { success, data }
+ */
+export const updateGroupRoom = async (roomId, name) => {
+  try {
+    const data = await apiClient.patch(`/chat/rooms/${roomId}`, { name });
+    return { success: true, data: data.data || data };
+  } catch (err) {
+    error(`[${serviceName}] Error updating group:`, err);
+    return { success: false, error: err.message };
+  }
+};
+
+/**
+ * Get group chat room stats (messages, media, documents, links)
+ * @param {number} roomId - Group room ID
+ * @returns {Promise<Object>} { success, data }
+ */
+export const getRoomStats = async (roomId) => {
+  try {
+    const data = await apiClient.get(`/chat/rooms/${roomId}/stats`);
+    return { success: true, data: data.data || data };
+  } catch (err) {
+    error(`[${serviceName}] Error getting room stats:`, err);
+    return { success: false, error: err.message };
+  }
+};
+
+/**
+ * Assign a new admin for a group chat (transfer creator role)
+ * @param {number} roomId - Group room ID
+ * @param {number} newAdminId - User ID of the new admin
+ * @returns {Promise<Object>} { success, data }
+ */
+export const assignGroupAdmin = async (roomId, newAdminId) => {
+  try {
+    const data = await apiClient.patch(`/chat/rooms/${roomId}/assign-admin`, { newAdminId });
+    return { success: true, data: data.data || data };
+  } catch (err) {
+    error(`[${serviceName}] Error assigning admin:`, err);
+    return { success: false, error: err.message };
   }
 };
 
@@ -334,7 +427,7 @@ const roomCachePromise = new Map(); // chatKey -> Promise<roomId>
 /**
  * Resolve a chatType + chatId to a numeric room ID via the backend
  */
-const resolveRoomId = async (chatType, chatId) => {
+export const resolveRoomId = async (chatType, chatId) => {
   const cacheKey = `${chatType}:${chatId}`;
   if (roomCache.has(cacheKey)) return roomCache.get(cacheKey);
 
@@ -370,29 +463,45 @@ const resolveRoomId = async (chatType, chatId) => {
     return roomId;
   }
 
+  if (chatType === 'group') {
+    // chatId is the room ID for groups
+    const roomId = parseInt(chatId);
+    roomCache.set(cacheKey, roomId);
+    return roomId;
+  }
+
   return null;
 };
 
 /**
  * Wrap a message object in a Firebase-style doc
  */
-const wrapDoc = (msg) => ({
-  id: String(msg.id),
-  data: () => ({
-    id: msg.id,
-    text: msg.content,
-    content: msg.content,
-    senderId: msg.senderId,
-    sender: msg.senderId,
-    userId: msg.senderId,
-    type: msg.type,
-    messageType: msg.type,
-    createdAt: {
-      toDate: () => new Date(msg.createdAt),
-      toMillis: () => new Date(msg.createdAt).getTime(),
-      seconds: Math.floor(new Date(msg.createdAt).getTime() / 1000),
-      nanoseconds: 0
-    },
+const wrapDoc = (msg) => {
+  // Normalize createdAt: handle string, Date, or already-wrapped object
+  const rawCreatedAt = msg.createdAt;
+  const createdAtDate = rawCreatedAt instanceof Date
+    ? rawCreatedAt
+    : typeof rawCreatedAt === 'string' || typeof rawCreatedAt === 'number'
+      ? new Date(rawCreatedAt)
+      : rawCreatedAt?.toDate?.() || new Date();
+
+  return ({
+    id: String(msg.id),
+    data: () => ({
+      id: msg.id,
+      text: msg.content,
+      content: msg.content,
+      senderId: msg.senderId,
+      sender: msg.senderId,
+      userId: msg.senderId,
+      type: msg.type,
+      messageType: msg.type,
+      createdAt: {
+        toDate: () => createdAtDate,
+        toMillis: () => createdAtDate.getTime(),
+        seconds: Math.floor(createdAtDate.getTime() / 1000),
+        nanoseconds: 0
+      },
     timestamp: msg.createdAt,
     fileUrl: msg.fileUrl,
     fileName: msg.fileName,
@@ -407,9 +516,12 @@ const wrapDoc = (msg) => ({
     isDeleted: msg.isDeleted,
     replyTo: msg.replyToId,
     roomId: msg.roomId,
-    senderInfo: msg.sender
+    senderInfo: msg.sender,
+    starredBy: msg.starredBy || [],
+    pinnedById: msg.pinnedById ?? null
   })
-});
+  });
+};
 
 /**
  * COMPAT: Subscribe to messages (Firebase-style)
@@ -574,21 +686,30 @@ const compatSubscribeToDirectRooms = (callback) => {
     // Wrap in Firebase-style snapshot
     const snapshot = {
       forEach: (cb) => rooms.forEach(room => {
-        cb({
-          id: String(room.id),
-          data: () => ({
-            id: room.id,
-            participants: [room.participantA, room.participantB],
-            participantA: room.participantA,
-            participantB: room.participantB,
-            userA: room.userA,
-            userB: room.userB,
-            type: 'dm',
-            roomId: room.id,
-            lastMessage: null,
-            createdAt: room.createdAt
-          })
-        });
+        const isGroup = room.type === 'group';
+        const data = isGroup ? {
+          id: room.id,
+          type: 'group',
+          name: room.name,
+          createdBy: room.createdBy,
+          participants: room.participants,
+          creator: room.creator,
+          roomId: room.id,
+          lastMessage: null,
+          createdAt: room.createdAt
+        } : {
+          id: room.id,
+          participants: [room.participantA, room.participantB],
+          participantA: room.participantA,
+          participantB: room.participantB,
+          userA: room.userA,
+          userB: room.userB,
+          type: 'dm',
+          roomId: room.id,
+          lastMessage: null,
+          createdAt: room.createdAt
+        };
+        cb({ id: String(room.id), data: () => data });
       })
     };
     callback(snapshot);
@@ -599,8 +720,8 @@ const compatSubscribeToDirectRooms = (callback) => {
     if (unsubscribed) return;
 
     if (result.success) {
-      const dmRooms = result.data.filter(r => r.type === 'dm');
-      emitRooms(dmRooms);
+      const dmAndGroupRooms = result.data.filter(r => r.type === 'dm' || r.type === 'group');
+      emitRooms(dmAndGroupRooms);
     }
   })();
 
@@ -823,10 +944,24 @@ const compatSubscribeToUserReadReceiptsCompat = (recips, key, callback) => {
 };
 
 /**
- * COMPAT: Toggle star room (stub)
+ * COMPAT: Toggle star room (localStorage-based)
  */
 const compatToggleStarRoom = async (roomId, userUid) => {
-  return { success: true };
+  try {
+    const key = `chat_starred_${userUid}`;
+    const starred = JSON.parse(localStorage.getItem(key) || '[]');
+    const idStr = String(roomId);
+    const idx = starred.indexOf(idStr);
+    if (idx >= 0) {
+      starred.splice(idx, 1);
+    } else {
+      starred.push(idStr);
+    }
+    localStorage.setItem(key, JSON.stringify(starred));
+    return { success: true, starred };
+  } catch {
+    return { success: false };
+  }
 };
 
 /**
@@ -862,8 +997,15 @@ export const chatService = {
   deleteMessage: compatDeleteMessage,
   createDM,
   toggleReaction,
+  toggleStarMessage,
+  togglePinMessage,
   votePoll,
   getAvailableDMUsers,
+  leaveGroupRoom,
+  updateGroupRoom,
+  getRoomStats,
+  assignGroupAdmin,
+  resolveRoomId,
   // Compatibility API (Firebase-style)
   subscribeToMessages: compatSubscribeToMessages,
   subscribeToClasses: compatSubscribeToClasses,

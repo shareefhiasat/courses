@@ -46,7 +46,7 @@ export const getActionConfig = (action, theme = 'light') => {
     [QR_SCANNER_ACTIONS.MARK_ABSENT_WITH_EXCUSE]: {
       icon: <AlertTriangle size={18} />,
       color: '#f97316',
-      label: 'Mark Absent with Excuse',
+      label: 'Mark Absent excused',
       attendanceStatus: ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE
     },
     [QR_SCANNER_ACTIONS.MARK_HUMAN_CASE]: {

@@ -55,6 +55,7 @@ const MessageBubble = memo(({
   const longPressTimerRef = useRef(null);
 
   const isOwn = isOwnMessage(msg, user.uid);
+  const isRTL = lang === 'ar';
   const senderUser = allUsers.find(u => u.docId === msg.senderId);
   const isHighlighted = highlightedMsgId === msg.id;
   const myProfile = allUsers.find(u => u.docId === user?.uid);
@@ -275,18 +276,18 @@ const MessageBubble = memo(({
     return (
       <div style={{ 
         position:'absolute', 
-        left: isOwn ? -22 : 'auto', 
-        right: isOwn ? 'auto' : -22, 
+        left: (isOwn && !isRTL) || (!isOwn && isRTL) ? -22 : 'auto', 
+        right: (isOwn && !isRTL) || (!isOwn && isRTL) ? 'auto' : -22, 
         top: '50%', 
         transform:'translateY(-50%)', 
         display:'flex', 
         flexDirection:'row', 
         gap:6,
-        padding: '4px',
-        background: 'var(--panel)',
-        border: '1px solid var(--border)',
+        padding: '2px',
+        background: 'transparent',
+        border: 'none',
         borderRadius: 16,
-        boxShadow: '0 4px 12px rgba(0,0,0,0.12), 0 2px 4px rgba(0,0,0,0.08)'
+        boxShadow: 'none'
       }}>
         {reactions.map(({ reaction, count, color, icon }) => {
           const active = msg.reactions[user.uid] === reaction;
@@ -304,12 +305,12 @@ const MessageBubble = memo(({
               title={`${count} ${count === 1 ? 'reaction' : 'reactions'}`}
               style={{ 
                 background: active ? `${color}20` : 'transparent',
-                border: active ? `1px solid ${color}` : '1px solid var(--border)',
+                border: active ? `1px solid ${color}` : 'none',
                 borderRadius:12, 
                 padding:'4px 8px', 
                 fontSize:'0.85rem', 
                 cursor:'pointer', 
-                boxShadow:'0 2px 4px rgba(0,0,0,0.08)', 
+                boxShadow:'none', 
                 opacity: active?1:0.9,
                 transition:'all 0.2s ease',
                 display:'flex',
@@ -491,7 +492,7 @@ const MessageBubble = memo(({
         {/* Timestamp + Receipts */}
         <div style={{
           fontSize: '0.7rem',
-          marginTop: '0.25rem',
+          marginTop: '0.5rem',
           opacity: 0.7,
           color: getUserThemeColor()
         }}>
@@ -512,7 +513,7 @@ const MessageBubble = memo(({
           style={{ 
             position:'absolute', 
             bottom: -12, 
-            [isOwn?'right':'left']: -16, 
+            [(isOwn && !isRTL) || (!isOwn && isRTL) ?'right':'left']: -16, 
             background:'linear-gradient(135deg, #ffffff, #f8f9fa)', 
             border:'2px solid #e9ecef', 
             borderRadius:'50%', 

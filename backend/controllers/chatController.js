@@ -118,12 +118,20 @@ export const getMessages = async (req, res) => {
     });
 
     // Check access permissions
-    const hasAccess = 
+    let hasAccess = 
       isStaffAdmin || // Admin/HR can access all rooms
       room.type === 'global' || // Everyone can access global
       (room.type === 'class' && room.class.enrollments.length > 0) || // Enrolled in class
       (room.type === 'class' && room.class.instructorId === userId) || // Instructor of class
       (room.type === 'dm' && (room.participantA === userId || room.participantB === userId)); // Participant in DM
+
+    // For group chats, check if user is a participant
+    if (!hasAccess && room.type === 'group') {
+      const groupParticipant = await prisma.chatRoomParticipant.findFirst({
+        where: { roomId: parseInt(roomId), userId }
+      });
+      hasAccess = !!groupParticipant;
+    }
 
     if (!hasAccess) {
       return res.status(403).json({
@@ -697,7 +705,9 @@ export const createGroupRoom = async (req, res) => {
       }
     });
     const userRoles = user.roleAssignments.map(ra => ra.role.code);
-    const isStaff = userRoles.some(role => ['instructor', 'hr', 'admin', 'super_admin'].includes(role));
+    const isStaff = userRoles.some(role => 
+      ['instructor', 'hr', 'admin', 'super_admin'].includes(role.toLowerCase())
+    );
     
     if (!isStaff) {
       return res.status(403).json({ success: false, error: 'Only staff can create group chats' });
@@ -713,17 +723,30 @@ export const createGroupRoom = async (req, res) => {
       return res.status(400).json({ success: false, error: 'At least one participant is required' });
     }
 
+    // Validate participant IDs exist
+    const validUsers = await prisma.user.findMany({
+      where: { id: { in: participantIds }, isActive: true },
+      select: { id: true }
+    });
+    const validIds = validUsers.map(u => u.id);
+    const invalidIds = participantIds.filter(id => !validIds.includes(id));
+    if (invalidIds.length > 0) {
+      return res.status(400).json({ 
+        success: false, 
+        error: `${invalidIds.length} participant(s) not found or inactive` 
+      });
+    }
+
     // Create group room
+    // Creator is added as participant by default but can leave later
+    const allParticipantIds = [...new Set([userId, ...participantIds])];
     const room = await prisma.chatRoom.create({
       data: {
         type: 'group',
         name: name.trim(),
         createdBy: userId,
         participants: {
-          create: [
-            { userId }, // Creator is automatically a participant
-            ...participantIds.filter(id => id !== userId).map(id => ({ userId: id }))
-          ]
+          create: allParticipantIds.map(id => ({ userId: id }))
         }
       },
       include: {
@@ -837,13 +860,9 @@ export const removeParticipant = async (req, res) => {
       return res.status(404).json({ success: false, error: 'Group chat not found' });
     }
 
-    if (room.createdBy !== userId) {
+    // Allow creator to leave (remove themselves) but prevent removing others unless creator
+    if (parseInt(participantUserId) !== userId && room.createdBy !== userId) {
       return res.status(403).json({ success: false, error: 'Only the group creator can remove participants' });
-    }
-
-    // Cannot remove creator
-    if (parseInt(participantUserId) === room.createdBy) {
-      return res.status(400).json({ success: false, error: 'Cannot remove group creator' });
     }
 
     // Remove participant
@@ -932,6 +951,312 @@ export const updateGroupRoom = async (req, res) => {
   }
 };
 
+/**
+ * Get group chat room stats (admin only)
+ * GET /api/v1/chat/rooms/:roomId/stats
+ */
+export const getRoomStats = async (req, res) => {
+  try {
+    const { roomId } = req.params;
+    const userId = resolveDbUserId(req);
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'User not found in database' });
+    }
+
+    const room = await prisma.chatRoom.findUnique({
+      where: { id: parseInt(roomId) },
+      include: {
+        participants: {
+          include: {
+            user: {
+              select: {
+                id: true, firstName: true, lastName: true, displayName: true, profileImageUrl: true,
+                email: true, studentNumber: true,
+                roleAssignments: { include: { role: { select: { code: true, nameEn: true } } } },
+                _count: { select: { enrollments: true, chatRoomParticipations: true } }
+              }
+            }
+          }
+        },
+        creator: {
+          select: { id: true, firstName: true, lastName: true, displayName: true }
+        },
+        class: {
+          select: { id: true, nameEn: true, nameAr: true, code: true }
+        }
+      }
+    });
+
+    if (!room) {
+      return res.status(404).json({ success: false, error: 'Chat room not found' });
+    }
+
+    // Verify user is a participant (for group/DM) or has access (for class/global)
+    if (room.type === 'group') {
+      const isParticipant = room.participants?.some(p => p.userId === userId);
+      if (!isParticipant) {
+        return res.status(403).json({ success: false, error: 'Access denied' });
+      }
+    } else if (room.type === 'dm') {
+      if (room.participantA !== userId && room.participantB !== userId) {
+        return res.status(403).json({ success: false, error: 'Access denied' });
+      }
+    }
+
+    // Get message stats
+    const messages = await prisma.chatMessage.findMany({
+      where: { roomId: parseInt(roomId), isDeleted: false },
+      select: { id: true, type: true, content: true, fileName: true, fileType: true, fileUrl: true, createdAt: true, senderId: true },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    const totalMessages = messages.length;
+    const mediaMessages = messages.filter(m => m.type === 'file' && m.fileType && m.fileType.startsWith('image/'));
+    const documentMessages = messages.filter(m => m.type === 'file' && (!m.fileType || !m.fileType.startsWith('image/')));
+    const voiceMessages = messages.filter(m => m.type === 'voice');
+    const linkMessages = messages.filter(m => m.type === 'text' && m.content && /https?:\/\/\S+/i.test(m.content));
+
+    res.json({
+      success: true,
+      data: {
+        roomId: room.id,
+        name: room.name,
+        type: room.type,
+        createdAt: room.createdAt,
+        createdBy: room.createdBy,
+        creator: room.creator,
+        participantCount: room.participants?.length || 0,
+        participants: room.participants || [],
+        totalMessages,
+        mediaCount: mediaMessages.length,
+        mediaItems: mediaMessages.slice(0, 50).map(m => ({
+          id: m.id, fileName: m.fileName, fileUrl: m.fileUrl, fileType: m.fileType, createdAt: m.createdAt, senderId: m.senderId
+        })),
+        documentCount: documentMessages.length,
+        documentItems: documentMessages.slice(0, 50).map(m => ({
+          id: m.id, fileName: m.fileName, fileUrl: m.fileUrl, fileType: m.fileType, createdAt: m.createdAt, senderId: m.senderId
+        })),
+        voiceCount: voiceMessages.length,
+        linkCount: linkMessages.length,
+        linkItems: linkMessages.slice(0, 50).map(m => {
+          const urlMatch = m.content.match(/https?:\/\/\S+/i);
+          return { id: m.id, url: urlMatch ? urlMatch[0] : '', content: m.content?.substring(0, 100), createdAt: m.createdAt, senderId: m.senderId };
+        })
+      }
+    });
+  } catch (error) {
+    console.error('[chatController] Error in getRoomStats:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+/**
+ * Toggle star on a message (any user can star)
+ * POST /api/v1/chat/messages/:messageId/star
+ */
+export const toggleStarMessage = async (req, res) => {
+  try {
+    const { messageId } = req.params;
+    const userId = resolveDbUserId(req);
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'User not found in database' });
+    }
+
+    const message = await prisma.chatMessage.findUnique({
+      where: { id: parseInt(messageId) },
+      include: { room: true }
+    });
+
+    if (!message || message.isDeleted) {
+      return res.status(404).json({ success: false, error: 'Message not found' });
+    }
+
+    // Verify user has access to the room
+    const room = message.room;
+    let hasAccess = room.type === 'global';
+    if (!hasAccess) {
+      if (room.type === 'dm') {
+        hasAccess = room.participantA === userId || room.participantB === userId;
+      } else if (room.type === 'group') {
+        const participant = await prisma.chatRoomParticipant.findFirst({
+          where: { roomId: room.id, userId }
+        });
+        hasAccess = !!participant;
+      } else if (room.type === 'class') {
+        const userRecord = await prisma.user.findUnique({
+          where: { id: userId },
+          include: { roleAssignments: { include: { role: true } } }
+        });
+        const userRoles = userRecord?.roleAssignments?.map(ra => ra.role.code) || [];
+        const isStaff = userRoles.some(r => ['admin', 'super_admin', 'superadmin', 'hr', 'instructor'].includes(r?.toLowerCase()));
+        hasAccess = isStaff || (room.classId && await prisma.enrollment.findFirst({
+          where: { classId: room.classId, studentId: userId }
+        }));
+      }
+    }
+
+    if (!hasAccess) {
+      return res.status(403).json({ success: false, error: 'Access denied' });
+    }
+
+    const starredBy = Array.isArray(message.starredBy) ? message.starredBy : [];
+    const userIdNum = userId;
+    const isStarred = starredBy.includes(userIdNum);
+
+    const updated = await prisma.chatMessage.update({
+      where: { id: parseInt(messageId) },
+      data: {
+        starredBy: isStarred
+          ? starredBy.filter(id => id !== userIdNum)
+          : [...starredBy, userIdNum]
+      }
+    });
+
+    res.json({
+      success: true,
+      data: {
+        messageId: updated.id,
+        starredBy: updated.starredBy,
+        isStarred: !isStarred
+      }
+    });
+  } catch (error) {
+    console.error('[chatController] Error in toggleStarMessage:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+/**
+ * Toggle pin on a message (group chats only, one pinned message per room)
+ * POST /api/v1/chat/messages/:messageId/pin
+ */
+export const togglePinMessage = async (req, res) => {
+  try {
+    const { messageId } = req.params;
+    const userId = resolveDbUserId(req);
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'User not found in database' });
+    }
+
+    const message = await prisma.chatMessage.findUnique({
+      where: { id: parseInt(messageId) },
+      include: { room: true }
+    });
+
+    if (!message || message.isDeleted) {
+      return res.status(404).json({ success: false, error: 'Message not found' });
+    }
+
+    // Only group chats support pinning
+    if (message.room.type !== 'group') {
+      return res.status(400).json({ success: false, error: 'Pinning is only available in group chats' });
+    }
+
+    // Verify user is a participant
+    const participant = await prisma.chatRoomParticipant.findFirst({
+      where: { roomId: message.roomId, userId }
+    });
+    if (!participant) {
+      return res.status(403).json({ success: false, error: 'Access denied' });
+    }
+
+    // If this message is already pinned, unpin it
+    if (message.pinnedById !== null) {
+      await prisma.chatMessage.update({
+        where: { id: parseInt(messageId) },
+        data: { pinnedById: null }
+      });
+      return res.json({
+        success: true,
+        data: { messageId: parseInt(messageId), isPinned: false }
+      });
+    }
+
+    // Otherwise, unpin any existing pinned message in this room, then pin this one
+    await prisma.chatMessage.updateMany({
+      where: { roomId: message.roomId, pinnedById: { not: null } },
+      data: { pinnedById: null }
+    });
+
+    const updated = await prisma.chatMessage.update({
+      where: { id: parseInt(messageId) },
+      data: { pinnedById: userId }
+    });
+
+    res.json({
+      success: true,
+      data: {
+        messageId: updated.id,
+        isPinned: true,
+        pinnedById: updated.pinnedById
+      }
+    });
+  } catch (error) {
+    console.error('[chatController] Error in togglePinMessage:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+/**
+ * Assign a new admin (transfer creator role) for a group chat
+ * PATCH /api/v1/chat/rooms/:roomId/assign-admin
+ */
+export const assignGroupAdmin = async (req, res) => {
+  try {
+    const { roomId } = req.params;
+    const { newAdminId } = req.body;
+    const userId = resolveDbUserId(req);
+    if (!userId) {
+      return res.status(401).json({ success: false, error: 'User not found in database' });
+    }
+    if (!newAdminId) {
+      return res.status(400).json({ success: false, error: 'newAdminId is required' });
+    }
+
+    const room = await prisma.chatRoom.findUnique({
+      where: { id: parseInt(roomId) },
+      include: { participants: true }
+    });
+
+    if (!room || room.type !== 'group') {
+      return res.status(404).json({ success: false, error: 'Group chat not found' });
+    }
+    if (room.createdBy !== userId) {
+      return res.status(403).json({ success: false, error: 'Only the current admin can assign a new admin' });
+    }
+    const targetParticipant = room.participants.find(p => p.userId === parseInt(newAdminId));
+    if (!targetParticipant) {
+      return res.status(400).json({ success: false, error: 'Target user is not a participant' });
+    }
+
+    const updatedRoom = await prisma.chatRoom.update({
+      where: { id: parseInt(roomId) },
+      data: { createdBy: parseInt(newAdminId) },
+      include: {
+        participants: {
+          include: {
+            user: {
+              select: { id: true, displayName: true, firstName: true, lastName: true, profileImageUrl: true }
+            }
+          }
+        },
+        creator: {
+          select: { id: true, firstName: true, lastName: true, displayName: true }
+        }
+      }
+    });
+
+    res.json({
+      success: true,
+      data: updatedRoom,
+      message: 'Admin assigned successfully'
+    });
+  } catch (error) {
+    console.error('[chatController] Error in assignGroupAdmin:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
 export default {
   getRooms,
   getMessages,
@@ -945,5 +1270,9 @@ export default {
   createGroupRoom,
   addParticipant,
   removeParticipant,
-  updateGroupRoom
+  updateGroupRoom,
+  getRoomStats,
+  toggleStarMessage,
+  togglePinMessage,
+  assignGroupAdmin
 };

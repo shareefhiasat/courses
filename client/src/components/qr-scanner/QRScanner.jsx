@@ -8,7 +8,7 @@ import { Upload } from 'lucide-react';
 import jsQR from 'jsqr';
 import { getAttendanceByClass, deleteAttendance, rosterQuickAction, markAttendance } from '@services/business/attendanceServiceUnified.js';
 import { deleteStandupAttendance, getStandupAttendanceByUserAndDate, getStandupAttendanceByProgramAndDate } from '@services/business/standupAttendanceService.js';
-import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, ATTENDANCE_TYPE_CATEGORY, getAttendanceIcon, getAttendanceColor, getAttendanceLabel, getLocalizedAttendanceLabel } from '@constants/attendanceTypes';
+import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, ATTENDANCE_TYPE_CATEGORY, getAttendanceIcon, getAttendanceColor, getAttendanceLabel, getLocalizedAttendanceLabel, getStatusCodeFromRecord } from '@constants/attendanceTypes';
 import { QUICK_NOTE_TYPES, MANUAL_NOTE_TYPES, QR_NOTE_TYPES, STANDUP_NOTE_TYPES, getNoteTypeFromStatus, getLocalizedNoteText } from '@constants/noteTypes';
 import { ATTENDANCE_METHODS } from '@constants/attendanceMethods';
 import { isAdmin, isSuperAdmin, isStudent } from '@utils/userUtils';
@@ -24,7 +24,7 @@ import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useLookupTypes } from '@hooks/useLookupTypes.js';
-import { usePermissions } from '@hooks/usePermissions';
+import { useQRPermissions } from '@hooks/useQRPermissions';
 import { useToast } from '@ui';
 import PortalTooltip from '@ui/PortalTooltip';
 import { getLocalizedUserName } from '@utils/localizedUserName';
@@ -99,16 +99,17 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
   const { theme } = useTheme();
   const { showSuccess, showError } = useToast();
   const { isEnabled, loading: featureLoading } = useFeatureFlags();
-  const { hasPermission } = usePermissions();
-  const canManualInput = hasPermission('qr-scanner.canManualInput');
-  const canDeleteAttendance = hasPermission('qr-scanner.canDeleteAttendance');
-  const canClearToday = hasPermission('qr-scanner.canClearToday');
-  const canEditAttendance = hasPermission('qr-scanner.canEditAttendance');
-  const canUseStatsPanel = hasPermission('qr-scanner.canUseStatsPanel');
-  const canUseZapPanel = hasPermission('qr-scanner.canUseZapPanel');
-  const canSeeQuickButtons = hasPermission('qr-scanner.canSeeQuickButtons');
-  const canMarkAttendance = hasPermission('qr-scanner.canMarkAttendance');
-  const canBulkScan = hasPermission('qr-scanner.canBulkScan');
+  const {
+    canManualInput,
+    canDeleteAttendance,
+    canClearToday,
+    canEditAttendance,
+    canUseStatsPanel,
+    canUseZapPanel,
+    canSeeQuickButtons,
+    canMarkAttendance,
+    canBulkScan
+  } = useQRPermissions();
   const { activityTypeOptions, loading: lookupLoading } = useLookupTypes();
 
   // Refs must be defined before early return (React Hooks rule)
@@ -1088,7 +1089,13 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       } else {
         // In regular mode, fetch from regular attendance table for the class
         const attendanceResponse = await getAttendanceByClass(classId, { date: activityDate });
-        attendanceRecords = attendanceResponse.success ? attendanceResponse.data.filter(r => r.status).map(r => ({ ...r, category: RECORD_TYPES.ATTENDANCE })) : [];
+        attendanceRecords = attendanceResponse.success ? attendanceResponse.data.filter(r => {
+          if (!r.status) return false;
+          // Filter out standup attendance entries in regular mode
+          const statusCode = typeof r.status === 'object' ? r.status?.code : r.status;
+          if (statusCode && String(statusCode).toUpperCase().startsWith('STANDUP_')) return false;
+          return true;
+        }).map(r => ({ ...r, category: RECORD_TYPES.ATTENDANCE })) : [];
       }
 
       // Get penalties, participations, behaviors for the selected date
@@ -1254,12 +1261,13 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
               || 'Behavior';
         } else if (record.status) {
           // For attendance records, check if we should show method label instead of notes
+          const statusCode = getStatusCodeFromRecord(record);
           if (record.method && shouldShowMethodLabel(record.method, activityLabel)) {
             // Use localized method label instead of notes
-            finalLabel = getAttendanceMethodLabel(record.method, t, lang) || getLocalizedAttendanceLabel(record.status, lang) || record.status || 'Attendance';
+            finalLabel = getAttendanceMethodLabel(record.method, t, lang) || getLocalizedAttendanceLabel(statusCode, lang) || statusCode || 'Attendance';
           } else {
             // Use original attendance status label
-            finalLabel = getLocalizedAttendanceLabel(record.status, lang) || record.status || 'Attendance';
+            finalLabel = getLocalizedAttendanceLabel(statusCode, lang) || statusCode || 'Attendance';
           }
         }
 
@@ -1281,7 +1289,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           studentName,
           studentNameEn,
           studentNameAr,
-          status: record.status || null,
+          status: getStatusCodeFromRecord(record) || null,
           delta: recordPoints,
           points: recordPoints,
           label: finalLabel,
@@ -1959,8 +1967,13 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     }
   }, [classId, students, fetchRecentActivity]);
 
-  // Notify parent when minimization state changes
+  // Notify parent when minimization state changes (skip if change came from forceMinimized)
+  const skipNotifyRef = useRef(false);
   useEffect(() => {
+    if (skipNotifyRef.current) {
+      skipNotifyRef.current = false;
+      return;
+    }
     if (onMinimizeChange) {
       onMinimizeChange(isMinimized);
     }
@@ -1969,6 +1982,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
   // Handle forceMinimized prop
   useEffect(() => {
     if (forceMinimized !== isMinimized) {
+      skipNotifyRef.current = true;
       setIsMinimized(forceMinimized);
     }
   }, [forceMinimized]);
@@ -2000,12 +2014,12 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
   return (
       <CollapsibleSection
           ref={scannerRef}
-          sectionId="qr-scanner"
+          sectionId="qr-scanner-v2"
            title={t('activity_list') || 'Activity list'}
           titleStyle={{ fontSize: '0.75rem' }}
           icon={<QrCodeIcon />}
           color="#8b5cf6"
-          defaultMode="full"
+          defaultMode="minimize"
           onModeChange={(mode) => {
             const isMinimized = mode === 'minimize';
             setIsMinimized(isMinimized);

@@ -10,16 +10,37 @@ import {
   VOICE_RECORDING_DEFAULTS,
   VALIDATION_RULES 
 } from '../constants/chatConstants';
-import { ROLE_STRINGS } from '@utils/userUtils';
+import { ROLE_STRINGS, resolveUserRole } from '@utils/userUtils';
+import { getUserRoles } from '@services/business/userService';
 import { getVoiceRecordingLimits } from '@constants';
 
 
-import { info, error, warn, debug } from '@services/utils/logger.js';/**
+import { info, error, warn, debug } from '@services/utils/logger.js';
+
+/**
+ * Normalize any user object into a chat-compatible format with docId, uid, and role.
+ * Shared by useChatActions and useChatSubscriptions (previously duplicated).
+ */
+export const normalizeChatUser = (u) => {
+  if (!u) return u;
+  if (u.docId) return u;
+  const roles = getUserRoles(u);
+  const roleCode = resolveUserRole({ ...u, roles }) || roles[0];
+  return {
+    ...u,
+    docId: u.keycloakId || u.uid || String(u.id),
+    uid: u.keycloakId || u.uid || String(u.id),
+    isStudent: roles.includes('student') || roleCode === 'student',
+    role: roleCode,
+    enrolledClasses: u.enrolledClasses || []
+  };
+};/**
  * Get chat type from selected class string
  */
 export const getChatType = (selectedClass) => {
   if (selectedClass === 'global') return CHAT_TYPES.GLOBAL;
   if (selectedClass?.startsWith('dm:')) return CHAT_TYPES.DM;
+  if (selectedClass?.startsWith('group:')) return CHAT_TYPES.GROUP;
   return CHAT_TYPES.CLASS;
 };
 
@@ -29,6 +50,7 @@ export const getChatType = (selectedClass) => {
 export const getChatId = (selectedClass) => {
   if (selectedClass === 'global') return 'global';
   if (selectedClass?.startsWith('dm:')) return selectedClass.slice(3);
+  if (selectedClass?.startsWith('group:')) return selectedClass.slice(6);
   return selectedClass;
 };
 
@@ -327,7 +349,7 @@ export const getReactionIcon = (reaction, theme, getThemedIcon, getColoredIcon) 
   };
   
   const iconName = iconMap[reaction] || 'smile';
-  return getThemedIcon('ui', iconName, 14, theme);
+  return getThemedIcon('ui', iconName, 18, theme);
 };
 
 /**

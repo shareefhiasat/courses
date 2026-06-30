@@ -6,6 +6,7 @@ import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
 // import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes'; // Removed - notifications now handled by backend
 import { getCreateAuditData, getUpdateAuditData } from '@utils/auditHelper';
 import behaviorDbService from '../db/behaviorDbService-postgres.js';
+import api from '@services/api/index.js';
 
 const serviceName = 'behaviorService';
 
@@ -85,6 +86,7 @@ export async function createBehavior({
     }
 
     const result = await behaviorDbService.create(payload);
+    api.clearCacheByPrefix('/behaviors');
 
     // Check if database operation was successful
     if (!result || !result.success || !result.data || !result.data.id) {
@@ -140,6 +142,7 @@ export async function updateBehavior(behaviorId, updateData, user) {
         changes: Object.keys(updateData)
       }]
     });
+    api.clearCacheByPrefix('/behaviors');
 
     // Log activity
     try {
@@ -188,6 +191,7 @@ export async function deleteBehavior(behaviorId, behaviorData = null) {
     }
     
     const result = await behaviorDbService.delete(behaviorId);
+    api.clearCacheByPrefix('/behaviors');
     info(`${serviceName}:deleteBehavior:success`, { behaviorId });
     
     // Log activity

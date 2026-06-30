@@ -145,7 +145,7 @@ const AttendanceViolationsModal = ({
           }}>
             {[
               { key: 'absentNoExcuse', label: t('absent_no_excuse') || 'Absent (No Excuse)' },
-              { key: 'absentWithExcuse', label: t('absent_with_excuse') || 'Absent (With Excuse)' },
+              { key: 'absentWithExcuse', label: t('absent_with_excuse') || 'Absent excused' },
               { key: 'excusedLeave', label: t('excused_leave') || 'Excused Leave' },
               { key: 'late', label: t('late') || 'Late' },
               { key: 'humanCase', label: t('human_case') || 'Human Case' }

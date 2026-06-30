@@ -46,12 +46,14 @@ export const getOrCreateRoom = async ({ type, classId, participantA, participant
           userA: {
             select: {
               id: true, firstName: true, lastName: true, email: true,
+              displayName: true, displayNameAr: true, firstNameAr: true, lastNameAr: true,
               roleAssignments: { include: { role: { select: { code: true, nameEn: true } } } }
             }
           },
           userB: {
             select: {
               id: true, firstName: true, lastName: true, email: true,
+              displayName: true, displayNameAr: true, firstNameAr: true, lastNameAr: true,
               roleAssignments: { include: { role: { select: { code: true, nameEn: true } } } }
             }
           }
@@ -66,12 +68,14 @@ export const getOrCreateRoom = async ({ type, classId, participantA, participant
           userA: {
             select: {
               id: true, firstName: true, lastName: true, email: true,
+              displayName: true, displayNameAr: true, firstNameAr: true, lastNameAr: true,
               roleAssignments: { include: { role: { select: { code: true, nameEn: true } } } }
             }
           },
           userB: {
             select: {
               id: true, firstName: true, lastName: true, email: true,
+              displayName: true, displayNameAr: true, firstNameAr: true, lastNameAr: true,
               roleAssignments: { include: { role: { select: { code: true, nameEn: true } } } }
             }
           }
@@ -205,12 +209,14 @@ export const getUserRooms = async (userId, roles = [], enrolledClassIds = []) =>
         userA: {
           select: {
             id: true, firstName: true, lastName: true, email: true, profileImageUrl: true,
+            displayName: true, displayNameAr: true, firstNameAr: true, lastNameAr: true,
             roleAssignments: { include: { role: { select: { code: true, nameEn: true } } } }
           }
         },
         userB: {
           select: {
             id: true, firstName: true, lastName: true, email: true, profileImageUrl: true,
+            displayName: true, displayNameAr: true, firstNameAr: true, lastNameAr: true,
             roleAssignments: { include: { role: { select: { code: true, nameEn: true } } } }
           }
         },
@@ -249,7 +255,20 @@ export const getUserRooms = async (userId, roles = [], enrolledClassIds = []) =>
                 firstName: true,
                 lastName: true,
                 displayName: true,
-                profileImageUrl: true
+                email: true,
+                profileImageUrl: true,
+                studentNumber: true,
+                roleAssignments: {
+                  include: {
+                    role: { select: { code: true, nameEn: true } }
+                  }
+                },
+                _count: {
+                  select: {
+                    enrollments: true,
+                    chatRoomParticipations: true
+                  }
+                }
               }
             }
           }
@@ -635,13 +654,23 @@ export const getAvailableDMUsers = async (userId, userRoles = []) => {
         id: true,
         firstName: true,
         lastName: true,
+        displayName: true,
         email: true,
         profileImageUrl: true,
+        isActive: true,
+        studentNumber: true,
         roleAssignments: {
           include: {
             role: {
               select: { code: true, nameEn: true }
             }
+          }
+        },
+        _count: {
+          select: {
+            enrollments: true,
+            instructorClasses: true,
+            chatRoomParticipations: true
           }
         }
       },
@@ -651,7 +680,13 @@ export const getAvailableDMUsers = async (userId, userRoles = []) => {
       ]
     });
 
-    return users;
+    return users.map(u => ({
+      ...u,
+      enrollmentCount: u._count?.enrollments || 0,
+      classCount: u._count?.instructorClasses || 0,
+      groupCount: u._count?.chatRoomParticipations || 0,
+      _count: undefined
+    }));
   } catch (error) {
     console.error('[chat-postgres] Error in getAvailableDMUsers:', error);
     throw error;

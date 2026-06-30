@@ -10,24 +10,9 @@ import { useTheme } from '@contexts/ThemeContext';
 import { useToast } from '@ui';
 import { apiService } from '@services/api/apiService';
 import { getThemedIcon, getIconWithColor, getUserRoleColor } from '@constants/iconTypes';
+import { resolveUserRole, getChatUserDisplayName } from '@utils/userUtils';
+import RoleBadge from './RoleBadge';
 import styles from './GroupChatModal.module.css';
-
-const getRoleFromUser = (user) => {
-  let role = user.role;
-  if (!role) {
-    if (user.isSuperAdmin) role = 'super_admin';
-    else if (user.isAdmin) role = 'admin';
-    else if (user.isHR) role = 'hr';
-    else if (user.isInstructor) role = 'instructor';
-    else if (user.isStudent) role = 'student';
-  }
-  if (!role && Array.isArray(user.roleAssignments) && user.roleAssignments.length > 0) {
-    const priority = ['super_admin', 'admin', 'hr', 'instructor', 'student'];
-    const codes = user.roleAssignments.map(ra => ra?.role?.code?.toLowerCase()).filter(Boolean);
-    role = priority.find(p => codes.includes(p)) || codes[0];
-  }
-  return role?.toLowerCase();
-};
 
 const GroupChatModal = ({ isOpen, onClose, onGroupCreated }) => {
   const { t, isRTL } = useLang();
@@ -40,6 +25,7 @@ const GroupChatModal = ({ isOpen, onClose, onGroupCreated }) => {
   const [selectedUsers, setSelectedUsers] = useState([]);
   const [loading, setLoading] = useState(false);
   const [creating, setCreating] = useState(false);
+  const [roleFilter, setRoleFilter] = useState(null);
 
   useEffect(() => {
     if (isOpen) {
@@ -49,6 +35,7 @@ const GroupChatModal = ({ isOpen, onClose, onGroupCreated }) => {
       setGroupName('');
       setSearchQuery('');
       setSelectedUsers([]);
+      setRoleFilter(null);
     }
   }, [isOpen]);
 
@@ -87,7 +74,7 @@ const GroupChatModal = ({ isOpen, onClose, onGroupCreated }) => {
 
       if (response?.success) {
         toast.success(t('chat_group_created'));
-        onGroupCreated?.(response.data);
+        await onGroupCreated?.(response.data);
         onClose();
       }
     } catch (error) {
@@ -114,6 +101,7 @@ const GroupChatModal = ({ isOpen, onClose, onGroupCreated }) => {
   };
 
   const filteredUsers = availableUsers.filter(user => {
+    if (roleFilter && resolveUserRole(user) !== roleFilter) return false;
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
     return (
@@ -129,7 +117,7 @@ const GroupChatModal = ({ isOpen, onClose, onGroupCreated }) => {
   return (
     <div className={styles.overlay} onClick={onClose}>
       <div 
-        className={`${styles.modal} ${isRTL ? styles.rtl : ''}`}
+        className={`${styles.drawer} ${isRTL ? styles.rtl : ''}`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className={styles.header}>
@@ -154,6 +142,7 @@ const GroupChatModal = ({ isOpen, onClose, onGroupCreated }) => {
             </label>
             <input
               type="text"
+              autoComplete="off"
               className={styles.input}
               value={groupName}
               onChange={(e) => setGroupName(e.target.value)}
@@ -171,12 +160,12 @@ const GroupChatModal = ({ isOpen, onClose, onGroupCreated }) => {
               </label>
               <div className={styles.selectedUsersList}>
                 {selectedUsers.map(user => {
-                  const role = getRoleFromUser(user);
+                  const role = resolveUserRole(user);
                   const roleColor = getUserRoleColor(role);
                   return (
                     <div key={user.id} className={styles.selectedUserChip} style={{ borderColor: roleColor, color: roleColor, background: `${roleColor}15` }}>
                       {role && getIconWithColor('user_role', role, 12, roleColor)}
-                      <span>{user.displayName || `${user.firstName} ${user.lastName}`}</span>
+                      <span>{getChatUserDisplayName(user)}</span>
                       <button
                         className={styles.removeChipButton}
                         onClick={() => toggleUserSelection(user)}
@@ -192,6 +181,38 @@ const GroupChatModal = ({ isOpen, onClose, onGroupCreated }) => {
             </div>
           )}
 
+          {/* Role Filter Chips */}
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: '0.75rem' }}>
+            {[{ key: 'all', label: t('chat_all'), icon: null, color: null },
+              { key: 'student', label: t('chat_filter_students'), icon: 'student', color: getUserRoleColor('student') },
+              { key: 'instructor', label: t('chat_filter_instructors'), icon: 'instructor', color: getUserRoleColor('instructor') },
+              { key: 'admin', label: t('chat_filter_admins'), icon: 'admin', color: getUserRoleColor('admin') },
+              { key: 'hr', label: t('chat_filter_hr'), icon: 'hr', color: getUserRoleColor('hr') },
+            ].map(chip => {
+              const isActive = (chip.key === 'all' && !roleFilter) || roleFilter === chip.key;
+              const chipColor = chip.color || '#6b7280';
+              return (
+                <button
+                  key={chip.key}
+                  type="button"
+                  onClick={() => setRoleFilter(chip.key === 'all' ? null : chip.key)}
+                  style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '0.25rem',
+                    padding: '3px 10px', borderRadius: 12,
+                    border: `1px solid ${isActive ? chipColor : 'var(--border)'}`,
+                    background: isActive ? `${chipColor}15` : 'transparent',
+                    color: isActive ? chipColor : 'var(--text)',
+                    fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer',
+                    transition: 'all 0.2s', whiteSpace: 'nowrap',
+                  }}
+                >
+                  {chip.icon && getIconWithColor('user_role', chip.icon, 12, isActive ? chipColor : '#9ca3af')}
+                  {chip.label}
+                </button>
+              );
+            })}
+          </div>
+
           {/* User Search */}
           <div className={styles.formGroup}>
             <label className={styles.label}>
@@ -200,6 +221,7 @@ const GroupChatModal = ({ isOpen, onClose, onGroupCreated }) => {
             <div className={styles.searchBox}>
               <input
                 type="text"
+                autoComplete="off"
                 className={styles.searchInput}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
@@ -218,11 +240,14 @@ const GroupChatModal = ({ isOpen, onClose, onGroupCreated }) => {
             ) : (
               filteredUsers.map(user => {
                 const isSelected = selectedUsers.some(u => u.id === user.id);
+                const role = resolveUserRole(user);
+                const isInactive = user.isActive === false;
                 return (
                   <div
                     key={user.id}
                     className={`${styles.userItem} ${isSelected ? styles.selected : ''}`}
                     onClick={() => !creating && toggleUserSelection(user)}
+                    style={isInactive ? { opacity: 0.5 } : undefined}
                   >
                     <div className={styles.userInfo}>
                       {user.profileImageUrl ? (
@@ -238,19 +263,29 @@ const GroupChatModal = ({ isOpen, onClose, onGroupCreated }) => {
                       )}
                       <div className={styles.userDetails} style={{ flexDirection: 'row', alignItems: 'center', gap: '0.5rem', flex: 1, minWidth: 0 }}>
                         {(() => {
-                          const role = getRoleFromUser(user);
                           if (!role) return null;
-                          const roleColor = getUserRoleColor(role);
                           return (
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2, fontSize: '0.7rem', background: `${roleColor}15`, color: roleColor, padding: '1px 5px', borderRadius: 8, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0 }}>
-                              {getIconWithColor('user_role', role, 10, roleColor)}
-                              {t(`role_label_${role}`) || role}
-                            </span>
+                            <RoleBadge user={user} size={10} fontSize='0.7rem' style={{ borderRadius: 8, padding: '1px 5px' }} />
                           );
                         })()}
+                        {role === 'student' && user.enrollmentCount > 0 && (
+                          <span title={t('enrolled_classes')} style={{ fontSize: '0.65rem', background: 'var(--bg)', color: 'var(--muted)', padding: '1px 5px', borderRadius: 8, fontWeight: 500, whiteSpace: 'nowrap', flexShrink: 0 }}>
+                            {user.enrollmentCount} {t('classes')}
+                          </span>
+                        )}
+                        {role === 'instructor' && user.classCount > 0 && (
+                          <span title={t('teaching_classes')} style={{ fontSize: '0.65rem', background: 'var(--bg)', color: 'var(--muted)', padding: '1px 5px', borderRadius: 8, fontWeight: 500, whiteSpace: 'nowrap', flexShrink: 0 }}>
+                            {user.classCount} {t('classes')}
+                          </span>
+                        )}
                         <span className={styles.userName} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: '0 1 auto' }}>
-                          {user.displayName || `${user.firstName} ${user.lastName}`}
+                          {getChatUserDisplayName(user)}
                         </span>
+                        {isInactive && (
+                          <span title={t('inactive_user')} style={{ fontSize: '0.65rem', background: '#dc2626', color: 'white', padding: '1px 5px', borderRadius: 8, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0 }}>
+                            {t('inactive')}
+                          </span>
+                        )}
                         {user.email && (
                           <span className={styles.userEmail} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, minWidth: 0 }}>{user.email}</span>
                         )}

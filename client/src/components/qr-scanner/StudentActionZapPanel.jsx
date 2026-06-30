@@ -8,7 +8,8 @@ import { deleteAttendance } from '@services/business/attendanceServiceUnified.js
 import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, ATTENDANCE_TYPE_CATEGORY, ATTENDANCE_TYPES, ATTENDANCE_COLORS, STANDUP_ATTENDANCE_TYPES, getAttendanceIcon, getAttendanceColor, getAttendanceLabel, getLocalizedAttendanceLabel } from '@constants/attendanceTypes';
 import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
 import { useLookupTypes } from '@hooks/useLookupTypes.js';
-import { usePermissions } from '@hooks/usePermissions';
+import { useQRPermissions } from '@hooks/useQRPermissions';
+import { useMobileDetect } from '@hooks/useMobileDetect';
 // OLD: import { BEHAVIOR_TYPES, getBehaviorLabel, getBehaviorIcon, getBehaviorColor } from '@constants/behaviorTypes';
 // OLD: import { PARTICIPATION_TYPES, getParticipationLabel, getParticipationIcon, getParticipationColor } from '@constants/participationTypes';
 // NOW: Using useLookupTypes hook for behavior and participation types
@@ -71,18 +72,10 @@ export default function StudentActionZapPanel({
   });
   const { t, lang, isRTL } = useLang();
   const { showSuccess, showError } = useToast();
-  const { hasPermission } = usePermissions();
-  const canDeleteAttendance = hasPermission('qr-scanner.canDeleteAttendance');
-  const canEditAttendance = hasPermission('qr-scanner.canEditAttendance');
+  const { canDeleteAttendance, canEditAttendance } = useQRPermissions();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedActions, setSelectedActions] = useState([]);
-  const [isMobile, setIsMobile] = useState(window.innerWidth <= 768);
-
-  useEffect(() => {
-    const handleResize = () => setIsMobile(window.innerWidth <= 768);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
+  const { isMobile } = useMobileDetect();
   const [expandedSections, setExpandedSections] = useState({
     behavior: false,
     participation: false,
@@ -119,14 +112,23 @@ export default function StudentActionZapPanel({
     }
   });
 
+  // Sync currentAttendanceStatus when student prop changes (e.g. after roster reload)
+  useEffect(() => {
+    if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
+      setCurrentAttendanceStatus(student?.standupStatus || null);
+    } else {
+      setCurrentAttendanceStatus(student?.attendance ? String(student.attendance).toUpperCase() : null);
+    }
+  }, [student?.attendance, student?.standupStatus, attendanceMode]);
+
   useEffect(() => {
     const loadFavoriteBehaviors = async () => {
       if (user) {
         try {
           const favorites = await getFavoriteBehaviors(user.uid);
           setFavoriteBehaviors(favorites);
-        } catch (error) {
-          error('Error loading favorite behaviors:', error);
+        } catch (err) {
+          error('Error loading favorite behaviors:', err);
         }
       }
     };
@@ -137,13 +139,13 @@ export default function StudentActionZapPanel({
     const status = currentAttendanceStatus;
     
     if (status) {
-      const statusLabel = ATTENDANCE_STATUS_LABELS[status];
-      const statusColor = ATTENDANCE_COLORS[status];
+      const statusLabel = getLocalizedAttendanceLabel(status, lang);
+      const statusColor = getAttendanceColor(status);
       if (statusLabel && statusColor) {
         info('🔧 Using current attendance status:', status, statusLabel, statusColor);
         return {
           en: statusLabel,
-          ar: statusLabel, // TODO: Add Arabic translations
+          ar: getLocalizedAttendanceLabel(status, 'ar'),
           color: statusColor
         };
       }
@@ -155,7 +157,7 @@ export default function StudentActionZapPanel({
       ar: t('none') || 'لا شيء',
       color: '#9ca3af'
     };
-  }, [currentAttendanceStatus, t]);
+  }, [currentAttendanceStatus, t, lang]);
 
   const avatarColor = useMemo(() => getAvatarColor(student?.name || ''), [student?.name]);
 
@@ -255,8 +257,8 @@ export default function StudentActionZapPanel({
         await addFavoriteBehavior(user.uid, optionId);
         setFavoriteBehaviors(prev => [...prev, optionId]);
       }
-    } catch (error) {
-      error('Error toggling favorite behavior:', error);
+    } catch (err) {
+      error('Error toggling favorite behavior:', err);
     }
   }, [user, favoriteBehaviors]);
 
@@ -292,9 +294,12 @@ export default function StudentActionZapPanel({
       setInternalNote('');
       setActionPoints({});
       showSuccess(t('actions_saved_successfully'));
+      if (onUpdate) {
+        onUpdate();
+      }
       onClose();
-    } catch (error) {
-      error('Error saving actions:', error);
+    } catch (err) {
+      error('Error saving actions:', err);
       showError(t('failed_to_save_actions'));
     } finally {
       setIsSubmitting(false);
@@ -329,7 +334,7 @@ export default function StudentActionZapPanel({
         top: 0,
         [isRTL ? 'left' : 'right']: 0,
         width: isMobile ? '100%' : '100%',
-        maxWidth: isMobile ? '100%' : '32.2rem',
+        maxWidth: isMobile ? '100%' : '36rem',
         height: '100%',
         background: 'var(--panel, white)',
         boxShadow: isRTL ? '4px 0 24px rgba(0,0,0,0.1)' : '-4px 0 24px rgba(0,0,0,0.1)',
@@ -578,6 +583,28 @@ export default function StudentActionZapPanel({
               </button>
             </>
           )}
+          {attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && activeTab !== RECORD_TYPES.ATTENDANCE && (
+            <PortalTooltip content={showFavoritesOnly ? t('show_all') : t('show_favorites_only')} position="top">
+              <button
+                onClick={() => onToggleFavorites()}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.375rem',
+                  padding: '0.5rem 0.75rem',
+                  fontSize: '0.8125rem',
+                  borderRadius: '0.375rem',
+                  border: '1px solid var(--border, #e2e8f0)',
+                  background: showFavoritesOnly ? 'var(--color-warning-light, #fef3c7)' : 'var(--panel-hover, #f8fafc)',
+                  color: showFavoritesOnly ? '#fbbf24' : 'var(--text-muted, #64748b)',
+                  cursor: 'pointer',
+                  boxShadow: 'none'
+                }}
+              >
+                {showFavoritesOnly ? getIconWithColor('ui', 'star', 14, '#fbbf24') : getThemedIcon('ui', 'star', 14, theme)}
+              </button>
+            </PortalTooltip>
+          )}
           {attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && (
             <PortalTooltip content={viewMode === 'grid' ? t('switch_to_list_view') : t('switch_to_grid_view')} position="top">
               <button
@@ -605,9 +632,9 @@ export default function StudentActionZapPanel({
         <div style={{ marginBottom: '0.5rem', marginTop: '1rem' }}>
           <div style={{
             display: viewMode === 'grid' ? 'grid' : 'flex',
-            gridTemplateColumns: viewMode === 'grid' ? 'repeat(auto-fill, minmax(140px, 1fr))' : 'none',
+            gridTemplateColumns: viewMode === 'grid' ? 'repeat(auto-fill, minmax(170px, 1fr))' : 'none',
             flexDirection: viewMode === 'list' ? 'column' : 'row',
-            gap: viewMode === 'grid' ? '0.5rem' : '0.225rem',
+            gap: viewMode === 'grid' ? '0.625rem' : '0.5rem',
             width: '100%'
           }}>
             {activeTab === RECORD_TYPES.ATTENDANCE ? (
@@ -647,8 +674,8 @@ export default function StudentActionZapPanel({
                   }}
                   disabled={isSubmitting || shouldDisableAttendanceEdit}
                   style={{
-                    padding: '0.375rem 0.5rem',
-                    borderRadius: '0.5rem',
+                    padding: '0.625rem 0.875rem',
+                    borderRadius: '0.625rem',
                     border: `2px solid ${attendanceType.color}`,
                     background: `linear-gradient(135deg, ${attendanceType.color}08 0%, ${attendanceType.color}15 100%)`,
                     cursor: (isSubmitting || shouldDisableAttendanceEdit) ? 'not-allowed' : 'pointer',
@@ -656,8 +683,8 @@ export default function StudentActionZapPanel({
                     display: 'flex',
                     flexDirection: 'row',
                     alignItems: 'center',
-                    gap: '0.375rem',
-                    minHeight: '2rem',
+                    gap: '0.5rem',
+                    minHeight: '2.75rem',
                     width: '100%',
                     position: 'relative',
                     overflow: 'hidden',
@@ -673,21 +700,21 @@ export default function StudentActionZapPanel({
                   }}
                 >
                   <div style={{
-                    fontSize: '0.875rem',
+                    fontSize: '1rem',
                     lineHeight: 1,
                     filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))',
                     flexShrink: 0
                   }}>
                     {(() => {
-                      return getIconWithColor('ui', attendanceType.icon.toLowerCase(), 16, attendanceType.color);
+                      return getIconWithColor('ui', attendanceType.icon.toLowerCase(), 20, attendanceType.color);
                     })()}
                   </div>
                   <span style={{
-                    fontSize: '0.7rem',
+                    fontSize: '0.9375rem',
                     fontWeight: 600,
                     color: attendanceType.color,
                     textAlign: 'left',
-                    lineHeight: 1.1,
+                    lineHeight: 1.2,
                     textShadow: '0 1px 2px rgba(0,0,0,0.05)',
                     whiteSpace: 'nowrap',
                     overflow: 'hidden',
@@ -704,6 +731,9 @@ export default function StudentActionZapPanel({
                 if (activeTab === RECORD_TYPES.PARTICIPATION) return option.category === RECORD_TYPES.PARTICIPATION;
                 if (activeTab === RECORD_TYPES.PENALTY) return option.category === RECORD_TYPES.PENALTY;
                 return true;
+              }).filter(option => {
+                if (showFavoritesOnly) return favoriteBehaviors.includes(option.id);
+                return true;
               }) : []).sort((a, b) => {
               const aIsFavorite = favoriteBehaviors.includes(a.id);
               const bIsFavorite = favoriteBehaviors.includes(b.id);
@@ -714,21 +744,21 @@ export default function StudentActionZapPanel({
               const aLabel = lang === 'ar' ? (a.label_ar || a.label_en || '') : (a.label_en || a.label_ar || '');
               const bLabel = lang === 'ar' ? (b.label_ar || b.label_en || '') : (b.label_en || b.label_ar || '');
               return aLabel.localeCompare(bLabel);
-            }).map((option) => {
+            }).map((option) => { console.log('🔴 ZapPanel option:', { id: option.id, label_ar: option.label_ar, label_en: option.label_en, lang });
               const isSelected = selectedActions.some(a => a.id === option.id);
 
               return (
                 <div
                   key={option.id || option.label_en || option.label_ar || Math.random().toString(36).substr(2, 9)}
                   style={{
-                    padding: viewMode === 'grid' ? '0.575rem' : '0.5125rem 0.5rem',
-                    borderRadius: '0.5rem',
+                    padding: viewMode === 'grid' ? '0.75rem' : '0.625rem 0.75rem',
+                    borderRadius: '0.625rem',
                     border: `2px solid ${isSelected ? 'var(--color-purple, #8b5cf6)' : 'var(--border, #e5e7eb)'}`,
                     background: isSelected ? 'var(--color-purple-light, rgba(139, 92, 246, 0.05))' : 'transparent',
                     transition: 'all 0.2s',
                     position: 'relative',
                     cursor: 'pointer',
-                    minHeight: viewMode === 'grid' ? '4.5rem' : 'auto',
+                    minHeight: viewMode === 'grid' ? '5rem' : 'auto',
                     display: 'flex',
                     flexDirection: 'column'
                   }}
@@ -738,7 +768,7 @@ export default function StudentActionZapPanel({
                     display: 'flex',
                     flexDirection: viewMode === 'grid' ? 'column' : 'row',
                     alignItems: viewMode === 'grid' ? (isRTL ? 'flex-end' : 'flex-start') : 'center',
-                    gap: viewMode === 'grid' ? '0.125rem' : '0.25rem',
+                    gap: viewMode === 'grid' ? '0.25rem' : '0.375rem',
                     textAlign: viewMode === 'grid' ? (isRTL ? 'right' : 'left') : (isRTL ? 'right' : 'left'),
                     justifyContent: viewMode === 'grid' ? 'space-between' : 'space-between',
                     paddingInlineEnd: '0.5rem',
@@ -754,9 +784,9 @@ export default function StudentActionZapPanel({
                       justifyContent: viewMode === 'grid' ? (isRTL ? 'flex-end' : 'flex-start') : 'center'
                     }}>
                       <div style={{
-                        width: viewMode === 'grid' ? '1.75rem' : '1.25rem',
-                        height: viewMode === 'grid' ? '1.75rem' : '1.25rem',
-                        borderRadius: '0.375rem',
+                        width: viewMode === 'grid' ? '2rem' : '1.75rem',
+                        height: viewMode === 'grid' ? '2rem' : '1.75rem',
+                        borderRadius: '0.5rem',
                         background: isSelected ? (option.color + '20') : (option.color + '15'),
                         color: isSelected ? option.color : (option.color + 'CC'),
                         border: `1px solid ${isSelected ? option.color : (option.color + '40')}`,
@@ -766,13 +796,13 @@ export default function StudentActionZapPanel({
                         flexShrink: 0,
                         transition: 'all 0.2s ease'
                       }}>
-                        {renderIcon(option.icon, { width: viewMode === 'grid' ? '0.875rem' : '0.75rem', height: viewMode === 'grid' ? '0.875rem' : '0.75rem', color: option.color })}
+                        {renderIcon(option.icon, { width: viewMode === 'grid' ? '1rem' : '0.875rem', height: viewMode === 'grid' ? '1rem' : '0.875rem', color: option.color })}
                       </div>
                       <span style={{
-                        fontSize: viewMode === 'grid' ? '0.6875rem' : '0.75rem',
+                        fontSize: '0.9375rem',
                         fontWeight: 500,
                         color: 'var(--text, #111827)',
-                        lineHeight: viewMode === 'grid' ? '1.3' : '1.2',
+                        lineHeight: viewMode === 'grid' ? '1.3' : '1.3',
                         overflow: 'hidden',
                         textOverflow: viewMode === 'grid' ? 'ellipsis' : 'ellipsis',
                         whiteSpace: viewMode === 'grid' ? 'normal' : 'normal',
@@ -831,9 +861,9 @@ export default function StudentActionZapPanel({
                                 handlePointsChange(option.id, newValue);
                               }}
                               style={{
-                                width: '1.5rem',
-                                height: '1.5rem',
-                                borderRadius: '0.375rem',
+                                width: '1.875rem',
+                                height: '1.875rem',
+                                borderRadius: '0.5rem',
                                 border: '1px solid var(--color-danger, #ef4444)',
                                 background: 'var(--color-danger-light, #fef2f2)',
                                 color: 'var(--color-danger, #ef4444)',
@@ -841,7 +871,7 @@ export default function StudentActionZapPanel({
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                fontSize: '1rem',
+                                fontSize: '1.125rem',
                                 fontWeight: 'bold'
                               }}
                             >
@@ -849,15 +879,15 @@ export default function StudentActionZapPanel({
                             </button>
                             </PortalTooltip>
                             <div style={{
-                              width: '2rem',
-                              height: '1.5rem',
+                              width: '2.25rem',
+                              height: '1.875rem',
                               border: '1px solid var(--border, #d1d5db)',
-                              borderRadius: '0.375rem',
+                              borderRadius: '0.5rem',
                               background: 'var(--input-bg, #ffffff)',
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              fontSize: '0.75rem',
+                              fontSize: '0.875rem',
                               fontWeight: '700',
                               color: 'var(--text, #111827)',
                               boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
@@ -878,9 +908,9 @@ export default function StudentActionZapPanel({
                                 handlePointsChange(option.id, newValue);
                               }}
                               style={{
-                                width: '1.5rem',
-                                height: '1.5rem',
-                                borderRadius: '0.375rem',
+                                width: '1.875rem',
+                                height: '1.875rem',
+                                borderRadius: '0.5rem',
                                 border: '1px solid var(--color-success, #10b981)',
                                 background: 'var(--color-success-light, #f0fdf4)',
                                 color: 'var(--color-success, #10b981)',
@@ -888,7 +918,7 @@ export default function StudentActionZapPanel({
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                fontSize: '1rem',
+                                fontSize: '1.125rem',
                                 fontWeight: 'bold'
                               }}
                             >
@@ -1087,8 +1117,8 @@ export default function StudentActionZapPanel({
                     showError((result && result.error) || t('failed_to_mark_attendance'));
                     setIsSubmitting(false);
                   }
-                } catch (error) {
-                  console.error('Error marking attendance:', error);
+                } catch (err) {
+                  console.error('Error marking attendance:', err);
                   showError(t('failed_to_mark_attendance'));
                   setIsSubmitting(false);
                 }

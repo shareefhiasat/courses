@@ -129,7 +129,7 @@ const StudentTableRow = ({
 
   // Get attendance icon and label function using official constants
   const getAttendanceDisplay = (status) => {
-    if (!ATTENDANCE_STATUS_LABELS[status]) {
+    if (!ATTENDANCE_STATUS_LABELS[status?.toUpperCase()]) {
       return (
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
           {ICON_TYPES.attendance_status.none}

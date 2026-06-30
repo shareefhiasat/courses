@@ -74,7 +74,7 @@ const AttendanceActionButtons = ({
         { status: ATTENDANCE_STATUS.PRESENT, label: t('present') || 'Present', icon: <CheckSmallIcon style={{ width: '18px', height: '18px' }} />, hover: '#059669', shadow: '#10b981' },
         { status: ATTENDANCE_STATUS.LATE, label: t('late') || 'Late', icon: <ClockSmallIcon style={{ width: '18px', height: '18px' }} />, hover: '#d97706', shadow: '#f59e0b' },
         { status: ATTENDANCE_STATUS.ABSENT_NO_EXCUSE, label: t('absent_no_excuse') || 'Absent (No Excuse)', icon: <XSmallIcon style={{ width: '18px', height: '18px' }} />, hover: '#dc2626', shadow: '#ef4444' },
-        { status: ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE, label: t('absent_with_excuse') || 'Absent (With Excuse)', icon: <AlertCircleIcon style={{ width: '18px', height: '18px' }} />, hover: '#ea580c', shadow: '#f97316' },
+        { status: ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE, label: t('absent_with_excuse') || 'Absent excused', icon: <AlertCircleIcon style={{ width: '18px', height: '18px' }} />, hover: '#ea580c', shadow: '#f97316' },
         { status: ATTENDANCE_STATUS.EXCUSED_LEAVE, label: t('excused_leave') || 'Excused Leave', icon: <HeartIcon style={{ width: '18px', height: '18px' }} />, hover: '#c026d3', shadow: '#ec4899' },
         { status: ATTENDANCE_STATUS.HUMAN_CASE, label: t('human_case') || 'Human Case', icon: <HeartIcon style={{ width: '18px', height: '18px' }} />, hover: '#7c3aed', shadow: '#8b5cf6' }
       ];

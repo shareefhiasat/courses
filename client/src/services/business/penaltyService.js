@@ -1,4 +1,5 @@
 import penaltyDbService from '../db/penaltyDbService-postgres.js';
+import api from '@services/api/index.js';
 import { info, error } from '../utils/logger.js';
 
 const serviceName = 'penaltyService';
@@ -85,6 +86,7 @@ export const createPenalty = async (penaltyData) => {
     if (payload.typeId) payload.typeId = parseInt(payload.typeId);
     
     const result = await penaltyDbService.create(payload);
+    api.clearCacheByPrefix('/penalties');
     return {
       success: result.success,
       data: result.data,
@@ -104,6 +106,7 @@ export const deletePenalty = async (penaltyId) => {
   try {
     info(`${serviceName}:deletePenalty`, { penaltyId });
     const result = await penaltyDbService.delete(penaltyId);
+    api.clearCacheByPrefix('/penalties');
     return {
       success: result.success,
       data: result.data,
@@ -123,6 +126,7 @@ export const updatePenalty = async (penaltyId, penaltyData) => {
   try {
     info(`${serviceName}:updatePenalty`, { penaltyId, penaltyData });
     const result = await penaltyDbService.update(penaltyId, penaltyData);
+    api.clearCacheByPrefix('/penalties');
     return {
       success: result.success,
       data: result.data,

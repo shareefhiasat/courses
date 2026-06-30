@@ -9,10 +9,10 @@ import { getThemedIcon } from '@constants/iconTypes';
 import { useNavigate } from 'react-router-dom';
 import { useTheme } from '@contexts/ThemeContext';
 import { formatDateTime } from '@utils/date';
+import { formatNotificationTime, filterNotifications as filterNotificationsUtil, gotoFromNotification as gotoFromNotificationUtil } from '@utils/notificationHelpers';
 import { Button, Input, Select, Badge, Container } from '@ui';
 import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import PortalTooltip from '@ui/PortalTooltip';
-import { ToggleSwitch } from '@ui';
 import { 
   NOTIFICATION_TYPES, 
   NOTIFICATION_STATUS,
@@ -22,7 +22,6 @@ import {
   getCategoryColor
 } from '@constants/notificationTypes.jsx';
 import { RECORD_TYPES } from '@utils/sharedTypes';
-import useNotifications from '@hooks/useNotifications';
 import { useLookupTypes } from '@hooks/useLookupTypes.js';
 import { ABSENCE_TYPES } from '@constants/absenceTypes';
 import { ATTENDANCE_STATUS } from '@constants/attendanceTypes';
@@ -50,16 +49,6 @@ const NotificationsPage = () => {
     remove
   } = useNotificationsFeed({ limit: 100, archived: false });
   const [loading, setLoading] = useState(false);
-  const [soundEnabled, setSoundEnabled] = useState(true);
-  const [vibrationEnabled, setVibrationEnabled] = useState(true);
-  const [browserNotificationsEnabled, setBrowserNotificationsEnabled] = useState(true);
-  const { 
-    settings: notificationSettings, 
-    updateSetting,
-    triggerNotification,
-    checkSupport,
-    isMobile
-  } = useNotifications();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState('all'); // all, unread, read, archived
   const [filterCategory, setFilterCategory] = useState('all'); // all, activity, message, announcement, grade, etc.
@@ -103,14 +92,6 @@ const NotificationsPage = () => {
   const TourTooltipComponent = useMemo(() => TourTooltip({ tourSeenKey }), [tourSeenKey]);
   // ──────────────────────────────────────────────────────────────────────────
 
-  // Sync notification settings with useNotifications hook
-  useEffect(() => {
-    setSoundEnabled(notificationSettings.soundEnabled);
-    setVibrationEnabled(notificationSettings.vibrationEnabled);
-    setBrowserNotificationsEnabled(notificationSettings.browserNotificationsEnabled);
-  }, [notificationSettings]);
-
-
   // Load programs, subjects, classes for filters
   const loadFilters = useCallback(async () => {
     try {
@@ -131,130 +112,30 @@ const NotificationsPage = () => {
 
   // Filter notifications
   const filteredNotifications = useMemo(() => {
-    let filtered = notifications;
-
-    // Filter by read status
-    if (filterType === 'unread') {
-      filtered = filtered.filter(n => !n.isRead && !n.isArchived);
-    } else if (filterType === 'read') {
-      filtered = filtered.filter(n => n.isRead && !n.isArchived);
-    } else if (filterType === 'archived') {
-      filtered = filtered.filter(n => n.isArchived);
-    } else if (!showArchived) {
-      filtered = filtered.filter(n => !n.isArchived);
-    }
-
-    // Filter by category
-    if (filterCategory !== 'all') {
-      filtered = filtered.filter(n => n.type === filterCategory);
-    }
-
-    // Filter by penalty type
-    if (filterPenaltyType !== 'all' && filterCategory === RECORD_TYPES.PENALTY) {
-      filtered = filtered.filter(n => n.metadata?.penaltyType === filterPenaltyType);
-    }
-
-    // Filter by attendance status
-    if (filterAttendanceStatus !== 'all' && filterCategory === RECORD_TYPES.ATTENDANCE) {
-      filtered = filtered.filter(n => n.metadata?.attendanceStatus === filterAttendanceStatus);
-    }
-
-    // Filter by absence type
-    if (filterAbsenceType !== 'all' && filterCategory === NOTIFICATION_TYPES.ATTENDANCE) {
-      filtered = filtered.filter(n => n.metadata?.absenceType === filterAbsenceType);
-    }
-
-    // Filter by program/subject/class/year/semester
-    if (filterProgram !== 'all') {
-      filtered = filtered.filter(n => {
-        const classId = n.data?.classId || n.classId;
-        const subjectId = n.data?.subjectId || n.metadata?.subjectId;
-        if (classId) {
-          const classItem = classes.find(c => String(c.id || c.docId) === String(classId));
-          if (classItem?.subjectId) {
-            const subject = subjects.find(s => String(s.docId || s.id) === String(classItem.subjectId));
-            return String(subject?.programId) === String(filterProgram);
-          }
-        }
-        if (subjectId) {
-          const subject = subjects.find(s => String(s.docId || s.id) === String(subjectId));
-          return String(subject?.programId) === String(filterProgram);
-        }
-        return false;
-      });
-    }
-
-    if (filterSubject !== 'all') {
-      filtered = filtered.filter(n => {
-        const classId = n.data?.classId || n.classId;
-        const subjectId = n.data?.subjectId || n.metadata?.subjectId;
-        if (classId) {
-          const classItem = classes.find(c => String(c.id || c.docId) === String(classId));
-          return String(classItem?.subjectId) === String(filterSubject);
-        }
-        return String(subjectId) === String(filterSubject);
-      });
-    }
-
-    if (filterClass !== 'all') {
-      filtered = filtered.filter(n => {
-        const classId = n.data?.classId || n.classId;
-        return String(classId) === String(filterClass);
-      });
-    }
-
-    if (filterYear !== 'all') {
-      filtered = filtered.filter(n => {
-        const classId = n.data?.classId || n.classId;
-        if (classId) {
-          const classItem = classes.find(c => String(c.id || c.docId) === String(classId));
-          if (classItem?.year && String(classItem.year) === filterYear) return true;
-          if (classItem?.term && classItem.term.includes(' ')) {
-            const parts = classItem.term.split(' ');
-            if (parts.length > 1 && parts[parts.length - 1] === filterYear) return true;
-          }
-        }
-        return false;
-      });
-    }
-
-    if (filterSemester !== 'all') {
-      filtered = filtered.filter(n => {
-        const subjectId = n.data?.subjectId || n.metadata?.subjectId;
-        if (subjectId) {
-          const subject = subjects.find(s => String(s.docId || s.id) === String(subjectId));
-          return String(subject?.semester) === String(filterSemester);
-        }
-        return false;
-      });
-    }
-
-    // Filter by search term
-    if (searchTerm.trim()) {
-      const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(n => 
-        (n.title || '').toLowerCase().includes(term) ||
-        (n.message || '').toLowerCase().includes(term)
-      );
-    }
-
-    return filtered;
+    return filterNotificationsUtil({
+      notifications,
+      filterType,
+      filterCategory,
+      filterPenaltyType,
+      filterAttendanceStatus,
+      filterAbsenceType,
+      searchTerm,
+      showArchived,
+      filterProgram,
+      filterSubject,
+      filterClass,
+      filterYear,
+      filterSemester,
+      subjects,
+      classes
+    });
   }, [notifications, filterType, filterCategory, filterPenaltyType, filterAttendanceStatus, filterAbsenceType, filterProgram, filterSubject, filterClass, filterYear, filterSemester, searchTerm, showArchived, subjects, classes]);
 
   const archivedCount = notifications.filter(n => n.isArchived).length;
 
-  const formatTime = (timestamp) => {
-    if (!timestamp) return '';
-    const date = timestamp.seconds ? new Date(timestamp.seconds * 1000) : new Date(timestamp);
-    const now = new Date();
-    const diff = now - date;
-    
-    if (diff < 60000) return t('notifications_just_now');
-    if (diff < 3600000) return `${Math.floor(diff / 60000)}${t('notifications_minutes_ago')}`;
-    if (diff < 86400000) return `${Math.floor(diff / 3600000)}${t('notifications_hours_ago')}`;
-    if (diff < 604800000) return `${Math.floor(diff / 86400000)}${t('notifications_days_ago')}`;
-    return formatDateTime(date);
-  };
+  const formatTime = useCallback((timestamp) => {
+    return formatNotificationTime(timestamp, t);
+  }, [t]);
 
   const handleMarkAsRead = async (notificationId) => {
     setLoading(true);
@@ -303,79 +184,9 @@ const NotificationsPage = () => {
     }
   };
 
-  const handleTestBrowserNotification = async () => {
-    if (checkSupport().notification) {
-      try {
-        await triggerNotification('default', t('notifications_test_notification'), t('notifications_test_notification_message'));
-      } catch (error) {
-        error('Failed to send test notification:', error);
-      }
-    }
-  };
-
-  const gotoFromNotification = async (n) => {
-    if (!n.isRead) await handleMarkAsRead(n.id);
-
-    if (n.link) {
-      navigate(n.link);
-      return;
-    }
-
-    const type = (n.type || n.category || '').toUpperCase();
-    const data = n.data || n.metadata || {};
-
-    switch (type) {
-      case NOTIFICATION_TYPES.ASSESSMENT:
-        if (data.activityId) navigate(`/activity/${data.activityId}`);
-        else if (data.quizId) navigate(`/quiz/${data.quizId}`);
-        else navigate('/?mode=quizzes');
-        break;
-      case NOTIFICATION_TYPES.COMMUNICATION:
-        if (data.roomId || data.messageId) {
-          let dest = data.classId || 'global';
-          if (data.roomId) dest = `dm:${data.roomId}`;
-          navigate(data.messageId ? `/chat?dest=${encodeURIComponent(dest)}&msgId=${data.messageId}` : `/chat?dest=${encodeURIComponent(dest)}`);
-        } else {
-          navigate('/chat');
-        }
-        break;
-      case NOTIFICATION_TYPES.ANNOUNCEMENT:
-        if (data.announcementId) navigate(`/announcements/${data.announcementId}`);
-        else navigate('/announcements');
-        break;
-      case NOTIFICATION_TYPES.ATTENDANCE:
-        navigate('/student-dashboard');
-        break;
-      case NOTIFICATION_TYPES.WORKFLOW:
-        if (data.workflowId) navigate(`/workflows/${data.workflowId}`);
-        else navigate('/workflows');
-        break;
-      case NOTIFICATION_TYPES.BEHAVIOR:
-      case NOTIFICATION_TYPES.PARTICIPATION:
-      case NOTIFICATION_TYPES.PENALTY:
-        navigate('/student-dashboard');
-        break;
-      case NOTIFICATION_TYPES.FILE:
-        if (data.fileId) navigate(`/drive?fileId=${data.fileId}`);
-        else navigate('/drive');
-        break;
-      case NOTIFICATION_TYPES.RESOURCE:
-        if (data.resourceId) navigate(`/resources/${data.resourceId}`);
-        else navigate('/resources');
-        break;
-      case NOTIFICATION_TYPES.QR:
-        navigate('/qr-scanner');
-        break;
-      case NOTIFICATION_TYPES.ACADEMIC:
-        if (data.enrollmentId) navigate(`/enrollments/${data.enrollmentId}`);
-        else navigate('/');
-        break;
-      case NOTIFICATION_TYPES.SYSTEM:
-      default:
-        navigate('/');
-        break;
-    }
-  };
+  const gotoFromNotification = useCallback(async (n) => {
+    await gotoFromNotificationUtil(n, navigate, handleMarkAsRead);
+  }, [navigate, handleMarkAsRead]);
 
   // Use GlobalLoading for initial data load
   useLayoutEffect(() => {
@@ -413,51 +224,6 @@ const NotificationsPage = () => {
             Notifications
           </h1>
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
-            
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              {getThemedIcon('ui', 'volume2', 18, theme)}
-              <ToggleSwitch
-                label=""
-                checked={soundEnabled}
-                onChange={async (checked) => {
-                  await updateSetting('soundEnabled', checked);
-                }}
-              />
-            </div>
-            {checkSupport().vibration && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                {getThemedIcon('ui', 'vibrate', 18, theme)}
-                <ToggleSwitch
-                  label=""
-                  checked={vibrationEnabled}
-                  onChange={async (checked) => {
-                    await updateSetting('vibrationEnabled', checked);
-                  }}
-                />
-              </div>
-            )}
-            {checkSupport().notification && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                {getThemedIcon('ui', 'bell', 18, theme)}
-                <ToggleSwitch
-                  label=""
-                  checked={browserNotificationsEnabled}
-                  onChange={async (checked) => {
-                    await updateSetting('browserNotificationsEnabled', checked);
-                  }}
-                />
-                <PortalTooltip content={t('test_browser_notification')} position="top">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleTestBrowserNotification}
-                  style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}
-                >
-                  {getThemedIcon('ui', 'test_tube', 16, theme)}
-                </Button>
-              </PortalTooltip>
-              </div>
-            )}
             {unreadCount > 0 && (
               <Button
                 data-tour="notif-mark-read"
@@ -469,6 +235,16 @@ const NotificationsPage = () => {
                 Mark all read
               </Button>
             )}
+            <PortalTooltip content={t('notifications_notification_settings') || 'Notification Settings'} position="top">
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => navigate('/profile')}
+                style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}
+              >
+                {getThemedIcon('ui', 'settings', 16, theme)}
+              </Button>
+            </PortalTooltip>
           </div>
         </div>
 

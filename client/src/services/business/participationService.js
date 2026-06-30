@@ -1,4 +1,5 @@
 import participationDbService from '../db/participationDbService-postgres.js';
+import api from '@services/api/index.js';
 import { info, error } from '../utils/logger.js';
 
 const serviceName = 'participationService';
@@ -91,6 +92,7 @@ export const createParticipation = async (participationData) => {
     console.log('🔍 [DEBUG] Final processed data before sending to DB:', processedData);
     
     const result = await participationDbService.create(processedData);
+    api.clearCacheByPrefix('/participations');
     return {
       success: result.success,
       data: result.data,
@@ -110,6 +112,7 @@ export const deleteParticipation = async (participationId) => {
   try {
     info(`${serviceName}:deleteParticipation`, { participationId });
     const result = await participationDbService.delete(participationId);
+    api.clearCacheByPrefix('/participations');
     return {
       success: result.success,
       data: result.data,
@@ -158,6 +161,7 @@ export const updateParticipation = async (participationId, participationData) =>
   try {
     info(`${serviceName}:updateParticipation`, { participationId, participationData });
     const result = await participationDbService.update(participationId, participationData);
+    api.clearCacheByPrefix('/participations');
     return {
       success: result.success,
       data: result.data,

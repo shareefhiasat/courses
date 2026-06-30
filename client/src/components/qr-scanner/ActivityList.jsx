@@ -278,7 +278,7 @@ const ActivityList = ({
                   </div>
                 )}
                 {activity.type === RECORD_TYPES.PARTICIPATION && (
-                  <div style={{ marginBottom: '0.25rem' }}>
+                  <div style={{ marginBottom: '0.25rem', textTransform: 'capitalize' }}>
                     {activity.label || t('participation') || 'Participation'}
                   </div>
                 )}

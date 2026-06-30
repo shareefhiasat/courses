@@ -5,7 +5,6 @@
 
 import React, { memo } from 'react';
 import { formatDate } from '@utils/date';
-import { getThemedIcon } from '@constants/iconTypes';
 import MessageBubble from './MessageBubble';
 import { groupMessagesByDate, filterMessages } from '../utils/chatHelpers';
 
@@ -63,14 +62,35 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Messa
   if (!filteredMessages || filteredMessages.length === 0) {
     return (
       <div style={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: '60%',
+        padding: '2rem',
         textAlign: 'center',
-        padding: '3rem',
-        color: '#999'
       }}>
-        <p style={{ fontSize: '3rem', margin: 0 }}>
-          {getThemedIcon('ui', 'message_square', 42, theme)}
-        </p>
-        <p style={{ color: 'var(--muted)' }}>
+        <div style={{
+          width: 80,
+          height: 80,
+          borderRadius: '50%',
+          background: theme === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          marginBottom: '1rem',
+          fontSize: '2rem',
+        }}>
+          {(msgQuery?.trim() || globalChatSearch) ? '🔍' : '💬'}
+        </div>
+        <p style={{
+          color: 'var(--muted)',
+          fontSize: '0.95rem',
+          fontWeight: 500,
+          margin: 0,
+          maxWidth: 280,
+          lineHeight: 1.5,
+        }}>
           {msgQuery?.trim() || globalChatSearch ? 
             (t('no_messages_found')) : 
             (t('no_messages'))

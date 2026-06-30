@@ -7,7 +7,8 @@ import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useLookupTypes } from '@hooks/useLookupTypes.js';
-import { usePermissions } from '@hooks/usePermissions';
+import { useQRPermissions } from '@hooks/useQRPermissions';
+import { useMobileDetect } from '@hooks/useMobileDetect';
 // OLD: import { PENALTY_TYPES } from '@constants/penaltyTypes';
 // OLD: import { BEHAVIOR_TYPES } from '@constants/behaviorTypes';
 // OLD: import { PARTICIPATION_TYPES } from '@constants/participationTypes';
@@ -31,7 +32,7 @@ import { createBehavior, getBehaviors, deleteBehavior } from '@services/business
 import { getPerformedByFields } from '@services/business/userService';
 // OLD: import { PENALTY_TYPES } from '@constants/penaltyTypes';
 import { ATTENDANCE_METHODS, getAttendanceMethodLabel } from '@constants/attendanceMethods';
-import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, ATTENDANCE_TYPE_CATEGORY, getAttendanceIcon, getAttendanceColor, getAttendanceLabel, getLocalizedAttendanceLabel } from '@constants/attendanceTypes';
+import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, ATTENDANCE_TYPE_CATEGORY, getAttendanceIcon, getAttendanceColor, getAttendanceLabel, getLocalizedAttendanceLabel, STATUS_ID_MAP, DB_CODE_TO_FRONTEND_STATUS, getStatusCodeFromRecord } from '@constants/attendanceTypes';
 import { calculateAttentionScore, getRowHighlightStyle } from '@utils/attendanceHighlight.js';
 import { ABSENCE_THRESHOLDS } from '@/constants/absenceTypes';
 import { getNoteTypeFromStatus, getLocalizedNoteText } from '@constants/noteTypes';
@@ -69,19 +70,20 @@ const QRScannerPage = () => {
   const navigate = useNavigate();
   const toast = useToast();
   const { activityTypeOptions } = useLookupTypes();
-  const { hasPermission } = usePermissions();
-  const canBulkScan = hasPermission('qr-scanner.canBulkScan');
-  const canManualInput = hasPermission('qr-scanner.canManualInput');
-  const canClearToday = hasPermission('qr-scanner.canClearToday');
-  const canDeleteAttendance = hasPermission('qr-scanner.canDeleteAttendance');
-  const canEditAttendance = hasPermission('qr-scanner.canEditAttendance');
-  const canExport = hasPermission('qr-scanner.canExport');
-  const canExportSummary = hasPermission('qr-scanner.canExportSummary');
-  const canSeeStandupMode = hasPermission('qr-scanner.canSeeStandupMode');
-  const canSeeQuickButtons = hasPermission('qr-scanner.canSeeQuickButtons');
-  const canMarkAttendance = hasPermission('qr-scanner.canMarkAttendance');
-  const canUseStatsPanel = hasPermission('qr-scanner.canUseStatsPanel');
-  const canUseZapPanel = hasPermission('qr-scanner.canUseZapPanel');
+  const {
+    canBulkScan,
+    canManualInput,
+    canClearToday,
+    canDeleteAttendance,
+    canEditAttendance,
+    canExport,
+    canExportSummary,
+    canSeeStandupMode,
+    canSeeQuickButtons,
+    canMarkAttendance,
+    canUseStatsPanel,
+    canUseZapPanel
+  } = useQRPermissions();
   const showSuccess = useMemo(() => (msg) => toast?.showSuccess?.(msg), [toast]);
   const showError = useMemo(() => (msg) => toast?.showError?.(msg), [toast]);
   const showInfo = useMemo(() => (msg) => toast?.showInfo?.(msg), [toast]);
@@ -162,11 +164,36 @@ const QRScannerPage = () => {
     }
   });
   const [selectedDate, setSelectedDate] = useState(() => {
-    // Use ISO format for database operations (Qatar time adjusted)
+    // Restore saved date from localStorage, fallback to today (Qatar time)
+    try {
+      const saved = localStorage.getItem('qrScanner_selectedDate');
+      if (saved && saved !== '') return saved;
+    } catch {}
     const qatarNow = getQatarNow();
     return qatarNow.toISOString().split('T')[0]; // Format as yyyy-MM-dd
   });
-  const [attendanceMode, setAttendanceMode] = useState(ATTENDANCE_TYPE_CATEGORY.REGULAR); // 'regular' or 'standup'
+  const [attendanceMode, setAttendanceMode] = useState(() => {
+    // Restore saved attendance mode from localStorage
+    try {
+      const saved = localStorage.getItem('qrScanner_attendanceMode');
+      if (saved === ATTENDANCE_TYPE_CATEGORY.STANDUP || saved === ATTENDANCE_TYPE_CATEGORY.REGULAR) return saved;
+    } catch {}
+    return ATTENDANCE_TYPE_CATEGORY.REGULAR;
+  }); // 'regular' or 'standup'
+
+  // Persist selectedDate to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('qrScanner_selectedDate', selectedDate);
+    } catch {}
+  }, [selectedDate]);
+
+  // Persist attendanceMode to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('qrScanner_attendanceMode', attendanceMode);
+    } catch {}
+  }, [attendanceMode]);
 
   // ── Guided Tour ────────────────────────────────────────────────────────────
   const [runTour, setRunTour] = useState(false);
@@ -441,8 +468,8 @@ const QRScannerPage = () => {
   const [favoriteBehaviors, setFavoriteBehaviors] = useState([]);
   const [showScanner, setShowScanner] = useState(true); // Show QR scanner by default
   const [sendNotifications, setSendNotifications] = useState(false);
-  const [isMobile, setIsMobile] = useState(() => window.innerWidth <= 768);
-  const [isScannerMinimized, setIsScannerMinimized] = useState(attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP); // Minimized by default in standup mode
+  const { isMobile } = useMobileDetect();
+  const [isScannerMinimized, setIsScannerMinimized] = useState(true); // Minimized by default for wider roster
   
   // Report export modal state (unified for both daily and summary)
   const [showDailyReportModal, setShowDailyReportModal] = useState(false);
@@ -482,22 +509,6 @@ const QRScannerPage = () => {
     const selectedProgram = programs.find(p => p.id == selectedProgramId);
     return selectedProgram?.nameEn || selectedProgram?.name || selectedProgram?.code || 'Unknown Program';
   }, [selectedProgramId, programs]);
-
-  // Debounced resize handler for performance
-  useEffect(() => {
-    let timeoutId;
-    const handleResize = () => {
-      clearTimeout(timeoutId);
-      timeoutId = setTimeout(() => {
-        setIsMobile(window.innerWidth <= 768);
-      }, 150);
-    };
-    window.addEventListener('resize', handleResize);
-    return () => {
-      clearTimeout(timeoutId);
-      window.removeEventListener('resize', handleResize);
-    };
-  }, []);
 
   // Handle QR scanner minimization changes
   const handleScannerMinimizeChange = useCallback((isMinimized) => {
@@ -899,23 +910,14 @@ const QRScannerPage = () => {
         const attendanceArrays = await Promise.all(attendancePromises);
         console.log('🔍 [DEBUG] attendanceArrays before flat:', attendanceArrays);
         
-        // Map statusId to status string (uppercase to match database)
-        const statusIdMap = {
-          7: ATTENDANCE_STATUS.STANDUP_PRESENT,
-          8: ATTENDANCE_STATUS.STANDUP_LATE,
-          9: ATTENDANCE_STATUS.STANDUP_ABSENT,
-          10: ATTENDANCE_STATUS.STANDUP_CLINIC
-        };
-        
+        // Use shared STATUS_ID_MAP for standup status IDs
         attendance = attendanceArrays.flat().map(a => {
-          // If statusId exists, map it to status string
-          const status = a.statusId ? statusIdMap[a.statusId] : 
-                        (typeof a.status === 'object' ? (a.status?.code ?? null) : 
-                        (a.status ?? null));
+          // Use getStatusCodeFromRecord to normalize DB codes to frontend codes
+          const frontendCode = getStatusCodeFromRecord(a);
           
           return {
             ...a,
-            status: status,
+            status: frontendCode,
             studentId: a.studentId ?? a.userId ?? a.userId
           };
         }).filter(a => {
@@ -927,11 +929,17 @@ const QRScannerPage = () => {
       } else {
         // In regular mode, load by class
         const attendanceResponse = await getAttendanceByClass(classId, dateStr);
-        attendance = (attendanceResponse.success ? attendanceResponse.data : []).map(a => ({
-          ...a,
-          status: typeof a.status === 'object' ? (a.status?.code?.toLowerCase() ?? null) : (a.status?.toLowerCase?.() ?? a.status),
-          studentId: a.studentId ?? a.userId
-        })).filter(a => {
+        attendance = (attendanceResponse.success ? attendanceResponse.data : []).map(a => {
+          // Use getStatusCodeFromRecord to normalize DB codes to frontend codes
+          const frontendCode = getStatusCodeFromRecord(a);
+          return {
+            ...a,
+            status: frontendCode ? frontendCode.toLowerCase() : null,
+            studentId: a.studentId ?? a.userId
+          };
+        }).filter(a => {
+          // Filter out standup attendance entries in regular mode
+          if (a.status && a.status.startsWith('standup_')) return false;
           // Filter by programId and subjectId to ensure only attendance for selected program/subject is shown
           if (!programId || programId === 'all') return true;
           if (a.programId && a.programId != programId) return false;
@@ -970,11 +978,16 @@ const QRScannerPage = () => {
         success: classAttendanceResponse.success,
         data: classAttendanceResponse.data?.standup || []
       };
-      const standup = (standupResponse.success ? standupResponse.data : []).map(s => ({
-        ...s,
-        status: typeof s.status === 'object' ? `standup_${s.status?.code?.toLowerCase()}` : (s.status?.startsWith?.('standup_') ? s.status : `standup_${s.status?.toLowerCase()}`),
-        studentId: s.userId || s.studentId
-      }));
+      const standup = (standupResponse.success ? standupResponse.data : []).map(s => {
+        const frontendCode = getStatusCodeFromRecord(s);
+        const statusStr = frontendCode || (typeof s.status === 'object' ? s.status?.code : s.status) || '';
+        const lowerStatus = statusStr.toLowerCase();
+        return {
+          ...s,
+          status: lowerStatus.startsWith('standup_') ? lowerStatus : `standup_${lowerStatus}`,
+          studentId: s.userId || s.studentId
+        };
+      });
 
       info('🔍 [DEBUG] Standup attendance data loaded:', {
         classId,
@@ -1069,16 +1082,16 @@ const QRScannerPage = () => {
           });
 
           // Helper function to map attendance status
+          // Normalizes DB status codes back to frontend canonical codes
           const mapAttendanceStatus = (status) => {
             if (!status) return ATTENDANCE_STATUS.ABSENT_NO_EXCUSE;
-            const statusLower = status.toLowerCase();
-            if (statusLower === ATTENDANCE_STATUS.PRESENT.toLowerCase()) return ATTENDANCE_STATUS.PRESENT.toLowerCase();
-            if (statusLower === ATTENDANCE_STATUS.LATE.toLowerCase()) return ATTENDANCE_STATUS.LATE.toLowerCase();
-            if (statusLower === ATTENDANCE_STATUS.ABSENT_NO_EXCUSE.toLowerCase()) return ATTENDANCE_STATUS.ABSENT_NO_EXCUSE.toLowerCase();
-            if (statusLower === ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE.toLowerCase()) return ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE.toLowerCase();
-            if (statusLower === ATTENDANCE_STATUS.EXCUSED_LEAVE.toLowerCase()) return ATTENDANCE_STATUS.EXCUSED_LEAVE.toLowerCase();
-            if (statusLower === ATTENDANCE_STATUS.HUMAN_CASE.toLowerCase()) return ATTENDANCE_STATUS.HUMAN_CASE.toLowerCase();
-            return statusLower;
+            // If status is an object (from API include), extract the code
+            const rawCode = typeof status === 'object' ? (status?.code ?? null) : status;
+            if (!rawCode) return ATTENDANCE_STATUS.ABSENT_NO_EXCUSE;
+            const upper = rawCode.toUpperCase();
+            // Map DB codes back to frontend codes (e.g. ABSENT → ABSENT_NO_EXCUSE)
+            const frontendCode = DB_CODE_TO_FRONTEND_STATUS[upper] || upper;
+            return frontendCode.toLowerCase();
           };
 
           console.log('🔍 [DEBUG] QRScannerPage - Attendance filtering for student:', studentId, {
@@ -1093,15 +1106,9 @@ const QRScannerPage = () => {
 
           const todayAttendanceStatus = todayAttendanceRecord ? mapAttendanceStatus(todayAttendanceRecord.status) : null;
           
-          // Map statusId to status string for standup attendance
-          const statusIdMap = {
-            7: ATTENDANCE_STATUS.STANDUP_PRESENT,
-            8: ATTENDANCE_STATUS.STANDUP_LATE,
-            9: ATTENDANCE_STATUS.STANDUP_ABSENT,
-            10: ATTENDANCE_STATUS.STANDUP_CLINIC
-          };
+          // Use shared STATUS_ID_MAP for standup status IDs
           const todayStandupStatus = todayStandupAttendanceRecord?.statusId 
-            ? statusIdMap[todayStandupAttendanceRecord.statusId] || null
+            ? STATUS_ID_MAP[todayStandupAttendanceRecord.statusId] || null
             : (todayStandupAttendanceRecord?.status?.toUpperCase() || null);
 
           // DEBUG: Log status assignment
@@ -1122,11 +1129,14 @@ const QRScannerPage = () => {
 
           // Fetch all attendance records for this student (attendance only)
           const studentAttendanceResponse = await getAttendanceByStudent(studentId);
-          const studentAttendanceRecords = (studentAttendanceResponse.success ? studentAttendanceResponse.data : []).map(r => ({
-            ...r,
-            status: typeof r.status === 'object' ? (r.status?.code?.toLowerCase() ?? null) : (r.status?.toLowerCase?.() ?? r.status),
-            studentId: r.studentId ?? r.userId
-          }));
+          const studentAttendanceRecords = (studentAttendanceResponse.success ? studentAttendanceResponse.data : []).map(r => {
+            const frontendCode = getStatusCodeFromRecord(r);
+            return {
+              ...r,
+              status: frontendCode ? frontendCode.toLowerCase() : null,
+              studentId: r.studentId ?? r.userId
+            };
+          });
           
           // Separate regular and standup attendance for statistics by status prefix
           const regularAttendanceRecords = studentAttendanceRecords.filter(r => !r.status?.startsWith('standup_'));
@@ -1806,13 +1816,13 @@ const QRScannerPage = () => {
         }
       }
 
-      // Reload students with a small delay to allow Firestore to propagate
+      // Reload students after cache is cleared; small delay ensures DB commit is complete
       setTimeout(async () => {
         await loadStudents(selectedClassId, selectedDate);
         
         // Trigger activity refresh to update recent activity
         triggerActivityRefresh();
-      }, 1000);
+      }, 300);
 
       // Emit events for each action type
       participationActions.forEach(action => {
@@ -2211,7 +2221,7 @@ const QRScannerPage = () => {
         attendanceResponse = await getStandupAttendanceByProgramAndDate(selectedProgramId, selectedDate);
         attendanceData = (attendanceResponse.success ? attendanceResponse.data : []).map(a => ({
           ...a,
-          status: typeof a.status === 'object' ? (a.status?.code ?? null) : a.status,
+          status: getStatusCodeFromRecord(a),
           studentId: a.userId ?? a.studentId
         }));
       } else {
@@ -2220,7 +2230,7 @@ const QRScannerPage = () => {
         attendanceResponse = await getAttendanceByClass(selectedClassId, { date: selectedDate });
         attendanceData = (attendanceResponse.success ? attendanceResponse.data : []).map(a => ({
           ...a,
-          status: typeof a.status === 'object' ? (a.status?.code ?? null) : a.status,
+          status: getStatusCodeFromRecord(a),
           studentId: a.studentId ?? a.userId
         }));
 
@@ -2458,8 +2468,8 @@ const QRScannerPage = () => {
           .filter(([key, value]) => !key.startsWith('STANDUP_'))
           .map(([key, value]) => ({
           id: value,
-          label_en: ATTENDANCE_STATUS_LABELS[value] || value,
-          label_ar: ATTENDANCE_STATUS_LABELS[value] || value
+          label_en: getLocalizedAttendanceLabel(value, 'en') || value,
+          label_ar: getLocalizedAttendanceLabel(value, 'ar') || value
         }));
         
         headers = lang === 'ar' ? [
@@ -3089,7 +3099,7 @@ const QRScannerPage = () => {
         const attendanceResponse = await getStandupAttendanceByProgramForDateRange(selectedProgramId, startDate, endDate);
         attendanceData = (attendanceResponse.success ? attendanceResponse.data : []).map(a => ({
           ...a,
-          status: typeof a.status === 'object' ? (a.status?.code ?? null) : a.status,
+          status: getStatusCodeFromRecord(a),
           studentId: a.userId ?? a.studentId
         }));
       } else {
@@ -3121,7 +3131,7 @@ const QRScannerPage = () => {
         
         attendanceData = (attendanceResponse.success ? attendanceResponse.data : []).map(a => ({
           ...a,
-          status: typeof a.status === 'object' ? (a.status?.code ?? null) : a.status,
+          status: getStatusCodeFromRecord(a),
           studentId: a.studentId ?? a.userId
         }));
       }
@@ -3334,7 +3344,7 @@ const QRScannerPage = () => {
           t('present') || 'Present',
           t('late') || 'Late',
           t('absent_no_excuse') || 'Absent (No Excuse)',
-          t('absent_with_excuse') || 'Absent (With Excuse)',
+          t('absent_with_excuse') || 'Absent excused',
           t('excused_leave') || 'Excused Leave',
           t('human_case') || 'Human Case',
           t('total_sessions') || 'Total Sessions'
@@ -3505,22 +3515,18 @@ const QRScannerPage = () => {
             row.attendanceFailure
           );
 
-          // Add per-subject columns
+          // Add per-subject columns (grouped by metric: all Present, then all Absent, etc.)
           const programSubjects = subjects.filter(s => !selectedProgramId || selectedProgramId === 'all' || s.programId == selectedProgramId);
-          programSubjects.forEach(subject => {
-            const subjectData = perSubjectAttendance[row.studentId]?.[subject.id];
-            if (subjectData) {
-              rowData.push(
-                subjectData.present,
-                subjectData.absent,
-                subjectData.percentage,
-                subjectData.deduction,
-                subjectData.attendanceFailure,
-                subjectData.grade
-              );
-            } else {
-              rowData.push('', '', '', '', '', '');
-            }
+          const subjectMetrics = ['present', 'absent', 'percentage', 'deduction', 'attendanceFailure', 'grade'];
+          subjectMetrics.forEach(metricKey => {
+            programSubjects.forEach(subject => {
+              const subjectData = perSubjectAttendance[row.studentId]?.[subject.id];
+              if (subjectData) {
+                rowData.push(subjectData[metricKey] ?? '');
+              } else {
+                rowData.push('');
+              }
+            });
           });
           
           return rowData;
@@ -3573,9 +3579,11 @@ const QRScannerPage = () => {
         const fbCount = enrichedData.filter(row => row.attendanceFailure === ABSENCE_THRESHOLDS.FAILURE_GRADE).length;
         totalsRow.push(fbCount > 0 ? fbCount : ''); // attendance_failure (count of FB students)
 
-        // Per-subject totals
+        // Per-subject totals (grouped by metric: all Present, then all Absent, etc.)
         const programSubjects = subjects.filter(s => !selectedProgramId || selectedProgramId === 'all' || s.programId == selectedProgramId);
-        programSubjects.forEach(subject => {
+        
+        // First, compute per-subject totals
+        const subjectTotals = programSubjects.map(subject => {
           let subjectPresent = 0;
           let subjectAbsent = 0;
           let subjectDeduction = 0;
@@ -3597,7 +3605,6 @@ const QRScannerPage = () => {
               );
               subjectTotalSessions += subjectData.total;
 
-              // Calculate FB for this subject (>= ABSENCE_THRESHOLDS.FAILURE_ABSENCE_COUNT classes rule, excluding excused leave)
               const subjectAbsencesForFB = subjectData.absentNoExcuse + subjectData.absentWithExcuse + subjectData.humanCase;
               if (subjectAbsencesForFB >= ABSENCE_THRESHOLDS.FAILURE_ABSENCE_COUNT) {
                 subjectFbCount++;
@@ -3605,7 +3612,6 @@ const QRScannerPage = () => {
             }
           });
           
-          // Calculate overall subject attendance percentage
           const subjectOverallPercentage = subjectTotalSessions > 0
             ? (((subjectPresent + Object.keys(studentAttendanceMap).reduce((sum, studentId) => {
                 const studentSubjectData = studentAttendanceMap[studentId]?.subjects || {};
@@ -3614,12 +3620,22 @@ const QRScannerPage = () => {
               }, 0)) / subjectTotalSessions) * 100).toFixed(2)
             : '0.00';
 
-          totalsRow.push(subjectPresent > 0 ? subjectPresent : '');
-          totalsRow.push(subjectAbsent > 0 ? subjectAbsent : '');
-          totalsRow.push(subjectTotalSessions > 0 ? subjectOverallPercentage + '%' : '');
-          totalsRow.push(subjectDeduction > 0 ? subjectDeduction.toFixed(2) : '');
-          totalsRow.push(subjectFbCount > 0 ? subjectFbCount : '');
-          totalsRow.push(''); // grade (no total)
+          return {
+            present: subjectPresent > 0 ? subjectPresent : '',
+            absent: subjectAbsent > 0 ? subjectAbsent : '',
+            percentage: subjectTotalSessions > 0 ? subjectOverallPercentage + '%' : '',
+            deduction: subjectDeduction > 0 ? subjectDeduction.toFixed(2) : '',
+            fb: subjectFbCount > 0 ? subjectFbCount : '',
+            grade: ''
+          };
+        });
+
+        // Push in grouped-by-metric order: all Present, all Absent, all Percentage, all Deduction, all FB, all Grade
+        const metricKeys = ['present', 'absent', 'percentage', 'deduction', 'fb', 'grade'];
+        metricKeys.forEach(metricKey => {
+          subjectTotals.forEach(totals => {
+            totalsRow.push(totals[metricKey]);
+          });
         });
       }
 
@@ -3977,7 +3993,7 @@ const QRScannerPage = () => {
       const attendanceResponse = await getStandupAttendanceByProgramForDateRange(selectedProgramId, startDate, endDate);
       const attendanceData = (attendanceResponse.success ? attendanceResponse.data : []).map(a => ({
         ...a,
-        status: typeof a.status === 'object' ? (a.status?.code ?? null) : a.status,
+        status: getStatusCodeFromRecord(a),
         studentId: a.userId ?? a.studentId
       }));
 
@@ -5065,7 +5081,7 @@ const QRScannerPage = () => {
         display: 'flex',
         flexDirection: isMobile ? 'column' : 'row',
         gap: '1.5rem',
-        maxWidth: '1600px',
+        maxWidth: isScannerMinimized ? '100%' : '1600px',
         margin: '0 auto'
       }}>
         {/* Sidebar with Scanner */}

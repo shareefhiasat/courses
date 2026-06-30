@@ -1,6 +1,6 @@
 import React from 'react';
 import { Select, DatePicker } from '@ui';
-import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS } from '@constants/attendanceTypes';
+import { ATTENDANCE_STATUS, getLocalizedAttendanceLabel } from '@constants/attendanceTypes';
 
 
 import { info, error, warn, debug } from '@services/utils/logger.js';const GenericFilters = ({
@@ -170,12 +170,12 @@ GenericFilters.configurations = {
       type: 'select',
       options: [
         { value: 'all', label: t('all') || 'All Status' },
-        { value: ATTENDANCE_STATUS.PRESENT, label: ATTENDANCE_STATUS_LABELS.present.en },
-        { value: ATTENDANCE_STATUS.LATE, label: ATTENDANCE_STATUS_LABELS.late.en },
-        { value: ATTENDANCE_STATUS.ABSENT_NO_EXCUSE, label: ATTENDANCE_STATUS_LABELS.absent_no_excuse.en },
-        { value: ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE, label: ATTENDANCE_STATUS_LABELS.absent_with_excuse.en },
-        { value: ATTENDANCE_STATUS.EXCUSED_LEAVE, label: ATTENDANCE_STATUS_LABELS.excused_leave.en },
-        { value: ATTENDANCE_STATUS.HUMAN_CASE, label: ATTENDANCE_STATUS_LABELS.human_case.en }
+        { value: ATTENDANCE_STATUS.PRESENT, label: getLocalizedAttendanceLabel(ATTENDANCE_STATUS.PRESENT) },
+        { value: ATTENDANCE_STATUS.LATE, label: getLocalizedAttendanceLabel(ATTENDANCE_STATUS.LATE) },
+        { value: ATTENDANCE_STATUS.ABSENT_NO_EXCUSE, label: getLocalizedAttendanceLabel(ATTENDANCE_STATUS.ABSENT_NO_EXCUSE) },
+        { value: ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE, label: getLocalizedAttendanceLabel(ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE) },
+        { value: ATTENDANCE_STATUS.EXCUSED_LEAVE, label: getLocalizedAttendanceLabel(ATTENDANCE_STATUS.EXCUSED_LEAVE) },
+        { value: ATTENDANCE_STATUS.HUMAN_CASE, label: getLocalizedAttendanceLabel(ATTENDANCE_STATUS.HUMAN_CASE) }
       ]
     },
     {

@@ -97,7 +97,7 @@ const StudentQuickActionModal = ({
     { value: 'present', icon: <CheckCircle size={16} />, color: '#22c55e', label: 'Present' },
     { value: 'late', icon: <Clock size={16} />, color: '#eab308', label: 'Late' },
     { value: 'absent_no_excuse', icon: <XCircle size={16} />, color: '#ef4444', label: 'Absent (No Excuse)' },
-    { value: 'absent_with_excuse', icon: <AlertCircle size={16} />, color: '#f97316', label: 'Absent (With Excuse)' },
+    { value: 'absent_with_excuse', icon: <AlertCircle size={16} />, color: '#f97316', label: 'Absent excused' },
     { value: 'excused_leave', icon: <Heart size={16} />, color: '#ec4899', label: 'Excused Leave' },
     { value: 'human_case', icon: <Heart size={16} />, color: '#8b5cf6', label: 'Human Case' }
   ];
