@@ -34,7 +34,7 @@ const CategorySelect = ({ categories, value, onChange, disabled = false, placeho
         const displayContent = (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <span>{categoryLabel}</span>
-            <span style={{ color: '#6b7280', fontSize: '0.875rem' }}>
+            <span style={{ color: '#6b7280', fontSize: 'var(--font-size-sm)' }}>
               ({category.categoryType || 'General'})
             </span>
           </div>

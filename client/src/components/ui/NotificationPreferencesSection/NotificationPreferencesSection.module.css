@@ -50,7 +50,7 @@
 }
 
 .channelLabel {
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   font-weight: 500;
   white-space: nowrap;
 }
@@ -62,7 +62,7 @@
 .matrixTable {
   width: 100%;
   border-collapse: collapse;
-  font-size: 0.8125rem;
+  font-size: var(--font-size-sm);
 }
 
 .matrixTable th,
@@ -102,7 +102,7 @@
 
 .subsectionDesc {
   margin: 0 0 0.75rem;
-  font-size: 0.8125rem;
+  font-size: var(--font-size-sm);
   color: var(--text-muted, #6b7280);
   line-height: 1.4;
 }

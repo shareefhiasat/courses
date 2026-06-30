@@ -262,7 +262,7 @@ const LookupManagementPage = ({ lookupType }) => {
   if (!config) {
     return (
       <div style={{ padding: '2rem', textAlign: 'center' }}>
-        <div style={{ fontSize: '1.125rem', fontWeight: '500', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
+        <div style={{ fontSize: 'var(--font-size-lg)', fontWeight: '500', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
           Unknown lookup type: {lookupType}
         </div>
       </div>
@@ -304,7 +304,7 @@ const LookupManagementPage = ({ lookupType }) => {
   if (!hasPermission) {
     return (
       <div style={{ padding: '2rem', textAlign: 'center' }}>
-        <div style={{ fontSize: '1.125rem', fontWeight: '500', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
+        <div style={{ fontSize: 'var(--font-size-lg)', fontWeight: '500', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
           {t('access_denied') || 'Access Denied'}
         </div>
       </div>
@@ -665,7 +665,7 @@ const LookupManagementPage = ({ lookupType }) => {
   if (pageState === PAGE_STATES.LOADING) {
     return (
       <div style={{ padding: '2rem', textAlign: 'center' }}>
-        <div style={{ fontSize: '1rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
+        <div style={{ fontSize: 'var(--font-size-md)', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
           Loading {t('loading_lookup_type', { type: localizedTitle })}...
         </div>
       </div>
@@ -676,7 +676,7 @@ const LookupManagementPage = ({ lookupType }) => {
   if (pageState === PAGE_STATES.ERROR) {
     return (
       <div style={{ padding: '2rem', textAlign: 'center' }}>
-        <div style={{ fontSize: '1rem', color: '#ef4444' }}>
+        <div style={{ fontSize: 'var(--font-size-md)', color: '#ef4444' }}>
           {t('error_loading_lookup_type', { type: localizedTitle })}
         </div>
         <Button

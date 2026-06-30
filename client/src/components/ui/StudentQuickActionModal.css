@@ -33,7 +33,7 @@
   align-items: center;
   justify-content: center;
   font-weight: 600;
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
 }
 
 .student-info {
@@ -90,7 +90,7 @@
 .status-indicator {
   padding: 0.25rem 0.75rem;
   border-radius: 20px;
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   font-weight: 600;
 }
 
@@ -113,7 +113,7 @@
   gap: 0.5rem;
   padding: 0.75rem;
   border-radius: 8px;
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   margin-top: 0.5rem;
 }
 
@@ -155,7 +155,7 @@
   }
   
   .student-email {
-    font-size: 0.75rem;
+    font-size: var(--font-size-xs);
   }
 }
 
@@ -730,7 +730,7 @@
   }
   
   .attendance-option span {
-    font-size: 0.75rem;
+    font-size: var(--font-size-xs);
   }
   
   .delta-selector {

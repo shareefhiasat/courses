@@ -288,7 +288,7 @@ const PermissionMatrixPage = () => {
     border: 'none',
     borderRadius: '4px',
     cursor: 'pointer',
-    fontSize: '0.875rem',
+    fontSize: 'var(--font-size-sm)',
     fontWeight: '600',
   };
 
@@ -399,7 +399,7 @@ const PermissionMatrixPage = () => {
             backgroundColor: roleFilter === null ? 'var(--accent)' : 'var(--surface)',
             color: roleFilter === null ? 'white' : 'var(--text-primary)',
             cursor: 'pointer',
-            fontSize: '0.75rem',
+            fontSize: 'var(--font-size-xs)',
             fontWeight: '600'
           }}
         >
@@ -416,7 +416,7 @@ const PermissionMatrixPage = () => {
               backgroundColor: roleFilter === role ? 'var(--accent)' : 'var(--surface)',
               color: roleFilter === role ? 'white' : 'var(--text-primary)',
               cursor: 'pointer',
-              fontSize: '0.75rem',
+              fontSize: 'var(--font-size-xs)',
               fontWeight: '600'
             }}
           >
@@ -432,7 +432,7 @@ const PermissionMatrixPage = () => {
           color: 'white',
           borderRadius: '4px',
           marginBottom: '1rem',
-          fontSize: '0.875rem'
+          fontSize: 'var(--font-size-sm)'
         }}>
           {saveMessage}
         </div>
@@ -461,11 +461,11 @@ const PermissionMatrixPage = () => {
                 userSelect: 'none'
               }}
             >
-              <span style={{ fontSize: '1rem' }}>{isCatExpanded ? '▼' : '▶'}</span>
-              <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: '700', textTransform: 'capitalize' }}>
+              <span style={{ fontSize: 'var(--font-size-md)' }}>{isCatExpanded ? '▼' : '▶'}</span>
+              <h2 style={{ margin: 0, fontSize: 'var(--font-size-md)', fontWeight: '700', textTransform: 'capitalize' }}>
                 {categoryDisplayNames[cat] || cat}
               </h2>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+              <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-secondary)' }}>
                 ({screens.length} {screens.length === 1 ? 'screen' : 'screens'})
               </span>
               {pendingCount > 0 && (
@@ -519,7 +519,7 @@ const PermissionMatrixPage = () => {
                         </span>
                       )}
                     </div>
-                    <span style={{ fontSize: '1rem', color: 'var(--text-secondary)' }}>
+                    <span style={{ fontSize: 'var(--font-size-md)', color: 'var(--text-secondary)' }}>
                       {isScreenExpanded ? '▼' : '▶'}
                     </span>
                   </div>
@@ -539,7 +539,7 @@ const PermissionMatrixPage = () => {
                           }}
                         >
                           <div style={{ marginBottom: '0.5rem' }}>
-                            <strong style={{ fontSize: '0.875rem' }}>{operation.name}</strong>
+                            <strong style={{ fontSize: 'var(--font-size-sm)' }}>{operation.name}</strong>
                             {operation.description && (
                               <span style={{ marginLeft: '0.5rem', color: 'var(--text-secondary)', fontSize: '0.8rem' }}>
                                 — {operation.description}

@@ -31,7 +31,7 @@ const ManualInputForm = ({
     }}>
       <h3 style={{
         margin: '0 0 1rem 0',
-        fontSize: '1.125rem',
+        fontSize: 'var(--font-size-lg)',
         fontWeight: 600,
         color: '#111827'
       }}>
@@ -48,7 +48,7 @@ const ManualInputForm = ({
           padding: '0.75rem',
           border: '1px solid #d1d5db',
           borderRadius: '0.375rem',
-          fontSize: '0.875rem',
+          fontSize: 'var(--font-size-sm)',
           marginBottom: '1rem',
           outline: 'none',
           boxSizing: 'border-box'
@@ -75,7 +75,7 @@ const ManualInputForm = ({
             background: manualStudentId.trim() ? '#3b82f6' : '#9ca3af',
             color: 'white',
             borderRadius: '0.375rem',
-            fontSize: '0.875rem',
+            fontSize: 'var(--font-size-sm)',
             cursor: manualStudentId.trim() ? 'pointer' : 'not-allowed',
             width: '100%',
             fontWeight: 500,
@@ -93,7 +93,7 @@ const ManualInputForm = ({
             background: 'white',
             color: '#6b7280',
             borderRadius: '0.375rem',
-            fontSize: '0.875rem',
+            fontSize: 'var(--font-size-sm)',
             cursor: 'pointer',
             width: '100%',
             fontWeight: 500,

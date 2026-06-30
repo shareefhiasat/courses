@@ -202,7 +202,7 @@ const GroupChatModal = ({ isOpen, onClose, onGroupCreated }) => {
                     border: `1px solid ${isActive ? chipColor : 'var(--border)'}`,
                     background: isActive ? `${chipColor}15` : 'transparent',
                     color: isActive ? chipColor : 'var(--text)',
-                    fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer',
+                    fontSize: 'var(--font-size-xs)', fontWeight: 600, cursor: 'pointer',
                     transition: 'all 0.2s', whiteSpace: 'nowrap',
                   }}
                 >

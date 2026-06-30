@@ -256,7 +256,7 @@ const MarksTab = React.memo(({
             variant="outline-primary"
             onClick={() => loadMarksHistory(params.row)}
             disabled={historyLoading}
-            style={{ padding: '4px 8px', fontSize: '0.75rem', minWidth: '60px' }}
+            style={{ padding: '4px 8px', fontSize: 'var(--font-size-xs)', minWidth: '60px' }}
           >
             {historyLoading ? '...' : (t('history') || 'History')}
           </Button>
@@ -366,7 +366,7 @@ const MarksTab = React.memo(({
       {canEdit && marksDistribution && (
         <Card style={{ marginBottom: '1rem' }}>
           <CardBody>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', fontSize: '0.875rem' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', fontSize: 'var(--font-size-sm)' }}>
               <span>{t('mid_term') || 'Mid-Term'}: {marksDistribution.midTermExam}%</span>
               <span>{t('final') || 'Final'}: {marksDistribution.finalExam}%</span>
               <span>{t('homework') || 'Homework'}: {marksDistribution.homework}%</span>

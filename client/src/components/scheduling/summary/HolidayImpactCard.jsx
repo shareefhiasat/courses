@@ -11,16 +11,16 @@ export default function HolidayImpactCard({ impact = {} }) {
   return (
     <Card>
       <CardBody>
-        <h3 style={{ fontSize: '1.125rem', fontWeight: 500, marginBottom: '1rem' }}>
+        <h3 style={{ fontSize: 'var(--font-size-lg)', fontWeight: 500, marginBottom: '1rem' }}>
           {t('holiday_impact') || 'Holiday Impact'}
         </h3>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
           <div>
-            <div style={{ fontSize: '0.75rem', color: muted }}>{t('holidays_in_range') || 'Holidays in range'}</div>
+            <div style={{ fontSize: 'var(--font-size-xs)', color: muted }}>{t('holidays_in_range') || 'Holidays in range'}</div>
             <div style={{ fontSize: '1.5rem', fontWeight: 600 }}>{impact.holidayCount ?? 0}</div>
           </div>
           <div>
-            <div style={{ fontSize: '0.75rem', color: muted }}>{t('sessions_affected') || 'Sessions affected'}</div>
+            <div style={{ fontSize: 'var(--font-size-xs)', color: muted }}>{t('sessions_affected') || 'Sessions affected'}</div>
             <div style={{ fontSize: '1.5rem', fontWeight: 600, color: '#f59e0b' }}>{impact.affectedSessions ?? 0}</div>
           </div>
         </div>

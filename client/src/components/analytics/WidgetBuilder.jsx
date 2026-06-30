@@ -145,7 +145,7 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
     borderRadius: 8,
     background: 'var(--input-bg)',
     color: theme === 'dark' ? '#ffffff' : '#212529',
-    fontSize: 14,
+    fontSize: 'var(--font-size-sm)',
     boxSizing: 'border-box'
   });
 
@@ -323,7 +323,7 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
                   style={{
                     padding: '6px 12px',
                     borderRadius: 20,
-                    fontSize: 12,
+                    fontSize: 'var(--font-size-xs)',
                     cursor: 'pointer',
                     border: sourceCategory === cat.id ? `2px solid ${accentColor}` : '1px solid var(--border)',
                     background: sourceCategory === cat.id ? `${accentColor}15` : 'transparent',
@@ -381,7 +381,7 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
                       padding: '8px 10px',
                       borderRadius: 6,
                       cursor: 'pointer',
-                      fontSize: 12,
+                      fontSize: 'var(--font-size-xs)',
                       textAlign: 'center',
                       border: selectedMetric === stat.value ? `2px solid ${accentColor}` : '1px solid var(--border)',
                       background: selectedMetric === stat.value ? `${accentColor}15` : 'transparent',
@@ -407,7 +407,7 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
                       padding: '8px 12px',
                       borderRadius: 6,
                       cursor: 'pointer',
-                      fontSize: 12,
+                      fontSize: 'var(--font-size-xs)',
                       border: (config.valueField || 'sessionCount') === vf.value ? `2px solid ${accentColor}` : '1px solid var(--border)',
                       background: (config.valueField || 'sessionCount') === vf.value ? `${accentColor}15` : 'transparent',
                       color: (config.valueField || 'sessionCount') === vf.value ? accentColor : 'var(--text)',
@@ -432,7 +432,7 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
                       padding: '8px 14px',
                       borderRadius: 6,
                       cursor: 'pointer',
-                      fontSize: 12,
+                      fontSize: 'var(--font-size-xs)',
                       border: (config.listLimit ?? 50) === limit ? `2px solid ${accentColor}` : '1px solid var(--border)',
                       background: (config.listLimit ?? 50) === limit ? `${accentColor}15` : 'transparent',
                       color: (config.listLimit ?? 50) === limit ? accentColor : 'var(--text)',
@@ -463,7 +463,7 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
                           padding: '8px 10px',
                           borderRadius: 6,
                           cursor: 'pointer',
-                          fontSize: 12,
+                          fontSize: 'var(--font-size-xs)',
                           textAlign: 'center',
                           border: selected ? `2px solid ${accentColor}` : '1px solid var(--border)',
                           background: selected ? `${accentColor}15` : 'transparent',
@@ -508,7 +508,7 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
                       background: config.aggregation === a.value 
                         ? `linear-gradient(135deg, ${accentColor}15 0%, ${accentColor}08 100%)` 
                         : 'transparent',
-                      fontSize: 12,
+                      fontSize: 'var(--font-size-xs)',
                       fontWeight: 400,
                       color: config.aggregation === a.value ? accentColor : 'var(--text)',
                       textAlign: 'center',
@@ -561,7 +561,7 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
                   whiteSpace: 'nowrap',
                   border: config.dateRange === r.value ? `2px solid ${accentColor}` : '1px solid var(--border)',
                   background: config.dateRange === r.value ? `${accentColor}15` : 'transparent',
-                  fontSize: 12,
+                  fontSize: 'var(--font-size-xs)',
                   color: config.dateRange === r.value ? accentColor : 'var(--text)',
                 }}
               >
@@ -586,7 +586,7 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
 
           {/* Comparison Mode - Deprecated */}
           {/* <Field label="">
-            <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontWeight: 600, fontSize: 14 }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer', fontWeight: 600, fontSize: 'var(--font-size-sm)' }}>
               <input
                 type="checkbox"
                 checked={config.comparisonMode}
@@ -660,7 +660,7 @@ function Field({ label, children }) {
   return (
     <div>
       {label && (
-        <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, fontSize: 13, color: 'var(--text)' }}>
+        <label style={{ display: 'block', marginBottom: 8, fontWeight: 600, fontSize: 'var(--font-size-sm)', color: 'var(--text)' }}>
           {label}
         </label>
       )}

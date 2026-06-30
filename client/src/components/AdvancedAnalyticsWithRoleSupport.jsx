@@ -294,7 +294,7 @@ export default function AdvancedAnalytics({
                 padding: '0.55rem 1rem',
                 background: accentColor,
                 color: 'white', border: 'none', borderRadius: 8,
-                cursor: 'pointer', fontWeight: 600, fontSize: 13,
+                cursor: 'pointer', fontWeight: 600, fontSize: 'var(--font-size-sm)',
                 whiteSpace: 'nowrap'
               }}
             >
@@ -350,7 +350,7 @@ export default function AdvancedAnalytics({
             <strong>{t('some_data_not_loaded_permissions') || 'Some collections could not be loaded (permissions):'}</strong>
             <div style={{ marginTop: 6, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {Object.keys(permErrors).map(key => (
-                <span key={key} style={{ padding: '2px 8px', borderRadius: 999, background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.4)', fontSize: 12 }}>
+                <span key={key} style={{ padding: '2px 8px', borderRadius: 999, background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.4)', fontSize: 'var(--font-size-xs)' }}>
                   {key}
                 </span>
               ))}
@@ -474,7 +474,7 @@ function btnStyle(bg) {
     padding: '0.55rem 1rem',
     background: bg, color: 'white',
     border: 'none', borderRadius: 8,
-    cursor: 'pointer', fontWeight: 600, fontSize: 13,
+    cursor: 'pointer', fontWeight: 600, fontSize: 'var(--font-size-sm)',
     whiteSpace: 'nowrap'
   };
 }

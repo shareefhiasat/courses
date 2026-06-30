@@ -156,7 +156,7 @@ const StatusFilterChips = ({
             backgroundColor: chip.active ? chip.colors.activeBg : chip.colors.bg,
             color: chip.active ? chip.colors.activeText : chip.colors.text,
             borderRadius: 999,
-            fontSize: '0.75rem',
+            fontSize: 'var(--font-size-xs)',
             fontWeight: 600,
             border: `1px solid ${chip.colors.border}`
           }}

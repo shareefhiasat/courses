@@ -621,7 +621,7 @@ const AttendancePage = () => {
       />
 
       {err && (
-        <div style={{ padding:'0.75rem 1rem', background: theme === 'dark' ? 'rgba(239,68,68,0.15)' : '#fef2f2', border:`1px solid ${theme === 'dark' ? '#7f1d1d' : '#fecaca'}`, borderRadius:8, color: theme === 'dark' ? '#fca5a5' : '#dc2626', marginBottom:16, display:'flex', alignItems:'center', gap:'0.5rem', fontSize:'0.875rem' }}>
+        <div style={{ padding:'0.75rem 1rem', background: theme === 'dark' ? 'rgba(239,68,68,0.15)' : '#fef2f2', border:`1px solid ${theme === 'dark' ? '#7f1d1d' : '#fecaca'}`, borderRadius:8, color: theme === 'dark' ? '#fca5a5' : '#dc2626', marginBottom:16, display:'flex', alignItems:'center', gap:'0.5rem', fontSize: 'var(--font-size-sm)' }}>
           <AlertCircle size={16} style={{ flexShrink: 0 }} />
           {err}
         </div>
@@ -675,7 +675,7 @@ const AttendancePage = () => {
             </div>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            <Badge style={{ background: 'rgba(255,255,255,0.2)', color: 'white', padding: '0.5rem 1rem', borderRadius: 8, fontWeight: 600, fontSize: '0.875rem' }}>
+            <Badge style={{ background: 'rgba(255,255,255,0.2)', color: 'white', padding: '0.5rem 1rem', borderRadius: 8, fontWeight: 600, fontSize: 'var(--font-size-sm)' }}>
               {attendanceCount} {t('students') || 'Students'}
             </Badge>
             <button
@@ -692,7 +692,7 @@ const AttendancePage = () => {
                 display: 'inline-flex',
                 alignItems: 'center',
                 gap: '0.375rem',
-                fontSize: '0.875rem'
+                fontSize: 'var(--font-size-sm)'
               }}
             >
               <Square size={14} />
@@ -801,14 +801,14 @@ const AttendancePage = () => {
               borderRadius: 8,
               background: panelBg,
               color: textColor,
-              fontSize: '0.875rem',
+              fontSize: 'var(--font-size-sm)',
               outline: 'none',
             }}
           />
         </div>
 
         {/* Class List */}
-        <div style={{ fontSize:12, color: mutedColor, marginBottom:8 }}>
+        <div style={{ fontSize: 'var(--font-size-xs)', color: mutedColor, marginBottom:8 }}>
           {t('attendance_showing_of_classes', { shown: filteredClasses.length, total: classOptions.length })}
         </div>
         {filteredClasses.length === 0 && (
@@ -906,7 +906,7 @@ const AttendancePage = () => {
         testId="attendance-guidelines"
       >
       <div data-tour="attendance-guidelines" style={{ padding:'1rem', background: theme === 'dark' ? 'rgba(30,64,175,0.08)' : '#eff6ff', border:`1px solid ${theme === 'dark' ? '#1e3a8a' : '#800020'}`, borderRadius: 8 }}>
-        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', gap: '0.5rem', fontSize: 13, color: theme === 'dark' ? '#93c5fd' : '#1e3a8a' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', gap: '0.5rem', fontSize: 'var(--font-size-sm)', color: theme === 'dark' ? '#93c5fd' : '#1e3a8a' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', padding: '0.5rem 0.75rem', background: 'rgba(255,255,255,0.7)', borderRadius: 6 }}>
             <strong>1.</strong>
             <span>{t('attendance_guide_step1')}</span>
@@ -953,7 +953,7 @@ const AttendancePage = () => {
           transition: 'all 0.3s ease'
         }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.75rem' }}>
-          <div style={{ fontWeight: 700, fontSize: '1rem', color: textColor }}>
+          <div style={{ fontWeight: 700, fontSize: 'var(--font-size-md)', color: textColor }}>
             {t('attendance_live_qr')}
           </div>
           {sessionId && (
@@ -1004,7 +1004,7 @@ const AttendancePage = () => {
           </div>
           <div style={{ flex: 1, minWidth: '250px' }}>
             {!sessionId && (
-              <div style={{ fontSize: 14, color: mutedColor }}>
+              <div style={{ fontSize: 'var(--font-size-sm)', color: mutedColor }}>
                 <div style={{ marginBottom: 12, fontWeight: 600, color: textColor }}>
                   {t('attendance_how_to_start_session')}
                 </div>
@@ -1030,14 +1030,14 @@ const AttendancePage = () => {
             )}
             {sessionId && (
               <>
-                <div style={{ fontSize: 12, color:'var(--muted)', marginBottom:8 }}>
+                <div style={{ fontSize: 'var(--font-size-xs)', color:'var(--muted)', marginBottom:8 }}>
                   {t('attendance_qr_rotates_info', { seconds: cfg.rotationSeconds })}
                 </div>
                 <div style={{ marginTop:8, padding:'0.5rem 0.75rem', background:'rgba(0,0,0,0.04)', borderRadius:8, fontFamily:'monospace', fontSize:11, color:'var(--muted)', wordBreak:'break-all' }}>
                   {token ? token.slice(0,80)+'…' : t('attendance_waiting_token')}
                 </div>
                 {!token && (
-                  <div style={{ marginTop:8, fontSize:12, color:'#b45309' }}>
+                  <div style={{ marginTop:8, fontSize: 'var(--font-size-xs)', color:'#b45309' }}>
                     {t('attendance_waiting_for_backend')}
                   </div>
                 )}
@@ -1104,7 +1104,7 @@ const AttendancePage = () => {
                 color:'white',
                 fontWeight:600,
                 cursor: !classId || loading ? 'not-allowed' : 'pointer',
-                fontSize: '0.875rem'
+                fontSize: 'var(--font-size-sm)'
               }}
             >
               {loading ? t('attendance_starting') : t('attendance_start_session')}
@@ -1120,7 +1120,7 @@ const AttendancePage = () => {
                 background: cfg.lateMode ? '#10b981' : 'var(--panel)',
                 color: cfg.lateMode ? 'white' : 'inherit',
                 fontWeight:600,
-                fontSize: '0.875rem'
+                fontSize: 'var(--font-size-sm)'
               }}
             >
               {cfg.lateMode ? t('attendance_late_mode_on') : t('attendance_late_mode_off')}
@@ -1156,11 +1156,11 @@ const AttendancePage = () => {
           </div>
         }
       >
-        <p style={{ margin: '0 0 1rem 0', color: mutedColor, fontSize: '0.875rem' }}>
+        <p style={{ margin: '0 0 1rem 0', color: mutedColor, fontSize: 'var(--font-size-sm)' }}>
           {t('submit_confirmation') || 'This will generate an attendance report and submit it to HR for review. Are you sure you want to proceed?'}
         </p>
         <div>
-          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, color: textColor, fontSize: '0.875rem' }}>
+          <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, color: textColor, fontSize: 'var(--font-size-sm)' }}>
             {t('optional_comments') || 'Optional Comments'}
           </label>
           <Textarea

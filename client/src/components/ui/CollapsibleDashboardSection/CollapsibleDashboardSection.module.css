@@ -83,7 +83,7 @@
   width: 24px;
   height: 24px;
   border-radius: 6px;
-  font-size: 14px;
+  font-size: var(--font-size-sm);
   transition: all 0.2s ease;
 }
 
@@ -100,7 +100,7 @@
 
 .headerTitle {
   margin: 0;
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   color: var(--section-text, #1f2937);
   line-height: 1.2;
@@ -111,7 +111,7 @@
 }
 
 .headerCount {
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   color: var(--section-text-muted, #6b7280);
   font-weight: 400;
 }
@@ -123,7 +123,7 @@
 .headerBadge {
   padding: 0.25rem 0.75rem;
   border-radius: 20px;
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
@@ -180,7 +180,7 @@
   background: transparent;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   color: var(--section-text, #374151);
   transition: all 0.2s ease;
 }
@@ -284,7 +284,7 @@
   border-radius: 6px;
   background: var(--section-color);
   color: white;
-  font-size: 14px;
+  font-size: var(--font-size-sm);
 }
 
 .compactInfo {
@@ -307,7 +307,7 @@
 }
 
 .compactCount {
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   color: var(--section-text-muted, #6b7280);
 }
 
@@ -361,7 +361,7 @@
   border: 1px solid var(--section-border);
   border-radius: 20px;
   cursor: pointer;
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   color: var(--section-text, #374151);
   transition: all 0.2s ease;
   box-shadow: var(--section-shadow);
@@ -395,7 +395,7 @@
 }
 
 .minimalLabel {
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   color: var(--section-text-muted, #6b7280);
   animation: fadeIn 0.2s ease;
 }
@@ -467,7 +467,7 @@
   border: none;
   border-radius: 25px;
   cursor: pointer;
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
   transition: all 0.3s ease;
@@ -481,7 +481,7 @@
 }
 
 .restoreButton span:first-child {
-  font-size: 16px;
+  font-size: var(--font-size-md);
 }
 
 .restoreButton span:nth-child(2) {

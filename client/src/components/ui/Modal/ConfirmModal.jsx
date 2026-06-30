@@ -67,7 +67,7 @@ const ConfirmModal = ({
       closeOnOverlayClick={!loading}
       closeOnEscape={!loading}
       className="confirm-modal compact-modal"
-      titleStyle={{ fontSize: '1rem', fontWeight: '600' }}
+      titleStyle={{ fontSize: 'var(--font-size-md)', fontWeight: '600' }}
     >
       <p>{message}</p>
     </Modal>

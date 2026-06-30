@@ -184,7 +184,7 @@
 
 .compact-modal p {
   margin: 0;
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   line-height: 1.4;
 }
 

@@ -195,7 +195,7 @@ const WidgetAssignmentManager = ({ isOpen, onClose, onSave }) => {
                     {getThemedIcon('ui', template.icon, 20, theme)}
                     <div>
                       <div style={{ fontWeight: 600 }}>{template.title}</div>
-                      <div style={{ fontSize: '0.875rem', color: 'var(--muted)' }}>
+                      <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--muted)' }}>
                         {template.description}
                       </div>
                     </div>
@@ -209,7 +209,7 @@ const WidgetAssignmentManager = ({ isOpen, onClose, onSave }) => {
           <div>
             <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.1rem', fontWeight: 600 }}>
               {t('assigned_widgets') || 'Assigned Widgets'}
-              <span style={{ fontSize: '0.875rem', color: 'var(--muted)', marginLeft: '0.5rem' }}>
+              <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--muted)', marginLeft: '0.5rem' }}>
                 ({assignedWidgets.length})
               </span>
             </h3>
@@ -240,7 +240,7 @@ const WidgetAssignmentManager = ({ isOpen, onClose, onSave }) => {
                         {getThemedIcon('ui', 'grip_vertical', 16, theme)}
                         <div>
                           <div style={{ fontWeight: 600 }}>{widget.title}</div>
-                          <div style={{ fontSize: '0.75rem', color: 'var(--muted)' }}>
+                          <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--muted)' }}>
                             {widget.chartType} • {widget.dataSource}
                           </div>
                         </div>

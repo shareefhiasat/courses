@@ -9,7 +9,7 @@
   padding: 40px 20px;
   text-align: center;
   color: var(--text-secondary, #666);
-  font-size: 14px;
+  font-size: var(--font-size-sm);
 }
 
 .error {

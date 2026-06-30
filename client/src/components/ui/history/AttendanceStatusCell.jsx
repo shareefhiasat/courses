@@ -52,7 +52,7 @@ const AttendanceStatusCell = ({ status, type = 'regular', t, lang }) => {
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
         {getIcon(status)}
-        <span style={{ fontSize: '0.75rem', color: color, fontWeight: 500 }}>
+        <span style={{ fontSize: 'var(--font-size-xs)', color: color, fontWeight: 500 }}>
           {label}
         </span>
       </div>

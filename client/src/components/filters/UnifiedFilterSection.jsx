@@ -198,7 +198,7 @@ const UnifiedFilterSection = ({
               background: isDark ? '#0f172a' : '#fff',
               color: isDark ? '#f8fafc' : '#111',
               borderRadius: 8,
-              fontSize: '0.875rem',
+              fontSize: 'var(--font-size-sm)',
               outline: 'none'
             }}
           />
@@ -280,7 +280,7 @@ const UnifiedFilterSection = ({
                     border: `1px solid ${colors.border}`,
                     background: isActive ? colors.activeBg : colors.bg,
                     color: isActive ? colors.activeText : colors.text,
-                    fontSize: '0.75rem',
+                    fontSize: 'var(--font-size-xs)',
                     fontWeight: type.value === 'all' ? 700 : 600,
                     display: 'inline-flex',
                     alignItems: 'center',

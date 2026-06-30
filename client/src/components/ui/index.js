@@ -7,6 +7,7 @@ export { default as ClassCard } from './ClassCard';
 export { default as Badge } from './Badge';
 export { default as Input } from './Input';
 export { default as FontFamilyPicker } from './FontFamilyPicker/FontFamilyPicker';
+export { default as TextSizePicker } from './TextSizePicker/TextSizePicker';
 export { default as Select } from './Select';
 export { default as TermSelect } from './Select';
 export { default as AttendanceTypeSelect } from './AttendanceTypeSelect';

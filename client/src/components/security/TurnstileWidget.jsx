@@ -129,7 +129,7 @@ const TurnstileWidget = ({ action = 'login', onVerify, theme = 'auto' }) => {
     <div className="turnstile-widget-container" style={{ marginBottom: '16px', display: 'flex', justifyContent: 'center' }}>
       <div ref={containerRef} />
       {error && (
-        <div style={{ color: '#dc2626', fontSize: '0.875rem', marginTop: '4px' }}>
+        <div style={{ color: '#dc2626', fontSize: 'var(--font-size-sm)', marginTop: '4px' }}>
           {error}
           <button
             type="button"

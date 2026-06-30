@@ -25,7 +25,7 @@ export default function WorkflowBadge({ status, currentStage, compact = false })
         className={`inline-flex items-center gap-2 px-3 py-1 rounded-md text-xs font-medium ${config.bgClass} ${config.textClass}`}
         title={currentStage ? `${label}: ${currentStage}` : label}
         style={{
-          fontSize: '0.8125rem',
+          fontSize: 'var(--font-size-sm)',
           fontWeight: 600,
           letterSpacing: '0.025em',
           minWidth: '100px',

@@ -82,7 +82,7 @@ export default function PublicLinksTab({ fileId }) {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)' }} role="status">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: 'var(--font-size-sm)', color: 'var(--text-muted, #6b7280)' }} role="status">
         {t('common.loading')}…
       </div>
     );
@@ -91,13 +91,13 @@ export default function PublicLinksTab({ fileId }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
       {error && (
-        <div style={{ padding: '0.75rem', background: 'var(--error-bg, #fef2f2)', border: '1px solid var(--error-border, #fecaca)', borderRadius: '0.5rem', color: 'var(--error-text, #dc2626)', fontSize: '0.875rem' }} role="alert">
+        <div style={{ padding: '0.75rem', background: 'var(--error-bg, #fef2f2)', border: '1px solid var(--error-border, #fecaca)', borderRadius: '0.5rem', color: 'var(--error-text, #dc2626)', fontSize: 'var(--font-size-sm)' }} role="alert">
           {error}
         </div>
       )}
 
       {links.length === 0 && !loading ? (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3rem', color: 'var(--text-muted, #6b7280)', fontSize: '0.875rem' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '3rem', color: 'var(--text-muted, #6b7280)', fontSize: 'var(--font-size-sm)' }}>
           {getIcon('ui', 'link', 48)}
           <p style={{ marginTop: '1rem', margin: 0 }}>{t('drive.noPublicLinks', 'No public links yet')}</p>
         </div>
@@ -138,10 +138,10 @@ export default function PublicLinksTab({ fileId }) {
                 {/* Content */}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: '0.875rem', fontWeight: 600, color: status.color }}>
+                    <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, color: status.color }}>
                       {status.label}
                     </span>
-                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)' }}>
+                    <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted, #6b7280)' }}>
                       {t('drive.created', 'Created')}: {formatDateTime(link.createdAt)}
                     </span>
                   </div>
@@ -158,7 +158,7 @@ export default function PublicLinksTab({ fileId }) {
                   }}>
                     <code style={{ 
                       flex: 1, 
-                      fontSize: '0.75rem', 
+                      fontSize: 'var(--font-size-xs)', 
                       color: 'var(--text, #374151)', 
                       overflow: 'hidden',
                       textOverflow: 'ellipsis',
@@ -192,7 +192,7 @@ export default function PublicLinksTab({ fileId }) {
                   </div>
 
                   {/* Metadata */}
-                  <div style={{ display: 'flex', gap: '1rem', fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)' }}>
+                  <div style={{ display: 'flex', gap: '1rem', fontSize: 'var(--font-size-xs)', color: 'var(--text-muted, #6b7280)' }}>
                     {link.expiresAt && (
                       <span>
                         {t('drive.expires', 'Expires')}: {formatDateTime(link.expiresAt)}
@@ -226,7 +226,7 @@ export default function PublicLinksTab({ fileId }) {
                       color: 'var(--error-text, #dc2626)',
                       cursor: 'pointer',
                       transition: 'all 0.15s ease',
-                      fontSize: '0.875rem',
+                      fontSize: 'var(--font-size-sm)',
                       display: 'flex',
                       alignItems: 'center',
                       gap: '0.375rem',

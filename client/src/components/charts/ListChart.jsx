@@ -1502,7 +1502,7 @@ function ListChart({
               </div>
               <div style={{ fontSize: `${11 * fontScale}px` }}>
                 {displayItems.length === 0 ? (
-                  <div style={{ padding: '24px', textAlign: 'center', color: 'var(--muted)', fontSize: 13 }}>
+                  <div style={{ padding: '24px', textAlign: 'center', color: 'var(--muted)', fontSize: 'var(--font-size-sm)' }}>
                     {t('no_data') || 'No data'}
                   </div>
                 ) : displayItems.map((item, idx) => (

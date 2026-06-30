@@ -125,7 +125,7 @@
 
 .help-text {
   color: var(--text-secondary);
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   margin-top: -0.25rem;
 }
 
@@ -216,7 +216,7 @@
 
 .toggle-hint {
   color: var(--text-secondary);
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   font-weight: normal;
 }
 

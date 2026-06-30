@@ -80,7 +80,7 @@ const ActivityList = ({
         <div style={{
           padding: '1rem',
           color: '#9ca3af',
-          fontSize: '0.875rem',
+          fontSize: 'var(--font-size-sm)',
           textAlign: 'center'
         }}>
           {t('loading')}...
@@ -89,7 +89,7 @@ const ActivityList = ({
         <div style={{
           padding: '1rem',
           color: '#9ca3af',
-          fontSize: '0.875rem'
+          fontSize: 'var(--font-size-sm)'
         }}>
           {t('no_todays_transactions') || 'No transactions Today'}
         </div>
@@ -112,7 +112,7 @@ const ActivityList = ({
               <div style={{
                 padding: '0.125rem 0.375rem',
                 borderRadius: '0.25rem',
-                fontSize: '0.75rem',
+                fontSize: 'var(--font-size-xs)',
                 fontWeight: 600,
                 background: 'transparent',
                 color: '#374151',
@@ -125,7 +125,7 @@ const ActivityList = ({
                   <span style={{ marginLeft: '0.25rem' }}>({activity.points})</span>
                 )}
               </div>
-              <span style={{ fontSize: '0.8125rem', color: 'var(--text-secondary, #374151)', flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>
+              <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary, #374151)', flex: 1, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>
                 {lang === 'ar' ? (activity.studentNameAr || activity.studentName) : (activity.studentName || activity.studentNameAr)}
               </span>
               
@@ -186,7 +186,7 @@ const ActivityList = ({
               <div style={{
                 paddingLeft: isMobile ? '0.25rem' : '0.5rem',
                 paddingTop: '0.5rem',
-                fontSize: '0.75rem',
+                fontSize: 'var(--font-size-xs)',
                 color: '#6b7280',
                 display: isMobile ? 'flex' : 'block',
                 flexDirection: isMobile ? 'column' : 'none',
@@ -262,7 +262,7 @@ const ActivityList = ({
                       <span style={{
                         padding: '0.125rem 0.375rem',
                         borderRadius: '0.25rem',
-                        fontSize: '0.75rem',
+                        fontSize: 'var(--font-size-xs)',
                         fontWeight: 600,
                         background: getScanMethodDisplay(activity.scanMethod).color + '20',
                         color: getScanMethodDisplay(activity.scanMethod).color

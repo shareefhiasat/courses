@@ -335,7 +335,7 @@ export default function PieChart({ data = [], size = 300, donut = false, showLab
             border: '1px solid var(--border, #374151)',
             borderRadius: 8,
             padding: '8px 12px',
-            fontSize: 12,
+            fontSize: 'var(--font-size-xs)',
             lineHeight: 1.45,
             maxWidth: 280,
             boxShadow: '0 8px 24px rgba(0,0,0,0.18)',

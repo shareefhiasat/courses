@@ -499,7 +499,7 @@ const BulkScanDialog = ({
                       onClick={handleParseClick}
                       className={styles.parseButton}
                       disabled={!inputText.trim() || loading}
-                      style={{ padding: '0.5rem 0.875rem', fontSize: '0.875rem' }}
+                      style={{ padding: '0.5rem 0.875rem', fontSize: 'var(--font-size-sm)' }}
                     >
                       <Upload size={16} />
                       {t('parse_input') || 'Parse'}
@@ -510,7 +510,7 @@ const BulkScanDialog = ({
                       onClick={executeBulkOperation}
                       className={styles.addAllExceptButton}
                       disabled={loading || validating || addingAll || inputText.trim() === '' || result !== null}
-                      style={{ padding: '0.375rem 0.625rem', fontSize: '0.75rem' }}
+                      style={{ padding: '0.375rem 0.625rem', fontSize: 'var(--font-size-xs)' }}
                     >
                       {addingAll ? (
                         <>
@@ -530,7 +530,7 @@ const BulkScanDialog = ({
                     className={`${styles.clearButton} ${styles.tabActionButtons}`}
                     disabled={loading || addingAll}
                     title={t('clear_and_new') || 'Clear All and Start New Operation'}
-                    style={{ padding: '0.5rem 0.875rem', fontSize: '0.875rem' }}
+                    style={{ padding: '0.5rem 0.875rem', fontSize: 'var(--font-size-sm)' }}
                   >
                     <RotateCcw size={16} />
                     {t('clear_new') || 'Clear'}
@@ -563,8 +563,8 @@ const BulkScanDialog = ({
                 <label htmlFor="bulk-input" className={activeTab === 'manual' ? styles.columnLabelManual : styles.columnLabelExcluded}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
                     {activeTab === 'manual'
-                      ? (<><Upload size={16} /> <span style={{ fontSize: '1rem' }}>{t('paste_student_numbers') || 'Paste Student Numbers'}</span></>)
-                      : (<><Minus size={16} /> <span style={{ fontSize: '1rem' }}>{t('excluded_students') || 'Excluded'}</span> <span className={`${styles.columnCountBadge} ${styles.columnCountBadge.excluded}`}>{excludedStudents.length}</span></>)
+                      ? (<><Upload size={16} /> <span style={{ fontSize: 'var(--font-size-md)' }}>{t('paste_student_numbers') || 'Paste Student Numbers'}</span></>)
+                      : (<><Minus size={16} /> <span style={{ fontSize: 'var(--font-size-md)' }}>{t('excluded_students') || 'Excluded'}</span> <span className={`${styles.columnCountBadge} ${styles.columnCountBadge.excluded}`}>{excludedStudents.length}</span></>)
                     }
                   </span>
                 </label>
@@ -636,7 +636,7 @@ const BulkScanDialog = ({
                 <label className={styles.columnLabelSelected}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
                     <CheckCircle size={16} />
-                    <span style={{ fontSize: '1rem' }}>{t('selected_students') || 'Selected'}</span>
+                    <span style={{ fontSize: 'var(--font-size-md)' }}>{t('selected_students') || 'Selected'}</span>
                     <span className={`${styles.columnCountBadge} ${styles.columnCountBadge.selected}`}>{selectedStudents.length}</span>
                   </span>
                 </label>

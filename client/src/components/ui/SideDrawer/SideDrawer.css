@@ -195,7 +195,7 @@
 }
 
 .side-nav-item.sub-item {
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   padding: 0.5rem 1rem 0.5rem 2rem;
 }
 
@@ -266,7 +266,7 @@
 }
 
 .user-email {
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   color: var(--text-secondary, #6b7280);
   white-space: nowrap;
   overflow: hidden;

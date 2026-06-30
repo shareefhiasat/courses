@@ -33,7 +33,7 @@
 }
 
 .header p {
-  font-size: 1.125rem;
+  font-size: var(--font-size-lg);
   color: var(--military-gray, #666);
   margin: 0;
 }

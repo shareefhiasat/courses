@@ -244,7 +244,7 @@ function AvailabilityTimelineLegend({ t, theme }) {
       {items.map(({ color, label }) => (
         <span
           key={label}
-          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.75rem', color: muted }}
+          style={{ display: 'inline-flex', alignItems: 'center', gap: '0.35rem', fontSize: 'var(--font-size-xs)', color: muted }}
         >
           <span
             style={{
@@ -2556,7 +2556,7 @@ const SchedulingCalendarPage = () => {
 
         return `
           <div style="display: flex; flex-direction: column; justify-content: center; width: 100%; height: 100%; min-height: 100%; padding: 4px 6px; line-height: 1.2; overflow: hidden; box-sizing: border-box; color: #ffffff;">
-            <div style="display: flex; align-items: center; font-weight: 600; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+            <div style="display: flex; align-items: center; font-weight: 600; font-size: var(--font-size-xs); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
               ${sessionIcon}
               ${escapeHtml(title)}
             </div>
@@ -2586,7 +2586,7 @@ const SchedulingCalendarPage = () => {
 
         return `
           <div style="display: flex; flex-direction: column; justify-content: center; width: 100%; height: 100%; min-height: 100%; padding: 4px 6px; line-height: 1.2; overflow: hidden; box-sizing: border-box; color: #ffffff;">
-            <div style="display: flex; align-items: center; font-weight: 600; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+            <div style="display: flex; align-items: center; font-weight: 600; font-size: var(--font-size-xs); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
               ${breakIcon}
               ${escapeHtml(title)}
             </div>
@@ -2616,7 +2616,7 @@ const SchedulingCalendarPage = () => {
 
         return `
           <div style="display: flex; flex-direction: column; justify-content: center; width: 100%; height: 100%; min-height: 100%; padding: 4px 6px; line-height: 1.2; overflow: hidden; box-sizing: border-box; color: #ffffff;">
-            <div style="display: flex; align-items: center; font-weight: 600; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+            <div style="display: flex; align-items: center; font-weight: 600; font-size: var(--font-size-xs); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
               ${holidayIcon}
               ${escapeHtml(title)}
             </div>
@@ -2626,7 +2626,7 @@ const SchedulingCalendarPage = () => {
       }
       return `
         <div style="display: flex; flex-direction: column; justify-content: center; width: 100%; height: 100%; min-height: 100%; padding: 4px 6px; line-height: 1.2; overflow: hidden; box-sizing: border-box; color: #ffffff;">
-          <div style="font-weight: 600; font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(title)}</div>
+          <div style="font-weight: 600; font-size: var(--font-size-xs); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${escapeHtml(title)}</div>
           <div style="font-size: 10px; opacity: 0.92; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${body}</div>
         </div>
       `;
@@ -2734,10 +2734,10 @@ const SchedulingCalendarPage = () => {
   if (!hasPermission) {
     return (
       <div style={{ padding: '2rem', textAlign: 'center' }}>
-        <div style={{ fontSize: '1.125rem', fontWeight: '500', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
+        <div style={{ fontSize: 'var(--font-size-lg)', fontWeight: '500', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
           {t('access_denied')}
         </div>
-        <div style={{ fontSize: '0.875rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '0.5rem' }}>
+        <div style={{ fontSize: 'var(--font-size-sm)', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '0.5rem' }}>
           {t('need_admin_or_hr_privileges')}
         </div>
       </div>
@@ -2792,12 +2792,12 @@ const SchedulingCalendarPage = () => {
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0, flex: 1 }}>
               <BarChart3 size={16} color={theme === 'dark' ? '#9ca3af' : '#6b7280'} />
-              <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: theme === 'dark' ? '#f3f4f6' : '#1f2937', flexShrink: 0 }}>
+              <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, color: theme === 'dark' ? '#f3f4f6' : '#1f2937', flexShrink: 0 }}>
                 {t('scheduling_overview')}
               </span>
               {!showStats && (
                 <span style={{
-                  fontSize: '0.75rem',
+                  fontSize: 'var(--font-size-xs)',
                   color: theme === 'dark' ? '#9ca3af' : '#6b7280',
                   whiteSpace: 'nowrap',
                   overflow: 'hidden',
@@ -2889,7 +2889,7 @@ const SchedulingCalendarPage = () => {
                   padding: '0.5rem 1rem',
                   backgroundColor: mainTab === 'sessions' ? '#3b82f6' : 'transparent',
                   color: mainTab === 'sessions' ? '#ffffff' : theme === 'dark' ? '#9ca3af' : '#6b7280',
-                  border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.875rem',
+                  border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: 'var(--font-size-sm)',
                   fontWeight: mainTab === 'sessions' ? 600 : 400,
                   display: 'flex', alignItems: 'center', gap: '0.5rem'
                 }}
@@ -2906,7 +2906,7 @@ const SchedulingCalendarPage = () => {
                   padding: '0.5rem 1rem',
                   backgroundColor: mainTab === 'classes' ? '#8b5cf6' : 'transparent',
                   color: mainTab === 'classes' ? '#ffffff' : theme === 'dark' ? '#9ca3af' : '#6b7280',
-                  border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.875rem',
+                  border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: 'var(--font-size-sm)',
                   fontWeight: mainTab === 'classes' ? 600 : 400,
                   display: 'flex', alignItems: 'center', gap: '0.5rem'
                 }}
@@ -2920,7 +2920,7 @@ const SchedulingCalendarPage = () => {
                   padding: '0.5rem 1rem',
                   backgroundColor: mainTab === 'availability' && scopeMode === 'instructor' ? '#10b981' : 'transparent',
                   color: mainTab === 'availability' && scopeMode === 'instructor' ? '#ffffff' : theme === 'dark' ? '#9ca3af' : '#6b7280',
-                  border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.875rem',
+                  border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: 'var(--font-size-sm)',
                   fontWeight: mainTab === 'availability' && scopeMode === 'instructor' ? 600 : 400,
                   display: 'flex', alignItems: 'center', gap: '0.5rem'
                 }}
@@ -2934,7 +2934,7 @@ const SchedulingCalendarPage = () => {
                   padding: '0.5rem 1rem',
                   backgroundColor: mainTab === 'availability' && scopeMode === 'room' ? '#10b981' : 'transparent',
                   color: mainTab === 'availability' && scopeMode === 'room' ? '#ffffff' : theme === 'dark' ? '#9ca3af' : '#6b7280',
-                  border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.875rem',
+                  border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: 'var(--font-size-sm)',
                   fontWeight: mainTab === 'availability' && scopeMode === 'room' ? 600 : 400,
                   display: 'flex', alignItems: 'center', gap: '0.5rem'
                 }}
@@ -2954,7 +2954,7 @@ const SchedulingCalendarPage = () => {
                       padding: '0.5rem 0.75rem',
                       backgroundColor: scopeMode === 'all' ? '#3b82f6' : 'transparent',
                       color: scopeMode === 'all' ? '#ffffff' : theme === 'dark' ? '#9ca3af' : '#6b7280',
-                      border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.875rem',
+                      border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: 'var(--font-size-sm)',
                       fontWeight: scopeMode === 'all' ? 600 : 400
                     }}
                   >
@@ -2967,7 +2967,7 @@ const SchedulingCalendarPage = () => {
                       padding: '0.5rem',
                       backgroundColor: scopeMode === 'instructor' ? '#3b82f6' : 'transparent',
                       color: scopeMode === 'instructor' ? '#ffffff' : theme === 'dark' ? '#9ca3af' : '#6b7280',
-                      border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.875rem',
+                      border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: 'var(--font-size-sm)',
                       fontWeight: scopeMode === 'instructor' ? 600 : 400,
                       display: 'flex', alignItems: 'center'
                     }}
@@ -2981,7 +2981,7 @@ const SchedulingCalendarPage = () => {
                       padding: '0.5rem',
                       backgroundColor: scopeMode === 'room' ? '#3b82f6' : 'transparent',
                       color: scopeMode === 'room' ? '#ffffff' : theme === 'dark' ? '#9ca3af' : '#6b7280',
-                      border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: '0.875rem',
+                      border: 'none', borderRadius: '0.375rem', cursor: 'pointer', fontSize: 'var(--font-size-sm)',
                       fontWeight: scopeMode === 'room' ? 600 : 400,
                       display: 'flex', alignItems: 'center'
                     }}
@@ -3110,7 +3110,7 @@ const SchedulingCalendarPage = () => {
                 borderRadius: '0.375rem',
                 backgroundColor: theme === 'dark' ? '#374151' : '#ffffff',
                 color: theme === 'dark' ? '#f3f4f6' : '#1f2937',
-                fontSize: '0.875rem',
+                fontSize: 'var(--font-size-sm)',
                 minWidth: '200px'
               }}
             />
@@ -3137,7 +3137,7 @@ const SchedulingCalendarPage = () => {
                   border: '1px solid #8b5cf6',
                   background: '#8b5cf620',
                   color: '#8b5cf6',
-                  fontSize: '0.8125rem',
+                  fontSize: 'var(--font-size-sm)',
                   cursor: 'pointer',
                   whiteSpace: 'nowrap'
                 }}
@@ -3242,10 +3242,10 @@ const SchedulingCalendarPage = () => {
                     border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`,
                     backgroundColor: theme === 'dark' ? '#374151' : '#ffffff',
                     color: theme === 'dark' ? '#f3f4f6' : '#1f2937',
-                    fontSize: '0.875rem'
+                    fontSize: 'var(--font-size-sm)'
                   }}
                 />
-                <span style={{ color: theme === 'dark' ? '#6b7280' : '#9ca3af', fontSize: '0.875rem' }}>–</span>
+                <span style={{ color: theme === 'dark' ? '#6b7280' : '#9ca3af', fontSize: 'var(--font-size-sm)' }}>–</span>
                 <input
                   type="date"
                   value={definedAvailTo}
@@ -3258,7 +3258,7 @@ const SchedulingCalendarPage = () => {
                     border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`,
                     backgroundColor: theme === 'dark' ? '#374151' : '#ffffff',
                     color: theme === 'dark' ? '#f3f4f6' : '#1f2937',
-                    fontSize: '0.875rem'
+                    fontSize: 'var(--font-size-sm)'
                   }}
                 />
               </>
@@ -3324,7 +3324,7 @@ const SchedulingCalendarPage = () => {
                     border: 'none',
                     borderRadius: '0.375rem',
                     cursor: 'grab',
-                    fontSize: '0.875rem',
+                    fontSize: 'var(--font-size-sm)',
                     fontWeight: 500,
                     display: 'flex',
                     alignItems: 'center',
@@ -3358,7 +3358,7 @@ const SchedulingCalendarPage = () => {
                     border: 'none',
                     borderRadius: '0.375rem',
                     cursor: 'grab',
-                    fontSize: '0.875rem',
+                    fontSize: 'var(--font-size-sm)',
                     fontWeight: 500,
                     display: 'flex',
                     alignItems: 'center',
@@ -3437,8 +3437,8 @@ const SchedulingCalendarPage = () => {
                 }}
               >
                 <BookOpen size={16} />
-                <span style={{ fontSize: '0.875rem', fontWeight: 600 }}>{t('classes_sidebar')}</span>
-                <span style={{ fontSize: '0.75rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginInlineStart: '0.25rem' }}>
+                <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600 }}>{t('classes_sidebar')}</span>
+                <span style={{ fontSize: 'var(--font-size-xs)', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginInlineStart: '0.25rem' }}>
                   {isClassesPanelExpanded ? t('drag_class_to_calendar') : `${filteredClasses.length} ${t('classes_count_label')}`}
                 </span>
                 <span style={{ marginInlineStart: 'auto', display: 'flex' }}>
@@ -3513,7 +3513,7 @@ const SchedulingCalendarPage = () => {
                     scrollbarWidth: 'thin'
                   }}>
                     {filteredClasses.length === 0 ? (
-                      <div style={{ padding: '0.5rem', color: theme === 'dark' ? '#6b7280' : '#9ca3af', fontSize: '0.8125rem' }}>
+                      <div style={{ padding: '0.5rem', color: theme === 'dark' ? '#6b7280' : '#9ca3af', fontSize: 'var(--font-size-sm)' }}>
                         {t('no_classes_found')}
                       </div>
                     ) : (
@@ -3537,7 +3537,7 @@ const SchedulingCalendarPage = () => {
                               borderRadius: '0.375rem',
                               border: `1px solid ${missing ? '#fca5a5' : theme === 'dark' ? '#374151' : '#e5e7eb'}`,
                               cursor: 'grab',
-                              fontSize: '0.8125rem'
+                              fontSize: 'var(--font-size-sm)'
                             }}
                           >
                             <div style={{ fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -3570,7 +3570,7 @@ const SchedulingCalendarPage = () => {
               border: '1px solid #fbbf24',
               borderRadius: '0.375rem',
               padding: '0.75rem',
-              fontSize: '0.875rem',
+              fontSize: 'var(--font-size-sm)',
               marginBottom: '1rem'
             }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '0.5rem' }}>
@@ -3589,7 +3589,7 @@ const SchedulingCalendarPage = () => {
                     border: '1px solid #fbbf24',
                     borderRadius: '0.25rem',
                     padding: '0.5rem',
-                    fontSize: '0.75rem',
+                    fontSize: 'var(--font-size-xs)',
                     cursor: 'pointer'
                   }}
                   onClick={() => {
@@ -3783,7 +3783,7 @@ const SchedulingCalendarPage = () => {
                         onChange={(e) => setWorkloadFilterThreshold(parseInt(e.target.value))}
                         style={{ flex: 1 }}
                       />
-                      <span style={{ fontSize: '0.875rem', minWidth: '60px' }}>≤ {workloadFilterThreshold}%</span>
+                      <span style={{ fontSize: 'var(--font-size-sm)', minWidth: '60px' }}>≤ {workloadFilterThreshold}%</span>
                     </div>
                   </div>
                 
@@ -3813,7 +3813,7 @@ const SchedulingCalendarPage = () => {
                                   <span style={{ fontWeight: '600' }}>{getLocalizedInstructorName(instructor, lang, instructor.email)}</span>
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-                                  <div style={{ fontSize: '0.875rem', display: 'flex', gap: '1rem' }}>
+                                  <div style={{ fontSize: 'var(--font-size-sm)', display: 'flex', gap: '1rem' }}>
                                     <span>{sessionCount} {t('sessions')}</span>
                                     <span>{scheduledHours} {t('hours_abbr')}</span>
                                     <span style={{ color: workloadColor, fontWeight: '600' }}>{workloadPercentage}%</span>
@@ -3823,7 +3823,7 @@ const SchedulingCalendarPage = () => {
                                     onClick={() => navigate(`/summary-dashboard?instructorId=${instructor.id}`)}
                                     style={{
                                       padding: '0.25rem 0.5rem',
-                                      fontSize: '0.75rem',
+                                      fontSize: 'var(--font-size-xs)',
                                       backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
                                       color: theme === 'dark' ? '#f3f4f6' : '#1f2937',
                                       border: `1px solid ${theme === 'dark' ? '#4b5563' : '#d1d5db'}`,
@@ -3841,7 +3841,7 @@ const SchedulingCalendarPage = () => {
                                     onClick={() => handleShowOnCalendar(instructor.id)}
                                     style={{
                                       padding: '0.25rem 0.5rem',
-                                      fontSize: '0.75rem',
+                                      fontSize: 'var(--font-size-xs)',
                                       backgroundColor: sessionCount > 0 ? '#3b82f6' : (theme === 'dark' ? '#374151' : '#e5e7eb'),
                                       color: sessionCount > 0 ? '#ffffff' : (theme === 'dark' ? '#6b7280' : '#9ca3af'),
                                       border: 'none',
@@ -3857,7 +3857,7 @@ const SchedulingCalendarPage = () => {
                               
                               {/* Next session */}
                               {nextSession && (
-                                <div style={{ fontSize: '0.875rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginBottom: '0.5rem' }}>
+                                <div style={{ fontSize: 'var(--font-size-sm)', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginBottom: '0.5rem' }}>
                                   {t('next_session')}: {getLocalizedClassName(nextSession.class, lang, t('class'))} - {formatWorkloadSessionTime(nextSession.startDateTime, lang)}
                                 </div>
                               )}
@@ -3878,7 +3878,7 @@ const SchedulingCalendarPage = () => {
                                     display: 'flex',
                                     alignItems: 'center',
                                     gap: '0.25rem',
-                                    fontSize: '0.875rem',
+                                    fontSize: 'var(--font-size-sm)',
                                     color: '#3b82f6',
                                     background: 'none',
                                     border: 'none',
@@ -3899,7 +3899,7 @@ const SchedulingCalendarPage = () => {
                                       backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
                                       padding: '0.5rem',
                                       borderRadius: '0.375rem',
-                                      fontSize: '0.875rem',
+                                      fontSize: 'var(--font-size-sm)',
                                       display: 'flex',
                                       justifyContent: 'space-between',
                                       alignItems: 'center',
@@ -3907,7 +3907,7 @@ const SchedulingCalendarPage = () => {
                                     }}>
                                       <div style={{ minWidth: 0 }}>
                                         <div>{getLocalizedClassName(session.class, lang, t('class'))}</div>
-                                        <div style={{ fontSize: '0.75rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '0.125rem' }}>
+                                        <div style={{ fontSize: 'var(--font-size-xs)', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '0.125rem' }}>
                                           {buildSessionEventVenueLine(session, lang, t)}
                                         </div>
                                       </div>
@@ -3933,7 +3933,7 @@ const SchedulingCalendarPage = () => {
                       </div>
                     ) : (
                       <div style={{ overflowX: 'auto' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--font-size-sm)' }}>
                           <thead>
                             <tr style={{ borderBottom: `2px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}` }}>
                               <th style={{ padding: '0.75rem', textAlign: 'left' }}>{t('instructor')}</th>
@@ -3956,7 +3956,7 @@ const SchedulingCalendarPage = () => {
                                   <td style={{ padding: '0.75rem', textAlign: 'center' }}>
                                     <span style={{ color: workloadColor, fontWeight: '600' }}>{workloadPercentage}%</span>
                                   </td>
-                                  <td style={{ padding: '0.75rem', fontSize: '0.75rem' }}>
+                                  <td style={{ padding: '0.75rem', fontSize: 'var(--font-size-xs)' }}>
                                     {nextSession ? (
                                       <div>
                                         <div>{getLocalizedClassName(nextSession.class, lang, t('class'))}</div>
@@ -3974,7 +3974,7 @@ const SchedulingCalendarPage = () => {
                                       onClick={() => handleShowOnCalendar(instructor.id)}
                                       style={{
                                         padding: '0.25rem 0.5rem',
-                                        fontSize: '0.75rem',
+                                        fontSize: 'var(--font-size-xs)',
                                         backgroundColor: sessionCount > 0 ? '#3b82f6' : (theme === 'dark' ? '#374151' : '#e5e7eb'),
                                         color: sessionCount > 0 ? '#ffffff' : (theme === 'dark' ? '#6b7280' : '#9ca3af'),
                                         border: 'none',
@@ -4045,7 +4045,7 @@ const SchedulingCalendarPage = () => {
                                     </button>
                                   </div>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-                                    <div style={{ fontSize: '0.875rem', display: 'flex', gap: '1rem', color: textColor }}>
+                                    <div style={{ fontSize: 'var(--font-size-sm)', display: 'flex', gap: '1rem', color: textColor }}>
                                       <span>{sessionCount} {t('sessions')}</span>
                                       <span>{scheduledHours} {t('hours_abbr')}</span>
                                       <span style={{ color: workloadColor, fontWeight: '600' }}>{workloadPercentage}%</span>
@@ -4068,19 +4068,19 @@ const SchedulingCalendarPage = () => {
                                           backgroundColor: theme === 'dark' ? '#374151' : '#f9fafb',
                                           border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`,
                                           borderRadius: '0.5rem',
-                                          fontSize: '0.875rem',
+                                          fontSize: 'var(--font-size-sm)',
                                           display: 'flex',
                                           justifyContent: 'space-between',
                                           alignItems: 'center'
                                         }}
                                       >
                                         <div style={{ flex: 1 }}>
-                                          <div style={{ fontWeight: '600', fontSize: '0.875rem' }}>{getLocalizedClassName(session.class, lang, t('class'))}</div>
-                                          <div style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '0.25rem', fontSize: '0.875rem' }}>
+                                          <div style={{ fontWeight: '600', fontSize: 'var(--font-size-sm)' }}>{getLocalizedClassName(session.class, lang, t('class'))}</div>
+                                          <div style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '0.25rem', fontSize: 'var(--font-size-sm)' }}>
                                             {getLocalizedClassroomName(session.classroom, lang) || t('no_room')}
                                           </div>
                                         </div>
-                                        <div style={{ textAlign: 'right', fontSize: '0.875rem' }}>
+                                        <div style={{ textAlign: 'right', fontSize: 'var(--font-size-sm)' }}>
                                           <div>{formatSchedulingDateOnly(session.startDateTime, lang)}</div>
                                           <div style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
                                             {formatSchedulingTimeOnly(session.startDateTime, lang)}
@@ -4088,7 +4088,7 @@ const SchedulingCalendarPage = () => {
                                         </div>
                                       </div>
                                     )) : (
-                                      <div style={{ padding: '1rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', fontSize: '0.875rem' }}>
+                                      <div style={{ padding: '1rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', fontSize: 'var(--font-size-sm)' }}>
                                         {t('no_sessions')}
                                       </div>
                                     )}
@@ -4126,18 +4126,18 @@ const SchedulingCalendarPage = () => {
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                                     <DoorOpen size={18} color="#3b82f6" />
                                     <span style={{ fontWeight: '600' }}>{getLocalizedClassroomName(classroom, lang)}</span>
-                                    <span style={{ fontSize: '0.75rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
+                                    <span style={{ fontSize: 'var(--font-size-xs)', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
                                       ({classroom.capacity} {t('seats')})
                                     </span>
                                   </div>
-                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem 1rem', marginTop: '0.25rem', marginLeft: '1.625rem', fontSize: '0.75rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
+                                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem 1rem', marginTop: '0.25rem', marginLeft: '1.625rem', fontSize: 'var(--font-size-xs)', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
                                     {getClassroomDetailRows(classroom, lang, t).map((row) => (
                                       <span key={row.label}><strong>{row.label}:</strong> {row.value}</span>
                                     ))}
                                   </div>
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', flexWrap: 'wrap' }}>
-                                  <div style={{ fontSize: '0.875rem', display: 'flex', gap: '1rem' }}>
+                                  <div style={{ fontSize: 'var(--font-size-sm)', display: 'flex', gap: '1rem' }}>
                                     <span>{sessionCount} {t('sessions')}</span>
                                     <span>{scheduledHours} {t('hours_abbr')}</span>
                                     <span style={{ color: workloadColor, fontWeight: '600' }}>{workloadPercentage}%</span>
@@ -4149,7 +4149,7 @@ const SchedulingCalendarPage = () => {
                                     onClick={() => handleShowRoomOnCalendar(classroom.id)}
                                     style={{
                                       padding: '0.25rem 0.5rem',
-                                      fontSize: '0.75rem',
+                                      fontSize: 'var(--font-size-xs)',
                                       backgroundColor: sessionCount > 0 ? '#3b82f6' : (theme === 'dark' ? '#374151' : '#e5e7eb'),
                                       color: sessionCount > 0 ? '#ffffff' : (theme === 'dark' ? '#6b7280' : '#9ca3af'),
                                       border: 'none',
@@ -4165,7 +4165,7 @@ const SchedulingCalendarPage = () => {
                               
                               {/* Next session */}
                               {nextSession && (
-                                <div style={{ fontSize: '0.875rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginBottom: '0.5rem' }}>
+                                <div style={{ fontSize: 'var(--font-size-sm)', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginBottom: '0.5rem' }}>
                                   {t('next_session')}: {getLocalizedClassName(nextSession.class, lang, t('class'))} - {formatWorkloadSessionTime(nextSession.startDateTime, lang)}
                                 </div>
                               )}
@@ -4186,7 +4186,7 @@ const SchedulingCalendarPage = () => {
                                     display: 'flex',
                                     alignItems: 'center',
                                     gap: '0.25rem',
-                                    fontSize: '0.875rem',
+                                    fontSize: 'var(--font-size-sm)',
                                     color: '#3b82f6',
                                     background: 'none',
                                     border: 'none',
@@ -4207,7 +4207,7 @@ const SchedulingCalendarPage = () => {
                                       backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
                                       padding: '0.5rem',
                                       borderRadius: '0.375rem',
-                                      fontSize: '0.875rem',
+                                      fontSize: 'var(--font-size-sm)',
                                       display: 'flex',
                                       justifyContent: 'space-between',
                                       alignItems: 'center',
@@ -4215,7 +4215,7 @@ const SchedulingCalendarPage = () => {
                                     }}>
                                       <div style={{ minWidth: 0 }}>
                                         <div>{getLocalizedClassName(session.class, lang, t('class'))}</div>
-                                        <div style={{ fontSize: '0.75rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '0.125rem' }}>
+                                        <div style={{ fontSize: 'var(--font-size-xs)', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '0.125rem' }}>
                                           {buildSessionEventVenueLine(session, lang, t)}
                                         </div>
                                       </div>
@@ -4241,7 +4241,7 @@ const SchedulingCalendarPage = () => {
                       </div>
                     ) : (
                       <div style={{ overflowX: 'auto' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--font-size-sm)' }}>
                           <thead>
                             <tr style={{ borderBottom: `2px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}` }}>
                               <th style={{ padding: '0.75rem', textAlign: 'left' }}>{t('room')}</th>
@@ -4260,7 +4260,7 @@ const SchedulingCalendarPage = () => {
                                 <tr key={classroom.id} style={{ borderBottom: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}` }}>
                                   <td style={{ padding: '0.75rem' }}>
                                     {getLocalizedClassroomName(classroom, lang)}
-                                    <span style={{ fontSize: '0.75rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginLeft: '0.5rem' }}>
+                                    <span style={{ fontSize: 'var(--font-size-xs)', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginLeft: '0.5rem' }}>
                                       ({classroom.capacity} {t('seats')})
                                     </span>
                                   </td>
@@ -4269,7 +4269,7 @@ const SchedulingCalendarPage = () => {
                                   <td style={{ padding: '0.75rem', textAlign: 'center' }}>
                                     <span style={{ color: workloadColor, fontWeight: '600' }}>{workloadPercentage}%</span>
                                   </td>
-                                  <td style={{ padding: '0.75rem', fontSize: '0.75rem' }}>
+                                  <td style={{ padding: '0.75rem', fontSize: 'var(--font-size-xs)' }}>
                                     {nextSession ? (
                                       <div>
                                         <div>{getLocalizedClassName(nextSession.class, lang, t('class'))}</div>
@@ -4287,7 +4287,7 @@ const SchedulingCalendarPage = () => {
                                       onClick={() => handleShowRoomOnCalendar(classroom.id)}
                                       style={{
                                         padding: '0.25rem 0.5rem',
-                                        fontSize: '0.75rem',
+                                        fontSize: 'var(--font-size-xs)',
                                         backgroundColor: sessionCount > 0 ? '#3b82f6' : (theme === 'dark' ? '#374151' : '#e5e7eb'),
                                         color: sessionCount > 0 ? '#ffffff' : (theme === 'dark' ? '#6b7280' : '#9ca3af'),
                                         border: 'none',
@@ -4675,7 +4675,7 @@ const SchedulingCalendarPage = () => {
             maxWidth: '420px',
             width: '100%'
           }} onClick={(e) => e.stopPropagation()}>
-            <h2 style={{ fontSize: '1.125rem', fontWeight: 600, color: theme === 'dark' ? '#f3f4f6' : '#1f2937', marginBottom: '1rem' }}>
+            <h2 style={{ fontSize: 'var(--font-size-lg)', fontWeight: 600, color: theme === 'dark' ? '#f3f4f6' : '#1f2937', marginBottom: '1rem' }}>
               {t('delete_event')}
             </h2>
             <p style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginBottom: '1rem' }}>
@@ -4774,7 +4774,7 @@ const SchedulingCalendarPage = () => {
                 backgroundColor: theme === 'dark' ? '#374151' : '#f9fafb',
                 padding: '0.75rem',
                 borderRadius: '0.375rem',
-                fontSize: '0.875rem'
+                fontSize: 'var(--font-size-sm)'
               }}>
                 <div><strong>{t('class')}:</strong> {getLocalizedClassName(sessionToDelete.class, lang, t('unknown'))}</div>
                 <div><strong>{t('date')}:</strong> {formatWorkloadSessionTime(sessionToDelete.startDateTime, lang)}</div>
@@ -4790,7 +4790,7 @@ const SchedulingCalendarPage = () => {
                 borderRadius: '0.375rem',
                 padding: '0.75rem',
                 marginBottom: '1rem',
-                fontSize: '0.875rem',
+                fontSize: 'var(--font-size-sm)',
                 color: '#92400e'
               }}>
                 {t('attendance_records_reason')}
@@ -4798,7 +4798,7 @@ const SchedulingCalendarPage = () => {
             )}
 
             <div style={{ marginBottom: '1rem' }}>
-              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: '500', marginBottom: '0.5rem' }}>
+              <label style={{ display: 'block', fontSize: 'var(--font-size-sm)', fontWeight: '500', marginBottom: '0.5rem' }}>
                 {t('reason_for_deletion')} {requiresReason && <span style={{ color: '#ef4444' }}>*</span>}
               </label>
               <textarea
@@ -4812,7 +4812,7 @@ const SchedulingCalendarPage = () => {
                   borderRadius: '0.375rem',
                   backgroundColor: theme === 'dark' ? '#374151' : '#ffffff',
                   color: theme === 'dark' ? '#f3f4f6' : '#1f2937',
-                  fontSize: '0.875rem',
+                  fontSize: 'var(--font-size-sm)',
                   minHeight: '80px',
                   resize: 'vertical'
                 }}
@@ -4870,7 +4870,7 @@ const SchedulingCalendarPage = () => {
             width: '90%'
           }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-              <h2 style={{ fontSize: '1rem', fontWeight: '600', margin: 0, color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
+              <h2 style={{ fontSize: 'var(--font-size-md)', fontWeight: '600', margin: 0, color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
                 {t('change_status')}
               </h2>
               <button
@@ -4894,7 +4894,7 @@ const SchedulingCalendarPage = () => {
               padding: '0.625rem 0.75rem',
               backgroundColor: theme === 'dark' ? '#374151' : '#f9fafb',
               borderRadius: '0.375rem',
-              fontSize: '0.8125rem',
+              fontSize: 'var(--font-size-sm)',
               marginBottom: '0.75rem',
               color: theme === 'dark' ? '#f3f4f6' : '#1f2937'
             }}>
@@ -4909,7 +4909,7 @@ const SchedulingCalendarPage = () => {
                 backgroundColor: `${STATUS_COLORS[sessionToChangeStatus.status] || '#6b7280'}20`,
                 border: `1px solid ${STATUS_COLORS[sessionToChangeStatus.status] || '#6b7280'}`,
                 color: STATUS_COLORS[sessionToChangeStatus.status] || '#6b7280',
-                fontSize: '0.75rem',
+                fontSize: 'var(--font-size-xs)',
                 fontWeight: '500'
               }}>
                 {renderStatusIcon(
@@ -4921,7 +4921,7 @@ const SchedulingCalendarPage = () => {
               </div>
             </div>
 
-            <div style={{ fontSize: '0.8125rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginBottom: '0.75rem' }}>
+            <div style={{ fontSize: 'var(--font-size-sm)', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginBottom: '0.75rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', marginBottom: '0.25rem' }}>
                 <Clock size={14} />
                 <span>
@@ -4930,18 +4930,18 @@ const SchedulingCalendarPage = () => {
                   {formatSchedulingTimeOnly(sessionToChangeStatus.endDateTime, lang)}
                 </span>
               </div>
-              <div style={{ paddingLeft: '1.25rem', fontSize: '0.75rem' }}>
+              <div style={{ paddingLeft: '1.25rem', fontSize: 'var(--font-size-xs)' }}>
                 {formatSessionDuration(sessionToChangeStatus.startDateTime, sessionToChangeStatus.endDateTime)}
               </div>
             </div>
 
             {getAvailableStatusTransitions(sessionToChangeStatus).length === 0 ? (
-              <div style={{ fontSize: '0.8125rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginBottom: '0.75rem' }}>
+              <div style={{ fontSize: 'var(--font-size-sm)', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginBottom: '0.75rem' }}>
                 {t('no_status_options')}
               </div>
             ) : (
               <>
-            <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: '500', marginBottom: '0.375rem', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
+            <label style={{ display: 'block', fontSize: 'var(--font-size-sm)', fontWeight: '500', marginBottom: '0.375rem', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
               {t('new_status')}
             </label>
             <Select
@@ -4960,7 +4960,7 @@ const SchedulingCalendarPage = () => {
               </>
             )}
 
-            <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: '500', margin: '0.75rem 0 0.375rem', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
+            <label style={{ display: 'block', fontSize: 'var(--font-size-sm)', fontWeight: '500', margin: '0.75rem 0 0.375rem', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
               {t('reason_optional')}
             </label>
             <textarea
@@ -4974,7 +4974,7 @@ const SchedulingCalendarPage = () => {
                 borderRadius: '0.375rem',
                 backgroundColor: theme === 'dark' ? '#374151' : '#ffffff',
                 color: theme === 'dark' ? '#f3f4f6' : '#1f2937',
-                fontSize: '0.8125rem',
+                fontSize: 'var(--font-size-sm)',
                 minHeight: '52px',
                 resize: 'vertical',
                 boxSizing: 'border-box'
@@ -4993,7 +4993,7 @@ const SchedulingCalendarPage = () => {
                   backgroundColor: theme === 'dark' ? '#374151' : '#6b7280',
                   color: '#ffffff',
                   padding: '0.4rem 0.75rem',
-                  fontSize: '0.8125rem'
+                  fontSize: 'var(--font-size-sm)'
                 }}
               >
                 {t('cancel')}
@@ -5005,7 +5005,7 @@ const SchedulingCalendarPage = () => {
                   backgroundColor: '#3b82f6', 
                   color: '#ffffff',
                   padding: '0.4rem 0.75rem',
-                  fontSize: '0.8125rem',
+                  fontSize: 'var(--font-size-sm)',
                   opacity: (!newStatus || getAvailableStatusTransitions(sessionToChangeStatus).length === 0) ? 0.5 : 1,
                   cursor: (!newStatus || getAvailableStatusTransitions(sessionToChangeStatus).length === 0) ? 'not-allowed' : 'pointer'
                 }}

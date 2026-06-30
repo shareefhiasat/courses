@@ -562,7 +562,7 @@ const DashboardEngine = React.forwardRef(({
           border: '1px solid #f59e0b',
           background: 'rgba(245, 158, 11, 0.12)',
           color: 'var(--text)',
-          fontSize: '0.875rem',
+          fontSize: 'var(--font-size-sm)',
         }}>
           <strong>{t('widget_limit_reached') || 'Widget limit reached'}</strong>
           {' — '}
@@ -718,8 +718,8 @@ const DashboardEngine = React.forwardRef(({
           padding: '4rem 2rem', gap: 16, color: 'var(--muted)', textAlign: 'center'
         }}>
           <span style={{ fontSize: 48, opacity: 0.25 }}>{getThemedIcon('ui', 'bar_chart3', 48, theme)}</span>
-          <p style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>{t('no_widgets_yet') || 'No widgets yet'}</p>
-          <p style={{ margin: 0, fontSize: 13 }}>{t('add_widget_hint') || 'Click "Add Widget" to build your first chart.'}</p>
+          <p style={{ margin: 0, fontSize: 'var(--font-size-md)', fontWeight: 600 }}>{t('no_widgets_yet') || 'No widgets yet'}</p>
+          <p style={{ margin: 0, fontSize: 'var(--font-size-sm)' }}>{t('add_widget_hint') || 'Click "Add Widget" to build your first chart.'}</p>
         </div>
       )}
 

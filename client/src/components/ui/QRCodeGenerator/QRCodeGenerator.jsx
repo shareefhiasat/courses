@@ -55,7 +55,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';export defa
       border: '1px solid var(--border)',
       textAlign: 'center'
     }}>
-      <h3 style={{ fontSize: 18, fontWeight: 700, marginBottom: '1rem' }}>{title}</h3>
+      <h3 style={{ fontSize: 'var(--font-size-lg)', fontWeight: 700, marginBottom: '1rem' }}>{title}</h3>
       
       <div style={{ 
         display: 'inline-block', 
@@ -72,7 +72,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';export defa
         background: '#f3f4f6', 
         borderRadius: 8, 
         marginBottom: '1rem',
-        fontSize: 12,
+        fontSize: 'var(--font-size-xs)',
         fontFamily: 'var(--font-family-mono)',
         wordBreak: 'break-all'
       }}>
@@ -93,7 +93,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';export defa
             alignItems: 'center',
             gap: 6,
             fontWeight: 600,
-            fontSize: 14
+            fontSize: 'var(--font-size-sm)'
           }}
         >
           {getThemedIcon('ui', 'copy', 16)}
@@ -112,7 +112,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';export defa
             alignItems: 'center',
             gap: 6,
             fontWeight: 600,
-            fontSize: 14
+            fontSize: 'var(--font-size-sm)'
           }}
         >
           {getThemedIcon('ui', 'download', 16)}
@@ -131,7 +131,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';export defa
             alignItems: 'center',
             gap: 6,
             fontWeight: 600,
-            fontSize: 14
+            fontSize: 'var(--font-size-sm)'
           }}
         >
           {getThemedIcon('ui', 'share2', 16)}

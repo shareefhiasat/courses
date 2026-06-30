@@ -161,7 +161,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Varia
 
       {/* Active Category Variables */}
       <div>
-        <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--color-primary, #800020)', fontSize: '1rem' }}>
+        <h4 style={{ margin: '0 0 0.5rem 0', color: 'var(--color-primary, #800020)', fontSize: 'var(--font-size-md)' }}>
           {variables[activeCategory].title}
         </h4>
         <p style={{ margin: '0 0 1rem 0', color: '#999', fontSize: '0.85rem' }}>
@@ -201,7 +201,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Varia
                 }}>
                   {`{{${variable.name}}}`}
                 </code>
-                <span style={{ fontSize: '0.75rem', color: '#999' }}>{t('click_to_copy')}</span>
+                <span style={{ fontSize: 'var(--font-size-xs)', color: '#999' }}>{t('click_to_copy')}</span>
               </div>
               <p style={{ margin: '0.5rem 0', color: '#555', fontSize: '0.85rem' }}>
                 {variable.description}

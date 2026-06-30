@@ -83,20 +83,20 @@ export default function SchedulingRecurrencePanel({
           onChange={(e) => handleRecurringToggle(e.target.checked)}
           style={{ cursor: 'pointer' }}
         />
-        <label htmlFor="isRecurring" style={{ fontSize: '0.875rem', fontWeight: 500, cursor: 'pointer' }}>
+        <label htmlFor="isRecurring" style={{ fontSize: 'var(--font-size-sm)', fontWeight: 500, cursor: 'pointer' }}>
           {t('create_recurring_sessions')}
         </label>
       </div>
 
       {isRecurring && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <p style={{ margin: 0, fontSize: '0.75rem', color: muted, lineHeight: 1.45 }}>
+          <p style={{ margin: 0, fontSize: 'var(--font-size-xs)', color: muted, lineHeight: 1.45 }}>
             {t('recurrence_time_explanation')}
           </p>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'minmax(160px, 1fr) minmax(240px, 2fr)', gap: '1rem', alignItems: 'start' }}>
             <div>
-              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.5rem' }}>
+              <label style={{ display: 'block', fontSize: 'var(--font-size-sm)', fontWeight: 500, marginBottom: '0.5rem' }}>
                 {t('recurrence_type')}
               </label>
               <Select
@@ -120,7 +120,7 @@ export default function SchedulingRecurrencePanel({
 
             {recurrenceType !== 'daily' && (
               <div>
-                <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.5rem' }}>
+                <label style={{ display: 'block', fontSize: 'var(--font-size-sm)', fontWeight: 500, marginBottom: '0.5rem' }}>
                   {t('select_days')}
                 </label>
                 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
@@ -142,7 +142,7 @@ export default function SchedulingRecurrencePanel({
                         backgroundColor: recurrenceDays.includes(day) ? '#3b82f6' : theme === 'dark' ? '#374151' : '#f9fafb',
                         color: recurrenceDays.includes(day) ? '#ffffff' : 'inherit',
                         cursor: 'pointer',
-                        fontSize: '0.875rem'
+                        fontSize: 'var(--font-size-sm)'
                       }}
                     >
                       {t(DAY_I18N[day]) || day}
@@ -154,7 +154,7 @@ export default function SchedulingRecurrencePanel({
           </div>
 
           <div>
-            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.5rem' }}>
+            <label style={{ display: 'block', fontSize: 'var(--font-size-sm)', fontWeight: 500, marginBottom: '0.5rem' }}>
               {t('series_end_condition')}
             </label>
             <div style={{
@@ -185,7 +185,7 @@ export default function SchedulingRecurrencePanel({
                     backgroundColor: recurrenceEndMode === mode ? '#3b82f6' : 'transparent',
                     color: recurrenceEndMode === mode ? '#ffffff' : 'inherit',
                     cursor: 'pointer',
-                    fontSize: '0.8125rem',
+                    fontSize: 'var(--font-size-sm)',
                     fontWeight: recurrenceEndMode === mode ? 600 : 400,
                     whiteSpace: 'nowrap'
                   }}
@@ -197,7 +197,7 @@ export default function SchedulingRecurrencePanel({
 
             {recurrenceEndMode === 'date' && (
               <div>
-                <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, marginBottom: '0.35rem', color: muted }}>
+                <label style={{ display: 'block', fontSize: 'var(--font-size-sm)', fontWeight: 500, marginBottom: '0.35rem', color: muted }}>
                   {t('series_end_date')}
                 </label>
                 <Input
@@ -214,7 +214,7 @@ export default function SchedulingRecurrencePanel({
 
             {recurrenceEndMode === 'count' && (
               <div>
-                <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 500, marginBottom: '0.35rem', color: muted }}>
+                <label style={{ display: 'block', fontSize: 'var(--font-size-sm)', fontWeight: 500, marginBottom: '0.35rem', color: muted }}>
                   {t('series_occurrence_count')}
                 </label>
                 <Input
@@ -239,7 +239,7 @@ export default function SchedulingRecurrencePanel({
               borderRadius: '0.375rem',
               background: theme === 'dark' ? '#1e3a5f' : '#eff6ff',
               border: `1px solid ${theme === 'dark' ? '#2563eb' : '#bfdbfe'}`,
-              fontSize: '0.8125rem',
+              fontSize: 'var(--font-size-sm)',
               color: theme === 'dark' ? '#dbeafe' : '#1e40af'
             }}>
               {t('recurrence_preview', { count: estimatedCount, minutes: durationMins })}
@@ -248,15 +248,15 @@ export default function SchedulingRecurrencePanel({
 
           {recurrenceType !== 'daily' && recurrenceDays.length > 0 && (
             <div>
-              <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, marginBottom: '0.35rem' }}>
+              <label style={{ display: 'block', fontSize: 'var(--font-size-sm)', fontWeight: 500, marginBottom: '0.35rem' }}>
                 {t('custom_times_per_day')}
               </label>
-              <p style={{ margin: '0 0 0.5rem', fontSize: '0.75rem', color: muted }}>
+              <p style={{ margin: '0 0 0.5rem', fontSize: 'var(--font-size-xs)', color: muted }}>
                 {t('custom_times_per_day_hint')}
               </p>
               {recurrenceDays.map((day) => (
                 <div key={day} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
-                  <span style={{ fontSize: '0.875rem', minWidth: '3rem' }}>{t(DAY_I18N[day]) || day}</span>
+                  <span style={{ fontSize: 'var(--font-size-sm)', minWidth: '3rem' }}>{t(DAY_I18N[day]) || day}</span>
                   <Input
                     type="time"
                     value={timesPerDay.find((row) => row.day === day)?.startTime || ''}

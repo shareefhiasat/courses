@@ -18,7 +18,7 @@ export default function RoleSelect({ value, onChange, disabled = false }) {
           display: 'flex',
           alignItems: 'center',
           gap: '0.375rem',
-          fontSize: '0.875rem',
+          fontSize: 'var(--font-size-sm)',
           fontWeight: 500,
           color: 'var(--text, #111827)',
           marginBottom: '0.5rem',
@@ -38,7 +38,7 @@ export default function RoleSelect({ value, onChange, disabled = false }) {
           borderRadius: '0.5rem',
           background: 'var(--panel, white)',
           color: 'var(--text, #111827)',
-          fontSize: '0.875rem',
+          fontSize: 'var(--font-size-sm)',
           outline: 'none',
           transition: 'border-color 0.15s, box-shadow 0.15s',
           opacity: disabled ? 0.5 : 1,
@@ -63,7 +63,7 @@ export default function RoleSelect({ value, onChange, disabled = false }) {
       </select>
 
       {value && (
-        <p style={{ marginTop: '0.375rem', fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)' }}>
+        <p style={{ marginTop: '0.375rem', fontSize: 'var(--font-size-xs)', color: 'var(--text-muted, #6b7280)' }}>
           {roles.find(r => r.value === value)?.desc}
         </p>
       )}

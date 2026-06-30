@@ -62,7 +62,7 @@
   background: var(--background);
   border-radius: 4px;
   font-weight: 500;
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;

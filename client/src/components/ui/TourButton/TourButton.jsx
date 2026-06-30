@@ -18,7 +18,7 @@ const TourButton = ({ onStart, style = {} }) => {
         alignItems: 'center',
         gap: '0.35rem',
         padding: '0.35rem 0.65rem',
-        fontSize: '0.8125rem',
+        fontSize: 'var(--font-size-sm)',
         borderRadius: '6px',
         border: 'none',
         background: 'var(--color-primary, #800020)',

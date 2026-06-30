@@ -167,7 +167,7 @@ const SubjectSelection = ({
         }
       </div>
       
-      <div style={{ fontSize: '0.75rem', color: '#6b7280', marginTop: '0.5rem' }}>
+      <div style={{ fontSize: 'var(--font-size-xs)', color: '#6b7280', marginTop: '0.5rem' }}>
         {selectedSubjectsForReport.length === 0 
           ? (t('select_at_least_one_subject') || 'Please select at least one subject')
           : (t('subjects_selected') || 'Subjects selected') + ': ' + selectedSubjectsForReport.length
@@ -214,7 +214,7 @@ const EmailOption = ({
           }}
           style={{ width: '18px', height: '18px' }}
         />
-        <span style={{ fontSize: '0.875rem', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           {getThemedIcon('ui', 'send', 16, theme)}
           {t('send_via_email') || 'Send via Email instead of downloading'}
         </span>
@@ -251,7 +251,7 @@ const RecipientSelection = ({
   return (
     <div style={{ marginTop: '0.75rem' }}>
       <div style={{ marginBottom: '0.5rem' }}>
-        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.875rem', fontWeight: 500 }}>
+        <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: 'var(--font-size-sm)', fontWeight: 500 }}>
           {t('select_recipients') || 'Select Recipients'}
         </label>
         
@@ -260,7 +260,7 @@ const RecipientSelection = ({
             padding: '1rem', 
             textAlign: 'center', 
             color: '#64748b', 
-            fontSize: '0.875rem' 
+            fontSize: 'var(--font-size-sm)' 
           }}>
             {t('loading_recipients') || 'Loading recipients...'}
           </div>
@@ -287,7 +287,7 @@ const RecipientSelection = ({
         )}
       </div>
       
-      <div style={{ marginTop: '0.75rem', fontSize: '0.875rem', color: '#1e40af', fontWeight: 500 }}>
+      <div style={{ marginTop: '0.75rem', fontSize: 'var(--font-size-sm)', color: '#1e40af', fontWeight: 500 }}>
         {emailRecipients.length === 0 
           ? (t('select_at_least_one_recipient') || 'Please select at least one recipient')
           : (t('recipients_selected') || 'Recipients selected') + ': ' + emailRecipients.length
@@ -318,7 +318,7 @@ const SelfEmailChip = ({ emailRecipients, setEmailRecipients, user, theme, t }) 
           color: emailRecipients.includes('self') ? 'white' : '#475569',
           cursor: 'pointer',
           transition: 'all 0.2s',
-          fontSize: '0.875rem',
+          fontSize: 'var(--font-size-sm)',
           fontWeight: 500
         }}
       >
@@ -362,7 +362,7 @@ const OtherRecipients = ({
       borderRadius: '0.5rem'
     }}>
       <div style={{ 
-        fontSize: '0.875rem', 
+        fontSize: 'var(--font-size-sm)', 
         color: '#64748b', 
         marginBottom: '0.75rem', 
         fontWeight: 500,
@@ -378,7 +378,7 @@ const OtherRecipients = ({
             <button
               onClick={clearAllSelections}
               style={{
-                fontSize: '0.75rem',
+                fontSize: 'var(--font-size-xs)',
                 padding: '0.25rem 0.5rem',
                 background: '#ef4444',
                 color: 'white',
@@ -397,7 +397,7 @@ const OtherRecipients = ({
             <button
               onClick={scrollToStudents}
               style={{
-                fontSize: '0.75rem',
+                fontSize: 'var(--font-size-xs)',
                 padding: '0.25rem 0.5rem',
                 background: '#8b5cf6',
                 color: 'white',
@@ -495,14 +495,14 @@ const RoleSection = ({
         alignItems: 'center', 
         marginBottom: '0.5rem' 
       }}>
-        <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#1e293b' }}>
+        <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, color: '#1e293b' }}>
           {title}
         </div>
         <button
           onClick={() => toggleRoleSelection(role)}
           style={{
             padding: '0.375rem 0.875rem',
-            fontSize: '0.8125rem',
+            fontSize: 'var(--font-size-sm)',
             fontWeight: '500',
             background: allSelected ? '#ffffff' : '#3b82f6',
             color: allSelected ? '#6b7280' : '#ffffff',
@@ -538,7 +538,7 @@ const RoleSection = ({
         ) : (
           <div style={{
             padding: '0.75rem',
-            fontSize: '0.875rem',
+            fontSize: 'var(--font-size-sm)',
             color: '#9ca3af',
             fontStyle: 'italic',
             background: '#f9fafb',
@@ -570,12 +570,12 @@ const UserChip = ({ user, emailRecipients, toggleUserSelection, chipColor }) => 
         color: isSelected ? 'white' : '#475569',
         cursor: 'pointer',
         transition: 'all 0.2s',
-        fontSize: '0.875rem',
+        fontSize: 'var(--font-size-sm)',
         border: '1px solid #e2e8f0'
       }}
     >
       <span>{user.name}</span>
-      <span style={{ fontSize: '0.75rem', opacity: 0.8 }}>({user.email})</span>
+      <span style={{ fontSize: 'var(--font-size-xs)', opacity: 0.8 }}>({user.email})</span>
       {isSelected && <span>✓</span>}
     </div>
   );

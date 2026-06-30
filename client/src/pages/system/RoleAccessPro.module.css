@@ -76,7 +76,7 @@
 .subtitle {
   margin: 0;
   color: var(--text-muted, #666);
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
 }
 
 /* Controls */
@@ -145,7 +145,7 @@
 
 .groupHeader h3 {
   margin: 0;
-  font-size: 1.125rem;
+  font-size: var(--font-size-lg);
   font-weight: 600;
   color: var(--text, #212529);
 }
@@ -188,7 +188,7 @@
 }
 
 .screenId {
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   color: var(--text-muted, #666);
   font-family: var(--font-family-mono, 'JetBrains Mono Variable', ui-monospace, monospace);
 }
@@ -257,7 +257,7 @@
   align-items: center;
   gap: 0.5rem;
   color: var(--text-secondary, #495057);
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
 }
 
 /* Mobile Responsive */

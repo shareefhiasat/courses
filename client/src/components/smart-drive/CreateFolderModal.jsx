@@ -57,7 +57,7 @@ export default function CreateFolderModal({ parentFolderId, onCreate, onClose })
       title={t('drive.createFolder')}
       size="small"
       className="create-folder-modal"
-      titleStyle={{ fontSize: '1.125rem', fontWeight: '600' }}
+      titleStyle={{ fontSize: 'var(--font-size-lg)', fontWeight: '600' }}
     >
       <div className="space-y-5">
         <Input

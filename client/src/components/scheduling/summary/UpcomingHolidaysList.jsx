@@ -17,21 +17,21 @@ export default function UpcomingHolidaysList({ holidays = [] }) {
   return (
     <Card>
       <CardBody>
-        <h3 style={{ fontSize: '1.125rem', fontWeight: 500, marginBottom: '1rem' }}>
+        <h3 style={{ fontSize: 'var(--font-size-lg)', fontWeight: 500, marginBottom: '1rem' }}>
           {t('upcoming_holidays') || 'Upcoming Holidays'}
         </h3>
         {holidays.length === 0 ? (
-          <p style={{ color: muted, fontSize: '0.875rem', textAlign: 'center' }}>
+          <p style={{ color: muted, fontSize: 'var(--font-size-sm)', textAlign: 'center' }}>
             {t('no_upcoming_holidays') || 'No upcoming holidays'}
           </p>
         ) : (
           holidays.map((h) => (
-            <div key={h.id} style={{ padding: '0.5rem 0', borderBottom: `1px solid ${border}`, fontSize: '0.875rem' }}>
+            <div key={h.id} style={{ padding: '0.5rem 0', borderBottom: `1px solid ${border}`, fontSize: 'var(--font-size-sm)' }}>
               <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
                 <span>{HOLIDAY_ICONS[h.type] || '📅'}</span>
                 <span style={{ fontWeight: 500 }}>{isRTL ? h.descriptionAr || h.descriptionEn : h.descriptionEn}</span>
               </div>
-              <div style={{ fontSize: '0.75rem', color: muted, marginTop: '0.25rem' }}>
+              <div style={{ fontSize: 'var(--font-size-xs)', color: muted, marginTop: '0.25rem' }}>
                 {new Date(h.startDate).toLocaleDateString()} – {new Date(h.endDate).toLocaleDateString()}
                 {' · '}{t(`holiday_type_${h.type}`) || h.type}
               </div>

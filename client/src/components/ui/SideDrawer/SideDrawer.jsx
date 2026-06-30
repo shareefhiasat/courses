@@ -1130,7 +1130,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
                   padding: '0.75rem',
                   background: '#ff9800',
                   borderRadius: '8px',
-                  fontSize: '0.875rem',
+                  fontSize: 'var(--font-size-sm)',
                   color: 'white'
                 }}>
                   <div style={{ fontWeight: 600, marginBottom: '0.5rem', display:'flex', alignItems:'center', gap:6 }}>
@@ -1147,7 +1147,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
                       borderRadius: '6px',
                       fontWeight: 600,
                       cursor: 'pointer',
-                      fontSize: '0.875rem'
+                      fontSize: 'var(--font-size-sm)'
                     }}
                   >
                     {t('stop_impersonation') || 'Stop Impersonation'}

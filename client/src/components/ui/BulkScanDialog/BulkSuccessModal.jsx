@@ -40,7 +40,7 @@ const BulkSuccessModal = ({
       showCloseButton={false}
       closeOnOverlayClick={true}
       closeOnEscape={true}
-      titleStyle={{ fontSize: '1rem', fontWeight: '600' }}
+      titleStyle={{ fontSize: 'var(--font-size-md)', fontWeight: '600' }}
     >
       <div style={{ padding: '1rem 0' }}>
         {/* Operation Details */}
@@ -52,11 +52,11 @@ const BulkSuccessModal = ({
           border: '1px solid #e2e8f0'
         }}>
           <div style={{ display: 'flex', gap: '2rem', alignItems: 'center', flexWrap: 'nowrap' }}>
-            <div style={{ fontSize: '1rem', fontWeight: '600', color: '#1f2937', whiteSpace: 'nowrap' }}>
+            <div style={{ fontSize: 'var(--font-size-md)', fontWeight: '600', color: '#1f2937', whiteSpace: 'nowrap' }}>
               {programName || '-'}
             </div>
             <div style={{
-              fontSize: '1rem',
+              fontSize: 'var(--font-size-md)',
               fontWeight: '600',
               color: statusColor || '#1f2937',
               whiteSpace: 'nowrap',
@@ -67,7 +67,7 @@ const BulkSuccessModal = ({
               {statusIcon && statusColor && getThemedIcon('ui', statusIcon.toLowerCase(), 18, statusColor)}
               <span>{statusLabel || '-'}</span>
             </div>
-            <div style={{ fontSize: '1rem', fontWeight: '600', color: '#1f2937', whiteSpace: 'nowrap' }}>
+            <div style={{ fontSize: 'var(--font-size-md)', fontWeight: '600', color: '#1f2937', whiteSpace: 'nowrap' }}>
               {dateLabel || '-'}
             </div>
           </div>
@@ -92,7 +92,7 @@ const BulkSuccessModal = ({
             <div style={{ fontSize: '1.5rem', fontWeight: '700', color: '#1f2937' }}>
               {successPercentage}%
             </div>
-            <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+            <div style={{ fontSize: 'var(--font-size-sm)', color: '#6b7280' }}>
               {t('completed') || 'Completed'}
             </div>
           </div>
@@ -114,7 +114,7 @@ const BulkSuccessModal = ({
             <div style={{ fontSize: '2rem', fontWeight: '700', color: '#1f2937' }}>
               {result.summary.total}
             </div>
-            <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+            <div style={{ fontSize: 'var(--font-size-sm)', color: '#6b7280' }}>
               {t('total_students') || 'Total Students'}
             </div>
           </div>
@@ -128,7 +128,7 @@ const BulkSuccessModal = ({
             <div style={{ fontSize: '2rem', fontWeight: '700', color: '#16a34a' }}>
               {result.summary.succeeded}
             </div>
-            <div style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+            <div style={{ fontSize: 'var(--font-size-sm)', color: '#6b7280' }}>
               {t('succeeded') || 'Succeeded'}
             </div>
           </div>
@@ -138,7 +138,7 @@ const BulkSuccessModal = ({
         {result.results?.detailed?.length > 0 && (
           <div style={{ marginBottom: '1.5rem' }}>
             <div style={{ 
-              fontSize: '0.875rem', 
+              fontSize: 'var(--font-size-sm)', 
               fontWeight: '600', 
               color: '#374151', 
               marginBottom: '0.75rem' 
@@ -163,7 +163,7 @@ const BulkSuccessModal = ({
                     padding: '0.375rem 0.75rem',
                     backgroundColor: 'white',
                     borderRadius: '0.375rem',
-                    fontSize: '0.875rem',
+                    fontSize: 'var(--font-size-sm)',
                     color: '#374151',
                     border: '1px solid #e2e8f0'
                   }}
@@ -176,7 +176,7 @@ const BulkSuccessModal = ({
                   padding: '0.375rem 0.75rem',
                   backgroundColor: '#f1f5f9',
                   borderRadius: '0.375rem',
-                  fontSize: '0.875rem',
+                  fontSize: 'var(--font-size-sm)',
                   color: '#64748b'
                 }}>
                   +{result.results.detailed.length - 10} {t('more') || 'more'}
@@ -197,7 +197,7 @@ const BulkSuccessModal = ({
               border: 'none',
               borderRadius: '0.5rem',
               cursor: 'pointer',
-              fontSize: '1rem',
+              fontSize: 'var(--font-size-md)',
               fontWeight: '600',
               display: 'inline-flex',
               alignItems: 'center',

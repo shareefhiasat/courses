@@ -1267,7 +1267,7 @@ const ActivitiesPage = () => {
                       }}
                     />
                     {!activityForm.overrideQuizSettings && (
-                      <span style={{ fontSize: '0.75rem', color: '#6b7280', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                      <span style={{ fontSize: 'var(--font-size-xs)', color: '#6b7280', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                         {getThemedIcon('ui', 'lock', 12, theme)} Synced from quiz
                       </span>
                     )}
@@ -1453,7 +1453,7 @@ const ActivitiesPage = () => {
           background: isDark ? '#1e3a8a' : '#eff6ff',
           border: isDark ? '1px solid #3b82f6' : '1px solid #bfdbfe',
           borderRadius: '9999px',
-          fontSize: '0.875rem',
+          fontSize: 'var(--font-size-sm)',
           fontWeight: '500',
           color: isDark ? '#dbeafe' : '#1e40af'
         }}>

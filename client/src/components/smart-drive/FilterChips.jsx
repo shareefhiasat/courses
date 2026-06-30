@@ -63,7 +63,7 @@ export default function FilterChips({ activeFilters, onRemoveFilter, onClearAll 
               background: 'rgba(128, 0, 32, 0.1)',
               border: '1px solid var(--color-primary, #800020)',
               borderRadius: '9999px',
-              fontSize: '0.875rem',
+              fontSize: 'var(--font-size-sm)',
               color: 'var(--color-primary, #800020)',
               cursor: 'pointer',
               transition: 'background 0.15s',

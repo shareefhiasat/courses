@@ -8,7 +8,7 @@ import { Navigate } from 'react-router-dom';
 import { getUserProfile, updateUser } from '@services/business/userService';
 import { getAllUserImages } from '@services/business/userImageService';
 import { getThemedIcon, getUserRoleColor, getIconWithColor } from '@constants/iconTypes';
-import { Container, Card, CardBody, Button, Input, Spinner, useToast, FontFamilyPicker } from '@ui';
+import { Container, Card, CardBody, Button, Input, Spinner, useToast, FontFamilyPicker, TextSizePicker } from '@ui';
 import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { ToggleSwitch } from '@ui';
 import Joyride from 'react-joyride';
@@ -626,6 +626,7 @@ const ProfileSettingsPage = () => {
                   onChange={setFontRtl}
                   label={t('profile_font_arabic') || 'Arabic font'}
                 />
+                <TextSizePicker />
               </div>
 
               {/* Compact Settings Row */}

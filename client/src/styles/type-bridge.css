@@ -1,0 +1,78 @@
+/**
+ * Library bridge — ensures MUI, analytics, QR scanner, etc. inherit type tokens.
+ */
+
+/* MUI components */
+.MuiButton-root,
+.MuiTab-root,
+.MuiMenuItem-root,
+.MuiListItemText-primary,
+.MuiChip-label {
+  font-size: var(--font-size-sm);
+}
+
+.MuiInputBase-input,
+.MuiInputLabel-root,
+.MuiFormLabel-root,
+.MuiSelect-select {
+  font-size: var(--font-size-md);
+}
+
+.MuiTypography-body1 {
+  font-size: var(--font-size-md);
+}
+
+.MuiTypography-body2 {
+  font-size: var(--font-size-sm);
+}
+
+.MuiTypography-caption {
+  font-size: var(--font-size-xs);
+}
+
+.MuiTypography-h6 {
+  font-size: var(--font-size-lg);
+}
+
+.MuiTypography-h5 {
+  font-size: var(--font-size-xl);
+}
+
+.MuiTypography-h4 {
+  font-size: var(--font-size-2xl);
+}
+
+/* DataGrid */
+.MuiDataGrid-root {
+  font-size: var(--font-size-sm);
+}
+
+.MuiDataGrid-columnHeaderTitle,
+.MuiDataGrid-cell {
+  font-size: var(--font-size-sm);
+}
+
+/* Product surfaces */
+.advanced-analytics-container,
+.qr-scanner-container,
+.rgl-engine {
+  font-size: var(--font-size-md);
+}
+
+/* Global interactive min-heights scale with text */
+button:not(.MuiButton-root):not([class*="icon"]) {
+  font-size: var(--font-size-sm);
+  min-height: calc(2.25 * var(--type-base));
+}
+
+input:not(.MuiInputBase-input),
+select:not(.MuiSelect-select),
+textarea:not(.MuiInputBase-input) {
+  font-size: var(--font-size-md);
+}
+
+/* Joyride / tooltips */
+.__floater__body,
+.react-joyride__tooltip {
+  font-size: var(--font-size-sm) !important;
+}

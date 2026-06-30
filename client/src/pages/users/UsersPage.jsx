@@ -819,7 +819,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
         return (
           <span style={{ 
             fontFamily: 'var(--font-family-mono)',
-            fontSize: '0.875rem',
+            fontSize: 'var(--font-size-sm)',
             color: params.value ? '#059669' : '#9ca3af',
             fontWeight: 600
           }}>
@@ -837,7 +837,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
         return (
           <span style={{ 
             fontFamily: 'var(--font-family-mono)',
-            fontSize: '0.875rem',
+            fontSize: 'var(--font-size-sm)',
             color: params.value ? '#2563eb' : '#9ca3af',
             fontWeight: 500
           }}>
@@ -1419,7 +1419,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
         <h4 style={{ 
           margin: '0 0 0.75rem 0', 
           color: theme === 'dark' ? '#93c5fd' : '#1e40af',
-          fontSize: '1rem',
+          fontSize: 'var(--font-size-md)',
           fontWeight: '600',
           display: 'flex',
           alignItems: 'center',
@@ -1429,7 +1429,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
           {t('users_keycloak_title')}
         </h4>
         <div style={{ 
-          fontSize: '0.875rem', 
+          fontSize: 'var(--font-size-sm)', 
           lineHeight: '1.6',
           color: theme === 'dark' ? '#cbd5e1' : '#334155'
         }}>
@@ -1574,7 +1574,7 @@ borderColor: theme === 'dark' ? '#374151' : 'transparent',
           background: theme === 'dark' ? '#1e3a8a' : '#eff6ff',
           border: theme === 'dark' ? '1px solid #3b82f6' : '1px solid #bfdbfe',
           borderRadius: '9999px',
-          fontSize: '0.875rem',
+          fontSize: 'var(--font-size-sm)',
           fontWeight: '500',
           color: theme === 'dark' ? '#93c5fd' : '#1e40af'
         }}>
@@ -1818,7 +1818,7 @@ borderColor: theme === 'dark' ? '#374151' : 'transparent',
                       {passwordResetModal.newPassword && (
                         <div style={{ 
                           marginTop: '0.5rem', 
-                          fontSize: '0.875rem',
+                          fontSize: 'var(--font-size-sm)',
                           color: passwordResetModal.newPassword.length >= 8 ? '#16a34a' : '#dc2626'
                         }}>
                           Password strength: {passwordResetModal.newPassword.length >= 8 ? 'Good' : 'Too short (min 8 chars)'}
@@ -1832,7 +1832,7 @@ borderColor: theme === 'dark' ? '#374151' : 'transparent',
                         backgroundColor: theme === 'dark' ? '#1e3a8a' : '#eff6ff',
                         border: `1px solid ${theme === 'dark' ? '#3b82f6' : '#bfdbfe'}`,
                         borderRadius: '0.5rem',
-                        fontSize: '0.875rem',
+                        fontSize: 'var(--font-size-sm)',
                         color: theme === 'dark' ? '#93c5fd' : '#1e40af'
                       }}>
                         {getThemedIcon('ui', 'info', 14, theme)} 

@@ -175,7 +175,7 @@ const ToggleFilterChips = ({
               border: `1px solid ${chip.colors.border}`,
               background: chip.active ? chip.colors.activeBg : chip.colors.bg,
               color: chip.active ? chip.colors.activeText : chip.colors.text,
-              fontSize: '0.75rem',
+              fontSize: 'var(--font-size-xs)',
               fontWeight: 600,
               display: 'inline-flex',
               alignItems: 'center',

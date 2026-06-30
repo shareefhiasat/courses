@@ -534,7 +534,7 @@ const AnalyticsDashboardPage = memo(() => {
                         {config.label}
                       </span>
                       <div style={{
-                        fontSize: '1rem',
+                        fontSize: 'var(--font-size-md)',
                         fontWeight: 700,
                         color: config.iconColor,
                         lineHeight: '1.1'
@@ -645,7 +645,7 @@ const AnalyticsDashboardPage = memo(() => {
                           {config.label}
                         </span>
                         <div style={{
-                          fontSize: '1rem',
+                          fontSize: 'var(--font-size-md)',
                           fontWeight: 700,
                           color: config.iconColor,
                           lineHeight: '1.1'
@@ -855,7 +855,7 @@ const AnalyticsDashboardPage = memo(() => {
                         {config.label}
                       </span>
                       <div style={{
-                        fontSize: '1rem',
+                        fontSize: 'var(--font-size-md)',
                         fontWeight: 700,
                         color: config.iconColor,
                         lineHeight: '1.1'

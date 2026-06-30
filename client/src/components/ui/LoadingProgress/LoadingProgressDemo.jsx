@@ -33,7 +33,7 @@ const LoadingProgressDemo = () => {
   return (
     <div style={{ padding: '2rem', background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: '12px' }}>
       <h3 style={{ margin: '0 0 1rem 0', color: 'var(--text)' }}>Loading Progress Demo</h3>
-      <p style={{ margin: '0 0 1rem 0', color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+      <p style={{ margin: '0 0 1rem 0', color: 'var(--text-secondary)', fontSize: 'var(--font-size-sm)' }}>
         Test the global loading progress bar that appears at the top of the screen.
       </p>
       
@@ -51,9 +51,9 @@ const LoadingProgressDemo = () => {
         </Button>
       </div>
       
-      <div style={{ marginTop: '1rem', padding: '1rem', background: 'var(--background-secondary, #f8fafc)', borderRadius: '8px', fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)' }}>
+      <div style={{ marginTop: '1rem', padding: '1rem', background: 'var(--background-secondary, #f8fafc)', borderRadius: '8px', fontSize: 'var(--font-size-sm)', color: 'var(--text-muted, #6b7280)' }}>
         <strong>Usage Examples:</strong>
-        <pre style={{ margin: '0.5rem 0', padding: '0.5rem', background: 'var(--background-tertiary, #f1f5f9)', borderRadius: '4px', fontSize: '0.75rem', overflow: 'auto' }}>
+        <pre style={{ margin: '0.5rem 0', padding: '0.5rem', background: 'var(--background-tertiary, #f1f5f9)', borderRadius: '4px', fontSize: 'var(--font-size-xs)', overflow: 'auto' }}>
 {`import { useLoadingProgress } from '@/hooks/useLoadingProgress';
 
 

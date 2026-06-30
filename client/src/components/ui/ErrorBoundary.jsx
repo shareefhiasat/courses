@@ -113,7 +113,7 @@ const ErrorFallback = ({ error, errorInfo, resetError }) => {
         {/* Error Message */}
         <p style={{
           color: '#666',
-          fontSize: '1rem',
+          fontSize: 'var(--font-size-md)',
           marginBottom: '1.5rem',
           lineHeight: 1.6
         }}>
@@ -174,7 +174,7 @@ const ErrorFallback = ({ error, errorInfo, resetError }) => {
               color: 'white',
               border: 'none',
               borderRadius: '8px',
-              fontSize: '1rem',
+              fontSize: 'var(--font-size-md)',
               fontWeight: 600,
               cursor: 'pointer',
               transition: 'transform 0.2s',
@@ -194,7 +194,7 @@ const ErrorFallback = ({ error, errorInfo, resetError }) => {
               color: '#800020',
               border: '2px solid #800020',
               borderRadius: '8px',
-              fontSize: '1rem',
+              fontSize: 'var(--font-size-md)',
               fontWeight: 600,
               cursor: 'pointer',
               transition: 'all 0.2s'
@@ -219,7 +219,7 @@ const ErrorFallback = ({ error, errorInfo, resetError }) => {
               color: 'white',
               border: 'none',
               borderRadius: '8px',
-              fontSize: '1rem',
+              fontSize: 'var(--font-size-md)',
               fontWeight: 600,
               cursor: 'pointer',
               transition: 'opacity 0.2s'

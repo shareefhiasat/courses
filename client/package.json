@@ -44,6 +44,7 @@
     "test:ci": "jest --ci --coverage --watchAll=false",
     "fonts:vendor": "node ../scripts/fonts/vendor-fonts.mjs",
     "fonts:generate": "node ../scripts/fonts/generate-font-faces.mjs",
+    "fonts:migrate-sizes": "node ../scripts/fonts/migrate-font-sizes.mjs client/src",
     "prebuild": "pnpm fonts:generate",
     "build": "vite build",
     "lint": "eslint .",

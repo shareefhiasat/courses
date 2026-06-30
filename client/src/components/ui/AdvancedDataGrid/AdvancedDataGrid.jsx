@@ -451,7 +451,7 @@ const AdvancedDataGrid = ({
               color: isDarkMode ? '#10b981' : '#059669',
               borderRadius:999,
               padding:'4px 10px',
-              fontSize:'0.8rem',
+              fontSize: 'var(--font-size-sm)',
               fontWeight:600,
               cursor:'pointer'
             }}

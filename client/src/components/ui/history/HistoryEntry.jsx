@@ -239,7 +239,7 @@ export const HistoryEntry = ({
                 <div style={{
                   maxWidth: '300px',
                   padding: '0.5rem',
-                  fontSize: '0.75rem',
+                  fontSize: 'var(--font-size-xs)',
                   lineHeight: '1.4'
                 }}>
                   <div style={{ marginBottom: '0.5rem' }}>

@@ -188,7 +188,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const ChatI
                 border: 'none',
                 borderRadius: '4px',
                 cursor: 'pointer',
-                fontSize: '0.75rem'
+                fontSize: 'var(--font-size-xs)'
               }}
             >
               ✕ {t('remove')}
@@ -214,7 +214,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const ChatI
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
               {getThemedIcon('ui', 'mic', 14, theme)}
-              <span style={{ fontSize: '0.75rem', fontWeight: '500' }}>
+              <span style={{ fontSize: 'var(--font-size-xs)', fontWeight: '500' }}>
                 {t('voice_message_ready')}
               </span>
               <span style={{ 
@@ -291,7 +291,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const ChatI
                   borderRadius: '50%',
                   animation: 'pulse 1s infinite'
                 }} />
-                <span style={{ fontSize: '0.75rem', fontWeight: '500' }}>
+                <span style={{ fontSize: 'var(--font-size-xs)', fontWeight: '500' }}>
                   {t('recording')}
                 </span>
                 <span style={{ 
@@ -595,7 +595,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const ChatI
                   alignItems:'center', 
                   justifyContent:'center', 
                   color:'white', 
-                  fontSize:'1rem' 
+                  fontSize: 'var(--font-size-md)' 
                 }}>
                   {getThemedIcon('ui', 'bar_chart', 18, theme)}
                 </div>
@@ -686,7 +686,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const ChatI
                       display:'flex', 
                       alignItems:'center', 
                       justifyContent:'center', 
-                      fontSize:'0.75rem', 
+                      fontSize: 'var(--font-size-xs)', 
                       fontWeight:600, 
                       flexShrink:0 
                     }}>
@@ -722,7 +722,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const ChatI
                           display:'flex', 
                           alignItems:'center', 
                           justifyContent:'center', 
-                          fontSize:'1rem', 
+                          fontSize: 'var(--font-size-md)', 
                           flexShrink:0 
                         }}
                       >

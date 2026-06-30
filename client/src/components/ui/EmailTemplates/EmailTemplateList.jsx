@@ -418,7 +418,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
                               </span>
                               <span style={{ 
                                 color: '#333', 
-                                fontSize: '0.75rem', 
+                                fontSize: 'var(--font-size-xs)', 
                                 fontFamily: 'var(--font-family-mono)',
                                 background: '#e9ecef',
                                 padding: '2px 6px',
@@ -538,7 +538,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
                                           padding: '4px 8px',
                                           background: '#e9ecef',
                                           borderRadius: 4,
-                                          fontSize: '0.75rem',
+                                          fontSize: 'var(--font-size-xs)',
                                           color: '#000',
                                           border: '1px solid #ced4da',
                                           fontFamily: 'var(--font-family-mono)'
@@ -548,7 +548,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
                           </span>
                                 ))}
                                 {template.variables.length > 8 && (
-                                    <span style={{ fontSize: '0.75rem', color: '#666', fontWeight: '500' }}>
+                                    <span style={{ fontSize: 'var(--font-size-xs)', color: '#666', fontWeight: '500' }}>
                             +{template.variables.length - 8} more
                           </span>
                                 )}

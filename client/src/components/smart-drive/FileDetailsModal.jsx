@@ -236,7 +236,7 @@ export default function FileDetailsModal({ file, onClose, onDownload, onShare, o
               <span style={{
                 padding: '0.25rem 0.5rem',
                 borderRadius: '0.375rem',
-                fontSize: '0.75rem',
+                fontSize: 'var(--font-size-xs)',
                 fontWeight: 500,
                 background: '#e5e7eb',
                 color: '#6b7280',
@@ -262,7 +262,7 @@ export default function FileDetailsModal({ file, onClose, onDownload, onShare, o
                       console.error('Failed to log activity:', error);
                     }
                   }}
-                  style={{ fontSize: '0.875rem', padding: '0.5rem 0.75rem' }}
+                  style={{ fontSize: 'var(--font-size-sm)', padding: '0.5rem 0.75rem' }}
                   title={t('drive.openInNewTab') || 'Open in New Tab'}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -295,7 +295,7 @@ export default function FileDetailsModal({ file, onClose, onDownload, onShare, o
                       }
                     }
                   }}
-                  style={{ fontSize: '0.875rem', padding: '0.5rem 0.75rem' }}
+                  style={{ fontSize: 'var(--font-size-sm)', padding: '0.5rem 0.75rem' }}
                   title={t('drive.fullscreen') || 'Fullscreen'}
                 >
                   <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -320,7 +320,7 @@ export default function FileDetailsModal({ file, onClose, onDownload, onShare, o
                     console.error('Failed to log activity:', error);
                   }
                 }}
-                style={{ fontSize: '0.875rem', padding: '0.5rem 0.75rem' }}
+                style={{ fontSize: 'var(--font-size-sm)', padding: '0.5rem 0.75rem' }}
                 title={t('drive.openInNewTab') || 'Open in New Tab'}
               >
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

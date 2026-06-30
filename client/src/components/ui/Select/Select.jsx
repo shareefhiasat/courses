@@ -457,7 +457,7 @@ const Select = forwardRef(({
                         {option.icon && <span style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>{option.icon}</span>}
                         <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
                           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{option.label}</span>
-                          {option.subtext && <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{option.subtext}</span>}
+                          {option.subtext && <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted, #6b7280)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{option.subtext}</span>}
                         </span>
                       </span>
                     </div>

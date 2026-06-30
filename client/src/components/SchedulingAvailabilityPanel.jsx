@@ -48,7 +48,7 @@ function DefinedSlotsBlock({ title, records, startDateTime, endDateTime, theme, 
       borderRadius: '0.375rem',
       backgroundColor: colors.bg,
       border: `1px solid ${colors.border}`,
-      fontSize: '0.8125rem',
+      fontSize: 'var(--font-size-sm)',
       color: colors.text
     }}>
       <div style={{ fontWeight: 600, marginBottom: '0.375rem', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
@@ -119,7 +119,7 @@ export default function SchedulingAvailabilityPanel({
 
   return (
     <div style={{ marginBottom: '1rem', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-      <div style={{ fontSize: '0.875rem', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.375rem', color: theme === 'dark' ? '#e5e7eb' : '#374151' }}>
+      <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.375rem', color: theme === 'dark' ? '#e5e7eb' : '#374151' }}>
         <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
           <CalendarDays size={16} />
           {t('defined_availability')}
@@ -127,7 +127,7 @@ export default function SchedulingAvailabilityPanel({
         <button
           type="button"
           onClick={() => navigate(instructorId ? `/summary-dashboard?instructorId=${instructorId}` : '/summary-dashboard')}
-          style={{ fontSize: '0.75rem', background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', textDecoration: 'underline' }}
+          style={{ fontSize: 'var(--font-size-xs)', background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', textDecoration: 'underline' }}
         >
           {t('view_summary') || 'View Summary'}
         </button>
@@ -157,7 +157,7 @@ export default function SchedulingAvailabilityPanel({
               border: `1px solid ${classroom.status === 'Closed'
                 ? (theme === 'dark' ? '#991b1b' : '#fecaca')
                 : (theme === 'dark' ? '#92400e' : '#fde68a')}`,
-              fontSize: '0.8125rem',
+              fontSize: 'var(--font-size-sm)',
               color: classroom.status === 'Closed'
                 ? (theme === 'dark' ? '#fecaca' : '#991b1b')
                 : (theme === 'dark' ? '#fde68a' : '#92400e'),
@@ -189,7 +189,7 @@ export default function SchedulingAvailabilityPanel({
           borderRadius: '0.375rem',
           backgroundColor: conflictColors.bg,
           border: `1px solid ${conflictColors.border}`,
-          fontSize: '0.8125rem',
+          fontSize: 'var(--font-size-sm)',
           color: conflictColors.text
         }}>
           <div style={{ fontWeight: 600, marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
@@ -211,7 +211,7 @@ export default function SchedulingAvailabilityPanel({
           style={{
             alignSelf: 'flex-start',
             padding: '0.375rem 0.75rem',
-            fontSize: '0.8125rem',
+            fontSize: 'var(--font-size-sm)',
             borderRadius: '0.375rem',
             border: 'none',
             cursor: 'pointer',
@@ -228,7 +228,7 @@ export default function SchedulingAvailabilityPanel({
       )}
 
       {isRecurring && (
-        <div style={{ fontSize: '0.75rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
+        <div style={{ fontSize: 'var(--font-size-xs)', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
           {t('recurring_availability_note')}
         </div>
       )}

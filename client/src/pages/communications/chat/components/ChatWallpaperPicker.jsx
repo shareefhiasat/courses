@@ -608,7 +608,7 @@ const ChatWallpaperPicker = ({ theme, t }) => {
                   borderRadius: 6,
                   cursor: 'pointer',
                   color: 'var(--muted)',
-                  fontSize: '0.75rem',
+                  fontSize: 'var(--font-size-xs)',
                   fontWeight: 600,
                   transition: 'all 0.2s',
                 }}

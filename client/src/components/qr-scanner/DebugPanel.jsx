@@ -17,7 +17,7 @@ const DebugPanel = ({ showDebugBox, debugLogs, onClear, isMobile }) => {
       display: 'flex',
       flexDirection: 'column',
       fontFamily: 'var(--font-family-mono)',
-      fontSize: '0.75rem',
+      fontSize: 'var(--font-size-xs)',
       maxWidth: '90vw',
       overflow: 'hidden'
     }}>
@@ -38,7 +38,7 @@ const DebugPanel = ({ showDebugBox, debugLogs, onClear, isMobile }) => {
             border: 'none',
             color: '#999',
             cursor: 'pointer',
-            fontSize: '0.75rem'
+            fontSize: 'var(--font-size-xs)'
           }}
         >
           Clear

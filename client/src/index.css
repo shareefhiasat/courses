@@ -290,91 +290,56 @@ html[data-density='compact'] .navbar .navbar-container {
 }
 html[data-density='compact'] .table th,
 html[data-density='compact'] .table td {
-  padding: 6px !important;
+  padding: calc(6px * var(--spacing-scale, 0.85)) !important;
 }
 html[data-density='compact'] input,
 html[data-density='compact'] select,
 html[data-density='compact'] button,
 html[data-density='compact'] textarea {
-  padding: 0.5rem 0.6rem !important;
+  padding: calc(0.5rem * var(--spacing-scale, 0.85)) calc(0.6rem * var(--spacing-scale, 0.85)) !important;
 }
 html[data-density='compact'] .card,
 html[data-density='compact'] .card-military {
-  padding: 0.75rem !important;
+  padding: calc(0.75rem * var(--spacing-scale, 0.85)) !important;
 }
 html[data-density='compact'] .list-item,
 html[data-density='compact'] .row-item {
-  padding-top: 6px !important;
-  padding-bottom: 6px !important;
+  padding-top: calc(6px * var(--spacing-scale, 0.85)) !important;
+  padding-bottom: calc(6px * var(--spacing-scale, 0.85)) !important;
 }
 
-/* Compact density mode */
-[data-density="compact"] {
-  font-size: 14px;
+html[data-density='cozy'] .table th,
+html[data-density='cozy'] .table td {
+  padding: calc(8px * var(--spacing-scale, 0.92)) !important;
 }
-[data-density="compact"] body {
-  line-height: 1.5;
-}
-[data-density="compact"] h1 {
-  font-size: 2.4em;
-}
-[data-density="compact"] h2 {
-  font-size: 1.8em;
-}
-[data-density="compact"] h3 {
-  font-size: 1.4em;
-}
-[data-density="compact"] button {
-  padding: 0.5em 1em;
-  font-size: 0.95em;
-}
-[data-density="compact"] input,
-[data-density="compact"] select,
-[data-density="compact"] textarea {
-  padding: 0.6em 0.9em;
-  font-size: 0.95em;
+html[data-density='cozy'] input,
+html[data-density='cozy'] select,
+html[data-density='cozy'] button,
+html[data-density='cozy'] textarea {
+  padding: calc(0.55rem * var(--spacing-scale, 0.92)) calc(0.65rem * var(--spacing-scale, 0.92)) !important;
 }
 
-/* Additional density levels */
-[data-density="cozy"] {
-  font-size: 15px;
+html[data-density='comfortable'] .table th,
+html[data-density='comfortable'] .table td {
+  padding: calc(10px * var(--spacing-scale, 1)) !important;
 }
-[data-density="cozy"] button {
-  padding: 0.55em 1.05em;
-  font-size: 0.98em;
-}
-[data-density="cozy"] input,
-[data-density="cozy"] select,
-[data-density="cozy"] textarea {
-  padding: 0.65em 1em;
-  font-size: 0.98em;
+html[data-density='comfortable'] input,
+html[data-density='comfortable'] select,
+html[data-density='comfortable'] button,
+html[data-density='comfortable'] textarea {
+  padding: calc(0.7rem * var(--spacing-scale, 1)) calc(0.75rem * var(--spacing-scale, 1)) !important;
 }
 
-[data-density="comfortable"] {
-  font-size: 16px;
+html[data-density='roomy'] .table th,
+html[data-density='roomy'] .table td {
+  padding: calc(12px * var(--spacing-scale, 1.15)) !important;
 }
-[data-density="comfortable"] button {
-  padding: 0.7em 1.1em;
+html[data-density='roomy'] input,
+html[data-density='roomy'] select,
+html[data-density='roomy'] button,
+html[data-density='roomy'] textarea {
+  padding: calc(0.8rem * var(--spacing-scale, 1.15)) calc(0.85rem * var(--spacing-scale, 1.15)) !important;
 }
-[data-density="comfortable"] input,
-[data-density="comfortable"] select,
-[data-density="comfortable"] textarea {
-  padding: 0.75em 1.1em;
-}
-
-[data-density="roomy"] {
-  font-size: 17px;
-}
-[data-density="roomy"] button {
-  padding: 0.8em 1.2em;
-  font-size: 1.05em;
-}
-[data-density="roomy"] input,
- [data-density="roomy"] select,
- [data-density="roomy"] textarea {
-  padding: 0.85em 1.2em;
-  font-size: 1.05em;
- }
 
  /* Light theme only */
 

@@ -156,7 +156,7 @@ const StudentScanDialog = ({
         cursor: 'default'
       }}>
         <h3 style={{
-          fontSize: '1.125rem',
+          fontSize: 'var(--font-size-lg)',
           fontWeight: 600,
           color: '#111827',
           margin: '0 0 1rem 0'
@@ -169,7 +169,7 @@ const StudentScanDialog = ({
           padding: '0.75rem',
           background: '#f9fafb',
           borderRadius: '0.375rem',
-          fontSize: '0.875rem',
+          fontSize: 'var(--font-size-sm)',
           color: '#6b7280'
         }}>
           <div>
@@ -187,7 +187,7 @@ const StudentScanDialog = ({
                       background: '#e0e7ff',
                       color: '#3730a3',
                       borderRadius: '0.25rem',
-                      fontSize: '0.75rem',
+                      fontSize: 'var(--font-size-xs)',
                       fontWeight: 600
                     }}>
                       #{sNum}
@@ -237,7 +237,7 @@ const StudentScanDialog = ({
                 background: actionLoading && currentAction === 'penalty' ? '#94a3b8' : '#ef4444',
                 color: 'white',
                 borderRadius: '0.5rem',
-                fontSize: '0.875rem',
+                fontSize: 'var(--font-size-sm)',
                 fontWeight: 600,
                 cursor: actionLoading ? 'not-allowed' : 'pointer',
                 textAlign: 'left',
@@ -292,7 +292,7 @@ const StudentScanDialog = ({
                 background: actionLoading && currentAction === RECORD_TYPES.PARTICIPATION ? '#94a3b8' : '#3b82f6',
                 color: 'white',
                 borderRadius: '0.5rem',
-                fontSize: '0.875rem',
+                fontSize: 'var(--font-size-sm)',
                 fontWeight: 600,
                 cursor: actionLoading ? 'not-allowed' : 'pointer',
                 textAlign: 'left',
@@ -347,7 +347,7 @@ const StudentScanDialog = ({
                 background: actionLoading && currentAction === RECORD_TYPES.BEHAVIOR ? '#94a3b8' : '#f97316',
                 color: 'white',
                 borderRadius: '0.5rem',
-                fontSize: '0.875rem',
+                fontSize: 'var(--font-size-sm)',
                 fontWeight: 600,
                 cursor: actionLoading ? 'not-allowed' : 'pointer',
                 textAlign: 'left',
@@ -414,7 +414,7 @@ const StudentScanDialog = ({
                 background: actionLoading && currentAction === 'details' ? '#94a3b8' : 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
                 color: 'white',
                 borderRadius: '0.5rem',
-                fontSize: '0.875rem',
+                fontSize: 'var(--font-size-sm)',
                 fontWeight: 600,
                 cursor: actionLoading ? 'not-allowed' : 'pointer',
                 textAlign: 'center',
@@ -471,7 +471,7 @@ const StudentScanDialog = ({
                 background: actionLoading && currentAction === 'actions' ? '#94a3b8' : '#8b5cf6',
                 color: 'white',
                 borderRadius: '0.5rem',
-                fontSize: '0.875rem',
+                fontSize: 'var(--font-size-sm)',
                 fontWeight: 600,
                 cursor: actionLoading ? 'not-allowed' : 'pointer',
                 textAlign: 'left',
@@ -528,7 +528,7 @@ const StudentScanDialog = ({
             background: '#f3f4f6',
             border: '1px solid #e5e7eb',
             borderRadius: '0.375rem',
-            fontSize: '0.875rem',
+            fontSize: 'var(--font-size-sm)',
             fontWeight: 600,
             color: '#4b5563',
             cursor: 'pointer',

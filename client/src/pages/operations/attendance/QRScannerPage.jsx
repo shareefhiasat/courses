@@ -4871,7 +4871,7 @@ const QRScannerPage = () => {
                     alignItems: 'center',
                     justifyContent: 'center',
                     gap: '0.375rem',
-                    fontSize: '0.75rem',
+                    fontSize: 'var(--font-size-xs)',
                     fontWeight: 600
                   }}
                   data-tooltip={t('attendance_mode') || 'Attendance'}
@@ -4902,7 +4902,7 @@ const QRScannerPage = () => {
                       alignItems: 'center',
                       justifyContent: 'center',
                       gap: '0.375rem',
-                      fontSize: '0.75rem',
+                      fontSize: 'var(--font-size-xs)',
                       fontWeight: 600
                     }}
                     data-tooltip={t('standup_mode') || 'Standup'}
@@ -4963,7 +4963,7 @@ const QRScannerPage = () => {
                     alignItems: 'center',
                     justifyContent: 'center',
                     color: '#9ca3af',
-                    fontSize: '0.875rem'
+                    fontSize: 'var(--font-size-sm)'
                   }}>
                     {t('loading') || 'Loading...'}
                   </div>
@@ -5055,7 +5055,7 @@ const QRScannerPage = () => {
                       color: 'white',
                       border: 'none',
                       borderRadius: '0.5rem',
-                      fontSize: '0.875rem',
+                      fontSize: 'var(--font-size-sm)',
                       fontWeight: 600,
                       cursor: isExporting ? 'not-allowed' : 'pointer',
                       display: 'flex',
@@ -5097,7 +5097,7 @@ const QRScannerPage = () => {
                     color: 'white',
                     border: 'none',
                     borderRadius: '0.5rem',
-                    fontSize: '0.875rem',
+                    fontSize: 'var(--font-size-sm)',
                     fontWeight: 600,
                     cursor: isExporting ? 'not-allowed' : 'pointer',
                     display: 'flex',
@@ -5142,7 +5142,7 @@ const QRScannerPage = () => {
                       color: 'white',
                       border: 'none',
                       borderRadius: '0.5rem',
-                      fontSize: '0.875rem',
+                      fontSize: 'var(--font-size-sm)',
                       fontWeight: 600,
                       cursor: isExporting ? 'not-allowed' : 'pointer',
                       display: 'flex',
@@ -5187,7 +5187,7 @@ const QRScannerPage = () => {
                       color: 'white',
                       border: 'none',
                       borderRadius: '0.5rem',
-                      fontSize: '0.875rem',
+                      fontSize: 'var(--font-size-sm)',
                       fontWeight: 600,
                       cursor: isExportingBehavioral ? 'not-allowed' : 'pointer',
                       display: 'flex',
@@ -5228,7 +5228,7 @@ const QRScannerPage = () => {
                       color: 'white',
                       border: 'none',
                       borderRadius: '0.5rem',
-                      fontSize: '0.875rem',
+                      fontSize: 'var(--font-size-sm)',
                       fontWeight: 600,
                       cursor: isExportingBehavioral ? 'not-allowed' : 'pointer',
                       display: 'flex',
@@ -5267,7 +5267,7 @@ const QRScannerPage = () => {
                     color: 'white',
                     border: 'none',
                     borderRadius: '0.5rem',
-                    fontSize: '0.875rem',
+                    fontSize: 'var(--font-size-sm)',
                     fontWeight: 600,
                     cursor: 'pointer',
                     display: 'flex',
@@ -5316,7 +5316,7 @@ const QRScannerPage = () => {
             animation: 'spin 1s linear infinite'
           }} />
           <span style={{
-            fontSize: '0.875rem',
+            fontSize: 'var(--font-size-sm)',
             fontWeight: 500,
             color: '#374151'
           }}>
@@ -5610,7 +5610,7 @@ const QRScannerPage = () => {
                     background: 'var(--input-bg, white)',
                     color: 'var(--text, #111827)',
                     borderRadius: '0.375rem',
-                    fontSize: '0.875rem'
+                    fontSize: 'var(--font-size-sm)'
                   }}
                 >
                   <option value="all">{t('all_status')}</option>
@@ -5640,7 +5640,7 @@ const QRScannerPage = () => {
                     background: 'var(--input-bg, white)',
                     color: 'var(--text, #111827)',
                       borderRadius: '0.375rem',
-                      fontSize: '0.875rem'
+                      fontSize: 'var(--font-size-sm)'
                     }}
                   />
                   <span style={{ color: 'var(--text-muted, #6b7280)' }}>{t('to')}</span>
@@ -5656,7 +5656,7 @@ const QRScannerPage = () => {
                     background: 'var(--input-bg, white)',
                     color: 'var(--text, #111827)',
                       borderRadius: '0.375rem',
-                      fontSize: '0.875rem'
+                      fontSize: 'var(--font-size-sm)'
                     }}
                   />
                 </div>
@@ -5676,7 +5676,7 @@ const QRScannerPage = () => {
                     background: 'var(--input-bg, white)',
                     color: 'var(--text, #111827)',
                     borderRadius: '0.375rem',
-                    fontSize: '0.875rem'
+                    fontSize: 'var(--font-size-sm)'
                   }}
                 >
                   <option value="all">{t('all_students')}</option>
@@ -5695,7 +5695,7 @@ const QRScannerPage = () => {
                     color: 'var(--text-muted, #6b7280)',
                     borderRadius: '0.375rem',
                     cursor: 'pointer',
-                    fontSize: '0.875rem'
+                    fontSize: 'var(--font-size-sm)'
                   }}
                 >
                   {t('clear')}
@@ -5709,7 +5709,7 @@ const QRScannerPage = () => {
                     color: 'var(--text-muted, #6b7280)',
                     borderRadius: '0.375rem',
                     cursor: 'pointer',
-                    fontSize: '0.875rem'
+                    fontSize: 'var(--font-size-sm)'
                   }}
                 >
                   {t('cancel')}
@@ -5723,7 +5723,7 @@ const QRScannerPage = () => {
                     color: 'white',
                     borderRadius: '0.375rem',
                     cursor: 'pointer',
-                    fontSize: '0.875rem'
+                    fontSize: 'var(--font-size-sm)'
                   }}
                 >
                   {t('apply_filters')}

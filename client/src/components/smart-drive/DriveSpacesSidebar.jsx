@@ -74,7 +74,7 @@ export default function DriveSpacesSidebar({
           border: 'none',
           borderRadius: '0.5rem',
           cursor: 'pointer',
-          fontSize: '0.875rem',
+          fontSize: 'var(--font-size-sm)',
           fontWeight: active ? 600 : 500,
           textAlign: isRTL ? 'right' : 'left',
           justifyContent: isMinimized ? 'center' : 'flex-start',
@@ -110,7 +110,7 @@ export default function DriveSpacesSidebar({
           border: 'none',
           borderRadius: '0.75rem',
           cursor: 'pointer',
-          fontSize: '0.875rem',
+          fontSize: 'var(--font-size-sm)',
           fontWeight: 600,
           boxShadow: '0 2px 8px rgba(37, 99, 235, 0.25)',
           transition: 'transform 0.15s ease, box-shadow 0.15s ease',
@@ -184,7 +184,7 @@ export default function DriveSpacesSidebar({
                     border: 'none',
                     borderRadius: '0.5rem',
                     cursor: 'pointer',
-                    fontSize: '0.8125rem',
+                    fontSize: 'var(--font-size-sm)',
                     color: 'var(--text-secondary, #374151)',
                     textAlign: isRTL ? 'right' : 'left',
                   }}
@@ -216,7 +216,7 @@ export default function DriveSpacesSidebar({
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <span
               style={{
-                fontSize: '0.75rem',
+                fontSize: 'var(--font-size-xs)',
                 fontWeight: 600,
                 color: 'var(--text, #111827)',
                 display: 'flex',
@@ -227,7 +227,7 @@ export default function DriveSpacesSidebar({
               {getThemedIcon('ui', 'hard_drive', 14, theme)}
               {t('drive.storage') || 'Storage'}
             </span>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)' }}>
+            <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted, #6b7280)' }}>
               {isSuperAdmin ? getThemedIcon('ui', 'infinity', 14, 'muted') : `${storagePercentage.toFixed(0)}%`}
             </span>
           </div>

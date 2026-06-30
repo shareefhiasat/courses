@@ -967,7 +967,7 @@ export default function QuizBuilderPage() {
                   <div className={styles.questionForm}>
                     <div className={styles.questionTextEditor}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                        <label style={{ fontSize: 14, fontWeight: 500 }}>
+                        <label style={{ fontSize: 'var(--font-size-sm)', fontWeight: 500 }}>
                           {t('question_text_label')}
                         </label>
                         <LanguageToggle value={questionLang} onChange={setQuestionLang} />
@@ -1102,7 +1102,7 @@ export default function QuizBuilderPage() {
                           style={{ width: '150px' }}
                         />
                         {quizData.questions[activeQuestionIndex]?.timeLimit > 0 && (
-                          <span style={{ fontSize: '0.75rem', color: '#6b7280', marginLeft: '0.5rem' }}>
+                          <span style={{ fontSize: 'var(--font-size-xs)', color: '#6b7280', marginLeft: '0.5rem' }}>
                             (Total: {Math.round((quizData.questions[activeQuestionIndex]?.timeLimit || 0) * quizData.questions.length / 60)} {t('quiz_minutes_abbrev')})
                           </span>
                         )}
@@ -1123,7 +1123,7 @@ export default function QuizBuilderPage() {
                     </div>
 
                     <div className={styles.quizSettingsSection} style={{ marginTop: '1.5rem', padding: '1rem', background: '#f9fafb', borderRadius: '8px' }}>
-                      <h4 style={{ marginBottom: '1rem', fontSize: '1rem', fontWeight: 600 }}>{t('quiz_settings')}</h4>
+                      <h4 style={{ marginBottom: '1rem', fontSize: 'var(--font-size-md)', fontWeight: 600 }}>{t('quiz_settings')}</h4>
                       <div className={styles.togglesContainer}>
                         <ToggleSwitch
                           label={t('allow_retake')}

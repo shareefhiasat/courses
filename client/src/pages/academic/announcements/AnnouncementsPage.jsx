@@ -901,7 +901,7 @@ const AnnouncementsPage = ({ isDashboardTab = false }) => {
           background: isDark ? '#1e3a8a' : '#eff6ff',
           border: isDark ? '1px solid #3b82f6' : '1px solid #bfdbfe',
           borderRadius: '9999px',
-          fontSize: '0.875rem',
+          fontSize: 'var(--font-size-sm)',
           fontWeight: '500',
           color: isDark ? '#dbeafe' : '#1e40af'
         }}>

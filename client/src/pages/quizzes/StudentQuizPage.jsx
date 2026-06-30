@@ -866,7 +866,7 @@ export default function StudentQuizPage() {
                     <Badge
                       variant="outline"
                       color="default"
-                      style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', fontSize: '0.875rem' }}
+                      style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', fontSize: 'var(--font-size-sm)' }}
                       onClick={startFresh}
                     >
                       Start Fresh
@@ -1056,7 +1056,7 @@ export default function StudentQuizPage() {
               </span>
             )}
             {quiz?.settings?.timeLimit === 0 && lastSaved && (
-              <span className={styles.paletteTimer} style={{ color: '#10b981', fontSize: '0.75rem' }}>
+              <span className={styles.paletteTimer} style={{ color: '#10b981', fontSize: 'var(--font-size-xs)' }}>
                 {isSaving ? 'Saving...' : `Saved ${lastSaved.toLocaleTimeString()}`}
               </span>
             )}

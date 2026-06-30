@@ -419,7 +419,7 @@ const AnalyticsCard = ({ title, value, icon, color, trend }) => {
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
-          <div style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.25rem' }}>
+          <div style={{ fontSize: 'var(--font-size-sm)', color: '#6b7280', marginBottom: '0.25rem' }}>
             {title}
           </div>
           <div style={{ fontSize: '1.5rem', fontWeight: 700, color: '#111827' }}>
@@ -444,7 +444,7 @@ const AnalyticsCard = ({ title, value, icon, color, trend }) => {
           alignItems: 'center', 
           gap: '0.25rem',
           marginTop: '0.5rem',
-          fontSize: '0.75rem',
+          fontSize: 'var(--font-size-xs)',
           color: trendColor
         }}>
           {getThemedIcon('ui', trendIcon, 12, trendColor)}
@@ -459,7 +459,7 @@ const FilterSection = ({ title, children }) => (
   <div>
     <h3 style={{ 
       margin: '0 0 1rem 0', 
-      fontSize: '1rem', 
+      fontSize: 'var(--font-size-md)', 
       fontWeight: 600, 
       color: '#374151' 
     }}>
@@ -479,7 +479,7 @@ const FilterChip = ({ label, color, isSelected, onClick }) => (
       background: isSelected ? color : 'white',
       color: isSelected ? 'white' : '#374151',
       cursor: 'pointer',
-      fontSize: '0.875rem',
+      fontSize: 'var(--font-size-sm)',
       fontWeight: 500,
       transition: 'all 0.2s',
       display: 'flex',
@@ -553,7 +553,7 @@ const StatusCard = ({ title, count, color, icon, isSelected, onClick }) => (
       {count}
     </div>
     <div style={{ 
-      fontSize: '0.75rem', 
+      fontSize: 'var(--font-size-xs)', 
       color: isSelected ? color : '#6b7280',
       fontWeight: 500
     }}>
@@ -594,7 +594,7 @@ const RangeSlider = ({ min, max, value, onChange, unit, color, t }) => {
       }}>
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
           <div>
-            <label style={{ fontSize: '0.75rem', color: '#6b7280', display: 'block' }}>
+            <label style={{ fontSize: 'var(--font-size-xs)', color: '#6b7280', display: 'block' }}>
               {t ? (t('min') || 'Min') : 'Min'}
             </label>
             <input
@@ -608,14 +608,14 @@ const RangeSlider = ({ min, max, value, onChange, unit, color, t }) => {
                 padding: '0.25rem 0.5rem',
                 border: `1px solid ${color}`,
                 borderRadius: '0.25rem',
-                fontSize: '0.875rem',
+                fontSize: 'var(--font-size-sm)',
                 textAlign: 'center'
               }}
             />
           </div>
           <span style={{ color: '#6b7280' }}>-</span>
           <div>
-            <label style={{ fontSize: '0.75rem', color: '#6b7280', display: 'block' }}>
+            <label style={{ fontSize: 'var(--font-size-xs)', color: '#6b7280', display: 'block' }}>
               {t ? (t('max') || 'Max') : 'Max'}
             </label>
             <input
@@ -629,12 +629,12 @@ const RangeSlider = ({ min, max, value, onChange, unit, color, t }) => {
                 padding: '0.25rem 0.5rem',
                 border: `1px solid ${color}`,
                 borderRadius: '0.25rem',
-                fontSize: '0.875rem',
+                fontSize: 'var(--font-size-sm)',
                 textAlign: 'center'
               }}
             />
           </div>
-          <span style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 500 }}>
+          <span style={{ fontSize: 'var(--font-size-sm)', color: '#6b7280', fontWeight: 500 }}>
             {unit}
           </span>
         </div>

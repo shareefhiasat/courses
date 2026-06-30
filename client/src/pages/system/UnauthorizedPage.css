@@ -60,7 +60,7 @@
 }
 
 .unauthorized-message {
-  font-size: 1.125rem;
+  font-size: var(--font-size-lg);
   color: var(--text-secondary, #6b7280);
   margin: 0;
   line-height: 1.6;
@@ -93,7 +93,7 @@
   padding: 0.5rem 1rem;
   background: var(--bg-primary, #ffffff);
   border-radius: 8px;
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   color: var(--text-primary, #111827);
   align-self: center;
 }
@@ -104,7 +104,7 @@
 }
 
 .role-hint {
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   color: var(--text-muted, #9ca3af);
   margin: 0;
 }
@@ -128,7 +128,7 @@
 }
 
 .unauthorized-help p {
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   color: var(--text-muted, #9ca3af);
   margin: 0;
   line-height: 1.6;

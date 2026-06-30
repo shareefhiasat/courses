@@ -452,7 +452,7 @@ const ScheduledReportsPage = () => {
                         background: 'rgba(128, 0, 32, 0.1)',
                         border: '1px solid var(--color-primary, #800020)',
                         borderRadius: 16,
-                        fontSize: '0.875rem'
+                        fontSize: 'var(--font-size-sm)'
                       }}
                     >
                       <span>{email}</span>
@@ -541,8 +541,8 @@ const ScheduledReportsPage = () => {
                   >
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'start', marginBottom: '0.5rem' }}>
                       <div style={{ flex: 1 }}>
-                        <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 600 }}>{report.title}</h4>
-                        <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.875rem', color: '#6b7280' }}>
+                        <h4 style={{ margin: 0, fontSize: 'var(--font-size-md)', fontWeight: 600 }}>{report.title}</h4>
+                        <p style={{ margin: '0.25rem 0 0 0', fontSize: 'var(--font-size-sm)', color: '#6b7280' }}>
                           {report.reportType === 'analytics' ? t('scheduled_reports_analytics') : t('scheduled_reports_student_dashboard')}
                         </p>
                       </div>
@@ -553,7 +553,7 @@ const ScheduledReportsPage = () => {
                         onClick={(e) => e.stopPropagation()}
                       />
                     </div>
-                    <div style={{ display: 'flex', gap: '1rem', fontSize: '0.875rem', color: '#6b7280', marginTop: '0.5rem' }}>
+                    <div style={{ display: 'flex', gap: '1rem', fontSize: 'var(--font-size-sm)', color: '#6b7280', marginTop: '0.5rem' }}>
                       <span><Calendar size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />
                         {report.schedule === 'daily' ? t('scheduled_reports_daily') : report.schedule === 'weekly' ? t('scheduled_reports_weekly') : t('scheduled_reports_custom')}
                       </span>
@@ -562,7 +562,7 @@ const ScheduledReportsPage = () => {
                       </span>
                     </div>
                     {report.nextRunAt && (
-                      <div style={{ fontSize: '0.75rem', color: '#9ca3af', marginTop: '0.5rem' }}>
+                      <div style={{ fontSize: 'var(--font-size-xs)', color: '#9ca3af', marginTop: '0.5rem' }}>
                         {t('next_label')} {formatDateTime(new Date(report.nextRunAt))}
                       </div>
                     )}
@@ -591,66 +591,66 @@ const ScheduledReportsPage = () => {
                 </div>
                 <div style={{ display: 'grid', gap: '1rem' }}>
                   <div>
-                    <label style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 600 }}>{t('title')}</label>
-                    <p style={{ margin: '0.25rem 0 0 0', fontSize: '1rem' }}>{selectedReport.title}</p>
+                    <label style={{ fontSize: 'var(--font-size-sm)', color: '#6b7280', fontWeight: 600 }}>{t('title')}</label>
+                    <p style={{ margin: '0.25rem 0 0 0', fontSize: 'var(--font-size-md)' }}>{selectedReport.title}</p>
                   </div>
                   {selectedReport.description && (
                     <div>
-                      <label style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 600 }}>{t('description_label')}</label>
-                      <p style={{ margin: '0.25rem 0 0 0', fontSize: '1rem' }}>{selectedReport.description}</p>
+                      <label style={{ fontSize: 'var(--font-size-sm)', color: '#6b7280', fontWeight: 600 }}>{t('description_label')}</label>
+                      <p style={{ margin: '0.25rem 0 0 0', fontSize: 'var(--font-size-md)' }}>{selectedReport.description}</p>
                     </div>
                   )}
                   <div>
-                    <label style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 600 }}>{t('report_type_label')}</label>
-                    <p style={{ margin: '0.25rem 0 0 0', fontSize: '1rem' }}>
+                    <label style={{ fontSize: 'var(--font-size-sm)', color: '#6b7280', fontWeight: 600 }}>{t('report_type_label')}</label>
+                    <p style={{ margin: '0.25rem 0 0 0', fontSize: 'var(--font-size-md)' }}>
                       {selectedReport.reportType === 'analytics' ? t('scheduled_reports_analytics') : t('scheduled_reports_student_dashboard')}
                     </p>
                   </div>
                   <div>
-                    <label style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 600 }}>{t('schedule_label')}</label>
-                    <p style={{ margin: '0.25rem 0 0 0', fontSize: '1rem' }}>
+                    <label style={{ fontSize: 'var(--font-size-sm)', color: '#6b7280', fontWeight: 600 }}>{t('schedule_label')}</label>
+                    <p style={{ margin: '0.25rem 0 0 0', fontSize: 'var(--font-size-md)' }}>
                       {selectedReport.schedule === 'daily' ? t('scheduled_reports_daily') : selectedReport.schedule === 'weekly' ? t('scheduled_reports_weekly') : t('scheduled_reports_custom')}
                     </p>
                   </div>
                   <div>
-                    <label style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 600 }}>{t('email_template_label')}</label>
-                    <p style={{ margin: '0.25rem 0 0 0', fontSize: '1rem' }}>
+                    <label style={{ fontSize: 'var(--font-size-sm)', color: '#6b7280', fontWeight: 600 }}>{t('email_template_label')}</label>
+                    <p style={{ margin: '0.25rem 0 0 0', fontSize: 'var(--font-size-md)' }}>
                       {templates.find(t => (t.docId || t.id) === selectedReport.templateId)?.name || selectedReport.templateId || 'N/A'}
                     </p>
                   </div>
                   <div>
-                    <label style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 600 }}>{t('recipients_label')}</label>
+                    <label style={{ fontSize: 'var(--font-size-sm)', color: '#6b7280', fontWeight: 600 }}>{t('recipients_label')}</label>
                     <div style={{ marginTop: '0.5rem', display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                       {(selectedReport.recipients || []).map((email, idx) => (
-                        <span key={idx} style={{ padding: '4px 12px', background: 'var(--border)', borderRadius: 16, fontSize: '0.875rem' }}>
+                        <span key={idx} style={{ padding: '4px 12px', background: 'var(--border)', borderRadius: 16, fontSize: 'var(--font-size-sm)' }}>
                           {email}
                         </span>
                       ))}
                     </div>
                   </div>
                   <div>
-                    <label style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 600 }}>{t('next_label')}</label>
-                    <p style={{ margin: '0.25rem 0 0 0', fontSize: '1rem' }}>
+                    <label style={{ fontSize: 'var(--font-size-sm)', color: '#6b7280', fontWeight: 600 }}>{t('next_label')}</label>
+                    <p style={{ margin: '0.25rem 0 0 0', fontSize: 'var(--font-size-md)' }}>
                       {selectedReport.nextRunAt ? formatDateTime(new Date(selectedReport.nextRunAt)) : t('not_scheduled')}
                     </p>
                   </div>
                   {selectedReport.lastRunAt && (
                     <div>
-                      <label style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 600 }}>{t('last_run')}</label>
-                      <p style={{ margin: '0.25rem 0 0 0', fontSize: '1rem' }}>
+                      <label style={{ fontSize: 'var(--font-size-sm)', color: '#6b7280', fontWeight: 600 }}>{t('last_run')}</label>
+                      <p style={{ margin: '0.25rem 0 0 0', fontSize: 'var(--font-size-md)' }}>
                         {formatDateTime(new Date(selectedReport.lastRunAt))}
                       </p>
                     </div>
                   )}
                   <div>
-                    <label style={{ fontSize: '0.875rem', color: '#6b7280', fontWeight: 600 }}>{t('status')}</label>
-                    <p style={{ margin: '0.25rem 0 0 0', fontSize: '1rem' }}>
+                    <label style={{ fontSize: 'var(--font-size-sm)', color: '#6b7280', fontWeight: 600 }}>{t('status')}</label>
+                    <p style={{ margin: '0.25rem 0 0 0', fontSize: 'var(--font-size-md)' }}>
                       <span style={{ 
                         padding: '4px 8px', 
                         borderRadius: 4, 
                         background: selectedReport.enabled !== false ? '#d1fae5' : '#fee2e2',
                         color: selectedReport.enabled !== false ? '#065f46' : '#991b1b',
-                        fontSize: '0.875rem',
+                        fontSize: 'var(--font-size-sm)',
                         fontWeight: 600
                       }}>
                         {selectedReport.enabled !== false ? t('scheduled_reports_enabled') : t('scheduled_reports_disabled')}

@@ -202,7 +202,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? '0.125rem' : '0.25rem' }}>
               <CircleIcon style={{ width: '16px', height: '16px', stroke: '#9ca3af' }} />
-              <span style={{ fontSize: '0.75rem', color: '#9ca3af', fontWeight: 500 }}>{t('none')}</span>
+              <span style={{ fontSize: 'var(--font-size-xs)', color: '#9ca3af', fontWeight: 500 }}>{t('none')}</span>
             </div>
           )}
         </div>

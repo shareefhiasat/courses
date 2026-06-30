@@ -114,7 +114,7 @@ const ClassCard = ({
       <div style={{ marginBottom: '0.75rem' }}>
         <h4 style={{ 
           margin: 0, 
-          fontSize: '1rem', 
+          fontSize: 'var(--font-size-md)', 
           fontWeight: 600,
           color: isEmptySchedule
             ? (theme === 'dark' ? '#9ca3af' : '#6b7280')
@@ -134,7 +134,7 @@ const ClassCard = ({
           }}>
             {getThemedIcon('ui', 'book', 10, theme)}
             <span style={{ 
-              fontSize: '0.75rem', 
+              fontSize: 'var(--font-size-xs)', 
               color: theme === 'dark' ? '#9ca3af' : '#6b7280',
               fontWeight: 500
             }}>
@@ -152,7 +152,7 @@ const ClassCard = ({
         }}>
           {getThemedIcon('ui', 'calendar', 10, theme)}
           <span style={{ 
-            fontSize: '0.75rem', 
+            fontSize: 'var(--font-size-xs)', 
             color: theme === 'dark' ? '#9ca3af' : '#6b7280',
             fontWeight: 500
           }}>

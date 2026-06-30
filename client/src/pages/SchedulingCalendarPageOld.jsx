@@ -244,7 +244,7 @@ const SchedulingCalendarPage = () => {
   const EventComponent = useCallback(({ event }) => {
     const { classInfo, classroom, instructor } = event.resource;
     return (
-      <div style={{ padding: '2px 4px', fontSize: '0.75rem', height: '100%', overflow: 'hidden' }}>
+      <div style={{ padding: '2px 4px', fontSize: 'var(--font-size-xs)', height: '100%', overflow: 'hidden' }}>
         <div style={{ fontWeight: '600' }}>{classInfo?.code || 'Class'}</div>
         <div style={{ fontSize: '0.7rem' }}>{classroom?.code || ''}</div>
         <div style={{ fontSize: '0.65rem', opacity: 0.9 }}>{instructor?.displayName?.split(' ')[0] || ''}</div>
@@ -255,10 +255,10 @@ const SchedulingCalendarPage = () => {
   if (!hasPermission) {
     return (
       <div style={{ padding: '2rem', textAlign: 'center' }}>
-        <div style={{ fontSize: '1.125rem', fontWeight: '500', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
+        <div style={{ fontSize: 'var(--font-size-lg)', fontWeight: '500', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
           Access Denied
         </div>
-        <div style={{ fontSize: '0.875rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '0.5rem' }}>
+        <div style={{ fontSize: 'var(--font-size-sm)', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '0.5rem' }}>
           You need admin or HR privileges to access scheduling.
         </div>
       </div>
@@ -283,7 +283,7 @@ const SchedulingCalendarPage = () => {
           overflowY: 'auto'
         }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-            <h3 style={{ fontSize: '1rem', fontWeight: '600' }}>📚 Classes</h3>
+            <h3 style={{ fontSize: 'var(--font-size-md)', fontWeight: '600' }}>📚 Classes</h3>
             <button
               onClick={() => setShowSidebar(false)}
               style={{
@@ -297,7 +297,7 @@ const SchedulingCalendarPage = () => {
               ×
             </button>
           </div>
-          <p style={{ fontSize: '0.75rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginBottom: '1rem' }}>
+          <p style={{ fontSize: 'var(--font-size-xs)', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginBottom: '1rem' }}>
             Drag classes to the calendar to schedule
           </p>
 
@@ -328,7 +328,7 @@ const SchedulingCalendarPage = () => {
           {/* Classes List */}
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
             {filteredClasses.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '2rem 1rem', color: theme === 'dark' ? '#6b7280' : '#9ca3af', fontSize: '0.875rem' }}>
+              <div style={{ textAlign: 'center', padding: '2rem 1rem', color: theme === 'dark' ? '#6b7280' : '#9ca3af', fontSize: 'var(--font-size-sm)' }}>
                 No classes found
               </div>
             ) : (
@@ -352,11 +352,11 @@ const SchedulingCalendarPage = () => {
                       transition: 'all 0.2s'
                     }}
                   >
-                    <div style={{ fontWeight: '600', fontSize: '0.875rem', marginBottom: '0.25rem' }}>
+                    <div style={{ fontWeight: '600', fontSize: 'var(--font-size-sm)', marginBottom: '0.25rem' }}>
                       📚 {classItem.nameEn || classItem.code}
                     </div>
                     {subject && (
-                      <div style={{ fontSize: '0.75rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
+                      <div style={{ fontSize: 'var(--font-size-xs)', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
                         📖 {subject.nameEn}
                       </div>
                     )}
@@ -408,7 +408,7 @@ const SchedulingCalendarPage = () => {
                   border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`,
                   borderRadius: '0.375rem',
                   cursor: 'pointer',
-                  fontSize: '0.875rem',
+                  fontSize: 'var(--font-size-sm)',
                   fontWeight: '500'
                 }}
               >
@@ -430,7 +430,7 @@ const SchedulingCalendarPage = () => {
                 border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`,
                 borderRadius: '0.375rem',
                 cursor: 'pointer',
-                fontSize: '0.875rem'
+                fontSize: 'var(--font-size-sm)'
               }}
             >
               Day
@@ -444,7 +444,7 @@ const SchedulingCalendarPage = () => {
                 border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`,
                 borderRadius: '0.375rem',
                 cursor: 'pointer',
-                fontSize: '0.875rem'
+                fontSize: 'var(--font-size-sm)'
               }}
             >
               Week
@@ -458,7 +458,7 @@ const SchedulingCalendarPage = () => {
                 border: `1px solid ${theme === 'dark' ? '#4b5563' : '#e5e7eb'}`,
                 borderRadius: '0.375rem',
                 cursor: 'pointer',
-                fontSize: '0.875rem'
+                fontSize: 'var(--font-size-sm)'
               }}
             >
               Month

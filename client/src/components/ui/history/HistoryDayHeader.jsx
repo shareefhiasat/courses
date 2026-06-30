@@ -87,7 +87,7 @@ const renderBadge = (type, value, isMobile, theme) => {
         minWidth: isMobile ? 'auto' : '2rem',
         padding: isMobile ? '0.1rem 0.35rem' : '0.25rem 0.6rem',
         borderRadius: '999px',
-        fontSize: '0.75rem',
+        fontSize: 'var(--font-size-xs)',
         fontWeight: 600,
         color: palette.text,
         background: palette.bg,

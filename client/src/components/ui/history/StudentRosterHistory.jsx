@@ -46,7 +46,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
         padding: '2rem',
         textAlign: 'center',
         color: 'var(--text-muted, #9ca3af)',
-        fontSize: '0.875rem',
+        fontSize: 'var(--font-size-sm)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
@@ -71,7 +71,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
         padding: '2rem',
         textAlign: 'center',
         color: 'var(--text-muted, #9ca3af)',
-        fontSize: '0.875rem'
+        fontSize: 'var(--font-size-sm)'
       }}>
         {t('no_history_available')}
       </div>
@@ -254,7 +254,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
               alignItems: 'center',
               gap: '0.25rem',
               padding: '0.25rem 0.5rem',
-              fontSize: '0.75rem',
+              fontSize: 'var(--font-size-xs)',
               borderRadius: '0.375rem',
               border: '1px solid var(--border, #e2e8f0)',
               background: 'var(--panel-hover, #f8fafc)',

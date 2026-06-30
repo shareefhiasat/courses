@@ -33,7 +33,7 @@
 .subtitle {
   margin: 0;
   color: var(--text-muted, #666);
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
 }
 
 /* Controls */
@@ -105,7 +105,7 @@
 
 .reportDescription {
   color: var(--text-muted, #666);
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   margin: 0 0 1rem 0;
 }
 

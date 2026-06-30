@@ -24,7 +24,7 @@ function EffortStatCard({ value, label, Icon, iconColor, iconBg, theme }) {
             <Icon size={16} color={iconColor} />
           </div>
           <div style={{ minWidth: 0 }}>
-            <div style={{ fontSize: '0.75rem', color: muted }}>{label}</div>
+            <div style={{ fontSize: 'var(--font-size-xs)', color: muted }}>{label}</div>
             <div style={{ fontSize: '1.5rem', fontWeight: 600 }}>{value ?? 0}</div>
           </div>
         </div>
@@ -91,7 +91,7 @@ export default function EffortReportView({ report, isRTL, hideStatCards = false 
         <CardBody>
           <h4 style={{ marginBottom: '0.75rem' }}>{t('teacher_effort_report')}</h4>
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--font-size-sm)' }}>
               <thead>
                 <tr style={{ background: theme === 'dark' ? '#374151' : '#f3f4f6' }}>
                   {['instructor', 'sessions', 'teaching_hours', 'subjects', 'classes'].map((h) => (
@@ -123,7 +123,7 @@ export default function EffortReportView({ report, isRTL, hideStatCards = false 
         <CardBody>
           <h4 style={{ marginBottom: '0.75rem' }}>{t('courses') || 'Courses'}</h4>
           <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.875rem' }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--font-size-sm)' }}>
               <thead>
                 <tr style={{ background: theme === 'dark' ? '#374151' : '#f3f4f6' }}>
                   {[t('program'), t('subject'), t('class'), t('location'), t('capacity'), t('sessions'), t('teaching_hours')].map((h) => (
@@ -161,7 +161,7 @@ export default function EffortReportView({ report, isRTL, hideStatCards = false 
             <h4 style={{ marginBottom: '0.75rem' }}>{t('session_breakdown') || 'Session Breakdown'}</h4>
             <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
               {report.sessions.map((s, i) => (
-                <div key={i} style={{ padding: '0.5rem 0', borderBottom: `1px solid ${border}`, fontSize: '0.8125rem' }}>
+                <div key={i} style={{ padding: '0.5rem 0', borderBottom: `1px solid ${border}`, fontSize: 'var(--font-size-sm)' }}>
                   <strong>{new Date(s.date).toLocaleDateString()}</strong>
                   {' · '}{isRTL ? s.instructor?.displayNameAr : s.instructor?.displayName}
                   {' · '}{isRTL ? s.subject?.nameAr : s.subject?.nameEn || '—'}

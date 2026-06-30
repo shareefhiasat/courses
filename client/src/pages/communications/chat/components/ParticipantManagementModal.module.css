@@ -195,12 +195,12 @@
   background: rgba(255, 193, 7, 0.12);
   color: #ffc107;
   border-radius: 12px;
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   font-weight: 600;
 }
 
 .userEmail {
-  font-size: 0.8125rem;
+  font-size: var(--font-size-sm);
   color: var(--muted);
   overflow: hidden;
   text-overflow: ellipsis;
@@ -289,7 +289,7 @@
   padding: 2rem;
   text-align: center;
   color: var(--muted);
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
 }
 
 .footer {

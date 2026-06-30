@@ -63,7 +63,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const RankD
               {progress >= 20 && `${Math.round(progress)}%`}
             </div>
           </div>
-          <div className="rank-progress-text" style={{ fontSize: '0.875rem', marginTop: '0.5rem' }}>
+          <div className="rank-progress-text" style={{ fontSize: 'var(--font-size-sm)', marginTop: '0.5rem' }}>
             {pointsToNext.toLocaleString()} {t('points_to_next_rank') || 'points to'} {nextRankName}
           </div>
         </div>

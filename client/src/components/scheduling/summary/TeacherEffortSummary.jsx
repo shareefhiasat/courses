@@ -22,7 +22,7 @@ export default function TeacherEffortSummary({ effort }) {
       {cards.map((c) => (
         <Card key={c.label}>
           <CardBody>
-            <div style={{ fontSize: '0.75rem', color: muted }}>{c.label}</div>
+            <div style={{ fontSize: 'var(--font-size-xs)', color: muted }}>{c.label}</div>
             <div style={{ fontSize: '1.5rem', fontWeight: 600, color: c.color }}>{c.value}</div>
           </CardBody>
         </Card>

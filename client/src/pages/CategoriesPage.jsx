@@ -51,10 +51,10 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
   if (!hasPermission) {
     return (
       <div style={{ padding: '2rem', textAlign: 'center' }}>
-        <div style={{ fontSize: '1.125rem', fontWeight: '500', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
+        <div style={{ fontSize: 'var(--font-size-lg)', fontWeight: '500', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
           {t('access_denied') || 'Access Denied'}
         </div>
-        <div style={{ fontSize: '0.875rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '0.5rem' }}>
+        <div style={{ fontSize: 'var(--font-size-sm)', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '0.5rem' }}>
           {t('categories_permission_required') || 'You need instructor or admin privileges to view categories.'}
         </div>
       </div>

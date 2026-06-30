@@ -14,7 +14,13 @@ import {
   isValidFontId,
 } from '@config/fonts.registry.js';
 import {
+  DEFAULT_TEXT_SIZE,
+  TEXT_SIZE_IDS,
+  isValidTextSize,
+} from '@config/textSize.config.js';
+import {
   applyTypographyVars,
+  applyTextSize,
   readTypographyFromStorage,
   writeTypographyToStorage,
 } from '@utils/typography';
@@ -23,11 +29,14 @@ import { apiService } from '@services/api/apiService';
 const TypographyContext = createContext({
   fontLtr: DEFAULT_FONT_LTR,
   fontRtl: DEFAULT_FONT_RTL,
+  textSize: DEFAULT_TEXT_SIZE,
   setFontLtr: () => {},
   setFontRtl: () => {},
+  setTextSize: () => {},
   setFonts: () => {},
   fontsLtr: FONT_REGISTRY.ltr,
   fontsRtl: FONT_REGISTRY.rtl,
+  textSizeOptions: TEXT_SIZE_IDS,
   saveTypographyToServer: async () => {},
   isLoading: false,
 });
@@ -38,7 +47,12 @@ export const TypographyProvider = ({ children }) => {
 
   const [fontLtr, setFontLtrState] = useState(() => readTypographyFromStorage(uid).fontLtr);
   const [fontRtl, setFontRtlState] = useState(() => readTypographyFromStorage(uid).fontRtl);
+  const [textSize, setTextSizeState] = useState(() => readTypographyFromStorage(uid).textSize);
   const [isLoading, setIsLoading] = useState(false);
+
+  const persistLocal = useCallback((ltr, rtl, size) => {
+    writeTypographyToStorage(uid, ltr, rtl, size);
+  }, [uid]);
 
   const applyFonts = useCallback((ltr, rtl) => {
     const safeLtr = isValidFontId('ltr', ltr) ? ltr : DEFAULT_FONT_LTR;
@@ -47,33 +61,46 @@ export const TypographyProvider = ({ children }) => {
     return { fontLtr: safeLtr, fontRtl: safeRtl };
   }, []);
 
+  const applySize = useCallback((size) => {
+    const safe = isValidTextSize(size) ? size : DEFAULT_TEXT_SIZE;
+    applyTextSize(safe);
+    return safe;
+  }, []);
+
   const setFontLtr = useCallback((id) => {
     const next = isValidFontId('ltr', id) ? id : DEFAULT_FONT_LTR;
     setFontLtrState(next);
-    writeTypographyToStorage(uid, next, fontRtl);
+    persistLocal(next, fontRtl, textSize);
     applyTypographyVars(next, fontRtl);
-  }, [uid, fontRtl, applyFonts]);
+  }, [uid, fontRtl, textSize, persistLocal]);
 
   const setFontRtl = useCallback((id) => {
     const next = isValidFontId('rtl', id) ? id : DEFAULT_FONT_RTL;
     setFontRtlState(next);
-    writeTypographyToStorage(uid, fontLtr, next);
+    persistLocal(fontLtr, next, textSize);
     applyTypographyVars(fontLtr, next);
-  }, [uid, fontLtr, applyFonts]);
+  }, [uid, fontLtr, textSize, persistLocal]);
 
-  const setFonts = useCallback((ltr, rtl) => {
+  const setTextSize = useCallback((id) => {
+    const next = applySize(id);
+    setTextSizeState(next);
+    persistLocal(fontLtr, fontRtl, next);
+  }, [fontLtr, fontRtl, applySize, persistLocal]);
+
+  const setFonts = useCallback((ltr, rtl, size = textSize) => {
     const applied = applyFonts(ltr, rtl);
+    const appliedSize = applySize(size);
     setFontLtrState(applied.fontLtr);
     setFontRtlState(applied.fontRtl);
-    writeTypographyToStorage(uid, applied.fontLtr, applied.fontRtl);
-  }, [uid, applyFonts]);
+    setTextSizeState(appliedSize);
+    persistLocal(applied.fontLtr, applied.fontRtl, appliedSize);
+  }, [uid, textSize, applyFonts, applySize, persistLocal]);
 
-  // Apply on mount and when selections change
   useEffect(() => {
     applyFonts(fontLtr, fontRtl);
-  }, [fontLtr, fontRtl, applyFonts]);
+    applySize(textSize);
+  }, [fontLtr, fontRtl, textSize, applyFonts, applySize]);
 
-  // Hydrate from server when user logs in
   useEffect(() => {
     if (!uid) return;
 
@@ -84,18 +111,20 @@ export const TypographyProvider = ({ children }) => {
         const res = await apiService.get('/me/preferences/typography');
         if (cancelled) return;
         if (res?.success && res.data) {
-          const { fontLtr: serverLtr, fontRtl: serverRtl } = res.data;
+          const { fontLtr: serverLtr, fontRtl: serverRtl, textSize: serverSize } = res.data;
           const local = readTypographyFromStorage(uid);
-          const nextLtr = serverLtr || local.fontLtr;
-          const nextRtl = serverRtl || local.fontRtl;
-          setFonts(nextLtr, nextRtl);
+          setFonts(
+            serverLtr || local.fontLtr,
+            serverRtl || local.fontRtl,
+            serverSize || local.textSize,
+          );
         } else {
           const local = readTypographyFromStorage(uid);
-          setFonts(local.fontLtr, local.fontRtl);
+          setFonts(local.fontLtr, local.fontRtl, local.textSize);
         }
       } catch {
         const local = readTypographyFromStorage(uid);
-        if (!cancelled) setFonts(local.fontLtr, local.fontRtl);
+        if (!cancelled) setFonts(local.fontLtr, local.fontRtl, local.textSize);
       } finally {
         if (!cancelled) setIsLoading(false);
       }
@@ -106,30 +135,35 @@ export const TypographyProvider = ({ children }) => {
   }, [uid, setFonts]);
 
   const saveTypographyToServer = useCallback(async () => {
-    const payload = { fontLtr, fontRtl };
+    const payload = { fontLtr, fontRtl, textSize };
     const res = await apiService.put('/me/preferences/typography', payload);
     if (res?.success) {
-      writeTypographyToStorage(uid, fontLtr, fontRtl);
+      persistLocal(fontLtr, fontRtl, textSize);
       return true;
     }
     throw new Error(res?.error || 'Failed to save typography preferences');
-  }, [fontLtr, fontRtl, uid]);
+  }, [fontLtr, fontRtl, textSize, persistLocal]);
 
   const value = useMemo(() => ({
     fontLtr,
     fontRtl,
+    textSize,
     setFontLtr,
     setFontRtl,
+    setTextSize,
     setFonts,
     fontsLtr: FONT_REGISTRY.ltr,
     fontsRtl: FONT_REGISTRY.rtl,
+    textSizeOptions: TEXT_SIZE_IDS,
     saveTypographyToServer,
     isLoading,
   }), [
     fontLtr,
     fontRtl,
+    textSize,
     setFontLtr,
     setFontRtl,
+    setTextSize,
     setFonts,
     saveTypographyToServer,
     isLoading,

@@ -34,7 +34,7 @@ export default function TimeRangeSelector({ timeRange, startDate, endDate, onCha
             background: timeRange === r.value ? '#3b82f6' : 'transparent',
             color: timeRange === r.value ? '#fff' : 'inherit',
             cursor: 'pointer',
-            fontSize: '0.875rem',
+            fontSize: 'var(--font-size-sm)',
           }}
         >
           {t(r.labelKey) || r.value}

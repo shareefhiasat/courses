@@ -12,7 +12,9 @@ import {
 import {
   DEFAULT_FONT_LTR,
   DEFAULT_FONT_RTL,
+  DEFAULT_TEXT_SIZE,
   isValidFontId,
+  isValidTextSize,
 } from '../config/typographyAllowlist.js';
 
 export async function getDashboard(req, res) {
@@ -95,8 +97,8 @@ export async function getTypography(req, res) {
     const result = await getTypographyPreferences(userId);
     const typography = result.data;
     const data = typography?.fontLtr && typography?.fontRtl
-      ? typography
-      : { fontLtr: DEFAULT_FONT_LTR, fontRtl: DEFAULT_FONT_RTL };
+      ? { textSize: DEFAULT_TEXT_SIZE, ...typography }
+      : { fontLtr: DEFAULT_FONT_LTR, fontRtl: DEFAULT_FONT_RTL, textSize: DEFAULT_TEXT_SIZE };
 
     return res.json({ success: true, data });
   } catch (error) {
@@ -112,7 +114,7 @@ export async function saveTypography(req, res) {
       return res.status(401).json({ success: false, error: 'Unauthorized' });
     }
 
-    const { fontLtr, fontRtl } = req.body || {};
+    const { fontLtr, fontRtl, textSize } = req.body || {};
 
     if (!isValidFontId('ltr', fontLtr)) {
       return res.status(400).json({ success: false, error: `Invalid LTR font: ${fontLtr}` });
@@ -120,8 +122,11 @@ export async function saveTypography(req, res) {
     if (!isValidFontId('rtl', fontRtl)) {
       return res.status(400).json({ success: false, error: `Invalid RTL font: ${fontRtl}` });
     }
+    if (textSize != null && !isValidTextSize(textSize)) {
+      return res.status(400).json({ success: false, error: `Invalid text size: ${textSize}` });
+    }
 
-    const result = await saveTypographyPreferences(userId, { fontLtr, fontRtl }, userId);
+    const result = await saveTypographyPreferences(userId, { fontLtr, fontRtl, textSize }, userId);
     return res.json(result);
   } catch (error) {
     console.error('[user-preferences.saveTypography]', error);

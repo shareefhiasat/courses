@@ -209,7 +209,7 @@ const LoginPage = () => {
               <div style={{ flex: 1, minWidth: 0 }}>
                 <h4 style={{
                   margin: '0 0 0.25rem 0',
-                  fontSize: '0.875rem',
+                  fontSize: 'var(--font-size-sm)',
                   fontWeight: 600,
                   color: isDark ? '#f3f4f6' : '#111827',
                   wordBreak: 'break-word'
@@ -218,7 +218,7 @@ const LoginPage = () => {
                 </h4>
                 <p style={{
                   margin: 0,
-                  fontSize: '0.75rem',
+                  fontSize: 'var(--font-size-xs)',
                   color: isDark ? '#d1d5db' : '#6b7280',
                   lineHeight: '1.4',
                   wordBreak: 'break-word'
@@ -242,7 +242,7 @@ const LoginPage = () => {
                   cursor: 'pointer',
                   padding: '0.25rem',
                   borderRadius: '0.25rem',
-                  fontSize: '0.75rem',
+                  fontSize: 'var(--font-size-xs)',
                   flexShrink: 0
                 }}
                 title={t('dismiss_message') || 'Dismiss message'}

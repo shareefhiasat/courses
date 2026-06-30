@@ -135,7 +135,7 @@ export default function CommentsTab({ fileId, isOwnedByUser = true }) {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)' }} role="status">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: 'var(--font-size-sm)', color: 'var(--text-muted, #6b7280)' }} role="status">
         {t('common.loading')}&hellip;
       </div>
     );
@@ -143,7 +143,7 @@ export default function CommentsTab({ fileId, isOwnedByUser = true }) {
 
   if (error) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: '0.875rem', color: '#dc2626' }} role="alert">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: 'var(--font-size-sm)', color: '#dc2626' }} role="alert">
         {error}
       </div>
     );
@@ -167,7 +167,7 @@ export default function CommentsTab({ fileId, isOwnedByUser = true }) {
                 borderRadius: '0.5rem',
                 background: 'var(--panel, white)',
                 color: 'var(--text, #111827)',
-                fontSize: '0.875rem',
+                fontSize: 'var(--font-size-sm)',
                 outline: 'none',
               }}
               aria-label={t('drive.addComment')}
@@ -186,7 +186,7 @@ export default function CommentsTab({ fileId, isOwnedByUser = true }) {
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.5rem',
-                fontSize: '0.875rem',
+                fontSize: 'var(--font-size-sm)',
                 fontWeight: 500,
                 minHeight: '2.75rem',
                 transition: 'background 0.15s',
@@ -208,7 +208,7 @@ export default function CommentsTab({ fileId, isOwnedByUser = true }) {
 
         {/* Timeline and comments */}
         {filteredAndSortedComments.length === 0 && !filterText ? (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: 'var(--font-size-sm)', color: 'var(--text-muted, #6b7280)' }}>
             {getIcon('ui', 'message', 40)}
             {t('drive.noComments')}
           </div>
@@ -223,7 +223,7 @@ export default function CommentsTab({ fileId, isOwnedByUser = true }) {
               overflowY: 'auto',
               height: '100%',
             }}>
-              <h4 style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-muted, #6b7280)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <h4 style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, color: 'var(--text-muted, #6b7280)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 {getIcon('ui', 'clock', 16)}
                 {t('drive.timeline') || 'Timeline'}
               </h4>
@@ -236,7 +236,7 @@ export default function CommentsTab({ fileId, isOwnedByUser = true }) {
                     background: !selectedDate ? 'var(--bg-primary, #f3f4f6)' : 'transparent',
                     border: 'none',
                     borderRadius: '0.375rem',
-                    fontSize: '0.875rem',
+                    fontSize: 'var(--font-size-sm)',
                     color: !selectedDate ? 'var(--text, #111827)' : 'var(--text-muted, #6b7280)',
                     cursor: 'pointer',
                     fontWeight: !selectedDate ? 600 : 400,
@@ -254,7 +254,7 @@ export default function CommentsTab({ fileId, isOwnedByUser = true }) {
                       background: selectedDate === date ? 'var(--bg-primary, #f3f4f6)' : 'transparent',
                       border: 'none',
                       borderRadius: '0.375rem',
-                      fontSize: '0.875rem',
+                      fontSize: 'var(--font-size-sm)',
                       color: selectedDate === date ? 'var(--text, #111827)' : 'var(--text-muted, #6b7280)',
                       cursor: 'pointer',
                       fontWeight: selectedDate === date ? 600 : 400,
@@ -285,7 +285,7 @@ export default function CommentsTab({ fileId, isOwnedByUser = true }) {
                     borderRadius: '0.5rem',
                     background: 'var(--panel, white)',
                     color: 'var(--text, #111827)',
-                    fontSize: '0.875rem',
+                    fontSize: 'var(--font-size-sm)',
                     outline: 'none',
                   }}
                   aria-label={t('drive.filterComments')}
@@ -339,12 +339,12 @@ export default function CommentsTab({ fileId, isOwnedByUser = true }) {
                 )}
               </div>
 
-              <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--text, #111827)', marginBottom: '1rem' }}>
+              <h3 style={{ fontSize: 'var(--font-size-lg)', fontWeight: 600, color: 'var(--text, #111827)', marginBottom: '1rem' }}>
                 {selectedDate ? formatDateHeader(selectedDate) : t('drive.comments')} ({filteredAndSortedComments.length})
               </h3>
 
               {filteredAndSortedComments.length === 0 ? (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)' }}>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: 'var(--font-size-sm)', color: 'var(--text-muted, #6b7280)' }}>
                   {getIcon('ui', 'message', 40)}
                   {t('drive.noMatchingComments')}
                 </div>
@@ -376,7 +376,7 @@ export default function CommentsTab({ fileId, isOwnedByUser = true }) {
                           </div>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                              <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text, #111827)' }}>
+                              <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 500, color: 'var(--text, #111827)' }}>
                                 {getLocalizedUserName(comment.user, lang, t('drive.unknownUser'))}
                               </span>
                               {(() => { const role = getUserRoleFromObject(comment.user); if (!role) return null; const icon = getUserRoleIcon(role); const color = getUserRoleColor(role); return icon ? (
@@ -385,13 +385,13 @@ export default function CommentsTab({ fileId, isOwnedByUser = true }) {
                                 </span>
                               ) : null; })()}
                             </div>
-                            <p style={{ fontSize: '0.875rem', color: 'var(--text, #374151)', margin: 0, wordBreak: 'break-word' }}>
+                            <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text, #374151)', margin: 0, wordBreak: 'break-word' }}>
                               {comment.content}
                             </p>
                           </div>
                         </div>
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.25rem' }}>
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)', fontWeight: 500, whiteSpace: 'nowrap' }}>
+                          <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted, #6b7280)', fontWeight: 500, whiteSpace: 'nowrap' }}>
                             {formatDateTime(comment.createdAt)}
                           </span>
                           {(() => {

@@ -736,7 +736,7 @@ export default function SmartDrivePage() {
     color: 'white',
     border: 'none',
     borderRadius: '0.5rem',
-    fontSize: '0.875rem',
+    fontSize: 'var(--font-size-sm)',
     fontWeight: 600,
     cursor: 'pointer',
     display: 'flex',
@@ -807,7 +807,7 @@ export default function SmartDrivePage() {
               <p
                 style={{
                   margin: 0,
-                  fontSize: '0.75rem',
+                  fontSize: 'var(--font-size-xs)',
                   color: 'var(--text-muted, #6b7280)',
                 }}
               >
@@ -1037,7 +1037,7 @@ export default function SmartDrivePage() {
                 {breadcrumbs.map((crumb, idx) => (
                   <React.Fragment key={crumb.id}>
                     {console.log('[Breadcrumb Debug] Rendering crumb:', crumb, 'idx:', idx)}
-                    <span style={{ color: 'var(--text-muted, #9ca3af)', fontSize: '0.875rem', flexShrink: 0 }}>
+                    <span style={{ color: 'var(--text-muted, #9ca3af)', fontSize: 'var(--font-size-sm)', flexShrink: 0 }}>
                       {getThemedIcon('ui', 'chevron_right', 14, 'muted')}
                     </span>
                     <button
@@ -1085,7 +1085,7 @@ export default function SmartDrivePage() {
                     borderRadius: '0.5rem',
                     color: 'var(--text-secondary, #374151)',
                     cursor: 'pointer',
-                    fontSize: '0.8125rem',
+                    fontSize: 'var(--font-size-sm)',
                     fontWeight: 500,
                     display: 'flex',
                     alignItems: 'center',
@@ -1122,7 +1122,7 @@ export default function SmartDrivePage() {
                     color: openFilterChip === chip.key ? 'var(--color-primary, #2563eb)' : 'var(--text-secondary, #374151)',
                     border: openFilterChip === chip.key ? '1px solid var(--color-primary, #2563eb)' : '1px solid var(--border, #e5e7eb)',
                     borderRadius: '999px',
-                    fontSize: '0.8125rem',
+                    fontSize: 'var(--font-size-sm)',
                     cursor: 'pointer',
                     display: 'flex',
                     alignItems: 'center',
@@ -1174,7 +1174,7 @@ export default function SmartDrivePage() {
                             background: isActive ? 'var(--color-primary-alpha, rgba(37,99,235,0.08))' : 'transparent',
                             color: isActive ? 'var(--color-primary, #2563eb)' : 'var(--text, #111827)',
                             cursor: 'pointer',
-                            fontSize: '0.875rem',
+                            fontSize: 'var(--font-size-sm)',
                             fontWeight: isActive ? 600 : 400,
                             textAlign: 'start',
                             transition: 'background 0.1s',
@@ -1227,7 +1227,7 @@ export default function SmartDrivePage() {
                       borderRadius: '0.375rem',
                       background: statusStyle.bg,
                       border: `1px solid ${statusStyle.borderColor}`,
-                      fontSize: '0.75rem',
+                      fontSize: 'var(--font-size-xs)',
                       color: statusStyle.color,
                       cursor: 'help',
                     }}
@@ -1361,7 +1361,7 @@ export default function SmartDrivePage() {
               boxShadow: '0 20px 60px rgba(0,0,0,0.2)',
             }}
           >
-            <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.125rem', fontWeight: 600, color: 'var(--text, #111827)' }}>
+            <h3 style={{ margin: '0 0 1rem 0', fontSize: 'var(--font-size-lg)', fontWeight: 600, color: 'var(--text, #111827)' }}>
               {t('drive.rename') || 'Rename'}
             </h3>
             <input
@@ -1393,7 +1393,7 @@ export default function SmartDrivePage() {
                 padding: '0.75rem',
                 border: '1px solid var(--border, #d1d5db)',
                 borderRadius: '0.5rem',
-                fontSize: '0.9375rem',
+                fontSize: 'var(--font-size-sm)',
                 background: 'var(--panel, white)',
                 color: 'var(--text, #111827)',
                 outline: 'none',
@@ -1409,7 +1409,7 @@ export default function SmartDrivePage() {
               }}
             />
             {renameError && (
-              <p style={{ margin: '0.5rem 0 0 0', fontSize: '0.75rem', color: '#dc2626' }}>
+              <p style={{ margin: '0.5rem 0 0 0', fontSize: 'var(--font-size-xs)', color: '#dc2626' }}>
                 {renameError}
               </p>
             )}
@@ -1494,7 +1494,7 @@ export default function SmartDrivePage() {
             <p
               style={{
                 margin: '0 0 1.75rem 0',
-                fontSize: '0.9375rem',
+                fontSize: 'var(--font-size-sm)',
                 color: 'var(--text-muted, #6b7280)',
                 lineHeight: '1.6',
               }}
@@ -1520,7 +1520,7 @@ export default function SmartDrivePage() {
                   background: 'transparent',
                   border: '1px solid var(--border, #e5e7eb)',
                   borderRadius: '0.625rem',
-                  fontSize: '0.875rem',
+                  fontSize: 'var(--font-size-sm)',
                   fontWeight: 500,
                   color: 'var(--text, #111827)',
                   cursor: 'pointer',
@@ -1542,7 +1542,7 @@ export default function SmartDrivePage() {
                   background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
                   border: 'none',
                   borderRadius: '0.625rem',
-                  fontSize: '0.875rem',
+                  fontSize: 'var(--font-size-sm)',
                   fontWeight: 600,
                   color: 'white',
                   cursor: 'pointer',
@@ -1622,7 +1622,7 @@ export default function SmartDrivePage() {
             <p
               style={{
                 margin: '0 0 1.75rem 0',
-                fontSize: '0.9375rem',
+                fontSize: 'var(--font-size-sm)',
                 color: 'var(--text-muted, #6b7280)',
                 lineHeight: '1.6',
               }}
@@ -1643,7 +1643,7 @@ export default function SmartDrivePage() {
                   background: 'transparent',
                   border: '1px solid var(--border, #e5e7eb)',
                   borderRadius: '0.625rem',
-                  fontSize: '0.875rem',
+                  fontSize: 'var(--font-size-sm)',
                   fontWeight: 500,
                   color: 'var(--text, #111827)',
                   cursor: 'pointer',
@@ -1665,7 +1665,7 @@ export default function SmartDrivePage() {
                   background: 'linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)',
                   border: 'none',
                   borderRadius: '0.625rem',
-                  fontSize: '0.875rem',
+                  fontSize: 'var(--font-size-sm)',
                   fontWeight: 600,
                   color: 'white',
                   cursor: 'pointer',

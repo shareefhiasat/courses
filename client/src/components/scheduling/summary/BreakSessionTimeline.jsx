@@ -14,11 +14,11 @@ export default function BreakSessionTimeline({ breaks = [] }) {
   return (
     <Card>
       <CardBody>
-        <h3 style={{ fontSize: '1.125rem', fontWeight: 500, marginBottom: '1rem' }}>
+        <h3 style={{ fontSize: 'var(--font-size-lg)', fontWeight: 500, marginBottom: '1rem' }}>
           {t('today_break_sessions') || "Today's Break Sessions"}
         </h3>
         {breaks.length === 0 ? (
-          <p style={{ color: muted, fontSize: '0.875rem', textAlign: 'center', padding: '1rem' }}>
+          <p style={{ color: muted, fontSize: 'var(--font-size-sm)', textAlign: 'center', padding: '1rem' }}>
             {t('no_break_sessions') || 'No break sessions today'}
           </p>
         ) : (
@@ -28,11 +28,11 @@ export default function BreakSessionTimeline({ breaks = [] }) {
                 key={b.id}
                 style={{ display: 'flex', justifyContent: 'space-between', padding: '0.5rem 0', borderBottom: `1px solid ${border}` }}
               >
-                <span style={{ fontSize: '0.875rem' }}>
+                <span style={{ fontSize: 'var(--font-size-sm)' }}>
                   {BREAK_ICONS[b.breakType] || '⏸️'}{' '}
                   {t(`break_type_${b.breakType}`) || b.breakType}
                 </span>
-                <span style={{ fontSize: '0.875rem', color: muted }}>
+                <span style={{ fontSize: 'var(--font-size-sm)', color: muted }}>
                   {b.timeSlot?.startTime} – {b.timeSlot?.endTime}
                 </span>
               </div>

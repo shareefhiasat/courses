@@ -141,7 +141,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           animation: 'spin 1s linear infinite',
           margin: '0 auto 1rem'
         }}></div>
-        <p style={{ color: '#6b7280', fontSize: '0.875rem', margin: 0 }}>
+        <p style={{ color: '#6b7280', fontSize: 'var(--font-size-sm)', margin: 0 }}>
           {t('loading') || 'Loading...'}
         </p>
       </div>
@@ -2016,7 +2016,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           ref={scannerRef}
           sectionId="qr-scanner-v2"
            title={t('activity_list') || 'Activity list'}
-          titleStyle={{ fontSize: '0.75rem' }}
+          titleStyle={{ fontSize: 'var(--font-size-xs)' }}
           icon={<QrCodeIcon />}
           color="#8b5cf6"
           defaultMode="minimize"
@@ -2026,7 +2026,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           }}
           compactContent={
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: '0.875rem', color: '#6b7280' }}>
+          <span style={{ fontSize: 'var(--font-size-sm)', color: '#6b7280' }}>
             {isScanning ?
                 t('scanning') || 'Scanning...' :
                 t('ready_to_scan') || 'Ready to scan'
@@ -2059,12 +2059,12 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <QrCodeIcon className="w-5 h-5" style={{ width: '1.25rem', height: '1.25rem', color: 'var(--color-primary, #8b5cf6)' }} />
-              <h3 style={{ fontWeight: 600, color: 'var(--text, #111827)', margin: 0, fontSize: '0.875rem' }}>
+              <h3 style={{ fontWeight: 600, color: 'var(--text, #111827)', margin: 0, fontSize: 'var(--font-size-sm)' }}>
                 {t('scanner')} {isScanning ? t('active') || 'Active' : t('ready') || 'Ready'}
               </h3>
             </div>
             <span style={{
-              fontSize: '0.75rem',
+              fontSize: 'var(--font-size-xs)',
               color: isScanning ? '#166534' : '#1e40af',
               fontWeight: 500
             }}>
@@ -2118,7 +2118,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                           border: '1px solid var(--border, #e5e7eb)',
                           background: vibrationEnabled ? 'var(--color-primary, #8b5cf6)' : 'white',
                           color: vibrationEnabled ? 'white' : 'var(--text, #111827)',
-                          fontSize: '0.75rem',
+                          fontSize: 'var(--font-size-xs)',
                           fontWeight: 500,
                           cursor: 'pointer',
                           transition: 'all 0.2s'
@@ -2140,7 +2140,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                           border: '1px solid var(--border, #e5e7eb)',
                           background: soundEnabled ? 'var(--color-primary, #8b5cf6)' : 'white',
                           color: soundEnabled ? 'white' : 'var(--text, #111827)',
-                          fontSize: '0.75rem',
+                          fontSize: 'var(--font-size-xs)',
                           fontWeight: 500,
                           cursor: 'pointer',
                           transition: 'all 0.2s'
@@ -2163,7 +2163,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                 {/*      border: '1px solid var(--border, #e5e7eb)',*/}
                 {/*      background: showDebugBox ? '#ef4444' : 'white',*/}
                 {/*      color: showDebugBox ? 'white' : 'var(--text, #111827)',*/}
-                {/*      fontSize: '0.75rem',*/}
+                {/*      fontSize: 'var(--font-size-xs)',*/}
                 {/*      fontWeight: 500,*/}
                 {/*      cursor: 'pointer',*/}
                 {/*      transition: 'all 0.2s'*/}
@@ -2209,7 +2209,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                           border: '1px solid var(--border, #e5e7eb)',
                           background: (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || selectedProgramId === 'all' || !selectedSubjectId || selectedSubjectId === 'all' || !selectedClassId || selectedClassId === 'all')) ? '#f3f4f6' : (showManualInput ? '#3b82f6' : 'white'),
                           color: (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || selectedProgramId === 'all' || !selectedSubjectId || selectedSubjectId === 'all' || !selectedClassId || selectedClassId === 'all')) ? '#9ca3af' : (showManualInput ? 'white' : 'var(--text, #111827)'),
-                          fontSize: '0.75rem',
+                          fontSize: 'var(--font-size-xs)',
                           fontWeight: 500,
                           cursor: (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || selectedProgramId === 'all' || !selectedSubjectId || selectedSubjectId === 'all' || !selectedClassId || selectedClassId === 'all')) ? 'not-allowed' : 'pointer',
                           transition: 'all 0.2s',
@@ -2248,7 +2248,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                         border: '1px solid var(--border, #e5e7eb)',
                         background: (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || selectedProgramId === 'all' || !selectedSubjectId || selectedSubjectId === 'all' || !selectedClassId || selectedClassId === 'all')) ? '#f3f4f6' : '#8b5cf6',
                         color: (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || selectedProgramId === 'all' || !selectedSubjectId || selectedSubjectId === 'all' || !selectedClassId || selectedClassId === 'all')) ? '#9ca3af' : 'white',
-                        fontSize: '0.75rem',
+                        fontSize: 'var(--font-size-xs)',
                         fontWeight: 500,
                         cursor: (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || selectedProgramId === 'all' || !selectedSubjectId || selectedSubjectId === 'all' || !selectedClassId || selectedClassId === 'all')) ? 'not-allowed' : 'pointer',
                         transition: 'all 0.2s',
@@ -2280,7 +2280,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                       border: '1px solid var(--border, #e5e7eb)',
                       background: ((attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || !selectedSubjectId || !selectedClassId)) || students.length === 0 || activityLoading) ? '#f3f4f6' : '#10b981',
                       color: ((attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || !selectedSubjectId || !selectedClassId)) || students.length === 0 || activityLoading) ? '#9ca3af' : 'white',
-                      fontSize: '0.75rem',
+                      fontSize: 'var(--font-size-xs)',
                       fontWeight: 500,
                       cursor: ((attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || !selectedSubjectId || !selectedClassId)) || students.length === 0 || activityLoading) ? 'not-allowed' : 'pointer',
                       transition: 'all 0.2s',
@@ -2317,7 +2317,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                       border: '1px solid var(--border, #e5e7eb)',
                       background: 'white',
                       color: 'var(--text-secondary, #6b7280)',
-                      fontSize: '0.75rem',
+                      fontSize: 'var(--font-size-xs)',
                       fontWeight: 700,
                       cursor: 'pointer',
                       transition: 'all 0.2s',
@@ -2344,7 +2344,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                         border: '1px solid #ef4444',
                         background: activityLoading || (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedClassId || selectedClassId === 'all')) ? '#f3f4f6' : '#ef4444',
                         color: activityLoading || (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedClassId || selectedClassId === 'all')) ? '#9ca3af' : 'white',
-                        fontSize: '0.75rem',
+                        fontSize: 'var(--font-size-xs)',
                         fontWeight: 500,
                         cursor: activityLoading || (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedClassId || selectedClassId === 'all')) ? 'not-allowed' : 'pointer',
                         transition: 'all 0.2s',
@@ -2370,7 +2370,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                           border: '1px solid #ef4444',
                           background: '#ef4444',
                           color: 'white',
-                          fontSize: '0.75rem',
+                          fontSize: 'var(--font-size-xs)',
                           fontWeight: 500,
                           cursor: 'pointer',
                           transition: 'all 0.2s'
@@ -2389,7 +2389,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                   minHeight: '24px'
                 }}>
               <span style={{ 
-                fontSize: '0.875rem', 
+                fontSize: 'var(--font-size-sm)', 
                 color: '#6b7280',
                 fontWeight: '500',
                 minWidth: '20px',
@@ -2417,14 +2417,14 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
               {/*  display: 'flex',*/}
               {/*  alignItems: 'center',*/}
               {/*  justifyContent: 'space-between',*/}
-              {/*  fontSize: '0.875rem',*/}
+              {/*  fontSize: 'var(--font-size-sm)',*/}
               {/*  marginBottom: '1rem',*/}
               {/*  fontWeight: 600,*/}
               {/*  color: '#111827'*/}
               {/*}}>*/}
               {/*  <span>Recent Activity</span>*/}
               {/*  <span style={{ */}
-              {/*    fontSize: '0.75rem', */}
+              {/*    fontSize: 'var(--font-size-xs)', */}
               {/*    background: '#8b5cf6', */}
               {/*    color: 'white', */}
               {/*    padding: '0.25rem 0.5rem', */}
@@ -2469,7 +2469,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                       background: '#f3f4f6',
                       border: '1px solid #e5e7eb',
                       borderRadius: '0.375rem',
-                      fontSize: '0.75rem',
+                      fontSize: 'var(--font-size-xs)',
                       cursor: 'pointer',
                       marginTop: '0.5rem'
                     }}
@@ -2815,7 +2815,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                   boxShadow: '0 10px 25px rgba(0, 0, 0, 0.2)'
                 }}>
                   <h3 style={{
-                    fontSize: '1.125rem',
+                    fontSize: 'var(--font-size-lg)',
                     fontWeight: 600,
                     color: '#111827',
                     marginBottom: '0.75rem'
@@ -2823,7 +2823,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                     {t('confirm_clear') || 'Confirm Clear'}
                   </h3>
                   <p style={{
-                    fontSize: '0.875rem',
+                    fontSize: 'var(--font-size-sm)',
                     color: '#6b7280',
                     marginBottom: '1rem'
                   }}>
@@ -2840,7 +2840,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                       display: 'flex',
                       alignItems: 'center',
                       gap: '0.5rem',
-                      fontSize: '0.875rem',
+                      fontSize: 'var(--font-size-sm)',
                       color: '#374151',
                       cursor: 'pointer'
                     }}>
@@ -2858,7 +2858,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                       display: 'flex',
                       alignItems: 'center',
                       gap: '0.5rem',
-                      fontSize: '0.875rem',
+                      fontSize: 'var(--font-size-sm)',
                       color: '#374151',
                       cursor: 'pointer'
                     }}>
@@ -2890,7 +2890,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                           background: 'white',
                           color: '#6b7280',
                           borderRadius: '0.375rem',
-                          fontSize: '0.875rem',
+                          fontSize: 'var(--font-size-sm)',
                           cursor: 'pointer'
                         }}
                     >
@@ -3065,7 +3065,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                           background: actionLoading ? '#94a3b8' : '#dc2626',
                           color: 'white',
                           borderRadius: '0.375rem',
-                          fontSize: '0.875rem',
+                          fontSize: 'var(--font-size-sm)',
                           cursor: actionLoading ? 'not-allowed' : 'pointer'
                         }}
                     >

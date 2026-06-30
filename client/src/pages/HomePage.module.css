@@ -85,7 +85,7 @@
 .announcementTitle {
   margin: 0 0 0.5rem 0;
   color: #111827;
-  font-size: 1.125rem;
+  font-size: var(--font-size-lg);
   font-weight: 600;
 }
 
@@ -154,7 +154,7 @@
 
 .announcementDate small {
   color: var(--text-muted, #999);
-  font-size: 0.8125rem;
+  font-size: var(--font-size-sm);
 }
 
 .emptyAnnouncements {

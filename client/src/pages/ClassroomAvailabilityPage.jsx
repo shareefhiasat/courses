@@ -491,10 +491,10 @@ const ClassroomAvailabilityPage = () => {
   if (!hasPermission) {
     return (
       <div style={{ padding: '2rem', textAlign: 'center' }}>
-        <div style={{ fontSize: '1.125rem', fontWeight: '500', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
+        <div style={{ fontSize: 'var(--font-size-lg)', fontWeight: '500', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
           {t('access_denied')}
         </div>
-        <div style={{ fontSize: '0.875rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '0.5rem' }}>
+        <div style={{ fontSize: 'var(--font-size-sm)', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '0.5rem' }}>
           {t('admin_hr_required_room_availability')}
         </div>
       </div>
@@ -544,7 +544,7 @@ const ClassroomAvailabilityPage = () => {
                 type="button"
                 onClick={handleAddSlot}
                 disabled={saving}
-                style={{ padding: '0.25rem 0.75rem', fontSize: '0.875rem' }}
+                style={{ padding: '0.25rem 0.75rem', fontSize: 'var(--font-size-sm)' }}
               >
                 + {t('add_slot')}
               </Button>
@@ -575,7 +575,7 @@ const ClassroomAvailabilityPage = () => {
                     type="button"
                     onClick={() => handleRemoveSlot(index)}
                     disabled={saving}
-                    style={{ padding: '0.25rem 0.5rem', fontSize: '0.875rem', backgroundColor: '#ef4444' }}
+                    style={{ padding: '0.25rem 0.5rem', fontSize: 'var(--font-size-sm)', backgroundColor: '#ef4444' }}
                   >
                     ×
                   </Button>
@@ -706,7 +706,7 @@ const ClassroomAvailabilityPage = () => {
         alignItems: 'center',
         marginBottom: '1rem'
       }}>
-        <h3 style={{ margin: 0, fontSize: '1.125rem', fontWeight: '500' }}>
+        <h3 style={{ margin: 0, fontSize: 'var(--font-size-lg)', fontWeight: '500' }}>
           {t('room_availability_title', { count: `${filteredAvailabilities.length}${filteredAvailabilities.length !== availabilities.length ? ` / ${availabilities.length}` : ''}` })}
         </h3>
         <div style={{ display: 'flex', gap: '0.5rem' }}>

@@ -156,7 +156,7 @@
   background: white;
   border-radius: 8px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   transition: all 0.3s;
   color: var(--text);

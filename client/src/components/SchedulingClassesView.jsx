@@ -56,7 +56,7 @@ export default function SchedulingClassesView({
       background: `${color}20`,
       color,
       borderRadius: '999px',
-      fontSize: '0.75rem',
+      fontSize: 'var(--font-size-xs)',
       fontWeight: 500,
       whiteSpace: 'nowrap'
     }}>
@@ -240,7 +240,7 @@ export default function SchedulingClassesView({
           <span style={{ marginInlineStart: 'auto', display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
             {countBadge(filteredClasses.length, t('classes_count_label'))}
             {statsLoading && (
-              <span style={{ fontSize: '0.75rem', color: muted }}>{t('loading')}...</span>
+              <span style={{ fontSize: 'var(--font-size-xs)', color: muted }}>{t('loading')}...</span>
             )}
           </span>
         </div>
@@ -339,7 +339,7 @@ export default function SchedulingClassesView({
                 }}>
                   <h3 style={{
                     margin: 0,
-                    fontSize: '1rem',
+                    fontSize: 'var(--font-size-md)',
                     fontWeight: 600,
                     color: '#8b5cf6',
                     display: 'flex',

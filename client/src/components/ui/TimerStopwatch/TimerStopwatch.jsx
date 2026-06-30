@@ -256,7 +256,7 @@ const TimerStopwatch = ({ compact = false, showTest = false }) => {
     padding: '0.2rem 0.45rem',
     borderRadius: 999,
     border: palette.modeBorder,
-    fontSize: '0.75rem',
+    fontSize: 'var(--font-size-xs)',
     minWidth: 0,
     color: palette.modeInactiveText,
   };

@@ -102,7 +102,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Messa
           }}>
             {msg.senderName}
             {senderUser?.studentNumber && (
-              <span style={{ fontSize: '0.75rem', color: 'var(--muted)', marginLeft: '0.25rem', fontWeight: 'normal' }}>
+              <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--muted)', marginLeft: '0.25rem', fontWeight: 'normal' }}>
                 ({senderUser.studentNumber})
               </span>
             )}

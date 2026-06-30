@@ -93,7 +93,7 @@ const MarksHistoryDrawer = memo(({
     borderRadius: '6px',
     background: isDarkMode ? '#1f2937' : '#ffffff',
     color: isDarkMode ? '#f3f4f6' : '#111827',
-    fontSize: '0.875rem',
+    fontSize: 'var(--font-size-sm)',
     ...styles.searchInput
   }), [isDarkMode, styles.searchInput]);
 
@@ -139,21 +139,21 @@ const MarksHistoryDrawer = memo(({
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <span style={{ 
-            fontSize: '0.875rem', 
+            fontSize: 'var(--font-size-sm)', 
             fontWeight: 'bold',
             color: auditEntry.actionType === 'created' ? '#22c55e' : '#3b82f6'
           }}>
             {auditEntry.actionType === 'created' ? '📝 Created' : '✏️ Updated'}
           </span>
           <span style={{ 
-            fontSize: '0.75rem', 
+            fontSize: 'var(--font-size-xs)', 
             color: isDarkMode ? '#9ca3af' : '#6b7280'
           }}>
             by {auditEntry.user ? `${auditEntry.user.firstName} ${auditEntry.user.lastName}` : 'Unknown User'}
           </span>
         </div>
         <div style={{ 
-          fontSize: '0.75rem', 
+          fontSize: 'var(--font-size-xs)', 
           color: isDarkMode ? '#9ca3af' : '#6b7280',
           textAlign: 'right'
         }}>
@@ -210,7 +210,7 @@ const MarksHistoryDrawer = memo(({
         display: 'flex', 
         justifyContent: 'space-between', 
         alignItems: 'center',
-        fontSize: '0.875rem',
+        fontSize: 'var(--font-size-sm)',
         color: isDarkMode ? '#d1d5db' : '#6b7280'
       }}>
         <div>
@@ -234,7 +234,7 @@ const MarksHistoryDrawer = memo(({
             borderRadius: '4px',
             background: getGradeColor(auditEntry.recordSnapshot?.letterGrade),
             color: '#ffffff',
-            fontSize: '0.75rem',
+            fontSize: 'var(--font-size-xs)',
             fontWeight: 'bold'
           }}>
             {auditEntry.recordSnapshot?.letterGrade || 'N/A'}
@@ -305,7 +305,7 @@ const MarksHistoryDrawer = memo(({
               top: '50%',
               transform: 'translateY(-50%)',
               color: isDarkMode ? '#9ca3af' : '#6b7280',
-              fontSize: '0.875rem',
+              fontSize: 'var(--font-size-sm)',
               display: 'flex',
               alignItems: 'center',
               gap: '0.5rem'
@@ -318,7 +318,7 @@ const MarksHistoryDrawer = memo(({
                     border: 'none',
                     color: isDarkMode ? '#9ca3af' : '#6b7280',
                     cursor: 'pointer',
-                    fontSize: '0.75rem',
+                    fontSize: 'var(--font-size-xs)',
                     padding: '0',
                     borderRadius: '2px'
                   }}
@@ -346,7 +346,7 @@ const MarksHistoryDrawer = memo(({
               <div style={{ fontWeight: 'bold', color: isDarkMode ? '#f3f4f6' : '#111827' }}>
                 {selectedStudent.studentName || selectedStudent.name}
               </div>
-              <div style={{ fontSize: '0.875rem', color: isDarkMode ? '#d1d5db' : '#6b7280' }}>
+              <div style={{ fontSize: 'var(--font-size-sm)', color: isDarkMode ? '#d1d5db' : '#6b7280' }}>
                 ID: {selectedStudent.studentNumber || selectedStudent.id}
               </div>
             </div>

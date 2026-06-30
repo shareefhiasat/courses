@@ -4,7 +4,7 @@
   gap: 0.375rem;
 }
 .fullWidth { width: 100%; }
-.label { font-size: 0.875rem; font-weight: 500; color: var(--text, #212529); }
+.label { font-size: var(--font-size-sm); font-weight: 500; color: var(--text, #212529); }
 .required { color: var(--color-danger, #dc3545); margin-inline-start: 4px; }
 
 .container {
@@ -27,8 +27,8 @@
 .input:focus { border-color: var(--color-primary, #800020); box-shadow: 0 0 0 3px rgba(var(--color-primary-rgb), .1); }
 .input:hover { border-color: var(--color-primary, #800020); }
 .error { border-color: var(--color-danger, #dc3545); }
-.errorText { color: var(--color-danger, #dc3545); font-size: 0.75rem; }
-.helperText { color: var(--text-muted, #666); font-size: 0.75rem; }
+.errorText { color: var(--color-danger, #dc3545); font-size: var(--font-size-xs); }
+.helperText { color: var(--text-muted, #666); font-size: var(--font-size-xs); }
 
 .prefix {
   position: absolute;

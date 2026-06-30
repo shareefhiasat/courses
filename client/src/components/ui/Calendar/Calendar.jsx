@@ -43,7 +43,7 @@ const Calendar = ({
           borderRadius: '6px',
           border: `1px solid ${borderColor}`,
           color: 'white',
-          fontSize: '0.875rem',
+          fontSize: 'var(--font-size-sm)',
           padding: '2px 6px',
           cursor: 'pointer'
         }

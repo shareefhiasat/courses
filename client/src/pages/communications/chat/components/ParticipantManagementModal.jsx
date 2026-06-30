@@ -227,7 +227,7 @@ const ParticipantManagementModal = ({ isOpen, onClose, room, currentUserId, onPa
                     border: `1px solid ${isActive ? chipColor : 'var(--border)'}`,
                     background: isActive ? `${chipColor}15` : 'transparent',
                     color: isActive ? chipColor : 'var(--text)',
-                    fontSize: '0.75rem',
+                    fontSize: 'var(--font-size-xs)',
                     fontWeight: 600,
                     cursor: 'pointer',
                     transition: 'all 0.2s',

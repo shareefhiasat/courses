@@ -53,14 +53,14 @@ const StatusCard = ({
         flexDirection: 'row',
         alignItems: 'center',
         gap: '0.25rem',
-        fontSize: '0.8125rem',
+        fontSize: 'var(--font-size-sm)',
         fontWeight: 500,
         transition: 'all 0.2s',
         minWidth: 'auto'
       }}
     >
       {getThemedIcon('ui', iconConfig.icon, 14, selected ? 'white' : iconConfig.color)}
-      <span style={{ fontSize: '0.8125rem', textAlign: 'center' }}>
+      <span style={{ fontSize: 'var(--font-size-sm)', textAlign: 'center' }}>
         {lang === 'ar' ? labelAr : labelEn}
       </span>
     </button>

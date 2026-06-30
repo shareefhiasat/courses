@@ -785,17 +785,17 @@ const ReviewResultsPage = () => {
 
                 {isActivityWithoutSubmission && (
                   <div className="submission-card-score" style={{ textAlign: 'center', padding: '1rem 0' }}>
-                    <div style={{ fontSize: '1rem', fontWeight: 600, color: '#6b7280' }}>
+                    <div style={{ fontSize: 'var(--font-size-md)', fontWeight: 600, color: '#6b7280' }}>
                       {t('activity_pending') || 'Activity Pending'}
                     </div>
-                    <div style={{ fontSize: '0.875rem', color: '#9ca3af', marginTop: '0.25rem' }}>
+                    <div style={{ fontSize: 'var(--font-size-sm)', color: '#9ca3af', marginTop: '0.25rem' }}>
                       {submission.activityType && (
                         <span style={{ 
                           textTransform: 'capitalize', 
                           background: '#f3f4f6', 
                           padding: '2px 8px', 
                           borderRadius: '12px',
-                          fontSize: '0.75rem'
+                          fontSize: 'var(--font-size-xs)'
                         }}>
                           {submission.activityType}
                         </span>
@@ -840,7 +840,7 @@ const ReviewResultsPage = () => {
                   </div>
 
                   <div className="submission-card-footer">
-                    <div style={{ fontSize: '0.75rem', color: '#6b7280' }}>
+                    <div style={{ fontSize: 'var(--font-size-xs)', color: '#6b7280' }}>
                       {submission.submittedAt && formatDateTime(submission.submittedAt)}
                     </div>
                     {!isActivityWithoutSubmission && (

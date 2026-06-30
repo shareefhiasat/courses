@@ -160,7 +160,7 @@ const MessageBubble = memo(({
             style={{ width: '100%', borderRadius: 8, cursor: 'pointer' }}
             onClick={() => window.open(msg.fileUrl, '_blank')}
           />
-          <div style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: 4 }}>
+          <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--muted)', marginTop: 4 }}>
             {fileName} • {Math.ceil((msg.fileSize || 0) / 1024)} KB
           </div>
         </div>
@@ -178,7 +178,7 @@ const MessageBubble = memo(({
             <source src={msg.fileUrl} type={`video/${fileType}`} />
             {t('browser_no_video_support')}
           </video>
-          <div style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: 4 }}>
+          <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--muted)', marginTop: 4 }}>
             {fileName} • {Math.ceil((msg.fileSize || 0) / 1024)} KB
           </div>
         </div>
@@ -335,7 +335,7 @@ const MessageBubble = memo(({
             >
               {icon}
               <span style={{ 
-                fontSize: '0.75rem', 
+                fontSize: 'var(--font-size-xs)', 
                 fontWeight: '600',
                 lineHeight: 1,
                 color: active ? color : 'var(--text-secondary)'
@@ -400,7 +400,7 @@ const MessageBubble = memo(({
           onMouseDown={(e)=>e.stopPropagation()}
           onClick={(e)=>{ e.stopPropagation(); onContextMenu?.(msg.id); }}
           title={t('more')}
-          style={{ position:'absolute', top:4, right:4, background:'transparent', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:'1rem', padding:'2px 4px', lineHeight:1 }}
+          style={{ position:'absolute', top:4, right:4, background:'transparent', border:'none', color:'var(--muted)', cursor:'pointer', fontSize: 'var(--font-size-md)', padding:'2px 4px', lineHeight:1 }}
         >⋮</button>
       </>
     );
@@ -465,7 +465,7 @@ const MessageBubble = memo(({
           }}>
             {msg.senderName}
             {senderUser?.studentNumber && (
-              <span style={{ fontSize: '0.75rem', color: 'var(--muted)', marginLeft: '0.25rem', fontWeight: 'normal' }}>
+              <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--muted)', marginLeft: '0.25rem', fontWeight: 'normal' }}>
                 ({senderUser.studentNumber})
               </span>
             )}
@@ -568,7 +568,7 @@ const MessageBubble = memo(({
                   style={{
                     background: 'transparent',
                     border: '1px solid var(--border)',
-                    fontSize: '1rem',
+                    fontSize: 'var(--font-size-md)',
                     cursor: 'pointer',
                     padding: '0.5rem',
                     borderRadius: '12px',

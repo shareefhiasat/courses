@@ -376,7 +376,7 @@ export default function StudentActionZapPanel({
               animation: 'spin 1s linear infinite'
             }}></div>
             <div style={{
-              fontSize: '0.875rem',
+              fontSize: 'var(--font-size-sm)',
               fontWeight: 500,
               color: 'var(--text, #111827)'
             }}>
@@ -417,7 +417,7 @@ export default function StudentActionZapPanel({
               animation: 'spin 1s linear infinite'
             }}></div>
             <div style={{
-              fontSize: '0.875rem',
+              fontSize: 'var(--font-size-sm)',
               fontWeight: 500,
               color: 'var(--color-success, #22c55e)'
             }}>
@@ -511,7 +511,7 @@ export default function StudentActionZapPanel({
               alignItems: 'center',
               gap: '0.375rem',
               padding: '0.5rem 0.75rem',
-              fontSize: '0.8125rem',
+              fontSize: 'var(--font-size-sm)',
               borderRadius: '0.375rem',
               border: '1px solid var(--border, #e2e8f0)',
               background: activeTab === RECORD_TYPES.ATTENDANCE ? 'var(--color-success, #22c55e)' : 'var(--panel-hover, #f8fafc)',
@@ -532,7 +532,7 @@ export default function StudentActionZapPanel({
                   alignItems: 'center',
                   gap: '0.375rem',
                   padding: '0.5rem 0.75rem',
-                  fontSize: '0.8125rem',
+                  fontSize: 'var(--font-size-sm)',
                   borderRadius: '0.375rem',
                   border: '1px solid var(--border, #e2e8f0)',
                   background: activeTab === RECORD_TYPES.PARTICIPATION ? 'var(--color-info, #3b82f6)' : 'var(--panel-hover, #f8fafc)',
@@ -551,7 +551,7 @@ export default function StudentActionZapPanel({
                   alignItems: 'center',
                   gap: '0.375rem',
                   padding: '0.5rem 0.75rem',
-                  fontSize: '0.8125rem',
+                  fontSize: 'var(--font-size-sm)',
                   borderRadius: '0.375rem',
                   border: '1px solid var(--border, #e2e8f0)',
                   background: activeTab === RECORD_TYPES.BEHAVIOR ? 'var(--color-warning, #f97316)' : 'var(--panel-hover, #f8fafc)',
@@ -570,7 +570,7 @@ export default function StudentActionZapPanel({
                   alignItems: 'center',
                   gap: '0.375rem',
                   padding: '0.5rem 0.75rem',
-                  fontSize: '0.8125rem',
+                  fontSize: 'var(--font-size-sm)',
                   borderRadius: '0.375rem',
                   border: '1px solid var(--border, #e2e8f0)',
                   background: activeTab === RECORD_TYPES.PENALTY ? 'var(--color-danger, #dc2626)' : 'var(--panel-hover, #f8fafc)',
@@ -593,7 +593,7 @@ export default function StudentActionZapPanel({
                   alignItems: 'center',
                   gap: '0.375rem',
                   padding: '0.5rem 0.75rem',
-                  fontSize: '0.8125rem',
+                  fontSize: 'var(--font-size-sm)',
                   borderRadius: '0.375rem',
                   border: '1px solid var(--border, #e2e8f0)',
                   background: showFavoritesOnly ? 'var(--color-warning-light, #fef3c7)' : 'var(--panel-hover, #f8fafc)',
@@ -615,7 +615,7 @@ export default function StudentActionZapPanel({
                   alignItems: 'center',
                   gap: '0.375rem',
                   padding: '0.5rem 0.75rem',
-                  fontSize: '0.8125rem',
+                  fontSize: 'var(--font-size-sm)',
                   borderRadius: '0.375rem',
                   border: '1px solid var(--border, #e2e8f0)',
                   background: 'var(--panel-hover, #f8fafc)',
@@ -701,7 +701,7 @@ export default function StudentActionZapPanel({
                   }}
                 >
                   <div style={{
-                    fontSize: '1rem',
+                    fontSize: 'var(--font-size-md)',
                     lineHeight: 1,
                     filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.1))',
                     flexShrink: 0
@@ -711,7 +711,7 @@ export default function StudentActionZapPanel({
                     })()}
                   </div>
                   <span style={{
-                    fontSize: '0.9375rem',
+                    fontSize: 'var(--font-size-sm)',
                     fontWeight: 600,
                     color: attendanceType.color,
                     textAlign: 'left',
@@ -800,7 +800,7 @@ export default function StudentActionZapPanel({
                         {renderIcon(option.icon, { width: viewMode === 'grid' ? '1rem' : '0.875rem', height: viewMode === 'grid' ? '1rem' : '0.875rem', color: option.color })}
                       </div>
                       <span style={{
-                        fontSize: '0.9375rem',
+                        fontSize: 'var(--font-size-sm)',
                         fontWeight: 500,
                         color: 'var(--text, #111827)',
                         lineHeight: viewMode === 'grid' ? '1.3' : '1.3',
@@ -872,7 +872,7 @@ export default function StudentActionZapPanel({
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                fontSize: '1.125rem',
+                                fontSize: 'var(--font-size-lg)',
                                 fontWeight: 'bold'
                               }}
                             >
@@ -888,7 +888,7 @@ export default function StudentActionZapPanel({
                               display: 'flex',
                               alignItems: 'center',
                               justifyContent: 'center',
-                              fontSize: '0.875rem',
+                              fontSize: 'var(--font-size-sm)',
                               fontWeight: '700',
                               color: 'var(--text, #111827)',
                               boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
@@ -919,7 +919,7 @@ export default function StudentActionZapPanel({
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                fontSize: '1.125rem',
+                                fontSize: 'var(--font-size-lg)',
                                 fontWeight: 'bold'
                               }}
                             >
@@ -995,7 +995,7 @@ export default function StudentActionZapPanel({
             value={internalNote}
             onChange={(e) => setInternalNote(e.target.value)}
             style={{
-              fontSize: '0.875rem',
+              fontSize: 'var(--font-size-sm)',
               width: '100%'
             }}
             />
@@ -1012,7 +1012,7 @@ export default function StudentActionZapPanel({
             disabled={selectedActions.length === 0 || isSubmitting}
             fullWidth={true}
             style={{
-              fontSize: '0.875rem',
+              fontSize: 'var(--font-size-sm)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -1040,7 +1040,7 @@ export default function StudentActionZapPanel({
             onClick={onClose}
             fullWidth={true}
             style={{ 
-              fontSize: '0.875rem' 
+              fontSize: 'var(--font-size-sm)' 
             }}
           >
             {t('cancel')}
@@ -1055,14 +1055,14 @@ export default function StudentActionZapPanel({
         onClose={() => setConfirmModal({ isOpen: false, attendanceType: null, studentName: '' })}
         title={t('confirm_attendance')}
         size="small"
-        titleStyle={{ fontSize: '1rem', fontWeight: '600' }}
+        titleStyle={{ fontSize: 'var(--font-size-md)', fontWeight: '600' }}
         showCloseButton={true}
         closeOnOverlayClick={true}
         closeOnEscape={true}
       >
         <div style={{ padding: '1rem 0' }}>
           <p style={{ 
-            fontSize: '1rem', 
+            fontSize: 'var(--font-size-md)', 
             lineHeight: 1.5,
             color: 'var(--text, #111827)',
             marginBottom: '1.5rem'

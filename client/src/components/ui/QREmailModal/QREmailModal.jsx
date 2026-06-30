@@ -153,13 +153,13 @@ const QREmailModal = ({
       closeOnOverlayClick={!loading}
       closeOnEscape={!loading}
       className="qr-email-modal"
-      titleStyle={{ fontSize: '1rem', fontWeight: '600' }}
+      titleStyle={{ fontSize: 'var(--font-size-md)', fontWeight: '600' }}
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
         {/* Student Information */}
         <div>
           <div style={{ 
-            fontSize: '0.875rem', 
+            fontSize: 'var(--font-size-sm)', 
             fontWeight: '500', 
             marginBottom: '4px',
             color: 'var(--color-muted-foreground, #6b7280)'
@@ -178,7 +178,7 @@ const QREmailModal = ({
         {/* Email Selection */}
         <div>
           <div style={{ 
-            fontSize: '0.875rem', 
+            fontSize: 'var(--font-size-sm)', 
             fontWeight: '500', 
             marginBottom: '12px',
             color: 'var(--color-muted-foreground, #6b7280)'
@@ -233,7 +233,7 @@ const QREmailModal = ({
                 {t('default_email') || 'Default Email'}
               </div>
               <div style={{ 
-                fontSize: '0.875rem', 
+                fontSize: 'var(--font-size-sm)', 
                 color: 'var(--color-muted-foreground, #6b7280)',
                 wordBreak: 'break-all'
               }}>
@@ -296,7 +296,7 @@ const QREmailModal = ({
                 disabled={!useCustomEmail}
                 onClick={(e) => e.stopPropagation()}
                 style={{ 
-                  fontSize: '0.875rem',
+                  fontSize: 'var(--font-size-sm)',
                   backgroundColor: useCustomEmail ? 'var(--color-background, #ffffff)' : 'var(--color-muted, #f9fafb)'
                 }}
               />

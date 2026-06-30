@@ -439,14 +439,14 @@ const StudentAttendancePage = () => {
                 <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem', fontWeight: 600 }}>
                   {(t('camera_loading') || 'Initializing camera...').replaceAll('_',' ')}
                 </div>
-                <div style={{ fontSize: '0.75rem', opacity: 0.8 }}>
+                <div style={{ fontSize: 'var(--font-size-xs)', opacity: 0.8 }}>
                   {(t('allow_camera_permission') || 'Please allow camera access when prompted.').replaceAll('_',' ')}
                 </div>
               </div>
             </div>
           )}
           {scanning && (
-            <div style={{ position:'absolute', top: 8, left: 8, background:'rgba(16, 185, 129, 0.9)', color:'white', padding:'0.25rem 0.5rem', borderRadius:6, fontSize:'0.75rem', fontWeight:600, zIndex: 2 }}>
+            <div style={{ position:'absolute', top: 8, left: 8, background:'rgba(16, 185, 129, 0.9)', color:'white', padding:'0.25rem 0.5rem', borderRadius:6, fontSize: 'var(--font-size-xs)', fontWeight:600, zIndex: 2 }}>
               {(t('scanning') || 'Scanning...').replaceAll('_',' ')}
             </div>
           )}
@@ -491,11 +491,11 @@ const StudentAttendancePage = () => {
               </div>
               <div style={{ marginTop: 8, display:'flex', gap: 8 }}>
                 <button onClick={handleManualSubmit} style={{ padding:'0.6rem 1rem', border:'none', borderRadius:8, background:'#800020', color:'#fff', fontWeight:600 }}>{(t('submit') || 'Submit').replaceAll('_',' ')}</button>
-                <div style={{ alignSelf:'center', color:'var(--muted)', fontSize: 12 }}>{scanning ? ((t('scanning')||'Scanning...').replaceAll('_',' ')) : ((t('scanner_idle')||'Scanner idle').replaceAll('_',' '))}</div>
+                <div style={{ alignSelf:'center', color:'var(--muted)', fontSize: 'var(--font-size-xs)' }}>{scanning ? ((t('scanning')||'Scanning...').replaceAll('_',' ')) : ((t('scanner_idle')||'Scanner idle').replaceAll('_',' '))}</div>
               </div>
-              {message && <div style={{ marginTop: 8, fontSize: 14 }}>{message}</div>}
+              {message && <div style={{ marginTop: 8, fontSize: 'var(--font-size-sm)' }}>{message}</div>}
               {lastResult && (
-                <div style={{ marginTop: 8, fontSize: 12, color: lastResult.ok ? '#10b981' : '#ef4444' }}>
+                <div style={{ marginTop: 8, fontSize: 'var(--font-size-xs)', color: lastResult.ok ? '#10b981' : '#ef4444' }}>
                   {lastResult.ok ? ((t('last_scan_ok') || 'Last scan OK').replaceAll('_',' ')) : ((t('last_scan_failed') || 'Last scan failed').replaceAll('_',' '))}
                 </div>
               )}
@@ -509,7 +509,7 @@ const StudentAttendancePage = () => {
     {showHistory && <div className="content-section" style={{ maxWidth: 880, margin: '1rem auto', padding: '1rem', background:'var(--panel)', borderRadius:12 }}>
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(120px, 1fr))', gap: 8, marginBottom: 12 }}>
         <div style={{ gridColumn: '1 / -1' }}>
-          <strong style={{ fontSize: '1rem' }}>{(t('attendance_history') || 'Attendance History').replaceAll('_',' ')}</strong>
+          <strong style={{ fontSize: 'var(--font-size-md)' }}>{(t('attendance_history') || 'Attendance History').replaceAll('_',' ')}</strong>
         </div>
         <Select
           searchable
@@ -557,7 +557,7 @@ const StudentAttendancePage = () => {
       ) : (
         <>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-            <div style={{ fontSize: '0.875rem', color: 'var(--muted)' }}>
+            <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--muted)' }}>
               {t('showing') || 'Showing'} {history.length} {t('records') || 'records'}
             </div>
             <Button 
@@ -592,11 +592,11 @@ const StudentAttendancePage = () => {
               <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', flexWrap:'wrap', gap: 8 }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight:600, wordBreak: 'break-word' }}>{h.className || h.classId || 'Unknown Class'}</div>
-                  <div style={{ fontSize:12, color:'#666', marginTop: 4 }}>{(t('session')||'Session').replaceAll('_',' ')}: {h.sessionId ? h.sessionId.slice(0, 8) + '...' : '—'}</div>
+                  <div style={{ fontSize: 'var(--font-size-xs)', color:'#666', marginTop: 4 }}>{(t('session')||'Session').replaceAll('_',' ')}: {h.sessionId ? h.sessionId.slice(0, 8) + '...' : '—'}</div>
                 </div>
                 <span style={{ fontWeight:700, color: h.status==='present' ? '#10b981' : h.status==='late' ? '#f59e0b' : h.status==='leave' ? '#8b5cf6' : '#6b7280', whiteSpace: 'nowrap', textTransform: 'capitalize' }}>{(h.status||'—').toString().replace('_', ' ')}</span>
               </div>
-              <div style={{ fontSize:12, color:'#666' }}>
+              <div style={{ fontSize: 'var(--font-size-xs)', color:'#666' }}>
                 {new Date(h.at || h.createdAt || h.updatedAt || Date.now()).toLocaleString('en-GB')}
               </div>
               {h.reason && (

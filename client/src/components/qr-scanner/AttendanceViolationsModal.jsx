@@ -67,7 +67,7 @@ const AttendanceViolationsModal = ({
         <div style={{ marginBottom: '1.5rem' }}>
           <h3
             style={{
-              fontSize: '1rem',
+              fontSize: 'var(--font-size-md)',
               fontWeight: 600,
               marginBottom: '0.75rem',
               color: 'var(--text-primary, #1f2937)',
@@ -83,7 +83,7 @@ const AttendanceViolationsModal = ({
             }}
           >
             <label style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-              <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>{t('date_from') || 'Date from'}</span>
+              <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 500 }}>{t('date_from') || 'Date from'}</span>
               <input
                 type="date"
                 value={dateFrom || ''}
@@ -96,7 +96,7 @@ const AttendanceViolationsModal = ({
               />
             </label>
             <label style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-              <span style={{ fontSize: '0.875rem', fontWeight: 500 }}>{t('date_to') || 'Date to'}</span>
+              <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 500 }}>{t('date_to') || 'Date to'}</span>
               <input
                 type="date"
                 value={dateTo || ''}
@@ -110,7 +110,7 @@ const AttendanceViolationsModal = ({
             </label>
           </div>
           {dateFrom && dateTo && dateFrom > dateTo && (
-            <p style={{ marginTop: '0.5rem', fontSize: '0.875rem', color: 'var(--color-danger, #dc2626)' }}>
+            <p style={{ marginTop: '0.5rem', fontSize: 'var(--font-size-sm)', color: 'var(--color-danger, #dc2626)' }}>
               {t('date_range_invalid') || 'End date must be on or after start date'}
             </p>
           )}
@@ -120,7 +120,7 @@ const AttendanceViolationsModal = ({
           <div style={{ marginBottom: '1.5rem' }}>
             <h3
               style={{
-                fontSize: '1rem',
+                fontSize: 'var(--font-size-md)',
                 fontWeight: 600,
                 marginBottom: '0.75rem',
                 color: 'var(--text-primary, #1f2937)',
@@ -154,7 +154,7 @@ const AttendanceViolationsModal = ({
         <div style={{ marginBottom: '2rem' }}>
           <h3
             style={{
-              fontSize: '1rem',
+              fontSize: 'var(--font-size-md)',
               fontWeight: 600,
               marginBottom: '1rem',
               color: 'var(--text-primary, #1f2937)',
@@ -212,7 +212,7 @@ const AttendanceViolationsModal = ({
         <div style={{ marginBottom: '2rem' }}>
           <h3
             style={{
-              fontSize: '1rem',
+              fontSize: 'var(--font-size-md)',
               fontWeight: 600,
               marginBottom: '1rem',
               color: 'var(--text-primary, #1f2937)',

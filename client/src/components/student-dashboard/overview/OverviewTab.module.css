@@ -76,7 +76,7 @@
   padding: 0.625rem 1rem;
   background: var(--bg-secondary, #f9fafb);
   border-block-end: 1px solid var(--border-color, #e5e7eb);
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   font-weight: 600;
   color: var(--text-secondary, #6b7280);
   text-transform: uppercase;
@@ -124,7 +124,7 @@
 }
 
 .listStat {
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   font-weight: 500;
   color: var(--text-primary, #1f2937);
 }

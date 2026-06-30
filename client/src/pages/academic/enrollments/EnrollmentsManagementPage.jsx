@@ -583,7 +583,7 @@ const EnrollmentsManagementPage = () => {
                   <div style={{ fontWeight: '500', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
                     {getLocalizedUserName(user, lang)}
                   </div>
-                  <div style={{ fontSize: '0.875rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '2px' }}>
+                  <div style={{ fontSize: 'var(--font-size-sm)', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '2px' }}>
                     {user.email || '—'}
                   </div>
                 </div>
@@ -650,7 +650,7 @@ const EnrollmentsManagementPage = () => {
                   backgroundColor: colors.bg,
                   color: colors.color,
                   borderRadius: '12px',
-                  fontSize: '0.875rem',
+                  fontSize: 'var(--font-size-sm)',
                   fontWeight: '500'
                 }}>
                   {getEnrollmentStatusLabel(statusCode)}

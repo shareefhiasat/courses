@@ -498,7 +498,7 @@ const AttendanceTab = React.memo(({
 
   const SectionHeader = ({ label, bg, sectionKey, points, count }) => (
     <div onClick={() => toggleSection(sectionKey)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 0.75rem', background: bg, borderRadius: expandedSections[sectionKey] ? '0.5rem 0.5rem 0 0' : '0.5rem', cursor: 'pointer', userSelect: 'none' }}>
-      <span style={{ fontSize: '0.875rem', fontWeight: 600, color: 'white' }}>
+      <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, color: 'white' }}>
         {label} ({points} {t('points') || 'Points'}, {count} {t('entries') || 'entries'})
       </span>
       <span style={{ transform: expandedSections[sectionKey] ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s', flexShrink: 0, display: 'inline-flex' }}>
@@ -509,8 +509,8 @@ const AttendanceTab = React.memo(({
 
   const TypeRow = ({ item, textColor, totalBg }) => (
     <div className={styles.sectionRow} style={{ background: item.isTotal ? totalBg : (item.hasEntries ? undefined : undefined), fontWeight: item.isTotal ? 600 : 400 }}>
-      <span style={{ color: textColor, flex: 1, fontSize: '0.8125rem' }}>{item.label}</span>
-      <span style={{ color: item.hasEntries ? textColor : '#9ca3af', fontSize: '0.75rem', whiteSpace: 'nowrap' }}>
+      <span style={{ color: textColor, flex: 1, fontSize: 'var(--font-size-sm)' }}>{item.label}</span>
+      <span style={{ color: item.hasEntries ? textColor : '#9ca3af', fontSize: 'var(--font-size-xs)', whiteSpace: 'nowrap' }}>
         {t('total') || 'Total'}: {item.total >= 0 ? '+' : ''}{item.total}&nbsp;&nbsp;{t('count') || 'Count'}: ({item.count})
       </span>
       {item.hasEntries && canDeleteRecords && <span style={{ width: 16 }} />}
@@ -522,19 +522,19 @@ const AttendanceTab = React.memo(({
       {/* Row 1: Present / Penalty / Behavior / Participation */}
       <div className={styles.statGrid4}>
         <div style={{ padding: '0.5rem 0.25rem', background: '#16a34a', borderRadius: '0.5rem', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '3rem' }}>
-          <div style={{ fontSize: '1.125rem', fontWeight: 700, color: 'white', lineHeight: 1 }}>{stats.present}</div>
+          <div style={{ fontSize: 'var(--font-size-lg)', fontWeight: 700, color: 'white', lineHeight: 1 }}>{stats.present}</div>
           <div style={{ fontSize: '0.625rem', color: 'rgba(255,255,255,0.92)', fontWeight: 500, marginTop: '0.2rem', lineHeight: 1.2 }}>{t('present') || 'Present'}</div>
         </div>
         <div style={{ padding: '0.5rem 0.25rem', background: '#dc2626', borderRadius: '0.5rem', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '3rem' }}>
-          <div style={{ fontSize: '1.125rem', fontWeight: 700, color: 'white', lineHeight: 1 }}>{stats.penaltyCount}</div>
+          <div style={{ fontSize: 'var(--font-size-lg)', fontWeight: 700, color: 'white', lineHeight: 1 }}>{stats.penaltyCount}</div>
           <div style={{ fontSize: '0.625rem', color: 'rgba(255,255,255,0.92)', fontWeight: 500, marginTop: '0.2rem', lineHeight: 1.2 }}>{t('penalty') || 'Penalty'}</div>
         </div>
         <div style={{ padding: '0.5rem 0.25rem', background: '#f97316', borderRadius: '0.5rem', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '3rem' }}>
-          <div style={{ fontSize: '1.125rem', fontWeight: 700, color: 'white', lineHeight: 1 }}>{stats.behaviorPoints}</div>
+          <div style={{ fontSize: 'var(--font-size-lg)', fontWeight: 700, color: 'white', lineHeight: 1 }}>{stats.behaviorPoints}</div>
           <div style={{ fontSize: '0.625rem', color: 'rgba(255,255,255,0.92)', fontWeight: 500, marginTop: '0.2rem', lineHeight: 1.2 }}>{t('behavior') || 'Behavior'}</div>
         </div>
         <div style={{ padding: '0.5rem 0.25rem', background: '#3b82f6', borderRadius: '0.5rem', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '3rem' }}>
-          <div style={{ fontSize: '1.125rem', fontWeight: 700, color: 'white', lineHeight: 1 }}>{stats.participationCount}</div>
+          <div style={{ fontSize: 'var(--font-size-lg)', fontWeight: 700, color: 'white', lineHeight: 1 }}>{stats.participationCount}</div>
           <div style={{ fontSize: '0.625rem', color: 'rgba(255,255,255,0.92)', fontWeight: 500, marginTop: '0.2rem', lineHeight: 1.2 }}>{t('participation') || 'Participation'}</div>
         </div>
       </div>
@@ -542,23 +542,23 @@ const AttendanceTab = React.memo(({
       {/* Row 2: Late / Excused Leave / Absent(Excused) / Absent / Human Case */}
       <div className={styles.statGrid5}>
         <div style={{ padding: '0.5rem 0.25rem', background: '#eab308', borderRadius: '0.5rem', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '3rem' }}>
-          <div style={{ fontSize: '1.125rem', fontWeight: 700, color: 'white', lineHeight: 1 }}>{stats.late}</div>
+          <div style={{ fontSize: 'var(--font-size-lg)', fontWeight: 700, color: 'white', lineHeight: 1 }}>{stats.late}</div>
           <div style={{ fontSize: '0.625rem', color: 'rgba(255,255,255,0.92)', fontWeight: 500, marginTop: '0.2rem', lineHeight: 1.2 }}>{t('late') || 'Late'}</div>
         </div>
         <div style={{ padding: '0.5rem 0.25rem', background: '#ef4444', borderRadius: '0.5rem', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '3rem' }}>
-          <div style={{ fontSize: '1.125rem', fontWeight: 700, color: 'white', lineHeight: 1 }}>{stats.excusedLeave}</div>
+          <div style={{ fontSize: 'var(--font-size-lg)', fontWeight: 700, color: 'white', lineHeight: 1 }}>{stats.excusedLeave}</div>
           <div style={{ fontSize: '0.625rem', color: 'rgba(255,255,255,0.92)', fontWeight: 500, marginTop: '0.2rem', lineHeight: 1.2 }}>{t('excused_leave') || 'Excused Leave'}</div>
         </div>
         <div style={{ padding: '0.5rem 0.25rem', background: '#ef4444', borderRadius: '0.5rem', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '3rem' }}>
-          <div style={{ fontSize: '1.125rem', fontWeight: 700, color: 'white', lineHeight: 1 }}>{stats.absentWithExcuse}</div>
+          <div style={{ fontSize: 'var(--font-size-lg)', fontWeight: 700, color: 'white', lineHeight: 1 }}>{stats.absentWithExcuse}</div>
           <div style={{ fontSize: '0.625rem', color: 'rgba(255,255,255,0.92)', fontWeight: 500, marginTop: '0.2rem', lineHeight: 1.2 }}>{t('absent_excused') || 'Absent (Excused)'}</div>
         </div>
         <div style={{ padding: '0.5rem 0.25rem', background: '#ef4444', borderRadius: '0.5rem', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '3rem' }}>
-          <div style={{ fontSize: '1.125rem', fontWeight: 700, color: 'white', lineHeight: 1 }}>{stats.absentNoExcuse}</div>
+          <div style={{ fontSize: 'var(--font-size-lg)', fontWeight: 700, color: 'white', lineHeight: 1 }}>{stats.absentNoExcuse}</div>
           <div style={{ fontSize: '0.625rem', color: 'rgba(255,255,255,0.92)', fontWeight: 500, marginTop: '0.2rem', lineHeight: 1.2 }}>{t('absent') || 'Absent'}</div>
         </div>
         <div style={{ padding: '0.5rem 0.25rem', background: '#8b5cf6', borderRadius: '0.5rem', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '3rem' }}>
-          <div style={{ fontSize: '1.125rem', fontWeight: 700, color: 'white', lineHeight: 1 }}>{stats.humanCase}</div>
+          <div style={{ fontSize: 'var(--font-size-lg)', fontWeight: 700, color: 'white', lineHeight: 1 }}>{stats.humanCase}</div>
           <div style={{ fontSize: '0.625rem', color: 'rgba(255,255,255,0.92)', fontWeight: 500, marginTop: '0.2rem', lineHeight: 1.2 }}>{t('human_case') || 'Human Case'}</div>
         </div>
       </div>
@@ -661,7 +661,7 @@ const AttendanceTab = React.memo(({
           }}>
             <h3 style={{
               margin: '0 0 1rem 0',
-              fontSize: '1.125rem',
+              fontSize: 'var(--font-size-lg)',
               fontWeight: 600,
               color: '#111827'
             }}>
@@ -669,7 +669,7 @@ const AttendanceTab = React.memo(({
             </h3>
             <p style={{
               margin: '0 0 1.5rem 0',
-              fontSize: '0.875rem',
+              fontSize: 'var(--font-size-sm)',
               color: '#6b7280',
               lineHeight: '1.5'
             }}>
@@ -688,7 +688,7 @@ const AttendanceTab = React.memo(({
                   background: 'white',
                   color: '#6b7280',
                   borderRadius: '0.375rem',
-                  fontSize: '0.875rem',
+                  fontSize: 'var(--font-size-sm)',
                   cursor: 'pointer'
                 }}
               >
@@ -702,7 +702,7 @@ const AttendanceTab = React.memo(({
                   background: '#dc2626',
                   color: 'white',
                   borderRadius: '0.375rem',
-                  fontSize: '0.875rem',
+                  fontSize: 'var(--font-size-sm)',
                   cursor: 'pointer'
                 }}
               >

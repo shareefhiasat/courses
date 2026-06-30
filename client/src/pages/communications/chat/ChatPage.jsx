@@ -1322,7 +1322,7 @@ const ChatPage = memo(() => {
                 <div style={{ flex:1, minWidth:0 }}>
                   <div style={{ display:'flex', alignItems:'center', gap:8 }}>
                     <div style={{ fontWeight: '600', fontSize: '0.85rem', flex:1 }}>{t('global_chat')}</div>
-                    <div style={{ fontSize: '0.75rem', color: '#666' }}>{t('all_users')}</div>
+                    <div style={{ fontSize: 'var(--font-size-xs)', color: '#666' }}>{t('all_users')}</div>
                     {(() => { const c = unreadCounts['global']||0; if (c>0) { return (<span style={{background:'var(--brand)',color:'white',borderRadius:'50%',minWidth:18,height:18,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.7rem',fontWeight:'bold',padding:'0 5px'}}>{c>99?'99+':c}</span>);} return null; })()}
                   </div>
                   {/* <div style={{ display:'flex', gap:8, marginTop:6 }}>
@@ -1365,7 +1365,7 @@ const ChatPage = memo(() => {
                         return (
                           <span style={{
                             background: 'var(--brand)', color: 'white', borderRadius: '50%', minWidth: 20, height: 20,
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.75rem', fontWeight: 'bold', padding: '0 6px'
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--font-size-xs)', fontWeight: 'bold', padding: '0 6px'
                           }}>{count > 99 ? '99+' : count}</span>
                         );
                       }
@@ -1431,14 +1431,14 @@ const ChatPage = memo(() => {
                         <strong>{instructor.displayName || instructor.email}</strong>
                         <RoleBadge user={instructor} />
                         {instructor.studentNumber && (
-                          <span style={{ fontSize: '0.75rem', color: 'var(--muted)', marginLeft: '0.25rem', fontWeight: 'normal' }}>
+                          <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--muted)', marginLeft: '0.25rem', fontWeight: 'normal' }}>
                             ({instructor.studentNumber})
                           </span>
                         )}
                         {instructor.docId !== user.uid && (
                           <button
                             onClick={(e) => { e.stopPropagation(); openDMWith(instructor); }}
-                            style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', cursor: 'pointer', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32 }}
+                            style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', cursor: 'pointer', fontSize: 'var(--font-size-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32 }}
                           >
                             {getThemedIcon('ui', 'message_square', 16, theme)}
                           </button>
@@ -1495,7 +1495,7 @@ const ChatPage = memo(() => {
                   border: 'none',
                   borderRadius: 8,
                   cursor: 'pointer',
-                  fontSize: '0.875rem',
+                  fontSize: 'var(--font-size-sm)',
                   fontWeight: 600,
                   display: 'flex',
                   alignItems: 'center',
@@ -1551,7 +1551,7 @@ const ChatPage = memo(() => {
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <div style={{ width: 28, height: 28, borderRadius: 6, background: 'linear-gradient(135deg, #7e57c2, #5e35b1)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 14, fontWeight: 700 }}>
+                        <div style={{ width: 28, height: 28, borderRadius: 6, background: 'linear-gradient(135deg, #7e57c2, #5e35b1)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--font-size-sm)', fontWeight: 700 }}>
                           {(room.name || 'G')[0]?.toUpperCase()}
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
@@ -1562,7 +1562,7 @@ const ChatPage = memo(() => {
                             {isCreator && getIconWithColor('ui', 'crown', 12, '#ffc107')}
                             {(() => { const c = unreadCounts[`group:${room.id}`] || 0; if (c > 0) { return (<span style={{ background: 'var(--brand)', color: 'white', borderRadius: '50%', minWidth: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 'bold', padding: '0 5px' }}>{c > 99 ? '99+' : c}</span>); } return null; })()}
                           </div>
-                          <div style={{ fontSize: '0.75rem', color: 'var(--muted)', display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                          <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--muted)', display: 'flex', justifyContent: 'space-between', gap: 8 }}>
                             <span>{participantCount} {t('chat_members')}</span>
                           </div>
                         </div>
@@ -1675,7 +1675,7 @@ const ChatPage = memo(() => {
                           </div>
                         ) : (
                           <div style={{ position: 'relative' }}>
-                            <div style={{ width: 28, height: 28, borderRadius: '50%', background: showIndicator ? 'var(--muted)' : 'linear-gradient(135deg,var(--brand),var(--brand2))', color: 'white', display:'flex', alignItems:'center', justifyContent:'center', fontSize: 14, fontWeight: 700, opacity: showIndicator ? 0.5 : 1 }}>{initial}</div>
+                            <div style={{ width: 28, height: 28, borderRadius: '50%', background: showIndicator ? 'var(--muted)' : 'linear-gradient(135deg,var(--brand),var(--brand2))', color: 'white', display:'flex', alignItems:'center', justifyContent:'center', fontSize: 'var(--font-size-sm)', fontWeight: 700, opacity: showIndicator ? 0.5 : 1 }}>{initial}</div>
                             {showIndicator && (
                               <div style={{ position: 'absolute', top: -2, right: -2, width: 12, height: 12, borderRadius: '50%', background: '#dc2626', border: '2px solid white', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title={indicatorTitle}>
                                 <span style={{ fontSize: 8, color: 'white' }}>✕</span>
@@ -1974,7 +1974,7 @@ const ChatPage = memo(() => {
               const color = isGlobal ? '#1976d2' : isDM ? '#ef6c00' : isGroup ? '#7e57c2' : '#2e7d32';
               const label = isGlobal ? t('chat_global') : isDM ? t('chat_dm_label') : isGroup ? t('chat_group_label') : t('chat_class_label');
               return (
-                <span style={{ fontSize: '0.75rem', background: bg, color, padding: '2px 8px', borderRadius: '12px', fontWeight: 600 }}>
+                <span style={{ fontSize: 'var(--font-size-xs)', background: bg, color, padding: '2px 8px', borderRadius: '12px', fontWeight: 600 }}>
                   {label}
                 </span>
               );
@@ -2012,7 +2012,7 @@ const ChatPage = memo(() => {
                 border:'1px solid var(--border)',
                 borderRadius: 8,
                 cursor:'pointer', 
-                fontSize:'1rem', 
+                fontSize: 'var(--font-size-md)', 
                 color:'var(--muted)',
                 padding: '0.5rem',
                 display: 'flex',
@@ -2090,7 +2090,7 @@ const ChatPage = memo(() => {
             >
               {getThemedIcon('ui', 'pin', 14, theme)}
               <div style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--brand)', marginRight: '0.25rem' }}>
+                <span style={{ fontSize: 'var(--font-size-xs)', fontWeight: 600, color: 'var(--brand)', marginRight: '0.25rem' }}>
                   {t('pinned_message') || 'Pinned'}
                 </span>
                 <span style={{ fontSize: '0.8rem', color: 'var(--text)', opacity: 0.8 }}>
@@ -2306,7 +2306,7 @@ const ChatPage = memo(() => {
                           <RoleBadge user={senderUser} size={12} fontSize='0.7rem' style={{ borderRadius: '4px', padding: '0.1rem 0.3rem', marginInlineStart: '0.25rem' }} />
                         )}
                         {senderUser?.studentNumber && (
-                          <span style={{ fontSize: '0.75rem', color: 'var(--muted)', marginInlineStart: '0.25rem', fontWeight: 'normal' }}>
+                          <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--muted)', marginInlineStart: '0.25rem', fontWeight: 'normal' }}>
                             ({senderUser.studentNumber})
                           </span>
                         )}
@@ -2355,7 +2355,7 @@ const ChatPage = memo(() => {
                                 style={{ width: '100%', borderRadius: 8, cursor: 'pointer' }}
                                 onClick={() => window.open(withAuthToken(msg.fileUrl), '_blank')}
                               />
-                              <div style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: 4 }}>
+                              <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--muted)', marginTop: 4 }}>
                                 {fileName} • {(msg.fileSize ? Math.ceil(msg.fileSize/1024) : 0)} KB
                               </div>
                             </div>
@@ -2371,7 +2371,7 @@ const ChatPage = memo(() => {
                                 <source src={withAuthToken(msg.fileUrl)} type={`video/${fileType}`} />
                                 {t('browser_no_video_support')}
                               </video>
-                              <div style={{ fontSize: '0.75rem', color: 'var(--muted)', marginTop: 4 }}>
+                              <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--muted)', marginTop: 4 }}>
                                 {fileName} • {(msg.fileSize ? Math.ceil(msg.fileSize/1024) : 0)} KB
                               </div>
                             </div>
@@ -2655,7 +2655,7 @@ const ChatPage = memo(() => {
                               >
                                 {getReactionDisplay(reaction, reactionColor)}
                                 <span style={{ 
-                                  fontSize: '0.75rem', 
+                                  fontSize: 'var(--font-size-xs)', 
                                   fontWeight: '600',
                                   lineHeight: 1,
                                   color: active ? reactionColor : 'var(--text-secondary)'
@@ -2768,7 +2768,7 @@ const ChatPage = memo(() => {
                             style={{
                               background: 'transparent',
                               border: '1px solid var(--border)',
-                              fontSize: '1rem',
+                              fontSize: 'var(--font-size-md)',
                               cursor: 'pointer',
                               padding: '0.5rem',
                               borderRadius: '12px',
@@ -2822,7 +2822,7 @@ const ChatPage = memo(() => {
                       onMouseDown={(e)=>e.stopPropagation()}
                       onClick={(e)=>{ e.stopPropagation(); setMenuOpenId(menuOpenId===msg.id?null:msg.id); }}
                       title={t('more')}
-                      style={{ position:'absolute', top:4, insetInlineEnd: 4, background:'transparent', border:'none', color:'var(--muted)', cursor:'pointer', fontSize:'1rem', padding:'2px 4px', lineHeight:1, opacity:0.6 }}
+                      style={{ position:'absolute', top:4, insetInlineEnd: 4, background:'transparent', border:'none', color:'var(--muted)', cursor:'pointer', fontSize: 'var(--font-size-md)', padding:'2px 4px', lineHeight:1, opacity:0.6 }}
                     >⋮</button>
                     {menuOpenId===msg.id && (
                       <div
@@ -3035,7 +3035,7 @@ const ChatPage = memo(() => {
                   border: 'none',
                   borderRadius: '4px',
                   cursor: 'pointer',
-                  fontSize: '0.75rem'
+                  fontSize: 'var(--font-size-xs)'
                 }}
               >
                 ✕ {t('remove')}
@@ -3061,7 +3061,7 @@ const ChatPage = memo(() => {
             }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                 {getThemedIcon('ui', 'mic', 14, theme)}
-                <span style={{ fontSize: '0.75rem', fontWeight: '500' }}>
+                <span style={{ fontSize: 'var(--font-size-xs)', fontWeight: '500' }}>
                   {t('voice_message_ready')}
                 </span>
                 <span style={{ fontSize: '0.7rem', fontFamily: 'var(--font-family-mono)', background: 'rgba(255,255,255,0.15)', padding: '1px 4px', borderRadius: '2px' }}>
@@ -3132,7 +3132,7 @@ const ChatPage = memo(() => {
                     borderRadius: '50%',
                     animation: 'pulse 1s infinite'
                   }} />
-                  <span style={{ fontSize: '0.75rem', fontWeight: '500' }}>
+                  <span style={{ fontSize: 'var(--font-size-xs)', fontWeight: '500' }}>
                     {t('recording')}
                   </span>
                   <span style={{ fontSize: '0.7rem', fontFamily: 'var(--font-family-mono)', background: 'rgba(255,255,255,0.15)', padding: '1px 4px', borderRadius: '2px' }}>
@@ -3507,7 +3507,7 @@ const ChatPage = memo(() => {
         <div style={{ background:'var(--panel)', color:'var(--text)', border:'1px solid var(--border)', padding:'1.5rem', borderRadius:16, minWidth:450, maxWidth:550, width:'90%', boxShadow:'0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }} onClick={(e)=>e.stopPropagation()}>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'1.25rem' }}>
             <h3 style={{ margin:0, fontSize:'1.15rem', fontWeight:700, display:'flex', alignItems:'center', gap:'0.5rem' }}>
-              <div style={{ width:32, height:32, background:'linear-gradient(135deg, var(--brand), var(--brand2))', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', color:'white', fontSize:'1rem' }}>{getThemedIcon('ui', 'bar_chart', 18, theme)}</div>
+              <div style={{ width:32, height:32, background:'linear-gradient(135deg, var(--brand), var(--brand2))', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', color:'white', fontSize: 'var(--font-size-md)' }}>{getThemedIcon('ui', 'bar_chart', 18, theme)}</div>
               {t('create_poll')}
             </h3>
             <button onClick={()=>setShowPollModal(false)} style={{ background:'transparent', border:'none', cursor:'pointer', color:'var(--muted)', fontSize:'1.25rem', padding:'4px 8px', borderRadius:8, display:'flex', alignItems:'center', justifyContent:'center', transition:'all 0.2s' }}
@@ -3690,7 +3690,7 @@ const ChatPage = memo(() => {
                     border: `1px solid ${isActive ? chipColor : 'var(--border)'}`,
                     background: isActive ? `${chipColor}15` : 'transparent',
                     color: isActive ? chipColor : 'var(--text)',
-                    fontSize: '0.75rem', fontWeight: 600, cursor: 'pointer',
+                    fontSize: 'var(--font-size-xs)', fontWeight: 600, cursor: 'pointer',
                     transition: 'all 0.2s', whiteSpace: 'nowrap',
                   }}
                 >
@@ -3793,7 +3793,7 @@ const ChatPage = memo(() => {
                 style={{ flex: 1, padding: '8px 12px', border: '1px solid var(--border)', borderRadius: 6, fontSize: '0.95rem', background: 'var(--bg)', color: 'var(--text)' }}
               />
             )}
-            <button onClick={()=>setShowMembers(false)} style={{ background: 'transparent', border: 'none', fontSize: 18, cursor: 'pointer', color: 'var(--text)', flexShrink: 0, padding: '4px 8px' }}>✕</button>
+            <button onClick={()=>setShowMembers(false)} style={{ background: 'transparent', border: 'none', fontSize: 'var(--font-size-lg)', cursor: 'pointer', color: 'var(--text)', flexShrink: 0, padding: '4px 8px' }}>✕</button>
           </div>
           {/* role filter chips - only show for class chats */}
           {!selectedClass?.startsWith('dm:') && (
@@ -3838,7 +3838,7 @@ const ChatPage = memo(() => {
                         border: `1px solid ${isActive ? chipColor : 'var(--border)'}`,
                         background: isActive ? `${chipColor}15` : 'transparent',
                         color: isActive ? chipColor : 'var(--text)',
-                        fontSize: '0.75rem',
+                        fontSize: 'var(--font-size-xs)',
                         fontWeight: 600,
                         cursor: 'pointer',
                         transition: 'all 0.2s',
@@ -3953,12 +3953,12 @@ const ChatPage = memo(() => {
                         <RoleBadge user={m} />
                         {m.displayName || m.email}
                         {m.studentNumber && (
-                          <span style={{ fontSize: '0.75rem', color: 'var(--muted)', fontWeight: 'normal' }}>
+                          <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--muted)', fontWeight: 'normal' }}>
                             ({m.studentNumber})
                           </span>
                         )}
                       </div>
-                      <div style={{ fontSize: 12, color: 'var(--muted)' }}>{m.email}</div>
+                      <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--muted)' }}>{m.email}</div>
                     </div>
                   </div>
                   {m.docId !== user.uid && (
@@ -3986,7 +3986,7 @@ const ChatPage = memo(() => {
                         justifyContent: 'center',
                         width: 32,
                         height: 32,
-                        fontSize: 16
+                        fontSize: 'var(--font-size-md)'
                       }}
                     >
                       {getThemedIcon('ui', 'message_square', 16, theme)}

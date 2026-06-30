@@ -1,6 +1,6 @@
 /**
  * Font ID allowlist for typography preferences API validation.
- * Keep in sync with client/src/config/fonts.registry.js
+ * Keep in sync with client/src/config/fonts.registry.js and textSize.config.js
  */
 
 export const FONT_IDS_LTR = [
@@ -31,6 +31,13 @@ export const FONT_IDS_RTL = [
 
 export const DEFAULT_FONT_LTR = process.env.VITE_DEFAULT_FONT_LTR || 'inter';
 export const DEFAULT_FONT_RTL = process.env.VITE_DEFAULT_FONT_RTL || 'ibm-plex-sans-arabic';
+export const DEFAULT_TEXT_SIZE = process.env.VITE_DEFAULT_TEXT_SIZE || 'default';
+
+export const TEXT_SIZE_IDS = ['default', 'large', 'larger', 'largest'];
+
+export function isValidTextSize(id) {
+  return typeof id === 'string' && TEXT_SIZE_IDS.includes(id);
+}
 
 export function isValidFontId(script, id) {
   if (typeof id !== 'string') return false;

@@ -325,7 +325,7 @@ const SummaryDashboardPage = () => {
     alignItems: 'center',
     gap: '0.35rem',
     padding: '0.35rem 0.65rem',
-    fontSize: '0.8125rem',
+    fontSize: 'var(--font-size-sm)',
     borderRadius: '6px',
     border: `1px solid ${theme === 'dark' ? '#4b5563' : '#d1d5db'}`,
     background: theme === 'dark' ? '#374151' : '#fff',
@@ -376,8 +376,8 @@ const SummaryDashboardPage = () => {
   if (!canView) {
     return (
       <div style={{ padding: '2rem', textAlign: 'center' }}>
-        <div style={{ fontSize: '1.125rem', fontWeight: 500 }}>{t('access_denied')}</div>
-        <div style={{ fontSize: '0.875rem', color: muted, marginTop: '0.5rem' }}>{t('dashboard_permission_required')}</div>
+        <div style={{ fontSize: 'var(--font-size-lg)', fontWeight: 500 }}>{t('access_denied')}</div>
+        <div style={{ fontSize: 'var(--font-size-sm)', color: muted, marginTop: '0.5rem' }}>{t('dashboard_permission_required')}</div>
       </div>
     );
   }

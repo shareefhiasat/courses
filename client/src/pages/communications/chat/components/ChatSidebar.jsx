@@ -188,7 +188,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const ChatS
             display:'flex', 
             alignItems:'center', 
             justifyContent:'center', 
-            fontSize: 14, 
+            fontSize: 'var(--font-size-sm)', 
             fontWeight: 700, 
             opacity: showIndicator ? 0.5 : 1 
           }}>
@@ -291,7 +291,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const ChatS
                 <div style={{ fontWeight: '600', fontSize: '0.85rem', flex:1 }}>
                   {t('global_chat')}
                 </div>
-                <div style={{ fontSize: '0.75rem', color: '#666' }}>
+                <div style={{ fontSize: 'var(--font-size-xs)', color: '#666' }}>
                   {t('all_users')}
                 </div>
                 {renderUnreadBadge(unreadCounts['global'] || 0)}
@@ -389,7 +389,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const ChatS
                       <strong>{instructor.displayName || instructor.email}</strong>
                       {instructor.studentNumber && (
                         <span style={{ 
-                          fontSize: '0.75rem', 
+                          fontSize: 'var(--font-size-xs)', 
                           color: '#666', 
                           marginLeft: '0.25rem', 
                           fontWeight: 'normal' 
@@ -410,7 +410,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const ChatS
                             background: 'transparent', 
                             color: 'var(--text)', 
                             cursor: 'pointer', 
-                            fontSize: 16, 
+                            fontSize: 'var(--font-size-md)', 
                             display: 'flex', 
                             alignItems: 'center', 
                             justifyContent: 'center', 
@@ -489,7 +489,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const ChatS
                       {label}
                       {other?.studentNumber && (
                         <span style={{ 
-                          fontSize: '0.75rem', 
+                          fontSize: 'var(--font-size-xs)', 
                           color: 'var(--muted)', 
                           marginLeft: '0.25rem', 
                           fontWeight: 'normal' 

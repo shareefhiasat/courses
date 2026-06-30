@@ -38,7 +38,7 @@ const CameraView = ({
             animation: 'spin 1s linear infinite',
             margin: '0 auto 0.75rem'
           }}></div>
-          <p style={{ color: '#94a3b8', fontSize: '0.875rem', margin: 0 }}>
+          <p style={{ color: '#94a3b8', fontSize: 'var(--font-size-sm)', margin: 0 }}>
             {t('loading') || 'Loading...'}
           </p>
         </div>
@@ -52,11 +52,11 @@ const CameraView = ({
           transform: 'translate(-50%, -50%)',
           width: '100%'
         }}>
-          <p style={{ color: '#ffffff', fontSize: '0.875rem', margin: '0 0 0.75rem' }}>
+          <p style={{ color: '#ffffff', fontSize: 'var(--font-size-sm)', margin: '0 0 0.75rem' }}>
             {t('tap_to_activate')}
           </p>
           {error && (
-            <p style={{ color: 'var(--color-danger, #ef4444)', fontSize: '0.75rem', marginTop: '0.5rem' }}>
+            <p style={{ color: 'var(--color-danger, #ef4444)', fontSize: 'var(--font-size-xs)', marginTop: '0.5rem' }}>
               {typeof error === 'function' ? 'Error occurred' : (error?.toString?.() || String(error))}
             </p>
           )}

@@ -177,7 +177,7 @@
 }
 
 .urgentTaskMeta {
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   color: var(--text-secondary, #6b7280);
 }
 
@@ -210,19 +210,19 @@
 .markDetails {
   display: flex;
   gap: 1.5rem;
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   color: var(--text-secondary, #6b7280);
 }
 
 .recordItem p {
   margin: 0;
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   color: var(--text-primary, #1f2937);
   line-height: 1.5;
 }
 
 .recordDate {
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   color: var(--text-secondary, #6b7280);
 }
 
@@ -366,7 +366,7 @@
   align-items: center;
   padding: 2rem;
   color: var(--text-secondary, #6b7280);
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
 }
 
 /* ── Subtitle hint ─────────────────────────────────────────────────────────── */

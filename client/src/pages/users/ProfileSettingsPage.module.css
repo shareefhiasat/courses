@@ -32,7 +32,7 @@
 .subtitle {
   margin: 0;
   color: var(--text-muted, #666);
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
 }
 
 /* Content */
@@ -89,7 +89,7 @@
 
 .sectionHint {
   margin: 0 0 0.5rem;
-  font-size: 0.8125rem;
+  font-size: var(--font-size-sm);
   color: var(--text-muted, #666);
   line-height: 1.5;
 }
@@ -125,7 +125,7 @@
 
 .sectionHint {
   margin: 0 0 0.25rem;
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   color: var(--text-muted, #666);
   line-height: 1.4;
 }
@@ -149,7 +149,7 @@
   display: inline-flex;
   align-items: center;
   gap: 0.35rem;
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   font-weight: 700;
   padding: 0.25rem 0.75rem;
   border-radius: 999px;
@@ -168,7 +168,7 @@
   gap: 0.5rem;
   font-weight: 600;
   color: var(--text, #212529);
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
 }
 
 .helpText {
@@ -205,7 +205,7 @@
 }
 
 .sectionDescription {
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   color: var(--text-muted, #666);
   margin: 0;
   line-height: 1.5;
@@ -225,7 +225,7 @@
 }
 
 .presetLabel {
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   color: var(--text, #212529);
   margin-bottom: 0.5rem;
@@ -260,7 +260,7 @@
 
 .colorPickerWrapper::before {
   content: 'Picker';
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   color: var(--text-muted, #666);
   font-weight: 500;
 }
@@ -284,7 +284,7 @@
 }
 
 .previewTitle {
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   color: var(--text, #212529);
   margin: 0;
@@ -343,7 +343,7 @@
 .customColorLabel {
   font-weight: 600;
   color: var(--text, #212529);
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
 }
 
 .nativeColorInput {
@@ -357,7 +357,7 @@
 }
 
 .colorNote {
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   color: var(--text-muted, #666);
   margin: 0;
 }
@@ -432,7 +432,7 @@
 }
 
 .toggleHint {
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   opacity: 0.7;
   margin-left: 0.5rem;
 }
@@ -521,13 +521,13 @@
 }
 
 .settingLabel {
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   font-weight: 500;
   color: var(--text, #374151);
 }
 
 .settingStatus {
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   color: var(--text-muted, #6b7280);
   margin-top: 0.1rem;
 }
@@ -547,7 +547,7 @@
   padding: 0.5rem 0.625rem;
   border-radius: 6px;
   border: 1px solid transparent;
-  font-size: 0.8125rem;
+  font-size: var(--font-size-sm);
 }
 
 .capabilityRow.supported {
@@ -636,14 +636,14 @@
 }
 
 .channelLabel {
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   font-weight: 500;
   white-space: nowrap;
 }
 
 .permissionHint {
   padding: 0.5rem 0.75rem;
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   color: var(--text-muted, #6b7280);
   background: var(--panel-hover, #f9fafb);
   border-radius: 6px;
@@ -656,7 +656,7 @@
   background: #e0f2fe;
   border-radius: 8px;
   border: 1px solid #0ea5e9;
-  font-size: 0.8125rem;
+  font-size: var(--font-size-sm);
   color: #0369a1;
 }
 
@@ -690,7 +690,7 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   font-weight: 500;
   color: var(--text, #374151);
 }

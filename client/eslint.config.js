@@ -26,6 +26,10 @@ export default [
       'react-hooks/rules-of-hooks': 'error',
       'react-hooks/exhaustive-deps': 'warn',
       'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
+      'no-restricted-syntax': ['warn', {
+        selector: 'Property[key.name="fontSize"] > Literal[value=/^\\d+$/]',
+        message: 'Use CSS tokens: var(--font-size-sm), var(--font-size-md), etc. See useTypeScale().',
+      }],
     },
   },
   // TS / TSX — same + TypeScript rules
@@ -45,6 +49,10 @@ export default [
         'react-hooks/rules-of-hooks': 'error',
         'react-hooks/exhaustive-deps': 'warn',
         'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
+        'no-restricted-syntax': ['warn', {
+          selector: 'Property[key.name="fontSize"] > Literal[value=/^\\d+$/]',
+          message: 'Use CSS tokens: var(--font-size-sm), var(--font-size-md), etc.',
+        }],
       },
     }
   ),

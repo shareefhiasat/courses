@@ -155,7 +155,7 @@ function BarChart({ data = [], size = { width: 400, height: 300 }, horizontal = 
         border: '1px solid var(--border, #374151)',
         borderRadius: 8,
         padding: '8px 10px',
-        fontSize: 12,
+        fontSize: 'var(--font-size-xs)',
         lineHeight: 1.45,
         maxWidth: 260,
         boxShadow: '0 8px 24px rgba(0,0,0,0.18)',

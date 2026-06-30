@@ -121,7 +121,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const SeedD
           borderRadius: 8,
           cursor: seeding ? 'not-allowed' : 'pointer',
           fontWeight: 600,
-          fontSize: '1rem'
+          fontSize: 'var(--font-size-md)'
         }}
       >
         {seeding ? (t('creating_templates') || 'Creating Templates...') : (t('create_default_templates') || '✨ Create Default Templates')}

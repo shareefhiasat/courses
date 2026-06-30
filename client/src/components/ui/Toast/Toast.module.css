@@ -94,7 +94,7 @@
 /* Toast Message */
 .toastMessage {
   flex: 1;
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   font-weight: 500;
   color: #111827;
   line-height: 1.5;

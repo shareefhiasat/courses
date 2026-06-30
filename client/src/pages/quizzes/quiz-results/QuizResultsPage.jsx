@@ -855,7 +855,7 @@ const QuizResultsPage = () => {
                       <IconComponent size={24} style={{ color: config.iconColor }} />
                     </div>
                     <div>
-                      <div style={{ fontSize: '0.875rem', color: '#6b7280', marginBottom: '0.25rem' }}>
+                      <div style={{ fontSize: 'var(--font-size-sm)', color: '#6b7280', marginBottom: '0.25rem' }}>
                         {config.label}
                       </div>
                       <div style={{ fontSize: '1.5rem', fontWeight: 700, color: config.iconColor }}>

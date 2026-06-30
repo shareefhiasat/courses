@@ -779,7 +779,7 @@ const WorkflowDiagram = ({ status, workflowType = 'GENERAL_HR', document, curren
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
-          fontSize: 14,
+          fontSize: 'var(--font-size-sm)',
           fontWeight: 600,
           cursor: 'pointer',
           boxShadow: index === currentStageIndex ? '0 0 0 4px rgba(59, 130, 246, 0.2), 0 4px 12px rgba(0,0,0,0.15)' : '0 2px 8px rgba(0,0,0,0.1)',
@@ -832,7 +832,7 @@ const WorkflowDiagram = ({ status, workflowType = 'GENERAL_HR', document, curren
             labelStyle: {
               fill: isCompleted ? '#10b981' : (shouldAnimate ? '#3b82f6' : '#6b7280'),
               fontWeight: 600,
-              fontSize: 12,
+              fontSize: 'var(--font-size-xs)',
               filter: 'drop-shadow(0 0 3px rgba(255,255,255,0.95)) drop-shadow(0 0 1px rgba(255,255,255,0.8))',
             },
             labelBgStyle: {

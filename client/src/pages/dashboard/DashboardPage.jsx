@@ -648,7 +648,7 @@ const DashboardPage = () => {
         <div style={{ padding: '1rem' }}>
           <p>{t(`delete_${deleteModal.type}_confirm`) || t('delete_confirm_generic') || 'Are you sure you want to delete this item? This action cannot be undone.'}</p>
           {deleteModal.warningMessage && (
-            <p style={{ color: '#dc2626', fontSize: '0.875rem' }}>{deleteModal.warningMessage}</p>
+            <p style={{ color: '#dc2626', fontSize: 'var(--font-size-sm)' }}>{deleteModal.warningMessage}</p>
           )}
           <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
             <Button variant="outline" onClick={() => setDeleteModal({ open: false, item: null, type: null, onConfirm: null, relatedData: null, warningMessage: null })}>

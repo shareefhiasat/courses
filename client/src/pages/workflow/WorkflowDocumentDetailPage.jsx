@@ -604,11 +604,11 @@ const WorkflowDocumentDetailPage = () => {
       <Card data-tour="doc-title" className="shadow-sm">
         <CardContent className="p-3">
           <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.75rem', flexWrap: 'wrap' }}>
-            <h2 style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--text, #111827)', margin: 0 }}>
+            <h2 style={{ fontSize: 'var(--font-size-lg)', fontWeight: 700, color: 'var(--text, #111827)', margin: 0 }}>
               {document?.title || '-'}
             </h2>
             {document?.description && (
-              <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted, #6b7280)', margin: 0 }}>
+              <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-muted, #6b7280)', margin: 0 }}>
                 {document.description}
               </span>
             )}
@@ -667,7 +667,7 @@ const WorkflowDocumentDetailPage = () => {
           {/* Status Legend */}
           <div data-tour="doc-legend" style={{ marginBottom: '1rem' }}>
             <div className="flex items-center gap-4 flex-wrap">
-              <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: '0.025em' }}>
+              <span style={{ fontSize: 'var(--font-size-xs)', fontWeight: 600, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: '0.025em' }}>
                 {t('workflow.statuses', 'Statuses')}:
               </span>
               {[
@@ -750,10 +750,10 @@ const WorkflowDocumentDetailPage = () => {
                 {getThemedIcon('ui', 'file', 24)}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text, #111827)' }}>
+                <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, color: 'var(--text, #111827)' }}>
                   {document.file.name}
                 </div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)' }}>
+                <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted, #6b7280)' }}>
                   {formatMimeType(document.file.mimeType)} • {(document.file.size / 1024).toFixed(1)} KB
                 </div>
               </div>

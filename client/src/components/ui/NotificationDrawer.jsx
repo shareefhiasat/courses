@@ -295,7 +295,7 @@ const NotificationDrawer = ({ isOpen, onClose, feed }) => {
                   borderRadius: '50%',
                   background: 'var(--color-primary, #800020)',
                   color: '#fff',
-                  fontSize: '0.75rem',
+                  fontSize: 'var(--font-size-xs)',
                   fontWeight: 700,
                   padding: '0 6px',
                   boxSizing: 'border-box',
@@ -406,7 +406,7 @@ const NotificationDrawer = ({ isOpen, onClose, feed }) => {
                        option.label
               }))}
               size="small"
-              style={{ flex: 1, minWidth: '80px', fontSize: '0.75rem' }}
+              style={{ flex: 1, minWidth: '80px', fontSize: 'var(--font-size-xs)' }}
             />
             <div style={{ display: 'flex', flex: 1, minWidth: '80px', gap: '0.25rem', alignItems: 'center' }}>
               <Select
@@ -419,7 +419,7 @@ const NotificationDrawer = ({ isOpen, onClose, feed }) => {
                 }}
                 options={[{ value: 'all', label: t('all_categories') || 'All' }, ...getNotificationTypeOptions(t, lang)]}
                 size="small"
-                style={{ flex: 1, fontSize: '0.75rem' }}
+                style={{ flex: 1, fontSize: 'var(--font-size-xs)' }}
               />
               <PortalTooltip content={t('advanced_filters') || 'Advanced filters'} position="top">
                 <button
@@ -453,7 +453,7 @@ const NotificationDrawer = ({ isOpen, onClose, feed }) => {
                   ...(lookupData['penalty-types'] || []).map(pt => ({ value: pt.id, label: pt.nameEn || pt.code }))
                 ]}
                 size="small"
-                style={{ flex: 1, minWidth: '100px', fontSize: '0.75rem' }}
+                style={{ flex: 1, minWidth: '100px', fontSize: 'var(--font-size-xs)' }}
               />
             )}
             {filterCategory === RECORD_TYPES.ATTENDANCE && (
@@ -470,7 +470,7 @@ const NotificationDrawer = ({ isOpen, onClose, feed }) => {
                   { value: ATTENDANCE_STATUS.HUMAN_CASE, label: t('human_case') || 'Human Case' }
                 ]}
                 size="small"
-                style={{ flex: 1, minWidth: '100px', fontSize: '0.75rem' }}
+                style={{ flex: 1, minWidth: '100px', fontSize: 'var(--font-size-xs)' }}
               />
             )}
             {filterCategory === NOTIFICATION_TYPES.ATTENDANCE && (
@@ -482,7 +482,7 @@ const NotificationDrawer = ({ isOpen, onClose, feed }) => {
                   ...ABSENCE_TYPES.map(at => ({ value: at.id, label: at.label_en }))
                 ]}
                 size="small"
-                style={{ flex: 1, minWidth: '100px', fontSize: '0.75rem' }}
+                style={{ flex: 1, minWidth: '100px', fontSize: 'var(--font-size-xs)' }}
               />
             )}
           </div>
@@ -515,7 +515,7 @@ const NotificationDrawer = ({ isOpen, onClose, feed }) => {
                         { value: 'all', label: t('all_programs') || 'All Programs' },
                         ...(programs || []).map(p => ({ value: p.docId || p.id, label: p.nameEn || p.name || p.code || p.docId }))
                       ]}
-                      size="small" searchable fullWidth style={{ fontSize: '0.75rem' }}
+                      size="small" searchable fullWidth style={{ fontSize: 'var(--font-size-xs)' }}
                     />
                     <Select
                       value={filterSubject}
@@ -527,7 +527,7 @@ const NotificationDrawer = ({ isOpen, onClose, feed }) => {
                           label: `${s.code || ''} - ${s.nameEn || s.name || s.docId}`.trim()
                         }))
                       ]}
-                      size="small" searchable fullWidth style={{ fontSize: '0.75rem' }}
+                      size="small" searchable fullWidth style={{ fontSize: 'var(--font-size-xs)' }}
                     />
                     <Select
                       value={filterClass}
@@ -543,7 +543,7 @@ const NotificationDrawer = ({ isOpen, onClose, feed }) => {
                           return true;
                         }).map(c => ({ value: c.id || c.docId, label: `${c.name || c.code || 'Unnamed'}${c.term ? ` (${c.term})` : ''}` }))
                       ]}
-                      size="small" searchable fullWidth style={{ fontSize: '0.75rem' }}
+                      size="small" searchable fullWidth style={{ fontSize: 'var(--font-size-xs)' }}
                     />
                   </div>
                   <div style={{
@@ -659,7 +659,7 @@ const NotificationDrawer = ({ isOpen, onClose, feed }) => {
                         }}>
                           <div style={{
                             fontWeight: notification.isRead ? 500 : 600,
-                            fontSize: '0.875rem',
+                            fontSize: 'var(--font-size-sm)',
                             color: isDark ? '#fff' : '#111',
                             lineHeight: 1.4
                           }}>

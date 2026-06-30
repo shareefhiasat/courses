@@ -278,7 +278,7 @@ const WidgetWrapper = ({
                 margin: 0,
                 flex: 1,
                 minWidth: 0,
-                fontSize: 13,
+                fontSize: 'var(--font-size-sm)',
                 fontWeight: 700,
                 color: 'var(--text)',
                 lineHeight: 1.3,
@@ -353,13 +353,13 @@ const WidgetWrapper = ({
             }}>
               <div>
                 <h2 style={{ 
-                  margin: 0, color: 'var(--text)', fontSize: 24, fontWeight: 700,
+                  margin: 0, color: 'var(--text)', fontSize: 'var(--font-size-2xl)', fontWeight: 700,
                   marginBottom: '0.25rem'
                 }}>
                   {widget.title}
                 </h2>
                 <p style={{ 
-                  margin: 0, color: 'var(--muted)', fontSize: 14,
+                  margin: 0, color: 'var(--muted)', fontSize: 'var(--font-size-sm)',
                   opacity: 0.8
                 }}>
                   {sourceLabel} • {chartTypeLabel}
@@ -373,7 +373,7 @@ const WidgetWrapper = ({
                   border: '1px solid var(--border)', borderRadius: 8,
                   cursor: 'pointer', display: 'flex', alignItems: 'center', 
                   color: 'var(--text)', transition: 'all 0.2s',
-                  fontSize: 14, fontWeight: 500
+                  fontSize: 'var(--font-size-sm)', fontWeight: 500
                 }}
                 onMouseEnter={(e) => {
                   e.target.style.background = 'var(--hover)';

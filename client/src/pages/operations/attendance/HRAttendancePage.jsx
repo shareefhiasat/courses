@@ -1048,11 +1048,11 @@ const HRAttendancePage = () => {
         <div style={{ flex: '1 1 300px', padding: '0.75rem', background: 'var(--panel)', border: '1px solid var(--border)', borderRadius: 12, maxHeight: 600, overflowY: 'auto' }}>
           <div style={{ 
             fontWeight: 700, 
-            fontSize: 14, 
+            fontSize: 'var(--font-size-sm)', 
             marginBottom: 8,
             color: theme === 'dark' ? '#f9fafb' : '#111827'
           }}>{t('sessions') || 'Sessions'} ({sessions.length})</div>
-          {initialDataLoaded && sessions.length === 0 && <div style={{ padding: '0.75rem', textAlign: 'center', color: 'var(--muted)', fontSize: 12 }}>{t('no_sessions') || 'No sessions found'}</div>}
+          {initialDataLoaded && sessions.length === 0 && <div style={{ padding: '0.75rem', textAlign: 'center', color: 'var(--muted)', fontSize: 'var(--font-size-xs)' }}>{t('no_sessions') || 'No sessions found'}</div>}
           <div style={{ display: 'grid', gap: 6 }}>
             {sessions.map((session, idx) => {
               const className = session.className || classes.find(c => c.id === session.classId)?.name || session.classId;
@@ -1077,7 +1077,7 @@ const HRAttendancePage = () => {
                 >
                   <div style={{ 
                     fontWeight: 600, 
-                    fontSize: 13, 
+                    fontSize: 'var(--font-size-sm)', 
                     marginBottom: 4,
                     color: theme === 'dark' ? '#f9fafb' : '#111827'
                   }}>{className}</div>
@@ -1208,7 +1208,7 @@ const HRAttendancePage = () => {
           {!selectedSession && (
             <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--muted)' }}>
               {getThemedIcon('ui', 'search', 36, theme)}
-              <div style={{ fontSize: 13, color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
+              <div style={{ fontSize: 'var(--font-size-sm)', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
                 {t('select_session') || 'Select a session to view attendance details'}
               </div>
             </div>
@@ -1219,7 +1219,7 @@ const HRAttendancePage = () => {
                 <div style={{ flex: 1 }}>
                   <div style={{ 
                     fontWeight: 700, 
-                    fontSize: 16, 
+                    fontSize: 'var(--font-size-md)', 
                     marginBottom: '0.25rem',
                     color: theme === 'dark' ? '#f9fafb' : '#111827'
                   }}>
@@ -1244,7 +1244,7 @@ const HRAttendancePage = () => {
                     border: `1px solid ${marks.length > 0 ? actualPrimaryColor : '#6b7280'}`,
                     borderRadius: 6,
                     fontWeight: 600,
-                    fontSize: '0.75rem',
+                    fontSize: 'var(--font-size-xs)',
                     color: marks.length > 0 ? actualPrimaryColor : '#6b7280'
                   }}>
                     {getThemedIcon('ui', 'qr_code', 14, theme)}
@@ -1284,7 +1284,7 @@ const HRAttendancePage = () => {
                   const displayLabel = label;
                   return (
                     <div key={key} style={{ padding: '0.5rem 0.75rem', background: color + '15', border: `1px solid ${color}`, borderRadius: 6, textAlign: 'center' }}>
-                      <div style={{ fontSize: 18, fontWeight: 700, color: color, lineHeight: 1.2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                      <div style={{ fontSize: 'var(--font-size-lg)', fontWeight: 700, color: color, lineHeight: 1.2, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
                         {getThemedIcon('ui', getAttendanceIcon(key), 16, color)}
                         {count}
                       </div>
@@ -1325,7 +1325,7 @@ const HRAttendancePage = () => {
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ 
                               fontWeight: 600, 
-                              fontSize: 13, 
+                              fontSize: 'var(--font-size-sm)', 
                               marginBottom: 2,
                               color: theme === 'dark' ? '#f9fafb' : '#111827'
                             }}>

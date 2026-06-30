@@ -196,7 +196,7 @@ export default function WorkflowCommentsTab({ workflowId, selectedStage, onStage
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)' }} role="status">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: 'var(--font-size-sm)', color: 'var(--text-muted, #6b7280)' }} role="status">
         {t('common.loading')}&hellip;
       </div>
     );
@@ -214,7 +214,7 @@ export default function WorkflowCommentsTab({ workflowId, selectedStage, onStage
           padding: '0.5rem 0.75rem',
           background: '#e0f2fe',
           borderRadius: '0.5rem',
-          fontSize: '0.875rem',
+          fontSize: 'var(--font-size-sm)',
           color: '#0369a1',
           border: '1px solid #bae6fd'
         }}>
@@ -237,7 +237,7 @@ export default function WorkflowCommentsTab({ workflowId, selectedStage, onStage
               border: 'none',
               color: '#0369a1',
               cursor: 'pointer',
-              fontSize: '0.875rem',
+              fontSize: 'var(--font-size-sm)',
               textDecoration: 'underline',
               fontWeight: 500
             }}
@@ -262,7 +262,7 @@ export default function WorkflowCommentsTab({ workflowId, selectedStage, onStage
               borderRadius: '0.5rem',
               background: 'var(--panel, white)',
               color: 'var(--text, #111827)',
-              fontSize: '0.875rem',
+              fontSize: 'var(--font-size-sm)',
               outline: 'none',
             }}
             aria-label={t('workflow.addCommentPlaceholder', 'Add a comment...')}
@@ -281,7 +281,7 @@ export default function WorkflowCommentsTab({ workflowId, selectedStage, onStage
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              fontSize: '0.875rem',
+              fontSize: 'var(--font-size-sm)',
               fontWeight: 500,
               minHeight: '2.75rem',
               minWidth: '2.75rem',
@@ -303,7 +303,7 @@ export default function WorkflowCommentsTab({ workflowId, selectedStage, onStage
 
       {/* Timeline and comments */}
       {filteredAndSortedComments.length === 0 && !filterText ? (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: 'var(--font-size-sm)', color: 'var(--text-muted, #6b7280)' }}>
           {getIcon('ui', 'message', 40)}
           {t('drive.noComments', 'No comments yet')}
         </div>
@@ -318,7 +318,7 @@ export default function WorkflowCommentsTab({ workflowId, selectedStage, onStage
             overflowY: 'auto',
             height: '100%',
           }}>
-            <h4 style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-muted, #6b7280)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <h4 style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, color: 'var(--text-muted, #6b7280)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               {getIcon('ui', 'clock', 16)}
               {t('drive.timeline', 'Timeline')}
             </h4>
@@ -331,7 +331,7 @@ export default function WorkflowCommentsTab({ workflowId, selectedStage, onStage
                   background: !selectedDate ? 'var(--bg-primary, #f3f4f6)' : 'transparent',
                   border: 'none',
                   borderRadius: '0.375rem',
-                  fontSize: '0.875rem',
+                  fontSize: 'var(--font-size-sm)',
                   color: !selectedDate ? 'var(--text, #111827)' : 'var(--text-muted, #6b7280)',
                   cursor: 'pointer',
                   fontWeight: !selectedDate ? 600 : 400,
@@ -349,7 +349,7 @@ export default function WorkflowCommentsTab({ workflowId, selectedStage, onStage
                     background: selectedDate === date ? 'var(--bg-primary, #f3f4f6)' : 'transparent',
                     border: 'none',
                     borderRadius: '0.375rem',
-                    fontSize: '0.875rem',
+                    fontSize: 'var(--font-size-sm)',
                     color: selectedDate === date ? 'var(--text, #111827)' : 'var(--text-muted, #6b7280)',
                     cursor: 'pointer',
                     fontWeight: selectedDate === date ? 600 : 400,
@@ -380,7 +380,7 @@ export default function WorkflowCommentsTab({ workflowId, selectedStage, onStage
                   borderRadius: '0.5rem',
                   background: 'var(--panel, white)',
                   color: 'var(--text, #111827)',
-                  fontSize: '0.875rem',
+                  fontSize: 'var(--font-size-sm)',
                   outline: 'none',
                 }}
                 aria-label={t('drive.filterComments', 'Filter comments...')}
@@ -434,12 +434,12 @@ export default function WorkflowCommentsTab({ workflowId, selectedStage, onStage
               )}
             </div>
 
-            <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--text, #111827)', marginBottom: '1rem' }}>
+            <h3 style={{ fontSize: 'var(--font-size-lg)', fontWeight: 600, color: 'var(--text, #111827)', marginBottom: '1rem' }}>
               {selectedDate ? formatDateHeader(selectedDate) : t('workflow.document.comments', 'Comments')} ({filteredCount})
             </h3>
 
             {filteredAndSortedComments.length === 0 ? (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: 'var(--font-size-sm)', color: 'var(--text-muted, #6b7280)' }}>
                 {getIcon('ui', 'message', 40)}
                 {t('drive.noMatchingComments', 'No matching comments')}
               </div>
@@ -482,7 +482,7 @@ export default function WorkflowCommentsTab({ workflowId, selectedStage, onStage
                             // Show author initials otherwise
                             <div style={{
                               color: 'var(--color-primary, #3b82f6)',
-                              fontSize: '0.875rem',
+                              fontSize: 'var(--font-size-sm)',
                               fontWeight: 600,
                             }}>
                               {(() => {
@@ -522,7 +522,7 @@ export default function WorkflowCommentsTab({ workflowId, selectedStage, onStage
                               }
                               return null;
                             })()}
-                            <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text, #111827)' }}>
+                            <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 500, color: 'var(--text, #111827)' }}>
                               {(() => {
                                 const a = comment.author;
                                 if (!a) return t('drive.unknownUser', 'Unknown');
@@ -541,13 +541,13 @@ export default function WorkflowCommentsTab({ workflowId, selectedStage, onStage
                               })()}
                             </span>
                           </div>
-                          <p style={{ fontSize: '0.875rem', color: 'var(--text, #374151)', margin: 0, wordBreak: 'break-word' }}>
+                          <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text, #374151)', margin: 0, wordBreak: 'break-word' }}>
                             {comment.comment}
                           </p>
                         </div>
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.25rem' }}>
-                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)', whiteSpace: 'nowrap' }}>
+                        <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted, #6b7280)', whiteSpace: 'nowrap' }}>
                           {formatDateTime(comment.createdAt)}
                         </span>
                         {/* Only show delete button for comment author or Super Admin */}

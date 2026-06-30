@@ -73,7 +73,7 @@ function SessionEventDialog({
 
   const labelStyle = {
     display: 'block',
-    fontSize: '0.875rem',
+    fontSize: 'var(--font-size-sm)',
     fontWeight: 500,
     marginBottom: '0.5rem',
     color: text,
@@ -85,7 +85,7 @@ function SessionEventDialog({
     border: `1px solid ${border}`,
     backgroundColor: inputBg,
     color: text,
-    fontSize: '0.875rem',
+    fontSize: 'var(--font-size-sm)',
     width: '100%',
   };
 
@@ -94,7 +94,7 @@ function SessionEventDialog({
     borderRadius: '0.375rem',
     border: 'none',
     cursor: 'pointer',
-    fontSize: '0.875rem',
+    fontSize: 'var(--font-size-sm)',
     fontWeight: 500,
     backgroundColor: variant === 'primary' ? '#3b82f6' : variant === 'danger' ? '#ef4444' : theme === 'dark' ? '#374151' : '#f3f4f6',
     color: ['primary', 'danger'].includes(variant) ? '#ffffff' : text,
@@ -142,10 +142,10 @@ function SessionEventDialog({
         </div>
 
         <div style={{ marginBottom: '1rem', padding: '1rem', backgroundColor: theme === 'dark' ? '#374151' : '#f3f4f6', borderRadius: '0.375rem' }}>
-          <div style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '0.25rem', color: text }}>
+          <div style={{ fontSize: 'var(--font-size-md)', fontWeight: 600, marginBottom: '0.25rem', color: text }}>
             {getLocalizedClassName(classItem, lang, classItem.code)}
           </div>
-          <div style={{ fontSize: '0.875rem', color: muted }}>
+          <div style={{ fontSize: 'var(--font-size-sm)', color: muted }}>
             {getLocalizedSubjectName(subjects.find((s) => s.id === classItem.subjectId), lang)
               || getLocalizedName(programs.find((p) => p.id === classItem.programId), lang)
               || classItem.code}
@@ -154,7 +154,7 @@ function SessionEventDialog({
 
         <div style={{ marginBottom: isRecurring ? '0.35rem' : '1rem' }}>
           {isRecurring && (
-            <p style={{ margin: '0 0 0.5rem', fontSize: '0.75rem', color: muted }}>
+            <p style={{ margin: '0 0 0.5rem', fontSize: 'var(--font-size-xs)', color: muted }}>
               {t('first_occurrence_datetime_hint')}
             </p>
           )}
@@ -217,7 +217,7 @@ function SessionEventDialog({
               />
             )}
             {!isEdit && !classItem.instructorId && instructorId && (
-              <div style={{ fontSize: '0.75rem', color: '#f59e0b', marginTop: '0.25rem' }}>
+              <div style={{ fontSize: 'var(--font-size-xs)', color: '#f59e0b', marginTop: '0.25rem' }}>
                 💡 {t('will_update_class_instructor')}
               </div>
             )}
@@ -249,7 +249,7 @@ function SessionEventDialog({
                   padding: '0.5rem 0.625rem',
                   backgroundColor: theme === 'dark' ? '#374151' : '#f9fafb',
                   borderRadius: '0.375rem',
-                  fontSize: '0.75rem',
+                  fontSize: 'var(--font-size-xs)',
                   color: muted,
                 }}
               >
@@ -269,7 +269,7 @@ function SessionEventDialog({
               </div>
             )}
             {!isEdit && !classItem.classroomId && classroomId && (
-              <div style={{ fontSize: '0.75rem', color: '#f59e0b', marginTop: '0.25rem' }}>
+              <div style={{ fontSize: 'var(--font-size-xs)', color: '#f59e0b', marginTop: '0.25rem' }}>
                 💡 {t('will_update_class_classroom')}
               </div>
             )}

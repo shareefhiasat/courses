@@ -105,7 +105,7 @@ export async function getTypographyPreferences(userId) {
 }
 
 export async function saveTypographyPreferences(userId, payload, actorId) {
-  const { fontLtr, fontRtl } = payload || {};
+  const { fontLtr, fontRtl, textSize } = payload || {};
 
   const existing = await prisma.userPreferences.findUnique({
     where: { userId },
@@ -120,6 +120,7 @@ export async function saveTypographyPreferences(userId, payload, actorId) {
     ...(settings.typography || {}),
     fontLtr,
     fontRtl,
+    textSize,
     updatedAt: new Date().toISOString(),
   };
 

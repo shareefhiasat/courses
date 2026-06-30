@@ -55,7 +55,7 @@ const StudentInfoCell = ({ student, favoriteStudents, toggleFavorite, onStudentS
           alignItems: 'center',
           justifyContent: 'center',
           fontWeight: 600,
-          fontSize: '1rem',
+          fontSize: 'var(--font-size-md)',
           flexShrink: 0,
           overflow: 'hidden'
         }}>

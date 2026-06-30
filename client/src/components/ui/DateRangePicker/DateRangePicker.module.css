@@ -12,7 +12,7 @@
 
 /* Label */
 .label {
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   font-weight: 500;
   color: #212529;
   margin-bottom: 0.25rem;
@@ -215,7 +215,7 @@
   display: table-cell;
   width: 40px;
   padding: 0.5rem 0;
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   font-weight: 600;
   color: #666;
   text-align: center;
@@ -243,7 +243,7 @@
   align-items: center;
   justify-content: center;
   border-radius: 6px;
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   color: #212529;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -305,14 +305,14 @@
 
 /* Helper Text */
 .helperText {
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   color: #666;
   margin-top: 0.25rem;
 }
 
 /* Error Text */
 .errorText {
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   color: #dc3545;
   margin-top: 0.25rem;
 }

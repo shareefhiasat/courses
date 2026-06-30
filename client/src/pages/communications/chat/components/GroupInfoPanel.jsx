@@ -196,7 +196,7 @@ const GroupInfoPanel = ({ isOpen, onClose, roomId, roomName, isCreator, currentU
             style={{
               background: 'transparent',
               border: 'none',
-              fontSize: 18,
+              fontSize: 'var(--font-size-lg)',
               cursor: 'pointer',
               color: 'var(--muted)',
               flexShrink: 0,
@@ -258,25 +258,25 @@ const GroupInfoPanel = ({ isOpen, onClose, roomId, roomName, isCreator, currentU
                       {p.user?.profileImageUrl ? (
                         <img src={p.user.profileImageUrl} alt="" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
                       ) : (
-                        <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--brand)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', fontWeight: 600, flexShrink: 0 }}>
+                        <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--brand)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--font-size-md)', fontWeight: 600, flexShrink: 0 }}>
                           {(p.user?.displayName || p.user?.firstName || 'U')[0]?.toUpperCase()}
                         </div>
                       )}
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', minWidth: 0, flex: 1 }}>
-                        <div style={{ fontSize: '0.9375rem', fontWeight: 500, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                        <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 500, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                           <RoleBadge user={p.user} size={12} fontSize="0.7rem" />
                           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {getChatUserDisplayName(p.user)}
                           </span>
                           {isRoomCreator && (
-                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.125rem 0.5rem', background: 'rgba(255, 193, 7, 0.12)', color: '#ffc107', borderRadius: 12, fontSize: '0.75rem', fontWeight: 600, flexShrink: 0 }}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.125rem 0.5rem', background: 'rgba(255, 193, 7, 0.12)', color: '#ffc107', borderRadius: 12, fontSize: 'var(--font-size-xs)', fontWeight: 600, flexShrink: 0 }}>
                               {getIconWithColor('ui', 'crown', 14, '#ffc107')}
                               {t('chat_creator') || 'Creator'}
                             </span>
                           )}
                         </div>
                         {p.user?.email && (
-                          <div style={{ fontSize: '0.8125rem', color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                          <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                             {p.user.email}
                           </div>
                         )}
@@ -318,7 +318,7 @@ const GroupInfoPanel = ({ isOpen, onClose, roomId, roomName, isCreator, currentU
                 width: '100%', marginTop: '0.6rem', padding: '0.75rem 1.5rem',
                 border: '1px solid rgba(220, 38, 38, 0.4)', borderRadius: 8,
                 background: 'transparent', color: '#dc2626',
-                fontSize: '0.9375rem', fontWeight: 500, cursor: 'pointer',
+                fontSize: 'var(--font-size-sm)', fontWeight: 500, cursor: 'pointer',
                 transition: 'all 0.2s', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.3rem',
               }}
               onMouseEnter={(e) => { e.currentTarget.style.background = '#dc2626'; e.currentTarget.style.color = 'white'; }}
@@ -605,7 +605,7 @@ const LinksTab = ({ items, t, isRTL }) => {
             </div>
             {item.content && item.content !== item.url && (
               <div style={{
-                fontSize: '0.75rem', color: 'var(--muted)', marginTop: 2,
+                fontSize: 'var(--font-size-xs)', color: 'var(--muted)', marginTop: 2,
                 overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
               }}>
                 {item.content}

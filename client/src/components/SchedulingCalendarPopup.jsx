@@ -59,7 +59,7 @@ const SchedulingCalendarPopup = ({ session, onClose, onEdit, onDelete, onChangeS
             {label}
           </div>
         )}
-        <div style={{ fontSize: '0.8125rem', color: textPrimary, lineHeight: 1.4 }}>{children}</div>
+        <div style={{ fontSize: 'var(--font-size-sm)', color: textPrimary, lineHeight: 1.4 }}>{children}</div>
       </div>
     </div>
   );
@@ -87,7 +87,7 @@ const SchedulingCalendarPopup = ({ session, onClose, onEdit, onDelete, onChangeS
         alignItems: 'center',
         gap: '0.5rem'
       }}>
-        <h3 style={{ fontSize: '0.9375rem', fontWeight: '600', margin: 0, color: textPrimary }}>
+        <h3 style={{ fontSize: 'var(--font-size-sm)', fontWeight: '600', margin: 0, color: textPrimary }}>
           {t('session_details')}
         </h3>
         <button
@@ -109,12 +109,12 @@ const SchedulingCalendarPopup = ({ session, onClose, onEdit, onDelete, onChangeS
           <div style={{ minWidth: 0, flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
               <BookOpen size={15} color="#3b82f6" style={{ flexShrink: 0 }} />
-              <span style={{ fontWeight: '600', fontSize: '0.875rem', color: textPrimary }}>
+              <span style={{ fontWeight: '600', fontSize: 'var(--font-size-sm)', color: textPrimary }}>
                 {getLocalizedClassName(session.class, lang, t('class'))}
               </span>
             </div>
             {programName && (
-              <div style={{ fontSize: '0.75rem', color: textMuted, marginTop: '0.125rem', paddingLeft: '1.25rem' }}>
+              <div style={{ fontSize: 'var(--font-size-xs)', color: textMuted, marginTop: '0.125rem', paddingLeft: '1.25rem' }}>
                 {programName}
               </div>
             )}
@@ -127,7 +127,7 @@ const SchedulingCalendarPopup = ({ session, onClose, onEdit, onDelete, onChangeS
             borderRadius: '1rem',
             backgroundColor: `${statusColor}20`,
             border: `1px solid ${statusColor}`,
-            fontSize: '0.75rem',
+            fontSize: 'var(--font-size-xs)',
             fontWeight: '500',
             color: statusColor,
             flexShrink: 0
@@ -148,12 +148,12 @@ const SchedulingCalendarPopup = ({ session, onClose, onEdit, onDelete, onChangeS
         }}>
           <Clock size={15} color={textMuted} style={{ flexShrink: 0, marginTop: '0.125rem' }} />
           <div>
-            <div style={{ fontSize: '0.8125rem', color: textPrimary, fontWeight: '500' }}>
+            <div style={{ fontSize: 'var(--font-size-sm)', color: textPrimary, fontWeight: '500' }}>
               {sameDay
                 ? `${formatDatePart(session.startDateTime)} · ${formatTimePart(session.startDateTime)} – ${formatTimePart(session.endDateTime)}`
                 : `${formatDatePart(session.startDateTime)} ${formatTimePart(session.startDateTime)} – ${formatDatePart(session.endDateTime)} ${formatTimePart(session.endDateTime)}`}
             </div>
-            <div style={{ fontSize: '0.75rem', color: textMuted, marginTop: '0.125rem' }}>
+            <div style={{ fontSize: 'var(--font-size-xs)', color: textMuted, marginTop: '0.125rem' }}>
               {durationText}
             </div>
           </div>
@@ -183,7 +183,7 @@ const SchedulingCalendarPopup = ({ session, onClose, onEdit, onDelete, onChangeS
             padding: '0.5rem 0.625rem',
             backgroundColor: surfaceMuted,
             borderRadius: '0.375rem',
-            fontSize: '0.8125rem',
+            fontSize: 'var(--font-size-sm)',
             color: textMuted,
             lineHeight: 1.4
           }}>
@@ -209,7 +209,7 @@ const SchedulingCalendarPopup = ({ session, onClose, onEdit, onDelete, onChangeS
             border: 'none',
             borderRadius: '0.375rem',
             cursor: 'pointer',
-            fontSize: '0.8125rem'
+            fontSize: 'var(--font-size-sm)'
           }}
         >
           {t('change_status')}
@@ -223,7 +223,7 @@ const SchedulingCalendarPopup = ({ session, onClose, onEdit, onDelete, onChangeS
             border: 'none',
             borderRadius: '0.375rem',
             cursor: 'pointer',
-            fontSize: '0.8125rem'
+            fontSize: 'var(--font-size-sm)'
           }}
         >
           {t('edit')}
@@ -237,7 +237,7 @@ const SchedulingCalendarPopup = ({ session, onClose, onEdit, onDelete, onChangeS
             border: 'none',
             borderRadius: '0.375rem',
             cursor: 'pointer',
-            fontSize: '0.8125rem'
+            fontSize: 'var(--font-size-sm)'
           }}
         >
           {t('delete')}

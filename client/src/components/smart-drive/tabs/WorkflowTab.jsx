@@ -531,7 +531,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)' }} role="status">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: 'var(--font-size-sm)', color: 'var(--text-muted, #6b7280)' }} role="status">
         {t('common.loading')}&hellip;
       </div>
     );
@@ -539,7 +539,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
 
   if (error) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: '0.875rem', color: '#dc2626' }} role="alert">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: 'var(--font-size-sm)', color: '#dc2626' }} role="alert">
         {error}
       </div>
     );
@@ -547,7 +547,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
 
   if (workflows.length === 0) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: 'var(--font-size-sm)', color: 'var(--text-muted, #6b7280)' }}>
         {getIcon('ui', 'workflow', 40, '#8b5cf6')}
         {t('drive.noWorkflow')}
       </div>
@@ -593,7 +593,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
             border: '1px solid var(--border, #e5e7eb)',
             background: 'var(--panel, white)',
             color: 'var(--text, #111827)',
-            fontSize: '0.875rem',
+            fontSize: 'var(--font-size-sm)',
             outline: 'none',
           }}
           aria-label={t('drive.searchWorkflows', 'Search workflows...')}
@@ -608,7 +608,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
             background: 'var(--panel, white)',
             color: 'var(--text, #374151)',
             cursor: loading ? 'not-allowed' : 'pointer',
-            fontSize: '0.875rem',
+            fontSize: 'var(--font-size-sm)',
             display: 'flex',
             alignItems: 'center',
             gap: '0.5rem',
@@ -646,7 +646,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                   borderRadius: '0.5rem',
                   border: '1px solid var(--border, #e5e7eb)',
                   background: 'var(--panel, white)',
-                  fontSize: '0.875rem',
+                  fontSize: 'var(--font-size-sm)',
                   cursor: 'pointer',
                   color: 'var(--text, #374151)',
                   fontWeight: 500,
@@ -686,7 +686,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                     textAlign: 'start',
                     background: sortBy === option.value ? 'var(--background-secondary, #f3f4f6)' : 'transparent',
                     border: 'none',
-                    fontSize: '0.875rem',
+                    fontSize: 'var(--font-size-sm)',
                     cursor: 'pointer',
                     color: 'var(--text, #374151)',
                   }}
@@ -789,7 +789,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                 borderRadius: '0.5rem',
                 background: statusStyle.bg,
                 border: `1px solid ${isActive ? statusStyle.color : statusStyle.borderColor}`,
-                fontSize: '0.875rem',
+                fontSize: 'var(--font-size-sm)',
                 color: statusStyle.color,
                 cursor: 'pointer',
                 transition: 'all 0.15s ease',
@@ -834,7 +834,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                   padding: '0.375rem 0.625rem',
                   borderRadius: '0.375rem',
                   background: `${getUserRoleColor(role)}1A`,
-                  fontSize: '0.8125rem',
+                  fontSize: 'var(--font-size-sm)',
                   color: getUserRoleColor(role),
                   fontWeight: 500,
                   cursor: 'pointer',
@@ -870,7 +870,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                     padding: '0.375rem 0.625rem',
                     borderRadius: '0.375rem',
                     background: style.bg,
-                    fontSize: '0.8125rem',
+                    fontSize: 'var(--font-size-sm)',
                     color: style.color,
                     fontWeight: 500,
                     cursor: 'pointer',
@@ -903,7 +903,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
             maxHeight: '600px'
           }}>
             <h4 style={{ 
-              fontSize: '0.875rem', 
+              fontSize: 'var(--font-size-sm)', 
               fontWeight: 600, 
               color: 'var(--text-muted, #6b7280)', 
               marginBottom: '1rem', 
@@ -925,7 +925,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                   background: !selectedDate ? 'var(--color-primary-tint, #eff6ff)' : 'transparent',
                   border: !selectedDate ? '1px solid var(--color-primary, #3b82f6)' : '1px solid transparent',
                   borderRadius: '0.5rem',
-                  fontSize: '0.875rem',
+                  fontSize: 'var(--font-size-sm)',
                   color: !selectedDate ? 'var(--color-primary, #3b82f6)' : 'var(--text, #374151)',
                   cursor: 'pointer',
                   fontWeight: !selectedDate ? 600 : 400,
@@ -946,7 +946,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                     background: selectedDate === date ? 'var(--color-primary-tint, #eff6ff)' : 'transparent',
                     border: selectedDate === date ? '1px solid var(--color-primary, #3b82f6)' : '1px solid transparent',
                     borderRadius: '0.5rem',
-                    fontSize: '0.875rem',
+                    fontSize: 'var(--font-size-sm)',
                     color: selectedDate === date ? 'var(--color-primary, #3b82f6)' : 'var(--text, #374151)',
                     cursor: 'pointer',
                     fontWeight: selectedDate === date ? 600 : 400,
@@ -964,7 +964,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
           {/* Right content - Compact list */}
           <div style={{ flex: 1, overflowY: 'auto', maxHeight: '600px' }}>
             {filteredAndSortedWorkflows.length === 0 ? (
-              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: 'var(--font-size-sm)', color: 'var(--text-muted, #6b7280)' }}>
                 {getIcon('ui', 'workflow', 40, '#8b5cf6')}
                 {t('drive.noWorkflowsFound')}
               </div>
@@ -1013,7 +1013,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                       {/* Content */}
                       <div style={{ flex: 1, minWidth: 0 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.375rem' }}>
-                          <span style={{ fontSize: '0.9375rem', fontWeight: 600, color: 'var(--text, #111827)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                          <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, color: 'var(--text, #111827)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                             {workflow.title || t('drive.workflow')}
                           </span>
                           <span
@@ -1032,7 +1032,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                             {getWorkflowDisplayLabel(workflow, t)}
                           </span>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.8125rem', color: 'var(--text-muted, #6b7280)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: 'var(--font-size-sm)', color: 'var(--text-muted, #6b7280)' }}>
                           <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
                             {getIcon('ui', 'user', 14, 'var(--text-muted, #6b7280)')}
                             {getLocalizedUserName(workflow.submitter, lang, '\u2014')}
@@ -1050,7 +1050,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                             <span style={{
                               padding: '0.125rem 0.5rem',
                               borderRadius: '0.375rem',
-                              fontSize: '0.75rem',
+                              fontSize: 'var(--font-size-xs)',
                               background: 'var(--background-secondary, #f3f4f6)',
                               color: 'var(--text-muted, #6b7280)',
                               fontWeight: 500,
@@ -1206,7 +1206,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
           gap: '1.25rem',
         }}>
           {filteredAndSortedWorkflows.length === 0 ? (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)', gridColumn: '1 / -1' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: 'var(--font-size-sm)', color: 'var(--text-muted, #6b7280)', gridColumn: '1 / -1' }}>
               {getIcon('ui', 'workflow', 40, '#8b5cf6')}
               {t('drive.noWorkflowsFound', 'No workflows found')}
             </div>
@@ -1257,7 +1257,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                       gap: '0.375rem',
                       padding: '0.375rem 0.75rem',
                       borderRadius: '9999px',
-                      fontSize: '0.8125rem',
+                      fontSize: 'var(--font-size-sm)',
                       fontWeight: 600,
                       background: statusStyle.bg,
                       color: statusStyle.color,
@@ -1281,7 +1281,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                     style={{
                       padding: '0.375rem 0.625rem',
                       borderRadius: '0.5rem',
-                      fontSize: '0.8125rem',
+                      fontSize: 'var(--font-size-sm)',
                       fontWeight: 600,
                       background: typeStyle.bg,
                       color: typeStyle.color,
@@ -1292,7 +1292,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                     {getWorkflowDisplayLabel(workflow, t)}
                   </span>
                   {workflow.currentAssignee && (
-                    <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted, #6b7280)', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                    <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-muted, #6b7280)', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
                       {getIcon('ui', 'user', 14)}
                       {t('drive.assignedTo')}: {workflow.currentAssignee.displayName || workflow.currentAssignee.email}
                       {(() => { const role = getWorkflowRole(workflow); return role && (
@@ -1305,7 +1305,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                 </div>
 
                 {/* Third row: Initiator + Timestamp + Version */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: 'var(--font-size-sm)', color: 'var(--text-muted, #6b7280)' }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
                     {getIcon('ui', 'user', 14)}
                     {workflow.submitter?.displayName || workflow.submitter?.email || '\u2014'}
@@ -1323,7 +1323,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                     <span style={{
                       padding: '0.125rem 0.5rem',
                       borderRadius: '0.375rem',
-                      fontSize: '0.75rem',
+                      fontSize: 'var(--font-size-xs)',
                       background: 'var(--background-secondary, #f3f4f6)',
                       color: 'var(--text-muted, #6b7280)',
                       fontWeight: 500,
@@ -1350,12 +1350,12 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem', flex: 1, minWidth: 0 }}>
                         {getIcon('ui', 'file_text', 18)}
-                        <span style={{ fontSize: '0.875rem', color: 'var(--text, #374151)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: 500 }}>
+                        <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text, #374151)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontWeight: 500 }}>
                           {workflow.file.name}
                         </span>
                       </div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
-                        <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted, #6b7280)', fontWeight: 500 }}>
+                        <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-muted, #6b7280)', fontWeight: 500 }}>
                           {formatSize(workflow.file.size)}
                         </span>
                         <button
@@ -1415,7 +1415,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                 {workflow.description && (
                   <p style={{
                     margin: 0,
-                    fontSize: '0.875rem',
+                    fontSize: 'var(--font-size-sm)',
                     color: 'var(--text-muted, #6b7280)',
                     lineHeight: 1.5,
                     display: '-webkit-box',
@@ -1452,7 +1452,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                 background: 'var(--panel, white)',
                 color: 'var(--text, #374151)',
                 cursor: 'pointer',
-                fontSize: '0.875rem',
+                fontSize: 'var(--font-size-sm)',
                 fontWeight: 500,
               }}
             >
@@ -1467,7 +1467,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                 background: '#dc2626',
                 color: 'white',
                 cursor: 'pointer',
-                fontSize: '0.875rem',
+                fontSize: 'var(--font-size-sm)',
                 fontWeight: 500,
               }}
             >
@@ -1485,7 +1485,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div>
-            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text, #374151)', marginBottom: '0.5rem' }}>
+            <label style={{ display: 'block', fontSize: 'var(--font-size-sm)', fontWeight: 500, color: 'var(--text, #374151)', marginBottom: '0.5rem' }}>
               {t('workflow.rejectReason', 'Reason for rejection')}
             </label>
             <textarea
@@ -1498,7 +1498,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                 padding: '0.625rem',
                 borderRadius: '0.5rem',
                 border: '1px solid var(--border, #e5e7eb)',
-                fontSize: '0.875rem',
+                fontSize: 'var(--font-size-sm)',
                 resize: 'vertical',
               }}
             />
@@ -1513,7 +1513,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                 background: 'var(--panel, white)',
                 color: 'var(--text, #374151)',
                 cursor: 'pointer',
-                fontSize: '0.875rem',
+                fontSize: 'var(--font-size-sm)',
                 fontWeight: 500,
               }}
             >
@@ -1529,7 +1529,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                 background: !rejectModal.reason.trim() ? '#9ca3af' : '#dc2626',
                 color: 'white',
                 cursor: !rejectModal.reason.trim() ? 'not-allowed' : 'pointer',
-                fontSize: '0.875rem',
+                fontSize: 'var(--font-size-sm)',
                 fontWeight: 500,
               }}
             >
@@ -1605,7 +1605,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
           )}
           
           <div>
-            <label style={{ display: 'block', fontSize: '0.875rem', fontWeight: 500, color: 'var(--text, #374151)', marginBottom: '0.5rem' }}>
+            <label style={{ display: 'block', fontSize: 'var(--font-size-sm)', fontWeight: 500, color: 'var(--text, #374151)', marginBottom: '0.5rem' }}>
               {actionModal.action === 'reject' ? 'Reason (required)' : 'Comment (optional)'}
             </label>
             <textarea
@@ -1630,7 +1630,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                 padding: '0.625rem',
                 borderRadius: '0.5rem',
                 border: '1px solid var(--border, #e5e7eb)',
-                fontSize: '0.875rem',
+                fontSize: 'var(--font-size-sm)',
                 resize: 'vertical',
               }}
             />
@@ -1646,7 +1646,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                 background: 'var(--panel, white)',
                 color: 'var(--text, #374151)',
                 cursor: 'pointer',
-                fontSize: '0.875rem',
+                fontSize: 'var(--font-size-sm)',
                 fontWeight: 500,
               }}
             >
@@ -1671,7 +1671,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                   (actionModal.action === 'reject' && !actionModal.comment.trim()) ||
                   ((actionModal.action === 'send_for_review' || actionModal.action === 'send_for_approval') && !actionModal.assignedUserId && !actionModal.assignedRole)
                 ) ? 'not-allowed' : 'pointer',
-                fontSize: '0.875rem',
+                fontSize: 'var(--font-size-sm)',
                 fontWeight: 500,
               }}
             >

@@ -25,7 +25,7 @@ const AttendanceActionButtons = ({
       background: isCurrentStatus ? '#94a3b8' : (actionLoading && currentAction === status ? '#94a3b8' : getAttendanceColor(status)),
       color: 'white',
       borderRadius: '0.5rem',
-      fontSize: '0.875rem',
+      fontSize: 'var(--font-size-sm)',
       fontWeight: 600,
       cursor: actionLoading || shouldDisable ? 'not-allowed' : 'pointer',
       textAlign: 'left',

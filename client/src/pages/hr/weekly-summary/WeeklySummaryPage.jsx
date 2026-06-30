@@ -173,7 +173,7 @@ const WeeklySummaryPage = () => {
                 padding: '0.625rem',
                 border: '1px solid #d1d5db',
                 borderRadius: 8,
-                fontSize: '0.875rem'
+                fontSize: 'var(--font-size-sm)'
               }}
             />
           </div>
@@ -191,7 +191,7 @@ const WeeklySummaryPage = () => {
                 padding: '0.625rem',
                 border: '1px solid #d1d5db',
                 borderRadius: 8,
-                fontSize: '0.875rem'
+                fontSize: 'var(--font-size-sm)'
               }}
             />
           </div>
@@ -277,7 +277,7 @@ const WeeklySummaryPage = () => {
                       <span style={{
                         padding: '0.25rem 0.5rem',
                         borderRadius: 4,
-                        fontSize: '0.75rem',
+                        fontSize: 'var(--font-size-xs)',
                         fontWeight: 500,
                         backgroundColor: doc.status === 'SUBMITTED' ? '#d1fae5' : '#f3f4f6',
                         color: doc.status === 'SUBMITTED' ? '#065f46' : '#374151'
@@ -347,7 +347,7 @@ const WeeklySummaryPage = () => {
                   padding: '0.75rem',
                   border: '1px solid #d1d5db',
                   borderRadius: 8,
-                  fontSize: '0.875rem',
+                  fontSize: 'var(--font-size-sm)',
                   resize: 'vertical'
                 }}
               />

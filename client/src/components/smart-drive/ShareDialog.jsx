@@ -124,7 +124,7 @@ export default function ShareDialog({ file, onShare, onGenerateLink, onClose }) 
             border: '1px solid var(--border, #e5e7eb)',
           }}
         >
-          <p style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--text, #111827)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <p style={{ fontSize: 'var(--font-size-lg)', fontWeight: 600, color: 'var(--text, #111827)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {file.name}
           </p>
         </div>
@@ -297,10 +297,10 @@ export default function ShareDialog({ file, onShare, onGenerateLink, onClose }) 
               {publicLink && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                   <div style={{ padding: '1rem', background: 'var(--background-secondary, #f9fafb)', borderRadius: '0.75rem', border: '1px solid var(--border, #e5e7eb)' }} role="status" aria-live="polite">
-                    <p style={{ fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)', margin: '0 0 0.375rem 0' }}>
+                    <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-muted, #6b7280)', margin: '0 0 0.375rem 0' }}>
                       {t('drive.publicLinkGenerated')}
                     </p>
-                    <p style={{ fontSize: '0.875rem', fontFamily: 'var(--font-family-mono)', color: 'var(--text, #111827)', wordBreak: 'break-all', margin: 0 }}>
+                    <p style={{ fontSize: 'var(--font-size-sm)', fontFamily: 'var(--font-family-mono)', color: 'var(--text, #111827)', wordBreak: 'break-all', margin: 0 }}>
                       {publicLink}
                     </p>
                   </div>

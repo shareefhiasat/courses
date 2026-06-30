@@ -221,7 +221,7 @@
   padding-inline-end: 12px;
   border: 1px solid var(--border, #e5e7eb);
   border-radius: 6px;
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   outline: none;
   transition: border-color 0.2s ease;
   background: var(--input-bg, #ffffff);
@@ -251,7 +251,7 @@
   cursor: pointer;
   border-radius: 6px;
   transition: background-color 0.15s ease;
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   color: var(--text, #1f2937);
 }
 
@@ -305,7 +305,7 @@
   padding: 16px 12px;
   text-align: center;
   color: var(--text-muted, #9ca3af);
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
 }
 
 /* Error State */
@@ -426,7 +426,7 @@
   color: white;
   padding: 4px 8px;
   border-radius: 4px;
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   white-space: nowrap;
   z-index: 1000;
   pointer-events: none;

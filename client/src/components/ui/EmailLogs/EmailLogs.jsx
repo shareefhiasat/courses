@@ -370,7 +370,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Email
                     {/* Variables Used */}
                     {selectedLog.variables && Object.keys(selectedLog.variables).length > 0 && (
                         <div style={{ marginBottom: '1.25rem' }}>
-                          <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '1rem' }}>Variables Used:</h4>
+                          <h4 style={{ margin: '0 0 0.75rem 0', fontSize: 'var(--font-size-md)' }}>Variables Used:</h4>
                           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
                             {Object.keys(selectedLog.variables).map(key => (
                                 <span
@@ -394,7 +394,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Email
                     {/* HTML Preview */}
                     {selectedLog.htmlBody && (
                         <div>
-                          <h4 style={{ margin: '0 0 0.75rem 0', fontSize: '1rem' }}>Email Preview:</h4>
+                          <h4 style={{ margin: '0 0 0.75rem 0', fontSize: 'var(--font-size-md)' }}>Email Preview:</h4>
                           <div
                               style={{
                                 border: '1px solid #ddd',

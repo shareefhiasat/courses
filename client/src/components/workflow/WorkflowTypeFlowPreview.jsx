@@ -58,7 +58,7 @@ const WorkflowTypeFlowPreview = ({
               {React.cloneElement(getUserRoleIcon(role), { size: iconSize })}
             </span>
             {showLabels && (
-              <span style={{ fontSize: '0.8125rem', fontWeight: 500, whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 500, whiteSpace: 'nowrap' }}>
                 {t(ROLE_LABEL_KEYS[role] || role, role)}
               </span>
             )}
@@ -82,7 +82,7 @@ const WorkflowTypeFlowPreview = ({
           >
             <CheckCircle2 size={iconSize} />
             {showLabels && (
-              <span style={{ fontSize: '0.8125rem', fontWeight: 500, whiteSpace: 'nowrap' }}>
+              <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 500, whiteSpace: 'nowrap' }}>
                 {t('workflow.types.approved', 'Approved')}
               </span>
             )}

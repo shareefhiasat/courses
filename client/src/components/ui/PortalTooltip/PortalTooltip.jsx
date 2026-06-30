@@ -140,7 +140,7 @@ const PortalTooltip = ({
         padding: '0.5rem 0.75rem',
         background: hexToRgba(backgroundColor, backgroundOpacity),
         color: textColor,
-        fontSize: '0.875rem',
+        fontSize: 'var(--font-size-sm)',
         borderRadius: '8px',
         whiteSpace: 'nowrap',
         maxWidth: '200px',

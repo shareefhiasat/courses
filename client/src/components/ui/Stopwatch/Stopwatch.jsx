@@ -90,7 +90,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stopw
 
       {/* Status Text */}
       <div style={{
-        fontSize: '0.875rem',
+        fontSize: 'var(--font-size-sm)',
         color: '#666',
         marginBottom: '1rem'
       }}>
@@ -118,7 +118,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stopw
                 borderRadius: '8px',
                 fontWeight: 600,
                 cursor: 'pointer',
-                fontSize: '1rem'
+                fontSize: 'var(--font-size-md)'
               }}
             >
               ▶️ {t('start') || 'Start'}
@@ -136,7 +136,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stopw
                 borderRadius: '8px',
                 fontWeight: 600,
                 cursor: 'pointer',
-                fontSize: '1rem'
+                fontSize: 'var(--font-size-md)'
               }}
             >
               ⏸️ {t('pause') || 'Pause'}
@@ -154,7 +154,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stopw
                 borderRadius: '8px',
                 fontWeight: 600,
                 cursor: 'pointer',
-                fontSize: '1rem'
+                fontSize: 'var(--font-size-md)'
               }}
             >
               ▶️ {t('resume') || 'Resume'}
@@ -172,7 +172,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stopw
                 borderRadius: '8px',
                 fontWeight: 600,
                 cursor: 'pointer',
-                fontSize: '1rem'
+                fontSize: 'var(--font-size-md)'
               }}
             >
               🔄 {t('reset') || 'Reset'}
@@ -185,7 +185,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stopw
       {time > 0 && (
         <div style={{
           marginTop: '1rem',
-          fontSize: '0.75rem',
+          fontSize: 'var(--font-size-xs)',
           color: '#999'
         }}>
           {time >= 3600 && `${Math.floor(time / 3600)} ${t('hours') || 'hours'} `}

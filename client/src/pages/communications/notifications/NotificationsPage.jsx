@@ -445,7 +445,7 @@ const NotificationsPage = () => {
             color: isDark ? '#9ca3af' : '#6b7280'
           }}>
             {getThemedIcon('ui', 'bell', 64, theme)}
-            <p style={{ margin: 0, fontSize: '1rem', fontWeight: 500 }}>
+            <p style={{ margin: 0, fontSize: 'var(--font-size-md)', fontWeight: 500 }}>
               {searchTerm || filterType !== 'all' || filterCategory !== 'all'
                 ? t('no_notifications_match_filters') || 'No notifications match your filters'
                 : t('no_notifications_yet') || 'No notifications yet'}
@@ -499,7 +499,7 @@ const NotificationsPage = () => {
                 }}>
                   <div style={{
                     fontWeight: notification.isRead ? 500 : 600,
-                    fontSize: '1rem',
+                    fontSize: 'var(--font-size-md)',
                     color: isDark ? '#fff' : '#111',
                     lineHeight: 1.4
                   }}>

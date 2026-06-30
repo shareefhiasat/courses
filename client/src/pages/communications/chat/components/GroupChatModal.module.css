@@ -107,7 +107,7 @@
 }
 
 .label {
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   font-weight: 500;
   color: var(--text);
 }
@@ -157,7 +157,7 @@
   background: rgba(129, 12, 41, 0.08);
   border: 1px solid var(--brand);
   border-radius: 16px;
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   color: var(--brand);
   line-height: 1.4;
 }
@@ -243,7 +243,7 @@
   padding: 2rem;
   text-align: center;
   color: var(--muted);
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
 }
 
 .userItem {
@@ -303,13 +303,13 @@
 }
 
 .userName {
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   font-weight: 500;
   color: var(--text);
 }
 
 .userEmail {
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   color: var(--muted);
 }
 

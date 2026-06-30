@@ -126,7 +126,7 @@ export default function DriveTreeView({ folders, onFolderSelect, currentFolderId
           <span
             style={{
               flex: 1,
-              fontSize: '0.875rem',
+              fontSize: 'var(--font-size-sm)',
               fontWeight: isSelected ? 500 : 400,
               color: 'var(--text, #111827)',
               overflow: 'hidden',
@@ -205,7 +205,7 @@ export default function DriveTreeView({ folders, onFolderSelect, currentFolderId
             border: '1px solid var(--border, #e5e7eb)',
             borderRadius: '0.5rem',
             cursor: 'pointer',
-            fontSize: '0.75rem',
+            fontSize: 'var(--font-size-xs)',
             fontWeight: 500,
             color: 'var(--text-secondary, #374151)',
             display: 'flex',

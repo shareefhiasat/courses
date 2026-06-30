@@ -238,7 +238,7 @@ export default function SchedulingAvailabilityTimeline({
         />
       </div>
       {events.length === 0 && (
-        <div style={{ textAlign: 'center', padding: '1rem', fontSize: '0.875rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
+        <div style={{ textAlign: 'center', padding: '1rem', fontSize: 'var(--font-size-sm)', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
           {t('no_availability_in_range')}
         </div>
       )}

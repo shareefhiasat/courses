@@ -1,12 +1,17 @@
 @import "tailwindcss";
 
 @theme {
-    /* Custom color palette */
     --color-brand: #800020;
     --color-brand-dark: #600018;
 
     --font-sans: var(--font-family-sans);
     --font-mono: var(--font-family-mono);
+    --text-xs: var(--font-size-xs);
+    --text-sm: var(--font-size-sm);
+    --text-base: var(--font-size-md);
+    --text-lg: var(--font-size-lg);
+    --text-xl: var(--font-size-xl);
+    --text-2xl: var(--font-size-2xl);
 }
 
 /* Custom animations */

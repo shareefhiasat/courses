@@ -1095,7 +1095,7 @@ export default function QuizzesPage() {
               <Card style={{ cursor: 'pointer', transition: 'all 0.2s', border: '2px dashed var(--color-primary, #800020)' }} onClick={handleAddNew}>
                 <CardBody style={{ padding: '1rem 1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', minHeight: '100px' }}>
                   {getThemedIcon('ui', 'plus', 24, theme)}
-                  <span style={{ fontWeight: 600, color: 'var(--color-primary, #800020)', fontSize: '0.875rem' }}>{t('create_quiz') || 'Create Quiz'}</span>
+                  <span style={{ fontWeight: 600, color: 'var(--color-primary, #800020)', fontSize: 'var(--font-size-sm)' }}>{t('create_quiz') || 'Create Quiz'}</span>
                 </CardBody>
               </Card>
               )}
@@ -1305,7 +1305,7 @@ export default function QuizzesPage() {
                 <h3>{t('delete_quiz')}</h3>
                 <p>{t('delete_quiz_confirmation')}</p>
                 {deleteModal.warningMessage && (
-                  <p style={{ color: '#dc2626', fontSize: '0.875rem' }}>{deleteModal.warningMessage}</p>
+                  <p style={{ color: '#dc2626', fontSize: 'var(--font-size-sm)' }}>{deleteModal.warningMessage}</p>
                 )}
                 <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
                   <Button variant="outline" onClick={() => setDeleteModal({ open: false, item: null, onConfirm: null, relatedData: null, warningMessage: null })}>
@@ -1379,7 +1379,7 @@ export default function QuizzesPage() {
                       ? 'linear-gradient(135deg, var(--color-primary, #800020) 0%, #a00028 100%)' 
                       : (theme === 'light' ? '#f3f4f6' : 'rgba(255,255,255,0.1)')),
                   color: isActive || isCompleted ? '#fff' : (theme === 'light' ? '#9ca3af' : 'rgba(255,255,255,0.4)'),
-                  fontSize: '0.875rem',
+                  fontSize: 'var(--font-size-sm)',
                   fontWeight: 600,
                   transition: 'all 0.3s ease',
                   boxShadow: isActive || isCompleted ? '0 4px 12px rgba(128, 0, 32, 0.3)' : 'none'
@@ -1543,7 +1543,7 @@ export default function QuizzesPage() {
                   </h1>
                   {renderMetaChipsForBuilder()}
                   {viewMode === 'edit' && quizId && lastSavedRef.current && (
-                    <span style={{ fontSize: '0.75rem', color: '#10b981', marginLeft: '1rem' }}>
+                    <span style={{ fontSize: 'var(--font-size-xs)', color: '#10b981', marginLeft: '1rem' }}>
                       {t('last_saved')} {lastSavedRef.current.toLocaleTimeString()}
                     </span>
                   )}
@@ -1677,7 +1677,7 @@ export default function QuizzesPage() {
                       <div className={QuizBuilderPageStyles.questionForm}>
                         <div className={QuizBuilderPageStyles.questionTextEditor}>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-                            <label style={{ fontSize: 14, fontWeight: 500 }}>
+                            <label style={{ fontSize: 'var(--font-size-sm)', fontWeight: 500 }}>
                               {t('question_text_label')}
                             </label>
                             <LanguageToggle value={questionLang} onChange={setQuestionLang} />
@@ -1835,7 +1835,7 @@ export default function QuizzesPage() {
                         </div>
 
                         <div className={QuizBuilderPageStyles.quizSettingsSection} style={{ marginTop: '1.5rem', padding: '1rem', background: '#f9fafb', borderRadius: '8px' }}>
-                          <h4 style={{ marginBottom: '1rem', fontSize: '1rem', fontWeight: 600 }}>{t('quiz_settings')}</h4>
+                          <h4 style={{ marginBottom: '1rem', fontSize: 'var(--font-size-md)', fontWeight: 600 }}>{t('quiz_settings')}</h4>
                           <div className={QuizBuilderPageStyles.togglesContainer}>
                             <ToggleSwitch
                               label={t('allow_retake')}
@@ -1925,7 +1925,7 @@ export default function QuizzesPage() {
                   </h1>
                   {renderMetaChipsForBuilder()}
                   {viewMode === 'edit' && quizId && lastSavedRef.current && (
-                    <span style={{ fontSize: '0.75rem', color: '#10b981', marginLeft: '1rem' }}>
+                    <span style={{ fontSize: 'var(--font-size-xs)', color: '#10b981', marginLeft: '1rem' }}>
                       {t('last_saved')} {lastSavedRef.current.toLocaleTimeString()}
                     </span>
                   )}

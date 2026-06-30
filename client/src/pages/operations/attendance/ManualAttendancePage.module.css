@@ -133,7 +133,7 @@
 .filterLabel {
   font-weight: 600;
   color: var(--attendance-text);
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -254,7 +254,7 @@
 
 .studentEmail {
   color: var(--attendance-text-muted);
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
 }
 
 .attendanceActions {
@@ -266,7 +266,7 @@
   padding: 0.5rem 1rem;
   border: none;
   border-radius: 8px;
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   font-weight: 500;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -336,7 +336,7 @@
 }
 
 .historyDate {
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   color: var(--attendance-text-muted);
   margin-bottom: 0.5rem;
 }
@@ -355,7 +355,7 @@
 .historyStatus {
   padding: 0.25rem 0.75rem;
   border-radius: 20px;
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   font-weight: 500;
   text-transform: uppercase;
 }

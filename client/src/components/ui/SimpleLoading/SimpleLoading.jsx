@@ -82,7 +82,7 @@ SimpleLoading.BrandFullscreen = ({ message = '', ...props }) => (
     {message && (
       <div style={{
         marginTop: '1rem',
-        fontSize: '1rem',
+        fontSize: 'var(--font-size-md)',
         fontWeight: '500',
         color: 'var(--text-primary, #374151)',
         textAlign: 'center'

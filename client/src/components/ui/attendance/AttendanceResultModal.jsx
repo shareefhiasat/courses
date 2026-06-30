@@ -89,7 +89,7 @@ const AttendanceResultModal = ({
         </h3>
 
         <p style={{
-          fontSize: '1rem',
+          fontSize: 'var(--font-size-md)',
           color: '#6b7280',
           margin: '0 0 1.5rem 0',
           lineHeight: '1.5'
@@ -105,7 +105,7 @@ const AttendanceResultModal = ({
             border: 'none',
             padding: '0.75rem 1.5rem',
             borderRadius: '0.5rem',
-            fontSize: '1rem',
+            fontSize: 'var(--font-size-md)',
             fontWeight: '500',
             cursor: 'pointer',
             width: '100%'

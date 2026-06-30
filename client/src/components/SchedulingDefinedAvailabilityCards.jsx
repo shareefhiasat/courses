@@ -45,7 +45,7 @@ function AvailabilityScheduleTable({ periodGroup, theme, t }) {
         alignItems: 'center',
         gap: '0.35rem',
         marginBottom: '0.5rem',
-        fontSize: '0.8125rem',
+        fontSize: 'var(--font-size-sm)',
         color: muted
       }}>
         <CalendarRange size={13} />
@@ -56,7 +56,7 @@ function AvailabilityScheduleTable({ periodGroup, theme, t }) {
         <table style={{
           width: '100%',
           borderCollapse: 'collapse',
-          fontSize: '0.8125rem',
+          fontSize: 'var(--font-size-sm)',
           minWidth: '320px'
         }}>
           <thead>
@@ -115,7 +115,7 @@ function AvailabilityScheduleTable({ periodGroup, theme, t }) {
                             borderRadius: '0.25rem',
                             backgroundColor: theme === 'dark' ? '#064e3b' : '#ecfdf5',
                             color: '#10b981',
-                            fontSize: '0.75rem',
+                            fontSize: 'var(--font-size-xs)',
                             fontWeight: 500,
                             whiteSpace: 'nowrap'
                           }}
@@ -150,7 +150,7 @@ function ClassroomDetailsGrid({ classroom, lang, t, theme }) {
       padding: '0.5rem 0.625rem',
       borderRadius: '0.375rem',
       backgroundColor: theme === 'dark' ? '#374151' : '#f3f4f6',
-      fontSize: '0.8125rem'
+      fontSize: 'var(--font-size-sm)'
     }}>
       {rows.map((row) => (
         <div key={row.label}>

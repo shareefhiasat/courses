@@ -168,12 +168,12 @@ export default function DetailsTab({ file }) {
             const bgColor = config?.bg || 'rgba(107, 114, 128, 0.1)';
             const borderColor = config?.borderColor || '#d1d5db';
             return (
-              <span key={status} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', background: bgColor, border: `1px solid ${borderColor}`, borderRadius: '0.375rem', padding: '0.125rem 0.375rem', color }}>
+              <span key={status} style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: 'var(--font-size-xs)', background: bgColor, border: `1px solid ${borderColor}`, borderRadius: '0.375rem', padding: '0.125rem 0.375rem', color }}>
                 {count} {t(`workflow.status.${status.toLowerCase()}`, status)}
               </span>
             );
           })}
-          {workflowCounts.total === 0 && <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)' }}>0</span>}
+          {workflowCounts.total === 0 && <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted, #6b7280)' }}>0</span>}
         </span>
       ) : '\u2014',
     },
@@ -242,10 +242,10 @@ export default function DetailsTab({ file }) {
               {getThemedIcon('ui', icon, 16, 'primary')}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)', margin: 0, marginBottom: '0.125rem' }}>
+              <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted, #6b7280)', margin: 0, marginBottom: '0.125rem' }}>
                 {label}
               </p>
-              <p style={{ fontSize: '0.8125rem', fontWeight: 500, color: 'var(--text, #111827)', margin: 0, wordBreak: 'break-all' }}>
+              <p style={{ fontSize: 'var(--font-size-sm)', fontWeight: 500, color: 'var(--text, #111827)', margin: 0, wordBreak: 'break-all' }}>
                 {value}
               </p>
             </div>
@@ -262,10 +262,10 @@ export default function DetailsTab({ file }) {
             border: '1px solid var(--border, #e5e7eb)',
           }}
         >
-          <p style={{ fontSize: '0.875rem', color: 'var(--text, #111827)', margin: 0, marginBottom: '0.25rem' }}>
+          <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text, #111827)', margin: 0, marginBottom: '0.25rem' }}>
             {t('drive.checksum')} ({t('drive.checksumSha256') || 'SHA-256'})
           </p>
-          <p style={{ fontSize: '0.75rem', fontFamily: 'ui-monospace, monospace', color: 'var(--text, #111827)', margin: 0, wordBreak: 'break-all' }}>
+          <p style={{ fontSize: 'var(--font-size-xs)', fontFamily: 'ui-monospace, monospace', color: 'var(--text, #111827)', margin: 0, wordBreak: 'break-all' }}>
             {file.checksumSha256}
           </p>
         </div>

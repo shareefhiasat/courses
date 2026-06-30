@@ -1160,7 +1160,7 @@ const handleCancelEdit = useCallback(() => {
           background: '#eff6ff',
           border: '1px solid #bfdbfe',
           borderRadius: '9999px',
-          fontSize: '0.875rem',
+          fontSize: 'var(--font-size-sm)',
           fontWeight: '500',
           color: '#1e40af'
         }}>

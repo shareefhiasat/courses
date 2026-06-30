@@ -239,7 +239,7 @@ export default function FileRoster({
               color: '#dc2626',
               border: '1px solid rgba(220,38,38,0.2)',
               borderRadius: '0.5rem',
-              fontSize: '0.8125rem',
+              fontSize: 'var(--font-size-sm)',
               fontWeight: 600,
               cursor: 'pointer',
               display: 'flex',
@@ -254,7 +254,7 @@ export default function FileRoster({
 
         {selectedIds.size > 0 ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ fontSize: '0.875rem', color: 'var(--text, #111827)', fontWeight: 600 }}>
+            <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text, #111827)', fontWeight: 600 }}>
               {selectedIds.size} {t('selected') || 'selected'}
             </span>
             <Button
@@ -320,7 +320,7 @@ export default function FileRoster({
                 display: 'flex',
                 alignItems: 'center',
                 gap: '0.375rem',
-                fontSize: '0.8125rem',
+                fontSize: 'var(--font-size-sm)',
                 fontWeight: 500,
               }}
             >
@@ -424,7 +424,7 @@ export default function FileRoster({
               ...rowBase,
               background: 'var(--background-secondary, #f9fafb)',
               cursor: 'default',
-              fontSize: '0.75rem',
+              fontSize: 'var(--font-size-xs)',
               fontWeight: 600,
               textTransform: 'uppercase',
               letterSpacing: '0.05em',
@@ -507,7 +507,7 @@ export default function FileRoster({
             <div
               style={{
                 padding: '0.5rem 1rem',
-                fontSize: '0.75rem',
+                fontSize: 'var(--font-size-xs)',
                 fontWeight: 600,
                 color: 'var(--text-muted, #6b7280)',
                 textTransform: 'uppercase',
@@ -596,7 +596,7 @@ export default function FileRoster({
                 <div style={{ minWidth: 0 }}>
                   <div
                     style={{
-                      fontSize: '0.875rem',
+                      fontSize: 'var(--font-size-sm)',
                       fontWeight: 600,
                       color: 'var(--text, #111827)',
                       overflow: 'hidden',
@@ -606,7 +606,7 @@ export default function FileRoster({
                   >
                     {folder.name.length > 80 ? `${folder.name.substring(0, 80)}...` : folder.name}
                   </div>
-                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)' }}>
+                  <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted, #6b7280)' }}>
                     {t('drive.folder') || 'Folder'}
                   </div>
                 </div>
@@ -617,7 +617,7 @@ export default function FileRoster({
                 </div>
               )}
               {showOwner && (
-                <div style={{ width: 100, fontSize: '0.875rem', color: 'var(--text-secondary, #374151)', paddingRight: isRTL ? 0 : '0.5rem', paddingLeft: isRTL ? '0.5rem' : 0 }}>
+                <div style={{ width: 100, fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary, #374151)', paddingRight: isRTL ? 0 : '0.5rem', paddingLeft: isRTL ? '0.5rem' : 0 }}>
                   {formatOwnerName(folder.owner)}
                 </div>
               )}
@@ -626,7 +626,7 @@ export default function FileRoster({
                   style={{
                     width: 80,
                     textAlign: isRTL ? 'left' : 'right',
-                    fontSize: '0.875rem',
+                    fontSize: 'var(--font-size-sm)',
                     color: 'var(--text-muted, #6b7280)',
                     display: 'flex',
                     alignItems: 'center',
@@ -645,7 +645,7 @@ export default function FileRoster({
                   style={{
                     width: 70,
                     textAlign: isRTL ? 'left' : 'right',
-                    fontSize: '0.875rem',
+                    fontSize: 'var(--font-size-sm)',
                     color: 'var(--text-muted, #6b7280)',
                     display: 'flex',
                     alignItems: 'center',
@@ -751,7 +751,7 @@ export default function FileRoster({
                         border: 'none',
                         cursor: 'pointer',
                         borderRadius: '0.5rem',
-                        fontSize: '0.875rem',
+                        fontSize: 'var(--font-size-sm)',
                         fontWeight: 500,
                         color: action.danger ? '#dc2626' : action.color || 'var(--text, #111827)',
                         textAlign: isRTL ? 'right' : 'left',
@@ -784,7 +784,7 @@ export default function FileRoster({
             <div
               style={{
                 padding: '0.5rem 1rem',
-                fontSize: '0.75rem',
+                fontSize: 'var(--font-size-xs)',
                 fontWeight: 600,
                 color: 'var(--text-muted, #6b7280)',
                 textTransform: 'uppercase',
@@ -893,7 +893,7 @@ export default function FileRoster({
                   <div style={{ minWidth: 0 }}>
                     <div
                       style={{
-                        fontSize: '0.875rem',
+                        fontSize: 'var(--font-size-sm)',
                         fontWeight: 500,
                         color: 'var(--text, #111827)',
                         overflow: 'hidden',
@@ -911,7 +911,7 @@ export default function FileRoster({
                   </div>
                 )}
                 {showOwner && (
-                  <div style={{ width: 100, fontSize: '0.875rem', color: 'var(--text-secondary, #374151)', paddingRight: isRTL ? 0 : '0.5rem', paddingLeft: isRTL ? '0.5rem' : 0 }}>
+                  <div style={{ width: 100, fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary, #374151)', paddingRight: isRTL ? 0 : '0.5rem', paddingLeft: isRTL ? '0.5rem' : 0 }}>
                     {formatOwnerName(file.owner)}
                   </div>
                 )}
@@ -920,7 +920,7 @@ export default function FileRoster({
                     style={{
                       width: 80,
                       textAlign: isRTL ? 'left' : 'right',
-                      fontSize: '0.875rem',
+                      fontSize: 'var(--font-size-sm)',
                       color: 'var(--text-muted, #6b7280)',
                       display: 'flex',
                       alignItems: 'center',
@@ -939,7 +939,7 @@ export default function FileRoster({
                     style={{
                       width: 70,
                       textAlign: isRTL ? 'left' : 'right',
-                      fontSize: '0.875rem',
+                      fontSize: 'var(--font-size-sm)',
                       color: 'var(--text-muted, #6b7280)',
                       display: 'flex',
                       alignItems: 'center',
@@ -962,7 +962,7 @@ export default function FileRoster({
                         background: 'var(--color-primary-tint, #eff6ff)',
                         color: 'var(--color-primary, #3b82f6)',
                         borderRadius: '0.25rem',
-                        fontSize: '0.75rem',
+                        fontSize: 'var(--font-size-xs)',
                         fontWeight: 500,
                       }}>
                         {getThemedIcon('ui', 'tag', 12, 'primary')}
@@ -1063,7 +1063,7 @@ export default function FileRoster({
                               border: 'none',
                               cursor: 'pointer',
                               borderRadius: '0.5rem',
-                              fontSize: '0.875rem',
+                              fontSize: 'var(--font-size-sm)',
                               fontWeight: 500,
                               color: action.danger ? '#dc2626' : action.color || 'var(--text, #111827)',
                               textAlign: isRTL ? 'right' : 'left',
@@ -1149,7 +1149,7 @@ export default function FileRoster({
               </div>
               <div
                 style={{
-                  fontSize: '0.875rem',
+                  fontSize: 'var(--font-size-sm)',
                   fontWeight: 600,
                   color: 'var(--text, #111827)',
                   overflow: 'hidden',
@@ -1162,7 +1162,7 @@ export default function FileRoster({
               </div>
               <div
                 style={{
-                  fontSize: '0.75rem',
+                  fontSize: 'var(--font-size-xs)',
                   color: 'var(--text-muted, #6b7280)',
                   marginTop: 2,
                 }}
@@ -1247,7 +1247,7 @@ export default function FileRoster({
                 </div>
                 <div
                   style={{
-                    fontSize: '0.875rem',
+                    fontSize: 'var(--font-size-sm)',
                     fontWeight: 500,
                     color: 'var(--text, #111827)',
                     overflow: 'hidden',
@@ -1262,7 +1262,7 @@ export default function FileRoster({
                   style={{
                     display: 'flex',
                     justifyContent: 'space-between',
-                    fontSize: '0.75rem',
+                    fontSize: 'var(--font-size-xs)',
                     color: 'var(--text-muted, #6b7280)',
                     marginTop: 2,
                   }}

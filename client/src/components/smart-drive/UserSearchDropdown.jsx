@@ -70,7 +70,7 @@ export default function UserSearchDropdown({ value, onChange, disabled = false, 
           display: 'flex',
           alignItems: 'center',
           gap: '0.375rem',
-          fontSize: '0.875rem',
+          fontSize: 'var(--font-size-sm)',
           fontWeight: 500,
           color: 'var(--text, #111827)',
           marginBottom: '0.5rem',
@@ -109,7 +109,7 @@ export default function UserSearchDropdown({ value, onChange, disabled = false, 
             >
               {getThemedIcon('ui', 'user', 16, 'primary')}
             </div>
-            <span style={{ flex: 1, fontSize: '0.875rem', fontWeight: 500, color: 'var(--text, #111827)' }}>
+            <span style={{ flex: 1, fontSize: 'var(--font-size-sm)', fontWeight: 500, color: 'var(--text, #111827)' }}>
               {query}
             </span>
             {getThemedIcon('ui', 'x', 16, 'muted')}
@@ -137,7 +137,7 @@ export default function UserSearchDropdown({ value, onChange, disabled = false, 
                 borderRadius: '0.5rem',
                 background: 'var(--panel, white)',
                 color: 'var(--text, #111827)',
-                fontSize: '0.9375rem',
+                fontSize: 'var(--font-size-sm)',
                 outline: 'none',
                 transition: 'border-color 0.15s, box-shadow 0.15s',
                 opacity: disabled ? 0.5 : 1,
@@ -169,20 +169,20 @@ export default function UserSearchDropdown({ value, onChange, disabled = false, 
           }}
         >
           {loading && (
-            <div style={{ padding: '1rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)' }}>
+            <div style={{ padding: '1rem 0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem', fontSize: 'var(--font-size-sm)', color: 'var(--text-muted, #6b7280)' }}>
               <div style={{ width: '1rem', height: '1rem', border: '2px solid var(--border, #e5e7eb)', borderTopColor: 'var(--color-primary, #2563eb)', borderRadius: '9999px', animation: 'spin 0.6s linear infinite' }} />
               {t('common.searching')}&hellip;
             </div>
           )}
 
           {error && (
-            <div style={{ padding: '1rem 0.75rem', fontSize: '0.875rem', color: '#dc2626' }}>
+            <div style={{ padding: '1rem 0.75rem', fontSize: 'var(--font-size-sm)', color: '#dc2626' }}>
               {error}
             </div>
           )}
 
           {!loading && !error && users.length === 0 && query.length >= 2 && (
-            <div style={{ padding: '1.5rem 0.75rem', textAlign: 'center', fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)' }}>
+            <div style={{ padding: '1.5rem 0.75rem', textAlign: 'center', fontSize: 'var(--font-size-sm)', color: 'var(--text-muted, #6b7280)' }}>
               {getThemedIcon('ui', 'user', 32, 'muted')}
               {t('drive.noUsersFound')}
             </div>
@@ -225,11 +225,11 @@ export default function UserSearchDropdown({ value, onChange, disabled = false, 
                     {getThemedIcon('ui', 'user', 16, 'primary')}
                   </div>
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text, #111827)' }}>
+                    <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 500, color: 'var(--text, #111827)' }}>
                       {user.displayName || user.email}
                     </div>
                     {user.displayName && user.email && (
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)', marginTop: '0.125rem', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                      <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted, #6b7280)', marginTop: '0.125rem', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                         {user.email}
                       </div>
                     )}

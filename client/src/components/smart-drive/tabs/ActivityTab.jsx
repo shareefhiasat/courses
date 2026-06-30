@@ -132,7 +132,7 @@ export default function ActivityTab({ fileId }) {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)' }} role="status">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: 'var(--font-size-sm)', color: 'var(--text-muted, #6b7280)' }} role="status">
         {t('common.loading')}&hellip;
       </div>
     );
@@ -140,7 +140,7 @@ export default function ActivityTab({ fileId }) {
 
   if (error) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: '0.875rem', color: '#dc2626' }} role="alert">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: 'var(--font-size-sm)', color: '#dc2626' }} role="alert">
         {error}
       </div>
     );
@@ -148,7 +148,7 @@ export default function ActivityTab({ fileId }) {
 
   if (activities.length === 0) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: 'var(--font-size-sm)', color: 'var(--text-muted, #6b7280)' }}>
         {getIcon('ui', 'activity', 40)}
         {t('drive.noActivity')}
       </div>
@@ -166,7 +166,7 @@ export default function ActivityTab({ fileId }) {
         overflowY: 'auto',
         height: '100%',
       }}>
-        <h4 style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-muted, #6b7280)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <h4 style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, color: 'var(--text-muted, #6b7280)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           {getIcon('ui', 'clock', 16)}
           {t('drive.timeline') || 'Timeline'}
         </h4>
@@ -179,7 +179,7 @@ export default function ActivityTab({ fileId }) {
               background: !selectedDate ? 'var(--bg-primary, #f3f4f6)' : 'transparent',
               border: 'none',
               borderRadius: '0.375rem',
-              fontSize: '0.875rem',
+              fontSize: 'var(--font-size-sm)',
               color: !selectedDate ? 'var(--text, #111827)' : 'var(--text-muted, #6b7280)',
               cursor: 'pointer',
               fontWeight: !selectedDate ? 600 : 400,
@@ -197,7 +197,7 @@ export default function ActivityTab({ fileId }) {
                 background: selectedDate === date ? 'var(--bg-primary, #f3f4f6)' : 'transparent',
                 border: 'none',
                 borderRadius: '0.375rem',
-                fontSize: '0.875rem',
+                fontSize: 'var(--font-size-sm)',
                 color: selectedDate === date ? 'var(--text, #111827)' : 'var(--text-muted, #6b7280)',
                 cursor: 'pointer',
                 fontWeight: selectedDate === date ? 600 : 400,
@@ -228,7 +228,7 @@ export default function ActivityTab({ fileId }) {
               borderRadius: '0.5rem',
               background: 'var(--panel, white)',
               color: 'var(--text, #111827)',
-              fontSize: '0.875rem',
+              fontSize: 'var(--font-size-sm)',
               outline: 'none',
             }}
             aria-label={t('drive.filterActivities') || 'Filter activities'}
@@ -282,12 +282,12 @@ export default function ActivityTab({ fileId }) {
           )}
         </div>
 
-        <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--text, #111827)', marginBottom: '1rem' }}>
+        <h3 style={{ fontSize: 'var(--font-size-lg)', fontWeight: 600, color: 'var(--text, #111827)', marginBottom: '1rem' }}>
           {selectedDate ? formatDateHeader(selectedDate) : t('drive.activityLog')} ({filteredActivities.length})
         </h3>
 
         {filteredActivities.length === 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)' }}>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: 'var(--font-size-sm)', color: 'var(--text-muted, #6b7280)' }}>
             {getIcon('ui', 'activity', 40)}
             {filterText ? t('drive.noMatchingActivities') || 'No matching activities' : t('drive.noActivity')}
           </div>
@@ -327,10 +327,10 @@ export default function ActivityTab({ fileId }) {
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text, #111827)', margin: 0, marginBottom: '0.25rem' }}>
+                          <p style={{ fontSize: 'var(--font-size-sm)', fontWeight: 500, color: 'var(--text, #111827)', margin: 0, marginBottom: '0.25rem' }}>
                             {getActivityLabel(activity.action)}
                             {' \u00B7 '}
-                            <span style={{ fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)', fontWeight: 400 }}>
+                            <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-muted, #6b7280)', fontWeight: 400 }}>
                               {getLocalizedUserName(activity.user, lang, t('drive.unknownUser'))}
                               {(() => { const role = getUserRoleFromObject(activity.user); if (!role) return null; const icon = getUserRoleIcon(role); const color = getUserRoleColor(role); return icon ? (
                                 <span title={t(`roles.${role}`, role)} style={{ display: 'inline-flex', alignItems: 'center', marginInlineStart: '0.25rem' }}>
@@ -340,7 +340,7 @@ export default function ActivityTab({ fileId }) {
                             </span>
                           </p>
                           {activity.metadata && Object.keys(activity.metadata).length > 0 && (
-                            <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                            <div style={{ marginTop: '0.5rem', fontSize: 'var(--font-size-xs)', color: 'var(--text-muted, #6b7280)', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                               {activity.metadata.linkId && <span style={{ color: 'var(--color-primary, #2563eb)' }}>{t('drive.linkCreated')}</span>}
                               {activity.metadata.expiresAt && (
                                 <span>{t('drive.expires')}: {formatQatarDateOnly(activity.metadata.expiresAt)}</span>
@@ -351,7 +351,7 @@ export default function ActivityTab({ fileId }) {
                             </div>
                           )}
                         </div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)', fontWeight: 500, whiteSpace: 'nowrap' }}>
+                        <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted, #6b7280)', fontWeight: 500, whiteSpace: 'nowrap' }}>
                           {formatDateTime(activity.createdAt)}
                         </div>
                       </div>

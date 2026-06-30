@@ -410,7 +410,7 @@ const MarksPage = () => {
               <div style={{ fontWeight: 500, color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
                 {student.displayName || student.realName || student.email || 'Unknown'}
               </div>
-              <div style={{ fontSize: '0.875rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
+              <div style={{ fontSize: 'var(--font-size-sm)', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
                 {student.email || 'No email'}
               </div>
             </div>
@@ -902,7 +902,7 @@ const MarksPage = () => {
                 </div>
               </div>
               <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ fontSize: '0.875rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
+                <div style={{ fontSize: 'var(--font-size-sm)', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
                   {t('total') || 'Total'}: {(
                     (distributionForm.midTermExam || 0) +
                     (distributionForm.finalExam || 0) +
@@ -969,7 +969,7 @@ const MarksPage = () => {
             ) : marksReportData.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '2rem' }}>
                 <p>{t('no_students_found') || 'No students found for the selected filters'}</p>
-                <p style={{ fontSize: '0.875rem', color: '#666' }}>
+                <p style={{ fontSize: 'var(--font-size-sm)', color: '#666' }}>
                   {t('try_different_filters') || 'Try adjusting your filters or check if students are enrolled'}
                 </p>
               </div>
@@ -1191,7 +1191,7 @@ const MarksPage = () => {
                           background: value === 'calculated' ? '#e5e7eb' : '#fef3c7',
                           color: value === 'calculated' ? '#374151' : '#92400e',
                           textAlign: 'center',
-                          fontSize: '0.875rem',
+                          fontSize: 'var(--font-size-sm)',
                           fontWeight: 500
                         }}>
                           {options[value] || value}
@@ -1264,7 +1264,7 @@ const MarksPage = () => {
                             background: manual.color,
                             color: 'white',
                             textAlign: 'center',
-                            fontSize: '0.75rem',
+                            fontSize: 'var(--font-size-xs)',
                             fontWeight: 600
                           }}>
                             {gradeType}
@@ -1400,7 +1400,7 @@ const MarksPage = () => {
                             disabled={historyLoading}
                             style={{ 
                               padding: '4px 8px',
-                              fontSize: '0.75rem',
+                              fontSize: 'var(--font-size-xs)',
                               minWidth: '60px'
                             }}
                           >

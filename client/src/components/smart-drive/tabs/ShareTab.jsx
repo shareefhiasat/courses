@@ -295,7 +295,7 @@ export default function ShareTab({ fileId, onShare, onGenerateLink }) {
                           }}
                         />
                       </button>
-                      <span style={{ fontSize: '0.75rem', fontWeight: 500 }}>{perm.label}</span>
+                      <span style={{ fontSize: 'var(--font-size-xs)', fontWeight: 500 }}>{perm.label}</span>
                     </div>
                   ))}
                 </div>
@@ -394,7 +394,7 @@ export default function ShareTab({ fileId, onShare, onGenerateLink }) {
                           }}
                         />
                       </button>
-                      <span style={{ fontSize: '0.75rem', fontWeight: 500 }}>{perm.label}</span>
+                      <span style={{ fontSize: 'var(--font-size-xs)', fontWeight: 500 }}>{perm.label}</span>
                     </div>
                   ))}
                 </div>
@@ -447,10 +447,10 @@ export default function ShareTab({ fileId, onShare, onGenerateLink }) {
             {publicLink && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                 <div style={{ padding: '1rem', background: 'var(--background-secondary, #f9fafb)', borderRadius: '0.75rem', border: '1px solid var(--border, #e5e7eb)' }} role="status" aria-live="polite">
-                  <p style={{ fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)', margin: '0 0 0.375rem 0' }}>
+                  <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-muted, #6b7280)', margin: '0 0 0.375rem 0' }}>
                     {t('drive.publicLinkGenerated')}
                   </p>
-                  <p style={{ fontSize: '0.875rem', fontFamily: 'var(--font-family-mono)', color: 'var(--text, #111827)', wordBreak: 'break-all', margin: 0 }}>
+                  <p style={{ fontSize: 'var(--font-size-sm)', fontFamily: 'var(--font-family-mono)', color: 'var(--text, #111827)', wordBreak: 'break-all', margin: 0 }}>
                     {publicLink}
                   </p>
                 </div>
@@ -461,15 +461,15 @@ export default function ShareTab({ fileId, onShare, onGenerateLink }) {
             )}
 
             <div style={{ paddingTop: '1.25rem', borderTop: '1px solid var(--border, #e5e7eb)' }}>
-              <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text, #111827)', marginBottom: '0.75rem' }}>
+              <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, color: 'var(--text, #111827)', marginBottom: '0.75rem' }}>
                 {t('drive.publicLinks')}
               </div>
               {loadingLinks ? (
-                <div style={{ fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)' }}>
+                <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-muted, #6b7280)' }}>
                   {t('common.loading')}…
                 </div>
               ) : publicLinks.length === 0 ? (
-                <div style={{ fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)', padding: '1rem 0' }}>
+                <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-muted, #6b7280)', padding: '1rem 0' }}>
                   {t('drive.noPublicLinks')}
                 </div>
               ) : (
@@ -507,7 +507,7 @@ export default function ShareTab({ fileId, onShare, onGenerateLink }) {
 
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                            <span style={{ fontSize: '0.75rem', fontWeight: 600, color: status.color }}>
+                            <span style={{ fontSize: 'var(--font-size-xs)', fontWeight: 600, color: status.color }}>
                               {status.label}
                             </span>
                             <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted, #6b7280)' }}>

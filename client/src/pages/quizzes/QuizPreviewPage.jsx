@@ -209,7 +209,7 @@ export default function QuizPreviewPage() {
               <div className={styles.metaGrid} style={{ display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
                 <Badge variant="subtle" color="primary" size="medium">
                   {getQuestionIcon(quizData.type)}
-                  <span style={{ marginLeft: '0.5rem', fontSize: '0.875rem' }}>{getQuestionTypeLabel(quizData.type)}</span>
+                  <span style={{ marginLeft: '0.5rem', fontSize: 'var(--font-size-sm)' }}>{getQuestionTypeLabel(quizData.type)}</span>
                 </Badge>
                 <Badge variant="subtle" color="info" size="medium">
                   <ListChecks size={14} style={{ marginRight: '0.5rem' }} />
@@ -263,7 +263,7 @@ export default function QuizPreviewPage() {
                 <Badge
                   variant="outline"
                   color="primary"
-                  style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', fontSize: '0.875rem' }}
+                  style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', fontSize: 'var(--font-size-sm)' }}
                   onClick={handleEditQuiz}
                   title={t('edit_quiz') || 'Edit quiz'}
                 >

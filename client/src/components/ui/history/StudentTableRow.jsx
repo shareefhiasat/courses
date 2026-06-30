@@ -133,7 +133,7 @@ const StudentTableRow = ({
       return (
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
           {ICON_TYPES.attendance_status.none}
-          <span style={{ fontSize: '0.75rem', color: '#9ca3af', fontWeight: 500 }}>
+          <span style={{ fontSize: 'var(--font-size-xs)', color: '#9ca3af', fontWeight: 500 }}>
             {t('none') || 'None'}
           </span>
         </div>
@@ -173,7 +173,7 @@ const StudentTableRow = ({
     return (
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
         {getIcon(status)}
-        <span style={{ fontSize: '0.75rem', color, fontWeight: 500 }}>
+        <span style={{ fontSize: 'var(--font-size-xs)', color, fontWeight: 500 }}>
           {label}
         </span>
       </div>
@@ -261,7 +261,7 @@ const StudentTableRow = ({
         <td style={{
           padding: '0.5rem 0.75rem',
           textAlign: 'center',
-          fontSize: '0.75rem',
+          fontSize: 'var(--font-size-xs)',
           color: 'var(--text-muted, #6b7280)',
           width: '80px',
           fontWeight: 600
@@ -691,7 +691,7 @@ const StudentTableRow = ({
             </h3>
 
             <p style={{
-              fontSize: '1rem',
+              fontSize: 'var(--font-size-md)',
               color: '#6b7280',
               margin: '0 0 1.5rem 0',
               lineHeight: '1.5'
@@ -711,7 +711,7 @@ const StudentTableRow = ({
                 border: 'none',
                 padding: '0.75rem 1.5rem',
                 borderRadius: '0.5rem',
-                fontSize: '1rem',
+                fontSize: 'var(--font-size-md)',
                 fontWeight: '500',
                 cursor: 'pointer',
                 width: '100%'

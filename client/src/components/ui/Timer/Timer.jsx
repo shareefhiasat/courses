@@ -116,7 +116,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Timer
 
       {/* Status Text */}
       <div style={{
-        fontSize: '0.875rem',
+        fontSize: 'var(--font-size-sm)',
         color: '#666',
         marginBottom: '1rem'
       }}>
@@ -145,7 +145,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Timer
                 borderRadius: '8px',
                 fontWeight: 600,
                 cursor: 'pointer',
-                fontSize: '1rem'
+                fontSize: 'var(--font-size-md)'
               }}
             >
               ▶️ {t('start') || 'Start'}
@@ -163,7 +163,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Timer
                 borderRadius: '8px',
                 fontWeight: 600,
                 cursor: 'pointer',
-                fontSize: '1rem'
+                fontSize: 'var(--font-size-md)'
               }}
             >
               ⏸️ {t('pause') || 'Pause'}
@@ -181,7 +181,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Timer
                 borderRadius: '8px',
                 fontWeight: 600,
                 cursor: 'pointer',
-                fontSize: '1rem'
+                fontSize: 'var(--font-size-md)'
               }}
             >
               ▶️ {t('resume') || 'Resume'}
@@ -199,7 +199,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Timer
                 borderRadius: '8px',
                 fontWeight: 600,
                 cursor: 'pointer',
-                fontSize: '1rem'
+                fontSize: 'var(--font-size-md)'
               }}
             >
               🔄 {t('reset') || 'Reset'}

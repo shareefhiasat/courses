@@ -94,7 +94,7 @@ const TourTooltip = ({ tourSeenKey } = {}) => {
           padding: 0,
           maxWidth: 340,
           boxShadow: '0 10px 40px rgba(0,0,0,0.25)',
-          fontSize: 14,
+          fontSize: 'var(--font-size-sm)',
           lineHeight: 1.5,
           overflow: 'hidden',
           ...tooltipProps?.style,
@@ -127,7 +127,7 @@ const TourTooltip = ({ tourSeenKey } = {}) => {
           }}>
             <div style={{
               fontWeight: 700,
-              fontSize: 12,
+              fontSize: 'var(--font-size-xs)',
               color: isDark ? '#9ca3af' : '#6b7280',
               textTransform: 'uppercase',
               letterSpacing: 0.5,
@@ -144,7 +144,7 @@ const TourTooltip = ({ tourSeenKey } = {}) => {
                 border: `1px solid ${isDark ? '#4b5563' : '#e5e7eb'}`,
                 cursor: 'pointer',
                 color: isDark ? '#e5e7eb' : '#6b7280',
-                fontSize: 13,
+                fontSize: 'var(--font-size-sm)',
                 lineHeight: 1,
                 width: 22,
                 height: 22,
@@ -175,7 +175,7 @@ const TourTooltip = ({ tourSeenKey } = {}) => {
                   alignItems: 'center',
                   gap: 8,
                   cursor: 'pointer',
-                  fontSize: 12,
+                  fontSize: 'var(--font-size-xs)',
                   color: isDark ? '#e5e7eb' : '#374151',
                 }}
               >

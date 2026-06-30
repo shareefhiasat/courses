@@ -150,7 +150,7 @@ const StatsBar = ({
         background: isDark ? '#0f172a' : '#f9fafb',
         borderRadius: 8,
         border: isDark ? '1px solid #333' : '1px solid #e5e7eb',
-        fontSize: '0.8125rem',
+        fontSize: 'var(--font-size-sm)',
         flexWrap: 'wrap',
         color: isDark ? '#f8fafc' : '#111'
       }}>

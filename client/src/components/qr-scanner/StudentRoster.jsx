@@ -949,7 +949,7 @@ const StudentRoster = React.memo(function StudentRoster({
           <span style={{
             padding: '0.25rem 0.75rem',
             borderRadius: '0.375rem',
-            fontSize: '0.75rem',
+            fontSize: 'var(--font-size-xs)',
             fontWeight: 500,
             background: 'var(--panel-hover, #f3f4f6)',
             color: 'var(--text-muted, #9ca3af)',
@@ -971,7 +971,7 @@ const StudentRoster = React.memo(function StudentRoster({
           <span style={{
             padding: '0.25rem 0.75rem',
             borderRadius: '0.375rem',
-            fontSize: '0.75rem',
+            fontSize: 'var(--font-size-xs)',
             fontWeight: 500,
             background: 'var(--panel-hover, #f3f4f6)',
             color: 'var(--text-muted, #9ca3af)',
@@ -988,7 +988,7 @@ const StudentRoster = React.memo(function StudentRoster({
           <span style={{
             padding: '0.25rem 0.75rem',
             borderRadius: '0.375rem',
-            fontSize: '0.75rem',
+            fontSize: 'var(--font-size-xs)',
             fontWeight: 500,
             background: 'var(--color-success, #16a34a)', // Darker green to match other interface elements
             color: 'var(--text-on-success, white)',
@@ -1011,7 +1011,7 @@ const StudentRoster = React.memo(function StudentRoster({
         <span style={{
           padding: '0.25rem 0.75rem',
           borderRadius: '0.375rem',
-          fontSize: '0.75rem',
+          fontSize: 'var(--font-size-xs)',
           fontWeight: 500,
           background: getAttendanceColor(normalizedStatus),
           color: 'var(--text-on-colored, white)',
@@ -1094,7 +1094,7 @@ const StudentRoster = React.memo(function StudentRoster({
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <p data-tour="roster-student-count" style={{
-              fontSize: '0.875rem',
+              fontSize: 'var(--font-size-sm)',
               color: theme === 'dark' ? '#ffffff' : 'var(--text-muted, #6b7280)',
               marginTop: '0.25rem',
               marginBottom: 0
@@ -1119,7 +1119,7 @@ const StudentRoster = React.memo(function StudentRoster({
                   transition: 'all 0.2s'
                 }}
               >
-                <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>?</span>
+                <span style={{ fontSize: 'var(--font-size-xs)', fontWeight: 600 }}>?</span>
               </button>
             </PortalTooltip>
           </div>
@@ -1312,7 +1312,7 @@ const StudentRoster = React.memo(function StudentRoster({
                   style={{
                     textAlign: 'center',
                     padding: '0.5rem 0.75rem',
-                    fontSize: '0.75rem',
+                    fontSize: 'var(--font-size-xs)',
                     fontWeight: 500,
                     color: 'var(--text-muted, #6b7280)',
                     textTransform: 'uppercase',
@@ -1328,7 +1328,7 @@ const StudentRoster = React.memo(function StudentRoster({
                   style={{
                     textAlign: isRTL ? 'right' : 'left',
                     padding: '0.5rem 0.75rem',
-                    fontSize: '0.75rem',
+                    fontSize: 'var(--font-size-xs)',
                     fontWeight: 500,
                     color: 'var(--text-muted, #6b7280)',
                     textTransform: 'uppercase',
@@ -1345,7 +1345,7 @@ const StudentRoster = React.memo(function StudentRoster({
                     style={{
                       textAlign: isRTL ? 'right' : 'left',
                       padding: '0.5rem 0.75rem',
-                      fontSize: '0.75rem',
+                      fontSize: 'var(--font-size-xs)',
                       fontWeight: 500,
                       color: 'var(--text-muted, #6b7280)',
                       textTransform: 'uppercase',
@@ -1363,7 +1363,7 @@ const StudentRoster = React.memo(function StudentRoster({
                     style={{
                       textAlign: isRTL ? 'right' : 'left',
                       padding: '0.5rem 0.75rem',
-                      fontSize: '0.75rem',
+                      fontSize: 'var(--font-size-xs)',
                       fontWeight: 500,
                       color: 'var(--text-muted, #6b7280)',
                       textTransform: 'uppercase',
@@ -1381,7 +1381,7 @@ const StudentRoster = React.memo(function StudentRoster({
                     style={{
                       textAlign: 'center',
                       padding: '0.5rem 0.75rem',
-                      fontSize: '0.75rem',
+                      fontSize: 'var(--font-size-xs)',
                       fontWeight: 500,
                       color: 'var(--text-muted, #6b7280)',
                       textTransform: 'uppercase',
@@ -1399,7 +1399,7 @@ const StudentRoster = React.memo(function StudentRoster({
                     style={{
                       textAlign: 'center',
                       padding: '0.5rem 0.75rem',
-                      fontSize: '0.75rem',
+                      fontSize: 'var(--font-size-xs)',
                       fontWeight: 500,
                       color: 'var(--text-muted, #6b7280)',
                       textTransform: 'uppercase',
@@ -1417,7 +1417,7 @@ const StudentRoster = React.memo(function StudentRoster({
                     style={{
                       textAlign: 'center',
                       padding: '0.5rem 0.75rem',
-                      fontSize: '0.75rem',
+                      fontSize: 'var(--font-size-xs)',
                       fontWeight: 500,
                       color: 'var(--text-muted, #6b7280)',
                       textTransform: 'uppercase',
@@ -1438,7 +1438,7 @@ const StudentRoster = React.memo(function StudentRoster({
                       style={{
                         textAlign: 'center',
                         padding: '0.75rem 0.5rem',
-                        fontSize: '0.75rem',
+                        fontSize: 'var(--font-size-xs)',
                         fontWeight: 500,
                         color: 'var(--text-muted, #6b7280)',
                         textTransform: isRTL ? 'none' : 'uppercase',
@@ -1455,7 +1455,7 @@ const StudentRoster = React.memo(function StudentRoster({
                       style={{
                         textAlign: 'center',
                         padding: '0.75rem 0.5rem',
-                        fontSize: '0.75rem',
+                        fontSize: 'var(--font-size-xs)',
                         fontWeight: 500,
                         color: 'var(--text-muted, #6b7280)',
                         textTransform: isRTL ? 'none' : 'uppercase',
@@ -1472,7 +1472,7 @@ const StudentRoster = React.memo(function StudentRoster({
                       style={{
                         textAlign: 'center',
                         padding: '0.75rem 0.5rem',
-                        fontSize: '0.75rem',
+                        fontSize: 'var(--font-size-xs)',
                         fontWeight: 500,
                         color: 'var(--text-muted, #6b7280)',
                         textTransform: isRTL ? 'none' : 'uppercase',
@@ -1489,7 +1489,7 @@ const StudentRoster = React.memo(function StudentRoster({
                       style={{
                         textAlign: 'center',
                         padding: '0.75rem 0.5rem',
-                        fontSize: '0.75rem',
+                        fontSize: 'var(--font-size-xs)',
                         fontWeight: 500,
                         color: 'var(--text-muted, #6b7280)',
                         textTransform: isRTL ? 'none' : 'uppercase',
@@ -1510,7 +1510,7 @@ const StudentRoster = React.memo(function StudentRoster({
                       style={{
                         textAlign: 'center',
                         padding: '0.75rem 0.5rem',
-                        fontSize: '0.75rem',
+                        fontSize: 'var(--font-size-xs)',
                         fontWeight: 500,
                         color: 'var(--text-muted, #6b7280)',
                         textTransform: isRTL ? 'none' : 'uppercase',
@@ -1527,7 +1527,7 @@ const StudentRoster = React.memo(function StudentRoster({
                       style={{
                         textAlign: 'center',
                         padding: '0.75rem 0.5rem',
-                        fontSize: '0.75rem',
+                        fontSize: 'var(--font-size-xs)',
                         fontWeight: 500,
                         color: 'var(--text-muted, #6b7280)',
                         textTransform: isRTL ? 'none' : 'uppercase',
@@ -1544,7 +1544,7 @@ const StudentRoster = React.memo(function StudentRoster({
                       style={{
                         textAlign: 'center',
                         padding: '0.75rem 0.5rem',
-                        fontSize: '0.75rem',
+                        fontSize: 'var(--font-size-xs)',
                         fontWeight: 500,
                         color: 'var(--text-muted, #6b7280)',
                         textTransform: isRTL ? 'none' : 'uppercase',
@@ -1561,7 +1561,7 @@ const StudentRoster = React.memo(function StudentRoster({
                       style={{
                         textAlign: 'center',
                         padding: '0.75rem 0.5rem',
-                        fontSize: '0.75rem',
+                        fontSize: 'var(--font-size-xs)',
                         fontWeight: 500,
                         color: 'var(--text-muted, #6b7280)',
                         textTransform: isRTL ? 'none' : 'uppercase',
@@ -1578,7 +1578,7 @@ const StudentRoster = React.memo(function StudentRoster({
                       style={{
                         textAlign: 'center',
                         padding: '0.75rem 0.5rem',
-                        fontSize: '0.75rem',
+                        fontSize: 'var(--font-size-xs)',
                         fontWeight: 500,
                         color: 'var(--text-muted, #6b7280)',
                         textTransform: isRTL ? 'none' : 'uppercase',
@@ -1595,7 +1595,7 @@ const StudentRoster = React.memo(function StudentRoster({
                       style={{
                         textAlign: 'center',
                         padding: '0.75rem 0.5rem',
-                        fontSize: '0.75rem',
+                        fontSize: 'var(--font-size-xs)',
                         fontWeight: 500,
                         color: 'var(--text-muted, #6b7280)',
                         textTransform: isRTL ? 'none' : 'uppercase',
@@ -1612,7 +1612,7 @@ const StudentRoster = React.memo(function StudentRoster({
                 <th style={{
                   textAlign: 'center',
                   padding: '0.5rem 0.75rem',
-                  fontSize: '0.75rem',
+                  fontSize: 'var(--font-size-xs)',
                   fontWeight: 500,
                   color: 'var(--text-muted, #6b7280)',
                   textTransform: 'uppercase',
@@ -1685,7 +1685,7 @@ const StudentRoster = React.memo(function StudentRoster({
                 <td colSpan="2" style={{
                   padding: '0.75rem 0.5rem',
                   textAlign: 'center',
-                  fontSize: '0.875rem',
+                  fontSize: 'var(--font-size-sm)',
                   color: theme === 'dark' ? '#ffffff' : 'var(--text-primary, #111827)'
                 }}>
                   {t('total') || 'Total'}
@@ -1693,7 +1693,7 @@ const StudentRoster = React.memo(function StudentRoster({
                 <td style={{
                   padding: '0.75rem',
                   textAlign: isRTL ? 'right' : 'left',
-                  fontSize: '0.875rem',
+                  fontSize: 'var(--font-size-sm)',
                   color: theme === 'dark' ? '#ffffff' : 'var(--text-primary, #111827)'
                 }}>
                   {students.filter(student => !showFavoritesOnly || favoriteStudents.includes(student.id)).length} {t('students') || 'students'}
@@ -1702,7 +1702,7 @@ const StudentRoster = React.memo(function StudentRoster({
                   <td style={{
                     padding: '0.75rem',
                     textAlign: 'center',
-                    fontSize: '0.875rem',
+                    fontSize: 'var(--font-size-sm)',
                     color: 'var(--text-muted, #6b7280)'
                   }}>
                   </td>
@@ -1711,7 +1711,7 @@ const StudentRoster = React.memo(function StudentRoster({
                   <td style={{
                     padding: '0.75rem',
                     textAlign: 'center',
-                    fontSize: '0.875rem',
+                    fontSize: 'var(--font-size-sm)',
                     color: 'var(--text-muted, #6b7280)'
                   }}>
                   </td>
@@ -1721,7 +1721,7 @@ const StudentRoster = React.memo(function StudentRoster({
                     <td style={{
                       padding: '0.75rem',
                       textAlign: 'center',
-                      fontSize: '0.875rem',
+                      fontSize: 'var(--font-size-sm)',
                       color: 'var(--color-info, #3b82f6)',
                       fontWeight: 700
                     }}>
@@ -1733,7 +1733,7 @@ const StudentRoster = React.memo(function StudentRoster({
                     <td style={{
                       padding: '0.75rem',
                       textAlign: 'center',
-                      fontSize: '0.875rem',
+                      fontSize: 'var(--font-size-sm)',
                       color: 'var(--color-warning, #f59e0b)',
                       fontWeight: 700
                     }}>
@@ -1745,7 +1745,7 @@ const StudentRoster = React.memo(function StudentRoster({
                     <td style={{
                       padding: '0.75rem',
                       textAlign: 'center',
-                      fontSize: '0.875rem',
+                      fontSize: 'var(--font-size-sm)',
                       color: 'var(--color-danger, #ef4444)',
                       fontWeight: 700
                     }}>
@@ -1761,7 +1761,7 @@ const StudentRoster = React.memo(function StudentRoster({
                     <td style={{
                       padding: '0.75rem',
                       textAlign: 'center',
-                      fontSize: '0.875rem',
+                      fontSize: 'var(--font-size-sm)',
                       color: 'var(--color-success, #10b981)',
                       fontWeight: 700
                     }}>
@@ -1773,7 +1773,7 @@ const StudentRoster = React.memo(function StudentRoster({
                     <td style={{
                       padding: '0.75rem',
                       textAlign: 'center',
-                      fontSize: '0.875rem',
+                      fontSize: 'var(--font-size-sm)',
                       color: 'var(--color-warning, #f59e0b)',
                       fontWeight: 700
                     }}>
@@ -1785,7 +1785,7 @@ const StudentRoster = React.memo(function StudentRoster({
                     <td style={{
                       padding: '0.75rem',
                       textAlign: 'center',
-                      fontSize: '0.875rem',
+                      fontSize: 'var(--font-size-sm)',
                       color: 'var(--color-danger, #ef4444)',
                       fontWeight: 700
                     }}>
@@ -1797,7 +1797,7 @@ const StudentRoster = React.memo(function StudentRoster({
                     <td style={{
                       padding: '0.75rem',
                       textAlign: 'center',
-                      fontSize: '0.875rem',
+                      fontSize: 'var(--font-size-sm)',
                       color: '#ec4899',
                       fontWeight: 700
                     }}>
@@ -1812,7 +1812,7 @@ const StudentRoster = React.memo(function StudentRoster({
                     <td style={{
                       padding: '0.75rem',
                       textAlign: 'center',
-                      fontSize: '0.875rem',
+                      fontSize: 'var(--font-size-sm)',
                       color: 'var(--color-success, #10b981)',
                       fontWeight: 700
                     }}>
@@ -1824,7 +1824,7 @@ const StudentRoster = React.memo(function StudentRoster({
                     <td style={{
                       padding: '0.75rem',
                       textAlign: 'center',
-                      fontSize: '0.875rem',
+                      fontSize: 'var(--font-size-sm)',
                       color: 'var(--color-warning, #f59e0b)',
                       fontWeight: 700
                     }}>
@@ -1836,7 +1836,7 @@ const StudentRoster = React.memo(function StudentRoster({
                     <td style={{
                       padding: '0.75rem',
                       textAlign: 'center',
-                      fontSize: '0.875rem',
+                      fontSize: 'var(--font-size-sm)',
                       color: 'var(--color-danger, #ef4444)',
                       fontWeight: 700
                     }}>
@@ -1848,7 +1848,7 @@ const StudentRoster = React.memo(function StudentRoster({
                     <td style={{
                       padding: '0.75rem',
                       textAlign: 'center',
-                      fontSize: '0.875rem',
+                      fontSize: 'var(--font-size-sm)',
                       color: 'var(--color-danger, #ef4444)',
                       fontWeight: 700
                     }}>
@@ -1860,7 +1860,7 @@ const StudentRoster = React.memo(function StudentRoster({
                     <td style={{
                       padding: '0.75rem',
                       textAlign: 'center',
-                      fontSize: '0.875rem',
+                      fontSize: 'var(--font-size-sm)',
                       color: '#ec4899',
                       fontWeight: 700
                     }}>
@@ -1872,7 +1872,7 @@ const StudentRoster = React.memo(function StudentRoster({
                     <td style={{
                       padding: '0.75rem',
                       textAlign: 'center',
-                      fontSize: '0.875rem',
+                      fontSize: 'var(--font-size-sm)',
                       color: '#8b5cf6',
                       fontWeight: 700
                     }}>
@@ -1886,7 +1886,7 @@ const StudentRoster = React.memo(function StudentRoster({
                 <td style={{
                   padding: '0.75rem',
                   textAlign: 'center',
-                  fontSize: '0.875rem'
+                  fontSize: 'var(--font-size-sm)'
                 }}>
                 </td>
               </tr>

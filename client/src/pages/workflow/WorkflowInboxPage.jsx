@@ -227,7 +227,7 @@ const WorkflowInboxPage = () => {
         };
         const color = textColorMap[variant] || textColorMap.slate;
         return (
-          <span style={{ color, fontWeight: 600, fontSize: '0.8125rem', whiteSpace: 'nowrap' }}>
+          <span style={{ color, fontWeight: 600, fontSize: 'var(--font-size-sm)', whiteSpace: 'nowrap' }}>
             {getWorkflowDisplayLabel(params.row, t)}
           </span>
         );

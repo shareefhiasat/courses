@@ -146,7 +146,7 @@
 .contextLabel {
   font-weight: 600;
   color: #0284c7;
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   text-transform: uppercase;
   letter-spacing: 0.03em;
 }
@@ -208,7 +208,7 @@
 }
 
 .instructionalTitle {
-  font-size: 1.125rem;
+  font-size: var(--font-size-lg);
   font-weight: 500;
   margin-bottom: 0.5rem;
   color: #374151;
@@ -219,7 +219,7 @@
 }
 
 .instructionalDescription {
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   color: #64748b;
 }
 
@@ -234,7 +234,7 @@
 }
 
 .label {
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   color: #374151;
   display: flex;
@@ -247,7 +247,7 @@
 }
 
 .hint {
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   font-weight: 400;
   color: #6b7280;
 }
@@ -261,7 +261,7 @@
   padding: 0.75rem;
   border: 1px solid #d1d5db;
   border-radius: 0.5rem;
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   font-family: var(--font-family-mono, 'JetBrains Mono Variable', ui-monospace, monospace);
   resize: vertical;
   transition: all 0.2s;
@@ -296,7 +296,7 @@
 }
 
 .helpText {
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   color: #6b7280;
 }
 
@@ -320,7 +320,7 @@
   padding: 0.5rem 1rem;
   border: none;
   border-radius: 0.375rem;
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
@@ -416,7 +416,7 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   margin-bottom: 0.5rem;
 }
@@ -434,7 +434,7 @@
   display: flex;
   flex-direction: column;
   gap: 0.25rem;
-  font-size: 0.8125rem;
+  font-size: var(--font-size-sm);
 }
 
 .errorItem {
@@ -485,13 +485,13 @@
 }
 
 .chipsTitle {
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   color: #374151;
 }
 
 .validatingBadge {
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   padding: 0.25rem 0.625rem;
   background: #dbeafe;
   color: #1e40af;
@@ -542,7 +542,7 @@
 
 /* Manual input column label */
 .columnLabelManual {
-  font-size: 0.8125rem;
+  font-size: var(--font-size-sm);
   font-weight: 700;
   color: #1e40af;
   display: flex;
@@ -570,7 +570,7 @@
 
 /* Column header labels */
 .columnLabelExcluded {
-  font-size: 0.8125rem;
+  font-size: var(--font-size-sm);
   font-weight: 700;
   color: #92400e;
   display: flex;
@@ -585,7 +585,7 @@
 }
 
 .columnLabelSelected {
-  font-size: 0.8125rem;
+  font-size: var(--font-size-sm);
   font-weight: 700;
   color: #166534;
   display: flex;
@@ -640,7 +640,7 @@
   background: rgba(255, 255, 255, 0.9);
   border: 1px solid #d1d5db;
   border-radius: 0.375rem;
-  font-size: 0.8125rem;
+  font-size: var(--font-size-sm);
   transition: all 0.2s;
   width: 100%;
 }
@@ -689,7 +689,7 @@
   font-family: system-ui, -apple-system, sans-serif;
   font-weight: 500;
   color: #475569;
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   display: inline;
   margin-left: 0.5rem;
 }
@@ -702,7 +702,7 @@
   font-family: system-ui, -apple-system, sans-serif;
   font-weight: 400;
   color: #dc2626;
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
 }
 
 .dark .chipNotFoundText {
@@ -746,7 +746,7 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   color: #991b1b;
   margin-bottom: 0.5rem;
@@ -757,7 +757,7 @@
 }
 
 .notFoundList {
-  font-size: 0.8125rem;
+  font-size: var(--font-size-sm);
   color: #7f1d1d;
   font-family: var(--font-family-mono, 'JetBrains Mono Variable', ui-monospace, monospace);
 }
@@ -828,12 +828,12 @@
   .statusCard {
     padding: 0.5rem;
     min-width: 4.5rem;
-    font-size: 0.8125rem;
+    font-size: var(--font-size-sm);
   }
 }
 
 .controlLabel {
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   color: #374151;
   display: flex;
@@ -850,7 +850,7 @@
   padding: 0.625rem;
   border: 1px solid #d1d5db;
   border-radius: 0.5rem;
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   background: white;
   transition: all 0.2s;
   color: #111827;
@@ -901,7 +901,7 @@
 }
 
 .summaryTitle {
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   color: #1e40af;
   margin-bottom: 0.75rem;
@@ -921,7 +921,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 0.8125rem;
+  font-size: var(--font-size-sm);
 }
 
 .summaryLabel {
@@ -950,7 +950,7 @@
   gap: 0.75rem;
   padding: 0.875rem;
   border-radius: 0.5rem;
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
 }
 
 .errorMessage {
@@ -1028,7 +1028,7 @@
 .successText {
   font-weight: 600;
   color: #166534;
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
 }
 
 .dark .successText {
@@ -1057,7 +1057,7 @@
 }
 
 .statValue {
-  font-size: 1.125rem;
+  font-size: var(--font-size-lg);
   font-weight: 700;
   color: #16a34a;
   line-height: 1;
@@ -1087,7 +1087,7 @@
 }
 
 .bulkStudentsLabel {
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   font-weight: 600;
   color: #166534;
   margin-bottom: 0.5rem;
@@ -1166,7 +1166,7 @@
 }
 
 .successSummaryTime {
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   color: #64748b;
   background: rgba(255, 255, 255, 0.7);
   padding: 0.25rem 0.75rem;
@@ -1218,7 +1218,7 @@
 }
 
 .statLabel {
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   color: #64748b;
   font-weight: 600;
   text-transform: uppercase;
@@ -1241,7 +1241,7 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
 }
 
 .detailLabel {
@@ -1268,7 +1268,7 @@
   gap: 0.25rem;
   padding: 0.25rem 0.75rem;
   border-radius: 1rem;
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   font-weight: 600;
   text-transform: capitalize;
 }
@@ -1343,7 +1343,7 @@
   }
 
   .successSummaryTitle {
-    font-size: 1.125rem;
+    font-size: var(--font-size-lg);
   }
 
   .successSummaryTime {
@@ -1373,7 +1373,7 @@
   }
 
   .detailItem {
-    font-size: 0.8125rem;
+    font-size: var(--font-size-sm);
   }
 }
 
@@ -1393,7 +1393,7 @@
   }
 
   .statValue {
-    font-size: 1.125rem;
+    font-size: var(--font-size-lg);
   }
 
   .statLabel {
@@ -1455,7 +1455,7 @@
 }
 
 .successDetails {
-  font-size: 0.8125rem;
+  font-size: var(--font-size-sm);
   color: #15803d;
 }
 
@@ -1601,7 +1601,7 @@
   border-radius: 0.5rem;
   background: white;
   color: #6b7280;
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -1626,7 +1626,7 @@
 }
 
 .detailedResultsTitle {
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   color: #1e40af;
   margin: 0;
@@ -1637,7 +1637,7 @@
 }
 
 .detailedResultsCount {
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   color: #64748b;
   background: #e2e8f0;
   padding: 0.25rem 0.5rem;
@@ -1658,7 +1658,7 @@
   color: white;
   border: none;
   border-radius: 0.375rem;
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
@@ -1745,7 +1745,7 @@
   font-family: var(--font-family-mono, 'JetBrains Mono Variable', ui-monospace, monospace);
   font-weight: 600;
   color: #1f2937;
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   margin-bottom: 0.25rem;
 }
 
@@ -1755,7 +1755,7 @@
 
 .studentCardName {
   color: #6b7280;
-  font-size: 0.8125rem;
+  font-size: var(--font-size-sm);
   word-break: break-word;
 }
 
@@ -1769,7 +1769,7 @@
   gap: 0.25rem;
   padding: 0.375rem 0.75rem;
   border-radius: 9999px;
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   font-weight: 500;
   white-space: nowrap;
   flex-shrink: 0;
@@ -1816,7 +1816,7 @@
 }
 
 .studentCardMessage {
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   color: #6b7280;
   font-style: italic;
   line-height: 1.4;
@@ -1921,7 +1921,7 @@
   justify-content: space-between;
   align-items: center;
   margin-bottom: 0.5rem;
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   color: #64748b;
 }
 
@@ -1967,7 +1967,7 @@
 }
 
 .batchInfo {
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   color: #64748b;
   text-align: center;
 }

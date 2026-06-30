@@ -33,7 +33,7 @@ export default function PanelHeader({ student, attendanceStatus, t, lang, isRTL,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        fontSize: '1.125rem',
+        fontSize: 'var(--font-size-lg)',
         fontWeight: 500,
         background: avatarColor.bg,
         color: avatarColor.color,
@@ -56,7 +56,7 @@ export default function PanelHeader({ student, attendanceStatus, t, lang, isRTL,
             {displayName}
           </h3>
           <span style={{
-            fontSize: '0.75rem',
+            fontSize: 'var(--font-size-xs)',
             color: 'var(--text-muted, #6b7280)',
             fontFamily: 'var(--font-family-mono)',
             background: 'var(--panel-hover, #f3f4f6)',
@@ -74,14 +74,14 @@ export default function PanelHeader({ student, attendanceStatus, t, lang, isRTL,
                   background: attendanceStatus.color,
                   borderRadius: '9999px'
                 }} />
-                <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted, #6b7280)' }}>
+                <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-muted, #6b7280)' }}>
                   {lang === 'ar' ? (attendanceStatus.ar || attendanceStatus.en) : attendanceStatus.en}
                 </span>
               </>
             ) : (
               <>
                 <CircleIcon style={{ width: '14px', height: '14px', stroke: 'var(--text-muted, #9ca3af)' }} />
-                <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted, #9ca3af)' }}>
+                <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-muted, #9ca3af)' }}>
                   {t('none') || 'None'}
                 </span>
               </>

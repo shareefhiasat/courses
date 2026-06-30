@@ -74,7 +74,7 @@
 }
 
 .submission-card-meta {
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   color: #6b7280;
   display: flex;
   align-items: center;
@@ -92,7 +92,7 @@
 .score-badge {
   padding: 0.25rem 0.75rem;
   border-radius: 999px;
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   font-weight: 700;
 }
 
@@ -142,7 +142,7 @@
 .view-button {
   padding: 0.5rem 1rem;
   border-radius: 8px;
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s ease;

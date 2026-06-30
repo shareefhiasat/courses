@@ -123,13 +123,13 @@
 
 .errorText {
   color: var(--color-danger, #dc3545);
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   margin-top: 0.25rem;
 }
 
 .helperText {
   color: var(--text-muted, #666);
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   margin-top: 0.25rem;
 }
 

@@ -221,10 +221,10 @@ export default function UploadModal({
           >
             {getThemedIcon('ui', 'upload', 32, 'primary')}
           </div>
-          <p style={{ margin: 0, textAlign: 'center', fontSize: '1rem', fontWeight: 600, color: 'var(--text)' }}>
+          <p style={{ margin: 0, textAlign: 'center', fontSize: 'var(--font-size-md)', fontWeight: 600, color: 'var(--text)' }}>
             {t('drive.dragDropFiles')}
           </p>
-          <p style={{ margin: 0, textAlign: 'center', fontSize: '0.875rem', color: 'var(--text-muted)' }}>
+          <p style={{ margin: 0, textAlign: 'center', fontSize: 'var(--font-size-sm)', color: 'var(--text-muted)' }}>
             {t('drive.orClickToSelect')}
           </p>
           <div
@@ -261,7 +261,7 @@ export default function UploadModal({
               justifyContent: 'center',
               gap: '0.75rem',
               marginTop: '0.25rem',
-              fontSize: '0.75rem',
+              fontSize: 'var(--font-size-xs)',
               color: 'var(--text-muted)',
             }}
           >

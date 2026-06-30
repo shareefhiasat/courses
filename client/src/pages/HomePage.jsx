@@ -1456,8 +1456,8 @@ const HomePage = memo(() => {
                 {/* Year filter */}
                 {reviewAvailableYears.length > 0 && (
                   <div style={{ flex: '1 1 auto', minWidth: 120 }}>
-                    <div style={{ fontSize: '0.75rem', fontWeight: 600, color: isDark ? '#9ca3af' : '#6b7280', marginBottom: '0.25rem' }}>{t('year') || 'Year'}</div>
-                    <select value={selectedYear} onChange={e => setSelectedYear(e.target.value)} style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: isDark ? '1px solid #333' : '1px solid #e5e7eb', background: isDark ? '#0f172a' : '#fff', color: isDark ? '#f8fafc' : '#111', fontSize: '0.875rem', outline: 'none' }}>
+                    <div style={{ fontSize: 'var(--font-size-xs)', fontWeight: 600, color: isDark ? '#9ca3af' : '#6b7280', marginBottom: '0.25rem' }}>{t('year') || 'Year'}</div>
+                    <select value={selectedYear} onChange={e => setSelectedYear(e.target.value)} style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: isDark ? '1px solid #333' : '1px solid #e5e7eb', background: isDark ? '#0f172a' : '#fff', color: isDark ? '#f8fafc' : '#111', fontSize: 'var(--font-size-sm)', outline: 'none' }}>
                       <option value="all">{t('all') || 'All'}</option>
                       {reviewAvailableYears.map(y => <option key={y} value={y}>{y}</option>)}
                     </select>
@@ -1466,8 +1466,8 @@ const HomePage = memo(() => {
                 {/* Term filter */}
                 {reviewAvailableTerms.length > 0 && (
                   <div style={{ flex: '1 1 auto', minWidth: 120 }}>
-                    <div style={{ fontSize: '0.75rem', fontWeight: 600, color: isDark ? '#9ca3af' : '#6b7280', marginBottom: '0.25rem' }}>{t('term') || 'Term'}</div>
-                    <select value={selectedTerm} onChange={e => setSelectedTerm(e.target.value)} style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: isDark ? '1px solid #333' : '1px solid #e5e7eb', background: isDark ? '#0f172a' : '#fff', color: isDark ? '#f8fafc' : '#111', fontSize: '0.875rem', outline: 'none' }}>
+                    <div style={{ fontSize: 'var(--font-size-xs)', fontWeight: 600, color: isDark ? '#9ca3af' : '#6b7280', marginBottom: '0.25rem' }}>{t('term') || 'Term'}</div>
+                    <select value={selectedTerm} onChange={e => setSelectedTerm(e.target.value)} style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: isDark ? '1px solid #333' : '1px solid #e5e7eb', background: isDark ? '#0f172a' : '#fff', color: isDark ? '#f8fafc' : '#111', fontSize: 'var(--font-size-sm)', outline: 'none' }}>
                       <option value="all">{t('all') || 'All'}</option>
                       {reviewAvailableTerms.map(term => <option key={term} value={term}>{term}</option>)}
                     </select>
@@ -1918,7 +1918,7 @@ const HomePage = memo(() => {
             showCloseButton={true}
             title={annTitle}
             titleStyle={{
-              fontSize: '1.125rem',
+              fontSize: 'var(--font-size-lg)',
               fontWeight: '600',
               lineHeight: '1.3',
               padding: '0.75rem 0'
@@ -1933,7 +1933,7 @@ const HomePage = memo(() => {
                   borderRadius: 6,
                   padding: '2px 6px',
                   cursor: 'pointer',
-                  fontSize: '0.75rem',
+                  fontSize: 'var(--font-size-xs)',
                   color: isDark ? '#9ca3af' : '#6b7280',
                   display: 'flex',
                   alignItems: 'center',

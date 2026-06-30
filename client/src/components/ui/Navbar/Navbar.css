@@ -89,7 +89,7 @@
 /* Navbar DraggableClock styles */
 .navbar-clock {
   z-index: 1000; /* Above navbar but below modals */
-  font-size: 0.875rem; /* Slightly smaller for navbar context */
+  font-size: var(--font-size-sm); /* Slightly smaller for navbar context */
 }
 
 .navbar-clock .clock-header {
@@ -125,7 +125,7 @@
   cursor: pointer;
   transition: transform .15s ease, background .2s ease, border-color .2s ease, box-shadow .2s ease;
   backdrop-filter: saturate(150%) blur(6px);
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
 }
 
 [data-theme="dark"] .nav-icon-btn {
@@ -227,7 +227,7 @@
   .nav-icon-btn { 
     width: 30px; 
     height: 30px;
-    font-size: 14px;
+    font-size: var(--font-size-sm);
   }
   .navbar-hamburger {
     padding: 0.3rem 0.5rem;
@@ -318,7 +318,7 @@ html[lang="ar"] .dropdown-menu {
   cursor: pointer;
   transition: background 0.2s;
   color: var(--text, #111);
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
 }
 
 [data-theme="dark"] .dropdown-item {
@@ -361,7 +361,7 @@ html[lang="ar"] .dropdown-menu {
   color: white;
   padding: 2px 8px;
   border-radius: 12px;
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   font-weight: 600;
   display: inline-block;
 }
@@ -406,7 +406,7 @@ html[lang="ar"] .dropdown-menu {
     gap: 0.25rem;
   }
   .navbar-item { 
-    font-size: 0.75rem; 
+    font-size: var(--font-size-xs); 
     padding: 0.3rem 0.4rem;
   }
   .navbar-brand {

@@ -346,10 +346,10 @@ const UserCategoryAccessPage = () => {
   if (!isSuperAdmin) {
     return (
       <div style={{ padding: '2rem', textAlign: 'center' }}>
-        <div style={{ fontSize: '1.125rem', fontWeight: '500', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
+        <div style={{ fontSize: 'var(--font-size-lg)', fontWeight: '500', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
           {t('access_denied')}
         </div>
-        <div style={{ fontSize: '0.875rem', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '0.5rem' }}>
+        <div style={{ fontSize: 'var(--font-size-sm)', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '0.5rem' }}>
           {t('super_admin_required')}
         </div>
       </div>
@@ -570,7 +570,7 @@ const UserCategoryAccessPage = () => {
         alignItems: 'center',
         marginBottom: '1rem'
       }}>
-        <h3 style={{ margin: 0, fontSize: '1.125rem', fontWeight: '500' }}>
+        <h3 style={{ margin: 0, fontSize: 'var(--font-size-lg)', fontWeight: '500' }}>
           {t('user_access_title', { count: `${filteredAccesses.length}${filteredAccesses.length !== accesses.length ? ` / ${accesses.length}` : ''}` })}
         </h3>
       </div>

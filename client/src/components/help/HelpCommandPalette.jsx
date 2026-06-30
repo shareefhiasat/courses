@@ -123,7 +123,7 @@ export default function HelpCommandPalette() {
             border: 'none',
             outline: 'none',
             padding: '16px 20px',
-            fontSize: 16,
+            fontSize: 'var(--font-size-md)',
             background: 'transparent',
             color: 'var(--text-color, #333)',
             borderBottom: '1px solid var(--border-color, #e0e0e0)',
@@ -148,7 +148,7 @@ export default function HelpCommandPalette() {
                   onSelect={() => openArticle(article.slug)}
                   style={itemStyle}
                 >
-                  <span style={{ fontSize: 18, marginInlineEnd: 10 }}>📖</span>
+                  <span style={{ fontSize: 'var(--font-size-lg)', marginInlineEnd: 10 }}>📖</span>
                   {article.title}
                 </Command.Item>
               ))}
@@ -167,9 +167,9 @@ export default function HelpCommandPalette() {
                   onSelect={() => goToRoute(nav.route)}
                   style={itemStyle}
                 >
-                  <span style={{ fontSize: 18, marginInlineEnd: 10 }}>🔗</span>
+                  <span style={{ fontSize: 'var(--font-size-lg)', marginInlineEnd: 10 }}>🔗</span>
                   {nav.label}
-                  <span style={{ marginInlineStart: 'auto', opacity: 0.5, fontSize: 13 }}>{nav.route}</span>
+                  <span style={{ marginInlineStart: 'auto', opacity: 0.5, fontSize: 'var(--font-size-sm)' }}>{nav.route}</span>
                 </Command.Item>
               ))}
             </Command.Group>
@@ -192,7 +192,7 @@ const itemStyle = {
   padding: '10px 12px',
   borderRadius: 8,
   cursor: 'pointer',
-  fontSize: 14,
+  fontSize: 'var(--font-size-sm)',
   color: 'var(--text-color, #333)',
 };
 

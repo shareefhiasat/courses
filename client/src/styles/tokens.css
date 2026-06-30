@@ -75,17 +75,30 @@
   --line-height-body: var(--line-height-body-ltr);
   --letter-spacing-ltr: normal;
   --letter-spacing-rtl: 0.01em;
-  
-  /* Font Sizes */
-  --font-size-xs: 0.75rem;    /* 12px */
-  --font-size-sm: 0.875rem;   /* 14px */
-  --font-size-md: 1rem;       /* 16px */
-  --font-size-lg: 1.125rem;   /* 18px */
-  --font-size-xl: 1.25rem;    /* 20px */
-  --font-size-2xl: 1.5rem;    /* 24px */
-  --font-size-3xl: 1.875rem;  /* 30px */
-  --font-size-4xl: 2.25rem;   /* 36px */
-  --font-size-5xl: 3rem;      /* 48px */
+
+  /* Type scale — driven by data-text-size on html (Profile → Appearance) */
+  --type-multiplier: 1;
+  --type-base: calc(1rem * var(--type-multiplier));
+  --spacing-scale: 1;
+  --grid-row-height: 36px;
+
+  /* Font Sizes (relative to --type-base) */
+  --font-size-xs: calc(var(--type-base) * 0.75);
+  --font-size-sm: calc(var(--type-base) * 0.875);
+  --font-size-md: var(--type-base);
+  --font-size-lg: calc(var(--type-base) * 1.125);
+  --font-size-xl: calc(var(--type-base) * 1.25);
+  --font-size-2xl: calc(var(--type-base) * 1.5);
+  --font-size-3xl: calc(var(--type-base) * 1.875);
+  --font-size-4xl: calc(var(--type-base) * 2.25);
+  --font-size-5xl: calc(var(--type-base) * 3);
+
+  /* Semantic type aliases */
+  --type-caption: var(--font-size-xs);
+  --type-label: var(--font-size-sm);
+  --type-body: var(--font-size-md);
+  --type-title: var(--font-size-lg);
+  --type-heading: var(--font-size-2xl);
   
   /* Font Weights */
   --font-weight-light: 300;
@@ -258,6 +271,42 @@
     --border: var(--color-gray-900);
     --border-light: var(--color-gray-700);
   }
+}
+
+/* ===== TEXT SIZE TIERS ===== */
+html[data-text-size="default"],
+html:not([data-text-size]) {
+  --type-multiplier: 1;
+}
+
+html[data-text-size="large"] {
+  --type-multiplier: 1.1;
+}
+
+html[data-text-size="larger"] {
+  --type-multiplier: 1.2;
+}
+
+html[data-text-size="largest"] {
+  --type-multiplier: 1.35;
+}
+
+/* ===== DENSITY (spacing only — text size is separate) ===== */
+html[data-density="compact"],
+html:not([data-density]) {
+  --spacing-scale: 0.85;
+}
+
+html[data-density="cozy"] {
+  --spacing-scale: 0.92;
+}
+
+html[data-density="comfortable"] {
+  --spacing-scale: 1;
+}
+
+html[data-density="roomy"] {
+  --spacing-scale: 1.15;
 }
 
 /* ===== LANG-AWARE TYPOGRAPHY ===== */

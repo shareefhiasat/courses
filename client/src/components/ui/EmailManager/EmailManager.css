@@ -264,7 +264,7 @@
 }
 
 .student-number {
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   color: var(--text-secondary, #666);
   font-weight: 600;
   background: var(--chip-bg, #f5f5f5);

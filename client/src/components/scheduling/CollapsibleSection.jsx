@@ -79,7 +79,7 @@ export default function CollapsibleSection({
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0, flex: 1 }}>
           {HeaderIcon && <HeaderIcon size={16} color={muted} />}
           <span style={{
-            fontSize: '0.8125rem',
+            fontSize: 'var(--font-size-sm)',
             fontWeight: 600,
             color: theme === 'dark' ? '#f3f4f6' : '#1f2937',
             flexShrink: 0,
@@ -88,7 +88,7 @@ export default function CollapsibleSection({
           </span>
           {!open && summary && (
             <span style={{
-              fontSize: '0.75rem',
+              fontSize: 'var(--font-size-xs)',
               color: muted,
               whiteSpace: 'nowrap',
               overflow: 'hidden',

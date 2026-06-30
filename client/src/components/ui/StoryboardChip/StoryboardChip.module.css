@@ -18,9 +18,9 @@
 .label { line-height: 1; }
 
 /* Sizes */
-.sm { padding: 4px 10px; font-size: 12px; }
-.md { padding: 6px 12px; font-size: 13px; }
-.lg { padding: 8px 14px; font-size: 14px; }
+.sm { padding: 4px 10px; font-size: var(--font-size-xs); }
+.md { padding: 6px 12px; font-size: var(--font-size-sm); }
+.lg { padding: 8px 14px; font-size: var(--font-size-sm); }
 
 /* Active state subtle glow */
 .active { box-shadow: 0 2px 10px rgba(0,0,0,0.08); }

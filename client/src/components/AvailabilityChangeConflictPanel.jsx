@@ -31,7 +31,7 @@ export default function AvailabilityChangeConflictPanel({
         borderRadius: '0.375rem',
         backgroundColor: colors.bg,
         border: `1px solid ${colors.border}`,
-        fontSize: '0.8125rem',
+        fontSize: 'var(--font-size-sm)',
         color: colors.text,
         marginBottom: '1rem'
       }}>
@@ -50,7 +50,7 @@ export default function AvailabilityChangeConflictPanel({
         borderRadius: '0.375rem',
         backgroundColor: colors.bg,
         border: `1px solid ${colors.border}`,
-        fontSize: '0.8125rem',
+        fontSize: 'var(--font-size-sm)',
         color: colors.text,
         marginBottom: '1rem'
       }}>
@@ -73,7 +73,7 @@ export default function AvailabilityChangeConflictPanel({
       borderRadius: '0.375rem',
       backgroundColor: colors.bg,
       border: `1px solid ${colors.border}`,
-      fontSize: '0.8125rem',
+      fontSize: 'var(--font-size-sm)',
       color: colors.text,
       marginBottom: '1rem'
     }}>

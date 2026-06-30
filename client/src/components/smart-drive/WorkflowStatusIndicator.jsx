@@ -54,12 +54,12 @@ export default function WorkflowStatusIndicator({ workflowCounts = {}, onClick, 
             display: 'flex',
             alignItems: 'center',
             gap: '0.25rem',
-            fontSize: '0.75rem',
+            fontSize: 'var(--font-size-xs)',
             fontWeight: 600,
             color: config.color,
           }}
         >
-          <span style={{ fontSize: '0.875rem' }}>
+          <span style={{ fontSize: 'var(--font-size-sm)' }}>
             {getThemedIcon('ui', config.icon, 14, config.color)}
           </span>
           <span>{count}</span>

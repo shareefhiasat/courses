@@ -88,7 +88,7 @@ const DifficultyFilterChips = ({
               border: `1px solid ${diff.colors.border}`,
               background: isActive ? diff.colors.activeBg : diff.colors.bg,
               color: isActive ? diff.colors.activeText : diff.colors.text,
-              fontSize: '0.75rem',
+              fontSize: 'var(--font-size-xs)',
               fontWeight: diff.value === 'all' ? 700 : 600,
               display: 'inline-flex',
               alignItems: 'center',

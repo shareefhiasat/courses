@@ -76,7 +76,7 @@ export default function StatusColumn({ file, onClick }) {
             alignItems: 'center',
             justifyContent: 'center',
             gap: '0.25rem',
-            fontSize: '0.75rem',
+            fontSize: 'var(--font-size-xs)',
             fontWeight: 500,
             flexWrap: 'wrap',
             maxWidth: '80px',
@@ -91,7 +91,7 @@ export default function StatusColumn({ file, onClick }) {
                 color: '#f97316',
               }}
             >
-              <span style={{ fontSize: '0.875rem' }}>
+              <span style={{ fontSize: 'var(--font-size-sm)' }}>
                 {getThemedIcon('ui', 'user', 14, '#f97316')}
               </span>
               <span>{shareCounts.people}</span>
@@ -106,7 +106,7 @@ export default function StatusColumn({ file, onClick }) {
                 color: '#8b5cf6',
               }}
             >
-              <span style={{ fontSize: '0.875rem' }}>
+              <span style={{ fontSize: 'var(--font-size-sm)' }}>
                 {getThemedIcon('ui', 'shield', 14, '#8b5cf6')}
               </span>
               <span>{shareCounts.roles}</span>
@@ -134,12 +134,12 @@ export default function StatusColumn({ file, onClick }) {
             display: 'flex',
             alignItems: 'center',
             gap: '0.125rem',
-            fontSize: '0.75rem',
+            fontSize: 'var(--font-size-xs)',
             fontWeight: 500,
             color: '#10b981',
           }}
         >
-          <span style={{ fontSize: '0.875rem' }}>
+          <span style={{ fontSize: 'var(--font-size-sm)' }}>
             {getThemedIcon('ui', 'link', 14, '#10b981')}
           </span>
           <span>{publicLinksCount}</span>
@@ -165,17 +165,17 @@ export default function StatusColumn({ file, onClick }) {
           onMouseEnter={() => setHovered(true)}
           onMouseLeave={() => setHovered(false)}
         >
-          <div style={{ fontSize: '0.875rem', fontWeight: 600, marginBottom: '0.5rem' }}>
+          <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, marginBottom: '0.5rem' }}>
             {t('drive.statusDetails') || 'Status Details'}
           </div>
           
           {/* Share details */}
           {hasShares && (
             <div style={{ marginBottom: '0.5rem' }}>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)', marginBottom: '0.25rem' }}>
+              <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted, #6b7280)', marginBottom: '0.25rem' }}>
                 {t('drive.sharedWith') || 'Shared with'}
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.75rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: 'var(--font-size-xs)' }}>
                 {shareCounts.people > 0 && (
                   <span style={{ color: '#f97316', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                     {getThemedIcon('ui', 'user', 12, '#f97316')} {shareCounts.people} {t('drive.people') || 'people'}
@@ -193,10 +193,10 @@ export default function StatusColumn({ file, onClick }) {
           {/* Workflow details */}
           {hasActiveWorkflow && (
             <div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)', marginBottom: '0.25rem' }}>
+              <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted, #6b7280)', marginBottom: '0.25rem' }}>
                 {t('drive.workflowStatus') || 'Workflow Status'}
               </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', fontSize: '0.75rem' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', fontSize: 'var(--font-size-xs)' }}>
                 {Object.entries(workflowCounts)
                   .filter(([_, count]) => count > 0)
                   .map(([status, count]) => {
@@ -211,7 +211,7 @@ export default function StatusColumn({ file, onClick }) {
                           color: config.color,
                         }}
                       >
-                        <span style={{ fontSize: '0.875rem' }}>
+                        <span style={{ fontSize: 'var(--font-size-sm)' }}>
                           {getThemedIcon('ui', config.icon, 12, config.color)}
                         </span>
                         <span style={{ fontWeight: 600 }}>{count}</span>
@@ -226,11 +226,11 @@ export default function StatusColumn({ file, onClick }) {
           {/* Public links details */}
           {hasPublicLinks && (
             <div>
-              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)', marginBottom: '0.25rem' }}>
+              <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted, #6b7280)', marginBottom: '0.25rem' }}>
                 {t('drive.publicLinks') || 'Public Links'}
               </div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: '0.75rem', color: '#10b981' }}>
-                <span style={{ fontSize: '0.875rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: 'var(--font-size-xs)', color: '#10b981' }}>
+                <span style={{ fontSize: 'var(--font-size-sm)' }}>
                   {getThemedIcon('ui', 'link', 12, '#10b981')}
                 </span>
                 <span style={{ fontWeight: 600 }}>{publicLinksCount}</span>
@@ -240,7 +240,7 @@ export default function StatusColumn({ file, onClick }) {
           )}
 
           {!hasShares && !hasActiveWorkflow && !hasPublicLinks && (
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)' }}>
+            <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted, #6b7280)' }}>
               {t('drive.noStatus') || 'No status information'}
             </div>
           )}

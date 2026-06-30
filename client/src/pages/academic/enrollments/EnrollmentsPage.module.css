@@ -74,7 +74,7 @@
 
 .className {
   font-weight: 600;
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   color: var(--text, #212529);
 }
 
@@ -101,7 +101,7 @@
 }
 
 .stats {
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   color: var(--text-muted, #666);
 }
 
@@ -119,7 +119,7 @@
   background: #eff6ff;
   border: 1px solid #800020;
   border-radius: 8px;
-  font-size: 0.8125rem;
+  font-size: var(--font-size-sm);
   color: #1e40af;
 }
 
@@ -186,7 +186,7 @@
 }
 
 .studentEmail {
-  font-size: 0.75rem;
+  font-size: var(--font-size-xs);
   color: var(--text-muted, #666);
   margin-bottom: 0.125rem;
 }

@@ -11,12 +11,12 @@ function ListCard({ title, items, labelFn, countKey = 'sessionCount' }) {
   return (
     <Card>
       <CardBody>
-        <h4 style={{ fontSize: '1rem', fontWeight: 500, marginBottom: '0.75rem' }}>{title}</h4>
+        <h4 style={{ fontSize: 'var(--font-size-md)', fontWeight: 500, marginBottom: '0.75rem' }}>{title}</h4>
         {!items?.length ? (
-          <p style={{ color: muted, fontSize: '0.875rem' }}>—</p>
+          <p style={{ color: muted, fontSize: 'var(--font-size-sm)' }}>—</p>
         ) : (
           items.map((item, i) => (
-            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.375rem 0', borderBottom: `1px solid ${border}`, fontSize: '0.875rem' }}>
+            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.375rem 0', borderBottom: `1px solid ${border}`, fontSize: 'var(--font-size-sm)' }}>
               <span>{labelFn(item)}</span>
               <span style={{ fontWeight: 500 }}>{item[countKey] ?? item.count}</span>
             </div>

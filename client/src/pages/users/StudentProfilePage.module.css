@@ -147,7 +147,7 @@
   justify-content: center;
   color: white;
   font-weight: 600;
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
 }
 
 .searchResultInfo {
@@ -165,7 +165,7 @@
 }
 
 .searchResultEmail {
-  font-size: 0.875rem;
+  font-size: var(--font-size-sm);
   color: var(--profile-text-muted);
   white-space: nowrap;
   overflow: hidden;

@@ -62,7 +62,7 @@ export default function AutoRefreshBar({
     alignItems: 'center',
     gap: '0.35rem',
     padding: '0.35rem 0.65rem',
-    fontSize: '0.8125rem',
+    fontSize: 'var(--font-size-sm)',
     borderRadius: '6px',
     border: `1px solid ${theme === 'dark' ? '#4b5563' : '#d1d5db'}`,
     background: theme === 'dark' ? '#374151' : '#fff',
@@ -157,7 +157,7 @@ export default function AutoRefreshBar({
           <div style={{ height: '100%', width: `${Math.min(100, progress)}%`, background: '#10b981', borderRadius: '2px', transition: 'width 0.25s linear' }} />
         </div>
       )}
-      <span style={{ fontSize: '0.75rem', color: muted }}>
+      <span style={{ fontSize: 'var(--font-size-xs)', color: muted }}>
         {t('last_updated') || 'Last updated'}: {new Date(lastUpdated).toLocaleTimeString()}
       </span>
     </div>

@@ -287,13 +287,13 @@ function CalendarEventDialog({
   };
 
   const labelStyle = {
-    fontSize: '0.875rem',
+    fontSize: 'var(--font-size-sm)',
     fontWeight: 500,
     color: text,
   };
 
   const errorStyle = {
-    fontSize: '0.75rem',
+    fontSize: 'var(--font-size-xs)',
     color: '#ef4444',
     marginTop: '0.25rem',
     display: 'flex',
@@ -307,7 +307,7 @@ function CalendarEventDialog({
     border: `1px solid ${border}`,
     backgroundColor: inputBg,
     color: text,
-    fontSize: '0.875rem',
+    fontSize: 'var(--font-size-sm)',
   };
 
   const buttonStyle = (variant = 'primary') => ({
@@ -315,7 +315,7 @@ function CalendarEventDialog({
     borderRadius: '0.375rem',
     border: 'none',
     cursor: 'pointer',
-    fontSize: '0.875rem',
+    fontSize: 'var(--font-size-sm)',
     fontWeight: 500,
     backgroundColor: variant === 'primary' ? '#3b82f6' : variant === 'danger' ? '#ef4444' : theme === 'dark' ? '#374151' : '#f3f4f6',
     color: ['primary', 'danger'].includes(variant) ? '#ffffff' : text,
@@ -557,10 +557,10 @@ function CalendarEventDialog({
                     {t('scheduling_conflicts_title')}
                   </span>
                 </div>
-                <div style={{ fontSize: '0.8125rem', color: theme === 'dark' ? '#fca5a5' : '#991b1b' }}>
+                <div style={{ fontSize: 'var(--font-size-sm)', color: theme === 'dark' ? '#fca5a5' : '#991b1b' }}>
                   {breakConflicts.length} {t('session')}{breakConflicts.length === 1 ? '' : 's'} {t('for_same_program')} {t('on_selected_date_time')}
                 </div>
-                <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: theme === 'dark' ? '#fca5a5' : '#991b1b' }}>
+                <div style={{ marginTop: '0.5rem', fontSize: 'var(--font-size-xs)', color: theme === 'dark' ? '#fca5a5' : '#991b1b' }}>
                   {t('break_conflict_warning')}
                 </div>
               </div>
@@ -666,14 +666,14 @@ function CalendarEventDialog({
               }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
                   <AlertCircle size={16} color={theme === 'dark' ? '#fca5a5' : '#dc2626'} />
-                  <span style={{ fontWeight: 600, color: theme === 'dark' ? '#fca5a5' : '#dc2626', fontSize: '0.875rem' }}>
+                  <span style={{ fontWeight: 600, color: theme === 'dark' ? '#fca5a5' : '#dc2626', fontSize: 'var(--font-size-sm)' }}>
                     {t('holiday_conflict_warning')}
                   </span>
                 </div>
-                <div style={{ fontSize: '0.8125rem', color: theme === 'dark' ? '#fca5a5' : '#991b1b' }}>
+                <div style={{ fontSize: 'var(--font-size-sm)', color: theme === 'dark' ? '#fca5a5' : '#991b1b' }}>
                   {holidayConflicts.length} {t('session')} {holidayConflicts.length === 1 ? t('exists') : t('exist')} {t('on_selected_dates')}
                 </div>
-                <div style={{ marginTop: '0.5rem', fontSize: '0.75rem', color: theme === 'dark' ? '#fca5a5' : '#991b1b' }}>
+                <div style={{ marginTop: '0.5rem', fontSize: 'var(--font-size-xs)', color: theme === 'dark' ? '#fca5a5' : '#991b1b' }}>
                   {t('holiday_conflict_proceed_warning')}
                 </div>
               </div>

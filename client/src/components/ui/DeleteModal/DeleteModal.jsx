@@ -110,12 +110,12 @@ const DeleteModal = ({
 
         {isHtml ? (
           <div 
-            style={{ fontSize: '1rem', color: '#6b7280', margin: '0 0 1.5rem 0', lineHeight: '1.5' }}
+            style={{ fontSize: 'var(--font-size-md)', color: '#6b7280', margin: '0 0 1.5rem 0', lineHeight: '1.5' }}
             dangerouslySetInnerHTML={{ __html: message }} 
           />
         ) : (
           <p style={{
-            fontSize: '1rem',
+            fontSize: 'var(--font-size-md)',
             color: '#6b7280',
             margin: '0 0 1.5rem 0',
             lineHeight: '1.5',
@@ -142,7 +142,7 @@ const DeleteModal = ({
               border: '1px solid #d1d5db',
               padding: '0.75rem 1.5rem',
               borderRadius: '0.5rem',
-              fontSize: '1rem',
+              fontSize: 'var(--font-size-md)',
               fontWeight: '500',
               cursor: loading ? 'not-allowed' : 'pointer',
               opacity: loading ? 0.5 : 1
@@ -160,7 +160,7 @@ const DeleteModal = ({
               border: 'none',
               padding: '0.75rem 1.5rem',
               borderRadius: '0.5rem',
-              fontSize: '1rem',
+              fontSize: 'var(--font-size-md)',
               fontWeight: '500',
               cursor: loading ? 'not-allowed' : 'pointer',
               opacity: loading ? 0.6 : 1

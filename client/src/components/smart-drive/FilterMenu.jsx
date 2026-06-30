@@ -109,7 +109,7 @@ export default function FilterMenu({ onAddFilter }) {
           color: 'var(--text-secondary, #374151)',
           border: '1px solid var(--border, #e5e7eb)',
           borderRadius: '999px',
-          fontSize: '0.8125rem',
+          fontSize: 'var(--font-size-sm)',
           cursor: 'pointer',
           transition: 'background 0.15s',
         }}
@@ -170,7 +170,7 @@ export default function FilterMenu({ onAddFilter }) {
                   background: 'transparent',
                   color: 'var(--text-muted, #8d90a0)',
                   cursor: 'pointer',
-                  fontSize: '0.875rem',
+                  fontSize: 'var(--font-size-sm)',
                 }}
                 onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text, inherit)'}
                 onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted, #8d90a0)'}

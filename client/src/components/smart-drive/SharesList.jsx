@@ -120,7 +120,7 @@ export default function SharesList({ fileId, onRevoke, refreshKey, readOnly = fa
 
   if (loading) {
     return (
-      <div style={{ padding: '1rem', textAlign: 'center', fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)' }}>
+      <div style={{ padding: '1rem', textAlign: 'center', fontSize: 'var(--font-size-sm)', color: 'var(--text-muted, #6b7280)' }}>
         {t('common.loading')}&hellip;
       </div>
     );
@@ -128,7 +128,7 @@ export default function SharesList({ fileId, onRevoke, refreshKey, readOnly = fa
 
   if (error) {
     return (
-      <div style={{ padding: '1rem', textAlign: 'center', fontSize: '0.875rem', color: '#dc2626' }}>
+      <div style={{ padding: '1rem', textAlign: 'center', fontSize: 'var(--font-size-sm)', color: '#dc2626' }}>
         {error}
       </div>
     );
@@ -136,7 +136,7 @@ export default function SharesList({ fileId, onRevoke, refreshKey, readOnly = fa
 
   if (shares.length === 0) {
     return (
-      <div style={{ padding: '1rem', textAlign: 'center', fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)' }}>
+      <div style={{ padding: '1rem', textAlign: 'center', fontSize: 'var(--font-size-sm)', color: 'var(--text-muted, #6b7280)' }}>
         {t('drive.noShares')}
       </div>
     );
@@ -153,7 +153,7 @@ export default function SharesList({ fileId, onRevoke, refreshKey, readOnly = fa
         overflowY: 'auto',
         height: '100%',
       }}>
-        <h4 style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-muted, #6b7280)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <h4 style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, color: 'var(--text-muted, #6b7280)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           {getThemedIcon('ui', 'clock', 16, 'muted')}
           {t('drive.timeline') || 'Timeline'}
         </h4>
@@ -166,7 +166,7 @@ export default function SharesList({ fileId, onRevoke, refreshKey, readOnly = fa
               background: !selectedDate ? 'var(--bg-primary, #f3f4f6)' : 'transparent',
               border: 'none',
               borderRadius: '0.375rem',
-              fontSize: '0.875rem',
+              fontSize: 'var(--font-size-sm)',
               color: !selectedDate ? 'var(--text, #111827)' : 'var(--text-muted, #6b7280)',
               cursor: 'pointer',
               fontWeight: !selectedDate ? 600 : 400,
@@ -184,7 +184,7 @@ export default function SharesList({ fileId, onRevoke, refreshKey, readOnly = fa
                 background: selectedDate === date ? 'var(--bg-primary, #f3f4f6)' : 'transparent',
                 border: 'none',
                 borderRadius: '0.375rem',
-                fontSize: '0.875rem',
+                fontSize: 'var(--font-size-sm)',
                 color: selectedDate === date ? 'var(--text, #111827)' : 'var(--text-muted, #6b7280)',
                 cursor: 'pointer',
                 fontWeight: selectedDate === date ? 600 : 400,
@@ -215,7 +215,7 @@ export default function SharesList({ fileId, onRevoke, refreshKey, readOnly = fa
               borderRadius: '0.5rem',
               background: 'var(--panel, white)',
               color: 'var(--text, #111827)',
-              fontSize: '0.875rem',
+              fontSize: 'var(--font-size-sm)',
               outline: 'none',
             }}
             aria-label={t('drive.filterActivities') || 'Filter shares'}
@@ -269,12 +269,12 @@ export default function SharesList({ fileId, onRevoke, refreshKey, readOnly = fa
           )}
         </div>
 
-        <h4 style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text, #111827)', margin: '0 0 0.5rem 0' }}>
+        <h4 style={{ fontSize: 'var(--font-size-sm)', fontWeight: 500, color: 'var(--text, #111827)', margin: '0 0 0.5rem 0' }}>
           {selectedDate ? formatDateHeader(selectedDate) : t('drive.existingShares')} ({filteredShares.length})
         </h4>
 
         {filteredShares.length === 0 ? (
-          <div style={{ padding: '1rem', textAlign: 'center', fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)' }}>
+          <div style={{ padding: '1rem', textAlign: 'center', fontSize: 'var(--font-size-sm)', color: 'var(--text-muted, #6b7280)' }}>
             {filterText ? t('drive.noMatchingActivities') || 'No matching shares' : t('drive.noShares')}
           </div>
         ) : (
@@ -318,14 +318,14 @@ export default function SharesList({ fileId, onRevoke, refreshKey, readOnly = fa
 
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <p style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text, #111827)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        <p style={{ fontSize: 'var(--font-size-sm)', fontWeight: 500, color: 'var(--text, #111827)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                           {displayName}
                         </p>
                         <span
                           style={{
                             flexShrink: 0,
                             padding: '0.125rem 0.5rem',
-                            fontSize: '0.75rem',
+                            fontSize: 'var(--font-size-xs)',
                             borderRadius: '9999px',
                             background: 'var(--background-secondary, #f3f4f6)',
                             color: 'var(--text-muted, #6b7280)',
@@ -336,19 +336,19 @@ export default function SharesList({ fileId, onRevoke, refreshKey, readOnly = fa
                       </div>
 
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.25rem' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: 'var(--font-size-xs)', color: 'var(--text-muted, #6b7280)' }}>
                           {getThemedIcon('ui', permIcon, 12, 'muted')}
                           {t(`drive.permission.${share.permission.toLowerCase()}`)}
                         </div>
 
                         {expiryText && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: 'var(--font-size-xs)', color: 'var(--text-muted, #6b7280)' }}>
                             {getThemedIcon('ui', 'calendar', 12, 'muted')}
                             {expiryText}
                           </div>
                         )}
 
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', fontSize: 'var(--font-size-xs)', color: 'var(--text-muted, #6b7280)' }}>
                           {formatDateTime(share.createdAt)}
                         </div>
                       </div>

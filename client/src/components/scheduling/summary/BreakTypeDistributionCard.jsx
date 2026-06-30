@@ -13,17 +13,17 @@ export default function BreakTypeDistributionCard({ distribution = [] }) {
   return (
     <Card>
       <CardBody>
-        <h3 style={{ fontSize: '1.125rem', fontWeight: 500, marginBottom: '1rem' }}>
+        <h3 style={{ fontSize: 'var(--font-size-lg)', fontWeight: 500, marginBottom: '1rem' }}>
           {t('break_type_distribution') || 'Break Type Distribution'}
         </h3>
         {distribution.length === 0 ? (
-          <p style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280', fontSize: '0.875rem' }}>
+          <p style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280', fontSize: 'var(--font-size-sm)' }}>
             {t('no_data') || 'No data'}
           </p>
         ) : (
           distribution.map((d) => (
             <div key={d.breakType} style={{ marginBottom: '0.75rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', marginBottom: '0.25rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 'var(--font-size-sm)', marginBottom: '0.25rem' }}>
                 <span>{t(`break_type_${d.breakType}`) || d.breakType}</span>
                 <span>{d.count} ({Math.round((d.count / total) * 100)}%)</span>
               </div>

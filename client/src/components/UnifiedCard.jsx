@@ -451,7 +451,7 @@ const UnifiedCard = memo(({
                     border: `1px solid ${border}`,
                     background: bg,
                     color: fg,
-                    fontSize: '0.75rem',
+                    fontSize: 'var(--font-size-xs)',
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: 4,
@@ -501,7 +501,7 @@ const UnifiedCard = memo(({
                         border: `1px solid ${border}`,
                         background: bg,
                         color: fg,
-                        fontSize: '0.75rem',
+                        fontSize: 'var(--font-size-xs)',
                         display: 'inline-flex',
                         alignItems: 'center',
                         gap: 4,
@@ -522,7 +522,7 @@ const UnifiedCard = memo(({
                   color: getTypeColors().fg,
                   padding: '4px 8px',
                   borderRadius: 999,
-                  fontSize: '0.75rem',
+                  fontSize: 'var(--font-size-xs)',
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: 4,
@@ -541,7 +541,7 @@ const UnifiedCard = memo(({
                   padding: '4px 8px',
                   borderRadius: 999,
                   border: '1px solid #d97706',
-                  fontSize: '0.75rem',
+                  fontSize: 'var(--font-size-xs)',
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: 4,
@@ -560,7 +560,7 @@ const UnifiedCard = memo(({
                   padding: '4px 8px',
                   borderRadius: 999,
                   border: '1px solid #f57c00',
-                  fontSize: '0.75rem',
+                  fontSize: 'var(--font-size-xs)',
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: 4,
@@ -580,7 +580,7 @@ const UnifiedCard = memo(({
                   padding: '4px 8px',
                   borderRadius: 999,
                   border: '1px solid #3b82f6',
-                  fontSize: '0.75rem',
+                  fontSize: 'var(--font-size-xs)',
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: 4,
@@ -600,7 +600,7 @@ const UnifiedCard = memo(({
                   padding: '4px 8px',
                   borderRadius: 999,
                   border: '1px solid #b91c1c',
-                  fontSize: '0.75rem',
+                  fontSize: 'var(--font-size-xs)',
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: 4,
@@ -614,7 +614,7 @@ const UnifiedCard = memo(({
           </div>
 
           {/* Dates - Side by side with buttons */}
-          <div style={{ display: 'flex', flexDirection: 'row', gap: '0.5rem', fontSize: '0.75rem', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+          <div style={{ display: 'flex', flexDirection: 'row', gap: '0.5rem', fontSize: 'var(--font-size-xs)', justifyContent: 'space-between', alignItems: 'flex-end' }}>
             {/* Created Date */}
             {item.createdAt && (
                 <PortalTooltip content={t('created_at')} position="top">
@@ -671,7 +671,7 @@ const UnifiedCard = memo(({
                     display: 'inline-flex',
                     alignItems: 'center',
                     gap: 4,
-                    fontSize: '0.75rem',
+                    fontSize: 'var(--font-size-xs)',
                     fontWeight: 600,
                     borderColor: scoreColor,
                     color: scoreColor

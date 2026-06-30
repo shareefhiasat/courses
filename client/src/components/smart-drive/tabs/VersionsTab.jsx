@@ -186,7 +186,7 @@ export default function VersionsTab({ fileId, useWorkflowEndpoint = false }) {
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)' }} role="status">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: 'var(--font-size-sm)', color: 'var(--text-muted, #6b7280)' }} role="status">
         {t('common.loading')}&hellip;
       </div>
     );
@@ -194,7 +194,7 @@ export default function VersionsTab({ fileId, useWorkflowEndpoint = false }) {
 
   if (error) {
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: '0.875rem', color: '#dc2626' }} role="alert">
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: 'var(--font-size-sm)', color: '#dc2626' }} role="alert">
         {error}
       </div>
     );
@@ -202,7 +202,7 @@ export default function VersionsTab({ fileId, useWorkflowEndpoint = false }) {
 
   if (versions.length === 0) {
     return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: 'var(--font-size-sm)', color: 'var(--text-muted, #6b7280)' }}>
         {getIcon('ui', 'clock', 40)}
         {t('drive.noVersions')}
       </div>
@@ -220,7 +220,7 @@ export default function VersionsTab({ fileId, useWorkflowEndpoint = false }) {
         overflowY: 'auto',
         height: '100%',
       }}>
-        <h4 style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-muted, #6b7280)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+        <h4 style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, color: 'var(--text-muted, #6b7280)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           {getIcon('ui', 'clock', 16)}
           {t('drive.timeline') || 'Timeline'}
         </h4>
@@ -233,7 +233,7 @@ export default function VersionsTab({ fileId, useWorkflowEndpoint = false }) {
               background: !selectedDate ? 'var(--bg-primary, #f3f4f6)' : 'transparent',
               border: 'none',
               borderRadius: '0.375rem',
-              fontSize: '0.875rem',
+              fontSize: 'var(--font-size-sm)',
               color: !selectedDate ? 'var(--text, #111827)' : 'var(--text-muted, #6b7280)',
               cursor: 'pointer',
               fontWeight: !selectedDate ? 600 : 400,
@@ -251,7 +251,7 @@ export default function VersionsTab({ fileId, useWorkflowEndpoint = false }) {
                 background: selectedDate === date ? 'var(--bg-primary, #f3f4f6)' : 'transparent',
                 border: 'none',
                 borderRadius: '0.375rem',
-                fontSize: '0.875rem',
+                fontSize: 'var(--font-size-sm)',
                 color: selectedDate === date ? 'var(--text, #111827)' : 'var(--text-muted, #6b7280)',
                 cursor: 'pointer',
                 fontWeight: selectedDate === date ? 600 : 400,
@@ -278,7 +278,7 @@ export default function VersionsTab({ fileId, useWorkflowEndpoint = false }) {
             style={{
               flex: 1,
               padding: '0.625rem 0.75rem',
-              fontSize: '0.875rem',
+              fontSize: 'var(--font-size-sm)',
               border: '1px solid var(--border, #e5e7eb)',
               borderRadius: '0.5rem',
               background: 'var(--panel, white)',
@@ -313,7 +313,7 @@ export default function VersionsTab({ fileId, useWorkflowEndpoint = false }) {
           </button>
         </div>
 
-        <h3 style={{ fontSize: '1.125rem', fontWeight: 600, color: 'var(--text, #111827)', marginBottom: '1rem' }}>
+        <h3 style={{ fontSize: 'var(--font-size-lg)', fontWeight: 600, color: 'var(--text, #111827)', marginBottom: '1rem' }}>
           {selectedDate ? formatDateHeader(selectedDate) : t('drive.versionHistory')} ({selectedVersions.length})
         </h3>
 
@@ -335,13 +335,13 @@ export default function VersionsTab({ fileId, useWorkflowEndpoint = false }) {
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
                     {getIcon('ui', 'clock', 16)}
-                    <span style={{ fontSize: '0.875rem', fontWeight: 500, color: 'var(--text, #111827)' }}>
+                    <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 500, color: 'var(--text, #111827)' }}>
                       {t('drive.version')} {version.versionNumber}
                     </span>
                     {version.isCurrent && (
                       <span style={{
                         padding: '0.125rem 0.5rem',
-                        fontSize: '0.75rem',
+                        fontSize: 'var(--font-size-xs)',
                         borderRadius: '9999px',
                         background: '#10b981',
                         color: 'white',
@@ -355,7 +355,7 @@ export default function VersionsTab({ fileId, useWorkflowEndpoint = false }) {
                     )}
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: 'var(--font-size-sm)', color: 'var(--text-muted, #6b7280)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       {getIcon('ui', 'user', 14)}
                       {getUserName(version.uploadedBy)}
@@ -376,7 +376,7 @@ export default function VersionsTab({ fileId, useWorkflowEndpoint = false }) {
                       padding: '0.5rem',
                       background: 'var(--background-secondary, #f3f4f6)',
                       borderRadius: '0.25rem',
-                      fontSize: '0.75rem',
+                      fontSize: 'var(--font-size-xs)',
                       color: 'var(--text, #374151)',
                     }}>
                       {version.changeNote}
@@ -385,14 +385,14 @@ export default function VersionsTab({ fileId, useWorkflowEndpoint = false }) {
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.25rem' }}>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted, #6b7280)', fontWeight: 500, whiteSpace: 'nowrap' }}>
+                  <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted, #6b7280)', fontWeight: 500, whiteSpace: 'nowrap' }}>
                     {formatDateTime(version.createdAt)}
                   </span>
                   <button
                     onClick={() => handleViewVersion(version.id)}
                     style={{
                       padding: '0.375rem',
-                      fontSize: '0.875rem',
+                      fontSize: 'var(--font-size-sm)',
                       color: 'var(--text-muted, #6b7280)',
                       background: 'transparent',
                       border: 'none',
