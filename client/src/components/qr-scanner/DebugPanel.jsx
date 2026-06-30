@@ -16,7 +16,7 @@ const DebugPanel = ({ showDebugBox, debugLogs, onClear, isMobile }) => {
       zIndex: 999,
       display: 'flex',
       flexDirection: 'column',
-      fontFamily: 'monospace',
+      fontFamily: 'var(--font-family-mono)',
       fontSize: '0.75rem',
       maxWidth: '90vw',
       overflow: 'hidden'

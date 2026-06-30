@@ -1,6 +1,6 @@
 /* Emoji Picker React Styles */
 .EmojiPickerReact {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif !important;
+  font-family: var(--font-family-sans) !important;
   border: none !important;
   border-radius: 8px !important;
   box-shadow: 0 4px 12px rgba(0,0,0,0.15) !important;

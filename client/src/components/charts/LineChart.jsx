@@ -90,7 +90,7 @@ function LineChart({ data = [], size = { width: 400, height: 300 }, accentColor 
 
   return (
     <div style={{ width, height }}>
-      <svg ref={svgRef} width={width} height={chartHeight} style={{ fontFamily: 'system-ui, -apple-system, sans-serif', display: 'block', overflow: 'hidden' }}>
+      <svg ref={svgRef} width={width} height={chartHeight} style={{ fontFamily: 'var(--font-family-sans)', display: 'block', overflow: 'hidden' }}>
         <defs>
           <clipPath id="line-plot-clip">
             <rect x={padding.left} y={padding.top} width={plotW} height={plotH + 4} />

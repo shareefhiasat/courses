@@ -27,7 +27,7 @@ export const QRCodeDisplay = ({ student }) => {
               img { width: 300px; height: 300px; margin-bottom: 1rem; }
               h1 { margin: 0; color: #111827; font-size: 1.5rem; }
               p { margin: 0.5rem 0 0; color: #6b7280; font-size: 1rem; }
-              .ref { font-family: monospace; font-weight: bold; color: #059669; margin-top: 0.5rem; }
+              .ref { font-family: var(--font-family-mono); font-weight: bold; color: #059669; margin-top: 0.5rem; }
             </style>
           </head>
           <body>

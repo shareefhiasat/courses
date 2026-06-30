@@ -477,7 +477,7 @@
   padding: 12px;
   border: 1px solid var(--border);
   border-radius: 6px;
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   font-size: 0.9rem;
   resize: vertical;
   background: var(--panel);

@@ -236,7 +236,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Email
                 padding: '8px',
                 border: '1px solid var(--border, #e0e0e0)',
                 borderRadius: '4px',
-                fontFamily: 'monospace',
+                fontFamily: 'var(--font-family-mono)',
                 fontSize: '14px',
                 background: 'var(--panel, white)',
                 color: 'var(--text, #212529)'

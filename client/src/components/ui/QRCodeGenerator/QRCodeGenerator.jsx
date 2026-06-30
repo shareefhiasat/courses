@@ -73,7 +73,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';export defa
         borderRadius: 8, 
         marginBottom: '1rem',
         fontSize: 12,
-        fontFamily: 'monospace',
+        fontFamily: 'var(--font-family-mono)',
         wordBreak: 'break-all'
       }}>
         {url}

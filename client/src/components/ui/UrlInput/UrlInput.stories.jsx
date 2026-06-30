@@ -171,7 +171,7 @@ export const WithQuickActions = () => {
       />
       <div style={{ marginTop: '1.5rem' }}>
         <strong>Action Log:</strong>
-        <div style={{ marginTop: '0.5rem', padding: '1rem', background: '#f8f9fa', borderRadius: 8, fontSize: '0.875rem', fontFamily: 'monospace' }}>
+        <div style={{ marginTop: '0.5rem', padding: '1rem', background: '#f8f9fa', borderRadius: 8, fontSize: '0.875rem', fontFamily: 'var(--font-family-mono)' }}>
           {logs.length === 0 ? (
             <div style={{ color: '#999' }}>No actions yet. Try the quick action buttons!</div>
           ) : (

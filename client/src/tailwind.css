@@ -5,8 +5,8 @@
     --color-brand: #800020;
     --color-brand-dark: #600018;
 
-    /* Extend with custom utilities */
-    --font-sans: system-ui, Segoe UI, Avenir, Helvetica, Arial, sans-serif;
+    --font-sans: var(--font-family-sans);
+    --font-mono: var(--font-family-mono);
 }
 
 /* Custom animations */

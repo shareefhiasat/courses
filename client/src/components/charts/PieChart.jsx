@@ -208,7 +208,7 @@ export default function PieChart({ data = [], size = 300, donut = false, showLab
         <svg
           width={chartSize}
           height={chartSize}
-          style={{ fontFamily: 'system-ui, -apple-system, sans-serif', flexShrink: 0 }}
+          style={{ fontFamily: 'var(--font-family-sans)', flexShrink: 0 }}
           onMouseLeave={() => setHovered(null)}
         >
           {slices.map((slice, idx) => (

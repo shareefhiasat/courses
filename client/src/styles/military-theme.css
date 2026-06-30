@@ -1,6 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700;800&family=Roboto:wght@400;500;600;700&display=swap');
-
-/* 🎖️ Military Theme - QAF Academy */
+/* Military Theme - QAF Academy */
 /* Design System Implementation */
 
 :root {
@@ -36,9 +34,9 @@
   --gradient-rank: linear-gradient(135deg, #CD7F32, #D4AF37, #C0C0C0);
   
   /* Typography */
-  --font-primary: 'Oswald', 'Bebas Neue', 'Arial Black', sans-serif;
-  --font-secondary: 'Roboto', 'Open Sans', 'Arial', sans-serif;
-  --font-mono: 'Courier New', 'Consolas', monospace;
+  --font-primary: var(--font-family-sans);
+  --font-secondary: var(--font-family-sans);
+  --font-mono: var(--font-family-mono);
   
   /* Spacing */
   --space-xs: 0.25rem;

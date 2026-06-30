@@ -89,3 +89,58 @@ export async function deleteDashboardPreferences(userId, dashboardKey, actorId) 
 
   return { success: true, data: emptyDashboardPayload() };
 }
+
+export async function getTypographyPreferences(userId) {
+  const row = await prisma.userPreferences.findUnique({
+    where: { userId },
+    select: { settings: true },
+  });
+
+  const typography = row?.settings?.typography || null;
+
+  return {
+    success: true,
+    data: typography,
+  };
+}
+
+export async function saveTypographyPreferences(userId, payload, actorId) {
+  const { fontLtr, fontRtl } = payload || {};
+
+  const existing = await prisma.userPreferences.findUnique({
+    where: { userId },
+    select: { id: true, settings: true },
+  });
+
+  const settings = existing?.settings && typeof existing.settings === 'object'
+    ? { ...existing.settings }
+    : {};
+
+  settings.typography = {
+    ...(settings.typography || {}),
+    fontLtr,
+    fontRtl,
+    updatedAt: new Date().toISOString(),
+  };
+
+  if (existing) {
+    await prisma.userPreferences.update({
+      where: { userId },
+      data: {
+        settings,
+        updatedBy: actorId || userId,
+      },
+    });
+  } else {
+    await prisma.userPreferences.create({
+      data: {
+        userId,
+        settings,
+        createdBy: actorId || userId,
+        updatedBy: actorId || userId,
+      },
+    });
+  }
+
+  return { success: true, data: settings.typography };
+}

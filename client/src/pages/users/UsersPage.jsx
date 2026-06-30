@@ -818,7 +818,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
       renderCell: (params) => {
         return (
           <span style={{ 
-            fontFamily: 'monospace',
+            fontFamily: 'var(--font-family-mono)',
             fontSize: '0.875rem',
             color: params.value ? '#059669' : '#9ca3af',
             fontWeight: 600
@@ -836,7 +836,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
       renderCell: (params) => {
         return (
           <span style={{ 
-            fontFamily: 'monospace',
+            fontFamily: 'var(--font-family-mono)',
             fontSize: '0.875rem',
             color: params.value ? '#2563eb' : '#9ca3af',
             fontWeight: 500

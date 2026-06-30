@@ -219,7 +219,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const ChatI
               </span>
               <span style={{ 
                 fontSize: '0.7rem', 
-                fontFamily: 'monospace', 
+                fontFamily: 'var(--font-family-mono)', 
                 background: 'rgba(255,255,255,0.15)', 
                 padding: '1px 4px', 
                 borderRadius: '2px' 
@@ -296,7 +296,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const ChatI
                 </span>
                 <span style={{ 
                   fontSize: '0.7rem', 
-                  fontFamily: 'monospace', 
+                  fontFamily: 'var(--font-family-mono)', 
                   background: 'rgba(255,255,255,0.15)', 
                   padding: '1px 4px', 
                   borderRadius: '2px' 

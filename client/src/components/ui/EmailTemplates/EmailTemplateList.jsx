@@ -419,7 +419,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
                               <span style={{ 
                                 color: '#333', 
                                 fontSize: '0.75rem', 
-                                fontFamily: 'monospace',
+                                fontFamily: 'var(--font-family-mono)',
                                 background: '#e9ecef',
                                 padding: '2px 6px',
                                 borderRadius: '4px',
@@ -541,7 +541,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
                                           fontSize: '0.75rem',
                                           color: '#000',
                                           border: '1px solid #ced4da',
-                                          fontFamily: 'monospace'
+                                          fontFamily: 'var(--font-family-mono)'
                                         }}
                                     >
                             {`{{${variable}}}`}

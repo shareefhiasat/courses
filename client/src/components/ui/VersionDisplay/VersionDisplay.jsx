@@ -19,7 +19,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Versi
         background: isDark ? 'rgba(0, 0, 0, 0.2)' : 'rgba(255, 255, 255, 0.8)',
         padding: '2px 6px',
         borderRadius: '4px',
-        fontFamily: 'monospace',
+        fontFamily: 'var(--font-family-mono)',
         zIndex: 1000,
         pointerEvents: 'none',
         backdropFilter: 'blur(4px)',

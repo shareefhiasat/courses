@@ -190,7 +190,7 @@
 .screenId {
   font-size: 0.75rem;
   color: var(--text-muted, #666);
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-family-mono, 'JetBrains Mono Variable', ui-monospace, monospace);
 }
 
 /* Role Toggles */

@@ -120,7 +120,7 @@
 .courseCode {
   font-size: 0.7rem;
   color: var(--text-secondary, #6b7280);
-  font-family: monospace;
+  font-family: var(--font-family-mono);
 }
 
 .listStat {

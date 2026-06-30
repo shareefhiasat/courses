@@ -89,7 +89,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Timer
       <div style={{
         fontSize: '3rem',
         fontWeight: 700,
-        fontFamily: 'monospace',
+        fontFamily: 'var(--font-family-mono)',
         color: getColor(),
         marginBottom: '1rem',
         letterSpacing: '0.1em'

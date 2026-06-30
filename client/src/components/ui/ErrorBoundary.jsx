@@ -142,7 +142,7 @@ const ErrorFallback = ({ error, errorInfo, resetError }) => {
               marginTop: '0.5rem',
               fontSize: '0.85rem',
               color: '#666',
-              fontFamily: 'monospace',
+              fontFamily: 'var(--font-family-mono)',
               whiteSpace: 'pre-wrap',
               wordBreak: 'break-word'
             }}>

@@ -3064,7 +3064,7 @@ const ChatPage = memo(() => {
                 <span style={{ fontSize: '0.75rem', fontWeight: '500' }}>
                   {t('voice_message_ready')}
                 </span>
-                <span style={{ fontSize: '0.7rem', fontFamily: 'monospace', background: 'rgba(255,255,255,0.15)', padding: '1px 4px', borderRadius: '2px' }}>
+                <span style={{ fontSize: '0.7rem', fontFamily: 'var(--font-family-mono)', background: 'rgba(255,255,255,0.15)', padding: '1px 4px', borderRadius: '2px' }}>
                   {formatTime(recordingTime)} / {getMaxVoiceTimeDisplay(user?.role || ROLE_STRINGS.STUDENT)}
                 </span>
               </div>
@@ -3135,7 +3135,7 @@ const ChatPage = memo(() => {
                   <span style={{ fontSize: '0.75rem', fontWeight: '500' }}>
                     {t('recording')}
                   </span>
-                  <span style={{ fontSize: '0.7rem', fontFamily: 'monospace', background: 'rgba(255,255,255,0.15)', padding: '1px 4px', borderRadius: '2px' }}>
+                  <span style={{ fontSize: '0.7rem', fontFamily: 'var(--font-family-mono)', background: 'rgba(255,255,255,0.15)', padding: '1px 4px', borderRadius: '2px' }}>
                     {formatTime(recordingTime)} / {getMaxVoiceTimeDisplay(user?.role || ROLE_STRINGS.STUDENT)}
                   </span>
                 </div>

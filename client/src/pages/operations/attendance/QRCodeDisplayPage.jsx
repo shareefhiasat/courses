@@ -79,7 +79,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const QRCod
                   justify-content: center; 
                   min-height: 100vh; 
                   margin: 0; 
-                  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+                  font-family: var(--font-family-sans); 
                   background: ${themeStyles.bodyBg}; 
                   color: ${themeStyles.textColor};
                 }

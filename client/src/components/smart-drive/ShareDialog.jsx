@@ -300,7 +300,7 @@ export default function ShareDialog({ file, onShare, onGenerateLink, onClose }) 
                     <p style={{ fontSize: '0.875rem', color: 'var(--text-muted, #6b7280)', margin: '0 0 0.375rem 0' }}>
                       {t('drive.publicLinkGenerated')}
                     </p>
-                    <p style={{ fontSize: '0.875rem', fontFamily: 'monospace', color: 'var(--text, #111827)', wordBreak: 'break-all', margin: 0 }}>
+                    <p style={{ fontSize: '0.875rem', fontFamily: 'var(--font-family-mono)', color: 'var(--text, #111827)', wordBreak: 'break-all', margin: 0 }}>
                       {publicLink}
                     </p>
                   </div>

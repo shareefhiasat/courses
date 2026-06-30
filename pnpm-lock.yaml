@@ -280,6 +280,69 @@ importers:
       '@eslint/js':
         specifier: ^10.0.1
         version: 10.0.1(eslint@10.3.0(jiti@2.7.0))
+      '@fontsource-variable/cairo':
+        specifier: ^5.2.7
+        version: 5.2.7
+      '@fontsource-variable/changa':
+        specifier: ^5.2.8
+        version: 5.2.8
+      '@fontsource-variable/ibm-plex-sans':
+        specifier: ^5.2.8
+        version: 5.2.8
+      '@fontsource-variable/inter':
+        specifier: ^5.2.8
+        version: 5.2.8
+      '@fontsource-variable/jetbrains-mono':
+        specifier: ^5.2.8
+        version: 5.2.8
+      '@fontsource-variable/manrope':
+        specifier: ^5.2.8
+        version: 5.2.8
+      '@fontsource-variable/noto-sans-arabic':
+        specifier: ^5.2.10
+        version: 5.2.10
+      '@fontsource-variable/nunito-sans':
+        specifier: ^5.2.7
+        version: 5.2.7
+      '@fontsource-variable/open-sans':
+        specifier: ^5.2.7
+        version: 5.2.7
+      '@fontsource-variable/plus-jakarta-sans':
+        specifier: ^5.2.8
+        version: 5.2.8
+      '@fontsource-variable/readex-pro':
+        specifier: ^5.2.11
+        version: 5.2.11
+      '@fontsource-variable/roboto':
+        specifier: ^5.2.10
+        version: 5.2.10
+      '@fontsource-variable/rubik':
+        specifier: ^5.2.8
+        version: 5.2.8
+      '@fontsource-variable/source-sans-3':
+        specifier: ^5.2.9
+        version: 5.2.9
+      '@fontsource-variable/work-sans':
+        specifier: ^5.2.8
+        version: 5.2.8
+      '@fontsource/almarai':
+        specifier: ^5.2.8
+        version: 5.2.8
+      '@fontsource/el-messiri':
+        specifier: ^5.2.8
+        version: 5.2.8
+      '@fontsource/harmattan':
+        specifier: ^5.2.7
+        version: 5.2.7
+      '@fontsource/ibm-plex-sans-arabic':
+        specifier: ^5.2.9
+        version: 5.2.9
+      '@fontsource/lato':
+        specifier: ^5.2.7
+        version: 5.2.7
+      '@fontsource/tajawal':
+        specifier: ^5.2.7
+        version: 5.2.7
       '@prisma/extension-optimize':
         specifier: ^2.0.1
         version: 2.0.1(@prisma/client@5.22.0(prisma@5.22.0))
@@ -1525,6 +1588,69 @@ packages:
 
   '@floating-ui/utils@0.2.11':
     resolution: {integrity: sha512-RiB/yIh78pcIxl6lLMG0CgBXAZ2Y0eVHqMPYugu+9U0AeT6YBeiJpf7lbdJNIugFP5SIjwNRgo4DhR1Qxi26Gg==}
+
+  '@fontsource-variable/cairo@5.2.7':
+    resolution: {integrity: sha512-vY7VKyZ/tuzuMVaB5AJY33TD0XJOfIyUZ0bDrvsDuiY7RkQWX1nGSNbh4ZLUSOXi2ivTOzb4tPjPBMhty2+hzg==}
+
+  '@fontsource-variable/changa@5.2.8':
+    resolution: {integrity: sha512-4cesUz7sgKauxyo/cT3O3TcZkw+Jscrtl520Wigq27Dcq9WNU/QjyfQeT/hcGhHXrLa+MtLh2yGxV0JaWpUxYw==}
+
+  '@fontsource-variable/ibm-plex-sans@5.2.8':
+    resolution: {integrity: sha512-n5PF2iFa0CZT0QYTPzxvZ39opC9LnU0zdoRccoADbs+Dtsd+lbXOZF7RNuIPHcQX1dKjF63sxnRImQIB5eD0Ag==}
+
+  '@fontsource-variable/inter@5.2.8':
+    resolution: {integrity: sha512-kOfP2D+ykbcX/P3IFnokOhVRNoTozo5/JxhAIVYLpea/UBmCQ/YWPBfWIDuBImXX/15KH+eKh4xpEUyS2sQQGQ==}
+
+  '@fontsource-variable/jetbrains-mono@5.2.8':
+    resolution: {integrity: sha512-WBA9elru6Jdp5df2mES55wuOO0WIrn3kpXnI4+W2ek5u3ZgLS9XS4gmIlcQhiZOWEKl95meYdvK7xI+ETLCq/Q==}
+
+  '@fontsource-variable/manrope@5.2.8':
+    resolution: {integrity: sha512-nc9lOuCRz73UHnovDE2bwXUdghE2SEOc7Aii0qGe3CLyE03W1a7VnY5Z6euRiapiKbCkGS+eXbY3s/kvWeGeSw==}
+
+  '@fontsource-variable/noto-sans-arabic@5.2.10':
+    resolution: {integrity: sha512-6vP9gU5yQQE/4ClrVoS92rjwc3qUnSkoxaw/Hkrha1Nqn9UEwuh3WVxT2+DMlMdV49uxvxUKVauSd2nwLu/WBA==}
+
+  '@fontsource-variable/nunito-sans@5.2.7':
+    resolution: {integrity: sha512-rflH5HeAoNjIkwftStzQvxqCJhIS+usMr/lfslWg/RCa499B5qxyjo+74R/QMM0geQt4AY1URlG7wAR1iq6KPQ==}
+
+  '@fontsource-variable/open-sans@5.2.7':
+    resolution: {integrity: sha512-wzCLm2STuekK9Fz58DiuBnk4GgJpvvVtAU85a4b06ACNG/UsVjQcCvkUd6R/ETlHfsaykCUZamLRvSXg4KtWuA==}
+
+  '@fontsource-variable/plus-jakarta-sans@5.2.8':
+    resolution: {integrity: sha512-iQecBizIdZxezODNHzOn4SvvRMrZL/S8k4MEXGDynCmUrImVW0VmX+tIAMqnADwH4haXlHSXqMgU6+kcfBQJdw==}
+
+  '@fontsource-variable/readex-pro@5.2.11':
+    resolution: {integrity: sha512-qBMhvaJ3yiMEhPmo0UPJA61i08+gFEHbu65WblSENvMYy1zB8ntpNjdXgUbKHCW5LYkaMReWAMD4q+B6LU8Q7Q==}
+
+  '@fontsource-variable/roboto@5.2.10':
+    resolution: {integrity: sha512-LJ0iLg6aHbLzN515gyHzmdTqJzd9NlI95cCg1DW0F5G7KkFqRLBBKBbqEJx4nSu4aby3IKmw3ZH6Fe928IfaSQ==}
+
+  '@fontsource-variable/rubik@5.2.8':
+    resolution: {integrity: sha512-vGDExLzB4a2Fj9mca5LqNoA2ZKcU9o+x5FEBLte/nxYkCB9hOQwZS6ZlItUv+Ssn7YMzKauGuI/Po+YueFuZbg==}
+
+  '@fontsource-variable/source-sans-3@5.2.9':
+    resolution: {integrity: sha512-K9fkQbb0BNnRmmaU+Gpr6U4IaYKpNzA8t07J6aam2i+6v84RT72MVpar8OBr3yYAEznj4riKivPQ2nAF2fPKsw==}
+
+  '@fontsource-variable/work-sans@5.2.8':
+    resolution: {integrity: sha512-8uWtTt0/B5NxGie9xUVD5y5Ch4Q+Hy7kFYKtUpwYbzSAgJEoaMxT8rMnfnK7zfAYSLC8GnGO1/tXrFtKIYYQVQ==}
+
+  '@fontsource/almarai@5.2.8':
+    resolution: {integrity: sha512-Y214OHk6rYYCDIwjpVM6Y4iaPIH7JSSflF7xmE5ejKZkhVdMGwhgqIdo4kPMgoaVfo+XL5qeOzGQF9DTnZS9mg==}
+
+  '@fontsource/el-messiri@5.2.8':
+    resolution: {integrity: sha512-Wmejx9maRq/uyVqoB3x/aIWss2zAaLxeLAx6zqX5vTovtqv/KBuAEz+i4jeUAMHBZkEov06mMNNqhtoWI4ilfA==}
+
+  '@fontsource/harmattan@5.2.7':
+    resolution: {integrity: sha512-vX35riBzduY7t1dgLjxgtelLCugyE59euuhRKaxFPz0vkX8FA25MY9rn1Go5Q85Ca6LLuYSPvYdZdRuMKgHseg==}
+
+  '@fontsource/ibm-plex-sans-arabic@5.2.9':
+    resolution: {integrity: sha512-mAs+anYcmatmhTuYApDy/CEEu5iYcfalXp2DB1gBN/6o2ex24lcBs635bwtgV5BNbByCYslIGsQvD4X6s7eVgw==}
+
+  '@fontsource/lato@5.2.7':
+    resolution: {integrity: sha512-k5mum1ADbDW5cTw1Ett1eQVWeoZ6gq0ct6SFBibEhB4LRxhniChJZTBgd6ph5yBxLkN1fcnsnmicBNA4S/3nbw==}
+
+  '@fontsource/tajawal@5.2.7':
+    resolution: {integrity: sha512-EzswJ4JoFmYQ7hn7O5Do7Azd1tjzujSEzN+DvTZNcAwZ3usfPvEJ3hTQtYv9VN+mUH4flOi6LedtqCkVUHZs9A==}
 
   '@formatjs/intl-localematcher@0.5.10':
     resolution: {integrity: sha512-af3qATX+m4Rnd9+wHcjJ4w2ijq+rAVP3CCinJQvFv1kgSu1W6jypUmvleJxcewdxmutM8dmIRZFxO/IQBZmP2Q==}
@@ -9247,6 +9373,48 @@ snapshots:
 
   '@floating-ui/utils@0.2.11': {}
 
+  '@fontsource-variable/cairo@5.2.7': {}
+
+  '@fontsource-variable/changa@5.2.8': {}
+
+  '@fontsource-variable/ibm-plex-sans@5.2.8': {}
+
+  '@fontsource-variable/inter@5.2.8': {}
+
+  '@fontsource-variable/jetbrains-mono@5.2.8': {}
+
+  '@fontsource-variable/manrope@5.2.8': {}
+
+  '@fontsource-variable/noto-sans-arabic@5.2.10': {}
+
+  '@fontsource-variable/nunito-sans@5.2.7': {}
+
+  '@fontsource-variable/open-sans@5.2.7': {}
+
+  '@fontsource-variable/plus-jakarta-sans@5.2.8': {}
+
+  '@fontsource-variable/readex-pro@5.2.11': {}
+
+  '@fontsource-variable/roboto@5.2.10': {}
+
+  '@fontsource-variable/rubik@5.2.8': {}
+
+  '@fontsource-variable/source-sans-3@5.2.9': {}
+
+  '@fontsource-variable/work-sans@5.2.8': {}
+
+  '@fontsource/almarai@5.2.8': {}
+
+  '@fontsource/el-messiri@5.2.8': {}
+
+  '@fontsource/harmattan@5.2.7': {}
+
+  '@fontsource/ibm-plex-sans-arabic@5.2.9': {}
+
+  '@fontsource/lato@5.2.7': {}
+
+  '@fontsource/tajawal@5.2.7': {}
+
   '@formatjs/intl-localematcher@0.5.10':
     dependencies:
       tslib: 2.8.1
@@ -14657,6 +14825,7 @@ snapshots:
       jsonwebtoken: 9.0.3
       minio: 8.0.7
       multer: 2.1.1
+      node-cron: 4.5.0
       node-fetch: 3.3.2
       nodemailer: 6.10.1
       swagger-jsdoc: 6.2.8(openapi-types@12.1.3)

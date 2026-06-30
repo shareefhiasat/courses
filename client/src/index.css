@@ -79,8 +79,7 @@
   --text-on-colored: #ffffff;
   --text-on-warning: #ffffff;
 
-  font-family: system-ui, Segoe UI, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.6;
+  line-height: var(--line-height-body, 1.6);
   font-weight: 400;
   color-scheme: light;
   color: var(--text);
@@ -89,6 +88,11 @@
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+html {
+  font-family: var(--font-family-sans);
+  line-height: var(--line-height-body);
 }
 
 /* Dark theme */
@@ -557,23 +561,4 @@ html[data-density='compact'] .row-item {
 
 .dark [data-tooltip-pos="right"]::after {
   border-right-color: var(--color-primary, #8b5cf6);
-}
-
-/* Arabic font size increase for RTL mode in roster and activity list */
-[dir="rtl"] [data-tour="activity-list"] span {
-  font-size: 0.9375rem !important;
-}
-
-[dir="rtl"] [data-tour="activity-list"] div[style*="font-size"] {
-  font-size: 0.875rem !important;
-}
-
-[dir="rtl"] table td span,
-[dir="rtl"] table td div {
-  font-size: 0.875rem !important;
-}
-
-[dir="rtl"] table th span,
-[dir="rtl"] table th div {
-  font-size: 0.8125rem !important;
 }

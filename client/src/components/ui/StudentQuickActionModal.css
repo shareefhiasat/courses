@@ -242,7 +242,7 @@
 .reference-id {
   font-size: 0.8rem;
   color: var(--muted);
-  font-family: monospace;
+  font-family: var(--font-family-mono);
   background: var(--background);
   padding: 0.25rem 0.5rem;
   border-radius: 4px;

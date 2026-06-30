@@ -3,11 +3,12 @@ import { info, error, warn, debug } from '@services/utils/logger.js';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
+import { useTypography } from '@contexts/TypographyContext';
 import { Navigate } from 'react-router-dom';
 import { getUserProfile, updateUser } from '@services/business/userService';
 import { getAllUserImages } from '@services/business/userImageService';
 import { getThemedIcon, getUserRoleColor, getIconWithColor } from '@constants/iconTypes';
-import { Container, Card, CardBody, Button, Input, Spinner, useToast } from '@ui';
+import { Container, Card, CardBody, Button, Input, Spinner, useToast, FontFamilyPicker } from '@ui';
 import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { ToggleSwitch } from '@ui';
 import Joyride from 'react-joyride';
@@ -27,6 +28,7 @@ const ProfileSettingsPage = () => {
   const { user, loading: authLoading, isSuperAdmin, isAdmin, isInstructor, isHR } = useAuth();
   const { t, lang, toggleLang } = useLang();
   const { theme } = useTheme();
+  const { fontLtr, fontRtl, setFontLtr, setFontRtl, saveTypographyToServer } = useTypography();
   const toast = useToast();
   const { startLoading } = useGlobalLoading();
   const {
@@ -250,6 +252,12 @@ const ProfileSettingsPage = () => {
 
       if (notificationPrefsRef.current?.save) {
         await notificationPrefsRef.current.save({ silent: true });
+      }
+
+      try {
+        await saveTypographyToServer();
+      } catch (typographyErr) {
+        warn('Failed to save typography preferences:', typographyErr);
       }
 
       try {
@@ -594,6 +602,28 @@ const ProfileSettingsPage = () => {
                     </div>
                   </div>
                 </div>
+
+              <div className={styles.typographySection} data-tour="profile-typography">
+                <h3 className={styles.sectionSubtitle}>
+                  {getThemedIcon('ui', 'file_text', 18, theme)}
+                  {t('profile_typography') || 'Typography'}
+                </h3>
+                <p className={styles.sectionHint}>
+                  {t('profile_typography_hint') || 'Choose separate fonts for English and Arabic. Changes apply immediately; click Save to sync across devices.'}
+                </p>
+                <FontFamilyPicker
+                  script="ltr"
+                  value={fontLtr}
+                  onChange={setFontLtr}
+                  label={t('profile_font_english') || 'English font'}
+                />
+                <FontFamilyPicker
+                  script="rtl"
+                  value={fontRtl}
+                  onChange={setFontRtl}
+                  label={t('profile_font_arabic') || 'Arabic font'}
+                />
+              </div>
 
               {/* Compact Settings Row */}
               <div className={styles.appearanceRow}>

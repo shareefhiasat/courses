@@ -173,7 +173,7 @@ function BarChart({ data = [], size = { width: 400, height: 300 }, horizontal = 
 
   return (
     <div style={{ width, height, overflow: 'visible' }}>
-      <svg ref={svgRef} width={width} height={chartHeight} style={{ fontFamily: 'system-ui, -apple-system, sans-serif', display: 'block', overflow: 'visible' }} onMouseLeave={hideTooltip}>
+      <svg ref={svgRef} width={width} height={chartHeight} style={{ fontFamily: 'var(--font-family-sans)', display: 'block', overflow: 'visible' }} onMouseLeave={hideTooltip}>
         {showGrid && (
           <g>
             {(() => {

@@ -6,7 +6,7 @@
 import { Router } from 'express';
 import { requireAuth } from '../middleware/keycloakAuth.js';
 import { getEffectiveDataScope } from '../services/scopeResolver.js';
-import { getDashboard, saveDashboard, resetDashboard } from '../controllers/user-preferences.js';
+import { getDashboard, saveDashboard, resetDashboard, getTypography, saveTypography } from '../controllers/user-preferences.js';
 
 const router = Router();
 
@@ -23,5 +23,8 @@ router.get('/data-scope', requireAuth, async (req, res) => {
 router.get('/dashboards/:dashboardKey', requireAuth, getDashboard);
 router.put('/dashboards/:dashboardKey', requireAuth, saveDashboard);
 router.delete('/dashboards/:dashboardKey', requireAuth, resetDashboard);
+
+router.get('/preferences/typography', requireAuth, getTypography);
+router.put('/preferences/typography', requireAuth, saveTypography);
 
 export default router;

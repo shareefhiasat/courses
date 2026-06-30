@@ -1040,7 +1040,7 @@ function ListChart({
       minHeight: chartHeight,
       display: 'flex', 
       flexDirection: 'column',
-      fontFamily: 'system-ui, -apple-system, sans-serif',
+      fontFamily: 'var(--font-family-sans)',
       overflow: 'hidden'
     }}>
       {/* Header */}

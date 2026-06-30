@@ -752,8 +752,7 @@ export default function SmartDrivePage() {
       style={{
         minHeight: '100vh',
         background: 'var(--background-secondary, #f9fafb)',
-        fontFamily:
-          '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+        fontFamily: 'var(--font-family-sans)',
       }}
     >
       <Joyride continuous run={runTour && tourSteps.length > 0} steps={tourSteps} callback={handleTourCallback} scrollOffset={100} scrollToFirstStep showSkipButton showProgress tooltipComponent={TourTooltipComponent}

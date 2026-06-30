@@ -79,7 +79,7 @@ export const getUserDisplayProps = (user, usersArray = [], options = {}) => {
   const { displayName, tooltip } = getUserDisplayInfo(user, usersArray, lang);
 
   const defaultStyle = {
-    fontFamily: 'monospace',
+    fontFamily: 'var(--font-family-mono)',
     fontSize: '12px',
     ...options.style
   };

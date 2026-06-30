@@ -3,6 +3,30 @@
  * Maroon Color Scheme with Bilingual Support
  */
 
+@font-face {
+    font-family: 'Inter Variable';
+    font-style: normal;
+    font-weight: 100 900;
+    font-display: swap;
+    src: url('../fonts/inter-latin-wght-normal.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'IBM Plex Sans Arabic';
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url('../fonts/ibm-plex-sans-arabic-arabic-400-normal.woff2') format('woff2');
+}
+
+@font-face {
+    font-family: 'IBM Plex Sans Arabic';
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url('../fonts/ibm-plex-sans-arabic-arabic-700-normal.woff2') format('woff2');
+}
+
 /* ===== PAGE BACKGROUND - White ===== */
 html,
 body,
@@ -14,9 +38,14 @@ body,
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif !important;
+    font-family: 'Inter Variable', system-ui, sans-serif !important;
     margin: 0 !important;
     padding: 0 !important;
+}
+
+html[dir="rtl"] body,
+html[dir="rtl"] .login-pf-page {
+    font-family: 'IBM Plex Sans Arabic', system-ui, sans-serif !important;
 }
 
 /* ===== RTL SUPPORT FOR ARABIC - Higher Priority ===== */

@@ -49,7 +49,7 @@ export default function PanelHeader({ student, attendanceStatus, t, lang, isRTL,
           <span style={{
             fontSize: '0.75rem',
             color: 'var(--text-muted, #6b7280)',
-            fontFamily: 'monospace',
+            fontFamily: 'var(--font-family-mono)',
             background: 'var(--panel-hover, #f3f4f6)',
             padding: '0.0625rem 0.375rem',
             borderRadius: '0.25rem'

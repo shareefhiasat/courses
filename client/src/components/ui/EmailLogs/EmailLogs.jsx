@@ -381,7 +381,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Email
                                       borderRadius: 4,
                                       fontSize: '0.8rem',
                                       color: 'var(--color-primary, #800020)',
-                                      fontFamily: 'monospace'
+                                      fontFamily: 'var(--font-family-mono)'
                                     }}
                                 >
                           {`{{${key}}}`}

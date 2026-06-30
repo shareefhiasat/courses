@@ -262,7 +262,7 @@
   border: 1px solid #d1d5db;
   border-radius: 0.5rem;
   font-size: 0.875rem;
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-family-mono, 'JetBrains Mono Variable', ui-monospace, monospace);
   resize: vertical;
   transition: all 0.2s;
   background: white;
@@ -449,7 +449,7 @@
 }
 
 .errorValue {
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-family-mono, 'JetBrains Mono Variable', ui-monospace, monospace);
   background: #fee2e2;
   padding: 0.125rem 0.375rem;
   border-radius: 0.25rem;
@@ -468,7 +468,7 @@
 
 .warningItem {
   color: #78350f;
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-family-mono, 'JetBrains Mono Variable', ui-monospace, monospace);
 }
 
 .chipsSection {
@@ -676,7 +676,7 @@
 }
 
 .chipText {
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-family-mono, 'JetBrains Mono Variable', ui-monospace, monospace);
   font-weight: 700;
   color: #1e293b;
 }
@@ -759,7 +759,7 @@
 .notFoundList {
   font-size: 0.8125rem;
   color: #7f1d1d;
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-family-mono, 'JetBrains Mono Variable', ui-monospace, monospace);
 }
 
 .controlsSection {
@@ -936,7 +936,7 @@
 .summaryValue {
   font-weight: 700;
   color: #1e3a8a;
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-family-mono, 'JetBrains Mono Variable', ui-monospace, monospace);
 }
 
 .dark .summaryValue {
@@ -1742,7 +1742,7 @@
 }
 
 .studentCardNumber {
-  font-family: 'Courier New', monospace;
+  font-family: var(--font-family-mono, 'JetBrains Mono Variable', ui-monospace, monospace);
   font-weight: 600;
   color: #1f2937;
   font-size: 0.875rem;

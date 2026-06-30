@@ -73,7 +73,7 @@ export default function AreaChart({ data = [], width = 400, height = 300, accent
   }
 
   return (
-    <svg width={width} height={height} style={{ fontFamily: 'system-ui, -apple-system, sans-serif' }}>
+    <svg width={width} height={height} style={{ fontFamily: 'var(--font-family-sans)' }}>
       {/* Grid lines */}
       {showGrid && (
         <g>

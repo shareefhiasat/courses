@@ -274,7 +274,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
             display: 'inline-flex',
             alignItems: 'center',
             justifyContent: 'center',
-            fontFamily: 'monospace',
+            fontFamily: 'var(--font-family-mono)',
             fontSize: isMobile ? '0.75rem' : '0.875rem',
             color: '#059669',
             fontWeight: 600

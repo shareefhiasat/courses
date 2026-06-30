@@ -4537,7 +4537,7 @@ const QRScannerPage = () => {
     <div className="qr-scanner-container" dir={isRTL ? 'rtl' : 'ltr'} style={{
       minHeight: '100vh',
       background: 'var(--background-secondary, #f9fafb)',
-      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
+      fontFamily: 'var(--font-family-sans)'
     }}>
       <Joyride
         continuous
@@ -5637,7 +5637,7 @@ const QRScannerPage = () => {
                   </div>
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
                     <span style={{ color: '#6b7280' }}>{t('file_id')}</span>
-                    <span style={{ fontWeight: 500, fontFamily: 'monospace', fontSize: '12px' }}>
+                    <span style={{ fontWeight: 500, fontFamily: 'var(--font-family-mono)', fontSize: '12px' }}>
                       {successData.fileId}
                     </span>
                   </div>

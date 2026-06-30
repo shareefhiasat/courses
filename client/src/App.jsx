@@ -3,8 +3,10 @@ import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'r
 import { KeycloakProvider } from './providers/KeycloakProvider';
 import { AuthProvider, useAuth } from '@contexts/AuthContext';
 import { LangProvider } from '@contexts/LangContext';
+import { TypographyProvider } from '@contexts/TypographyContext';
 import { ThemeProvider } from '@contexts/ThemeContext';
 import { ColorThemeProvider } from '@contexts/ColorThemeContext';
+import MuiAppThemeProvider from './providers/MuiAppThemeProvider';
 import { GlobalLoadingProvider, GlobalLoadingFallback } from '@contexts/GlobalLoadingContext';
 import HelpCommandPalette from './components/help/HelpCommandPalette.jsx';
 import HelpRedirect from './components/help/HelpRedirect.jsx';
@@ -617,8 +619,10 @@ function App() {
       <KeycloakProvider>
         <LangProvider>
           <AuthProvider>
+          <TypographyProvider>
           <ThemeProvider>
               <ColorThemeProvider>
+                <MuiAppThemeProvider>
                 <GlobalLoadingProvider>
                   <Router>
                     <ErrorBoundary>
@@ -629,8 +633,10 @@ function App() {
                     </ErrorBoundary>
                   </Router>
                 </GlobalLoadingProvider>
+                </MuiAppThemeProvider>
               </ColorThemeProvider>
           </ThemeProvider>
+          </TypographyProvider>
         </AuthProvider>
         </LangProvider>
       </KeycloakProvider>
