@@ -8,6 +8,51 @@ export const getTimeFormatPreference = () => {
 
 import { info, error, warn, debug } from '../services/utils/logger.js';
 
+/**
+ * Format time for chat messages with locale-aware AM/PM
+ * Uses ar-EG-u-nu-latn for Arabic (Latin numerals + ص/م) and en-US for English
+ * @param {Date|Object} date - Date object or Firestore timestamp with toDate()
+ * @param {string} lang - Current language ('en' or 'ar')
+ * @returns {string} Formatted time string like "08:38 ص" or "08:38 AM"
+ */
+export const formatChatTime = (date, lang = 'en') => {
+  try {
+    const d = date?.toDate ? date.toDate() : (date instanceof Date ? date : new Date(date));
+    if (isNaN(d.getTime())) return '';
+    return d.toLocaleTimeString(lang === 'ar' ? 'ar-EG-u-nu-latn' : 'en-US', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  } catch {
+    return '';
+  }
+};
+
+/**
+ * Format date for chat date separators with locale-aware month names
+ * @param {Date|Object} date - Date object or Firestore timestamp with toDate()
+ * @param {string} lang - Current language ('en' or 'ar')
+ * @returns {string} Formatted date string like "Today" / "اليوم" or date
+ */
+export const formatChatDate = (date, lang = 'en', t) => {
+  try {
+    const d = date?.toDate ? date.toDate() : (date instanceof Date ? date : new Date(date));
+    if (isNaN(d.getTime())) return '';
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const cmp = new Date(d);
+    cmp.setHours(0, 0, 0, 0);
+    const diffDays = Math.round((today - cmp) / 86400000);
+    if (diffDays === 0) return t ? t('today') : 'Today';
+    if (diffDays === 1) return t ? t('yesterday') : 'Yesterday';
+    return d.toLocaleDateString(lang === 'ar' ? 'ar-EG-u-nu-latn' : 'en-US', {
+      year: 'numeric', month: 'long', day: 'numeric'
+    });
+  } catch {
+    return '';
+  }
+};
+
 export const formatDate = (value) => {
   if (!value) return '';
   const d = value?.seconds ? new Date(value.seconds * 1000) : new Date(value);
@@ -166,7 +211,7 @@ export const formatLocalizedDateTime = (date, t, lang) => {
   const dayName = dayNames[dateObj.getDay()];
   
   // Format time
-  const time = dateObj.toLocaleTimeString('en-US', { 
+  const time = dateObj.toLocaleTimeString(currentLang === 'ar' ? 'ar-EG-u-nu-latn' : 'en-US', { 
     hour: 'numeric', 
     minute: '2-digit',
     hour12: true 

@@ -21,7 +21,7 @@ import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadin
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import './ChatPage.css';
 import './ChatPageEmojiStyles.css';
-import { formatDateTime, formatDate } from '@utils/date';
+import { formatDateTime, formatDate, formatChatTime, formatChatDate } from '@utils/date';
 import { DEFAULT_ACCENT, normalizeHexColor } from '@utils/color';
 import { canParticipate } from '@utils/userStatus';
 import { filterBadWords, containsBadWords } from '@utils/badWordFilter';
@@ -55,7 +55,9 @@ import {
 
 import {
   formatTime,
-  getMaxVoiceTimeDisplay
+  getMaxVoiceTimeDisplay,
+  getChatType,
+  getChatId
 } from './utils/chatHelpers';
 
 // Minimal state hook for gradual migration
@@ -77,6 +79,18 @@ const withAuthToken = (url) => {
   return `${url}${sep}token=${encodeURIComponent(token)}`;
 };
 
+
+const getClassDisplayName = (cls, lang = 'en') => {
+  if (!cls) return '';
+  if (lang === 'ar' && cls.nameAr) return cls.nameAr;
+  return cls.name || cls.nameEn || 'Class';
+};
+
+const getGroupDisplayName = (room, lang = 'en') => {
+  if (!room) return '';
+  if (lang === 'ar' && room.nameAr) return room.nameAr;
+  return room.name || '';
+};
 
 const ChatPage = memo(() => {
   const { user, isAdmin, isSuperAdmin, isHR, isInstructor, loading: authLoading } = useAuth();
@@ -381,7 +395,7 @@ const ChatPage = memo(() => {
   // Start DM with a user from the picker
   const startDMFromPicker = useCallback(async (otherUser) => {
     const otherUserId = otherUser?.id || otherUser?.docId || otherUser?.uid;
-    if (!otherUserId || otherUserId === user?.uid) return;
+    if (!otherUserId) return;
     try {
       const result = await chatService.createDM(otherUserId);
       if (result.success && result.data) {
@@ -393,6 +407,25 @@ const ChatPage = memo(() => {
       toast?.showError?.('Failed to start conversation');
     }
     setShowNewDMPicker(false);
+  }, [user, setSelectedClass, setUserHasInteracted, toast]);
+
+  // Create self-DM (Message Yourself / Notes)
+  const createSelfDM = useCallback(async () => {
+    if (!user?.dbId) {
+      toast?.showError?.('User ID not available');
+      return;
+    }
+    try {
+      const result = await chatService.createDM(user.dbId);
+      if (result.success && result.data) {
+        setSelectedClass(`dm:${result.data.id}`);
+        setUserHasInteracted(true);
+        selectedClassRef.current = `dm:${result.data.id}`;
+      }
+    } catch (err) {
+      error('Failed to create self-DM:', err);
+      toast?.showError?.('Failed to create notes');
+    }
   }, [user, setSelectedClass, setUserHasInteracted, toast]);
 
   // Helper to merge starBy from localStorage into rooms
@@ -1277,8 +1310,8 @@ const ChatPage = memo(() => {
                     <div style={{ fontSize:'0.85rem', color:'var(--muted)', textAlign:'right', flexShrink:0, marginLeft:8 }}>
                       {r.readAt ? (
                         <>
-                          <div>{r.readAt.toLocaleDateString?.('en-GB') || ''}</div>
-                          <div>{r.readAt.toLocaleTimeString?.('en-GB', {hour:'2-digit',minute:'2-digit'}) || ''}</div>
+                          <div>{r.readAt?.toLocaleDateString?.(lang === 'ar' ? 'ar-EG-u-nu-latn' : 'en-GB') || ''}</div>
+                          <div>{formatChatTime(r.readAt, lang)}</div>
                         </>
                       ) : (
                         <div style={{ fontStyle:'italic' }}>{t('not_seen_yet')}</div>
@@ -1358,7 +1391,7 @@ const ChatPage = memo(() => {
                 {getThemedIcon('ui', 'book_open', 16, theme)}
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display:'flex', alignItems:'center', gap: 8 }}>
-                    <div style={{ fontWeight: '600', flex:1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{cls.name}</div>
+                    <div style={{ fontWeight: '600', flex:1, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{getClassDisplayName(cls, lang)}</div>
                     {(() => {
                       const count = unreadCounts[cls.docId] || 0;
                       if (count > 0) {
@@ -1517,7 +1550,7 @@ const ChatPage = memo(() => {
             const groupRooms = (Array.isArray(safeDirectRooms) ? safeDirectRooms : []).filter(r => r.type === 'group');
             if (groupRooms.length === 0) return null;
             const filteredGroupRooms = groupSearch
-              ? groupRooms.filter(r => (r.name || '').toLowerCase().includes(groupSearch.toLowerCase()))
+              ? groupRooms.filter(r => (r.name || '').toLowerCase().includes(groupSearch.toLowerCase()) || (r.nameAr || '').toLowerCase().includes(groupSearch.toLowerCase()))
               : groupRooms;
             return (
               <>
@@ -1552,12 +1585,12 @@ const ChatPage = memo(() => {
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <div style={{ width: 28, height: 28, borderRadius: 6, background: 'linear-gradient(135deg, #7e57c2, #5e35b1)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--font-size-sm)', fontWeight: 700 }}>
-                          {(room.name || 'G')[0]?.toUpperCase()}
+                          {(getGroupDisplayName(room, lang) || 'G')[0]?.toUpperCase()}
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                             <div style={{ fontWeight: 600, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1 }}>
-                              {room.name || t('group_chat')}
+                              {getGroupDisplayName(room, lang) || t('group_chat')}
                             </div>
                             {isCreator && getIconWithColor('ui', 'crown', 12, '#ffc107')}
                             {(() => { const c = unreadCounts[`group:${room.id}`] || 0; if (c > 0) { return (<span style={{ background: 'var(--brand)', color: 'white', borderRadius: '50%', minWidth: 18, height: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 'bold', padding: '0 5px' }}>{c > 99 ? '99+' : c}</span>); } return null; })()}
@@ -1577,15 +1610,24 @@ const ChatPage = memo(() => {
           {/* Direct Messages */}
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.4rem 0.9rem', borderTop: '1px solid var(--border)' }}>
             <span style={{ color: 'var(--muted)', fontWeight: 600, fontSize: '0.85rem' }}>{t('chat_direct_messages')}</span>
-            {isStaffRole && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
               <button
-                onClick={openNewDMPicker}
+                onClick={createSelfDM}
                 style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--brand)', fontSize: '1.1rem', padding: '2px 6px', borderRadius: 4 }}
-                title={t('start_new_conversation')}
+                title={t('message_yourself') || 'Message Yourself'}
               >
-                +
+                {getThemedIcon('ui', 'bookmark', 16, theme)}
               </button>
-            )}
+              {isStaffRole && (
+                <button
+                  onClick={openNewDMPicker}
+                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--brand)', fontSize: '1.1rem', padding: '2px 6px', borderRadius: 4 }}
+                  title={t('start_new_conversation')}
+                >
+                  +
+                </button>
+              )}
+            </div>
           </div>
           {(() => {
             const dmRooms = (Array.isArray(safeDirectRooms) ? safeDirectRooms : []).filter(r => r.type !== 'group');
@@ -1639,10 +1681,11 @@ const ChatPage = memo(() => {
             // DM rooms have participantA/participantB (numeric DB IDs) and userA/userB (user data)
             // user.uid is a Keycloak UUID, so we can't match participants directly
             // Instead, use userA/userB data included in the room object
-            const otherUser = (room.userA?.id === user?.dbId || (user?.email && room.userA?.email === user?.email)) ? room.userB : room.userA;
+            const isSelfDM = room.participantA === room.participantB && room.participantA != null;
+            const otherUser = isSelfDM ? null : (room.userA?.id === user?.dbId || (user?.email && room.userA?.email === user?.email)) ? room.userB : room.userA;
             const otherId = otherUser?.id;
-            const label = otherUser ? getChatUserDisplayName(otherUser, lang) || otherUser.email || t('conversation') : t('conversation');
-            const initial = (label || t('conversation'))[0]?.toUpperCase();
+            const label = isSelfDM ? (t('your_notes') || 'Your Notes') : (otherUser ? getChatUserDisplayName(otherUser, lang) || otherUser.email || t('conversation') : t('conversation'));
+            const initial = isSelfDM ? null : (label || t('conversation'))[0]?.toUpperCase();
             const lastTime = room.lastMessageAt?.toDate?.();
             return (
               <div
@@ -1657,6 +1700,13 @@ const ChatPage = memo(() => {
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                   {(() => {
+                    if (isSelfDM) {
+                      return (
+                        <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'linear-gradient(135deg,var(--brand),var(--brand2))', color: 'white', display:'flex', alignItems:'center', justifyContent:'center' }}>
+                          {getThemedIcon('ui', 'bookmark', 16, theme)}
+                        </div>
+                      );
+                    }
                     // For DM: show X only if deleted or disabled on user level
                     const isDeleted = !otherUser;
                     const isDisabled = false;
@@ -1688,7 +1738,7 @@ const ChatPage = memo(() => {
                   })()}
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ display:'flex', alignItems:'center', gap:6 }}>
-                      <div style={{ fontWeight: 600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', flex:1, opacity: !otherUser ? 0.6 : 1 }}>
+                      <div style={{ fontWeight: 600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', flex:1, opacity: (!otherUser && !isSelfDM) ? 0.6 : 1 }}>
                         {label}
                       </div>
                       {otherUser && <RoleBadge user={otherUser} />}
@@ -1804,6 +1854,8 @@ const ChatPage = memo(() => {
                  (selectedClass?.startsWith('dm:')
                    ? (()=>{ 
                       const room = directRooms.find(r=>`dm:${r.id}`===selectedClass); 
+                      const isSelfDM = room && room.participantA === room.participantB && room.participantA != null;
+                      if (isSelfDM) return t('your_notes') || 'Your Notes';
                       const otherUser = (room?.userA?.id === user?.dbId || (user?.email && room?.userA?.email === user?.email)) ? room?.userB : room?.userA;
                       return otherUser ? getChatUserDisplayName(otherUser, lang) || otherUser.email || t('direct_message') : t('direct_message');
                     })()
@@ -1811,14 +1863,22 @@ const ChatPage = memo(() => {
                      ? (()=>{ 
                         const groupId = parseInt(selectedClass.split(':')[1]);
                         const grp = directRooms.find(r => r.id === groupId && r.type === 'group');
-                        return grp?.name || t('group_chat');
+                        return getGroupDisplayName(grp, lang) || t('group_chat');
                       })()
-                     : (classes.find(c => c.docId === selectedClass)?.name || selectedClassName || t('chat'))
+                     : (getClassDisplayName(classes.find(c => c.docId === selectedClass), lang) || selectedClassName || t('chat'))
                  )}
               </h3>
               {/* Display name for DM conversations */}
               {selectedClass?.startsWith('dm:') && (()=>{ 
                 const room = directRooms.find(r=>`dm:${r.id}`===selectedClass); 
+                const isSelfDM = room && room.participantA === room.participantB && room.participantA != null;
+                if (isSelfDM) {
+                  return (
+                    <div style={{ fontSize: '0.9rem', color: 'var(--muted)', marginTop: '0.25rem', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                      {t('message_yourself_hint') || 'Personal notes and reminders'}
+                    </div>
+                  );
+                }
                 const otherUser = (room?.userA?.id === user?.dbId || (user?.email && room?.userA?.email === user?.email)) ? room?.userB : room?.userA;
                 const displayName = otherUser ? getChatUserDisplayName(otherUser, lang) : null;
                 const email = otherUser?.email;
@@ -1985,17 +2045,20 @@ const ChatPage = memo(() => {
               {messages.length} {t('messages')}
             </span>
             
-            {/* DM Name (if any) - shown for DM conversations */}
+            {/* DM Name (if any) - shown for DM conversations (not self-DM) */}
             {selectedClass?.startsWith('dm:') && (()=>{ 
               const room = directRooms.find(r=>`dm:${r.id}`===selectedClass); 
+              const isSelfDM = room && room.participantA === room.participantB && room.participantA != null;
+              if (isSelfDM) return null;
               const otherUser = (room?.userA?.id === user?.dbId || (user?.email && room?.userA?.email === user?.email)) ? room?.userB : room?.userA;
-              return otherUser ? `${otherUser.firstName || ''} ${otherUser.lastName || ''}`.trim() || otherUser.email : null;
+              const name = otherUser ? getChatUserDisplayName(otherUser, lang) || otherUser.email : null;
+              return name;
             })() && (
               <span style={{ fontSize: '0.9rem', color: 'var(--muted)', fontWeight: 500 }}>
                 {(()=>{ 
                   const room = directRooms.find(r=>`dm:${r.id}`===selectedClass); 
                   const otherUser = (room?.userA?.id === user?.dbId || (user?.email && room?.userA?.email === user?.email)) ? room?.userB : room?.userA;
-                  return otherUser ? `${otherUser.firstName || ''} ${otherUser.lastName || ''}`.trim() || otherUser.email : '';
+                  return otherUser ? getChatUserDisplayName(otherUser, lang) || otherUser.email : '';
                 })()}
               </span>
             )}
@@ -2209,7 +2272,7 @@ const ChatPage = memo(() => {
             let lastDate = null;
             list.forEach((msg) => {
               const msgDate = msg.createdAt?.toDate() || new Date();
-              const dateStr = formatDate(msgDate);
+              const dateStr = formatChatDate(msgDate, lang, t);
               if (dateStr !== lastDate) {
                 groupedByDate.push({ type: 'date', date: msgDate, dateStr });
                 lastDate = dateStr;
@@ -2219,11 +2282,7 @@ const ChatPage = memo(() => {
             
             return groupedByDate.map((item, idx) => {
               if (item.type === 'date') {
-                const today = formatDate(new Date());
-                const yesterday = formatDate(new Date(Date.now() - 86400000));
-                let label = item.dateStr;
-                if (item.dateStr === today) label = t('today');
-                else if (item.dateStr === yesterday) label = t('yesterday');
+                const label = item.dateStr;
                 return (
                   <div key={`date-${idx}`} style={{ display:'flex', alignItems:'center', margin:'1.5rem 0 1rem' }}>
                     <div style={{ flex:1, height:1, background:'var(--border)' }} />
@@ -2282,7 +2341,8 @@ const ChatPage = memo(() => {
                     background: isHighlighted ? '#fff3cdCC' : transparentBubbleColor,
                     color: textColor,
                     padding: '0.5rem 0.75rem',
-                    paddingInlineEnd: (isOwnMessage || isAdmin) ? '2.5rem' : '0.75rem',
+                    paddingInlineStart: isOwnMessage ? '2.5rem' : '0.75rem',
+                    paddingInlineEnd: (!isOwnMessage && isAdmin) ? '2.5rem' : '0.75rem',
                     paddingBottom: '1.75rem',
                     borderRadius: '12px',
                     boxShadow: isHighlighted ? '0 0 20px rgba(255,193,7,0.5)' : '0 2px 4px rgba(0,0,0,0.08)',
@@ -2485,11 +2545,11 @@ const ChatPage = memo(() => {
                       })()
                     )}
 
-                    {/* Timestamp + receipts — dedicated bottom row */}
+                    {/* Timestamp + receipts — dedicated bottom row (toward center of screen) */}
                     <div style={{
                       position: 'absolute',
                       bottom: '0.35rem',
-                      insetInlineEnd: '0.75rem',
+                      ...(isOwnMessage ? { insetInlineStart: '0.75rem' } : { insetInlineEnd: '0.75rem' }),
                       display: 'flex',
                       alignItems: 'center',
                       gap: '0.35rem',
@@ -2535,10 +2595,7 @@ const ChatPage = memo(() => {
                           >{anyRead ? '✓✓' : '✓'}</span>
                         );
                       })()}
-                      <span>{msg.createdAt?.toDate()?.toLocaleTimeString('en-US', {
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}</span>
+                      <span>{formatChatTime(msg.createdAt, lang)}</span>
                     </div>
                     {/* Icon/Emoji Reactions - Single per user */}
                     {msg.reactions && Object.keys(msg.reactions).length > 0 && (() => {
@@ -2592,7 +2649,7 @@ const ChatPage = memo(() => {
                       return (
                         <div style={{ 
                           position:'absolute', 
-                          insetInlineStart: -22, 
+                          ...(isOwnMessage ? { insetInlineStart: -22 } : { insetInlineEnd: -22 }), 
                           top: '50%', 
                           transform:'translateY(-50%)', 
                           display:'flex', 
@@ -2681,9 +2738,8 @@ const ChatPage = memo(() => {
                       style={{ 
                         position:'absolute', 
                         bottom: -14, 
-                        insetInlineStart: -14, 
-                        background:'rgba(128,128,128,0.15)', 
-                        backdropFilter:'blur(4px)',
+                        ...(isOwnMessage ? { insetInlineStart: -14 } : { insetInlineEnd: -14 }), 
+                        background:'transparent', 
                         border:'2px solid var(--border)', 
                         borderRadius:'50%', 
                         width:30, 
@@ -2692,7 +2748,6 @@ const ChatPage = memo(() => {
                         alignItems:'center', 
                         justifyContent:'center', 
                         cursor:'pointer', 
-                        boxShadow:'0 2px 8px rgba(0,0,0,0.08)', 
                         transition:'all 0.2s ease',
                         fontSize:'1.2rem',
                         fontFamily:'"Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "EmojiSymbols", sans-serif',
@@ -2823,7 +2878,7 @@ const ChatPage = memo(() => {
                       onMouseDown={(e)=>e.stopPropagation()}
                       onClick={(e)=>{ e.stopPropagation(); setMenuOpenId(menuOpenId===msg.id?null:msg.id); }}
                       title={t('more')}
-                      style={{ position:'absolute', top:4, insetInlineEnd: 4, background:'transparent', border:'none', color:'var(--muted)', cursor:'pointer', fontSize: 'var(--font-size-md)', padding:'2px 4px', lineHeight:1, opacity:0.6 }}
+                      style={{ position:'absolute', top:4, insetInlineEnd: 4, background:'transparent', border:'none', color:'var(--text)', cursor:'pointer', fontSize: 'var(--font-size-md)', padding:'2px 4px', lineHeight:1, opacity:0.8 }}
                     >⋮</button>
                     {menuOpenId===msg.id && (
                       <div
@@ -3508,7 +3563,7 @@ const ChatPage = memo(() => {
         <div style={{ background:'var(--panel)', color:'var(--text)', border:'1px solid var(--border)', padding:'1.5rem', borderRadius:16, minWidth:450, maxWidth:550, width:'90%', boxShadow:'0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)' }} onClick={(e)=>e.stopPropagation()}>
           <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:'1.25rem' }}>
             <h3 style={{ margin:0, fontSize:'1.15rem', fontWeight:700, display:'flex', alignItems:'center', gap:'0.5rem' }}>
-              <div style={{ width:32, height:32, background:'linear-gradient(135deg, var(--brand), var(--brand2))', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', color:'white', fontSize: 'var(--font-size-md)' }}>{getThemedIcon('ui', 'bar_chart', 18, theme)}</div>
+              <div style={{ width:32, height:32, background:'linear-gradient(135deg, var(--brand), var(--brand2))', borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', color:'white', fontSize: 'var(--font-size-md)' }}>{getIconWithColor('ui', 'bar_chart', 18, '#ffffff')}</div>
               {t('create_poll')}
             </h3>
             <button onClick={()=>setShowPollModal(false)} style={{ background:'transparent', border:'none', cursor:'pointer', color:'var(--muted)', fontSize:'1.25rem', padding:'4px 8px', borderRadius:8, display:'flex', alignItems:'center', justifyContent:'center', transition:'all 0.2s' }}
@@ -3595,13 +3650,16 @@ const ChatPage = memo(() => {
                   return;
                 }
                 try {
+                  const chatType = getChatType(selectedClass);
+                  const chatId = getChatId(selectedClass);
                   const pollData = {
-                    type: selectedClass === 'global' ? 'global' : (selectedClass?.startsWith('dm:') ? 'dm' : 'class'),
-                    classId: selectedClass?.startsWith('dm:') ? null : (selectedClass === 'global' ? null : selectedClass),
-                    roomId: selectedClass?.startsWith('dm:') ? selectedClass.slice(3) : null,
+                    chatType: chatType,
+                    type: chatType,
+                    classId: chatType === CHAT_TYPES.CLASS ? chatId : null,
+                    roomId: (chatType === CHAT_TYPES.DM || chatType === CHAT_TYPES.GROUP) ? chatId : null,
                     senderId: user.uid,
                     senderName: profileName || user.displayName || user.email,
-                    messageType: 'poll',
+                    messageType: MESSAGE_TYPES.POLL,
                     pollQuestion: pollQuestion.trim(),
                     pollOptions: pollOptions.filter(o=>o.trim()),
                     pollVotes: {},
@@ -4046,6 +4104,7 @@ const ChatPage = memo(() => {
                   id: r.id,
                   type: 'group',
                   name: r.name,
+                  nameAr: r.nameAr,
                   createdBy: r.createdBy,
                   participants: r.participants,
                   creator: r.creator,
@@ -4101,6 +4160,7 @@ const ChatPage = memo(() => {
                   id: r.id,
                   type: 'group',
                   name: r.name,
+                  nameAr: r.nameAr,
                   createdBy: r.createdBy,
                   participants: r.participants,
                   creator: r.creator,
@@ -4137,7 +4197,7 @@ const ChatPage = memo(() => {
         if (selectedClass?.startsWith('group:')) {
           const groupId = parseInt(selectedClass.split(':')[1]);
           const grp = directRooms.find(r => r.id === groupId && r.type === 'group');
-          return grp?.name || t('group_chat');
+          return getGroupDisplayName(grp, lang) || t('group_chat');
         }
         if (selectedClass?.startsWith('dm:')) {
           const dmId = parseInt(selectedClass.split(':')[1]);
@@ -4146,7 +4206,7 @@ const ChatPage = memo(() => {
           return otherUser ? getChatUserDisplayName(otherUser, lang) : t('direct_message');
         }
         if (classInfoRoomId) {
-          return classes.find(c => c.docId === selectedClass)?.name || selectedClassName || t('chat');
+          return getClassDisplayName(classes.find(c => c.docId === selectedClass), lang) || selectedClassName || t('chat');
         }
         return null;
       })()}
@@ -4178,7 +4238,7 @@ const ChatPage = memo(() => {
                 if (r.type === 'dm') {
                   rooms.push({ id: r.id, participantA: r.participantA, participantB: r.participantB, userA: r.userA, userB: r.userB, type: 'dm', lastMessage: r.lastMessage || null, lastMessageAt: r.lastMessageAt || null, createdAt: r.createdAt, starBy: r.starBy || [] });
                 } else if (r.type === 'group') {
-                  rooms.push({ id: r.id, type: 'group', name: r.name, createdBy: r.createdBy, participants: r.participants, creator: r.creator, lastMessage: r.lastMessage || null, lastMessageAt: r.lastMessageAt || null, createdAt: r.createdAt, starBy: r.starBy || [] });
+                  rooms.push({ id: r.id, type: 'group', name: r.name, nameAr: r.nameAr, createdBy: r.createdBy, participants: r.participants, creator: r.creator, lastMessage: r.lastMessage || null, lastMessageAt: r.lastMessageAt || null, createdAt: r.createdAt, starBy: r.starBy || [] });
                 }
               });
               setDirectRooms(mergeStarData(rooms));

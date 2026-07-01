@@ -34,6 +34,8 @@ import BehaviorPage from '../../../operations/behavior/BehaviorPage';
 import PenaltiesPage from '../../../operations/penalty/PenaltiesPage';
 import ParticipationPage from '../../../operations/participation/ParticipationPage';
 import MarksHistoryDrawer from '@components/academic/MarksHistoryDrawer';
+import DeductionDrawer from '@components/academic/DeductionDrawer';
+import { fetchAttendanceDeductionSuggestion, fetchDeductionHistory } from '@services/business/attendanceDeductionService';
 import styles from './EnrollmentsMarksPage.module.css';
 
 const MarksPage = () => {
@@ -105,6 +107,14 @@ const MarksPage = () => {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historySearchTerm, setHistorySearchTerm] = useState('');
   const [selectedStudent, setSelectedStudent] = useState(null);
+
+  // Deduction drawer state
+  const [showDeductionDrawer, setShowDeductionDrawer] = useState(false);
+  const [deductionData, setDeductionData] = useState(null);
+  const [deductionHistory, setDeductionHistory] = useState([]);
+  const [deductionLoading, setDeductionLoading] = useState(false);
+  const [deductionStudent, setDeductionStudent] = useState(null);
+  const [deductionCache, setDeductionCache] = useState({});
 
   // Filters
   const [programFilter, setProgramFilter] = useState('');
@@ -365,6 +375,44 @@ const MarksPage = () => {
       setHistoryLoading(false);
     }
   }, [toast]);
+
+  // Load deduction data for a student
+  const loadDeductionData = useCallback(async (student) => {
+    try {
+      setDeductionLoading(true);
+      const studentId = student.studentId || student.id || student.userId;
+      const classId = student.classId;
+      const cacheKey = `${studentId}_${classId || ''}`;
+
+      if (deductionCache[cacheKey]) {
+        setDeductionData(deductionCache[cacheKey].data);
+        setDeductionHistory(deductionCache[cacheKey].history);
+        setDeductionStudent(student);
+        setShowDeductionDrawer(true);
+        setDeductionLoading(false);
+        return;
+      }
+
+      const [deductionRes, historyRes] = await Promise.all([
+        fetchAttendanceDeductionSuggestion({ userId: studentId, classId }),
+        fetchDeductionHistory({ userId: studentId, classId }),
+      ]);
+
+      const data = deductionRes?.data || deductionRes;
+      const history = historyRes?.data || historyRes || [];
+
+      setDeductionData(data);
+      setDeductionHistory(history);
+      setDeductionStudent(student);
+      setShowDeductionDrawer(true);
+      setDeductionCache(prev => ({ ...prev, [cacheKey]: { data, history } }));
+    } catch (err) {
+      error('[MarksPage] Error loading deduction data:', err);
+      toast?.error?.('Failed to load deduction data');
+    } finally {
+      setDeductionLoading(false);
+    }
+  }, [toast, deductionCache]);
 
   // Filters state is below
 
@@ -1385,6 +1433,88 @@ const MarksPage = () => {
                     }
                   },
                   {
+                    field: 'deductions',
+                    headerName: t('deductions') || 'Deductions',
+                    width: 110,
+                    sortable: false,
+                    filterable: false,
+                    renderCell: (params) => {
+                      const row = params.row;
+                      const gradeType = row.gradeType || 'calculated';
+                      const isFB = gradeType === 'FB' || gradeType === 'FA';
+                      const cacheKey = `${row.studentId || row.id}_${row.classId || ''}`;
+                      const cached = deductionCache[cacheKey];
+
+                      if (cached?.data) {
+                        const total = cached.data.totalDeduction || 0;
+                        const count = cached.data.absenceCount || 0;
+                        const weight = marksDistribution?.attendance || 10;
+                        const failThreshold = 8;
+                        const isFail = cached.data.failureByCount || isFB;
+                        const pct = failThreshold > 0 ? count / failThreshold : 0;
+                        const bgColor = isFail ? '#dc2626' : pct >= 0.75 ? '#ef4444' : pct >= 0.5 ? '#f59e0b' : '#22c55e';
+
+                        return (
+                          <div
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              cursor: 'pointer',
+                              height: '100%',
+                            }}
+                            onClick={() => loadDeductionData(row)}
+                            title={`${total.toFixed(2)} deducted, ${count}/${failThreshold} absences`}
+                          >
+                            <div style={{
+                              padding: '2px 8px',
+                              borderRadius: '4px',
+                              background: bgColor,
+                              color: 'white',
+                              fontSize: 'var(--font-size-xs)',
+                              fontWeight: 600,
+                              whiteSpace: 'nowrap',
+                            }}>
+                              -{total.toFixed(1)}
+                            </div>
+                            <div style={{
+                              fontSize: 'var(--font-size-xs)',
+                              color: isDarkMode ? '#9ca3af' : '#6b7280',
+                              whiteSpace: 'nowrap',
+                            }}>
+                              {count}/{failThreshold}
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+                          <Button
+                            size="sm"
+                            variant="outline-info"
+                            onClick={() => loadDeductionData(row)}
+                            disabled={deductionLoading}
+                            style={{
+                              padding: '4px 8px',
+                              fontSize: 'var(--font-size-xs)',
+                              minWidth: '70px',
+                            }}
+                          >
+                            {deductionLoading ? (
+                              <span>...</span>
+                            ) : (
+                              <>
+                                {getThemedIcon('ui', 'alert_triangle', 14, theme)}
+                                <span style={{ marginLeft: '4px' }}>{t('view') || 'View'}</span>
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      );
+                    }
+                  },
+                  {
                     field: 'history',
                     headerName: t('history') || 'History',
                     width: 80,
@@ -1508,6 +1638,19 @@ const MarksPage = () => {
         historyData={historyData}
         loading={historyLoading}
         selectedStudent={selectedStudent}
+      />
+
+      {/* Deduction Drawer */}
+      <DeductionDrawer
+        isOpen={showDeductionDrawer}
+        onClose={() => setShowDeductionDrawer(false)}
+        student={deductionStudent}
+        data={deductionData}
+        history={deductionHistory}
+        loading={deductionLoading}
+        type="absence"
+        weight={marksDistribution?.attendance || 10}
+        thresholds={{ failureCount: 8, failureGrade: 'FB' }}
       />
     </Container>
   );

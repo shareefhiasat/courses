@@ -28,7 +28,9 @@ import WorkflowHistory from '@components/workflow/WorkflowHistory.jsx';
 import CollapsibleSection from '@components/scheduling/CollapsibleSection.jsx';
 import VersionsTab from '@components/smart-drive/tabs/VersionsTab.jsx';
 import WorkflowCommentsTab from '@components/workflow/WorkflowCommentsTab.jsx';
-import { getThemedIcon } from '@constants/iconTypes';
+import { getThemedIcon, getUserRoleIcon, getUserRoleColor } from '@constants/iconTypes';
+import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
+import { getUserRoleFromObject } from '@utils/userUtils';
 import { getStatusVariant, WORKFLOW_STATUS } from '@constants/workflowStatusTypes';
 import { Workflow as WorkflowIcon, Paperclip, MessageSquare, Clock, CheckCircle, Circle, AlertCircle } from 'lucide-react';
 import { getWorkflowDocument } from '@services/api/workflow-documents-api.js';
@@ -603,15 +605,102 @@ const WorkflowDocumentDetailPage = () => {
       {/* Document Title and Description - compact */}
       <Card data-tour="doc-title" className="shadow-sm">
         <CardContent className="p-3">
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.75rem', flexWrap: 'wrap' }}>
-            <h2 style={{ fontSize: 'var(--font-size-lg)', fontWeight: 700, color: 'var(--text, #111827)', margin: 0 }}>
-              {document?.title || '-'}
-            </h2>
-            {document?.description && (
-              <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-muted, #6b7280)', margin: 0 }}>
-                {document.description}
-              </span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
+            {/* Owner avatar with role badge */}
+            {document.submitter && (
+              <div style={{ position: 'relative', flexShrink: 0 }}>
+                <div style={{
+                  width: '2.5rem',
+                  height: '2.5rem',
+                  borderRadius: '9999px',
+                  background: document.submitter.profileImageUrl ? 'transparent' : getAvatarColor((() => {
+                    const s = document.submitter;
+                    if (lang === 'ar' && s.displayNameAr) return s.displayNameAr;
+                    return s.firstName || s.displayName || s.email || '?';
+                  })()).bg,
+                  color: getAvatarColor((() => {
+                    const s = document.submitter;
+                    if (lang === 'ar' && s.displayNameAr) return s.displayNameAr;
+                    return s.firstName || s.displayName || s.email || '?';
+                  })()).color,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 'var(--font-size-xs)',
+                  fontWeight: 600,
+                  overflow: 'hidden',
+                  flexShrink: 0,
+                }}>
+                  {document.submitter.profileImageUrl ? (
+                    <img
+                      src={document.submitter.profileImageUrl}
+                      alt={(() => {
+                        const s = document.submitter;
+                        if (lang === 'ar' && s.displayNameAr) return s.displayNameAr;
+                        return s.firstName || s.displayName || s.email || '';
+                      })()}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                  ) : (
+                    getAvatarInitials((() => {
+                      const s = document.submitter;
+                      if (lang === 'ar' && s.displayNameAr) return s.displayNameAr;
+                      return s.firstName || s.displayName || s.email || '?';
+                    })())
+                  )}
+                </div>
+                {/* Role badge overlay */}
+                {(() => {
+                  const role = getUserRoleFromObject(document.submitter);
+                  if (!role) return null;
+                  const roleIcon = getUserRoleIcon(role);
+                  const roleColor = getUserRoleColor(role);
+                  if (!roleIcon) return null;
+                  return (
+                    <div style={{
+                      position: 'absolute',
+                      bottom: '-2px',
+                      insetInlineEnd: '-2px',
+                      width: '1.125rem',
+                      height: '1.125rem',
+                      borderRadius: '9999px',
+                      background: 'var(--panel, white)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      border: '1.5px solid var(--panel, white)',
+                      boxShadow: '0 0 0 1px var(--border, #e5e7eb)',
+                    }}
+                      title={t(`roles.${role}`, role)}
+                    >
+                      {React.cloneElement(roleIcon, { color: roleColor, size: 10 })}
+                    </div>
+                  );
+                })()}
+              </div>
             )}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.125rem', flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.75rem', flexWrap: 'wrap' }}>
+                <h2 style={{ fontSize: 'var(--font-size-lg)', fontWeight: 700, color: 'var(--text, #111827)', margin: 0 }}>
+                  {document?.title || '-'}
+                </h2>
+                {document?.description && (
+                  <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-muted, #6b7280)', margin: 0 }}>
+                    {document.description}
+                  </span>
+                )}
+              </div>
+              {document.submitter && (
+                <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted, #6b7280)' }}>
+                  {(() => {
+                    const s = document.submitter;
+                    if (lang === 'ar' && s.displayNameAr) return s.displayNameAr;
+                    if (s.firstName && s.lastName) return `${s.firstName} ${s.lastName}`;
+                    return s.displayName || s.firstName || s.email || '';
+                  })()}
+                </span>
+              )}
+            </div>
           </div>
         </CardContent>
       </Card>

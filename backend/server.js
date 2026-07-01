@@ -363,6 +363,7 @@ import weeklySummaryRoutes from "./routes/weekly-summary.js";
 import auditExportRoutes from "./routes/audit-export.js";
 import attendanceAmendmentRoutes from "./routes/attendance-amendment.js";
 import chatRoutes from "./routes/chat.js";
+import exportHistoryRoutes from "./routes/exportHistory.js";
 
 // Mount routes with versioning
 app.use(`/api/${API_VERSION}/programs`, programRoutes);
@@ -430,6 +431,9 @@ app.use(`/api/${API_VERSION}/audit-export`, auditExportRoutes);
 
 // Attendance amendment routes
 app.use(`/api/${API_VERSION}/attendance-amendment`, attendanceAmendmentRoutes);
+
+// Export history routes
+app.use(`/api/${API_VERSION}/export-history`, exportHistoryRoutes);
 
 // ==================== ERROR HANDLING ====================
 

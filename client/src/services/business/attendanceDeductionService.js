@@ -18,7 +18,16 @@ export async function fetchAbsenceDeductionRules() {
   return apiService.get('/marks/absence-deduction-rules');
 }
 
+export async function fetchDeductionHistory({ userId, classId }) {
+  const params = new URLSearchParams();
+  params.append('userId', String(userId));
+  if (classId) params.append('classId', String(classId));
+
+  return apiService.get(`/marks/deduction-history?${params.toString()}`);
+}
+
 export default {
   fetchAttendanceDeductionSuggestion,
   fetchAbsenceDeductionRules,
+  fetchDeductionHistory,
 };

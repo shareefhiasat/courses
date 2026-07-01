@@ -3,6 +3,7 @@ import { Button, Card, CardBody } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 import { REPORT_TYPE_IDS, RECIPIENT_ROLES } from '@constants/reportConstants';
 import { EXPORT_FORMAT } from '@services/export/official-reports/index.jsx';
+import OfficialExportFormatPicker from './OfficialExportFormatPicker.jsx';
 
 
 import { info, error, warn, debug } from '@services/utils/logger.js';const ReportExportModal = ({
@@ -46,6 +47,12 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Repor
       }, 300);
     }
   }, [isOpen, availableUsers.students]);
+
+  useEffect(() => {
+    if (isOpen && reportType === REPORT_TYPE_IDS.DAILY_OFFICIAL && setOfficialExportFormat) {
+      setOfficialExportFormat(EXPORT_FORMAT.PDF);
+    }
+  }, [isOpen, reportType, setOfficialExportFormat]);
 
   if (!isOpen) return null;
 
@@ -98,31 +105,12 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Repor
           </div>
 
           {isDailyOfficial && setOfficialExportFormat && (
-            <div style={{ marginBottom: '1.5rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>
-                {t('export_format') || 'Export format'}
-              </label>
-              <div style={{ display: 'flex', gap: '1rem' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                  <input
-                    type="radio"
-                    name="dailyOfficialFormat"
-                    checked={officialExportFormat === EXPORT_FORMAT.PDF}
-                    onChange={() => setOfficialExportFormat(EXPORT_FORMAT.PDF)}
-                  />
-                  <span>{t('export_pdf') || 'PDF (watermarked)'}</span>
-                </label>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                  <input
-                    type="radio"
-                    name="dailyOfficialFormat"
-                    checked={officialExportFormat === EXPORT_FORMAT.EXCEL}
-                    onChange={() => setOfficialExportFormat(EXPORT_FORMAT.EXCEL)}
-                  />
-                  <span>{t('export_excel') || 'Excel (no watermark)'}</span>
-                </label>
-              </div>
-            </div>
+            <OfficialExportFormatPicker
+              exportFormat={officialExportFormat}
+              setExportFormat={setOfficialExportFormat}
+              t={t}
+              theme={theme}
+            />
           )}
 
           

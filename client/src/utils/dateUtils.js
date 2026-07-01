@@ -38,14 +38,14 @@ export const formatDateTime = (dateValue, lang = 'en', emptyLabel = '—') => {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
-      numberingSystem: lang === 'ar' ? 'arab' : 'latn',
+      numberingSystem: 'latn',
     });
     const timePart = date.toLocaleTimeString(locale, {
       timeZone: 'Asia/Qatar',
       hour: '2-digit',
       minute: '2-digit',
       hour12: true,
-      numberingSystem: lang === 'ar' ? 'arab' : 'latn',
+      numberingSystem: 'latn',
     });
     return `${datePart}, ${timePart}`;
   } catch (error) {
@@ -74,7 +74,7 @@ export const formatDateOnly = (dateValue, lang = 'en') => {
       day: '2-digit',
       month: '2-digit',
       year: 'numeric',
-      numberingSystem: lang === 'ar' ? 'arab' : 'latn'
+      numberingSystem: 'latn'
     };
     
     return date.toLocaleDateString(lang === 'ar' ? 'ar-QA' : 'en-GB', options);
@@ -103,7 +103,8 @@ export const formatTimeOnly = (dateValue, lang = 'en') => {
       timeZone: 'Asia/Qatar',
       hour: '2-digit',
       minute: '2-digit',
-      hour12: lang === 'ar'
+      hour12: true,
+      numberingSystem: 'latn'
     };
     
     return date.toLocaleTimeString(lang === 'ar' ? 'ar-QA' : 'en-US', options);

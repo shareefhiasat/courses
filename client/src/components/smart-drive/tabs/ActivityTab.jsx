@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { getIcon, getUserRoleIcon, getUserRoleColor } from '@constants/iconTypes';
+import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
 import { formatQatarDate, formatQatarDateOnly } from '@utils/timezone';
 import { getLocalizedUserName } from '@utils/localizedUserName';
 import { getUserRoleFromObject } from '@utils/userUtils';
@@ -301,21 +302,63 @@ export default function ActivityTab({ fileId }) {
 
                 return (
                   <div key={activity.id} style={{ position: 'relative', paddingInlineStart: '3rem' }}>
-                    <div
-                      style={{
+                    {/* User avatar with role badge */}
+                    <div style={{ position: 'relative', flexShrink: 0 }}>
+                      <div style={{
                         position: 'absolute',
                         insetInlineStart: 0,
                         width: '2rem',
                         height: '2rem',
                         borderRadius: '9999px',
-                        background: getActionBg(activity.action),
+                        background: activity.user?.profileImageUrl ? 'transparent' : getAvatarColor(getLocalizedUserName(activity.user, lang, t('drive.unknownUser'))).bg,
+                        color: getAvatarColor(getLocalizedUserName(activity.user, lang, t('drive.unknownUser'))).color,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
+                        fontSize: 'var(--font-size-xs)',
+                        fontWeight: 600,
+                        overflow: 'hidden',
                         border: '2px solid var(--panel, white)',
-                      }}
-                    >
-                      {getIcon('ui', actionIcon, 16)}
+                      }}>
+                        {activity.user?.profileImageUrl ? (
+                          <img
+                            src={activity.user.profileImageUrl}
+                            alt={getLocalizedUserName(activity.user, lang, t('drive.unknownUser'))}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          />
+                        ) : (
+                          getAvatarInitials(getLocalizedUserName(activity.user, lang, t('drive.unknownUser')))
+                        )}
+                      </div>
+                      {/* Role badge overlay */}
+                      {(() => {
+                        const role = getUserRoleFromObject(activity.user);
+                        if (!role) return null;
+                        const roleIcon = getUserRoleIcon(role);
+                        const roleColor = getUserRoleColor(role);
+                        if (!roleIcon) return null;
+                        return (
+                          <div style={{
+                            position: 'absolute',
+                            insetInlineStart: '1.25rem',
+                            top: '1.25rem',
+                            width: '1rem',
+                            height: '1rem',
+                            borderRadius: '9999px',
+                            background: 'var(--panel, white)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            border: '1.5px solid var(--panel, white)',
+                            boxShadow: '0 0 0 1px var(--border, #e5e7eb)',
+                            zIndex: 1,
+                          }}
+                            title={t(`roles.${role}`, role)}
+                          >
+                            {React.cloneElement(roleIcon, { color: roleColor, size: 8 })}
+                          </div>
+                        );
+                      })()}
                     </div>
 
                     <div style={{
@@ -327,16 +370,12 @@ export default function ActivityTab({ fileId }) {
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}>
                         <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ fontSize: 'var(--font-size-sm)', fontWeight: 500, color: 'var(--text, #111827)', margin: 0, marginBottom: '0.25rem' }}>
+                          <p style={{ fontSize: 'var(--font-size-sm)', fontWeight: 500, color: 'var(--text, #111827)', margin: 0, marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                            <span style={{ display: 'inline-flex', alignItems: 'center', ...getActionStyle(activity.action) }}>{getIcon('ui', actionIcon, 14)}</span>
                             {getActivityLabel(activity.action)}
                             {' \u00B7 '}
                             <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-muted, #6b7280)', fontWeight: 400 }}>
                               {getLocalizedUserName(activity.user, lang, t('drive.unknownUser'))}
-                              {(() => { const role = getUserRoleFromObject(activity.user); if (!role) return null; const icon = getUserRoleIcon(role); const color = getUserRoleColor(role); return icon ? (
-                                <span title={t(`roles.${role}`, role)} style={{ display: 'inline-flex', alignItems: 'center', marginInlineStart: '0.25rem' }}>
-                                  {React.cloneElement(icon, { color, size: 12 })}
-                                </span>
-                              ) : null; })()}
                             </span>
                           </p>
                           {activity.metadata && Object.keys(activity.metadata).length > 0 && (

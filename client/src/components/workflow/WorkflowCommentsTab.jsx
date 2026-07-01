@@ -1,12 +1,14 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useAuth } from '@contexts/AuthContext';
-import { getIcon } from '@constants/iconTypes';
+import { getIcon, getUserRoleIcon, getUserRoleColor } from '@constants/iconTypes';
+import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
+import { getUserRoleFromObject } from '@utils/userUtils';
 import { Button } from '@ui';
 import Modal from '@ui/Modal/Modal';
 import workflowService from '@services/business/workflowService';
 import { formatQatarDate } from '@utils/timezone';
-import { Star, Shield, ShieldCheck, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import { Group as PanelGroup, Panel, Separator as PanelResizeHandle } from 'react-resizable-panels';
 import { usePanelLayout } from '@hooks/usePanelLayout';
 
@@ -458,70 +460,83 @@ export default function WorkflowCommentsTab({ workflowId, selectedStage, onStage
                   >
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, minWidth: 0 }}>
-                        <div style={{
-                          flexShrink: 0,
-                          width: '2rem',
-                          height: '2rem',
-                          borderRadius: '9999px',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                        }}>
-                          {comment.action ? (
-                            // Show stage icon if comment has an action (stage)
-                            <div style={{ color: getStageIcon(comment.action).color }}>
-                              {getIcon('ui', getStageIcon(comment.action).icon, 20)}
-                            </div>
-                          ) : comment.author?.profileImageUrl ? (
-                            <img
-                              src={comment.author.profileImageUrl}
-                              alt={comment.author.displayName || comment.author.email || ''}
-                              style={{ width: '100%', height: '100%', borderRadius: '9999px', objectFit: 'cover' }}
-                            />
-                          ) : (
-                            // Show author initials otherwise
-                            <div style={{
-                              color: 'var(--color-primary, #3b82f6)',
-                              fontSize: 'var(--font-size-sm)',
-                              fontWeight: 600,
-                            }}>
-                              {(() => {
+                        {/* Avatar with role badge */}
+                        <div style={{ position: 'relative', flexShrink: 0 }}>
+                          <div style={{
+                            width: '2.5rem',
+                            height: '2.5rem',
+                            borderRadius: '9999px',
+                            background: comment.author?.profileImageUrl ? 'transparent' : getAvatarColor((() => {
+                              const a = comment.author;
+                              if (!a) return '?';
+                              if (lang === 'ar' && a.displayNameAr) return a.displayNameAr;
+                              return a.firstName || a.displayName || a.email || '?';
+                            })()).bg,
+                            color: getAvatarColor((() => {
+                              const a = comment.author;
+                              if (!a) return '?';
+                              if (lang === 'ar' && a.displayNameAr) return a.displayNameAr;
+                              return a.firstName || a.displayName || a.email || '?';
+                            })()).color,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: 'var(--font-size-xs)',
+                            fontWeight: 600,
+                            overflow: 'hidden',
+                            flexShrink: 0,
+                          }}>
+                            {comment.author?.profileImageUrl ? (
+                              <img
+                                src={comment.author.profileImageUrl}
+                                alt={(() => {
+                                  const a = comment.author;
+                                  if (!a) return '';
+                                  if (lang === 'ar' && a.displayNameAr) return a.displayNameAr;
+                                  return a.firstName || a.displayName || a.email || '';
+                                })()}
+                                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                              />
+                            ) : (
+                              getAvatarInitials((() => {
                                 const a = comment.author;
                                 if (!a) return '?';
-                                if (lang === 'ar') {
-                                  if (a.firstNameAr && a.lastNameAr) return (a.firstNameAr[0] + a.lastNameAr[0]).toUpperCase();
-                                  if (a.displayNameAr && a.displayNameAr !== '-') return a.displayNameAr[0].toUpperCase();
-                                }
-                                const firstName = a.firstName || '';
-                                const lastName = a.lastName || '';
-                                const displayName = a.displayName || '';
-                                const email = a.email || '';
-                                if (firstName && lastName) return (firstName[0] + lastName[0]).toUpperCase();
-                                if (displayName && displayName !== '-') return displayName[0].toUpperCase();
-                                if (email) return email[0].toUpperCase();
-                                return '?';
-                              })()}
-                            </div>
-                          )}
+                                if (lang === 'ar' && a.displayNameAr) return a.displayNameAr;
+                                return a.firstName || a.displayName || a.email || '?';
+                              })())
+                            )}
+                          </div>
+                          {/* Role badge overlay */}
+                          {(() => {
+                            const role = getUserRoleFromObject(comment.author);
+                            if (!role) return null;
+                            const roleIcon = getUserRoleIcon(role);
+                            const roleColor = getUserRoleColor(role);
+                            if (!roleIcon) return null;
+                            return (
+                              <div style={{
+                                position: 'absolute',
+                                bottom: '-2px',
+                                insetInlineEnd: '-2px',
+                                width: '1.125rem',
+                                height: '1.125rem',
+                                borderRadius: '9999px',
+                                background: 'var(--panel, white)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                border: '1.5px solid var(--panel, white)',
+                                boxShadow: '0 0 0 1px var(--border, #e5e7eb)',
+                              }}
+                                title={t(`roles.${role}`, role)}
+                              >
+                                {React.cloneElement(roleIcon, { color: roleColor, size: 10 })}
+                              </div>
+                            );
+                          })()}
                         </div>
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                            {/* Role icon */}
-                            {(() => {
-                              const roles = comment.author?.roleAssignments || [];
-                              const roleCodes = roles.map(r => r.role?.code).filter(Boolean);
-                              
-                              if (roleCodes.includes('SUPER_ADMIN') || roleCodes.includes('super_admin')) {
-                                return <Star size={14} color="#f59e0b" />;
-                              }
-                              if (roleCodes.includes('HR') || roleCodes.includes('hr')) {
-                                return <Shield size={14} color="#8b5cf6" />;
-                              }
-                              if (roleCodes.includes('ADMIN') || roleCodes.includes('admin')) {
-                                return <ShieldCheck size={14} color="#3b82f6" />;
-                              }
-                              return null;
-                            })()}
                             <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 500, color: 'var(--text, #111827)' }}>
                               {(() => {
                                 const a = comment.author;

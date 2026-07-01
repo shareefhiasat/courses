@@ -130,6 +130,8 @@ export const listUsersController = async (req, res) => {
         email: true,
         profileImageUrl: true,
         isActive: true,
+        studentNumber: true,
+        sequence: true,
         createdAt: true,
         updatedAt: true,
         createdBy: true,

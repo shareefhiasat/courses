@@ -1,4 +1,5 @@
-import { suggestAttendanceMarkComponent, listDeductionRules } from '../services/attendanceDeductionService.js';
+import prisma from '../db/prismaClient.js';
+import { suggestAttendanceMarkComponent, listDeductionRules, getDeductionHistory } from '../services/attendanceDeductionService.js';
 import { calculateLetterGrade, MANUAL_GRADES } from '../utils/formatting/gradingStandards.js';
 import notificationGateway from '../services/notifications/index.js';
 import { EVENTS } from '../services/notifications/constants.js';
@@ -839,6 +840,28 @@ const getAbsenceDeductionRules = async (req, res) => {
   }
 };
 
+const getStudentDeductionHistory = async (req, res) => {
+  try {
+    const { userId, classId } = req.query;
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        error: 'userId is required',
+      });
+    }
+
+    const history = await getDeductionHistory({
+      userId: parseInt(userId, 10),
+      ...(classId && { classId: parseInt(classId, 10) }),
+    });
+
+    res.json({ success: true, data: history });
+  } catch (error) {
+    console.error('Error getting deduction history:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
 export {
   getMarksDistribution,
   setMarksDistribution,
@@ -849,6 +872,7 @@ export {
   getAllStudentMarksReport,
   getAttendanceDeductionSuggestion,
   getAbsenceDeductionRules,
+  getStudentDeductionHistory,
 };
 
 /**

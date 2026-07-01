@@ -70,9 +70,7 @@ function ViolationsTableBody({ dateGroups, labels }) {
       {dateGroups.map((dg) => (
         <React.Fragment key={dg.dateKey}>
           <tr className={styles.dateGroupRow}>
-            <td colSpan={6}>
-              {labels.datePrefix}: {dg.dateLabel}
-            </td>
+            <td colSpan={6}>{dg.dateLabel}</td>
           </tr>
           {dg.students.map((student) =>
             student.subjectRows.map((subRow, idx) => (
@@ -104,50 +102,61 @@ function ViolationsPage({ data, dateGroups, labels, showHeader, showFooter, show
   return (
     <div
       data-official-page
-      className={`${styles.officialPage} ${data.lang === 'ar' ? styles.officialPageRtl : ''}`}
+      className={`${styles.officialPage} ${data.lang === 'ar' ? styles.officialPageRtl : ''} ${styles.arabicShapedText}`}
+      lang={data.lang === 'ar' ? 'ar' : 'en'}
     >
-      {showWatermark && (wm.en || wm.ar) && (
+      {showWatermark && (wm.en || wm.ar || wm.uuid) && (
         <div className={styles.officialWatermark} aria-hidden>
-          {wm.en}
-          {'\n'}
-          {wm.ar}
+          {wm.en && <div>{wm.en}</div>}
+          {wm.ar && wm.ar !== wm.en && <div>{wm.ar}</div>}
+          {wm.uuid && <div style={{ fontSize: '7px', opacity: 0.5, marginTop: '12px' }}>{wm.uuid}</div>}
         </div>
       )}
-      <div className={styles.officialContent}>
+      <div className={`${styles.officialContent} ${showFooter ? styles.officialContentFlex : ''}`}>
         {showHeader && (
           <>
             <div className={styles.serialLine}>
               {data.lang === 'ar' ? 'الرقم التسلسلي' : 'Serial'}: {data.serial}
             </div>
-            <div className={styles.violationsTopRow}>
-              <div className={styles.violationsTopEn}>
+            <div className={`${styles.violationsTopRow} ${styles.bilingualHeaderBand}`}>
+              <div className={`${styles.violationsTopEn} ${styles.arabicShapedText}`}>
+                {OFFICIAL_HEADER.ministryEn}
+                <br />
                 {OFFICIAL_HEADER.corpsEn}
               </div>
               <img src={OFFICIAL_HEADER.logoUrl} alt="" className={styles.dailyLogo} />
-              <div className={styles.violationsTopAr}>
+              <div className={`${styles.violationsTopAr} ${styles.arabicShapedText}`}>
                 {OFFICIAL_HEADER.ministryAr}
                 <br />
                 {OFFICIAL_HEADER.corpsAr}
               </div>
             </div>
-            <div className={styles.violationsTitleBar}>{data.title}</div>
+            <div className={styles.violationsTitleBar}>
+              <div>{data.title}</div>
+              {(data.header.dateFrom || data.header.dateTo) && (
+                <div className={styles.violationsTitlePeriod}>
+                  {data.header.dateFrom} — {data.header.dateTo}
+                </div>
+              )}
+            </div>
             <div className={styles.violationsMeta}>
-              <span>
+              <span className={styles.violationsMetaBold}>
                 {labels.issueDate}: {data.header.issueDate}
               </span>
-              <span>
-                {labels.program}: {data.header.program}
-              </span>
-              {(data.header.dateFrom || data.header.dateTo) && (
-                <span>
-                  {labels.period}: {data.header.dateFrom} — {data.header.dateTo}
-                </span>
-              )}
+              <span className={styles.violationsMetaBold}>{data.header.program}</span>
             </div>
           </>
         )}
 
-        <table className={styles.officialTable}>
+        <table className={`${styles.officialTable} ${styles.violationsTable}`}>
+          <colgroup>
+            <col style={{ width: '5%' }} />
+            <col style={{ width: '24%' }} />
+            <col style={{ width: '12%' }} />
+            <col style={{ width: '27%' }} />
+            <col style={{ width: '10%' }} />
+            <col style={{ width: '22%' }} />
+          </colgroup>
           <thead>
             <tr>
               <th>{labels.serial}</th>
@@ -164,7 +173,14 @@ function ViolationsPage({ data, dateGroups, labels, showHeader, showFooter, show
         </table>
 
         {showFooter && (
-          <div className={styles.signatureFooter}>{labels.officerSign} _______________</div>
+          <div
+            className={`${styles.officerSignatureBlock} ${
+              data.lang === 'ar' ? styles.officerSignatureAr : styles.officerSignatureEn
+            }`}
+          >
+            <span className={styles.officerSignatureLabel}>{labels.officerSign}</span>
+            <span className={styles.officerSignatureLine} aria-hidden />
+          </div>
         )}
       </div>
     </div>

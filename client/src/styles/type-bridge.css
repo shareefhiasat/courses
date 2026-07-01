@@ -59,10 +59,17 @@
   font-size: var(--font-size-md);
 }
 
-/* Global interactive min-heights scale with text */
-button:not(.MuiButton-root):not([class*="icon"]) {
+/* Global interactive min-heights scale with text (exclude compact controls) */
+button:not(.MuiButton-root):not([class*="icon"]):not([role="switch"]):not(.toggle-switch) {
   font-size: var(--font-size-sm);
   min-height: calc(2.25 * var(--type-base));
+}
+
+button[role="switch"],
+button.toggle-switch {
+  min-height: unset;
+  max-height: unset;
+  padding: 0;
 }
 
 input:not(.MuiInputBase-input),

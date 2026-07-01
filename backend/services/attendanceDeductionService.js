@@ -147,6 +147,84 @@ export async function upsertDeductionRule(data) {
   return prisma.absenceDeductionRule.create({ data: fields });
 }
 
+export async function getDeductionHistory({ userId, classId }) {
+  const rules = await loadRules();
+
+  const attendances = await prisma.attendance.findMany({
+    where: { userId, ...(classId && { classId }) },
+    include: {
+      status: true,
+      amendments: {
+        include: {
+          fromStatus: true,
+          toStatus: true,
+          amendedByUser: { select: { id: true, displayName: true, realName: true } },
+        },
+        orderBy: { amendedAt: 'asc' },
+      },
+    },
+    orderBy: { date: 'asc' },
+  });
+
+  const events = [];
+
+  for (const att of attendances) {
+    const statusCode = att.status?.code;
+    const currentDeduction = resolveDeductionForAttendance(att, rules);
+
+    if (currentDeduction > 0 || att.amendments.length > 0) {
+      events.push({
+        id: `att-${att.id}`,
+        eventType: 'attendance_recorded',
+        timestamp: att.createdAt,
+        description: `Attendance recorded: ${att.status?.nameEn || statusCode || 'Unknown'} on ${new Date(att.date).toLocaleDateString()}`,
+        deductionChange: { old: 0, new: currentDeduction },
+        actorName: null,
+        attendanceId: att.id,
+        attendanceDate: att.date,
+      });
+    }
+
+    for (const amend of att.amendments) {
+      const fromCode = amend.fromStatus?.code;
+      const toCode = amend.toStatus?.code;
+      const fromDeduction = (fromCode && DEFAULT_RULES[fromCode]) || 0;
+      const toDeduction = (toCode && DEFAULT_RULES[toCode]) || 0;
+
+      events.push({
+        id: `amend-${amend.id}`,
+        eventType: toCode === 'ABSENT_WITH_EXCUSE' || toCode === 'EXCUSED_LEAVE' ? 'amended_to_excused' : 'amended',
+        timestamp: amend.amendedAt,
+        description: `Status changed from ${amend.fromStatus?.nameEn || fromCode} to ${amend.toStatus?.nameEn || toCode}${amend.reason ? ` — ${amend.reason}` : ''}`,
+        deductionChange: { old: fromDeduction, new: toDeduction },
+        actorName: amend.amendedByUser?.displayName || amend.amendedByUser?.realName || 'System',
+        attendanceId: att.id,
+        attendanceDate: att.date,
+      });
+    }
+
+    if (att.excuseApprovedAt) {
+      const excusedDeduction = rules.find((r) => r.isExcused)?.deduction ?? DEFAULT_RULES.ABSENT_WITH_EXCUSE;
+      const originalDeduction = DEFAULT_RULES[statusCode] ?? 0.5;
+
+      events.push({
+        id: `excuse-${att.id}`,
+        eventType: 'excuse_approved',
+        timestamp: att.excuseApprovedAt,
+        description: `Excuse approved via workflow — attendance on ${new Date(att.date).toLocaleDateString()} marked as excused`,
+        deductionChange: { old: originalDeduction, new: excusedDeduction },
+        actorName: null,
+        attendanceId: att.id,
+        attendanceDate: att.date,
+      });
+    }
+  }
+
+  events.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp));
+
+  return events;
+}
+
 export function getFailureThresholds() {
   return {
     absenceCount: FAILURE_ABSENCE_COUNT,
@@ -160,5 +238,6 @@ export default {
   suggestAttendanceMarkComponent,
   listDeductionRules,
   upsertDeductionRule,
+  getDeductionHistory,
   getFailureThresholds,
 };

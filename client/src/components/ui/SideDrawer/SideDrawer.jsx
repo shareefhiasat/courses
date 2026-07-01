@@ -1179,19 +1179,19 @@ const SideDrawer = ({ isOpen, onClose }) => {
                         padding: '0.15rem 0.6rem',
                         background: 'transparent',
                         border: 'none',
-                        color: theme==='light' ? 'rgba(17,24,39,0.6)' : 'rgba(255,255,255,0.5)',
-                        fontSize: 'var(--font-size-xs)',
+                        color: theme==='light' ? '#111827' : 'rgba(255,255,255,0.85)',
+                        fontSize: 'var(--font-size-sm)',
                         textTransform: 'none',
                         letterSpacing: lang === 'ar' ? '0.5px' : '0.3px',
                         fontWeight: 600,
                         cursor: 'pointer',
-                        transition: 'color 0.2s'
+                        transition: 'background 0.2s, color 0.2s'
                       }}
                       onMouseEnter={(e) => {
-                        e.currentTarget.style.color = theme==='light' ? 'rgba(17,24,39,0.9)' : 'rgba(255,255,255,0.8)';
+                        e.currentTarget.style.background = theme==='light' ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)';
                       }}
                       onMouseLeave={(e) => {
-                        e.currentTarget.style.color = theme==='light' ? 'rgba(17,24,39,0.6)' : 'rgba(255,255,255,0.5)';
+                        e.currentTarget.style.background = 'transparent';
                       }}
                     >
                       <span>{section.label}</span>

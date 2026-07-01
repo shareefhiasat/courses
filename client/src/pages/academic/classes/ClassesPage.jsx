@@ -593,6 +593,16 @@ const handleCancelEdit = useCallback(() => {
   const gridColumns = useMemo(() => [
     { field: 'nameEn', headerName: t('name') || 'Name', flex: 1, minWidth: 180 },
     { 
+      field: 'nameAr', 
+      headerName: t('name_arabic') || 'Arabic Name', 
+      flex: 1, 
+      minWidth: 180,
+      renderCell: (params) => {
+        const nameAr = params.value || params.row?.nameAr;
+        return nameAr ? <span dir="rtl">{nameAr}</span> : '—';
+      }
+    },
+    { 
       field: 'code', 
       headerName: t('code') || 'Code', 
       width: 120,
@@ -946,77 +956,85 @@ const handleCancelEdit = useCallback(() => {
         </div>
 
         {/* Academic Info */}
-        <div className="form-row" style={{ flexWrap: 'wrap', gap: '0.75rem' }}>
-          <ProgramsSelect
-            programs={programs}
-            subjects={subjects}
-            classes={[]}
-            selectedProgram={classForm.programId}
-            selectedSubject={classForm.subjectId}
-            selectedClass=""
-            onProgramChange={handleDropdownChange(setClassForm, 'programId', ['subjectId'])}
-            onSubjectChange={handleDropdownChange(setClassForm, 'subjectId')}
-            onClassChange={() => {}}
-            showClasses={false}
-            showLabels={false}
-            required
-          />
-          <UserSelect
-            users={filteredInstructorUsers}
-            enrollments={enrollments}
-            classes={classes}
-            value={classForm.ownerEmail}
-            onChange={(selectedEmail) => {
-              const selectedInstructor = filteredInstructorUsers.find(u => u.email === selectedEmail);
+        <div className="form-row flex-row" style={{ gap: '0.75rem' }}>
+          <div style={{ flex: '1 1 240px', minWidth: '240px' }}>
+            <ProgramsSelect
+              programs={programs}
+              subjects={subjects}
+              classes={[]}
+              selectedProgram={classForm.programId}
+              selectedSubject={classForm.subjectId}
+              selectedClass=""
+              onProgramChange={handleDropdownChange(setClassForm, 'programId', ['subjectId'])}
+              onSubjectChange={handleDropdownChange(setClassForm, 'subjectId')}
+              onClassChange={() => {}}
+              showClasses={false}
+              showLabels={false}
+              required
+            />
+          </div>
+          <div style={{ flex: '1 1 200px', minWidth: '200px' }}>
+            <UserSelect
+              users={filteredInstructorUsers}
+              enrollments={enrollments}
+              classes={classes}
+              value={classForm.ownerEmail}
+              onChange={(selectedEmail) => {
+                const selectedInstructor = filteredInstructorUsers.find(u => u.email === selectedEmail);
 
-              // Set both ownerEmail and instructorId
-              setClassForm({
-                ...classForm,
-                ownerEmail: selectedEmail,
-                instructorId: selectedInstructor ? selectedInstructor.id : ''
-              });
-            }}
-            placeholder={t('select_instructor') + ' (' + t('optional') + ')' || 'Select Instructor (Optional)'}
-            roleFilter={[]} // No filtering needed - already filtered
-            includeAll={false}
-            showEnrollments={true}
-            showStatus={true}
-            useEmailAsValue={true}
-            searchable={true}
-          />
-          <UserSelect
-            users={filteredInstructorUsers}
-            enrollments={enrollments}
-            classes={classes}
-            value={classForm.substituteInstructorId ? filteredInstructorUsers.find(u => u.id === parseInt(classForm.substituteInstructorId))?.email : ''}
-            onChange={(selectedEmail) => {
-              const selectedInstructor = filteredInstructorUsers.find(u => u.email === selectedEmail);
-              setClassForm({
-                ...classForm,
-                substituteInstructorId: selectedInstructor ? selectedInstructor.id : ''
-              });
-            }}
-            placeholder={t('substitute_instructor_optional')}
-            roleFilter={[]}
-            includeAll={false}
-            showEnrollments={true}
-            showStatus={true}
-            useEmailAsValue={true}
-            searchable={true}
-          />
-          <Select
-            searchable
-            placeholder={t('classroom_optional')}
-            value={classForm.classroomId || ''}
-            onChange={e => setClassForm({ ...classForm, classroomId: e.target.value })}
-            options={[
-              { value: '', label: t('select_classroom_optional') },
-              ...classrooms.map(c => ({ 
-                value: String(c.id), 
-                label: `${c.code} - ${c.nameEn} (${c.capacity} seats)` 
-              }))
-            ]}
-          />
+                // Set both ownerEmail and instructorId
+                setClassForm({
+                  ...classForm,
+                  ownerEmail: selectedEmail,
+                  instructorId: selectedInstructor ? selectedInstructor.id : ''
+                });
+              }}
+              placeholder={t('select_instructor') + ' (' + t('optional') + ')' || 'Select Instructor (Optional)'}
+              roleFilter={[]} // No filtering needed - already filtered
+              includeAll={false}
+              showEnrollments={true}
+              showStatus={true}
+              useEmailAsValue={true}
+              searchable={true}
+            />
+          </div>
+          <div style={{ flex: '1 1 200px', minWidth: '200px' }}>
+            <UserSelect
+              users={filteredInstructorUsers}
+              enrollments={enrollments}
+              classes={classes}
+              value={classForm.substituteInstructorId ? filteredInstructorUsers.find(u => u.id === parseInt(classForm.substituteInstructorId))?.email : ''}
+              onChange={(selectedEmail) => {
+                const selectedInstructor = filteredInstructorUsers.find(u => u.email === selectedEmail);
+                setClassForm({
+                  ...classForm,
+                  substituteInstructorId: selectedInstructor ? selectedInstructor.id : ''
+                });
+              }}
+              placeholder={t('substitute_instructor_optional')}
+              roleFilter={[]}
+              includeAll={false}
+              showEnrollments={true}
+              showStatus={true}
+              useEmailAsValue={true}
+              searchable={true}
+            />
+          </div>
+          <div style={{ flex: '1 1 200px', minWidth: '200px' }}>
+            <Select
+              searchable
+              placeholder={t('classroom_optional')}
+              value={classForm.classroomId || ''}
+              onChange={e => setClassForm({ ...classForm, classroomId: e.target.value })}
+              options={[
+                { value: '', label: t('select_classroom_optional') },
+                ...classrooms.map(c => ({ 
+                  value: String(c.id), 
+                  label: `${c.code} - ${c.nameEn} (${c.capacity} seats)` 
+                }))
+              ]}
+            />
+          </div>
         </div>
         <div className="form-row compact-cols">
           <Select

@@ -23,67 +23,140 @@ const COLUMN_LABELS = {
   en: { serial: '#', name: 'Student Name', number: 'Military No.', notes: 'Notes' },
 };
 
+const META_LABELS = {
+  ar: {
+    date: 'التاريخ',
+    serial: 'الرقم التسلسلي',
+    program: 'البرنامج',
+    subject: 'المادة',
+    class: 'الفصل',
+    instructor: 'المدرب',
+    yearTerm: 'السنة / الفصل الدراسي',
+  },
+  en: {
+    date: 'Date',
+    serial: 'Serial',
+    program: 'Program',
+    subject: 'Subject',
+    class: 'Class',
+    instructor: 'Instructor',
+    yearTerm: 'Year / Term',
+  },
+};
+
+function MetaItem({ label, value, align = 'start', mirrored = false }) {
+  const alignClass =
+    align === 'end' ? styles.metaItemEnd : align === 'center' ? styles.metaItemCenter : styles.metaItemStart;
+
+  if (mirrored) {
+    return (
+      <div className={`${styles.metaItem} ${alignClass} ${styles.metaItemMirrored}`}>
+        <span className={styles.metaValue}>{value}</span>
+        <span className={styles.metaSep}>:</span>
+        <span className={styles.metaLabel}>{label}</span>
+      </div>
+    );
+  }
+
+  return (
+    <div className={`${styles.metaItem} ${alignClass}`}>
+      <span className={styles.metaLabel}>{label}</span>
+      <span className={styles.metaSep}>:</span>
+      <span className={styles.metaValue}>{value}</span>
+    </div>
+  );
+}
+
 export function DailyOfficialTemplate({ data, showWatermark = true }) {
   const { header, rows, lang, statusKeys, serial } = data;
   const labels = COLUMN_LABELS[lang] || COLUMN_LABELS.ar;
   const statusLabels = STATUS_LABELS[lang] || STATUS_LABELS.ar;
+  const meta = META_LABELS[lang] || META_LABELS.ar;
   const wm = buildWatermarkLines(data.watermarkUser);
+  const isAr = lang === 'ar';
+
+  const metaRows = [
+    [
+      { label: meta.date, value: header.date },
+      { label: meta.serial, value: serial },
+    ],
+    [
+      { label: meta.program, value: header.program },
+      { label: meta.subject, value: header.subject },
+    ],
+    [
+      { label: meta.class, value: header.className },
+      { label: meta.instructor, value: header.instructor || '—' },
+    ],
+  ];
+
+  if (header.year || header.term) {
+    metaRows.push([
+      {
+        label: meta.yearTerm,
+        value: [header.year, header.term].filter(Boolean).join(' / '),
+      },
+      null,
+    ]);
+  }
 
   return (
     <div
       data-official-page
-      className={`${styles.officialPage} ${lang === 'ar' ? styles.officialPageRtl : ''}`}
+      className={`${styles.officialPage} ${isAr ? styles.officialPageRtl : ''} ${styles.arabicShapedText}`}
+      lang={isAr ? 'ar' : 'en'}
     >
-      {showWatermark && (wm.en || wm.ar) && (
+      {showWatermark && (wm.en || wm.ar || wm.uuid) && (
         <div className={styles.officialWatermark} aria-hidden>
-          {wm.en}
-          {'\n'}
-          {wm.ar}
+          {wm.en && <div>{wm.en}</div>}
+          {wm.ar && wm.ar !== wm.en && <div>{wm.ar}</div>}
+          {wm.uuid && <div style={{ fontSize: '7px', opacity: 0.5, marginTop: '12px' }}>{wm.uuid}</div>}
         </div>
       )}
       <div className={styles.officialContent}>
         <div className={styles.serialLine}>
-          {lang === 'ar' ? 'الرقم التسلسلي' : 'Serial'}: {serial}
+          {isAr ? 'الرقم التسلسلي' : 'Serial'}: {serial}
         </div>
 
-        <div className={styles.dailyHeaderBand}>
-          <div />
+        {/* Bilingual header — always EN left, AR right (LTR band) */}
+        <div className={`${styles.violationsTopRow} ${styles.bilingualHeaderBand}`}>
+          <div className={`${styles.violationsTopEn} ${styles.arabicShapedText}`}>
+            {OFFICIAL_HEADER.ministryEn}
+            <br />
+            {OFFICIAL_HEADER.corpsEn}
+          </div>
           <img src={OFFICIAL_HEADER.logoUrl} alt="" className={styles.dailyLogo} />
-          <div />
+          <div className={`${styles.violationsTopAr} ${styles.arabicShapedText}`}>
+            {OFFICIAL_HEADER.ministryAr}
+            <br />
+            {OFFICIAL_HEADER.corpsAr}
+          </div>
         </div>
+
+        <div className={styles.dailyTitleBar}>{data.title}</div>
 
         <div className={styles.dailyMetaGrid}>
-          <div>
-            {lang === 'ar' ? 'التاريخ' : 'Date'}: {header.date}
-          </div>
-          <div>
-            {lang === 'ar' ? 'البرنامج' : 'Program'}: {header.program}
-          </div>
-          {header.subject && (
-            <div>
-              {lang === 'ar' ? 'المادة' : 'Subject'}: {header.subject}
-            </div>
-          )}
-          {header.className && (
-            <div>
-              {lang === 'ar' ? 'الفصل' : 'Class'}: {header.className}
-            </div>
-          )}
-          {header.instructor && (
-            <div>
-              {lang === 'ar' ? 'المدرب' : 'Instructor'}: {header.instructor}
-            </div>
-          )}
-          {(header.year || header.term) && (
-            <div>
-              {lang === 'ar' ? 'السنة / الفصل الدراسي' : 'Year / Term'}: {[header.year, header.term]
-                .filter(Boolean)
-                .join(' / ')}
-            </div>
-          )}
+          {metaRows.map((pair, rowIdx) => (
+            <React.Fragment key={rowIdx}>
+              {pair[0] && (
+                <MetaItem
+                  label={pair[0].label}
+                  value={pair[0].value}
+                  align="start"
+                  mirrored={false}
+                />
+              )}
+              {pair[1] && (
+                <MetaItem
+                  label={pair[1].label}
+                  value={pair[1].value}
+                  align="end"
+                  mirrored
+                />
+              )}
+            </React.Fragment>
+          ))}
         </div>
-
-        <div className={styles.dailyTitle}>{data.title}</div>
 
         <table className={styles.officialTable}>
           <thead>
@@ -108,7 +181,7 @@ export function DailyOfficialTemplate({ data, showWatermark = true }) {
                     {row[key] ? '✓' : ''}
                   </td>
                 ))}
-                <td className={styles.notesCell}>{row.notes}</td>
+                <td className={styles.notesCell}>{row.notes || ''}</td>
               </tr>
             ))}
           </tbody>

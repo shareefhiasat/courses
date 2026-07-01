@@ -34,7 +34,7 @@ import {
   // Reaction Icons
   Smile, Frown, Mic,
   // Additional icons from dashboard and chat pages
-  Upload, RotateCw, SkipForward, Shuffle, ChevronLeft, ChevronRight, RotateCcw, Bot, Heart,
+  Upload, RotateCw, SkipForward, Shuffle, ChevronLeft, ChevronRight, RotateCcw, Bot, Heart, PauseCircle,
   // Missing icons from HomePage
   Monitor, Code, Folder, Hourglass, Repeat, Droplet,
   // Notification settings icons
@@ -286,6 +286,7 @@ export const ICON_TYPES = {
     check: <Check size={16} />,
     play: <Play size={16} />,
     play_circle: <PlayCircle size={16} />,
+    pause_circle: <PauseCircle size={16} />,
     download: <Download size={16} />,
     workflow: <Workflow size={16} />,
     academic: <GraduationCap size={16} />,

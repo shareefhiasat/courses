@@ -708,6 +708,7 @@ model User {
   chatRoomsAsParticipantB        ChatRoom[]                 @relation("ChatRoomParticipantB")
   chatRoomsCreated               ChatRoom[]                 @relation("ChatRoomCreator")
   chatRoomParticipations         ChatRoomParticipant[]      @relation("ChatRoomParticipations")
+  exportHistory                  ExportHistory[]            @relation("ExportHistoryUser")
 
   @@map("users")
 }
@@ -1853,6 +1854,7 @@ model ChatRoom {
   participantA Int?                   // for DM: user A
   participantB Int?                   // for DM: user B
   name         String?                // optional custom name for DM or required for group
+  nameAr       String?                // Arabic name for group chats
   createdBy    Int?                   // for group chats: creator user ID
   createdAt    DateTime               @default(now())
   updatedAt    DateTime               @updatedAt
@@ -2537,4 +2539,25 @@ model UserCategoryAccess {
 
   @@unique([userId, categoryId])
   @@map("user_category_access")
+}
+
+model ExportHistory {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  exportType   String   // 'daily', 'summary', 'behavioral', 'daily_official', 'attendance_official'
+  format       String   // 'pdf', 'excel', 'csv'
+  filename     String
+  classId      Int?
+  subjectId    Int?
+  programId    Int?
+  reportDate   String?  // the attendance date or date range label
+  metadata     Json?
+  createdAt    DateTime @default(now())
+
+  user         User     @relation("ExportHistoryUser", fields: [userId], references: [id])
+
+  @@index([userId])
+  @@index([exportType])
+  @@index([createdAt])
+  @@map("export_history")
 }

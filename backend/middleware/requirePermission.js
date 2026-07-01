@@ -117,6 +117,7 @@ export const qrScannerOps = {
   ),
   edit: requirePermission('qr-scanner.canEditAttendance'),
   delete: requirePermission('qr-scanner.canDeleteAttendance'),
+  export: requireAnyPermission('qr-scanner.canUseQRScanner', 'attendance.canView'),
 };
 
 export default requirePermission;

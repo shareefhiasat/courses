@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import Modal from '@components/ui/Modal';
+import DatePicker from '@components/ui/DatePicker/DatePicker';
 import { EXPORT_FORMAT } from '@services/export/official-reports/index.jsx';
+import OfficialExportFormatPicker from './OfficialExportFormatPicker.jsx';
 
 const AttendanceViolationsModal = ({
   isOpen,
@@ -21,8 +23,15 @@ const AttendanceViolationsModal = ({
   isExporting,
   t,
   lang,
+  theme = 'currentColor',
 }) => {
   const isOfficial = mode === 'official';
+
+  useEffect(() => {
+    if (isOpen && isOfficial && setExportFormat) {
+      setExportFormat(EXPORT_FORMAT.PDF);
+    }
+  }, [isOpen, isOfficial, setExportFormat]);
 
   const toggleSubject = (subjectId) => {
     if (selectedSubjects.includes(subjectId)) {
@@ -84,28 +93,20 @@ const AttendanceViolationsModal = ({
           >
             <label style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
               <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 500 }}>{t('date_from') || 'Date from'}</span>
-              <input
-                type="date"
+              <DatePicker
                 value={dateFrom || ''}
-                onChange={(e) => setDateFrom(e.target.value)}
-                style={{
-                  padding: '0.5rem',
-                  border: '1px solid var(--border, #e5e7eb)',
-                  borderRadius: '0.375rem',
-                }}
+                onChange={setDateFrom}
+                theme={theme}
+                fullWidth
               />
             </label>
             <label style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
               <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 500 }}>{t('date_to') || 'Date to'}</span>
-              <input
-                type="date"
+              <DatePicker
                 value={dateTo || ''}
-                onChange={(e) => setDateTo(e.target.value)}
-                style={{
-                  padding: '0.5rem',
-                  border: '1px solid var(--border, #e5e7eb)',
-                  borderRadius: '0.375rem',
-                }}
+                onChange={setDateTo}
+                theme={theme}
+                fullWidth
               />
             </label>
           </div>
@@ -117,38 +118,12 @@ const AttendanceViolationsModal = ({
         </div>
 
         {isOfficial && setExportFormat && (
-          <div style={{ marginBottom: '1.5rem' }}>
-            <h3
-              style={{
-                fontSize: 'var(--font-size-md)',
-                fontWeight: 600,
-                marginBottom: '0.75rem',
-                color: 'var(--text-primary, #1f2937)',
-              }}
-            >
-              {t('export_format') || 'Export format'}
-            </h3>
-            <div style={{ display: 'flex', gap: '1rem' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                <input
-                  type="radio"
-                  name="violationsExportFormat"
-                  checked={exportFormat === EXPORT_FORMAT.PDF}
-                  onChange={() => setExportFormat(EXPORT_FORMAT.PDF)}
-                />
-                <span>{t('export_pdf') || 'PDF (watermarked)'}</span>
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer' }}>
-                <input
-                  type="radio"
-                  name="violationsExportFormat"
-                  checked={exportFormat === EXPORT_FORMAT.EXCEL}
-                  onChange={() => setExportFormat(EXPORT_FORMAT.EXCEL)}
-                />
-                <span>{t('export_excel') || 'Excel (no watermark)'}</span>
-              </label>
-            </div>
-          </div>
+          <OfficialExportFormatPicker
+            exportFormat={exportFormat}
+            setExportFormat={setExportFormat}
+            t={t}
+            theme={theme}
+          />
         )}
 
         <div style={{ marginBottom: '2rem' }}>

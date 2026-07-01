@@ -26,10 +26,13 @@ const formatDate = (dateStr, lang = 'en') => {
   if (!dateStr) return '';
   try {
     const d = new Date(dateStr);
-    return d.toLocaleDateString(lang === 'ar' ? 'ar-EG-u-nu-latn' : 'en-US', {
-      year: 'numeric', month: 'long', day: 'numeric',
+    const datePart = d.toLocaleDateString(lang === 'ar' ? 'ar-EG-u-nu-latn' : 'en-US', {
+      year: 'numeric', month: 'long', day: 'numeric'
+    });
+    const timePart = d.toLocaleTimeString(lang === 'ar' ? 'ar-EG-u-nu-latn' : 'en-US', {
       hour: '2-digit', minute: '2-digit'
     });
+    return lang === 'ar' ? `${datePart} في ${timePart}` : `${datePart} at ${timePart}`;
   } catch {
     return dateStr;
   }

@@ -1,6 +1,9 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useLang } from '@contexts/LangContext';
-import { getThemedIcon } from '@constants/iconTypes';
+import { getThemedIcon, getUserRoleIcon, getUserRoleColor } from '@constants/iconTypes';
+import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
+import { getUserRoleFromObject } from '@utils/userUtils';
+import { getLocalizedUserName } from '@utils/localizedUserName';
 import { formatQatarDate, formatQatarDateOnly } from '@utils/timezone';
 import { Group as PanelGroup, Panel, Separator as PanelResizeHandle } from 'react-resizable-panels';
 import { usePanelLayout } from '@hooks/usePanelLayout';
@@ -8,7 +11,7 @@ import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import axios from 'axios';
 
 export default function SharesList({ fileId, onRevoke, refreshKey, readOnly = false, subjectTypeFilter = null }) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const [shares, setShares] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -301,38 +304,90 @@ export default function SharesList({ fileId, onRevoke, refreshKey, readOnly = fa
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, minWidth: 0 }}>
-                    <div
-                      style={{
-                        width: '2rem',
-                        height: '2rem',
-                        borderRadius: '9999px',
-                        background: 'var(--background-secondary, #f3f4f6)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0,
-                      }}
-                    >
-                      {isUser ? getThemedIcon('ui', 'user', 16, 'primary') : getThemedIcon('ui', 'shield', 16, 'light')}
+                    {/* Avatar with role badge */}
+                    <div style={{ position: 'relative', flexShrink: 0 }}>
+                      {isUser ? (
+                        /* User avatar: profile image or initials */
+                        <div style={{
+                          width: '2.5rem',
+                          height: '2.5rem',
+                          borderRadius: '9999px',
+                          background: share.subjectUser?.profileImageUrl ? 'transparent' : getAvatarColor(displayName).bg,
+                          color: getAvatarColor(displayName).color,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: 'var(--font-size-xs)',
+                          fontWeight: 600,
+                          overflow: 'hidden',
+                          flexShrink: 0,
+                        }}>
+                          {share.subjectUser?.profileImageUrl ? (
+                            <img
+                              src={share.subjectUser.profileImageUrl}
+                              alt={displayName}
+                              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            />
+                          ) : (
+                            getAvatarInitials(displayName)
+                          )}
+                        </div>
+                      ) : (
+                        /* Role avatar: tinted circle with colored role icon */
+                        <div style={{
+                          width: '2.5rem',
+                          height: '2.5rem',
+                          borderRadius: '9999px',
+                          background: `${getUserRoleColor(displayName)}1A`,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          flexShrink: 0,
+                        }}>
+                          {(() => {
+                            const roleIcon = getUserRoleIcon(displayName);
+                            const roleColor = getUserRoleColor(displayName);
+                            return roleIcon
+                              ? React.cloneElement(roleIcon, { color: roleColor, size: 20 })
+                              : getThemedIcon('ui', 'shield', 20, 'primary');
+                          })()}
+                        </div>
+                      )}
+                      {/* Role badge overlay for users */}
+                      {isUser && (() => {
+                        const role = getUserRoleFromObject(share.subjectUser);
+                        if (!role) return null;
+                        const roleIcon = getUserRoleIcon(role);
+                        const roleColor = getUserRoleColor(role);
+                        if (!roleIcon) return null;
+                        return (
+                          <div style={{
+                            position: 'absolute',
+                            bottom: '-2px',
+                            insetInlineEnd: '-2px',
+                            width: '1.125rem',
+                            height: '1.125rem',
+                            borderRadius: '9999px',
+                            background: 'var(--panel, white)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            border: '1.5px solid var(--panel, white)',
+                            boxShadow: '0 0 0 1px var(--border, #e5e7eb)',
+                          }}
+                            title={t(`roles.${role}`, role)}
+                          >
+                            {React.cloneElement(roleIcon, { color: roleColor, size: 10 })}
+                          </div>
+                        );
+                      })()}
                     </div>
 
                     <div style={{ flex: 1, minWidth: 0 }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <p style={{ fontSize: 'var(--font-size-sm)', fontWeight: 500, color: 'var(--text, #111827)', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                          {displayName}
+                          {isUser ? getLocalizedUserName(share.subjectUser, lang, displayName) : t(`roles.${displayName}`, displayName)}
                         </p>
-                        <span
-                          style={{
-                            flexShrink: 0,
-                            padding: '0.125rem 0.5rem',
-                            fontSize: 'var(--font-size-xs)',
-                            borderRadius: '9999px',
-                            background: 'var(--background-secondary, #f3f4f6)',
-                            color: 'var(--text-muted, #6b7280)',
-                          }}
-                        >
-                          {isUser ? t('drive.user') : t('drive.role')}
-                        </span>
                       </div>
 
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.25rem' }}>

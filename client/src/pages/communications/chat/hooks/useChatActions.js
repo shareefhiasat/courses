@@ -475,10 +475,9 @@ export const useChatActions = (user, state, toast, t) => {
     const otherUserId = otherUser?.docId || otherUser?.id || otherUser?.uid;
     const otherUserDbId = otherUser?.id;
     
-    if (!otherUserId || otherUserId === user.uid) {
+    if (!otherUserId) {
       warn('openDMWith validation failed', { 
         otherUserId,
-        isSelf: otherUserId === user.uid,
         currentUserId: user?.uid
       });
       return;

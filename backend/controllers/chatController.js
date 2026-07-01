@@ -518,37 +518,42 @@ export const createDM = async (req, res) => {
       });
     }
 
-    // Check DM permissions
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      include: {
-        roleAssignments: {
-          include: { role: true }
+    // Self-DM is always allowed (like WhatsApp "Message Yourself" / notes)
+    const isSelfDM = userId === recipientId;
+
+    // Check DM permissions (skip for self-DM)
+    if (!isSelfDM) {
+      const user = await prisma.user.findUnique({
+        where: { id: userId },
+        include: {
+          roleAssignments: {
+            include: { role: true }
+          }
         }
-      }
-    });
-    const userRoles = user.roleAssignments.map(ra => ra.role.code.toLowerCase());
-    const isStudent = userRoles.includes('student');
-
-    if (isStudent) {
-      // Students can only DM their instructors
-      const enrollments = await prisma.enrollment.findMany({
-        where: { userId },
-        select: { classId: true }
       });
-      const classIds = enrollments.map(e => e.classId);
+      const userRoles = user.roleAssignments.map(ra => ra.role.code.toLowerCase());
+      const isStudent = userRoles.includes('student');
 
-      const classes = await prisma.class.findMany({
-        where: { id: { in: classIds } },
-        select: { instructorId: true }
-      });
-      const instructorIds = classes.map(c => c.instructorId).filter(Boolean);
-
-      if (!instructorIds.includes(recipientId)) {
-        return res.status(403).json({
-          success: false,
-          error: 'Students can only message their instructors'
+      if (isStudent) {
+        // Students can only DM their instructors
+        const enrollments = await prisma.enrollment.findMany({
+          where: { userId },
+          select: { classId: true }
         });
+        const classIds = enrollments.map(e => e.classId);
+
+        const classes = await prisma.class.findMany({
+          where: { id: { in: classIds } },
+          select: { instructorId: true }
+        });
+        const instructorIds = classes.map(c => c.instructorId).filter(Boolean);
+
+        if (!instructorIds.includes(recipientId)) {
+          return res.status(403).json({
+            success: false,
+            error: 'Students can only message their instructors'
+          });
+        }
       }
     }
 
@@ -713,10 +718,14 @@ export const createGroupRoom = async (req, res) => {
       return res.status(403).json({ success: false, error: 'Only staff can create group chats' });
     }
 
-    const { name, participantIds } = req.body;
+    const { name, nameAr, participantIds } = req.body;
     
     if (!name || !name.trim()) {
       return res.status(400).json({ success: false, error: 'Group name is required' });
+    }
+    
+    if (!nameAr || !nameAr.trim()) {
+      return res.status(400).json({ success: false, error: 'Arabic group name is required' });
     }
     
     if (!participantIds || !Array.isArray(participantIds) || participantIds.length === 0) {
@@ -744,6 +753,7 @@ export const createGroupRoom = async (req, res) => {
       data: {
         type: 'group',
         name: name.trim(),
+        nameAr: nameAr.trim(),
         createdBy: userId,
         participants: {
           create: allParticipantIds.map(id => ({ userId: id }))
@@ -893,7 +903,7 @@ export const removeParticipant = async (req, res) => {
 export const updateGroupRoom = async (req, res) => {
   try {
     const { roomId } = req.params;
-    const { name } = req.body;
+    const { name, nameAr } = req.body;
     const userId = resolveDbUserId(req);
     
     if (!userId) {
@@ -902,6 +912,10 @@ export const updateGroupRoom = async (req, res) => {
 
     if (!name || !name.trim()) {
       return res.status(400).json({ success: false, error: 'Group name is required' });
+    }
+
+    if (!nameAr || !nameAr.trim()) {
+      return res.status(400).json({ success: false, error: 'Arabic group name is required' });
     }
 
     // Check if room exists and user is creator
@@ -920,7 +934,7 @@ export const updateGroupRoom = async (req, res) => {
     // Update room name
     const updatedRoom = await prisma.chatRoom.update({
       where: { id: parseInt(roomId) },
-      data: { name: name.trim() },
+      data: { name: name.trim(), nameAr: nameAr.trim() },
       include: {
         participants: {
           include: {
@@ -970,7 +984,7 @@ export const getRoomStats = async (req, res) => {
           include: {
             user: {
               select: {
-                id: true, firstName: true, lastName: true, displayName: true, profileImageUrl: true,
+                id: true, firstName: true, lastName: true, displayName: true, profileImageUrl: true, keycloakId: true,
                 email: true, studentNumber: true,
                 roleAssignments: { include: { role: { select: { code: true, nameEn: true } } } },
                 _count: { select: { enrollments: true, chatRoomParticipations: true } }
@@ -1021,12 +1035,21 @@ export const getRoomStats = async (req, res) => {
       data: {
         roomId: room.id,
         name: room.name,
+        nameAr: room.nameAr,
         type: room.type,
         createdAt: room.createdAt,
         createdBy: room.createdBy,
         creator: room.creator,
         participantCount: room.participants?.length || 0,
-        participants: room.participants || [],
+        participants: (room.participants || []).map(p => ({
+          ...p,
+          user: p.user ? {
+            ...p.user,
+            profileImageUrl: p.user.profileImageUrl && !p.user.profileImageUrl.startsWith('http') && !p.user.profileImageUrl.startsWith('/api/')
+              ? `/api/v1/user-images/proxy/${p.user.keycloakId}/profile`
+              : p.user.profileImageUrl
+          } : p.user
+        })),
         totalMessages,
         mediaCount: mediaMessages.length,
         mediaItems: mediaMessages.slice(0, 50).map(m => ({

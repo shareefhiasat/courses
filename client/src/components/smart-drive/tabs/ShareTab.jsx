@@ -8,6 +8,7 @@ import { formatQatarDate } from '@utils/timezone';
 import Tabs from '@ui/Tabs/Tabs';
 import Select from '@ui/Select/Select';
 import Button from '@ui/Button/Button';
+import ToggleSwitch from '@ui/ToggleSwitch';
 import RoleMultiSelect, { DRIVE_SHARE_ROLES } from '@ui/RoleMultiSelect';
 import ShareUserSelect from '@ui/ShareUserSelect';
 import SharesList from '../SharesList';
@@ -259,44 +260,14 @@ export default function ShareTab({ fileId, onShare, onGenerateLink }) {
                     { value: PERMISSIONS.COMMENT, label: t('drive.permission.comment') || 'Comment' },
                     { value: PERMISSIONS.EDIT, label: t('drive.permission.edit') || 'Edit' }
                   ].map(perm => (
-                    <div key={perm.value} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem' }}>
-                      <button
-                        type="button"
-                        role="switch"
-                        aria-checked={selectedPermissions.includes(perm.value)}
-                        onClick={() => {
-                          // Single-select: only one permission at a time
-                          setSelectedPermissions([perm.value]);
-                        }}
-                        disabled={loading}
-                        style={{
-                          position: 'relative',
-                          width: '2.75rem',
-                          height: '1.5rem',
-                          borderRadius: '9999px',
-                          border: 'none',
-                          cursor: loading ? 'not-allowed' : 'pointer',
-                          transition: 'background-color 0.2s',
-                          backgroundColor: selectedPermissions.includes(perm.value) ? 'var(--color-primary, #8b5cf6)' : '#d1d5db',
-                          opacity: loading ? 0.5 : 1,
-                        }}
-                      >
-                        <span
-                          style={{
-                            position: 'absolute',
-                            top: '0.125rem',
-                            left: selectedPermissions.includes(perm.value) ? '1.375rem' : '0.125rem',
-                            width: '1.25rem',
-                            height: '1.25rem',
-                            borderRadius: '9999px',
-                            backgroundColor: 'white',
-                            transition: 'left 0.2s',
-                            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                          }}
-                        />
-                      </button>
-                      <span style={{ fontSize: 'var(--font-size-xs)', fontWeight: 500 }}>{perm.label}</span>
-                    </div>
+                    <ToggleSwitch
+                      key={perm.value}
+                      checked={selectedPermissions.includes(perm.value)}
+                      onChange={() => setSelectedPermissions([perm.value])}
+                      label={perm.label}
+                      labelPosition="below"
+                      disabled={loading}
+                    />
                   ))}
                 </div>
               </div>
@@ -358,44 +329,14 @@ export default function ShareTab({ fileId, onShare, onGenerateLink }) {
                     { value: PERMISSIONS.COMMENT, label: t('drive.permission.comment') || 'Comment' },
                     { value: PERMISSIONS.EDIT, label: t('drive.permission.edit') || 'Edit' }
                   ].map(perm => (
-                    <div key={perm.value} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem' }}>
-                      <button
-                        type="button"
-                        role="switch"
-                        aria-checked={selectedPermissions.includes(perm.value)}
-                        onClick={() => {
-                          // Single-select: only one permission at a time
-                          setSelectedPermissions([perm.value]);
-                        }}
-                        disabled={loading}
-                        style={{
-                          position: 'relative',
-                          width: '2.75rem',
-                          height: '1.5rem',
-                          borderRadius: '9999px',
-                          border: 'none',
-                          cursor: loading ? 'not-allowed' : 'pointer',
-                          transition: 'background-color 0.2s',
-                          backgroundColor: selectedPermissions.includes(perm.value) ? 'var(--color-primary, #8b5cf6)' : '#d1d5db',
-                          opacity: loading ? 0.5 : 1,
-                        }}
-                      >
-                        <span
-                          style={{
-                            position: 'absolute',
-                            top: '0.125rem',
-                            left: selectedPermissions.includes(perm.value) ? '1.375rem' : '0.125rem',
-                            width: '1.25rem',
-                            height: '1.25rem',
-                            borderRadius: '9999px',
-                            backgroundColor: 'white',
-                            transition: 'left 0.2s',
-                            boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
-                          }}
-                        />
-                      </button>
-                      <span style={{ fontSize: 'var(--font-size-xs)', fontWeight: 500 }}>{perm.label}</span>
-                    </div>
+                    <ToggleSwitch
+                      key={perm.value}
+                      checked={selectedPermissions.includes(perm.value)}
+                      onChange={() => setSelectedPermissions([perm.value])}
+                      label={perm.label}
+                      labelPosition="below"
+                      disabled={loading}
+                    />
                   ))}
                 </div>
               </div>

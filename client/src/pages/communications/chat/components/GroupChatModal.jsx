@@ -20,6 +20,7 @@ const GroupChatModal = ({ isOpen, onClose, onGroupCreated }) => {
   const toast = useToast();
 
   const [groupName, setGroupName] = useState('');
+  const [groupNameAr, setGroupNameAr] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [availableUsers, setAvailableUsers] = useState([]);
   const [selectedUsers, setSelectedUsers] = useState([]);
@@ -33,6 +34,7 @@ const GroupChatModal = ({ isOpen, onClose, onGroupCreated }) => {
     } else {
       // Reset form when modal closes
       setGroupName('');
+      setGroupNameAr('');
       setSearchQuery('');
       setSelectedUsers([]);
       setRoleFilter(null);
@@ -60,6 +62,11 @@ const GroupChatModal = ({ isOpen, onClose, onGroupCreated }) => {
       return;
     }
 
+    if (!groupNameAr.trim()) {
+      toast.error(t('chat_group_name_ar_required'));
+      return;
+    }
+
     if (selectedUsers.length === 0) {
       toast.error(t('chat_group_participants_required'));
       return;
@@ -69,6 +76,7 @@ const GroupChatModal = ({ isOpen, onClose, onGroupCreated }) => {
       setCreating(true);
       const response = await apiService.post('/chat/rooms/group', {
         name: groupName.trim(),
+        nameAr: groupNameAr.trim(),
         participantIds: selectedUsers.map(u => u.id)
       });
 
@@ -149,6 +157,24 @@ const GroupChatModal = ({ isOpen, onClose, onGroupCreated }) => {
               placeholder={t('chat_group_name_placeholder')}
               maxLength={100}
               disabled={creating}
+            />
+          </div>
+
+          {/* Group Name (Arabic) Input */}
+          <div className={styles.formGroup}>
+            <label className={styles.label}>
+              {t('chat_group_name_ar')} <span className={styles.required}>*</span>
+            </label>
+            <input
+              type="text"
+              autoComplete="off"
+              className={styles.input}
+              value={groupNameAr}
+              onChange={(e) => setGroupNameAr(e.target.value)}
+              placeholder={t('chat_group_name_ar_placeholder')}
+              maxLength={100}
+              disabled={creating}
+              dir="rtl"
             />
           </div>
 
@@ -314,7 +340,7 @@ const GroupChatModal = ({ isOpen, onClose, onGroupCreated }) => {
           <button
             className={styles.createButton}
             onClick={handleCreateGroup}
-            disabled={creating || !groupName.trim() || selectedUsers.length === 0}
+            disabled={creating || !groupName.trim() || !groupNameAr.trim() || selectedUsers.length === 0}
           >
             {creating ? t('creating') : t('chat_create_group_button')}
           </button>

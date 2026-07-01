@@ -58,10 +58,14 @@ export default function StudentDashboardPage() {
   // All candidate steps — filtered at start time to only visible DOM nodes
   const buildTourSteps = useCallback(() => {
     const allSteps = [
-      { target: '[data-tour="student-filters"]',             content: t('tour.student_filters'),             disableBeacon: true, placement: 'bottom' },
-      { target: '[data-tour="student-tabs"]',                content: t('tour.student_tabs'),                disableBeacon: true, placement: 'bottom' },
+      { target: '[data-tour="student-filters"]',              content: t('tour.student_filters'),              disableBeacon: true, placement: 'bottom' },
+      { target: '[data-tour="student-tabs"]',                 content: t('tour.student_tabs'),                 disableBeacon: true, placement: 'bottom' },
+      { target: '[data-tour="student-overview"]',             content: t('tour.student_overview'),             disableBeacon: true, placement: 'top' },
+      { target: '[data-tour="student-performance"]',          content: t('tour.student_performance'),          disableBeacon: true, placement: 'top' },
+      { target: '[data-tour="student-marks"]',                content: t('tour.student_marks'),                disableBeacon: true, placement: 'top' },
+      { target: '[data-tour="student-class-tab"]',            content: t('tour.student_class_tab'),            disableBeacon: true, placement: 'top' },
       { target: '[data-tour="student-attendance-analytics"]', content: t('tour.student_attendance_analytics'), disableBeacon: true, placement: 'top' },
-      { target: '[data-tour="student-drive-analytics"]',     content: t('tour.student_drive_analytics'),     disableBeacon: true, placement: 'top' },
+      { target: '[data-tour="student-drive-analytics"]',      content: t('tour.student_drive_analytics'),      disableBeacon: true, placement: 'top' },
     ];
     return allSteps.filter(s => !!document.querySelector(s.target));
   }, [t]);
@@ -78,10 +82,6 @@ export default function StudentDashboardPage() {
     window.addEventListener('app:help', startTour);
     return () => { window.removeEventListener('app:joyride', startTour); window.removeEventListener('app:help', startTour); };
   }, [startTour]);
-
-  useEffect(() => {
-    try { if (!localStorage.getItem(tourSeenKey)) startTour(); } catch {}
-  }, [tourSeenKey, startTour]);
 
   const handleTourCallback = useCallback((data) => {
     const { status, action } = data || {};
@@ -156,6 +156,12 @@ export default function StudentDashboardPage() {
 
   // ─── Selection prompt state (needed early for debugging) ─────────────────────
   const showSelectionPrompt = permissions.isStaff && !filters.hasSelection;
+
+  // Auto-start tour on first visit — wait until data is loaded so DOM targets exist
+  useEffect(() => {
+    if (dashData.loading || showSelectionPrompt) return;
+    try { if (!localStorage.getItem(tourSeenKey)) startTour(); } catch {}
+  }, [tourSeenKey, startTour, dashData.loading, showSelectionPrompt]);
 
   // Debug logging for data flow
   useEffect(() => {
@@ -389,6 +395,7 @@ export default function StudentDashboardPage() {
 
             <div className={styles.detailContent}>
               {activeTab === 'overview' && (
+                <div data-tour="student-overview">
                 <OverviewTab
                   semesters={dashData.semesters}
                   enrollments={dashData.enrollments}
@@ -408,8 +415,10 @@ export default function StudentDashboardPage() {
                   isRTL={lang === 'ar'}
                   lastUpdatedAt={Date.now()}
                 />
+                </div>
               )}
               {activeTab === 'performance' && (
+                <div data-tour="student-performance">
                 <PerformanceTab
                   studentId={displayStudentId}
                   classId={filters.selectedClassId !== 'all' ? filters.selectedClassId : undefined}
@@ -427,8 +436,10 @@ export default function StudentDashboardPage() {
                   isRTL={lang === 'ar'}
                   lastUpdatedAt={Date.now()}
                 />
+                </div>
               )}
               {activeTab === 'marks' && (
+                <div data-tour="student-marks">
                 <MarksTab
                   marks={dashData.marks}
                   semesters={dashData.semesters}
@@ -439,8 +450,10 @@ export default function StudentDashboardPage() {
                   t={t}
                   lang={lang}
                 />
+                </div>
               )}
               {activeTab === 'class' && permissions.isStaff && (
+                <div data-tour="student-class-tab">
                 <ClassTab
                   classId={filters.selectedClassId}
                   classMetrics={classMetrics.metrics}
@@ -457,6 +470,7 @@ export default function StudentDashboardPage() {
                   isRTL={lang === 'ar'}
                   lastUpdatedAt={Date.now()}
                 />
+                </div>
               )}
             </div>
 

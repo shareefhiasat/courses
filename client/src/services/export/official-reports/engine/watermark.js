@@ -1,6 +1,6 @@
 /** Watermark text lines for PDF official reports. */
 export function buildWatermarkLines(user) {
-  if (!user) return { en: '', ar: '' };
+  if (!user) return { en: '', ar: '', uuid: '' };
   const en =
     user.displayName ||
     [user.firstName, user.lastName].filter(Boolean).join(' ') ||
@@ -9,6 +9,7 @@ export function buildWatermarkLines(user) {
   const ar =
     user.displayNameAr ||
     [user.firstNameAr, user.lastNameAr].filter(Boolean).join(' ') ||
-    en;
-  return { en, ar };
+    '';
+  const uuid = user.id || user.uid || user.sub || '';
+  return { en, ar, uuid };
 }

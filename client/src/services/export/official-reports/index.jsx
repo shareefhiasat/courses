@@ -23,7 +23,7 @@ export async function exportDailyOfficialReport(data, { format = EXPORT_FORMAT.P
 
   const blob = await renderOfficialPdf(
     <DailyOfficialTemplate data={data} showWatermark />,
-    { filename: `${baseName}.pdf`, download: true }
+    { filename: `${baseName}.pdf`, download: true, serial: data.serial, lang: data.lang }
   );
   return blob;
 }
@@ -39,7 +39,7 @@ export async function exportAttendanceOfficialReport(data, { format = EXPORT_FOR
 
   const blob = await renderOfficialPdf(
     <AttendanceOfficialTemplate data={data} showWatermark />,
-    { filename: `${baseName}.pdf`, download: true }
+    { filename: `${baseName}.pdf`, download: true, serial: data.serial, lang: data.lang }
   );
   return blob;
 }

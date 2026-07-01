@@ -7,7 +7,9 @@ import React, { memo, useRef, useState, useCallback } from 'react';
 import { chatService } from '@services/business/chatService';
 import { getThemedIcon, getColoredIcon } from '@constants/iconTypes';
 
-import { info, error, warn, debug } from '@services/utils/logger.js';import { 
+import { info, error, warn, debug } from '@services/utils/logger.js';
+import { formatChatTime } from '@utils/date';
+import { 
   REACTION_TYPES, 
   REACTION_COLORS, 
   MESSAGE_TYPES,
@@ -496,10 +498,7 @@ const MessageBubble = memo(({
           opacity: 0.7,
           color: getUserThemeColor()
         }}>
-          {msg.createdAt?.toDate()?.toLocaleTimeString(lang === 'ar' ? 'ar-SA' : 'en-US', {
-            hour: '2-digit',
-            minute: '2-digit'
-          })}
+          {formatChatTime(msg.createdAt, lang)}
           {renderReadReceipts()}
         </div>
 

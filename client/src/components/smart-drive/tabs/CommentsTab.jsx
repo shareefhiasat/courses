@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { useLang } from '@contexts/LangContext';
 import { useAuth } from '@contexts/AuthContext';
 import { getIcon, getUserRoleIcon, getUserRoleColor } from '@constants/iconTypes';
+import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
 import { Button } from '@ui';
 import Modal from '@ui/Modal/Modal';
 import { formatQatarDate, formatQatarDateOnly } from '@utils/timezone';
@@ -363,27 +364,66 @@ export default function CommentsTab({ fileId, isOwnedByUser = true }) {
                     >
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, minWidth: 0 }}>
-                          <div style={{
-                            flexShrink: 0,
-                            width: '2rem',
-                            height: '2rem',
-                            borderRadius: '9999px',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                          }}>
-                            {getIcon('ui', 'user', 16)}
+                          {/* Avatar with role badge */}
+                          <div style={{ position: 'relative', flexShrink: 0 }}>
+                            <div style={{
+                              width: '2.5rem',
+                              height: '2.5rem',
+                              borderRadius: '9999px',
+                              background: comment.user?.profileImageUrl ? 'transparent' : getAvatarColor(getLocalizedUserName(comment.user, lang, t('drive.unknownUser'))).bg,
+                              color: getAvatarColor(getLocalizedUserName(comment.user, lang, t('drive.unknownUser'))).color,
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              fontSize: 'var(--font-size-xs)',
+                              fontWeight: 600,
+                              overflow: 'hidden',
+                              flexShrink: 0,
+                            }}>
+                              {comment.user?.profileImageUrl ? (
+                                <img
+                                  src={comment.user.profileImageUrl}
+                                  alt={getLocalizedUserName(comment.user, lang, t('drive.unknownUser'))}
+                                  style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                                />
+                              ) : (
+                                getAvatarInitials(getLocalizedUserName(comment.user, lang, t('drive.unknownUser')))
+                              )}
+                            </div>
+                            {/* Role badge overlay */}
+                            {(() => {
+                              const role = getUserRoleFromObject(comment.user);
+                              if (!role) return null;
+                              const roleIcon = getUserRoleIcon(role);
+                              const roleColor = getUserRoleColor(role);
+                              if (!roleIcon) return null;
+                              return (
+                                <div style={{
+                                  position: 'absolute',
+                                  bottom: '-2px',
+                                  insetInlineEnd: '-2px',
+                                  width: '1.125rem',
+                                  height: '1.125rem',
+                                  borderRadius: '9999px',
+                                  background: 'var(--panel, white)',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  border: '1.5px solid var(--panel, white)',
+                                  boxShadow: '0 0 0 1px var(--border, #e5e7eb)',
+                                }}
+                                  title={t(`roles.${role}`, role)}
+                                >
+                                  {React.cloneElement(roleIcon, { color: roleColor, size: 10 })}
+                                </div>
+                              );
+                            })()}
                           </div>
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
                               <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 500, color: 'var(--text, #111827)' }}>
                                 {getLocalizedUserName(comment.user, lang, t('drive.unknownUser'))}
                               </span>
-                              {(() => { const role = getUserRoleFromObject(comment.user); if (!role) return null; const icon = getUserRoleIcon(role); const color = getUserRoleColor(role); return icon ? (
-                                <span title={t(`roles.${role}`, role)} style={{ display: 'flex', alignItems: 'center' }}>
-                                  {React.cloneElement(icon, { color, size: 12 })}
-                                </span>
-                              ) : null; })()}
                             </div>
                             <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text, #374151)', margin: 0, wordBreak: 'break-word' }}>
                               {comment.content}

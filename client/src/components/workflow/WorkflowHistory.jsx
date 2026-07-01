@@ -1,7 +1,9 @@
-import { useLang } from '@contexts/LangContext';
-import { getThemedIcon } from '@constants/iconTypes';
-import { formatQatarDate } from '@utils/timezone';
 import React from 'react';
+import { useLang } from '@contexts/LangContext';
+import { getThemedIcon, getUserRoleIcon, getUserRoleColor } from '@constants/iconTypes';
+import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
+import { getUserRoleFromObject } from '@utils/userUtils';
+import { formatQatarDate } from '@utils/timezone';
 
 // Status color and icon mapping
 const STATUS_CONFIG = {
@@ -64,7 +66,7 @@ function WorkflowHistory({ statusHistory }) {
     if (lang === 'ar') {
       return actor.displayNameAr || (actor.firstNameAr || actor.lastNameAr ? `${actor.firstNameAr || ''} ${actor.lastNameAr || ''}`.trim() : null) || actor.name || actor.firstName || '-';
     }
-    return actor.name || actor.firstName || '-';
+    return actor.name || actor.firstName || actor.displayName || '-';
   };
 
   return (
@@ -75,14 +77,62 @@ function WorkflowHistory({ statusHistory }) {
           const toConfig = getStatusConfig(history.toStatus);
           return (
             <div key={history.id} className="flex items-start gap-3">
-              <div 
-                className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center"
-                style={{ background: toConfig.bgColor, color: toConfig.color }}
-              >
-                {getThemedIcon('ui', toConfig.icon, 12, toConfig.color)}
+              {/* Actor avatar with role badge */}
+              <div style={{ position: 'relative', flexShrink: 0 }}>
+                <div
+                  className="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center overflow-hidden"
+                  style={{
+                    background: history.actor?.profileImageUrl ? 'transparent' : getAvatarColor(getActorName(history.actor)).bg,
+                    color: getAvatarColor(getActorName(history.actor)).color,
+                    fontSize: 'var(--font-size-xs)',
+                    fontWeight: 600,
+                  }}
+                >
+                  {history.actor?.profileImageUrl ? (
+                    <img
+                      src={history.actor.profileImageUrl}
+                      alt={getActorName(history.actor)}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                  ) : (
+                    getAvatarInitials(getActorName(history.actor))
+                  )}
+                </div>
+                {/* Role badge overlay */}
+                {(() => {
+                  const role = getUserRoleFromObject(history.actor);
+                  if (!role) return null;
+                  const roleIcon = getUserRoleIcon(role);
+                  const roleColor = getUserRoleColor(role);
+                  if (!roleIcon) return null;
+                  return (
+                    <div style={{
+                      position: 'absolute',
+                      bottom: '-2px',
+                      insetInlineEnd: '-2px',
+                      width: '1.125rem',
+                      height: '1.125rem',
+                      borderRadius: '9999px',
+                      background: 'var(--panel, white)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      border: '1.5px solid var(--panel, white)',
+                      boxShadow: '0 0 0 1px var(--border, #e5e7eb)',
+                    }}
+                      title={t(`roles.${role}`, role)}
+                    >
+                      {React.cloneElement(roleIcon, { color: roleColor, size: 10 })}
+                    </div>
+                  );
+                })()}
               </div>
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
+                  {/* Status icon inline */}
+                  <span style={{ display: 'inline-flex', alignItems: 'center', color: toConfig.color }}>
+                    {getThemedIcon('ui', toConfig.icon, 12, toConfig.color)}
+                  </span>
                   <span className="font-medium text-gray-900 text-sm">
                     {getActorName(history.actor)}
                   </span>

@@ -1,8 +1,8 @@
 /** Map numeric deduction to display fraction (matches official forms). */
 const DEDUCTION_FRACTIONS = {
-  0.5: '½',
-  0.25: '¼',
-  0.75: '¾',
+  0.5: '1/2',
+  0.25: '1/4',
+  0.75: '3/4',
   1: '1',
 };
 

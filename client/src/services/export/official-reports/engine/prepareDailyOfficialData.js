@@ -1,6 +1,7 @@
 import { ATTENDANCE_STATUS } from '@constants/attendanceTypes';
 import { getLocalizedUserName } from '@utils/localizedUserName.js';
 import { buildDailyOfficialSerial } from './serialNumber.js';
+import { formatOfficialReportDate } from '../shared/officialDateFormat.js';
 
 const OFFICIAL_STATUS_KEYS = ['present', 'absent', 'humanCase', 'late'];
 
@@ -26,15 +27,8 @@ function mapStandupStatus(statusCode) {
   return marks;
 }
 
-function formatReportDate(dateStr, lang) {
-  if (!dateStr) return '';
-  const d = new Date(dateStr.includes('T') ? dateStr : `${dateStr}T12:00:00`);
-  if (Number.isNaN(d.getTime())) return dateStr;
-  return d.toLocaleDateString(lang === 'ar' ? 'ar-QA' : 'en-GB', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-  });
+function formatReportDate(dateStr) {
+  return formatOfficialReportDate(dateStr);
 }
 
 /**
@@ -51,13 +45,25 @@ export function prepareDailyOfficialData({
   const serial = buildDailyOfficialSerial(scopeId, isStandup);
   const mapStatus = isStandup ? mapStandupStatus : mapRegularStatus;
 
-  const rows = roster.map((student, index) => {
-    const userId = String(student.id ?? student.userId ?? student.studentId);
-    const att = attendanceByUserId[userId] || {};
-    const statusCode = att.status?.code || att.status || student.attendance || student.standupStatus;
-    const marks = mapStatus(statusCode);
-    const name = getLocalizedUserName(student, lang, student.displayName || student.name || '');
-    const studentNumber = student.studentNumber || student.uid || '';
+  const rows = roster
+    .slice()
+    .sort((a, b) => {
+      const seqA = a.sequence ?? a.studentOrder ?? null;
+      const seqB = b.sequence ?? b.studentOrder ?? null;
+      if (seqA != null && seqB != null) return seqA - seqB;
+      if (seqA != null) return -1;
+      if (seqB != null) return 1;
+      const nameA = getLocalizedUserName(a, lang, a.displayName || a.name || '');
+      const nameB = getLocalizedUserName(b, lang, b.displayName || b.name || '');
+      return nameA.localeCompare(nameB, lang === 'ar' ? 'ar' : 'en');
+    })
+    .map((student, index) => {
+      const userId = String(student.id ?? student.userId ?? student.studentId);
+      const att = attendanceByUserId[userId] || {};
+      const statusCode = att.status?.code || att.status || student.attendance || student.standupStatus;
+      const marks = mapStatus(statusCode);
+      const name = getLocalizedUserName(student, lang, student.displayName || student.name || '');
+      const studentNumber = student.studentNumber || student.uid || '';
 
     return {
       serial: index + 1,
@@ -76,7 +82,7 @@ export function prepareDailyOfficialData({
     statusKeys: OFFICIAL_STATUS_KEYS,
     header: {
       serial,
-      date: formatReportDate(metadata.date, lang),
+      date: formatReportDate(metadata.date),
       program: metadata.programName || '',
       subject: metadata.subjectName || '',
       className: metadata.className || '',

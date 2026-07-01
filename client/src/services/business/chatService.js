@@ -344,9 +344,9 @@ export const leaveGroupRoom = async (roomId, userId) => {
  * @param {string} name - New group name
  * @returns {Promise<Object>} { success, data }
  */
-export const updateGroupRoom = async (roomId, name) => {
+export const updateGroupRoom = async (roomId, name, nameAr) => {
   try {
-    const data = await apiClient.patch(`/chat/rooms/${roomId}`, { name });
+    const data = await apiClient.patch(`/chat/rooms/${roomId}`, { name, nameAr });
     return { success: true, data: data.data || data };
   } catch (err) {
     error(`[${serviceName}] Error updating group:`, err);
@@ -691,6 +691,7 @@ const compatSubscribeToDirectRooms = (callback) => {
           id: room.id,
           type: 'group',
           name: room.name,
+          nameAr: room.nameAr,
           createdBy: room.createdBy,
           participants: room.participants,
           creator: room.creator,

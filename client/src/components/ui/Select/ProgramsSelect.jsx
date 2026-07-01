@@ -5,6 +5,13 @@ import { useLang } from '@contexts/LangContext';
 import { useAuth } from '@contexts/AuthContext';
 import YearSelect from '../YearSelect/YearSelect';
 import TermSelect from './TermSelect';
+import {
+  sortSubjectsByCode,
+  sortClassesForSelect,
+  getProgramOptionLabel,
+  getSubjectOptionLabel,
+  getClassOptionLabel,
+} from '@utils/academicSelectOptions.js';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 
 const ProgramsSelect = ({
@@ -164,37 +171,27 @@ const ProgramsSelect = ({
     { value: '', label: t('all_programs') || 'All Programs' },
     ...filteredPrograms.map(program => ({
       value: String(program.id || ''),
-      label: lang === 'ar' 
-        ? (program.nameAr || program[`name_${lang}`] || program.name || 'Unnamed Program')
-        : (program.nameEn || program[`name_${lang}`] || program.name || 'Unnamed Program'),
+      label: getProgramOptionLabel(program, lang),
     })),
   ];
 
+  const sortedSubjects = sortSubjectsByCode(filteredSubjects);
   const subjectOptions = [
     { value: '', label: t('all_subjects') || 'All Subjects' },
-    ...filteredSubjects.map(subject => ({
+    ...sortedSubjects.map(subject => ({
       value: String(subject.id || ''),
-      label: lang === 'ar' 
-        ? (subject.nameAr || subject[`name_${lang}`] || subject.name || 'Unnamed Subject')
-        : (subject.nameEn || subject[`name_${lang}`] || subject.name || 'Unnamed Subject'),
+      label: getSubjectOptionLabel(subject, lang),
     })),
   ];
 
+  const sortedClasses = sortClassesForSelect(filteredClasses, lang);
   const classOptions = [
     { value: '', label: t('all_classes') || 'All Classes' },
-    ...filteredClasses.map(cls => {
-      // Use string values for consistency
-      const classId = String(cls.id || '');
-      const className = lang === 'ar' 
-        ? (cls.nameAr || cls[`name_${lang}`] || cls.name || 'Unnamed Class')
-        : (cls.nameEn || cls[`name_${lang}`] || cls.name || 'Unnamed Class');
-      
-      return {
-        value: classId,
-        label: className + (cls.code ? ` (${cls.code})` : ''),
-        code: cls.code,
-      };
-    }),
+    ...sortedClasses.map(cls => ({
+      value: String(cls.id || ''),
+      label: getClassOptionLabel(cls, lang),
+      code: cls.code,
+    })),
   ];
 
   return (

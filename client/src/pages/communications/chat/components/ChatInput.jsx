@@ -4,7 +4,7 @@
  */
 
 import React, { memo, useRef, useState, useCallback, useEffect } from 'react';
-import { getThemedIcon } from '@constants/iconTypes';
+import { getThemedIcon, getIconWithColor } from '@constants/iconTypes';
 import { EMOJI_LIST, MESSAGE_TYPES } from '../constants/chatConstants';
 import { formatTime, getMaxVoiceTimeDisplay } from '../utils/chatHelpers';
 
@@ -597,7 +597,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const ChatI
                   color:'white', 
                   fontSize: 'var(--font-size-md)' 
                 }}>
-                  {getThemedIcon('ui', 'bar_chart', 18, theme)}
+                  {getIconWithColor('ui', 'bar_chart', 18, '#ffffff')}
                 </div>
                 {t('create_poll')}
               </h3>

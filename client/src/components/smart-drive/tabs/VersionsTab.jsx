@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { getIcon, getUserRoleIcon, getUserRoleColor } from '@constants/iconTypes';
+import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
 import { formatQatarDate, formatQatarDateOnly } from '@utils/timezone';
 import { getLocalizedUserName } from '@utils/localizedUserName';
 import { getUserRoleFromObject } from '@utils/userUtils';
@@ -357,13 +358,62 @@ export default function VersionsTab({ fileId, useWorkflowEndpoint = false }) {
 
                   <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: 'var(--font-size-sm)', color: 'var(--text-muted, #6b7280)' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      {getIcon('ui', 'user', 14)}
+                      {/* Avatar with role badge */}
+                      <div style={{ position: 'relative', flexShrink: 0 }}>
+                        <div style={{
+                          width: '1.75rem',
+                          height: '1.75rem',
+                          borderRadius: '9999px',
+                          background: version.uploadedBy?.profileImageUrl ? 'transparent' : getAvatarColor(getUserName(version.uploadedBy)).bg,
+                          color: getAvatarColor(getUserName(version.uploadedBy)).color,
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '0.625rem',
+                          fontWeight: 600,
+                          overflow: 'hidden',
+                          flexShrink: 0,
+                        }}>
+                          {version.uploadedBy?.profileImageUrl ? (
+                            <img
+                              src={version.uploadedBy.profileImageUrl}
+                              alt={getUserName(version.uploadedBy)}
+                              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                            />
+                          ) : (
+                            getAvatarInitials(getUserName(version.uploadedBy))
+                          )}
+                        </div>
+                        {/* Role badge overlay */}
+                        {(() => {
+                          const role = getUserRoleFromObject(version.uploadedBy);
+                          if (!role) return null;
+                          const roleIcon = getUserRoleIcon(role);
+                          const roleColor = getUserRoleColor(role);
+                          if (!roleIcon) return null;
+                          return (
+                            <div style={{
+                              position: 'absolute',
+                              bottom: '-1px',
+                              insetInlineEnd: '-1px',
+                              width: '0.875rem',
+                              height: '0.875rem',
+                              borderRadius: '9999px',
+                              background: 'var(--panel, white)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              border: '1px solid var(--panel, white)',
+                              boxShadow: '0 0 0 1px var(--border, #e5e7eb)',
+                            }}
+                              title={t(`roles.${role}`, role)}
+                            >
+                              {React.cloneElement(roleIcon, { color: roleColor, size: 8 })}
+                            </div>
+                          );
+                        })()}
+                      </div>
                       {getUserName(version.uploadedBy)}
-                      {(() => { const role = getUserRoleFromObject(version.uploadedBy); if (!role) return null; const icon = getUserRoleIcon(role); const color = getUserRoleColor(role); return icon ? (
-                        <span title={t(`roles.${role}`, role)} style={{ display: 'flex', alignItems: 'center' }}>
-                          {React.cloneElement(icon, { color, size: 12 })}
-                        </span>
-                      ) : null; })()}
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                       {getIcon('ui', 'download', 14)}

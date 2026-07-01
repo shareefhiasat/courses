@@ -1,6 +1,12 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Select } from '@ui';
-
+import {
+  sortSubjectsByCode,
+  sortClassesForSelect,
+  getProgramOptionLabel,
+  getSubjectOptionLabel,
+  getClassOptionLabel,
+} from '@utils/academicSelectOptions.js';
 
 import { info, error, warn, debug } from '@services/utils/logger.js';const ClassSelector = ({
   programs = [],
@@ -95,32 +101,32 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Class
       ...options,
       ...programs.map(program => ({
         value: program.docId || program.id,
-        label: lang === 'ar' ? (program.nameAr || program.nameEn || program.code || program.docId) : (program.nameEn || program.nameAr || program.code || program.docId)
+        label: getProgramOptionLabel(program, lang),
       }))
     ];
-  }, [programs, showAllOption, t]);
+  }, [programs, showAllOption, t, lang]);
 
   const subjectOptions = useMemo(() => {
     const options = showAllOption ? [{ value: 'all', label: t('all_subjects') || 'All Subjects' }] : [];
     return [
       ...options,
-      ...filteredSubjects.map(subject => ({
+      ...sortSubjectsByCode(filteredSubjects).map(subject => ({
         value: subject.docId || subject.id,
-        label: `${subject.code || ''} - ${lang === 'ar' ? (subject.nameAr || subject.nameEn || subject.docId) : (subject.nameEn || subject.nameAr || subject.docId)}`
+        label: getSubjectOptionLabel(subject, lang),
       }))
     ];
-  }, [filteredSubjects, showAllOption, t]);
+  }, [filteredSubjects, showAllOption, t, lang]);
 
   const classOptions = useMemo(() => {
     const options = showAllOption ? [{ value: 'all', label: t('all_classes') || 'All Classes' }] : [];
     return [
       ...options,
-      ...filteredClasses.map(cls => ({
+      ...sortClassesForSelect(filteredClasses, lang).map(cls => ({
         value: cls.id || cls.docId,
-        label: lang === 'ar' ? (cls.titleAr || cls.nameAr || cls.title || cls.name || cls.code || cls.id) : (cls.title || cls.name || cls.code || cls.id)
+        label: getClassOptionLabel(cls, lang),
       }))
     ];
-  }, [filteredClasses, showAllOption, t]);
+  }, [filteredClasses, showAllOption, t, lang]);
 
   const gridColumns = compact
     ? 'repeat(auto-fit, minmax(120px, 1fr))'
@@ -310,32 +316,32 @@ const ClassSelectorAdvanced = ({
       ...options,
       ...programs.map(program => ({
         value: program.docId || program.id,
-        label: lang === 'ar' ? (program.nameAr || program.nameEn || program.code || program.docId) : (program.nameEn || program.nameAr || program.code || program.docId)
+        label: getProgramOptionLabel(program, lang),
       }))
     ];
-  }, [programs, showAllOption, t]);
+  }, [programs, showAllOption, t, lang]);
 
   const subjectOptions = useMemo(() => {
     const options = showAllOption ? [{ value: 'all', label: t('all_subjects') || 'All Subjects' }] : [];
     return [
       ...options,
-      ...filteredSubjects.map(subject => ({
+      ...sortSubjectsByCode(filteredSubjects).map(subject => ({
         value: subject.docId || subject.id,
-        label: `${subject.code || ''} - ${lang === 'ar' ? (subject.nameAr || subject.nameEn || subject.docId) : (subject.nameEn || subject.nameAr || subject.docId)}`
+        label: getSubjectOptionLabel(subject, lang),
       }))
     ];
-  }, [filteredSubjects, showAllOption, t]);
+  }, [filteredSubjects, showAllOption, t, lang]);
 
   const classOptions = useMemo(() => {
     const options = showAllOption ? [{ value: 'all', label: t('all_classes') || 'All Classes' }] : [];
     return [
       ...options,
-      ...filteredClasses.map(cls => ({
+      ...sortClassesForSelect(filteredClasses, lang).map(cls => ({
         value: cls.id || cls.docId,
-        label: lang === 'ar' ? (cls.titleAr || cls.nameAr || cls.title || cls.name || cls.code || cls.id) : (cls.title || cls.name || cls.code || cls.id)
+        label: getClassOptionLabel(cls, lang),
       }))
     ];
-  }, [filteredClasses, showAllOption, t]);
+  }, [filteredClasses, showAllOption, t, lang]);
 
   const yearOptions = useMemo(() => {
     const options = showAllOption ? [{ value: 'all', label: t('all_years') || 'All Years' }] : [];

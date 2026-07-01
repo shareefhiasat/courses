@@ -1,37 +1,51 @@
 import React from 'react';
+import styles from './ToggleSwitch.module.css';
 
+/**
+ * Accessible toggle switch. Track dimensions scale with --type-base while
+ * preserving pill aspect ratio (immune to global button min-height rules).
+ */
+const ToggleSwitch = ({
+  checked,
+  onChange,
+  label,
+  disabled = false,
+  labelPosition = 'right',
+  id,
+  className = '',
+}) => {
+  const stacked = labelPosition === 'below';
+  const rootClass = [
+    stacked ? styles.rootStacked : styles.root,
+    disabled ? styles.rootDisabled : '',
+    className,
+  ].filter(Boolean).join(' ');
 
-import { info, error, warn, debug } from '@services/utils/logger.js';const ToggleSwitch = ({ checked, onChange, label, disabled = false }) => {
+  const handleChange = () => {
+    if (!disabled) onChange(!checked);
+  };
+
   return (
-    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.6 : 1 }}>
-      <div
-        onClick={() => !disabled && onChange(!checked)}
-        style={{
-          position: 'relative',
-          width: 44,
-          height: 24,
-          background: checked ? 'var(--color-primary, #800020)' : '#ccc',
-          borderRadius: 12,
-          transition: 'background 0.3s',
-          cursor: disabled ? 'not-allowed' : 'pointer'
-        }}
+    <div className={rootClass}>
+      <button
+        type="button"
+        role="switch"
+        id={id}
+        className={`toggle-switch ${styles.track} ${checked ? styles.trackOn : styles.trackOff}`}
+        aria-checked={checked}
+        aria-label={label || undefined}
+        disabled={disabled}
+        onClick={handleChange}
       >
-        <div
-          style={{
-            position: 'absolute',
-            top: 2,
-            left: checked ? 22 : 2,
-            width: 20,
-            height: 20,
-            background: 'white',
-            borderRadius: '50%',
-            transition: 'left 0.3s',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.2)'
-          }}
+        <span
+          className={`${styles.thumb} ${checked ? styles.thumbOn : styles.thumbOff}`}
+          aria-hidden="true"
         />
-      </div>
-      {label && <span style={{ fontSize: '0.9rem', color: 'var(--text)' }}>{label}</span>}
-    </label>
+      </button>
+      {label && (
+        <span className={stacked ? styles.labelStacked : styles.label}>{label}</span>
+      )}
+    </div>
   );
 };
 

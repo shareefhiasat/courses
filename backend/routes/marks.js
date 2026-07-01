@@ -9,6 +9,7 @@ import {
   getStudentMarksHistory,
   getAttendanceDeductionSuggestion,
   getAbsenceDeductionRules,
+  getStudentDeductionHistory,
 } from '../controllers/marks.js';
 import { screenOps } from '../middleware/requirePermission.js';
 
@@ -300,5 +301,6 @@ router.get('/history/:userId/:subjectId/:classId', ops.view, getStudentMarksHist
 
 router.get('/attendance-deduction', ops.view, getAttendanceDeductionSuggestion);
 router.get('/absence-deduction-rules', ops.view, getAbsenceDeductionRules);
+router.get('/deduction-history', ops.view, getStudentDeductionHistory);
 
 export default router;
