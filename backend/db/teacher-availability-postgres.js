@@ -89,7 +89,7 @@ export const getTeacherAvailabilities = async (params = {}) => {
     
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       code: 'UNKNOWN_ERROR'
     };
   }
@@ -148,7 +148,7 @@ export const getTeacherAvailabilityById = async (id) => {
     
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       code: 'UNKNOWN_ERROR'
     };
   }
@@ -207,7 +207,7 @@ export const getTeacherAvailabilityByUserId = async (userId) => {
     
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       code: 'UNKNOWN_ERROR'
     };
   }
@@ -318,7 +318,7 @@ export const getAvailableTeachers = async (params) => {
     
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       code: 'UNKNOWN_ERROR'
     };
   }
@@ -369,7 +369,7 @@ export const createTeacherAvailability = async (data) => {
     
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       code: 'UNKNOWN_ERROR'
     };
   }
@@ -422,7 +422,7 @@ export const updateTeacherAvailability = async (id, data) => {
     
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       code: 'UNKNOWN_ERROR'
     };
   }
@@ -459,7 +459,7 @@ export const deleteTeacherAvailability = async (id) => {
     
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       code: 'UNKNOWN_ERROR'
     };
   }

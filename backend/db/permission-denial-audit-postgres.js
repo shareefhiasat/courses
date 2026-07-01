@@ -28,7 +28,7 @@ export async function createPermissionDenialAudit(data) {
     return { success: true, data: denialAudit };
   } catch (error) {
     console.error('Error creating permission denial audit:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 }
 
@@ -64,7 +64,7 @@ export async function getPermissionDenialAudits(filters = {}) {
     return { success: true, data: audits, total };
   } catch (error) {
     console.error('Error getting permission denial audits:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 }
 

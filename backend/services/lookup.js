@@ -245,7 +245,7 @@ export async function createLookupData(lookupType, data, userId = null) {
     return {
       success: false,
       message: isPrismaError(error) ? getPrismaErrorMessage(error) : error.message,
-      error: error.message
+      error: 'Internal server error'
     };
   }
 }
@@ -294,7 +294,7 @@ export async function updateLookupData(lookupType, id, data, userId = null) {
     return {
       success: false,
       message: isPrismaError(error) ? getPrismaErrorMessage(error) : error.message,
-      error: error.message
+      error: 'Internal server error'
     };
   }
 }
@@ -364,7 +364,7 @@ export async function deleteLookupData(lookupType, id, userId = null, options = 
     return {
       success: false,
       message: isPrismaError(error) ? getPrismaErrorMessage(error) : error.message,
-      error: error.message
+      error: 'Internal server error'
     };
   }
 }

@@ -123,7 +123,7 @@ export const send = async (notification, recipient, rendered, template) => {
         log.warn('SMS send failed, retrying', {
           to: toNumber,
           attempt,
-          error: error.message
+          error: 'Internal server error'
         });
         
         if (attempt < maxRetries) {
@@ -184,7 +184,7 @@ export const send = async (notification, recipient, rendered, template) => {
     log.error('Failed to send SMS notification', {
       userId: recipient.userId,
       event: notification.event,
-      error: error.message
+      error: 'Internal server error'
     });
     
     // Create failed delivery record if not exists
@@ -194,7 +194,7 @@ export const send = async (notification, recipient, rendered, template) => {
           notificationId,
           channel: CHANNELS.SMS,
           status: DELIVERY_STATUS.FAILED,
-          error: error.message
+          error: 'Internal server error'
         }
       });
     } catch (createError) {
@@ -204,7 +204,7 @@ export const send = async (notification, recipient, rendered, template) => {
     return {
       channel: CHANNELS.SMS,
       status: DELIVERY_STATUS.FAILED,
-      error: error.message
+      error: 'Internal server error'
     };
   }
 };

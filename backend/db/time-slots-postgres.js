@@ -90,7 +90,7 @@ export const getTimeSlots = async (params = {}) => {
     
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       code: 'UNKNOWN_ERROR'
     };
   }
@@ -145,7 +145,7 @@ export const getTimeSlotById = async (id) => {
     
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       code: 'UNKNOWN_ERROR'
     };
   }
@@ -186,7 +186,7 @@ export const getTimeSlotsByProgram = async (programId) => {
     
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       code: 'UNKNOWN_ERROR'
     };
   }
@@ -228,7 +228,7 @@ export const getSchedulableTimeSlots = async (programId) => {
     
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       code: 'UNKNOWN_ERROR'
     };
   }
@@ -287,7 +287,7 @@ export const bulkInitDefaults = async (programId) => {
     
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       code: 'UNKNOWN_ERROR'
     };
   }
@@ -334,7 +334,7 @@ export const createTimeSlot = async (data) => {
     
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       code: 'UNKNOWN_ERROR'
     };
   }
@@ -383,7 +383,7 @@ export const updateTimeSlot = async (id, data) => {
     
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       code: 'UNKNOWN_ERROR'
     };
   }
@@ -420,7 +420,7 @@ export const deleteTimeSlot = async (id) => {
     
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       code: 'UNKNOWN_ERROR'
     };
   }

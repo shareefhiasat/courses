@@ -330,7 +330,7 @@ export const createResource = async (resourceData, user = null) => {
     const createdBy = await getDatabaseUserId(user) || 1;
     
     if (createdBy !== 1) {
-      console.log('[Resources DB] Using authenticated user for audit trail:', user.displayName);
+      // authenticated user context applied for audit trail
     } else {
       console.warn('[Resources DB] No user provided, using default admin');
     }

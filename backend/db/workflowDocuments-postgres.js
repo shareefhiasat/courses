@@ -158,7 +158,7 @@ export async function createWorkflowDocument(data) {
     return { success: true, data: workflowDocument };
   } catch (error) {
     console.error('Error creating workflow document:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 }
 
@@ -182,7 +182,7 @@ export async function createWorkflowStatusHistory(data) {
     return { success: true, data: statusHistory };
   } catch (error) {
     console.error('Error creating workflow status history:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 }
 
@@ -241,7 +241,7 @@ export async function getWorkflowDocumentById(id) {
     return { success: true, data: document };
   } catch (error) {
     console.error('Error getting workflow document:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 }
 
@@ -252,14 +252,10 @@ export async function getWorkflowDocumentsBySubmitter(submitterId, filters = {})
   try {
     const { limit = 50, offset = 0 } = filters;
 
-    console.log('[getWorkflowDocumentsBySubmitter] submitterId:', submitterId, 'filters:', filters);
-
     const where = {
       submitterId,
       ...buildWhereFromFilters(filters),
     };
-
-    console.log('[getWorkflowDocumentsBySubmitter] where clause:', JSON.stringify(where, null, 2));
 
     const documents = await prisma.workflowDocument.findMany({
       where,
@@ -292,7 +288,7 @@ export async function getWorkflowDocumentsBySubmitter(submitterId, filters = {})
     return { success: true, data: documentsWithVersionNumber, total };
   } catch (error) {
     console.error('Error getting workflow documents by submitter:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 }
 
@@ -333,7 +329,7 @@ export async function getWorkflowDocumentsByFileId(fileId) {
     return { success: true, data: documentsWithVersionNumber, total: documents.length };
   } catch (error) {
     console.error('Error getting workflow documents by fileId:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 }
 
@@ -345,8 +341,6 @@ export async function getWorkflowDocumentsByAssignee(assigneeId, filters = {}) {
   try {
     const { limit = 50, offset = 0 } = filters;
 
-    console.log('[getWorkflowDocumentsByAssignee] assigneeId:', assigneeId, 'filters:', filters);
-
     const where = {
       OR: [
         { currentAssigneeId: assigneeId },
@@ -354,8 +348,6 @@ export async function getWorkflowDocumentsByAssignee(assigneeId, filters = {}) {
       ],
       ...buildWhereFromFilters(filters),
     };
-
-    console.log('[getWorkflowDocumentsByAssignee] where clause:', JSON.stringify(where, null, 2));
 
     const documents = await prisma.workflowDocument.findMany({
       where,
@@ -380,7 +372,7 @@ export async function getWorkflowDocumentsByAssignee(assigneeId, filters = {}) {
     return { success: true, data: documentsWithVersionNumber, total };
   } catch (error) {
     console.error('Error getting workflow documents by assignee:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 }
 
@@ -430,7 +422,7 @@ export async function updateWorkflowDocumentStatus(id, status, actorId, reason) 
     return { success: true, data: updated };
   } catch (error) {
     console.error('Error updating workflow document status:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 }
 
@@ -456,7 +448,7 @@ export async function addWorkflowComment(data) {
     return { success: true, data: workflowComment };
   } catch (error) {
     console.error('Error adding workflow comment:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 }
 
@@ -501,7 +493,7 @@ export async function getCommentsByWorkflowDocument(workflowDocumentId) {
     return { success: true, data: comments };
   } catch (error) {
     console.error('Error getting workflow comments:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 }
 
@@ -519,7 +511,7 @@ export async function deleteWorkflowComment(commentId) {
     return { success: true, data: deletedComment };
   } catch (error) {
     console.error('Error deleting workflow comment:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 }
 
@@ -579,7 +571,7 @@ export async function resubmitWorkflowDocument(data) {
     return { success: true, data: updated };
   } catch (error) {
     console.error('Error resubmitting workflow document:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 }
 
@@ -715,7 +707,7 @@ export async function getComplianceData(filters) {
     };
   } catch (error) {
     console.error('Error getting compliance data:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 }
 
@@ -849,7 +841,7 @@ export async function getAnalyticsData(filters) {
     };
   } catch (error) {
     console.error('Error getting analytics data:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 }
 
@@ -903,7 +895,7 @@ export async function deleteWorkflowDocument(id) {
     return { success: true, data: { id } };
   } catch (error) {
     console.error('Error deleting workflow document:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 }
 

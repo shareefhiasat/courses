@@ -812,7 +812,7 @@ export const getSchedulingSummary = async (params = {}) => {
     };
   } catch (error) {
     console.error('[SchedulingSummary] Error:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 };
 
@@ -843,7 +843,7 @@ export const getBreakSessionSummary = async (params = {}) => {
       },
     };
   } catch (error) {
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 };
 
@@ -881,7 +881,7 @@ export const getHolidaySummary = async (params = {}) => {
       },
     };
   } catch (error) {
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 };
 
@@ -925,7 +925,7 @@ export const getTeacherWorkloadSummary = async (params = {}) => {
 
     return { success: true, data: workloads };
   } catch (error) {
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 };
 
@@ -957,7 +957,7 @@ export const getClassroomUtilizationSummary = async (params = {}) => {
 
     return { success: true, data: utilization };
   } catch (error) {
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 };
 

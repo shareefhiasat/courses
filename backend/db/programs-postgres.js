@@ -150,7 +150,7 @@ const getPrograms = async (params = {}) => {
     console.error('[Programs DB] ❌ Error getting programs:', error);
     return { 
       success: false, 
-      error: error.message,
+      error: 'Internal server error',
       duration: `${duration}ms`
     };
   }
@@ -212,7 +212,7 @@ const getProgramById = async (programId, params = {}) => {
     console.error('[Programs DB] ❌ Error getting program:', error);
     return { 
       success: false, 
-      error: error.message,
+      error: 'Internal server error',
       duration: `${duration}ms`
     };
   }
@@ -328,7 +328,7 @@ const create = async (programData, user = null) => {
     console.error('[Programs DB] ❌ Error creating program:', error);
     return { 
       success: false, 
-      error: error.message,
+      error: 'Internal server error',
       duration: `${duration}ms`
     };
   }
@@ -546,7 +546,7 @@ const hardDeleteProgram = async (programId) => {
     
     return { 
       success: false, 
-      error: error.message,
+      error: 'Internal server error',
       duration: `${duration}ms`
     };
   }

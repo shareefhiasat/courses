@@ -133,7 +133,7 @@ export function handlePrismaError(error, context = 'Database operation') {
   
   return {
     success: false,
-    error: error.message || `${context} failed`
+    error: 'Internal server error' || `${context} failed`
   };
 }
 

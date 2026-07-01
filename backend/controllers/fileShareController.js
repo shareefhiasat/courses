@@ -97,10 +97,7 @@ export async function revokeFileShare(req, res) {
 
 export async function listSharedWithMe(req, res) {
   const actor = { userId: req.user?.dbId, roles: req.user?.roles || [] };
-  console.log('[listSharedWithMe] req.user:', req.user);
-  console.log('[listSharedWithMe] actor:', actor);
   const result = await fileShareService.listSharedWithMe(actor);
-  console.log('[listSharedWithMe] result:', result);
   if (!result.success) return res.status(400).json(result);
   return res.json(result);
 }
@@ -113,11 +110,8 @@ export async function listSharedFiles(req, res) {
 }
 
 export async function listSharedByMe(req, res) {
-  console.log('[listSharedByMe] req.user:', req.user);
   const actor = { userId: req.user?.dbId, roles: req.user?.roles || [] };
-  console.log('[listSharedByMe] actor:', actor);
   const result = await fileShareService.listSharedByMe(actor);
-  console.log('[listSharedByMe] result:', result);
   if (!result.success) return res.status(400).json(result);
   return res.json(result);
 }

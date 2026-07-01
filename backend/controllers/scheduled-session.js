@@ -15,7 +15,7 @@ router.get('/', async (req, res) => {
     const result = await scheduledSessionDb.getScheduledSessions(req.query);
     res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
 
@@ -32,7 +32,7 @@ router.get('/:id', async (req, res) => {
       res.status(404).json(result);
     }
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
 
@@ -51,7 +51,7 @@ router.post('/', async (req, res) => {
       res.status(400).json(result);
     }
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
 
@@ -70,7 +70,7 @@ router.put('/:id', async (req, res) => {
       res.status(400).json(result);
     }
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
 
@@ -94,7 +94,7 @@ router.delete('/:id', async (req, res) => {
     
     res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
 
@@ -112,7 +112,7 @@ router.post('/:id/restore', async (req, res) => {
     );
     res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
 
@@ -136,7 +136,7 @@ router.post('/validate', async (req, res) => {
     }
     res.json({ success: true, ...result });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
 
@@ -153,7 +153,7 @@ router.post('/recurring', async (req, res) => {
       res.status(400).json(result);
     }
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
 
@@ -167,7 +167,7 @@ router.post('/suggestions', async (req, res) => {
     const result = await suggestionEngine.suggestBestMatch(classId, preferredTime);
     res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
 
@@ -186,7 +186,7 @@ router.post('/alternative-times', async (req, res) => {
     );
     res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
 
@@ -202,7 +202,7 @@ router.get('/by-instructor/:instructorId', async (req, res) => {
     });
     res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
 
@@ -218,7 +218,7 @@ router.get('/by-room/:classroomId', async (req, res) => {
     });
     res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
 
@@ -243,7 +243,7 @@ router.patch('/:id/status', async (req, res) => {
     
     res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
 
@@ -262,7 +262,7 @@ router.post('/:id/cancel', async (req, res) => {
     );
     res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
 
@@ -281,7 +281,7 @@ router.post('/:id/cancel-series', async (req, res) => {
     );
     res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
 
@@ -298,7 +298,7 @@ router.get('/status/:status', async (req, res) => {
     );
     res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
 

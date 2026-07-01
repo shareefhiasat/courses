@@ -29,16 +29,41 @@ const PORT = process.env.PORT || 8001;
 const API_VERSION = process.env.API_VERSION || "v1";
 const NODE_ENV = process.env.NODE_ENV || "development";
 
-// Security headers (helmet). CSP is left disabled globally because
-// swagger-ui-express (mounted below) needs inline scripts/styles; tighten
-// this with a route-scoped CSP if/when Swagger UI is removed from prod.
+// Security headers (helmet). A strict CSP is enabled globally; the Swagger
+// UI route below gets a relaxed CSP override because swagger-ui-express needs
+// inline scripts/styles.
+const strictCsp = helmet.contentSecurityPolicy.getDefaultDirectives();
+// Allow inline styles for Swagger UI and rich-text content rendering
+strictCsp["style-src"] = ["'self'", "'unsafe-inline'"];
+// Allow inline scripts only where needed (Swagger UI override below)
+strictCsp["script-src"] = ["'self'"];
+// Allow data: URIs for images (rich-text content, profile images)
+strictCsp["img-src"] = ["'self'", "data:", "blob:"];
+// Allow connect to self (API + WebSocket) and Keycloak
+strictCsp["connect-src"] = ["'self'"];
+// Allow fonts from self
+strictCsp["font-src"] = ["'self'"];
+
 app.use(
   helmet({
-    contentSecurityPolicy: false,
+    contentSecurityPolicy: {
+      directives: strictCsp,
+    },
     crossOriginEmbedderPolicy: false,
     crossOriginResourcePolicy: { policy: "cross-origin" },
+    hsts: {
+      maxAge: 31536000,
+      includeSubDomains: true,
+      preload: true,
+    },
   }),
 );
+
+// Prevent search engine indexing of API responses
+app.use((req, res, next) => {
+  res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+  next();
+});
 
 // Rate limiting - blunts brute-force/DoS against the API
 const apiLimiter = rateLimit({
@@ -80,8 +105,13 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+// Body parsing with size limit to prevent oversized-payload DoS.
+// 10MB is generous enough for rich-text content (quizzes, announcements)
+// while blocking multi-GB body bombs. File uploads go through presigned
+// MinIO URLs, not through Express body parsing, so this doesn't affect them.
+const BODY_LIMIT = '10mb';
+app.use(express.json({ limit: BODY_LIMIT }));
+app.use(express.urlencoded({ extended: true, limit: BODY_LIMIT }));
 
 // Import Keycloak authentication middleware
 import { keycloakAuth } from "./middleware/keycloakAuth.js";
@@ -279,8 +309,20 @@ const swaggerOptions = {
 
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
 
-// Enable Swagger if configured
-if (process.env.ENABLE_SWAGGER !== "false") {
+// Enable Swagger UI only in development by default.
+// In production, set ENABLE_SWAGGER=true explicitly to expose it.
+const enableSwagger = NODE_ENV === 'development'
+  ? process.env.ENABLE_SWAGGER !== 'false'
+  : process.env.ENABLE_SWAGGER === 'true';
+
+if (enableSwagger) {
+  // Relax CSP for Swagger UI only — it needs inline scripts/styles
+  const swaggerCsp = helmet.contentSecurityPolicy.getDefaultDirectives();
+  swaggerCsp["script-src"] = ["'self'", "'unsafe-inline'"];
+  swaggerCsp["style-src"] = ["'self'", "'unsafe-inline'"];
+  swaggerCsp["img-src"] = ["'self'", "data:", "blob:"];
+  app.use("/api-docs", helmet({ contentSecurityPolicy: { directives: swaggerCsp } }));
+
   app.use(
     "/api-docs",
     swaggerUi.serve,
@@ -463,13 +505,15 @@ app.use("*", (req, res) => {
   });
 });
 
-// Global error handler
+// Global error handler — logs full error server-side, sends generic
+// message to client. Never expose err.message or err.stack in production.
 app.use((err, req, res, next) => {
   console.error("Global error handler:", err);
+  const isDev = process.env.NODE_ENV === "development";
   res.status(err.status || 500).json({
     success: false,
-    error: err.message || "Internal server error",
-    ...(process.env.NODE_ENV === "development" && { stack: err.stack }),
+    error: isDev ? err.message : "Internal server error",
+    ...(isDev && { stack: err.stack }),
   });
 });
 

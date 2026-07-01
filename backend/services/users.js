@@ -49,7 +49,7 @@ export const getAllUsers = async (params = {}, user = null) => {
     console.error('[Users Service] getAllUsers error:', error);
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       data: [],
       total: 0,
     };

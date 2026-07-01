@@ -34,7 +34,7 @@ export const getAllActivities = async (params = {}, user = null) => {
     console.error('Error in getAllActivities:', error);
     return {
       success: false,
-      error: error.message || 'Failed to retrieve activities',
+      error: 'Internal server error' || 'Failed to retrieve activities',
       data: []
     };
   }
@@ -63,7 +63,7 @@ export const getActivityById = async (activityId, user = null) => {
     console.error('Error in getActivityById:', error);
     return {
       success: false,
-      error: error.message || 'Failed to retrieve activity',
+      error: 'Internal server error' || 'Failed to retrieve activity',
       data: null
     };
   }
@@ -172,7 +172,7 @@ const prisma = (await import('../db/prismaClient.js')).default;
     console.error('Error in createActivity:', error);
     return {
       success: false,
-      error: error.message || 'Failed to create activity',
+      error: 'Internal server error' || 'Failed to create activity',
       data: null
     };
   }
@@ -250,7 +250,7 @@ export const updateActivity = async (activityId, updateData, user = null) => {
     console.error('Error in updateActivity:', error);
     return {
       success: false,
-      error: error.message || 'Failed to update activity',
+      error: 'Internal server error' || 'Failed to update activity',
       data: null
     };
   }
@@ -279,7 +279,7 @@ export const deleteActivity = async (activityId, user = null, options = {}) => {
     console.error('Error in deleteActivity:', error);
     return {
       success: false,
-      error: error.message || 'Failed to delete activity',
+      error: 'Internal server error' || 'Failed to delete activity',
       data: null
     };
   }
@@ -312,7 +312,7 @@ export const getActivitiesByClass = async (classId, params = {}, user = null) =>
     console.error('Error in getActivitiesByClass:', error);
     return {
       success: false,
-      error: error.message || 'Failed to retrieve activities for class',
+      error: 'Internal server error' || 'Failed to retrieve activities for class',
       data: []
     };
   }

@@ -133,7 +133,7 @@ export const send = async (notification, recipient, rendered, template) => {
         log.warn('Email send failed, retrying', {
           to: recipient.email,
           attempt,
-          error: error.message
+          error: 'Internal server error'
         });
         
         if (attempt < maxRetries) {
@@ -194,7 +194,7 @@ export const send = async (notification, recipient, rendered, template) => {
     log.error('Failed to send email notification', {
       userId: recipient.userId,
       event: notification.event,
-      error: error.message
+      error: 'Internal server error'
     });
     
     // Create failed delivery record if not exists
@@ -204,7 +204,7 @@ export const send = async (notification, recipient, rendered, template) => {
           notificationId,
           channel: CHANNELS.EMAIL,
           status: DELIVERY_STATUS.FAILED,
-          error: error.message
+          error: 'Internal server error'
         }
       });
     } catch (createError) {
@@ -214,7 +214,7 @@ export const send = async (notification, recipient, rendered, template) => {
     return {
       channel: CHANNELS.EMAIL,
       status: DELIVERY_STATUS.FAILED,
-      error: error.message
+      error: 'Internal server error'
     };
   }
 };

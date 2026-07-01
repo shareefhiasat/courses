@@ -111,13 +111,13 @@ export const send = async (notification, recipient, rendered) => {
     log.error('Failed to deliver in-app notification', {
       userId: recipient.userId,
       event: notification.event,
-      error: error.message
+      error: 'Internal server error'
     });
     
     return {
       channel: CHANNELS.IN_APP,
       status: DELIVERY_STATUS.FAILED,
-      error: error.message
+      error: 'Internal server error'
     };
   }
 };

@@ -372,8 +372,6 @@ export async function listFiles(keycloakUser, {
       ];
     }
 
-    console.log('[fileService.listFiles] where clause:', JSON.stringify(where, null, 2));
-
     if (folderId !== undefined && folderId !== null && folderId !== '') {
       where.folderId = folderId;
     } else if (rootOnly) {

@@ -826,7 +826,7 @@ const getAttendanceDeductionSuggestion = async (req, res) => {
     res.json({ success: true, data: suggestion });
   } catch (error) {
     console.error('Error calculating attendance deduction:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 };
 
@@ -836,7 +836,7 @@ const getAbsenceDeductionRules = async (req, res) => {
     res.json({ success: true, data: rules });
   } catch (error) {
     console.error('Error listing deduction rules:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 };
 
@@ -858,7 +858,7 @@ const getStudentDeductionHistory = async (req, res) => {
     res.json({ success: true, data: history });
   } catch (error) {
     console.error('Error getting deduction history:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 };
 

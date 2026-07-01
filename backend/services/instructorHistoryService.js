@@ -90,7 +90,7 @@ export const recordInstructorChange = async ({
     return { success: true, data: history };
   } catch (error) {
     console.error('[InstructorHistory] Error recording change:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 };
 
@@ -165,7 +165,7 @@ export const getClassInstructorHistory = async (classId) => {
     return { success: true, data: history };
   } catch (error) {
     console.error('[InstructorHistory] Error getting class history:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 };
 
@@ -266,7 +266,7 @@ export const getInstructorHistory = async (instructorId, options = {}) => {
     return { success: true, data: history };
   } catch (error) {
     console.error('[InstructorHistory] Error getting instructor history:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 };
 
@@ -341,7 +341,7 @@ export const getSessionInstructorHistory = async (sessionId) => {
     return { success: true, data: history };
   } catch (error) {
     console.error('[InstructorHistory] Error getting session history:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 };
 
@@ -426,7 +426,7 @@ export const getInstructorWorkload = async (instructorId, options = {}) => {
     };
   } catch (error) {
     console.error('[InstructorHistory] Error calculating workload:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 };
 

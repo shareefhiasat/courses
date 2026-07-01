@@ -95,7 +95,7 @@ export async function amendAttendance(data) {
     return { success: true, data: { amendment: amendment.data, attendance: updatedAttendance } };
   } catch (error) {
     console.error('Error amending attendance:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 }
 

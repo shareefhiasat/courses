@@ -236,7 +236,7 @@ export async function createWorkflowDocumentWithUpload(data) {
       console.error('Failed to rollback MinIO upload:', rollbackError);
     }
     
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 }
 
@@ -338,7 +338,7 @@ export async function deleteComment(commentId, userId, userRoles) {
     return await deleteWorkflowCommentFromDB(commentId);
   } catch (error) {
     console.error('Error in deleteComment:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 }
 
@@ -468,7 +468,7 @@ export async function resubmitWorkflowDocument(data) {
     }
   } catch (error) {
     console.error('Error in resubmitWorkflowDocument:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 }
 
@@ -625,7 +625,7 @@ export async function uploadSignedDocument(data) {
     };
   } catch (error) {
     console.error('Error in uploadSignedDocument:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 }
 
@@ -694,7 +694,7 @@ export async function withdrawWorkflowDocument(data) {
     return { success: true, data: updated };
   } catch (error) {
     console.error('Error in withdrawWorkflowDocument:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 }
 
@@ -810,7 +810,7 @@ export async function listFileVersions(fileId) {
     };
   } catch (error) {
     console.error('Error listing file versions:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 }
 
@@ -851,7 +851,7 @@ export async function downloadFileVersion(fileId, versionId, req, res) {
     return { success: true };
   } catch (error) {
     console.error('Error downloading file version:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 }
 
@@ -1039,7 +1039,7 @@ export async function createCustomWorkflowDocument(data) {
     console.error('Error creating custom workflow document:', error);
     return {
       success: false,
-      error: error.message
+      error: 'Internal server error'
     };
   }
 }
@@ -1081,7 +1081,7 @@ export async function deleteWorkflowDocument(id) {
     return { success: true, data: { id } };
   } catch (error) {
     console.error('[deleteWorkflowDocument] Error:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 }
 

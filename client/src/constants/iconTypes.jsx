@@ -41,6 +41,8 @@ import {
   Volume2, Vibrate, SlidersHorizontal, FlaskConical,
   // Additional icons for CategoriesPage
   Cloud, Layers, Package, Bookmark,
+  // History icon
+  History,
 } from 'lucide-react';
 
 // Additional imports for UI badge functions
@@ -447,7 +449,10 @@ export const ICON_TYPES = {
     bookmark_check: <Bookmark size={16} />,
     edit2: <Edit size={16} />,
     edit3: <Edit size={16} />,
-    check_square: <Check size={16} />
+    check_square: <Check size={16} />,
+    // Missing icons causing warnings
+    history: <History size={16} />,
+    alert: <AlertCircle size={16} />
   }
 };
 

@@ -46,7 +46,7 @@ class HelpItemsDbService {
       console.error('[HelpItemsDbService] Error getting help items:', error);
       return {
         success: false,
-        error: error.message,
+        error: 'Internal server error',
         data: []
       };
     }
@@ -79,7 +79,7 @@ class HelpItemsDbService {
       console.error(`[HelpItemsDbService] Error getting help items for page ${page}:`, error);
       return {
         success: false,
-        error: error.message,
+        error: 'Internal server error',
         data: []
       };
     }
@@ -120,7 +120,7 @@ class HelpItemsDbService {
       console.error(`[HelpItemsDbService] Error getting help item ${id}:`, error);
       return {
         success: false,
-        error: error.message,
+        error: 'Internal server error',
         data: null
       };
     }
@@ -154,7 +154,7 @@ class HelpItemsDbService {
       console.error('[HelpItemsDbService] Error creating help item:', error);
       return {
         success: false,
-        error: error.message,
+        error: 'Internal server error',
         data: null
       };
     }
@@ -193,7 +193,7 @@ class HelpItemsDbService {
       console.error(`[HelpItemsDbService] Error updating help item ${id}:`, error);
       return {
         success: false,
-        error: error.message,
+        error: 'Internal server error',
         data: null
       };
     }
@@ -218,7 +218,7 @@ class HelpItemsDbService {
       console.error(`[HelpItemsDbService] Error deleting help item ${id}:`, error);
       return {
         success: false,
-        error: error.message,
+        error: 'Internal server error',
         data: null
       };
     }
@@ -259,7 +259,7 @@ class HelpItemsDbService {
       console.error('[HelpItemsDbService] Error getting organized help:', error);
       return {
         success: false,
-        error: error.message,
+        error: 'Internal server error',
         data: {}
       };
     }

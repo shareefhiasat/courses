@@ -120,7 +120,7 @@ export const updateSessionStatus = async (sessionId, newStatus, updatedBy = null
     };
   } catch (error) {
     console.error('[SessionStatus] Error updating status:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 };
 
@@ -180,7 +180,7 @@ export const cancelRecurringSeries = async (sessionId, cancelledBy = null, reaso
     };
   } catch (error) {
     console.error('[SessionStatus] Error cancelling series:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 };
 
@@ -252,7 +252,7 @@ export const getSessionsByStatus = async (status, filters = {}) => {
     return { success: true, data: sessions };
   } catch (error) {
     console.error('[SessionStatus] Error getting sessions by status:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 };
 

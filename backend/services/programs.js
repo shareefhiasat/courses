@@ -31,7 +31,7 @@ const getAllPrograms = async (params = {}) => {
     console.error(`[${serviceName}] Error getting all programs:`, error);
     return {
       success: false,
-      error: error.message || 'Failed to load programs',
+      error: 'Internal server error' || 'Failed to load programs',
       data: []
     };
   }
@@ -75,7 +75,7 @@ const getProgramById = async (id, params = {}) => {
     console.error(`[${serviceName}] Error getting program by ID:`, error);
     return {
       success: false,
-      error: error.message || 'Failed to load program',
+      error: 'Internal server error' || 'Failed to load program',
       data: null
     };
   }
@@ -152,7 +152,7 @@ const createProgram = async (programData, user = null) => {
     console.error(`[${serviceName}] Error creating program:`, error);
     return {
       success: false,
-      error: error.message || 'Failed to create program',
+      error: 'Internal server error' || 'Failed to create program',
       data: null
     };
   }
@@ -269,7 +269,7 @@ const updateProgram = async (id, updateData, user = null) => {
     console.error(`[${serviceName}] Error updating program:`, error);
     return {
       success: false,
-      error: error.message || 'Failed to update program',
+      error: 'Internal server error' || 'Failed to update program',
       data: null
     };
   }
@@ -306,7 +306,7 @@ const deleteProgram = async (id, options = {}) => {
     console.error(`[${serviceName}] Error deleting program:`, error);
     return {
       success: false,
-      error: error.message || 'Failed to delete program',
+      error: 'Internal server error' || 'Failed to delete program',
       data: null
     };
   }
@@ -347,7 +347,7 @@ const hardDeleteProgram = async (id) => {
     console.error(`[${serviceName}] Error hard deleting program:`, error);
     return {
       success: false,
-      error: error.message || 'Failed to hard delete program',
+      error: 'Internal server error' || 'Failed to hard delete program',
       data: null
     };
   }

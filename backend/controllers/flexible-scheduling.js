@@ -18,7 +18,7 @@ router.post('/sessions', async (req, res) => {
       res.status(400).json(result);
     }
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
 
@@ -32,7 +32,7 @@ router.get('/sessions/:id', async (req, res) => {
       res.status(404).json(result);
     }
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
 
@@ -50,7 +50,7 @@ router.get('/sessions', async (req, res) => {
     const result = await flexibleSchedulingDb.getFlexibleScheduleSessions(filters);
     res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
 
@@ -64,7 +64,7 @@ router.put('/sessions/:id', async (req, res) => {
       res.status(400).json(result);
     }
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
 
@@ -78,7 +78,7 @@ router.delete('/sessions/:id', async (req, res) => {
       res.status(400).json(result);
     }
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
 
@@ -92,7 +92,7 @@ router.post('/sessions/bulk', async (req, res) => {
       res.status(400).json(result);
     }
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
 
@@ -111,7 +111,7 @@ router.get('/sessions/range/:startDate/:endDate', async (req, res) => {
     );
     res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
 
@@ -128,7 +128,7 @@ router.get('/sessions/conflicts/check', async (req, res) => {
     );
     res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
 

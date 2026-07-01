@@ -73,7 +73,7 @@ export const getBreakSessions = async (req, res) => {
     const result = await breakSessionsDb.getBreakSessions(params);
     res.status(result.success ? 200 : 500).json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 };
 
@@ -91,7 +91,7 @@ export const createBreakSession = async (req, res) => {
     const result = await breakSessionsDb.createBreakSession(req.body, req.user?.dbId);
     res.status(result.success ? 201 : 400).json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 };
 
@@ -109,7 +109,7 @@ export const updateBreakSession = async (req, res) => {
     const result = await breakSessionsDb.updateBreakSession(req.params.id, req.body, req.user?.dbId);
     res.status(result.success ? 200 : 400).json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 };
 
@@ -128,7 +128,7 @@ export const deleteBreakSession = async (req, res) => {
     const result = await breakSessionsDb.deleteBreakSession(req.params.id, deleteScope);
     res.status(result.success ? 200 : 400).json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 };
 
@@ -139,7 +139,7 @@ export const getSchedulingSummary = async (req, res) => {
     const result = await schedulingSummaryDb.getSchedulingSummary(params);
     res.status(result.success ? 200 : 500).json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 };
 
@@ -150,7 +150,7 @@ export const getBreakSessionSummary = async (req, res) => {
     const result = await schedulingSummaryDb.getBreakSessionSummary(params);
     res.status(result.success ? 200 : 500).json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 };
 
@@ -160,7 +160,7 @@ export const getHolidaySummary = async (req, res) => {
     const result = await schedulingSummaryDb.getHolidaySummary(params);
     res.status(result.success ? 200 : 500).json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 };
 
@@ -170,7 +170,7 @@ export const getTeacherWorkloadSummary = async (req, res) => {
     const result = await schedulingSummaryDb.getTeacherWorkloadSummary(params);
     res.status(result.success ? 200 : 500).json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 };
 
@@ -180,7 +180,7 @@ export const getClassroomUtilizationSummary = async (req, res) => {
     const result = await schedulingSummaryDb.getClassroomUtilizationSummary(params);
     res.status(result.success ? 200 : 500).json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 };
 
@@ -193,7 +193,7 @@ export const getTeacherEffort = async (req, res) => {
     const result = await teacherEffortDb.getTeacherEffortSummary(teacherId, params);
     res.status(result.success ? 200 : 500).json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 };
 
@@ -211,7 +211,7 @@ export const exportTeacherEffortExcel = async (req, res) => {
     res.setHeader('Content-Disposition', `attachment; filename="${result.filename}"`);
     return res.send(result.data);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 };
 
@@ -227,7 +227,7 @@ export const exportTeacherEffortPDF = async (req, res) => {
     }
     return res.status(200).json({ success: true, data: result.data, format: 'pdf-ready' });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 };
 
@@ -246,6 +246,6 @@ export const getEffortReport = async (req, res) => {
     });
     res.status(result.success ? 200 : 500).json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 };

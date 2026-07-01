@@ -178,7 +178,7 @@ export const getScheduleSessions = async (params = {}) => {
     
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       code: 'UNKNOWN_ERROR'
     };
   }
@@ -284,7 +284,7 @@ export const getScheduleSessionById = async (id) => {
     
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       code: 'UNKNOWN_ERROR'
     };
   }
@@ -396,7 +396,7 @@ export const getScheduleSessionsByDateRange = async (params) => {
     
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       code: 'UNKNOWN_ERROR'
     };
   }
@@ -492,7 +492,7 @@ export const createScheduleSession = async (data) => {
     
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       code: 'UNKNOWN_ERROR'
     };
   }
@@ -590,7 +590,7 @@ export const updateScheduleSession = async (id, data) => {
     
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       code: 'UNKNOWN_ERROR'
     };
   }
@@ -627,7 +627,7 @@ export const deleteScheduleSession = async (id) => {
     
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       code: 'UNKNOWN_ERROR'
     };
   }
@@ -671,7 +671,7 @@ export const cancelScheduleSession = async (id, cancelReason = '') => {
     
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       code: 'UNKNOWN_ERROR'
     };
   }
@@ -710,7 +710,7 @@ export const bulkCreateScheduleSessions = async (sessions) => {
     
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       code: 'UNKNOWN_ERROR'
     };
   }

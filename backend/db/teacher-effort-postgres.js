@@ -147,7 +147,7 @@ export const getTeacherEffortSummary = async (teacherUserId, params = {}) => {
     };
   } catch (error) {
     console.error('[TeacherEffort] Error:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 };
 

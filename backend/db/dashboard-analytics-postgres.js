@@ -423,7 +423,7 @@ export async function getDashboardAnalytics({ userId, role, classId }) {
     };
   } catch (err) {
     console.error('[DashboardAnalytics] Error:', err);
-    return { success: false, error: err.message };
+    return { success: false, error: 'Internal server error' };
   }
 }
 

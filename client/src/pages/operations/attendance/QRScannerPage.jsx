@@ -485,16 +485,13 @@ const QRScannerPage = () => {
 
   // Fetch performed by fields when user is available
   useEffect(() => {
-    console.log('🔍 QRScannerPage - useEffect for performedByFields running, user:', !!user);
     const fetchPerformedByFields = async () => {
       if (user) {
-        console.log('🔍 QRScannerPage - Calling getPerformedByFields...');
         try {
           const fields = await getPerformedByFields(user);
-          console.log('🔍 QRScannerPage - Fetched performedByFields:', fields);
           setPerformedByFields(fields);
         } catch (error) {
-          console.error('🔍 QRScannerPage - Error fetching performedByFields:', error);
+          console.error('Error fetching performedByFields:', error);
         }
       }
     };
@@ -926,7 +923,6 @@ const QRScannerPage = () => {
 
   // Memoized loadStudents function for performance
   const loadStudents = useCallback(async (classId, date, programId = null) => {
-    console.log('🚨🚨🚨 loadStudents FUNCTION CALLED 🚨🚨🚨', { classId, date, programId, attendanceMode });
     info('🔍 [DEBUG] loadStudents called:', {
       classId,
       date,
@@ -964,14 +960,6 @@ const QRScannerPage = () => {
           getEnrollmentsByProgram(programId),
           getUsers()
         ]);
-        console.log('🚨🚨🚨 getEnrollmentsByProgram RESPONSE 🚨🚨🚨', {
-          success: enrollmentsResponse.success,
-          total: enrollmentsResponse.total,
-          dataLength: enrollmentsResponse.data?.length,
-          programId,
-          allUserIds: enrollmentsResponse.data?.map(e => e.userId),
-          allProgramIds: enrollmentsResponse.data?.map(e => e.programId)
-        });
         info('🔍 [DEBUG] getEnrollmentsByProgram returned:', {
           success: enrollmentsResponse.success,
           total: enrollmentsResponse.total,
@@ -1509,26 +1497,14 @@ const QRScannerPage = () => {
 
   // Load students when class or date changes, or when in standup mode with program selected
   useEffect(() => {
-    console.log('🚨🚨🚨 useEffect for loadStudents RUNNING 🚨🚨🚨', { selectedClassId, selectedDate, attendanceMode, selectedProgramId });
     const isStandupMode = attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP;
-    console.log('🚨🚨🚨 useEffect condition check 🚨🚨🚨', {
-      isStandupMode,
-      attendanceMode,
-      selectedProgramId,
-      selectedProgramIdNotAll: selectedProgramId !== 'all',
-      selectedClassId,
-      selectedClassIdNotAll: selectedClassId !== 'all'
-    });
     if (isStandupMode && selectedProgramId && selectedProgramId !== 'all') {
-      console.log('🚨🚨🚨 TAKING STANDUP BRANCH - calling loadStudents 🚨🚨🚨');
       // In standup mode, load students by program (no class required)
       loadStudents(null, selectedDate, selectedProgramId);
     } else if (selectedClassId && selectedClassId !== 'all') {
-      console.log('🚨🚨🚨 TAKING CLASS BRANCH - calling loadStudents 🚨🚨🚨');
       // In regular mode, load students by class
       loadStudents(selectedClassId, selectedDate);
     } else {
-      console.log('🚨🚨🚨 TAKING ELSE BRANCH - setting students to empty 🚨🚨🚨');
       setStudents([]);
     }
   }, [selectedClassId, selectedDate, attendanceMode, selectedProgramId, loadStudents]);
@@ -1543,8 +1519,6 @@ const QRScannerPage = () => {
       } catch {}
     }
   }, [students.length, rosterTourSeenKey]);
-
-  console.log('🚨🚨🚨 QRScannerPage RENDERED 🚨🚨🚨', { selectedClassId, selectedDate, attendanceMode, selectedProgramId, studentsCount: students.length });
 
   // Load favorite behaviors when student changes
   useEffect(() => {
@@ -5445,8 +5419,6 @@ const QRScannerPage = () => {
                   <button
                     data-tour="qr-violations-report"
                     onClick={() => {
-                      console.log('🔍 Attendance Violations button clicked');
-                      
                       // Check if there's any attendance for today's date before opening dialog
                       const hasAttendanceToday = students.some(student => 
                         (student.attendance !== null && student.attendance !== undefined) ||
@@ -5521,8 +5493,6 @@ const QRScannerPage = () => {
                   <button
                     data-tour="qr-summary-report"
                     onClick={() => {
-                      console.log('🔍 Summary Report button clicked');
-                      
                       // Check if there's any attendance for today's date before opening dialog
                       const hasAttendanceToday = students.some(student => 
                         (student.attendance !== null && student.attendance !== undefined) ||
@@ -5814,29 +5784,6 @@ const QRScannerPage = () => {
         {selectedStudent && (
           <>
             {gridLoading && <GlobalLoadingFallback />}
-            {/* 🔍 DEBUG: Log student data from roster before passing to panel */}
-            {(() => {
-              console.log('🔍 QRScannerPage - Student Data from Roster:', {
-                source: 'student_roster',
-                student: selectedStudent,
-                keys: Object.keys(selectedStudent),
-                hasAttendance: !!selectedStudent.attendance,
-                hasParticipation: !!selectedStudent.participation,
-                hasBehavior: !!selectedStudent.behavior,
-                hasPenalty: !!selectedStudent.penalty,
-                attendanceValue: selectedStudent.attendance,
-                participationValue: selectedStudent.participation,
-                behaviorValue: selectedStudent.behavior,
-                penaltyValue: selectedStudent.penalty,
-                hasBehaviorHistory: !!selectedStudent.behaviorHistory,
-                hasParticipationHistory: !!selectedStudent.participationHistory,
-                hasPenaltyHistory: !!selectedStudent.penaltyHistory,
-                behaviorHistoryLength: selectedStudent.behaviorHistory?.length || 0,
-                participationHistoryLength: selectedStudent.participationHistory?.length || 0,
-                penaltyHistoryLength: selectedStudent.penaltyHistory?.length || 0
-              });
-              return null;
-            })()}
             {attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && canUseStatsPanel && (
               <StudentActionStatsPanel
                 data-tour="qr-stats-panel"

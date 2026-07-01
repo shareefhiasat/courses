@@ -40,9 +40,6 @@ const mapProfileImages = (data) => {
  */
 export const getAllEnrollmentsController = async (req, res) => {
   try {
-    console.log('🔍 [EnrollmentsController] getAllEnrollments - Query:', req.query);
-    console.log('🔍 [EnrollmentsController] getAllEnrollments - User:', req.user);
-    
     const result = await applyListScope(req, await getAllEnrollments(req.query, req.user), 'enrollment');
     
     if (result.success) {

@@ -13,6 +13,13 @@ const KEYCLOAK_REALM = 'master'; // Force master realm to avoid confusion
 const KEYCLOAK_ADMIN_CLIENT_ID = process.env.KEYCLOAK_ADMIN_CLIENT_ID || 'admin-cli';
 const KEYCLOAK_ADMIN_CLIENT_SECRET = process.env.KEYCLOAK_ADMIN_CLIENT_SECRET;
 
+// Fail hard in production if Keycloak admin credentials are left at defaults
+const _KC_ADMIN_PASSWORD = process.env.KEYCLOAK_ADMIN_PASSWORD;
+if ((process.env.NODE_ENV === 'production') && (!_KC_ADMIN_PASSWORD || _KC_ADMIN_PASSWORD === 'admin123')) {
+  console.error('FATAL: KEYCLOAK_ADMIN_PASSWORD must be set to a non-default value in production');
+  process.exit(1);
+}
+
 // LMS canonical roles (must match database user roles table)
 const LMS_ROLES = {
   SUPER_ADMIN: 'super_admin',

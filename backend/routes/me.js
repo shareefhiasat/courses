@@ -16,7 +16,7 @@ router.get('/data-scope', requireAuth, async (req, res) => {
     res.json({ success: true, data: scope });
   } catch (error) {
     console.error('[me/data-scope]', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
 

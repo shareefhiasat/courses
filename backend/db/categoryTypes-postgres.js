@@ -118,7 +118,7 @@ export const getCategoryTypes = async (params = {}) => {
     
     return {
       success: false,
-      error: error.message
+      error: 'Internal server error'
     };
   }
 };
@@ -187,7 +187,7 @@ export const getCategoryTypeById = async (id) => {
     
     return {
       success: false,
-      error: error.message
+      error: 'Internal server error'
     };
   }
 };
@@ -249,7 +249,7 @@ export const createCategoryType = async (data, userId) => {
     
     return {
       success: false,
-      error: error.message
+      error: 'Internal server error'
     };
   }
 };
@@ -326,7 +326,7 @@ export const updateCategoryType = async (id, data, userId) => {
     
     return {
       success: false,
-      error: error.message
+      error: 'Internal server error'
     };
   }
 };
@@ -365,7 +365,7 @@ export const deleteCategoryType = async (id) => {
     
     return {
       success: false,
-      error: error.message
+      error: 'Internal server error'
     };
   }
 };
@@ -403,7 +403,7 @@ export const hardDeleteCategoryType = async (id) => {
     
     return {
       success: false,
-      error: error.message
+      error: 'Internal server error'
     };
   }
 };

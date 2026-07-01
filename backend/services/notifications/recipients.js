@@ -32,7 +32,7 @@ export const byUserId = async (userId) => {
     
     return [{ userId: user.id, email: user.email, preferredLang: 'en' }];
   } catch (error) {
-    log.error('Error resolving user by ID', { userId, error: error.message });
+    log.error('Error resolving user by ID', { userId, error: 'Internal server error' });
     return [];
   }
 };
@@ -55,7 +55,7 @@ export const byUserIds = async (userIds) => {
       preferredLang: 'en'
     }));
   } catch (error) {
-    log.error('Error resolving users by IDs', { userIds, error: error.message });
+    log.error('Error resolving users by IDs', { userIds, error: 'Internal server error' });
     return [];
   }
 };
@@ -93,7 +93,7 @@ export const byRole = async (roleCode) => {
       preferredLang: 'en'
     }));
   } catch (error) {
-    log.error('Error resolving users by role', { roleCode, error: error.message });
+    log.error('Error resolving users by role', { roleCode, error: 'Internal server error' });
     return [];
   }
 };
@@ -129,7 +129,7 @@ export const byClass = async (classId) => {
       preferredLang: 'en'
     }));
   } catch (error) {
-    log.error('Error resolving recipients by class', { classId, error: error.message });
+    log.error('Error resolving recipients by class', { classId, error: 'Internal server error' });
     return [];
   }
 };
@@ -173,7 +173,7 @@ export const byEnrollment = async ({ subjectId, programId }) => {
       preferredLang: 'en'
     }));
   } catch (error) {
-    log.error('Error resolving recipients by enrollment', { subjectId, programId, error: error.message });
+    log.error('Error resolving recipients by enrollment', { subjectId, programId, error: 'Internal server error' });
     return [];
   }
 };

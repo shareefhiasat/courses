@@ -33,7 +33,7 @@ export async function getDashboard(req, res) {
     return res.json(result);
   } catch (error) {
     console.error('[user-preferences.getDashboard]', error);
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: "Internal server error" });
   }
 }
 
@@ -63,7 +63,7 @@ export async function saveDashboard(req, res) {
     return res.json(result);
   } catch (error) {
     console.error('[user-preferences.saveDashboard]', error);
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: "Internal server error" });
   }
 }
 
@@ -83,7 +83,7 @@ export async function resetDashboard(req, res) {
     return res.json(result);
   } catch (error) {
     console.error('[user-preferences.resetDashboard]', error);
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: "Internal server error" });
   }
 }
 
@@ -103,7 +103,7 @@ export async function getTypography(req, res) {
     return res.json({ success: true, data });
   } catch (error) {
     console.error('[user-preferences.getTypography]', error);
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: "Internal server error" });
   }
 }
 
@@ -130,6 +130,6 @@ export async function saveTypography(req, res) {
     return res.json(result);
   } catch (error) {
     console.error('[user-preferences.saveTypography]', error);
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: "Internal server error" });
   }
 }

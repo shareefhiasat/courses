@@ -34,7 +34,7 @@ export async function createAttendanceAmendment(data) {
     return { success: true, data: amendment };
   } catch (error) {
     console.error('Error creating attendance amendment:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 }
 
@@ -58,7 +58,7 @@ export async function getAttendanceAmendments(attendanceId) {
     return { success: true, data: amendments };
   } catch (error) {
     console.error('Error getting attendance amendments:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 }
 
@@ -102,7 +102,7 @@ export async function getAllAttendanceAmendments(filters = {}) {
     return { success: true, data: amendments, total };
   } catch (error) {
     console.error('Error getting all attendance amendments:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 }
 

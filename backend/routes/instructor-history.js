@@ -12,7 +12,7 @@ router.get('/class/:classId', async (req, res) => {
     const result = await instructorHistoryService.getClassInstructorHistory(req.params.classId);
     res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
 
@@ -30,7 +30,7 @@ router.get('/instructor/:instructorId', async (req, res) => {
     );
     res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
 
@@ -43,7 +43,7 @@ router.get('/session/:sessionId', async (req, res) => {
     const result = await instructorHistoryService.getSessionInstructorHistory(req.params.sessionId);
     res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
 
@@ -61,7 +61,7 @@ router.get('/workload/:instructorId', async (req, res) => {
     );
     res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
 

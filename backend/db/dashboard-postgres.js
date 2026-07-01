@@ -210,7 +210,7 @@ const getDashboardSummary = async (params = {}) => {
   } catch (error) {
     const duration = Date.now() - startTime;
     console.error('[DashboardDbService] ❌ Error getting dashboard summary:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 };
 
@@ -292,7 +292,7 @@ const getTeacherDashboard = async (teacherUserId) => {
   } catch (error) {
     const duration = Date.now() - startTime;
     console.error('[DashboardDbService] ❌ Error getting teacher dashboard:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 };
 

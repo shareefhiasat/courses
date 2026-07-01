@@ -137,7 +137,7 @@ export const getAdminScopes = async (params = {}) => {
     
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       code: 'UNKNOWN_ERROR'
     };
   }
@@ -224,7 +224,7 @@ export const getAdminScopeById = async (id) => {
     
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       code: 'UNKNOWN_ERROR'
     };
   }
@@ -294,7 +294,7 @@ export const getAdminScopesByUserId = async (userId) => {
     
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       code: 'UNKNOWN_ERROR'
     };
   }
@@ -373,7 +373,7 @@ export const createAdminScope = async (data) => {
     
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       code: 'UNKNOWN_ERROR'
     };
   }
@@ -454,7 +454,7 @@ export const updateAdminScope = async (id, data) => {
     
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       code: 'UNKNOWN_ERROR'
     };
   }
@@ -491,7 +491,7 @@ export const deleteAdminScope = async (id) => {
     
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       code: 'UNKNOWN_ERROR'
     };
   }
@@ -616,7 +616,7 @@ export const getUserEffectiveScope = async (userId) => {
     
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       code: 'UNKNOWN_ERROR'
     };
   }

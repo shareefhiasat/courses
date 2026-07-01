@@ -36,7 +36,7 @@ export const getAllResources = async (params = {}, user = null) => {
     console.error('Error in getAllResources:', error);
     return {
       success: false,
-      error: error.message || 'Failed to retrieve resources',
+      error: 'Internal server error' || 'Failed to retrieve resources',
       data: []
     };
   }
@@ -65,7 +65,7 @@ export const getResourceById = async (resourceId, user = null) => {
     console.error('Error in getResourceById:', error);
     return {
       success: false,
-      error: error.message || 'Failed to retrieve resource',
+      error: 'Internal server error' || 'Failed to retrieve resource',
       data: null
     };
   }
@@ -149,7 +149,7 @@ export const createResource = async (resourceData, user = null) => {
     console.error('Error in createResource:', error);
     return {
       success: false,
-      error: error.message || 'Failed to create resource',
+      error: 'Internal server error' || 'Failed to create resource',
       data: null
     };
   }
@@ -220,7 +220,7 @@ export const updateResource = async (resourceId, updateData, user = null) => {
     console.error('Error in updateResource:', error);
     return {
       success: false,
-      error: error.message || 'Failed to update resource',
+      error: 'Internal server error' || 'Failed to update resource',
       data: null
     };
   }
@@ -279,7 +279,7 @@ export const deleteResource = async (resourceId, user = null) => {
     console.error('Error in deleteResource:', error);
     return {
       success: false,
-      error: error.message || 'Failed to delete resource',
+      error: 'Internal server error' || 'Failed to delete resource',
       data: null
     };
   }
@@ -312,7 +312,7 @@ export const getResourcesByClass = async (classId, params = {}, user = null) => 
     console.error('Error in getResourcesByClass:', error);
     return {
       success: false,
-      error: error.message || 'Failed to retrieve resources for class',
+      error: 'Internal server error' || 'Failed to retrieve resources for class',
       data: []
     };
   }

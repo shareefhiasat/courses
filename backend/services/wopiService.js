@@ -5,7 +5,14 @@
 
 import jwt from 'jsonwebtoken';
 
-const WOPI_SECRET = process.env.WOPI_SECRET || 'wopi-secret-change-in-production';
+const NODE_ENV = process.env.NODE_ENV || 'development';
+const WOPI_SECRET = process.env.WOPI_SECRET;
+
+if (!WOPI_SECRET && NODE_ENV === 'production') {
+  console.error('FATAL: WOPI_SECRET environment variable is required in production');
+  process.exit(1);
+}
+const _WOPI_SECRET = WOPI_SECRET || 'wopi-dev-secret-not-for-production';
 const TOKEN_EXPIRY = '1h'; // 1 hour
 
 /**
@@ -31,7 +38,7 @@ export function generateWopiToken(userId, fileId, permission = 'write', userInfo
     },
   };
 
-  return jwt.sign(payload, WOPI_SECRET, {
+  return jwt.sign(payload, _WOPI_SECRET, {
     expiresIn: TOKEN_EXPIRY,
     issuer: 'military-lms',
   });
@@ -44,7 +51,7 @@ export function generateWopiToken(userId, fileId, permission = 'write', userInfo
  */
 export function verifyWopiToken(token) {
   try {
-    const decoded = jwt.verify(token, WOPI_SECRET, {
+    const decoded = jwt.verify(token, _WOPI_SECRET, {
       issuer: 'military-lms',
     });
 

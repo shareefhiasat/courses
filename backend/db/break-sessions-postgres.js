@@ -38,7 +38,7 @@ export const getBreakSessions = async (params = {}) => {
     });
     return { success: true, data };
   } catch (error) {
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 };
 
@@ -63,7 +63,7 @@ export const getBreakTypeDistribution = async (params = {}) => {
       data: grouped.map((g) => ({ breakType: g.breakType, count: g._count.id })),
     };
   } catch (error) {
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 };
 
@@ -162,7 +162,7 @@ export const createBreakSession = async (data, userId) => {
 
     return { success: true, data: records, seriesId, count: records.length };
   } catch (error) {
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 };
 
@@ -256,7 +256,7 @@ export const updateBreakSession = async (id, data, userId) => {
     return { success: true, data: record, scope: 'single' };
   } catch (error) {
     console.error('[BreakSessions DB] Error updating break session:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 };
 
@@ -277,7 +277,7 @@ export const deleteBreakSession = async (id, deleteScope = 'single') => {
     await prisma.breakSession.delete({ where: { id: parseInt(id, 10) } });
     return { success: true, scope: 'single' };
   } catch (error) {
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 };
 

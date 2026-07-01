@@ -32,7 +32,7 @@ async function createFlexibleScheduleSession(data) {
     return { success: true, data: session };
   } catch (error) {
     console.error('Error creating flexible schedule session:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 }
 
@@ -53,7 +53,7 @@ async function getFlexibleScheduleSessionById(id) {
     return { success: true, data: session };
   } catch (error) {
     console.error('Error getting flexible schedule session:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 }
 
@@ -83,7 +83,7 @@ async function getFlexibleScheduleSessions(filters = {}) {
     return { success: true, data: sessions };
   } catch (error) {
     console.error('Error getting flexible schedule sessions:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 }
 
@@ -120,7 +120,7 @@ async function updateFlexibleScheduleSession(id, data) {
     return { success: true, data: session };
   } catch (error) {
     console.error('Error updating flexible schedule session:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 }
 
@@ -134,7 +134,7 @@ async function deleteFlexibleScheduleSession(id) {
     return { success: true, data: session };
   } catch (error) {
     console.error('Error deleting flexible schedule session:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 }
 
@@ -160,7 +160,7 @@ async function bulkCreateFlexibleScheduleSessions(sessions) {
     return { success: true, data: { count: createdSessions.count } };
   } catch (error) {
     console.error('Error bulk creating flexible schedule sessions:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 }
 
@@ -191,7 +191,7 @@ async function getSessionsByDateRange(startDate, endDate, filters = {}) {
     return { success: true, data: sessions };
   } catch (error) {
     console.error('Error getting sessions by date range:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 }
 
@@ -223,7 +223,7 @@ async function checkConflicts(instructorUserId, date, timeSlotId, classroomId, e
     return { success: true, data: conflicts };
   } catch (error) {
     console.error('Error checking conflicts:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 }
 

@@ -35,7 +35,7 @@ export const getAllSubjects = async (params = {}, user = null) => {
     console.error('Error in getAllSubjects:', error);
     return {
       success: false,
-      error: error.message || 'Failed to retrieve subjects',
+      error: 'Internal server error' || 'Failed to retrieve subjects',
       data: []
     };
   }
@@ -60,7 +60,7 @@ export const getSubjectById = async (subjectId, user = null) => {
     console.error('Error in getSubjectById:', error);
     return {
       success: false,
-      error: error.message || 'Failed to retrieve subject',
+      error: 'Internal server error' || 'Failed to retrieve subject',
       data: null
     };
   }
@@ -101,7 +101,7 @@ export const createSubject = async (subjectData, user = null) => {
     console.error('Error in createSubject:', error);
     return {
       success: false,
-      error: error.message || 'Failed to create subject',
+      error: 'Internal server error' || 'Failed to create subject',
       data: null
     };
   }
@@ -126,7 +126,7 @@ export const updateSubject = async (subjectId, updateData, user = null) => {
     console.error('Error in updateSubject:', error);
     return {
       success: false,
-      error: error.message || 'Failed to update subject',
+      error: 'Internal server error' || 'Failed to update subject',
       data: null
     };
   }
@@ -151,7 +151,7 @@ export const deleteSubject = async (subjectId, user = null, options = {}) => {
     console.error('Error in deleteSubject:', error);
     return {
       success: false,
-      error: error.message || 'Failed to delete subject',
+      error: 'Internal server error' || 'Failed to delete subject',
       data: null
     };
   }
@@ -176,7 +176,7 @@ export const getSubjectsByProgram = async (programId, params = {}, user = null) 
     console.error('Error in getSubjectsByProgram:', error);
     return {
       success: false,
-      error: error.message || 'Failed to retrieve subjects for program',
+      error: 'Internal server error' || 'Failed to retrieve subjects for program',
       data: []
     };
   }

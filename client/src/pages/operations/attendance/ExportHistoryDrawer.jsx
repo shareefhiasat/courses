@@ -29,11 +29,11 @@ const FORMAT_ICONS = {
 };
 
 const EXPORT_TYPE_GROUPS = {
-  official: ['attendance_daily_official', 'official_attendance'],
-  standard: ['attendance_daily', 'summary'],
+  official: ['attendance_daily_official', 'official_attendance', 'behavioral', 'penalty'],
+  standard: ['attendance_daily', 'summary', 'behavioral', 'penalty'],
 };
 
-const STANDALONE_TYPES = ['behavioral', 'penalty'];
+const BETA_TYPES = new Set(['behavioral', 'penalty']);
 
 const FORMAT_KEYS = ['pdf', 'excel'];
 
@@ -421,8 +421,8 @@ const ExportHistoryDrawer = ({ isOpen, onClose, lang, t, theme }) => {
           />
         </div>
 
-        {/* Type filter: group buttons + individual chips */}
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8, alignItems: 'center' }}>
+        {/* Type filter: group buttons row */}
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 4, alignItems: 'center' }}>
           {/* All chip */}
           <button
             type="button"
@@ -451,91 +451,27 @@ const ExportHistoryDrawer = ({ isOpen, onClose, lang, t, theme }) => {
             const isGroupActive = expandedGroup === group.key;
             const isGroupTypeActive = group.types.includes(typeFilter);
             return (
-              <React.Fragment key={group.key}>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (isGroupActive) {
-                      setExpandedGroup(null);
-                      setTypeFilter('all');
-                    } else {
-                      setExpandedGroup(group.key);
-                      setTypeFilter('all');
-                    }
-                  }}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '0.25rem',
-                    padding: '3px 10px',
-                    borderRadius: '12px',
-                    border: `1px solid ${isGroupActive || isGroupTypeActive ? group.color : 'var(--border)'}`,
-                    background: isGroupActive || isGroupTypeActive ? `${group.color}15` : 'transparent',
-                    color: isGroupActive || isGroupTypeActive ? group.color : 'var(--text)',
-                    fontSize: 'var(--font-size-xs)',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {group.label}
-                  <span style={{ fontSize: '0.6rem', opacity: 0.7 }}>
-                    {isGroupActive ? '▲' : '▼'}
-                  </span>
-                </button>
-                {isGroupActive &&
-                  group.types.map((typeKey) => {
-                    const isActive = typeFilter === typeKey;
-                    const chipColor = EXPORT_TYPE_COLORS[typeKey] || '#6b7280';
-                    return (
-                      <button
-                        key={typeKey}
-                        type="button"
-                        onClick={() => setTypeFilter(typeKey)}
-                        style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '0.25rem',
-                          padding: '3px 10px',
-                          borderRadius: '12px',
-                          border: `1px solid ${isActive ? chipColor : 'var(--border)'}`,
-                          background: isActive ? `${chipColor}15` : 'transparent',
-                          color: isActive ? chipColor : 'var(--text)',
-                          fontSize: 'var(--font-size-xs)',
-                          fontWeight: 600,
-                          cursor: 'pointer',
-                          transition: 'all 0.2s',
-                          whiteSpace: 'nowrap',
-                          marginLeft: 4,
-                        }}
-                      >
-                        {t(`export_type_${typeKey}`) || typeKey}
-                      </button>
-                    );
-                  })}
-              </React.Fragment>
-            );
-          })}
-
-          {/* Standalone type chips */}
-          {STANDALONE_TYPES.map((key) => {
-            const isActive = typeFilter === key;
-            const chipColor = EXPORT_TYPE_COLORS[key] || '#6b7280';
-            return (
               <button
-                key={key}
+                key={group.key}
                 type="button"
-                onClick={() => { setTypeFilter(key); setExpandedGroup(null); }}
+                onClick={() => {
+                  if (isGroupActive) {
+                    setExpandedGroup(null);
+                    setTypeFilter('all');
+                  } else {
+                    setExpandedGroup(group.key);
+                    setTypeFilter('all');
+                  }
+                }}
                 style={{
                   display: 'inline-flex',
                   alignItems: 'center',
                   gap: '0.25rem',
                   padding: '3px 10px',
                   borderRadius: '12px',
-                  border: `1px solid ${isActive ? chipColor : 'var(--border)'}`,
-                  background: isActive ? `${chipColor}15` : 'transparent',
-                  color: isActive ? chipColor : 'var(--text)',
+                  border: `1px solid ${isGroupActive || isGroupTypeActive ? group.color : 'var(--border)'}`,
+                  background: isGroupActive || isGroupTypeActive ? `${group.color}15` : 'transparent',
+                  color: isGroupActive || isGroupTypeActive ? group.color : 'var(--text)',
                   fontSize: 'var(--font-size-xs)',
                   fontWeight: 600,
                   cursor: 'pointer',
@@ -543,11 +479,73 @@ const ExportHistoryDrawer = ({ isOpen, onClose, lang, t, theme }) => {
                   whiteSpace: 'nowrap',
                 }}
               >
-                {t(`export_type_${key}`) || key}
+                {group.label}
+                <span style={{ fontSize: '0.6rem', opacity: 0.7 }}>
+                  {isGroupActive ? '▲' : '▼'}
+                </span>
               </button>
             );
           })}
         </div>
+
+        {/* Expanded sub-types on their own row */}
+        {expandedGroup && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 4, alignItems: 'center', paddingLeft: 12 }}>
+            {groupChips.filter(g => g.key === expandedGroup).map(group =>
+              group.types.map((typeKey) => {
+                const isActive = typeFilter === typeKey;
+                const chipColor = EXPORT_TYPE_COLORS[typeKey] || '#6b7280';
+                const isBeta = BETA_TYPES.has(typeKey);
+                return (
+                  <button
+                    key={typeKey}
+                    type="button"
+                    disabled={isBeta}
+                    title={isBeta ? (t('coming_soon') || 'Coming soon') : undefined}
+                    onClick={() => { if (!isBeta) setTypeFilter(typeKey); }}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.25rem',
+                      padding: '3px 10px',
+                      borderRadius: '12px',
+                      border: isBeta
+                        ? `1px dashed ${chipColor}80`
+                        : `1px solid ${isActive ? chipColor : 'var(--border)'}`,
+                      background: isBeta ? `${chipColor}08` : (isActive ? `${chipColor}15` : 'transparent'),
+                      color: isBeta ? `${chipColor}99` : (isActive ? chipColor : 'var(--text)'),
+                      fontSize: 'var(--font-size-xs)',
+                      fontWeight: 600,
+                      cursor: isBeta ? 'not-allowed' : 'pointer',
+                      transition: 'all 0.2s',
+                      whiteSpace: 'nowrap',
+                      opacity: isBeta ? 0.7 : 1,
+                    }}
+                  >
+                    {t(`export_type_${typeKey}`) || typeKey}
+                    {isBeta && (
+                      <span
+                        style={{
+                          fontSize: '0.55rem',
+                          fontWeight: 700,
+                          padding: '0 4px',
+                          borderRadius: '4px',
+                          background: chipColor,
+                          color: 'white',
+                          letterSpacing: '0.5px',
+                          textTransform: 'uppercase',
+                          lineHeight: '1.4',
+                        }}
+                      >
+                        BETA
+                      </span>
+                    )}
+                  </button>
+                );
+              })
+            )}
+          </div>
+        )}
 
         {/* Format filter chips with icons */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>

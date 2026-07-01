@@ -62,7 +62,7 @@ export const getAllEnrollments = async (params = {}, user = null) => {
     console.error(`[${serviceName}] Error in getAllEnrollments:`, error);
     return {
       success: false,
-      error: error.message || "Failed to retrieve enrollments",
+      error: 'Internal server error' || "Failed to retrieve enrollments",
       data: [],
       total: 0,
     };
@@ -103,7 +103,7 @@ export const getEnrollmentById = async (id, user = null) => {
     console.error(`[${serviceName}] Error in getEnrollmentById:`, error);
     return {
       success: false,
-      error: error.message || "Failed to retrieve enrollment",
+      error: 'Internal server error' || "Failed to retrieve enrollment",
       data: null,
     };
   }
@@ -214,7 +214,7 @@ const prisma = (await import('../db/prismaClient.js')).default;
     console.error(`[${serviceName}] Error in createEnrollment:`, error);
     return {
       success: false,
-      error: error.message || "Failed to create enrollment",
+      error: 'Internal server error' || "Failed to create enrollment",
       data: null,
     };
   }
@@ -338,7 +338,7 @@ const prisma = (await import('../db/prismaClient.js')).default;
     console.error(`[${serviceName}] Error in updateEnrollment:`, error);
     return {
       success: false,
-      error: error.message || "Failed to update enrollment",
+      error: 'Internal server error' || "Failed to update enrollment",
       data: null,
     };
   }
@@ -428,7 +428,7 @@ const prisma = (await import('../db/prismaClient.js')).default;
     console.error(`[${serviceName}] Error in deleteEnrollment:`, error);
     return {
       success: false,
-      error: error.message || "Failed to delete enrollment",
+      error: 'Internal server error' || "Failed to delete enrollment",
     };
   }
 };
@@ -476,7 +476,7 @@ export const getEnrollmentsByStudent = async (
     console.error(`[${serviceName}] Error in getEnrollmentsByStudent:`, error);
     return {
       success: false,
-      error: error.message || "Failed to retrieve student enrollments",
+      error: 'Internal server error' || "Failed to retrieve student enrollments",
       data: [],
       total: 0,
     };
@@ -514,7 +514,7 @@ export const getEnrollmentsByClass = async (
     console.error("Error in getEnrollmentsByClass:", error);
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       data: [],
     };
   }
@@ -570,7 +570,7 @@ export const getEnrollmentsByProgram = async (
     console.error("Error in getEnrollmentsByProgram:", error);
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       data: [],
     };
   }

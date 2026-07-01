@@ -47,7 +47,7 @@ export const getAllAnnouncements = async (params = {}, user = null) => {
     console.error('Error in getAllAnnouncements:', error);
     return {
       success: false,
-      error: error.message || 'Failed to retrieve announcements',
+      error: 'Internal server error' || 'Failed to retrieve announcements',
       data: []
     };
   }
@@ -125,7 +125,7 @@ export const getAnnouncementById = async (announcementId, user = null) => {
     console.error('Error in getAnnouncementById:', error);
     return {
       success: false,
-      error: error.message || 'Failed to retrieve announcement',
+      error: 'Internal server error' || 'Failed to retrieve announcement',
       data: null
     };
   }
@@ -287,7 +287,7 @@ export const createAnnouncement = async (announcementData, user = null) => {
     console.error('Error in createAnnouncement:', error);
     return {
       success: false,
-      error: error.message || 'Failed to create announcement',
+      error: 'Internal server error' || 'Failed to create announcement',
       data: null
     };
   }
@@ -393,7 +393,7 @@ export const updateAnnouncement = async (announcementId, updateData, user = null
     console.error('Error in updateAnnouncement:', error);
     return {
       success: false,
-      error: error.message || 'Failed to update announcement',
+      error: 'Internal server error' || 'Failed to update announcement',
       data: null
     };
   }
@@ -467,7 +467,7 @@ export const deleteAnnouncement = async (announcementId, user = null) => {
     console.error('Error in deleteAnnouncement:', error);
     return {
       success: false,
-      error: error.message || 'Failed to delete announcement',
+      error: 'Internal server error' || 'Failed to delete announcement',
       data: null
     };
   }
@@ -500,7 +500,7 @@ export const getAnnouncementsByProgram = async (programId, params = {}, user = n
     console.error('Error in getAnnouncementsByProgram:', error);
     return {
       success: false,
-      error: error.message || 'Failed to retrieve announcements for program',
+      error: 'Internal server error' || 'Failed to retrieve announcements for program',
       data: []
     };
   }
@@ -533,7 +533,7 @@ export const getAnnouncementsByClass = async (classId, params = {}, user = null)
     console.error('Error in getAnnouncementsByClass:', error);
     return {
       success: false,
-      error: error.message || 'Failed to retrieve announcements for class',
+      error: 'Internal server error' || 'Failed to retrieve announcements for class',
       data: []
     };
   }

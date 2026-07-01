@@ -6,6 +6,7 @@
  */
 
 import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
 import {
   getInstructorsController,
   getProgramsController,
@@ -20,6 +21,7 @@ import {
   getCurrentUserController
 } from '../controllers/users.js';
 import { requireSuperAdmin } from '../middleware/keycloakAuth.js';
+import { validateBody, validateParams } from '../middleware/validateInput.js';
 
 const router = Router();
 
@@ -183,10 +185,27 @@ router.get('/subjects', getSubjectsController);
 router.get('/', listUsersController);
 router.get('/me', getCurrentUserController);
 router.get('/:id', getUserByIdController);
-router.post('/', createUserController);
-router.put('/:id', updateUserController);
-router.put('/:id/password', setPasswordController);
-router.put('/:id/enabled', setEnabledController);
+router.post('/', validateBody({
+  email: { type: 'string', required: true, format: 'email', maxLength: 255 },
+  displayName: { type: 'string', required: true, maxLength: 200 },
+  role: { type: 'string', required: false, enum: ['admin', 'hr', 'instructor', 'student', 'super_admin'] },
+  studentNumber: { type: 'string', required: false, maxLength: 50 },
+  sequence: { type: 'number', required: false, min: 1 },
+}), createUserController);
+router.put('/:id', validateParams({
+  id: { type: 'string', required: true, format: 'uuid' },
+}), updateUserController);
+// Tighter rate limit for sensitive account operations
+const sensitiveLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Too many requests on this endpoint, please try again later.' },
+});
+
+router.put('/:id/password', sensitiveLimiter, setPasswordController);
+router.put('/:id/enabled', sensitiveLimiter, setEnabledController);
 router.delete('/:id', deleteUserController);
 
 /**

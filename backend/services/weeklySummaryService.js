@@ -84,7 +84,7 @@ export async function generateWeeklySummary(data) {
     return result;
   } catch (error) {
     console.error('Error in generateWeeklySummary:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 }
 
@@ -235,7 +235,7 @@ export async function getDailyDocumentsForRange(weekStart, weekEnd) {
     return { success: true, data: documents };
   } catch (error) {
     console.error('Error getting daily documents:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 }
 

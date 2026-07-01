@@ -141,7 +141,7 @@ export const getScheduledSessions = async (params = {}) => {
     };
   } catch (error) {
     console.error('[ScheduledSession DB] Error getting sessions:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 };
 
@@ -173,7 +173,7 @@ export const getScheduledSessionById = async (id) => {
     return { success: true, data: session };
   } catch (error) {
     console.error('[ScheduledSession DB] Error getting session:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 };
 
@@ -310,9 +310,9 @@ export const createScheduledSession = async (data) => {
     console.error('[ScheduledSession DB] Error creating session:', error);
     // Check if it's a conflict error
     if (error.message.includes('already booked') || error.message.includes('already scheduled')) {
-      return { success: false, error: error.message, isConflict: true };
+      return { success: false, error: 'Internal server error', isConflict: true };
     }
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 };
 
@@ -471,7 +471,7 @@ export const updateScheduledSession = async (id, data) => {
     return { success: true, data: session };
   } catch (error) {
     console.error('[ScheduledSession DB] Error updating session:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 };
 
@@ -517,7 +517,7 @@ export const deleteScheduledSession = async (id, deletedBy = null, deletionReaso
     };
   } catch (error) {
     console.error('[ScheduledSession DB] Error deleting session:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 };
 
@@ -547,7 +547,7 @@ export const restoreScheduledSession = async (id, restoredBy = null) => {
     return { success: true, data: session, message: 'Session restored successfully' };
   } catch (error) {
     console.error('[ScheduledSession DB] Error restoring session:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 };
 
@@ -667,7 +667,7 @@ export const createRecurringSessions = async (data) => {
     };
   } catch (error) {
     console.error('[ScheduledSession DB] Error creating recurring sessions:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 };
 

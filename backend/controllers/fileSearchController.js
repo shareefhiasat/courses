@@ -33,7 +33,7 @@ export const search = async (req, res) => {
     return res.json(result);
   } catch (error) {
     console.error('[fileSearchController.search]', error);
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: "Internal server error" });
   }
 };
 

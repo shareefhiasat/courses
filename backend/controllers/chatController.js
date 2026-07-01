@@ -1069,7 +1069,7 @@ export const getRoomStats = async (req, res) => {
     });
   } catch (error) {
     console.error('[chatController] Error in getRoomStats:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 };
 
@@ -1145,7 +1145,7 @@ export const toggleStarMessage = async (req, res) => {
     });
   } catch (error) {
     console.error('[chatController] Error in toggleStarMessage:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 };
 
@@ -1216,7 +1216,7 @@ export const togglePinMessage = async (req, res) => {
     });
   } catch (error) {
     console.error('[chatController] Error in togglePinMessage:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 };
 
@@ -1276,7 +1276,7 @@ export const assignGroupAdmin = async (req, res) => {
     });
   } catch (error) {
     console.error('[chatController] Error in assignGroupAdmin:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 };
 

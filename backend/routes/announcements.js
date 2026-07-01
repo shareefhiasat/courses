@@ -15,6 +15,7 @@ import {
   getAnnouncementsByProgramController,
   getAnnouncementsByClassController
 } from '../controllers/announcements.js';
+import { validateBody, validateParams } from '../middleware/validateInput.js';
 
 const router = Router();
 
@@ -301,7 +302,17 @@ router.get('/:id', getAnnouncementByIdController);
  *       400:
  *         description: Bad request - validation error
  */
-router.post('/', createAnnouncementController);
+router.post('/', validateBody({
+  titleEn: { type: 'string', required: true, maxLength: 300 },
+  titleAr: { type: 'string', required: false, maxLength: 300 },
+  contentEn: { type: 'string', required: true, maxLength: 10000 },
+  contentAr: { type: 'string', required: false, maxLength: 10000 },
+  priority: { type: 'string', required: false, enum: ['low', 'normal', 'high', 'urgent'] },
+  targetAudience: { type: 'string', required: false, enum: ['all', 'students', 'instructors', 'admin'] },
+  programId: { type: 'number', required: false, min: 1 },
+  classId: { type: 'number', required: false, min: 1 },
+  isActive: { type: 'boolean', required: false },
+}), createAnnouncementController);
 
 /**
  * @swagger
@@ -374,7 +385,17 @@ router.post('/', createAnnouncementController);
  *       404:
  *         description: Announcement not found
  */
-router.put('/:id', updateAnnouncementController);
+router.put('/:id', validateParams({
+  id: { type: 'string', required: true },
+}), validateBody({
+  titleEn: { type: 'string', required: false, maxLength: 300 },
+  titleAr: { type: 'string', required: false, maxLength: 300 },
+  contentEn: { type: 'string', required: false, maxLength: 10000 },
+  contentAr: { type: 'string', required: false, maxLength: 10000 },
+  priority: { type: 'string', required: false, enum: ['low', 'normal', 'high', 'urgent'] },
+  targetAudience: { type: 'string', required: false, enum: ['all', 'students', 'instructors', 'admin'] },
+  isActive: { type: 'boolean', required: false },
+}), updateAnnouncementController);
 
 /**
  * @swagger

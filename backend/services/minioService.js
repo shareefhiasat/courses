@@ -13,12 +13,22 @@
 
 import { Client } from 'minio';
 
+const _NODE_ENV = process.env.NODE_ENV || 'development';
+const _MINIO_ACCESS_KEY = process.env.MINIO_ACCESS_KEY;
+const _MINIO_SECRET_KEY = process.env.MINIO_SECRET_KEY;
+
+// Fail hard in production if MinIO credentials are left at defaults
+if (_NODE_ENV === 'production' && (!_MINIO_ACCESS_KEY || !_MINIO_SECRET_KEY)) {
+  console.error('FATAL: MINIO_ACCESS_KEY and MINIO_SECRET_KEY must be set in production');
+  process.exit(1);
+}
+
 const minioClient = new Client({
   endPoint: process.env.MINIO_ENDPOINT || 'localhost',
   port: parseInt(process.env.MINIO_PORT || '9000', 10),
   useSSL: process.env.MINIO_USE_SSL === 'true',
-  accessKey: process.env.MINIO_ACCESS_KEY || 'minioadmin',
-  secretKey: process.env.MINIO_SECRET_KEY || 'minioadmin',
+  accessKey: _MINIO_ACCESS_KEY || 'minioadmin',
+  secretKey: _MINIO_SECRET_KEY || 'minioadmin',
   region: process.env.MINIO_REGION || 'us-east-1',
 });
 

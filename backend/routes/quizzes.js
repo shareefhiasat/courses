@@ -15,6 +15,7 @@ import {
   getQuizzesByCreatorController,
   getQuizStatsController
 } from '../controllers/quizzes.js';
+import { validateBody, validateParams } from '../middleware/validateInput.js';
 
 const router = Router();
 
@@ -255,7 +256,19 @@ router.get('/:id', getQuizByIdController);
  *       500:
  *         description: Server error
  */
-router.post('/', createQuizController);
+router.post('/', validateBody({
+  titleEn: { type: 'string', required: true, maxLength: 300 },
+  titleAr: { type: 'string', required: false, maxLength: 300 },
+  descriptionEn: { type: 'string', required: false, maxLength: 5000 },
+  descriptionAr: { type: 'string', required: false, maxLength: 5000 },
+  duration: { type: 'number', required: false, min: 1, max: 600 },
+  maxAttempts: { type: 'number', required: false, min: 1, max: 100 },
+  passingScore: { type: 'number', required: false, min: 0, max: 100 },
+  randomizeQuestions: { type: 'boolean', required: false },
+  randomizeAnswers: { type: 'boolean', required: false },
+  showCorrectAnswers: { type: 'boolean', required: false },
+  createdBy: { type: 'number', required: true, min: 1 },
+}), createQuizController);
 
 /**
  * @swagger
@@ -313,7 +326,20 @@ router.post('/', createQuizController);
  *       500:
  *         description: Server error
  */
-router.put('/:id', updateQuizController);
+router.put('/:id', validateParams({
+  id: { type: 'string', required: true },
+}), validateBody({
+  titleEn: { type: 'string', required: false, maxLength: 300 },
+  titleAr: { type: 'string', required: false, maxLength: 300 },
+  descriptionEn: { type: 'string', required: false, maxLength: 5000 },
+  descriptionAr: { type: 'string', required: false, maxLength: 5000 },
+  duration: { type: 'number', required: false, min: 1, max: 600 },
+  maxAttempts: { type: 'number', required: false, min: 1, max: 100 },
+  passingScore: { type: 'number', required: false, min: 0, max: 100 },
+  randomizeQuestions: { type: 'boolean', required: false },
+  randomizeAnswers: { type: 'boolean', required: false },
+  showCorrectAnswers: { type: 'boolean', required: false },
+}), updateQuizController);
 
 /**
  * @swagger

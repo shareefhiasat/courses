@@ -41,7 +41,7 @@ export async function sendEmail({ to, subject, text, html }) {
     return { success: true, messageId: info.messageId };
   } catch (error) {
     console.error('[emailService] Error sending email:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 }
 

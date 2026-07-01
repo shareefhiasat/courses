@@ -36,6 +36,7 @@ model UserRoleAssignment {
   user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, roleId])
+  @@index([roleId])
   @@map("user_role_assignments")
 }
 
@@ -786,6 +787,8 @@ model Subject {
   userCategoryAccesses UserCategoryAccess[] @relation("UserCategoryAccessSubject")
   instructorAvailabilities InstructorAvailability[] @relation("InstructorAvailabilitySubject")
 
+  @@index([programId])
+  @@index([typeId])
   @@map("subjects")
 }
 
@@ -840,6 +843,9 @@ model Class {
   chatRooms        ChatRoom[]        @relation("ChatRoomClass")
 
   @@index([substituteInstructorId])
+  @@index([programId])
+  @@index([subjectId])
+  @@index([instructorId])
   @@map("classes")
 }
 
@@ -863,6 +869,11 @@ model Enrollment {
   user      User                  @relation(fields: [userId], references: [id])
 
   @@unique([userId, classId])
+  @@index([userId])
+  @@index([classId])
+  @@index([programId])
+  @@index([subjectId])
+  @@index([statusId])
   @@map("enrollments")
 }
 
@@ -889,6 +900,10 @@ model Attendance {
   excuseApprovedAt DateTime?
 
   @@unique([userId, classId, date])
+  @@index([userId])
+  @@index([classId, date])
+  @@index([date])
+  @@index([subjectId])
   @@map("attendances")
 }
 
@@ -929,6 +944,8 @@ model StandupAttendance {
   user      User                  @relation(fields: [userId], references: [id])
 
   @@unique([userId, date])
+  @@index([date])
+  @@index([programId])
   @@map("standup_attendances")
 }
 
@@ -959,6 +976,8 @@ model Activity {
   updater       User?         @relation("ActivityUpdater", fields: [updatedBy], references: [id])
   submissions   Submission[]
 
+  @@index([classId])
+  @@index([typeId])
   @@map("activities")
 }
 
@@ -987,6 +1006,9 @@ model Submission {
   user        User                  @relation(fields: [userId], references: [id])
 
   @@unique([userId, activityId])
+  @@index([userId])
+  @@index([activityId])
+  @@index([statusId])
   @@map("submissions")
 }
 
@@ -1019,6 +1041,10 @@ model Resource {
   resourceType  ResourceTypes  @relation(fields: [typeId], references: [id])
   updater       User?          @relation("ResourceUpdater", fields: [updatedBy], references: [id])
 
+  @@index([classId])
+  @@index([programId])
+  @@index([subjectId])
+  @@index([typeId])
   @@map("resources")
 }
 
@@ -1048,6 +1074,10 @@ model Announcement {
   targetAudience   TargetAudienceTypes @relation(fields: [targetAudienceId], references: [id])
   updater          User?               @relation("AnnouncementUpdater", fields: [updatedBy], references: [id])
 
+  @@index([classId])
+  @@index([programId])
+  @@index([priorityId])
+  @@index([targetAudienceId])
   @@map("announcements")
 }
 
@@ -1137,6 +1167,8 @@ model Question {
   questionType    QuestionTypes @relation(fields: [typeId], references: [id])
   updater         User?         @relation("QuestionUpdater", fields: [updatedBy], references: [id])
 
+  @@index([quizId])
+  @@index([typeId])
   @@map("questions")
 }
 
@@ -1151,6 +1183,8 @@ model Answer {
   question      Question    @relation(fields: [questionId], references: [id])
   quizAttempt   QuizAttempt @relation(fields: [quizAttemptId], references: [id])
 
+  @@index([questionId])
+  @@index([quizAttemptId])
   @@map("answers")
 }
 
@@ -1172,6 +1206,8 @@ model QuizAttempt {
   quiz        Quiz      @relation(fields: [quizId], references: [id])
   user        User      @relation("QuizAttemptUser", fields: [userId], references: [id])
 
+  @@index([quizId])
+  @@index([userId])
   @@map("quiz_attempts")
 }
 
@@ -1198,6 +1234,9 @@ model Penalty {
   updater       User?        @relation("PenaltyUpdater", fields: [updatedBy], references: [id])
   user          User         @relation(fields: [userId], references: [id])
 
+  @@index([userId])
+  @@index([classId])
+  @@index([typeId])
   @@map("penalties")
 }
 
@@ -1224,6 +1263,9 @@ model Behavior {
   updater       User?         @relation("BehaviorUpdater", fields: [updatedBy], references: [id])
   user          User          @relation(fields: [userId], references: [id])
 
+  @@index([userId])
+  @@index([classId])
+  @@index([typeId])
   @@map("behaviors")
 }
 
@@ -1269,6 +1311,9 @@ model Participation {
   updater           User?              @relation("ParticipationUpdater", fields: [updatedBy], references: [id])
   user              User               @relation(fields: [userId], references: [id])
 
+  @@index([userId])
+  @@index([classId])
+  @@index([typeId])
   @@map("participations")
 }
 
@@ -1343,6 +1388,9 @@ model StudentMarks {
   history             StudentMarksHistory[]
 
   @@unique([userId, subjectId, classId, isRepeated])
+  @@index([userId])
+  @@index([subjectId])
+  @@index([classId])
   @@map("student_marks")
 }
 
@@ -1375,6 +1423,9 @@ model StudentMarksHistory {
   actionUser          User?        @relation("MarksHistoryActionUser", fields: [actionBy], references: [id])
   studentMarks        StudentMarks @relation(fields: [studentMarksId], references: [id], onDelete: Cascade)
 
+  @@index([studentMarksId])
+  @@index([userId])
+  @@index([actionBy])
   @@map("student_marks_history")
 }
 
@@ -1539,6 +1590,8 @@ model FileComment {
   file      File     @relation(fields: [fileId], references: [id], onDelete: Cascade)
   user      User     @relation("FileCommentAuthor", fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([fileId])
+  @@index([userId])
   @@map("file_comments")
 }
 
@@ -1553,6 +1606,8 @@ model FileActivity {
   file      File     @relation(fields: [fileId], references: [id], onDelete: Cascade)
   user      User     @relation("FileActivityActor", fields: [userId], references: [id], onDelete: Cascade)
 
+  @@index([fileId])
+  @@index([userId])
   @@map("file_activities")
 }
 
@@ -2539,6 +2594,10 @@ model UserCategoryAccess {
   updater    User?    @relation("UserCategoryAccessUpdater", fields: [updatedBy], references: [id])
 
   @@unique([userId, categoryId])
+  @@index([categoryId])
+  @@index([programId])
+  @@index([subjectId])
+  @@index([classId])
   @@map("user_category_access")
 }
 

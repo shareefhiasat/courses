@@ -93,9 +93,6 @@ export const listUsersController = async (req, res) => {
     const parsedLimit = parseInt(maxStr || limitStr, 10);
     const limit = Number.isFinite(parsedLimit) && parsedLimit > 0 ? parsedLimit : 5000;
 
-    console.log('[listUsersController] Query params:', { studentsOnly, excludeStudents, search, limit });
-    console.log('[listUsersController] Auth user:', req.user?.id, req.user?.email);
-
     let where = { isActive: true, email: { not: { equals: 'admin@keycloak.local' } } };
 
     // Build search conditions
@@ -112,8 +109,6 @@ export const listUsersController = async (req, res) => {
     if (searchConditions.length > 0) {
       where.OR = searchConditions;
     }
-
-    console.log('[listUsersController] Prisma where clause:', JSON.stringify(where, null, 2));
 
     const users = await prisma.user.findMany({
       where,
@@ -153,9 +148,6 @@ export const listUsersController = async (req, res) => {
       orderBy: { displayName: 'asc' },
     });
 
-    console.log('[listUsersController] Users fetched from DB:', users.length);
-    console.log('[listUsersController] Sample users:', JSON.stringify(users.slice(0, 3), null, 2));
-
     // Client-side filtering for studentsOnly/excludeStudents
     let filteredUsers = users;
     
@@ -164,7 +156,6 @@ export const listUsersController = async (req, res) => {
         const hasStudentRole = user.roleAssignments?.some(ra => ra.role?.code?.toLowerCase() === 'student');
         return hasStudentRole;
       });
-      console.log('[listUsersController] After studentsOnly filter:', filteredUsers.length);
     }
 
     if (excludeStudents === 'true') {
@@ -172,7 +163,6 @@ export const listUsersController = async (req, res) => {
         const hasStudentRole = user.roleAssignments?.some(ra => ra.role?.code?.toLowerCase() === 'student');
         return !hasStudentRole;
       });
-      console.log('[listUsersController] After excludeStudents filter:', filteredUsers.length);
     }
 
     // Convert MinIO image keys to proxy URLs for frontend use
@@ -383,7 +373,7 @@ export const createUserController = async (req, res) => {
     console.error('Error in createUserController:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Internal server error'
+      error: 'Internal server error'
     });
   }
 };
@@ -393,13 +383,6 @@ export const createUserController = async (req, res) => {
  * Update user (admin only)
  */
 export const updateUserController = async (req, res) => {
-  console.log('🚀 updateUserController called!', { 
-    method: req.method, 
-    url: req.url, 
-    params: req.params,
-    bodyKeys: Object.keys(req.body)
-  });
-  
   try {
     const { id } = req.params;
     const { displayName, realName, firstName, lastName, firstNameAr, lastNameAr, displayNameAr, email, roles, isActive, studentNumber, sequence } = req.body;
@@ -412,15 +395,11 @@ export const updateUserController = async (req, res) => {
     
     // Find the current user's database ID from their Keycloak ID
     let currentUserId = null;
-    console.log('🔍 Auth Debug:', { currentUser: req.user });
-    
     if (currentUser?.id) {
-      console.log('🔍 Looking up user with Keycloak ID:', currentUser.id);
       const currentUserRecord = await prisma.user.findUnique({
         where: { keycloakId: currentUser.id },
         select: { id: true }
       });
-      console.log('🔍 Database lookup result:', currentUserRecord);
       currentUserId = currentUserRecord?.id || null;
       
       if (!currentUserId) {
@@ -445,12 +424,6 @@ export const updateUserController = async (req, res) => {
     const targetUserId = existingUser.id;
     
     // Update user in PostgreSQL
-    console.log('🔧 Update Debug:', {
-      currentUserId,
-      updatedByValue: currentUserId,
-      userId: targetUserId
-    });
-    
     const user = await prisma.user.update({
       where: { id: targetUserId },
       data: {
@@ -469,10 +442,6 @@ export const updateUserController = async (req, res) => {
       }
     });
     
-    console.log('✅ User Updated:', {
-      userId: user.id,
-      updatedBy: user.updatedBy
-    });
     
     // Handle multi-role assignments
     if (roles && Array.isArray(roles)) {
@@ -525,7 +494,7 @@ export const updateUserController = async (req, res) => {
     console.error('Error in updateUserController:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Internal server error'
+      error: 'Internal server error'
     });
   }
 };
@@ -584,7 +553,7 @@ export const setPasswordController = async (req, res) => {
     console.error('Error in setPasswordController:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Internal server error'
+      error: 'Internal server error'
     });
   }
 };
@@ -661,7 +630,7 @@ export const setEnabledController = async (req, res) => {
     console.error('Error in setEnabledController:', error);
     res.status(500).json({
       success: false,
-      error: error.message || 'Internal server error'
+      error: 'Internal server error'
     });
   }
 };

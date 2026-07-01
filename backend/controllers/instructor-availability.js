@@ -13,7 +13,7 @@ router.post('/validate-change', async (req, res) => {
     const result = await validateInstructorAvailabilityChange(req.body);
     res.json({ success: true, ...result });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
 
@@ -27,7 +27,7 @@ router.post('/', async (req, res) => {
       res.status(400).json(result);
     }
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
 
@@ -41,7 +41,7 @@ router.get('/instructor/:instructorUserId', async (req, res) => {
       res.status(404).json(result);
     }
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
 
@@ -57,7 +57,7 @@ router.get('/', async (req, res) => {
     const result = await instructorAvailabilityDb.getInstructorAvailabilities(filters);
     res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
 
@@ -71,7 +71,7 @@ router.put('/:id', async (req, res) => {
       res.status(400).json(result);
     }
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
 
@@ -85,7 +85,7 @@ router.delete('/:id', async (req, res) => {
       res.status(400).json(result);
     }
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
 
@@ -98,7 +98,7 @@ router.get('/instructor/:instructorUserId/check/:date', async (req, res) => {
     );
     res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
 
@@ -112,7 +112,7 @@ router.get('/instructor/:instructorUserId/workload/:startDate/:endDate', async (
     );
     res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
 

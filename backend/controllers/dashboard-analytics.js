@@ -23,7 +23,7 @@ const getAnalytics = async (req, res) => {
     }
   } catch (error) {
     console.error('[DashboardAnalyticsController] Error:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 };
 
@@ -34,7 +34,7 @@ const getDriveAnalytics = async (req, res) => {
     const result = await dashboardAnalyticsDb.getDriveAnalytics({ userId, role });
     res.status(200).json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 };
 
@@ -45,7 +45,7 @@ const getWorkflowAnalytics = async (req, res) => {
     const result = await dashboardAnalyticsDb.getWorkflowAnalytics({ userId, role });
     res.status(200).json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 };
 
@@ -57,7 +57,7 @@ const getActivityAnalytics = async (req, res) => {
     const result = await dashboardAnalyticsDb.getActivityAnalytics({ userId, role, classId });
     res.status(200).json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 };
 

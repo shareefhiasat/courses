@@ -32,7 +32,7 @@ async function createUserCategoryAccess(data) {
     return { success: true, data: access };
   } catch (error) {
     console.error('Error creating user category access:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 }
 
@@ -54,7 +54,7 @@ async function getUserCategoryAccessById(id) {
     return { success: true, data: access };
   } catch (error) {
     console.error('Error getting user category access:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 }
 
@@ -79,7 +79,7 @@ async function getUserCategoryAccessByUserId(userId) {
     return { success: true, data: accesses };
   } catch (error) {
     console.error('Error getting user category access:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 }
 
@@ -104,7 +104,7 @@ async function getUsersByCategoryAccess(categoryId) {
     return { success: true, data: accesses };
   } catch (error) {
     console.error('Error getting users by category access:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 }
 
@@ -138,7 +138,7 @@ async function getAllUserCategoryAccesses(filters = {}) {
     return { success: true, data: accesses };
   } catch (error) {
     console.error('Error getting all user category accesses:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 }
 
@@ -172,7 +172,7 @@ async function updateUserCategoryAccess(id, data) {
     return { success: true, data: access };
   } catch (error) {
     console.error('Error updating user category access:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 }
 
@@ -185,7 +185,7 @@ async function deleteUserCategoryAccess(id) {
     return { success: true, data: access };
   } catch (error) {
     console.error('Error deleting user category access:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 }
 
@@ -215,7 +215,7 @@ async function checkUserCategoryAccess(userId, categoryId, permission = 'view') 
     return { success: true, data: { hasAccess: true, access } };
   } catch (error) {
     console.error('Error checking user category access:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 }
 
@@ -237,7 +237,7 @@ async function getAccessibleCategoriesForUser(userId) {
     return { success: true, data: categories };
   } catch (error) {
     console.error('Error getting accessible categories:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 }
 
@@ -274,7 +274,7 @@ async function getAccessibleProgramsForUser(userId) {
     return { success: true, data: uniquePrograms };
   } catch (error) {
     console.error('Error getting accessible programs:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 }
 
@@ -295,7 +295,7 @@ async function bulkAssignCategoryAccess(assignments) {
     return { success: true, data: { count: results.count } };
   } catch (error) {
     console.error('Error bulk assigning category access:', error);
-    return { success: false, error: error.message };
+    return { success: false, error: 'Internal server error' };
   }
 }
 

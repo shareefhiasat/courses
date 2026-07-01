@@ -144,7 +144,7 @@ export const getAllAttendance = async (params = {}) => {
     console.error('Get all attendance error:', error);
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       data: []
     };
   }
@@ -205,7 +205,7 @@ export const getAttendanceById = async (id) => {
     console.error('Get attendance by ID error:', error);
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       data: null
     };
   }
@@ -418,7 +418,7 @@ export const createAttendance = async (attendanceData, user = null) => {
     console.error('Create attendance error:', error);
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       data: null
     };
   }
@@ -534,7 +534,7 @@ export const updateAttendance = async (id, updateData, user = null) => {
     console.error('Update attendance error:', error);
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       data: null
     };
   }
@@ -568,7 +568,7 @@ export const deleteAttendance = async (id, user = null) => {
     console.error('Delete attendance error:', error);
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       data: null
     };
   }
@@ -640,7 +640,7 @@ export const getClassAttendanceStats = async (classId, date) => {
     console.error('Get class attendance stats error:', error);
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       data: null
     };
   }

@@ -46,8 +46,6 @@ export const initiateUpload = async (req, res) => {
   try {
     const { name, mimeType, size, bucket, folderId, folderPath, workflowStatus } = req.body;
 
-    console.log('📤 [UPLOAD INITIATE]', { userId: req.user?.dbId, name, mimeType, size, bucket, folderId, folderPath });
-
     if (!name || !mimeType || !size) {
       console.error('❌ [UPLOAD INITIATE] Missing required fields:', { name, mimeType, size, bucket });
       return res.status(400).json({
@@ -71,13 +69,12 @@ export const initiateUpload = async (req, res) => {
       return res.status(400).json(result);
     }
 
-    console.log('✅ [UPLOAD INITIATE] Success:', result.payload?.fileId);
     res.json(result);
   } catch (error) {
     console.error('[fileController] Initiate upload error:', error);
     res.status(500).json({
       success: false,
-      error: error.message,
+      error: "Internal server error",
       message: 'Failed to initiate upload',
     });
   }
@@ -809,7 +806,7 @@ export const getPreview = async (req, res) => {
     return res.json(result);
   } catch (error) {
     console.error('[fileController.getPreview]', error);
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: "Internal server error" });
   }
 };
 
@@ -829,7 +826,7 @@ export const proxyDownload = async (req, res) => {
   } catch (error) {
     console.error('[fileController.proxyDownload]', error);
     if (!res.headersSent) {
-      res.status(500).json({ success: false, error: error.message });
+      res.status(500).json({ success: false, error: "Internal server error" });
     }
   }
 };

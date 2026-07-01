@@ -94,7 +94,7 @@ const getPrograms = async (params = {}) => {
     console.error('[Programs DB Service] ❌ Error getting programs:', error);
     return { 
       success: false, 
-      error: error.message,
+      error: 'Internal server error',
       duration: `${duration}ms`
     };
   }
@@ -137,7 +137,7 @@ const getProgramById = async (programId, params = {}) => {
     console.error('[Programs DB Service] ❌ Error getting program:', error);
     return { 
       success: false, 
-      error: error.message,
+      error: 'Internal server error',
       duration: `${duration}ms`
     };
   }
@@ -183,7 +183,7 @@ const create = async (programData, user = null) => {
     
     return { 
       success: false, 
-      error: error.message,
+      error: 'Internal server error',
       duration: `${duration}ms`
     };
   }
@@ -236,7 +236,7 @@ const update = async (programId, updateData, user = null) => {
     
     return { 
       success: false, 
-      error: error.message,
+      error: 'Internal server error',
       duration: `${duration}ms`
     };
   }
@@ -306,7 +306,7 @@ const deleteProgram = async (programId, options = {}) => {
     
     return { 
       success: false, 
-      error: error.message,
+      error: 'Internal server error',
       duration: `${duration}ms`
     };
   }

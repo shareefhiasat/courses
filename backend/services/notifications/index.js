@@ -111,8 +111,8 @@ export const emit = async (event, payload, actor, recipientCriteria) => {
           
           deliveries.push(result);
         } catch (error) {
-          log.error('Adapter send failed', { channel, error: error.message });
-          deliveries.push({ channel, status: 'failed', error: error.message });
+          log.error('Adapter send failed', { channel, error: 'Internal server error' });
+          deliveries.push({ channel, status: 'failed', error: 'Internal server error' });
         }
       }
       
@@ -125,8 +125,8 @@ export const emit = async (event, payload, actor, recipientCriteria) => {
     log.info('Notification emitted', { event, recipientCount: recipients.length });
     return { success: true, results };
   } catch (error) {
-    log.error('Failed to emit notification', { event, error: error.message });
-    return { success: false, error: error.message };
+    log.error('Failed to emit notification', { event, error: 'Internal server error' });
+    return { success: false, error: 'Internal server error' };
   }
 };
 

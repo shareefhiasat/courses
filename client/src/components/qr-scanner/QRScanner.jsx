@@ -184,7 +184,6 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
   const [isScanningLocked, setIsScanningLocked] = useState(false);
   const [lastScannedCode, setLastScannedCode] = useState(null); // Track last scanned code to prevent duplicates
   const [isMinimized, setIsMinimized] = useState(false); // Track minimization state
-  const scannerRef = useRef(null); // Ref for the scanner section
   const [showResultModal, setShowResultModal] = useState(false);
   const [resultModalData, setResultModalData] = useState({ type: '', message: '' });
   const [showStudentActionStatsPanel, setShowStudentActionStatsPanel] = useState(false);
@@ -2013,7 +2012,6 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
   return (
       <CollapsibleSection
-          ref={scannerRef}
           sectionId="qr-scanner-v2"
            title={t('activity_list') || 'Activity list'}
           titleStyle={{ fontSize: 'var(--font-size-xs)' }}

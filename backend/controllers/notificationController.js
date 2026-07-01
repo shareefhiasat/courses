@@ -32,7 +32,7 @@ export async function getNotifications(req, res) {
     return res.json({ success: true, notifications: mapNotifications(notifications), unreadCount });
   } catch (error) {
     console.error('[notificationController.getNotifications]', error);
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: "Internal server error" });
   }
 }
 
@@ -49,7 +49,7 @@ export async function markNotificationRead(req, res) {
     return res.json({ success: true });
   } catch (error) {
     console.error('[notificationController.markNotificationRead]', error);
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: "Internal server error" });
   }
 }
 
@@ -66,7 +66,7 @@ export async function markNotificationUnread(req, res) {
     return res.json({ success: true });
   } catch (error) {
     console.error('[notificationController.markNotificationUnread]', error);
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: "Internal server error" });
   }
 }
 
@@ -82,7 +82,7 @@ export async function markAllRead(req, res) {
     return res.json({ success: true, count: result.count });
   } catch (error) {
     console.error('[notificationController.markAllRead]', error);
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: "Internal server error" });
   }
 }
 
@@ -99,7 +99,7 @@ export async function archiveNotification(req, res) {
     return res.json({ success: true });
   } catch (error) {
     console.error('[notificationController.archiveNotification]', error);
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: "Internal server error" });
   }
 }
 
@@ -115,7 +115,7 @@ export async function archiveAllRead(req, res) {
     return res.json({ success: true, count: result.count });
   } catch (error) {
     console.error('[notificationController.archiveAllRead]', error);
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: "Internal server error" });
   }
 }
 
@@ -131,7 +131,7 @@ export async function deleteNotification(req, res) {
     return res.json({ success: true });
   } catch (error) {
     console.error('[notificationController.deleteNotification]', error);
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: "Internal server error" });
   }
 }
 
@@ -153,7 +153,7 @@ export async function getPreferences(req, res) {
     return res.json({ success: true, preferences: prefs });
   } catch (error) {
     console.error('[notificationController.getPreferences]', error);
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: "Internal server error" });
   }
 }
 
@@ -190,7 +190,7 @@ export async function updatePreferences(req, res) {
     return res.json({ success: true, preferences: prefs });
   } catch (error) {
     console.error('[notificationController.updatePreferences]', error);
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: "Internal server error" });
   }
 }
 
@@ -213,7 +213,7 @@ export async function testNotification(req, res) {
     return res.json({ success: true, result });
   } catch (error) {
     console.error('[notificationController.testNotification]', error);
-    return res.status(500).json({ success: false, error: error.message });
+    return res.status(500).json({ success: false, error: "Internal server error" });
   }
 }
 

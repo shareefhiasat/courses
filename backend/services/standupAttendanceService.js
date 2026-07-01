@@ -159,7 +159,7 @@ export const createStandupAttendance = async (
     console.error("Create standup attendance error:", error);
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       data: null,
     };
   }
@@ -202,7 +202,7 @@ export const getStandupAttendanceByUserAndDate = async (userId, date) => {
     console.error("Get standup attendance error:", error);
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       data: null,
     };
   }
@@ -244,7 +244,7 @@ export const getAllStandupAttendanceByDate = async (date) => {
     console.error("Get all standup attendance error:", error);
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       data: null,
     };
   }
@@ -293,7 +293,7 @@ export const getStandupAttendanceByClassAndDate = async (classId, date) => {
     console.error("Get standup attendance by class and date error:", error);
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       data: null,
     };
   }
@@ -336,7 +336,7 @@ export const getStandupAttendanceByUser = async (userId) => {
     console.error("Get standup attendance by user error:", error);
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       data: null,
     };
   }
@@ -394,7 +394,7 @@ export const getStandupAttendanceByProgramAndDate = async (programId, date) => {
     console.error("Get standup attendance by program and date error:", error);
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       data: null,
     };
   }
@@ -441,7 +441,7 @@ export const getStandupAttendanceByProgramForDateRange = async (programId, start
     console.error("Get standup attendance by program for date range error:", error);
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       data: null,
     };
   }
@@ -463,7 +463,7 @@ export const deleteStandupAttendance = async (id) => {
     console.error("Delete standup attendance error:", error);
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       data: null,
     };
   }

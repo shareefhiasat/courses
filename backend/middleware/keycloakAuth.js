@@ -20,7 +20,7 @@ const jwks = jwksClient({
   cache: true,
   cacheMaxAge: 10 * 60 * 1000, // 10 minutes
   rateLimit: true,
-  jwksRequestsPerMinute: 10,
+  jwksRequestsPerMinute: 1000,
 });
 
 /**

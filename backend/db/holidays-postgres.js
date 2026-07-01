@@ -124,7 +124,7 @@ export const getHolidays = async (params = {}) => {
     
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       code: 'UNKNOWN_ERROR'
     };
   }
@@ -179,7 +179,7 @@ export const getHolidayById = async (id) => {
     
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       code: 'UNKNOWN_ERROR'
     };
   }
@@ -223,7 +223,7 @@ export const getHolidaysByProgram = async (programId) => {
     
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       code: 'UNKNOWN_ERROR'
     };
   }
@@ -286,7 +286,7 @@ export const getUpcomingHolidays = async (params) => {
     
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       code: 'UNKNOWN_ERROR'
     };
   }
@@ -437,7 +437,7 @@ export const createHoliday = async (data, userId) => {
     
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       code: 'UNKNOWN_ERROR'
     };
   }
@@ -514,7 +514,7 @@ export const updateHoliday = async (id, data, userId) => {
     
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       code: 'UNKNOWN_ERROR'
     };
   }
@@ -557,7 +557,7 @@ export const deleteHoliday = async (id, deleteScope = 'single') => {
     
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       code: 'UNKNOWN_ERROR'
     };
   }

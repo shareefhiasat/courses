@@ -75,8 +75,6 @@ export const getClassrooms = async (params = {}) => {
     const skip = (parseInt(page) - 1) * parseInt(limit);
     const take = parseInt(limit);
     
-    console.log('[Classrooms DB] Final where clause:', JSON.stringify(where, null, 2));
-    
     const [classrooms, total] = await Promise.all([
       prisma.classroom.findMany({
         where,
@@ -134,7 +132,7 @@ export const getClassrooms = async (params = {}) => {
     
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       code: 'UNKNOWN_ERROR'
     };
   }
@@ -189,7 +187,7 @@ export const getClassroomById = async (id) => {
     
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       code: 'UNKNOWN_ERROR'
     };
   }
@@ -230,7 +228,7 @@ export const getClassroomsByProgram = async (programId) => {
     
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       code: 'UNKNOWN_ERROR'
     };
   }
@@ -314,7 +312,7 @@ export const getAvailableClassrooms = async (params) => {
     
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       code: 'UNKNOWN_ERROR'
     };
   }
@@ -351,7 +349,7 @@ export const createClassroom = async (data) => {
     
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       code: 'UNKNOWN_ERROR'
     };
   }
@@ -414,7 +412,7 @@ export const updateClassroom = async (id, data) => {
     
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       code: 'UNKNOWN_ERROR'
     };
   }
@@ -463,7 +461,7 @@ export const deleteClassroom = async (id) => {
     
     return {
       success: false,
-      error: error.message,
+      error: 'Internal server error',
       code: 'UNKNOWN_ERROR'
     };
   }

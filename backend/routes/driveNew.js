@@ -5,6 +5,7 @@
 
 import { Router } from 'express';
 import multer from 'multer';
+import rateLimit from 'express-rate-limit';
 import { keycloakAuth } from '../middleware/keycloakAuth.js';
 import prisma from '../db/prismaClient.js';
 import { isHrAccessibleWorkflow, isAdminAccessibleWorkflow } from '../utils/workflowTaxonomy.js';
@@ -170,7 +171,7 @@ wopiRouter.get('/files/:fileId', async (req, res) => {
     res.json(metadata);
   } catch (error) {
     console.error('[WOPI CheckFileInfo] Error:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
 
@@ -233,7 +234,7 @@ wopiRouter.get('/files/:fileId/contents', async (req, res) => {
     stream.pipe(res);
   } catch (error) {
     console.error('[WOPI GetFile] Error:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
 
@@ -288,7 +289,7 @@ wopiRouter.post('/files/:fileId', async (req, res) => {
     res.status(501).json({ success: false, error: 'Operation not implemented' });
   } catch (error) {
     console.error('[WOPI Lock/Unlock] Error:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
 
@@ -365,7 +366,7 @@ wopiRouter.post('/files/:fileId/contents', async (req, res) => {
     });
   } catch (error) {
     console.error('[WOPI PutFile] Error:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
 
@@ -376,8 +377,17 @@ router.use(keycloakAuth([]));
 router.use('/wopi', wopiRouter);
 
 // ---------------- Files ----------------
-router.post('/upload/initiate', initiateUpload);
-router.post('/upload/:fileId/complete', completeUpload);
+// Tighter rate limit for upload endpoints to prevent upload abuse
+const uploadLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 60,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: 'Too many upload requests, please try again later.' },
+});
+
+router.post('/upload/initiate', uploadLimiter, initiateUpload);
+router.post('/upload/:fileId/complete', uploadLimiter, completeUpload);
 router.get('/files', listFiles);
 router.get('/files/search', searchFiles);
 router.get('/files/:fileId', getFile);
@@ -448,15 +458,13 @@ router.get('/files/:fileId/collabora/edit', async (req, res) => {
     return res.json({ success: true, payload: { wopiToken } });
   } catch (error) {
     console.error('[Collabora Edit] Error:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
 router.get('/files/:fileId/download', async (req, res, next) => {
   try {
     const { fileId } = req.params;
     const actorUserId = req.user?.keycloakId;
-
-    console.log('[driveNew.js] Download request:', { fileId, actorUserId, userRoles: req.user?.roles });
 
     if (!actorUserId) {
       return res.status(401).json({ success: false, error: 'User not authenticated' });
@@ -547,7 +555,7 @@ router.get('/files/:fileId/download', async (req, res, next) => {
       return res.status(404).json({ success: false, error: 'File not found' });
     }
     console.error('[driveNew.js] Download permission check error:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 }, proxyDownload);
 
@@ -596,7 +604,7 @@ router.post('/files/:fileId/activity', async (req, res) => {
       return res.status(404).json({ success: false, error: 'File not found' });
     }
     console.error('[driveNew.js] Activity logging error:', error);
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
 // Legacy redirect-based download (s3Key based) — keep temporarily.
@@ -617,7 +625,7 @@ router.patch('/folders/:folderId/star', toggleStarFolder);
 router.get('/folders/:folderId/download', downloadFolder);
 
 // ---------------- Versions ----------------
-router.post('/files/:fileId/versions', uploadNewVersion);
+router.post('/files/:fileId/versions', uploadLimiter, uploadNewVersion);
 router.get('/files/:fileId/versions', getVersions);
 router.post('/versions/:versionId/restore', restoreVersion);
 
@@ -676,7 +684,7 @@ router.post('/chat-upload', chatUpload.single('file'), async (req, res) => {
     res.json({ success: true, data: { url: fileUrl, path: filePath, fileName: req.file.originalname, fileType: req.file.mimetype, fileSize: req.file.size } });
   } catch (err) {
     console.error('[driveNew] chat-upload error:', err);
-    res.status(500).json({ success: false, error: err.message });
+    res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });
 
@@ -718,7 +726,7 @@ router.delete('/chat-file', async (req, res) => {
     res.json({ success: true, message: 'File deleted' });
   } catch (err) {
     console.error('[driveNew] chat-file delete error:', err);
-    res.status(500).json({ success: false, error: err.message });
+    res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });
 

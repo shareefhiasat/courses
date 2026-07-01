@@ -19,7 +19,7 @@ router.post('/', async (req, res) => {
       res.status(400).json(result);
     }
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
 
@@ -33,7 +33,7 @@ router.get('/:id', async (req, res) => {
       res.status(404).json(result);
     }
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
 
@@ -43,7 +43,7 @@ router.get('/user/:userId/programs', async (req, res) => {
     const result = await userCategoryAccessDb.getAccessibleProgramsForUser(req.params.userId);
     res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
 
@@ -53,7 +53,7 @@ router.get('/user/:userId', async (req, res) => {
     const result = await userCategoryAccessDb.getUserCategoryAccessByUserId(req.params.userId);
     res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
 
@@ -63,7 +63,7 @@ router.get('/category/:categoryId/users', async (req, res) => {
     const result = await userCategoryAccessDb.getUsersByCategoryAccess(req.params.categoryId);
     res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
 
@@ -83,7 +83,7 @@ router.get('/', async (req, res) => {
     const result = await userCategoryAccessDb.getAllUserCategoryAccesses(filters);
     res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
 
@@ -103,7 +103,7 @@ router.put('/:id', async (req, res) => {
       res.status(400).json(result);
     }
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
 
@@ -117,7 +117,7 @@ router.delete('/:id', async (req, res) => {
       res.status(400).json(result);
     }
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
 
@@ -132,7 +132,7 @@ router.get('/check/:userId/:categoryId', async (req, res) => {
     );
     res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
 
@@ -146,7 +146,7 @@ router.post('/bulk', async (req, res) => {
       res.status(400).json(result);
     }
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    res.status(500).json({ success: false, error: "Internal server error" });
   }
 });
 
