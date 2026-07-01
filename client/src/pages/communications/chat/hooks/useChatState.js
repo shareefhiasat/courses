@@ -26,6 +26,7 @@ export const useChatState = (user) => {
 
   // Direct messages
   const [directRooms, setDirectRooms] = useState([]);
+  const [pendingDMUserName, setPendingDMUserName] = useState('');
 
   // UI state
   const [showMembers, setShowMembers] = useState(false);
@@ -192,6 +193,8 @@ export const useChatState = (user) => {
     // Direct messages
     directRooms,
     setDirectRooms,
+    pendingDMUserName,
+    setPendingDMUserName,
     
     // UI state
     showMembers,

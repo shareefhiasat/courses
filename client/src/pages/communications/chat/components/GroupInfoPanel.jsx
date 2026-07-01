@@ -16,6 +16,14 @@ import { getThemedIcon, getIconWithColor } from '@constants/iconTypes';
 import { getChatUserDisplayName } from '@utils/userUtils';
 import RoleBadge from './RoleBadge';
 
+const withAuthToken = (url) => {
+  if (!url) return url;
+  const token = localStorage.getItem('keycloak_token');
+  if (!token) return url;
+  const sep = url.includes('?') ? '&' : '?';
+  return `${url}${sep}token=${encodeURIComponent(token)}`;
+};
+
 const TABS = [
   { key: 'media', icon: 'image', color: '#7c3aed' },
   { key: 'documents', icon: 'file', color: '#2563eb' },
@@ -259,12 +267,11 @@ const GroupInfoPanel = ({ isOpen, onClose, roomId, roomName, isCreator, currentU
                   <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem', borderBottom: idx < stats.participants.length - 1 ? '1px solid var(--border)' : 'none', transition: 'background 0.2s' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, minWidth: 0 }}>
                       {p.user?.profileImageUrl ? (
-                        <img src={p.user.profileImageUrl} alt="" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} />
-                      ) : (
-                        <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--brand)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--font-size-md)', fontWeight: 600, flexShrink: 0 }}>
-                          {(p.user?.displayName || p.user?.firstName || 'U')[0]?.toUpperCase()}
-                        </div>
-                      )}
+                        <img src={p.user.profileImageUrl} alt="" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} />
+                      ) : null}
+                      <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--brand)', color: 'white', display: p.user?.profileImageUrl ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--font-size-md)', fontWeight: 600, flexShrink: 0 }}>
+                        {(p.user?.displayName || p.user?.firstName || 'U')[0]?.toUpperCase()}
+                      </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', minWidth: 0, flex: 1 }}>
                         <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 500, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                           <RoleBadge user={p.user} size={12} />
@@ -493,28 +500,24 @@ const MediaTab = ({ items, t, isRTL }) => {
             cursor: 'pointer',
             position: 'relative',
           }}
-          onClick={() => item.fileUrl && window.open(item.fileUrl, '_blank')}
+          onClick={() => item.fileUrl && window.open(withAuthToken(item.fileUrl), '_blank')}
           title={item.fileName || ''}
         >
           {item.fileUrl ? (
             <img
-              src={item.fileUrl}
+              src={withAuthToken(item.fileUrl)}
               alt={item.fileName || ''}
               style={{ width: '100%', height: '100%', objectFit: 'cover' }}
               loading="lazy"
               onError={(e) => {
                 e.target.style.display = 'none';
-                e.target.parentElement.style.display = 'flex';
-                e.target.parentElement.style.alignItems = 'center';
-                e.target.parentElement.style.justifyContent = 'center';
-                e.target.parentElement.innerHTML = `<span style="font-size:1.5rem">📄</span>`;
+                e.target.nextSibling.style.display = 'flex';
               }}
             />
-          ) : (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: '1.5rem' }}>
-              📄
-            </div>
-          )}
+          ) : null}
+          <div style={{ display: item.fileUrl ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: '1.5rem' }}>
+            📄
+          </div>
         </div>
       ))}
     </div>
@@ -529,7 +532,7 @@ const DocumentsTab = ({ items, t, isRTL }) => {
       {items.map(item => (
         <div
           key={item.id}
-          onClick={() => item.fileUrl && window.open(item.fileUrl, '_blank')}
+          onClick={() => item.fileUrl && window.open(withAuthToken(item.fileUrl), '_blank')}
           style={{
             display: 'flex',
             alignItems: 'center',

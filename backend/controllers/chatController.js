@@ -58,6 +58,32 @@ export const getRooms = async (req, res) => {
     // Get rooms
     const rooms = await chatDb.getUserRooms(userId, roles, enrolledClassIds);
 
+    // Normalize profileImageUrl for all users in the response
+    const normalizeProfileUrl = (url, keycloakId) => {
+      if (!url) return url;
+      if (url.startsWith('http') || url.startsWith('/api/')) return url;
+      if (keycloakId) return `/api/v1/user-images/proxy/${keycloakId}/profile`;
+      return url;
+    };
+    rooms.forEach(room => {
+      if (room.userA) {
+        room.userA.profileImageUrl = normalizeProfileUrl(room.userA.profileImageUrl, room.userA.keycloakId);
+      }
+      if (room.userB) {
+        room.userB.profileImageUrl = normalizeProfileUrl(room.userB.profileImageUrl, room.userB.keycloakId);
+      }
+      if (room.creator) {
+        room.creator.profileImageUrl = normalizeProfileUrl(room.creator.profileImageUrl, room.creator.keycloakId);
+      }
+      if (room.participants) {
+        room.participants.forEach(p => {
+          if (p.user) {
+            p.user.profileImageUrl = normalizeProfileUrl(p.user.profileImageUrl, p.user.keycloakId);
+          }
+        });
+      }
+    });
+
     res.json({
       success: true,
       data: rooms
@@ -676,9 +702,17 @@ export const getAvailableUsers = async (req, res) => {
 
     const users = await chatDb.getAvailableDMUsers(userId, userRoles);
 
+    // Normalize profileImageUrl
+    const normalizedUsers = users.map(u => ({
+      ...u,
+      profileImageUrl: u.profileImageUrl && !u.profileImageUrl.startsWith('http') && !u.profileImageUrl.startsWith('/api/')
+        ? `/api/v1/user-images/proxy/${u.keycloakId}/profile`
+        : u.profileImageUrl
+    }));
+
     res.json({
       success: true,
-      data: users
+      data: normalizedUsers
     });
   } catch (error) {
     console.error('[chatController] Error in getAvailableUsers:', error);

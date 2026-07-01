@@ -7,7 +7,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
-import { useToast } from '@ui';
+import { useToast, ConfirmModal } from '@ui';
 import { apiService } from '@services/api/apiService';
 import { chatService } from '@services/business/chatService';
 import { getThemedIcon, getIconWithColor, getUserRoleColor } from '@constants/iconTypes';
@@ -26,6 +26,7 @@ const ParticipantManagementModal = ({ isOpen, onClose, room, currentUserId, onPa
   const [loading, setLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(null);
   const [roleFilter, setRoleFilter] = useState(null);
+  const [confirmModal, setConfirmModal] = useState({ isOpen: false, type: null, participant: null });
 
   const isCreator = room?.createdBy === currentUserId;
   const wasOpenRef = useRef(false);
@@ -110,7 +111,12 @@ const ParticipantManagementModal = ({ isOpen, onClose, room, currentUserId, onPa
   };
 
   const handleAssignAdmin = async (participant) => {
-    if (!confirm(t('chat_assign_admin_confirm') || 'Are you sure you want to make this user the new admin? You will lose your admin privileges.')) return;
+    setConfirmModal({ isOpen: true, type: 'assign', participant });
+  };
+
+  const handleConfirmAssignAdmin = async () => {
+    const participant = confirmModal.participant;
+    setConfirmModal({ isOpen: false, type: null, participant: null });
     try {
       setActionLoading(`admin-${participant.userId}`);
       const result = await chatService.assignGroupAdmin(room.id, participant.userId);
@@ -130,7 +136,11 @@ const ParticipantManagementModal = ({ isOpen, onClose, room, currentUserId, onPa
   };
 
   const handleLeaveGroup = async () => {
-    if (!confirm(t('chat_leave_group_confirm'))) return;
+    setConfirmModal({ isOpen: true, type: 'leave', participant: null });
+  };
+
+  const handleConfirmLeaveGroup = async () => {
+    setConfirmModal({ isOpen: false, type: null, participant: null });
     try {
       setActionLoading('leave');
       const response = await apiService.delete(`/chat/rooms/${room.id}/participants/${currentUserId}`);
@@ -189,6 +199,7 @@ const ParticipantManagementModal = ({ isOpen, onClose, room, currentUserId, onPa
   if (!isOpen || !room) return null;
 
   return (
+    <>
     <div className={styles.overlay} onClick={onClose}>
       <div 
         className={`${styles.drawer} ${isRTL ? styles.rtl : ''}`}
@@ -273,12 +284,12 @@ const ParticipantManagementModal = ({ isOpen, onClose, room, currentUserId, onPa
                           src={user.profileImageUrl} 
                           alt={user.displayName}
                           className={styles.userAvatar}
+                          onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
                         />
-                      ) : (
-                        <div className={styles.userAvatarPlaceholder}>
-                          {(user?.displayName || user?.firstName || 'U')[0].toUpperCase()}
-                        </div>
-                      )}
+                      ) : null}
+                      <div className={styles.userAvatarPlaceholder} style={user?.profileImageUrl ? { display: 'none' } : {}}>
+                        {(user?.displayName || user?.firstName || 'U')[0].toUpperCase()}
+                      </div>
                       <div className={styles.userDetails}>
                         <div className={styles.userName}>
                           <RoleBadge user={user} size={12} />
@@ -364,12 +375,12 @@ const ParticipantManagementModal = ({ isOpen, onClose, room, currentUserId, onPa
                               src={user.profileImageUrl} 
                               alt={user.displayName}
                               className={styles.userAvatar}
+                              onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
                             />
-                          ) : (
-                            <div className={styles.userAvatarPlaceholder}>
-                              {(user.displayName || user.firstName || 'U')[0].toUpperCase()}
-                            </div>
-                          )}
+                          ) : null}
+                          <div className={styles.userAvatarPlaceholder} style={user.profileImageUrl ? { display: 'none' } : {}}>
+                            {(user.displayName || user.firstName || 'U')[0].toUpperCase()}
+                          </div>
                           <div className={styles.userDetails}>
                             <div className={styles.userName}>
                               <RoleBadge user={user} size={12} />
@@ -437,7 +448,32 @@ const ParticipantManagementModal = ({ isOpen, onClose, room, currentUserId, onPa
           </button>
         </div>
       </div>
-    </div>
+      </div>
+
+      <ConfirmModal
+        isOpen={confirmModal.isOpen}
+        onClose={() => setConfirmModal({ isOpen: false, type: null, participant: null })}
+        onConfirm={confirmModal.type === 'assign' ? handleConfirmAssignAdmin : handleConfirmLeaveGroup}
+        title={
+          confirmModal.type === 'assign'
+            ? (t('chat_assign_admin') || 'Assign as Admin')
+            : (t('chat_leave_group') || 'Leave Group')
+        }
+        message={
+          confirmModal.type === 'assign'
+            ? (t('chat_assign_admin_confirm') || 'Are you sure you want to make this user the new admin? You will lose your admin privileges.')
+            : (t('chat_leave_group_confirm') || 'Are you sure you want to leave this group?')
+        }
+        confirmText={
+          confirmModal.type === 'assign'
+            ? (t('chat_assign_admin') || 'Assign')
+            : (t('chat_leave_group') || 'Leave')
+        }
+        cancelText={t('cancel') || 'Cancel'}
+        variant={confirmModal.type === 'leave' ? 'danger' : 'primary'}
+        size="small"
+      />
+    </>
   );
 };
 

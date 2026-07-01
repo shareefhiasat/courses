@@ -744,6 +744,7 @@ const compatSendMessage = async (messageData) => {
     return { success: false, error: 'Room not found' };
   }
 
+  const isVoice = (messageData.messageType || messageData.type) === 'voice';
   const payload = {
     type: messageData.messageType || messageData.type || 'text',
     content: messageData.text || messageData.content,
@@ -751,7 +752,7 @@ const compatSendMessage = async (messageData) => {
     filePath: messageData.filePath || messageData.voicePath,
     fileName: messageData.fileName,
     fileType: messageData.fileType,
-    fileSize: messageData.fileSize,
+    fileSize: isVoice ? (messageData.duration || 0) : messageData.fileSize,
     pollOptions: messageData.pollOptions,
     replyToId: messageData.replyTo
   };

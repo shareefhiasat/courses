@@ -27,6 +27,22 @@ import {
   canDeleteMessage
 } from '../utils/chatHelpers';
 
+const withAuthToken = (url) => {
+  if (!url) return url;
+  const token = localStorage.getItem('keycloak_token');
+  if (!token) return url;
+  const sep = url.includes('?') ? '&' : '?';
+  return `${url}${sep}token=${encodeURIComponent(token)}`;
+};
+
+const formatFileSize = (bytes) => {
+  const size = Number(bytes);
+  if (!size || isNaN(size) || size <= 0) return '';
+  if (size < 1024) return `${size} B`;
+  if (size < 1024 * 1024) return `${Math.ceil(size / 1024)} KB`;
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+};
+
 const MessageBubble = memo(({ 
   msg, 
   user, 
@@ -127,11 +143,11 @@ const MessageBubble = memo(({
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <audio
               controls
-              src={msg.voiceUrl}
+              src={withAuthToken(msg.voiceUrl || msg.fileUrl)}
               style={{ width: '200px', height: '30px' }}
             />
             <span style={{ fontSize: '0.85rem', color: 'var(--muted)' }}>
-              {formatTime(msg.duration || 0)}
+              {formatTime(msg.duration || (msg.type === 'voice' ? msg.fileSize : 0) || 0)}
             </span>
           </div>
         );
@@ -157,13 +173,13 @@ const MessageBubble = memo(({
       return (
         <div style={{ maxWidth: '300px' }}>
           <img
-            src={msg.fileUrl}
+            src={withAuthToken(msg.fileUrl)}
             alt={fileName}
             style={{ width: '100%', borderRadius: 8, cursor: 'pointer' }}
-            onClick={() => window.open(msg.fileUrl, '_blank')}
+            onClick={() => window.open(withAuthToken(msg.fileUrl), '_blank')}
           />
           <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--muted)', marginTop: 4 }}>
-            {fileName} • {Math.ceil((msg.fileSize || 0) / 1024)} KB
+            {fileName} • {formatFileSize(msg.fileSize)}
           </div>
         </div>
       );
@@ -177,11 +193,11 @@ const MessageBubble = memo(({
             style={{ width: '100%', borderRadius: 8 }}
             preload="metadata"
           >
-            <source src={msg.fileUrl} type={`video/${fileType}`} />
+            <source src={withAuthToken(msg.fileUrl)} type={`video/${fileType}`} />
             {t('browser_no_video_support')}
           </video>
           <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--muted)', marginTop: 4 }}>
-            {fileName} • {Math.ceil((msg.fileSize || 0) / 1024)} KB
+            {fileName} • {formatFileSize(msg.fileSize)}
           </div>
         </div>
       );
@@ -191,7 +207,7 @@ const MessageBubble = memo(({
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
         {getThemedIcon('ui', 'paperclip', 16, theme)}
         <a
-          href={msg.fileUrl}
+          href={withAuthToken(msg.fileUrl)}
           target="_blank"
           rel="noopener noreferrer"
           style={{ color: 'var(--brand)', fontWeight: 600, textDecoration: 'underline' }}
@@ -200,7 +216,7 @@ const MessageBubble = memo(({
           {fileName}
         </a>
         <span style={{ fontSize: '0.8rem', opacity: 0.85, color: 'var(--muted)' }}>
-          {Math.ceil((msg.fileSize || 0) / 1024)} KB
+          {formatFileSize(msg.fileSize)}
         </span>
       </div>
     );

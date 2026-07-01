@@ -16,7 +16,7 @@ import { getUserProfile, updateUser } from '@services/business/userService';
 import { addNotification } from '@services/business/notificationService';
 import { chatService } from '@services/business/chatService';
 import { getChatServerTimestamp } from '@services/business/chatRealtimeService';
-import { useToast, Input } from '@ui';
+import { useToast, Input, ConfirmModal } from '@ui';
 import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import './ChatPage.css';
@@ -79,6 +79,31 @@ const withAuthToken = (url) => {
   return `${url}${sep}token=${encodeURIComponent(token)}`;
 };
 
+
+const formatFileSize = (bytes) => {
+  const size = Number(bytes);
+  if (!size || isNaN(size) || size <= 0) return '';
+  if (size < 1024) return `${size} B`;
+  if (size < 1024 * 1024) return `${Math.ceil(size / 1024)} KB`;
+  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+};
+
+const shortenFileName = (name) => {
+  if (!name) return '';
+  const ext = name.split('.').pop()?.toLowerCase() || '';
+  const extMap = {
+    'jpeg': 'JPG', 'jpg': 'JPG', 'png': 'PNG', 'gif': 'GIF', 'webp': 'WEBP',
+    'svg': 'SVG', 'pdf': 'PDF', 'doc': 'DOC', 'docx': 'DOC', 'ppt': 'PPT',
+    'pptx': 'PPT', 'xls': 'XLS', 'xlsx': 'XLS', 'mp4': 'MP4', 'webm': 'WEBM',
+    'mov': 'MOV', 'mp3': 'MP3', 'wav': 'WAV', 'ogg': 'OGG', 'txt': 'TXT',
+    'zip': 'ZIP', 'rar': 'RAR', 'json': 'JSON',
+  };
+  const shortExt = extMap[ext] || ext.toUpperCase();
+  const baseName = name.substring(0, name.lastIndexOf('.')) || name;
+  const maxBase = 20;
+  const truncated = baseName.length > maxBase ? baseName.substring(0, maxBase) + '…' : baseName;
+  return `${truncated}.${shortExt}`;
+};
 
 const getClassDisplayName = (cls, lang = 'en') => {
   if (!cls) return '';
@@ -153,6 +178,9 @@ const ChatPage = memo(() => {
   const [classMembers, setClassMembers] = useState([]);
   const [showMembers, setShowMembers] = useState(false);
   const [directRooms, setDirectRooms] = useState([]);
+  const [pendingDMUserName, setPendingDMUserName] = useState('');
+  const [showLeaveGroupConfirm, setShowLeaveGroupConfirm] = useState(false);
+  const [imageLightbox, setImageLightbox] = useState(null);
   const [userHasInteracted, setUserHasInteracted] = useState(false);
   const [allUsers, setAllUsers] = useState([]);
   const [memberSearch, setMemberSearch] = useState('');
@@ -285,6 +313,7 @@ const ChatPage = memo(() => {
     safeClassMembers,
     safeDirectRooms,
     setDirectRooms,
+    setPendingDMUserName,
     isAdmin,
     isSuperAdmin,
     isInstructor,
@@ -367,12 +396,65 @@ const ChatPage = memo(() => {
     }
   }, [t, toast, setMessages, user]);
 
+  // Handle leave group confirmation
+  const handleLeaveGroupConfirm = useCallback(async () => {
+    const groupId = parseInt(selectedClass.split(':')[1]);
+    setShowLeaveGroupConfirm(false);
+    try {
+      const result = await chatService.leaveGroupRoom(groupId, user?.dbId);
+      if (result.success) {
+        toast?.showSuccess(t('chat_left_group'));
+        setSelectedClass('global');
+        try {
+          const roomsResult = await chatService.getUserRooms();
+          if (roomsResult.success) {
+            const rooms = [];
+            roomsResult.data.forEach(r => {
+              if (r.type === 'dm') {
+                rooms.push({
+                  id: r.id,
+                  participantA: r.participantA,
+                  participantB: r.participantB,
+                  userA: r.userA,
+                  userB: r.userB,
+                  type: 'dm',
+                  lastMessage: null,
+                  createdAt: r.createdAt
+                });
+              } else if (r.type === 'group') {
+                rooms.push({
+                  id: r.id,
+                  type: 'group',
+                  name: r.name,
+                  createdBy: r.createdBy,
+                  participants: r.participants,
+                  creator: r.creator,
+                  lastMessage: null,
+                  createdAt: r.createdAt
+                });
+              }
+            });
+            setDirectRooms(rooms);
+          }
+        } catch (e) {
+          error('Failed to refresh rooms after leaving group:', e);
+        }
+      } else {
+        toast?.showError(t('chat_leave_group_failed'));
+      }
+    } catch (err) {
+      error('Failed to leave group:', err);
+      toast?.showError(t('chat_leave_group_failed'));
+    }
+  }, [selectedClass, user, toast, t, setSelectedClass, setDirectRooms]);
+
   // Handle class change
   const handleClassChange = useCallback((classId) => {
     userHasInteractedRef.current = true;
     setUserHasInteracted(true);
     selectedClassRef.current = classId;
     setSelectedClass(classId);
+    if (!classId?.startsWith('dm:')) setPendingDMUserName('');
   }, [setSelectedClass, setUserHasInteracted]);
 
   // Open New DM picker - load available users
@@ -396,6 +478,10 @@ const ChatPage = memo(() => {
   const startDMFromPicker = useCallback(async (otherUser) => {
     const otherUserId = otherUser?.id || otherUser?.docId || otherUser?.uid;
     if (!otherUserId) return;
+    const pendingName = otherUser?.displayName || 
+      [otherUser?.firstName, otherUser?.lastName].filter(Boolean).join(' ') ||
+      otherUser?.email || '';
+    if (pendingName) setPendingDMUserName(pendingName);
     try {
       const result = await chatService.createDM(otherUserId);
       if (result.success && result.data) {
@@ -465,6 +551,7 @@ const ChatPage = memo(() => {
   const [archivedClasses, setArchivedClasses] = useState({}); // Start with empty object to show classes
   const [showArchived, setShowArchived] = useState(false);
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [showStarredOnly, setShowStarredOnly] = useState(false);
   const [showSearch, setShowSearch] = useState(false);
   const [isNavbarCollapsed, setIsNavbarCollapsed] = useState(() => {
     try { return localStorage.getItem('navbarCollapsed') === 'true'; } catch { return false; }
@@ -474,17 +561,32 @@ const ChatPage = memo(() => {
   const messagesEndRef = useRef(null);
   const [myMessageColor, setMyMessageColor] = useState(null);
   const hasHighlightedRef = useRef(null);
-  const [chatWallpaper, setChatWallpaper] = useState(() => getStoredWallpaper());
+  const [chatWallpaper, setChatWallpaper] = useState(() => getStoredWallpaper(selectedClass));
   const [wallpaperNonce, setWallpaperNonce] = useState(0);
 
   useEffect(() => {
     const handler = () => {
-      setChatWallpaper(getStoredWallpaper());
+      setChatWallpaper(getStoredWallpaper(selectedClass));
       setWallpaperNonce(n => n + 1);
     };
     window.addEventListener('chatWallpaperChange', handler);
     return () => window.removeEventListener('chatWallpaperChange', handler);
-  }, []);
+  }, [selectedClass]);
+
+  // Reload wallpaper when switching chats
+  useEffect(() => {
+    setChatWallpaper(getStoredWallpaper(selectedClass));
+    setShowStarredOnly(false);
+  }, [selectedClass]);
+
+  useEffect(() => {
+    if (!selectedClass?.startsWith('dm:')) return;
+    const dmId = parseInt(selectedClass.split(':')[1]);
+    const room = directRooms.find(r => r.id === dmId);
+    if (room && (room.userA || room.userB)) {
+      setPendingDMUserName('');
+    }
+  }, [selectedClass, directRooms]);
 
   const loadMessages = useCallback(() => {
     let chatType, chatId;
@@ -1555,7 +1657,7 @@ const ChatPage = memo(() => {
                       onMouseOver={(e) => { e.currentTarget.style.transform = 'scale(1.12)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(129, 12, 41, 0.45)'; }}
                       onMouseOut={(e) => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(129, 12, 41, 0.3)'; }}
                     >
-                      +
+                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
                     </button>
                   )}
                 </div>
@@ -1743,32 +1845,29 @@ const ChatPage = memo(() => {
                       {otherUser && <RoleBadge user={otherUser} />}
                       {(() => { const c = unreadCounts[`dm:${room.id}`]||0; if (c>0) { return (<span style={{background:'var(--brand)',color:'white',borderRadius:'50%',minWidth:18,height:18,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.7rem',fontWeight:'bold',padding:'0 5px'}}>{c>99?'99+':c}</span>);} return null; })()}
                     </div>
-                    <div style={{ fontSize: '0.8rem', color: 'var(--muted)', display:'flex', justifyContent:'space-between', gap: 8 }}>
-                      <span style={{ whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{room.lastMessage || ''}</span>
-                      <span style={{ color: 'var(--muted)', marginLeft: 8 }}>
-                        {lastTime ? formatDateTime(lastTime) : ''}
-                      </span>
-                    </div>
-                    {/* Operations row (icons) */}
-                    <div style={{ display:'flex', gap:4, marginTop:4, alignItems:'center' }}>
-                      <button
-                        onClick={(e) => { e.stopPropagation(); toggleStar(room); }}
-                        title={(room.starBy || []).includes(user.uid) ? t('unfavorite') : t('favorite')}
-                        style={{ background:'transparent', border:'none', cursor:'pointer', color:(room.starBy||[]).includes(user.uid)?'#facc15':'var(--muted)', fontSize:'0.85rem', lineHeight:1, padding:0, display:'flex', alignItems:'center' }}
-                      >{(room.starBy||[]).includes(user.uid)?'★':'☆'}</button>
-                      <button
-                        onClick={async (e) => {
-                          e.stopPropagation();
-                          try {
-                            const next = { ...archivedRooms };
-                            if (next[room.id]) delete next[room.id]; else next[room.id] = true;
-                            setArchivedRooms(next);
-                            await updateUser(user.uid, { archivedRooms: next });
-                          } catch {}
-                        }}
-                        title={archivedRooms[room.id] ? t('unarchive') : t('archive')}
-                        style={{ background:'transparent', border:'none', cursor:'pointer', color:'var(--muted)', fontSize:'0.85rem', lineHeight:1, padding:0, display:'flex', alignItems:'center' }}
-                      >{archivedRooms[room.id] ? getThemedIcon('ui', 'upload', 14, theme) : getThemedIcon('ui', 'download', 14, theme)}</button>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--muted)', display:'flex', justifyContent:'space-between', alignItems:'center', gap: 8 }}>
+                      <span style={{ whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', flex:1 }}>{room.lastMessage || ''}</span>
+                      <div style={{ display:'flex', gap:2, alignItems:'center', flexShrink:0 }}>
+                        <button
+                          onClick={(e) => { e.stopPropagation(); toggleStar(room); }}
+                          style={{ background:'transparent', border:'none', cursor:'pointer', color:(room.starBy||[]).includes(user.uid)?'#facc15':'var(--muted)', fontSize:'0.85rem', lineHeight:1, padding:'0 2px', display:'flex', alignItems:'center' }}
+                        >{(room.starBy||[]).includes(user.uid)?'★':'☆'}</button>
+                        <button
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            try {
+                              const next = { ...archivedRooms };
+                              if (next[room.id]) delete next[room.id]; else next[room.id] = true;
+                              setArchivedRooms(next);
+                              await updateUser(user.uid, { archivedRooms: next });
+                            } catch {}
+                          }}
+                          style={{ background:'transparent', border:'none', cursor:'pointer', color:'var(--muted)', fontSize:'0.85rem', lineHeight:1, padding:'0 2px', display:'flex', alignItems:'center' }}
+                        >{archivedRooms[room.id] ? getThemedIcon('ui', 'upload', 14, theme) : getThemedIcon('ui', 'download', 14, theme)}</button>
+                        {lastTime && <span style={{ color: 'var(--muted)', marginLeft: 4 }}>
+                          {formatDateTime(lastTime)}
+                        </span>}
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1856,7 +1955,7 @@ const ChatPage = memo(() => {
                       const isSelfDM = room && room.participantA === room.participantB && room.participantA != null;
                       if (isSelfDM) return t('your_notes') || 'Your Notes';
                       const otherUser = (room?.userA?.id === user?.dbId || (user?.email && room?.userA?.email === user?.email)) ? room?.userB : room?.userA;
-                      return otherUser ? getChatUserDisplayName(otherUser, lang) || otherUser.email || t('direct_message') : t('direct_message');
+                      return otherUser ? getChatUserDisplayName(otherUser, lang) || otherUser.email || t('direct_message') : (pendingDMUserName || t('direct_message'));
                     })()
                    : selectedClass?.startsWith('group:')
                      ? (()=>{ 
@@ -1961,56 +2060,7 @@ const ChatPage = memo(() => {
                     )}
                     {!isCreator && (
                       <button
-                        onClick={async () => {
-                          if (!confirm(t('chat_leave_group_confirm'))) return;
-                          try {
-                            const result = await chatService.leaveGroupRoom(groupId, user?.dbId);
-                            if (result.success) {
-                              toast?.showSuccess(t('chat_left_group'));
-                              setSelectedClass('global');
-                              // Refresh rooms to remove the left group from sidebar
-                              try {
-                                const roomsResult = await chatService.getUserRooms();
-                                if (roomsResult.success) {
-                                  const rooms = [];
-                                  roomsResult.data.forEach(r => {
-                                    if (r.type === 'dm') {
-                                      rooms.push({
-                                        id: r.id,
-                                        participantA: r.participantA,
-                                        participantB: r.participantB,
-                                        userA: r.userA,
-                                        userB: r.userB,
-                                        type: 'dm',
-                                        lastMessage: null,
-                                        createdAt: r.createdAt
-                                      });
-                                    } else if (r.type === 'group') {
-                                      rooms.push({
-                                        id: r.id,
-                                        type: 'group',
-                                        name: r.name,
-                                        createdBy: r.createdBy,
-                                        participants: r.participants,
-                                        creator: r.creator,
-                                        lastMessage: null,
-                                        createdAt: r.createdAt
-                                      });
-                                    }
-                                  });
-                                  setDirectRooms(rooms);
-                                }
-                              } catch (e) {
-                                error('Failed to refresh rooms after leaving group:', e);
-                              }
-                            } else {
-                              toast?.showError(t('chat_leave_group_failed'));
-                            }
-                          } catch (err) {
-                            error('Failed to leave group:', err);
-                            toast?.showError(t('chat_leave_group_failed'));
-                          }
-                        }}
+                        onClick={() => setShowLeaveGroupConfirm(true)}
                         style={{ fontSize: '0.7rem', background: 'transparent', color: '#dc2626', border: '1px solid #dc262640', borderRadius: 6, padding: '2px 8px', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3, transition: 'all 0.2s' }}
                         onMouseEnter={(e) => { e.target.style.background = '#dc2626'; e.target.style.color = 'white'; }}
                         onMouseLeave={(e) => { e.target.style.background = 'transparent'; e.target.style.color = '#dc2626'; }}
@@ -2045,7 +2095,7 @@ const ChatPage = memo(() => {
             </span>
             
           </div>
-          {/* Search Button */}
+          {/* Search & Starred Buttons */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <button
               data-tour="chat-search"
@@ -2072,7 +2122,56 @@ const ChatPage = memo(() => {
             >
               {getThemedIcon('ui', 'search', 16, theme)}
             </button>
-            <ChatWallpaperPicker theme={theme} t={t} />
+            <button
+              type="button"
+              onClick={() => setShowStarredOnly(!showStarredOnly)}
+              title={t('starred_messages') || 'Starred Messages'}
+              style={{ 
+                background: showStarredOnly ? 'rgba(250,204,21,0.15)' : 'transparent', 
+                border: showStarredOnly ? '1px solid #facc15' : '1px solid var(--border)',
+                borderRadius: 8,
+                cursor:'pointer', 
+                color: showStarredOnly ? '#facc15' : 'var(--muted)',
+                padding: '0.5rem',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 32,
+                height: 32,
+                transition: 'all 0.2s',
+                position: 'relative',
+              }}
+              onMouseOver={(e)=>{ if (!showStarredOnly) { e.currentTarget.style.background='var(--background)'; e.currentTarget.style.borderColor='var(--brand)'; } }}
+              onMouseOut={(e)=>{ if (!showStarredOnly) { e.currentTarget.style.background='transparent'; e.currentTarget.style.borderColor='var(--border)'; } }}
+            >
+              {getIconWithColor('ui', 'star', 16, showStarredOnly ? '#facc15' : 'currentColor')}
+              {(() => {
+                const starredCount = (messages || []).filter(m => {
+                  const starredBy = Array.isArray(m.starredBy) ? m.starredBy : [];
+                  return starredBy.includes(user?.dbId) || starredBy.includes(user?.uid);
+                }).length;
+                if (starredCount === 0) return null;
+                return (
+                  <span style={{
+                    position: 'absolute',
+                    top: -6,
+                    insetInlineEnd: -6,
+                    background: '#facc15',
+                    color: '#000',
+                    fontSize: '0.65rem',
+                    fontWeight: 700,
+                    borderRadius: '50%',
+                    minWidth: 16,
+                    height: 16,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    padding: '0 4px',
+                  }}>{starredCount}</span>
+                );
+              })()}
+            </button>
+            <ChatWallpaperPicker theme={theme} t={t} roomId={selectedClass} />
           </div>
         </div>
 
@@ -2187,12 +2286,45 @@ const ChatPage = memo(() => {
           </div>
         )}
 
+        {/* Starred filter banner */}
+        {showStarredOnly && (
+          <div style={{
+            padding: '0.4rem 1rem',
+            background: 'rgba(250,204,21,0.08)',
+            borderBottom: '1px solid rgba(250,204,21,0.2)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            fontSize: '0.8rem',
+            color: '#facc15',
+            fontWeight: 600,
+          }}>
+            <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+              {getIconWithColor('ui', 'star', 14, '#facc15')}
+              {t('starred_messages') || 'Starred Messages'}
+            </span>
+            <button
+              onClick={() => setShowStarredOnly(false)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#facc15',
+                cursor: 'pointer',
+                fontSize: '0.75rem',
+                fontWeight: 600,
+                padding: '2px 8px',
+                borderRadius: 4,
+              }}
+            >✕</button>
+          </div>
+        )}
+
         {/* Messages */}
         <div ref={scrollContainerRef} style={{
           flex: 1,
           overflowY: 'auto',
           padding: '0.9rem',
-          ...getWallpaperStyle(chatWallpaper, theme === 'dark')
+          ...getWallpaperStyle(chatWallpaper, theme === 'dark', selectedClass)
         }}>
           {(() => {
             const q = (msgQuery || '').trim().toLowerCase();
@@ -2212,6 +2344,13 @@ const ChatPage = memo(() => {
             // Apply regular message search
             if (q) {
               list = list.filter(m => (m.content || '').toLowerCase().includes(q) || (m.fileName || '').toLowerCase().includes(q));
+            }
+            // Apply starred-only filter
+            if (showStarredOnly) {
+              list = list.filter(m => {
+                const starredBy = Array.isArray(m.starredBy) ? m.starredBy : [];
+                return starredBy.includes(user?.dbId) || starredBy.includes(user?.uid);
+              });
             }
             if (!list || list.length === 0) {
               return (
@@ -2233,7 +2372,7 @@ const ChatPage = memo(() => {
                     justifyContent: 'center',
                     marginBottom: '1rem',
                   }}>
-                    {(msgQuery?.trim() || globalChatSearch) ? '🔍' : <img src="/qaf_logo_transparent.png" alt="QAF" style={{ width: 64, height: 64, objectFit: 'contain', opacity: 0.5 }} />}
+                    {(msgQuery?.trim() || globalChatSearch || showStarredOnly) ? '🔍' : <img src="/qaf_logo_transparent.png" alt="QAF" style={{ width: 64, height: 64, objectFit: 'contain', opacity: 0.5 }} />}
                   </div>
                   <p style={{
                     color: theme === 'dark' ? 'rgba(255,255,255,0.45)' : 'rgba(100,110,130,0.7)',
@@ -2243,7 +2382,7 @@ const ChatPage = memo(() => {
                     maxWidth: 320,
                     lineHeight: 1.6,
                   }}>
-                    {(msgQuery?.trim() || globalChatSearch) ? (t('no_messages_found')) : (t('no_messages'))}
+                    {showStarredOnly ? (t('no_starred_messages') || 'No starred messages yet. Star a message by clicking the star icon.') : (msgQuery?.trim() || globalChatSearch) ? (t('no_messages_found')) : (t('no_messages'))}
                   </p>
                 </div>
               );
@@ -2368,17 +2507,23 @@ const ChatPage = memo(() => {
                     )}
 
                     {/* Message Content */}
-                    {msg.messageType === 'voice' ? (
+                    {msg.messageType === 'voice' || (msg.type === 'voice' && msg.fileUrl) ? (
+                      (() => {
+                        const voiceUrl = msg.voiceUrl || msg.fileUrl;
+                        const duration = msg.duration || (msg.type === 'voice' ? msg.fileSize : 0) || 0;
+                        return (
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <audio
                           controls
-                          src={withAuthToken(msg.voiceUrl)}
+                          src={withAuthToken(voiceUrl)}
                           style={{ width: '200px', height: '30px' }}
                         />
                         <span style={{ fontSize: '0.85rem', color: 'var(--muted)' }}>
-                          {formatTime(msg.duration || 0)}
+                          {formatTime(duration)}
                         </span>
                       </div>
+                        );
+                      })()
                     ) : msg.messageType === 'file' ? (
                       (() => {
                         const fileName = msg.fileName || t('attachment');
@@ -2393,10 +2538,10 @@ const ChatPage = memo(() => {
                                 src={withAuthToken(msg.fileUrl)}
                                 alt={fileName}
                                 style={{ width: '100%', borderRadius: 8, cursor: 'pointer' }}
-                                onClick={() => window.open(withAuthToken(msg.fileUrl), '_blank')}
+                                onClick={() => setImageLightbox(withAuthToken(msg.fileUrl))}
                               />
                               <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--muted)', marginTop: 4 }}>
-                                {fileName} • {(msg.fileSize ? Math.ceil(msg.fileSize/1024) : 0)} KB
+                                {shortenFileName(fileName)} • {formatFileSize(msg.fileSize)}
                               </div>
                             </div>
                           );
@@ -2412,7 +2557,7 @@ const ChatPage = memo(() => {
                                 {t('browser_no_video_support')}
                               </video>
                               <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--muted)', marginTop: 4 }}>
-                                {fileName} • {(msg.fileSize ? Math.ceil(msg.fileSize/1024) : 0)} KB
+                                {shortenFileName(fileName)} • {formatFileSize(msg.fileSize)}
                               </div>
                             </div>
                           );
@@ -2427,10 +2572,10 @@ const ChatPage = memo(() => {
                                 style={{ color: 'var(--brand)', fontWeight: 600, textDecoration: 'underline' }}
                                 download
                               >
-                                {fileName}
+                                {shortenFileName(fileName)}
                               </a>
                               <span style={{ fontSize: '0.8rem', opacity: 0.85, color: 'var(--muted)' }}>
-                                {(msg.fileSize ? Math.ceil(msg.fileSize/1024) : 0)} KB
+                                {formatFileSize(msg.fileSize)}
                               </span>
                             </div>
                           );
@@ -2521,7 +2666,22 @@ const ChatPage = memo(() => {
                         // Hide standalone token-like strings (e.g., zRG... with no spaces/links)
                         const looksLikeToken = /^[A-Za-z0-9+/_=-]{20,}$/.test(text) && !text.includes('http');
                         if (looksLikeToken) return null;
-                        return <div>{text}</div>;
+                        // Linkify URLs in text, preserving line breaks
+                        const urlRegex = /(https?:\/\/[^\s]+)/g;
+                        const lines = text.split('\n');
+                        return (
+                          <div>
+                            {lines.map((line, i) => (
+                              <div key={i}>
+                                {line.split(urlRegex).map((part, j) => 
+                                  urlRegex.test(part) 
+                                    ? <a key={j} href={part} target="_blank" rel="noopener noreferrer" style={{ color: 'inherit', textDecoration: 'underline' }}>{part}</a>
+                                    : <span key={j}>{part}</span>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        );
                       })()
                     )}
 
@@ -2714,7 +2874,6 @@ const ChatPage = memo(() => {
                         const rect = e.currentTarget.getBoundingClientRect();
                         setReactionMenu({ msgId: msg.id, x: rect.left, y: rect.bottom + 4 }); 
                       }}
-                      title={t('react')}
                       style={{ 
                         position:'absolute', 
                         bottom: -14, 
@@ -2846,7 +3005,6 @@ const ChatPage = memo(() => {
                       return (
                         <span
                           style={{ position:'absolute', top:-10, insetInlineStart: -10, display:'flex', alignItems:'center', justifyContent:'center', width:24, height:24, background:'var(--panel)', borderRadius:'50%', boxShadow:'0 2px 8px rgba(0,0,0,0.15)', border:'2px solid #facc15' }}
-                          title={t('starred') || 'Starred'}
                         >
                           {getIconWithColor('ui', 'star', 16, '#facc15')}
                         </span>
@@ -2857,7 +3015,6 @@ const ChatPage = memo(() => {
                     <button
                       onMouseDown={(e)=>e.stopPropagation()}
                       onClick={(e)=>{ e.stopPropagation(); setMenuOpenId(menuOpenId===msg.id?null:msg.id); }}
-                      title={t('more')}
                       style={{ position:'absolute', top:4, insetInlineEnd: 4, background:'transparent', border:'none', color:'var(--text)', cursor:'pointer', fontSize: 'var(--font-size-md)', padding:'2px 4px', lineHeight:1, opacity:0.8 }}
                     >⋮</button>
                     {menuOpenId===msg.id && (
@@ -3677,6 +3834,62 @@ const ChatPage = memo(() => {
             <button onClick={handleSaveEdit} style={{ background:'linear-gradient(135deg, #800020, #600018)', color:'#fff', border:'none', borderRadius:8, padding:'8px 12px', cursor:'pointer' }}>{t('save')}</button>
           </div>
         </div>
+      </div>
+    )}
+
+    {/* Leave Group Confirmation Modal */}
+    <ConfirmModal
+      isOpen={showLeaveGroupConfirm}
+      onClose={() => setShowLeaveGroupConfirm(false)}
+      onConfirm={handleLeaveGroupConfirm}
+      title={t('chat_leave_group') || 'Leave Group'}
+      message={t('chat_leave_group_confirm') || 'Are you sure you want to leave this group?'}
+      confirmText={t('chat_leave_group') || 'Leave'}
+      cancelText={t('cancel') || 'Cancel'}
+      variant="danger"
+      size="small"
+    />
+
+    {/* Image Lightbox */}
+    {imageLightbox && (
+      <div
+        onClick={() => setImageLightbox(null)}
+        style={{
+          position: 'fixed',
+          inset: 0,
+          zIndex: 9999,
+          background: 'rgba(0,0,0,0.85)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          cursor: 'zoom-out',
+        }}
+      >
+        <img
+          src={imageLightbox}
+          alt="Preview"
+          style={{ maxWidth: '90vw', maxHeight: '90vh', objectFit: 'contain', borderRadius: 8 }}
+          onClick={(e) => e.stopPropagation()}
+        />
+        <button
+          onClick={() => setImageLightbox(null)}
+          style={{
+            position: 'absolute',
+            top: 16,
+            right: 16,
+            background: 'rgba(255,255,255,0.15)',
+            border: 'none',
+            color: 'white',
+            fontSize: 24,
+            cursor: 'pointer',
+            borderRadius: '50%',
+            width: 40,
+            height: 40,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >✕</button>
       </div>
     )}
 

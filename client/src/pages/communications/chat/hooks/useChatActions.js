@@ -58,6 +58,7 @@ export const useChatActions = (user, state, toast, t) => {
     safeAllUsers,
     safeDirectRooms,
     setDirectRooms,
+    setPendingDMUserName,
     safeClassMembers,
     memberReads,
     receiptsFor,
@@ -481,6 +482,12 @@ export const useChatActions = (user, state, toast, t) => {
       });
       return;
     }
+
+    // Set pending name so header shows the person's name immediately
+    const pendingName = otherUser?.displayName || 
+      [otherUser?.firstName, otherUser?.lastName].filter(Boolean).join(' ') ||
+      otherUser?.email || '';
+    if (pendingName) setPendingDMUserName(pendingName);
     
     try {
       const result = await chatService.createDM(otherUserDbId);
@@ -526,7 +533,7 @@ export const useChatActions = (user, state, toast, t) => {
       error('Open DM failed:', err);
       toast?.showError(t('failed_to_start_conversation'));
     }
-  }, [user, setSelectedClass, setUserHasInteracted, setShowMembers, setDirectRooms, toast]);
+  }, [user, setSelectedClass, setUserHasInteracted, setShowMembers, setDirectRooms, setPendingDMUserName, toast]);
 
   const toggleStar = useCallback(async (room) => {
     try {

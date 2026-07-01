@@ -174,9 +174,19 @@ export const keycloakAuth = (requiredRoles = []) => {
       }
       // NOTE: a `?token=` query-string fallback used to exist here for
       // <audio>/<img> tags. It was removed because it leaks bearer tokens
-      // into server logs, browser history, and Referer headers, and no
-      // current frontend code relies on it (media requests use the
-      // Authorization header or the httpOnly `kc_token` cookie instead).
+      // into server logs, browser history, and Referer headers.
+      // Re-enabled ONLY for media preview endpoints (chat-file-preview, user-images/proxy)
+      // where <audio>/<img>/<video> tags cannot send Authorization headers.
+      if (!token) {
+        const isMediaEndpoint = req.method === 'GET' && (
+          req.originalUrl?.includes('/chat-file-preview/') ||
+          req.originalUrl?.includes('/user-images/proxy/')
+        );
+        if (isMediaEndpoint) {
+          const queryToken = req.query.token;
+          if (queryToken) token = queryToken;
+        }
+      }
       if (!token) {
         console.log(`[keycloakAuth] No token found for ${req.originalUrl}`);
         return res.status(401).json({

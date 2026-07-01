@@ -208,14 +208,14 @@ export const getUserRooms = async (userId, roles = [], enrolledClassIds = []) =>
       include: {
         userA: {
           select: {
-            id: true, firstName: true, lastName: true, email: true, profileImageUrl: true,
+            id: true, firstName: true, lastName: true, email: true, profileImageUrl: true, keycloakId: true,
             displayName: true, displayNameAr: true, firstNameAr: true, lastNameAr: true,
             roleAssignments: { include: { role: { select: { code: true, nameEn: true } } } }
           }
         },
         userB: {
           select: {
-            id: true, firstName: true, lastName: true, email: true, profileImageUrl: true,
+            id: true, firstName: true, lastName: true, email: true, profileImageUrl: true, keycloakId: true,
             displayName: true, displayNameAr: true, firstNameAr: true, lastNameAr: true,
             roleAssignments: { include: { role: { select: { code: true, nameEn: true } } } }
           }
@@ -244,7 +244,8 @@ export const getUserRooms = async (userId, roles = [], enrolledClassIds = []) =>
             firstName: true,
             lastName: true,
             displayName: true,
-            profileImageUrl: true
+            profileImageUrl: true,
+            keycloakId: true
           }
         },
         participants: {
@@ -257,6 +258,7 @@ export const getUserRooms = async (userId, roles = [], enrolledClassIds = []) =>
                 displayName: true,
                 email: true,
                 profileImageUrl: true,
+                keycloakId: true,
                 studentNumber: true,
                 roleAssignments: {
                   include: {
@@ -657,6 +659,7 @@ export const getAvailableDMUsers = async (userId, userRoles = []) => {
         displayName: true,
         email: true,
         profileImageUrl: true,
+        keycloakId: true,
         isActive: true,
         studentNumber: true,
         roleAssignments: {

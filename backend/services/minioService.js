@@ -175,7 +175,9 @@ export async function streamObject({ bucket, objectKey, req, res, filename, mime
     // Use inline for images and PDFs to allow browser preview, attachment for other types
     const isImage = mimeType && mimeType.startsWith('image/');
     const isPdf = mimeType === 'application/pdf';
-    const disposition = (isImage || isPdf) ? 'inline' : 'attachment';
+    const isAudio = mimeType && mimeType.startsWith('audio/');
+    const isVideo = mimeType && mimeType.startsWith('video/');
+    const disposition = (isImage || isPdf || isAudio || isVideo) ? 'inline' : 'attachment';
     res.setHeader('Content-Disposition', `${disposition}; filename="${safe}"`);
   }
 

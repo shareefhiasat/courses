@@ -198,37 +198,74 @@ const WALLPAPER_THEMES = [
 
 // ─── Storage Helpers ────────────────────────────────────────────────────────
 
-export function getStoredWallpaper() {
-  try { return localStorage.getItem(STORAGE_KEY) || 'solid'; } catch { return 'solid'; }
+export function getStoredWallpaper(roomId) {
+  try {
+    if (roomId) {
+      const roomKey = `${STORAGE_KEY}_${roomId}`;
+      const roomVal = localStorage.getItem(roomKey);
+      if (roomVal) return roomVal;
+    }
+    return localStorage.getItem(STORAGE_KEY) || 'solid';
+  } catch { return 'solid'; }
 }
 
-export function storeWallpaper(id) {
-  try { localStorage.setItem(STORAGE_KEY, id); } catch {}
+export function storeWallpaper(id, roomId) {
+  try {
+    if (roomId) {
+      localStorage.setItem(`${STORAGE_KEY}_${roomId}`, id);
+    } else {
+      localStorage.setItem(STORAGE_KEY, id);
+    }
+  } catch {}
 }
 
-export function getStoredBgColor() {
-  try { return localStorage.getItem(STORAGE_KEY_BG) || null; } catch { return null; }
+export function getStoredBgColor(roomId) {
+  try {
+    if (roomId) {
+      const roomVal = localStorage.getItem(`${STORAGE_KEY_BG}_${roomId}`);
+      if (roomVal !== null) return roomVal;
+    }
+    return localStorage.getItem(STORAGE_KEY_BG) || null;
+  } catch { return null; }
 }
 
-export function storeBgColor(color) {
-  try { localStorage.setItem(STORAGE_KEY_BG, color); } catch {}
+export function storeBgColor(color, roomId) {
+  try {
+    if (roomId) {
+      localStorage.setItem(`${STORAGE_KEY_BG}_${roomId}`, color);
+    } else {
+      localStorage.setItem(STORAGE_KEY_BG, color);
+    }
+  } catch {}
 }
 
-export function getStoredPatternColor() {
-  try { return localStorage.getItem(STORAGE_KEY_PATTERN) || null; } catch { return null; }
+export function getStoredPatternColor(roomId) {
+  try {
+    if (roomId) {
+      const roomVal = localStorage.getItem(`${STORAGE_KEY_PATTERN}_${roomId}`);
+      if (roomVal !== null) return roomVal;
+    }
+    return localStorage.getItem(STORAGE_KEY_PATTERN) || null;
+  } catch { return null; }
 }
 
-export function storePatternColor(color) {
-  try { localStorage.setItem(STORAGE_KEY_PATTERN, color); } catch {}
+export function storePatternColor(color, roomId) {
+  try {
+    if (roomId) {
+      localStorage.setItem(`${STORAGE_KEY_PATTERN}_${roomId}`, color);
+    } else {
+      localStorage.setItem(STORAGE_KEY_PATTERN, color);
+    }
+  } catch {}
 }
 
 // ─── Style Generator ─────────────────────────────────────────────────────────
 
-export function getWallpaperStyle(patternId, isDark) {
+export function getWallpaperStyle(patternId, isDark, roomId) {
   const wp = WALLPAPER_THEMES.find(w => w.id === patternId) || WALLPAPER_THEMES[0];
   const defaults = isDark ? wp.defaultDark : wp.defaultLight;
-  const bg = getStoredBgColor() || defaults.bg;
-  const pattern = getStoredPatternColor() || defaults.pattern;
+  const bg = getStoredBgColor(roomId) || defaults.bg;
+  const pattern = getStoredPatternColor(roomId) || defaults.pattern;
   return wp.generate(bg, pattern);
 }
 
@@ -255,11 +292,11 @@ const PATTERN_PRESETS = [
 
 // ─── Component ───────────────────────────────────────────────────────────────
 
-const ChatWallpaperPicker = ({ theme, t }) => {
+const ChatWallpaperPicker = ({ theme, t, roomId }) => {
   const [open, setOpen] = useState(false);
-  const [selected, setSelected] = useState(() => getStoredWallpaper());
-  const [bgColor, setBgColor] = useState(() => getStoredBgColor() || '');
-  const [patternColor, setPatternColor] = useState(() => getStoredPatternColor() || '');
+  const [selected, setSelected] = useState(() => getStoredWallpaper(roomId));
+  const [bgColor, setBgColor] = useState(() => getStoredBgColor(roomId) || '');
+  const [patternColor, setPatternColor] = useState(() => getStoredPatternColor(roomId) || '');
   const popoverRef = useRef(null);
   const buttonRef = useRef(null);
   const isDark = theme === 'dark';
@@ -292,27 +329,27 @@ const ChatWallpaperPicker = ({ theme, t }) => {
 
   const handleSelectPattern = (id) => {
     setSelected(id);
-    storeWallpaper(id);
+    storeWallpaper(id, roomId);
     fireChangeEvent();
   };
 
   const handleBgColorChange = (color) => {
     setBgColor(color);
-    storeBgColor(color);
+    storeBgColor(color, roomId);
     fireChangeEvent();
   };
 
   const handlePatternColorChange = (color) => {
     setPatternColor(color);
-    storePatternColor(color);
+    storePatternColor(color, roomId);
     fireChangeEvent();
   };
 
   const handleResetColors = () => {
     setBgColor('');
     setPatternColor('');
-    storeBgColor('');
-    storePatternColor('');
+    storeBgColor('', roomId);
+    storePatternColor('', roomId);
     fireChangeEvent();
   };
 
@@ -492,7 +529,7 @@ const ChatWallpaperPicker = ({ theme, t }) => {
                   />
                   {bgColor && (
                     <button
-                      onClick={() => { setBgColor(''); storeBgColor(''); fireChangeEvent(); }}
+                      onClick={() => { setBgColor(''); storeBgColor('', roomId); fireChangeEvent(); }}
                       title="Reset"
                       style={{
                         background: 'transparent',
@@ -558,7 +595,7 @@ const ChatWallpaperPicker = ({ theme, t }) => {
                     />
                     {patternColor && (
                       <button
-                        onClick={() => { setPatternColor(''); storePatternColor(''); fireChangeEvent(); }}
+                        onClick={() => { setPatternColor(''); storePatternColor('', roomId); fireChangeEvent(); }}
                         title="Reset"
                         style={{
                           background: 'transparent',

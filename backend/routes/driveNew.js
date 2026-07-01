@@ -701,9 +701,17 @@ router.get('/chat-file-preview/:filePath', async (req, res) => {
       webm: 'audio/webm', mp3: 'audio/mpeg', wav: 'audio/wav', ogg: 'audio/ogg',
       png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg', gif: 'image/gif',
       pdf: 'application/pdf', txt: 'text/plain', json: 'application/json',
-      mp4: 'video/mp4', webm_video: 'video/webm',
+      mp4: 'video/mp4', mov: 'video/quicktime',
     };
-    const mimeType = mimeMap[ext] || 'application/octet-stream';
+    let mimeType = mimeMap[ext] || 'application/octet-stream';
+
+    // Try to get the actual content type from MinIO metadata
+    try {
+      const { minioClient } = await import('../services/minioService.js');
+      const stat = await minioClient.statObject(bucket, filePath);
+      const metaContentType = stat.metaData?.['content-type'] || stat.metaData?.['Content-Type'];
+      if (metaContentType) mimeType = metaContentType;
+    } catch {}
 
     await streamObject({ bucket, objectKey: filePath, req, res, filename, mimeType });
   } catch (err) {
