@@ -2,7 +2,8 @@ import React, { useState } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
 import { getLocalizedUserName } from '@utils/localizedUserName';
-import { getThemedIcon } from '@constants/iconTypes';
+import { getThemedIcon, getUserRoleIcon, getUserRoleColor } from '@constants/iconTypes';
+import { getUserRoleFromObject } from '@utils/userUtils';
 import { ATTENDANCE_TYPE_CATEGORY, getAttendanceColor, getAttendanceIcon } from '@constants/attendanceTypes';
 import { CheckSmallIcon, ClockSmallIcon, XSmallIcon, HeartIcon, CircleIcon } from '@utils/icons.jsx';
 
@@ -45,29 +46,59 @@ const StudentInfoCell = ({ student, favoriteStudents, toggleFavorite, onStudentS
       onMouseLeave={() => setIsHovered(false)}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-        <div style={{
-          width: '2.5rem',
-          height: '2.5rem',
-          borderRadius: '50%',
-          background: avatarColorObj?.bg || '#e5e7eb',
-          color: avatarColorObj?.color || '#374151',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          fontWeight: 600,
-          fontSize: 'var(--font-size-md)',
-          flexShrink: 0,
-          overflow: 'hidden'
-        }}>
-          {student.profileImageUrl ? (
-            <img
-              src={student.profileImageUrl}
-              alt={displayName}
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-            />
-          ) : (
-            avatarInitials
-          )}
+        <div style={{ position: 'relative', flexShrink: 0 }}>
+          <div style={{
+            width: '2.5rem',
+            height: '2.5rem',
+            borderRadius: '50%',
+            background: avatarColorObj?.bg || '#e5e7eb',
+            color: avatarColorObj?.color || '#374151',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            fontWeight: 600,
+            fontSize: 'var(--font-size-md)',
+            flexShrink: 0,
+            overflow: 'hidden'
+          }}>
+            {student.profileImageUrl ? (
+              <img
+                src={student.profileImageUrl}
+                alt={displayName}
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+            ) : (
+              avatarInitials
+            )}
+          </div>
+          {/* Role badge overlay */}
+          {(() => {
+            const role = getUserRoleFromObject(student);
+            if (!role) return null;
+            const roleIcon = getUserRoleIcon(role);
+            const roleColor = getUserRoleColor(role);
+            if (!roleIcon) return null;
+            return (
+              <div style={{
+                position: 'absolute',
+                bottom: '-2px',
+                insetInlineEnd: '-2px',
+                width: '1.125rem',
+                height: '1.125rem',
+                borderRadius: '9999px',
+                background: 'var(--panel, white)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                border: '1.5px solid var(--panel, white)',
+                boxShadow: '0 0 0 1px var(--border, #e5e7eb)',
+              }}
+                title={t(`roles.${role}`, role)}
+              >
+                {React.cloneElement(roleIcon, { color: roleColor, size: 10 })}
+              </div>
+            );
+          })()}
         </div>
 
         <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>

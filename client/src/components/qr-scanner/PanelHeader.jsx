@@ -3,6 +3,8 @@ import { CircleIcon } from "@utils/icons.jsx";
 import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
 import { ATTENDANCE_STATUS_LABELS, ATTENDANCE_COLORS } from '@constants/attendanceTypes';
 import { getLocalizedUserName } from '@utils/localizedUserName';
+import { getUserRoleIcon, getUserRoleColor } from '@constants/iconTypes';
+import { getUserRoleFromObject } from '@utils/userUtils';
 
 export default function PanelHeader({ student, attendanceStatus, t, lang, isRTL, theme = 'light' }) {
   console.log('🔍 PanelHeader - Props:', {
@@ -26,29 +28,59 @@ export default function PanelHeader({ student, attendanceStatus, t, lang, isRTL,
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-      <div style={{
-        width: '3.5rem',
-        height: '3.5rem',
-        borderRadius: '9999px',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        fontSize: 'var(--font-size-lg)',
-        fontWeight: 500,
-        background: avatarColor.bg,
-        color: avatarColor.color,
-        flexShrink: 0,
-        overflow: 'hidden'
-      }}>
-        {student.profileImageUrl ? (
-          <img
-            src={student.profileImageUrl}
-            alt={displayName}
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-          />
-        ) : (
-          getInitials(displayName)
-        )}
+      <div style={{ position: 'relative', flexShrink: 0 }}>
+        <div style={{
+          width: '3.5rem',
+          height: '3.5rem',
+          borderRadius: '9999px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          fontSize: 'var(--font-size-lg)',
+          fontWeight: 500,
+          background: avatarColor.bg,
+          color: avatarColor.color,
+          flexShrink: 0,
+          overflow: 'hidden'
+        }}>
+          {student.profileImageUrl ? (
+            <img
+              src={student.profileImageUrl}
+              alt={displayName}
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            />
+          ) : (
+            getInitials(displayName)
+          )}
+        </div>
+        {/* Role badge overlay */}
+        {(() => {
+          const role = getUserRoleFromObject(student);
+          if (!role) return null;
+          const roleIcon = getUserRoleIcon(role);
+          const roleColor = getUserRoleColor(role);
+          if (!roleIcon) return null;
+          return (
+            <div style={{
+              position: 'absolute',
+              bottom: '-2px',
+              insetInlineEnd: '-2px',
+              width: '1.25rem',
+              height: '1.25rem',
+              borderRadius: '9999px',
+              background: 'var(--panel, white)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              border: '1.5px solid var(--panel, white)',
+              boxShadow: '0 0 0 1px var(--border, #e5e7eb)',
+            }}
+              title={t(`roles.${role}`, role)}
+            >
+              {React.cloneElement(roleIcon, { color: roleColor, size: 12 })}
+            </div>
+          );
+        })()}
       </div>
       <div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>

@@ -1,10 +1,11 @@
 import React, { useCallback, useMemo } from 'react';
 import { useIsMobile } from '@hooks/useIsMobile';
 import { Button } from '@ui';
-import { getThemedIcon } from '@constants/iconTypes';
+import { getThemedIcon, getUserRoleIcon, getUserRoleColor } from '@constants/iconTypes';
 import { ACTIVITY_COLORS } from '@constants';
 import StudentRosterHistory from './StudentRosterHistory';
 import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
+import { getUserRoleFromObject } from '@utils/userUtils';
 import { CircleIcon, ZapIcon } from '@utils/icons.jsx';
 import { useNavigate } from 'react-router-dom';
 import PortalTooltip from '@ui/PortalTooltip';
@@ -108,32 +109,62 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
           >
             {getThemedIcon('ui', 'star', 16)}
           </button>
-          <div style={{
-            width: isMobile ? '2rem' : '2.5rem',
-            height: isMobile ? '2rem' : '2.5rem',
-            borderRadius: '9999px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            fontSize: isMobile ? '0.75rem' : '0.875rem',
-            fontWeight: 500,
-            background: avatarColor.bg,
-            color: avatarColor.color,
-            overflow: 'hidden'
-          }}>
-            {student.profileImageUrl ? (
-              <img
-                src={student.profileImageUrl}
-                alt={`${student.displayName || student.realName || student.name || ''} avatar`}
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  objectFit: 'cover'
+          <div style={{ position: 'relative', flexShrink: 0 }}>
+            <div style={{
+              width: isMobile ? '2rem' : '2.5rem',
+              height: isMobile ? '2rem' : '2.5rem',
+              borderRadius: '9999px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: isMobile ? '0.75rem' : '0.875rem',
+              fontWeight: 500,
+              background: avatarColor.bg,
+              color: avatarColor.color,
+              overflow: 'hidden'
+            }}>
+              {student.profileImageUrl ? (
+                <img
+                  src={student.profileImageUrl}
+                  alt={`${student.displayName || student.realName || student.name || ''} avatar`}
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'cover'
+                  }}
+                />
+              ) : (
+                getAvatarInitials(student.displayName || student.realName || student.name || '')
+              )}
+            </div>
+            {/* Role badge overlay */}
+            {(() => {
+              const role = getUserRoleFromObject(student);
+              if (!role) return null;
+              const roleIcon = getUserRoleIcon(role);
+              const roleColor = getUserRoleColor(role);
+              if (!roleIcon) return null;
+              return (
+                <div style={{
+                  position: 'absolute',
+                  bottom: '-2px',
+                  insetInlineEnd: '-2px',
+                  width: '1.125rem',
+                  height: '1.125rem',
+                  borderRadius: '9999px',
+                  background: 'var(--panel, white)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  border: '1.5px solid var(--panel, white)',
+                  boxShadow: '0 0 0 1px var(--border, #e5e7eb)',
                 }}
-              />
-            ) : (
-              getAvatarInitials(student.displayName || student.realName || student.name || '')
-            )}
+                  title={t(`roles.${role}`, role)}
+                >
+                  {React.cloneElement(roleIcon, { color: roleColor, size: 10 })}
+                </div>
+              );
+            })()}
           </div>
           <div style={{ flex: 1 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>

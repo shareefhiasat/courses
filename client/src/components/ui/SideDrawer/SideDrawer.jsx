@@ -7,8 +7,9 @@ import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { normalizeHexColor, DEFAULT_ACCENT, hexToRgbString } from '@utils/color';
 import { ROLE_STRINGS } from '@utils/userUtils';
-import { getThemedIcon } from '@constants/iconTypes';
+import { getThemedIcon, getUserRoleIcon, getUserRoleColor } from '@constants/iconTypes';
 import { resolveIconSize, ICON_SIZE_VARS } from '@utils/iconSize';
+import { getUserRoleFromObject } from '@utils/userUtils';
 import { TimerStopwatch } from '@ui';
 import VersionDisplay from '@ui/VersionDisplay/VersionDisplay';
 import { resolveScreenIdFromNavItem } from '@config/navigationRegistry.js';
@@ -943,24 +944,54 @@ const SideDrawer = ({ isOpen, onClose }) => {
             }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '0.1rem', flexDirection: collapsed ? 'column' : 'row', gap: collapsed ? '0.5rem' : '0' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: collapsed ? '0' : '1' }}>
-                  <div style={{
-                    width: '32px',
-                    height: '32px',
-                    borderRadius: '50%',
-                    background: 'linear-gradient(135deg, #D4AF37, #FFD700)',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    fontSize: 'var(--font-size-lg)',
-                    fontWeight: 700,
-                    color: '#2E3B4E',
-                    overflow: 'hidden'
-                  }}>
-                    {user?.profileImageUrl ? (
-                      <img src={user.profileImageUrl} alt={user?.displayName || user?.email || ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    ) : (
-                      (user?.displayName || user?.email || 'U').charAt(0).toUpperCase()
-                    )}
+                  <div style={{ position: 'relative', flexShrink: 0 }}>
+                    <div style={{
+                      width: '32px',
+                      height: '32px',
+                      borderRadius: '50%',
+                      background: 'linear-gradient(135deg, #D4AF37, #FFD700)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: 'var(--font-size-lg)',
+                      fontWeight: 700,
+                      color: '#2E3B4E',
+                      overflow: 'hidden'
+                    }}>
+                      {user?.profileImageUrl ? (
+                        <img src={user.profileImageUrl} alt={user?.displayName || user?.email || ''} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        (user?.displayName || user?.email || 'U').charAt(0).toUpperCase()
+                      )}
+                    </div>
+                    {/* Role badge overlay */}
+                    {(() => {
+                      const role = getUserRoleFromObject(user);
+                      if (!role) return null;
+                      const roleIcon = getUserRoleIcon(role);
+                      const roleColor = getUserRoleColor(role);
+                      if (!roleIcon) return null;
+                      return (
+                        <div style={{
+                          position: 'absolute',
+                          bottom: '-2px',
+                          insetInlineEnd: '-2px',
+                          width: '1rem',
+                          height: '1rem',
+                          borderRadius: '9999px',
+                          background: 'var(--panel, white)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          border: '1.5px solid var(--panel, white)',
+                          boxShadow: '0 0 0 1px var(--border, #e5e7eb)',
+                        }}
+                          title={t(`roles.${role}`, role)}
+                        >
+                          {React.cloneElement(roleIcon, { color: roleColor, size: 8 })}
+                        </div>
+                      );
+                    })()}
                   </div>
                 </div>
                 
