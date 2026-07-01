@@ -7,6 +7,7 @@ import React, { useState, useMemo } from 'react';
 import { getThemedIcon } from '@constants/iconTypes';
 import { Card, CardBody, Badge, Button, Chart } from '@ui';
 import { useLang } from '@contexts/LangContext';
+import { sanitizeHtml } from '@utils/sanitizeHtml';
 import styles from './DetailedResults.module.css';
 
 
@@ -113,7 +114,7 @@ const DetailedResults = ({
 
               <div 
                 className={styles.questionText}
-                dangerouslySetInnerHTML={{ __html: question.question }}
+                dangerouslySetInnerHTML={{ __html: sanitizeHtml(question.question) }}
               />
 
               {question.image && (
@@ -141,7 +142,7 @@ const DetailedResults = ({
                     <div key={option.id} className={optionClass}>
                       <div 
                         className={styles.optionText}
-                        dangerouslySetInnerHTML={{ __html: option.text }}
+                        dangerouslySetInnerHTML={{ __html: sanitizeHtml(option.text) }}
                       />
                       {isCorrectOption && getThemedIcon('ui', 'check_circle', 16)}
                       {isStudentAnswer && !isCorrectOption && getThemedIcon('ui', 'x_circle', 16)}
@@ -153,7 +154,7 @@ const DetailedResults = ({
               {question.explanation && (
                 <div className={styles.explanation}>
                   <strong>{t('explanation_label')}</strong>
-                  <div dangerouslySetInnerHTML={{ __html: question.explanation }} />
+                  <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(question.explanation) }} />
                 </div>
               )}
             </CardBody>

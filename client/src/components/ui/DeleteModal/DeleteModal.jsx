@@ -2,6 +2,7 @@ import React, { useState, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { getThemedIcon } from '@constants/iconTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
+import { sanitizeHtml } from '@utils/sanitizeHtml';
 import { getDeleteMessage, getDeleteTitle, createDeleteModalState, resetDeleteModalState } from '@utils/deleteMessages';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 
@@ -111,7 +112,7 @@ const DeleteModal = ({
         {isHtml ? (
           <div 
             style={{ fontSize: 'var(--font-size-md)', color: '#6b7280', margin: '0 0 1.5rem 0', lineHeight: '1.5' }}
-            dangerouslySetInnerHTML={{ __html: message }} 
+            dangerouslySetInnerHTML={{ __html: sanitizeHtml(message) }} 
           />
         ) : (
           <p style={{

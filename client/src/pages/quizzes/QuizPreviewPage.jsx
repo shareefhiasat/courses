@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useLayoutEffect } from 'react';
 import { info, error, warn, debug } from '@services/utils/logger.js';
+import { sanitizeHtml } from '@utils/sanitizeHtml';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
@@ -305,7 +306,7 @@ export default function QuizPreviewPage() {
                   <div 
                     className={styles.questionText}
                     style={{ marginBottom: '1.25rem', fontSize: '1.05rem', lineHeight: '1.7', color: '#374151' }}
-                    dangerouslySetInnerHTML={{ __html: (lang === 'ar' ? (question.question_ar || question.questionAr || question.question) : (question.question_en || question.questionEn || question.question)) }}
+                    dangerouslySetInnerHTML={{ __html: sanitizeHtml(lang === 'ar' ? (question.question_ar || question.questionAr || question.question) : (question.question_en || question.questionEn || question.question)) }}
                   />
 
                   <div className={styles.optionsList} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -338,7 +339,7 @@ export default function QuizPreviewPage() {
                         <div 
                           className={styles.optionText}
                           style={{ fontSize: '0.95rem', color: '#374151', lineHeight: '1.6' }}
-                          dangerouslySetInnerHTML={{ __html: option.text }}
+                          dangerouslySetInnerHTML={{ __html: sanitizeHtml(option.text) }}
                         />
                       </div>
                     ))})()}

@@ -8,6 +8,8 @@
 
 import express from "express";
 import cors from "cors";
+import helmet from "helmet";
+import rateLimit from "express-rate-limit";
 import swaggerJsdoc from "swagger-jsdoc";
 import swaggerUi from "swagger-ui-express";
 import { fileURLToPath } from "url";
@@ -26,6 +28,27 @@ const app = express();
 const PORT = process.env.PORT || 8001;
 const API_VERSION = process.env.API_VERSION || "v1";
 const NODE_ENV = process.env.NODE_ENV || "development";
+
+// Security headers (helmet). CSP is left disabled globally because
+// swagger-ui-express (mounted below) needs inline scripts/styles; tighten
+// this with a route-scoped CSP if/when Swagger UI is removed from prod.
+app.use(
+  helmet({
+    contentSecurityPolicy: false,
+    crossOriginEmbedderPolicy: false,
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+  }),
+);
+
+// Rate limiting - blunts brute-force/DoS against the API
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  limit: 600, // generous cap for normal app usage; tune per environment
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, error: "Too many requests, please try again later." },
+});
+app.use("/api", apiLimiter);
 
 // Public routes (no middleware) - mount first
 app.use(express.static(join(__dirname, "public")));
@@ -46,11 +69,14 @@ app.use(
 );
 
 // Request logging middleware
+// NOTE: request headers (Authorization bearer tokens, Cookie) are
+// intentionally NOT logged here - they were previously dumped in full via
+// console.log("Headers:", req.headers), leaking session/auth secrets into
+// server logs.
 app.use((req, res, next) => {
   console.log(
     `📥 [${new Date().toISOString()}] ${req.method} ${req.originalUrl}`,
   );
-  console.log("📋 Headers:", req.headers);
   next();
 });
 
@@ -321,16 +347,10 @@ import userRoutes from "./routes/users.js";
 import activityRoutes from "./routes/activities.js";
 import resourceRoutes from "./routes/resources.js";
 import announcementRoutes from "./routes/announcements.js";
-import subjectTypeRoutes from "./routes/subjectTypes.js";
-import requirementTypeRoutes from "./routes/requirementTypes.js";
-import categoryTypeRoutes from "./routes/categoryTypes.js";
 import enrollmentRoutes from "./routes/enrollments.js";
 import behaviorRoutes from "./routes/behaviors.js";
 import penaltyRoutes from "./routes/penalties.js";
 import participationRoutes from "./routes/participations.js";
-import participationTypeRoutes from "./routes/participation-types.js";
-import resourceTypeRoutes from "./routes/resourceTypes.js";
-import priorityTypeRoutes from "./routes/priority-types.js";
 import marksRoutes from "./routes/marks.js";
 import attendanceRoutes from "./routes/attendances.js";
 import lookupRoutes from "./routes/lookup.js";
@@ -373,16 +393,12 @@ app.use(`/api/${API_VERSION}/users`, userRoutes);
 app.use(`/api/${API_VERSION}/activities`, activityRoutes);
 app.use(`/api/${API_VERSION}/resources`, resourceRoutes);
 app.use(`/api/${API_VERSION}/announcements`, announcementRoutes);
-// app.use(`/api/${API_VERSION}/subject-types`, subjectTypeRoutes); // Now handled by unified lookup: GET /api/v1/lookup/subject-types
-// app.use(`/api/${API_VERSION}/requirement-types`, requirementTypeRoutes); // Now handled by unified lookup: GET /api/v1/lookup/requirement-types
-// app.use(`/api/${API_VERSION}/category-types`, categoryTypeRoutes); // Now handled by unified lookup: GET /api/v1/lookup/category-types
-// app.use(`/api/${API_VERSION}/resource-types`, resourceTypeRoutes); // Now handled by unified lookup: GET /api/v1/lookup/resource-types
-// app.use(`/api/${API_VERSION}/priority-types`, priorityTypeRoutes); // Now handled by unified lookup: GET /api/v1/lookup/priority-types
+// subject-types, requirement-types, category-types, resource-types, priority-types,
+// participation-types are handled by the unified lookup system: GET /api/v1/lookup/:type
 app.use(`/api/${API_VERSION}/enrollments`, enrollmentRoutes);
 app.use(`/api/${API_VERSION}/behaviors`, behaviorRoutes);
 app.use(`/api/${API_VERSION}/penalties`, penaltyRoutes);
 app.use(`/api/${API_VERSION}/participations`, participationRoutes);
-// app.use(`/api/${API_VERSION}/participation-types`, participationTypeRoutes); // Now handled by unified lookup: GET /api/v1/lookup/participation-types
 app.use(`/api/${API_VERSION}/marks`, marksRoutes);
 app.use(`/api/${API_VERSION}/attendance`, attendanceRoutes);
 app.use(`/api/${API_VERSION}/standup-attendance`, standupAttendanceRoutes);

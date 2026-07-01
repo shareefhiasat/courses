@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import JoyrideTour from '@ui/JoyrideTour';
 import iconTypes from '@constants/iconTypes';
 import { info, error, warn, debug } from '@services/utils/logger.js';
+import { sanitizeHtml } from '@utils/sanitizeHtml';
 import { getAcademicTermOptions, getAcademicTermLabel } from '@constants/academicTerms';
 const { getThemedIcon, getIconWithColor } = iconTypes;
 import { useTheme } from '@contexts/ThemeContext';
@@ -1957,7 +1958,7 @@ const HomePage = memo(() => {
               }}
             >
               {isHtml
-                ? <div dangerouslySetInnerHTML={{ __html: annContent }} />
+                ? <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(annContent) }} />
                 : <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{annContent || (t('no_content') || 'No content available.')}</p>
               }
             </div>

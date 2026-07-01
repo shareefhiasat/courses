@@ -10,6 +10,7 @@ import { ActivityLogger } from '@services/other/activityLogger';
 import { updateProgressAfterQuiz } from '@services/business/studentProgressService';
 import { useTimeTracking } from '@hooks/useTimeTracking';
 import { randomizeQuestions, randomizeOptions } from '@utils/quizRandomization';
+import { sanitizeHtml } from '@utils/sanitizeHtml';
 import { Container, Card, CardBody, Button, Badge, ProgressBar, Spinner, useToast, Tooltip, Modal } from '@ui';
 import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { getThemedIcon } from '@constants/iconTypes';
@@ -1137,7 +1138,7 @@ export default function StudentQuizPage() {
 
                 <h3
                   className={styles.questionText}
-                  dangerouslySetInnerHTML={{ __html: getQuizText(currentQuestion, 'question') }}
+                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(getQuizText(currentQuestion, 'question')) }}
                 />
 
                 <div className={styles.optionsList}>
@@ -1167,7 +1168,7 @@ export default function StudentQuizPage() {
                         </div>
                         <span
                           className={styles.optionText}
-                          dangerouslySetInnerHTML={{ __html: getQuizText(option, 'text') }}
+                          dangerouslySetInnerHTML={{ __html: sanitizeHtml(getQuizText(option, 'text')) }}
                         />
                       </button>
                     );

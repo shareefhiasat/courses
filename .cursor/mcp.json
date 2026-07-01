@@ -28,6 +28,10 @@
         "@modelcontextprotocol/server-git",
         "."
       ]
+    },
+    "semgrep": {
+      "command": "uvx",
+      "args": ["semgrep-mcp"]
     }
   }
 }

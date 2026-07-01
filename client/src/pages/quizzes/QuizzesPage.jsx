@@ -7,6 +7,7 @@ import { useAuth } from '@contexts/AuthContext';
 import { getThemedIcon, getIconWithColor } from '@constants/iconTypes';
 import { DIFFICULTY_TYPES, DIFFICULTY_LABELS } from '@constants/difficultyTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
+import { sanitizeHtml } from '@utils/sanitizeHtml';
 import { sendQuizAvailable } from '@services/business/notificationService';
 import { getEnrollments } from '@services/business/enrollmentService';
 import { getUsers, getUser } from '@services/business/userService';
@@ -1971,7 +1972,7 @@ export default function QuizzesPage() {
 
                           <div 
                             className={QuizBuilderPageStyles.previewQuestionText}
-                            dangerouslySetInnerHTML={{ __html: (lang === 'ar' ? (question.question_ar || question.question || `<p>${t('no_question_text')}</p>`) : (question.question_en || question.question || `<p>${t('no_question_text')}</p>`)) }}
+                            dangerouslySetInnerHTML={{ __html: sanitizeHtml(lang === 'ar' ? (question.question_ar || question.question || `<p>${t('no_question_text')}</p>`) : (question.question_en || question.question || `<p>${t('no_question_text')}</p>`)) }}
                           />
 
                           <div className={QuizBuilderPageStyles.previewOptions}>
@@ -1989,7 +1990,7 @@ export default function QuizzesPage() {
                                 </div>
                                 <div 
                                   className={QuizBuilderPageStyles.optionText}
-                                  dangerouslySetInnerHTML={{ __html: option.text || t('option_n_label').replace('{n}', oIndex + 1) }}
+                                  dangerouslySetInnerHTML={{ __html: sanitizeHtml(option.text || t('option_n_label').replace('{n}', oIndex + 1)) }}
                                 />
                               </div>
                             ))}
@@ -2000,7 +2001,7 @@ export default function QuizzesPage() {
                               <h4>{t('explanation_label')}</h4>
                               <div
                                 className={QuizBuilderPageStyles.previewExplanationContent}
-                                dangerouslySetInnerHTML={{ __html: question.explanation }}
+                                dangerouslySetInnerHTML={{ __html: sanitizeHtml(question.explanation) }}
                               />
                             </div>
                           )}

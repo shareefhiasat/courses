@@ -2,7 +2,8 @@ import React, { useEffect, useRef, useState, useCallback, useMemo, useLayoutEffe
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
-import { scanAttendance, simpleDeviceHash, getAttendanceStats } from '@services/business/attendanceService';
+import { scanAttendance, getAttendanceStats } from '@services/business/attendanceBusinessService';
+import { simpleDeviceHash } from '@utils/deviceHash';
 import { getStudentAttendanceHistory, findOpenAttendanceSessionByCode } from '@services/business/attendanceRealtimeService';
 import { getUserProfile } from '@services/business/userService';
 import { getEnrollments } from '@services/business/enrollmentService';

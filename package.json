@@ -29,6 +29,8 @@
     "db:migrate": "cd client && pnpm db:migrate",
     "db:reset": "cd client && pnpm db:reset --force && pnpm db:push && pnpm db:generate && cd .. && pnpm db:seed",
     "lint:backend": "npx eslint backend/ --config eslint.config.js",
+    "lint:duplication": "jscpd backend client/src",
+    "security:scan": "./scripts/security/zap-baseline.sh",
     "db:studio": "cd client && pnpm exec prisma studio --schema prisma/schema.prisma",
     "db:seed": "pnpm exec tsx prisma/seed-all.ts",
     "db:seed:comprehensive": "node seed-comprehensive-data.js",
@@ -68,7 +70,10 @@
     "cors": "^2.8.6",
     "dotenv": "^16.6.1",
     "express": "^4.22.1",
+    "express-rate-limit": "^8.5.2",
+    "helmet": "^8.1.0",
     "jsonwebtoken": "^9.0.2",
+    "jwks-rsa": "^4.1.0",
     "minio": "^8.0.0",
     "multer": "^2.1.1",
     "node-cron": "^4.5.0",
@@ -83,6 +88,7 @@
   },
   "devDependencies": {
     "depcheck": "^1.4.7",
+    "jscpd": "^5.0.11",
     "madge": "^8.0.0",
     "prisma": "^5.22.0",
     "tsx": "^4.19.0"

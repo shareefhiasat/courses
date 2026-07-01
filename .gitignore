@@ -13,6 +13,12 @@ firebase-debug.*.log
 node_modules/
 functions/node_modules/
 
+# jscpd duplication reports
+reports/jscpd/
+
+# OWASP ZAP scan reports
+reports/zap/
+
 # Build outputs (if any)
 dist/
 build/

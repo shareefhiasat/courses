@@ -6,29 +6,61 @@
  */
 
 import jwt from 'jsonwebtoken';
+import jwksClient from 'jwks-rsa';
 import { LMS_ROLES as ROLES } from '../services/keycloakAdminService.js';
 import { getDatabaseUserId } from '../utils/database/userResolver.js';
 
+const KEYCLOAK_URL = process.env.KEYCLOAK_URL || 'http://localhost:8080';
+const KEYCLOAK_REALM = process.env.KEYCLOAK_REALM || 'military-lms';
+const KEYCLOAK_ISSUER = `${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}`;
+
+// Cached JWKS client - fetches and caches Keycloak's public signing keys
+const jwks = jwksClient({
+  jwksUri: `${KEYCLOAK_ISSUER}/protocol/openid-connect/certs`,
+  cache: true,
+  cacheMaxAge: 10 * 60 * 1000, // 10 minutes
+  rateLimit: true,
+  jwksRequestsPerMinute: 10,
+});
+
+/**
+ * Resolve the RSA public key for a given JWT header (by `kid`)
+ * @param {Object} header - Decoded JWT header
+ * @returns {Promise<string>} PEM public key
+ */
+const getSigningKey = (header) => {
+  return new Promise((resolve, reject) => {
+    if (!header || !header.kid) {
+      return reject(new Error('Token missing key id (kid)'));
+    }
+    jwks.getSigningKey(header.kid, (err, key) => {
+      if (err) return reject(err);
+      resolve(key.getPublicKey());
+    });
+  });
+};
+
 /**
  * Verify Keycloak JWT token
+ * Verifies the RS256 signature against Keycloak's published JWKS, and
+ * validates issuer/expiration. Never trust a decoded-but-unverified token.
  * @param {string} token - JWT token from Authorization header
- * @returns {Promise<Object>} Decoded token payload
+ * @returns {Promise<Object>} Decoded + verified token payload
  */
 const verifyToken = async (token) => {
   try {
-    // Simple JWT decode without verification for development
-    // In production, you should verify the token signature
-    const decoded = jwt.decode(token);
-    
-    if (!decoded) {
+    const unverified = jwt.decode(token, { complete: true });
+    if (!unverified || !unverified.header) {
       throw new Error('Invalid token');
     }
-    
-    // Check token expiration
-    if (decoded.exp && decoded.exp < Date.now() / 1000) {
-      throw new Error('Token expired');
-    }
-    
+
+    const signingKey = await getSigningKey(unverified.header);
+
+    const decoded = jwt.verify(token, signingKey, {
+      algorithms: ['RS256'],
+      issuer: KEYCLOAK_ISSUER,
+    });
+
     return decoded;
   } catch (error) {
     console.error('Token verification failed:', error.message);
@@ -140,10 +172,11 @@ export const keycloakAuth = (requiredRoles = []) => {
       if (!token) {
         token = extractTokenFromCookie(req);
       }
-      // Fallback to query parameter for <audio>/<img> tag support
-      if (!token && req.query.token) {
-        token = req.query.token;
-      }
+      // NOTE: a `?token=` query-string fallback used to exist here for
+      // <audio>/<img> tags. It was removed because it leaks bearer tokens
+      // into server logs, browser history, and Referer headers, and no
+      // current frontend code relies on it (media requests use the
+      // Authorization header or the httpOnly `kc_token` cookie instead).
       if (!token) {
         console.log(`[keycloakAuth] No token found for ${req.originalUrl}`);
         return res.status(401).json({

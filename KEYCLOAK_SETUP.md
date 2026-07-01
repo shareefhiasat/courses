@@ -210,6 +210,47 @@ POST http://localhost:8080/realms/military-lms/protocol/openid-connect/logout
 6. [ ] Implement role-based access control in frontend
 7. [ ] Implement JWT validation in backend
 
+## OTP / MFA: Keycloak built-in OTP vs. a generic authenticator app
+
+Keycloak has built-in **OTP (One-Time Password)** support as a required/optional
+action per realm. Checked the live `military-lms` realm config:
+
+```json
+{
+  "otpPolicyType": "totp",
+  "otpPolicyAlgorithm": "HmacSHA1",
+  "otpPolicyDigits": 6,
+  "otpPolicyPeriod": 30,
+  "otpPolicyLookAheadWindow": 1,
+  "otpPolicyCodeReusable": false
+}
+```
+
+This is a **standard RFC 6238 TOTP** setup (6-digit code, 30-second rotation,
+SHA1 HMAC) - the exact same algorithm used by Google Authenticator, Microsoft
+Authenticator, FreeOTP, Authy, and any other generic TOTP authenticator app
+("Identity" included, as long as it's a standard TOTP scanner and not a
+vendor-proprietary push-MFA app like Okta Verify/Duo Push).
+
+**Conclusion: not tied to Keycloak's own app.** Keycloak doesn't ship its own
+authenticator app - it just generates a QR code (and manual secret key) during
+the "Configure OTP" required action, and *any* RFC 6238-compatible app can
+scan it. There is no code/integration work needed to use a different app; it's
+purely a user choice at enrollment time.
+
+To turn it on:
+1. Keycloak Admin Console → realm `military-lms` → Authentication →
+   Required Actions → enable **Configure OTP** (toggle "Default Action" on if
+   you want it mandatory for all users, or leave it optional and let users
+   opt in from Account Console → Signing in → Two-factor authentication).
+2. Users scan the QR code with whichever TOTP app they prefer.
+
+If instead you actually meant a vendor push-notification MFA app (e.g. Okta
+Verify, Duo, Ping ID) rather than a generic TOTP scanner, that's a different
+integration path (a custom Keycloak Authenticator SPI or federating to that
+vendor's IdP) - let me know which app it is if that's the case and this can
+be revisited.
+
 ## Support
 
 - Keycloak Documentation: https://www.keycloak.org/documentation

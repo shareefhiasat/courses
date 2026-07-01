@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useToast } from '@ui';
 import { useLang } from '@contexts/LangContext';
 import { formatDateTime } from '@utils/date';
+import { sanitizeHtml } from '@utils/sanitizeHtml';
 import { AdvancedDataGrid, SimpleLoading, Select, Input, Badge } from '@ui';
 import { 
   getEmailTypeIcon, 
@@ -404,7 +405,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Email
                                 maxHeight: '60vh',
                                 overflowY: 'auto'
                               }}
-                              dangerouslySetInnerHTML={{ __html: selectedLog.htmlBody }}
+                              dangerouslySetInnerHTML={{ __html: sanitizeHtml(selectedLog.htmlBody) }}
                           />
                         </div>
                     )}

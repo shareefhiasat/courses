@@ -10,6 +10,7 @@ import { useLookupTypes } from '@hooks/useLookupTypes.js';
 import { getResourceTypeConfig } from '@constants/resourceTypes';
 import { ACTIVITY_DISPLAY_NAMES } from '@constants/activityTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
+import { sanitizeHtml } from '@utils/sanitizeHtml';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import PortalTooltip from '@ui/PortalTooltip';
 
@@ -409,7 +410,7 @@ const UnifiedCard = memo(({
           {isHtmlContent() ? (
             <div
               style={{ color: isDark ? '#94a3b8' : '#666', fontSize: '0.84rem', margin: 0, lineHeight: 1.5 }}
-              dangerouslySetInnerHTML={{ __html: getDescription() }}
+              dangerouslySetInnerHTML={{ __html: sanitizeHtml(getDescription()) }}
             />
           ) : (
             <p style={{ color: isDark ? '#94a3b8' : '#666', fontSize: '0.84rem', margin: 0, lineHeight: 1.5 }}>

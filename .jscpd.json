@@ -1,0 +1,19 @@
+{
+  "threshold": 15,
+  "reporters": ["console", "json"],
+  "output": "./reports/jscpd",
+  "ignore": [
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/build/**",
+    "**/.git/**",
+    "**/scripts/archive/**",
+    "**/backups/**",
+    "**/*.sql",
+    "**/pnpm-lock.yaml",
+    "**/package-lock.json",
+    "**/*.md"
+  ],
+  "format": ["javascript", "jsx", "typescript", "tsx"],
+  "absolute": true
+}

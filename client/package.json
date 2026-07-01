@@ -84,7 +84,7 @@
     "dagre": "^0.8.5",
     "date-fns": "^4.1.0",
     "date-fns-tz": "^3.2.0",
-    "dompurify": "^3.2.7",
+    "dompurify": "^3.4.3",
     "emoji-picker-react": "^4.16.1",
     "exceljs": "^4.4.0",
     "express": "^4.22.1",

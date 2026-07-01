@@ -1,0 +1,32 @@
+name: OWASP ZAP Baseline Scan
+
+# Manually triggered: point it at any reachable instance of the app (a
+# staging deployment, a tunnel like ngrok, etc). For scanning your local
+# dev environment instead, use `pnpm security:scan` (scripts/security/zap-baseline.sh) -
+# spinning up Keycloak/Postgres/MinIO from scratch inside CI just for a
+# baseline scan is heavier than it's worth for this project.
+on:
+  workflow_dispatch:
+    inputs:
+      target_url:
+        description: "URL to scan (e.g. a staging deployment or tunnel URL)"
+        required: true
+        default: "http://localhost:8001/api/v1"
+
+jobs:
+  zap_scan:
+    runs-on: ubuntu-latest
+    name: ZAP baseline scan
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: ZAP Baseline Scan
+        uses: zaproxy/action-baseline@v0.15.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          target: ${{ github.event.inputs.target_url }}
+          cmd_options: "-I"
+          allow_issue_writing: true
+          issue_title: "ZAP Baseline Scan Report"
+          fail_action: false
