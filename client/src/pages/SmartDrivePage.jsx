@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import Joyride from 'react-joyride';
 import TourTooltip from '@ui/TourTooltip/TourTooltip';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { DEFAULT_STORAGE_LIMIT, DRIVE_SPACES, getRefreshHandler } from '@constants/driveConstants';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
@@ -37,6 +37,7 @@ export default function SmartDrivePage() {
   const { theme } = useTheme();
   const { user, isSuperAdmin } = useAuth();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // Debug current user
   console.log('[SmartDrivePage] Current user:', {
@@ -166,6 +167,41 @@ export default function SmartDrivePage() {
     };
     loadFolderTree();
   }, [activeSpace, fetchFolderTree]);
+
+  // Deep-link: /smart-drive?folderId=... or ?folder=Exported
+  useEffect(() => {
+    const folderIdParam = searchParams.get('folderId');
+    const folderNameParam = searchParams.get('folder');
+    if (!folderIdParam && !folderNameParam) return;
+
+    if (activeSpace !== 'my-drive') {
+      setActiveSpace('my-drive');
+    }
+
+    if (folderIdParam) {
+      setCurrentFolderId(folderIdParam);
+      setSearchParams({}, { replace: true });
+      return;
+    }
+
+    if (folderNameParam && folderTree.length > 0) {
+      const findByName = (nodes, name) => {
+        for (const node of nodes) {
+          if (node.name === name) return node.id;
+          if (node.children?.length) {
+            const found = findByName(node.children, name);
+            if (found) return found;
+          }
+        }
+        return null;
+      };
+      const id = findByName(folderTree, folderNameParam);
+      if (id) {
+        setCurrentFolderId(id);
+        setSearchParams({}, { replace: true });
+      }
+    }
+  }, [searchParams, folderTree, activeSpace, setSearchParams]);
 
   useEffect(() => {
     let mounted = true;

@@ -74,14 +74,12 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Messa
           width: 80,
           height: 80,
           borderRadius: '50%',
-          background: theme === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           marginBottom: '1rem',
-          fontSize: '2rem',
         }}>
-          {(msgQuery?.trim() || globalChatSearch) ? '🔍' : '💬'}
+          {(msgQuery?.trim() || globalChatSearch) ? '🔍' : <img src="/qaf_logo_transparent.png" alt="QAF" style={{ width: 64, height: 64, objectFit: 'contain', opacity: 0.5 }} />}
         </div>
         <p style={{
           color: 'var(--muted)',

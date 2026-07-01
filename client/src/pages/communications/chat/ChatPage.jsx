@@ -1515,40 +1515,10 @@ const ChatPage = memo(() => {
           overflowX: 'hidden',
           minHeight: 60
         }}>
-          {/* Create Group Button (Staff Only) */}
-          {isStaffRole && (
-            <div style={{ padding: '0.5rem 0.9rem', borderTop: '1px solid var(--border)' }}>
-              <button
-                onClick={() => setShowGroupModal(true)}
-                style={{
-                  width: '100%',
-                  padding: '0.6rem',
-                  background: 'var(--brand)',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: 8,
-                  cursor: 'pointer',
-                  fontSize: 'var(--font-size-sm)',
-                  fontWeight: 600,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: '0.5rem',
-                  transition: 'all 0.2s'
-                }}
-                onMouseOver={(e) => { e.currentTarget.style.transform = 'translateY(-1px)'; e.currentTarget.style.boxShadow = '0 4px 12px rgba(0,0,0,0.15)'; }}
-                onMouseOut={(e) => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none'; }}
-              >
-                {getThemedIcon('ui', 'user_plus', 16, theme)}
-                <span>{t('chat_create_group')}</span>
-              </button>
-            </div>
-          )}
-          
           {/* Group Chats */}
           {(() => {
             const groupRooms = (Array.isArray(safeDirectRooms) ? safeDirectRooms : []).filter(r => r.type === 'group');
-            if (groupRooms.length === 0) return null;
+            if (groupRooms.length === 0 && !isStaffRole) return null;
             const filteredGroupRooms = groupSearch
               ? groupRooms.filter(r => (r.name || '').toLowerCase().includes(groupSearch.toLowerCase()) || (r.nameAr || '').toLowerCase().includes(groupSearch.toLowerCase()))
               : groupRooms;
@@ -1559,6 +1529,35 @@ const ChatPage = memo(() => {
                     {getThemedIcon('ui', 'users', 14, theme)}
                     {t('chat_group_chats')}
                   </span>
+                  {isStaffRole && (
+                    <button
+                      onClick={() => setShowGroupModal(true)}
+                      title={t('chat_create_group')}
+                      style={{
+                        width: 26,
+                        height: 26,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        background: 'linear-gradient(135deg, var(--brand), var(--brand-dark, #6b0a20))',
+                        color: 'white',
+                        border: 'none',
+                        borderRadius: '50%',
+                        cursor: 'pointer',
+                        fontSize: '1.1rem',
+                        fontWeight: 700,
+                        lineHeight: 1,
+                        padding: 0,
+                        flexShrink: 0,
+                        boxShadow: '0 2px 8px rgba(129, 12, 41, 0.3)',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseOver={(e) => { e.currentTarget.style.transform = 'scale(1.12)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(129, 12, 41, 0.45)'; }}
+                      onMouseOut={(e) => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(129, 12, 41, 0.3)'; }}
+                    >
+                      +
+                    </button>
+                  )}
                 </div>
                 {groupRooms.length > 3 && (
                   <input
@@ -1616,7 +1615,7 @@ const ChatPage = memo(() => {
                 style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--brand)', fontSize: '1.1rem', padding: '2px 6px', borderRadius: 4 }}
                 title={t('message_yourself') || 'Message Yourself'}
               >
-                {getThemedIcon('ui', 'bookmark', 16, theme)}
+                {getThemedIcon('ui', 'edit', 16, theme)}
               </button>
               {isStaffRole && (
                 <button
@@ -1703,7 +1702,7 @@ const ChatPage = memo(() => {
                     if (isSelfDM) {
                       return (
                         <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'linear-gradient(135deg,var(--brand),var(--brand2))', color: 'white', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                          {getThemedIcon('ui', 'bookmark', 16, theme)}
+                          {getThemedIcon('ui', 'edit', 16, theme)}
                         </div>
                       );
                     }
@@ -1751,11 +1750,11 @@ const ChatPage = memo(() => {
                       </span>
                     </div>
                     {/* Operations row (icons) */}
-                    <div style={{ display:'flex', gap:8, marginTop:6 }}>
+                    <div style={{ display:'flex', gap:4, marginTop:4, alignItems:'center' }}>
                       <button
                         onClick={(e) => { e.stopPropagation(); toggleStar(room); }}
                         title={(room.starBy || []).includes(user.uid) ? t('unfavorite') : t('favorite')}
-                        style={{ background:'transparent', border:'1px solid var(--border)', borderRadius:6, padding:'2px 6px', cursor:'pointer', color:(room.starBy||[]).includes(user.uid)?'#facc15':'var(--muted)', fontSize:'0.9rem', lineHeight:1 }}
+                        style={{ background:'transparent', border:'none', cursor:'pointer', color:(room.starBy||[]).includes(user.uid)?'#facc15':'var(--muted)', fontSize:'0.85rem', lineHeight:1, padding:0, display:'flex', alignItems:'center' }}
                       >{(room.starBy||[]).includes(user.uid)?'★':'☆'}</button>
                       <button
                         onClick={async (e) => {
@@ -1768,7 +1767,7 @@ const ChatPage = memo(() => {
                           } catch {}
                         }}
                         title={archivedRooms[room.id] ? t('unarchive') : t('archive')}
-                        style={{ background:'transparent', border:'1px solid var(--border)', borderRadius:6, padding:'2px 6px', cursor:'pointer', color:'var(--muted)', fontSize:'0.9rem', lineHeight:1 }}
+                        style={{ background:'transparent', border:'none', cursor:'pointer', color:'var(--muted)', fontSize:'0.85rem', lineHeight:1, padding:0, display:'flex', alignItems:'center' }}
                       >{archivedRooms[room.id] ? getThemedIcon('ui', 'upload', 14, theme) : getThemedIcon('ui', 'download', 14, theme)}</button>
                     </div>
                   </div>
@@ -2045,23 +2044,6 @@ const ChatPage = memo(() => {
               {messages.length} {t('messages')}
             </span>
             
-            {/* DM Name (if any) - shown for DM conversations (not self-DM) */}
-            {selectedClass?.startsWith('dm:') && (()=>{ 
-              const room = directRooms.find(r=>`dm:${r.id}`===selectedClass); 
-              const isSelfDM = room && room.participantA === room.participantB && room.participantA != null;
-              if (isSelfDM) return null;
-              const otherUser = (room?.userA?.id === user?.dbId || (user?.email && room?.userA?.email === user?.email)) ? room?.userB : room?.userA;
-              const name = otherUser ? getChatUserDisplayName(otherUser, lang) || otherUser.email : null;
-              return name;
-            })() && (
-              <span style={{ fontSize: '0.9rem', color: 'var(--muted)', fontWeight: 500 }}>
-                {(()=>{ 
-                  const room = directRooms.find(r=>`dm:${r.id}`===selectedClass); 
-                  const otherUser = (room?.userA?.id === user?.dbId || (user?.email && room?.userA?.email === user?.email)) ? room?.userB : room?.userA;
-                  return otherUser ? getChatUserDisplayName(otherUser, lang) || otherUser.email : '';
-                })()}
-              </span>
-            )}
           </div>
           {/* Search Button */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -2246,14 +2228,12 @@ const ChatPage = memo(() => {
                     width: 80,
                     height: 80,
                     borderRadius: '50%',
-                    background: theme === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                     marginBottom: '1rem',
-                    fontSize: '2rem',
                   }}>
-                    {(msgQuery?.trim() || globalChatSearch) ? '🔍' : '💬'}
+                    {(msgQuery?.trim() || globalChatSearch) ? '🔍' : <img src="/qaf_logo_transparent.png" alt="QAF" style={{ width: 64, height: 64, objectFit: 'contain', opacity: 0.5 }} />}
                   </div>
                   <p style={{
                     color: theme === 'dark' ? 'rgba(255,255,255,0.45)' : 'rgba(100,110,130,0.7)',

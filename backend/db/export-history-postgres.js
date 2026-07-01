@@ -7,7 +7,7 @@
 
 import prisma from './prismaClient.js';
 
-const ALLOWED_EXPORT_TYPES = ['daily', 'daily_official', 'attendance_official', 'behavioral', 'penalty', 'summary'];
+const ALLOWED_EXPORT_TYPES = ['attendance_daily', 'attendance_daily_official', 'official_attendance', 'behavioral', 'penalty', 'summary'];
 const ALLOWED_FORMATS = ['pdf', 'excel', 'csv'];
 const MAX_LIMIT = 200;
 const MAX_FILENAME_LENGTH = 255;
@@ -27,6 +27,8 @@ export async function createExportHistory(data) {
       subjectId = null,
       programId = null,
       reportDate = null,
+      fileId = null,
+      mimeType = null,
       metadata = null,
     } = data;
 
@@ -60,6 +62,8 @@ export async function createExportHistory(data) {
         subjectId: subjectId ? parseInt(subjectId) : null,
         programId: programId ? parseInt(programId) : null,
         reportDate,
+        fileId: fileId || undefined,
+        mimeType: mimeType || undefined,
         metadata: metadata || undefined,
       },
       include: {
@@ -81,9 +85,6 @@ export async function createExportHistory(data) {
   }
 }
 
-/**
- * Get export history entries with filters
- */
 export async function getExportHistories(filters = {}) {
   try {
     const {
@@ -134,6 +135,7 @@ export async function getExportHistories(filters = {}) {
             displayName: true,
             email: true,
             profileImageUrl: true,
+            keycloakId: true,
             roleAssignments: {
               select: {
                 role: {
@@ -159,11 +161,45 @@ export async function getExportHistories(filters = {}) {
 
     const total = await prisma.exportHistory.count({ where });
 
-    return { success: true, data: records, total };
+    const transformedRecords = records.map((record) => {
+      if (record.user?.profileImageUrl && !record.user.profileImageUrl.startsWith('http') && !record.user.profileImageUrl.startsWith('/api/')) {
+        record.user.profileImageUrl = `/api/v1/user-images/proxy/${record.user.keycloakId}/profile`;
+      }
+      return record;
+    });
+
+    return { success: true, data: transformedRecords, total };
   } catch (error) {
     console.error('Error getting export histories:', error);
     return { success: false, error: 'Failed to retrieve export history' };
   }
 }
 
-export default { createExportHistory, getExportHistories };
+/**
+ * Get a single export history entry by id
+ */
+export async function getExportHistoryById(id) {
+  try {
+    const record = await prisma.exportHistory.findUnique({
+      where: { id: parseInt(id) },
+      include: {
+        user: {
+          select: {
+            id: true,
+            displayName: true,
+            email: true,
+          },
+        },
+      },
+    });
+    if (!record) {
+      return { success: false, error: 'Export record not found' };
+    }
+    return { success: true, data: record };
+  } catch (error) {
+    console.error('Error getting export history by id:', error);
+    return { success: false, error: 'Failed to retrieve export history' };
+  }
+}
+
+export default { createExportHistory, getExportHistories, getExportHistoryById };

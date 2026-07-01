@@ -48,7 +48,7 @@ import {
 } from '@services/export/official-reports/index.jsx';
 import { useToast } from '@ui/ToastProvider.jsx';
 import ConfirmModal from '@ui/Modal/ConfirmModal.jsx';
-import { logExportHistory } from '@services/db/exportHistoryService.js';
+import { persistAndLogExport, mimeTypeForFormat } from '@services/business/exportDriveService.js';
 import ExportHistoryDrawer from './ExportHistoryDrawer.jsx';
 import { addNotification } from '@services/business/notificationService';
 import { sendStudentNotification } from '@services/business/notificationService';
@@ -2950,14 +2950,17 @@ const QRScannerPage = () => {
             : 'Report exported successfully');
         showSuccess(successMessage);
 
-        logExportHistory({
-          exportType: 'daily',
-          format: 'excel',
+        persistAndLogExport({
+          blob: excelBlob,
           filename,
+          mimeType: mimeTypeForFormat('excel'),
+          exportType: 'attendance_daily',
+          format: 'excel',
           classId: selectedClassId,
           subjectId: selectedSubjectId,
           programId: selectedProgramId,
           reportDate: formattedDate,
+          onSaved: () => showSuccess(t('export_saved_to_drive') || 'Also saved to Smart Drive → Exported'),
         }).catch((e) => console.warn('Failed to log export history:', e));
       }
 
@@ -3080,21 +3083,24 @@ const QRScannerPage = () => {
       const sanitize = (str) => (str ? String(str).replace(/[^a-zA-Z0-9\u0600-\u06FF]/g, '_') : '');
       const filename = `${reportData.serial}_daily_official_${sanitize(programName)}`;
 
-      await exportDailyOfficialReport(reportData, {
+      const blob = await exportDailyOfficialReport(reportData, {
         format: dailyOfficialExportFormat,
         filename,
       });
 
       showSuccess(t('report_exported_successfully') || 'Report exported successfully');
 
-      logExportHistory({
-        exportType: 'daily_official',
-        format: dailyOfficialExportFormat,
+      persistAndLogExport({
+        blob,
         filename,
+        mimeType: mimeTypeForFormat(dailyOfficialExportFormat),
+        exportType: 'attendance_daily_official',
+        format: dailyOfficialExportFormat,
         classId: selectedClassId,
         subjectId: selectedSubjectId,
         programId: selectedProgramId,
         reportDate: formattedDate,
+        onSaved: () => showSuccess(t('export_saved_to_drive') || 'Also saved to Smart Drive → Exported'),
       }).catch((e) => console.warn('Failed to log export history:', e));
     } catch (err) {
       console.error('Daily official export failed:', err);
@@ -3309,17 +3315,21 @@ const QRScannerPage = () => {
         });
 
         const sanitize = (str) => (str ? String(str).replace(/[^a-zA-Z0-9\u0600-\u06FF]/g, '_') : '');
-        await exportAttendanceOfficialReport(reportData, {
+        const officialFilename = `${reportData.serial}_attendance_official_${sanitize(programName)}`;
+        const blob = await exportAttendanceOfficialReport(reportData, {
           format,
-          filename: `${reportData.serial}_attendance_official_${sanitize(programName)}`,
+          filename: officialFilename,
         });
 
-        logExportHistory({
-          exportType: 'attendance_official',
+        persistAndLogExport({
+          blob,
+          filename: officialFilename,
+          mimeType: mimeTypeForFormat(format),
+          exportType: 'official_attendance',
           format,
-          filename: `${reportData.serial}_attendance_official_${sanitize(programName)}`,
           programId: selectedProgramId,
           reportDate: `${dateFrom}_${dateTo}`,
+          onSaved: () => showSuccess(t('export_saved_to_drive') || 'Also saved to Smart Drive → Exported'),
         }).catch((e) => console.warn('Failed to log export history:', e));
       } else {
         const excelBlob = await exportAttendanceViolationsReport(filteredData, { lang, t });
@@ -3343,12 +3353,15 @@ const QRScannerPage = () => {
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
 
-        logExportHistory({
+        persistAndLogExport({
+          blob: excelBlob,
+          filename: link.download,
+          mimeType: mimeTypeForFormat('excel'),
           exportType: 'behavioral',
           format: 'excel',
-          filename: link.download,
           programId: selectedProgramId,
           reportDate: `${dateFrom}_${dateTo}`,
+          onSaved: () => showSuccess(t('export_saved_to_drive') || 'Also saved to Smart Drive → Exported'),
         }).catch((e) => console.warn('Failed to log export history:', e));
       }
 
@@ -4303,13 +4316,16 @@ const QRScannerPage = () => {
         console.log('📊 Excel file downloaded:', filename);
         showSuccess(t('summary_report_exported_successfully') || 'Summary report exported successfully');
 
-        logExportHistory({
+        persistAndLogExport({
+          blob: excelBlob,
+          filename,
+          mimeType: mimeTypeForFormat('excel'),
           exportType: 'summary',
           format: 'excel',
-          filename,
           classId: selectedClassId,
           subjectId: selectedSubjectId,
           programId: selectedProgramId,
+          onSaved: () => showSuccess(t('export_saved_to_drive') || 'Also saved to Smart Drive → Exported'),
         }).catch((e) => console.warn('Failed to log export history:', e));
       }
 

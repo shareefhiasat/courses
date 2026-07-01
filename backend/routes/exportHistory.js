@@ -6,7 +6,7 @@
  */
 
 import { Router } from 'express';
-import { logExportController, getExportHistoryController } from '../controllers/exportHistory.js';
+import { logExportController, getExportHistoryController, getExportHistoryFileController } from '../controllers/exportHistory.js';
 import { keycloakAuth } from '../middleware/keycloakAuth.js';
 import { qrScannerOps } from '../middleware/requirePermission.js';
 
@@ -23,5 +23,11 @@ router.post('/', keycloakAuth([]), qrScannerOps.export, logExportController);
  * Get export history with optional filters (requires qr-scanner view permission)
  */
 router.get('/', keycloakAuth([]), qrScannerOps.view, getExportHistoryController);
+
+/**
+ * GET /api/v1/export-history/:id/file
+ * Stream export file (owner or super_admin audit access)
+ */
+router.get('/:id/file', keycloakAuth([]), qrScannerOps.view, getExportHistoryFileController);
 
 export default router;

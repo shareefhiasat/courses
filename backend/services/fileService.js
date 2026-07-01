@@ -944,7 +944,7 @@ export async function getPreviewUrl(fileId, actorUserId, fileVersionId = null) {
  * @param {number} args.actorUserId
  * @param {string} args.versionId - Optional specific file version ID for workflow snapshots
  */
-export async function streamFile({ fileId, req, res, actorUserId, versionId = null }) {
+export async function streamFile({ fileId, req, res, actorUserId, versionId = null, skipAccessCheck = false }) {
   console.log('[streamFile] Starting download for fileId:', fileId, 'actorUserId:', actorUserId, 'versionId:', versionId);
   const file = await prisma.file.findUnique({ where: { id: fileId } });
   console.log('[streamFile] File found:', file ? { id: file.id, name: file.name, bucket: file.bucket, s3Key: file.s3Key } : null);
@@ -953,10 +953,10 @@ export async function streamFile({ fileId, req, res, actorUserId, versionId = nu
     return res.status(404).json(err('FILE_NOT_FOUND', 'File not found'));
   }
 
-  // Check ownership or share access
+  // Check ownership or share access (skipped for export-history audit path after auth)
   const owns = file.ownerId === actorUserId;
-  console.log('[streamFile] Ownership check:', { owns, ownerId: file.ownerId, actorUserId });
-  if (!owns) {
+  console.log('[streamFile] Ownership check:', { owns, ownerId: file.ownerId, actorUserId, skipAccessCheck });
+  if (!skipAccessCheck && !owns) {
     // Get user roles for role-based share check
     const user = await prisma.user.findUnique({
       where: { id: actorUserId },

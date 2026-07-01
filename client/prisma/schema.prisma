@@ -1499,6 +1499,7 @@ model File {
   workflowInstances WorkflowInstance[]
   workflowDocuments WorkflowDocument[] @relation("WorkflowDocumentFile")
   preferences       UserFilePreference[]
+  exportHistories   ExportHistory[]    @relation("ExportHistoryFile")
 
   @@index([folderId])
   @@index([ownerId, isDeleted])
@@ -2551,13 +2552,17 @@ model ExportHistory {
   subjectId    Int?
   programId    Int?
   reportDate   String?  // the attendance date or date range label
+  fileId       String?  // Smart Drive file reference
+  mimeType     String?
   metadata     Json?
   createdAt    DateTime @default(now())
 
   user         User     @relation("ExportHistoryUser", fields: [userId], references: [id])
+  file         File?    @relation("ExportHistoryFile", fields: [fileId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@index([exportType])
   @@index([createdAt])
+  @@index([fileId])
   @@map("export_history")
 }

@@ -8,6 +8,7 @@
 import {
   createExportHistory as createExportHistoryDb,
   getExportHistories as getExportHistoriesDb,
+  getExportHistoryById as getExportHistoryByIdDb,
 } from '../db/export-history-postgres.js';
 
 /**
@@ -24,4 +25,8 @@ export async function getExportHistory(filters) {
   return await getExportHistoriesDb(filters);
 }
 
-export default { logExport, getExportHistory };
+export async function getExportHistoryById(id) {
+  return await getExportHistoryByIdDb(id);
+}
+
+export default { logExport, getExportHistory, getExportHistoryById };

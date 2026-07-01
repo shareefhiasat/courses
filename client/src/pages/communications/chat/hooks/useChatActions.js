@@ -472,26 +472,61 @@ export const useChatActions = (user, state, toast, t) => {
 
   // DM actions
   const openDMWith = useCallback(async (otherUser) => {
-    const otherUserId = otherUser?.docId || otherUser?.id || otherUser?.uid;
     const otherUserDbId = otherUser?.id;
     
-    if (!otherUserId) {
+    if (!otherUserDbId) {
       warn('openDMWith validation failed', { 
-        otherUserId,
+        otherUserDbId,
         currentUserId: user?.uid
       });
       return;
     }
     
     try {
-      const roomId = await chatService.createDMRoom(user.uid, otherUserDbId || otherUserId);
-      setSelectedClass(`dm:${roomId}`);
-      setShowMembers(false);
+      const result = await chatService.createDM(otherUserDbId);
+      if (result.success && result.data) {
+        setSelectedClass(`dm:${result.data.id}`);
+        setUserHasInteracted(true);
+        setShowMembers(false);
+        // Refresh rooms so the new DM appears in the sidebar
+        try {
+          const roomsResult = await chatService.getUserRooms();
+          if (roomsResult.success) {
+            const rooms = [];
+            roomsResult.data.forEach(r => {
+              if (r.type === 'dm') {
+                rooms.push({
+                  id: r.id,
+                  participantA: r.participantA,
+                  participantB: r.participantB,
+                  userA: r.userA,
+                  userB: r.userB,
+                  type: 'dm',
+                  lastMessage: null,
+                  createdAt: r.createdAt
+                });
+              } else if (r.type === 'group') {
+                rooms.push({
+                  id: r.id,
+                  type: 'group',
+                  name: r.name,
+                  createdBy: r.createdBy,
+                  participants: r.participants,
+                  creator: r.creator,
+                  lastMessage: null,
+                  createdAt: r.createdAt
+                });
+              }
+            });
+            setDirectRooms(rooms);
+          }
+        } catch {}
+      }
     } catch (err) {
       error('Open DM failed:', err);
       toast?.showError(t('failed_to_start_conversation'));
     }
-  }, [user, setSelectedClass, setShowMembers, toast]);
+  }, [user, setSelectedClass, setUserHasInteracted, setShowMembers, setDirectRooms, toast]);
 
   const toggleStar = useCallback(async (room) => {
     try {
