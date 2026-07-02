@@ -28,6 +28,7 @@ import Modal from '@ui/Modal/Modal';
 import { markAttendance, getAttendanceByClass, getAttendanceByStudent, deleteAttendance, getClassAttendanceByDate } from '@services/business/attendanceServiceUnified.js';
 import { createStandupAttendance, getStandupAttendanceByUserAndDate, deleteStandupAttendance, getStandupAttendanceByProgramForDateRange, getStandupAttendanceByProgramAndDate } from '@services/business/standupAttendanceService';
 import { getAttendanceRecords } from '@services/business/attendanceService.js';
+import { getLinkedWorkflowsByAttendanceIds } from '@services/api/workflow-documents-api.js';
 import { createPenalty, getPenalties, deletePenalty } from '@services/business/penaltyService';
 import { createParticipation, getParticipations, deleteParticipation } from '@services/business/participationService';
 import { createBehavior, getBehaviors, deleteBehavior } from '@services/business/behaviorService';
@@ -37,7 +38,7 @@ import { ATTENDANCE_METHODS, getAttendanceMethodLabel } from '@constants/attenda
 import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, ATTENDANCE_TYPE_CATEGORY, getAttendanceIcon, getAttendanceColor, getAttendanceLabel, getLocalizedAttendanceLabel, STATUS_ID_MAP, DB_CODE_TO_FRONTEND_STATUS, getStatusCodeFromRecord } from '@constants/attendanceTypes';
 import { calculateAttentionScore, getRowHighlightStyle } from '@utils/attendanceHighlight.js';
 import { ABSENCE_THRESHOLDS } from '@/constants/absenceTypes';
-import { getNoteTypeFromStatus, getLocalizedNoteText } from '@constants/noteTypes';
+import { getNoteTypeFromStatus, getLocalizedNoteText, NOTE_METHOD } from '@constants/noteTypes';
 // import { NOTIFICATION_TRIGGERS } from '@constants/notificationTypes'; // Removed - notifications now handled by backend
 import { exportDailyReport as exportDailyReportExcel, exportSummaryReport as exportSummaryReportExcel, exportAttendanceViolationsReport } from '@services/export/excelExportService.js';
 import {
@@ -1124,6 +1125,20 @@ const QRScannerPage = () => {
       
       setAttendanceRecords(attendance);
 
+      // Fetch linked workflow documents for attendance records (alibi/excuse indicator)
+      let linkedWorkflowsMap = {};
+      const attendanceIds = attendance.map(a => a.id).filter(Boolean);
+      if (attendanceIds.length > 0) {
+        try {
+          const linkedResponse = await getLinkedWorkflowsByAttendanceIds(attendanceIds);
+          if (linkedResponse.success && linkedResponse.data) {
+            linkedWorkflowsMap = linkedResponse.data;
+          }
+        } catch (err) {
+          console.error('[QR Scanner] Error fetching linked workflows:', err);
+        }
+      }
+
       // Fetch standup attendance for selected date using unified service
       // Only call this when we have a valid classId (regular mode)
       let classAttendanceResponse;
@@ -1439,6 +1454,11 @@ const QRScannerPage = () => {
             penaltyHistory: penalties
           };
 
+          // Attach linked workflow (alibi/excuse) if exists for today's attendance record
+          if (todayAttendanceRecord?.id && linkedWorkflowsMap[todayAttendanceRecord.id]) {
+            studentObject.linkedWorkflow = linkedWorkflowsMap[todayAttendanceRecord.id];
+          }
+
           // Log 2: Log data object in StudentRoster after totals are calculated
           console.log('🔍 [LOG 2] QRScannerPage - Student object with calculated totals:', {
             studentId,
@@ -1539,7 +1559,7 @@ const QRScannerPage = () => {
           if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
             const upperStatus = data.status.toUpperCase();
             const standupStatus = upperStatus.startsWith('STANDUP_') ? upperStatus : (
-              { ATTENDANCE_PRESENT: 'STANDUP_PRESENT', ATTENDANCE_LATE: 'STANDUP_LATE', ATTENDANCE_ABSENT: 'STANDUP_ABSENT', ATTENDANCE_HUMAN_CASE: 'STANDUP_CLINIC', ATTENDANCE_LEAVE: 'STANDUP_CLINIC' }[upperStatus] || upperStatus
+              { [ATTENDANCE_STATUS.PRESENT]: ATTENDANCE_STATUS.STANDUP_PRESENT, [ATTENDANCE_STATUS.LATE]: ATTENDANCE_STATUS.STANDUP_LATE, [ATTENDANCE_STATUS.ABSENT_NO_EXCUSE]: ATTENDANCE_STATUS.STANDUP_ABSENT, [ATTENDANCE_STATUS.HUMAN_CASE]: ATTENDANCE_STATUS.STANDUP_CLINIC, [ATTENDANCE_STATUS.EXCUSED_LEAVE]: ATTENDANCE_STATUS.STANDUP_CLINIC }[upperStatus] || upperStatus
             );
             return { ...s, standupStatus };
           }
@@ -1732,7 +1752,7 @@ const QRScannerPage = () => {
         classId: attendanceMode === ATTENDANCE_TYPE_CATEGORY.REGULAR ? selectedClassId : undefined,
         date: dateStr,
         status: attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? status.toUpperCase() : status,
-        notes: notes || getNoteTypeFromStatus(status, 'quick'),
+        notes: notes || getNoteTypeFromStatus(status, NOTE_METHOD.QUICK),
         user: user,
         programId: programId,
         subjectId: subjectId
@@ -1740,6 +1760,7 @@ const QRScannerPage = () => {
 
       if (!result.success) {
         error('Failed to mark attendance:', result.error);
+        showError(result.error || 'Failed to mark attendance');
         return result;
       }
 
@@ -2465,7 +2486,7 @@ const QRScannerPage = () => {
           status: record.status || 'present',
           date: record.date || formatQatarDateOnly(selectedDate),
           time: safeFormatDate(record.timestamp || record.createdAt || record.updatedAt, (date) => formatTime(date, 'en')),
-          method: record.method || 'manual',
+          method: record.method || ATTENDANCE_METHODS.MANUAL,
           notes: record.notes || '',
           markedBy: record.performedByName || record.markedByName || (record.creator ? getLocalizedUserName(record.creator, lang) : '') || (record.createdBy ? (allUsers.find(u => String(u.id) === String(record.createdBy)) ? getLocalizedUserName(allUsers.find(u => String(u.id) === String(record.createdBy)), lang) : '') : '') || '',
           timestamp: safeFormatDate(record.timestamp || record.createdAt || record.updatedAt, (date) => formatDateTime(date, 'en'))
@@ -4273,7 +4294,7 @@ const QRScannerPage = () => {
           blob: excelBlob,
           filename,
           mimeType: mimeTypeForFormat('excel'),
-          exportType: 'summary',
+          exportType: REPORT_TYPE_IDS.SUMMARY,
           format: 'excel',
           classId: selectedClassId,
           subjectId: selectedSubjectId,
@@ -4334,13 +4355,13 @@ const QRScannerPage = () => {
         const status = (typeof record.status === 'string' ? record.status : record.status?.code || '').toUpperCase();
         studentMap[sid].total++;
 
-        if (status === 'STANDUP_PRESENT' || status === 'ATTENDANCE_PRESENT') {
+        if (status === ATTENDANCE_STATUS.STANDUP_PRESENT || status === ATTENDANCE_STATUS.PRESENT) {
           studentMap[sid].present++;
-        } else if (status === 'STANDUP_LATE' || status === 'ATTENDANCE_LATE') {
+        } else if (status === ATTENDANCE_STATUS.STANDUP_LATE || status === ATTENDANCE_STATUS.LATE) {
           studentMap[sid].late++;
-        } else if (status === 'STANDUP_ABSENT' || status === 'ATTENDANCE_ABSENT') {
+        } else if (status === ATTENDANCE_STATUS.STANDUP_ABSENT || status === ATTENDANCE_STATUS.ABSENT_NO_EXCUSE) {
           studentMap[sid].absent++;
-        } else if (status === 'STANDUP_CLINIC' || status === 'ATTENDANCE_HUMAN_CASE' || status === 'ATTENDANCE_LEAVE') {
+        } else if (status === ATTENDANCE_STATUS.STANDUP_CLINIC || status === ATTENDANCE_STATUS.HUMAN_CASE || status === ATTENDANCE_STATUS.EXCUSED_LEAVE) {
           studentMap[sid].clinic++;
         }
       });
@@ -5754,6 +5775,7 @@ const QRScannerPage = () => {
               onHighlightToggle={setHighlightEnabled}
               autoExpand={isScannerMinimized}
               showSuccess={showSuccess}
+              showError={showError}
             />
             </div>
           )}

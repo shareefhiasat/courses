@@ -3,6 +3,7 @@ import { Button, Card, CardBody } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 import { REPORT_TYPE_IDS, RECIPIENT_ROLES } from '@constants/reportConstants';
 import { EXPORT_FORMAT } from '@services/export/official-reports/index.jsx';
+import { ATTENDANCE_TYPE_CATEGORY } from '@constants/attendanceTypes';
 import OfficialExportFormatPicker from './OfficialExportFormatPicker.jsx';
 
 
@@ -59,7 +60,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Repor
   const isSummaryReport = reportType === REPORT_TYPE_IDS.SUMMARY;
   const isDailyReport = reportType === REPORT_TYPE_IDS.DAILY;
   const isDailyOfficial = reportType === REPORT_TYPE_IDS.DAILY_OFFICIAL;
-  const isStandupMode = attendanceMode === 'standup';
+  const isStandupMode = attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP;
 
   return (
     <div style={{
@@ -169,7 +170,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Repor
   selectedProgramsForReport,
   setSelectedProgramsForReport
 }) => {
-  const isStandupMode = attendanceMode === 'standup';
+  const isStandupMode = attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP;
   
   return (
     <div style={{ marginBottom: '1rem' }}>
@@ -700,7 +701,7 @@ const ActionButtons = ({
   const isSummaryReport = reportType === REPORT_TYPE_IDS.SUMMARY;
   const isDailyOfficial = reportType === REPORT_TYPE_IDS.DAILY_OFFICIAL;
   const isDailyReport = reportType === REPORT_TYPE_IDS.DAILY;
-  const isStandupMode = attendanceMode === 'standup';
+  const isStandupMode = attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP;
 
   const exportLabel = isDailyOfficial
     ? officialExportFormat === EXPORT_FORMAT.PDF

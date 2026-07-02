@@ -25,7 +25,8 @@ import {
   listFileVersionsController,
   downloadFileVersionController,
   createCustomWorkflowDocumentController,
-  deleteWorkflowDocumentController
+  deleteWorkflowDocumentController,
+  getLinkedWorkflowsController
 } from '../controllers/workflowDocuments.js';
 
 const router = Router();
@@ -210,6 +211,38 @@ router.post('/', createWorkflowDocumentController);
  *         description: Internal server error
  */
 router.get('/', getWorkflowDocumentsController);
+
+/**
+ * @swagger
+ * /api/v1/workflow-documents/linked-by-attendance:
+ *   post:
+ *     summary: Batch-lookup workflow documents linked to attendance records
+ *     tags: [Workflow Documents]
+ *     security:
+ *       - bearerAuth: []
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - attendanceIds
+ *             properties:
+ *               attendanceIds:
+ *                 type: array
+ *                 items:
+ *                   type: integer
+ *                 description: Array of attendance record IDs
+ *     responses:
+ *       200:
+ *         description: Linked workflows retrieved successfully
+ *       400:
+ *         description: Bad request
+ *       500:
+ *         description: Internal server error
+ */
+router.post('/linked-by-attendance', getLinkedWorkflowsController);
 
 /**
  * @swagger

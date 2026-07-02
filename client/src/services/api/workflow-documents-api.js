@@ -167,6 +167,15 @@ export const downloadFileVersion = async (fileId, versionId) => {
   });
 };
 
+/**
+ * Batch-lookup workflow documents linked to attendance records
+ * @param {number[]} attendanceIds - Array of attendance record IDs
+ * @returns {Promise<Object>} Map of attendanceId → workflow document summary
+ */
+export const getLinkedWorkflowsByAttendanceIds = async (attendanceIds) => {
+  return await apiService.post('/workflow-documents/linked-by-attendance', { attendanceIds });
+};
+
 export default {
   createWorkflowDocument,
   createCustomWorkflowDocument,
@@ -183,5 +192,6 @@ export default {
   getComplianceData,
   getAnalyticsData,
   listFileVersions,
-  downloadFileVersion
+  downloadFileVersion,
+  getLinkedWorkflowsByAttendanceIds
 };

@@ -10,6 +10,7 @@ import notificationGateway from './notifications/index.js';
 import { EVENTS } from './notifications/constants.js';
 import { buildLocalizedNameFields, buildNotificationNameVars } from '../utils/localizedUserName.js';
 import { USER_NAME_SELECT_WITH_ID } from '../utils/userNameFields.js';
+import { checkAttendanceWorkflowLock } from './workflowDocumentService.js';
 
 
 /**
@@ -468,7 +469,21 @@ export const updateAttendance = async (id, updateData, user = null) => {
         data: null
       };
     }
-    
+
+    // Check if attendance record is linked to an in-progress workflow
+    const isHrOrAdmin = user?.roles?.includes('hr') || user?.roles?.includes('admin');
+    if (!isHrOrAdmin) {
+      const lockCheck = await checkAttendanceWorkflowLock(parseInt(id));
+      if (lockCheck.blocked) {
+        return {
+          success: false,
+          error: `Cannot modify attendance record linked to in-progress workflow #${lockCheck.workflow.id} (${lockCheck.workflow.title}). Please approve or reject the workflow first.`,
+          code: 409,
+          workflow: lockCheck.workflow
+        };
+      }
+    }
+
     // Prepare update data
     const data = {
       updatedBy: user?.id ? (isNaN(parseInt(user.id)) ? null : parseInt(user.id)) : null,
@@ -581,7 +596,21 @@ export const deleteAttendance = async (id, user = null) => {
         data: null
       };
     }
-    
+
+    // Check if attendance record is linked to an in-progress workflow
+    const isHrOrAdmin = user?.roles?.includes('hr') || user?.roles?.includes('admin');
+    if (!isHrOrAdmin) {
+      const lockCheck = await checkAttendanceWorkflowLock(parseInt(id));
+      if (lockCheck.blocked) {
+        return {
+          success: false,
+          error: `Cannot delete attendance record linked to in-progress workflow #${lockCheck.workflow.id} (${lockCheck.workflow.title}). Please approve or reject the workflow first.`,
+          code: 409,
+          workflow: lockCheck.workflow
+        };
+      }
+    }
+
     await prisma.attendance.delete({
       where: { id: parseInt(id) }
     });

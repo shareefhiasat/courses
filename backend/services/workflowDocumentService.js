@@ -1415,6 +1415,121 @@ export async function deleteWorkflowDocument(id) {
   }
 }
 
+/**
+ * Batch-lookup workflow documents linked to attendance records via the junction table.
+ * Returns a map of attendanceId → workflow document summary.
+ *
+ * @param {number[]} attendanceIds - Array of attendance record IDs
+ * @returns {Promise<{success: boolean, data?: Object}>}
+ */
+export async function getLinkedWorkflowsByAttendanceIds(attendanceIds) {
+  try {
+    if (!attendanceIds || attendanceIds.length === 0) {
+      return { success: true, data: {} };
+    }
+
+    const links = await prisma.workflowDocumentAttendance.findMany({
+      where: { attendanceId: { in: attendanceIds } },
+      include: {
+        workflowDocument: {
+          select: {
+            id: true,
+            title: true,
+            status: true,
+            workflowCategory: true,
+            attendanceSubtype: true,
+            workflowType: true,
+          },
+        },
+      },
+    });
+
+    const map = {};
+    for (const link of links) {
+      const wf = link.workflowDocument;
+      if (!wf) continue;
+      // Keep the most recent workflow per attendance record
+      if (!map[link.attendanceId] || link.workflowDocument.id > map[link.attendanceId].id) {
+        map[link.attendanceId] = {
+          id: wf.id,
+          title: wf.title,
+          status: wf.status,
+          workflowCategory: wf.workflowCategory,
+          attendanceSubtype: wf.attendanceSubtype,
+          workflowType: wf.workflowType,
+        };
+      }
+    }
+
+    return { success: true, data: map };
+  } catch (error) {
+    console.error('[getLinkedWorkflowsByAttendanceIds] Error:', error);
+    return { success: false, error: 'Internal server error' };
+  }
+}
+
+/**
+ * Check if an attendance record is linked to any in-progress workflow document.
+ * Used by validation guards to prevent modification/deletion.
+ *
+ * @param {number} attendanceId
+ * @returns {Promise<{blocked: boolean, workflow?: object}>}
+ */
+export async function checkAttendanceWorkflowLock(attendanceId) {
+  try {
+    const links = await prisma.workflowDocumentAttendance.findMany({
+      where: { attendanceId: parseInt(attendanceId) },
+      include: {
+        workflowDocument: {
+          select: { id: true, title: true, status: true, workflowCategory: true, attendanceSubtype: true },
+        },
+      },
+    });
+
+    const inProgress = links.find(l =>
+      l.workflowDocument && IN_PROGRESS_STATUSES.includes(l.workflowDocument.status)
+    );
+
+    if (inProgress) {
+      return { blocked: true, workflow: inProgress.workflowDocument };
+    }
+    return { blocked: false };
+  } catch (error) {
+    console.error('[checkAttendanceWorkflowLock] Error:', error);
+    return { blocked: false };
+  }
+}
+
+/**
+ * Check if a student has any in-progress workflow for a given category (PENALTY/BEHAVIOR).
+ * Used by validation guards since penalties/behaviors have no junction table.
+ *
+ * @param {number} targetStudentId
+ * @param {string} workflowCategory - 'PENALTY' or 'BEHAVIOR'
+ * @returns {Promise<{blocked: boolean, workflow?: object}>}
+ */
+export async function checkStudentCategoryWorkflowLock(targetStudentId, workflowCategory) {
+  try {
+    const existing = await prisma.workflowDocument.findFirst({
+      where: {
+        targetStudentId: Number(targetStudentId),
+        workflowCategory,
+        status: { in: IN_PROGRESS_STATUSES },
+      },
+      select: { id: true, title: true, status: true, workflowCategory: true },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (existing) {
+      return { blocked: true, workflow: existing };
+    }
+    return { blocked: false };
+  } catch (error) {
+    console.error('[checkStudentCategoryWorkflowLock] Error:', error);
+    return { blocked: false };
+  }
+}
+
 export default {
   createWorkflowDocumentWithUpload,
   getWorkflowDocument,
@@ -1433,5 +1548,8 @@ export default {
   listFileVersions,
   downloadFileVersion,
   createCustomWorkflowDocument,
-  deleteWorkflowDocument
+  deleteWorkflowDocument,
+  getLinkedWorkflowsByAttendanceIds,
+  checkAttendanceWorkflowLock,
+  checkStudentCategoryWorkflowLock
 };

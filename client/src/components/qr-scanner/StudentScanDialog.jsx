@@ -234,7 +234,7 @@ const StudentScanDialog = ({
               style={{
                 padding: '0.875rem',
                 border: 'none',
-                background: actionLoading && currentAction === 'penalty' ? '#94a3b8' : '#ef4444',
+                background: actionLoading && currentAction === RECORD_TYPES.PENALTY ? '#94a3b8' : '#ef4444',
                 color: 'white',
                 borderRadius: '0.5rem',
                 fontSize: 'var(--font-size-sm)',
@@ -263,7 +263,7 @@ const StudentScanDialog = ({
                 }
               }}
             >
-              {actionLoading && currentAction === 'penalty' ? (
+              {actionLoading && currentAction === RECORD_TYPES.PENALTY ? (
                 <>
                   <div style={{
                     width: '16px',

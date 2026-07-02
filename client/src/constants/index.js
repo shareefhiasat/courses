@@ -230,102 +230,6 @@ export const FIELDS = {
   NOTES: 'notes'
 };
 
-// Attendance methods constants
-export const ATTENDANCE_METHODS = {
-  ROSTER_QUICK_ACTION: 'roster_quick_action',
-  MANUAL_INSTRUCTOR: 'manual_instructor',
-  MANUAL: 'manual',
-  QR_SCAN: 'qr_scan',
-  QR_SCAN_AUTO: 'qr_scan_auto',
-  QR_SCAN_MANUAL: 'qr_scan_manual',
-  BATCH_IMPORT: 'batch_import',
-  API_IMPORT: 'api_import',
-  BULK_UPDATE: 'bulk_update'
-};
-
-// Attendance method labels function
-export const getAttendanceMethodLabel = (method, t, lang = 'en') => {
-  if (!method) return '';
-  
-  const methodLabels = {
-    roster_quick_action: lang === 'ar' ? 'إجراء سريع' : 'Quick Action',
-    manual_instructor: lang === 'ar' ? 'يدوي المدرب' : 'Manual Instructor',
-    manual: lang === 'ar' ? 'يدوي' : 'Manual',
-    qr_scan: lang === 'ar' ? 'مسح QR' : 'QR Scan',
-    qr_scan_auto: lang === 'ar' ? 'مسح QR تلقائي' : 'Auto QR Scan',
-    qr_scan_manual: lang === 'ar' ? 'مسح QR يدوي' : 'Manual QR Scan',
-    batch_import: lang === 'ar' ? 'استيراد دفعة' : 'Batch Import',
-    api_import: lang === 'ar' ? 'استيراد API' : 'API Import',
-    bulk_update: lang === 'ar' ? 'تحديث جماعي' : 'Bulk Update'
-  };
-  
-  return methodLabels[method] || method;
-};
-
-// Should show method label function
-export const shouldShowMethodLabel = (method, comment) => {
-  if (!method) return false;
-  
-  // Show method label for certain methods
-  const methodsToShow = [
-    'roster_quick_action',
-    'qr_scan',
-    'qr_scan_auto',
-    'qr_scan_manual'
-  ];
-  
-  return methodsToShow.includes(method) && !comment;
-};
-
-// Icon types
-export const ICON_TYPES = {
-  USER: 'user',
-  CLASS: 'class',
-  PROGRAM: 'program',
-  ATTENDANCE: 'attendance',
-  BEHAVIOR: 'behavior',
-  PENALTY: 'penalty',
-  PARTICIPATION: 'participation',
-  NOTIFICATION: 'notification',
-  ACTIVITY: 'activity',
-  STATUS: 'status'
-};
-
-// Icon utility functions
-export const getIcon = (type, color = null) => {
-  const iconMap = {
-    [ICON_TYPES.USER]: 'user',
-    [ICON_TYPES.CLASS]: 'class',
-    [ICON_TYPES.PROGRAM]: 'program',
-    [ICON_TYPES.ATTENDANCE]: 'attendance',
-    [ICON_TYPES.BEHAVIOR]: 'behavior',
-    [ICON_TYPES.PENALTY]: 'penalty',
-    [ICON_TYPES.PARTICIPATION]: 'participation',
-    [ICON_TYPES.NOTIFICATION]: 'notification',
-    [ICON_TYPES.ACTIVITY]: 'activity',
-    [ICON_TYPES.STATUS]: 'status'
-  };
-  
-  return iconMap[type] || 'default';
-};
-
-export const getIconWithColorLocal = (type, color) => {
-  return {
-    icon: getIcon(type),
-    color: color || '#3b82f6' // Default primary color
-  };
-};
-
-// Dashboard colors (local definition since not exported from dashboardTypes.jsx)
-export const DASHBOARD_COLORS = {
-  PRIMARY: '#3b82f6',
-  SUCCESS: '#10b981',
-  WARNING: '#f59e0b',
-  ERROR: '#ef4444',
-  INFO: '#06b6d4',
-  GRAY: '#6b7280'
-};
-
 // Activity type colors for UI display (centralized constants)
 export const ACTIVITY_COLORS = {
   participation: '#3b82f6', // Blue
@@ -338,13 +242,6 @@ export const ACTIVITY_COLORS = {
   present: '#10b981'       // Green
 };
 
-export const getTypeIcon = (type) => getIcon(type);
-export const getAttendanceIcon = () => getIcon(ICON_TYPES.ATTENDANCE);
-export const getBehaviorIcon = () => getIcon(ICON_TYPES.BEHAVIOR);
-export const getPenaltyIcon = () => getIcon(ICON_TYPES.PENALTY);
-export const getParticipationIcon = () => getIcon(ICON_TYPES.PARTICIPATION);
-export const getNotificationIcon = () => getIcon(ICON_TYPES.NOTIFICATION);
-export const getActivityIcon = () => getIcon(ICON_TYPES.ACTIVITY);
 export const getUserStatusIcon = (status) => {
   const statusIcons = {
     active: 'user-active',
@@ -413,7 +310,6 @@ export default {
   getPriorityConfig,
   
   // Dashboard types
-  DASHBOARD_COLORS,
   DARK_MODE_COLORS,
   getThemeColor,
   
@@ -424,25 +320,9 @@ export default {
   TABLES,
   FIELDS,
   
-  // Attendance constants
-  ATTENDANCE_METHODS,
-  getAttendanceMethodLabel,
-  shouldShowMethodLabel,
-  
   // Icon constants
-  ICON_TYPES,
-  DASHBOARD_COLORS,
   CATEGORY_ICONS,
-  getIcon,
-  getIconWithColorLocal,
   getThemedIcon,
-  getTypeIcon,
-  getAttendanceIcon,
-  getBehaviorIcon,
-  getPenaltyIcon,
-  getParticipationIcon,
-  getNotificationIcon,
-  getActivityIcon,
   getUserStatusIcon,
   getUserRoleIcon
 };

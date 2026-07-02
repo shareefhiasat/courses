@@ -4,7 +4,7 @@ import { Button } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 import { ACTIVITY_COLORS } from '@constants';
 import StudentRosterHistory from './StudentRosterHistory';
-import { ATTENDANCE_STATUS_LABELS, getAttendanceColor, getAttendanceLabel, getLocalizedAttendanceLabel, getAttendanceIcon, ATTENDANCE_TYPE_CATEGORY, STANDUP_ATTENDANCE_TYPES } from '@constants/attendanceTypes';
+import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, getAttendanceColor, getAttendanceLabel, getLocalizedAttendanceLabel, getAttendanceIcon, ATTENDANCE_TYPE_CATEGORY, STANDUP_ATTENDANCE_TYPES } from '@constants/attendanceTypes';
 import { useNavigate } from 'react-router-dom';
 import { useLang } from '@contexts/LangContext';
 import PortalTooltip from '@ui/PortalTooltip';
@@ -83,10 +83,10 @@ const StudentTableRow = ({
 
   // Toggle logic: buttons are disabled based on current status (including overrides), not just if any attendance exists
   // If marked as Present, disable Present button but enable Late button (and vice versa)
-  const isPresentButtonDisabled = hasAttendanceForMode && todayStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_PRESENT' : 'ATTENDANCE_PRESENT');
-  const isLateButtonDisabled = hasAttendanceForMode && todayStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_LATE' : 'ATTENDANCE_LATE');
-  const isAbsentButtonDisabled = hasAttendanceForMode && todayStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_ABSENT' : 'ATTENDANCE_ABSENT');
-  const isClinicButtonDisabled = hasAttendanceForMode && todayStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_CLINIC' : 'ATTENDANCE_HUMAN_CASE');
+  const isPresentButtonDisabled = hasAttendanceForMode && todayStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? ATTENDANCE_STATUS.STANDUP_PRESENT : ATTENDANCE_STATUS.PRESENT);
+  const isLateButtonDisabled = hasAttendanceForMode && todayStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? ATTENDANCE_STATUS.STANDUP_LATE : ATTENDANCE_STATUS.LATE);
+  const isAbsentButtonDisabled = hasAttendanceForMode && todayStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? ATTENDANCE_STATUS.STANDUP_ABSENT : ATTENDANCE_STATUS.ABSENT_NO_EXCUSE);
+  const isClinicButtonDisabled = hasAttendanceForMode && todayStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? ATTENDANCE_STATUS.STANDUP_CLINIC : ATTENDANCE_STATUS.HUMAN_CASE);
 
   // Log 1: Inside disabled check, log Student ID and the specific record object being compared
   console.log('🔍 [LOG 1] StudentTableRow - Button disabled logic:', {
@@ -101,8 +101,8 @@ const StudentTableRow = ({
     studentStandupStatus: student.standupStatus,
     todayAttendanceOverrides: todayAttendanceOverrides[student.id],
     comparison: {
-      presentComparison: todayStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_PRESENT' : 'ATTENDANCE_PRESENT'),
-      lateComparison: todayStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_LATE' : 'ATTENDANCE_LATE')
+      presentComparison: todayStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? ATTENDANCE_STATUS.STANDUP_PRESENT : ATTENDANCE_STATUS.PRESENT),
+      lateComparison: todayStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? ATTENDANCE_STATUS.STANDUP_LATE : ATTENDANCE_STATUS.LATE)
     }
   });
 
@@ -146,20 +146,20 @@ const StudentTableRow = ({
     const getIcon = (s) => {
       const statusUpper = s?.toUpperCase();
       switch(statusUpper) {
-        case 'ATTENDANCE_PRESENT':
-        case 'STANDUP_PRESENT':
+        case ATTENDANCE_STATUS.PRESENT:
+        case ATTENDANCE_STATUS.STANDUP_PRESENT:
           return <CheckSmallIcon style={{ width: '16px', height: '16px', stroke: color }} />;
-        case 'ATTENDANCE_LATE':
-        case 'STANDUP_LATE':
+        case ATTENDANCE_STATUS.LATE:
+        case ATTENDANCE_STATUS.STANDUP_LATE:
           return <ClockSmallIcon style={{ width: '16px', height: '16px', stroke: color }} />;
-        case 'ATTENDANCE_ABSENT':
-        case 'STANDUP_ABSENT':
+        case ATTENDANCE_STATUS.ABSENT_NO_EXCUSE:
+        case ATTENDANCE_STATUS.STANDUP_ABSENT:
           return <XSmallIcon style={{ width: '16px', height: '16px', stroke: color }} />;
-        case 'ATTENDANCE_LEAVE':
+        case ATTENDANCE_STATUS.EXCUSED_LEAVE:
           return <HeartIcon style={{ width: '16px', height: '16px', stroke: color }} />;
-        case 'STANDUP_CLINIC':
+        case ATTENDANCE_STATUS.STANDUP_CLINIC:
           return <HeartIcon style={{ width: '16px', height: '16px', stroke: color }} />;
-        case 'ATTENDANCE_HUMAN_CASE':
+        case ATTENDANCE_STATUS.HUMAN_CASE:
           return <HeartIcon style={{ width: '16px', height: '16px', stroke: color }} />;
         default:
           return <CircleIcon style={{ width: '16px', height: '16px', stroke: color }} />;
@@ -183,7 +183,7 @@ const StudentTableRow = ({
     
     // If attendance status is provided, use its color and icon
     if (attendanceStatus) {
-      finalType = 'attendance';
+      finalType = RECORD_TYPES.ATTENDANCE;
       finalMessage = message || getLocalizedAttendanceLabel(attendanceStatus, lang);
     }
     
@@ -304,12 +304,12 @@ const StudentTableRow = ({
         />
         {attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && (
           <td style={{ padding: '0.5rem 0.75rem' }} onClick={() => onStudentSelect(student)}>
-            <AttendanceStatusCell status={todayStatus} type="regular" t={t} lang={lang} />
+            <AttendanceStatusCell status={todayStatus} type="regular" t={t} lang={lang} linkedWorkflow={student.linkedWorkflow} />
           </td>
         )}
         {attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP && (
           <td style={{ padding: '0.5rem 0.75rem' }} onClick={() => onStudentSelect(student)}>
-            <AttendanceStatusCell status={student.standupStatus} type="standup" t={t} lang={lang} />
+            <AttendanceStatusCell status={student.standupStatus} type="standup" t={t} lang={lang} linkedWorkflow={student.linkedWorkflow} />
           </td>
         )}
         {attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && (

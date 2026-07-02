@@ -10,7 +10,7 @@ import { useLang } from '@contexts/LangContext';
 import PortalTooltip from '@ui/PortalTooltip';
 import { ATTENDANCE_STATUS_LABELS, getAttendanceColor, getAttendanceLabel, getLocalizedAttendanceLabel, ATTENDANCE_STATUS, ATTENDANCE_TYPE_CATEGORY, getStatusCodeFromRecord } from '@constants/attendanceTypes';
 import { calculateAttentionScore, getRowHighlightStyle } from '@utils/attendanceHighlight.js';
-import { getNoteTypeFromStatus } from '@constants/noteTypes';
+import { getNoteTypeFromStatus, NOTE_METHOD } from '@constants/noteTypes';
 import { getAttendanceByStudent, rosterQuickAction, deleteAttendance, getStudentAttendanceByDate, markAttendance } from '@services/business/attendanceServiceUnified.js';
 import { getPenalties, getPenaltiesByStudent, deletePenalty } from '@services/business/penaltyService';
 import { getQatarDateParts, formatForDateInput } from '@utils/date-formatter.js';
@@ -57,10 +57,11 @@ const StudentRoster = React.memo(function StudentRoster({
   selectedSubjectId,
   selectedClassId,
   selectedDate,
-  attendanceMode = 'regular',
+  attendanceMode = ATTENDANCE_TYPE_CATEGORY.REGULAR,
   highlightEnabled = true,
   onHighlightToggle = null,
-  showSuccess = (msg) => console.log('SUCCESS:', msg)
+  showSuccess = (msg) => console.log('SUCCESS:', msg),
+  showError = (msg) => console.error('ERROR:', msg)
 }) {
   const {user} = useAuth();
   const {theme} = useTheme();
@@ -368,9 +369,13 @@ const StudentRoster = React.memo(function StudentRoster({
         eventBus.emit(config.event, { studentId, ...config.extraPayload });
         if (config.extraEvent) eventBus.emit(config.extraEvent, { studentId });
         if (onRefresh) onRefresh();
+      } else if (result?.error) {
+        showError(result.error);
       }
     } catch (err) {
       error(`Error deleting ${deleteType}:`, err);
+      const errMsg = err?.response?.data?.error || err?.message || `Failed to delete ${deleteType}`;
+      showError(errMsg);
     } finally {
       setDeleteLoading(false);
       setDeleteModalOpen(false);
@@ -643,10 +648,10 @@ const StudentRoster = React.memo(function StudentRoster({
     console.log('🔍 StudentRoster handleQuickAttendance - status:', status);
     console.log('🔍 StudentRoster handleQuickAttendance - programId:', programIdToUse);
     console.log('🔍 StudentRoster handleQuickAttendance - isStandupMode:', attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP);
-    console.log('🔍 StudentRoster handleQuickAttendance - shouldBlock:', attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP && (status === 'ATTENDANCE_PRESENT' || status === 'ATTENDANCE_LATE'));
+    console.log('🔍 StudentRoster handleQuickAttendance - shouldBlock:', attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP && (status === ATTENDANCE_STATUS.PRESENT || status === ATTENDANCE_STATUS.LATE));
 
     if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP &&
-        (status === 'ATTENDANCE_PRESENT' || status === 'ATTENDANCE_LATE')) {
+        (status === ATTENDANCE_STATUS.PRESENT || status === ATTENDANCE_STATUS.LATE)) {
       debug('🚫 Regular Present/Late marking blocked in stand-up mode:', { status, attendanceMode });
       return;
     }
@@ -705,8 +710,8 @@ const StudentRoster = React.memo(function StudentRoster({
         status,
         enhancedUser,
         attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP
-          ? getNoteTypeFromStatus(status, 'standup')
-          : getNoteTypeFromStatus(status, 'quick'),
+          ? getNoteTypeFromStatus(status, NOTE_METHOD.STANDUP)
+          : getNoteTypeFromStatus(status, NOTE_METHOD.QUICK),
         programIdToUse,
         selectedSubjectId,
         selectedDate,
@@ -747,11 +752,16 @@ const StudentRoster = React.memo(function StudentRoster({
 
       } else {
         error('Quick attendance failed:', result.error);
+        if (result.error) {
+          showError(result.error);
+        }
       }
-    } catch (error) {
-      error('Quick attendance error:', error);
+    } catch (err) {
+      error('Quick attendance error:', err);
+      const errMsg = err?.response?.data?.error || err?.message || 'Failed to mark attendance';
+      showError(errMsg);
     }
-  }, [selectedClassId, user, lang, t, onRefresh, attendanceMode, canEditAttendance, selectedDate, selectedProgramId, selectedSubjectId, showSuccess]);
+  }, [selectedClassId, user, lang, t, onRefresh, attendanceMode, canEditAttendance, selectedDate, selectedProgramId, selectedSubjectId, showSuccess, showError]);
 
   const sendStudentSummaryEmail = async (student) => {
     setSendingEmails(prev => ({

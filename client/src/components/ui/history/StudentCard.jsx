@@ -6,9 +6,10 @@ import { ACTIVITY_COLORS } from '@constants';
 import StudentRosterHistory from './StudentRosterHistory';
 import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
 import { getUserRoleFromObject } from '@utils/userUtils';
-import { CircleIcon, ZapIcon } from '@utils/icons.jsx';
+import { CircleIcon, ZapIcon, CheckSmallIcon, ClockSmallIcon, XSmallIcon } from '@utils/icons.jsx';
 import { useNavigate } from 'react-router-dom';
 import PortalTooltip from '@ui/PortalTooltip';
+import { WORKFLOW_STATUS } from '@constants/workflowStatusTypes.jsx';
 
 
 import { info, error, warn, debug } from '@services/utils/logger.js';const StudentCard = ({ 
@@ -187,6 +188,37 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
               {student.attendance && (
                 <div style={{ display: 'flex', alignItems: 'center' }}>
                   {getAttendanceBadge(student.attendance)}
+                  {student.linkedWorkflow && (
+                    <a
+                      href={`/workflow-documents/${student.linkedWorkflow.id}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      onClick={(e) => e.stopPropagation()}
+                      title={
+                        student.linkedWorkflow.status === WORKFLOW_STATUS.APPROVED
+                          ? (t('alibi_approved') || 'Excuse approved') + ` — #${student.linkedWorkflow.id}`
+                          : student.linkedWorkflow.status === WORKFLOW_STATUS.REJECTED
+                          ? (t('alibi_rejected') || 'Excuse rejected') + ` — #${student.linkedWorkflow.id}`
+                          : (t('alibi_in_progress') || 'Excuse workflow in progress') + ` — #${student.linkedWorkflow.id}`
+                      }
+                      style={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        marginLeft: '0.25rem',
+                        textDecoration: 'none',
+                        cursor: 'pointer',
+                        flexShrink: 0,
+                      }}
+                    >
+                      {student.linkedWorkflow.status === WORKFLOW_STATUS.APPROVED ? (
+                        <CheckSmallIcon style={{ width: '14px', height: '14px', stroke: '#10b981' }} />
+                      ) : student.linkedWorkflow.status === WORKFLOW_STATUS.REJECTED ? (
+                        <XSmallIcon style={{ width: '14px', height: '14px', stroke: '#ef4444' }} />
+                      ) : (
+                        <ClockSmallIcon style={{ width: '14px', height: '14px', stroke: '#f59e0b' }} />
+                      )}
+                    </a>
+                  )}
                 </div>
               )}
             </div>

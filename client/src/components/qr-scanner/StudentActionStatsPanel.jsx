@@ -46,7 +46,7 @@ export default function StudentActionStatsPanel({
   onToggleFavorite,
   sendNotifications = false,
   onToggleNotifications,
-  attendanceMode = 'regular',
+  attendanceMode = ATTENDANCE_TYPE_CATEGORY.REGULAR,
   programId = null,
   subjectId = null
 }) {
@@ -1327,17 +1327,17 @@ export default function StudentActionStatsPanel({
                 <button
                     onClick={async () => {
                       console.log('🔍 Present button clicked - attendanceMode:', attendanceMode, 'programId:', programId, 'subjectId:', subjectId);
-                      const statusToMark = attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_PRESENT' : 'ATTENDANCE_PRESENT';
+                      const statusToMark = attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? ATTENDANCE_STATUS.STANDUP_PRESENT : ATTENDANCE_STATUS.PRESENT;
                       await handleMarkAttendance(student.id, statusToMark);
                     }}
-                    disabled={showLoadingOverlay || (!isAttendanceNone && currentAttendanceStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_PRESENT' : 'ATTENDANCE_PRESENT'))}
+                    disabled={showLoadingOverlay || (!isAttendanceNone && currentAttendanceStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? ATTENDANCE_STATUS.STANDUP_PRESENT : ATTENDANCE_STATUS.PRESENT))}
                     style={{
                       padding: '0.625rem',
                       borderRadius: '0.375rem',
                       border: '2px solid #10b981',
-                      background: !isAttendanceNone && currentAttendanceStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_PRESENT' : 'ATTENDANCE_PRESENT') ? 'var(--color-success, #10b981)' : 'var(--panel, white)',
-                      color: !isAttendanceNone && currentAttendanceStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_PRESENT' : 'ATTENDANCE_PRESENT') ? 'var(--text-on-success, white)' : 'var(--color-success, #10b981)',
-                      cursor: showLoadingOverlay || (!isAttendanceNone && currentAttendanceStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_PRESENT' : 'ATTENDANCE_PRESENT')) ? 'not-allowed' : 'pointer',
+                      background: !isAttendanceNone && currentAttendanceStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? ATTENDANCE_STATUS.STANDUP_PRESENT : ATTENDANCE_STATUS.PRESENT) ? 'var(--color-success, #10b981)' : 'var(--panel, white)',
+                      color: !isAttendanceNone && currentAttendanceStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? ATTENDANCE_STATUS.STANDUP_PRESENT : ATTENDANCE_STATUS.PRESENT) ? 'var(--text-on-success, white)' : 'var(--color-success, #10b981)',
+                      cursor: showLoadingOverlay || (!isAttendanceNone && currentAttendanceStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? ATTENDANCE_STATUS.STANDUP_PRESENT : ATTENDANCE_STATUS.PRESENT)) ? 'not-allowed' : 'pointer',
                       opacity: showLoadingOverlay ? 0.5 : 1,
                       display: 'flex',
                       flexDirection: 'column',
@@ -1370,17 +1370,17 @@ export default function StudentActionStatsPanel({
                 </button>
                 <button
                     onClick={async () => {
-                      const statusToMark = attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_LATE' : 'ATTENDANCE_LATE';
+                      const statusToMark = attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? ATTENDANCE_STATUS.STANDUP_LATE : ATTENDANCE_STATUS.LATE;
                       await handleMarkAttendance(student.id, statusToMark);
                     }}
-                    disabled={showLoadingOverlay || (!isAttendanceNone && currentAttendanceStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_LATE' : 'ATTENDANCE_LATE'))}
+                    disabled={showLoadingOverlay || (!isAttendanceNone && currentAttendanceStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? ATTENDANCE_STATUS.STANDUP_LATE : ATTENDANCE_STATUS.LATE))}
                     style={{
                       padding: '0.625rem',
                       borderRadius: '0.375rem',
                       border: '2px solid #f59e0b',
-                      background: !isAttendanceNone && currentAttendanceStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_LATE' : 'ATTENDANCE_LATE') ? 'var(--color-warning, #f59e0b)' : 'var(--panel, white)',
-                      color: !isAttendanceNone && currentAttendanceStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_LATE' : 'ATTENDANCE_LATE') ? 'var(--text-on-success, white)' : 'var(--color-warning, #f59e0b)',
-                      cursor: showLoadingOverlay || (!isAttendanceNone && currentAttendanceStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_LATE' : 'ATTENDANCE_LATE')) ? 'not-allowed' : 'pointer',
+                      background: !isAttendanceNone && currentAttendanceStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? ATTENDANCE_STATUS.STANDUP_LATE : ATTENDANCE_STATUS.LATE) ? 'var(--color-warning, #f59e0b)' : 'var(--panel, white)',
+                      color: !isAttendanceNone && currentAttendanceStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? ATTENDANCE_STATUS.STANDUP_LATE : ATTENDANCE_STATUS.LATE) ? 'var(--text-on-success, white)' : 'var(--color-warning, #f59e0b)',
+                      cursor: showLoadingOverlay || (!isAttendanceNone && currentAttendanceStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? ATTENDANCE_STATUS.STANDUP_LATE : ATTENDANCE_STATUS.LATE)) ? 'not-allowed' : 'pointer',
                       opacity: showLoadingOverlay ? 0.5 : 1,
                       display: 'flex',
                       flexDirection: 'column',
@@ -1885,8 +1885,8 @@ export default function StudentActionStatsPanel({
                                       <PortalTooltip content={t('delete_all_entries', { type: lang === 'ar' ? (type.nameAr || type.nameEn) : type.nameEn })} position="top">
                                       <button
                                           onClick={() => {
-                                            setDeleteType('participation');
-                                            setBulkDeleteType({ type: 'participation', typeId: type.id, typeName: type.nameEn });
+                                            setDeleteType(RECORD_TYPES.PARTICIPATION);
+                                            setBulkDeleteType({ type: RECORD_TYPES.PARTICIPATION, typeId: type.id, typeName: type.nameEn });
                                             setDeleteModalOpen(true);
                                           }}
                                           style={{
@@ -2061,8 +2061,8 @@ export default function StudentActionStatsPanel({
                                       <PortalTooltip content={t('delete_all_entries', { type: lang === 'ar' ? (type.nameAr || type.nameEn) : type.nameEn })} position="top">
                                       <button
                                           onClick={() => {
-                                            setDeleteType('behavior');
-                                            setBulkDeleteType({ type: 'behavior', typeId: type.id, typeName: type.nameEn });
+                                            setDeleteType(RECORD_TYPES.BEHAVIOR);
+                                            setBulkDeleteType({ type: RECORD_TYPES.BEHAVIOR, typeId: type.id, typeName: type.nameEn });
                                             setDeleteModalOpen(true);
                                           }}
                                           style={{
@@ -2237,8 +2237,8 @@ export default function StudentActionStatsPanel({
                                       <PortalTooltip content={t('delete_all_entries', { type: lang === 'ar' ? (type.nameAr || type.nameEn) : type.nameEn })} position="top">
                                       <button
                                           onClick={() => {
-                                            setDeleteType('penalty');
-                                            setBulkDeleteType({ type: 'penalty', typeId: type.id, typeName: type.nameEn });
+                                            setDeleteType(RECORD_TYPES.PENALTY);
+                                            setBulkDeleteType({ type: RECORD_TYPES.PENALTY, typeId: type.id, typeName: type.nameEn });
                                             setDeleteModalOpen(true);
                                           }}
                                           style={{

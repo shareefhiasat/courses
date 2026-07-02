@@ -15,6 +15,8 @@ import {
   getBehaviorsByClass
 } from '../services/behaviors.js';
 import { applyListScope } from '../utils/applyListScope.js';
+import prisma from '../db/prismaClient.js';
+import { checkStudentCategoryWorkflowLock } from '../services/workflowDocumentService.js';
 
 /**
  * GET /api/v1/behaviors
@@ -149,6 +151,44 @@ export const updateBehaviorController = async (req, res) => {
  */
 export const deleteBehaviorController = async (req, res) => {
   try {
+    const { id } = req.params;
+    const user = req.user || {};
+
+    // Fetch the behavior to get the student ID for workflow lock check
+    const behavior = await prisma.behavior.findUnique({
+      where: { id: parseInt(id) },
+      select: { id: true, userId: true }
+    });
+
+    if (!behavior) {
+      return res.status(404).json({
+        success: false,
+        error: 'Behavior not found'
+      });
+    }
+
+    // Check if student has an in-progress BEHAVIOR workflow
+    const isHrOrAdmin = user?.roles?.includes('hr') || user?.roles?.includes('admin');
+    if (!isHrOrAdmin && behavior.userId) {
+      const lockCheck = await checkStudentCategoryWorkflowLock(behavior.userId, 'BEHAVIOR');
+      if (lockCheck.blocked) {
+        return res.status(409).json({
+          success: false,
+          error: `Cannot delete behavior linked to in-progress workflow #${lockCheck.workflow.id} (${lockCheck.workflow.title}). Please approve or reject the workflow first.`,
+          workflow: lockCheck.workflow
+        });
+      }
+    }
+
+    const result = await deleteBehavior(parseInt(id), user);
+
+    if (!result.success) {
+      return res.status(400).json({
+        success: false,
+        error: result.error || 'Failed to delete behavior'
+      });
+    }
+
     res.status(200).json({
       success: true,
       message: 'Behavior deleted successfully'

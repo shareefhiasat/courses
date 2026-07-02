@@ -64,17 +64,6 @@ export const getStatusCodeFromRecord = (record) => {
   return null;
 };
 
-// Attendance Methods
-export const ATTENDANCE_METHODS = {
-  MANUAL: 'manual',
-  QR_CODE: 'qr_code',
-  BIOMETRIC: 'biometric',
-  RFID: 'rfid',
-  FACE_RECOGNITION: 'face_recognition',
-  GPS: 'gps',
-  SELF_REPORT: 'self_report'
-};
-
 // Attendance Display Names - Updated to match new rules
 export const ATTENDANCE_DISPLAY_NAMES = {
   [ATTENDANCE_STATUS.PRESENT]: 'Present',

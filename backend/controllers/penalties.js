@@ -11,6 +11,7 @@ import { scopeArray } from '../utils/applyListScope.js';
 import notificationGateway from '../services/notifications/index.js';
 import { EVENTS } from '../services/notifications/constants.js';
 import { buildNotificationNameVars } from '../utils/localizedUserName.js';
+import { checkStudentCategoryWorkflowLock } from '../services/workflowDocumentService.js';
 
 
 /**
@@ -479,11 +480,38 @@ export const updatePenaltyController = async (req, res) => {
 export const deletePenaltyController = async (req, res) => {
   try {
     const { id } = req.params;
-    
-    const penalty = await prisma.penalty.delete({
+    const user = req.user || {};
+
+    // Fetch the penalty to get the student ID for workflow lock check
+    const penalty = await prisma.penalty.findUnique({
+      where: { id: parseInt(id) },
+      select: { id: true, userId: true }
+    });
+
+    if (!penalty) {
+      return res.status(404).json({
+        success: false,
+        error: 'Penalty not found'
+      });
+    }
+
+    // Check if student has an in-progress PENALTY workflow
+    const isHrOrAdmin = user?.roles?.includes('hr') || user?.roles?.includes('admin');
+    if (!isHrOrAdmin && penalty.userId) {
+      const lockCheck = await checkStudentCategoryWorkflowLock(penalty.userId, 'PENALTY');
+      if (lockCheck.blocked) {
+        return res.status(409).json({
+          success: false,
+          error: `Cannot delete penalty linked to in-progress workflow #${lockCheck.workflow.id} (${lockCheck.workflow.title}). Please approve or reject the workflow first.`,
+          workflow: lockCheck.workflow
+        });
+      }
+    }
+
+    await prisma.penalty.delete({
       where: { id: parseInt(id) }
     });
-    
+
     res.status(200).json({
       success: true,
       message: 'Penalty deleted successfully'

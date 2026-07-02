@@ -17,7 +17,8 @@ export const WORKFLOW_STATUS = {
   UNDER_REVIEW: 'UNDER_REVIEW',
   UNDER_ADMIN_REVIEW: 'UNDER_ADMIN_REVIEW',
   APPROVED: 'APPROVED',
-  REJECTED: 'REJECTED'
+  REJECTED: 'REJECTED',
+  AMENDED: 'AMENDED'
 };
 
 /**
@@ -31,7 +32,8 @@ export const WORKFLOW_STATUS_VARIANTS = {
   [WORKFLOW_STATUS.UNDER_REVIEW]: 'info',
   [WORKFLOW_STATUS.UNDER_ADMIN_REVIEW]: 'info',
   [WORKFLOW_STATUS.APPROVED]: 'success',
-  [WORKFLOW_STATUS.REJECTED]: 'destructive'
+  [WORKFLOW_STATUS.REJECTED]: 'destructive',
+  [WORKFLOW_STATUS.AMENDED]: 'warning'
 };
 
 /**
@@ -127,6 +129,19 @@ export const WORKFLOW_STATUS_COLOR_CLASSES = {
 export const getStatusColorClasses = (status) => {
   return WORKFLOW_STATUS_COLOR_CLASSES[status] || 'bg-gray-100 text-gray-800';
 };
+
+/**
+ * Workflow statuses considered "in-progress" (blocks modifications to linked records)
+ * Must match backend IN_PROGRESS_STATUSES in workflowDocumentService.js
+ */
+export const IN_PROGRESS_STATUSES = [
+  WORKFLOW_STATUS.DRAFT,
+  WORKFLOW_STATUS.SUBMITTED,
+  WORKFLOW_STATUS.UNDER_HR_REVIEW,
+  WORKFLOW_STATUS.UNDER_REVIEW,
+  WORKFLOW_STATUS.UNDER_ADMIN_REVIEW,
+  WORKFLOW_STATUS.AMENDED,
+];
 
 /**
  * Workflow Document Status Icons

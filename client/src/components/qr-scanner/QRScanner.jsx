@@ -10,7 +10,7 @@ import jsQR from 'jsqr';
 import { getAttendanceByClass, deleteAttendance, rosterQuickAction, markAttendance } from '@services/business/attendanceServiceUnified.js';
 import { deleteStandupAttendance, getStandupAttendanceByUserAndDate, getStandupAttendanceByProgramAndDate } from '@services/business/standupAttendanceService.js';
 import { ATTENDANCE_STATUS, ATTENDANCE_STATUS_LABELS, ATTENDANCE_TYPE_CATEGORY, getAttendanceIcon, getAttendanceColor, getAttendanceLabel, getLocalizedAttendanceLabel, getStatusCodeFromRecord } from '@constants/attendanceTypes';
-import { QUICK_NOTE_TYPES, MANUAL_NOTE_TYPES, QR_NOTE_TYPES, STANDUP_NOTE_TYPES, getNoteTypeFromStatus, getLocalizedNoteText } from '@constants/noteTypes';
+import { QUICK_NOTE_TYPES, MANUAL_NOTE_TYPES, QR_NOTE_TYPES, STANDUP_NOTE_TYPES, NOTE_METHOD, getNoteTypeFromStatus, getLocalizedNoteText } from '@constants/noteTypes';
 import { ATTENDANCE_METHODS } from '@constants/attendanceMethods';
 import { isAdmin, isSuperAdmin, isStudent } from '@utils/userUtils';
 import { getPenalties, deletePenalty, createPenalty, getPenaltiesByClassAndDate } from '@services/business/penaltyService';
@@ -1606,8 +1606,8 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           date: dateStr,
           status: attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? status.toUpperCase() : status,
           notes: attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP
-            ? getNoteTypeFromStatus(status, 'standup')
-            : getNoteTypeFromStatus(status, 'qr'),
+            ? getNoteTypeFromStatus(status, NOTE_METHOD.STANDUP)
+            : getNoteTypeFromStatus(status, NOTE_METHOD.QR),
           user: user,
           programId: attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? selectedProgramId : (attendanceMode === ATTENDANCE_TYPE_CATEGORY.REGULAR ? selectedProgramId : undefined),
           subjectId: attendanceMode === ATTENDANCE_TYPE_CATEGORY.REGULAR ? selectedSubjectId : undefined
@@ -1689,7 +1689,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           classId: selectedClassId,
           date: todayISO, // Use ISO format for database
           status: status,
-          notes: getNoteTypeFromStatus(status, 'quick'),
+          notes: getNoteTypeFromStatus(status, NOTE_METHOD.QUICK),
           user: user,
           programId: finalProgramId,
           subjectId: finalSubjectId
@@ -1749,7 +1749,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         classId: (mode || attendanceMode) === ATTENDANCE_TYPE_CATEGORY.REGULAR ? selectedClassId : undefined,
         date: dateStr,
         status: status, // Keep original status format for proper icon/color mapping
-        notes: getNoteTypeFromStatus(status, 'quick'),
+        notes: getNoteTypeFromStatus(status, NOTE_METHOD.QUICK),
         user: user,
         programId: programIdParam || selectedProgramId,
         subjectId: selectedSubjectId

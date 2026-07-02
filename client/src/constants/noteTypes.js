@@ -4,6 +4,15 @@
  * and enable proper localization via langContext
  */
 
+// Note method types (used as second argument to getNoteTypeFromStatus)
+export const NOTE_METHOD = {
+  QUICK: 'quick',
+  MANUAL: 'manual',
+  QR: 'qr',
+  STANDUP: 'standup',
+  BULK: 'bulk'
+};
+
 // Quick action notes (for roster quick actions)
 export const QUICK_NOTE_TYPES = {
   QUICK_ATTENDANCE_LATE: 'QUICK_ATTENDANCE_LATE',

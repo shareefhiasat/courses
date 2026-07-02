@@ -28,7 +28,8 @@ import {
   listFileVersions,
   downloadFileVersion,
   createCustomWorkflowDocument,
-  deleteWorkflowDocument
+  deleteWorkflowDocument,
+  getLinkedWorkflowsByAttendanceIds
 } from '../services/workflowDocumentService.js';
 import { emit } from '../services/notifications/index.js';
 import { EVENTS } from '../services/notifications/constants.js';
@@ -1413,6 +1414,44 @@ export const deleteWorkflowDocumentController = async (req, res) => {
   }
 };
 
+/**
+ * POST /api/v1/workflow-documents/linked-by-attendance
+ * Batch-lookup workflow documents linked to attendance records via junction table.
+ * Returns a map of attendanceId → workflow document summary.
+ */
+export const getLinkedWorkflowsController = async (req, res) => {
+  try {
+    const { attendanceIds } = req.body;
+
+    if (!Array.isArray(attendanceIds) || attendanceIds.length === 0) {
+      return res.status(400).json({
+        success: false,
+        error: 'attendanceIds array is required'
+      });
+    }
+
+    const result = await getLinkedWorkflowsByAttendanceIds(attendanceIds);
+
+    if (result.success) {
+      return res.status(200).json({
+        success: true,
+        data: result.data
+      });
+    } else {
+      return res.status(500).json({
+        success: false,
+        error: result.error || 'Failed to fetch linked workflows'
+      });
+    }
+  } catch (error) {
+    console.error('Error in getLinkedWorkflowsController:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Internal server error'
+    });
+  }
+};
+
 export default {
   createWorkflowDocumentController,
   getWorkflowDocumentController,
@@ -1430,5 +1469,6 @@ export default {
   listFileVersionsController,
   downloadFileVersionController,
   createCustomWorkflowDocumentController,
-  deleteWorkflowDocumentController
+  deleteWorkflowDocumentController,
+  getLinkedWorkflowsController
 };

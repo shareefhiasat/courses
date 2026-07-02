@@ -12,7 +12,7 @@ export const DEFAULT_STORAGE_LIMIT = 1 * 1024 * 1024 * 1024;
  * Workflow Instance Status Constants
  * Maps backend workflow statuses to frontend display values
  */
-export const WORKFLOW_STATUS = {
+export const DRIVE_WORKFLOW_STATUS = {
   DRAFT: 'DRAFT',
   SUBMITTED: 'SUBMITTED',
   IN_REVIEW: 'IN_REVIEW',
@@ -25,13 +25,13 @@ export const WORKFLOW_STATUS = {
  * Workflow Status to Frontend Status Mapping
  * Maps backend statuses to frontend status keys
  */
-export const WORKFLOW_STATUS_MAP = {
-  [WORKFLOW_STATUS.DRAFT]: 'draft',
-  [WORKFLOW_STATUS.SUBMITTED]: 'submitted',
-  [WORKFLOW_STATUS.IN_REVIEW]: 'in_review',
-  [WORKFLOW_STATUS.APPROVED]: 'approved',
-  [WORKFLOW_STATUS.REJECTED]: 'rejected',
-  [WORKFLOW_STATUS.CANCELLED]: 'cancelled',
+export const DRIVE_WORKFLOW_STATUS_MAP = {
+  [DRIVE_WORKFLOW_STATUS.DRAFT]: 'draft',
+  [DRIVE_WORKFLOW_STATUS.SUBMITTED]: 'submitted',
+  [DRIVE_WORKFLOW_STATUS.IN_REVIEW]: 'in_review',
+  [DRIVE_WORKFLOW_STATUS.APPROVED]: 'approved',
+  [DRIVE_WORKFLOW_STATUS.REJECTED]: 'rejected',
+  [DRIVE_WORKFLOW_STATUS.CANCELLED]: 'cancelled',
 };
 
 /**

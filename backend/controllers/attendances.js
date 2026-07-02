@@ -173,10 +173,12 @@ export const updateAttendance = async (req, res) => {
     const result = await attendanceService.updateAttendance(parseInt(id), updateData, user);
 
     if (!result.success) {
-      return res.status(400).json({
+      const statusCode = result.code || 400;
+      return res.status(statusCode).json({
         success: false,
         error: result.error,
         message: result.error,
+        workflow: result.workflow,
       });
     }
 
@@ -221,10 +223,12 @@ export const deleteAttendance = async (req, res) => {
     const result = await attendanceService.deleteAttendance(parseInt(id), user);
 
     if (!result.success) {
-      return res.status(400).json({
+      const statusCode = result.code || 400;
+      return res.status(statusCode).json({
         success: false,
         error: result.error,
         message: result.error,
+        workflow: result.workflow,
       });
     }
 

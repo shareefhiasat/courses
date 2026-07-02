@@ -5,7 +5,7 @@ import { getThemedIcon } from '@constants/iconTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { formatTime, getQatarDateParts } from '@utils/date-formatter.js';
 import { ATTENDANCE_TYPE_CATEGORY } from '@constants/attendanceTypes';
-import { getAttendanceMethodLabel, shouldShowMethodLabel } from '@constants';
+import { getAttendanceMethodLabel, shouldShowMethodLabel } from '@constants/attendanceMethods';
 import { getLocalizedNoteText } from '@constants/noteTypes';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import PortalTooltip from '@ui/PortalTooltip';
