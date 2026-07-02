@@ -141,6 +141,9 @@ export const createWorkflowDocumentController = async (req, res) => {
           className: cls?.nameEn || null,
           classNameAr: cls?.nameAr || cls?.nameEn || null,
           submitterName: submitter?.displayName || 'Unknown',
+          senderName: submitter?.displayName || 'Unknown',
+          senderId: user?.dbId || null,
+          recipientType: 'role',
           recipientRole: LMS_ROLES.HR,
         }, user, { role: LMS_ROLES.HR });
       } catch (notificationError) {
@@ -516,8 +519,11 @@ export const approveWorkflowDocumentController = async (req, res) => {
           workflowName: result.data.title,
           documentId: result.data.id,
           approverName: approver?.displayName || 'Unknown',
+          senderName: approver?.displayName || 'Unknown',
+          senderId: user?.dbId || null,
           className: cls?.nameEn || null,
           classNameAr: cls?.nameAr || cls?.nameEn || null,
+          recipientType: 'user',
           recipientUserId: result.data.submitterId,
         }, user, { userId: result.data.submitterId });
       } catch (notificationError) {
@@ -628,8 +634,11 @@ export const rejectWorkflowDocumentController = async (req, res) => {
           documentId: result.data.id,
           feedback: comment,
           rejecterName: rejecter?.displayName || 'Unknown',
+          senderName: rejecter?.displayName || 'Unknown',
+          senderId: user?.dbId || null,
           className: cls?.nameEn || null,
           classNameAr: cls?.nameAr || cls?.nameEn || null,
+          recipientType: 'user',
           recipientUserId: result.data.submitterId,
         }, user, { userId: result.data.submitterId });
       } catch (notificationError) {
@@ -749,8 +758,11 @@ export const returnWorkflowDocumentController = async (req, res) => {
           previousStatus: currentStatus,
           newStatus: previousStatus,
           returnerName: returner?.displayName || 'Unknown',
+          senderName: returner?.displayName || 'Unknown',
+          senderId: user?.dbId || null,
           className: cls?.nameEn || null,
           classNameAr: cls?.nameAr || cls?.nameEn || null,
+          recipientType: 'user',
           recipientUserId: result.data.submitterId,
         }, user, { userId: result.data.submitterId });
       } catch (notificationError) {
@@ -823,8 +835,11 @@ export const resubmitWorkflowDocumentController = async (req, res) => {
           documentId: result.data.id,
           reviewCycleCount: result.data.reviewCycleCount,
           submitterName: submitter?.displayName || 'Unknown',
+          senderName: submitter?.displayName || 'Unknown',
+          senderId: user?.dbId || null,
           className: cls?.nameEn || null,
           classNameAr: cls?.nameAr || cls?.nameEn || null,
+          recipientType: 'role',
           recipientRole: LMS_ROLES.HR,
         }, user, { role: LMS_ROLES.HR });
       } catch (notificationError) {
@@ -896,8 +911,11 @@ export const uploadSignedDocumentController = async (req, res) => {
           workflowName: result.data.title,
           documentId: result.data.id,
           adminName: admin?.displayName || 'Unknown',
+          senderName: admin?.displayName || 'Unknown',
+          senderId: user?.dbId || null,
           className: cls?.nameEn || null,
           classNameAr: cls?.nameAr || cls?.nameEn || null,
+          recipientType: 'role',
           recipientRole: LMS_ROLES.HR,
         }, user, { role: LMS_ROLES.HR });
       } catch (notificationError) {
@@ -1303,8 +1321,12 @@ export const createCustomWorkflowDocumentController = async (req, res) => {
             assigneeId: result.data.document.currentAssigneeId,
             submitterId: user.id,
             submitterName: submitter?.displayName || 'Unknown',
+            senderName: submitter?.displayName || 'Unknown',
+            senderId: user?.dbId || null,
             className: cls?.nameEn || null,
             classNameAr: cls?.nameAr || cls?.nameEn || null,
+            recipientType: 'user',
+            recipientUserId: result.data.document.currentAssigneeId,
           }, user, { userId: result.data.document.currentAssigneeId });
         }
       } catch (notificationError) {

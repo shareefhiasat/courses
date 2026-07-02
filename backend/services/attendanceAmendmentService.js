@@ -10,6 +10,7 @@ import { addWorkflowComment } from '../db/workflowDocuments-postgres.js';
 import { emit } from './notifications/index.js';
 import { EVENTS } from './notifications/constants.js';
 import prisma from '../db/prismaClient.js';
+import { buildNotificationNameVars } from '../utils/localizedUserName.js';
 
 
 /**
@@ -79,11 +80,26 @@ export async function amendAttendance(data) {
         });
 
         if (workflowDocument && workflowDocument.instructor) {
+          const amender = await prisma.user.findUnique({
+            where: { id: amendedBy },
+            select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true }
+          });
+          const cls = workflowDocument.classId ? await prisma.class.findUnique({
+            where: { id: workflowDocument.classId },
+            select: { id: true, nameEn: true, nameAr: true }
+          }) : null;
           await emit(EVENTS.WORKFLOW_AMENDED, {
+            ...buildNotificationNameVars(amender, 'Unknown User'),
             workflowName: workflowDocument.title,
             documentId: workflowDocumentId,
             amendmentSummary: commentText,
-            versionHistoryLink: `/workflow-documents/${workflowDocumentId}`
+            versionHistoryLink: `/workflow-documents/${workflowDocumentId}`,
+            senderName: amender?.displayName || 'Unknown',
+            senderId: amendedBy,
+            className: cls?.nameEn || null,
+            classNameAr: cls?.nameAr || cls?.nameEn || null,
+            recipientType: 'user',
+            recipientUserId: workflowDocument.instructorId,
           }, { id: amendedBy }, { userId: workflowDocument.instructorId });
         }
       } catch (notificationError) {

@@ -7,6 +7,7 @@ import { generatePresignedGetUrl, generatePresignedPutUrl, getBucketSize } from 
 import { DEFAULT_STORAGE_LIMIT } from '../constants/driveConstants.js';
 import notificationGateway from '../services/notifications/index.js';
 import { EVENTS } from '../services/notifications/constants.js';
+import { buildNotificationNameVars } from '../utils/localizedUserName.js';
 
 
 export const downloadFile = async (req, res) => {
@@ -121,12 +122,23 @@ export const completeUpload = async (req, res) => {
           const recipientIds = folderShares.map(s => s.sharedWithId).filter(id => id !== req.user?.dbId);
 
           if (recipientIds.length > 0) {
+            const uploader = await prisma.user.findUnique({
+              where: { id: req.user?.dbId },
+              select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true }
+            });
+            const folder = file.folderId ? await prisma.folder.findUnique({ where: { id: file.folderId }, select: { name: true, nameAr: true } }) : null;
             await notificationGateway.emit(
               EVENTS.DRIVE_FILE_UPLOADED,
               {
+                ...buildNotificationNameVars(uploader, 'Unknown User'),
                 fileName: file.name,
-                folderName: file.folderId ? (await prisma.folder.findUnique({ where: { id: file.folderId } }))?.name : 'root',
-                uploadedBy: file.owner?.displayName || `${file.owner?.firstName} ${file.owner?.lastName}`
+                folderName: folder?.name || 'root',
+                folderNameAr: folder?.nameAr || folder?.name || 'root',
+                uploadedBy: file.owner?.displayName || `${file.owner?.firstName} ${file.owner?.lastName}`,
+                senderName: uploader?.displayName || 'Unknown',
+                senderId: req.user?.dbId || null,
+                recipientType: 'users',
+                recipientCount: recipientIds.length,
               },
               req.user,
               { userIds: recipientIds }
@@ -409,11 +421,20 @@ export const shareFile = async (req, res) => {
       });
 
       if (file) {
+        const sharer = await prisma.user.findUnique({
+          where: { id: req.user?.dbId },
+          select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true }
+        });
         await notificationGateway.emit(
           EVENTS.DRIVE_FILE_SHARED,
           {
+            ...buildNotificationNameVars(sharer, 'Unknown User'),
             fileName: file.name,
-            sharedBy: file.owner?.displayName || `${file.owner?.firstName} ${file.owner?.lastName}`
+            sharedBy: file.owner?.displayName || `${file.owner?.firstName} ${file.owner?.lastName}`,
+            senderName: sharer?.displayName || 'Unknown',
+            senderId: req.user?.dbId || null,
+            recipientType: 'user',
+            recipientUserId: sharedWithId,
           },
           req.user,
           { userId: sharedWithId }
@@ -460,11 +481,20 @@ export const unshareFile = async (req, res) => {
     // Emit notification for permission revocation
     if (existingShare) {
       try {
+        const revoker = await prisma.user.findUnique({
+          where: { id: req.user?.dbId },
+          select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true }
+        });
         await notificationGateway.emit(
           EVENTS.DRIVE_PERMISSION_REVOKED,
           {
+            ...buildNotificationNameVars(revoker, 'Unknown User'),
             itemName: existingShare.file.name,
-            revokedBy: existingShare.file.owner?.displayName || `${existingShare.file.owner?.firstName} ${existingShare.file.owner?.lastName}`
+            revokedBy: existingShare.file.owner?.displayName || `${existingShare.file.owner?.firstName} ${existingShare.file.owner?.lastName}`,
+            senderName: revoker?.displayName || 'Unknown',
+            senderId: req.user?.dbId || null,
+            recipientType: 'user',
+            recipientUserId: existingShare.sharedWithId,
           },
           req.user,
           { userId: existingShare.sharedWithId }
@@ -545,12 +575,21 @@ export const addComment = async (req, res) => {
 
       if (file && recipientIds.length > 0) {
         const commentText = comment || content;
+        const commenter = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true }
+        });
         await notificationGateway.emit(
           EVENTS.DRIVE_COMMENT_ADDED,
           {
+            ...buildNotificationNameVars(commenter, 'Unknown User'),
             fileName: file.name,
-            commenter: file.owner?.displayName || `${file.owner?.firstName} ${file.owner?.lastName}`,
-            commentText: commentText.length > 50 ? commentText.substring(0, 50) + '...' : commentText
+            commenter: commenter?.displayName || file.owner?.displayName || `${file.owner?.firstName} ${file.owner?.lastName}`,
+            commentText: commentText.length > 50 ? commentText.substring(0, 50) + '...' : commentText,
+            senderName: commenter?.displayName || 'Unknown',
+            senderId: userId,
+            recipientType: 'users',
+            recipientCount: recipientIds.length,
           },
           req.user,
           { userIds: recipientIds }
@@ -720,11 +759,20 @@ export const softDeleteFile = async (req, res) => {
         const recipientIds = [file.ownerId, ...shares.map(s => s.sharedWithId)].filter(id => id !== userId);
 
         if (recipientIds.length > 0) {
+          const deleter = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true }
+          });
           await notificationGateway.emit(
             EVENTS.DRIVE_FILE_DELETED,
             {
+              ...buildNotificationNameVars(deleter, 'Unknown User'),
               fileName: file.name,
-              deletedBy: file.owner?.displayName || `${file.owner?.firstName} ${file.owner?.lastName}`
+              deletedBy: file.owner?.displayName || `${file.owner?.firstName} ${file.owner?.lastName}`,
+              senderName: deleter?.displayName || 'Unknown',
+              senderId: userId,
+              recipientType: 'users',
+              recipientCount: recipientIds.length,
             },
             req.user,
             { userIds: recipientIds }

@@ -53,13 +53,15 @@ export const addFileComment = async ({ fileId, userId, comment }) => {
           fileName: file.name,
           commentText: commentPreview,
           fileId,
+          senderName: commenter?.displayName || 'Unknown',
+          senderId: userId,
         };
 
         // Notify file owner (if not the commenter)
         if (file.ownerId && file.ownerId !== userId) {
           await notificationGateway.emit(
             EVENTS.DRIVE_COMMENT_ADDED,
-            payload,
+            { ...payload, recipientType: 'user', recipientUserId: file.ownerId },
             { id: userId },
             { userId: file.ownerId }
           );
@@ -77,7 +79,7 @@ export const addFileComment = async ({ fileId, userId, comment }) => {
         for (const sharedUserId of sharedUserIds) {
           await notificationGateway.emit(
             EVENTS.DRIVE_COMMENT_ADDED,
-            payload,
+            { ...payload, recipientType: 'user', recipientUserId: sharedUserId },
             { id: userId },
             { userId: sharedUserId }
           );

@@ -17,6 +17,7 @@ import {
 import { buildNotificationNameVars } from '../utils/localizedUserName.js';
 import notificationGateway from './notifications/index.js';
 import { EVENTS } from './notifications/constants.js';
+import prisma from '../db/prismaClient.js';
 
 export const getAllBehaviors = async (params = {}, user = null) => {
   return await getBehaviorsFromDb(params, user);
@@ -41,7 +42,12 @@ export const createBehavior = async (behaviorData, user = null) => {
         eventType,
         {
           ...buildNotificationNameVars(result.data.student || { displayName: result.data.studentName }, 'Unknown Student'),
-          behaviorType: result.data.behaviorType?.nameEn || result.data.action
+          behaviorType: result.data.behaviorType?.nameEn || result.data.action,
+          behaviorTypeAr: result.data.behaviorType?.nameAr || result.data.behaviorType?.nameEn || result.data.action,
+          senderName: result.data.studentName || 'Unknown',
+          senderId: result.data.studentId || null,
+          recipientType: 'user',
+          recipientUserId: result.data.studentId,
         },
         user,
         { userId: result.data.studentId }
@@ -64,7 +70,12 @@ export const updateBehavior = async (id, behaviorData, user = null) => {
         EVENTS.BEHAVIOR_UPDATED,
         {
           ...buildNotificationNameVars(result.data.student || { displayName: result.data.studentName }, 'Unknown Student'),
-          behaviorType: result.data.behaviorType?.nameEn || result.data.action
+          behaviorType: result.data.behaviorType?.nameEn || result.data.action,
+          behaviorTypeAr: result.data.behaviorType?.nameAr || result.data.behaviorType?.nameEn || result.data.action,
+          senderName: result.data.studentName || 'Unknown',
+          senderId: result.data.studentId || null,
+          recipientType: 'user',
+          recipientUserId: result.data.studentId,
         },
         user,
         { userId: result.data.studentId }
@@ -90,7 +101,12 @@ export const deleteBehavior = async (id, user = null) => {
         EVENTS.BEHAVIOR_DELETED,
         {
           ...buildNotificationNameVars(existing.data.student || { displayName: existing.data.studentName }, 'Unknown Student'),
-          behaviorType: existing.data.behaviorType?.nameEn || existing.data.action
+          behaviorType: existing.data.behaviorType?.nameEn || existing.data.action,
+          behaviorTypeAr: existing.data.behaviorType?.nameAr || existing.data.behaviorType?.nameEn || existing.data.action,
+          senderName: existing.data.studentName || 'Unknown',
+          senderId: existing.data.studentId || null,
+          recipientType: 'user',
+          recipientUserId: existing.data.studentId,
         },
         user,
         { userId: existing.data.studentId }

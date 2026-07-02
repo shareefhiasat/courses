@@ -135,18 +135,20 @@ export async function createShare(input, actor) {
         }
         
         const event = fileId ? EVENTS.DRIVE_FILE_SHARED : EVENTS.DRIVE_FOLDER_SHARED;
-        const payload = {
+        const basePayload = {
           ...buildNotificationNameVars(sharer, 'Unknown User'),
           fileName: itemName,
           folderName: itemName,
           folderNameAr: itemNameAr,
-          permission
+          permission,
+          senderName: sharer?.displayName || 'Unknown',
+          senderId: actor.userId,
         };
         
         if (subjectType === 'USER') {
-          await notificationGateway.emit(event, payload, { id: actor.userId }, { userId: subjectUserId });
+          await notificationGateway.emit(event, { ...basePayload, recipientType: 'user', recipientUserId: subjectUserId }, { id: actor.userId }, { userId: subjectUserId });
         } else if (subjectType === 'ROLE') {
-          await notificationGateway.emit(event, payload, { id: actor.userId }, { role: subjectRole });
+          await notificationGateway.emit(event, { ...basePayload, recipientType: 'role', recipientRole: subjectRole }, { id: actor.userId }, { role: subjectRole });
         }
       } catch (notifError) {
         console.error('[fileShareService] Error sending share notification:', notifError);

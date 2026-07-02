@@ -283,6 +283,9 @@ export const createAttendance = async (attendanceData, user = null) => {
               displayName: true,
               firstName: true,
               lastName: true,
+              firstNameAr: true,
+              lastNameAr: true,
+              displayNameAr: true,
               studentNumber: true
             }
           },
@@ -290,6 +293,7 @@ export const createAttendance = async (attendanceData, user = null) => {
             select: {
               id: true,
               nameEn: true,
+              nameAr: true,
               code: true
             }
           },
@@ -314,14 +318,25 @@ export const createAttendance = async (attendanceData, user = null) => {
         };
         
         const eventType = statusEventMap[status] || EVENTS.ATTENDANCE_MARKED;
+        const actorDbId = await getDatabaseUserId(user);
+        const actorUser = actorDbId ? await prisma.user.findUnique({
+          where: { id: actorDbId },
+          select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true }
+        }) : null;
         
         await notificationGateway.emit(
           eventType,
           {
             ...buildNotificationNameVars(updatedAttendance.user, 'Unknown Student'),
+            ...buildNotificationNameVars(actorUser, 'Unknown User'),
             date: updatedAttendance.date,
             className: updatedAttendance.class.nameEn,
-            status: status
+            classNameAr: updatedAttendance.class.nameAr || updatedAttendance.class.nameEn,
+            status: status,
+            senderName: actorUser?.displayName || 'Unknown',
+            senderId: actorDbId || null,
+            recipientType: 'user',
+            recipientUserId: parseInt(userId),
           },
           user,
           { userId: parseInt(userId) }
@@ -369,6 +384,7 @@ export const createAttendance = async (attendanceData, user = null) => {
           select: {
             id: true,
             nameEn: true,
+            nameAr: true,
             code: true
           }
         },
@@ -393,14 +409,25 @@ export const createAttendance = async (attendanceData, user = null) => {
       };
       
       const eventType = statusEventMap[status] || EVENTS.ATTENDANCE_MARKED;
+      const actorDbId = await getDatabaseUserId(user);
+      const actorUser = actorDbId ? await prisma.user.findUnique({
+        where: { id: actorDbId },
+        select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true }
+      }) : null;
       
       await notificationGateway.emit(
         eventType,
         {
           ...buildNotificationNameVars(newAttendance.user, 'Unknown Student'),
+          ...buildNotificationNameVars(actorUser, 'Unknown User'),
           date: newAttendance.date,
           className: newAttendance.class.nameEn,
-          status: status
+          classNameAr: newAttendance.class.nameAr || newAttendance.class.nameEn,
+          status: status,
+          senderName: actorUser?.displayName || 'Unknown',
+          senderId: actorDbId || null,
+          recipientType: 'user',
+          recipientUserId: parseInt(userId),
         },
         user,
         { userId: parseInt(userId) }

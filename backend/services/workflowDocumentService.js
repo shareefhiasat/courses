@@ -519,13 +519,15 @@ export async function addComment(data) {
           action: action || 'COMMENT',
           className: doc.class?.nameEn || null,
           classNameAr: doc.class?.nameAr || doc.class?.nameEn || null,
+          senderName: author?.displayName || 'Unknown',
+          senderId: authorId,
         };
 
         // Notify submitter if the commenter is not the submitter
         if (doc.submitterId && doc.submitterId !== authorId) {
           await notificationGateway.emit(
             EVENTS.WORKFLOW_COMMENT_ADDED,
-            payload,
+            { ...payload, recipientType: 'user', recipientUserId: doc.submitterId },
             { id: authorId },
             { userId: doc.submitterId }
           );
@@ -535,7 +537,7 @@ export async function addComment(data) {
         if (doc.currentAssigneeId && doc.currentAssigneeId !== authorId) {
           await notificationGateway.emit(
             EVENTS.WORKFLOW_COMMENT_ADDED,
-            payload,
+            { ...payload, recipientType: 'user', recipientUserId: doc.currentAssigneeId },
             { id: authorId },
             { userId: doc.currentAssigneeId }
           );
@@ -959,6 +961,8 @@ export async function withdrawWorkflowDocument(data) {
         workflowName: updated.title,
         documentId: updated.id,
         actorName: withdrawer?.displayName || 'Unknown',
+        senderName: withdrawer?.displayName || 'Unknown',
+        senderId: submitterId,
         className: updated.class?.nameEn || null,
         classNameAr: updated.class?.nameAr || updated.class?.nameEn || null,
       };
@@ -967,7 +971,7 @@ export async function withdrawWorkflowDocument(data) {
       if (document.currentAssigneeId) {
         await notificationGateway.emit(
           EVENTS.WORKFLOW_WITHDRAWN,
-          payload,
+          { ...payload, recipientType: 'user', recipientUserId: document.currentAssigneeId },
           { id: submitterId },
           { userId: document.currentAssigneeId }
         );
@@ -976,7 +980,7 @@ export async function withdrawWorkflowDocument(data) {
       // Also notify HR role users
       await notificationGateway.emit(
         EVENTS.WORKFLOW_WITHDRAWN,
-        payload,
+        { ...payload, recipientType: 'role', recipientRole: LMS_ROLES.HR },
         { id: submitterId },
         { role: LMS_ROLES.HR }
       );

@@ -53,7 +53,12 @@ export const createParticipation = async (participationData, user = null) => {
         eventType,
         {
           ...buildNotificationNameVars(result.data.student || { displayName: result.data.studentName }, 'Unknown Student'),
-          participationType: result.data.participationType?.nameEn || participationType
+          participationType: result.data.participationType?.nameEn || participationType,
+          participationTypeAr: result.data.participationType?.nameAr || result.data.participationType?.nameEn || participationType,
+          senderName: result.data.studentName || 'Unknown',
+          senderId: result.data.studentId || null,
+          recipientType: 'user',
+          recipientUserId: result.data.studentId,
         },
         user,
         { userId: result.data.studentId }
@@ -76,7 +81,12 @@ export const updateParticipation = async (id, updateData, user = null) => {
         EVENTS.PARTICIPATION_UPDATED,
         {
           ...buildNotificationNameVars(result.data.student || { displayName: result.data.studentName }, 'Unknown Student'),
-          participationType: result.data.participationType?.nameEn || 'participation'
+          participationType: result.data.participationType?.nameEn || 'participation',
+          participationTypeAr: result.data.participationType?.nameAr || result.data.participationType?.nameEn || 'participation',
+          senderName: result.data.studentName || 'Unknown',
+          senderId: result.data.studentId || null,
+          recipientType: 'user',
+          recipientUserId: result.data.studentId,
         },
         user,
         { userId: result.data.studentId }
@@ -102,7 +112,12 @@ export const deleteParticipation = async (id, user = null) => {
         EVENTS.PARTICIPATION_DELETED,
         {
           ...buildNotificationNameVars(existing.data.student || { displayName: existing.data.studentName }, 'Unknown Student'),
-          participationType: existing.data.participationType?.nameEn || 'participation'
+          participationType: existing.data.participationType?.nameEn || 'participation',
+          participationTypeAr: existing.data.participationType?.nameAr || existing.data.participationType?.nameEn || 'participation',
+          senderName: existing.data.studentName || 'Unknown',
+          senderId: existing.data.studentId || null,
+          recipientType: 'user',
+          recipientUserId: existing.data.studentId,
         },
         user,
         { userId: existing.data.studentId }

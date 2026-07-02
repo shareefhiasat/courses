@@ -11,6 +11,8 @@ import {
 } from '../services/weeklySummaryService.js';
 import { emit } from '../services/notifications/index.js';
 import { EVENTS } from '../services/notifications/constants.js';
+import prisma from '../db/prismaClient.js';
+import { buildNotificationNameVars } from '../utils/localizedUserName.js';
 
 /**
  * Generate weekly summary
@@ -50,11 +52,20 @@ export async function generateWeeklySummaryController(req, res) {
     if (result.success) {
       // Emit notification to Admin users
       try {
+        const submitter = await prisma.user.findUnique({
+          where: { id: user.dbId },
+          select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true }
+        });
         await emit(EVENTS.WORKFLOW_SUBMITTED, {
+          ...buildNotificationNameVars(submitter, 'Unknown User'),
           title: result.data.document.title,
           workflowType: result.data.document.workflowType,
           documentId: result.data.document.id,
-          date: result.data.document.date
+          date: result.data.document.date,
+          senderName: submitter?.displayName || 'Unknown',
+          senderId: user?.dbId || null,
+          recipientType: 'role',
+          recipientRole: 'admin',
         }, user, { role: 'admin' });
       } catch (notificationError) {
         console.error('Failed to emit notification:', notificationError);

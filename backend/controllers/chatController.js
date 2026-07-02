@@ -8,6 +8,7 @@ import chatDb from '../db/chat-postgres.js';
 import prisma from '../db/prismaClient.js';
 import notificationGateway from '../services/notifications/index.js';
 import { EVENTS } from '../services/notifications/constants.js';
+import { buildNotificationNameVars } from '../utils/localizedUserName.js';
 
 
 /**
@@ -278,9 +279,10 @@ export const sendMessage = async (req, res) => {
     // Send notifications
     const sender = await prisma.user.findUnique({
       where: { id: userId },
-      select: { firstName: true, lastName: true }
+      select: { id: true, firstName: true, lastName: true, displayName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true }
     });
     const senderName = `${sender.firstName} ${sender.lastName}`;
+    const senderNameVars = buildNotificationNameVars(sender, 'Unknown User');
 
     // Parse @mentions from message content
     const mentionedUserIds = [];
@@ -313,16 +315,33 @@ export const sendMessage = async (req, res) => {
       const roomName = room.type === 'class' 
         ? room.class.nameEn 
         : room.type === 'dm' 
-          ? 'Direct Message' 
-          : 'Global Chat';
+          ? 'Direct Message'
+          : room.type === 'group'
+            ? (room.name || 'Group Chat')
+            : 'Global Chat';
+      const roomNameAr = room.type === 'class'
+        ? (room.class.nameAr || room.class.nameEn)
+        : room.type === 'dm'
+          ? 'رسالة مباشرة'
+          : room.type === 'group'
+            ? (room.nameAr || room.name || 'محادثة جماعية')
+            : 'محادثة عامة';
       
       for (const mentionedUserId of mentionedUserIds) {
         await notificationGateway.emit(
           EVENTS.CHAT_MENTION,
           {
+            ...senderNameVars,
             senderName,
+            senderId: userId,
             roomName,
-            messagePreview: messageData.content?.substring(0, 50) || '[File]'
+            roomNameAr,
+            chatType: room.type,
+            className: room.type === 'class' ? room.class.nameEn : null,
+            classNameAr: room.type === 'class' ? (room.class.nameAr || room.class.nameEn) : null,
+            messagePreview: messageData.content?.substring(0, 50) || '[File]',
+            recipientType: 'user',
+            recipientUserId: mentionedUserId,
           },
           { id: userId },
           { userId: mentionedUserId }
@@ -341,9 +360,17 @@ export const sendMessage = async (req, res) => {
         await notificationGateway.emit(
           EVENTS.CHAT_MESSAGE_RECEIVED,
           {
-            roomName: room.class.nameEn,
+            ...senderNameVars,
             senderName,
-            messagePreview: messageData.content?.substring(0, 50) || '[File]'
+            senderId: userId,
+            roomName: room.class.nameEn,
+            roomNameAr: room.class.nameAr || room.class.nameEn,
+            chatType: 'class',
+            className: room.class.nameEn,
+            classNameAr: room.class.nameAr || room.class.nameEn,
+            messagePreview: messageData.content?.substring(0, 50) || '[File]',
+            recipientType: 'users',
+            recipientCount: classMembers.length,
           },
           { id: userId },
           { userIds: classMembers }
@@ -356,8 +383,13 @@ export const sendMessage = async (req, res) => {
         await notificationGateway.emit(
           EVENTS.CHAT_DM_RECEIVED,
           {
+            ...senderNameVars,
             senderName,
-            messagePreview: messageData.content?.substring(0, 50) || '[File]'
+            senderId: userId,
+            chatType: 'dm',
+            messagePreview: messageData.content?.substring(0, 50) || '[File]',
+            recipientType: 'user',
+            recipientUserId: recipientId,
           },
           { id: userId },
           { userId: recipientId }
@@ -375,9 +407,15 @@ export const sendMessage = async (req, res) => {
         await notificationGateway.emit(
           EVENTS.CHAT_MESSAGE_RECEIVED,
           {
-            roomName: room.name || 'Group Chat',
+            ...senderNameVars,
             senderName,
-            messagePreview: messageData.content?.substring(0, 50) || '[File]'
+            senderId: userId,
+            roomName: room.name || 'Group Chat',
+            roomNameAr: room.nameAr || room.name || 'محادثة جماعية',
+            chatType: 'group',
+            messagePreview: messageData.content?.substring(0, 50) || '[File]',
+            recipientType: 'users',
+            recipientCount: participantIds.length,
           },
           { id: userId },
           { userIds: participantIds }

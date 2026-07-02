@@ -269,6 +269,10 @@ export async function createFolder(keycloakUser, { name, nameAr, color, parentId
           ...buildNotificationNameVars(creator, 'Unknown User'),
           folderName: name,
           folderNameAr: nameAr || name,
+          senderName: creator?.displayName || 'Unknown',
+          senderId: userId,
+          recipientType: 'user',
+          recipientUserId: userId,
         },
         { id: userId },
         { userId }
@@ -421,6 +425,10 @@ export async function softDeleteFolder(folderId, actorUserId, actorRoles = []) {
           ...buildNotificationNameVars(deleter, 'Unknown User'),
           folderName: folder.name,
           folderNameAr: folder.nameAr || folder.name,
+          senderName: deleter?.displayName || 'Unknown',
+          senderId: actorUserId,
+          recipientType: 'user',
+          recipientUserId: actorUserId,
         },
         { id: actorUserId },
         { userId: actorUserId }
@@ -487,6 +495,10 @@ export async function restoreFolder(folderId, actorUserId) {
           ...buildNotificationNameVars(restorer, 'Unknown User'),
           folderName: folder.name,
           folderNameAr: folder.nameAr || folder.name,
+          senderName: restorer?.displayName || 'Unknown',
+          senderId: actorUserId,
+          recipientType: 'user',
+          recipientUserId: actorUserId,
         },
         { id: actorUserId },
         { userId: actorUserId }

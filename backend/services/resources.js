@@ -134,7 +134,11 @@ export const createResource = async (resourceData, user = null) => {
           {
             ...buildNotificationNameVars(creator, 'Unknown User'),
             resourceTitle: result.data.titleEn || 'New Resource',
-            resourceType: result.data.type || 'Resource'
+            resourceType: result.data.type || 'Resource',
+            senderName: creator?.displayName || 'Unknown',
+            senderId: user?.dbId || null,
+            recipientType: 'class',
+            recipientClassId: result.data.classId,
           },
           { id: user?.dbId },
           { classId: result.data.classId }
@@ -205,7 +209,11 @@ export const updateResource = async (resourceId, updateData, user = null) => {
           {
             ...buildNotificationNameVars(updater, 'Unknown User'),
             resourceTitle: result.data.titleEn || 'Resource',
-            resourceType: result.data.type || 'Resource'
+            resourceType: result.data.type || 'Resource',
+            senderName: updater?.displayName || 'Unknown',
+            senderId: user?.dbId || null,
+            recipientType: 'class',
+            recipientClassId: result.data.classId,
           },
           { id: user?.dbId },
           { classId: result.data.classId }
@@ -264,7 +272,11 @@ export const deleteResource = async (resourceId, user = null) => {
           {
             ...buildNotificationNameVars(deleter, 'Unknown User'),
             resourceTitle: existingResource.data.titleEn || 'Resource',
-            resourceType: existingResource.data.type || 'Resource'
+            resourceType: existingResource.data.type || 'Resource',
+            senderName: deleter?.displayName || 'Unknown',
+            senderId: user?.dbId || null,
+            recipientType: 'class',
+            recipientClassId: existingResource.data.classId,
           },
           { id: user?.dbId },
           { classId: existingResource.data.classId }

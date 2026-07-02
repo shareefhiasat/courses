@@ -117,13 +117,31 @@ export const createStandupAttendance = async (
 
       // Emit notification for standup attendance update
       try {
+        const actorUser = await prisma.user.findUnique({
+          where: { id: updatedBy || createdBy },
+          select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true }
+        });
+        let programName = null;
+        if (updatedAttendance.programId) {
+          const program = await prisma.program.findUnique({
+            where: { id: updatedAttendance.programId },
+            select: { id: true, nameEn: true, nameAr: true }
+          });
+          programName = program?.nameEn || null;
+        }
         await notificationGateway.emit(
           EVENTS.STANDUP_ATTENDANCE_UPDATED,
           {
             ...buildNotificationNameVars(updatedAttendance.user, 'Unknown'),
+            ...buildNotificationNameVars(actorUser, 'Unknown'),
             date: updatedAttendance.date,
             statusName: updatedAttendance.status.nameEn,
             statusNameAr: updatedAttendance.status.nameAr || updatedAttendance.status.nameEn,
+            senderName: actorUser?.displayName || 'Unknown',
+            senderId: actorUser?.id || null,
+            programName,
+            recipientType: 'user',
+            recipientUserId: parseInt(userId),
           },
           user,
           { userId: parseInt(userId) }
@@ -178,13 +196,31 @@ export const createStandupAttendance = async (
 
     // Emit notification for standup attendance creation
     try {
+      const actorUser = await prisma.user.findUnique({
+        where: { id: createdBy || null },
+        select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true }
+      });
+      let programName = null;
+      if (newAttendance.programId) {
+        const program = await prisma.program.findUnique({
+          where: { id: newAttendance.programId },
+          select: { id: true, nameEn: true, nameAr: true }
+        });
+        programName = program?.nameEn || null;
+      }
       await notificationGateway.emit(
         EVENTS.STANDUP_ATTENDANCE_MARKED,
         {
           ...buildNotificationNameVars(newAttendance.user, 'Unknown'),
+          ...buildNotificationNameVars(actorUser, 'Unknown'),
           date: newAttendance.date,
           statusName: newAttendance.status.nameEn,
           statusNameAr: newAttendance.status.nameAr || newAttendance.status.nameEn,
+          senderName: actorUser?.displayName || 'Unknown',
+          senderId: actorUser?.id || null,
+          programName,
+          recipientType: 'user',
+          recipientUserId: parseInt(userId),
         },
         user,
         { userId: parseInt(userId) }

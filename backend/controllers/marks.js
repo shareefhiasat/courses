@@ -423,14 +423,24 @@ const updateStudentMarks = async (req, res) => {
 
       if (subject && student) {
         const eventType = isRepeated ? EVENTS.REPEATED_ATTEMPT_GRADED : (previousRecord ? EVENTS.MARKS_UPDATED : EVENTS.GRADE_POSTED);
+        const teacher = await prisma.user.findUnique({
+          where: { id: req.user?.dbId },
+          select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true }
+        });
         
         await notificationGateway.emit(
           eventType,
           {
             ...buildNotificationNameVars(student, 'Unknown Student'),
+            ...buildNotificationNameVars(teacher, 'Unknown User'),
             subjectName: subject.nameEn || subject.nameAr,
+            subjectNameAr: subject.nameAr || subject.nameEn,
             grade: letterGrade,
-            totalMarks: `${totalMarks}%`
+            totalMarks: `${totalMarks}%`,
+            senderName: teacher?.displayName || 'Unknown',
+            senderId: req.user?.dbId || null,
+            recipientType: 'user',
+            recipientUserId: parseInt(userId),
           },
           req.user,
           { userId: parseInt(userId) }
@@ -558,13 +568,23 @@ const batchUpdateStudentMarks = async (req, res) => {
             });
 
             if (student) {
+              const teacher = await prisma.user.findUnique({
+                where: { id: req.user?.dbId },
+                select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true }
+              });
               await notificationGateway.emit(
                 EVENTS.MARKS_UPDATED,
                 {
                   ...buildNotificationNameVars(student, 'Unknown Student'),
+                  ...buildNotificationNameVars(teacher, 'Unknown User'),
                   subjectName: subject.nameEn || subject.nameAr,
+                  subjectNameAr: subject.nameAr || subject.nameEn,
                   grade: result.letterGrade,
-                  totalMarks: `${result.totalMarks}%`
+                  totalMarks: `${result.totalMarks}%`,
+                  senderName: teacher?.displayName || 'Unknown',
+                  senderId: req.user?.dbId || null,
+                  recipientType: 'user',
+                  recipientUserId: result.userId,
                 },
                 req.user,
                 { userId: result.userId }

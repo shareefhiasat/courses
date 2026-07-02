@@ -443,7 +443,12 @@ export const updatePenaltyController = async (req, res) => {
           {
             ...buildNotificationNameVars(penalty.user, 'Unknown Student'),
             penaltyType: penalty.penaltyType?.nameEn || 'Penalty',
-            description: penalty.descriptionEn || ''
+            penaltyTypeAr: penalty.penaltyType?.nameAr || penalty.penaltyType?.nameEn || 'Penalty',
+            description: penalty.descriptionEn || '',
+            senderName: penalty.user?.displayName || 'Unknown',
+            senderId: currentUserId,
+            recipientType: 'user',
+            recipientUserId: penalty.userId,
           },
           { id: currentUserId },
           { userId: penalty.userId }

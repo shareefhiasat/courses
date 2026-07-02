@@ -16,6 +16,7 @@
 import prisma from '../db/prismaClient.js';
 import notificationGateway from './notifications/index.js';
 import { EVENTS } from './notifications/constants.js';
+import { buildNotificationNameVars } from '../utils/localizedUserName.js';
 
 
 const ok = (payload) => ({ success: true, payload, timestamp: Date.now() });
@@ -33,9 +34,19 @@ const err = (code, message) => ({
  * @param {object} actor - The actor performing the action
  */
 async function sendWorkflowNotification(eventType, instance, additionalPayload, actor) {
+  const actorUser = actor?.userId ? await prisma.user.findUnique({
+    where: { id: actor.userId },
+    select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true }
+  }) : null;
+
   const notificationData = {
     instanceId: instance.id,
     workflowName: instance.definition?.name,
+    ...buildNotificationNameVars(actorUser, 'Unknown User'),
+    senderName: actorUser?.displayName || actor?.name || 'Unknown',
+    senderId: actor?.userId || null,
+    recipientType: 'user',
+    recipientUserId: instance.initiatedBy.id,
     ...additionalPayload,
   };
 
@@ -215,16 +226,25 @@ export async function startWorkflow(input, actor) {
     });
 
     // Notify approvers for first stage
+    const starterUser = actor?.userId ? await prisma.user.findUnique({
+      where: { id: actor.userId },
+      select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true }
+    }) : null;
     const approverUsers = await prisma.user.findMany({
       where: { roles: { hasSome: firstStage.approverRoles } },
       select: { id: true, email: true, name: true },
     });
     for (const user of approverUsers) {
       await notificationGateway.emit(EVENTS.WORKFLOW_ASSIGNED, {
+        ...buildNotificationNameVars(starterUser, 'Unknown User'),
         instanceId: instance.id,
         workflowName: definition.name,
         stageName: firstStage.name,
         userName: user.name,
+        senderName: starterUser?.displayName || actor?.name || 'Unknown',
+        senderId: actor?.userId || null,
+        recipientType: 'role',
+        recipientRoles: firstStage.approverRoles,
       }, { userId: user.id, email: user.email, name: user.name }, actor);
     }
 
@@ -340,15 +360,20 @@ export async function approveStage(instanceId, input, actor) {
 
         // Notify initiator of approval
         const [approver, initiator] = await Promise.all([
-          prisma.user.findUnique({ where: { id: actor.userId }, select: { name: true } }),
+          prisma.user.findUnique({ where: { id: actor.userId }, select: { id: true, name: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true } }),
           prisma.user.findUnique({ where: { id: instance.initiatedById }, select: { id: true, email: true, name: true } }),
         ]);
         if (initiator) {
           await notificationGateway.emit(EVENTS.WORKFLOW_APPROVED, {
+            ...buildNotificationNameVars(approver, 'Unknown User'),
             instanceId: instance.id,
             workflowName: instance.definition?.name,
             stageName: instance.currentStage.name,
             approverName: approver?.name || 'Unknown',
+            senderName: approver?.displayName || approver?.name || 'Unknown',
+            senderId: actor?.userId || null,
+            recipientType: 'user',
+            recipientUserId: initiator.id,
           }, { userId: initiator.id, email: initiator.email, name: initiator.name }, actor);
         }
 
@@ -359,10 +384,15 @@ export async function approveStage(instanceId, input, actor) {
         });
         for (const user of nextApprovers) {
           await notificationGateway.emit(EVENTS.WORKFLOW_ASSIGNED, {
+            ...buildNotificationNameVars(approver, 'Unknown User'),
             instanceId: instance.id,
             workflowName: instance.definition?.name,
             stageName: nextStage.name,
             userName: user.name,
+            senderName: approver?.displayName || approver?.name || 'Unknown',
+            senderId: actor?.userId || null,
+            recipientType: 'role',
+            recipientRoles: nextStage.approverRoles,
           }, { userId: user.id, email: user.email, name: user.name }, actor);
         }
       } else {
@@ -383,19 +413,29 @@ export async function approveStage(instanceId, input, actor) {
 
         // Notify initiator of final approval and completion
         const [approver, initiator] = await Promise.all([
-          prisma.user.findUnique({ where: { id: actor.userId }, select: { name: true } }),
+          prisma.user.findUnique({ where: { id: actor.userId }, select: { id: true, name: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true } }),
           prisma.user.findUnique({ where: { id: instance.initiatedById }, select: { id: true, email: true, name: true } }),
         ]);
         if (initiator) {
           await notificationGateway.emit(EVENTS.WORKFLOW_APPROVED, {
+            ...buildNotificationNameVars(approver, 'Unknown User'),
             instanceId: instance.id,
             workflowName: instance.definition?.name,
             stageName: instance.currentStage.name,
             approverName: approver?.name || 'Unknown',
+            senderName: approver?.displayName || approver?.name || 'Unknown',
+            senderId: actor?.userId || null,
+            recipientType: 'user',
+            recipientUserId: initiator.id,
           }, { userId: initiator.id, email: initiator.email, name: initiator.name }, actor);
           await notificationGateway.emit(EVENTS.WORKFLOW_COMPLETED, {
+            ...buildNotificationNameVars(approver, 'Unknown User'),
             instanceId: instance.id,
             workflowName: instance.definition?.name,
+            senderName: approver?.displayName || approver?.name || 'Unknown',
+            senderId: actor?.userId || null,
+            recipientType: 'user',
+            recipientUserId: initiator.id,
           }, { userId: initiator.id, email: initiator.email, name: initiator.name }, actor);
         }
       }
@@ -484,16 +524,21 @@ export async function rejectStage(instanceId, input, actor) {
 
     // Notify initiator of rejection
     const [rejecter, initiator] = await Promise.all([
-      prisma.user.findUnique({ where: { id: actor.userId }, select: { name: true } }),
+      prisma.user.findUnique({ where: { id: actor.userId }, select: { id: true, name: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true } }),
       prisma.user.findUnique({ where: { id: instance.initiatedById }, select: { id: true, email: true, name: true } }),
     ]);
     if (initiator) {
       await notificationGateway.emit(EVENTS.WORKFLOW_REJECTED, {
+        ...buildNotificationNameVars(rejecter, 'Unknown User'),
         instanceId: instance.id,
         workflowName: instance.definition?.name,
         stageName: instance.currentStage.name,
         rejecterName: rejecter?.name || 'Unknown',
+        senderName: rejecter?.displayName || rejecter?.name || 'Unknown',
+        senderId: actor?.userId || null,
         reason: input?.reason,
+        recipientType: 'user',
+        recipientUserId: initiator.id,
       }, { userId: initiator.id, email: initiator.email, name: initiator.name }, actor);
     }
 
@@ -645,13 +690,23 @@ export async function submitWorkflow(instanceId, actor) {
     const isResubmission = instance.revisionCount > 0;
     const eventType = isResubmission ? EVENTS.WORKFLOW_RESUBMITTED : EVENTS.WORKFLOW_SUBMITTED;
 
+    const actorUser = actor?.userId ? await prisma.user.findUnique({
+      where: { id: actor.userId },
+      select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true }
+    }) : null;
+
     // Notify initiator
     await notificationGateway.emit(eventType, {
+      ...buildNotificationNameVars(actorUser, 'Unknown User'),
       instanceId: instance.id,
       workflowName: instance.definition?.name,
-      submitterName: actor.name || instance.initiatedBy.displayName || 'Unknown',
+      submitterName: actor?.name || instance.initiatedBy.displayName || 'Unknown',
+      senderName: actorUser?.displayName || actor?.name || 'Unknown',
+      senderId: actor?.userId || null,
       revisionCount: instance.revisionCount,
       isResubmission,
+      recipientType: 'user',
+      recipientUserId: instance.initiatedBy.id,
     }, { userId: instance.initiatedBy.id, email: instance.initiatedBy.email, name: instance.initiatedBy.displayName }, actor);
 
     const updated = await prisma.workflowInstance.findUnique({
@@ -707,24 +762,40 @@ export async function sendForReview(instanceId, { assignedUserId, assignedRole, 
     if (assignedUserId) {
       const assignee = await prisma.user.findUnique({ where: { id: assignedUserId } });
       if (assignee) {
+        const senderUser = actor?.userId ? await prisma.user.findUnique({
+          where: { id: actor.userId },
+          select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true }
+        }) : null;
         await notificationGateway.emit(EVENTS.WORKFLOW_SENT_FOR_REVIEW, {
+          ...buildNotificationNameVars(senderUser, 'Unknown User'),
           instanceId: instance.id,
           workflowName: instance.definition?.name,
-          senderName: actor.name || 'Unknown',
+          senderName: senderUser?.displayName || actor.name || 'Unknown',
+          senderId: actor.userId || null,
           comment,
+          recipientType: 'user',
+          recipientUserId: assignee.id,
         }, { userId: assignee.id, email: assignee.email, name: assignee.displayName }, actor);
       }
     } else if (assignedRole) {
       // Notify all users with the role
+      const senderUser = actor?.userId ? await prisma.user.findUnique({
+        where: { id: actor.userId },
+        select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true }
+      }) : null;
       const assignees = await prisma.user.findMany({
         where: { roleAssignments: { some: { role: { code: assignedRole } } } },
       });
       for (const assignee of assignees) {
         await notificationGateway.emit(EVENTS.WORKFLOW_SENT_FOR_REVIEW, {
+          ...buildNotificationNameVars(senderUser, 'Unknown User'),
           instanceId: instance.id,
           workflowName: instance.definition?.name,
-          senderName: actor.name || 'Unknown',
+          senderName: senderUser?.displayName || actor.name || 'Unknown',
+          senderId: actor.userId || null,
           comment,
+          recipientType: 'role',
+          recipientRole: assignedRole,
         }, { userId: assignee.id, email: assignee.email, name: assignee.displayName }, actor);
       }
     }
@@ -781,23 +852,39 @@ export async function sendForApproval(instanceId, { assignedUserId, assignedRole
     if (assignedUserId) {
       const assignee = await prisma.user.findUnique({ where: { id: assignedUserId } });
       if (assignee) {
+        const senderUser = actor?.userId ? await prisma.user.findUnique({
+          where: { id: actor.userId },
+          select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true }
+        }) : null;
         await notificationGateway.emit(EVENTS.WORKFLOW_SENT_FOR_APPROVAL, {
+          ...buildNotificationNameVars(senderUser, 'Unknown User'),
           instanceId: instance.id,
           workflowName: instance.definition?.name,
-          senderName: actor.name || 'Unknown',
+          senderName: senderUser?.displayName || actor.name || 'Unknown',
+          senderId: actor.userId || null,
           comment,
+          recipientType: 'user',
+          recipientUserId: assignee.id,
         }, { userId: assignee.id, email: assignee.email, name: assignee.displayName }, actor);
       }
     } else if (assignedRole) {
+      const senderUser = actor?.userId ? await prisma.user.findUnique({
+        where: { id: actor.userId },
+        select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true }
+      }) : null;
       const assignees = await prisma.user.findMany({
         where: { roleAssignments: { some: { role: { code: assignedRole } } } },
       });
       for (const assignee of assignees) {
         await notificationGateway.emit(EVENTS.WORKFLOW_SENT_FOR_APPROVAL, {
+          ...buildNotificationNameVars(senderUser, 'Unknown User'),
           instanceId: instance.id,
           workflowName: instance.definition?.name,
-          senderName: actor.name || 'Unknown',
+          senderName: senderUser?.displayName || actor.name || 'Unknown',
+          senderId: actor.userId || null,
           comment,
+          recipientType: 'role',
+          recipientRole: assignedRole,
         }, { userId: assignee.id, email: assignee.email, name: assignee.displayName }, actor);
       }
     }
@@ -857,15 +944,30 @@ export async function approveWorkflow(instanceId, { comment }, actor) {
     });
 
     // Notify initiator
+    const approverUser = actor?.userId ? await prisma.user.findUnique({
+      where: { id: actor.userId },
+      select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true }
+    }) : null;
+
     await notificationGateway.emit(EVENTS.WORKFLOW_APPROVED, {
+      ...buildNotificationNameVars(approverUser, 'Unknown User'),
       instanceId: instance.id,
       workflowName: instance.definition?.name,
       approverName: actor.name || 'Unknown',
+      senderName: approverUser?.displayName || actor.name || 'Unknown',
+      senderId: actor.userId || null,
+      recipientType: 'user',
+      recipientUserId: instance.initiatedBy.id,
     }, { userId: instance.initiatedBy.id, email: instance.initiatedBy.email, name: instance.initiatedBy.displayName }, actor);
     
     await notificationGateway.emit(EVENTS.WORKFLOW_COMPLETED, {
+      ...buildNotificationNameVars(approverUser, 'Unknown User'),
       instanceId: instance.id,
       workflowName: instance.definition?.name,
+      senderName: approverUser?.displayName || actor.name || 'Unknown',
+      senderId: actor.userId || null,
+      recipientType: 'user',
+      recipientUserId: instance.initiatedBy.id,
     }, { userId: instance.initiatedBy.id, email: instance.initiatedBy.email, name: instance.initiatedBy.displayName }, actor);
 
     const updated = await prisma.workflowInstance.findUnique({

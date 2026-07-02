@@ -6,9 +6,11 @@
  */
 
 import fileShareService from '../services/fileShareService.js';
+import prisma from '../db/prismaClient.js';
 import notificationGateway from '../services/notifications/index.js';
 import { EVENTS } from '../services/notifications/constants.js';
 import { SHARE_SUBJECT_TYPES } from '../constants/driveConstants.js';
+import { buildNotificationNameVars } from '../utils/localizedUserName.js';
 
 export async function createFileShare(req, res) {
   const { fileId, folderId, subjectType, subjectId, permission, expiresAt } = req.body;
@@ -57,12 +59,21 @@ export async function createFileShare(req, res) {
       const folderResult = await fileShareService.getFolderDetailsForNotification(folderId);
       if (folderResult.success && folderResult.payload) {
         const folder = folderResult.payload;
+        const sharer = await prisma.user.findUnique({
+          where: { id: req.user?.dbId },
+          select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true }
+        });
         await notificationGateway.emit(
           EVENTS.DRIVE_FOLDER_SHARED,
           {
+            ...buildNotificationNameVars(sharer, 'Unknown User'),
             folderName: folder.name,
             folderNameAr: folder.nameAr,
-            sharedBy: folder.owner?.displayName || `${folder.owner?.firstName} ${folder.owner?.lastName}`
+            sharedBy: folder.owner?.displayName || `${folder.owner?.firstName} ${folder.owner?.lastName}`,
+            senderName: sharer?.displayName || 'Unknown',
+            senderId: req.user?.dbId,
+            recipientType: 'user',
+            recipientUserId: subjectUserId,
           },
           req.user,
           { userId: subjectUserId }
