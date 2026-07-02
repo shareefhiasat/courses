@@ -28,6 +28,10 @@ import { v4 as uuidv4 } from 'uuid';
 import { buildTaxonomyFields, resolveApprovalFlow } from '../utils/workflowTaxonomy.js';
 import { applyExcuseApprovalSideEffects } from './workflowExcuseApprovalService.js';
 import { createShare } from './fileShareService.js';
+import notificationGateway from './notifications/index.js';
+import { EVENTS } from './notifications/constants.js';
+import { buildNotificationNameVars } from '../utils/localizedUserName.js';
+import { LMS_ROLES } from './keycloakAdminService.js';
 
 
 /**
@@ -482,7 +486,67 @@ export async function updateStatus(id, status, actorId, reason) {
  * Add comment to workflow document
  */
 export async function addComment(data) {
-  return await addWorkflowComment(data);
+  const result = await addWorkflowComment(data);
+
+  // Emit notification to the other party (submitter or assignee)
+  if (result.success) {
+    try {
+      const { workflowDocumentId, authorId, comment, action } = data;
+      const doc = await prisma.workflowDocument.findUnique({
+        where: { id: parseInt(workflowDocumentId) },
+        select: {
+          id: true,
+          title: true,
+          submitterId: true,
+          currentAssigneeId: true,
+          classId: true,
+          class: { select: { id: true, nameEn: true, nameAr: true, code: true } },
+        },
+      });
+
+      if (doc) {
+        const author = await prisma.user.findUnique({
+          where: { id: authorId },
+          select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true }
+        });
+
+        const commentPreview = comment && comment.length > 80 ? comment.substring(0, 80) + '...' : comment;
+        const payload = {
+          ...buildNotificationNameVars(author, 'Unknown User'),
+          workflowName: doc.title,
+          documentId: doc.id,
+          commentPreview,
+          action: action || 'COMMENT',
+          className: doc.class?.nameEn || null,
+          classNameAr: doc.class?.nameAr || doc.class?.nameEn || null,
+        };
+
+        // Notify submitter if the commenter is not the submitter
+        if (doc.submitterId && doc.submitterId !== authorId) {
+          await notificationGateway.emit(
+            EVENTS.WORKFLOW_COMMENT_ADDED,
+            payload,
+            { id: authorId },
+            { userId: doc.submitterId }
+          );
+        }
+
+        // Notify current assignee if the commenter is not the assignee
+        if (doc.currentAssigneeId && doc.currentAssigneeId !== authorId) {
+          await notificationGateway.emit(
+            EVENTS.WORKFLOW_COMMENT_ADDED,
+            payload,
+            { id: authorId },
+            { userId: doc.currentAssigneeId }
+          );
+        }
+      }
+    } catch (notificationError) {
+      console.error('[workflowDocumentService.addComment] Failed to emit notification:', notificationError);
+    }
+  }
+
+  return result;
 }
 
 /**
@@ -882,6 +946,42 @@ export async function withdrawWorkflowDocument(data) {
         comment,
         action: 'WITHDRAWN'
       });
+    }
+
+    // Emit notification to assignee/reviewers that document was withdrawn
+    try {
+      const withdrawer = await prisma.user.findUnique({
+        where: { id: submitterId },
+        select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true }
+      });
+      const payload = {
+        ...buildNotificationNameVars(withdrawer, 'Unknown User'),
+        workflowName: updated.title,
+        documentId: updated.id,
+        actorName: withdrawer?.displayName || 'Unknown',
+        className: updated.class?.nameEn || null,
+        classNameAr: updated.class?.nameAr || updated.class?.nameEn || null,
+      };
+
+      // Notify the previous assignee (now cleared) — use the document's previous assignee
+      if (document.currentAssigneeId) {
+        await notificationGateway.emit(
+          EVENTS.WORKFLOW_WITHDRAWN,
+          payload,
+          { id: submitterId },
+          { userId: document.currentAssigneeId }
+        );
+      }
+
+      // Also notify HR role users
+      await notificationGateway.emit(
+        EVENTS.WORKFLOW_WITHDRAWN,
+        payload,
+        { id: submitterId },
+        { role: LMS_ROLES.HR }
+      );
+    } catch (notificationError) {
+      console.error('[workflowDocumentService.withdrawWorkflowDocument] Failed to emit notification:', notificationError);
     }
 
     return { success: true, data: updated };

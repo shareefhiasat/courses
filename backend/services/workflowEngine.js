@@ -641,10 +641,17 @@ export async function submitWorkflow(instanceId, actor) {
       },
     });
 
+    // Determine if this is a resubmission (after revision) or first submission
+    const isResubmission = instance.revisionCount > 0;
+    const eventType = isResubmission ? EVENTS.WORKFLOW_RESUBMITTED : EVENTS.WORKFLOW_SUBMITTED;
+
     // Notify initiator
-    await notificationGateway.emit(EVENTS.WORKFLOW_SUBMITTED, {
+    await notificationGateway.emit(eventType, {
       instanceId: instance.id,
       workflowName: instance.definition?.name,
+      submitterName: actor.name || instance.initiatedBy.displayName || 'Unknown',
+      revisionCount: instance.revisionCount,
+      isResubmission,
     }, { userId: instance.initiatedBy.id, email: instance.initiatedBy.email, name: instance.initiatedBy.displayName }, actor);
 
     const updated = await prisma.workflowInstance.findUnique({

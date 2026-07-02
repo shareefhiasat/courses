@@ -46,6 +46,18 @@ const RAW_TEMPLATES = {
     en: 'Workflow "{{workflowName}}" has exceeded SLA deadline',
     ar: 'تجاوز سير العمل "{{workflowName}}" موعد انتهاء SLA'
   },
+  [EVENTS.WORKFLOW_WITHDRAWN]: {
+    en: 'Workflow "{{workflowName}}" has been withdrawn by {{actorName}}',
+    ar: 'تم سحب سير العمل "{{workflowName}}" بواسطة {{actorName}}'
+  },
+  [EVENTS.WORKFLOW_COMMENT_ADDED]: {
+    en: '{{authorName}} commented on workflow "{{workflowName}}": {{commentPreview}}',
+    ar: 'أضاف {{authorName}} تعليقاً على سير العمل "{{workflowName}}": {{commentPreview}}'
+  },
+  [EVENTS.WORKFLOW_AMENDED]: {
+    en: 'Workflow "{{workflowName}}" has been amended',
+    ar: 'تم تعديل سير العمل "{{workflowName}}"'
+  },
   
   // Announcement events
   [EVENTS.ANNOUNCEMENT_POSTED]: {
@@ -71,6 +83,16 @@ const RAW_TEMPLATES = {
     ar: 'تم إنشاء رمز QR لـ {{purpose}}'
   },
   
+  // Standup Attendance events
+  [EVENTS.STANDUP_ATTENDANCE_MARKED]: {
+    en: 'Standup attendance marked for {{studentName}} on {{date}} — Status: {{statusName}}',
+    ar: 'تم تسجيل الحضور اليومي لـ {{studentNameAr}} في {{date}} — الحالة: {{statusNameAr}}'
+  },
+  [EVENTS.STANDUP_ATTENDANCE_UPDATED]: {
+    en: 'Standup attendance updated for {{studentName}} on {{date}} — Status: {{statusName}}',
+    ar: 'تم تحديث الحضور اليومي لـ {{studentNameAr}} في {{date}} — الحالة: {{statusNameAr}}'
+  },
+
   // Attendance events
   [EVENTS.ATTENDANCE_MARKED]: {
     en: 'Attendance has been marked for {{studentName}} on {{date}}',
@@ -264,9 +286,29 @@ const RAW_TEMPLATES = {
     en: '{{folderName}} folder was deleted by {{deletedBy}}',
     ar: 'قام {{deletedBy}} بحذف مجلد {{folderName}}'
   },
+  [EVENTS.DRIVE_FOLDER_RESTORED]: {
+    en: '{{folderName}} folder was restored by {{restoredBy}}',
+    ar: 'قام {{restoredBy}} باستعادة مجلد {{folderName}}'
+  },
   [EVENTS.DRIVE_COMMENT_ADDED]: {
     en: '{{commenter}} added a comment on {{fileName}}: {{commentText}}',
     ar: 'أضاف {{commenter}} تعليقاً على {{fileName}}: {{commentText}}'
+  },
+  [EVENTS.DRIVE_COMMENT_UPDATED]: {
+    en: '{{commenter}} updated a comment on {{fileName}}: {{commentText}}',
+    ar: 'قام {{commenter}} بتحديث تعليق على {{fileName}}: {{commentText}}'
+  },
+  [EVENTS.DRIVE_COMMENT_DELETED]: {
+    en: '{{commenter}} deleted a comment on {{fileName}}',
+    ar: 'قام {{commenter}} بحذف تعليق على {{fileName}}'
+  },
+  [EVENTS.DRIVE_PUBLIC_LINK_CREATED]: {
+    en: 'A public link was created for {{itemName}} by {{createdBy}}',
+    ar: 'تم إنشاء رابط عام لـ {{itemName}} بواسطة {{createdBy}}'
+  },
+  [EVENTS.DRIVE_PUBLIC_LINK_REVOKED]: {
+    en: 'The public link for {{itemName}} has been revoked by {{revokedBy}}',
+    ar: 'تم إلغاء الرابط العام لـ {{itemName}} بواسطة {{revokedBy}}'
   },
   
   // Enrollment events

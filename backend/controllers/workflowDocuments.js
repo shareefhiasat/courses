@@ -32,6 +32,7 @@ import {
 } from '../services/workflowDocumentService.js';
 import { emit } from '../services/notifications/index.js';
 import { EVENTS } from '../services/notifications/constants.js';
+import { buildNotificationNameVars } from '../utils/localizedUserName.js';
 import { logPermissionDenial } from '../services/permissionDenialAuditService.js';
 
 /**
@@ -121,16 +122,29 @@ export const createWorkflowDocumentController = async (req, res) => {
     if (result.success) {
       // Emit notification to HR users
       try {
+        const submitter = await prisma.user.findUnique({
+          where: { id: user.dbId },
+          select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true }
+        });
+        const cls = result.data.document.classId ? await prisma.class.findUnique({
+          where: { id: result.data.document.classId },
+          select: { id: true, nameEn: true, nameAr: true, code: true }
+        }) : null;
+
         await emit(EVENTS.WORKFLOW_SUBMITTED, {
+          ...buildNotificationNameVars(submitter, 'Unknown User'),
           title: result.data.document.title,
           workflowType: result.data.document.workflowType,
           documentId: result.data.document.id,
           classId: result.data.document.classId,
-          date: result.data.document.date
+          date: result.data.document.date,
+          className: cls?.nameEn || null,
+          classNameAr: cls?.nameAr || cls?.nameEn || null,
+          submitterName: submitter?.displayName || 'Unknown',
+          recipientRole: LMS_ROLES.HR,
         }, user, { role: LMS_ROLES.HR });
       } catch (notificationError) {
         console.error('Failed to emit notification:', notificationError);
-        // Don't fail the request if notification fails
       }
 
       res.status(201).json({
@@ -488,9 +502,23 @@ export const approveWorkflowDocumentController = async (req, res) => {
     if (result.success) {
       // Emit notification to submitter
       try {
+        const approver = await prisma.user.findUnique({
+          where: { id: user.dbId },
+          select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true }
+        });
+        const cls = result.data.classId ? await prisma.class.findUnique({
+          where: { id: result.data.classId },
+          select: { id: true, nameEn: true, nameAr: true, code: true }
+        }) : null;
+
         await emit(EVENTS.WORKFLOW_APPROVED, {
+          ...buildNotificationNameVars(approver, 'Unknown User'),
           workflowName: result.data.title,
-          documentId: result.data.id
+          documentId: result.data.id,
+          approverName: approver?.displayName || 'Unknown',
+          className: cls?.nameEn || null,
+          classNameAr: cls?.nameAr || cls?.nameEn || null,
+          recipientUserId: result.data.submitterId,
         }, user, { userId: result.data.submitterId });
       } catch (notificationError) {
         console.error('Failed to emit notification:', notificationError);
@@ -585,10 +613,24 @@ export const rejectWorkflowDocumentController = async (req, res) => {
     if (result.success) {
       // Emit notification to submitter
       try {
+        const rejecter = await prisma.user.findUnique({
+          where: { id: user.dbId },
+          select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true }
+        });
+        const cls = result.data.classId ? await prisma.class.findUnique({
+          where: { id: result.data.classId },
+          select: { id: true, nameEn: true, nameAr: true, code: true }
+        }) : null;
+
         await emit(EVENTS.WORKFLOW_REJECTED, {
+          ...buildNotificationNameVars(rejecter, 'Unknown User'),
           workflowName: result.data.title,
           documentId: result.data.id,
-          feedback: comment
+          feedback: comment,
+          rejecterName: rejecter?.displayName || 'Unknown',
+          className: cls?.nameEn || null,
+          classNameAr: cls?.nameAr || cls?.nameEn || null,
+          recipientUserId: result.data.submitterId,
         }, user, { userId: result.data.submitterId });
       } catch (notificationError) {
         console.error('Failed to emit notification:', notificationError);
@@ -690,12 +732,26 @@ export const returnWorkflowDocumentController = async (req, res) => {
     if (result.success) {
       // Emit notification to submitter
       try {
+        const returner = await prisma.user.findUnique({
+          where: { id: user.dbId },
+          select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true }
+        });
+        const cls = result.data.classId ? await prisma.class.findUnique({
+          where: { id: result.data.classId },
+          select: { id: true, nameEn: true, nameAr: true, code: true }
+        }) : null;
+
         await emit(EVENTS.WORKFLOW_RETURNED, {
+          ...buildNotificationNameVars(returner, 'Unknown User'),
           workflowName: result.data.title,
           documentId: result.data.id,
           feedback: comment,
           previousStatus: currentStatus,
-          newStatus: previousStatus
+          newStatus: previousStatus,
+          returnerName: returner?.displayName || 'Unknown',
+          className: cls?.nameEn || null,
+          classNameAr: cls?.nameAr || cls?.nameEn || null,
+          recipientUserId: result.data.submitterId,
         }, user, { userId: result.data.submitterId });
       } catch (notificationError) {
         console.error('Failed to emit notification:', notificationError);
@@ -752,10 +808,24 @@ export const resubmitWorkflowDocumentController = async (req, res) => {
     if (result.success) {
       // Emit notification to HR users
       try {
+        const submitter = await prisma.user.findUnique({
+          where: { id: user.dbId },
+          select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true }
+        });
+        const cls = result.data.classId ? await prisma.class.findUnique({
+          where: { id: result.data.classId },
+          select: { id: true, nameEn: true, nameAr: true, code: true }
+        }) : null;
+
         await emit(EVENTS.WORKFLOW_RESUBMITTED, {
+          ...buildNotificationNameVars(submitter, 'Unknown User'),
           workflowName: result.data.title,
           documentId: result.data.id,
-          reviewCycleCount: result.data.reviewCycleCount
+          reviewCycleCount: result.data.reviewCycleCount,
+          submitterName: submitter?.displayName || 'Unknown',
+          className: cls?.nameEn || null,
+          classNameAr: cls?.nameAr || cls?.nameEn || null,
+          recipientRole: LMS_ROLES.HR,
         }, user, { role: LMS_ROLES.HR });
       } catch (notificationError) {
         console.error('Failed to emit notification:', notificationError);
@@ -812,9 +882,23 @@ export const uploadSignedDocumentController = async (req, res) => {
     if (result.success) {
       // Emit notification to HR users
       try {
+        const admin = await prisma.user.findUnique({
+          where: { id: user.dbId },
+          select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true }
+        });
+        const cls = result.data.classId ? await prisma.class.findUnique({
+          where: { id: result.data.classId },
+          select: { id: true, nameEn: true, nameAr: true, code: true }
+        }) : null;
+
         await emit(EVENTS.WORKFLOW_ASSIGNED, {
+          ...buildNotificationNameVars(admin, 'Unknown User'),
           workflowName: result.data.title,
-          documentId: result.data.id
+          documentId: result.data.id,
+          adminName: admin?.displayName || 'Unknown',
+          className: cls?.nameEn || null,
+          classNameAr: cls?.nameAr || cls?.nameEn || null,
+          recipientRole: LMS_ROLES.HR,
         }, user, { role: LMS_ROLES.HR });
       } catch (notificationError) {
         console.error('Failed to emit notification:', notificationError);
@@ -1202,17 +1286,29 @@ export const createCustomWorkflowDocumentController = async (req, res) => {
     if (result.success) {
       // Emit notification to reviewers
       try {
+        const submitter = await prisma.user.findUnique({
+          where: { id: user.dbId },
+          select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true }
+        });
+        const cls = result.data.document.classId ? await prisma.class.findUnique({
+          where: { id: result.data.document.classId },
+          select: { id: true, nameEn: true, nameAr: true, code: true }
+        }) : null;
+
         if (result.data.document.currentAssigneeId) {
           await emit(EVENTS.WORKFLOW_SUBMITTED, {
+            ...buildNotificationNameVars(submitter, 'Unknown User'),
             title: result.data.document.title,
             documentId: result.data.document.id,
             assigneeId: result.data.document.currentAssigneeId,
-            submitterId: user.id
-          });
+            submitterId: user.id,
+            submitterName: submitter?.displayName || 'Unknown',
+            className: cls?.nameEn || null,
+            classNameAr: cls?.nameAr || cls?.nameEn || null,
+          }, user, { userId: result.data.document.currentAssigneeId });
         }
       } catch (notificationError) {
         console.error('Error emitting notification:', notificationError);
-        // Don't fail the workflow creation if notification fails
       }
 
       return res.status(201).json({

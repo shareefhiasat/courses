@@ -1,4 +1,7 @@
 import prisma from '../db/prismaClient.js';
+import notificationGateway from './notifications/index.js';
+import { EVENTS } from './notifications/constants.js';
+import { buildNotificationNameVars } from '../utils/localizedUserName.js';
 
 
 /**
@@ -96,6 +99,9 @@ export const createStandupAttendance = async (
               displayName: true,
               firstName: true,
               lastName: true,
+              firstNameAr: true,
+              lastNameAr: true,
+              displayNameAr: true,
             },
           },
           status: {
@@ -108,6 +114,23 @@ export const createStandupAttendance = async (
           },
         },
       });
+
+      // Emit notification for standup attendance update
+      try {
+        await notificationGateway.emit(
+          EVENTS.STANDUP_ATTENDANCE_UPDATED,
+          {
+            ...buildNotificationNameVars(updatedAttendance.user, 'Unknown'),
+            date: updatedAttendance.date,
+            statusName: updatedAttendance.status.nameEn,
+            statusNameAr: updatedAttendance.status.nameAr || updatedAttendance.status.nameEn,
+          },
+          user,
+          { userId: parseInt(userId) }
+        );
+      } catch (notificationError) {
+        console.error('[Standup Attendance Service] Failed to emit notification:', notificationError);
+      }
 
       return {
         success: true,
@@ -137,6 +160,9 @@ export const createStandupAttendance = async (
             displayName: true,
             firstName: true,
             lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
           },
         },
         status: {
@@ -149,6 +175,23 @@ export const createStandupAttendance = async (
         },
       },
     });
+
+    // Emit notification for standup attendance creation
+    try {
+      await notificationGateway.emit(
+        EVENTS.STANDUP_ATTENDANCE_MARKED,
+        {
+          ...buildNotificationNameVars(newAttendance.user, 'Unknown'),
+          date: newAttendance.date,
+          statusName: newAttendance.status.nameEn,
+          statusNameAr: newAttendance.status.nameAr || newAttendance.status.nameEn,
+        },
+        user,
+        { userId: parseInt(userId) }
+      );
+    } catch (notificationError) {
+      console.error('[Standup Attendance Service] Failed to emit notification:', notificationError);
+    }
 
     return {
       success: true,

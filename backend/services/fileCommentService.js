@@ -1,5 +1,8 @@
 import prisma from '../db/prismaClient.js';
 import { USER_NAME_SELECT_WITH_ROLE, normalizeProfileImageUrl } from '../utils/userNameFields.js';
+import notificationGateway from './notifications/index.js';
+import { EVENTS } from './notifications/constants.js';
+import { buildNotificationNameVars } from '../utils/localizedUserName.js';
 
 /**
  * Add comment to file
@@ -30,6 +33,59 @@ export const addFileComment = async ({ fileId, userId, comment }) => {
         }
       }
     });
+
+    // Emit notification to file owner and share recipients
+    try {
+      const file = await prisma.file.findUnique({
+        where: { id: fileId },
+        select: { id: true, name: true, ownerId: true }
+      });
+
+      if (file) {
+        const commenter = await prisma.user.findUnique({
+          where: { id: userId },
+          select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true }
+        });
+
+        const commentPreview = comment.trim().length > 80 ? comment.trim().substring(0, 80) + '...' : comment.trim();
+        const payload = {
+          ...buildNotificationNameVars(commenter, 'Unknown User'),
+          fileName: file.name,
+          commentText: commentPreview,
+          fileId,
+        };
+
+        // Notify file owner (if not the commenter)
+        if (file.ownerId && file.ownerId !== userId) {
+          await notificationGateway.emit(
+            EVENTS.DRIVE_COMMENT_ADDED,
+            payload,
+            { id: userId },
+            { userId: file.ownerId }
+          );
+        }
+
+        // Notify users with whom the file is shared (USER shares only)
+        const shares = await prisma.fileShare.findMany({
+          where: { fileId, subjectType: 'USER' },
+          select: { subjectUserId: true }
+        });
+        const sharedUserIds = shares
+          .map(s => s.subjectUserId)
+          .filter(uid => uid && uid !== userId && uid !== file.ownerId);
+
+        for (const sharedUserId of sharedUserIds) {
+          await notificationGateway.emit(
+            EVENTS.DRIVE_COMMENT_ADDED,
+            payload,
+            { id: userId },
+            { userId: sharedUserId }
+          );
+        }
+      }
+    } catch (notificationError) {
+      console.error('[fileCommentService] Failed to emit comment notification:', notificationError);
+    }
 
     return {
       success: true,

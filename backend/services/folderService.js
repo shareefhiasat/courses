@@ -14,6 +14,9 @@ import { USER_NAME_SELECT_WITH_ID } from '../utils/userNameFields.js';
 import { Prisma } from '@prisma/client';
 import { getDatabaseUserId } from '../utils/database/userResolver.js';
 import { LMS_ROLES } from './keycloakAdminService.js';
+import notificationGateway from './notifications/index.js';
+import { EVENTS } from './notifications/constants.js';
+import { buildNotificationNameVars } from '../utils/localizedUserName.js';
 
 
 const ok = (payload) => ({ success: true, payload, timestamp: Date.now() });
@@ -253,6 +256,27 @@ export async function createFolder(keycloakUser, { name, nameAr, color, parentId
     const folder = await prisma.folder.create({
       data: { name, nameAr: nameAr || null, color: color || null, parentId, ownerId: userId, path, isPrivate },
     });
+
+    // Emit notification for folder creation
+    try {
+      const creator = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true }
+      });
+      await notificationGateway.emit(
+        EVENTS.DRIVE_FOLDER_CREATED,
+        {
+          ...buildNotificationNameVars(creator, 'Unknown User'),
+          folderName: name,
+          folderNameAr: nameAr || name,
+        },
+        { id: userId },
+        { userId }
+      );
+    } catch (notificationError) {
+      console.error('[folderService.createFolder] Failed to emit notification:', notificationError);
+    }
+
     return ok(folder);
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
@@ -385,6 +409,26 @@ export async function softDeleteFolder(folderId, actorUserId, actorRoles = []) {
       return tx.folder.findUnique({ where: { id: folderId } });
     });
 
+    // Emit notification for folder deletion
+    try {
+      const deleter = await prisma.user.findUnique({
+        where: { id: actorUserId },
+        select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true }
+      });
+      await notificationGateway.emit(
+        EVENTS.DRIVE_FOLDER_DELETED,
+        {
+          ...buildNotificationNameVars(deleter, 'Unknown User'),
+          folderName: folder.name,
+          folderNameAr: folder.nameAr || folder.name,
+        },
+        { id: actorUserId },
+        { userId: actorUserId }
+      );
+    } catch (notificationError) {
+      console.error('[folderService.softDeleteFolder] Failed to emit notification:', notificationError);
+    }
+
     return ok(result);
   } catch (error) {
     console.error('[folderService.softDeleteFolder]', error);
@@ -430,6 +474,26 @@ export async function restoreFolder(folderId, actorUserId) {
         )
       `;
     });
+
+    // Emit notification for folder restoration
+    try {
+      const restorer = await prisma.user.findUnique({
+        where: { id: actorUserId },
+        select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true }
+      });
+      await notificationGateway.emit(
+        EVENTS.DRIVE_FOLDER_RESTORED,
+        {
+          ...buildNotificationNameVars(restorer, 'Unknown User'),
+          folderName: folder.name,
+          folderNameAr: folder.nameAr || folder.name,
+        },
+        { id: actorUserId },
+        { userId: actorUserId }
+      );
+    } catch (notificationError) {
+      console.error('[folderService.restoreFolder] Failed to emit notification:', notificationError);
+    }
 
     return ok({ folderId });
   } catch (error) {
