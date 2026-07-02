@@ -12,7 +12,7 @@
  */
 
 import prisma from '../db/prismaClient.js';
-import { USER_NAME_SELECT_WITH_ROLE } from '../utils/userNameFields.js';
+import { USER_NAME_SELECT_WITH_ROLE, normalizeProfileImageUrl } from '../utils/userNameFields.js';
 import { v4 as uuidv4 } from 'uuid';
 import {
   generatePresignedPutUrl,
@@ -74,7 +74,29 @@ export async function listVersions(fileId, actorUserId, actorRoles = []) {
             ],
           },
         });
-        if (!share) return err('ACCESS_DENIED', 'Access denied');
+
+        if (!share) {
+          // Fallback: check if file is part of a workflow document
+          // (covers workflow files created before auto-share was added)
+          const workflowDoc = await prisma.workflowDocument.findFirst({
+            where: { fileId },
+            select: { submitterId: true, currentAssigneeId: true },
+          });
+
+          if (workflowDoc) {
+            const isSubmitter = workflowDoc.submitterId === actorUserId;
+            const isAssignee = workflowDoc.currentAssigneeId === actorUserId;
+            const isHRorAdmin = userRoles.some(r =>
+              r === 'hr' || r === 'admin' || r === 'super_admin'
+            );
+
+            if (!isSubmitter && !isAssignee && !isHRorAdmin) {
+              return err('ACCESS_DENIED', 'Access denied');
+            }
+          } else {
+            return err('ACCESS_DENIED', 'Access denied');
+          }
+        }
       }
     }
 
@@ -85,7 +107,7 @@ export async function listVersions(fileId, actorUserId, actorRoles = []) {
       },
       orderBy: { versionNumber: 'desc' },
     });
-    return ok(versions);
+    return ok(versions.map(v => ({ ...v, uploadedBy: normalizeProfileImageUrl(v.uploadedBy) })));
   } catch (error) {
     console.error('[fileVersionService.listVersions]', error);
     return err('LIST_VERSIONS_FAILED', error.message);

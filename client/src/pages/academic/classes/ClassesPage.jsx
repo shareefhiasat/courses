@@ -50,7 +50,7 @@ const ClassesPage = () => {
   const [activities, setActivities] = useState([]);
   
   // Form state
-  const [classForm, setClassForm] = useState({ id: '', nameEn: '', nameAr: '', code: '', term: '', year: '', locationEn: '', locationAr: '', descriptionEn: '', descriptionAr: '', ownerEmail: '', instructorId: '', substituteInstructorId: '', classroomId: '', subjectId: '', programId: '', classId: '', maxCapacity: '' });
+  const [classForm, setClassForm] = useState({ id: '', nameEn: '', nameAr: '', code: '', term: '', year: '', startDate: '', endDate: '', locationEn: '', locationAr: '', descriptionEn: '', descriptionAr: '', ownerEmail: '', instructorId: '', substituteInstructorId: '', classroomId: '', subjectId: '', programId: '', classId: '', maxCapacity: '' });
   const [editingClass, setEditingClass] = useState(null);
   const { deleteModal, deleteClass: deleteClassModal, handleDeleteConfirm, hideDeleteModal } = useDeleteModal(t);
 
@@ -379,6 +379,8 @@ const ClassesPage = () => {
     classData.isActive = classData.isActive !== false; // Default to true
     if (!classData.descriptionEn) classData.descriptionEn = null;
     if (!classData.descriptionAr) classData.descriptionAr = null;
+    if (!classData.startDate) classData.startDate = null;
+    if (!classData.endDate) classData.endDate = null;
 
     // Remove id field when updating to prevent creating new records
     if (editingClass) {
@@ -417,7 +419,7 @@ const ClassesPage = () => {
         } catch (e) { warn('Failed to log activity:', e); }
         await loadData();
         setEditingClass(null);
-        setClassForm({ id: '', nameEn: '', nameAr: '', code: '', term: '', year: '', locationEn: '', locationAr: '', descriptionEn: '', descriptionAr: '', ownerEmail: '', instructorId: '', substituteInstructorId: '', classroomId: '', subjectId: '', programId: '', classId: '', maxCapacity: '' });
+        setClassForm({ id: '', nameEn: '', nameAr: '', code: '', term: '', year: '', startDate: '', endDate: '', locationEn: '', locationAr: '', descriptionEn: '', descriptionAr: '', ownerEmail: '', instructorId: '', substituteInstructorId: '', classroomId: '', subjectId: '', programId: '', classId: '', maxCapacity: '' });
         // Clear refs
         if (nameRef.current) nameRef.current.value = '';
         if (nameArRef.current) nameArRef.current.value = '';
@@ -475,6 +477,8 @@ const ClassesPage = () => {
       code: row.code || '',
       term: term,
       year: year,
+      startDate: row.startDate ? new Date(row.startDate).toISOString().split('T')[0] : '',
+      endDate: row.endDate ? new Date(row.endDate).toISOString().split('T')[0] : '',
       locationEn: row.locationEn || '',
       locationAr: row.locationAr || '',
       descriptionEn: row.descriptionEn || '',
@@ -576,7 +580,7 @@ const ClassesPage = () => {
 
 const handleCancelEdit = useCallback(() => {
     setEditingClass(null);
-    setClassForm({ id: '', nameEn: '', nameAr: '', code: '', term: '', year: '', locationEn: '', locationAr: '', descriptionEn: '', descriptionAr: '', ownerEmail: '', instructorId: '', substituteInstructorId: '', classroomId: '', subjectId: '', programId: '', classId: '', maxCapacity: '' });
+    setClassForm({ id: '', nameEn: '', nameAr: '', code: '', term: '', year: '', startDate: '', endDate: '', locationEn: '', locationAr: '', descriptionEn: '', descriptionAr: '', ownerEmail: '', instructorId: '', substituteInstructorId: '', classroomId: '', subjectId: '', programId: '', classId: '', maxCapacity: '' });
     // Clear refs
     if (nameRef.current) nameRef.current.value = '';
     if (nameArRef.current) nameArRef.current.value = '';
@@ -741,6 +745,41 @@ const handleCancelEdit = useCallback(() => {
         return (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
             {year}
+          </span>
+        );
+      }
+    },
+    {
+      field: 'startDate',
+      headerName: t('class_start_date') || 'Start Date',
+      width: 130,
+      valueGetter: (params) => {
+        const val = params.value || params.row?.startDate;
+        if (!val) return null;
+        return new Date(val).toLocaleDateString();
+      },
+      renderCell: (params) => {
+        const val = params.row?.startDate;
+        if (!val) return '—';
+        return new Date(val).toLocaleDateString();
+      }
+    },
+    {
+      field: 'endDate',
+      headerName: t('class_end_date') || 'End Date',
+      width: 130,
+      valueGetter: (params) => {
+        const val = params.value || params.row?.endDate;
+        if (!val) return null;
+        return new Date(val).toLocaleDateString();
+      },
+      renderCell: (params) => {
+        const val = params.row?.endDate;
+        if (!val) return '—';
+        const isEnded = new Date(val) < new Date();
+        return (
+          <span style={{ color: isEnded ? 'var(--color-danger, #dc2626)' : undefined }}>
+            {new Date(val).toLocaleDateString()}
           </span>
         );
       }
@@ -1064,6 +1103,22 @@ const handleCancelEdit = useCallback(() => {
           </div>
         </div>
 
+        {/* Class Date Range */}
+        <div className="form-row compact-cols">
+          <Input
+            type="date"
+            placeholder={t('class_start_date') + ' (' + t('optional') + ')'}
+            value={classForm.startDate || ''}
+            onChange={e => setClassForm({ ...classForm, startDate: e.target.value })}
+          />
+          <Input
+            type="date"
+            placeholder={t('class_end_date') + ' (' + t('optional') + ')'}
+            value={classForm.endDate || ''}
+            onChange={e => setClassForm({ ...classForm, endDate: e.target.value })}
+          />
+        </div>
+
         {/* Form Actions */}
         <div className="form-actions">
           <Button type="submit" variant="primary" loading={loading}>
@@ -1219,7 +1274,7 @@ const handleCancelEdit = useCallback(() => {
       <div data-tour="classes-grid" style={{ marginTop: '1rem' }}>
         <AdvancedDataGrid
           gridId="classes"
-          key={classes.length} // Force re-render when classes data changes
+          key={classes.map(c => `${c.id || c.docId}-${c.updatedAt || ''}`).join('|')} // Force re-render when class data changes
           rows={filteredClasses}
           getRowId={(row) => row.docId || row.id}
           columns={gridColumns}

@@ -400,12 +400,11 @@ export function useDriveFiles(activeSpace = 'my-drive', folderId = null) {
     }
   }, []);
 
-  const createFolder = useCallback(async (name, parentId = null) => {
+  const createFolder = useCallback(async (name, parentId = null, nameAr = undefined, color = undefined) => {
     try {
-      const response = await apiService.post(`${API_BASE}/folders`, {
-        name,
-        parentId,
-      });
+      const body = { name, nameAr, parentId };
+      if (color) body.color = color;
+      const response = await apiService.post(`${API_BASE}/folders`, body);
       if (response.success) {
         refreshFiles();
         return { success: true, payload: response.data?.payload };
@@ -417,12 +416,13 @@ export function useDriveFiles(activeSpace = 'my-drive', folderId = null) {
     }
   }, [refreshFiles]);
 
-  const renameFolder = useCallback(async (folderId, newName) => {
-    console.log('[useDriveFiles] renameFolder called:', { folderId, newName });
+  const renameFolder = useCallback(async (folderId, newName, newNameAr = undefined, newColor = undefined) => {
+    console.log('[useDriveFiles] renameFolder called:', { folderId, newName, newNameAr, newColor });
     try {
-      const response = await apiService.patch(`${API_BASE}/folders/${folderId}`, {
-        name: newName,
-      });
+      const body = { name: newName };
+      if (newNameAr !== undefined) body.nameAr = newNameAr;
+      if (newColor !== undefined) body.color = newColor;
+      const response = await apiService.patch(`${API_BASE}/folders/${folderId}`, body);
       console.log('[useDriveFiles] renameFolder API response:', response);
       if (response.success) {
         renameInState(folderId, newName, 'folder');

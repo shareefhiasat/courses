@@ -25,24 +25,20 @@ const AttendanceStatusCell = ({ status, type = 'regular', t, lang }) => {
 
     const getIcon = (s) => {
       switch(statusUpper) {
-        case 'PRESENT':
+        case 'ATTENDANCE_PRESENT':
         case 'STANDUP_PRESENT':
           return <CheckSmallIcon style={{ width: '16px', height: '16px', stroke: color }} />;
-        case 'LATE':
+        case 'ATTENDANCE_LATE':
         case 'STANDUP_LATE':
           return <ClockSmallIcon style={{ width: '16px', height: '16px', stroke: color }} />;
-        case 'ABSENT':
-        case 'ABSENT_NO_EXCUSE':
+        case 'ATTENDANCE_ABSENT':
         case 'STANDUP_ABSENT':
           return <XSmallIcon style={{ width: '16px', height: '16px', stroke: color }} />;
-        case 'ABSENT_WITH_EXCUSE':
-        case 'EXCUSED':
-          return <XSmallIcon style={{ width: '16px', height: '16px', stroke: color }} />;
-        case 'EXCUSED_LEAVE':
+        case 'ATTENDANCE_LEAVE':
           return <HeartIcon style={{ width: '16px', height: '16px', stroke: color }} />;
         case 'STANDUP_CLINIC':
           return <HeartIcon style={{ width: '16px', height: '16px', stroke: color }} />;
-        case 'HUMAN_CASE':
+        case 'ATTENDANCE_HUMAN_CASE':
           return <HeartIcon style={{ width: '16px', height: '16px', stroke: color }} />;
         default:
           return <CircleIcon style={{ width: '16px', height: '16px', stroke: color }} />;

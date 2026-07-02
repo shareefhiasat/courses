@@ -1,13 +1,12 @@
 import { info, error, warn, debug } from '../services/utils/logger.js';
 
-// Attendance Status Types - Updated to match new rules
+// Attendance Status Types - canonical codes prefixed with ATTENDANCE_
 export const ATTENDANCE_STATUS = {
-  PRESENT: 'PRESENT',
-  ABSENT_NO_EXCUSE: 'ABSENT_NO_EXCUSE',
-  LATE: 'LATE',
-  ABSENT_WITH_EXCUSE: 'ABSENT_WITH_EXCUSE',
-  EXCUSED_LEAVE: 'EXCUSED_LEAVE',
-  HUMAN_CASE: 'HUMAN_CASE',
+  PRESENT: 'ATTENDANCE_PRESENT',
+  ABSENT_NO_EXCUSE: 'ATTENDANCE_ABSENT',
+  LATE: 'ATTENDANCE_LATE',
+  EXCUSED_LEAVE: 'ATTENDANCE_LEAVE',
+  HUMAN_CASE: 'ATTENDANCE_HUMAN_CASE',
   // Standup status types (matching database codes)
   STANDUP_PRESENT: 'STANDUP_PRESENT',
   STANDUP_LATE: 'STANDUP_LATE',
@@ -17,28 +16,31 @@ export const ATTENDANCE_STATUS = {
 
 // Maps DB status type IDs to canonical status codes (matches attendance_status_types table)
 export const STATUS_ID_MAP = {
-  1: 'PRESENT',
-  2: 'ABSENT',
-  3: 'LATE',
-  4: 'EXCUSED',
-  5: 'SICK_LEAVE',
-  6: 'EARLY_DEPARTURE',
+  1: 'ATTENDANCE_PRESENT',
+  2: 'ATTENDANCE_ABSENT',
+  3: 'ATTENDANCE_LATE',
+  4: 'ATTENDANCE_LEAVE',
+  5: 'ATTENDANCE_LEAVE',   // SICK_LEAVE merged into ATTENDANCE_LEAVE
+  6: 'ATTENDANCE_HUMAN_CASE', // EARLY_DEPARTURE merged into ATTENDANCE_HUMAN_CASE
+  17: 'ATTENDANCE_HUMAN_CASE', // newly created
   7: 'STANDUP_PRESENT',
   8: 'STANDUP_LATE',
   9: 'STANDUP_ABSENT',
-  10: 'STANDUP_CLINIC',
-  11: 'ABSENT_WITH_EXCUSE'
+  10: 'STANDUP_CLINIC'
 };
 
-// Reverse mapping: DB status codes → frontend canonical status codes
-// The DB stores short codes (ABSENT, EXCUSED, EARLY_DEPARTURE) but the frontend
-// uses more specific codes (ABSENT_NO_EXCUSE, EXCUSED_LEAVE, HUMAN_CASE).
-// This mapping normalizes DB codes back to frontend codes for display.
+// Old DB codes → new canonical codes (for any stale/cached data)
 export const DB_CODE_TO_FRONTEND_STATUS = {
-  'ABSENT': 'ABSENT_NO_EXCUSE',
-  'EXCUSED': 'EXCUSED_LEAVE',
-  'EARLY_DEPARTURE': 'HUMAN_CASE',
-  'SICK_LEAVE': 'EXCUSED_LEAVE'
+  'PRESENT': 'ATTENDANCE_PRESENT',
+  'ABSENT_NO_EXCUSE': 'ATTENDANCE_ABSENT',
+  'ABSENT': 'ATTENDANCE_ABSENT',
+  'LATE': 'ATTENDANCE_LATE',
+  'EXCUSED_LEAVE': 'ATTENDANCE_LEAVE',
+  'EXCUSED': 'ATTENDANCE_LEAVE',
+  'ABSENT_WITH_EXCUSE': 'ATTENDANCE_LEAVE',
+  'HUMAN_CASE': 'ATTENDANCE_HUMAN_CASE',
+  'SICK_LEAVE': 'ATTENDANCE_LEAVE',
+  'EARLY_DEPARTURE': 'ATTENDANCE_HUMAN_CASE'
 };
 
 // Extract a status code string from a record that may have statusId, status as object, or status as string
@@ -78,7 +80,6 @@ export const ATTENDANCE_DISPLAY_NAMES = {
   [ATTENDANCE_STATUS.PRESENT]: 'Present',
   [ATTENDANCE_STATUS.ABSENT_NO_EXCUSE]: 'Absent',
   [ATTENDANCE_STATUS.LATE]: 'Late',
-  [ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE]: 'Absent excused',
   [ATTENDANCE_STATUS.EXCUSED_LEAVE]: 'Excused Leave',
   [ATTENDANCE_STATUS.HUMAN_CASE]: 'Human Case',
   // Standup types (matching database codes)
@@ -93,7 +94,6 @@ export const ATTENDANCE_STATUS_LABELS = {
   [ATTENDANCE_STATUS.PRESENT]: 'Present',
   [ATTENDANCE_STATUS.ABSENT_NO_EXCUSE]: 'Absent',
   [ATTENDANCE_STATUS.LATE]: 'Late',
-  [ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE]: 'Absent excused',
   [ATTENDANCE_STATUS.EXCUSED_LEAVE]: 'Excused Leave',
   [ATTENDANCE_STATUS.HUMAN_CASE]: 'Human Case',
   // Standup types (matching database codes)
@@ -108,7 +108,6 @@ export const ATTENDANCE_COLORS = {
   [ATTENDANCE_STATUS.PRESENT]: '#10b981', // Green
   [ATTENDANCE_STATUS.ABSENT_NO_EXCUSE]: '#ef4444', // Red
   [ATTENDANCE_STATUS.LATE]: '#f59e0b', // Yellow
-  [ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE]: '#ef4444', // Red (same as ABSENT_NO_EXCUSE)
   [ATTENDANCE_STATUS.EXCUSED_LEAVE]: '#ec4899', // Purple
   [ATTENDANCE_STATUS.HUMAN_CASE]: '#8b5cf6', // Purple (Human Case)
   // Standup types (matching database codes)
@@ -123,7 +122,6 @@ export const ATTENDANCE_ICONS = {
   [ATTENDANCE_STATUS.PRESENT]: 'CheckCircle',
   [ATTENDANCE_STATUS.ABSENT_NO_EXCUSE]: 'XCircle',
   [ATTENDANCE_STATUS.LATE]: 'Clock',
-  [ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE]: 'XCircle',
   [ATTENDANCE_STATUS.EXCUSED_LEAVE]: 'Heart',
   [ATTENDANCE_STATUS.HUMAN_CASE]: 'Heart',
   // Standup types (matching database codes)
@@ -155,14 +153,13 @@ export const ATTENDANCE_HIGHLIGHT_COLORS = {
   RED: '#fecaca',    // Light red background
 };
 
-// Attendance Types (for components that expect it) - Updated to match new status constants
+// Attendance Types (for components that expect it)
 export const ATTENDANCE_TYPES = {
-  PRESENT: 'PRESENT',
-  ABSENT_NO_EXCUSE: 'ABSENT_NO_EXCUSE',
-  LATE: 'LATE',
-  ABSENT_WITH_EXCUSE: 'ABSENT_WITH_EXCUSE',
-  EXCUSED_LEAVE: 'EXCUSED_LEAVE',
-  HUMAN_CASE: 'HUMAN_CASE'
+  PRESENT: 'ATTENDANCE_PRESENT',
+  ABSENT_NO_EXCUSE: 'ATTENDANCE_ABSENT',
+  LATE: 'ATTENDANCE_LATE',
+  EXCUSED_LEAVE: 'ATTENDANCE_LEAVE',
+  HUMAN_CASE: 'ATTENDANCE_HUMAN_CASE'
 };
 
 // Standup Attendance Types (for components that expect it) - matching database codes
@@ -175,18 +172,25 @@ export const STANDUP_ATTENDANCE_TYPES = {
 
 // Normalize status values to canonical keys (case-insensitive + alias mapping)
 const STATUS_ALIASES = {
-  'ABSENT': 'ABSENT_NO_EXCUSE',
-  'ABSENT_NO_EXCUSE': 'ABSENT_NO_EXCUSE',
-  'ABSENT_WITH_EXCUSE': 'ABSENT_WITH_EXCUSE',
-  'EXCUSED': 'EXCUSED_LEAVE',
-  'EXCUSED_LEAVE': 'EXCUSED_LEAVE',
-  'HUMAN_CASE': 'HUMAN_CASE',
-  'HUMANITARIAN': 'HUMAN_CASE',
-  'CLINIC': 'HUMAN_CASE',
-  'SICK_LEAVE': 'EXCUSED_LEAVE',
-  'EARLY_DEPARTURE': 'HUMAN_CASE',
-  'PRESENT': 'PRESENT',
-  'LATE': 'LATE',
+  'ATTENDANCE_PRESENT': 'ATTENDANCE_PRESENT',
+  'ATTENDANCE_ABSENT': 'ATTENDANCE_ABSENT',
+  'ATTENDANCE_LATE': 'ATTENDANCE_LATE',
+  'ATTENDANCE_LEAVE': 'ATTENDANCE_LEAVE',
+  'ATTENDANCE_HUMAN_CASE': 'ATTENDANCE_HUMAN_CASE',
+  // Legacy aliases
+  'PRESENT': 'ATTENDANCE_PRESENT',
+  'ABSENT_NO_EXCUSE': 'ATTENDANCE_ABSENT',
+  'ABSENT': 'ATTENDANCE_ABSENT',
+  'LATE': 'ATTENDANCE_LATE',
+  'EXCUSED_LEAVE': 'ATTENDANCE_LEAVE',
+  'EXCUSED': 'ATTENDANCE_LEAVE',
+  'ABSENT_WITH_EXCUSE': 'ATTENDANCE_LEAVE',
+  'SICK_LEAVE': 'ATTENDANCE_LEAVE',
+  'HUMAN_CASE': 'ATTENDANCE_HUMAN_CASE',
+  'HUMANITARIAN': 'ATTENDANCE_HUMAN_CASE',
+  'CLINIC': 'ATTENDANCE_HUMAN_CASE',
+  'EARLY_DEPARTURE': 'ATTENDANCE_HUMAN_CASE',
+  // Standup types
   'STANDUP_PRESENT': 'STANDUP_PRESENT',
   'STANDUP_LATE': 'STANDUP_LATE',
   'STANDUP_ABSENT': 'STANDUP_ABSENT',
@@ -234,7 +238,6 @@ export const getLocalizedAttendanceLabel = (status, lang = 'en') => {
       [ATTENDANCE_STATUS.PRESENT]: 'Present',
       [ATTENDANCE_STATUS.ABSENT_NO_EXCUSE]: 'Absent',
       [ATTENDANCE_STATUS.LATE]: 'Late',
-      [ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE]: 'Absent excused',
       [ATTENDANCE_STATUS.EXCUSED_LEAVE]: 'Excused Leave',
       [ATTENDANCE_STATUS.HUMAN_CASE]: 'Human Case',
       // Standup types (matching database codes)
@@ -247,7 +250,6 @@ export const getLocalizedAttendanceLabel = (status, lang = 'en') => {
       [ATTENDANCE_STATUS.PRESENT]: 'حاضر',
       [ATTENDANCE_STATUS.ABSENT_NO_EXCUSE]: 'غائب',
       [ATTENDANCE_STATUS.LATE]: 'متأخر',
-      [ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE]: 'غائب بعذر',
       [ATTENDANCE_STATUS.EXCUSED_LEAVE]: 'إجازة مرضية',
       [ATTENDANCE_STATUS.HUMAN_CASE]: 'حالة إنسانية',
       // Standup types (matching database codes)

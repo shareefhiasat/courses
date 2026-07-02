@@ -63,7 +63,7 @@ export function toQatarTime(date) {
  * @param {string} formatString - date-fns format string (default: 'dd/MM/yyyy, HH:mm')
  * @returns {string} Formatted date string
  */
-export function formatQatarDate(date, formatString = 'dd/MM/yyyy, HH:mm') {
+export function formatQatarDate(date, formatString = 'dd/MM/yyyy, h:mm a') {
   if (!date) return 'N/A';
   const qatarDate = toQatarTime(date);
   if (!qatarDate) return 'N/A';

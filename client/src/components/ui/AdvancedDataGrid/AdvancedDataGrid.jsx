@@ -21,6 +21,18 @@ import { info, error, warn, debug } from '@services/utils/logger.js';/**
  */
 const COLUMN_VIS_STORAGE_PREFIX = 'lms-grid-col-vis-';
 
+// Helper: extract plain text from a React element tree (for export fallback)
+function extractTextFromElement(element) {
+  if (element == null || element === false || element === true) return '';
+  if (typeof element === 'string') return element;
+  if (typeof element === 'number') return String(element);
+  if (Array.isArray(element)) return element.map(extractTextFromElement).filter(Boolean).join(' ');
+  if (typeof element === 'object' && element.props) {
+    return extractTextFromElement(element.props.children);
+  }
+  return '';
+}
+
 const loadColumnVisibility = (gridId) => {
   if (!gridId) return {};
   try {
@@ -245,6 +257,17 @@ const AdvancedDataGrid = ({
       }
       if (typeof col.valueFormatter === 'function') {
         wrapped.valueFormatter = (params) => col.valueFormatter(normalizeParams(params, col.field));
+      } else if (typeof col.renderCell === 'function' && col.field !== 'actions' && col.field !== checkboxField) {
+        // Auto-generate valueFormatter from renderCell so MUI GridToolbar CSV export works
+        wrapped.valueFormatter = (params) => {
+          try {
+            const element = col.renderCell(normalizeParams(params, col.field));
+            const text = extractTextFromElement(element);
+            return text || (params.value == null ? '' : String(params.value));
+          } catch {
+            return params.value == null ? '' : String(params.value);
+          }
+        };
       }
       return wrapped;
     });
@@ -260,10 +283,16 @@ const AdvancedDataGrid = ({
     };
   }, [lang, t]);
 
-  // Export fields (exclude internal/actions columns)
+  // Export fields (exclude internal/actions/non-exportable columns)
   const exportFields = useMemo(() => 
     safeColumns
-      .filter(col => col.field !== 'docId' && col.field !== 'id' && col.field !== '__rid' && col.field !== 'actions')
+      .filter(col => 
+        col.field !== 'docId' && 
+        col.field !== 'id' && 
+        col.field !== '__rid' && 
+        col.field !== 'actions' &&
+        col.exportable !== false
+      )
       .map(col => col.field),
     [safeColumns]
   );
@@ -283,7 +312,7 @@ const AdvancedDataGrid = ({
   const handleExternalExport = () => {
     if (!safeRows || safeRows.length === 0) return;
 
-    // Filter out Firebase ID columns and hidden columns
+    // Filter out Firebase ID columns, hidden columns, and non-exportable columns
     const visibleColumns = safeColumns.filter(col => 
       !col.hide && 
       col.field && 
@@ -291,7 +320,8 @@ const AdvancedDataGrid = ({
       col.field !== 'docId' && 
       col.field !== 'id' && 
       col.field !== '__rid' &&
-      col.field !== 'actions' // Also exclude actions column from export
+      col.field !== 'actions' &&
+      col.exportable !== false // Exclude columns marked as non-exportable
     );
     if (!visibleColumns.length) return;
 
@@ -300,14 +330,27 @@ const AdvancedDataGrid = ({
       const values = visibleColumns.map(col => {
         let value;
         
-        // Use valueFormatter if available for proper formatting
+        // 1. Use valueFormatter if available for proper formatting
         if (typeof col.valueFormatter === 'function') {
           try {
             value = col.valueFormatter({ value: row[col.field], row, field: col.field });
           } catch (e) {
             value = row[col.field];
           }
-        } else {
+        }
+        // 2. Try renderCell and extract text from the React element
+        else if (typeof col.renderCell === 'function') {
+          try {
+            const element = col.renderCell({ row, value: row[col.field], field: col.field });
+            value = extractTextFromElement(element);
+            // If renderCell produced empty text, fall back to raw value
+            if (!value && row[col.field] != null) value = row[col.field];
+          } catch (e) {
+            value = row[col.field];
+          }
+        }
+        // 3. Fall back to raw value
+        else {
           value = row[col.field];
         }
         

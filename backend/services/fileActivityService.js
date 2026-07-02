@@ -6,7 +6,7 @@
  */
 
 import prisma from '../db/prismaClient.js';
-import { USER_NAME_SELECT_WITH_ROLE } from '../utils/userNameFields.js';
+import { USER_NAME_SELECT_WITH_ROLE, normalizeProfileImageUrl } from '../utils/userNameFields.js';
 
 
 /**
@@ -35,7 +35,7 @@ export const logFileActivity = async ({ fileId, userId, action, metadata = {} })
 
     return {
       success: true,
-      data: activity,
+      data: { ...activity, user: normalizeProfileImageUrl(activity.user) },
       timestamp: Date.now()
     };
   } catch (error) {
@@ -87,7 +87,7 @@ export const getFileActivities = async ({ fileId, userId, limit = 50 }) => {
 
     return {
       success: true,
-      data: activities,
+      data: activities.map(a => ({ ...a, user: normalizeProfileImageUrl(a.user) })),
       timestamp: Date.now()
     };
   } catch (error) {

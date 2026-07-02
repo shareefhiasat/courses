@@ -27,6 +27,7 @@ import { byRole } from './notifications/recipients.js';
 import { v4 as uuidv4 } from 'uuid';
 import { buildTaxonomyFields, resolveApprovalFlow } from '../utils/workflowTaxonomy.js';
 import { applyExcuseApprovalSideEffects } from './workflowExcuseApprovalService.js';
+import { createShare } from './fileShareService.js';
 
 
 /**
@@ -46,6 +47,75 @@ async function getAssigneeForApprovalFlow(approvalFlow) {
   }
 
   return null;
+}
+
+/**
+ * Map an approval flow to the first reviewer role.
+ * Returns the Keycloak role code (lowercase) that should receive the share.
+ */
+function getRoleForApprovalFlow(approvalFlow) {
+  switch (approvalFlow) {
+    case 'ADMIN_ONLY':
+    case 'ADMIN_THEN_HR':
+      return 'admin';
+    case 'HR_ONLY':
+    case 'HR_THEN_ADMIN':
+    case 'INSTRUCTOR_THEN_HR':
+    default:
+      return 'hr';
+  }
+}
+
+/**
+ * Auto-share a workflow file with the approval-flow role (default) or specific users (override).
+ * Creates FileShare records with DOWNLOAD permission so the file appears in "Shared with me".
+ * Best-effort: logs warnings on failure, does not block workflow creation.
+ *
+ * @param {object} params
+ * @param {string} params.fileId           - The File record ID to share
+ * @param {number} params.submitterId      - The submitter's DB user ID (acts as sharer)
+ * @param {string} params.approvalFlow     - The approval flow value
+ * @param {number[]} [params.specificUserIds] - Optional override: share with these users instead of role
+ */
+async function shareWorkflowFile({ fileId, submitterId, approvalFlow, specificUserIds }) {
+  if (!fileId) {
+    console.warn('[shareWorkflowFile] No fileId provided, skipping auto-share');
+    return;
+  }
+
+  const actor = { userId: submitterId, roles: [] };
+  const permission = 'DOWNLOAD';
+
+  try {
+    if (specificUserIds && specificUserIds.length > 0) {
+      // Override: share with specific users
+      for (const userId of specificUserIds) {
+        const result = await createShare({
+          fileId,
+          subjectType: 'USER',
+          subjectUserId: userId,
+          permission,
+        }, actor);
+        if (!result.success) {
+          console.warn(`[shareWorkflowFile] Failed to share with user ${userId}:`, result.error);
+        }
+      }
+    } else {
+      // Default: share with the approval flow's target role
+      const role = getRoleForApprovalFlow(approvalFlow);
+      const result = await createShare({
+        fileId,
+        subjectType: 'ROLE',
+        subjectRole: role,
+        permission,
+      }, actor);
+      if (!result.success) {
+        console.warn(`[shareWorkflowFile] Failed to share with role ${role}:`, result.error);
+      }
+    }
+  } catch (err) {
+    console.error('[shareWorkflowFile] Auto-share failed (non-blocking):', err);
+  }
 }
 
 /** @deprecated use getAssigneeForApprovalFlow */
@@ -81,7 +151,8 @@ export async function createWorkflowDocumentWithUpload(data) {
       program,
       subject,
       createdBy,
-      updatedBy
+      updatedBy,
+      specificUserIds
     } = data;
 
     const taxonomy = buildTaxonomyFields({
@@ -214,6 +285,14 @@ export async function createWorkflowDocumentWithUpload(data) {
       });
 
       return { document, file };
+    });
+
+    // Auto-share the workflow file with the approval-flow role or specific users
+    await shareWorkflowFile({
+      fileId: result.file.id,
+      submitterId,
+      approvalFlow: taxonomy.approvalFlow,
+      specificUserIds,
     });
 
     return { 
@@ -885,6 +964,7 @@ export async function createCustomWorkflowDocument(data) {
       subject,
       instructorId,
       date,
+      specificUserIds,
     } = data;
 
     const taxonomy = buildTaxonomyFields({
@@ -1027,6 +1107,17 @@ export async function createCustomWorkflowDocument(data) {
       title: document.title,
       status: document.status
     });
+
+    // Auto-share the workflow file with the approval-flow role or specific users
+    const sharedFileId = originalFileId || fileId;
+    if (sharedFileId) {
+      await shareWorkflowFile({
+        fileId: sharedFileId,
+        submitterId,
+        approvalFlow: taxonomy.approvalFlow,
+        specificUserIds,
+      });
+    }
 
     return {
       success: true,

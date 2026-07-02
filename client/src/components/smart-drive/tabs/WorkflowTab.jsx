@@ -10,6 +10,7 @@ import { WORKFLOW_STATUS_CONFIG } from '@constants/driveConstants';
 import { getWorkflowDisplayLabel, CATEGORY_BY_VALUE } from '@constants/workflowConfig';
 import { ROLE_STRINGS, getWorkflowRole, getUserRoleFromObject } from '@utils/userUtils';
 import { getLocalizedUserName } from '@utils/localizedUserName';
+import { DriveUserAvatar } from '@ui/DriveTimeline';
 import Modal from '@ui/Modal/Modal';
 import Select from '@ui/Select/Select';
 import Tabs from '@ui/Tabs/Tabs';
@@ -1034,7 +1035,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: 'var(--font-size-sm)', color: 'var(--text-muted, #6b7280)' }}>
                           <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-                            {getIcon('ui', 'user', 14, 'var(--text-muted, #6b7280)')}
+                            {workflow.submitter && <DriveUserAvatar user={workflow.submitter} size="xs" showRole lang={lang} />}
                             {getLocalizedUserName(workflow.submitter, lang, '\u2014')}
                             {(() => { const role = getUserRoleFromObject(workflow.submitter); return role && (
                               <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginInlineStart: '0.25rem' }} title={t(`roles.${role}`, role)}>
@@ -1293,8 +1294,8 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                   </span>
                   {workflow.currentAssignee && (
                     <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-muted, #6b7280)', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-                      {getIcon('ui', 'user', 14)}
-                      {t('drive.assignedTo')}: {workflow.currentAssignee.displayName || workflow.currentAssignee.email}
+                      <DriveUserAvatar user={workflow.currentAssignee} size="xs" lang={lang} />
+                      {t('drive.assignedTo')}: {getLocalizedUserName(workflow.currentAssignee, lang)}
                       {(() => { const role = getWorkflowRole(workflow); return role && (
                         <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginInlineStart: '0.25rem' }} title={t(`roles.${role}`, role)}>
                           {(() => { const icon = getUserRoleIcon(role); const color = getUserRoleColor(role); return icon ? React.cloneElement(icon, { color, size: 12 }) : null; })()}
@@ -1307,8 +1308,8 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                 {/* Third row: Initiator + Timestamp + Version */}
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: 'var(--font-size-sm)', color: 'var(--text-muted, #6b7280)' }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-                    {getIcon('ui', 'user', 14)}
-                    {workflow.submitter?.displayName || workflow.submitter?.email || '\u2014'}
+                    {workflow.submitter && <DriveUserAvatar user={workflow.submitter} size="xs" showRole lang={lang} />}
+                    {getLocalizedUserName(workflow.submitter, lang, '\u2014')}
                     {(() => { const role = getUserRoleFromObject(workflow.submitter); return role && (
                       <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginInlineStart: '0.25rem' }} title={t(`roles.${role}`, role)}>
                         {(() => { const icon = getUserRoleIcon(role); const color = getUserRoleColor(role); return icon ? React.cloneElement(icon, { color, size: 12 }) : null; })()}
@@ -1436,11 +1437,11 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
       <Modal
         isOpen={deleteModal.isOpen}
         onClose={() => setDeleteModal({ isOpen: false, workflowId: null })}
-        title={t('workflow.deleteWorkflow', 'Delete Workflow')}
+        title={t('workflow.deleteWorkflow')}
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <p style={{ margin: 0, color: 'var(--text, #374151)' }}>
-            {t('workflow.deleteWorkflowConfirm', 'Are you sure you want to hard delete this workflow document? This action cannot be undone.')}
+            {t('workflow.deleteWorkflowConfirm')}
           </p>
           <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
             <button
@@ -1456,7 +1457,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                 fontWeight: 500,
               }}
             >
-              {t('cancel', 'Cancel')}
+              {t('common.cancel')}
             </button>
             <button
               onClick={handleDeleteWorkflow}
@@ -1471,7 +1472,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                 fontWeight: 500,
               }}
             >
-              {t('delete', 'Delete')}
+              {t('common.delete')}
             </button>
           </div>
         </div>
@@ -1481,17 +1482,17 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
       <Modal
         isOpen={rejectModal.isOpen}
         onClose={() => setRejectModal({ isOpen: false, workflowId: null, reason: '' })}
-        title={t('workflow.rejectWorkflow', 'Reject Workflow')}
+        title={t('workflow.rejectWorkflow')}
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div>
             <label style={{ display: 'block', fontSize: 'var(--font-size-sm)', fontWeight: 500, color: 'var(--text, #374151)', marginBottom: '0.5rem' }}>
-              {t('workflow.rejectReason', 'Reason for rejection')}
+              {t('workflow.rejectReason')}
             </label>
             <textarea
               value={rejectModal.reason}
               onChange={(e) => setRejectModal({ ...rejectModal, reason: e.target.value })}
-              placeholder={t('workflow.rejectReasonPlaceholder', 'Please provide a reason for rejection...')}
+              placeholder={t('workflow.rejectReasonPlaceholder')}
               style={{
                 width: '100%',
                 minHeight: '100px',
@@ -1517,7 +1518,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                 fontWeight: 500,
               }}
             >
-              {t('cancel', 'Cancel')}
+              {t('common.cancel')}
             </button>
             <button
               onClick={handleRejectWorkflow}
@@ -1533,7 +1534,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                 fontWeight: 500,
               }}
             >
-              {t('drive.reject', 'Reject')}
+              {t('workflow.actions.reject')}
             </button>
           </div>
         </div>
@@ -1543,7 +1544,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
       <Modal
         isOpen={actionModal.isOpen}
         onClose={() => setActionModal({ isOpen: false, workflowId: null, action: null, comment: '', assignedUserId: null, assignedRole: null, assigneeType: ASSIGNEE_TYPES.USER })}
-        title={actionModal.action ? actionModal.action.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Workflow Action'}
+        title={actionModal.action ? t(`workflow.actions.${actionModal.action}`, actionModal.action.replace('_', ' ')) : t('workflow.actionModalTitle')}
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           {(actionModal.action === 'send_for_review' || actionModal.action === 'send_for_approval' || actionModal.action === 'submit') && (
@@ -1590,7 +1591,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
               {actionModal.assigneeType === 'role' && (
                 <div>
                   <Select
-                    label={t('drive.selectRole') || 'Select Role'}
+                    label={t('drive.selectRole')}
                     options={[
                       { value: ROLE_STRINGS.HR, label: t('roles.hr') },
                       { value: ROLE_STRINGS.ADMIN, label: t('roles.admin') },
@@ -1606,7 +1607,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
           
           <div>
             <label style={{ display: 'block', fontSize: 'var(--font-size-sm)', fontWeight: 500, color: 'var(--text, #374151)', marginBottom: '0.5rem' }}>
-              {actionModal.action === 'reject' ? 'Reason (required)' : 'Comment (optional)'}
+              {actionModal.action === 'reject' ? t('workflow.reasonRequired') : t('workflow.commentOptional')}
             </label>
             <textarea
               key={`comment-${actionModal.workflowId}-${actionModal.action}`}
@@ -1623,7 +1624,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                 console.log('[WorkflowTab] textarea onBlur:', actionModal.action, 'value:', e.target.value);
                 setActionModal({ ...actionModal, comment: e.target.value });
               }}
-              placeholder={actionModal.action === 'reject' ? 'Please provide a reason...' : 'Add a comment...'}
+              placeholder={actionModal.action === 'reject' ? t('workflow.reasonPlaceholder') : t('workflow.commentPlaceholder')}
               style={{
                 width: '100%',
                 minHeight: '100px',
@@ -1650,7 +1651,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                 fontWeight: 500,
               }}
             >
-              {t('cancel', 'Cancel')}
+              {t('common.cancel')}
             </button>
             <button
               onClick={handleWorkflowAction}
@@ -1675,7 +1676,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                 fontWeight: 500,
               }}
             >
-              {actionModal.action ? actionModal.action.replace('_', ' ').toUpperCase() : 'Confirm'}
+              {actionModal.action ? t(`workflow.actions.${actionModal.action}`, actionModal.action.replace('_', ' ')) : t('workflow.confirm')}
             </button>
           </div>
         </div>

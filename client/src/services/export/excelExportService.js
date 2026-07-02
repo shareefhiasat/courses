@@ -582,7 +582,6 @@ export const exportAttendanceViolationsReport = async (data, options = {}) => {
   // Filter for violation statuses - handle both string and object status formats
   const violationStatusCodes = [
     ATTENDANCE_STATUS.ABSENT_NO_EXCUSE,
-    ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE,
     ATTENDANCE_STATUS.EXCUSED_LEAVE,
     ATTENDANCE_STATUS.LATE,
     ATTENDANCE_STATUS.HUMAN_CASE
@@ -716,21 +715,18 @@ export const exportAttendanceViolationsReport = async (data, options = {}) => {
         let deduction = 0;
 
         // Map status code to attendance type and calculate deduction
-        if (statusCode === ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE) {
-          attendanceType = lang === 'ar' ? 'غياب معذور' : 'Absent excused';
-          deduction = DEDUCTION_RULES.absentWithExcuse;
-        } else if (statusCode === ATTENDANCE_STATUS.ABSENT_NO_EXCUSE) {
+        if (statusCode === ATTENDANCE_STATUS.ABSENT_NO_EXCUSE) {
           attendanceType = lang === 'ar' ? 'غياب بدون عذر' : 'Absent without excuse';
           deduction = DEDUCTION_RULES.absentNoExcuse;
+        } else if (statusCode === ATTENDANCE_STATUS.EXCUSED_LEAVE) {
+          attendanceType = lang === 'ar' ? 'إجازة' : 'Excused leave';
+          deduction = DEDUCTION_RULES.excusedLeave;
         } else if (statusCode === ATTENDANCE_STATUS.LATE) {
           attendanceType = lang === 'ar' ? 'تأخير' : 'Late';
           deduction = DEDUCTION_RULES.late;
         } else if (statusCode === ATTENDANCE_STATUS.HUMAN_CASE) {
           attendanceType = lang === 'ar' ? 'حالة إنسانية' : 'Human case';
           deduction = DEDUCTION_RULES.humanCase;
-        } else if (statusCode === ATTENDANCE_STATUS.EXCUSED_LEAVE) {
-          attendanceType = lang === 'ar' ? 'إجازة' : 'Excused leave';
-          deduction = DEDUCTION_RULES.excusedLeave;
         }
 
         const subjectName = lang === 'ar' 

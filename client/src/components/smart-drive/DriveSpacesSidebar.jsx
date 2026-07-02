@@ -2,8 +2,9 @@ import React from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useAuth } from '@contexts/AuthContext';
-import { getThemedIcon } from '@constants/iconTypes';
+import { getThemedIcon, getColoredFolderIcon } from '@constants/iconTypes';
 import { DEFAULT_STORAGE_LIMIT } from '@constants/driveConstants';
+import { getLocalizedFolderName } from '@utils/localizedFolderName';
 import DriveTreeView from './DriveTreeView';
 
 /**
@@ -24,7 +25,7 @@ export default function DriveSpacesSidebar({
   isMinimized = false,
   currentFolderId = null,
 }) {
-  const { t, isRTL } = useLang();
+  const { t, isRTL, lang } = useLang();
   const { theme } = useTheme();
   const { user } = useAuth();
 
@@ -193,7 +194,9 @@ export default function DriveSpacesSidebar({
                   }
                   onMouseLeave={(e) => (e.currentTarget.style.background = 'transparent')}
                 >
-                  {getThemedIcon('ui', 'folder', 14, theme)}
+                  {folder.color
+                    ? getColoredFolderIcon(14, folder.color)
+                    : getThemedIcon('ui', 'folder', 14, theme)}
                   <span
                     style={{
                       overflow: 'hidden',
@@ -201,7 +204,7 @@ export default function DriveSpacesSidebar({
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    {folder.name}
+                    {getLocalizedFolderName(folder, lang)}
                   </span>
                 </button>
               ))}

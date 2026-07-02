@@ -32,7 +32,7 @@ const Select = forwardRef(({
   options = [],
   value,
   onChange,
-  placeholder = 'Select an option',
+  placeholder = 'Select...',
   error,
   helperText,
   disabled = false,
@@ -50,7 +50,7 @@ const Select = forwardRef(({
   const { t } = useLang();
 
   // Localize placeholder inside component body
-  const localizedPlaceholder = placeholder === 'Select an option' ? (t('select_an_option') || 'Select an option') : (placeholder || t('select_an_option') || 'Select an option');
+  const localizedPlaceholder = placeholder === 'Select an option' ? (t('select_placeholder') || 'Select...') : (placeholder || t('select_placeholder') || 'Select...');
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
@@ -197,11 +197,19 @@ const Select = forwardRef(({
   const getOptionSearchText = (option) => {
     if (!option) return '';
     if (option.searchText) return String(option.searchText).toLowerCase();
-    if (option.displayLabel) return String(option.displayLabel).toLowerCase();
-    if (option.text) return String(option.text).toLowerCase();
-    if (typeof option.label === 'string') return option.label.toLowerCase();
-    if (typeof option.value === 'string') return option.value.toLowerCase();
-    return '';
+    const parts = [];
+    if (option.displayLabel) parts.push(String(option.displayLabel).toLowerCase());
+    if (option.text) parts.push(String(option.text).toLowerCase());
+    if (typeof option.label === 'string') parts.push(option.label.toLowerCase());
+    if (typeof option.value === 'string') parts.push(option.value.toLowerCase());
+    if (option.subtext) {
+      if (Array.isArray(option.subtext)) {
+        option.subtext.forEach(line => { if (line) parts.push(String(line).toLowerCase()); });
+      } else {
+        parts.push(String(option.subtext).toLowerCase());
+      }
+    }
+    return parts.join(' ');
   };
 
   const filteredOptions = onSearchChange
@@ -397,7 +405,7 @@ const Select = forwardRef(({
               width: `${Math.max(dropdownPosition.width, 200)}px`,
               zIndex: 99999,
               maxHeight: '300px',
-              overflowY: 'auto'
+              overflowY: 'auto',
             }}
             onClick={(e) => e.stopPropagation()}
           >
@@ -457,7 +465,15 @@ const Select = forwardRef(({
                         {option.icon && <span style={{ display: 'flex', alignItems: 'center', flexShrink: 0 }}>{option.icon}</span>}
                         <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0 }}>
                           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{option.label}</span>
-                          {option.subtext && <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted, #6b7280)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{option.subtext}</span>}
+                          {option.subtext && (
+                            Array.isArray(option.subtext) ? (
+                              option.subtext.filter(Boolean).map((line, i) => (
+                                <span key={i} style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted, #6b7280)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{line}</span>
+                              ))
+                            ) : (
+                              <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted, #6b7280)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{option.subtext}</span>
+                            )
+                          )}
                         </span>
                       </span>
                     </div>

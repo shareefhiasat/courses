@@ -23,6 +23,16 @@ const err = (code, message) => ({
   timestamp: Date.now(),
 });
 
+const PROTECTED_FOLDER_NAMES = ['Exported Files', 'Exported'];
+const PROTECTED_FOLDER_NAMES_AR = ['الملفات المستخرجة', 'مصدّر'];
+
+function isProtectedFolder(folder) {
+  if (!folder) return false;
+  if (folder.parentId) return false;
+  return PROTECTED_FOLDER_NAMES.includes(folder.name) ||
+    PROTECTED_FOLDER_NAMES_AR.includes(folder.nameAr || '');
+}
+
 /**
  * Helper: Soft delete folder and all its descendants (folders and files)
  * Uses raw SQL for efficient recursive path-based deletion
@@ -190,7 +200,7 @@ export async function getFolderWithBreadcrumb(folderId, actorUserId) {
         FROM folders f
         JOIN chain c ON f.id = c."parentId"
       )
-      SELECT id, name, "parentId", path FROM chain ORDER BY depth DESC
+      SELECT id, name, "nameAr", "parentId", path FROM chain ORDER BY depth DESC
     `;
     console.log('[folderService.getFolderWithBreadcrumb] chainRows:', chainRows);
     const result = ok({ folder, breadcrumb: chainRows });
@@ -225,7 +235,7 @@ export async function getAncestorIds(folderId) {
 // Writes
 // --------------------------------------------------------------------------
 
-export async function createFolder(keycloakUser, { name, parentId = null, isPrivate = false } = {}) {
+export async function createFolder(keycloakUser, { name, nameAr, color, parentId = null, isPrivate = false } = {}) {
   try {
     const userId = await getDatabaseUserId(keycloakUser);
     if (!userId) return err('USER_NOT_FOUND', 'User not found');
@@ -241,7 +251,7 @@ export async function createFolder(keycloakUser, { name, parentId = null, isPriv
     const path = parentPath ? `${parentPath}/${name}` : `/${name}`;
 
     const folder = await prisma.folder.create({
-      data: { name, parentId, ownerId: userId, path, isPrivate },
+      data: { name, nameAr: nameAr || null, color: color || null, parentId, ownerId: userId, path, isPrivate },
     });
     return ok(folder);
   } catch (error) {
@@ -262,11 +272,16 @@ export async function updateFolder(folderId, actorUserId, updates = {}) {
     const folder = await prisma.folder.findUnique({ where: { id: folderId } });
     if (!folder || folder.isDeleted) return err('FOLDER_NOT_FOUND', 'Folder not found');
     if (folder.ownerId !== actorUserId) return err('ACCESS_DENIED', 'Only owner can update');
+    if (isProtectedFolder(folder) && (updates.name !== undefined || updates.nameAr !== undefined || updates.parentId !== undefined || updates.color !== undefined)) {
+      return err('FOLDER_PROTECTED', 'This folder cannot be renamed, moved, or recolored');
+    }
 
     const patch = {};
     if (typeof updates.name === 'string' && updates.name !== folder.name) patch.name = updates.name;
+    if (updates.nameAr !== undefined && updates.nameAr !== folder.nameAr) patch.nameAr = updates.nameAr || null;
     if (updates.parentId !== undefined && updates.parentId !== folder.parentId) patch.parentId = updates.parentId;
     if (typeof updates.isPrivate === 'boolean') patch.isPrivate = updates.isPrivate;
+    if (updates.color !== undefined) patch.color = updates.color || null;
     if (Object.keys(patch).length === 0) return ok(folder);
 
     // Determine new parent path if we're moving.
@@ -350,6 +365,7 @@ export async function softDeleteFolder(folderId, actorUserId, actorRoles = []) {
     const folder = await prisma.folder.findUnique({ where: { id: folderId } });
     if (!folder) return err('FOLDER_NOT_FOUND', 'Folder not found');
     if (folder.ownerId !== actorUserId) return err('ACCESS_DENIED', 'Only owner can trash');
+    if (isProtectedFolder(folder)) return err('FOLDER_PROTECTED', 'This folder cannot be deleted');
 
     // Check if folder is shared (unless super_admin)
     const isSuperAdmin = actorRoles.includes(LMS_ROLES.SUPER_ADMIN);
@@ -430,6 +446,7 @@ export async function permanentDeleteFolder(folderId, actorUserId) {
     const folder = await prisma.folder.findUnique({ where: { id: folderId } });
     if (!folder) return err('FOLDER_NOT_FOUND', 'Folder not found');
     if (folder.ownerId !== actorUserId) return err('ACCESS_DENIED', 'Only owner can hard-delete');
+    if (isProtectedFolder(folder)) return err('FOLDER_PROTECTED', 'This folder cannot be deleted');
     if (!folder.isDeleted) return err('NOT_IN_TRASH', 'Folder must be in trash before permanent delete');
 
     const descendantRows = await prisma.$queryRaw`

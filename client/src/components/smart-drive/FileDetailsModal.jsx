@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { getIcon } from '@constants/iconTypes';
+import { getAuthToken } from '@utils/authHelpers';
 import Modal from '@ui/Modal/Modal';
 import Button from '@ui/Button/Button';
 import Tabs from '@ui/Tabs/Tabs';
@@ -88,7 +89,10 @@ export default function FileDetailsModal({ file, onClose, onDownload, onShare, o
 
     setPreviewLoading(true);
     try {
-      const response = await fetch(`/api/v1/drive/files/${currentFile.id}/preview`);
+      const token = getAuthToken();
+      const response = await fetch(`/api/v1/drive/files/${currentFile.id}/preview`, {
+        headers: { Authorization: token ? `Bearer ${token}` : '' },
+      });
       const data = await response.json();
       
       if (data.success) {
@@ -119,7 +123,10 @@ export default function FileDetailsModal({ file, onClose, onDownload, onShare, o
 
     setPreviewLoading(true);
     try {
-      const response = await fetch(`/api/v1/drive/files/${currentFile.id}/collabora/edit`);
+      const token = getAuthToken();
+      const response = await fetch(`/api/v1/drive/files/${currentFile.id}/collabora/edit`, {
+        headers: { Authorization: token ? `Bearer ${token}` : '' },
+      });
       const data = await response.json();
       
       if (data.success) {
@@ -189,9 +196,9 @@ export default function FileDetailsModal({ file, onClose, onDownload, onShare, o
     ...(canShowEditTab ? [{ value: 'edit', label: t('drive.edit'), icon: getIcon('ui', 'edit') }] : []),
     { value: 'details', label: t('drive.details'), icon: getIcon('ui', 'info') },
     { value: 'versions', label: t('drive.versions'), icon: getIcon('ui', 'clock') },
-    { value: 'comments', label: t('drive.comments'), icon: getIcon('ui', 'message') },
     { value: 'activity', label: t('drive.activity'), icon: getIcon('ui', 'activity') },
     { value: 'workflow', label: t('drive.workflow'), icon: getIcon('ui', 'workflow', 16, '#8b5cf6') },
+    { value: 'comments', label: t('drive.comments'), icon: getIcon('ui', 'message') },
     // Only show share tab if user owns the file
     ...(isOwnedByUser ? [{ value: 'share', label: t('drive.share'), icon: getIcon('ui', 'share') }] : []),
   ];
@@ -344,7 +351,7 @@ export default function FileDetailsModal({ file, onClose, onDownload, onShare, o
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '400px' }}>
             {previewLoading && (
               <div style={{ padding: '2rem', color: 'var(--text-muted, #6b7280)' }}>
-                Loading preview...
+                {t('drive.collabora.opening')}
               </div>
             )}
             {!previewLoading && previewMode === 'inline' && previewUrl && (
@@ -410,7 +417,7 @@ export default function FileDetailsModal({ file, onClose, onDownload, onShare, o
             )}
             {!previewLoading && previewMode === 'download' && (
               <div style={{ padding: '2rem', color: 'var(--text-muted, #6b7280)', textAlign: 'center' }}>
-                <p style={{ marginBottom: '1rem' }}>Preview not available for this file type. Please download to view.</p>
+                <p style={{ marginBottom: '1rem' }}>{t('drive.previewNotAvailable') || 'Preview not available for this file type. Please download to view.'}</p>
                 {onDownload && (
                   <Button variant="primary" onClick={() => onDownload(file.id)}>
                     {t('drive.download')}
@@ -421,7 +428,7 @@ export default function FileDetailsModal({ file, onClose, onDownload, onShare, o
             {!previewLoading && previewMode === 'not_ready' && (
               <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>
                 <p style={{ marginBottom: '1rem' }}>
-                  File upload was not completed. Please delete and re-upload this file.
+                  {t('drive.fileNotReady') || 'File upload was not completed. Please delete and re-upload this file.'}
                 </p>
                 {onDownload && (
                   <Button variant="primary" onClick={() => onDownload(file.id)}>
@@ -436,7 +443,7 @@ export default function FileDetailsModal({ file, onClose, onDownload, onShare, o
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '400px' }}>
             {previewLoading && (
               <div style={{ padding: '2rem', color: 'var(--text-muted, #6b7280)' }}>
-                Loading editor...
+                {t('drive.collabora.opening')}
               </div>
             )}
             {!previewLoading && editWopiToken && (
@@ -451,9 +458,9 @@ export default function FileDetailsModal({ file, onClose, onDownload, onShare, o
             )}
             {!previewLoading && !editWopiToken && (
               <div style={{ padding: '2rem', color: 'var(--text-muted, #6b7280)', textAlign: 'center' }}>
-                <p style={{ marginBottom: '1rem' }}>Failed to load editor. Please try again.</p>
+                <p style={{ marginBottom: '1rem' }}>{t('drive.collabora.error')}</p>
                 <Button variant="secondary" onClick={fetchEditToken}>
-                  Retry
+                  {t('common.retry') || 'Retry'}
                 </Button>
               </div>
             )}

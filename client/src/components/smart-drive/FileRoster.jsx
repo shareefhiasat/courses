@@ -1,11 +1,21 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
-import { getThemedIcon } from '@constants/iconTypes';
+import { getThemedIcon, getColoredFolderIcon } from '@constants/iconTypes';
 import { Input, Button, Checkbox } from '@ui';
 import StatusColumn from './StatusColumn';
 import { isDriveFolder } from '@utils/driveUtils';
+import { getLocalizedFolderName } from '@utils/localizedFolderName';
 import { formatQatarDate, formatQatarDateOnly } from '@utils/timezone';
+
+const PROTECTED_FOLDER_NAMES = ['Exported Files', 'Exported'];
+const PROTECTED_FOLDER_NAMES_AR = ['الملفات المستخرجة', 'مصدّر'];
+
+function isProtectedFolder(folder) {
+  if (!folder || folder.parentId) return false;
+  return PROTECTED_FOLDER_NAMES.includes(folder.name) ||
+    PROTECTED_FOLDER_NAMES_AR.includes(folder.nameAr || '');
+}
 
 /**
  * FileRoster - Files grid with search, filters, multi-select & row actions.
@@ -32,7 +42,7 @@ export default function FileRoster({
   onEmptyTrash,
   filterStarred = false,
 }) {
-  const { t, isRTL } = useLang();
+  const { t, isRTL, lang } = useLang();
   const { theme } = useTheme();
   const [hoveredId, setHoveredId] = useState(null);
   const [openMenuId, setOpenMenuId] = useState(null);
@@ -591,7 +601,9 @@ export default function FileRoster({
                   }}
                   aria-hidden="true"
                 >
-                  {getThemedIcon('ui', 'folder', 20, theme)}
+                  {folder.color
+                    ? getColoredFolderIcon(20, folder.color)
+                    : getThemedIcon('ui', 'folder', 20, theme)}
                 </div>
                 <div style={{ minWidth: 0 }}>
                   <div
@@ -604,7 +616,7 @@ export default function FileRoster({
                       whiteSpace: 'nowrap',
                     }}
                   >
-                    {folder.name.length > 80 ? `${folder.name.substring(0, 80)}...` : folder.name}
+                    {(() => { const displayName = getLocalizedFolderName(folder, lang); return displayName.length > 80 ? `${displayName.substring(0, 80)}...` : displayName; })()}
                   </div>
                   <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted, #6b7280)' }}>
                     {t('drive.folder') || 'Folder'}
@@ -722,13 +734,13 @@ export default function FileRoster({
                     ...(isTrashView
                       ? [
                           { key: 'restore', label: t('drive.restore') || 'Restore', icon: 'info', color: '#059669' },
-                          { key: 'permanent-delete', label: t('drive.permanentDelete') || 'Delete permanently', icon: 'trash', danger: true },
+                          ...(!isProtectedFolder(folder) ? [{ key: 'permanent-delete', label: t('drive.permanentDelete') || 'Delete permanently', icon: 'trash', danger: true }] : []),
                         ]
                       : [
                           { key: 'open', label: t('drive.open') || 'Open', icon: 'external_link' },
                           { key: 'download', label: t('drive.download') || 'Download', icon: 'download' },
-                          { key: 'rename', label: t('drive.rename') || 'Rename', icon: 'edit' },
-                          { key: 'delete', label: t('drive.delete') || 'Delete', icon: 'trash', danger: true },
+                          ...(!isProtectedFolder(folder) ? [{ key: 'rename', label: t('drive.rename') || 'Rename', icon: 'edit' }] : []),
+                          ...(!isProtectedFolder(folder) ? [{ key: 'delete', label: t('drive.delete') || 'Delete', icon: 'trash', danger: true }] : []),
                         ]),
                   ].map((action) => (
                     <button
@@ -1145,7 +1157,9 @@ export default function FileRoster({
                   marginBottom: '0.5rem',
                 }}
               >
-                {getThemedIcon('ui', 'folder', 36, theme)}
+                {folder.color
+                  ? getColoredFolderIcon(36, folder.color)
+                  : getThemedIcon('ui', 'folder', 36, theme)}
               </div>
               <div
                 style={{
@@ -1156,9 +1170,9 @@ export default function FileRoster({
                   textOverflow: 'ellipsis',
                   whiteSpace: 'nowrap',
                 }}
-                title={folder.name}
+                title={getLocalizedFolderName(folder, lang)}
               >
-                {folder.name}
+                {getLocalizedFolderName(folder, lang)}
               </div>
               <div
                 style={{

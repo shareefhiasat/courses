@@ -12,6 +12,7 @@ import ToggleSwitch from '@ui/ToggleSwitch';
 import RoleMultiSelect, { DRIVE_SHARE_ROLES } from '@ui/RoleMultiSelect';
 import ShareUserSelect from '@ui/ShareUserSelect';
 import SharesList from '../SharesList';
+import { DriveActionButton, DRIVE_TIMELINE } from '@ui/DriveTimeline';
 
 // Permission constants
 const PERMISSIONS = {
@@ -177,7 +178,7 @@ export default function ShareTab({ fileId, onShare, onGenerateLink }) {
 
   const formatDateTime = (date) => {
     if (!date) return '—';
-    return formatQatarDate(date, 'dd/MM/yyyy HH:mm');
+    return formatQatarDate(date, 'dd/MM/yyyy h:mm a');
   };
 
   const isExpired = (expiresAt) => {
@@ -215,8 +216,10 @@ export default function ShareTab({ fileId, onShare, onGenerateLink }) {
 
       <div
         style={{
-          minHeight: 'min(50vh, 400px)',
+          minHeight: DRIVE_TIMELINE.PANEL_MIN_HEIGHT,
           overflowY: 'auto',
+          display: 'flex',
+          flexDirection: 'column',
         }}
       >
         {shareType === SHARE_TYPES.PEOPLE && canShare && (
@@ -253,7 +256,7 @@ export default function ShareTab({ fileId, onShare, onGenerateLink }) {
               </div>
 
               <div>
-                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', padding: '0.75rem', border: '1px solid var(--border-color)', borderRadius: '0.5rem', background: 'var(--bg-secondary)' }}>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', padding: '0.75rem', border: '1px solid var(--border, #e5e7eb)', borderRadius: '0.5rem', background: 'var(--background-secondary, #f3f4f6)' }}>
                   {[
                     { value: PERMISSIONS.VIEW, label: t('drive.permission.view') || 'View' },
                     { value: PERMISSIONS.DOWNLOAD, label: t('drive.permission.download') || 'Download' },
@@ -322,7 +325,7 @@ export default function ShareTab({ fileId, onShare, onGenerateLink }) {
               </div>
 
               <div>
-                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', padding: '0.75rem', border: '1px solid var(--border-color)', borderRadius: '0.5rem', background: 'var(--bg-secondary)' }}>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', padding: '0.75rem', border: '1px solid var(--border, #e5e7eb)', borderRadius: '0.5rem', background: 'var(--background-secondary, #f3f4f6)' }}>
                   {[
                     { value: PERMISSIONS.VIEW, label: t('drive.permission.view') || 'View' },
                     { value: PERMISSIONS.DOWNLOAD, label: t('drive.permission.download') || 'Download' },
@@ -516,21 +519,12 @@ export default function ShareTab({ fileId, onShare, onGenerateLink }) {
                         </div>
 
                         {!isRevoked(link.revokedAt) && (
-                          <button
+                          <DriveActionButton
+                            icon="trash"
                             onClick={() => handleRevokeLink(link.id)}
-                            style={{
-                              flexShrink: 0,
-                              padding: '0.25rem',
-                              borderRadius: '0.25rem',
-                              border: '1px solid var(--error-border, #fecaca)',
-                              background: 'transparent',
-                              color: 'var(--error-text, #dc2626)',
-                              cursor: 'pointer',
-                              fontSize: '0.6875rem',
-                            }}
-                          >
-                            {getIcon('ui', 'trash', 16, '#dc2626')}
-                          </button>
+                            ariaLabel={t('drive.revokeLink', 'Revoke link')}
+                            variant="danger"
+                          />
                         )}
                       </div>
                     );

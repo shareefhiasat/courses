@@ -52,10 +52,10 @@ export const ACTIVITY_TYPES = {
 
 // Attendance Status - Use CHECK constraint (stable values)
 export const ATTENDANCE_STATUS = {
-  PRESENT: 'present',
+  ATTENDANCE_PRESENT: 'present',
   ABSENT: 'absent',
-  LATE: 'late',
-  EXCUSED: 'excused',
+  ATTENDANCE_LATE: 'late',
+  ATTENDANCE_LEAVE: 'excused',
   ON_LEAVE: 'on_leave'
 };
 
@@ -65,7 +65,7 @@ export const SUBMISSION_STATUS = {
   SUBMITTED: 'submitted',
   GRADED: 'graded',
   RETURNED: 'returned',
-  LATE: 'late',
+  ATTENDANCE_LATE: 'late',
   PLAGIARIZED: 'plagiarized'
 };
 

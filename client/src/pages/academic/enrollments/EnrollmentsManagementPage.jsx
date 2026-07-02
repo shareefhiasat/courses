@@ -375,7 +375,22 @@ const EnrollmentsManagementPage = () => {
       toast?.showError(t('user_already_enrolled') || 'This user is already enrolled in this class');
       return;
     }
-    
+
+    // Check if class has ended (if startDate/endDate are set)
+    const selectedClassData = localClasses.find(c => (c.docId || c.id) === enrollmentForm.classId);
+    if (selectedClassData?.endDate) {
+      const classEndDate = new Date(selectedClassData.endDate);
+      const now = new Date();
+      if (classEndDate < now) {
+        const className = selectedClassData.name || selectedClassData.code || '';
+        const endDateStr = classEndDate.toLocaleDateString();
+        const proceed = window.confirm(
+          t('class_ended_warning', { className, endDate: endDateStr })
+        );
+        if (!proceed) return;
+      }
+    }
+
     setLoading(true);
     try {
       const { addEnrollment } = await import('@services/business/enrollmentService');

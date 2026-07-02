@@ -16,6 +16,7 @@ import { chatService } from '@services/business/chatService';
 import { getThemedIcon, getIconWithColor } from '@constants/iconTypes';
 import { getChatUserDisplayName } from '@utils/userUtils';
 import RoleBadge from './RoleBadge';
+import AvatarWithRoleBadge from './AvatarWithRoleBadge';
 
 const withAuthToken = (url) => {
   if (!url) return url;
@@ -43,7 +44,7 @@ const formatDate = (dateStr, lang = 'en') => {
   }
 };
 
-const GroupInfoPanel = ({ isOpen, onClose, roomId, roomName, isCreator, currentUser, roomType, onLeaveGroup, onAdminChanged }) => {
+const GroupInfoPanel = ({ isOpen, onClose, roomId, roomName, isCreator, currentUser, roomType, onLeaveGroup, onAdminChanged, onStartDM }) => {
   const { t, lang, isRTL } = useLang();
   const { theme } = useTheme();
   const toast = useToast();
@@ -263,12 +264,7 @@ const GroupInfoPanel = ({ isOpen, onClose, roomId, roomName, isCreator, currentU
                 return (
                   <div key={p.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.75rem 1rem', borderBottom: idx < stats.participants.length - 1 ? '1px solid var(--border)' : 'none', transition: 'background 0.2s' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1, minWidth: 0 }}>
-                      {p.user?.profileImageUrl ? (
-                        <img src={p.user.profileImageUrl} alt="" style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', flexShrink: 0 }} onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }} />
-                      ) : null}
-                      <div style={{ width: 40, height: 40, borderRadius: '50%', background: 'var(--brand)', color: 'white', display: p.user?.profileImageUrl ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--font-size-md)', fontWeight: 600, flexShrink: 0 }}>
-                        {(p.user?.displayName || p.user?.firstName || 'U')[0]?.toUpperCase()}
-                      </div>
+                      <AvatarWithRoleBadge user={p.user} size={40} badgeSize={16} iconSize={10} t={t} />
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', minWidth: 0, flex: 1 }}>
                         <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 500, color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
                           <RoleBadge user={p.user} size={12} />
@@ -303,16 +299,27 @@ const GroupInfoPanel = ({ isOpen, onClose, roomId, roomName, isCreator, currentU
                         </div>
                       </div>
                     </div>
-                    {isCreator && !isRoomCreator && (
-                      <button
-                        onClick={() => openAssignAdminConfirm(p)}
-                        disabled={actionLoading}
-                        title={t('chat_assign_admin') || 'Assign as Admin'}
-                        style={{ background: 'none', border: 'none', padding: '0.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, flexShrink: 0, color: '#ffc107' }}
-                      >
-                        {getIconWithColor('ui', 'crown', 16, '#ffc107')}
-                      </button>
-                    )}
+                    <div style={{ display: 'flex', gap: '0.25rem', flexShrink: 0, alignItems: 'center' }}>
+                      {onStartDM && p.userId !== currentUser?.dbId && (
+                        <button
+                          onClick={() => onStartDM(p.user)}
+                          title={t('chat_new_message') || 'Message'}
+                          style={{ background: 'none', border: 'none', padding: '0.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, flexShrink: 0, color: 'var(--brand)' }}
+                        >
+                          {getThemedIcon('ui', 'message_square', 18, theme)}
+                        </button>
+                      )}
+                      {isCreator && !isRoomCreator && (
+                        <button
+                          onClick={() => openAssignAdminConfirm(p)}
+                          disabled={actionLoading}
+                          title={t('chat_assign_admin') || 'Assign as Admin'}
+                          style={{ background: 'none', border: 'none', padding: '0.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, flexShrink: 0, color: '#ffc107' }}
+                        >
+                          {getIconWithColor('ui', 'crown', 16, '#ffc107')}
+                        </button>
+                      )}
+                    </div>
                   </div>
                 );
               })}

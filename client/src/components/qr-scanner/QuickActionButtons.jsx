@@ -29,10 +29,10 @@ const QuickActionButtons = ({
 
   // Check if specific status matches (case-insensitive, handles both regular and standup variants)
   const isPresent = hasAttendance && [
-    'PRESENT', 'STANDUP_PRESENT', 'present', 'standup_present'
+    'ATTENDANCE_PRESENT', 'STANDUP_PRESENT', 'present', 'standup_present'
   ].includes(currentStatus);
   const isLate = hasAttendance && [
-    'LATE', 'STANDUP_LATE', 'late', 'standup_late'
+    'ATTENDANCE_LATE', 'STANDUP_LATE', 'late', 'standup_late'
   ].includes(currentStatus);
 
   const handlePresentClick = async (e) => {

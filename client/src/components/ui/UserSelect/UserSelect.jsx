@@ -122,17 +122,20 @@ const UserSelect = ({
       // Get user enrollments count (for students) or classes taught (for instructors)
       let enrollmentCount = 0;
       let displayCount = '';
+      let subtextLines = [];
       
       if (isInstructor(u) || isAdmin(u)) {
         // For instructors: count classes they teach
-        // Count classes owned by this instructor
         let taughtClasses = [];
         
         if (classes && classes.length > 0) {
-          // Count classes where this user is the owner
+          const userId = String(u.docId || u.id || '');
+          const userEmail = (u.email || '').toLowerCase();
           taughtClasses = classes.filter(c => 
-            c.ownerEmail === u.email || 
-            c.createdBy === (u.docId || u.id)
+            (c.ownerEmail && c.ownerEmail.toLowerCase() === userEmail) || 
+            (c.instructorId && String(c.instructorId) === userId) ||
+            (c.instructor && c.instructor.email && c.instructor.email.toLowerCase() === userEmail) ||
+            (c.createdBy && String(c.createdBy) === userId)
           );
         } else {
           // Fallback to enrollment-based counting (for backward compatibility)
@@ -142,12 +145,37 @@ const UserSelect = ({
         }
         
         enrollmentCount = taughtClasses.length;
-        displayCount = enrollmentCount > 0 ? `${enrollmentCount} ${t('user_select_classes') || 'classes'}` : (t('user_select_no_classes') || 'No classes');
+        const classLabel = enrollmentCount === 1 ? (t('class') || 'class') : (t('classes') || 'classes');
+        displayCount = enrollmentCount > 0 ? `${enrollmentCount} ${classLabel}` : (t('user_select_no_classes') || 'No classes');
+        subtextLines.push(displayCount);
+        // Show up to 3 class names
+        taughtClasses.slice(0, 3).forEach(c => {
+          const name = lang === 'ar' ? (c.nameAr || c.nameEn || c.code) : (c.nameEn || c.nameAr || c.code);
+          if (name) subtextLines.push(name);
+        });
+        if (taughtClasses.length > 3) {
+          subtextLines.push(`+${taughtClasses.length - 3} ${t('more') || 'more'}`);
+        }
       } else {
-        // For students: count their enrollments
+        // For students: count their enrollments (classes they belong to)
         const userEnrollments = enrollments.filter(e => e.userId === (u.docId || u.id));
         enrollmentCount = userEnrollments.length;
-        displayCount = enrollmentCount > 0 ? `${enrollmentCount} ${t('user_select_enrollments') || 'enrollments'}` : (t('user_select_no_enrollments') || 'No enrollments');
+        const classLabel = enrollmentCount === 1 ? (t('class') || 'class') : (t('classes') || 'classes');
+        displayCount = enrollmentCount > 0 ? `${enrollmentCount} ${classLabel}` : (t('user_select_no_enrollments') || 'No classes');
+        subtextLines.push(displayCount);
+        // Show up to 3 class names from enrollments
+        if (classes && classes.length > 0 && userEnrollments.length > 0) {
+          const studentClasses = userEnrollments
+            .map(e => classes.find(c => (c.id || c.docId) === (e.classId || e.classDocId)))
+            .filter(Boolean);
+          studentClasses.slice(0, 3).forEach(c => {
+            const name = lang === 'ar' ? (c.nameAr || c.nameEn || c.code) : (c.nameEn || c.nameAr || c.code);
+            if (name) subtextLines.push(name);
+          });
+          if (studentClasses.length > 3) {
+            subtextLines.push(`+${studentClasses.length - 3} ${t('more') || 'more'}`);
+          }
+        }
       }
       
       // Get status information
@@ -233,7 +261,7 @@ const UserSelect = ({
         displayLabel: localizedName,
         label: localizedName,
         icon: IconComponent,
-        subtext: showEnrollments ? displayCount : undefined,
+        subtext: showEnrollments ? (subtextLines.length > 0 ? subtextLines : undefined) : undefined,
         disabled: isDisabled
       });
     });

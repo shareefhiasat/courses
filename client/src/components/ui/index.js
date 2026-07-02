@@ -129,6 +129,22 @@ export { default as StudentQuickActionModal } from './StudentQuickActionModal';
 // Dashboard Components
 export { default as StatCard } from './StatCard';
 
+// Drive Timeline Components (shared across smart-drive & workflow)
+export {
+  DRIVE_TIMELINE,
+  DriveActionButton,
+  DriveIconBadge,
+  DriveUserAvatar,
+  DriveListCard,
+  DriveFilterBar,
+  TimelinePanelLayout,
+  DriveTimelineEmptyState,
+  DriveTimelineList,
+  DriveTimelineLoadingState,
+  DriveTimelineErrorState,
+  DriveCommentForm,
+} from './DriveTimeline';
+
 // Special Components
 export { default as DraggableClock } from './DraggableClock';
 export { default as LoadingProgress } from './LoadingProgress/LoadingProgress';

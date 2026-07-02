@@ -40,8 +40,8 @@ export const getFolder = async (req, res) => {
 };
 
 export const createFolder = async (req, res) => {
-  const { name, parentId, isPrivate } = req.body || {};
-  const result = await folderService.createFolder(req.user, { name, parentId, isPrivate });
+  const { name, nameAr, color, parentId, isPrivate } = req.body || {};
+  const result = await folderService.createFolder(req.user, { name, nameAr, color, parentId, isPrivate });
   
   // Emit notification for folder creation if successful
   if (result.success && result.payload) {
@@ -67,6 +67,7 @@ export const createFolder = async (req, res) => {
             EVENTS.DRIVE_FOLDER_CREATED,
             {
               folderName: folder.name,
+              folderNameAr: folder.nameAr,
               createdBy: folder.owner?.displayName || `${folder.owner?.firstName} ${folder.owner?.lastName}`
             },
             req.user,
@@ -115,6 +116,7 @@ export const softDeleteFolder = async (req, res) => {
             EVENTS.DRIVE_FOLDER_DELETED,
             {
               folderName: folder.name,
+              folderNameAr: folder.nameAr,
               deletedBy: folder.owner?.displayName || `${folder.owner?.firstName} ${folder.owner?.lastName}`
             },
             req.user,

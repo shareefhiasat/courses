@@ -1,37 +1,62 @@
-import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useLang } from '@contexts/LangContext';
-import { getIcon, getUserRoleIcon, getUserRoleColor } from '@constants/iconTypes';
-import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
-import { formatQatarDate, formatQatarDateOnly } from '@utils/timezone';
+import { getIcon } from '@constants/iconTypes';
 import { getLocalizedUserName } from '@utils/localizedUserName';
-import { getUserRoleFromObject } from '@utils/userUtils';
-import { Group as PanelGroup, Panel, Separator as PanelResizeHandle } from 'react-resizable-panels';
-import { usePanelLayout } from '@hooks/usePanelLayout';
-import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import {
+  TimelinePanelLayout,
+  DriveTimelineEmptyState,
+  DriveTimelineList,
+  DriveTimelineLoadingState,
+  DriveTimelineErrorState,
+  DriveListCard,
+  DriveUserAvatar,
+} from '@ui/DriveTimeline';
+import { formatQatarDate, formatQatarDateOnly } from '@utils/timezone';
 import axios from 'axios';
 
 const ACTION_COLORS = {
-  UPLOAD: { light: '#16a34a', dark: '#4ade80' },
-  DOWNLOAD: { light: '#2563eb', dark: '#60a5fa' },
-  SHARE: { light: '#d97706', dark: '#fbbf24' },
-  DELETE: { light: '#dc2626', dark: '#f87171' },
-  EDIT: { light: '#2563eb', dark: '#60a5fa' },
-  STAR: { light: '#d97706', dark: '#fbbf24' },
-  RESTORE: { light: '#16a34a', dark: '#4ade80' },
-  PREVIEW: { light: '#8b5cf6', dark: '#a78bfa' },
-  OPEN_IN_NEW_TAB: { light: '#8b5cf6', dark: '#a78bfa' },
+  UPLOAD: '#16a34a',
+  DOWNLOAD: '#2563eb',
+  SHARE: '#d97706',
+  DELETE: '#dc2626',
+  EDIT: '#2563eb',
+  STAR: '#d97706',
+  UNSTARRED: '#6b7280',
+  RESTORE: '#16a34a',
+  PREVIEW: '#8b5cf6',
+  OPEN_IN_NEW_TAB: '#8b5cf6',
+  PUBLIC_LINK_CREATED: '#0891b2',
+  PUBLIC_LINK_REVOKED: '#dc2626',
+  SOFT_DELETE: '#dc2626',
+  ROLLBACK_VERSION: '#8b5cf6',
+  RENAME: '#2563eb',
+  OPEN: '#8b5cf6',
 };
 
-function getActionStyle(action) {
-  const colors = ACTION_COLORS[action?.toUpperCase()] || { light: '#6b7280', dark: '#9ca3af' };
-  return {
-    color: `var(--action-color, ${colors.light})`,
-  };
+function getActionColor(action) {
+  return ACTION_COLORS[action?.toUpperCase()] || '#6b7280';
 }
 
-function getActionBg(action) {
-  const colors = ACTION_COLORS[action?.toUpperCase()] || { light: '#6b7280', dark: '#9ca3af' };
-  return `var(--action-bg, ${colors.light}1A)`;
+function getActionIcon(action) {
+  switch (action?.toUpperCase()) {
+    case 'UPLOAD': return 'upload';
+    case 'DOWNLOAD': return 'download';
+    case 'SHARE': return 'share';
+    case 'DELETE': return 'trash';
+    case 'SOFT_DELETE': return 'trash';
+    case 'RENAME': return 'edit';
+    case 'EDIT': return 'edit';
+    case 'STAR': return 'star';
+    case 'UNSTARRED': return 'star_off';
+    case 'RESTORE': return 'rotate_ccw';
+    case 'ROLLBACK_VERSION': return 'git_branch';
+    case 'PREVIEW': return 'eye';
+    case 'OPEN': return 'external_link';
+    case 'OPEN_IN_NEW_TAB': return 'external_link';
+    case 'PUBLIC_LINK_CREATED': return 'link';
+    case 'PUBLIC_LINK_REVOKED': return 'link';
+    default: return 'activity';
+  }
 }
 
 export default function ActivityTab({ fileId }) {
@@ -76,19 +101,15 @@ export default function ActivityTab({ fileId }) {
     fetchActivities();
   }, [fetchActivities]);
 
-  // Group activities by date
   const groupedActivities = activities.reduce((acc, activity) => {
     const date = new Date(activity.createdAt).toDateString();
-    if (!acc[date]) {
-      acc[date] = [];
-    }
+    if (!acc[date]) acc[date] = [];
     acc[date].push(activity);
     return acc;
   }, {});
 
   const sortedDates = Object.keys(groupedActivities).sort((a, b) => new Date(b) - new Date(a));
-  
-  // Filter activities based on search text
+
   const filteredActivities = useMemo(() => {
     let filtered = selectedDate ? groupedActivities[selectedDate] || [] : activities;
     if (filterText.trim()) {
@@ -102,308 +123,82 @@ export default function ActivityTab({ fileId }) {
     return filtered;
   }, [activities, filterText, selectedDate, groupedActivities]);
 
-  const getActionIcon = (action) => {
-    switch (action?.toUpperCase()) {
-      case 'UPLOAD': return 'upload';
-      case 'DOWNLOAD': return 'download';
-      case 'SHARE': return 'share';
-      case 'DELETE': return 'trash';
-      case 'RENAME': return 'edit';
-      case 'EDIT': return 'edit';
-      case 'STAR': return 'star';
-      case 'RESTORE': return 'rotate_ccw';
-      case 'PREVIEW': return 'activity';
-      case 'OPEN_IN_NEW_TAB': return 'activity';
-      default: return 'activity';
-    }
-  };
-
-  const [timelineCollapsed, setTimelineCollapsed] = useState(false);
-  const timelinePanelRef = useRef(null);
-  const [savedLayout, onLayoutChange] = usePanelLayout('wf-activity-panels', { timeline: 35, content: 65 });
-
   const formatDateTime = (date) => {
     if (!date) return '\u2014';
-    return formatQatarDate(date, 'dd/MM/yyyy HH:mm');
+    return formatQatarDate(date, 'dd/MM/yyyy h:mm a');
   };
 
-  const formatDateHeader = (dateStr) => {
-    return formatQatarDateOnly(dateStr);
-  };
+  const formatDateHeader = (dateStr) => formatQatarDateOnly(dateStr);
 
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: 'var(--font-size-sm)', color: 'var(--text-muted, #6b7280)' }} role="status">
-        {t('common.loading')}&hellip;
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: 'var(--font-size-sm)', color: '#dc2626' }} role="alert">
-        {error}
-      </div>
-    );
-  }
-
+  if (loading) return <DriveTimelineLoadingState />;
+  if (error) return <DriveTimelineErrorState message={error} />;
   if (activities.length === 0) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: 'var(--font-size-sm)', color: 'var(--text-muted, #6b7280)' }}>
-        {getIcon('ui', 'activity', 40)}
-        {t('drive.noActivity')}
-      </div>
-    );
+    return <DriveTimelineEmptyState icon="activity" message={t('drive.noActivity')} />;
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <PanelGroup orientation="horizontal" id="workflow-activity-panels" style={{ flex: 1 }} defaultLayout={savedLayout} onLayoutChange={onLayoutChange}>
-      {/* Left sidebar - Date timeline */}
-      <Panel id="timeline" panelRef={timelinePanelRef} defaultSize={35} minSize={15} collapsible collapsedSize={0}>
-      <div style={{ 
-        borderRight: '1px solid var(--border, #e5e7eb)', 
-        paddingInlineEnd: '1rem',
-        overflowY: 'auto',
-        height: '100%',
-      }}>
-        <h4 style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, color: 'var(--text-muted, #6b7280)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          {getIcon('ui', 'clock', 16)}
-          {t('drive.timeline') || 'Timeline'}
-        </h4>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-          <button
-            onClick={() => setSelectedDate(null)}
-            style={{
-              padding: '0.5rem',
-              textAlign: 'start',
-              background: !selectedDate ? 'var(--bg-primary, #f3f4f6)' : 'transparent',
-              border: 'none',
-              borderRadius: '0.375rem',
-              fontSize: 'var(--font-size-sm)',
-              color: !selectedDate ? 'var(--text, #111827)' : 'var(--text-muted, #6b7280)',
-              cursor: 'pointer',
-              fontWeight: !selectedDate ? 600 : 400,
-            }}
-          >
-            {t('drive.allActivities') || 'All Activities'} ({activities.length})
-          </button>
-          {sortedDates.map((date) => (
-            <button
-              key={date}
-              onClick={() => setSelectedDate(date)}
-              style={{
-                padding: '0.5rem',
-                textAlign: 'start',
-                background: selectedDate === date ? 'var(--bg-primary, #f3f4f6)' : 'transparent',
-                border: 'none',
-                borderRadius: '0.375rem',
-                fontSize: 'var(--font-size-sm)',
-                color: selectedDate === date ? 'var(--text, #111827)' : 'var(--text-muted, #6b7280)',
-                cursor: 'pointer',
-                fontWeight: selectedDate === date ? 600 : 400,
-              }}
-            >
-              {formatDateHeader(date)} ({groupedActivities[date].length})
-            </button>
-          ))}
-        </div>
-      </div>
-      </Panel>
-      <PanelResizeHandle style={{ width: '4px', background: 'var(--border, #e5e7eb)', margin: '0 2px', borderRadius: '2px', cursor: 'col-resize' }} />
-
-      {/* Right content - Activities */}
-      <Panel id="content" minSize={30}>
-      <div style={{ flex: 1, overflowY: 'auto', height: '100%', paddingInlineStart: '0.5rem' }}>
-        {/* Search filter */}
-        <div style={{ position: 'relative', marginBottom: '1rem', display: 'flex', gap: '0.5rem' }}>
-          <input
-            type="text"
-            value={filterText}
-            onChange={(e) => setFilterText(e.target.value)}
-            placeholder={t('drive.filterActivities') || 'Filter activities...'}
-            style={{
-              flex: 1,
-              padding: '0.625rem 0.75rem',
-              border: '1px solid var(--border, #d1d5db)',
-              borderRadius: '0.5rem',
-              background: 'var(--panel, white)',
-              color: 'var(--text, #111827)',
-              fontSize: 'var(--font-size-sm)',
-              outline: 'none',
-            }}
-            aria-label={t('drive.filterActivities') || 'Filter activities'}
+    <TimelinePanelLayout
+      panelLayoutKey="drive-activity-panels"
+      allItemsLabel={t('drive.allActivities')}
+      allItemsCount={activities.length}
+      dates={sortedDates}
+      getDateCount={(date) => groupedActivities[date]?.length || 0}
+      formatDateHeader={formatDateHeader}
+      selectedDate={selectedDate}
+      onDateSelect={setSelectedDate}
+      filterText={filterText}
+      onFilterChange={setFilterText}
+      filterPlaceholder={t('drive.filterActivities')}
+      sectionTitle={`${selectedDate ? formatDateHeader(selectedDate) : t('drive.activityLog')} (${filteredActivities.length})`}
+      emptyState={
+        filteredActivities.length === 0 ? (
+          <DriveTimelineEmptyState
+            icon="activity"
+            message={filterText ? t('drive.noMatchingActivities') : t('drive.noActivity')}
           />
-          <button
-            onClick={() => {
-              if (timelineCollapsed) {
-                timelinePanelRef.current?.expand();
-                setTimelineCollapsed(false);
-              } else {
-                timelinePanelRef.current?.collapse();
-                setTimelineCollapsed(true);
-              }
-            }}
-            style={{
-              padding: '0.5rem',
-              background: 'var(--panel, white)',
-              border: '1px solid var(--border, #e5e7eb)',
-              borderRadius: '0.5rem',
-              cursor: 'pointer',
-              color: 'var(--text-muted, #6b7280)',
-              display: 'flex',
-              alignItems: 'center',
-              flexShrink: 0,
-            }}
-            title={timelineCollapsed ? t('workflow.expand', 'Expand') : t('workflow.collapse', 'Collapse')}
-          >
-            {timelineCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
-          </button>
-          {filterText && (
-            <button
-              onClick={() => setFilterText('')}
-              style={{
-                position: 'absolute',
-                right: '0.75rem',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                color: 'var(--text-muted, #6b7280)',
-                border: 'none',
-                background: 'transparent',
-                cursor: 'pointer',
-                padding: '0.25rem',
-                borderRadius: '0.25rem',
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.color = 'var(--text, #111827)'}
-              onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted, #6b7280)'}
-              aria-label={t('common.clear')}
-            >
-              ✕
-            </button>
-          )}
-        </div>
+        ) : null
+      }
+    >
+      {filteredActivities.length > 0 && (
+        <DriveTimelineList>
+          {filteredActivities.map((activity) => {
+            const actionIcon = getActionIcon(activity.action);
+            const actionColor = getActionColor(activity.action);
 
-        <h3 style={{ fontSize: 'var(--font-size-lg)', fontWeight: 600, color: 'var(--text, #111827)', marginBottom: '1rem' }}>
-          {selectedDate ? formatDateHeader(selectedDate) : t('drive.activityLog')} ({filteredActivities.length})
-        </h3>
-
-        {filteredActivities.length === 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: 'var(--font-size-sm)', color: 'var(--text-muted, #6b7280)' }}>
-            {getIcon('ui', 'activity', 40)}
-            {filterText ? t('drive.noMatchingActivities') || 'No matching activities' : t('drive.noActivity')}
-          </div>
-        ) : (
-          <div style={{ position: 'relative' }}>
-            <div style={{ position: 'absolute', insetInlineStart: '1rem', top: 0, bottom: 0, width: '0.125rem', background: 'var(--border, #e5e7eb)' }} />
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
-              {filteredActivities.map((activity) => {
-                const actionIcon = getActionIcon(activity.action);
-
-                return (
-                  <div key={activity.id} style={{ position: 'relative', paddingInlineStart: '3rem' }}>
-                    {/* User avatar with role badge */}
-                    <div style={{ position: 'relative', flexShrink: 0 }}>
-                      <div style={{
-                        position: 'absolute',
-                        insetInlineStart: 0,
-                        width: '2rem',
-                        height: '2rem',
-                        borderRadius: '9999px',
-                        background: activity.user?.profileImageUrl ? 'transparent' : getAvatarColor(getLocalizedUserName(activity.user, lang, t('drive.unknownUser'))).bg,
-                        color: getAvatarColor(getLocalizedUserName(activity.user, lang, t('drive.unknownUser'))).color,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        fontSize: 'var(--font-size-xs)',
-                        fontWeight: 600,
-                        overflow: 'hidden',
-                        border: '2px solid var(--panel, white)',
-                      }}>
-                        {activity.user?.profileImageUrl ? (
-                          <img
-                            src={activity.user.profileImageUrl}
-                            alt={getLocalizedUserName(activity.user, lang, t('drive.unknownUser'))}
-                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                          />
-                        ) : (
-                          getAvatarInitials(getLocalizedUserName(activity.user, lang, t('drive.unknownUser')))
-                        )}
-                      </div>
-                      {/* Role badge overlay */}
-                      {(() => {
-                        const role = getUserRoleFromObject(activity.user);
-                        if (!role) return null;
-                        const roleIcon = getUserRoleIcon(role);
-                        const roleColor = getUserRoleColor(role);
-                        if (!roleIcon) return null;
-                        return (
-                          <div style={{
-                            position: 'absolute',
-                            insetInlineStart: '1.25rem',
-                            top: '1.25rem',
-                            width: '1rem',
-                            height: '1rem',
-                            borderRadius: '9999px',
-                            background: 'var(--panel, white)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            border: '1.5px solid var(--panel, white)',
-                            boxShadow: '0 0 0 1px var(--border, #e5e7eb)',
-                            zIndex: 1,
-                          }}
-                            title={t(`roles.${role}`, role)}
-                          >
-                            {React.cloneElement(roleIcon, { color: roleColor, size: 8 })}
-                          </div>
-                        );
-                      })()}
-                    </div>
-
-                    <div style={{
-                      padding: '0.5rem 0.75rem',
-                      background: 'var(--panel, white)',
-                      borderRadius: '0.75rem',
-                      border: '1px solid var(--border, #e5e7eb)',
-                      boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
-                    }}>
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.75rem' }}>
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <p style={{ fontSize: 'var(--font-size-sm)', fontWeight: 500, color: 'var(--text, #111827)', margin: 0, marginBottom: '0.25rem', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-                            <span style={{ display: 'inline-flex', alignItems: 'center', ...getActionStyle(activity.action) }}>{getIcon('ui', actionIcon, 14)}</span>
-                            {getActivityLabel(activity.action)}
-                            {' \u00B7 '}
-                            <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-muted, #6b7280)', fontWeight: 400 }}>
-                              {getLocalizedUserName(activity.user, lang, t('drive.unknownUser'))}
-                            </span>
-                          </p>
-                          {activity.metadata && Object.keys(activity.metadata).length > 0 && (
-                            <div style={{ marginTop: '0.5rem', fontSize: 'var(--font-size-xs)', color: 'var(--text-muted, #6b7280)', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-                              {activity.metadata.linkId && <span style={{ color: 'var(--color-primary, #2563eb)' }}>{t('drive.linkCreated')}</span>}
-                              {activity.metadata.expiresAt && (
-                                <span>{t('drive.expires')}: {formatQatarDateOnly(activity.metadata.expiresAt)}</span>
-                              )}
-                              {activity.metadata.passwordProtected && (
-                                <span style={{ color: '#d97706' }}>{t('drive.passwordProtected')}</span>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                        <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted, #6b7280)', fontWeight: 500, whiteSpace: 'nowrap' }}>
-                          {formatDateTime(activity.createdAt)}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-        )}
-      </div>
-      </Panel>
-      </PanelGroup>
-    </div>
+            return (
+              <DriveListCard
+                key={activity.id}
+                avatar={<DriveUserAvatar user={activity.user} />}
+                title={(
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: 'var(--font-size-sm)', fontWeight: 500, color: 'var(--text, #111827)' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', color: actionColor }}>
+                      {getIcon('ui', actionIcon, 14)}
+                    </span>
+                    {getActivityLabel(activity.action)}
+                    <span style={{ color: 'var(--text-muted, #6b7280)', fontWeight: 400 }}>
+                      · {getLocalizedUserName(activity.user, lang, t('drive.unknownUser'))}
+                    </span>
+                  </span>
+                )}
+                meta={activity.metadata && Object.keys(activity.metadata).length > 0 ? (
+                  <>
+                    {activity.metadata.linkId && (
+                      <span style={{ color: 'var(--color-primary, #2563eb)' }}>{t('drive.linkCreated')}</span>
+                    )}
+                    {activity.metadata.expiresAt && (
+                      <span>{t('drive.expires')}: {formatQatarDateOnly(activity.metadata.expiresAt)}</span>
+                    )}
+                    {activity.metadata.passwordProtected && (
+                      <span style={{ color: '#d97706' }}>{t('drive.passwordProtected')}</span>
+                    )}
+                  </>
+                ) : null}
+                timestamp={formatDateTime(activity.createdAt)}
+              />
+            );
+          })}
+        </DriveTimelineList>
+      )}
+    </TimelinePanelLayout>
   );
 }

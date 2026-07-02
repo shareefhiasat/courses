@@ -6,7 +6,7 @@ import { DEFAULT_STORAGE_LIMIT, DRIVE_SPACES, getRefreshHandler } from '@constan
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useAuth } from '@contexts/AuthContext';
-import { getThemedIcon } from '@constants/iconTypes';
+import { getThemedIcon, getColoredFolderIcon } from '@constants/iconTypes';
 import { getSmartDriveWorkflowStatusIcon, getSmartDriveWorkflowStatusStyle, getSmartDriveWorkflowStatusDescription } from '@constants/workflowStatusTypes';
 import { Input, Button } from '@ui';
 import DriveSpacesSidebar from '@components/smart-drive/DriveSpacesSidebar';
@@ -31,6 +31,19 @@ import useFilters from '@hooks/useFilters';
 import useToast from '@hooks/useToast';
 import useKeyboardShortcuts from '@hooks/useKeyboardShortcuts';
 import { isDriveFolder, isDriveFile, getRenamedFileName } from '@utils/driveUtils';
+import { getLocalizedFolderName } from '@utils/localizedFolderName';
+
+const FOLDER_COLORS = [
+  { value: null, label: 'Default' },
+  { value: '#3b82f6', label: 'Blue' },
+  { value: '#10b981', label: 'Green' },
+  { value: '#f59e0b', label: 'Amber' },
+  { value: '#ef4444', label: 'Red' },
+  { value: '#8b5cf6', label: 'Purple' },
+  { value: '#ec4899', label: 'Pink' },
+  { value: '#14b8a6', label: 'Teal' },
+  { value: '#f97316', label: 'Orange' },
+];
 
 export default function SmartDrivePage() {
   const { t, isRTL, lang } = useLang();
@@ -88,7 +101,9 @@ export default function SmartDrivePage() {
   const [createFolderModalOpen, setCreateFolderModalOpen] = useState(false);
   const [renameTarget, setRenameTarget] = useState(null);
   const [newName, setNewName] = useState('');
+  const [newNameAr, setNewNameAr] = useState('');
   const [renameError, setRenameError] = useState('');
+  const [newColor, setNewColor] = useState(null);
   const [isMobile, setIsMobile] = useState(() =>
     typeof window !== 'undefined' ? window.innerWidth <= 768 : false
   );
@@ -187,7 +202,7 @@ export default function SmartDrivePage() {
     if (folderNameParam && folderTree.length > 0) {
       const findByName = (nodes, name) => {
         for (const node of nodes) {
-          if (node.name === name) return node.id;
+          if (node.name === name || node.nameAr === name) return node.id;
           if (node.children?.length) {
             const found = findByName(node.children, name);
             if (found) return found;
@@ -470,7 +485,7 @@ export default function SmartDrivePage() {
       : getRenamedFileName(renameTarget.name, newName.trim());
 
     const result = folderItem
-      ? await renameFolder(renameTarget.id, finalName)
+      ? await renameFolder(renameTarget.id, finalName, newNameAr.trim() || undefined, newColor)
       : await renameFile(renameTarget.id, finalName);
 
     if (result.success) {
@@ -482,6 +497,8 @@ export default function SmartDrivePage() {
 
     setRenameTarget(null);
     setRenameError('');
+    setNewNameAr('');
+    setNewColor(null);
   };
 
   const handleFolderAction = async (folder, action) => {
@@ -490,6 +507,8 @@ export default function SmartDrivePage() {
       setDeleteConfirmOpen(true);
     } else if (action === 'rename') {
       setNewName(folder.name);
+      setNewNameAr(folder.nameAr || '');
+      setNewColor(folder.color || null);
       setRenameTarget(folder);
       setRenameError('');
     } else if (action === 'restore') {
@@ -685,8 +704,8 @@ export default function SmartDrivePage() {
     }
   };
 
-  const handleCreateFolder = async (name, parentId) => {
-    const result = await createFolder(name, parentId);
+  const handleCreateFolder = async (name, parentId, nameAr, color) => {
+    const result = await createFolder(name, parentId, nameAr, color);
     if (result.success) {
       await refreshDriveUI();
       success(t('drive.folderCreated'));
@@ -1103,8 +1122,10 @@ export default function SmartDrivePage() {
                         if (crumb.id !== currentFolderId) e.currentTarget.style.background = 'transparent';
                       }}
                     >
-                      {getThemedIcon('ui', 'folder', 16, crumb.id === currentFolderId ? theme : 'primary')}
-                      <span>{crumb.name}</span>
+                      {crumb.color
+                        ? getColoredFolderIcon(16, crumb.color)
+                        : getThemedIcon('ui', 'folder', 16, crumb.id === currentFolderId ? theme : 'primary')}
+                      <span>{getLocalizedFolderName(crumb, lang)}</span>
                     </button>
                   </React.Fragment>
                 ))}
@@ -1444,6 +1465,80 @@ export default function SmartDrivePage() {
                 e.currentTarget.style.boxShadow = 'none';
               }}
             />
+            {isDriveFolder(renameTarget) && (
+              <input
+                type="text"
+                value={newNameAr}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  const validChars = /^[\p{L}\p{N}\s._\-]*$/u;
+                  if (validChars.test(value) && value.length <= 255) {
+                    setNewNameAr(value);
+                  }
+                }}
+                placeholder={t('drive.folderNameAr') || 'Folder Name (Arabic)'}
+                onKeyDown={async (e) => {
+                  if (e.key === 'Enter' && newName && !renameError) {
+                    await handleRenameConfirm();
+                  } else if (e.key === 'Escape') {
+                    setRenameTarget(null);
+                    setRenameError('');
+                  }
+                }}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: '1px solid var(--border, #d1d5db)',
+                  borderRadius: '0.5rem',
+                  fontSize: 'var(--font-size-sm)',
+                  background: 'var(--panel, white)',
+                  color: 'var(--text, #111827)',
+                  outline: 'none',
+                  marginBottom: '1rem',
+                }}
+                onFocus={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--color-primary, #2563eb)';
+                  e.currentTarget.style.boxShadow = '0 0 0 2px var(--color-primary-alpha, rgba(37,99,235,0.2))';
+                }}
+                onBlur={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--border, #d1d5db)';
+                  e.currentTarget.style.boxShadow = 'none';
+                }}
+                dir="rtl"
+              />
+            )}
+            {isDriveFolder(renameTarget) && (
+              <div style={{ marginBottom: '1rem' }}>
+                <label style={{ fontSize: 'var(--font-size-sm)', fontWeight: 500, color: 'var(--text-secondary, #374151)', marginBottom: '0.5rem', display: 'block' }}>
+                  {t('drive.folderColor') || 'Folder Color'}
+                </label>
+                <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  {FOLDER_COLORS.map((c) => (
+                    <button
+                      key={c.label}
+                      type="button"
+                      onClick={() => setNewColor(c.value)}
+                      style={{
+                        width: 28,
+                        height: 28,
+                        borderRadius: '0.375rem',
+                        border: newColor === c.value ? '2px solid var(--color-primary, #2563eb)' : '2px solid transparent',
+                        background: c.value || 'var(--background-secondary, #f3f4f6)',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        transition: 'all 0.15s ease',
+                        transform: newColor === c.value ? 'scale(1.1)' : 'scale(1)',
+                      }}
+                      title={c.label}
+                    >
+                      {c.value && getColoredFolderIcon(14, c.value)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
             {renameError && (
               <p style={{ margin: '0.5rem 0 0 0', fontSize: 'var(--font-size-xs)', color: '#dc2626' }}>
                 {renameError}

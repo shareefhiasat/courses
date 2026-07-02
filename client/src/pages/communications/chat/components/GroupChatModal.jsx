@@ -12,6 +12,7 @@ import { apiService } from '@services/api/apiService';
 import { getThemedIcon, getIconWithColor, getUserRoleColor } from '@constants/iconTypes';
 import { resolveUserRole, getChatUserDisplayName } from '@utils/userUtils';
 import RoleBadge from './RoleBadge';
+import AvatarWithRoleBadge from './AvatarWithRoleBadge';
 import styles from './GroupChatModal.module.css';
 
 const GroupChatModal = ({ isOpen, onClose, onGroupCreated }) => {
@@ -276,45 +277,36 @@ const GroupChatModal = ({ isOpen, onClose, onGroupCreated }) => {
                     style={isInactive ? { opacity: 0.5 } : undefined}
                   >
                     <div className={styles.userInfo}>
-                      {user.profileImageUrl ? (
-                        <img 
-                          src={user.profileImageUrl} 
-                          alt={user.displayName}
-                          className={styles.userAvatar}
-                        />
-                      ) : (
-                        <div className={styles.userAvatarPlaceholder} style={{ width: 28, height: 28, fontSize: '0.8rem' }}>
-                          {(user.displayName || user.firstName || 'U')[0].toUpperCase()}
+                      <AvatarWithRoleBadge user={user} size={36} badgeSize={14} iconSize={8} t={t} />
+                      <div className={styles.userDetails}>
+                        <div className={styles.userName}>
+                          <RoleBadge user={user} size={10} />
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                            {getChatUserDisplayName(user)}
+                          </span>
+                          {isInactive && (
+                            <span title={t('inactive_user')} style={{ fontSize: '0.65rem', background: '#dc2626', color: 'white', padding: '1px 5px', borderRadius: 8, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0 }}>
+                              {t('inactive')}
+                            </span>
+                          )}
                         </div>
-                      )}
-                      <div className={styles.userDetails} style={{ flexDirection: 'row', alignItems: 'center', gap: '0.5rem', flex: 1, minWidth: 0 }}>
-                        {(() => {
-                          if (!role) return null;
-                          return (
-                            <RoleBadge user={user} size={10} />
-                          );
-                        })()}
-                        {role === 'student' && user.enrollmentCount > 0 && (
-                          <span title={t('enrolled_classes')} style={{ fontSize: '0.65rem', background: 'var(--bg)', color: 'var(--muted)', padding: '1px 5px', borderRadius: 8, fontWeight: 500, whiteSpace: 'nowrap', flexShrink: 0 }}>
-                            {user.enrollmentCount} {t('classes')}
-                          </span>
-                        )}
-                        {role === 'instructor' && user.classCount > 0 && (
-                          <span title={t('teaching_classes')} style={{ fontSize: '0.65rem', background: 'var(--bg)', color: 'var(--muted)', padding: '1px 5px', borderRadius: 8, fontWeight: 500, whiteSpace: 'nowrap', flexShrink: 0 }}>
-                            {user.classCount} {t('classes')}
-                          </span>
-                        )}
-                        <span className={styles.userName} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: '0 1 auto' }}>
-                          {getChatUserDisplayName(user)}
-                        </span>
-                        {isInactive && (
-                          <span title={t('inactive_user')} style={{ fontSize: '0.65rem', background: '#dc2626', color: 'white', padding: '1px 5px', borderRadius: 8, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0 }}>
-                            {t('inactive')}
-                          </span>
-                        )}
                         {user.email && (
-                          <span className={styles.userEmail} style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1, minWidth: 0 }}>{user.email}</span>
+                          <div className={styles.userEmail}>{user.email}</div>
                         )}
+                        <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginTop: '0.15rem' }}>
+                          {(user.enrollmentCount !== undefined || user.classCount !== undefined) && (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: '0.7rem', color: 'var(--muted)', background: 'var(--panel)', padding: '1px 8px', borderRadius: 10, border: '1px solid var(--border)' }}>
+                              {getThemedIcon('ui', 'book_open', 10, theme)}
+                              {(user.enrollmentCount ?? user.classCount ?? 0)} {t('classes') || 'classes'}
+                            </span>
+                          )}
+                          {(user.groupCount !== undefined || user._count?.chatRoomParticipations !== undefined) && (
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: '0.7rem', color: 'var(--muted)', background: 'var(--panel)', padding: '1px 8px', borderRadius: 10, border: '1px solid var(--border)' }}>
+                              {getThemedIcon('ui', 'users', 10, theme)}
+                              {(user.groupCount ?? user._count?.chatRoomParticipations ?? 0)} {t('groups') || 'groups'}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </div>
                     {isSelected && (

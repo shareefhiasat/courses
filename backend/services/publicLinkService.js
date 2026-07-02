@@ -92,11 +92,14 @@ export async function createLink(input, actor) {
     } else {
       const folder = await prisma.folder.findUnique({
         where: { id: folderId },
-        select: { ownerId: true, isDeleted: true },
+        select: { ownerId: true, isDeleted: true, name: true, parentId: true },
       });
       if (!folder || folder.isDeleted) return err('FOLDER_NOT_FOUND', 'Folder not found');
       if (folder.ownerId !== actor.userId && !(actor.roles || []).includes('super_admin')) {
         return err('ACCESS_DENIED', 'Only owner can create public links');
+      }
+      if (!folder.parentId && ['Exported Files', 'Exported'].includes(folder.name)) {
+        return err('FOLDER_PROTECTED', 'This folder cannot be shared');
       }
     }
 
@@ -237,7 +240,7 @@ export async function inspectLink(token) {
       where: { token },
       include: {
         file: { select: { name: true, size: true, mimeType: true, isDeleted: true } },
-        folder: { select: { name: true, isDeleted: true } },
+        folder: { select: { name: true, nameAr: true, isDeleted: true } },
       },
     });
     if (!link || link.revokedAt) return err('INVALID_TOKEN', 'Invalid or revoked link');
@@ -251,6 +254,7 @@ export async function inspectLink(token) {
     return ok({
       type: link.fileId ? 'file' : 'folder',
       name: link.file?.name ?? link.folder?.name ?? null,
+      nameAr: link.folder?.nameAr ?? null,
       size: link.file?.size ?? null,
       mimeType: link.file?.mimeType ?? null,
       passwordRequired: !!link.passwordHash,

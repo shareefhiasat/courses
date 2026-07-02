@@ -97,18 +97,18 @@ const createAttendance = async (attendanceData, user = null) => {
     // Map status strings to status codes (database uses codes, not IDs)
     let statusCode;
     const statusMap = {
-      'present': 'PRESENT',
-      'late': 'LATE',
-      'absent': 'ABSENT',
-      'absent_no_excuse': 'ABSENT',
-      'absent_with_excuse': 'EXCUSED',
-      'excused_leave': 'EXCUSED',
-      'human_case': 'HUMAN_CASE',
+      'present': 'ATTENDANCE_PRESENT',
+      'late': 'ATTENDANCE_LATE',
+      'absent': 'ATTENDANCE_ABSENT',
+      'absent_no_excuse': 'ATTENDANCE_ABSENT',
+      'absent_with_excuse': 'ATTENDANCE_LEAVE',
+      'excused_leave': 'ATTENDANCE_LEAVE',
+      'human_case': 'ATTENDANCE_HUMAN_CASE',
       'standup_present': 'STANDUP_PRESENT',
       'standup_late': 'STANDUP_LATE',
       'standup_absent': 'STANDUP_ABSENT',
       'standup_excused': 'STANDUP_CLINIC',
-      'sick_leave': 'SICK_LEAVE'
+      'sick_leave': 'ATTENDANCE_LEAVE'
     };
     
     statusCode = statusMap[attendanceData.status] || statusMap['present'];

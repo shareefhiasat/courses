@@ -36,17 +36,12 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Atten
       label: getLocalizedAttendanceLabel(ATTENDANCE_STATUS.ABSENT_NO_EXCUSE, lang),
       icon: getThemedIcon('ui', 'x_circle', 16, '#ef4444')
     },
-    { 
-      value: ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE, 
-      label: getLocalizedAttendanceLabel(ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE, lang),
-      icon: getThemedIcon('ui', 'x_circle', 16, '#ef4444')
-    },
-    { 
-      value: ATTENDANCE_STATUS.EXCUSED_LEAVE, 
+    {
+      value: ATTENDANCE_STATUS.EXCUSED_LEAVE,
       label: getLocalizedAttendanceLabel(ATTENDANCE_STATUS.EXCUSED_LEAVE, lang),
       icon: getThemedIcon('ui', 'x_circle', 16, '#ef4444')
     },
-    { 
+    {
       value: ATTENDANCE_STATUS.HUMAN_CASE, 
       label: getLocalizedAttendanceLabel(ATTENDANCE_STATUS.HUMAN_CASE, lang),
       icon: getThemedIcon('ui', 'heart', 16, '#8b5cf6')

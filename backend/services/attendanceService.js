@@ -612,19 +612,17 @@ export const getClassAttendanceStats = async (classId, date) => {
     
     attendances.forEach(attendance => {
       switch (attendance.status.code) {
-        case 'PRESENT':
+        case 'ATTENDANCE_PRESENT':
           stats.present++;
           break;
-        case 'ABSENT':
+        case 'ATTENDANCE_ABSENT':
           stats.absent++;
           break;
-        case 'LATE':
+        case 'ATTENDANCE_LATE':
           stats.late++;
           break;
-        case 'EXCUSED':
-        case 'ABSENT_WITH_EXCUSE':
-        case 'SICK_LEAVE':
-        case 'EARLY_DEPARTURE':
+        case 'ATTENDANCE_LEAVE':
+        case 'ATTENDANCE_HUMAN_CASE':
           stats.excused++;
           break;
       }

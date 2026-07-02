@@ -50,11 +50,10 @@ async function seedDeductionRules() {
   }
 
   const defaults = [
-    { statusCode: 'ABSENT_NO_EXCUSE', absenceTypeId: 'without_excuse', deduction: 0.5, isExcused: false },
-    { statusCode: 'ABSENT_WITH_EXCUSE', absenceTypeId: 'with_excuse', deduction: 0.25, isExcused: true },
-    { statusCode: 'EXCUSED_LEAVE', absenceTypeId: 'with_excuse', deduction: 0.25, isExcused: true },
-    { statusCode: 'LATE', absenceTypeId: null, deduction: 0.5, isExcused: false },
-    { statusCode: 'HUMAN_CASE', absenceTypeId: 'medical_emergency', deduction: 0.25, isExcused: true },
+    { statusCode: 'ATTENDANCE_ABSENT', absenceTypeId: 'without_excuse', deduction: 0.5, isExcused: false },
+    { statusCode: 'ATTENDANCE_LEAVE', absenceTypeId: 'with_excuse', deduction: 0.25, isExcused: true },
+    { statusCode: 'ATTENDANCE_LATE', absenceTypeId: null, deduction: 0.5, isExcused: false },
+    { statusCode: 'ATTENDANCE_HUMAN_CASE', absenceTypeId: 'medical_emergency', deduction: 0.25, isExcused: true },
     { absenceTypeId: 'bereavement', deduction: 0, isExcused: true },
   ];
 

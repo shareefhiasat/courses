@@ -52,13 +52,13 @@ export default function WorkflowHistory({ history = [], onClose }) {
             </div>
             <div className="flex items-center gap-2 mb-1">
               <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getStatusColor(entry.toStatus)}`}>
-                {entry.toStatus}
+                {t(`workflow.status.${entry.toStatus?.toLowerCase()}`, entry.toStatus)}
               </span>
               {entry.fromStatus && (
                 <>
                   <span className="text-xs text-gray-400">{t('workflow.inbox.from')}</span>
                   <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getStatusColor(entry.fromStatus)}`}>
-                    {entry.fromStatus}
+                    {t(`workflow.status.${entry.fromStatus?.toLowerCase()}`, entry.fromStatus)}
                   </span>
                 </>
               )}

@@ -336,10 +336,10 @@ export const BulkScanProvider = ({
               'standup_late': 'STANDUP_LATE',
               'standup_absent': 'STANDUP_ABSENT',
               'standup_clinic': 'STANDUP_CLINIC',
-              'LATE': 'STANDUP_LATE',
-              'ABSENT_NO_EXCUSE': 'STANDUP_ABSENT',
-              'PRESENT': 'STANDUP_PRESENT',
-              'EXCUSED_LEAVE': 'STANDUP_CLINIC'
+              'ATTENDANCE_LATE': 'STANDUP_LATE',
+              'ATTENDANCE_ABSENT': 'STANDUP_ABSENT',
+              'ATTENDANCE_PRESENT': 'STANDUP_PRESENT',
+              'ATTENDANCE_LEAVE': 'STANDUP_CLINIC'
             };
             const mappedStatus = statusMapping[attendanceData.status] || attendanceData.status;
 

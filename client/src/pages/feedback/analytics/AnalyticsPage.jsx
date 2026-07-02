@@ -246,9 +246,9 @@ export default function AnalyticsPage() {
                   <tr>
                     <th>{t('class') || 'CLASS'}</th>
                     <th>{t('total') || 'TOTAL'}</th>
-                    <th>{t('present') || 'PRESENT'}</th>
+                    <th>{t('present') || 'ATTENDANCE_PRESENT'}</th>
                     <th>{t('absent') || 'ABSENT'}</th>
-                    <th>{t('late') || 'LATE'}</th>
+                    <th>{t('late') || 'ATTENDANCE_LATE'}</th>
                     <th>{t('leave') || 'LEAVE'}</th>
                     <th>{t('rate') || 'RATE'}</th>
                   </tr>

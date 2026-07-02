@@ -168,7 +168,6 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Atten
               { value: ATTENDANCE_STATUS.PRESENT, label: getLocalizedAttendanceLabel(ATTENDANCE_STATUS.PRESENT) },
               { value: ATTENDANCE_STATUS.LATE, label: getLocalizedAttendanceLabel(ATTENDANCE_STATUS.LATE) },
               { value: ATTENDANCE_STATUS.ABSENT_NO_EXCUSE, label: getLocalizedAttendanceLabel(ATTENDANCE_STATUS.ABSENT_NO_EXCUSE) },
-              { value: ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE, label: getLocalizedAttendanceLabel(ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE) },
               { value: ATTENDANCE_STATUS.EXCUSED_LEAVE, label: getLocalizedAttendanceLabel(ATTENDANCE_STATUS.EXCUSED_LEAVE) },
               { value: ATTENDANCE_STATUS.HUMAN_CASE, label: getLocalizedAttendanceLabel(ATTENDANCE_STATUS.HUMAN_CASE) }
             ]}

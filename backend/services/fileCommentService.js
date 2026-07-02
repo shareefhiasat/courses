@@ -1,5 +1,5 @@
 import prisma from '../db/prismaClient.js';
-import { USER_NAME_SELECT_WITH_ROLE } from '../utils/userNameFields.js';
+import { USER_NAME_SELECT_WITH_ROLE, normalizeProfileImageUrl } from '../utils/userNameFields.js';
 
 /**
  * Add comment to file
@@ -33,7 +33,7 @@ export const addFileComment = async ({ fileId, userId, comment }) => {
 
     return {
       success: true,
-      payload: fileComment,
+      payload: { ...fileComment, user: normalizeProfileImageUrl(fileComment.user) },
       error: null,
       timestamp: Date.now()
     };
@@ -87,7 +87,7 @@ export const getFileComments = async ({ fileId, userId }) => {
 
     return {
       success: true,
-      payload: comments,
+      payload: comments.map(c => ({ ...c, user: normalizeProfileImageUrl(c.user) })),
       timestamp: Date.now()
     };
   } catch (error) {

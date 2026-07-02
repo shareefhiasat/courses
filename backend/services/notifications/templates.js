@@ -466,6 +466,8 @@ export const createTemplate = (event) => {
         studentName: payload.studentNameAr || payload.studentName,
         instructorName: payload.instructorNameAr || payload.instructorName,
         userName: payload.userNameAr || payload.userName,
+        folderName: payload.folderNameAr || payload.folderName,
+        fileName: payload.fileNameAr || payload.fileName,
       };
       const bodyEn = raw.en ? renderTemplate(raw.en, enVars) : event;
       const bodyAr = raw.ar ? renderTemplate(raw.ar, arVars) : bodyEn;

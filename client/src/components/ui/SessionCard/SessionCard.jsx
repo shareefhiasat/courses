@@ -65,14 +65,14 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Sessi
           fontSize: 11
         }}>
           {createAttendanceBadge(
-            session.scanCounts.present || session.scanCounts.PRESENT || 0,
+            session.scanCounts.present || session.scanCounts.ATTENDANCE_PRESENT || 0,
             'check_circle',
             '#10b981',
             'Present',
             actualTheme
           )}
           {createAttendanceBadge(
-            session.scanCounts.late || session.scanCounts.LATE || 0,
+            session.scanCounts.late || session.scanCounts.ATTENDANCE_LATE || 0,
             'clock',
             '#f59e0b',
             'Late',
@@ -80,28 +80,21 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Sessi
           )}
           {createAttendanceBadge(
             (session.scanCounts.absent_no_excuse || session.scanCounts.absent || 0) + 
-            (session.scanCounts.ABSENT_NO_EXCUSE || 0),
+            (session.scanCounts.ATTENDANCE_ABSENT || 0),
             'x_circle',
             '#ef4444',
             'Absent (No Excuse)',
             actualTheme
           )}
           {createAttendanceBadge(
-            session.scanCounts.absent_with_excuse || session.scanCounts.ABSENT_WITH_EXCUSE || 0,
-            'file_text',
-            '#3b82f6',
-            'Absent (Excused)',
-            actualTheme
-          )}
-          {createAttendanceBadge(
-            session.scanCounts.excused_leave || session.scanCounts.EXCUSED_LEAVE || 0,
+            session.scanCounts.excused_leave || session.scanCounts.ATTENDANCE_LEAVE || 0,
             'heart',
             '#8b5cf6',
             'Excused Leave',
             actualTheme
           )}
           {createAttendanceBadge(
-            session.scanCounts.human_case || session.scanCounts.HUMAN_CASE || 0,
+            session.scanCounts.human_case || session.scanCounts.ATTENDANCE_HUMAN_CASE || 0,
             'heart',
             '#ec4899',
             'Human Case',

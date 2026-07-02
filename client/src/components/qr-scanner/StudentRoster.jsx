@@ -643,10 +643,10 @@ const StudentRoster = React.memo(function StudentRoster({
     console.log('🔍 StudentRoster handleQuickAttendance - status:', status);
     console.log('🔍 StudentRoster handleQuickAttendance - programId:', programIdToUse);
     console.log('🔍 StudentRoster handleQuickAttendance - isStandupMode:', attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP);
-    console.log('🔍 StudentRoster handleQuickAttendance - shouldBlock:', attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP && (status === 'PRESENT' || status === 'LATE'));
+    console.log('🔍 StudentRoster handleQuickAttendance - shouldBlock:', attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP && (status === 'ATTENDANCE_PRESENT' || status === 'ATTENDANCE_LATE'));
 
     if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP &&
-        (status === 'PRESENT' || status === 'LATE')) {
+        (status === 'ATTENDANCE_PRESENT' || status === 'ATTENDANCE_LATE')) {
       debug('🚫 Regular Present/Late marking blocked in stand-up mode:', { status, attendanceMode });
       return;
     }

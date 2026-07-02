@@ -47,7 +47,7 @@ const QuickAttendanceButtons = ({
           onClick={async (e) => {
             e.stopPropagation();
             preventDoubleClick(e);
-            const statusToMark = attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_PRESENT' : 'PRESENT';
+            const statusToMark = attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_PRESENT' : 'ATTENDANCE_PRESENT';
             console.log('🔍 [QuickAttendanceButtons] Present button clicked:', {
               studentId: student.id,
               studentName: student.displayName || student.name,
@@ -59,25 +59,25 @@ const QuickAttendanceButtons = ({
           disabled={isSubmitting || isPresentButtonDisabled || shouldDisableAll}
           onDoubleClick={preventDoubleClick}
           style={{
-            background: getAttendanceColor(attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_PRESENT' : 'PRESENT'),
+            background: getAttendanceColor(attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_PRESENT' : 'ATTENDANCE_PRESENT'),
             border: 'none',
             color: 'white',
             borderRadius: '0.375rem',
             transition: 'all 0.2s ease',
-            boxShadow: (isPresentButtonDisabled || shouldDisableAll) ? 'none' : `0 2px 4px ${getAttendanceColor(attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_PRESENT' : 'PRESENT')}30`,
+            boxShadow: (isPresentButtonDisabled || shouldDisableAll) ? 'none' : `0 2px 4px ${getAttendanceColor(attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_PRESENT' : 'ATTENDANCE_PRESENT')}30`,
             opacity: (isPresentButtonDisabled || shouldDisableAll) ? 0.35 : 1,
             cursor: (isPresentButtonDisabled || shouldDisableAll) ? 'not-allowed' : 'pointer'
           }}
           onMouseEnter={(e) => {
             if (!isPresentButtonDisabled && !shouldDisableAll) {
               e.target.style.transform = 'translateY(-1px)';
-              e.target.style.boxShadow = `0 4px 8px ${getAttendanceColor(attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_PRESENT' : 'PRESENT')}40`;
+              e.target.style.boxShadow = `0 4px 8px ${getAttendanceColor(attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_PRESENT' : 'ATTENDANCE_PRESENT')}40`;
             }
           }}
           onMouseLeave={(e) => {
             if (!isPresentButtonDisabled && !shouldDisableAll) {
               e.target.style.transform = 'translateY(0)';
-              e.target.style.boxShadow = `0 2px 4px ${getAttendanceColor(attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_PRESENT' : 'PRESENT')}30`;
+              e.target.style.boxShadow = `0 2px 4px ${getAttendanceColor(attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_PRESENT' : 'ATTENDANCE_PRESENT')}30`;
             }
           }}
         >
@@ -96,7 +96,7 @@ const QuickAttendanceButtons = ({
           onClick={async (e) => {
             e.stopPropagation();
             preventDoubleClick(e);
-            const statusToMark = attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_LATE' : 'LATE';
+            const statusToMark = attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_LATE' : 'ATTENDANCE_LATE';
             console.log('🔍 [QuickAttendanceButtons] Late button clicked:', {
               studentId: student.id,
               studentName: student.displayName || student.name,
@@ -108,25 +108,25 @@ const QuickAttendanceButtons = ({
           disabled={isSubmitting || isLateButtonDisabled || shouldDisableAll}
           onDoubleClick={preventDoubleClick}
           style={{
-            background: getAttendanceColor(attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_LATE' : 'LATE'),
+            background: getAttendanceColor(attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_LATE' : 'ATTENDANCE_LATE'),
             border: 'none',
             color: 'white',
             borderRadius: '0.375rem',
             transition: 'all 0.2s ease',
-            boxShadow: (isLateButtonDisabled || shouldDisableAll) ? 'none' : `0 2px 4px ${getAttendanceColor(attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_LATE' : 'LATE')}30`,
+            boxShadow: (isLateButtonDisabled || shouldDisableAll) ? 'none' : `0 2px 4px ${getAttendanceColor(attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_LATE' : 'ATTENDANCE_LATE')}30`,
             opacity: (isLateButtonDisabled || shouldDisableAll) ? 0.35 : 1,
             cursor: (isLateButtonDisabled || shouldDisableAll) ? 'not-allowed' : 'pointer'
           }}
           onMouseEnter={(e) => {
             if (!isLateButtonDisabled && !shouldDisableAll) {
               e.target.style.transform = 'translateY(-1px)';
-              e.target.style.boxShadow = `0 4px 8px ${getAttendanceColor(attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_LATE' : 'LATE')}40`;
+              e.target.style.boxShadow = `0 4px 8px ${getAttendanceColor(attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_LATE' : 'ATTENDANCE_LATE')}40`;
             }
           }}
           onMouseLeave={(e) => {
             if (!isLateButtonDisabled && !shouldDisableAll) {
               e.target.style.transform = 'translateY(0)';
-              e.target.style.boxShadow = `0 2px 4px ${getAttendanceColor(attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_LATE' : 'LATE')}30`;
+              e.target.style.boxShadow = `0 2px 4px ${getAttendanceColor(attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_LATE' : 'ATTENDANCE_LATE')}30`;
             }
           }}
         >

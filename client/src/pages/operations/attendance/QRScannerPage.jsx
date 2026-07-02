@@ -1247,7 +1247,7 @@ const QRScannerPage = () => {
             const rawCode = typeof status === 'object' ? (status?.code ?? null) : status;
             if (!rawCode) return ATTENDANCE_STATUS.ABSENT_NO_EXCUSE;
             const upper = rawCode.toUpperCase();
-            // Map DB codes back to frontend codes (e.g. ABSENT → ABSENT_NO_EXCUSE)
+            // Map DB codes back to frontend codes (e.g. ABSENT → ATTENDANCE_ABSENT)
             const frontendCode = DB_CODE_TO_FRONTEND_STATUS[upper] || upper;
             return frontendCode.toLowerCase();
           };
@@ -1335,9 +1335,6 @@ const QRScannerPage = () => {
               case 'absent':
               case ATTENDANCE_STATUS.ABSENT_NO_EXCUSE.toLowerCase():
                 attendanceStats.absent++;
-                break;
-              case ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE.toLowerCase():
-                attendanceStats.absentWithExcuse++;
                 break;
               case ATTENDANCE_STATUS.EXCUSED_LEAVE.toLowerCase():
                 attendanceStats.excusedLeave++;
@@ -1542,7 +1539,7 @@ const QRScannerPage = () => {
           if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
             const upperStatus = data.status.toUpperCase();
             const standupStatus = upperStatus.startsWith('STANDUP_') ? upperStatus : (
-              { PRESENT: 'STANDUP_PRESENT', LATE: 'STANDUP_LATE', ABSENT: 'STANDUP_ABSENT', ABSENT_NO_EXCUSE: 'STANDUP_ABSENT', ABSENT_WITH_EXCUSE: 'STANDUP_ABSENT', HUMAN_CASE: 'STANDUP_CLINIC', EXCUSED_LEAVE: 'STANDUP_CLINIC' }[upperStatus] || upperStatus
+              { ATTENDANCE_PRESENT: 'STANDUP_PRESENT', ATTENDANCE_LATE: 'STANDUP_LATE', ATTENDANCE_ABSENT: 'STANDUP_ABSENT', ATTENDANCE_HUMAN_CASE: 'STANDUP_CLINIC', ATTENDANCE_LEAVE: 'STANDUP_CLINIC' }[upperStatus] || upperStatus
             );
             return { ...s, standupStatus };
           }
@@ -2920,7 +2917,7 @@ const QRScannerPage = () => {
           subjectId: selectedSubjectId,
           programId: selectedProgramId,
           reportDate: formattedDate,
-          onSaved: () => showSuccess(t('export_saved_to_drive') || 'Also saved to Smart Drive → Exported'),
+          onSaved: () => showSuccess(t('export_saved_to_drive') || 'Also saved to Smart Drive → Exported Files'),
         }).catch((e) => console.warn('Failed to log export history:', e));
       }
 
@@ -3060,7 +3057,7 @@ const QRScannerPage = () => {
         subjectId: selectedSubjectId,
         programId: selectedProgramId,
         reportDate: formattedDate,
-        onSaved: () => showSuccess(t('export_saved_to_drive') || 'Also saved to Smart Drive → Exported'),
+        onSaved: () => showSuccess(t('export_saved_to_drive') || 'Also saved to Smart Drive → Exported Files'),
       }).catch((e) => console.warn('Failed to log export history:', e));
     } catch (err) {
       console.error('Daily official export failed:', err);
@@ -3242,8 +3239,7 @@ const QRScannerPage = () => {
       const filteredData = enrichedData.filter((record) => {
         const statusCode = getStatusCodeFromRecord(record) || '';
         if (exportViolationTypes.absentNoExcuse && statusCode === ATTENDANCE_STATUS.ABSENT_NO_EXCUSE) return true;
-        if (exportViolationTypes.absentWithExcuse && statusCode === ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE) return true;
-        if (exportViolationTypes.excusedLeave && statusCode === ATTENDANCE_STATUS.EXCUSED_LEAVE) return true;
+        if ((exportViolationTypes.absentWithExcuse || exportViolationTypes.excusedLeave) && statusCode === ATTENDANCE_STATUS.EXCUSED_LEAVE) return true;
         if (exportViolationTypes.late && statusCode === ATTENDANCE_STATUS.LATE) return true;
         if (exportViolationTypes.humanCase && statusCode === ATTENDANCE_STATUS.HUMAN_CASE) return true;
         return false;
@@ -3289,7 +3285,7 @@ const QRScannerPage = () => {
           format,
           programId: selectedProgramId,
           reportDate: `${dateFrom}_${dateTo}`,
-          onSaved: () => showSuccess(t('export_saved_to_drive') || 'Also saved to Smart Drive → Exported'),
+          onSaved: () => showSuccess(t('export_saved_to_drive') || 'Also saved to Smart Drive → Exported Files'),
         }).catch((e) => console.warn('Failed to log export history:', e));
       } else {
         const excelBlob = await exportAttendanceViolationsReport(filteredData, { lang, t });
@@ -3321,7 +3317,7 @@ const QRScannerPage = () => {
           format: 'excel',
           programId: selectedProgramId,
           reportDate: `${dateFrom}_${dateTo}`,
-          onSaved: () => showSuccess(t('export_saved_to_drive') || 'Also saved to Smart Drive → Exported'),
+          onSaved: () => showSuccess(t('export_saved_to_drive') || 'Also saved to Smart Drive → Exported Files'),
         }).catch((e) => console.warn('Failed to log export history:', e));
       }
 
@@ -3518,10 +3514,7 @@ const QRScannerPage = () => {
         } else if (status === ATTENDANCE_STATUS.ABSENT_NO_EXCUSE || status === ATTENDANCE_STATUS.ABSENT_NO_EXCUSE.toLowerCase() || status === ATTENDANCE_STATUS.STANDUP_ABSENT) {
           studentAttendanceMap[studentId].absentNoExcuse++;
           studentAttendanceMap[studentId].subjects[subjectId].absentNoExcuse++;
-        } else if (status === ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE || status === 'absence_excused' || status === 'absenceexcused' || status === ATTENDANCE_STATUS.STANDUP_ABSENT || status === ATTENDANCE_STATUS.STANDUP_CLINIC) {
-          studentAttendanceMap[studentId].absentWithExcuse++;
-          studentAttendanceMap[studentId].subjects[subjectId].absentWithExcuse++;
-        } else if (status === ATTENDANCE_STATUS.EXCUSED_LEAVE || status === ATTENDANCE_STATUS.EXCUSED_LEAVE.toLowerCase()) {
+        } else if (status === ATTENDANCE_STATUS.EXCUSED_LEAVE || status === ATTENDANCE_STATUS.EXCUSED_LEAVE.toLowerCase() || status === 'absence_excused' || status === 'absenceexcused' || status === ATTENDANCE_STATUS.STANDUP_CLINIC) {
           studentAttendanceMap[studentId].excusedLeave++;
           studentAttendanceMap[studentId].subjects[subjectId].excusedLeave++;
         } else if (status === ATTENDANCE_STATUS.HUMAN_CASE || status === ATTENDANCE_STATUS.HUMAN_CASE.toLowerCase()) {
@@ -4285,7 +4278,7 @@ const QRScannerPage = () => {
           classId: selectedClassId,
           subjectId: selectedSubjectId,
           programId: selectedProgramId,
-          onSaved: () => showSuccess(t('export_saved_to_drive') || 'Also saved to Smart Drive → Exported'),
+          onSaved: () => showSuccess(t('export_saved_to_drive') || 'Also saved to Smart Drive → Exported Files'),
         }).catch((e) => console.warn('Failed to log export history:', e));
       }
 
@@ -4341,13 +4334,13 @@ const QRScannerPage = () => {
         const status = (typeof record.status === 'string' ? record.status : record.status?.code || '').toUpperCase();
         studentMap[sid].total++;
 
-        if (status === 'STANDUP_PRESENT' || status === 'PRESENT') {
+        if (status === 'STANDUP_PRESENT' || status === 'ATTENDANCE_PRESENT') {
           studentMap[sid].present++;
-        } else if (status === 'STANDUP_LATE' || status === 'LATE') {
+        } else if (status === 'STANDUP_LATE' || status === 'ATTENDANCE_LATE') {
           studentMap[sid].late++;
-        } else if (status === 'STANDUP_ABSENT' || status === 'ABSENT_NO_EXCUSE') {
+        } else if (status === 'STANDUP_ABSENT' || status === 'ATTENDANCE_ABSENT') {
           studentMap[sid].absent++;
-        } else if (status === 'STANDUP_CLINIC' || status === 'HUMAN_CASE') {
+        } else if (status === 'STANDUP_CLINIC' || status === 'ATTENDANCE_HUMAN_CASE' || status === 'ATTENDANCE_LEAVE') {
           studentMap[sid].clinic++;
         }
       });

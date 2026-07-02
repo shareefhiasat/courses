@@ -11,7 +11,7 @@
  */
 
 import prisma from '../db/prismaClient.js';
-import { USER_NAME_SELECT_WITH_ID } from '../utils/userNameFields.js';
+import { USER_NAME_SELECT_WITH_ID, USER_NAME_SELECT_WITH_ROLE, normalizeProfileImageUrl } from '../utils/userNameFields.js';
 import { Prisma } from '@prisma/client';
 import { getDatabaseUserId } from '../utils/database/userResolver.js';
 import { SHARE_SUBJECT_TYPES, SHARE_PERMISSIONS } from '../constants/driveConstants.js';
@@ -69,10 +69,13 @@ export async function createShare(input, actor) {
         return err('ACCESS_DENIED', 'Only owner can grant shares');
       }
     } else {
-      const folder = await prisma.folder.findUnique({ where: { id: folderId }, select: { ownerId: true, isDeleted: true } });
+      const folder = await prisma.folder.findUnique({ where: { id: folderId }, select: { ownerId: true, isDeleted: true, name: true, nameAr: true, parentId: true } });
       if (!folder || folder.isDeleted) return err('FOLDER_NOT_FOUND', 'Folder not found');
       if (folder.ownerId !== actor.userId && !(actor.roles || []).includes('super_admin')) {
         return err('ACCESS_DENIED', 'Only owner can grant shares');
+      }
+      if (!folder.parentId && ['Exported Files', 'Exported'].includes(folder.name)) {
+        return err('FOLDER_PROTECTED', 'This folder cannot be shared');
       }
     }
 
@@ -121,12 +124,14 @@ export async function createShare(input, actor) {
         });
         
         let itemName = '';
+        let itemNameAr = null;
         if (fileId) {
           const file = await prisma.file.findUnique({ where: { id: fileId }, select: { name: true } });
           itemName = file?.name || 'File';
         } else if (folderId) {
-          const folder = await prisma.folder.findUnique({ where: { id: folderId }, select: { name: true } });
+          const folder = await prisma.folder.findUnique({ where: { id: folderId }, select: { name: true, nameAr: true } });
           itemName = folder?.name || 'Folder';
+          itemNameAr = folder?.nameAr || null;
         }
         
         const event = fileId ? EVENTS.DRIVE_FILE_SHARED : EVENTS.DRIVE_FOLDER_SHARED;
@@ -134,6 +139,7 @@ export async function createShare(input, actor) {
           ...buildNotificationNameVars(sharer, 'Unknown User'),
           fileName: itemName,
           folderName: itemName,
+          folderNameAr: itemNameAr,
           permission
         };
         
@@ -217,18 +223,21 @@ export async function revokeShare(shareId, actor) {
       });
       
       let itemName = '';
+      let itemNameAr = null;
       if (share.fileId) {
         const file = await prisma.file.findUnique({ where: { id: share.fileId }, select: { name: true } });
         itemName = file?.name || 'File';
       } else if (share.folderId) {
-        const folder = await prisma.folder.findUnique({ where: { id: share.folderId }, select: { name: true } });
+        const folder = await prisma.folder.findUnique({ where: { id: share.folderId }, select: { name: true, nameAr: true } });
         itemName = folder?.name || 'Folder';
+        itemNameAr = folder?.nameAr || null;
       }
       
       const payload = {
         ...buildNotificationNameVars(revoker, 'Unknown User'),
         fileName: itemName,
-        folderName: itemName
+        folderName: itemName,
+        folderNameAr: itemNameAr
       };
       
       if (share.subjectType === 'USER' && share.subjectUserId) {
@@ -276,8 +285,8 @@ export async function listFileShares(fileId, actor, subjectType = null) {
     const shares = await prisma.fileShare.findMany({
       where,
       include: {
-        subjectUser: { select: { id: true, email: true, displayName: true } },
-        grantedBy: { select: { id: true, email: true, displayName: true } },
+        subjectUser: { select: USER_NAME_SELECT_WITH_ROLE },
+        grantedBy: { select: USER_NAME_SELECT_WITH_ID },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -334,7 +343,11 @@ export async function listFileShares(fileId, actor, subjectType = null) {
     
     console.log('[fileShareService] Shares after filter:', filteredShares.length);
     
-    return ok(filteredShares);
+    return ok(filteredShares.map(s => ({
+      ...s,
+      subjectUser: normalizeProfileImageUrl(s.subjectUser),
+      grantedBy: normalizeProfileImageUrl(s.grantedBy),
+    })));
   } catch (error) {
     console.error('[fileShareService.listFileShares]', error);
     return err('LIST_SHARES_FAILED', error.message);

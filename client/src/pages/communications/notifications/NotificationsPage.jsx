@@ -314,7 +314,6 @@ const NotificationsPage = () => {
                 { value: ATTENDANCE_STATUS.PRESENT, label: 'Present' },
                 { value: ATTENDANCE_STATUS.LATE, label: 'Late' },
                 { value: ATTENDANCE_STATUS.ABSENT_NO_EXCUSE, label: 'Absent' },
-                { value: ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE, label: 'Absent Excused' },
                 { value: ATTENDANCE_STATUS.EXCUSED_LEAVE, label: 'Excused Leave' },
                 { value: ATTENDANCE_STATUS.HUMAN_CASE, label: 'Human Case' }
               ]}

@@ -250,6 +250,7 @@ const MarksTab = React.memo(({
         width: 80,
         sortable: false,
         filterable: false,
+        exportable: false,
         renderCell: (params) => (
           <Button
             size="sm"

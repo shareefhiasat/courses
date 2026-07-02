@@ -52,17 +52,17 @@
 
 .distributionGrid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: 0.125rem;
   padding: 0;
 }
 
 .distributionGrid > div {
-  padding: 0;
+  padding: 0.25rem 0.5rem;
   background: var(--background);
   border-radius: 4px;
-  font-weight: 500;
-  font-size: var(--font-size-xs);
+  font-weight: 600;
+  font-size: var(--font-size-sm);
   color: var(--text-secondary);
   white-space: nowrap;
   overflow: hidden;

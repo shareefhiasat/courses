@@ -13,9 +13,10 @@ import { chatService } from '@services/business/chatService';
 import { getThemedIcon, getIconWithColor, getUserRoleColor } from '@constants/iconTypes';
 import { getChatUserDisplayName, resolveUserRole } from '@utils/userUtils';
 import RoleBadge from './RoleBadge';
+import AvatarWithRoleBadge from './AvatarWithRoleBadge';
 import styles from './ParticipantManagementModal.module.css';
 
-const ParticipantManagementModal = ({ isOpen, onClose, room, currentUserId, onParticipantsChanged }) => {
+const ParticipantManagementModal = ({ isOpen, onClose, room, currentUserId, onParticipantsChanged, onStartDM }) => {
   const { t, isRTL } = useLang();
   const { theme } = useTheme();
   const toast = useToast();
@@ -279,17 +280,7 @@ const ParticipantManagementModal = ({ isOpen, onClose, room, currentUserId, onPa
                 return (
                   <div key={participant.id} className={styles.participantItem}>
                     <div className={styles.userInfo}>
-                      {user?.profileImageUrl ? (
-                        <img 
-                          src={user.profileImageUrl} 
-                          alt={user.displayName}
-                          className={styles.userAvatar}
-                          onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
-                        />
-                      ) : null}
-                      <div className={styles.userAvatarPlaceholder} style={user?.profileImageUrl ? { display: 'none' } : {}}>
-                        {(user?.displayName || user?.firstName || 'U')[0].toUpperCase()}
-                      </div>
+                      <AvatarWithRoleBadge user={user} size={40} badgeSize={16} iconSize={10} t={t} />
                       <div className={styles.userDetails}>
                         <div className={styles.userName}>
                           <RoleBadge user={user} size={12} />
@@ -320,26 +311,38 @@ const ParticipantManagementModal = ({ isOpen, onClose, room, currentUserId, onPa
                         </div>
                       </div>
                     </div>
-                    {isCreator && !isRoomCreator && (
-                      <div style={{ display: 'flex', gap: '0.25rem', flexShrink: 0 }}>
+                    <div style={{ display: 'flex', gap: '0.25rem', flexShrink: 0, alignItems: 'center' }}>
+                      {onStartDM && participant.userId !== currentUserId && (
                         <button
                           className={styles.addButton}
-                          onClick={() => handleAssignAdmin(participant)}
-                          disabled={actionLoading === `admin-${participant.userId}`}
-                          title={t('chat_assign_admin') || 'Assign as Admin'}
-                          style={{ color: '#ffc107' }}
+                          onClick={() => onStartDM(user)}
+                          title={t('chat_new_message') || 'Message'}
+                          style={{ color: 'var(--brand)' }}
                         >
-                          {actionLoading === `admin-${participant.userId}` ? t('saving') : getIconWithColor('ui', 'crown', 16, '#ffc107')}
+                          {getThemedIcon('ui', 'message_square', 18, theme)}
                         </button>
-                        <button
-                          className={styles.removeButton}
-                          onClick={() => handleRemoveParticipant(participant)}
-                          disabled={isLoading}
-                        >
-                          {isLoading ? t('removing') : getThemedIcon('ui', 'x', 18, theme)}
-                        </button>
-                      </div>
-                    )}
+                      )}
+                      {isCreator && !isRoomCreator && (
+                        <>
+                          <button
+                            className={styles.addButton}
+                            onClick={() => handleAssignAdmin(participant)}
+                            disabled={actionLoading === `admin-${participant.userId}`}
+                            title={t('chat_assign_admin') || 'Assign as Admin'}
+                            style={{ color: '#ffc107' }}
+                          >
+                            {actionLoading === `admin-${participant.userId}` ? t('saving') : getIconWithColor('ui', 'crown', 16, '#ffc107')}
+                          </button>
+                          <button
+                            className={styles.removeButton}
+                            onClick={() => handleRemoveParticipant(participant)}
+                            disabled={isLoading}
+                          >
+                            {isLoading ? t('removing') : getThemedIcon('ui', 'x', 18, theme)}
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </div>
                 );
               })}
@@ -370,17 +373,7 @@ const ParticipantManagementModal = ({ isOpen, onClose, room, currentUserId, onPa
                     return (
                       <div key={user.id} className={styles.availableUserItem}>
                         <div className={styles.userInfo}>
-                          {user.profileImageUrl ? (
-                            <img 
-                              src={user.profileImageUrl} 
-                              alt={user.displayName}
-                              className={styles.userAvatar}
-                              onError={(e) => { e.target.style.display = 'none'; e.target.nextSibling.style.display = 'flex'; }}
-                            />
-                          ) : null}
-                          <div className={styles.userAvatarPlaceholder} style={user.profileImageUrl ? { display: 'none' } : {}}>
-                            {(user.displayName || user.firstName || 'U')[0].toUpperCase()}
-                          </div>
+                          <AvatarWithRoleBadge user={user} size={40} badgeSize={16} iconSize={10} t={t} />
                           <div className={styles.userDetails}>
                             <div className={styles.userName}>
                               <RoleBadge user={user} size={12} />
@@ -405,13 +398,25 @@ const ParticipantManagementModal = ({ isOpen, onClose, room, currentUserId, onPa
                             </div>
                           </div>
                         </div>
-                        <button
-                          className={styles.addButton}
-                          onClick={() => handleAddParticipant(user)}
-                          disabled={isLoading}
-                        >
-                          {isLoading ? t('adding') : getThemedIcon('ui', 'plus', 18, theme)}
-                        </button>
+                        <div style={{ display: 'flex', gap: '0.25rem', flexShrink: 0, alignItems: 'center' }}>
+                          {onStartDM && user.id !== currentUserId && (
+                            <button
+                              className={styles.addButton}
+                              onClick={() => onStartDM(user)}
+                              title={t('chat_new_message') || 'Message'}
+                              style={{ color: 'var(--brand)' }}
+                            >
+                              {getThemedIcon('ui', 'message_square', 18, theme)}
+                            </button>
+                          )}
+                          <button
+                            className={styles.addButton}
+                            onClick={() => handleAddParticipant(user)}
+                            disabled={isLoading}
+                          >
+                            {isLoading ? t('adding') : getThemedIcon('ui', 'plus', 18, theme)}
+                          </button>
+                        </div>
                       </div>
                     );
                   })

@@ -55,7 +55,8 @@ export const ACTIVITY_LOG_TYPES = {
   PERFORMANCE: { icon: Zap, color: '#f59e0b', label: 'Performance' },
   RESOURCE_VIEWED: { icon: FileText, color: '#3b82f6', label: 'Resource Viewed' },
   ANNOUNCEMENT_READ: { icon: FileText, color: '#3b82f6', label: 'Announcement Read' },
-  ACTIVITY_VIEWED: { icon: BookOpen, color: '#3b82f6', label: 'Activity Viewed' }
+  ACTIVITY_VIEWED: { icon: BookOpen, color: '#3b82f6', label: 'Activity Viewed' },
+  PROFILE_UPDATE: { icon: User, color: '#3b82f6', label: 'Profile Updated' }
 };
 
 /**
@@ -189,6 +190,18 @@ export async function logActivityViewed(activityId, activityTitle, metadata = {}
 }
 
 /**
+ * Log profile update
+ */
+export async function logProfileUpdate(user = null, metadata = {}) {
+  return logActivity(
+    ACTIVITY_LOG_TYPES.PROFILE_UPDATE,
+    `Profile updated`,
+    { ...metadata, updateTime: new Date().toISOString() },
+    user
+  );
+}
+
+/**
  * Get activity icon component
  */
 export function getActivityIcon(type, size = 16, color = null) {
@@ -229,7 +242,8 @@ export const ActivityLogger = {
   announcementRead: logAnnouncementRead,
   activityViewed: logActivityViewed,
   quizViewed: logActivityViewed,
-  quizStarted: logActivityViewed
+  quizStarted: logActivityViewed,
+  profileUpdate: logProfileUpdate
 };
 
 export default ActivityLogger;

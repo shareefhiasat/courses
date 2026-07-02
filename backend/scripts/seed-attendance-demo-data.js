@@ -20,14 +20,15 @@ const STANDUP_CODES = [
   { code: 'STANDUP_CLINIC', nameEn: 'Standup Clinic', nameAr: 'عيادة' },
 ];
 
-const CLASS_STATUS_ROTATION = ['PRESENT', 'PRESENT', 'LATE', 'ABSENT', 'EXCUSED', 'PRESENT'];
+const CLASS_STATUS_ROTATION = ['ATTENDANCE_PRESENT', 'ATTENDANCE_PRESENT', 'ATTENDANCE_LATE', 'ATTENDANCE_ABSENT', 'ATTENDANCE_LEAVE', 'ATTENDANCE_HUMAN_CASE', 'ATTENDANCE_PRESENT'];
 const STANDUP_STATUS_ROTATION = ['STANDUP_PRESENT', 'STANDUP_PRESENT', 'STANDUP_LATE', 'STANDUP_ABSENT', 'STANDUP_CLINIC'];
 
 const CLASS_STATUS_CODES = [
-  { code: 'PRESENT', nameEn: 'Present', nameAr: 'حاضر' },
-  { code: 'LATE', nameEn: 'Late', nameAr: 'متأخر' },
-  { code: 'ABSENT', nameEn: 'Absent', nameAr: 'غائب' },
-  { code: 'EXCUSED', nameEn: 'Excused', nameAr: 'معذور' },
+  { code: 'ATTENDANCE_PRESENT', nameEn: 'Present', nameAr: 'حاضر' },
+  { code: 'ATTENDANCE_LATE', nameEn: 'Late', nameAr: 'متأخر' },
+  { code: 'ATTENDANCE_ABSENT', nameEn: 'Absent', nameAr: 'غائب' },
+  { code: 'ATTENDANCE_LEAVE', nameEn: 'Excused Leave', nameAr: 'معذور' },
+  { code: 'ATTENDANCE_HUMAN_CASE', nameEn: 'Human Case', nameAr: 'حالة إنسانية' },
 ];
 
 async function ensureStandupStatusTypes() {

@@ -61,6 +61,7 @@ export async function createFileShare(req, res) {
           EVENTS.DRIVE_FOLDER_SHARED,
           {
             folderName: folder.name,
+            folderNameAr: folder.nameAr,
             sharedBy: folder.owner?.displayName || `${folder.owner?.firstName} ${folder.owner?.lastName}`
           },
           req.user,

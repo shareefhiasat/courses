@@ -852,6 +852,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
       width: 180,
       sortable: false,
       filterable: false,
+      exportable: false,
       renderCell: (params) => {
         // Get all roles from multiple sources
         const userRoles = [];

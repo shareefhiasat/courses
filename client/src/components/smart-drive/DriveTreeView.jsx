@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
-import { getThemedIcon } from '@constants/iconTypes';
+import { getThemedIcon, getColoredFolderIcon } from '@constants/iconTypes';
+import { getLocalizedFolderName } from '@utils/localizedFolderName';
 
 export default function DriveTreeView({ folders, onFolderSelect, currentFolderId }) {
-  const { t, isRTL } = useLang();
+  const { t, isRTL, lang } = useLang();
   const { theme } = useTheme();
   const [expandedFolders, setExpandedFolders] = useState(new Set());
 
@@ -119,7 +120,9 @@ export default function DriveTreeView({ folders, onFolderSelect, currentFolderId
 
           {/* Folder icon */}
           <div style={{ marginRight: '0.5rem', color: isSelected ? 'var(--color-primary, #3b82f6)' : 'var(--text-muted, #6b7280)' }}>
-            {getThemedIcon('ui', 'folder', 16, isSelected ? 'primary' : 'muted')}
+            {folder.color
+              ? getColoredFolderIcon(16, folder.color)
+              : getThemedIcon('ui', 'folder', 16, isSelected ? 'primary' : 'muted')}
           </div>
 
           {/* Folder name */}
@@ -133,9 +136,9 @@ export default function DriveTreeView({ folders, onFolderSelect, currentFolderId
               textOverflow: 'ellipsis',
               whiteSpace: 'nowrap',
             }}
-            title={folder.name}
+            title={getLocalizedFolderName(folder, lang)}
           >
-            {folder.name}
+            {getLocalizedFolderName(folder, lang)}
           </span>
 
           {/* File count and size badges */}

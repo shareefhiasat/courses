@@ -770,7 +770,7 @@ const MarksPage = () => {
       />
       <Card style={{ marginBottom: '1.5rem' }}>
         <CardBody>
-          <div data-tour="marks-filters" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 8 }}>
+          <div data-tour="marks-filters" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
             <ProgramsSelect
               programs={programs}
               subjects={subjects}
@@ -788,42 +788,48 @@ const MarksPage = () => {
         </CardBody>
       </Card>
 
-      {selectedSubject && marksDistribution && (
-        <Card data-tour="marks-distribution" style={{ marginBottom: '1.5rem' }}>
-          <CardBody>
-            <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: '0.5rem' }}>
-              <div className={styles.distributionGrid} style={{ flex: 1, marginRight: '0.5rem' }}>
-                <div>{t('mid_term') || 'Mid-Term'} {marksDistribution.midTermExam}%</div>
-                <div>{t('final') || 'Final'} {marksDistribution.finalExam}%</div>
-                <div>{t('homework') || 'Homework'} {marksDistribution.homework}%</div>
-                <div>{t('labs_projects_research') || 'Labs/Projects/Research'} {marksDistribution.labsProjectResearch}%</div>
-                <div>{t('quizzes') || 'Quizzes'} {marksDistribution.quizzes}%</div>
-                <div>{t('participation') || 'Participation'} {marksDistribution.participation}%</div>
-                <div>{t('attendance') || 'Attendance'} {marksDistribution.attendance}%</div>
+      {(() => {
+        const dist = marksDistribution;
+        const hasData = selectedSubject && dist;
+        const displayVal = (val) => hasData ? `${val}%` : '-';
+        return (
+          <Card data-tour="marks-distribution" style={{ marginBottom: '1.5rem' }}>
+            <CardBody>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: '0.5rem' }}>
+                <div className={styles.distributionGrid} style={{ flex: 1, marginRight: '0.5rem' }}>
+                  <div>{t('mid_term') || 'Mid-Term'} {displayVal(dist?.midTermExam)}</div>
+                  <div>{t('final') || 'Final'} {displayVal(dist?.finalExam)}</div>
+                  <div>{t('homework') || 'Homework'} {displayVal(dist?.homework)}</div>
+                  <div>{t('labs_projects_research') || 'Labs/Projects/Research'} {displayVal(dist?.labsProjectResearch)}</div>
+                  <div>{t('quizzes') || 'Quizzes'} {displayVal(dist?.quizzes)}</div>
+                  <div>{t('participation') || 'Participation'} {displayVal(dist?.participation)}</div>
+                  <div>{t('attendance') || 'Attendance'} {displayVal(dist?.attendance)}</div>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={!hasData}
+                  onClick={() => {
+                    setDistributionForm({
+                      midTermExam: dist.midTermExam || 20,
+                      finalExam: dist.finalExam || 40,
+                      homework: dist.homework || 5,
+                      labsProjectResearch: dist.labsProjectResearch || 10,
+                      quizzes: dist.quizzes || 5,
+                      participation: dist.participation || 10,
+                      attendance: dist.attendance || 10,
+                    });
+                    setEditingDistribution(true);
+                  }}
+                  style={{ display: 'flex', alignItems: 'center', padding: '0.25rem 0.5rem' }}
+                >
+                  {getThemedIcon('ui', 'settings', 14, theme)}
+                </Button>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setDistributionForm({
-                    midTermExam: marksDistribution.midTermExam || 20,
-                    finalExam: marksDistribution.finalExam || 40,
-                    homework: marksDistribution.homework || 5,
-                    labsProjectResearch: marksDistribution.labsProjectResearch || 10,
-                    quizzes: marksDistribution.quizzes || 5,
-                    participation: marksDistribution.participation || 10,
-                    attendance: marksDistribution.attendance || 10,
-                  });
-                  setEditingDistribution(true);
-                }}
-                style={{ display: 'flex', alignItems: 'center', padding: '0.25rem 0.5rem' }}
-              >
-                {getThemedIcon('ui', 'settings', 14, theme)}
-              </Button>
-            </div>
-          </CardBody>
-        </Card>
-      )}
+            </CardBody>
+          </Card>
+        );
+      })()}
 
       {editingDistribution && selectedSubject && (
         <Card style={{ marginBottom: '1rem', background: '#fef3c7', border: '1px solid #fbbf24' }}>
@@ -851,6 +857,33 @@ const MarksPage = () => {
                   return;
                 }
 
+                // Validate: new max must not be below existing student marks
+                const categories = [
+                  { key: 'midTermExam', label: t('mid_term') || 'Mid-Term' },
+                  { key: 'finalExam', label: t('final') || 'Final' },
+                  { key: 'homework', label: t('homework') || 'Homework' },
+                  { key: 'labsProjectResearch', label: t('labs_projects_research') || 'Labs/Projects/Research' },
+                  { key: 'quizzes', label: t('quizzes') || 'Quizzes' },
+                  { key: 'participation', label: t('participation') || 'Participation' },
+                  { key: 'attendance', label: t('attendance') || 'Attendance' },
+                ];
+                const subjectRows = marksReportData.filter(row => row.subjectId == subjectFilter);
+                const collisionErrors = [];
+                for (const cat of categories) {
+                  const newMax = distributionForm[cat.key] || 0;
+                  const existingMax = Math.max(0, ...subjectRows.map(r => Number(r[cat.key]) || 0));
+                  if (existingMax > newMax) {
+                    collisionErrors.push(
+                      t('distribution_max_below_existing', { category: cat.label, max: existingMax })
+                        || `Cannot set ${cat.label} max below ${existingMax} — students already have marks up to ${existingMax}`
+                    );
+                  }
+                }
+                if (collisionErrors.length > 0) {
+                  toast?.error?.(collisionErrors.join('\n'));
+                  return;
+                }
+
                 try {
                   await setSubjectMarksDistribution(selectedSubject.docId || selectedSubject.id, distributionForm);
                   setEditingDistribution(false);
@@ -870,13 +903,14 @@ const MarksPage = () => {
                 }
               }}
             >
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
                 <div>
                   <label>{t('mid_term') || 'Mid-Term'} (%)</label>
                   <Input
                     type="number"
                     min="0"
                     max="100"
+                    placeholder="0-100"
                     value={distributionForm.midTermExam}
                     onChange={(e) => setDistributionForm(prev => ({ ...prev, midTermExam: parseFloat(e.target.value) || 0 }))}
                     required
@@ -888,6 +922,7 @@ const MarksPage = () => {
                     type="number"
                     min="0"
                     max="100"
+                    placeholder="0-100"
                     value={distributionForm.finalExam}
                     onChange={(e) => setDistributionForm(prev => ({ ...prev, finalExam: parseFloat(e.target.value) || 0 }))}
                     required
@@ -899,6 +934,7 @@ const MarksPage = () => {
                     type="number"
                     min="0"
                     max="100"
+                    placeholder="0-100"
                     value={distributionForm.homework}
                     onChange={(e) => setDistributionForm(prev => ({ ...prev, homework: parseFloat(e.target.value) || 0 }))}
                     required
@@ -910,6 +946,7 @@ const MarksPage = () => {
                     type="number"
                     min="0"
                     max="100"
+                    placeholder="0-100"
                     value={distributionForm.labsProjectResearch}
                     onChange={(e) => setDistributionForm(prev => ({ ...prev, labsProjectResearch: parseFloat(e.target.value) || 0 }))}
                     required
@@ -921,6 +958,7 @@ const MarksPage = () => {
                     type="number"
                     min="0"
                     max="100"
+                    placeholder="0-100"
                     value={distributionForm.quizzes}
                     onChange={(e) => setDistributionForm(prev => ({ ...prev, quizzes: parseFloat(e.target.value) || 0 }))}
                     required
@@ -932,6 +970,7 @@ const MarksPage = () => {
                     type="number"
                     min="0"
                     max="100"
+                    placeholder="0-100"
                     value={distributionForm.participation}
                     onChange={(e) => setDistributionForm(prev => ({ ...prev, participation: parseFloat(e.target.value) || 0 }))}
                     required
@@ -943,6 +982,7 @@ const MarksPage = () => {
                     type="number"
                     min="0"
                     max="100"
+                    placeholder="0-100"
                     value={distributionForm.attendance}
                     onChange={(e) => setDistributionForm(prev => ({ ...prev, attendance: parseFloat(e.target.value) || 0 }))}
                     required
@@ -970,51 +1010,57 @@ const MarksPage = () => {
         </Card>
       )}
 
-      {selectedSubject && (
-        <Card data-tour="marks-grid">
-          <CardBody>
-            <div style={{ marginBottom: '1rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.5rem' }}>
-                
-              </div>
-              {/* Additional Filters */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 8, marginBottom: '1rem' }}>
-              <Select
-                searchable
-                value={yearFilter}
-                onChange={(e) => setYearFilter(e.target.value)}
-                options={[
-                  { value: '', label: t('all_years') || 'All Years' },
-                  ...availableYears.map(year => ({ value: year, label: year }))
-                ]}
-                fullWidth
-              />
-              <Select
-                searchable
-                value={termFilter}
-                onChange={(e) => setTermFilter(e.target.value)}
-                options={[
-                  { value: '', label: t('all_terms') || 'All Terms' },
-                  ...availableTerms.map(term => ({ value: term, label: term }))
-                ]}
-                fullWidth
-              />
-              <Select
-                searchable
-                value={repeatedFilter}
-                onChange={(e) => setRepeatedFilter(e.target.value)}
-                options={[
-                  { value: '', label: t('all') || 'All' },
-                  { value: 'false', label: t('first_attempt') || 'First Attempt' },
-                  { value: 'true', label: t('repeated') || 'Repeated' }
-                ]}
-                fullWidth
-              />
+      <Card data-tour="marks-grid">
+        <CardBody>
+          <div style={{ marginBottom: '1rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.5rem' }}>
+              
             </div>
-            
-            {marksReportLoading && !marksReportData.length ? (
-              <SimpleLoading loading type="spinner" size="md" />
-            ) : marksReportData.length === 0 ? (
+            {/* Additional Filters */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 8, marginBottom: '1rem' }}>
+            <Select
+              searchable
+              placeholder={t('select_year') || 'Select Year'}
+              value={yearFilter}
+              onChange={(e) => setYearFilter(e.target.value)}
+              options={[
+                { value: '', label: t('all_years') || 'All Years' },
+                ...availableYears.map(year => ({ value: year, label: year }))
+              ]}
+              fullWidth
+            />
+            <Select
+              searchable
+              placeholder={t('select_term') || 'Select Term'}
+              value={termFilter}
+              onChange={(e) => setTermFilter(e.target.value)}
+              options={[
+                { value: '', label: t('all_terms') || 'All Terms' },
+                ...availableTerms.map(term => ({ value: term, label: term }))
+              ]}
+              fullWidth
+            />
+            <Select
+              searchable
+              placeholder={t('select_status') || 'Select Status'}
+              value={repeatedFilter}
+              onChange={(e) => setRepeatedFilter(e.target.value)}
+              options={[
+                { value: '', label: t('all') || 'All' },
+                { value: 'false', label: t('first_attempt') || 'First Attempt' },
+                { value: 'true', label: t('repeated') || 'Repeated' }
+              ]}
+              fullWidth
+            />
+          </div>
+          
+          {marksReportLoading && !marksReportData.length ? (
+            <SimpleLoading loading type="spinner" size="md" />
+          ) : !selectedSubject ? (
+            <div style={{ textAlign: 'center', padding: '2rem' }}>
+              <p>{t('select_subject_to_view') || 'Select a subject to view student marks'}</p>
+            </div>
+          ) : marksReportData.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '2rem' }}>
                 <p>{t('no_students_found') || 'No students found for the selected filters'}</p>
                 <p style={{ fontSize: 'var(--font-size-sm)', color: '#666' }}>
@@ -1023,7 +1069,7 @@ const MarksPage = () => {
               </div>
             ) : (
               <AdvancedDataGrid
-                key={`marks-grid-${subjectFilter}-${marksReportData.length}`}
+                key={`marks-grid-${subjectFilter}-${marksReportData.map(r => `${r.userId}-${r.subjectId}`).join('|')}`}
                 rows={marksReportData.filter(row => row.subjectId == subjectFilter)}
                 columns={[
                   {
@@ -1031,6 +1077,10 @@ const MarksPage = () => {
                     headerName: t('student_number') || 'Student No.',
                     width: 100,
                     editable: false,
+                    valueFormatter: (params) => {
+                      const row = params?.row || {};
+                      return row.studentNumber || row.studentId || '';
+                    },
                     renderCell: (params) => {
                       const row = params?.row || {};
                       const value = row.studentNumber || row.studentId || '';
@@ -1076,6 +1126,11 @@ const MarksPage = () => {
                       const max = marksDistribution?.midTermExam || 20;
                       return isNaN(num) ? 0 : Math.max(0, Math.min(max, num));
                     },
+                    valueFormatter: (params) => {
+                      const value = params?.value || 0;
+                      const max = marksDistribution?.midTermExam || 20;
+                      return `${value}/${max}`;
+                    },
                     renderCell: (params) => {
                       const value = params.value || 0;
                       const max = marksDistribution?.midTermExam || 20;
@@ -1096,6 +1151,11 @@ const MarksPage = () => {
                       const num = parseFloat(value);
                       const max = marksDistribution?.finalExam || 40;
                       return isNaN(num) ? 0 : Math.max(0, Math.min(max, num));
+                    },
+                    valueFormatter: (params) => {
+                      const value = params?.value || 0;
+                      const max = marksDistribution?.finalExam || 40;
+                      return `${value}/${max}`;
                     },
                     renderCell: (params) => {
                       const value = params.value || 0;
@@ -1118,6 +1178,11 @@ const MarksPage = () => {
                       const max = marksDistribution?.homework || 5;
                       return isNaN(num) ? 0 : Math.max(0, Math.min(max, num));
                     },
+                    valueFormatter: (params) => {
+                      const value = params?.value || 0;
+                      const max = marksDistribution?.homework || 5;
+                      return `${value}/${max}`;
+                    },
                     renderCell: (params) => {
                       const value = params.value || 0;
                       const max = marksDistribution?.homework || 5;
@@ -1138,6 +1203,11 @@ const MarksPage = () => {
                       const num = parseFloat(value);
                       const max = marksDistribution?.labsProjectResearch || 10;
                       return isNaN(num) ? 0 : Math.max(0, Math.min(max, num));
+                    },
+                    valueFormatter: (params) => {
+                      const value = params?.value || 0;
+                      const max = marksDistribution?.labsProjectResearch || 10;
+                      return `${value}/${max}`;
                     },
                     renderCell: (params) => {
                       const value = params.value || 0;
@@ -1160,6 +1230,11 @@ const MarksPage = () => {
                       const max = marksDistribution?.quizzes || 5;
                       return isNaN(num) ? 0 : Math.max(0, Math.min(max, num));
                     },
+                    valueFormatter: (params) => {
+                      const value = params?.value || 0;
+                      const max = marksDistribution?.quizzes || 5;
+                      return `${value}/${max}`;
+                    },
                     renderCell: (params) => {
                       const value = params.value || 0;
                       const max = marksDistribution?.quizzes || 5;
@@ -1181,6 +1256,11 @@ const MarksPage = () => {
                       const max = marksDistribution?.participation || 10;
                       return isNaN(num) ? 0 : Math.max(0, Math.min(max, num));
                     },
+                    valueFormatter: (params) => {
+                      const value = params?.value || 0;
+                      const max = marksDistribution?.participation || 10;
+                      return `${value}/${max}`;
+                    },
                     renderCell: (params) => {
                       const value = params.value || 0;
                       const max = marksDistribution?.participation || 10;
@@ -1201,6 +1281,11 @@ const MarksPage = () => {
                       const num = parseFloat(value);
                       const max = marksDistribution?.attendance || 10;
                       return isNaN(num) ? 0 : Math.max(0, Math.min(max, num));
+                    },
+                    valueFormatter: (params) => {
+                      const value = params?.value || 0;
+                      const max = marksDistribution?.attendance || 10;
+                      return `${value}/${max}`;
                     },
                     renderCell: (params) => {
                       const value = params.value || 0;
@@ -1224,6 +1309,16 @@ const MarksPage = () => {
                       { value: 'FA', label: 'FA - Fail Due to Absence' },
                       { value: 'WF', label: 'WF - Withdrawal' }
                     ],
+                    valueFormatter: (params) => {
+                      const value = params?.value || 'calculated';
+                      const options = {
+                        'calculated': t('calculated') || 'Calculated',
+                        'FB': 'FB - Fail Due to Absence',
+                        'FA': 'FA - Fail Due to Absence',
+                        'WF': 'WF - Withdrawal'
+                      };
+                      return options[value] || value;
+                    },
                     renderCell: (params) => {
                       const value = params.value || 'calculated';
                       const options = {
@@ -1252,6 +1347,13 @@ const MarksPage = () => {
                     headerName: t('total') || 'Total',
                     width: 100,
                     editable: false,
+                    valueFormatter: (params) => {
+                      const row = params?.row || {};
+                      const gradeType = row.gradeType || 'calculated';
+                      if (gradeType !== 'calculated') return gradeType;
+                      const value = params?.value || 0;
+                      return `${value.toFixed(1)}%`;
+                    },
                     renderCell: (params) => {
                       const row = params.row;
                       const gradeType = row.gradeType || 'calculated';
@@ -1292,6 +1394,12 @@ const MarksPage = () => {
                     headerName: t('grade') || 'Grade',
                     width: 80,
                     editable: false,
+                    valueFormatter: (params) => {
+                      const row = params?.row || {};
+                      const gradeType = row.gradeType || 'calculated';
+                      if (gradeType !== 'calculated') return gradeType;
+                      return params?.value || '';
+                    },
                     renderCell: (params) => {
                       const row = params.row;
                       const gradeType = row.gradeType || 'calculated';
@@ -1343,6 +1451,9 @@ const MarksPage = () => {
                     headerName: t('repeated') || 'Repeated',
                     width: 120,
                     editable: false,
+                    valueFormatter: (params) => {
+                      return Boolean(params?.value) ? (t('yes') || 'Yes') : (t('no') || 'No');
+                    },
                     renderCell: (params) => {
                       const isRepeated = Boolean(params.value);
                       return (
@@ -1438,6 +1549,7 @@ const MarksPage = () => {
                     width: 110,
                     sortable: false,
                     filterable: false,
+                    exportable: false,
                     renderCell: (params) => {
                       const row = params.row;
                       const gradeType = row.gradeType || 'calculated';
@@ -1520,6 +1632,7 @@ const MarksPage = () => {
                     width: 80,
                     sortable: false,
                     filterable: false,
+                    exportable: false,
                     renderCell: (params) => {
                       return (
                         <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
@@ -1618,10 +1731,9 @@ const MarksPage = () => {
                 }}
               />
             )}
-            </div>
-          </CardBody>
+          </div>
+        </CardBody>
       </Card>
-    )}
 
       <CollapsibleSideWindow
         isOpen={sideWindowOpen}

@@ -66,9 +66,17 @@ app.use((req, res, next) => {
 });
 
 // Rate limiting - blunts brute-force/DoS against the API
+// Trust the first proxy so req.ip reflects the real client IP when behind
+// nginx/load-balancers (without this, all clients share the proxy's IP and
+// the limiter becomes a single global bucket).
+app.set("trust proxy", 1);
+
+const RATE_LIMIT_WINDOW_MS = parseInt(process.env.RATE_LIMIT_WINDOW_MS) || (15 * 60 * 1000); // 15 min default
+const RATE_LIMIT_MAX = parseInt(process.env.RATE_LIMIT_MAX) || (NODE_ENV === "development" ? 5000 : 2000);
+
 const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  limit: 600, // generous cap for normal app usage; tune per environment
+  windowMs: RATE_LIMIT_WINDOW_MS,
+  limit: RATE_LIMIT_MAX,
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, error: "Too many requests, please try again later." },

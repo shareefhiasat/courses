@@ -147,7 +147,7 @@ async function getUnexcusedAbsenceStatusIds() {
   const statuses = await prisma.attendanceStatusTypes.findMany({
     where: {
       code: {
-        in: ['absent', 'ABSENT', 'unexcused_absent', 'UNEXCUSED_ABSENT']
+        in: ['ATTENDANCE_ABSENT']
       }
     },
     select: { id: true }

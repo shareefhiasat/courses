@@ -869,19 +869,18 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
       // Always return clean English labels for grouping keys
       const statusMap = {
         'present': 'Present',
-        'PRESENT': 'Present',
+        'ATTENDANCE_PRESENT': 'Present',
         'late': 'Late',
-        'LATE': 'Late',
-        'absent_with_excuse': 'Absent (Excused)',
+        'ATTENDANCE_LATE': 'Late',
         'absent': 'Absent (No Excuse)',
-        'ABSENT': 'Absent (No Excuse)',
-        'absent_no_excuse': 'Absent (No Excuse)',
+        'ATTENDANCE_ABSENT': 'Absent (No Excuse)',
         'excused_leave': 'Excused Leave',
+        'ATTENDANCE_LEAVE': 'Excused Leave',
         'human_case': 'Human Case',
         'human case': 'Human Case',
         'humanCase': 'Human Case',
         'Human Case': 'Human Case',
-        'HUMAN_CASE': 'Human Case',
+        'ATTENDANCE_HUMAN_CASE': 'Human Case',
         'closed': 'Closed',
         'open': 'Open',
         'active': 'Active'
@@ -905,8 +904,6 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
     }
     if (groupBy === 'status' && dataSource === 'attendance') {
       let s = normField(item.status) || 'unknown';
-      if (s === 'absent' || s === 'ABSENT') s = ATTENDANCE_STATUS.ABSENT_NO_EXCUSE;
-      if (s === 'excused' || s === 'EXCUSED') s = ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE;
       return s;
     }
     if (groupBy === 'createdBy' || groupBy === 'performedBy') {

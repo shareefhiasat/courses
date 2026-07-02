@@ -8,14 +8,12 @@ import { getQatarDateParts, formatForDateInput } from '@utils/date-formatter.js'
 const VIOLATION_LABELS = {
   ar: {
     [ATTENDANCE_STATUS.ABSENT_NO_EXCUSE]: 'غياب بدون عذر',
-    [ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE]: 'غياب معذور',
-    [ATTENDANCE_STATUS.EXCUSED_LEAVE]: 'استئذان',
+    [ATTENDANCE_STATUS.EXCUSED_LEAVE]: 'غياب معذور',
     [ATTENDANCE_STATUS.LATE]: 'تأخير',
     [ATTENDANCE_STATUS.HUMAN_CASE]: 'حالة إنسانية',
   },
   en: {
     [ATTENDANCE_STATUS.ABSENT_NO_EXCUSE]: 'Absent without excuse',
-    [ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE]: 'Absent excused',
     [ATTENDANCE_STATUS.EXCUSED_LEAVE]: 'Excused leave',
     [ATTENDANCE_STATUS.LATE]: 'Late',
     [ATTENDANCE_STATUS.HUMAN_CASE]: 'Human case',
@@ -50,8 +48,7 @@ export function prepareAttendanceOfficialData({
   const filtered = records.filter((record) => {
     const code = getStatusCode(record);
     if (violationTypes.absentNoExcuse && code === ATTENDANCE_STATUS.ABSENT_NO_EXCUSE) return true;
-    if (violationTypes.absentWithExcuse && code === ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE) return true;
-    if (violationTypes.excusedLeave && code === ATTENDANCE_STATUS.EXCUSED_LEAVE) return true;
+    if ((violationTypes.absentWithExcuse || violationTypes.excusedLeave) && code === ATTENDANCE_STATUS.EXCUSED_LEAVE) return true;
     if (violationTypes.late && code === ATTENDANCE_STATUS.LATE) return true;
     if (violationTypes.humanCase && code === ATTENDANCE_STATUS.HUMAN_CASE) return true;
     return false;

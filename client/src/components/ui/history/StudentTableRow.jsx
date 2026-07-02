@@ -83,10 +83,10 @@ const StudentTableRow = ({
 
   // Toggle logic: buttons are disabled based on current status (including overrides), not just if any attendance exists
   // If marked as Present, disable Present button but enable Late button (and vice versa)
-  const isPresentButtonDisabled = hasAttendanceForMode && todayStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_PRESENT' : 'PRESENT');
-  const isLateButtonDisabled = hasAttendanceForMode && todayStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_LATE' : 'LATE');
-  const isAbsentButtonDisabled = hasAttendanceForMode && todayStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_ABSENT' : 'ABSENT');
-  const isClinicButtonDisabled = hasAttendanceForMode && todayStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_CLINIC' : 'CLINIC');
+  const isPresentButtonDisabled = hasAttendanceForMode && todayStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_PRESENT' : 'ATTENDANCE_PRESENT');
+  const isLateButtonDisabled = hasAttendanceForMode && todayStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_LATE' : 'ATTENDANCE_LATE');
+  const isAbsentButtonDisabled = hasAttendanceForMode && todayStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_ABSENT' : 'ATTENDANCE_ABSENT');
+  const isClinicButtonDisabled = hasAttendanceForMode && todayStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_CLINIC' : 'ATTENDANCE_HUMAN_CASE');
 
   // Log 1: Inside disabled check, log Student ID and the specific record object being compared
   console.log('🔍 [LOG 1] StudentTableRow - Button disabled logic:', {
@@ -101,8 +101,8 @@ const StudentTableRow = ({
     studentStandupStatus: student.standupStatus,
     todayAttendanceOverrides: todayAttendanceOverrides[student.id],
     comparison: {
-      presentComparison: todayStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_PRESENT' : 'PRESENT'),
-      lateComparison: todayStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_LATE' : 'LATE')
+      presentComparison: todayStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_PRESENT' : 'ATTENDANCE_PRESENT'),
+      lateComparison: todayStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_LATE' : 'ATTENDANCE_LATE')
     }
   });
 
@@ -146,24 +146,20 @@ const StudentTableRow = ({
     const getIcon = (s) => {
       const statusUpper = s?.toUpperCase();
       switch(statusUpper) {
-        case 'PRESENT':
+        case 'ATTENDANCE_PRESENT':
         case 'STANDUP_PRESENT':
           return <CheckSmallIcon style={{ width: '16px', height: '16px', stroke: color }} />;
-        case 'LATE':
+        case 'ATTENDANCE_LATE':
         case 'STANDUP_LATE':
           return <ClockSmallIcon style={{ width: '16px', height: '16px', stroke: color }} />;
-        case 'ABSENT':
-        case 'ABSENT_NO_EXCUSE':
+        case 'ATTENDANCE_ABSENT':
         case 'STANDUP_ABSENT':
           return <XSmallIcon style={{ width: '16px', height: '16px', stroke: color }} />;
-        case 'ABSENT_WITH_EXCUSE':
-        case 'EXCUSED':
-          return <XSmallIcon style={{ width: '16px', height: '16px', stroke: color }} />;
-        case 'EXCUSED_LEAVE':
+        case 'ATTENDANCE_LEAVE':
           return <HeartIcon style={{ width: '16px', height: '16px', stroke: color }} />;
         case 'STANDUP_CLINIC':
           return <HeartIcon style={{ width: '16px', height: '16px', stroke: color }} />;
-        case 'HUMAN_CASE':
+        case 'ATTENDANCE_HUMAN_CASE':
           return <HeartIcon style={{ width: '16px', height: '16px', stroke: color }} />;
         default:
           return <CircleIcon style={{ width: '16px', height: '16px', stroke: color }} />;

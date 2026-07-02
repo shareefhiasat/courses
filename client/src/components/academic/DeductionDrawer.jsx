@@ -5,21 +5,19 @@ import { useTheme } from '@contexts/ThemeContext';
 import { formatDateTime, formatDateShort, getQatarDateParts } from '@utils/date-formatter.js';
 
 const STATUS_LABELS = {
-  ABSENT_NO_EXCUSE: 'Absent (No Excuse)',
-  ABSENT_WITH_EXCUSE: 'Absent (Excused)',
-  EXCUSED_LEAVE: 'Excused Leave',
-  LATE: 'Late',
-  HUMAN_CASE: 'Human Case',
-  PRESENT: 'Present',
+  ATTENDANCE_ABSENT: 'Absent (No Excuse)',
+  ATTENDANCE_LEAVE: 'Excused Leave',
+  ATTENDANCE_LATE: 'Late',
+  ATTENDANCE_HUMAN_CASE: 'Human Case',
+  ATTENDANCE_PRESENT: 'Present',
 };
 
 const STATUS_COLORS = {
-  ABSENT_NO_EXCUSE: '#ef4444',
-  ABSENT_WITH_EXCUSE: '#f59e0b',
-  EXCUSED_LEAVE: '#3b82f6',
-  LATE: '#f59e0b',
-  HUMAN_CASE: '#a855f7',
-  PRESENT: '#22c55e',
+  ATTENDANCE_ABSENT: '#ef4444',
+  ATTENDANCE_LEAVE: '#3b82f6',
+  ATTENDANCE_LATE: '#f59e0b',
+  ATTENDANCE_HUMAN_CASE: '#a855f7',
+  ATTENDANCE_PRESENT: '#22c55e',
 };
 
 function getProgressColor(value, max) {
@@ -45,7 +43,7 @@ const DeductionDrawer = memo(({
   type = 'absence',
   weight = 10,
   thresholds = { failureCount: 8, failureGrade: 'FB' },
-  width = 480,
+  width = 680,
 }) => {
   const { t } = useLang();
   const { theme } = useTheme();
@@ -88,12 +86,12 @@ const DeductionDrawer = memo(({
   const failureByCount = summary?.failureByCount ?? (absenceCount >= thresholds.failureCount);
   const failureGrade = summary?.failureGrade ?? (failureByCount ? thresholds.failureGrade : null);
 
-  const renderProgressBar = useCallback((label, value, max, unit = '') => (
+  const renderProgressBar = useCallback((label, value, max, isInteger = false) => (
     <div style={{ marginBottom: '1rem' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
         <span style={{ fontSize: '0.875rem', color: mutedColor }}>{label}</span>
         <span style={{ fontSize: '0.875rem', fontWeight: 600, color: textColor }}>
-          {formatDeduction(value)} / {max}{unit}
+          {isInteger ? Math.round(value) : formatDeduction(value)} / {max}
         </span>
       </div>
       <div style={{
@@ -200,15 +198,6 @@ const DeductionDrawer = memo(({
              type === 'penalty' ? (t('penalty_deductions') || 'Penalty Deductions') :
              (t('deductions') || 'Deductions')}
           </h3>
-          <Button
-            size="sm"
-            variant="outline-secondary"
-            onClick={onClose}
-            style={{ padding: '4px 10px' }}
-            aria-label="Close"
-          >
-            ×
-          </Button>
         </div>
 
         {/* Student Info */}
@@ -217,13 +206,42 @@ const DeductionDrawer = memo(({
             padding: '0.75rem 1rem',
             background: cardBg,
             borderBottom: `1px solid ${borderColor}`,
+            display: 'flex',
+            alignItems: 'center',
+            gap: '0.75rem',
           }}>
-            <div style={{ fontWeight: 600, color: textColor, fontSize: '0.9rem' }}>
-              {student.studentName || student.displayName || student.name || 'Unknown'}
+            {/* Avatar */}
+            <div style={{
+              flexShrink: 0,
+              width: '40px',
+              height: '40px',
+              borderRadius: '50%',
+              background: isDarkMode ? '#4b5563' : '#e5e7eb',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontSize: '1rem',
+              fontWeight: 700,
+              color: isDarkMode ? '#e5e7eb' : '#4b5563',
+              overflow: 'hidden',
+            }}>
+              {(student.studentName || student.displayName || student.name || '?')
+                .split(' ')
+                .map(w => w[0])
+                .slice(0, 2)
+                .join('')
+                .toUpperCase()}
             </div>
-            <div style={{ fontSize: '0.75rem', color: mutedColor }}>
-              {student.studentNumber ? `#${student.studentNumber} · ` : ''}
-              {student.className || student.subjectName || ''}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontWeight: 600, color: textColor, fontSize: '0.9rem' }}>
+                {student.studentName || student.displayName || student.name || 'Unknown'}
+              </div>
+              <div style={{ fontSize: '0.75rem', color: mutedColor, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {student.studentNumber ? `#${student.studentNumber} · ` : ''}
+                {student.programName ? `${student.programName} · ` : ''}
+                {student.subjectName ? `${student.subjectName} · ` : ''}
+                {student.className || ''}
+              </div>
             </div>
           </div>
         )}
@@ -246,49 +264,31 @@ const DeductionDrawer = memo(({
               borderRadius: '12px',
               background: cardBg,
             }}>
-              <div style={{
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                textTransform: 'uppercase',
-                color: mutedColor,
-                marginBottom: '0.75rem',
-                letterSpacing: '0.05em',
-              }}>
-                {t('summary') || 'Summary'}
-              </div>
-
-              {/* Total Deduction */}
-              <div style={{
-                display: 'flex',
-                alignItems: 'baseline',
-                gap: '0.5rem',
-                marginBottom: '0.5rem',
-              }}>
-                <span style={{ fontSize: '2rem', fontWeight: 800, color: getProgressColor(totalDeduction, weight) }}>
-                  {formatDeduction(totalDeduction)}
-                </span>
-                <span style={{ fontSize: '1rem', color: mutedColor }}>
-                  / {weight} {t('deducted') || 'deducted'}
-                </span>
-              </div>
-
-              {/* Suggested Score */}
-              <div style={{
-                marginBottom: '1rem',
-                padding: '0.5rem 0.75rem',
-                borderRadius: '6px',
-                background: suggestedScore > 0 ? 'rgba(34, 197, 94, 0.1)' : 'rgba(239, 68, 68, 0.1)',
-                fontSize: '0.875rem',
-              }}>
-                <span style={{ color: mutedColor }}>{t('suggested_attendance_score') || 'Suggested attendance score'}: </span>
-                <span style={{ fontWeight: 700, color: suggestedScore > 0 ? '#22c55e' : '#ef4444' }}>
-                  {formatDeduction(suggestedScore)} / {weight}
-                </span>
+              {/* Big numbers: deduction + remaining score */}
+              <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
+                <div style={{ flex: 1, textAlign: 'center', padding: '0.75rem', borderRadius: '8px', background: isDarkMode ? '#1f2937' : '#fff', border: `1px solid ${borderColor}` }}>
+                  <div style={{ fontSize: '0.7rem', color: mutedColor, textTransform: 'uppercase', fontWeight: 600, marginBottom: '0.25rem' }}>
+                    {t('deducted') || 'Deducted'}
+                  </div>
+                  <div style={{ fontSize: '1.75rem', fontWeight: 800, color: getProgressColor(totalDeduction, weight) }}>
+                    -{formatDeduction(totalDeduction)}
+                  </div>
+                  <div style={{ fontSize: '0.7rem', color: mutedColor }}>out of {weight}</div>
+                </div>
+                <div style={{ flex: 1, textAlign: 'center', padding: '0.75rem', borderRadius: '8px', background: isDarkMode ? '#1f2937' : '#fff', border: `1px solid ${borderColor}` }}>
+                  <div style={{ fontSize: '0.7rem', color: mutedColor, textTransform: 'uppercase', fontWeight: 600, marginBottom: '0.25rem' }}>
+                    {t('remaining_score') || 'Remaining Score'}
+                  </div>
+                  <div style={{ fontSize: '1.75rem', fontWeight: 800, color: suggestedScore > 0 ? '#22c55e' : '#ef4444' }}>
+                    {formatDeduction(suggestedScore)}
+                  </div>
+                  <div style={{ fontSize: '0.7rem', color: mutedColor }}>out of {weight}</div>
+                </div>
               </div>
 
               {/* Progress bars */}
-              {renderProgressBar(t('total_deduction') || 'Total Deduction', totalDeduction, weight)}
-              {renderProgressBar(t('absence_count') || 'Absence Count', absenceCount, thresholds.failureCount, ` / ${thresholds.failureCount}`)}
+              {renderProgressBar(t('marks_lost') || 'Marks Lost', totalDeduction, weight)}
+              {renderProgressBar(t('absences') || 'Absences', absenceCount, thresholds.failureCount, true)}
 
               {/* Failure Warning */}
               {failureGrade && (
@@ -339,25 +339,25 @@ const DeductionDrawer = memo(({
                       <div key={item.attendanceId || idx} style={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '0.75rem',
-                        padding: '0.625rem',
+                        gap: '1rem',
+                        padding: '0.875rem',
                         border: `1px solid ${borderColor}`,
-                        borderRadius: '8px',
+                        borderRadius: '10px',
                         background: isDarkMode ? '#1f2937' : '#fff',
                       }}>
                         {/* Date */}
                         <div style={{
                           flexShrink: 0,
-                          width: '64px',
+                          width: '72px',
                           textAlign: 'center',
-                          padding: '0.25rem',
-                          borderRadius: '6px',
+                          padding: '0.375rem',
+                          borderRadius: '8px',
                           background: cardBg,
                         }}>
-                          <div style={{ fontSize: '0.7rem', color: mutedColor }}>
+                          <div style={{ fontSize: '0.75rem', color: mutedColor }}>
                             {formatDateShort(item.date, lang)}
                           </div>
-                          <div style={{ fontSize: '1rem', fontWeight: 700, color: textColor }}>
+                          <div style={{ fontSize: '1.25rem', fontWeight: 700, color: textColor }}>
                             {getQatarDateParts(item.date)?.day || ''}
                           </div>
                         </div>
@@ -365,7 +365,7 @@ const DeductionDrawer = memo(({
                         {/* Status + Excused */}
                         <div style={{ flex: 1, minWidth: 0 }}>
                           <div style={{
-                            fontSize: '0.8rem',
+                            fontSize: '0.9rem',
                             fontWeight: 600,
                             color: textColor,
                             overflow: 'hidden',
@@ -376,7 +376,7 @@ const DeductionDrawer = memo(({
                           </div>
                           {excused && (
                             <div style={{
-                              fontSize: '0.65rem',
+                              fontSize: '0.7rem',
                               color: '#22c55e',
                               fontWeight: 600,
                             }}>
@@ -388,13 +388,13 @@ const DeductionDrawer = memo(({
                         {/* Deduction amount */}
                         <div style={{
                           flexShrink: 0,
-                          padding: '0.25rem 0.625rem',
-                          borderRadius: '6px',
+                          padding: '0.375rem 0.875rem',
+                          borderRadius: '8px',
                           background: color,
                           color: '#fff',
-                          fontSize: '0.8rem',
+                          fontSize: '0.9rem',
                           fontWeight: 700,
-                          minWidth: '48px',
+                          minWidth: '56px',
                           textAlign: 'center',
                         }}>
                           -{formatDeduction(item.deduction)}

@@ -104,7 +104,7 @@ export const SUBMISSION_STATUS = {
   SUBMITTED: 'submitted',
   GRADED: 'graded',
   REJECTED: 'rejected',
-  LATE: 'late'
+  ATTENDANCE_LATE: 'late'
 };
 
 // Status labels for different languages

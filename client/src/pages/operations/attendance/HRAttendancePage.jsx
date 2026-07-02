@@ -291,22 +291,19 @@ const HRAttendancePage = () => {
           
           switch (statusFilter) {
             case ATTENDANCE_STATUS.PRESENT:
-              hasStatusMatch = (counts.present || counts.PRESENT || 0) > 0;
+              hasStatusMatch = (counts.present || counts.ATTENDANCE_PRESENT || 0) > 0;
               break;
             case ATTENDANCE_STATUS.LATE:
-              hasStatusMatch = (counts.late || counts.LATE || 0) > 0;
+              hasStatusMatch = (counts.late || counts.ATTENDANCE_LATE || 0) > 0;
               break;
             case ATTENDANCE_STATUS.ABSENT_NO_EXCUSE:
-              hasStatusMatch = ((counts.absent_no_excuse || counts.absent || 0) + (counts.ABSENT_NO_EXCUSE || 0)) > 0;
-              break;
-            case ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE:
-              hasStatusMatch = (counts.absent_with_excuse || counts.ABSENT_WITH_EXCUSE || 0) > 0;
+              hasStatusMatch = ((counts.absent_no_excuse || counts.absent || 0) + (counts.ATTENDANCE_ABSENT || 0)) > 0;
               break;
             case ATTENDANCE_STATUS.EXCUSED_LEAVE:
-              hasStatusMatch = (counts.excused_leave || counts.EXCUSED_LEAVE || 0) > 0;
+              hasStatusMatch = (counts.excused_leave || counts.ATTENDANCE_LEAVE || 0) > 0;
               break;
             case ATTENDANCE_STATUS.HUMAN_CASE:
-              hasStatusMatch = (counts.human_case || counts.HUMAN_CASE || 0) > 0;
+              hasStatusMatch = (counts.human_case || counts.ATTENDANCE_HUMAN_CASE || 0) > 0;
               break;
             default:
               hasStatusMatch = false;
@@ -595,8 +592,7 @@ const HRAttendancePage = () => {
           const matches = 
             // Handle legacy statuses
             (statusFilter === ATTENDANCE_STATUS.ABSENT_NO_EXCUSE && (status === 'absent' || status === 'absent_no_excuse')) ||
-            (statusFilter === ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE && status === 'absent_with_excuse') ||
-            (statusFilter === ATTENDANCE_STATUS.EXCUSED_LEAVE && (status === 'leave' || status === 'excused_leave')) ||
+            (statusFilter === ATTENDANCE_STATUS.EXCUSED_LEAVE && (status === 'excused_leave' || status === 'leave')) ||
             // Direct match
             status === statusFilter;
           
@@ -1113,14 +1109,14 @@ const HRAttendancePage = () => {
                       fontSize: 11
                     }}>
                       {createAttendanceBadge(
-                        session.scanCounts.present || session.scanCounts.PRESENT || 0,
+                        session.scanCounts.present || session.scanCounts.ATTENDANCE_PRESENT || 0,
                         'check_circle',
                         '#10b981',
                         t('present') || 'Present',
                         theme
                       )}
                       {createAttendanceBadge(
-                        session.scanCounts.late || session.scanCounts.LATE || 0,
+                        session.scanCounts.late || session.scanCounts.ATTENDANCE_LATE || 0,
                         'clock',
                         '#f59e0b',
                         t('late') || 'Late',
@@ -1128,28 +1124,21 @@ const HRAttendancePage = () => {
                       )}
                       {createAttendanceBadge(
                         (session.scanCounts.absent_no_excuse || session.scanCounts.absent || 0) + 
-                        (session.scanCounts.ABSENT_NO_EXCUSE || 0),
+                        (session.scanCounts.ATTENDANCE_ABSENT || 0),
                         'x_circle',
                         '#ef4444',
                         t('absent_no_excuse') || 'Absent',
                         theme
                       )}
                       {createAttendanceBadge(
-                        session.scanCounts.absent_with_excuse || session.scanCounts.ABSENT_WITH_EXCUSE || 0,
-                        'file_text',
-                        '#3b82f6',
-                        t('absent_with_excuse') || 'Absent Excused',
-                        theme
-                      )}
-                      {createAttendanceBadge(
-                        session.scanCounts.excused_leave || session.scanCounts.EXCUSED_LEAVE || 0,
+                        session.scanCounts.excused_leave || session.scanCounts.ATTENDANCE_LEAVE || 0,
                         'heart',
                         '#8b5cf6',
                         t('excused_leave') || 'Excused Leave',
                         theme
                       )}
                       {createAttendanceBadge(
-                        session.scanCounts.human_case || session.scanCounts.HUMAN_CASE || 0,
+                        session.scanCounts.human_case || session.scanCounts.ATTENDANCE_HUMAN_CASE || 0,
                         'heart',
                         '#8b5cf6',
                         t('human_case') || 'Human Case',
@@ -1269,7 +1258,6 @@ const HRAttendancePage = () => {
                   { key: ATTENDANCE_STATUS.PRESENT, label: getLocalizedAttendanceLabel(ATTENDANCE_STATUS.PRESENT) },
                   { key: ATTENDANCE_STATUS.LATE, label: getLocalizedAttendanceLabel(ATTENDANCE_STATUS.LATE) },
                   { key: ATTENDANCE_STATUS.ABSENT_NO_EXCUSE, label: getLocalizedAttendanceLabel(ATTENDANCE_STATUS.ABSENT_NO_EXCUSE) },
-                  { key: ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE, label: getLocalizedAttendanceLabel(ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE) },
                   { key: ATTENDANCE_STATUS.EXCUSED_LEAVE, label: getLocalizedAttendanceLabel(ATTENDANCE_STATUS.EXCUSED_LEAVE) },
                   { key: ATTENDANCE_STATUS.HUMAN_CASE, label: getLocalizedAttendanceLabel(ATTENDANCE_STATUS.HUMAN_CASE) }
                 ].map(({ key, label }) => {
@@ -1277,8 +1265,7 @@ const HRAttendancePage = () => {
                     const status = m.status || 'present';
                     // Handle legacy statuses
                     if (key === ATTENDANCE_STATUS.ABSENT_NO_EXCUSE && (status === 'absent' || status === 'absent_no_excuse')) return true;
-                    if (key === ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE && status === 'absent_with_excuse') return true;
-                    if (key === ATTENDANCE_STATUS.EXCUSED_LEAVE && (status === 'leave' || status === 'excused_leave')) return true;
+                    if (key === ATTENDANCE_STATUS.EXCUSED_LEAVE && (status === 'excused_leave' || status === 'leave')) return true;
                     return status === key;
                   }).length;
                   const color = getAttendanceColor(key) || '#6b7280';
@@ -1405,18 +1392,13 @@ const HRAttendancePage = () => {
                                     label: `${getLocalizedAttendanceLabel(ATTENDANCE_STATUS.ABSENT_NO_EXCUSE, 'en')} - ${getLocalizedAttendanceLabel(ATTENDANCE_STATUS.ABSENT_NO_EXCUSE, 'ar')}`,
                                     icon: getThemedIcon('ui', 'x_circle', 16, '#ef4444')
                                   },
-                                  { 
-                                    value: ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE, 
-                                    label: `${getLocalizedAttendanceLabel(ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE, 'en')} - ${getLocalizedAttendanceLabel(ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE, 'ar')}`,
-                                    icon: getThemedIcon('ui', 'x_circle', 16, '#ef4444')
-                                  },
-                                  { 
-                                    value: ATTENDANCE_STATUS.EXCUSED_LEAVE, 
+                                  {
+                                    value: ATTENDANCE_STATUS.EXCUSED_LEAVE,
                                     label: `${getLocalizedAttendanceLabel(ATTENDANCE_STATUS.EXCUSED_LEAVE, 'en')} - ${getLocalizedAttendanceLabel(ATTENDANCE_STATUS.EXCUSED_LEAVE, 'ar')}`,
                                     icon: getThemedIcon('ui', 'x_circle', 16, '#ef4444')
                                   },
-                                  { 
-                                    value: ATTENDANCE_STATUS.HUMAN_CASE, 
+                                  {
+                                    value: ATTENDANCE_STATUS.HUMAN_CASE,
                                     label: `${getLocalizedAttendanceLabel(ATTENDANCE_STATUS.HUMAN_CASE, 'en')} - ${getLocalizedAttendanceLabel(ATTENDANCE_STATUS.HUMAN_CASE, 'ar')}`,
                                     icon: getThemedIcon('ui', 'heart', 16, '#8b5cf6')
                                   }

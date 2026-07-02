@@ -143,6 +143,8 @@ export const getClasses = async (params = {}) => {
         ownerEmail: true,
         term: true,
         year: true,
+        startDate: true,
+        endDate: true,
         schedule: true,
         creator: {
           select: {
@@ -194,6 +196,29 @@ export const getClasses = async (params = {}) => {
             lastNameAr: true,
             displayNameAr: true,
             email: true
+          }
+        },
+        substituteInstructor: {
+          select: {
+            id: true,
+            displayName: true,
+            firstName: true,
+            lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
+            email: true
+          }
+        },
+        classroom: {
+          select: {
+            id: true,
+            code: true,
+            nameEn: true,
+            nameAr: true,
+            roomNumber: true,
+            locationEn: true,
+            locationAr: true
           }
         },
         _count: {
@@ -268,6 +293,8 @@ export const getClassById = async (classId) => {
         ownerEmail: true,
         term: true,
         year: true,
+        startDate: true,
+        endDate: true,
         schedule: true, // Include schedule field
         creator: {
           select: {
@@ -319,6 +346,29 @@ export const getClassById = async (classId) => {
             lastNameAr: true,
             displayNameAr: true,
             email: true
+          }
+        },
+        substituteInstructor: {
+          select: {
+            id: true,
+            displayName: true,
+            firstName: true,
+            lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            displayNameAr: true,
+            email: true
+          }
+        },
+        classroom: {
+          select: {
+            id: true,
+            code: true,
+            nameEn: true,
+            nameAr: true,
+            roomNumber: true,
+            locationEn: true,
+            locationAr: true
           }
         }
       }
@@ -420,6 +470,8 @@ export const createClass = async (classData, user = null) => {
         // Add new fields
         term: classData.term || null,
         year: classData.year || null,
+        startDate: classData.startDate ? new Date(classData.startDate) : null,
+        endDate: classData.endDate ? new Date(classData.endDate) : null,
         locationEn: classData.locationEn || null,
         locationAr: classData.locationAr || null,
         ownerEmail: classData.ownerEmail || null
@@ -546,6 +598,8 @@ export const updateClass = async (classId, updateData, user = null) => {
     // Add new fields
     if (updateData.term !== undefined) data.term = updateData.term;
     if (updateData.year !== undefined) data.year = updateData.year;
+    if (updateData.startDate !== undefined) data.startDate = updateData.startDate ? new Date(updateData.startDate) : null;
+    if (updateData.endDate !== undefined) data.endDate = updateData.endDate ? new Date(updateData.endDate) : null;
     if (updateData.locationEn !== undefined) data.locationEn = updateData.locationEn;
     if (updateData.locationAr !== undefined) data.locationAr = updateData.locationAr;
     if (updateData.ownerEmail !== undefined) data.ownerEmail = updateData.ownerEmail;

@@ -816,6 +816,8 @@ model Class {
   ownerEmail     String?
   term           String?
   year           String?
+  startDate      DateTime?       // Optional: custom start date for the class
+  endDate        DateTime?       // Optional: custom end date for the class
   schedule       Json?           // Kept for audit (read-only after migration)
   activities     Activity[]
   announcements  Announcement[]
@@ -1618,6 +1620,8 @@ model FileActivity {
 model Folder {
   id          String    @id @default(uuid())
   name        String
+  nameAr      String?
+  color       String?   // hex color for folder icon, null = default
   parentId    String?
   ownerId     Int
   path        String    // materialised '/a/b/c' for fast prefix lookups

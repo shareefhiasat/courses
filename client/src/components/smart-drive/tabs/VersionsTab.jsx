@@ -1,13 +1,18 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useLang } from '@contexts/LangContext';
-import { getIcon, getUserRoleIcon, getUserRoleColor } from '@constants/iconTypes';
-import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
-import { formatQatarDate, formatQatarDateOnly } from '@utils/timezone';
+import { getIcon } from '@constants/iconTypes';
 import { getLocalizedUserName } from '@utils/localizedUserName';
-import { getUserRoleFromObject } from '@utils/userUtils';
-import { Group as PanelGroup, Panel, Separator as PanelResizeHandle } from 'react-resizable-panels';
-import { usePanelLayout } from '@hooks/usePanelLayout';
-import { PanelLeftClose, PanelLeftOpen } from 'lucide-react';
+import {
+  TimelinePanelLayout,
+  DriveTimelineEmptyState,
+  DriveTimelineList,
+  DriveTimelineLoadingState,
+  DriveTimelineErrorState,
+  DriveListCard,
+  DriveUserAvatar,
+  DriveActionButton,
+} from '@ui/DriveTimeline';
+import { formatQatarDate, formatQatarDateOnly } from '@utils/timezone';
 import axios from 'axios';
 
 export default function VersionsTab({ fileId, useWorkflowEndpoint = false }) {
@@ -24,23 +29,18 @@ export default function VersionsTab({ fileId, useWorkflowEndpoint = false }) {
     setLoading(true);
     setError(null);
     try {
-      // Use workflow endpoint for workflow documents (no permission restrictions)
-      // Use drive endpoint for regular files (has permission checks)
-      const endpoint = useWorkflowEndpoint 
+      const endpoint = useWorkflowEndpoint
         ? `/api/v1/workflow-documents/${fileId}/versions`
         : `/api/v1/drive/files/${fileId}/versions`;
-      
+
       const response = await axios.get(endpoint);
       if (response.data.success) {
-        // Workflow endpoint returns { data: { file, versions, minioVersions } }
-        // Drive endpoint returns { payload: [...versions] }
         const data = response.data.data;
         if (useWorkflowEndpoint && data && data.versions) {
           setVersions(data.versions);
           setFileInfo(data.file);
         } else {
           setVersions(response.data.payload || data || []);
-          // Only fetch file info from drive endpoint for non-workflow files
           if (!useWorkflowEndpoint) {
             try {
               const fileResponse = await axios.get(`/api/v1/drive/files/${fileId}`);
@@ -48,7 +48,7 @@ export default function VersionsTab({ fileId, useWorkflowEndpoint = false }) {
                 setFileInfo(fileResponse.data.payload);
               }
             } catch {
-              // ignore file info fetch failure
+              // ignore
             }
           }
         }
@@ -67,31 +67,11 @@ export default function VersionsTab({ fileId, useWorkflowEndpoint = false }) {
     fetchVersions();
   }, [fetchVersions]);
 
-  const handleRestore = async (versionId) => {
-    try {
-      const response = await axios.post(`/api/v1/drive/versions/${versionId}/restore`);
-      if (response.data.success) {
-        fetchVersions();
-      } else if (response.data.error?.code === 'NAME_CONFLICT') {
-        alert(t('drive.versions.restoreNameConflict') || 'Cannot restore: A file with this name already exists in this folder.');
-      }
-    } catch (err) {
-      console.error('[VersionsTab] restore failed:', err);
-      if (err.response?.data?.error?.code === 'NAME_CONFLICT') {
-        alert(t('drive.versions.restoreNameConflict') || 'Cannot restore: A file with this name already exists in this folder.');
-      } else {
-        alert(t('drive.versions.restoreError') || 'Failed to restore version');
-      }
-    }
-  };
-
   const handleViewVersion = async (versionId) => {
-    // Check if this is a Collabora file (document, presentation, spreadsheet)
     const getFileType = (mimeType, fileName) => {
       if (!mimeType && !fileName) return 'unknown';
       const mt = (mimeType || '').toLowerCase();
       const name = (fileName || '').toLowerCase();
-      
       if (mt.includes('word') || mt.includes('document') || name.endsWith('.doc') || name.endsWith('.docx')) return 'document';
       if (mt.includes('presentation') || mt.includes('powerpoint') || name.endsWith('.ppt') || name.endsWith('.pptx')) return 'presentation';
       if (mt.includes('sheet') || mt.includes('excel') || name.endsWith('.xls') || name.endsWith('.xlsx')) return 'spreadsheet';
@@ -102,24 +82,19 @@ export default function VersionsTab({ fileId, useWorkflowEndpoint = false }) {
     const isCollaboraFile = ['document', 'presentation', 'spreadsheet'].includes(fileType);
 
     if (isCollaboraFile) {
-      // For Collabora files, fetch WOPI token and open in Collabora
       try {
         const response = await fetch(`/api/v1/drive/files/${fileId}/preview?versionId=${versionId}`);
         const data = await response.json();
-        
         if (data.success && data.payload.wopiToken) {
           const collaboraUrl = `${import.meta.env.COLLABORA_URL || 'https://localhost:9980'}/browser/4610258811/cool.html?WOPISrc=${encodeURIComponent('http://host.docker.internal:8001/api/v1/wopi/files/' + fileId)}&access_token=${data.payload.wopiToken}`;
           window.open(collaboraUrl, '_blank', 'noopener,noreferrer');
         } else {
-          // Fallback to download if preview fails
           window.open(`/api/v1/drive/files/${fileId}/download?versionId=${versionId}`, '_blank');
         }
-      } catch (error) {
-        console.error('[VersionsTab] Failed to get preview URL:', error);
+      } catch {
         window.open(`/api/v1/drive/files/${fileId}/download?versionId=${versionId}`, '_blank');
       }
     } else {
-      // For non-Collabora files, just download
       window.open(`/api/v1/drive/files/${fileId}/download?versionId=${versionId}`, '_blank');
     }
   };
@@ -137,30 +112,18 @@ export default function VersionsTab({ fileId, useWorkflowEndpoint = false }) {
 
   const formatDateTime = (date) => {
     if (!date) return '\u2014';
-    return formatQatarDate(date, 'dd/MM/yyyy HH:mm');
+    return formatQatarDate(date, 'dd/MM/yyyy h:mm a');
   };
 
-  const formatDateHeader = (dateStr) => {
-    return formatQatarDateOnly(dateStr);
-  };
+  const formatDateHeader = (dateStr) => formatQatarDateOnly(dateStr);
 
-  const [timelineCollapsed, setTimelineCollapsed] = useState(false);
-  const timelinePanelRef = useRef(null);
-  const [savedLayout, onLayoutChange] = usePanelLayout('wf-versions-panels', { timeline: 35, content: 65 });
-
-  // Group versions by date
   const groupedVersions = versions.reduce((acc, version) => {
     const date = new Date(version.createdAt).toDateString();
-    if (!acc[date]) {
-      acc[date] = [];
-    }
+    if (!acc[date]) acc[date] = [];
     acc[date].push(version);
     return acc;
   }, {});
 
-  const sortedDates = Object.keys(groupedVersions).sort((a, b) => new Date(b) - new Date(a));
-
-  // Filter versions by search query
   const filteredVersions = versions.filter(version => {
     if (!searchQuery) return true;
     const query = searchQuery.toLowerCase();
@@ -172,12 +135,9 @@ export default function VersionsTab({ fileId, useWorkflowEndpoint = false }) {
     );
   });
 
-  // Group filtered versions by date
   const filteredGroupedVersions = filteredVersions.reduce((acc, version) => {
     const date = new Date(version.createdAt).toDateString();
-    if (!acc[date]) {
-      acc[date] = [];
-    }
+    if (!acc[date]) acc[date] = [];
     acc[date].push(version);
     return acc;
   }, {});
@@ -185,297 +145,89 @@ export default function VersionsTab({ fileId, useWorkflowEndpoint = false }) {
   const filteredSortedDates = Object.keys(filteredGroupedVersions).sort((a, b) => new Date(b) - new Date(a));
   const selectedVersions = selectedDate ? filteredGroupedVersions[selectedDate] : filteredVersions;
 
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: 'var(--font-size-sm)', color: 'var(--text-muted, #6b7280)' }} role="status">
-        {t('common.loading')}&hellip;
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: 'var(--font-size-sm)', color: '#dc2626' }} role="alert">
-        {error}
-      </div>
-    );
-  }
-
+  if (loading) return <DriveTimelineLoadingState />;
+  if (error) return <DriveTimelineErrorState message={error} />;
   if (versions.length === 0) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '12rem', fontSize: 'var(--font-size-sm)', color: 'var(--text-muted, #6b7280)' }}>
-        {getIcon('ui', 'clock', 40)}
-        {t('drive.noVersions')}
-      </div>
-    );
+    return <DriveTimelineEmptyState icon="clock" message={t('drive.noVersions')} />;
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-      <PanelGroup orientation="horizontal" id="workflow-versions-panels" style={{ flex: 1 }} defaultLayout={savedLayout} onLayoutChange={onLayoutChange}>
-      {/* Left sidebar - Date timeline */}
-      <Panel id="timeline" panelRef={timelinePanelRef} defaultSize={35} minSize={15} collapsible collapsedSize={0}>
-      <div style={{
-        borderRight: '1px solid var(--border, #e5e7eb)',
-        paddingInlineEnd: '1rem',
-        overflowY: 'auto',
-        height: '100%',
-      }}>
-        <h4 style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, color: 'var(--text-muted, #6b7280)', marginBottom: '1rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          {getIcon('ui', 'clock', 16)}
-          {t('drive.timeline') || 'Timeline'}
-        </h4>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-          <button
-            onClick={() => setSelectedDate(null)}
-            style={{
-              padding: '0.5rem',
-              textAlign: 'start',
-              background: !selectedDate ? 'var(--bg-primary, #f3f4f6)' : 'transparent',
-              border: 'none',
-              borderRadius: '0.375rem',
-              fontSize: 'var(--font-size-sm)',
-              color: !selectedDate ? 'var(--text, #111827)' : 'var(--text-muted, #6b7280)',
-              cursor: 'pointer',
-              fontWeight: !selectedDate ? 600 : 400,
-            }}
-          >
-            {t('drive.allVersions') || 'All Versions'} ({filteredVersions.length})
-          </button>
-          {filteredSortedDates.map((date) => (
-            <button
-              key={date}
-              onClick={() => setSelectedDate(date)}
-              style={{
-                padding: '0.5rem',
-                textAlign: 'start',
-                background: selectedDate === date ? 'var(--bg-primary, #f3f4f6)' : 'transparent',
-                border: 'none',
-                borderRadius: '0.375rem',
-                fontSize: 'var(--font-size-sm)',
-                color: selectedDate === date ? 'var(--text, #111827)' : 'var(--text-muted, #6b7280)',
-                cursor: 'pointer',
-                fontWeight: selectedDate === date ? 600 : 400,
-              }}
-            >
-              {formatDateHeader(date)} ({filteredGroupedVersions[date].length})
-            </button>
-          ))}
-        </div>
-      </div>
-      </Panel>
-      <PanelResizeHandle style={{ width: '4px', background: 'var(--border, #e5e7eb)', margin: '0 2px', borderRadius: '2px', cursor: 'col-resize' }} />
-
-      {/* Right content - Versions */}
-      <Panel id="content" minSize={30}>
-      <div style={{ flex: 1, overflowY: 'auto', height: '100%', paddingInlineStart: '0.5rem' }}>
-        {/* Search filter */}
-        <div style={{ marginBottom: '1rem', display: 'flex', gap: '0.5rem' }}>
-          <input
-            type="text"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder={t('drive.searchVersions') || 'Search versions...'}
-            style={{
-              flex: 1,
-              padding: '0.625rem 0.75rem',
-              fontSize: 'var(--font-size-sm)',
-              border: '1px solid var(--border, #e5e7eb)',
-              borderRadius: '0.5rem',
-              background: 'var(--panel, white)',
-              color: 'var(--text, #111827)',
-              outline: 'none',
-            }}
-          />
-          <button
-            onClick={() => {
-              if (timelineCollapsed) {
-                timelinePanelRef.current?.expand();
-                setTimelineCollapsed(false);
-              } else {
-                timelinePanelRef.current?.collapse();
-                setTimelineCollapsed(true);
-              }
-            }}
-            style={{
-              padding: '0.5rem',
-              background: 'var(--panel, white)',
-              border: '1px solid var(--border, #e5e7eb)',
-              borderRadius: '0.5rem',
-              cursor: 'pointer',
-              color: 'var(--text-muted, #6b7280)',
-              display: 'flex',
-              alignItems: 'center',
-              flexShrink: 0,
-            }}
-            title={timelineCollapsed ? t('workflow.expand', 'Expand') : t('workflow.collapse', 'Collapse')}
-          >
-            {timelineCollapsed ? <PanelLeftOpen size={16} /> : <PanelLeftClose size={16} />}
-          </button>
-        </div>
-
-        <h3 style={{ fontSize: 'var(--font-size-lg)', fontWeight: 600, color: 'var(--text, #111827)', marginBottom: '1rem' }}>
-          {selectedDate ? formatDateHeader(selectedDate) : t('drive.versionHistory')} ({selectedVersions.length})
-        </h3>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-          {selectedVersions.map((version) => (
-            <div
-              key={version.id}
-              style={{
-                padding: '0.5rem 0.75rem',
-                borderRadius: '0.75rem',
-                border: '2px solid',
-                borderColor: version.isCurrent ? '#10b981' : 'var(--border, #e5e7eb)',
-                background: 'var(--panel, white)',
-                boxShadow: version.isCurrent ? 'none' : '0 1px 2px rgba(0,0,0,0.05)',
-                transition: 'border-color 0.15s',
-              }}
-            >
-              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '1rem' }}>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.25rem' }}>
-                    {getIcon('ui', 'clock', 16)}
-                    <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 500, color: 'var(--text, #111827)' }}>
-                      {t('drive.version')} {version.versionNumber}
-                    </span>
-                    {version.isCurrent && (
-                      <span style={{
-                        padding: '0.125rem 0.5rem',
-                        fontSize: 'var(--font-size-xs)',
-                        borderRadius: '9999px',
-                        background: '#10b981',
-                        color: 'white',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '0.25rem',
-                      }}>
-                        {getIcon('ui', 'tag', 12)}
-                        {t('drive.current')}
-                      </span>
-                    )}
-                  </div>
-
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: 'var(--font-size-sm)', color: 'var(--text-muted, #6b7280)' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      {/* Avatar with role badge */}
-                      <div style={{ position: 'relative', flexShrink: 0 }}>
-                        <div style={{
-                          width: '1.75rem',
-                          height: '1.75rem',
-                          borderRadius: '9999px',
-                          background: version.uploadedBy?.profileImageUrl ? 'transparent' : getAvatarColor(getUserName(version.uploadedBy)).bg,
-                          color: getAvatarColor(getUserName(version.uploadedBy)).color,
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          fontSize: '0.625rem',
-                          fontWeight: 600,
-                          overflow: 'hidden',
-                          flexShrink: 0,
-                        }}>
-                          {version.uploadedBy?.profileImageUrl ? (
-                            <img
-                              src={version.uploadedBy.profileImageUrl}
-                              alt={getUserName(version.uploadedBy)}
-                              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                            />
-                          ) : (
-                            getAvatarInitials(getUserName(version.uploadedBy))
-                          )}
-                        </div>
-                        {/* Role badge overlay */}
-                        {(() => {
-                          const role = getUserRoleFromObject(version.uploadedBy);
-                          if (!role) return null;
-                          const roleIcon = getUserRoleIcon(role);
-                          const roleColor = getUserRoleColor(role);
-                          if (!roleIcon) return null;
-                          return (
-                            <div style={{
-                              position: 'absolute',
-                              bottom: '-1px',
-                              insetInlineEnd: '-1px',
-                              width: '0.875rem',
-                              height: '0.875rem',
-                              borderRadius: '9999px',
-                              background: 'var(--panel, white)',
-                              display: 'flex',
-                              alignItems: 'center',
-                              justifyContent: 'center',
-                              border: '1px solid var(--panel, white)',
-                              boxShadow: '0 0 0 1px var(--border, #e5e7eb)',
-                            }}
-                              title={t(`roles.${role}`, role)}
-                            >
-                              {React.cloneElement(roleIcon, { color: roleColor, size: 8 })}
-                            </div>
-                          );
-                        })()}
-                      </div>
-                      {getUserName(version.uploadedBy)}
-                    </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      {getIcon('ui', 'download', 14)}
-                      {formatSize(version.size)}
-                    </div>
-                  </div>
-                  {version.changeNote && (
-                    <div style={{
-                      marginTop: '0.5rem',
-                      padding: '0.5rem',
-                      background: 'var(--background-secondary, #f3f4f6)',
-                      borderRadius: '0.25rem',
-                      fontSize: 'var(--font-size-xs)',
-                      color: 'var(--text, #374151)',
-                    }}>
-                      {version.changeNote}
-                    </div>
-                  )}
-                </div>
-
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.25rem' }}>
-                  <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted, #6b7280)', fontWeight: 500, whiteSpace: 'nowrap' }}>
-                    {formatDateTime(version.createdAt)}
+    <TimelinePanelLayout
+      panelLayoutKey="drive-versions-panels"
+      allItemsLabel={t('drive.allVersions') || 'All Versions'}
+      allItemsCount={filteredVersions.length}
+      dates={filteredSortedDates}
+      getDateCount={(date) => filteredGroupedVersions[date]?.length || 0}
+      formatDateHeader={formatDateHeader}
+      selectedDate={selectedDate}
+      onDateSelect={setSelectedDate}
+      filterText={searchQuery}
+      onFilterChange={setSearchQuery}
+      filterPlaceholder={t('drive.searchVersions') || 'Search versions...'}
+      sectionTitle={`${selectedDate ? formatDateHeader(selectedDate) : t('drive.versionHistory')} (${selectedVersions.length})`}
+    >
+      <DriveTimelineList>
+        {selectedVersions.map((version) => (
+          <DriveListCard
+            key={version.id}
+            highlight={version.isCurrent}
+            borderColor={version.isCurrent ? '#10b981' : undefined}
+            avatar={<DriveUserAvatar user={version.uploadedBy} size="sm" />}
+            title={(
+              <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                {getIcon('ui', 'clock', 14)}
+                <span>{t('drive.version')} {version.versionNumber}</span>
+                {version.isCurrent && (
+                  <span style={{
+                    padding: '0.125rem 0.5rem',
+                    fontSize: 'var(--font-size-xs)',
+                    borderRadius: '9999px',
+                    background: '#10b981',
+                    color: 'white',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.25rem',
+                  }}>
+                    {getIcon('ui', 'tag', 12)}
+                    {t('drive.current')}
                   </span>
-                  <button
-                    onClick={() => handleViewVersion(version.id)}
-                    style={{
-                      padding: '0.375rem',
-                      fontSize: 'var(--font-size-sm)',
-                      color: 'var(--text-muted, #6b7280)',
-                      background: 'transparent',
-                      border: 'none',
-                      borderRadius: '0.375rem',
-                      cursor: 'pointer',
-                      transition: 'all 0.15s',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.color = 'var(--color-primary, #2563eb)';
-                      e.currentTarget.style.background = 'var(--bg-secondary, #f3f4f6)';
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.color = 'var(--text-muted, #6b7280)';
-                      e.currentTarget.style.background = 'transparent';
-                    }}
-                  >
-                    {getIcon('ui', 'eye', 16)}
-                  </button>
-                  {!version.isCurrent && (
-                    /* Restore button hidden per user request */
-                    null
-                  )}
-                </div>
+                )}
+              </span>
+            )}
+            meta={(
+              <>
+                <span>{getUserName(version.uploadedBy)}</span>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                  {getIcon('ui', 'download', 14)}
+                  {formatSize(version.size)}
+                </span>
+              </>
+            )}
+            timestamp={formatDateTime(version.createdAt)}
+            actions={(
+              <DriveActionButton
+                icon="eye"
+                onClick={() => handleViewVersion(version.id)}
+                ariaLabel={t('drive.preview', 'Preview')}
+                variant="default"
+              />
+            )}
+          >
+            {version.changeNote && (
+              <div style={{
+                marginTop: '0.5rem',
+                padding: '0.5rem',
+                background: 'var(--background-secondary, #f3f4f6)',
+                borderRadius: '0.25rem',
+                fontSize: 'var(--font-size-xs)',
+                color: 'var(--text, #374151)',
+              }}>
+                {version.changeNote}
               </div>
-            </div>
-          ))}
-        </div>
-      </div>
-      </Panel>
-      </PanelGroup>
-    </div>
+            )}
+          </DriveListCard>
+        ))}
+      </DriveTimelineList>
+    </TimelinePanelLayout>
   );
 }

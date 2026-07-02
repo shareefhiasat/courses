@@ -5,10 +5,10 @@
 import prisma from '../db/prismaClient.js';
 import { amendAttendance } from './attendanceAmendmentService.js';
 
-const EXCUSE_TARGET_STATUS_CODES = ['ABSENT_WITH_EXCUSE', 'EXCUSED_LEAVE'];
+const EXCUSE_TARGET_STATUS_CODES = ['ATTENDANCE_LEAVE'];
 
 async function resolveExcuseTargetStatusId(excuseType) {
-  const code = excuseType === 'bereavement' ? 'EXCUSED_LEAVE' : 'ABSENT_WITH_EXCUSE';
+  const code = 'ATTENDANCE_LEAVE';
   const status = await prisma.attendanceStatusTypes.findFirst({
     where: { code },
   });

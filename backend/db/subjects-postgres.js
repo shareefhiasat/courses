@@ -151,6 +151,9 @@ export const getSubjects = async (params = {}) => {
             nameEn: true,
             nameAr: true
           }
+        },
+        _count: {
+          select: { classes: true }
         }
       }
     });

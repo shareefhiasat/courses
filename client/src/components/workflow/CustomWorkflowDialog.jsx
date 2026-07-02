@@ -1,6 +1,6 @@
 import React, { useState, memo, useRef, useMemo, useEffect } from 'react';
 import { useLang } from '@contexts/LangContext';
-import { Modal, Button, Select, Checkbox, DatePicker, ClassSelector } from '@ui';
+import { Modal, Button, Select, DatePicker, ClassSelector } from '@ui';
 import { getPrograms, getSubjects } from '@services/business/programService';
 import { getClasses } from '@services/business/classService';
 import {
@@ -13,6 +13,7 @@ import {
 } from '@constants/workflowConfig';
 import WorkflowTypeFlowPreview from './WorkflowTypeFlowPreview';
 import AttendancePicker from './AttendancePicker';
+import ShareUserSelect from '@ui/ShareUserSelect';
 import styles from './CustomWorkflowDialog.module.css';
 
 const CustomWorkflowDialog = ({ isOpen, onClose, file, onSubmit }) => {
@@ -33,6 +34,8 @@ const CustomWorkflowDialog = ({ isOpen, onClose, file, onSubmit }) => {
   const [subjects, setSubjects] = useState([]);
   const [classes, setClasses] = useState([]);
   const [attendanceIds, setAttendanceIds] = useState([]);
+  const [shareTargetMode, setShareTargetMode] = useState('role');
+  const [specificUserIds, setSpecificUserIds] = useState([]);
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -97,6 +100,8 @@ const CustomWorkflowDialog = ({ isOpen, onClose, file, onSubmit }) => {
     setSubjectFilter('');
     setClassFilter('');
     setAttendanceIds([]);
+    setShareTargetMode('role');
+    setSpecificUserIds([]);
     setErrors({});
     setAttachFile(!!file);
   }, [isOpen, file]);
@@ -166,6 +171,9 @@ const CustomWorkflowDialog = ({ isOpen, onClose, file, onSubmit }) => {
     if (requiresAttendance && attachFile && !file) {
       newErrors.attachFile = t('workflow.dialog.errors.attachmentRequired', 'Attachment is required for excuse workflows');
     }
+    if (shareTargetMode === 'users' && specificUserIds.length === 0) {
+      newErrors.specificUserIds = t('workflow.dialog.errors.specificUsersRequired', 'Select at least one user to share with');
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -184,6 +192,8 @@ const CustomWorkflowDialog = ({ isOpen, onClose, file, onSubmit }) => {
     setSubjectFilter('');
     setClassFilter('');
     setAttendanceIds([]);
+    setShareTargetMode('role');
+    setSpecificUserIds([]);
     setErrors({});
   };
 
@@ -214,6 +224,7 @@ const CustomWorkflowDialog = ({ isOpen, onClose, file, onSubmit }) => {
         program: workflowCategory === 'ATTENDANCE' ? (selectedProgram?.code || programFilter || null) : null,
         subject: workflowCategory === 'ATTENDANCE' ? (selectedSubject?.code || subjectFilter || null) : null,
         attendanceIds: workflowCategory === 'ATTENDANCE' ? attendanceIds : [],
+        specificUserIds: shareTargetMode === 'users' ? specificUserIds : [],
         metadata: workflowCategory === 'ATTENDANCE'
           ? {
               ...(attendanceSubtype === 'EXCUSE' ? { excuseType: 'with_excuse' } : {}),
@@ -315,6 +326,50 @@ const CustomWorkflowDialog = ({ isOpen, onClose, file, onSubmit }) => {
             <p className={styles.flowPreviewDesc}>{t(selectedFlowConfig.descKey, '')}</p>
           </div>
         )}
+
+        <div className={styles.field}>
+          <label className={styles.label}>
+            {t('workflow.dialog.shareTarget', 'Share with')}
+          </label>
+          <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', marginBottom: '0.5rem' }}>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '14px' }}>
+              <input
+                type="radio"
+                name="shareTargetMode"
+                value="role"
+                checked={shareTargetMode === 'role'}
+                onChange={() => { setShareTargetMode('role'); setSpecificUserIds([]); }}
+              />
+              {t('workflow.dialog.shareWithRole', 'Role (from approval flow)')}
+            </label>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', fontSize: '14px' }}>
+              <input
+                type="radio"
+                name="shareTargetMode"
+                value="users"
+                checked={shareTargetMode === 'users'}
+                onChange={() => setShareTargetMode('users')}
+              />
+              {t('workflow.dialog.shareWithUsers', 'Specific users')}
+            </label>
+          </div>
+          {shareTargetMode === 'role' ? (
+            <p className={styles.helperText}>
+              {t('workflow.dialog.shareWithRoleHelp', 'File will be shared with all users in the approval flow role (e.g. HR or Admin). They will see it in "Shared with me".')}
+            </p>
+          ) : (
+            <>
+              <ShareUserSelect
+                multiple
+                value={specificUserIds}
+                onChange={setSpecificUserIds}
+                placeholder={t('workflow.dialog.selectUsers', 'Select users to share with')}
+                fullWidth
+              />
+              {errors.specificUserIds && <p className={styles.errorText}>{errors.specificUserIds}</p>}
+            </>
+          )}
+        </div>
 
         {requiresClassContext && (
           <div className={`${styles.field} ${styles.classContextField}`}>

@@ -5,11 +5,10 @@
 import prisma from '../db/prismaClient.js';
 
 const DEFAULT_RULES = {
-  ABSENT_NO_EXCUSE: 0.5,
-  ABSENT_WITH_EXCUSE: 0.25,
-  EXCUSED_LEAVE: 0.25,
-  LATE: 0.5,
-  HUMAN_CASE: 0.25,
+  ATTENDANCE_ABSENT: 0.5,
+  ATTENDANCE_LEAVE: 0.25,
+  ATTENDANCE_LATE: 0.5,
+  ATTENDANCE_HUMAN_CASE: 0.25,
 };
 
 const FAILURE_ABSENCE_COUNT = 8;
@@ -38,7 +37,7 @@ function resolveDeductionForAttendance(attendance, rules) {
   if (attendance.excuseApprovedAt) {
     const excusedRule = rules.find((r) => r.isExcused);
     if (excusedRule) return excusedRule.deduction;
-    return DEFAULT_RULES.ABSENT_WITH_EXCUSE;
+    return DEFAULT_RULES.ATTENDANCE_LEAVE;
   }
 
   const statusCode = attendance.status?.code;
@@ -193,7 +192,7 @@ export async function getDeductionHistory({ userId, classId }) {
 
       events.push({
         id: `amend-${amend.id}`,
-        eventType: toCode === 'ABSENT_WITH_EXCUSE' || toCode === 'EXCUSED_LEAVE' ? 'amended_to_excused' : 'amended',
+        eventType: toCode === 'ATTENDANCE_LEAVE' ? 'amended_to_excused' : 'amended',
         timestamp: amend.amendedAt,
         description: `Status changed from ${amend.fromStatus?.nameEn || fromCode} to ${amend.toStatus?.nameEn || toCode}${amend.reason ? ` — ${amend.reason}` : ''}`,
         deductionChange: { old: fromDeduction, new: toDeduction },
@@ -204,7 +203,7 @@ export async function getDeductionHistory({ userId, classId }) {
     }
 
     if (att.excuseApprovedAt) {
-      const excusedDeduction = rules.find((r) => r.isExcused)?.deduction ?? DEFAULT_RULES.ABSENT_WITH_EXCUSE;
+      const excusedDeduction = rules.find((r) => r.isExcused)?.deduction ?? DEFAULT_RULES.ATTENDANCE_LEAVE;
       const originalDeduction = DEFAULT_RULES[statusCode] ?? 0.5;
 
       events.push({

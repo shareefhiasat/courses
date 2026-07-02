@@ -4308,6 +4308,7 @@ const ChatPage = memo(() => {
         return null;
       })()}
       currentUserId={user?.dbId}
+      onStartDM={startDMFromPicker}
       onParticipantsChanged={async () => {
         // Manually refresh rooms to get updated participant counts
         try {
@@ -4419,6 +4420,7 @@ const ChatPage = memo(() => {
           }
         }
       }}
+      onStartDM={startDMFromPicker}
       onAdminChanged={async () => {
         try {
           const result = await chatService.getUserRooms();

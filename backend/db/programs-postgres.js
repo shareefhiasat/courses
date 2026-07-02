@@ -125,6 +125,9 @@ const getPrograms = async (params = {}) => {
             displayNameAr: true,
             email: true
           }
+        },
+        _count: {
+          select: { classes: true, subjects: true }
         }
       }
     });

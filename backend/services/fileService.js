@@ -22,7 +22,7 @@
  */
 
 import prisma from '../db/prismaClient.js';
-import { USER_NAME_SELECT_WITH_ROLE } from '../utils/userNameFields.js';
+import { USER_NAME_SELECT_WITH_ROLE, normalizeProfileImageUrl } from '../utils/userNameFields.js';
 import { v4 as uuidv4 } from 'uuid';
 import {
   generatePresignedPutUrl,
@@ -267,7 +267,7 @@ export async function getFileById(fileId, actorUserId, actorRoles = []) {
 
     // Check ownership
     const owns = file.ownerId === actorUserId;
-    if (owns) return ok({ ...file, permission: 'EDIT' });
+    if (owns) return ok({ ...file, owner: normalizeProfileImageUrl(file.owner), permission: 'EDIT' });
 
     // Get user roles if not provided
     let userRoles = actorRoles;
@@ -300,7 +300,7 @@ export async function getFileById(fileId, actorUserId, actorRoles = []) {
     if (!share) return err('ACCESS_DENIED', 'Access denied');
 
     // Include the permission from the share record
-    return ok({ ...file, permission: share.permission });
+    return ok({ ...file, owner: normalizeProfileImageUrl(file.owner), permission: share.permission });
   } catch (error) {
     console.error('[fileService.getFileById]', error);
     return err('GET_FILE_FAILED', error.message);
@@ -595,6 +595,7 @@ export async function listFiles(keycloakUser, {
       console.log('[fileService.listFiles] File:', file.id, file.name, 'workflowCounts:', counts, 'shareCounts:', shares, 'publicLinksCount:', publicLinksCount, 'workflowVersionNumber:', workflowVersionNumber);
       return {
         ...file,
+        owner: normalizeProfileImageUrl(file.owner),
         workflowCounts: counts,
         shareCounts: shares,
         publicLinksCount,

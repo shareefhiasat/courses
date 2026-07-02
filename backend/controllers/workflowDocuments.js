@@ -113,7 +113,8 @@ export const createWorkflowDocumentController = async (req, res) => {
       program,
       subject,
       createdBy: user.dbId,
-      updatedBy: user.dbId
+      updatedBy: user.dbId,
+      specificUserIds: req.body.specificUserIds,
     });
 
     if (result.success) {
@@ -1076,6 +1077,7 @@ export const createCustomWorkflowDocumentController = async (req, res) => {
       dateTo,
       metadata,
       attendanceIds,
+      specificUserIds,
     } = req.body;
 
     if ((!workflowType && !workflowCategory) || !title) {
@@ -1184,7 +1186,8 @@ export const createCustomWorkflowDocumentController = async (req, res) => {
       subject: req.body.subject || null,
       submitterId: user.dbId,
       createdBy: user.dbId,
-      updatedBy: user.dbId
+      updatedBy: user.dbId,
+      specificUserIds,
     });
 
     if (result.success) {

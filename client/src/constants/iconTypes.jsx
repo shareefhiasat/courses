@@ -16,7 +16,7 @@ import {
   // Academic Icons
   BookOpen, GraduationCap, Award, FileText, Database, Trophy, Gamepad2, Calculator,
   // Communication Icons
-  MessageSquare, Bell, BellOff, Send, Phone, Mailbox, Megaphone, MailOpen, MousePointerClick, CornerDownLeft, Flag, ListFilter, Share,
+  MessageSquare, MessageCircle, Bell, BellOff, Send, Phone, Mailbox, Megaphone, MailOpen, MousePointerClick, CornerDownLeft, Flag, ListFilter, Share,
   // Navigation Icons
   Home, Search, Filter, ChevronDown, ChevronUp, ChevronsUp, ChevronsUpDown, Link, Video, List, ExternalLink, Maximize, Square,
   // Time Icons
@@ -452,7 +452,9 @@ export const ICON_TYPES = {
     check_square: <Check size={16} />,
     // Missing icons causing warnings
     history: <History size={16} />,
-    alert: <AlertCircle size={16} />
+    alert: <AlertCircle size={16} />,
+    'alert-triangle': <AlertTriangle size={16} />,
+    'message-circle': <MessageCircle size={16} />
   }
 };
 
@@ -731,6 +733,12 @@ export const getWhiteIcon = (category, type, size = 16) => {
   return getIconWithColor(category, type, size, '#ffffff');
 };
 
+// Colored folder icon utility — returns a filled folder icon with custom color
+export const getColoredFolderIcon = (size = 16, color = 'currentColor') => {
+  size = resolveIconSize(size);
+  return <Folder size={size} fill={color} color={color} />;
+};
+
 // Colored icon utility - derives color from chip color
 export const getColoredIcon = (category, type, size = 16, chipColor = null, theme = 'light') => {
   if (!chipColor) {
@@ -850,21 +858,16 @@ export const getAttendanceStatusInfo = (status, lang = 'en') => {
  */
 export const createAttendanceSummaryStats = (marks, theme) => {
   const stats = [
-    { key: 'present', statusKey: 'PRESENT' },
-    { key: 'late', statusKey: 'LATE' },
-    { key: 'absent_no_excuse', statusKey: 'ABSENT_NO_EXCUSE' },
-    { key: 'absent_with_excuse', statusKey: 'ABSENT_WITH_EXCUSE' },
-    { key: 'excused_leave', statusKey: 'EXCUSED_LEAVE' },
-    { key: 'human_case', statusKey: 'HUMAN_CASE' }
+    { key: 'attendance_present', statusKey: 'ATTENDANCE_PRESENT' },
+    { key: 'attendance_late', statusKey: 'ATTENDANCE_LATE' },
+    { key: 'attendance_absent', statusKey: 'ATTENDANCE_ABSENT' },
+    { key: 'attendance_leave', statusKey: 'ATTENDANCE_LEAVE' },
+    { key: 'attendance_human_case', statusKey: 'ATTENDANCE_HUMAN_CASE' }
   ];
 
   return stats.map(({ key, statusKey }) => {
     const count = marks.filter(m => {
-      const status = (m.status || 'present').toLowerCase();
-      // Handle legacy statuses
-      if (key === 'absent_no_excuse' && (status === 'absent' || status === 'absent_no_excuse')) return true;
-      if (key === 'absent_with_excuse' && status === 'absent_with_excuse') return true;
-      if (key === 'excused_leave' && (status === 'leave' || status === 'excused_leave')) return true;
+      const status = (m.status || 'attendance_present').toLowerCase();
       return status === key;
     }).length;
     
@@ -926,6 +929,7 @@ export default {
   getIconWithColor,
   getThemedIcon,
   getWhiteIcon,
+  getColoredFolderIcon,
   getColoredIcon,
   getTypeIcon,
   getAttendanceIcon,

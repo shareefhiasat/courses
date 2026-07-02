@@ -465,7 +465,6 @@ const NotificationDrawer = ({ isOpen, onClose, feed }) => {
                   { value: ATTENDANCE_STATUS.PRESENT, label: t('present') || 'Present' },
                   { value: ATTENDANCE_STATUS.LATE, label: t('late') || 'Late' },
                   { value: ATTENDANCE_STATUS.ABSENT_NO_EXCUSE, label: t('absent_no_excuse') || 'Absent (No Excuse)' },
-                  { value: ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE, label: t('absent_with_excuse') || 'Absent excused' },
                   { value: ATTENDANCE_STATUS.EXCUSED_LEAVE, label: t('excused_leave') || 'Excused Leave' },
                   { value: ATTENDANCE_STATUS.HUMAN_CASE, label: t('human_case') || 'Human Case' }
                 ]}

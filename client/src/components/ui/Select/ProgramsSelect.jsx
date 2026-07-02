@@ -11,8 +11,10 @@ import {
   getProgramOptionLabel,
   getSubjectOptionLabel,
   getClassOptionLabel,
+  getClassSubtextLines,
+  getProgramSubtextLines,
+  getSubjectSubtextLines,
 } from '@utils/academicSelectOptions.js';
-import { info, error, warn, debug } from '@services/utils/logger.js';
 
 const ProgramsSelect = ({
   programs = [],
@@ -95,23 +97,6 @@ const ProgramsSelect = ({
     return subjects.filter(sub => allowedSubjectIds.has(String(sub.id)));
   }, [subjects, allowedSubjectIds]);
 
-  // DEBUG: Log props received
-  debug('[ProgramsSelect] Props:', {
-    programsCount: programs.length,
-    subjectsCount: subjects.length,
-    classesCount: classes.length,
-    selectedProgram,
-    selectedProgramType: typeof selectedProgram,
-    selectedSubject,
-    selectedClass,
-    selectedTerm,
-    selectedYear,
-    showSubjects,
-    showClasses,
-    showTerms,
-    showYears
-  });
-
   // Handle both string and number types from Select component
   let normalizedSelectedProgram = null;
   if (selectedProgram !== null && selectedProgram !== undefined && selectedProgram !== '') {
@@ -120,11 +105,6 @@ const ProgramsSelect = ({
     } else {
       normalizedSelectedProgram = String(selectedProgram);
     }
-
-    debug('[ProgramsSelect] Program normalization:', {
-      originalValue: selectedProgram,
-      normalizedValue: normalizedSelectedProgram
-    });
   }
 
   // Filter subjects based on selected program
@@ -151,27 +131,14 @@ const ProgramsSelect = ({
     filteredClasses = filteredClasses.filter(cls => cls.year === selectedYear);
   }
 
-  // DEBUG: Log filtering results
-  debug('[ProgramsSelect] Filtering results:', {
-    normalizedSelectedProgram,
-    normalizedSelectedSubject,
-    filteredSubjectsCount: filteredSubjects.length,
-    filteredClassesCount: filteredClasses.length,
-    filteredClasses: filteredClasses.slice(0, 3).map(c => ({
-      id: c.id,
-      name: c.name || c.code,
-      subjectId: c.subjectId,
-      term: c.term,
-      year: c.year
-    }))
-  });
-
   // Format options for Select components
   const programOptions = [
     { value: '', label: t('all_programs') || 'All Programs' },
     ...filteredPrograms.map(program => ({
       value: String(program.id || ''),
       label: getProgramOptionLabel(program, lang),
+      displayLabel: getProgramOptionLabel(program, lang),
+      subtext: getProgramSubtextLines(program, lang, t),
     })),
   ];
 
@@ -181,6 +148,8 @@ const ProgramsSelect = ({
     ...sortedSubjects.map(subject => ({
       value: String(subject.id || ''),
       label: getSubjectOptionLabel(subject, lang),
+      displayLabel: getSubjectOptionLabel(subject, lang),
+      subtext: getSubjectSubtextLines(subject, lang, t),
     })),
   ];
 
@@ -190,7 +159,9 @@ const ProgramsSelect = ({
     ...sortedClasses.map(cls => ({
       value: String(cls.id || ''),
       label: getClassOptionLabel(cls, lang),
+      displayLabel: getClassOptionLabel(cls, lang),
       code: cls.code,
+      subtext: getClassSubtextLines(cls, lang, t),
     })),
   ];
 

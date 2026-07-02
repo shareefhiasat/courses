@@ -22,12 +22,11 @@ const StatusCard = ({
 }) => {
   // Status icon mapping
   const statusIconMap = {
-    PRESENT: { icon: 'check_circle', color: '#22c55e' },
-    LATE: { icon: 'clock', color: '#eab308' },
-    ABSENT_NO_EXCUSE: { icon: 'x_circle', color: '#ef4444' },
-    ABSENT_WITH_EXCUSE: { icon: 'x_circle', color: '#ef4444' },
-    EXCUSED_LEAVE: { icon: 'heart', color: '#ec4899' },
-    HUMAN_CASE: { icon: 'heart', color: '#8b5cf6' },
+    ATTENDANCE_PRESENT: { icon: 'check_circle', color: '#22c55e' },
+    ATTENDANCE_LATE: { icon: 'clock', color: '#eab308' },
+    ATTENDANCE_ABSENT: { icon: 'x_circle', color: '#ef4444' },
+    ATTENDANCE_LEAVE: { icon: 'heart', color: '#ec4899' },
+    ATTENDANCE_HUMAN_CASE: { icon: 'heart', color: '#8b5cf6' },
     STANDUP_PRESENT: { icon: 'check_circle', color: '#10b981' },
     STANDUP_ABSENT: { icon: 'x', color: '#dc2626' },
     STANDUP_CLINIC: { icon: 'heart', color: '#ec4899' },

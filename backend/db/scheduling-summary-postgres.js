@@ -289,9 +289,9 @@ async function computeWidgetAnalytics(params) {
   const standupWhere = { date: toDateTimeRange(start, end) };
   if (params.programId) standupWhere.programId = parseInt(params.programId, 10);
 
-  const isPresentCode = (code) => code === 'PRESENT' || code === 'STANDUP_PRESENT';
-  const isAbsentCode = (code) => typeof code === 'string' && code.includes('ABSENT');
-  const isLateCode = (code) => typeof code === 'string' && code.includes('LATE');
+  const isPresentCode = (code) => code === 'ATTENDANCE_PRESENT' || code === 'STANDUP_PRESENT';
+  const isAbsentCode = (code) => code === 'ATTENDANCE_ABSENT' || code === 'STANDUP_ABSENT';
+  const isLateCode = (code) => code === 'ATTENDANCE_LATE' || code === 'STANDUP_LATE';
 
   const [classAttendanceRows, standupAttendanceRows, sessionInstructors, workflowRows] = await Promise.all([
     prisma.attendance.findMany({

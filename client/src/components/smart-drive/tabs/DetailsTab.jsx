@@ -6,6 +6,7 @@ import { formatMimeType } from '@utils/fileUtils';
 import { formatQatarDate } from '@utils/timezone';
 import { getLocalizedUserName } from '@utils/localizedUserName';
 import { getUserRoleFromObject } from '@utils/userUtils';
+import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
 import axios from 'axios';
 
 export default function DetailsTab({ file }) {
@@ -132,13 +133,62 @@ export default function DetailsTab({ file }) {
       icon: 'user',
       label: t('drive.owner'),
       value: (
-        <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-          {getLocalizedUserName(file.owner, lang, '\u2014')}
-          {(() => { const role = getUserRoleFromObject(file.owner); if (!role) return null; const icon = getUserRoleIcon(role); const color = getUserRoleColor(role); return icon ? (
-            <span title={t(`roles.${role}`, role)} style={{ display: 'flex', alignItems: 'center' }}>
-              {React.cloneElement(icon, { color, size: 12 })}
-            </span>
-          ) : null; })()}
+        <span style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          {(() => {
+            const ownerName = getLocalizedUserName(file.owner, lang, '\u2014');
+            const role = getUserRoleFromObject(file.owner);
+            const roleIcon = role ? getUserRoleIcon(role) : null;
+            const roleColor = role ? getUserRoleColor(role) : null;
+            return (
+              <div style={{ position: 'relative', display: 'inline-flex', flexShrink: 0 }}>
+                <div style={{
+                  width: '2rem',
+                  height: '2rem',
+                  borderRadius: '9999px',
+                  background: file.owner?.profileImageUrl ? 'transparent' : getAvatarColor(ownerName).bg,
+                  color: getAvatarColor(ownerName).color,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: 'var(--font-size-xs)',
+                  fontWeight: 600,
+                  overflow: 'hidden',
+                  flexShrink: 0,
+                }}>
+                  {file.owner?.profileImageUrl ? (
+                    <img
+                      src={file.owner.profileImageUrl}
+                      alt={ownerName}
+                      style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                    />
+                  ) : (
+                    getAvatarInitials(ownerName)
+                  )}
+                </div>
+                {roleIcon && (
+                  <div style={{
+                    position: 'absolute',
+                    bottom: '-2px',
+                    insetInlineEnd: '-2px',
+                    width: '0.875rem',
+                    height: '0.875rem',
+                    borderRadius: '9999px',
+                    background: 'var(--panel, white)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    border: '1.5px solid var(--panel, white)',
+                    boxShadow: '0 0 0 1px var(--border, #e5e7eb)',
+                  }}
+                    title={t(`roles.${role}`, role)}
+                  >
+                    {React.cloneElement(roleIcon, { color: roleColor, size: 8 })}
+                  </div>
+                )}
+              </div>
+            );
+          })()}
+          <span>{getLocalizedUserName(file.owner, lang, '\u2014')}</span>
         </span>
       ),
     },

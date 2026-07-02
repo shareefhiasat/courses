@@ -6,6 +6,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { getLocalizedUserName, applyLocalizedNameFields } from '@utils/localizedUserName';
+import { getClassSubtextLines, getProgramSubtextLines, getSubjectSubtextLines } from '@utils/academicSelectOptions';
 import { pickInstructorName, pickStudentName } from '@utils/pickLocalizedName';
 import { useTheme } from '@contexts/ThemeContext';
 import { getPrograms, getSubjects } from '@services/business/programService';
@@ -405,7 +406,9 @@ const EnrollmentsPage = () => {
                   { value: 'all', label: t('enrollments_all_programs_filter') },
                   ...programs.map(p => ({
                     value: p.docId || p.id,
-                    label: p.nameEn || p.nameAr || p.code || p.docId
+                    label: p.nameEn || p.nameAr || p.code || p.docId,
+                    displayLabel: p.nameEn || p.nameAr || p.code || p.docId,
+                    subtext: getProgramSubtextLines(p, lang, t),
                   }))
                 ]}
                 fullWidth
@@ -424,7 +427,9 @@ const EnrollmentsPage = () => {
                     .filter(s => programFilter === 'all' || s.programId === programFilter)
                     .map(s => ({
                       value: s.docId || s.id,
-                      label: `${s.code || ''} - ${s.nameEn || s.nameAr || s.docId}`
+                      label: `${s.code || ''} - ${s.nameEn || s.nameAr || s.docId}`,
+                      displayLabel: `${s.code || ''} - ${s.nameEn || s.nameAr || s.docId}`,
+                      subtext: getSubjectSubtextLines(s, lang, t),
                     }))
                 ]}
                 fullWidth
@@ -446,7 +451,9 @@ const EnrollmentsPage = () => {
                     })
                     .map(c => ({
                       value: c.id || c.docId,
-                      label: `${c.name || c.code || 'Unnamed'}${c.code ? ` (${c.code})` : ''}`
+                      label: `${c.name || c.code || 'Unnamed'}${c.code ? ` (${c.code})` : ''}`,
+                      displayLabel: `${c.name || c.code || 'Unnamed'}${c.code ? ` (${c.code})` : ''}`,
+                      subtext: getClassSubtextLines(c, lang, t),
                     }))
                 ]}
                 fullWidth
@@ -478,6 +485,7 @@ const EnrollmentsPage = () => {
               const classId = cls.id || cls.docId;
               const isSelected = (selectedClass?.id === classId) || (selectedClass?.docId === classId);
               const uniqueKey = classId || `class-${idx}`;
+              const isClassEnded = cls.endDate && new Date(cls.endDate) < new Date();
               return (
                 <div
                   key={uniqueKey}
@@ -495,6 +503,11 @@ const EnrollmentsPage = () => {
                   <div className={styles.classInfo}>
                     {cls.term && `${cls.term}`} {cls.year && `• ${cls.year}`}
                   </div>
+                  {isClassEnded && (
+                    <div style={{ fontSize: '0.75rem', color: 'var(--color-danger, #dc2626)', marginTop: 2 }}>
+                      {t('class_ended_label')}
+                    </div>
+                  )}
                 </div>
               );
             })}

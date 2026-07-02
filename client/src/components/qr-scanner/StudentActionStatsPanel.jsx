@@ -1058,7 +1058,7 @@ export default function StudentActionStatsPanel({
     todayLogs.some(log =>
         log.type === RECORD_TYPES.ATTENDANCE &&
         log.status &&
-        [ATTENDANCE_STATUS.PRESENT, ATTENDANCE_STATUS.ABSENT_NO_EXCUSE, ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE, ATTENDANCE_STATUS.LATE, ATTENDANCE_STATUS.EXCUSED_LEAVE, ATTENDANCE_STATUS.HUMAN_CASE].includes(log.status)
+        [ATTENDANCE_STATUS.PRESENT, ATTENDANCE_STATUS.ABSENT_NO_EXCUSE, ATTENDANCE_STATUS.EXCUSED_LEAVE, ATTENDANCE_STATUS.LATE, ATTENDANCE_STATUS.HUMAN_CASE].includes(log.status)
     ), [todayLogs]);
   
   const attendanceStatus = useMemo(() => {
@@ -1120,13 +1120,13 @@ export default function StudentActionStatsPanel({
         const status = log.status;
         if (status === ATTENDANCE_STATUS.PRESENT) acc.present++;
         else if (status === ATTENDANCE_STATUS.ABSENT_NO_EXCUSE) acc.absent_no_excuse++;
-        else if (status === ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE) acc.absent_with_excuse++;
+        else if (status === ATTENDANCE_STATUS.EXCUSED_LEAVE) acc.excused_leave++;
         else if (status === ATTENDANCE_STATUS.LATE) acc.late++;
         else if (status === ATTENDANCE_STATUS.EXCUSED_LEAVE) acc.excused_leave++;
         else if (status === ATTENDANCE_STATUS.HUMAN_CASE) acc.human_case++;
       }
       return acc;
-    }, { present: 0, late: 0, absent_no_excuse: 0, absent_with_excuse: 0, excused_leave: 0, human_case: 0 });
+    }, { present: 0, late: 0, absent_no_excuse: 0, excused_leave: 0, excused_leave: 0, human_case: 0 });
 
     // If there's a current attendance status that's different from todayLogs,
     // increment the appropriate counter (for immediate UI feedback during selection)
@@ -1140,7 +1140,7 @@ export default function StudentActionStatsPanel({
       if (!isInTodayLogs) {
         if (currentAttendanceStatus === ATTENDANCE_STATUS.PRESENT) stats.present++;
         else if (currentAttendanceStatus === ATTENDANCE_STATUS.ABSENT_NO_EXCUSE) stats.absent_no_excuse++;
-        else if (currentAttendanceStatus === ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE) stats.absent_with_excuse++;
+        else if (currentAttendanceStatus === ATTENDANCE_STATUS.EXCUSED_LEAVE) stats.excused_leave++;
         else if (currentAttendanceStatus === ATTENDANCE_STATUS.LATE) stats.late++;
         else if (currentAttendanceStatus === ATTENDANCE_STATUS.EXCUSED_LEAVE) stats.excused_leave++;
         else if (currentAttendanceStatus === ATTENDANCE_STATUS.HUMAN_CASE) stats.human_case++;
@@ -1157,13 +1157,13 @@ export default function StudentActionStatsPanel({
         const status = log.status;
         if (status === ATTENDANCE_STATUS.PRESENT) acc.present++;
         else if (status === ATTENDANCE_STATUS.ABSENT_NO_EXCUSE) acc.absent_no_excuse++;
-        else if (status === ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE) acc.absent_with_excuse++;
+        else if (status === ATTENDANCE_STATUS.EXCUSED_LEAVE) acc.excused_leave++;
         else if (status === ATTENDANCE_STATUS.LATE) acc.late++;
         else if (status === ATTENDANCE_STATUS.EXCUSED_LEAVE) acc.excused_leave++;
         else if (status === ATTENDANCE_STATUS.HUMAN_CASE) acc.human_case++;
       }
       return acc;
-    }, { present: 0, late: 0, absent_no_excuse: 0, absent_with_excuse: 0, excused_leave: 0, human_case: 0 });
+    }, { present: 0, late: 0, absent_no_excuse: 0, excused_leave: 0, excused_leave: 0, human_case: 0 });
   }, [historicalLogs]);
 
   const totalPoints = useMemo(() =>
@@ -1327,17 +1327,17 @@ export default function StudentActionStatsPanel({
                 <button
                     onClick={async () => {
                       console.log('🔍 Present button clicked - attendanceMode:', attendanceMode, 'programId:', programId, 'subjectId:', subjectId);
-                      const statusToMark = attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_PRESENT' : 'PRESENT';
+                      const statusToMark = attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_PRESENT' : 'ATTENDANCE_PRESENT';
                       await handleMarkAttendance(student.id, statusToMark);
                     }}
-                    disabled={showLoadingOverlay || (!isAttendanceNone && currentAttendanceStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_PRESENT' : 'PRESENT'))}
+                    disabled={showLoadingOverlay || (!isAttendanceNone && currentAttendanceStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_PRESENT' : 'ATTENDANCE_PRESENT'))}
                     style={{
                       padding: '0.625rem',
                       borderRadius: '0.375rem',
                       border: '2px solid #10b981',
-                      background: !isAttendanceNone && currentAttendanceStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_PRESENT' : 'PRESENT') ? 'var(--color-success, #10b981)' : 'var(--panel, white)',
-                      color: !isAttendanceNone && currentAttendanceStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_PRESENT' : 'PRESENT') ? 'var(--text-on-success, white)' : 'var(--color-success, #10b981)',
-                      cursor: showLoadingOverlay || (!isAttendanceNone && currentAttendanceStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_PRESENT' : 'PRESENT')) ? 'not-allowed' : 'pointer',
+                      background: !isAttendanceNone && currentAttendanceStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_PRESENT' : 'ATTENDANCE_PRESENT') ? 'var(--color-success, #10b981)' : 'var(--panel, white)',
+                      color: !isAttendanceNone && currentAttendanceStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_PRESENT' : 'ATTENDANCE_PRESENT') ? 'var(--text-on-success, white)' : 'var(--color-success, #10b981)',
+                      cursor: showLoadingOverlay || (!isAttendanceNone && currentAttendanceStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_PRESENT' : 'ATTENDANCE_PRESENT')) ? 'not-allowed' : 'pointer',
                       opacity: showLoadingOverlay ? 0.5 : 1,
                       display: 'flex',
                       flexDirection: 'column',
@@ -1370,17 +1370,17 @@ export default function StudentActionStatsPanel({
                 </button>
                 <button
                     onClick={async () => {
-                      const statusToMark = attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_LATE' : 'LATE';
+                      const statusToMark = attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_LATE' : 'ATTENDANCE_LATE';
                       await handleMarkAttendance(student.id, statusToMark);
                     }}
-                    disabled={showLoadingOverlay || (!isAttendanceNone && currentAttendanceStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_LATE' : 'LATE'))}
+                    disabled={showLoadingOverlay || (!isAttendanceNone && currentAttendanceStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_LATE' : 'ATTENDANCE_LATE'))}
                     style={{
                       padding: '0.625rem',
                       borderRadius: '0.375rem',
                       border: '2px solid #f59e0b',
-                      background: !isAttendanceNone && currentAttendanceStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_LATE' : 'LATE') ? 'var(--color-warning, #f59e0b)' : 'var(--panel, white)',
-                      color: !isAttendanceNone && currentAttendanceStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_LATE' : 'LATE') ? 'var(--text-on-success, white)' : 'var(--color-warning, #f59e0b)',
-                      cursor: showLoadingOverlay || (!isAttendanceNone && currentAttendanceStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_LATE' : 'LATE')) ? 'not-allowed' : 'pointer',
+                      background: !isAttendanceNone && currentAttendanceStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_LATE' : 'ATTENDANCE_LATE') ? 'var(--color-warning, #f59e0b)' : 'var(--panel, white)',
+                      color: !isAttendanceNone && currentAttendanceStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_LATE' : 'ATTENDANCE_LATE') ? 'var(--text-on-success, white)' : 'var(--color-warning, #f59e0b)',
+                      cursor: showLoadingOverlay || (!isAttendanceNone && currentAttendanceStatus === (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'STANDUP_LATE' : 'ATTENDANCE_LATE')) ? 'not-allowed' : 'pointer',
                       opacity: showLoadingOverlay ? 0.5 : 1,
                       display: 'flex',
                       flexDirection: 'column',
@@ -1455,16 +1455,16 @@ export default function StudentActionStatsPanel({
                 </button>
                 <button
                     onClick={async () => {
-                      await handleMarkAttendance(student.id, ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE);
+                      await handleMarkAttendance(student.id, ATTENDANCE_STATUS.EXCUSED_LEAVE);
                     }}
-                    disabled={showLoadingOverlay || (!isAttendanceNone && currentAttendanceStatus === ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE)}
+                    disabled={showLoadingOverlay || (!isAttendanceNone && currentAttendanceStatus === ATTENDANCE_STATUS.EXCUSED_LEAVE)}
                     style={{
                       padding: '0.625rem',
                       borderRadius: '0.375rem',
                       border: '2px solid #ef4444',
-                      background: !isAttendanceNone && currentAttendanceStatus === ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE ? 'var(--color-danger, #ef4444)' : 'var(--panel, white)',
-                      color: !isAttendanceNone && currentAttendanceStatus === ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE ? 'var(--text-on-success, white)' : 'var(--color-danger, #ef4444)',
-                      cursor: showLoadingOverlay || (!isAttendanceNone && currentAttendanceStatus === ATTENDANCE_STATUS.ABSENT_WITH_EXCUSE) ? 'not-allowed' : 'pointer',
+                      background: !isAttendanceNone && currentAttendanceStatus === ATTENDANCE_STATUS.EXCUSED_LEAVE ? 'var(--color-danger, #ef4444)' : 'var(--panel, white)',
+                      color: !isAttendanceNone && currentAttendanceStatus === ATTENDANCE_STATUS.EXCUSED_LEAVE ? 'var(--text-on-success, white)' : 'var(--color-danger, #ef4444)',
+                      cursor: showLoadingOverlay || (!isAttendanceNone && currentAttendanceStatus === ATTENDANCE_STATUS.EXCUSED_LEAVE) ? 'not-allowed' : 'pointer',
                       opacity: showLoadingOverlay ? 0.5 : 1,
                       display: 'flex',
                       flexDirection: 'column',
@@ -1478,18 +1478,18 @@ export default function StudentActionStatsPanel({
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
                     <XSmallIcon style={{ width: '16px', height: '16px' }} />
-                    {/*{attendanceStats.absent_with_excuse && Number(attendanceStats.absent_with_excuse) > 0 && (*/}
+                    {/*{attendanceStats.excused_leave && Number(attendanceStats.excused_leave) > 0 && (*/}
                     {/*  <span style={{*/}
                     {/*    fontSize: '0.5rem',*/}
                     {/*    fontWeight: 600,*/}
-                    {/*    color: (currentAttendanceStatus || student.attendance) === 'absent_with_excuse' ? 'white' : '#ef4444',*/}
-                    {/*    background: (currentAttendanceStatus || student.attendance) === 'absent_with_excuse' ? '#ef4444' : 'transparent',*/}
+                    {/*    color: (currentAttendanceStatus || student.attendance) === 'excused_leave' ? 'white' : '#ef4444',*/}
+                    {/*    background: (currentAttendanceStatus || student.attendance) === 'excused_leave' ? '#ef4444' : 'transparent',*/}
                     {/*    borderRadius: '0.125rem',*/}
                     {/*    padding: '0.125rem 0.25rem',*/}
                     {/*    minWidth: '0.75rem',*/}
                     {/*    textAlign: 'center'*/}
                     {/*  }}>*/}
-                    {/*    {attendanceStats.absent_with_excuse}*/}
+                    {/*    {attendanceStats.excused_leave}*/}
                     {/*  </span>*/}
                     {/*)}*/}
                   </div>
@@ -1726,7 +1726,7 @@ export default function StudentActionStatsPanel({
                   minHeight: '3rem'
                 }}>
                   <div style={{ fontSize: 'var(--font-size-md)', fontWeight: 600, color: 'var(--text-on-success, white)' }}>
-                    {attendanceStats.absent_with_excuse}
+                    {attendanceStats.excused_leave}
                   </div>
                   <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-on-success, white)', fontWeight: 500 }}>
                     {t('absent_excused')}

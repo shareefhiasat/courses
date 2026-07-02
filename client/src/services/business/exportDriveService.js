@@ -8,7 +8,11 @@
 import api from '@api';
 import { logExportHistory } from '@services/db/exportHistoryService.js';
 
-const EXPORTED_FOLDER_NAME = 'Exported';
+const EXPORTED_FOLDER_NAME = 'Exported Files';
+const EXPORTED_FOLDER_NAME_AR = 'الملفات المستخرجة';
+const EXPORTED_FOLDER_COLOR = '#8b5cf6';
+const LEGACY_EXPORTED_NAMES = ['Exported'];
+const LEGACY_EXPORTED_NAMES_AR = ['مصدّر'];
 
 export const MIME = {
   PDF: 'application/pdf',
@@ -43,7 +47,12 @@ export async function ensureExportedFolder() {
   if (treeRes.success) {
     const roots = treeRes.payload || [];
     const existing = roots.find(
-      (f) => f.name === EXPORTED_FOLDER_NAME && !f.parentId
+      (f) => (
+        f.name === EXPORTED_FOLDER_NAME ||
+        f.nameAr === EXPORTED_FOLDER_NAME_AR ||
+        LEGACY_EXPORTED_NAMES.includes(f.name) ||
+        LEGACY_EXPORTED_NAMES_AR.includes(f.nameAr)
+      ) && !f.parentId
     );
     if (existing?.id) {
       cachedExportedFolderId = existing.id;
@@ -53,6 +62,8 @@ export async function ensureExportedFolder() {
 
   const createRes = await api.post('/drive/folders', {
     name: EXPORTED_FOLDER_NAME,
+    nameAr: EXPORTED_FOLDER_NAME_AR,
+    color: EXPORTED_FOLDER_COLOR,
     parentId: null,
   });
 
@@ -65,7 +76,12 @@ export async function ensureExportedFolder() {
     const retry = await api.get('/drive/folders/tree');
     const roots = retry.payload || [];
     const existing = roots.find(
-      (f) => f.name === EXPORTED_FOLDER_NAME && !f.parentId
+      (f) => (
+        f.name === EXPORTED_FOLDER_NAME ||
+        f.nameAr === EXPORTED_FOLDER_NAME_AR ||
+        LEGACY_EXPORTED_NAMES.includes(f.name) ||
+        LEGACY_EXPORTED_NAMES_AR.includes(f.nameAr)
+      ) && !f.parentId
     );
     if (existing?.id) {
       cachedExportedFolderId = existing.id;
