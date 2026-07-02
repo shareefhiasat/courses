@@ -193,7 +193,7 @@ router.post('/', validateBody({
   sequence: { type: 'number', required: false, min: 1 },
 }), createUserController);
 router.put('/:id', validateParams({
-  id: { type: 'string', required: true, format: 'uuid' },
+  id: { type: 'string', required: true },
 }), updateUserController);
 // Tighter rate limit for sensitive account operations
 const sensitiveLimiter = rateLimit({

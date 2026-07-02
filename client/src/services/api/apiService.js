@@ -65,7 +65,7 @@ apiClient.interceptors.response.use(
       // Try to refresh the token
       try {
         const keycloak = window.keycloak;
-        if (keycloak && !keycloak.tokenExpired) {
+        if (keycloak) {
           await keycloak.updateToken(30);
           const newToken = keycloak.token;
 
