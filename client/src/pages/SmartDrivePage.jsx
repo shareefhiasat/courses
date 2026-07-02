@@ -68,8 +68,12 @@ export default function SmartDrivePage() {
     { target: '[data-tour="drive-sidebar"]',   content: t('tour.drive_sidebar'),        disableBeacon: true, placement: 'right' },
     { target: '[data-tour="drive-search"]',    content: t('tour.drive_search'),         disableBeacon: true, placement: 'bottom' },
     { target: '[data-tour="drive-upload"]',    content: t('tour.drive_upload'),         disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="drive-new-folder"]',content: t('tour.drive_new_folder'),     disableBeacon: true, placement: 'bottom' },
     { target: '[data-tour="drive-breadcrumb"]',content: t('tour.drive_breadcrumb'),     disableBeacon: true, placement: 'bottom' },
     { target: '[data-tour="drive-filters"]',   content: t('tour.smart_drive_filters'), disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="file-roster"]',     content: t('tour.drive_file_roster'),    disableBeacon: true, placement: 'top' },
+    { target: '[data-tour="file-context-menu"]',content: t('tour.drive_context_menu'),  disableBeacon: true, placement: 'left' },
+    { target: '[data-tour="drive-inbox"]',     content: t('tour.drive_inbox'),          disableBeacon: true, placement: 'bottom' },
   ].filter(s => !!document.querySelector(s.target)), [t]);
   const startTour = useCallback(() => { const steps = buildTourSteps(); if (!steps.length) return; setTourSteps(steps); setRunTour(true); }, [buildTourSteps]);
   useEffect(() => {
@@ -909,6 +913,7 @@ export default function SmartDrivePage() {
 
           {/* Inbox/Notifications */}
           <button
+            data-tour="drive-inbox"
             onClick={() => navigate('/workflow/inbox')}
             style={{
               position: 'relative',
@@ -974,6 +979,7 @@ export default function SmartDrivePage() {
               </button>
 
               <button
+                data-tour="drive-new-folder"
                 onClick={() => handleFileAction('new-folder', [])}
                 style={{
                   ...gradientBtn,

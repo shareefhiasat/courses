@@ -210,6 +210,7 @@ export default function FileRoster({
 
   return (
     <div
+      data-tour="file-roster"
       style={{
         background: 'var(--panel, white)',
         border: '1px solid var(--border, #e5e7eb)',
@@ -985,6 +986,7 @@ export default function FileRoster({
                 )}
                 <div style={{ width: 40, display: 'flex', justifyContent: 'center' }}>
                     <button
+                      data-tour="file-context-menu"
                       onClick={(e) => {
                         e.stopPropagation();
                         console.log('[FileRoster] Opening file menu for:', file.id, 'isTrashView:', isTrashView);
@@ -1061,6 +1063,7 @@ export default function FileRoster({
                         ].map((action) => (
                           <button
                             key={action.key}
+                            data-tour={action.key === 'share' ? 'file-action-share' : action.key === 'create-workflow' ? 'file-action-workflow' : undefined}
                             onClick={() => {
                               setOpenMenuId(null);
                               onFileAction?.(action.key, [file]);

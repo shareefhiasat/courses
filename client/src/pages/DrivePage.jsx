@@ -1,6 +1,9 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import Joyride from 'react-joyride';
+import TourTooltip from '@ui/TourTooltip/TourTooltip';
 import { useLang } from '../contexts/LangContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useTheme } from '../contexts/ThemeContext';
 import { Upload, FileText, Trash2, RefreshCw, FolderOpen, Users, GitBranch } from 'lucide-react';
 import { Navigate, useNavigate } from 'react-router-dom';
 import {
@@ -18,9 +21,33 @@ import { info, error as logError } from '../services/utils/logger';
  * UI component for browsing and managing files in private and shared spaces
  */
 export default function DrivePage() {
-  const { t } = useLang();
+  const { t, lang } = useLang();
+  const { theme } = useTheme();
   const { user } = useAuth();
   const navigate = useNavigate();
+
+  // ── Guided Tour ──────────────────────────────────────────────────────────
+  const [runTour, setRunTour] = useState(false);
+  const [tourSteps, setTourSteps] = useState([]);
+  const tourSeenKey = `driveTourSeen_${lang}`;
+  const buildTourSteps = useCallback(() => [
+    { target: '[data-tour="drive-tabs"]', content: t('tour.drive_tabs'), disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="drive-upload"]', content: t('tour.drive_upload'), disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="drive-files"]', content: t('tour.drive_files'), disableBeacon: true, placement: 'top' },
+  ].filter(s => !!document.querySelector(s.target)), [t]);
+  const startTour = useCallback(() => { const steps = buildTourSteps(); if (!steps.length) return; setTourSteps(steps); setRunTour(true); }, [buildTourSteps]);
+  useEffect(() => {
+    window.addEventListener('app:joyride', startTour);
+    window.addEventListener('app:help', startTour);
+    return () => { window.removeEventListener('app:joyride', startTour); window.removeEventListener('app:help', startTour); };
+  }, [startTour]);
+  useEffect(() => { try { if (!localStorage.getItem(tourSeenKey)) startTour(); } catch {} }, [tourSeenKey, startTour]);
+  const handleTourCallback = useCallback((data) => {
+    const { status, action } = data || {};
+    if (status === 'finished' || status === 'skipped' || action === 'close') { setRunTour(false); try { localStorage.setItem(tourSeenKey, 'true'); } catch {} }
+  }, [tourSeenKey]);
+  const TourTooltipComponent = useMemo(() => TourTooltip({ tourSeenKey }), [tourSeenKey]);
+  // ──────────────────────────────────────────────────────────────────────────
   
   const [privateFiles, setPrivateFiles] = useState([]);
   const [sharedFiles, setSharedFiles] = useState([]);
@@ -201,6 +228,10 @@ export default function DrivePage() {
 
   return (
     <div className="p-6 max-w-7xl mx-auto">
+      <Joyride continuous run={runTour && tourSteps.length > 0} steps={tourSteps} callback={handleTourCallback} scrollOffset={100} scrollToFirstStep showSkipButton showProgress tooltipComponent={TourTooltipComponent}
+        locale={{ back: t('tour_back'), close: t('tour_close'), last: t('tour_finish'), next: t('tour_next'), skip: t('tour_skip') }}
+        styles={{ options: { primaryColor: 'var(--color-primary,#800020)', textColor: theme === 'dark' ? '#e5e7eb' : '#111', backgroundColor: theme === 'dark' ? '#1f2937' : '#fff', zIndex: 10000 } }}
+      />
       <div className="mb-6">
         <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
           {t('drive.title', 'Drive')}
@@ -211,7 +242,7 @@ export default function DrivePage() {
       </div>
 
       {/* Tabs */}
-      <div className="flex border-b border-gray-200 dark:border-gray-700 mb-6">
+      <div data-tour="drive-tabs" className="flex border-b border-gray-200 dark:border-gray-700 mb-6">
         <button
           onClick={() => navigate('/smart-drive')}
           className={`flex items-center px-4 py-2 border-b-2 transition-colors ${
@@ -237,7 +268,7 @@ export default function DrivePage() {
       </div>
 
       {/* Upload Section */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
+      <div data-tour="drive-upload" className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 mb-6">
         <div className="flex items-center gap-4">
           <input
             type="file"
@@ -285,7 +316,7 @@ export default function DrivePage() {
       )}
 
       {/* Files List */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+      <div data-tour="drive-files" className="bg-white dark:bg-gray-800 rounded-lg shadow">
         <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex justify-between items-center">
           <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
             {activeTab === 'private'

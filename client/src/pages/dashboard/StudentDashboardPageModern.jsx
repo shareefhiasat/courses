@@ -1,4 +1,6 @@
-import React, { useState, useMemo, useEffect, useLayoutEffect } from 'react';
+import React, { useState, useMemo, useEffect, useLayoutEffect, useCallback } from 'react';
+import Joyride from 'react-joyride';
+import TourTooltip from '@ui/TourTooltip/TourTooltip';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
@@ -20,6 +22,29 @@ export default function StudentDashboardPageModern() {
   const { user, userProfile, isAdmin, isInstructor, isHR, loading: authLoading } = useAuth();
   const { startLoading } = useGlobalLoading();
   const { primaryColor } = useColorTheme();
+
+  // ── Guided Tour ──────────────────────────────────────────────────────────
+  const [runTour, setRunTour] = useState(false);
+  const [tourSteps, setTourSteps] = useState([]);
+  const tourSeenKey = `studentDashModernTourSeen_${lang}`;
+  const buildTourSteps = useCallback(() => [
+    { target: '[data-tour="nav-tabs"]', content: t('tour.student_dash_tabs'), disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="student-dash-filters"]', content: t('tour.student_dash_filters'), disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="student-dash-content"]', content: t('tour.student_dash_content'), disableBeacon: true, placement: 'top' },
+  ].filter(s => !!document.querySelector(s.target)), [t]);
+  const startTour = useCallback(() => { const steps = buildTourSteps(); if (!steps.length) return; setTourSteps(steps); setRunTour(true); }, [buildTourSteps]);
+  useEffect(() => {
+    window.addEventListener('app:joyride', startTour);
+    window.addEventListener('app:help', startTour);
+    return () => { window.removeEventListener('app:joyride', startTour); window.removeEventListener('app:help', startTour); };
+  }, [startTour]);
+  useEffect(() => { try { if (!localStorage.getItem(tourSeenKey)) startTour(); } catch {} }, [tourSeenKey, startTour]);
+  const handleTourCallback = useCallback((data) => {
+    const { status, action } = data || {};
+    if (status === 'finished' || status === 'skipped' || action === 'close') { setRunTour(false); try { localStorage.setItem(tourSeenKey, 'true'); } catch {} }
+  }, [tourSeenKey]);
+  const TourTooltipComponent = useMemo(() => TourTooltip({ tourSeenKey }), [tourSeenKey]);
+  // ──────────────────────────────────────────────────────────────────────────
   
   const [activeView, setActiveView] = useState('overview');
   const [selectedStudent, setSelectedStudent] = useState('all');
@@ -138,6 +163,10 @@ export default function StudentDashboardPageModern() {
 
   return (
     <div className="student-dashboard-page-modern" data-theme={theme} style={{ padding: '0rem 0', position: 'relative' }}>
+      <Joyride continuous run={runTour && tourSteps.length > 0} steps={tourSteps} callback={handleTourCallback} scrollOffset={100} scrollToFirstStep showSkipButton showProgress tooltipComponent={TourTooltipComponent}
+        locale={{ back: t('tour_back'), close: t('tour_close'), last: t('tour_finish'), next: t('tour_next'), skip: t('tour_skip') }}
+        styles={{ options: { primaryColor: 'var(--color-primary,#800020)', textColor: theme === 'dark' ? '#e5e7eb' : '#111', backgroundColor: theme === 'dark' ? '#1f2937' : '#fff', zIndex: 10000 } }}
+      />
       <div className="content-section" style={{ position: 'relative' }}>
         {/* Navigation Tabs - Matching HomePage pattern */}
         <div data-tour="nav-tabs" style={{ marginBottom: '0.15rem' }}>
@@ -151,6 +180,7 @@ export default function StudentDashboardPageModern() {
 
         {/* Unified Filters Section */}
         {(isAdmin || isInstructor || isHR) && (
+          <div data-tour="student-dash-filters">
           <UnifiedFilterSection
             stats={stats}
             searchTerm={searchTerm}
@@ -179,10 +209,11 @@ export default function StudentDashboardPageModern() {
             t={t}
             primaryColor={primaryColor}
           />
+          </div>
         )}
 
         {/* Content Area */}
-        <div className="mt-6">
+        <div data-tour="student-dash-content" className="mt-6">
           <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-700 p-6">
             <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100 mb-4">
               {navItems.find(item => item.id === activeView)?.label[lang] || 'Overview'}

@@ -1,5 +1,9 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import Joyride from 'react-joyride';
+import TourTooltip from '@ui/TourTooltip/TourTooltip';
 import { useLang } from '@contexts/LangContext';
+import { useTheme } from '@contexts/ThemeContext';
+import { getIconWithColor } from '@constants/iconTypes';
 import { getIcon } from '@constants/iconTypes';
 import { getAuthToken } from '@utils/authHelpers';
 import Modal from '@ui/Modal/Modal';
@@ -13,7 +17,8 @@ import WorkflowTab from './tabs/WorkflowTab';
 import ShareTab from './tabs/ShareTab';
 
 export default function FileDetailsModal({ file, onClose, onDownload, onShare, onGenerateLink, onStar, onTrash, onRefresh, initialTab = 'details', userCanEdit = false }) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
+  const { theme } = useTheme();
   const [activeTab, setActiveTab] = useState(initialTab);
   const [previewOpened, setPreviewOpened] = useState(false);
   const [previewUrl, setPreviewUrl] = useState(null);
@@ -190,23 +195,107 @@ export default function FileDetailsModal({ file, onClose, onDownload, onShare, o
   // canDelete===true means the current user owns the file (owners can always delete).
   // canDelete===false means the file is shared with the user but not owned by them.
   const isOwnedByUser = file.canDelete === true;
-  
+
+  // ── Guided Tour ──────────────────────────────────────────────────────────
+  const [runTour, setRunTour] = useState(false);
+  const [tourSteps, setTourSteps] = useState([]);
+  const tourSeenKey = `fileDetailsTourSeen_${lang}`;
+
+  const buildTourSteps = useCallback(() => {
+    const steps = [
+      { target: '[data-tour="details-modal-tabs"]', content: t('tour.details_modal_tabs'), disableBeacon: true, placement: 'bottom' },
+    ];
+
+    if (isPreviewable) {
+      steps.push({ target: '[data-tour="details-tab-preview"]', content: t('tour.details_modal_preview'), disableBeacon: true, placement: 'bottom', tab: 'preview' });
+    }
+    if (canShowEditTab) {
+      steps.push({ target: '[data-tour="details-tab-edit"]', content: t('tour.details_modal_edit'), disableBeacon: true, placement: 'bottom', tab: 'edit' });
+    }
+
+    steps.push(
+      { target: '[data-tour="details-tab-details"]', content: t('tour.details_modal_details'), disableBeacon: true, placement: 'bottom', tab: 'details' },
+      { target: '[data-tour="details-tab-versions"]', content: t('tour.details_modal_versions'), disableBeacon: true, placement: 'bottom', tab: 'versions' },
+      { target: '[data-tour="details-tab-activity"]', content: t('tour.details_modal_activity'), disableBeacon: true, placement: 'bottom', tab: 'activity' },
+      { target: '[data-tour="details-tab-workflow"]', content: t('tour.details_modal_workflow'), disableBeacon: true, placement: 'bottom', tab: 'workflow' },
+      { target: '[data-tour="details-tab-comments"]', content: t('tour.details_modal_comments'), disableBeacon: true, placement: 'bottom', tab: 'comments' },
+    );
+
+    if (isOwnedByUser) {
+      steps.push({ target: '[data-tour="details-tab-share"]', content: t('tour.details_modal_share'), disableBeacon: true, placement: 'bottom', tab: 'share' });
+    }
+
+    if (document.querySelector('[data-tour="details-modal-download"]')) {
+      steps.push({ target: '[data-tour="details-modal-download"]', content: t('tour.details_modal_download'), disableBeacon: true, placement: 'top' });
+    }
+
+    return steps.filter(s => !!document.querySelector(s.target));
+  }, [t, isPreviewable, canShowEditTab, isOwnedByUser]);
+
+  const startTour = useCallback(() => {
+    const steps = buildTourSteps();
+    if (steps.length === 0) return;
+    setTourSteps(steps);
+    setRunTour(true);
+  }, [buildTourSteps]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      try {
+        if (!localStorage.getItem(tourSeenKey)) startTour();
+      } catch {}
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [tourSeenKey, startTour]);
+
+  useEffect(() => {
+    const handler = () => startTour();
+    window.addEventListener('app:joyride', handler);
+    window.addEventListener('app:help', handler);
+    return () => {
+      window.removeEventListener('app:joyride', handler);
+      window.removeEventListener('app:help', handler);
+    };
+  }, [startTour]);
+
+  const handleTourCallback = useCallback((data) => {
+    const { status, action, index, step, lifecycle } = data || {};
+    if (action === 'next') {
+      const nextStep = tourSteps[index + 1];
+      if (nextStep?.tab) setActiveTab(nextStep.tab);
+    }
+    if (action === 'prev') {
+      const prevStep = tourSteps[index - 1];
+      if (prevStep?.tab) setActiveTab(prevStep.tab);
+    }
+    if (action === 'start' && step?.tab) {
+      setActiveTab(step.tab);
+    }
+    if (status === 'finished' || status === 'skipped' || action === 'close') {
+      setRunTour(false);
+      try { localStorage.setItem(tourSeenKey, 'true'); } catch {}
+    }
+  }, [tourSteps, tourSeenKey]);
+
+  const TourTooltipComponent = useMemo(() => TourTooltip({ tourSeenKey }), [tourSeenKey]);
+  // ─────────────────────────────────────────────────────────────────────────
+
   const tabs = [
-    ...(isPreviewable ? [{ value: 'preview', label: t('drive.preview'), icon: getIcon('ui', 'eye') }] : []),
-    ...(canShowEditTab ? [{ value: 'edit', label: t('drive.edit'), icon: getIcon('ui', 'edit') }] : []),
-    { value: 'details', label: t('drive.details'), icon: getIcon('ui', 'info') },
-    { value: 'versions', label: t('drive.versions'), icon: getIcon('ui', 'clock') },
-    { value: 'activity', label: t('drive.activity'), icon: getIcon('ui', 'activity') },
-    { value: 'workflow', label: t('drive.workflow'), icon: getIcon('ui', 'workflow', 16, '#8b5cf6') },
-    { value: 'comments', label: t('drive.comments'), icon: getIcon('ui', 'message') },
+    ...(isPreviewable ? [{ value: 'preview', label: t('drive.preview'), icon: getIcon('ui', 'eye'), 'data-tour': 'details-tab-preview' }] : []),
+    ...(canShowEditTab ? [{ value: 'edit', label: t('drive.edit'), icon: getIcon('ui', 'edit'), 'data-tour': 'details-tab-edit' }] : []),
+    { value: 'details', label: t('drive.details'), icon: getIcon('ui', 'info'), 'data-tour': 'details-tab-details' },
+    { value: 'versions', label: t('drive.versions'), icon: getIcon('ui', 'clock'), 'data-tour': 'details-tab-versions' },
+    { value: 'activity', label: t('drive.activity'), icon: getIcon('ui', 'activity'), 'data-tour': 'details-tab-activity' },
+    { value: 'workflow', label: t('drive.workflow'), icon: getIcon('ui', 'workflow', 16, '#8b5cf6'), 'data-tour': 'details-tab-workflow' },
+    { value: 'comments', label: t('drive.comments'), icon: getIcon('ui', 'message'), 'data-tour': 'details-tab-comments' },
     // Only show share tab if user owns the file
-    ...(isOwnedByUser ? [{ value: 'share', label: t('drive.share'), icon: getIcon('ui', 'share') }] : []),
+    ...(isOwnedByUser ? [{ value: 'share', label: t('drive.share'), icon: getIcon('ui', 'share'), 'data-tour': 'details-tab-share' }] : []),
   ];
 
   const footer = (
     <div className="flex items-center gap-3">
       {onDownload && (
-        <Button variant="primary" onClick={() => onDownload(file.id)}>
+        <Button variant="primary" onClick={() => onDownload(file.id)} data-tour="details-modal-download">
           {t('drive.download')}
         </Button>
       )}
@@ -214,6 +303,7 @@ export default function FileDetailsModal({ file, onClose, onDownload, onShare, o
   );
 
   return (
+    <>
     <Modal
       isOpen={true}
       onClose={onClose}
@@ -229,7 +319,7 @@ export default function FileDetailsModal({ file, onClose, onDownload, onShare, o
       footer={footer}
       titleStyle={{ fontSize: '1.25rem', fontWeight: '600' }}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '2rem', marginBottom: '1rem' }}>
+      <div data-tour="details-modal-tabs" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '2rem', marginBottom: '1rem' }}>
         <Tabs
           tabs={tabs}
           activeTab={activeTab}
@@ -237,6 +327,27 @@ export default function FileDetailsModal({ file, onClose, onDownload, onShare, o
           variant="default"
           size="md"
         />
+        <button
+          data-tour="details-modal-help"
+          onClick={startTour}
+          title={t('tour.replay') || 'Start guided tour'}
+          aria-label={t('tour.replay') || 'Start guided tour'}
+          style={{
+            flexShrink: 0,
+            width: 32,
+            height: 32,
+            borderRadius: '50%',
+            border: '1px solid var(--border, #e5e7eb)',
+            background: 'var(--background-secondary, #f9fafb)',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'var(--color-primary, #800020)',
+          }}
+        >
+          {getIconWithColor('ui', 'help', 18, 'currentColor')}
+        </button>
         {(activeTab === 'preview' || activeTab === 'edit') && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             {file.currentVersion?.versionNumber && (
@@ -474,5 +585,32 @@ export default function FileDetailsModal({ file, onClose, onDownload, onShare, o
         {activeTab === 'share' && <ShareTab fileId={file.id} onShare={onShare} onGenerateLink={onGenerateLink} />}
       </div>
     </Modal>
+      <Joyride
+        continuous
+        run={runTour && tourSteps.length > 0}
+        steps={tourSteps}
+        callback={handleTourCallback}
+        scrollOffset={100}
+        scrollToFirstStep
+        showSkipButton
+        showProgress
+        tooltipComponent={TourTooltipComponent}
+        locale={{
+          back: t('tour_back'),
+          close: t('tour_close'),
+          last: t('tour_finish'),
+          next: t('tour_next'),
+          skip: t('tour_skip'),
+        }}
+        styles={{
+          options: {
+            primaryColor: 'var(--color-primary, #800020)',
+            textColor: theme === 'dark' ? '#e5e7eb' : '#111',
+            backgroundColor: theme === 'dark' ? '#1f2937' : '#fff',
+            zIndex: 10002,
+          },
+        }}
+      />
+    </>
   );
 }

@@ -1,4 +1,8 @@
-import React, { useState, memo, useRef, useMemo, useEffect } from 'react';
+import React, { useState, memo, useRef, useMemo, useEffect, useCallback } from 'react';
+import Joyride from 'react-joyride';
+import TourTooltip from '@ui/TourTooltip/TourTooltip';
+import { useTheme } from '@contexts/ThemeContext';
+import { getIconWithColor } from '@constants/iconTypes';
 import { useLang } from '@contexts/LangContext';
 import { Modal, Button, Select, DatePicker, ClassSelector, Checkbox } from '@ui';
 import { getPrograms, getSubjects } from '@services/business/programService';
@@ -88,6 +92,98 @@ const CustomWorkflowDialog = ({ isOpen, onClose, file, onSubmit }) => {
     workflowCategory === 'PENALTY' ||
     workflowCategory === 'DISCONTINUATION' ||
     (workflowCategory === 'ATTENDANCE' && (attendanceSubtype === 'WARNING' || attendanceSubtype === 'EXCUSE'));
+
+  // ── Guided Tour ──────────────────────────────────────────────────────────
+  const { theme } = useTheme();
+  const [runTour, setRunTour] = useState(false);
+  const [tourSteps, setTourSteps] = useState([]);
+  const tourSeenKey = `workflowDialogTourSeen_${lang}`;
+
+  const buildTourSteps = useCallback(() => {
+    const steps = [
+      { target: '[data-tour="workflow-category"]', content: t('tour.workflow_category'), disableBeacon: true, placement: 'bottom' },
+    ];
+
+    if (showSubtypeSelect) {
+      steps.push({ target: '[data-tour="workflow-subtype"]', content: t('tour.workflow_subtype'), disableBeacon: true, placement: 'bottom' });
+    }
+
+    if (showApprovalFlowSelect) {
+      steps.push({ target: '[data-tour="workflow-approval-flow"]', content: t('tour.workflow_approval_flow'), disableBeacon: true, placement: 'bottom' });
+    }
+
+    if (document.querySelector('[data-tour="workflow-flow-preview"]')) {
+      steps.push({ target: '[data-tour="workflow-flow-preview"]', content: t('tour.workflow_flow_preview'), disableBeacon: true, placement: 'bottom' });
+    }
+
+    steps.push({ target: '[data-tour="workflow-share-target"]', content: t('tour.workflow_share_target'), disableBeacon: true, placement: 'bottom' });
+
+    if (requiresClassContext) {
+      steps.push({ target: '[data-tour="workflow-class-context"]', content: t('tour.workflow_class_context'), disableBeacon: true, placement: 'bottom' });
+    }
+
+    if (requiresSingleDate || requiresDates) {
+      steps.push({ target: '[data-tour="workflow-dates"]', content: t('tour.workflow_dates'), disableBeacon: true, placement: 'bottom' });
+    }
+
+    if (requiresAttendance) {
+      steps.push({ target: '[data-tour="workflow-attendance"]', content: t('tour.workflow_attendance'), disableBeacon: true, placement: 'bottom' });
+    }
+
+    if (requiresTargetStudent) {
+      steps.push({ target: '[data-tour="workflow-target-student"]', content: t('tour.workflow_target_student'), disableBeacon: true, placement: 'bottom' });
+    }
+
+    steps.push({ target: '[data-tour="workflow-title"]', content: t('tour.workflow_title'), disableBeacon: true, placement: 'bottom' });
+    steps.push({ target: '[data-tour="workflow-description"]', content: t('tour.workflow_description'), disableBeacon: true, placement: 'bottom' });
+
+    if (file && document.querySelector('[data-tour="workflow-attachment"]')) {
+      steps.push({ target: '[data-tour="workflow-attachment"]', content: t('tour.workflow_attachment'), disableBeacon: true, placement: 'bottom' });
+    }
+
+    steps.push({ target: '[data-tour="workflow-submit"]', content: t('tour.workflow_submit'), disableBeacon: true, placement: 'top' });
+
+    return steps.filter(s => !!document.querySelector(s.target));
+  }, [t, showSubtypeSelect, showApprovalFlowSelect, requiresClassContext, requiresSingleDate, requiresDates, requiresAttendance, requiresTargetStudent, file]);
+
+  const startTour = useCallback(() => {
+    const steps = buildTourSteps();
+    if (steps.length === 0) return;
+    setTourSteps(steps);
+    setRunTour(true);
+  }, [buildTourSteps]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const timer = setTimeout(() => {
+      try {
+        if (!localStorage.getItem(tourSeenKey)) startTour();
+      } catch {}
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [tourSeenKey, startTour, isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handler = () => startTour();
+    window.addEventListener('app:joyride', handler);
+    window.addEventListener('app:help', handler);
+    return () => {
+      window.removeEventListener('app:joyride', handler);
+      window.removeEventListener('app:help', handler);
+    };
+  }, [startTour, isOpen]);
+
+  const handleTourCallback = useCallback((data) => {
+    const { status, action } = data || {};
+    if (status === 'finished' || status === 'skipped' || action === 'close') {
+      setRunTour(false);
+      try { localStorage.setItem(tourSeenKey, 'true'); } catch {}
+    }
+  }, [tourSeenKey]);
+
+  const TourTooltipComponent = useMemo(() => TourTooltip({ tourSeenKey }), [tourSeenKey]);
+  // ─────────────────────────────────────────────────────────────────────────
 
   const resolvedClassId = useMemo(() => {
     if (!classFilter || classFilter === 'all') return null;
@@ -277,24 +373,50 @@ const CustomWorkflowDialog = ({ isOpen, onClose, file, onSubmit }) => {
   };
 
   return (
+    <>
     <Modal
       isOpen={isOpen}
       size="wide"
       onClose={() => { resetForm(); onClose(); }}
-      title={t('workflow.dialog.title', 'Create Custom Workflow')}
+      title={
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <span>{t('workflow.dialog.title', 'Create Custom Workflow')}</span>
+          <button
+            data-tour="workflow-help-btn"
+            onClick={startTour}
+            title={t('tour.replay') || 'Start guided tour'}
+            aria-label={t('tour.replay') || 'Start guided tour'}
+            style={{
+              flexShrink: 0,
+              width: 28,
+              height: 28,
+              borderRadius: '50%',
+              border: '1px solid var(--border, #e5e7eb)',
+              background: 'var(--background-secondary, #f9fafb)',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--color-primary, #800020)',
+            }}
+          >
+            {getIconWithColor('ui', 'help', 16, 'currentColor')}
+          </button>
+        </div>
+      }
       footer={
         <div className={styles.footerActions}>
           <Button type="button" onClick={() => { resetForm(); onClose(); }} disabled={isSubmitting} variant="outline">
             {t('common.cancel', 'Cancel')}
           </Button>
-          <Button type="submit" form="custom-workflow-form" disabled={isSubmitting} loading={isSubmitting}>
+          <Button type="submit" form="custom-workflow-form" disabled={isSubmitting} loading={isSubmitting} data-tour="workflow-submit">
             {t('common.submit', 'Submit')}
           </Button>
         </div>
       }
     >
       <form id="custom-workflow-form" onSubmit={handleSubmit} className={styles.form}>
-        <div className={styles.field}>
+        <div className={styles.field} data-tour="workflow-category">
           <label className={styles.label} htmlFor="workflow-category-select">
             {t('workflow.dialog.workflowCategory', 'Workflow category')}
             <span className={styles.required}>*</span>
@@ -309,7 +431,7 @@ const CustomWorkflowDialog = ({ isOpen, onClose, file, onSubmit }) => {
         </div>
 
         {showSubtypeSelect && (
-          <div className={styles.field}>
+          <div className={styles.field} data-tour="workflow-subtype">
             <label className={styles.label} htmlFor="attendance-subtype-select">
               {t('workflow.dialog.attendanceSubtype', 'Attendance type')}
               <span className={styles.required}>*</span>
@@ -328,7 +450,7 @@ const CustomWorkflowDialog = ({ isOpen, onClose, file, onSubmit }) => {
         )}
 
         {showApprovalFlowSelect && (
-          <div className={styles.field}>
+          <div className={styles.field} data-tour="workflow-approval-flow">
             <label className={styles.label} htmlFor="approval-flow-select">
               {t('workflow.dialog.approvalFlow', 'Approval route')}
             </label>
@@ -342,7 +464,7 @@ const CustomWorkflowDialog = ({ isOpen, onClose, file, onSubmit }) => {
         )}
 
         {selectedFlowConfig && (
-          <div className={styles.flowPreview} data-testid="workflow-type-flow-preview">
+          <div className={styles.flowPreview} data-testid="workflow-type-flow-preview" data-tour="workflow-flow-preview">
             <p className={styles.flowPreviewTitle}>{t('workflow.dialog.flowPreview', 'Approval path')}</p>
             <div className={styles.flowPreviewPath}>
               <WorkflowTypeFlowPreview steps={selectedFlowConfig.steps} size={20} showLabels />
@@ -351,7 +473,7 @@ const CustomWorkflowDialog = ({ isOpen, onClose, file, onSubmit }) => {
           </div>
         )}
 
-        <div className={styles.field}>
+        <div className={styles.field} data-tour="workflow-share-target">
           <label className={styles.label}>
             {t('workflow.dialog.shareTarget', 'Share with')}
           </label>
@@ -396,7 +518,7 @@ const CustomWorkflowDialog = ({ isOpen, onClose, file, onSubmit }) => {
         </div>
 
         {requiresClassContext && (
-          <div className={`${styles.field} ${styles.classContextField}`}>
+          <div className={`${styles.field} ${styles.classContextField}`} data-tour="workflow-class-context">
             <label className={styles.label}>
               {t('workflow.dialog.classContext', 'Class context')}
               <span className={styles.required}>*</span>
@@ -421,7 +543,7 @@ const CustomWorkflowDialog = ({ isOpen, onClose, file, onSubmit }) => {
         )}
 
         {requiresSingleDate && (
-          <div className={styles.field}>
+          <div className={styles.field} data-tour="workflow-dates">
             <DatePicker
               label={t('workflow.dialog.attendanceDate', 'Attendance date')}
               value={dateFrom}
@@ -434,7 +556,7 @@ const CustomWorkflowDialog = ({ isOpen, onClose, file, onSubmit }) => {
         )}
 
         {requiresDates && !requiresSingleDate && (
-          <div className={styles.field}>
+          <div className={styles.field} data-tour="workflow-dates">
             <label className={styles.label}>
               {t('workflow.dialog.coveragePeriod', 'Coverage period')}
               <span className={styles.required}>*</span>
@@ -461,7 +583,7 @@ const CustomWorkflowDialog = ({ isOpen, onClose, file, onSubmit }) => {
         )}
 
         {requiresAttendance && (
-          <div className={styles.field}>
+          <div className={styles.field} data-tour="workflow-attendance">
             <label className={styles.label}>
               {t('workflow.dialog.linkedAttendance', 'Linked attendance records')}
               <span className={styles.required}>*</span>
@@ -478,7 +600,7 @@ const CustomWorkflowDialog = ({ isOpen, onClose, file, onSubmit }) => {
         )}
 
         {requiresTargetStudent && (
-          <div className={styles.field}>
+          <div className={styles.field} data-tour="workflow-target-student">
             <label className={styles.label}>
               {t('workflow.dialog.targetStudent', 'Target student')}
               <span className={styles.required}>*</span>
@@ -494,7 +616,7 @@ const CustomWorkflowDialog = ({ isOpen, onClose, file, onSubmit }) => {
           </div>
         )}
 
-        <div className={styles.field}>
+        <div className={styles.field} data-tour="workflow-title">
           <label className={styles.label} htmlFor="workflow-title">
             {t('workflow.dialog.titleLabel', 'Title')}
             <span className={styles.required}>*</span>
@@ -510,7 +632,7 @@ const CustomWorkflowDialog = ({ isOpen, onClose, file, onSubmit }) => {
           {errors.title && <p className={styles.errorText}>{errors.title}</p>}
         </div>
 
-        <div className={styles.field}>
+        <div className={styles.field} data-tour="workflow-description">
           <label className={styles.label} htmlFor="workflow-description">
             {t('workflow.dialog.description', 'Description')}
           </label>
@@ -525,7 +647,7 @@ const CustomWorkflowDialog = ({ isOpen, onClose, file, onSubmit }) => {
         </div>
 
         {file && (
-          <div className={styles.field}>
+          <div className={styles.field} data-tour="workflow-attachment">
             <Checkbox
               checked={attachFile}
               onChange={() => setAttachFile((prev) => !prev)}
@@ -538,6 +660,33 @@ const CustomWorkflowDialog = ({ isOpen, onClose, file, onSubmit }) => {
         {errors.submit && <div className={styles.submitError}>{errors.submit}</div>}
       </form>
     </Modal>
+      <Joyride
+        continuous
+        run={runTour && tourSteps.length > 0}
+        steps={tourSteps}
+        callback={handleTourCallback}
+        scrollOffset={100}
+        scrollToFirstStep
+        showSkipButton
+        showProgress
+        tooltipComponent={TourTooltipComponent}
+        locale={{
+          back: t('tour_back'),
+          close: t('tour_close'),
+          last: t('tour_finish'),
+          next: t('tour_next'),
+          skip: t('tour_skip'),
+        }}
+        styles={{
+          options: {
+            primaryColor: 'var(--color-primary, #800020)',
+            textColor: theme === 'dark' ? '#e5e7eb' : '#111',
+            backgroundColor: theme === 'dark' ? '#1f2937' : '#fff',
+            zIndex: 10002,
+          },
+        }}
+      />
+    </>
   );
 };
 

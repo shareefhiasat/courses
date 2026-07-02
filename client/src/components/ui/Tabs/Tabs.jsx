@@ -37,6 +37,7 @@ const Tabs = ({
               className={`${styles.tab} ${isActive ? styles.active : ''}`}
               onClick={() => handleTabClick(tab.value)}
               type="button"
+              {...(tab['data-tour'] ? { 'data-tour': tab['data-tour'] } : {})}
             >
               {tab.icon && (
                 <span className={styles.tabIcon}>

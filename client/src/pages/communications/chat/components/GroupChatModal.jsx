@@ -4,7 +4,9 @@
  * Modal for creating new group chats (staff only)
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import Joyride from 'react-joyride';
+import TourTooltip from '@ui/TourTooltip/TourTooltip';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useToast } from '@ui';
@@ -16,9 +18,35 @@ import AvatarWithRoleBadge from './AvatarWithRoleBadge';
 import styles from './GroupChatModal.module.css';
 
 const GroupChatModal = ({ isOpen, onClose, onGroupCreated }) => {
-  const { t, isRTL } = useLang();
+  const { t, isRTL, lang } = useLang();
   const { theme } = useTheme();
   const toast = useToast();
+
+  // ── Guided Tour ──────────────────────────────────────────────────────────
+  const [runTour, setRunTour] = useState(false);
+  const [tourSteps, setTourSteps] = useState([]);
+  const tourSeenKey = `groupChatTourSeen_${lang}`;
+  const buildTourSteps = useCallback(() => [
+    { target: '[data-tour="group-name"]', content: t('tour.group_chat_name'), disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="group-role-filter"]', content: t('tour.group_chat_role_filter'), disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="group-user-search"]', content: t('tour.group_chat_search'), disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="group-user-list"]', content: t('tour.group_chat_user_list'), disableBeacon: true, placement: 'top' },
+    { target: '[data-tour="group-create-btn"]', content: t('tour.group_chat_create'), disableBeacon: true, placement: 'top' },
+  ].filter(s => !!document.querySelector(s.target)), [t]);
+  const startTour = useCallback(() => { const steps = buildTourSteps(); if (!steps.length) return; setTourSteps(steps); setRunTour(true); }, [buildTourSteps]);
+  useEffect(() => {
+    if (!isOpen) return;
+    window.addEventListener('app:joyride', startTour);
+    window.addEventListener('app:help', startTour);
+    return () => { window.removeEventListener('app:joyride', startTour); window.removeEventListener('app:help', startTour); };
+  }, [startTour, isOpen]);
+  useEffect(() => { if (!isOpen) return; try { if (!localStorage.getItem(tourSeenKey)) startTour(); } catch {} }, [tourSeenKey, startTour, isOpen]);
+  const handleTourCallback = useCallback((data) => {
+    const { status, action } = data || {};
+    if (status === 'finished' || status === 'skipped' || action === 'close') { setRunTour(false); try { localStorage.setItem(tourSeenKey, 'true'); } catch {} }
+  }, [tourSeenKey]);
+  const TourTooltipComponent = useMemo(() => TourTooltip({ tourSeenKey }), [tourSeenKey]);
+  // ──────────────────────────────────────────────────────────────────────────
 
   const [groupName, setGroupName] = useState('');
   const [groupNameAr, setGroupNameAr] = useState('');
@@ -125,6 +153,10 @@ const GroupChatModal = ({ isOpen, onClose, onGroupCreated }) => {
 
   return (
     <div className={styles.overlay} onClick={onClose}>
+      <Joyride continuous run={runTour && tourSteps.length > 0} steps={tourSteps} callback={handleTourCallback} scrollOffset={100} scrollToFirstStep showSkipButton showProgress tooltipComponent={TourTooltipComponent}
+        locale={{ back: t('tour_back'), close: t('tour_close'), last: t('tour_finish'), next: t('tour_next'), skip: t('tour_skip') }}
+        styles={{ options: { primaryColor: 'var(--color-primary,#800020)', textColor: theme === 'dark' ? '#e5e7eb' : '#111', backgroundColor: theme === 'dark' ? '#1f2937' : '#fff', zIndex: 10000 } }}
+      />
       <div 
         className={`${styles.drawer} ${isRTL ? styles.rtl : ''}`}
         onClick={(e) => e.stopPropagation()}
@@ -145,7 +177,7 @@ const GroupChatModal = ({ isOpen, onClose, onGroupCreated }) => {
 
         <div className={styles.content}>
           {/* Group Name Input */}
-          <div className={styles.formGroup}>
+          <div data-tour="group-name" className={styles.formGroup}>
             <label className={styles.label}>
               {t('chat_group_name')} <span className={styles.required}>*</span>
             </label>
@@ -209,7 +241,7 @@ const GroupChatModal = ({ isOpen, onClose, onGroupCreated }) => {
           )}
 
           {/* Role Filter Chips */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: '0.75rem' }}>
+          <div data-tour="group-role-filter" style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: '0.75rem' }}>
             {[{ key: 'all', label: t('chat_all'), icon: null, color: null },
               { key: 'student', label: t('chat_filter_students'), icon: 'student', color: getUserRoleColor('student') },
               { key: 'instructor', label: t('chat_filter_instructors'), icon: 'instructor', color: getUserRoleColor('instructor') },
@@ -241,7 +273,7 @@ const GroupChatModal = ({ isOpen, onClose, onGroupCreated }) => {
           </div>
 
           {/* User Search */}
-          <div className={styles.formGroup}>
+          <div data-tour="group-user-search" className={styles.formGroup}>
             <label className={styles.label}>
               {t('chat_add_participants')} <span className={styles.required}>*</span>
             </label>
@@ -259,7 +291,7 @@ const GroupChatModal = ({ isOpen, onClose, onGroupCreated }) => {
           </div>
 
           {/* User List */}
-          <div className={styles.userList}>
+          <div data-tour="group-user-list" className={styles.userList}>
             {loading ? (
               <div className={styles.loading}>{t('loading')}</div>
             ) : filteredUsers.length === 0 ? (
@@ -321,7 +353,7 @@ const GroupChatModal = ({ isOpen, onClose, onGroupCreated }) => {
           </div>
         </div>
 
-        <div className={styles.footer}>
+        <div data-tour="group-create-btn" className={styles.footer}>
           <button
             className={styles.cancelButton}
             onClick={onClose}

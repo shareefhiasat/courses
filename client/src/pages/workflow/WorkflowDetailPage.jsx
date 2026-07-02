@@ -5,7 +5,9 @@
  * ARCHITECTURE: Page Component → Hook → Service → API
  */
 
-import React, { useMemo, useState, useCallback } from 'react';
+import React, { useMemo, useState, useCallback, useEffect } from 'react';
+import Joyride from 'react-joyride';
+import TourTooltip from '@ui/TourTooltip/TourTooltip';
 import { useParams, useNavigate } from 'react-router-dom';
 import { 
   ArrowLeft, 
@@ -51,7 +53,7 @@ import { FileUpload } from '@ui';
 import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 
 const WorkflowDetailPage = () => {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const { theme } = useTheme();
   const { documentId } = useParams();
   const navigate = useNavigate();
@@ -69,6 +71,32 @@ const WorkflowDetailPage = () => {
   const [recipientRoleFilter, setRecipientRoleFilter] = useState('all');
   const [recipientOptions, setRecipientOptions] = useState([]);
   const [actionLoading, setActionLoading] = useState(false);
+
+  // ── Guided Tour ──────────────────────────────────────────────────────────
+  const [runTour, setRunTour] = useState(false);
+  const [tourSteps, setTourSteps] = useState([]);
+  const tourSeenKey = `wfDetailTourSeen_${lang}`;
+  const buildTourSteps = useCallback(() => [
+    { target: '[data-tour="wf-detail-header"]', content: t('tour.wf_detail_header'), disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="wf-detail-info"]', content: t('tour.wf_detail_info'), disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="wf-detail-actions"]', content: t('tour.wf_detail_actions'), disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="wf-detail-trace"]', content: t('tour.wf_detail_trace'), disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="wf-detail-history"]', content: t('tour.wf_detail_history'), disableBeacon: true, placement: 'left' },
+    { target: '[data-tour="wf-detail-versions"]', content: t('tour.wf_detail_versions'), disableBeacon: true, placement: 'left' },
+  ].filter(s => !!document.querySelector(s.target)), [t]);
+  const startTour = useCallback(() => { const steps = buildTourSteps(); if (!steps.length) return; setTourSteps(steps); setRunTour(true); }, [buildTourSteps]);
+  useEffect(() => {
+    window.addEventListener('app:joyride', startTour);
+    window.addEventListener('app:help', startTour);
+    return () => { window.removeEventListener('app:joyride', startTour); window.removeEventListener('app:help', startTour); };
+  }, [startTour]);
+  useEffect(() => { try { if (!localStorage.getItem(tourSeenKey)) startTour(); } catch {} }, [tourSeenKey, startTour]);
+  const handleTourCallback = useCallback((data) => {
+    const { status, action } = data || {};
+    if (status === 'finished' || status === 'skipped' || action === 'close') { setRunTour(false); try { localStorage.setItem(tourSeenKey, 'true'); } catch {} }
+  }, [tourSeenKey]);
+  const TourTooltipComponent = useMemo(() => TourTooltip({ tourSeenKey }), [tourSeenKey]);
+  // ──────────────────────────────────────────────────────────────────────────
 
   // Fetch document details
   const fetchDocument = useCallback(async () => {
@@ -336,8 +364,12 @@ const WorkflowDetailPage = () => {
 
   return (
     <div className="space-y-6">
+      <Joyride continuous run={runTour && tourSteps.length > 0} steps={tourSteps} callback={handleTourCallback} scrollOffset={100} scrollToFirstStep showSkipButton showProgress tooltipComponent={TourTooltipComponent}
+        locale={{ back: t('tour_back'), close: t('tour_close'), last: t('tour_finish'), next: t('tour_next'), skip: t('tour_skip') }}
+        styles={{ options: { primaryColor: 'var(--color-primary,#800020)', textColor: theme === 'dark' ? '#e5e7eb' : '#111', backgroundColor: theme === 'dark' ? '#1f2937' : '#fff', zIndex: 10000 } }}
+      />
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div data-tour="wf-detail-header" className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Button
             variant="ghost"
@@ -366,7 +398,7 @@ const WorkflowDetailPage = () => {
         {/* Document Info */}
         <div className="lg:col-span-2 space-y-6">
           {/* Document Details */}
-          <Card>
+          <Card data-tour="wf-detail-info">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <FileText className="h-5 w-5" />
@@ -429,7 +461,7 @@ const WorkflowDetailPage = () => {
 
           {/* Actions */}
           {availableActions.length > 0 && (
-            <Card>
+            <Card data-tour="wf-detail-actions">
               <CardHeader>
                 <CardTitle>{t('workflow.detail.availableActions', 'Available Actions')}</CardTitle>
               </CardHeader>
@@ -452,7 +484,7 @@ const WorkflowDetailPage = () => {
           )}
 
           {/* Workflow Trace (React Flow placeholder) */}
-          <Card>
+          <Card data-tour="wf-detail-trace">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <History className="h-5 w-5" />
@@ -500,7 +532,7 @@ const WorkflowDetailPage = () => {
         {/* Sidebar */}
         <div className="space-y-6">
           {/* Action History */}
-          <Card>
+          <Card data-tour="wf-detail-history">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <History className="h-5 w-5" />
@@ -546,7 +578,7 @@ const WorkflowDetailPage = () => {
           </Card>
 
           {/* Versions */}
-          <Card>
+          <Card data-tour="wf-detail-versions">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <FileText className="h-5 w-5" />

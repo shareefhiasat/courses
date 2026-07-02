@@ -1,4 +1,6 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
+import Joyride from 'react-joyride';
+import TourTooltip from '@ui/TourTooltip/TourTooltip';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
@@ -20,6 +22,29 @@ const UserCategoryAccessPage = () => {
   const { theme } = useTheme();
   const toast = useToast();
   const { deleteModal, deleteEntity, handleDeleteConfirm, hideDeleteModal } = useDeleteModal(t);
+
+  // ── Guided Tour ──────────────────────────────────────────────────────────
+  const [runTour, setRunTour] = useState(false);
+  const [tourSteps, setTourSteps] = useState([]);
+  const tourSeenKey = `userCatAccessTourSeen_${lang}`;
+  const buildTourSteps = useCallback(() => [
+    { target: '[data-tour="cat-access-form"]', content: t('tour.cat_access_form'), disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="cat-access-filters"]', content: t('tour.cat_access_filters'), disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="cat-access-grid"]', content: t('tour.cat_access_grid'), disableBeacon: true, placement: 'top' },
+  ].filter(s => !!document.querySelector(s.target)), [t]);
+  const startTour = useCallback(() => { const steps = buildTourSteps(); if (!steps.length) return; setTourSteps(steps); setRunTour(true); }, [buildTourSteps]);
+  useEffect(() => {
+    window.addEventListener('app:joyride', startTour);
+    window.addEventListener('app:help', startTour);
+    return () => { window.removeEventListener('app:joyride', startTour); window.removeEventListener('app:help', startTour); };
+  }, [startTour]);
+  useEffect(() => { try { if (!localStorage.getItem(tourSeenKey)) startTour(); } catch {} }, [tourSeenKey, startTour]);
+  const handleTourCallback = useCallback((data) => {
+    const { status, action } = data || {};
+    if (status === 'finished' || status === 'skipped' || action === 'close') { setRunTour(false); try { localStorage.setItem(tourSeenKey, 'true'); } catch {} }
+  }, [tourSeenKey]);
+  const TourTooltipComponent = useMemo(() => TourTooltip({ tourSeenKey }), [tourSeenKey]);
+  // ──────────────────────────────────────────────────────────────────────────
   
   const [accesses, setAccesses] = useState([]);
   const [users, setUsers] = useState([]);
@@ -358,8 +383,12 @@ const UserCategoryAccessPage = () => {
   
   return (
     <div style={{ padding: '1.5rem' }}>
+      <Joyride continuous run={runTour && tourSteps.length > 0} steps={tourSteps} callback={handleTourCallback} scrollOffset={100} scrollToFirstStep showSkipButton showProgress tooltipComponent={TourTooltipComponent}
+        locale={{ back: t('tour_back'), close: t('tour_close'), last: t('tour_finish'), next: t('tour_next'), skip: t('tour_skip') }}
+        styles={{ options: { primaryColor: 'var(--color-primary,#800020)', textColor: theme === 'dark' ? '#e5e7eb' : '#111', backgroundColor: theme === 'dark' ? '#1f2937' : '#fff', zIndex: 10000 } }}
+      />
       {/* Form - Always visible */}
-      <form onSubmit={handleSaveAccess} style={{ marginBottom: '2rem' }}>
+      <form data-tour="cat-access-form" onSubmit={handleSaveAccess} style={{ marginBottom: '2rem' }}>
           <div style={{
             display: 'grid',
             gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
@@ -484,7 +513,7 @@ const UserCategoryAccessPage = () => {
         </form>
 
       {/* Filter Bar */}
-      <div style={{
+      <div data-tour="cat-access-filters" style={{
         display: 'flex', gap: '0.75rem', flexWrap: 'wrap',
         marginBottom: '1rem', alignItems: 'flex-end'
       }}>
@@ -576,7 +605,7 @@ const UserCategoryAccessPage = () => {
       </div>
 
       {/* Data Grid */}
-      <div style={{
+      <div data-tour="cat-access-grid" style={{
         backgroundColor: theme === 'dark' ? '#1f2937' : '#ffffff',
         border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`,
         borderRadius: '0.5rem',

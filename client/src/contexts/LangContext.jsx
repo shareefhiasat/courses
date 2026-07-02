@@ -4875,10 +4875,11 @@ const DICT = {
   'tour.drive_context_menu': 'Right-click a file or click the three-dot menu to rename, move, copy, share, or delete.',
   'tour.drive_share': 'Share a file or folder with specific users or roles using the Share button.',
   'tour.drive_breadcrumb': 'The breadcrumb bar shows your current location. Click any segment to navigate back.',
+  'tour.replay': 'Start guided tour',
 
   // ── Share Dialog Tour ──────────────────────────────────────────────────────
   'tour.share_file_name': 'This shows the name of the file you are about to share.',
-  'tour.share_tabs': 'Use these tabs to switch between sharing with individual People, by Role, or generating a Public Link. Some tabs may be hidden depending on your permissions.',
+  'tour.share_tabs': 'Use these tabs to switch between sharing with individual People, by Role, or generating a Public Link. When you share a file through a workflow, approvers automatically receive access — you can manage and review those shares here too. Some tabs may be hidden depending on your permissions.',
   'tour.share_people_user_select': 'Search and select one or more users to share the file with. You can exclude students from the list.',
   'tour.share_people_permission': 'Choose the permission level: View (read-only), Download, Comment, or Edit.',
   'tour.share_people_expiry': 'Optionally set an expiry date — the share will automatically revoke after the selected number of days.',
@@ -4901,6 +4902,38 @@ const DICT = {
   'tour.smart_drive_preview': 'Click a result to preview the file inline without downloading.',
   'tour.smart_drive_bookmark': 'Bookmark frequently accessed files for quick access.',
   'tour.smart_drive_tags': 'Add tags to files to improve future search accuracy and organisation.',
+
+  // ── Smart Drive Expanded Tour ─────────────────────────────────────────────
+  'tour.drive_new_folder': 'Create a new folder to organize your files. Folders can be nested and renamed.',
+  'tour.drive_file_roster': 'Your files and folders are listed here. Click a file name to open its details, or use the three-dot menu on the right for quick actions.',
+  'tour.drive_inbox': 'Click the bell icon to view your workflow inbox — pending approvals and tasks assigned to you appear here.',
+
+  // ── Workflow Dialog Tour ──────────────────────────────────────────────────
+  'tour.workflow_category': 'Choose a workflow category. "General" is for standard approvals. "Attendance" links to class attendance records. Other categories cover behavior, penalties, and discontinuation.',
+  'tour.workflow_subtype': 'Select the attendance type — Daily, Weekly Summary, Warning, or Excuse. Each type determines which fields appear below (dates, class context, attendance records).',
+  'tour.workflow_approval_flow': 'Choose the approval route — who needs to review and approve this workflow. The default route is set based on the category and subtype.',
+  'tour.workflow_flow_preview': 'This preview shows the approval path visually — each step represents a role that must approve before the workflow moves forward.',
+  'tour.workflow_share_target': 'Choose who to share the file with: "Role" shares with all users in the approval flow role (e.g. HR or Admin). "Specific users" lets you pick individual people. They will see the file in "Shared with me".',
+  'tour.workflow_class_context': 'Select the program, subject, and class that this attendance workflow applies to. This links the workflow to the correct class records.',
+  'tour.workflow_dates': 'Set the date or date range for the attendance period this workflow covers.',
+  'tour.workflow_attendance': 'Select the specific attendance records to link to this workflow. Only records matching the selected class and date range will appear.',
+  'tour.workflow_target_student': 'Select the student who is the subject of this workflow (e.g. for behavior warnings or excuse requests).',
+  'tour.workflow_title': 'Enter a clear, descriptive title for this workflow. This helps reviewers identify it quickly.',
+  'tour.workflow_description': 'Add an optional description with more context about why this workflow is being submitted.',
+  'tour.workflow_attachment': 'Check this box to attach the current file to the workflow. The file will be visible to all approvers in the approval chain.',
+  'tour.workflow_submit': 'Click Submit to create the workflow. The file will be shared with the approvers automatically, and you can track progress in the Workflow tab or Inbox.',
+
+  // ── File Details Modal Tour ───────────────────────────────────────────────
+  'tour.details_modal_tabs': 'Use these tabs to explore the file: Preview, Details, Versions, Activity, Workflow, Comments, and Share. The tour will guide you through each one.',
+  'tour.details_modal_preview': 'Preview the file content inline — images, videos, PDFs, and documents are supported without downloading.',
+  'tour.details_modal_edit': 'Edit the file directly in your browser using the built-in document editor (Collabora).',
+  'tour.details_modal_details': 'View file metadata — size, type, owner, creation date, and modification history.',
+  'tour.details_modal_versions': 'Browse all file versions. You can download or restore previous versions if needed.',
+  'tour.details_modal_activity': 'See the full activity log for this file — views, edits, shares, and workflow actions.',
+  'tour.details_modal_workflow': 'View and manage workflows associated with this file. Create new workflows or track the status of existing ones. Workflows share the file with approvers automatically.',
+  'tour.details_modal_comments': 'Leave comments on the file for collaboration. Comments are visible to anyone with access.',
+  'tour.details_modal_share': 'Share this file with specific users, roles, or generate a public link. Use the Share dialog tour for detailed guidance on each sharing option.',
+  'tour.details_modal_download': 'Download a copy of the file to your device.',
 
   // ── Workflow Inbox Tour ───────────────────────────────────────────────────
   'tour.workflow_tabs': 'Switch between My Tasks, Pending Approvals, Completed, and All Tasks using these tabs.',
@@ -5002,6 +5035,59 @@ const DICT = {
   'tour.admin_dash_recent': 'Recent activity feed shows the latest actions taken across the system.',
   'tour.admin_dash_alerts': 'System alerts and warnings (e.g. permission issues, failed jobs) appear here.',
   'tour.admin_dash_quick': 'Quick-action buttons let you jump to frequently used management sections.',
+
+  // ── Workflow Detail Page Tour ─────────────────────────────────────────────
+  'tour.wf_detail_header': 'The header shows the document title, current status, and a back button to return to the inbox.',
+  'tour.wf_detail_info': 'This card displays key document information including type, sender, recipient, and creation date.',
+  'tour.wf_detail_actions': 'Available workflow actions appear here. Click an action to send, approve, return, or close the document.',
+  'tour.wf_detail_trace': 'The workflow trace visualises the document\'s journey through the approval pipeline.',
+  'tour.wf_detail_history': 'The action history logs every step taken on this document, including who acted and when.',
+  'tour.wf_detail_versions': 'All document versions are listed here. Download any version to review changes.',
+
+  // ── Workflow Analytics Page Tour ──────────────────────────────────────────
+  'tour.wf_analytics_header': 'The analytics dashboard provides an overview of workflow performance. Use the buttons to refresh or export data.',
+  'tour.wf_analytics_stats': 'Key metrics at a glance: total documents, pending count, average cycle time, and overall approval rate.',
+  'tour.wf_analytics_filters': 'Filter analytics by date range, program, or workflow type to focus on specific segments.',
+  'tour.wf_analytics_cycle_time': 'Average cycle time per workflow type. Longer bars indicate slower approval processes.',
+  'tour.wf_analytics_approval_rate': 'Approval rate breakdown by workflow type. Identify which workflows have the highest success rates.',
+  'tour.wf_analytics_rejections': 'Top rejection reasons across all workflows. Use this to address common bottlenecks.',
+
+  // ── Classrooms Management Page Tour ───────────────────────────────────────
+  'tour.classroom_form': 'Create or edit a classroom here. Fill in the code, name, building, floor, capacity, and equipment.',
+  'tour.classroom_filters': 'Filter classrooms by search term, building, or capacity to quickly find what you need.',
+  'tour.classroom_grid': 'All classrooms are listed in this grid. Use the action buttons to edit or delete each row.',
+  'tour.classroom_export': 'Export the filtered classroom list to CSV for offline use or reporting.',
+
+  // ── User Access Page Tour ─────────────────────────────────────────────────
+  'tour.access_form': 'Create or edit a user access rule here. Select a user, category, program, subject, and class to grant access.',
+  'tour.access_filters': 'Filter existing access rules by search term, category, program, subject, or class.',
+  'tour.access_grid': 'All access rules are listed here. Use the action buttons to edit or delete each rule.',
+
+  // ── User Category Access Page Tour ────────────────────────────────────────
+  'tour.cat_access_form': 'Create or edit a user category access rule here. Select a user and category, then optionally narrow by program, subject, or class.',
+  'tour.cat_access_filters': 'Filter existing category access rules by search term, category, program, subject, or class.',
+  'tour.cat_access_grid': 'All category access rules are listed here. Use the action buttons to edit or delete each rule.',
+
+  // ── Activity Detail Page Tour ─────────────────────────────────────────────
+  'tour.activity_header': 'The header shows the activity title, description, and metadata such as creation date.',
+  'tour.activity_actions': 'Depending on the activity type, you can start a quiz, open a resource URL, or share the activity via QR code.',
+
+  // ── Student Dashboard Modern Tour ─────────────────────────────────────────
+  'tour.student_dash_tabs': 'Switch between overview, tasks, attendance, performance, marks, penalties, participations, and behaviours tabs.',
+  'tour.student_dash_filters': 'Filter the dashboard by student, program, subject, class, year, or term to focus on specific data.',
+  'tour.student_dash_content': 'The content area displays the selected tab\'s data, including charts and tables for the filtered student.',
+
+  // ── Legacy Drive Page Tour ────────────────────────────────────────────────
+  'tour.drive_tabs': 'Switch between Private Space (your personal files) and Shared Space (files shared with you).',
+  'tour.drive_upload': 'Upload files here. Select a file and click the upload button. Progress is shown below.',
+  'tour.drive_files': 'Your files are listed here. Use the icons to create a workflow, view workflow details, or delete a file.',
+
+  // ── Group Chat Modal Tour ─────────────────────────────────────────────────
+  'tour.group_chat_name': 'Enter the group chat name in both English and Arabic. This is required to create the group.',
+  'tour.group_chat_role_filter': 'Filter users by role (students, instructors, admins, HR) to quickly find the right participants.',
+  'tour.group_chat_search': 'Search for specific users by name or email to add them to the group.',
+  'tour.group_chat_user_list': 'Click a user to select or deselect them. Selected users appear with a checkmark and are added to the group.',
+  'tour.group_chat_create': 'When you\'ve entered the group name and selected at least one user, click Create to start the group chat.',
 
   // Shared Joyride navigation labels
   tour_back: 'Back',
@@ -9748,10 +9834,11 @@ const DICT = {
     'tour.drive_context_menu': 'انقر بزر الماوس الأيمن على ملف أو انقر على القائمة ثلاثية النقاط لإعادة التسمية أو النقل أو النسخ أو المشاركة أو الحذف.',
     'tour.drive_share': 'شارك ملفاً أو مجلداً مع مستخدمين أو أدوار محددة باستخدام زر المشاركة.',
     'tour.drive_breadcrumb': 'يعرض شريط التنقل موقعك الحالي. انقر على أي قسم للتنقل للخلف.',
+    'tour.replay': 'ابدأ الجولة الإرشادية',
 
     // ── Share Dialog Tour (Arabic) ─────────────────────────────────────────────
     'tour.share_file_name': 'يعرض هذا اسم الملف الذي ستقوم بمشاركته.',
-    'tour.share_tabs': 'استخدم هذه التبويبات للتبديل بين المشاركة مع أفراد، أو حسب الدور، أو إنشاء رابط عام. قد تكون بعض التبويبات مخفية حسب صلاحياتك.',
+    'tour.share_tabs': 'استخدم هذه التبويبات للتبديل بين المشاركة مع أفراد، أو حسب الدور، أو إنشاء رابط عام. عند مشاركة ملف من خلال سير عمل، يحصل المعتمدون على وصول تلقائياً — يمكنك إدارة ومراجعة تلك المشاركات هنا أيضاً. قد تكون بعض التبويبات مخفية حسب صلاحياتك.',
     'tour.share_people_user_select': 'ابحث واختر مستخدماً واحداً أو أكثر لمشاركة الملف معهم. يمكنك استبعاد الطلاب من القائمة.',
     'tour.share_people_permission': 'اختر مستوى الصلاحية: عرض (قراءة فقط)، تنزيل، تعليق، أو تحرير.',
     'tour.share_people_expiry': 'يمكنك اختيارياً تعيين تاريخ انتهاء صلاحية — سيتم إلغاء المشاركة تلقائياً بعد العدد المحدد من الأيام.',
@@ -9774,6 +9861,38 @@ const DICT = {
     'tour.smart_drive_preview': 'انقر على نتيجة لمعاينة الملف مضمّناً دون تنزيل.',
     'tour.smart_drive_bookmark': 'احفظ الملفات كثيرة الاستخدام في المفضلة للوصول السريع.',
     'tour.smart_drive_tags': 'أضف وسوماً إلى الملفات لتحسين دقة البحث المستقبلي والتنظيم.',
+
+    // ── Smart Drive Expanded Tour (Arabic) ──────────────────────────────────
+    'tour.drive_new_folder': 'أنشئ مجلداً جديداً لتنظيم ملفاتك. يمكن تداخل المجلدات وإعادة تسميتها.',
+    'tour.drive_file_roster': 'ملفاتك ومجلداتك مدرجة هنا. انقر على اسم ملف لفتح تفاصيله، أو استخدم القائمة ثلاثية النقاط على اليمين للإجراءات السريعة.',
+    'tour.drive_inbox': 'انقر على أيقونة الجرس لعرض صندوق سير العمل — تظهر هنا الموافقات المعلقة والمهام المسندة إليك.',
+
+    // ── Workflow Dialog Tour (Arabic) ────────────────────────────────────────
+    'tour.workflow_category': 'اختر فئة سير العمل. "عام" للموافقات القياسية. "الحضور" يرتبط بسجلات حضور الصف. الفئات الأخرى تشمل السلوك والعقوبات والانسحاب.',
+    'tour.workflow_subtype': 'اختر نوع الحضور — يومي، ملخص أسبوعي، إنذار، أو عذر. كل نوع يحدد الحقول التي تظهر أدناه (التواريخ، سياق الصف، سجلات الحضور).',
+    'tour.workflow_approval_flow': 'اختر مسار الموافقة — من يحتاج إلى مراجعة والموافقة على سير العمل هذا. يتم تعيين المسار الافتراضي بناءً على الفئة والنوع الفرعي.',
+    'tour.workflow_flow_preview': 'يعرض هذا المعاينة مسار الموافقة بصرياً — كل خطوة تمثل دوراً يجب أن يوافق قبل أن ينتقل سير العمل قدماً.',
+    'tour.workflow_share_target': 'اختر من تشارك معهم الملف: "الدور" يشارك مع جميع المستخدمين في دور مسار الموافقة (مثل الموارد البشرية أو المدير). "مستخدمون محددون" يتيح لك اختيار أشخاص محددين. سيرون الملف في "مشارك معي".',
+    'tour.workflow_class_context': 'اختر البرنامج والمادة والصف الذي ينطبق عليه سير عمل الحضور هذا. هذا يربط سير العمل بسجلات الصف الصحيحة.',
+    'tour.workflow_dates': 'حدد التاريخ أو النطاق الزمني لفترة الحضور التي يغطيها سير العمل هذا.',
+    'tour.workflow_attendance': 'اختر سجلات الحضور المحددة لربطها بسير العمل هذا. ستظهر فقط السجلات المطابقة للصف والنطاق الزمني المحددين.',
+    'tour.workflow_target_student': 'اختر الطالب الذي هو موضوع سير العمل هذا (مثل إنذارات السلوك أو طلبات الأعذار).',
+    'tour.workflow_title': 'أدخل عنواناً واضحاً ووصفياً لسير العمل هذا. يساعد هذا المراجعين على تحديده بسرعة.',
+    'tour.workflow_description': 'أضف وصفاً اختيارياً بمزيد من السياق حول سبب تقديم سير العمل هذا.',
+    'tour.workflow_attachment': 'حدد هذا المربع لإرفاق الملف الحالي بسير العمل. سيكون الملف مرئياً لجميع المعتمدين في سلسلة الموافقة.',
+    'tour.workflow_submit': 'انقر على إرسال لإنشاء سير العمل. سيتم مشاركة الملف مع المعتمدين تلقائياً، ويمكنك متابعة التقدم في تبويب سير العمل أو الصندوق.',
+
+    // ── File Details Modal Tour (Arabic) ─────────────────────────────────────
+    'tour.details_modal_tabs': 'استخدم هذه التبويبات لاستكشاف الملف: معاينة، تفاصيل، إصدارات، النشاط، سير العمل، التعليقات، ومشاركة. سيرشدك الجول عبر كل واحد.',
+    'tour.details_modal_preview': 'عاين محتوى الملف مضمّناً — الصور والفيديو وملفات PDF والمستندات مدعومة دون تنزيل.',
+    'tour.details_modal_edit': 'عدّل الملف مباشرة في متصفحك باستخدام محرر المستندات المدمج (Collabora).',
+    'tour.details_modal_details': 'اعرض بيانات الملف الوصفية — الحجم، النوع، المالك، تاريخ الإنشاء، وسجل التعديلات.',
+    'tour.details_modal_versions': 'تصفّح جميع إصدارات الملف. يمكنك تنزيل أو استعادة الإصدارات السابقة عند الحاجة.',
+    'tour.details_modal_activity': 'اطّلع على سجل النشاط الكامل لهذا الملف — المشاهدات والتعديلات والمشاركات وإجراءات سير العمل.',
+    'tour.details_modal_workflow': 'اعرض وأدر سير العمل المرتبط بهذا الملف. أنشئ سير عمل جديد أو تابع حالة السير الحالي. يشارك سير العمل الملف مع المعتمدين تلقائياً.',
+    'tour.details_modal_comments': 'اترك تعليقات على الملف للتعاون. التعليقات مرئية لأي شخص لديه وصول.',
+    'tour.details_modal_share': 'شارك هذا الملف مع مستخدمين محددين أو أدوار أو أنشئ رابطاً عاماً. استخدم جولة حوار المشاركة للحصول على إرشاد مفصل حول كل خيار مشاركة.',
+    'tour.details_modal_download': 'نزّل نسخة من الملف إلى جهازك.',
 
     // ── Workflow Inbox Tour (Arabic) ──────────────────────────────────────────
     'tour.workflow_tabs': 'التبديل بين مهامي والموافقات المعلقة والمكتملة وجميع المهام باستخدام هذه التبويبات.',
@@ -9875,6 +9994,59 @@ const DICT = {
     'tour.admin_dash_recent': 'يعرض خلاصة النشاط الأخيرة أحدث الإجراءات المتخذة عبر النظام.',
     'tour.admin_dash_alerts': 'تنبيهات وتحذيرات النظام (مثل مشاكل الأذونات والمهام الفاشلة) تظهر هنا.',
     'tour.admin_dash_quick': 'أزرار الإجراءات السريعة تتيح لك الانتقال إلى أقسام الإدارة الأكثر استخداماً.',
+
+    // ── Workflow Detail Page Tour (Arabic) ────────────────────────────────────
+    'tour.wf_detail_header': 'يعرض الرأس عنوان المستند وحالته الحالية وزر العودة إلى صندوق الوارد.',
+    'tour.wf_detail_info': 'تعرض هذه البطاقة معلومات المستند الرئيسية بما في ذلك النوع والمرسل والمستلم وتاريخ الإنشاء.',
+    'tour.wf_detail_actions': 'تظهر إجراءات سير العمل المتاحة هنا. انقر على إجراء لإرسال أو اعتماد أو إرجاع أو إغلاق المستند.',
+    'tour.wf_detail_trace': 'يوضح مخطط سير العمل رحلة المستند عبر خط الاعتماد.',
+    'tour.wf_detail_history': 'يسجل سجل الإجراءات كل خطوة تم اتخاذها على هذا المستند، بما في ذلك من قام بالإجراء ومتى.',
+    'tour.wf_detail_versions': 'جميع إصدارات المستند مدرجة هنا. حمّل أي إصدار لمراجعة التغييرات.',
+
+    // ── Workflow Analytics Page Tour (Arabic) ─────────────────────────────────
+    'tour.wf_analytics_header': 'يوفر لوحة تحليلات سير العمل نظرة عامة على الأداء. استخدم الأزرار لتحديث أو تصدير البيانات.',
+    'tour.wf_analytics_stats': 'مقاييس رئيسية بنظرة سريعة: إجمالي المستندات، قيد الانتظار، متوسط وقت الدورة، ومعدل الاعتماد الإجمالي.',
+    'tour.wf_analytics_filters': 'صفّح التحليلات حسب النطاق الزمني أو البرنامج أو نوع سير العمل للتركيز على شرائح محددة.',
+    'tour.wf_analytics_cycle_time': 'متوسط وقت الدورة لكل نوع سير عمل. الأشرطة الأطول تشير إلى عمليات اعتماد أبطأ.',
+    'tour.wf_analytics_approval_rate': 'تفصيل معدل الاعتماد حسب نوع سير العمل. حدد أنواع سير العمل ذات أعلى معدلات النجاح.',
+    'tour.wf_analytics_rejections': 'أهم أسباب الرفض عبر جميع عمليات سير العمل. استخدم هذا لمعالجة الاختناقات الشائعة.',
+
+    // ── Classrooms Management Page Tour (Arabic) ──────────────────────────────
+    'tour.classroom_form': 'أنشئ أو عدّل قاعة هنا. املأ الكود والاسم والمبنى والطابق والطاقة الاستيعابية والمعدات.',
+    'tour.classroom_filters': 'صفّح القاعات حسب مصطلح البحث أو المبنى أو الطاقة الاستيعابية للعثور بسرعة على ما تحتاجه.',
+    'tour.classroom_grid': 'جميع القاعات مدرجة في هذه الشبكة. استخدم أزرار الإجراءات لتعديل أو حذف كل صف.',
+    'tour.classroom_export': 'صدّر قائمة القاعات المصفاة إلى CSV للاستخدام دون اتصال أو للتقارير.',
+
+    // ── User Access Page Tour (Arabic) ────────────────────────────────────────
+    'tour.access_form': 'أنشئ أو عدّل قاعدة وصول مستخدم هنا. حدد مستخدماً وفئة وبرنامج ومادة وصف لمنح الوصول.',
+    'tour.access_filters': 'صفّح قواعد الوصول الحالية حسب مصطلح البحث أو الفئة أو البرنامج أو المادة أو الصف.',
+    'tour.access_grid': 'جميع قواعد الوصول مدرجة هنا. استخدم أزرار الإجراءات لتعديل أو حذف كل قاعدة.',
+
+    // ── User Category Access Page Tour (Arabic) ───────────────────────────────
+    'tour.cat_access_form': 'أنشئ أو عدّل قاعدة وصول فئة مستخدم هنا. حدد مستخدماً وفئة، ثم اختيارياً قيّد بالبرنامج أو المادة أو الصف.',
+    'tour.cat_access_filters': 'صفّح قواعد وصول الفئات الحالية حسب مصطلح البحث أو الفئة أو البرنامج أو المادة أو الصف.',
+    'tour.cat_access_grid': 'جميع قواعد وصول الفئات مدرجة هنا. استخدم أزرار الإجراءات لتعديل أو حذف كل قاعدة.',
+
+    // ── Activity Detail Page Tour (Arabic) ────────────────────────────────────
+    'tour.activity_header': 'يعرض الرأس عنوان النشاط والوصف والبيانات الوصفية مثل تاريخ الإنشاء.',
+    'tour.activity_actions': 'بناءً على نوع النشاط، يمكنك بدء اختبار أو فتح رابط مورد أو مشاركة النشاط عبر رمز QR.',
+
+    // ── Student Dashboard Modern Tour (Arabic) ────────────────────────────────
+    'tour.student_dash_tabs': 'بدّل بين علامات التبويب: نظرة عامة، المهام، الحضور، الأداء، الدرجات، العقوبات، المشاركات، والسلوكيات.',
+    'tour.student_dash_filters': 'صفّح لوحة التحكم حسب الطالب أو البرنامج أو المادة أو الصف أو السنة أو الفصل للتركيز على بيانات محددة.',
+    'tour.student_dash_content': 'تعرض منطقة المحتوى بيانات التبويب المحدد، بما في ذلك الرسوم البيانية والجداول للطالب المصفى.',
+
+    // ── Legacy Drive Page Tour (Arabic) ───────────────────────────────────────
+    'tour.drive_tabs': 'بدّل بين المساحة الخاصة (ملفاتك الشخصية) والمساحة المشتركة (الملفات المشتركة معك).',
+    'tour.drive_upload': 'ارفع الملفات هنا. حدد ملفاً وانقر على زر الرفع. يظهر التقدم بالأسفل.',
+    'tour.drive_files': 'ملفاتك مدرجة هنا. استخدم الأيقونات لإنشاء سير عمل أو عرض تفاصيل سير العمل أو حذف ملف.',
+
+    // ── Group Chat Modal Tour (Arabic) ────────────────────────────────────────
+    'tour.group_chat_name': 'أدخل اسم مجموعة الدردشة باللغتين الإنجليزية والعربية. هذا مطلوب لإنشاء المجموعة.',
+    'tour.group_chat_role_filter': 'صفّح المستخدمين حسب الدور (طلاب، مدربون، مسؤولون، موارد بشرية) للعثور بسرعة على المشاركين المناسبين.',
+    'tour.group_chat_search': 'ابحث عن مستخدمين محددين بالاسم أو البريد الإلكتروني لإضافتهم إلى المجموعة.',
+    'tour.group_chat_user_list': 'انقر على مستخدم لتحديده أو إلغاء تحديده. المستخدمون المحددون يظهرون بعلامة صح ويتم إضافتهم إلى المجموعة.',
+    'tour.group_chat_create': 'عند إدخال اسم المجموعة وتحديد مستخدم واحد على الأقل، انقر إنشاء لبدء مجموعة الدردشة.',
 
     // Shared Joyride navigation labels
     tour_back: 'السابق',

@@ -1,8 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import Joyride from 'react-joyride';
+import TourTooltip from '@ui/TourTooltip/TourTooltip';
 import { useNavigate } from 'react-router-dom';
 import { BarChart3, Clock, CheckCircle, XCircle, Filter, Download, RefreshCw } from 'lucide-react';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
+import { useTheme } from '@contexts/ThemeContext';
 import { Button, useToast } from '@ui';
 import { Card, CardContent, CardHeader, CardTitle } from '@ui';
 import { SimpleLoading, EmptyState } from '@ui';
@@ -10,10 +13,37 @@ import { getAnalyticsData } from '@services/api/workflow-documents-api.js';
 import { formatForDateInput } from '@utils/date-formatter.js';
 
 const WorkflowAnalyticsPage = () => {
-  const { t } = useLang();
+  const { t, lang } = useLang();
+  const { theme } = useTheme();
   const navigate = useNavigate();
   const { user } = useAuth();
   const toast = useToast();
+
+  // ── Guided Tour ──────────────────────────────────────────────────────────
+  const [runTour, setRunTour] = useState(false);
+  const [tourSteps, setTourSteps] = useState([]);
+  const tourSeenKey = `wfAnalyticsTourSeen_${lang}`;
+  const buildTourSteps = useCallback(() => [
+    { target: '[data-tour="wf-analytics-header"]', content: t('tour.wf_analytics_header'), disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="wf-analytics-stats"]', content: t('tour.wf_analytics_stats'), disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="wf-analytics-filters"]', content: t('tour.wf_analytics_filters'), disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="wf-analytics-cycle-time"]', content: t('tour.wf_analytics_cycle_time'), disableBeacon: true, placement: 'top' },
+    { target: '[data-tour="wf-analytics-approval-rate"]', content: t('tour.wf_analytics_approval_rate'), disableBeacon: true, placement: 'top' },
+    { target: '[data-tour="wf-analytics-rejections"]', content: t('tour.wf_analytics_rejections'), disableBeacon: true, placement: 'top' },
+  ].filter(s => !!document.querySelector(s.target)), [t]);
+  const startTour = useCallback(() => { const steps = buildTourSteps(); if (!steps.length) return; setTourSteps(steps); setRunTour(true); }, [buildTourSteps]);
+  useEffect(() => {
+    window.addEventListener('app:joyride', startTour);
+    window.addEventListener('app:help', startTour);
+    return () => { window.removeEventListener('app:joyride', startTour); window.removeEventListener('app:help', startTour); };
+  }, [startTour]);
+  useEffect(() => { try { if (!localStorage.getItem(tourSeenKey)) startTour(); } catch {} }, [tourSeenKey, startTour]);
+  const handleTourCallback = useCallback((data) => {
+    const { status, action } = data || {};
+    if (status === 'finished' || status === 'skipped' || action === 'close') { setRunTour(false); try { localStorage.setItem(tourSeenKey, 'true'); } catch {} }
+  }, [tourSeenKey]);
+  const TourTooltipComponent = useMemo(() => TourTooltip({ tourSeenKey }), [tourSeenKey]);
+  // ──────────────────────────────────────────────────────────────────────────
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -116,8 +146,12 @@ const WorkflowAnalyticsPage = () => {
 
   return (
     <div className="p-6 space-y-6">
+      <Joyride continuous run={runTour && tourSteps.length > 0} steps={tourSteps} callback={handleTourCallback} scrollOffset={100} scrollToFirstStep showSkipButton showProgress tooltipComponent={TourTooltipComponent}
+        locale={{ back: t('tour_back'), close: t('tour_close'), last: t('tour_finish'), next: t('tour_next'), skip: t('tour_skip') }}
+        styles={{ options: { primaryColor: 'var(--color-primary,#800020)', textColor: theme === 'dark' ? '#e5e7eb' : '#111', backgroundColor: theme === 'dark' ? '#1f2937' : '#fff', zIndex: 10000 } }}
+      />
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div data-tour="wf-analytics-header" className="flex justify-between items-center">
         <div>
           <h1 className="text-2xl font-bold flex items-center gap-2">
             <BarChart3 className="h-6 w-6" />
@@ -154,7 +188,7 @@ const WorkflowAnalyticsPage = () => {
 
       {/* Overall Statistics */}
       {analyticsData?.overallStatistics && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div data-tour="wf-analytics-stats" className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card>
             <CardContent className="p-4">
               <div className="flex items-center gap-2">
@@ -204,7 +238,7 @@ const WorkflowAnalyticsPage = () => {
 
       {/* Filters Panel */}
       {showFilters && (
-        <Card>
+        <Card data-tour="wf-analytics-filters">
           <CardHeader>
             <CardTitle>{t('common.filters', 'Filters')}</CardTitle>
           </CardHeader>
@@ -259,7 +293,7 @@ const WorkflowAnalyticsPage = () => {
 
       {/* Cycle Time by Workflow Type */}
       {analyticsData?.cycleTimeByType && Object.keys(analyticsData.cycleTimeByType).length > 0 && (
-        <Card>
+        <Card data-tour="wf-analytics-cycle-time">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Clock className="h-5 w-5" />
@@ -281,7 +315,7 @@ const WorkflowAnalyticsPage = () => {
 
       {/* Approval Rate by Workflow Type */}
       {analyticsData?.approvalRateByType && Object.keys(analyticsData.approvalRateByType).length > 0 && (
-        <Card>
+        <Card data-tour="wf-analytics-approval-rate">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CheckCircle className="h-5 w-5" />
@@ -311,7 +345,7 @@ const WorkflowAnalyticsPage = () => {
 
       {/* Rejection Reasons */}
       {analyticsData?.rejectionReasons && analyticsData.rejectionReasons.length > 0 && (
-        <Card>
+        <Card data-tour="wf-analytics-rejections">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <XCircle className="h-5 w-5" />
