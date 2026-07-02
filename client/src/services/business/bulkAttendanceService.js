@@ -13,6 +13,7 @@ import { info, error, warn, debug } from "../utils/logger.js";
 import { markAttendance } from "./attendanceServiceUnified.js";
 import { createStandupAttendance } from "./standupAttendanceService";
 import { getStudentsByClass, getEnrollmentsByProgram } from "./enrollmentService";
+import { formatForDateInput } from "@utils/date-formatter.js";
 import { getUsersByIds } from "./userService";
 import {
   ATTENDANCE_STATUS,
@@ -428,7 +429,7 @@ export const computeDateKey = (date) => {
     info(`${serviceName}:computeDateKey`, { date });
 
     if (!date) {
-      return new Date().toISOString().split("T")[0];
+      return formatForDateInput(new Date());
     }
 
     let dateObj;
@@ -444,7 +445,7 @@ export const computeDateKey = (date) => {
       throw new Error("Invalid date value");
     }
 
-    const dateKey = dateObj.toISOString().split("T")[0];
+    const dateKey = formatForDateInput(dateObj);
 
     debug(`${serviceName}:computeDateKey:success`, {
       input: date,
@@ -459,7 +460,7 @@ export const computeDateKey = (date) => {
     });
 
     // Fallback to today
-    return new Date().toISOString().split("T")[0];
+    return formatForDateInput(new Date());
   }
 };
 

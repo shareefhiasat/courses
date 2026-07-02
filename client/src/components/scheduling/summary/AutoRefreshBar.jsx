@@ -3,6 +3,7 @@ import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { Select } from '@ui';
 import { RefreshCw } from 'lucide-react';
+import { formatTime } from '@utils/date-formatter.js';
 
 const INTERVALS = [
   { value: 0, labelKey: 'auto_refresh_off' },
@@ -109,7 +110,7 @@ export default function AutoRefreshBar({
         )}
         {showLastUpdated && (
           <span style={{ fontSize: '0.6875rem', color: muted, whiteSpace: 'nowrap' }}>
-            {new Date(lastUpdated).toLocaleTimeString()}
+            {formatTime(lastUpdated, lang)}
           </span>
         )}
       </div>
@@ -158,7 +159,7 @@ export default function AutoRefreshBar({
         </div>
       )}
       <span style={{ fontSize: 'var(--font-size-xs)', color: muted }}>
-        {t('last_updated') || 'Last updated'}: {new Date(lastUpdated).toLocaleTimeString()}
+        {t('last_updated') || 'Last updated'}: {formatTime(lastUpdated, lang)}
       </span>
     </div>
   );

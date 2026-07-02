@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import UrlInput from './UrlInput';
 import { info, error, warn, debug } from '@services/utils/logger.js';
+import { formatTime } from '@utils/date-formatter.js';
 
 export default {
   title: 'Form/UrlInput',
@@ -143,7 +144,7 @@ export const WithQuickActions = () => {
   const [logs, setLogs] = useState([]);
 
   const addLog = (action) => {
-    const timestamp = new Date().toLocaleTimeString();
+    const timestamp = formatTime(new Date(), 'en');
     setLogs([`[${timestamp}] ${action}`, ...logs].slice(0, 5));
   };
 

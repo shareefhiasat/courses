@@ -7,6 +7,7 @@
 
 import BaseDbService from '@services/db/baseDbService.js';
 import api from '@api';
+import { formatForDateInput } from '@utils/date-formatter.js';
 
 class AttendanceDbService extends BaseDbService {
   constructor() {
@@ -31,7 +32,7 @@ class AttendanceDbService extends BaseDbService {
    * Get attendance by date
    */
   async getByDate(date, params = {}) {
-    const dateStr = typeof date === 'string' ? date : new Date(date).toISOString().split('T')[0];
+    const dateStr = typeof date === 'string' ? date : formatForDateInput(new Date(date));
     return this.getAll({ ...params, date: dateStr });
   }
 
@@ -53,7 +54,7 @@ class AttendanceDbService extends BaseDbService {
    */
   async getTodayForStudent(studentId) {
     try {
-      const today = new Date().toISOString().split('T')[0];
+      const today = formatForDateInput(new Date());
       const result = await api.get(`/attendance?userId=${studentId}&date=${today}`);
       return result;
     } catch (error) {

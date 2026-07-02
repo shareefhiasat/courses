@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { Modal, Button, Select, Input } from '@ui';
 import schedulingSummaryService from '@services/business/schedulingSummaryService';
+import { formatForDateInput } from '@utils/date-formatter.js';
 
 const BREAK_TYPES = ['TeaBreak', 'PrayerBreak', 'LunchBreak', 'Other'];
 
@@ -21,7 +22,7 @@ export default function BreakSessionModal({
     timeSlotId: '',
     instructorUserId: '',
     classroomId: '',
-    date: new Date().toISOString().split('T')[0],
+    date: formatForDateInput(new Date()),
     breakType: 'TeaBreak',
     notes: '',
   });
@@ -34,7 +35,7 @@ export default function BreakSessionModal({
         timeSlotId: editData.timeSlotId,
         instructorUserId: editData.instructorUserId || '',
         classroomId: editData.classroomId || '',
-        date: new Date(editData.date).toISOString().split('T')[0],
+        date: formatForDateInput(editData.date),
         breakType: editData.breakType,
         notes: editData.notes || '',
       });

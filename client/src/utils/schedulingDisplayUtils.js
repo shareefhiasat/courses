@@ -3,6 +3,14 @@
  */
 
 import { getLocalizedUserName } from './localizedUserName.js';
+import {
+  formatDateTime as fmtDateTime,
+  formatDate as fmtDate,
+  formatTime as fmtTime,
+  formatDateWithWeekday as fmtDateWeekday,
+  formatDateTimeWithWeekday as fmtDateTimeWeekday,
+  formatForDateTimeInput as fmtForInput,
+} from './date-formatter.js';
 
 export { getEntityDisplayName } from './entityDisplayName.js';
 
@@ -66,38 +74,15 @@ export function getLocalizedClassroomName(classroom, lang) {
 }
 
 export function formatSchedulingDateTime(date, lang, options = {}) {
-  const d = date instanceof Date ? date : new Date(date);
-  return d.toLocaleString(getSchedulingLocale(lang), {
-    weekday: 'short',
-    month: 'numeric',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true,
-    calendar: 'gregory',
-    ...options
-  });
+  return fmtDateTimeWeekday(date, lang);
 }
 
 export function formatSchedulingDateOnly(date, lang, options = {}) {
-  const d = date instanceof Date ? date : new Date(date);
-  return d.toLocaleDateString(getSchedulingLocale(lang), {
-    weekday: 'short',
-    month: 'numeric',
-    day: 'numeric',
-    calendar: 'gregory',
-    ...options
-  });
+  return fmtDateWeekday(date, lang);
 }
 
 export function formatSchedulingTimeOnly(date, lang, options = {}) {
-  const d = date instanceof Date ? date : new Date(date);
-  return d.toLocaleTimeString(getSchedulingLocale(lang), {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true,
-    ...options
-  });
+  return fmtTime(date, lang);
 }
 
 /** Toast UI Calendar templates for localized day names and AM/PM labels. */
@@ -125,16 +110,13 @@ export function createToastCalendarTemplates(lang, t) {
       return key ? t(key) : String(label);
     },
     timegridDisplayPrimaryTime({ time }) {
-      const d = time instanceof Date ? time : new Date(time);
-      return d.toLocaleTimeString(locale, { hour: 'numeric', hour12: true });
+      return fmtTime(time, lang);
     },
     timegridDisplayTime({ time }) {
-      const d = time instanceof Date ? time : new Date(time);
-      return d.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit', hour12: true });
+      return fmtTime(time, lang);
     },
     timegridNowIndicatorLabel({ time }) {
-      const d = time instanceof Date ? time : new Date(time);
-      return d.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit', hour12: true });
+      return fmtTime(time, lang);
     }
   };
 }
@@ -341,13 +323,10 @@ export function getAvailableStatusTransitions(session) {
   return options;
 }
 
-/** Format Date for `<input type="datetime-local">` using local timezone (not UTC). */
+/** Format Date for `<input type="datetime-local">` using Qatar timezone. */
 export function toDatetimeLocalValue(date) {
   if (!date) return '';
-  const d = new Date(date);
-  if (Number.isNaN(d.getTime())) return '';
-  const pad = (n) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  return fmtForInput(date);
 }
 
 /** User-facing summary for a scheduling validation conflict. */

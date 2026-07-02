@@ -2,6 +2,7 @@ import {
   getLocalizedInstructorName,
   getLocalizedClassroomName
 } from './schedulingDisplayUtils.js';
+import { formatDate, getQatarDateParts } from './date-formatter.js';
 
 function instructorSearchText(instructor) {
   return [
@@ -54,10 +55,8 @@ export function formatSlotList(slots) {
 
 export function formatAvailabilityDateRange(startDate, endDate, lang) {
   if (!startDate && !endDate) return '';
-  const opts = { year: 'numeric', month: 'numeric', day: 'numeric', calendar: 'gregory' };
-  const locale = lang === 'ar' ? 'ar-QA-u-ca-gregory' : 'en-US';
-  const start = startDate ? new Date(startDate).toLocaleDateString(locale, opts) : '…';
-  const end = endDate ? new Date(endDate).toLocaleDateString(locale, opts) : '…';
+  const start = startDate ? formatDate(startDate, lang) : '…';
+  const end = endDate ? formatDate(endDate, lang) : '…';
   return `${start} – ${end}`;
 }
 
@@ -99,8 +98,10 @@ function timeToMinutes(time) {
 function sessionFitsRecord(start, end, record) {
   const day = getDayCode(start);
   if (!record.dayOfWeek?.includes(day)) return false;
-  const sessionStart = start.getHours() * 60 + start.getMinutes();
-  const sessionEnd = end.getHours() * 60 + end.getMinutes();
+  const startParts = getQatarDateParts(start);
+  const endParts = getQatarDateParts(end);
+  const sessionStart = startParts.hours * 60 + startParts.minutes;
+  const sessionEnd = endParts.hours * 60 + endParts.minutes;
   const recordStart = record.startDate ? new Date(record.startDate) : null;
   const recordEnd = record.endDate ? new Date(record.endDate) : null;
   if (recordStart && start < recordStart) return false;
@@ -263,8 +264,9 @@ function getCalendarRange(view, anchorDate) {
     return { start: startOfDay(d), end: endOfDay(d) };
   }
   if (view === 'month') {
-    const start = new Date(d.getFullYear(), d.getMonth(), 1);
-    const end = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
+    const parts = getQatarDateParts(d);
+    const start = new Date(parts.year, parts.month - 1, 1);
+    const end = new Date(parts.year, parts.month, 0, 23, 59, 59, 999);
     return { start, end };
   }
   // week — Sunday start

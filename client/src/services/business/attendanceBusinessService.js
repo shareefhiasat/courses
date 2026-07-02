@@ -11,6 +11,7 @@
 
 import { dbService } from '../other/dbService.js';
 import { info, error, warn, debug } from '../utils/logger.js';
+import { formatForDateInput } from '@utils/date-formatter.js';
 
 const serviceName = 'attendanceBusinessService';
 
@@ -392,7 +393,7 @@ export const getTodayAttendanceStatus = async (studentId) => {
   try {
     info(`${serviceName}:getTodayAttendanceStatus`, { studentId });
     
-    const today = new Date().toISOString().split('T')[0];
+    const today = formatForDateInput(new Date());
     const result = await dbService.findMany('attendance', {
       where: { userId: parseInt(studentId), date: today }
     });

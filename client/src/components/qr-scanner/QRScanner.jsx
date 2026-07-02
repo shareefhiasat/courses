@@ -3,6 +3,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';
 import { formatQatarDateOnly, getQatarNow } from '@utils/qatarDate';
 import { Button } from '@ui';
 import { CollapsibleSection, PerformedBy } from '@ui';
+import { formatTime, formatForDateInput, getQatarDateParts } from '@utils/date-formatter.js';
 import DeleteModal from '@ui/history/DeleteModal';
 import { Upload } from 'lucide-react';
 import jsQR from 'jsqr';
@@ -252,7 +253,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
   // Debug logging function
   const addDebugLog = useCallback((message, type = 'info') => {
-    const timestamp = new Date().toLocaleTimeString();
+    const timestamp = formatTime(new Date(), 'en');
     const logEntry = {
       timestamp,
       message,
@@ -858,7 +859,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     info('🔧 handleBehaviorSubmit called with:', { studentId, actions, note });
 
     try {
-      const today = new Date().toISOString().split('T')[0];
+      const today = formatForDateInput(new Date());
       
       // Get performedBy fields using shared service
       const performedByFields = await getPerformedByFields(user);
@@ -962,7 +963,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         info('🔧 penalty.id:', penalty.id);
         info('🔧 penalty.type:', penalty.type);
 
-        const today = new Date().toISOString().split('T')[0];
+        const today = formatForDateInput(new Date());
 
         // Ensure we always use the correct penalty type ID
         const penaltyTypeId = penalty.id || penalty.type;
@@ -1070,10 +1071,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       // Use selectedDate (YYYY-MM-DD) for activity queries, fallback to today
       const activityDate = (typeof selectedDate === 'string' && selectedDate) 
         ? selectedDate 
-        : (() => {
-            const today = new Date();
-            return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
-          })();
+        : formatForDateInput(new Date());
 
       // Get attendance records based on date filter and mode
       let attendanceRecords = [];
@@ -1562,7 +1560,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         // Use selectedDate if available, otherwise default to today
         const dateStr = (typeof selectedDate === 'string' && selectedDate) 
           ? selectedDate 
-          : getQatarNow().toISOString().split('T')[0];
+          : formatForDateInput(getQatarNow());
 
         // Get the correct student ID - try multiple possible fields
         let studentId = lastScannedStudent?.id ||
@@ -1670,7 +1668,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
       try {
         const today = formatQatarDateOnly(getQatarNow());
-        const todayISO = getQatarNow().toISOString().split('T')[0]; // Use ISO format for database
+        const todayISO = formatForDateInput(getQatarNow()); // Use Qatar date for database
 
         // Get performedBy fields using shared service
         const performedByFields = await getPerformedByFields(user);
@@ -1733,7 +1731,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     try {
       const dateStr = (typeof selectedDate === 'string' && selectedDate) 
         ? selectedDate 
-        : getQatarNow().toISOString().split('T')[0];
+        : formatForDateInput(getQatarNow());
       const performedByFields = await getPerformedByFields(user);
       let result;
 
@@ -1805,7 +1803,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     try {
       const dateStr = (typeof selectedDate === 'string' && selectedDate) 
         ? selectedDate 
-        : getQatarNow().toISOString().split('T')[0];
+        : formatForDateInput(getQatarNow());
       let recordCount = 0;
 
       for (const student of students) {
@@ -1829,12 +1827,12 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     setClearStandupModal(prev => ({ ...prev, loading: true }));
     try {
       addDebugLog('🗑️ Clearing standup attendance...', 'info');
-      addDebugLog(`🔍 Clearing for program: ${selectedProgramId}, date: ${(typeof selectedDate === 'string' && selectedDate) ? selectedDate : getQatarNow().toISOString().split('T')[0]}`, 'info');
+      addDebugLog(`🔍 Clearing for program: ${selectedProgramId}, date: ${(typeof selectedDate === 'string' && selectedDate) ? selectedDate : formatForDateInput(getQatarNow())}`, 'info');
       setActivityLoading(true);
 
       const dateStr = (typeof selectedDate === 'string' && selectedDate) 
         ? selectedDate 
-        : getQatarNow().toISOString().split('T')[0];
+        : formatForDateInput(getQatarNow());
       let deletedCount = 0;
 
       // Delete standup attendance for all students in the current program for today
@@ -1891,7 +1889,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     // Count how many attendance records exist for today before showing modal
     try {
       const qatarNow = getQatarNow();
-      const dateStr = qatarNow.toISOString().split('T')[0];
+      const dateStr = formatForDateInput(qatarNow);
       
       const attendanceResponse = await getAttendanceByClass(selectedClassId, dateStr);
       const recordCount = attendanceResponse.success ? attendanceResponse.data.length : 0;
@@ -1907,11 +1905,11 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     setClearRegularModal(prev => ({ ...prev, loading: true }));
     try {
       addDebugLog('🗑️ Clearing today\'s attendance...', 'info');
-      addDebugLog(`🔍 Clearing for class: ${selectedClassId}, date: ${getQatarNow().toISOString().split('T')[0]}`, 'info');
+      addDebugLog(`🔍 Clearing for class: ${selectedClassId}, date: ${formatForDateInput(getQatarNow())}`, 'info');
       setActivityLoading(true);
 
       const qatarNow = getQatarNow();
-      const dateStr = qatarNow.toISOString().split('T')[0];
+      const dateStr = formatForDateInput(qatarNow);
       let deletedCount = 0;
 
       // Delete attendance records for today
@@ -2901,7 +2899,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                           setCurrentAction('clear');
 
                           try {
-                            const today = new Date().toISOString().split('T')[0];
+                            const today = formatForDateInput(new Date());
                             debug('Clearing records for scope:', clearScope);
 
                             // Get attendance records based on scope
@@ -2922,8 +2920,8 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                               penaltiesToClear = allPenalties.filter(p => {
                                 const timestamp = p.createdAt || p.timestamp;
                                 if (!timestamp) return false;
-                                const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-                                const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                                const pParts = getQatarDateParts(timestamp);
+                                const dateStr = pParts ? `${pParts.year}-${String(pParts.month).padStart(2, '0')}-${String(pParts.day).padStart(2, '0')}` : '';
                                 return dateStr === today;
                               });
                             } else {
@@ -2979,8 +2977,8 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                               participationsToClear = allParticipations.filter(p => {
                                 const timestamp = p.createdAt || p.timestamp;
                                 if (!timestamp) return false;
-                                const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-                                const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                                const pParts = getQatarDateParts(timestamp);
+                                const dateStr = pParts ? `${pParts.year}-${String(pParts.month).padStart(2, '0')}-${String(pParts.day).padStart(2, '0')}` : '';
                                 return dateStr === today;
                               });
                             } else {
@@ -3007,8 +3005,8 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                               behaviorsToClear = allBehaviors.filter(b => {
                                 const timestamp = b.createdAt || b.timestamp;
                                 if (!timestamp) return false;
-                                const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
-                                const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                                const pParts = getQatarDateParts(timestamp);
+                                const dateStr = pParts ? `${pParts.year}-${String(pParts.month).padStart(2, '0')}-${String(pParts.day).padStart(2, '0')}` : '';
                                 return dateStr === today;
                               });
                             } else {
@@ -3172,7 +3170,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                   const statusToUse = statusFromParam || statusFromResult;
                   return statusToUse ? getAttendanceColor(statusToUse) : null;
                 })()}
-                dateLabel={new Date().toISOString().split('T')[0]}
+                dateLabel={formatForDateInput(new Date())}
                 onClose={() => {
                   setBulkSuccessResult(null);
                   // Refresh data when user clicks OK

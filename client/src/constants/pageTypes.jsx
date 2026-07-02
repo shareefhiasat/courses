@@ -1,4 +1,5 @@
 import { info, error, warn, debug } from '@services/utils/logger.js';
+import { formatDate } from '@utils/date-formatter.js';
 
 // Common Page States
 export const PAGE_STATES = {
@@ -138,7 +139,7 @@ export const COMMON_GRID_COLUMNS = {
       renderCell: (params) => {
         const date = params.value;
         if (!date) return '—';
-        return new Date(date).toLocaleDateString();
+        return formatDate(date, 'en');
       }
     },
     {
@@ -148,7 +149,7 @@ export const COMMON_GRID_COLUMNS = {
       renderCell: (params) => {
         const date = params.value;
         if (!date) return '—';
-        return new Date(date).toLocaleDateString();
+        return formatDate(date, 'en');
       }
     }
   ],

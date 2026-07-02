@@ -81,14 +81,7 @@ app.use(express.static(join(__dirname, "public")));
 // Middleware
 app.use(
   cors({
-    origin: [
-      process.env.CORS_ORIGIN || "http://localhost:3000",
-      "http://localhost:5174",
-      "http://localhost:8001",
-      "https://localhost",
-      "https://localhost:5174",
-      "https://localhost:8001",
-    ],
+    origin: (process.env.CORS_ORIGINS || process.env.CORS_ORIGIN || "http://localhost:5174,http://localhost:3000,https://localhost:5174,https://localhost:8001").split(","),
     credentials: true,
   }),
 );

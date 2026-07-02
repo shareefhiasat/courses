@@ -10,7 +10,7 @@ import { useToast } from '@ui';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import { AdvancedDataGrid, GridQuickFilterChips } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
-import { formatQatarStandard, getQatarNow } from '@utils/qatarDate';
+import { formatQatarDateTime, getQatarNow } from '@utils/qatarDate';
 import { useAuditGridColumns } from '@hooks/useAuditGridColumns.js';
 import { getPrograms } from '@services/business/programService.js';
 import { getSubjects } from '@services/business/subjectService.js';

@@ -7,6 +7,15 @@ export const getTimeFormatPreference = () => {
 };
 
 import { info, error, warn, debug } from '../services/utils/logger.js';
+import {
+  formatTime as fmtTime,
+  formatDate as fmtDate,
+  formatDateTime as fmtDateTime,
+  formatLongDate as fmtLongDate,
+  getQatarDateParts as fmtQatarDateParts,
+} from './date-formatter.js';
+
+export const getQatarDateParts = fmtQatarDateParts;
 
 /**
  * Format time for chat messages with locale-aware AM/PM
@@ -19,10 +28,7 @@ export const formatChatTime = (date, lang = 'en') => {
   try {
     const d = date?.toDate ? date.toDate() : (date instanceof Date ? date : new Date(date));
     if (isNaN(d.getTime())) return '';
-    return d.toLocaleTimeString(lang === 'ar' ? 'ar-EG-u-nu-latn' : 'en-US', {
-      hour: '2-digit',
-      minute: '2-digit'
-    });
+    return fmtTime(d, lang);
   } catch {
     return '';
   }
@@ -45,9 +51,7 @@ export const formatChatDate = (date, lang = 'en', t) => {
     const diffDays = Math.round((today - cmp) / 86400000);
     if (diffDays === 0) return t ? t('today') : 'Today';
     if (diffDays === 1) return t ? t('yesterday') : 'Yesterday';
-    return d.toLocaleDateString(lang === 'ar' ? 'ar-EG-u-nu-latn' : 'en-US', {
-      year: 'numeric', month: 'long', day: 'numeric'
-    });
+    return fmtLongDate(d, lang);
   } catch {
     return '';
   }
@@ -56,17 +60,7 @@ export const formatChatDate = (date, lang = 'en', t) => {
 export const formatDate = (value) => {
   if (!value) return '';
   const d = value?.seconds ? new Date(value.seconds * 1000) : new Date(value);
-  try {
-    return d.toLocaleDateString('en-GB', {
-      day: '2-digit', month: '2-digit', year: 'numeric'
-    });
-  } catch {
-    const pad = (n) => String(n).padStart(2, '0');
-    const dd = pad(d.getDate());
-    const mm = pad(d.getMonth() + 1);
-    const yyyy = d.getFullYear();
-    return `${dd}/${mm}/${yyyy}`;
-  }
+  return fmtDate(d, 'en');
 };
 
 export const setTimeFormatPreference = (fmt) => {
@@ -84,27 +78,7 @@ export const formatDateTime = (value, fmt) => {
   
   // Handle other date formats (timestamps, Date objects)
   const d = value?.seconds ? new Date(value.seconds * 1000) : new Date(value);
-  const hour12 = (fmt || getTimeFormatPreference()) === '12h';
-  try {
-    return d.toLocaleString('en-GB', {
-      day: '2-digit', month: '2-digit', year: 'numeric',
-      hour: '2-digit', minute: '2-digit', hour12
-    });
-  } catch {
-    // Fallback
-    const pad = (n) => String(n).padStart(2, '0');
-    const dd = pad(d.getDate());
-    const mm = pad(d.getMonth() + 1);
-    const yyyy = d.getFullYear();
-    let hh = d.getHours();
-    const mins = pad(d.getMinutes());
-    if (hour12) {
-      const suffix = hh >= 12 ? 'PM' : 'AM';
-      hh = hh % 12 || 12;
-      return `${dd}/${mm}/${yyyy} ${pad(hh)}:${mins} ${suffix}`;
-    }
-    return `${dd}/${mm}/${yyyy} ${pad(hh)}:${mins}`;
-  }
+  return fmtDateTime(d, 'en');
 };
 
 /**
@@ -175,11 +149,12 @@ export const formatLocalizedDate = (date, t, lang) => {
   const monthNames = getMonthNames(t, currentLang);
   const dayNames = getDayNames(t, currentLang);
   
-  const month = monthNames[dateObj.getMonth()];
-  const day = dateObj.getDate();
-  const dayName = dayNames[dateObj.getDay()];
+  const parts = fmtQatarDateParts(dateObj);
+  const month = monthNames[parts.month - 1];
+  const day = parts.day;
+  const dayName = dayNames[parts.dayOfWeek];
   
-  return `${month} ${day}, ${dayName} ${dateObj.getFullYear()}`;
+  return `${month} ${day}, ${dayName} ${parts.year}`;
 };
 
 /**
@@ -206,21 +181,18 @@ export const formatLocalizedDateTime = (date, t, lang) => {
   const monthNames = getMonthNames(t, currentLang);
   const dayNames = getDayNames(t, currentLang);
   
-  const month = monthNames[dateObj.getMonth()];
-  const day = dateObj.getDate();
-  const dayName = dayNames[dateObj.getDay()];
+  const parts = fmtQatarDateParts(dateObj);
+  const month = monthNames[parts.month - 1];
+  const day = parts.day;
+  const dayName = dayNames[parts.dayOfWeek];
   
   // Format time
-  const time = dateObj.toLocaleTimeString(currentLang === 'ar' ? 'ar-EG-u-nu-latn' : 'en-US', { 
-    hour: 'numeric', 
-    minute: '2-digit',
-    hour12: true 
-  });
+  const time = fmtTime(dateObj, currentLang);
   
   return {
-    date: `${month} ${day}, ${dayName} ${dateObj.getFullYear()}`,
+    date: `${month} ${day}, ${dayName} ${parts.year}`,
     time: time,
-    fullDateTime: `${month} ${day}, ${dayName} ${dateObj.getFullYear()} ${time}`
+    fullDateTime: `${month} ${day}, ${dayName} ${parts.year} ${time}`
   };
 };
 

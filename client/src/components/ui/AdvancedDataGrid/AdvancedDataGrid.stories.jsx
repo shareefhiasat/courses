@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import AdvancedDataGrid from './AdvancedDataGrid';
 import { Badge } from '../';
+import { formatDateTime } from '@utils/date-formatter.js';
 
 
 import { info, error, warn, debug } from '@services/utils/logger.js';export default {
@@ -188,7 +189,7 @@ export const EmailLogsGrid = () => {
             field: 'timestamp', 
             headerName: 'Date/Time', 
             width: 180,
-            valueGetter: (params) => new Date(params.row.timestamp).toLocaleString('en-GB')
+            valueGetter: (params) => formatDateTime(params.row.timestamp, 'en')
           },
         ]}
         pageSize={10}

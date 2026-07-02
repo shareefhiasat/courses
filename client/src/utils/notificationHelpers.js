@@ -1,4 +1,4 @@
-import { formatDateTime } from '@utils/date';
+import { formatDateTime, getQatarDateParts } from '@utils/date';
 import { NOTIFICATION_TYPES, NOTIFICATION_STATUS } from '@constants/notificationTypes.jsx';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 
@@ -21,19 +21,30 @@ export const formatNotificationTime = (timestamp, t) => {
 
 /**
  * Group notifications by date (Today, Yesterday, This Week, Earlier).
+ * Uses Qatar timezone for date boundary comparison.
  */
 export const getDateGroup = (timestamp) => {
   if (!timestamp) return 'Earlier';
   const date = timestamp?.seconds ? new Date(timestamp.seconds * 1000) : new Date(timestamp);
-  const now = new Date();
-  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-  const notifDate = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const nowParts = getQatarDateParts(new Date());
+  const dateParts = getQatarDateParts(date);
+  if (!nowParts || !dateParts) return 'Earlier';
 
-  if (notifDate.getTime() === today.getTime()) return 'Today';
-  if (notifDate.getTime() === yesterday.getTime()) return 'Yesterday';
-  if (now - date < 7 * 86400000) return 'This Week';
+  const isToday = nowParts.year === dateParts.year &&
+    nowParts.month === dateParts.month &&
+    nowParts.day === dateParts.day;
+
+  if (isToday) return 'Today';
+
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yParts = getQatarDateParts(yesterday);
+  const isYesterday = yParts && yParts.year === dateParts.year &&
+    yParts.month === dateParts.month &&
+    yParts.day === dateParts.day;
+
+  if (isYesterday) return 'Yesterday';
+  if (new Date() - date < 7 * 86400000) return 'This Week';
   return 'Earlier';
 };
 

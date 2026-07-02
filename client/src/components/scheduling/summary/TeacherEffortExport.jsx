@@ -3,6 +3,7 @@ import { jsPDF } from 'jspdf';
 import ExcelJS from 'exceljs';
 import { useLang } from '@contexts/LangContext';
 import { Button } from '@ui';
+import { formatDate } from '@utils/date-formatter.js';
 import { FileDown, FileSpreadsheet } from 'lucide-react';
 import { getAuthToken } from '@utils/authHelpers';
 
@@ -68,7 +69,7 @@ export default function TeacherEffortExport({ teacherId, params, effort, canExpo
       sessions.addRow(['Date', 'Subject', 'Time', 'Classroom']);
       (effort.sessions || []).forEach((s) => {
         sessions.addRow([
-          new Date(s.date).toLocaleDateString(),
+          formatDate(s.date, lang),
           s.subject?.nameEn || '',
           `${s.timeSlot?.startTime}-${s.timeSlot?.endTime}`,
           s.classroom?.nameEn || '',

@@ -3,6 +3,7 @@ import PortalTooltip from '@ui/PortalTooltip';
 import { DeleteIcon, ChevronDownIcon } from '@utils/icons.jsx';
 import QuickActionButtons from './QuickActionButtons.jsx';
 import { RECORD_TYPES } from '@utils/sharedTypes';
+import { formatDate, formatTime, getQatarDateParts } from '@utils/date-formatter.js';
 import { getLocalizedNoteText } from '@constants/noteTypes';
 import { getUserRoleDisplay, ROLE_DISPLAY_NAMES } from '@utils/userUtils';
 import { Shield, GraduationCap, UserCog, Crown, Heart } from 'lucide-react';
@@ -35,30 +36,20 @@ const ActivityList = ({
     try {
       const raw = time?.toDate ? time.toDate() : time ? new Date(time) : null;
       if (!raw || isNaN(raw.getTime())) return '';
-      
-      const locale = lang === 'ar' ? 'ar-QA' : 'en-GB';
-      const dateStr = raw.toLocaleDateString(locale, {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric'
-      });
-      
+
+      const dateStr = formatDate(raw, lang);
+
       // Check if the timestamp has time information (not just date)
-      const hours = raw.getHours();
-      const minutes = raw.getMinutes();
-      const seconds = raw.getSeconds();
-      
+      const parts = getQatarDateParts(raw);
+      if (!parts) return dateStr;
+
       // If all time components are 0, it's likely a date-only timestamp
-      if (hours === 0 && minutes === 0 && seconds === 0) {
+      if (parts.hours === 0 && parts.minutes === 0 && parts.seconds === 0) {
         return dateStr;
       }
-      
+
       // Otherwise, display both date and time
-      const timeStr = raw.toLocaleTimeString(locale, { 
-        hour: '2-digit', 
-        minute: '2-digit', 
-        hour12: true 
-      });
+      const timeStr = formatTime(raw, lang);
       return `${dateStr}, ${timeStr}`;
     } catch (e) {
       return '';

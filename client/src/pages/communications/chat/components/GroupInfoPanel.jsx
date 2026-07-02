@@ -8,6 +8,7 @@
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
+import { formatLongDate, formatTime } from '@utils/date-formatter.js';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useToast, ConfirmModal } from '@ui';
@@ -34,12 +35,8 @@ const formatDate = (dateStr, lang = 'en') => {
   if (!dateStr) return '';
   try {
     const d = new Date(dateStr);
-    const datePart = d.toLocaleDateString(lang === 'ar' ? 'ar-EG-u-nu-latn' : 'en-US', {
-      year: 'numeric', month: 'long', day: 'numeric'
-    });
-    const timePart = d.toLocaleTimeString(lang === 'ar' ? 'ar-EG-u-nu-latn' : 'en-US', {
-      hour: '2-digit', minute: '2-digit'
-    });
+    const datePart = formatLongDate(d, lang);
+    const timePart = formatTime(d, lang);
     return lang === 'ar' ? `${datePart} في ${timePart}` : `${datePart} at ${timePart}`;
   } catch {
     return dateStr;

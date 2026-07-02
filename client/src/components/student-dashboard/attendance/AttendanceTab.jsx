@@ -7,6 +7,7 @@ import { useLookupTypes } from '@hooks/useLookupTypes.js';
 // NOW: Using useLookupTypes hook for all lookup data
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { info, error, warn, debug } from '@services/utils/logger.js';
+import { getQatarDateParts, formatForDateInput } from '@utils/date-formatter.js';
 import styles from './AttendanceTab.module.css';
 import { getThemedIcon } from '@constants/iconTypes';
 
@@ -283,11 +284,15 @@ const AttendanceTab = React.memo(({
         
         // Method 2: Use date field with current time (fallback)
         if (log.date) {
-          const dateWithCurrentTime = `${log.date}T${new Date().toTimeString().split(' ')[0]}`;
-          const d = new Date(dateWithCurrentTime);
-          if (!isNaN(d.getTime())) {
-            debug('[AttendanceTab] Resolved date using date+current time:', dateWithCurrentTime);
-            return d;
+          const parts = getQatarDateParts(new Date());
+          if (parts) {
+            const pad = (n) => String(n).padStart(2, '0');
+            const dateWithCurrentTime = `${log.date}T${pad(parts.hours)}:${pad(parts.minutes)}:${pad(parts.seconds)}`;
+            const d = new Date(dateWithCurrentTime);
+            if (!isNaN(d.getTime())) {
+              debug('[AttendanceTab] Resolved date using date+current time:', dateWithCurrentTime);
+              return d;
+            }
           }
         }
         
@@ -364,7 +369,7 @@ const AttendanceTab = React.memo(({
     const dayMap = new Map();
     allLogs.forEach((log, index) => {
       const dateObj = log.time;
-      const dateKey = dateObj ? dateObj.toISOString().split('T')[0] : 'unknown';
+      const dateKey = dateObj ? formatForDateInput(dateObj) : 'unknown';
 
       info(`🔧 AttendanceTab - processing log ${index}:`, {
         logId: log.id,
@@ -621,7 +626,7 @@ const AttendanceTab = React.memo(({
           const grouped = {};
           logs.forEach(log => {
             const dateObj = log.time?.toDate ? log.time.toDate() : new Date(log.time);
-            const dateKey = isNaN(dateObj.getTime()) ? 'unknown' : dateObj.toISOString().split('T')[0];
+            const dateKey = isNaN(dateObj.getTime()) ? 'unknown' : formatForDateInput(dateObj);
             if (!grouped[dateKey]) grouped[dateKey] = { date: dateKey, attendance: [], penalties: [], participation: [], behavior: [] };
             if (log.logType === 'attendance') grouped[dateKey].attendance.push(log);
             else if (log.logType === 'penalty') grouped[dateKey].penalties.push(log);

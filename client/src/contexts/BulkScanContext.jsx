@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useCallback, useRef, useEff
 import { ATTENDANCE_TYPE_CATEGORY } from '@constants/attendanceTypes';
 import { info, error as logError, warn, debug } from '@services/utils/logger.js';
 import eventBus, { EVENTS } from '@utils/eventBus';
+import { formatForDateInput } from '@utils/date-formatter.js';
 
 const BulkScanContext = createContext(null);
 
@@ -296,7 +297,7 @@ export const BulkScanProvider = ({
       for (const student of selectedStudents) {
         try {
           // Ensure date is in YYYY-MM-DD string format
-          const dateStr = selectedDate ? new Date(selectedDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+          const dateStr = selectedDate ? formatForDateInput(new Date(selectedDate)) : formatForDateInput(new Date());
 
           // Import getNoteTypeFromStatus for proper note type constants
           const { getNoteTypeFromStatus } = await import("@constants/noteTypes");
@@ -318,7 +319,7 @@ export const BulkScanProvider = ({
           if (currentAttendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
             const { createStandupAttendance } = await import("@services/business/standupAttendanceService");
             // Standup attendance API only accepts: userId, status, date, notes
-            const dateStr = selectedDate ? new Date(selectedDate).toISOString().split('T')[0] : new Date().toISOString().split('T')[0];
+            const dateStr = selectedDate ? formatForDateInput(new Date(selectedDate)) : formatForDateInput(new Date());
 
             info("[BulkScanContext] STANDUP MODE - Status mapping:", {
               originalStatus: attendanceData.status,

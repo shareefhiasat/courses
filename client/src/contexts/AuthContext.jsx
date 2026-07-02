@@ -4,6 +4,8 @@
  * Replaces Firebase Auth with Keycloak authentication
  */
 
+import { formatTimeWithSeconds } from '@utils/date-formatter.js';
+
 import React, { createContext, useContext, useEffect, useState, useRef, useCallback } from 'react';
 import { useKeycloak } from '@react-keycloak/web';
 import { info, error, warn, debug } from '@logger';
@@ -642,7 +644,7 @@ export const AuthProvider = ({ children }) => {
   const getTokenExpiryLocalTime = () => {
     if (!keycloak.tokenParsed?.exp) return t('unknown') || 'Unknown';
     const expiryDate = new Date(keycloak.tokenParsed.exp * 1000);
-    return expiryDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    return formatTimeWithSeconds(expiryDate, 'en');
   };
 
   const getModalMessage = () => {
@@ -784,7 +786,7 @@ export const AuthProvider = ({ children }) => {
       
       if (expiresAt) {
         remainingSeconds = Math.max(0, expiresAt - nowSec);
-        console.log(`🚨 [AUTO-LOGOUT DEBUG] Token expires at ${new Date(expiresAt * 1000).toLocaleTimeString()}, ${remainingSeconds}s from now`);
+        console.log(`🚨 [AUTO-LOGOUT DEBUG] Token expires at ${formatTimeWithSeconds(new Date(expiresAt * 1000), 'en')}, ${remainingSeconds}s from now`);
       } else {
         // Fallback to configured minutes if no token expiry
         const autoLogoutMinutes = SESSION_CONFIG.AUTO_LOGOUT_MINUTES;

@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import { useAuth } from '@contexts/AuthContext';
+import { formatDate, formatTime, formatDateTime, formatForDateInput } from '@utils/date-formatter.js';
 import { useLang } from '@contexts/LangContext';
 import { Button, Select, DatePicker, Tooltip, AttendanceTypeSelect, Slider, SimpleLoading } from '@ui';
 import { useTheme } from '@contexts/ThemeContext';
@@ -13,7 +14,7 @@ import { getClasses } from '@services/business/classService';
 import attendanceService from '@services/business/attendanceService';
 import { getUsers, getUserById } from '@services/business/userService';
 import { getAttendanceIcon, createAttendanceBadge } from '@constants/iconTypes';
-import { getQatarNow, formatQatarDateOnly, formatQatarStandard } from '@utils/qatarDate';
+import { getQatarNow, formatQatarDateOnly, formatQatarDateTime } from '@utils/qatarDate';
 import { exportGeneric } from '@services/export/excelExportService.js';
 
 const HRAttendancePage = () => {
@@ -706,9 +707,9 @@ const HRAttendancePage = () => {
         }
         
         const scanDate = (r.at && r.at.toDate ? r.at.toDate() : new Date());
-        const dateStr = scanDate.toLocaleDateString('ar-SA');
-        const timeStr = scanDate.toLocaleTimeString('ar-SA', { hour12: true });
-        const timestamp = scanDate.toLocaleString('ar-SA');
+        const dateStr = formatDate(scanDate, 'ar');
+        const timeStr = formatTime(scanDate, 'ar');
+        const timestamp = formatDateTime(scanDate, 'ar');
         
         return [
           index + 1,
@@ -902,10 +903,10 @@ const HRAttendancePage = () => {
           <div>
             <DatePicker
               type="date"
-              value={dateFrom ? (dateFrom.includes('/') ? new Date(dateFrom.split('/').reverse().join('-')).toISOString().split('T')[0] : dateFrom) : ''}
+              value={dateFrom ? (dateFrom.includes('/') ? formatForDateInput(new Date(dateFrom.split('/').reverse().join('-'))) : dateFrom) : ''}
               onChange={(iso) => {
-                info('[HRAttendance] DateFrom changing from:', dateFrom, 'to:', iso ? new Date(iso).toLocaleDateString('en-CA') : '');
-                setDateFrom(iso ? new Date(iso).toLocaleDateString('en-CA') : '');
+                info('[HRAttendance] DateFrom changing from:', dateFrom, 'to:', iso ? formatForDateInput(iso) : '');
+                setDateFrom(iso ? formatForDateInput(iso) : '');
               }}
               placeholder={t('from_date') || 'From Date'}
               fullWidth
@@ -914,10 +915,10 @@ const HRAttendancePage = () => {
           <div>
             <DatePicker
               type="date"
-              value={dateTo ? (dateTo.includes('/') ? new Date(dateTo.split('/').reverse().join('-')).toISOString().split('T')[0] : dateTo) : ''}
+              value={dateTo ? (dateTo.includes('/') ? formatForDateInput(new Date(dateTo.split('/').reverse().join('-'))) : dateTo) : ''}
               onChange={(iso) => {
-                info('[HRAttendance] DateTo changing from:', dateTo, 'to:', iso ? new Date(iso).toLocaleDateString('en-CA') : '');
-                setDateTo(iso ? new Date(iso).toLocaleDateString('en-CA') : '');
+                info('[HRAttendance] DateTo changing from:', dateTo, 'to:', iso ? formatForDateInput(iso) : '');
+                setDateTo(iso ? formatForDateInput(iso) : '');
               }}
               placeholder={t('to_date') || 'To Date'}
               fullWidth
@@ -1166,7 +1167,7 @@ const HRAttendancePage = () => {
                     )}
                     <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                       {getThemedIcon('ui', 'calendar', 12, theme)}
-                      {formatQatarStandard(qatarCreatedAt)}
+                      {formatQatarDateTime(qatarCreatedAt)}
                     </span>
                     {/* Session Duration */}
                     {(() => {

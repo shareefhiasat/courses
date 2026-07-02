@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback, useMemo, useLayoutEffect } from 'react';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import { useAuth } from '@contexts/AuthContext';
+import { formatDateTime, formatForDateInput } from '@utils/date-formatter.js';
 import { useLang } from '@contexts/LangContext';
 import { scanAttendance, getAttendanceStats } from '@services/business/attendanceBusinessService';
 import { simpleDeviceHash } from '@utils/deviceHash';
@@ -568,19 +569,19 @@ const StudentAttendancePage = () => {
               onClick={async ()=>{
                 const headers = ['Date','Status','Class','Reason','Note'];
                 const dataRows = history.map(h => [
-                  (h.at || h.createdAt || h.updatedAt) ? new Date(h.at || h.createdAt || h.updatedAt).toLocaleString('en-GB') : '',
+                  (h.at || h.createdAt || h.updatedAt) ? formatDateTime(h.at || h.createdAt || h.updatedAt, 'en') : '',
                   h.status||'present', 
                   h.className||h.classId||'',
                   h.reason||'',
                   h.feedback||h.note||''
                 ]);
                 const excelBlob = await exportGeneric(dataRows, headers, {
-                  fileName: `attendance_history_${new Date().toISOString().split('T')[0]}.xlsx`
+                  fileName: `attendance_history_${formatForDateInput(new Date())}.xlsx`
                 });
                 const url = URL.createObjectURL(excelBlob); 
                 const a = document.createElement('a');
                 a.href = url; 
-                a.download = `attendance_history_${new Date().toISOString().split('T')[0]}.xlsx`; 
+                a.download = `attendance_history_${formatForDateInput(new Date())}.xlsx`; 
                 a.click();
                 setTimeout(()=>URL.revokeObjectURL(url), 1000);
               }}
@@ -598,7 +599,7 @@ const StudentAttendancePage = () => {
                 <span style={{ fontWeight:700, color: h.status==='present' ? '#10b981' : h.status==='late' ? '#f59e0b' : h.status==='leave' ? '#8b5cf6' : '#6b7280', whiteSpace: 'nowrap', textTransform: 'capitalize' }}>{(h.status||'—').toString().replace('_', ' ')}</span>
               </div>
               <div style={{ fontSize: 'var(--font-size-xs)', color:'#666' }}>
-                {new Date(h.at || h.createdAt || h.updatedAt || Date.now()).toLocaleString('en-GB')}
+                {formatDateTime(h.at || h.createdAt || h.updatedAt || Date.now(), 'en')}
               </div>
               {h.reason && (
                 <div style={{ fontSize:11, color:'#666', fontStyle:'italic' }}>

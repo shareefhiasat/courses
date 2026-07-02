@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { getThemedIcon } from '@constants/iconTypes';
 import { useLang } from '@contexts/LangContext';
+import { formatTime } from '@utils/date-formatter.js';
 
 
 import { info, error, warn, debug } from '@services/utils/logger.js';const ChatGame = ({ questions, settings, onComplete }) => {
@@ -160,7 +161,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const ChatG
                             )}
 
                             <span className={`text-[10px] mt-2 block text-right ${msg.sender === 'user' ? 'text-violet-200' : 'text-slate-400'}`}>
-                                {msg.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                {formatTime(msg.timestamp, lang)}
                             </span>
                         </div>
                     </div>

@@ -1,6 +1,7 @@
 import { createRoot } from 'react-dom/client';
 import { jsPDF } from 'jspdf';
 import html2canvas from 'html2canvas';
+import { formatDateTime } from '@utils/date-formatter.js';
 
 const A4_WIDTH_MM = 210;
 const A4_HEIGHT_MM = 297;
@@ -82,10 +83,7 @@ export async function renderOfficialPdf(element, options = {}) {
 
   const totalPages = pageElements.length;
   const isAr = lang === 'ar';
-  const genDateTime = new Date().toLocaleString(isAr ? 'ar-QA' : 'en-GB', {
-    dateStyle: 'short',
-    timeStyle: 'short',
-  });
+  const genDateTime = formatDateTime(new Date(), isAr ? 'ar' : 'en');
   const serialLabel = isAr ? 'الرقم التسلسلي' : 'Serial';
   const genLabel = isAr ? 'تاريخ الإصدار' : 'Generated';
   const pageLabel = isAr ? 'صفحة' : 'Page';

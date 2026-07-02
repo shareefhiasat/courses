@@ -8,6 +8,7 @@ import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadin
 import { getThemedIcon } from '@constants/iconTypes';
 import { ATTENDANCE_STATUS } from '@constants/attendanceTypes';
 import { getAttendanceStats } from '@services/business/attendanceService';
+import { formatForDateInput } from '@utils/date-formatter.js';
 import { getClasses } from '@services/business/classService';
 import { getUsers } from '@services/business/userService';
 import { getSubmissions } from '@services/business/submissionsService';
@@ -148,7 +149,7 @@ export default function AnalyticsPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `analytics-${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `analytics-${formatForDateInput(new Date())}.csv`;
     a.click();
   };
 

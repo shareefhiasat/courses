@@ -3,19 +3,22 @@
  * Format: {YYYYMMDD}-{HHmmss}-{scopeSuffix}
  */
 
+import { getQatarDateParts } from '@utils/date-formatter.js';
+
 const pad = (n) => String(n).padStart(2, '0');
 
 export function buildSerialNumber(scopeId, { prefix = '' } = {}) {
-  const now = new Date();
+  const parts = getQatarDateParts(new Date());
+  if (!parts) return `${prefix}${scopeId || 0}`;
   const datePart = [
-    now.getFullYear(),
-    pad(now.getMonth() + 1),
-    pad(now.getDate()),
+    parts.year,
+    pad(parts.month),
+    pad(parts.day),
   ].join('');
   const timePart = [
-    pad(now.getHours()),
-    pad(now.getMinutes()),
-    pad(now.getSeconds()),
+    pad(parts.hours),
+    pad(parts.minutes),
+    pad(parts.seconds),
   ].join('');
   const scope = scopeId != null ? String(scopeId) : '0';
   const suffix = prefix ? `${prefix}${scope}` : scope;

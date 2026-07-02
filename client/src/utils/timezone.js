@@ -5,9 +5,16 @@
 
 import { toZonedTime, fromZonedTime, format } from 'date-fns-tz';
 
+import { info, error, warn, debug } from '@services/utils/logger.js';
+import {
+  QATAR_TIMEZONE,
+  formatDate as fmtDate,
+  formatTime as fmtTime,
+  formatRelative as fmtRelative,
+  getQatarNow as fmtQatarNow,
+} from './date-formatter.js';
 
-import { info, error, warn, debug } from '@services/utils/logger.js';// Qatar timezone constant
-export const QATAR_TIMEZONE = 'Asia/Qatar'; // UTC+3
+export { QATAR_TIMEZONE };
 export const QATAR_UTC_OFFSET = '+03:00';
 
 /**
@@ -15,7 +22,7 @@ export const QATAR_UTC_OFFSET = '+03:00';
  * @returns {Date} Date object in Qatar timezone
  */
 export function getQatarNow() {
-  return toZonedTime(new Date(), QATAR_TIMEZONE);
+  return fmtQatarNow();
 }
 
 /**
@@ -58,10 +65,8 @@ export function toQatarTime(date) {
  */
 export function formatQatarDate(date, formatString = 'dd/MM/yyyy, HH:mm') {
   if (!date) return 'N/A';
-  
   const qatarDate = toQatarTime(date);
   if (!qatarDate) return 'N/A';
-  
   return format(qatarDate, formatString);
 }
 
@@ -71,7 +76,7 @@ export function formatQatarDate(date, formatString = 'dd/MM/yyyy, HH:mm') {
  * @returns {string} Formatted date string (dd/MM/yyyy)
  */
 export function formatQatarDateOnly(date) {
-  return formatQatarDate(date, 'dd/MM/yyyy');
+  return fmtDate(date, 'en');
 }
 
 /**
@@ -80,7 +85,7 @@ export function formatQatarDateOnly(date) {
  * @returns {string} Formatted time string (HH:mm)
  */
 export function formatQatarTimeOnly(date) {
-  return formatQatarDate(date, 'HH:mm');
+  return fmtTime(date, 'en');
 }
 
 /**
@@ -89,33 +94,7 @@ export function formatQatarTimeOnly(date) {
  * @returns {string} Relative time string
  */
 export function getQatarTimeAgo(date) {
-  if (!date) return null;
-  
-  const qatarDate = toQatarTime(date);
-  if (!qatarDate) return null;
-  
-  const now = getQatarNow();
-  const seconds = Math.floor((now - qatarDate) / 1000);
-  
-  if (seconds < 60) return 'just now';
-  
-  const intervals = {
-    year: 31536000,
-    month: 2592000,
-    week: 604800,
-    day: 86400,
-    hour: 3600,
-    minute: 60
-  };
-  
-  for (const [unit, secondsInUnit] of Object.entries(intervals)) {
-    const interval = Math.floor(seconds / secondsInUnit);
-    if (interval >= 1) {
-      return interval === 1 ? `1 ${unit} ago` : `${interval} ${unit}s ago`;
-    }
-  }
-  
-  return 'just now';
+  return fmtRelative(date, 'en');
 }
 
 /**

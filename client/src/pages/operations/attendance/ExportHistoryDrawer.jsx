@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@contexts/AuthContext';
+import { formatDateShort, formatTime as fmtTime } from '@utils/date-formatter.js';
 import { getExportHistory, openExportFile } from '@services/db/exportHistoryService.js';
 import { resolveUserRole, getUserRoleFromObject } from '@utils/userUtils';
 import { getUserRoleColor, getUserRoleIcon } from '@constants/iconTypes';
@@ -51,19 +52,11 @@ function formatDateLabel(dateStr, lang, t) {
   if (d.toDateString() === today.toDateString()) return t('today') || 'Today';
   if (d.toDateString() === yesterday.toDateString()) return t('yesterday') || 'Yesterday';
 
-  return d.toLocaleDateString(lang === 'ar' ? 'ar' : undefined, {
-    weekday: 'short',
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
+  return formatDateShort(d, lang);
 }
 
 function formatTime(dateStr, lang) {
-  return new Date(dateStr).toLocaleTimeString(lang === 'ar' ? 'ar' : undefined, {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  return fmtTime(dateStr, lang);
 }
 
 function formatCount(key, count, t) {

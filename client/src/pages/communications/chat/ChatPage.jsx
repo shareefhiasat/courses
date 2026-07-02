@@ -25,6 +25,8 @@ import { formatDateTime, formatDate, formatChatTime, formatChatDate } from '@uti
 import { DEFAULT_ACCENT, normalizeHexColor } from '@utils/color';
 import { canParticipate } from '@utils/userStatus';
 import { filterBadWords, containsBadWords } from '@utils/badWordFilter';
+import { formatFileSize, shortenFileName } from '@utils/fileUtils';
+import { getEntityDisplayName } from '@utils/entityDisplayName';
 import { 
   getRoleConfig,
   isFileTypeAllowedForRole,
@@ -75,41 +77,13 @@ const withAuthToken = (url) => {
   if (!url) return url;
   const token = localStorage.getItem('keycloak_token');
   if (!token) return url;
-  const sep = url.includes('?') ? '&' : '?';
-  return `${url}${sep}token=${encodeURIComponent(token)}`;
+  const safeUrl = url.replace(/^https?:\/\/localhost:\d+/, '');
+  const sep = safeUrl.includes('?') ? '&' : '?';
+  return `${safeUrl}${sep}token=${encodeURIComponent(token)}`;
 };
 
 
-const formatFileSize = (bytes) => {
-  const size = Number(bytes);
-  if (!size || isNaN(size) || size <= 0) return '';
-  if (size < 1024) return `${size} B`;
-  if (size < 1024 * 1024) return `${Math.ceil(size / 1024)} KB`;
-  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
-};
-
-const shortenFileName = (name) => {
-  if (!name) return '';
-  const ext = name.split('.').pop()?.toLowerCase() || '';
-  const extMap = {
-    'jpeg': 'JPG', 'jpg': 'JPG', 'png': 'PNG', 'gif': 'GIF', 'webp': 'WEBP',
-    'svg': 'SVG', 'pdf': 'PDF', 'doc': 'DOC', 'docx': 'DOC', 'ppt': 'PPT',
-    'pptx': 'PPT', 'xls': 'XLS', 'xlsx': 'XLS', 'mp4': 'MP4', 'webm': 'WEBM',
-    'mov': 'MOV', 'mp3': 'MP3', 'wav': 'WAV', 'ogg': 'OGG', 'txt': 'TXT',
-    'zip': 'ZIP', 'rar': 'RAR', 'json': 'JSON',
-  };
-  const shortExt = extMap[ext] || ext.toUpperCase();
-  const baseName = name.substring(0, name.lastIndexOf('.')) || name;
-  const maxBase = 20;
-  const truncated = baseName.length > maxBase ? baseName.substring(0, maxBase) + '…' : baseName;
-  return `${truncated}.${shortExt}`;
-};
-
-const getClassDisplayName = (cls, lang = 'en') => {
-  if (!cls) return '';
-  if (lang === 'ar' && cls.nameAr) return cls.nameAr;
-  return cls.name || cls.nameEn || 'Class';
-};
+const getClassDisplayName = (cls, lang = 'en') => getEntityDisplayName(cls, { kind: 'class', lang, fallback: 'Class' });
 
 const getGroupDisplayName = (room, lang = 'en') => {
   if (!room) return '';
@@ -1412,7 +1386,7 @@ const ChatPage = memo(() => {
                     <div style={{ fontSize:'0.85rem', color:'var(--muted)', textAlign:'right', flexShrink:0, marginLeft:8 }}>
                       {r.readAt ? (
                         <>
-                          <div>{r.readAt?.toLocaleDateString?.(lang === 'ar' ? 'ar-EG-u-nu-latn' : 'en-GB') || ''}</div>
+                          <div>{r.readAt ? formatDate(r.readAt, lang) : ''}</div>
                           <div>{formatChatTime(r.readAt, lang)}</div>
                         </>
                       ) : (
@@ -1646,9 +1620,6 @@ const ChatPage = memo(() => {
                         border: 'none',
                         borderRadius: '50%',
                         cursor: 'pointer',
-                        fontSize: '1.1rem',
-                        fontWeight: 700,
-                        lineHeight: 1,
                         padding: 0,
                         flexShrink: 0,
                         boxShadow: '0 2px 8px rgba(129, 12, 41, 0.3)',
@@ -1657,7 +1628,7 @@ const ChatPage = memo(() => {
                       onMouseOver={(e) => { e.currentTarget.style.transform = 'scale(1.12)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(129, 12, 41, 0.45)'; }}
                       onMouseOut={(e) => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(129, 12, 41, 0.3)'; }}
                     >
-                      <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="M12 5v14"/></svg>
+                      {getThemedIcon('ui', 'add', 14, 'white')}
                     </button>
                   )}
                 </div>
@@ -1799,12 +1770,23 @@ const ChatPage = memo(() => {
                   borderBottom: '1px solid var(--border)', transition: 'background 0.2s'
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.5rem' }}>
                   {(() => {
                     if (isSelfDM) {
+                      const selfName = getChatUserDisplayName(user, lang) || user?.displayName || user?.email || '';
+                      const selfInitial = (selfName || '?')[0]?.toUpperCase();
                       return (
-                        <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'linear-gradient(135deg,var(--brand),var(--brand2))', color: 'white', display:'flex', alignItems:'center', justifyContent:'center' }}>
-                          {getThemedIcon('ui', 'edit', 16, theme)}
+                        <div style={{ position: 'relative', flexShrink: 0, marginTop: 2 }}>
+                          {user?.profileImageUrl ? (
+                            <img src={user.profileImageUrl} alt={selfName} style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover' }} />
+                          ) : (
+                            <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'linear-gradient(135deg,var(--brand),var(--brand2))', color: 'white', display:'flex', alignItems:'center', justifyContent:'center', fontSize: 'var(--font-size-sm)', fontWeight: 700 }}>
+                              {selfInitial}
+                            </div>
+                          )}
+                          <div style={{ position: 'absolute', bottom: -2, insetInlineEnd: -2, width: 14, height: 14, borderRadius: '50%', background: 'var(--panel)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1.5px solid var(--panel)', boxShadow: '0 0 0 1px var(--border)' }} title={t('your_notes') || 'Your Notes'}>
+                            {getThemedIcon('ui', 'edit', 8, theme)}
+                          </div>
                         </div>
                       );
                     }
@@ -1813,28 +1795,27 @@ const ChatPage = memo(() => {
                     const isDisabled = false;
                     const showIndicator = isDeleted || isDisabled;
                     const indicatorTitle = isDeleted ? 'Deleted User' : (isDisabled ? 'Disabled User' : '');
+                    const roles = otherUser ? getUserRoles(otherUser) : [];
+                    const primaryRole = roles[0];
+                    const roleIcon = primaryRole ? getUserRoleIcon(primaryRole) : null;
+                    const roleColor = primaryRole ? getUserRoleColor(primaryRole) : '#6b7280';
                     return (
-                      <>
+                      <div style={{ position: 'relative', flexShrink: 0, marginTop: 2 }}>
                         {otherUser?.profileImageUrl ? (
-                          <div style={{ position: 'relative' }}>
-                            <img src={otherUser.profileImageUrl} alt={label} style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', opacity: showIndicator ? 0.5 : 1 }} />
-                            {showIndicator && (
-                              <div style={{ position: 'absolute', top: -2, right: -2, width: 12, height: 12, borderRadius: '50%', background: '#dc2626', border: '2px solid white', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title={indicatorTitle}>
-                                <span style={{ fontSize: 8, color: 'white' }}>✕</span>
-                              </div>
-                            )}
-                          </div>
+                          <img src={otherUser.profileImageUrl} alt={label} style={{ width: 28, height: 28, borderRadius: '50%', objectFit: 'cover', opacity: showIndicator ? 0.5 : 1 }} />
                         ) : (
-                          <div style={{ position: 'relative' }}>
-                            <div style={{ width: 28, height: 28, borderRadius: '50%', background: showIndicator ? 'var(--muted)' : 'linear-gradient(135deg,var(--brand),var(--brand2))', color: 'white', display:'flex', alignItems:'center', justifyContent:'center', fontSize: 'var(--font-size-sm)', fontWeight: 700, opacity: showIndicator ? 0.5 : 1 }}>{initial}</div>
-                            {showIndicator && (
-                              <div style={{ position: 'absolute', top: -2, right: -2, width: 12, height: 12, borderRadius: '50%', background: '#dc2626', border: '2px solid white', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title={indicatorTitle}>
-                                <span style={{ fontSize: 8, color: 'white' }}>✕</span>
-                              </div>
-                            )}
-                          </div>
+                          <div style={{ width: 28, height: 28, borderRadius: '50%', background: showIndicator ? 'var(--muted)' : 'linear-gradient(135deg,var(--brand),var(--brand2))', color: 'white', display:'flex', alignItems:'center', justifyContent:'center', fontSize: 'var(--font-size-sm)', fontWeight: 700, opacity: showIndicator ? 0.5 : 1 }}>{initial}</div>
                         )}
-                      </>
+                        {showIndicator ? (
+                          <div style={{ position: 'absolute', top: -2, insetInlineEnd: -2, width: 12, height: 12, borderRadius: '50%', background: '#dc2626', border: '2px solid var(--panel)', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title={indicatorTitle}>
+                            <span style={{ fontSize: 8, color: 'white' }}>✕</span>
+                          </div>
+                        ) : roleIcon ? (
+                          <div style={{ position: 'absolute', bottom: -2, insetInlineEnd: -2, width: 14, height: 14, borderRadius: '50%', background: 'var(--panel)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1.5px solid var(--panel)', boxShadow: '0 0 0 1px var(--border)' }} title={primaryRole}>
+                            {React.cloneElement(roleIcon, { color: roleColor, size: 8 })}
+                          </div>
+                        ) : null}
+                      </div>
                     );
                   })()}
                   <div style={{ flex: 1, minWidth: 0 }}>
@@ -1842,32 +1823,29 @@ const ChatPage = memo(() => {
                       <div style={{ fontWeight: 600, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', flex:1, opacity: (!otherUser && !isSelfDM) ? 0.6 : 1 }}>
                         {label}
                       </div>
-                      {otherUser && <RoleBadge user={otherUser} />}
-                      {(() => { const c = unreadCounts[`dm:${room.id}`]||0; if (c>0) { return (<span style={{background:'var(--brand)',color:'white',borderRadius:'50%',minWidth:18,height:18,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.7rem',fontWeight:'bold',padding:'0 5px'}}>{c>99?'99+':c}</span>);} return null; })()}
+                      <button
+                        onClick={(e) => { e.stopPropagation(); toggleStar(room); }}
+                        style={{ background:'transparent', border:'none', cursor:'pointer', color:(room.starBy||[]).includes(user.uid)?'#facc15':'var(--muted)', fontSize:'0.85rem', lineHeight:1, padding:0, display:'flex', alignItems:'center', flexShrink:0 }}
+                      >{(room.starBy||[]).includes(user.uid)?'★':'☆'}</button>
+                      <button
+                        onClick={async (e) => {
+                          e.stopPropagation();
+                          try {
+                            const next = { ...archivedRooms };
+                            if (next[room.id]) delete next[room.id]; else next[room.id] = true;
+                            setArchivedRooms(next);
+                            await updateUser(user.uid, { archivedRooms: next });
+                          } catch {}
+                        }}
+                        style={{ background:'transparent', border:'none', cursor:'pointer', color:'var(--muted)', lineHeight:1, padding:0, display:'flex', alignItems:'center', flexShrink:0 }}
+                      >{archivedRooms[room.id] ? getThemedIcon('ui', 'upload', 12, theme) : getThemedIcon('ui', 'download', 12, theme)}</button>
+                      {(() => { const c = unreadCounts[`dm:${room.id}`]||0; if (c>0) { return (<span style={{background:'var(--brand)',color:'white',borderRadius:'50%',minWidth:16,height:16,display:'flex',alignItems:'center',justifyContent:'center',fontSize:'0.65rem',fontWeight:'bold',padding:'0 4px',flexShrink:0}}>{c>99?'99+':c}</span>);} return null; })()}
                     </div>
                     <div style={{ fontSize: '0.8rem', color: 'var(--muted)', display:'flex', justifyContent:'space-between', alignItems:'center', gap: 8 }}>
                       <span style={{ whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis', flex:1 }}>{room.lastMessage || ''}</span>
-                      <div style={{ display:'flex', gap:2, alignItems:'center', flexShrink:0 }}>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); toggleStar(room); }}
-                          style={{ background:'transparent', border:'none', cursor:'pointer', color:(room.starBy||[]).includes(user.uid)?'#facc15':'var(--muted)', fontSize:'0.85rem', lineHeight:1, padding:'0 2px', display:'flex', alignItems:'center' }}
-                        >{(room.starBy||[]).includes(user.uid)?'★':'☆'}</button>
-                        <button
-                          onClick={async (e) => {
-                            e.stopPropagation();
-                            try {
-                              const next = { ...archivedRooms };
-                              if (next[room.id]) delete next[room.id]; else next[room.id] = true;
-                              setArchivedRooms(next);
-                              await updateUser(user.uid, { archivedRooms: next });
-                            } catch {}
-                          }}
-                          style={{ background:'transparent', border:'none', cursor:'pointer', color:'var(--muted)', fontSize:'0.85rem', lineHeight:1, padding:'0 2px', display:'flex', alignItems:'center' }}
-                        >{archivedRooms[room.id] ? getThemedIcon('ui', 'upload', 14, theme) : getThemedIcon('ui', 'download', 14, theme)}</button>
-                        {lastTime && <span style={{ color: 'var(--muted)', marginLeft: 4 }}>
-                          {formatDateTime(lastTime)}
-                        </span>}
-                      </div>
+                      {lastTime && <span style={{ color: 'var(--muted)', flexShrink:0 }}>
+                        {formatDateTime(lastTime)}
+                      </span>}
                     </div>
                   </div>
                 </div>
@@ -2290,17 +2268,17 @@ const ChatPage = memo(() => {
         {showStarredOnly && (
           <div style={{
             padding: '0.4rem 1rem',
-            background: 'rgba(250,204,21,0.08)',
-            borderBottom: '1px solid rgba(250,204,21,0.2)',
+            background: 'var(--background)',
+            borderBottom: '1px solid var(--border)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             fontSize: '0.8rem',
-            color: '#facc15',
+            color: 'var(--text)',
             fontWeight: 600,
           }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              {getIconWithColor('ui', 'star', 14, '#facc15')}
+              {getIconWithColor('ui', 'star', 14, 'var(--brand)')}
               {t('starred_messages') || 'Starred Messages'}
             </span>
             <button
@@ -2308,7 +2286,7 @@ const ChatPage = memo(() => {
               style={{
                 background: 'transparent',
                 border: 'none',
-                color: '#facc15',
+                color: 'var(--muted)',
                 cursor: 'pointer',
                 fontSize: '0.75rem',
                 fontWeight: 600,

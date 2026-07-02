@@ -3,6 +3,7 @@ import { getLocalizedUserName } from '@utils/localizedUserName.js';
 import { buildViolationsOfficialSerial } from './serialNumber.js';
 import { formatDeduction, getDeductionForStatus } from '../shared/deductionDisplay.js';
 import { formatOfficialReportDate } from '../shared/officialDateFormat.js';
+import { getQatarDateParts, formatForDateInput } from '@utils/date-formatter.js';
 
 const VIOLATION_LABELS = {
   ar: {
@@ -87,10 +88,10 @@ export function prepareAttendanceOfficialData({
       const byDate = new Map();
       recs.forEach((record) => {
         const raw = record.date || record.at || record.createdAt;
-        const dateKey =
-          typeof raw === 'string'
-            ? raw.split('T')[0]
-            : new Date(raw).toISOString().split('T')[0];
+        const parts = getQatarDateParts(raw);
+        const dateKey = parts
+          ? `${parts.year}-${String(parts.month).padStart(2, '0')}-${String(parts.day).padStart(2, '0')}`
+          : (typeof raw === 'string' ? raw.split('T')[0] : formatForDateInput(new Date(raw)));
         if (!byDate.has(dateKey)) byDate.set(dateKey, []);
         byDate.get(dateKey).push(record);
       });

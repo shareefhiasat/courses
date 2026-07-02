@@ -8,6 +8,7 @@ import { Button, SimpleLoading, useToast, Input, Select, DeleteModal } from '@ui
 import MultiSelect from '@components/ui/MultiSelect';
 import { useDeleteModal } from '@hooks/useDeleteModal.js';
 import AdvancedDataGrid from '@components/ui/AdvancedDataGrid';
+import { formatForDateInput } from '@utils/date-formatter.js';
 import { 
   getAllClassroomAvailabilities, 
   createClassroomAvailability, 
@@ -164,8 +165,8 @@ const ClassroomAvailabilityPage = () => {
       slots: availability.slots && availability.slots.length > 0 
         ? availability.slots.map(s => ({ startTime: s.startTime, endTime: s.endTime }))
         : [{ startTime: '09:00', endTime: '10:00' }],
-      startDate: availability.startDate ? new Date(availability.startDate).toISOString().split('T')[0] : '',
-      endDate: availability.endDate ? new Date(availability.endDate).toISOString().split('T')[0] : '',
+      startDate: availability.startDate ? formatForDateInput(new Date(availability.startDate)) : '',
+      endDate: availability.endDate ? formatForDateInput(new Date(availability.endDate)) : '',
     });
     setFormState('editing');
   };

@@ -1,5 +1,6 @@
 import ExcelJS from 'exceljs';
 import { OFFICIAL_HEADER } from '../shared/officialHeader.js';
+import { formatDateTime } from '@utils/date-formatter.js';
 
 const STATUS_LABELS = {
   ar: { present: 'متواجد', absent: 'غائب', humanCase: 'حالة إنسانية', late: 'متأخر' },
@@ -266,10 +267,7 @@ export async function exportDailyOfficialExcel(data) {
   ws.mergeCells(`A${row}:H${row}`);
   row += 1;
 
-  const genDateTime = new Date().toLocaleString(isAr ? 'ar-QA' : 'en-GB', {
-    dateStyle: 'short',
-    timeStyle: 'short',
-  });
+  const genDateTime = formatDateTime(new Date(), isAr ? 'ar' : 'en');
   const footerGen = ws.getCell(`A${row}`);
   footerGen.value = `${metaLabels.generated}: ${genDateTime}`;
   footerGen.font = { size: 9, color: { argb: 'FF555555' } };
@@ -423,7 +421,7 @@ export async function exportAttendanceOfficialExcel(data) {
   row += 2;
   ws.getCell(`A${row}`).value = `${metaLabels.serial}: ${data.serial}`;
   row += 1;
-  ws.getCell(`A${row}`).value = `${metaLabels.generated}: ${new Date().toLocaleString(isAr ? 'ar-QA' : 'en-GB', { dateStyle: 'short', timeStyle: 'short' })}`;
+  ws.getCell(`A${row}`).value = `${metaLabels.generated}: ${formatDateTime(new Date(), isAr ? 'ar' : 'en')}`;
 
   ws.columns = [
     { width: 6 },

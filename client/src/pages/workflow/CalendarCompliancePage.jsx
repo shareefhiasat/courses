@@ -7,6 +7,7 @@ import { Button, useToast } from '@ui';
 import { Card, CardContent, CardHeader, CardTitle } from '@ui';
 import { SimpleLoading, EmptyState } from '@ui';
 import { getComplianceData } from '@services/api/workflow-documents-api.js';
+import { formatForDateInput, getQatarDateParts } from '@utils/date-formatter.js';
 
 const CalendarCompliancePage = () => {
   const { t } = useLang();
@@ -47,15 +48,16 @@ const CalendarCompliancePage = () => {
       setLoading(true);
       setError(null);
 
-      // Calculate date range for current month
-      const year = currentMonth.getFullYear();
-      const month = currentMonth.getMonth();
+      // Calculate date range for current month using Qatar timezone
+      const monthParts = getQatarDateParts(currentMonth);
+      const year = monthParts.year;
+      const month = monthParts.month - 1;
       const startDate = new Date(year, month, 1);
       const endDate = new Date(year, month + 1, 0);
 
       const params = {
-        startDate: startDate.toISOString().split('T')[0],
-        endDate: endDate.toISOString().split('T')[0],
+        startDate: formatForDateInput(startDate),
+        endDate: formatForDateInput(endDate),
         ...filters
       };
 
@@ -88,12 +90,14 @@ const CalendarCompliancePage = () => {
 
   // Navigate to previous month
   const previousMonth = () => {
-    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1));
+    const parts = getQatarDateParts(currentMonth);
+    setCurrentMonth(new Date(parts.year, parts.month - 2, 1));
   };
 
   // Navigate to next month
   const nextMonth = () => {
-    setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1));
+    const parts = getQatarDateParts(currentMonth);
+    setCurrentMonth(new Date(parts.year, parts.month, 1));
   };
 
   // Get day status color
@@ -134,12 +138,13 @@ const CalendarCompliancePage = () => {
 
   // Generate calendar days
   const generateCalendarDays = () => {
-    const year = currentMonth.getFullYear();
-    const month = currentMonth.getMonth();
+    const monthParts = getQatarDateParts(currentMonth);
+    const year = monthParts.year;
+    const month = monthParts.month - 1;
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
-    const startingDay = firstDay.getDay();
-    const totalDays = lastDay.getDate();
+    const startingDay = getQatarDateParts(firstDay).dayOfWeek;
+    const totalDays = getQatarDateParts(lastDay).day;
 
     const days = [];
 
@@ -313,7 +318,7 @@ const CalendarCompliancePage = () => {
           <div className="flex justify-between items-center">
             <CardTitle className="flex items-center gap-2">
               <Calendar className="h-5 w-5" />
-              {monthNames[currentMonth.getMonth()]} {currentMonth.getFullYear()}
+              {(() => { const p = getQatarDateParts(currentMonth); return `${monthNames[p.month - 1]} ${p.year}`; })()}
             </CardTitle>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={previousMonth}>

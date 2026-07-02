@@ -18,13 +18,15 @@ export default function TextSizePicker() {
           <label
             key={id}
             className={`${styles.option} ${textSize === id ? styles.selected : ''}`}
+            onClick={() => setTextSize(id)}
           >
             <input
               type="radio"
               name="text-size"
               value={id}
               checked={textSize === id}
-              onChange={() => setTextSize(id)}
+              readOnly
+              tabIndex={-1}
             />
             {t(`text_size.${id}`) || id}
           </label>

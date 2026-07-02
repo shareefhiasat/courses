@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import { formatTime } from '@utils/date-formatter.js';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useAuth } from '@contexts/AuthContext';
@@ -1545,7 +1546,7 @@ export default function QuizzesPage() {
                   {renderMetaChipsForBuilder()}
                   {viewMode === 'edit' && quizId && lastSavedRef.current && (
                     <span style={{ fontSize: 'var(--font-size-xs)', color: '#10b981', marginLeft: '1rem' }}>
-                      {t('last_saved')} {lastSavedRef.current.toLocaleTimeString()}
+                      {t('last_saved')} {formatTime(lastSavedRef.current, 'en')}
                     </span>
                   )}
                 </div>
@@ -1927,7 +1928,7 @@ export default function QuizzesPage() {
                   {renderMetaChipsForBuilder()}
                   {viewMode === 'edit' && quizId && lastSavedRef.current && (
                     <span style={{ fontSize: 'var(--font-size-xs)', color: '#10b981', marginLeft: '1rem' }}>
-                      {t('last_saved')} {lastSavedRef.current.toLocaleTimeString()}
+                      {t('last_saved')} {formatTime(lastSavedRef.current, 'en')}
                     </span>
                   )}
                 </div>

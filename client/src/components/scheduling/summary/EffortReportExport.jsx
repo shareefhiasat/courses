@@ -3,6 +3,7 @@ import { jsPDF } from 'jspdf';
 import ExcelJS from 'exceljs';
 import { useLang } from '@contexts/LangContext';
 import { FileDown, FileSpreadsheet } from 'lucide-react';
+import { formatDate } from '@utils/date-formatter.js';
 
 function downloadBlob(blob, filename) {
   const url = URL.createObjectURL(blob);
@@ -63,7 +64,7 @@ export default function EffortReportExport({ report, canExport }) {
       y += 6;
       (report.sessions || []).slice(0, 40).forEach((s) => {
         if (y > 270) { doc.addPage(); y = 16; }
-        doc.text(`  ${new Date(s.date).toLocaleDateString()} ${s.subject?.nameEn || ''}`, 14, y);
+        doc.text(`  ${formatDate(s.date, lang)} ${s.subject?.nameEn || ''}`, 14, y);
         y += 5;
       });
     }
@@ -100,7 +101,7 @@ export default function EffortReportExport({ report, canExport }) {
       sessions.addRow([t('date'), t('instructor'), t('subject'), t('time'), t('location'), t('capacity')]);
       report.sessions.forEach((s) => {
         sessions.addRow([
-          new Date(s.date).toLocaleDateString(),
+          formatDate(s.date, lang),
           s.instructor?.displayName,
           s.subject?.nameEn,
           `${s.timeSlot?.startTime}-${s.timeSlot?.endTime}`,

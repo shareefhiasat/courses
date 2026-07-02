@@ -1,6 +1,7 @@
 import React from 'react';
 import useAnalyticsData from '@hooks/useAnalyticsData';
 import { info, error, warn, debug } from '@services/utils/logger.js';
+import { formatDate } from '@utils/date-formatter.js';
 
 /** React.cache is React 19+; provide a Map-based fallback for React 18. */
 function memoCache(fn) {
@@ -430,7 +431,7 @@ function processMultiSourceActivityData(widget, data, filters) {
           const date = item.date || item.createdAt || item.when;
           if (date) {
             const dateObj = date.seconds ? new Date(date.seconds * 1000) : new Date(date);
-            key = dateObj.toLocaleDateString();
+            key = formatDate(dateObj, 'en');
           } else {
             key = 'No Date';
           }
@@ -681,7 +682,7 @@ function processAttendanceData(widget, data, filters) {
           const date = item.date || item.createdAt || item.when;
           if (date) {
             const dateObj = date.seconds ? new Date(date.seconds * 1000) : new Date(date);
-            key = dateObj.toLocaleDateString();
+            key = formatDate(dateObj, 'en');
           } else {
             key = 'No Date';
           }
@@ -929,7 +930,7 @@ function processGenericData(widget, data, filters, rawData, dataSourceName) {
           const date = item.date || item.createdAt || item.when;
           if (date) {
             const dateObj = date.seconds ? new Date(date.seconds * 1000) : new Date(date);
-            key = dateObj.toLocaleDateString();
+            key = formatDate(dateObj, 'en');
           } else {
             key = 'No Date';
           }

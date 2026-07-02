@@ -9,6 +9,7 @@ import {
   generateWeeklySummary as generateWeeklySummaryAPI,
   getDailyDocuments as getDailyDocumentsAPI
 } from '@services/api/weekly-summary-api.js';
+import { formatForDateInput, getQatarDateParts } from '@utils/date-formatter.js';
 
 /**
  * Generate weekly attendance summary
@@ -46,14 +47,14 @@ export async function getDailyDocuments(weekStart, weekEnd) {
  */
 export function getCurrentWeekRange() {
   const now = new Date();
-  const day = now.getDay();
-  const diff = now.getDate() - day + (day === 0 ? -6 : 1); // Adjust when day is Sunday
-  const monday = new Date(now.setDate(diff));
-  const sunday = new Date(now.setDate(diff + 6));
+  const parts = getQatarDateParts(now);
+  const day = parts.dayOfWeek;
+  const monday = new Date(parts.year, parts.month - 1, parts.day - day + (day === 0 ? -6 : 1));
+  const sunday = new Date(parts.year, parts.month - 1, parts.day - day + (day === 0 ? -6 : 1) + 6);
 
   return {
-    weekStart: monday.toISOString().split('T')[0],
-    weekEnd: sunday.toISOString().split('T')[0]
+    weekStart: formatForDateInput(monday),
+    weekEnd: formatForDateInput(sunday)
   };
 }
 
@@ -69,8 +70,8 @@ export function getPreviousWeekRange() {
   weekEnd.setDate(weekEnd.getDate() - 7);
 
   return {
-    weekStart: weekStart.toISOString().split('T')[0],
-    weekEnd: weekEnd.toISOString().split('T')[0]
+    weekStart: formatForDateInput(weekStart),
+    weekEnd: formatForDateInput(weekEnd)
   };
 }
 

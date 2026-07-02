@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { info, error, warn, debug } from '@services/utils/logger.js';
+import { formatDate } from '@utils/date-formatter.js';
+import { getQatarDateParts, formatForDateInput } from '@utils/date-formatter.js';
 import { getThemedIcon, getIconWithColor } from '@constants/iconTypes';
 import { getLocalizedUserName } from '@utils/localizedUserName';
 import { Button } from '@ui';
@@ -205,7 +207,7 @@ export default function StudentActionStatsPanel({
         minor: allLogs.filter(log => log.type === RECORD_TYPES.PENALTY && log.severity === 'minor').length,
         major: allLogs.filter(log => log.type === RECORD_TYPES.PENALTY && log.severity === 'major').length,
         recentPenalties: allLogs.filter(log => log.type === RECORD_TYPES.PENALTY).slice(0, 3).map(log =>
-            `${log.label} (${new Date(log.time).toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' })})`
+            `${log.label} (${formatDate(log.time, 'en')})`
         ).join(', ')
       };
 
@@ -250,11 +252,7 @@ export default function StudentActionStatsPanel({
           overallGrade,
           reportPeriod: 'This Term',
           siteName: 'CS Learning Hub',
-          currentDate: new Date().toLocaleDateString('en-GB', {
-            day: '2-digit',
-            month: '2-digit',
-            year: 'numeric'
-          })
+          currentDate: formatDate(new Date(), 'en'),
         }
       });
 
@@ -419,7 +417,7 @@ export default function StudentActionStatsPanel({
         ...attendanceRecords.map(record => ({
           id: record.id,
           type: record.category || (record.delta ? (record.delta > 0 ? RECORD_TYPES.PARTICIPATION : RECORD_TYPES.BEHAVIOR) : RECORD_TYPES.ATTENDANCE),
-          date: record.date || new Date(record.timestamp).toISOString().split('T')[0],
+          date: record.date || formatForDateInput(record.timestamp),
           time: record.updatedAt || record.createdAt || record.timestamp || null,
           status: record.status,
           method: record.method, // ← Include method field for attendance method display
@@ -447,7 +445,7 @@ export default function StudentActionStatsPanel({
         ...studentBehaviors.map(behavior => ({
           id: behavior.id,
           type: RECORD_TYPES.BEHAVIOR,
-          date: behavior.date || new Date(behavior.createdAt).toISOString().split('T')[0],
+          date: behavior.date || formatForDateInput(behavior.createdAt),
           time: behavior.createdAt,
           data: behavior,
           label: behavior.type ? (() => { const bt = (lookupData['behavior-types'] || []).find(b => b.id === behavior.type); return bt ? (lang === 'ar' ? (bt.nameAr || bt.nameEn) : bt.nameEn) : behavior.type; })() : getRecordTypeLabel(RECORD_TYPES.BEHAVIOR, lang),
@@ -459,7 +457,7 @@ export default function StudentActionStatsPanel({
         ...studentParticipations.map(participation => ({
           id: participation.id,
           type: RECORD_TYPES.PARTICIPATION,
-          date: participation.date || new Date(participation.createdAt).toISOString().split('T')[0],
+          date: participation.date || formatForDateInput(participation.createdAt),
           time: participation.createdAt,
           data: participation,
           label: participation.type ? (() => { const pt = (lookupData['participation-types'] || []).find(p => p.id === participation.type); return pt ? (lang === 'ar' ? (pt.nameAr || pt.nameEn) : pt.nameEn) : participation.type; })() : getRecordTypeLabel(RECORD_TYPES.PARTICIPATION, lang),
@@ -476,7 +474,7 @@ export default function StudentActionStatsPanel({
           const mappedPenalty = {
             id: penalty.id,
             type: RECORD_TYPES.PENALTY,
-            date: penalty.date || new Date(penalty.createdAt).toISOString().split('T')[0],
+            date: penalty.date || formatForDateInput(penalty.createdAt),
             time: penalty.createdAt,
             data: penalty,
             label: penaltyType
@@ -947,7 +945,7 @@ export default function StudentActionStatsPanel({
     debug('StudentActionStatsPanel - activeFilters:', activeFilters);
 
     // Debug today's logs specifically
-    const today = new Date().toISOString().split('T')[0];
+    const today = formatForDateInput(new Date());
     const todayGroup = grouped.find(g => g.date === today);
 
     return grouped;

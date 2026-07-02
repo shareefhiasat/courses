@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { ATTENDANCE_TYPE_CATEGORY } from '@constants/attendanceTypes.js';
 import { getStudentAttendanceByDate, getPenaltiesByStudent, getParticipationsByStudent, getBehaviors } from '@services/api/apiService.js';
 import { info, error } from '@services/utils/logger.js';
+import { formatForDateInput } from '@utils/date-formatter.js';
 
 /**
  * Custom hook for managing student roster state and operations
@@ -20,7 +21,7 @@ export const useStudentRoster = (user, selectedDate, selectedClassId, t, lang, o
     setHistoryLoading(prev => ({ ...prev, [studentId]: true }));
     
     try {
-      const todayDate = selectedDate || new Date().toISOString().split('T')[0];
+      const todayDate = selectedDate || formatForDateInput(new Date());
       const attendanceResponse = await getStudentAttendanceByDate(studentId, todayDate);
       const regularAttendanceRecords = attendanceResponse.success
           ? (Array.isArray(attendanceResponse.data?.regular) ? attendanceResponse.data.regular : []) : [];

@@ -8,6 +8,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@contexts/AuthContext';
 import { useTranslation } from 'react-i18next';
 import Button from '@ui/Button';
+import { formatDate } from '@utils/date-formatter.js';
 import {
   generateWeeklySummary,
   getDailyDocuments,
@@ -259,7 +260,7 @@ const WeeklySummaryPage = () => {
                 {dailyDocuments.map((doc) => (
                   <tr key={doc.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
                     <td style={{ padding: '0.75rem' }}>
-                      {new Date(doc.date).toLocaleDateString()}
+                      {formatDate(doc.date, 'en')}
                     </td>
                     <td style={{ padding: '0.75rem' }}>
                       {doc.class?.name || '-'}

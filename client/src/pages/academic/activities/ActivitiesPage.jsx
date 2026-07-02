@@ -9,7 +9,7 @@ import { useAuditGridColumns } from '@hooks/useAuditGridColumns.js';
 import { useToast } from '@ui';
 import { AdvancedDataGrid, GridQuickFilterChips } from '@ui';
 import { getThemedIcon } from '@constants';
-import { formatQatarStandard, formatQatarForInput, parseQatarFromInput, getQatarNow } from '@utils/qatarDate';
+import { formatQatarDateTime, formatQatarForInput, parseQatarFromInput, getQatarNow } from '@utils/qatarDate';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import { useLookupTypes } from '@hooks/useLookupTypes.js';
 import { scheduleTourStart } from '@utils/tourScheduler';
@@ -685,10 +685,10 @@ const ActivitiesPage = () => {
     {
       field: 'dueDate', headerName: t('assignment_due_date_col'), flex: 1, minWidth: 200,
       valueGetter: (params) => params.value,
-      renderCell: (params) => (params.value ? formatQatarStandard(params.value) : (t('no_deadline_set') || 'No deadline set')),
+      renderCell: (params) => (params.value ? formatQatarDateTime(params.value) : (t('no_deadline_set') || 'No deadline set')),
       valueFormatter: (params) => {
         if (!params.value) return t('no_deadline_set') || 'No deadline set';
-        return formatQatarStandard(params.value);
+        return formatQatarDateTime(params.value);
       }
     },
     ...auditColumns,

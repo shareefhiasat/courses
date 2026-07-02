@@ -8,6 +8,7 @@ import { getUserById } from '@services/business/userService';
 import { Select, YearSelect, SimpleLoading, UserSelect } from '@ui';
 import { ROLE_STRINGS } from '@utils/userUtils';
 import useAnalyticsData, { processWidgetData } from '@hooks/useAnalyticsData';
+import { formatForDateInput } from '@utils/date-formatter.js';
 import DashboardEngine from './analytics/DashboardEngine';
 import Joyride from 'react-joyride';
 import TourTooltip from '@ui/TourTooltip/TourTooltip';
@@ -364,7 +365,7 @@ export default function AdvancedAnalytics({
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `analytics-${new Date().toISOString().split('T')[0]}.csv`;
+      a.download = `analytics-${formatForDateInput(new Date())}.csv`;
       a.click();
       URL.revokeObjectURL(url);
     } catch (e) {

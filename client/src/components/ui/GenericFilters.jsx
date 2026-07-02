@@ -1,6 +1,7 @@
 import React from 'react';
 import { Select, DatePicker } from '@ui';
 import { ATTENDANCE_STATUS, getLocalizedAttendanceLabel } from '@constants/attendanceTypes';
+import { formatForDateInput } from '@utils/date-formatter.js';
 
 
 import { info, error, warn, debug } from '@services/utils/logger.js';const GenericFilters = ({
@@ -52,8 +53,8 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Gener
         return (
           <DatePicker
             type="date"
-            value={currentValue ? (currentValue.includes('/') ? new Date(currentValue.split('/').reverse().join('-')).toISOString().split('T')[0] : currentValue) : ''}
-            onChange={(iso) => setter(iso ? new Date(iso).toLocaleDateString('en-CA') : '')}
+            value={currentValue ? (currentValue.includes('/') ? formatForDateInput(new Date(currentValue.split('/').reverse().join('-'))) : currentValue) : ''}
+            onChange={(iso) => setter(iso ? formatForDateInput(iso) : '')}
             placeholder={label}
             fullWidth
             disabled={disabled}

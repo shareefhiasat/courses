@@ -10,6 +10,7 @@ import { useTheme } from '@contexts/ThemeContext';
 import { useColorTheme } from '@contexts/ColorThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { createAttendanceBadge, getAttendanceStatusInfo } from '@constants/iconTypes';
+import { formatDate, formatTime } from '@utils/date-formatter.js';
 
 
 import { info, error, warn, debug } from '@services/utils/logger.js';const SessionCard = ({
@@ -128,7 +129,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Sessi
         {showDate && (
           <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
             {getThemedIcon('ui', 'calendar', 12, actualTheme)}
-            {createdAt.toLocaleDateString('en-GB')} {createdAt.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}
+            {formatDate(createdAt, 'en')} {formatTime(createdAt, 'en')}
           </span>
         )}
         

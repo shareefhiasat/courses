@@ -3,6 +3,7 @@ import { X, Coffee, Umbrella, Trash2, AlertCircle } from 'lucide-react';
 import { Select, Input } from '@ui';
 import SchedulingRecurrencePanel from '../SchedulingRecurrencePanel.jsx';
 import { getLocalizedName } from '../../utils/languageHelpers.js';
+import { getQatarDateParts, formatForDateInput } from '@utils/date-formatter.js';
 
 const BREAK_TYPES = [
   { value: 'TeaBreak', labelEn: 'Tea Break', labelAr: 'استراحة شاي' },
@@ -21,11 +22,7 @@ const HOLIDAY_TYPES = [
 ];
 
 const localDate = (date) => {
-  const d = new Date(date);
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  return formatForDateInput(date);
 };
 
 function CalendarEventDialog({
@@ -105,17 +102,16 @@ function CalendarEventDialog({
           setBreakStartTime(event.timeSlot.startTime || '');
           setBreakEndTime(event.timeSlot.endTime || '');
         } else if (initialStart && initialEnd) {
-          const s = new Date(initialStart);
-          const e = new Date(initialEnd);
-          setBreakStartTime(`${String(s.getHours()).padStart(2, '0')}:${String(s.getMinutes()).padStart(2, '0')}`);
-          setBreakEndTime(`${String(e.getHours()).padStart(2, '0')}:${String(e.getMinutes()).padStart(2, '0')}`);
+          const sParts = getQatarDateParts(initialStart);
+          const eParts = getQatarDateParts(initialEnd);
+          setBreakStartTime(`${String(sParts.hours).padStart(2, '0')}:${String(sParts.minutes).padStart(2, '0')}`);
+          setBreakEndTime(`${String(eParts.hours).padStart(2, '0')}:${String(eParts.minutes).padStart(2, '0')}`);
         }
       } else if (!isEdit && timeSlots.length > 0) {
+        const startParts = getQatarDateParts(start);
         const slot = timeSlots.find((s) => {
           const [sh, sm] = s.startTime.split(':').map(Number);
-          const startH = start.getHours();
-          const startM = start.getMinutes();
-          return sh === startH && sm === startM;
+          return sh === startParts.hours && sm === startParts.minutes;
         }) || timeSlots[0];
         setBreakTimeSlotId(String(slot.id));
         setBreakStartTime(slot.startTime || '');

@@ -40,7 +40,10 @@ export default function FontFamilyPicker({ script, value, onChange, label }) {
       <Select
         options={options}
         value={value}
-        onChange={(val) => onChange(val)}
+        onChange={(valueOrEvent) => {
+          const next = valueOrEvent?.target?.value ?? valueOrEvent?.value ?? valueOrEvent;
+          if (next) onChange(next);
+        }}
         theme={theme}
         fullWidth
         searchable

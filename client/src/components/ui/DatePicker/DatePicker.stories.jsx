@@ -1,5 +1,6 @@
 ﻿import React, { useState } from 'react';
 import DatePicker from './DatePicker';
+import { formatForDateInput } from '@utils/date-formatter.js';
 
 
 import { info, error, warn, debug } from '@services/utils/logger.js';export default {
@@ -93,8 +94,8 @@ WithMinMax.args = {
   type: 'date',
   label: 'Booking Date',
   placeholder: 'Select booking date',
-  min: new Date().toISOString().split('T')[0],
-  max: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+  min: formatForDateInput(new Date()),
+  max: formatForDateInput(new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)),
   helperText: 'Available for next 30 days',
 };
 

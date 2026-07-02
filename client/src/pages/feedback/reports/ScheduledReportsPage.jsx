@@ -11,6 +11,7 @@ import {
   deleteScheduledReport 
 } from '@services/db/configService';
 import { getEmailTemplates } from '@services/business/emailDbService';
+import { formatForDateInput } from '@utils/date-formatter.js';
 import { Button, Input, Select, Textarea, useToast, Card, CardBody } from '@ui';
 import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { Container } from '@ui';
@@ -254,7 +255,7 @@ const ScheduledReportsPage = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `scheduled-reports-${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `scheduled-reports-${formatForDateInput(new Date())}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   };

@@ -32,6 +32,7 @@ import { useLookupTypes } from '@hooks/useLookupTypes.js';
 // OLD: import { BEHAVIOR_TYPES } from '@constants/behaviorTypes';
 // NOW: Using useLookupTypes hook for all lookup data
 import { RECORD_TYPES } from '@utils/sharedTypes';
+import { formatForDateInput } from '@utils/date-formatter.js';
 
 import { info, error, warn, debug } from '@services/utils/logger.js';import './StudentQuickActionModal.css';
 
@@ -154,7 +155,7 @@ const StudentQuickActionModal = ({
       // Get performedBy fields using shared service
       const performedByFields = await getPerformedByFields(user);
       
-      const today = new Date().toISOString().split('T')[0];
+      const today = formatForDateInput(new Date());
       
       const result = await markAttendance({
         classId: selectedClass,

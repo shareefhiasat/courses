@@ -16,7 +16,7 @@ const getDatabaseClient = () => {
     prisma = new PrismaClient({
       datasources: {
         db: {
-          url: 'postgresql://military_lms:military_lms123@localhost:5432/military_lms'
+          url: import.meta.env.VITE_DATABASE_URL || 'postgresql://military_lms:military_lms123@localhost:5432/military_lms'
         }
       },
       log: ['query', 'info', 'warn', 'error']

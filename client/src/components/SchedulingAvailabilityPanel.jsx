@@ -10,6 +10,7 @@ import {
   suggestNearestValidSlot
 } from '../utils/schedulingAvailabilityUtils.js';
 import { formatValidationConflict, getLocalizedClassroomStatus } from '../utils/schedulingDisplayUtils.js';
+import { getQatarDateParts } from '@utils/date-formatter.js';
 
 const panelStyle = (theme, tone) => {
   const tones = {
@@ -222,7 +223,7 @@ export default function SchedulingAvailabilityPanel({
         >
           {t('use_suggested_slot', {
             day: t((suggestion.day || '').toLowerCase()) || suggestion.day,
-            time: `${suggestion.start.getHours().toString().padStart(2, '0')}:${suggestion.start.getMinutes().toString().padStart(2, '0')}`
+            time: `${(() => { const p = getQatarDateParts(suggestion.start); return `${String(p.hours).padStart(2, '0')}:${String(p.minutes).padStart(2, '0')}`; })()}`
           })}
         </button>
       )}

@@ -110,21 +110,36 @@ export const TypographyProvider = ({ children }) => {
       try {
         const res = await apiService.get('/me/preferences/typography');
         if (cancelled) return;
-        if (res?.success && res.data) {
-          const { fontLtr: serverLtr, fontRtl: serverRtl, textSize: serverSize } = res.data;
-          const local = readTypographyFromStorage(uid);
-          setFonts(
-            serverLtr || local.fontLtr,
-            serverRtl || local.fontRtl,
-            serverSize || local.textSize,
-          );
-        } else {
-          const local = readTypographyFromStorage(uid);
-          setFonts(local.fontLtr, local.fontRtl, local.textSize);
-        }
-      } catch {
         const local = readTypographyFromStorage(uid);
-        if (!cancelled) setFonts(local.fontLtr, local.fontRtl, local.textSize);
+        let ltr = local.fontLtr;
+        let rtl = local.fontRtl;
+        let size = local.textSize;
+        if (res?.success && res.data) {
+          ltr = res.data.fontLtr || ltr;
+          rtl = res.data.fontRtl || rtl;
+          size = res.data.textSize || size;
+        }
+        const safeLtr = isValidFontId('ltr', ltr) ? ltr : DEFAULT_FONT_LTR;
+        const safeRtl = isValidFontId('rtl', rtl) ? rtl : DEFAULT_FONT_RTL;
+        const safeSize = isValidTextSize(size) ? size : DEFAULT_TEXT_SIZE;
+        setFontLtrState(safeLtr);
+        setFontRtlState(safeRtl);
+        setTextSizeState(safeSize);
+        applyTypographyVars(safeLtr, safeRtl);
+        applyTextSize(safeSize);
+        persistLocal(safeLtr, safeRtl, safeSize);
+      } catch {
+        if (!cancelled) {
+          const local = readTypographyFromStorage(uid);
+          const safeLtr = isValidFontId('ltr', local.fontLtr) ? local.fontLtr : DEFAULT_FONT_LTR;
+          const safeRtl = isValidFontId('rtl', local.fontRtl) ? local.fontRtl : DEFAULT_FONT_RTL;
+          const safeSize = isValidTextSize(local.textSize) ? local.textSize : DEFAULT_TEXT_SIZE;
+          setFontLtrState(safeLtr);
+          setFontRtlState(safeRtl);
+          setTextSizeState(safeSize);
+          applyTypographyVars(safeLtr, safeRtl);
+          applyTextSize(safeSize);
+        }
       } finally {
         if (!cancelled) setIsLoading(false);
       }
@@ -132,7 +147,7 @@ export const TypographyProvider = ({ children }) => {
 
     hydrate();
     return () => { cancelled = true; };
-  }, [uid, setFonts]);
+  }, [uid, persistLocal]);
 
   const saveTypographyToServer = useCallback(async () => {
     const payload = { fontLtr, fontRtl, textSize };

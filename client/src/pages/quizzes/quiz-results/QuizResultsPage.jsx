@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import { useAuth } from '@contexts/AuthContext';
+import { formatDateTime } from '@utils/date-formatter.js';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useNavigate } from 'react-router-dom';
@@ -458,7 +459,7 @@ const QuizResultsPage = () => {
       width: 180,
       valueGetter: (params) => {
         const date = params.row.submittedAt?.toDate ? params.row.submittedAt.toDate() : new Date(params.row.submittedAt || 0);
-        return date.toLocaleString('en-GB');
+        return formatDateTime(date, 'en');
       }
     },
     {

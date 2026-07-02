@@ -3,6 +3,7 @@ import { X, Upload, Trash2, Calendar, RefreshCw, Download, RotateCcw, Users, Che
 import { ATTENDANCE_TYPES, STANDUP_ATTENDANCE_TYPES, ATTENDANCE_TYPE_CATEGORY, getAttendanceColor, ATTENDANCE_DISPLAY_NAMES, getLocalizedAttendanceLabel } from '@constants/attendanceTypes';
 import { getThemedIcon } from '@constants/iconTypes';
 import { useBulkScan } from '@/contexts/BulkScanContext';
+import { formatTime, formatDate as fmtDate, getQatarDateParts, formatForDateInput } from '@utils/date-formatter.js';
 import { useTheme } from '@contexts/ThemeContext';
 import Tabs from '@components/ui/Tabs/Tabs';
 import StatusCard from './StatusCard';
@@ -219,8 +220,8 @@ const BulkScanDialog = ({
     // Helper function to get Arabic day name
     const getArabicDay = (dateString) => {
       const days = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
-      const date = new Date(dateString);
-      return days[date.getDay()] || '';
+      const parts = getQatarDateParts(dateString);
+      return parts ? (days[parts.dayOfWeek] || '') : '';
     };
     
     // Helper function to get Arabic status using shared constants
@@ -231,28 +232,23 @@ const BulkScanDialog = ({
     };
     
     // Helper function to format time
-    const formatTime = (timestamp) => {
+    const formatTimeDisplay = (timestamp) => {
       try {
         const date = new Date(timestamp);
         if (isNaN(date.getTime())) return '';
         
         // Check if the timestamp has time information (not just date)
-        const hours = date.getHours();
-        const minutes = date.getMinutes();
-        const seconds = date.getSeconds();
+        const parts = getQatarDateParts(date);
+        if (!parts) return '';
         
         // If all time components are 0, it's likely a date-only timestamp
         // In this case, don't display a time
-        if (hours === 0 && minutes === 0 && seconds === 0) {
+        if (parts.hours === 0 && parts.minutes === 0 && parts.seconds === 0) {
           return '';
         }
         
-        // Otherwise, display the time in local timezone
-        return date.toLocaleTimeString('ar-SA', { 
-          hour: '2-digit', 
-          minute: '2-digit',
-          hour12: true 
-        });
+        // Otherwise, display the time in Qatar timezone
+        return formatTime(date, 'ar');
       } catch {
         return '';
       }
@@ -262,11 +258,7 @@ const BulkScanDialog = ({
     const formatDate = (timestamp) => {
       try {
         const date = new Date(timestamp);
-        return date.toLocaleDateString('ar-SA', {
-          year: 'numeric',
-          month: '2-digit',
-          day: '2-digit'
-        });
+        return fmtDate(date, 'ar');
       } catch {
         return '';
       }
@@ -302,19 +294,19 @@ const BulkScanDialog = ({
         student.attendanceStats?.absentWithExcuse || '0',
         student.attendanceStats?.excusedLeave || '0',
         student.attendanceStats?.humanitarianCase || '0',
-        formatTime(student.timestamp),
+        formatTimeDisplay(student.timestamp),
         formatDate(student.timestamp),
         getArabicDay(student.timestamp)
       ]);
     
     const excelBlob = await exportGeneric(dataRows, headers, {
-      fileName: `نتائج_الحضور_الجماعي_${new Date().toISOString().split('T')[0]}.xlsx`,
+      fileName: `نتائج_الحضور_الجماعي_${formatForDateInput(new Date())}.xlsx`,
       rtl: true // Bulk scan uses Arabic headers, so enable RTL
     });
     const url = URL.createObjectURL(excelBlob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `نتائج_الحضور_الجماعي_${new Date().toISOString().split('T')[0]}.xlsx`;
+    link.download = `نتائج_الحضور_الجماعي_${formatForDateInput(new Date())}.xlsx`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -351,7 +343,7 @@ const BulkScanDialog = ({
     if (!date) return '';
     const d = new Date(date);
     if (isNaN(d.getTime())) return '';
-    return d.toISOString().split('T')[0];
+    return formatForDateInput(d);
   };
 
   const getStatusIcon = (status) => {
@@ -743,11 +735,13 @@ const BulkScanDialog = ({
                 />
                 <button
                   onClick={() => {
-                    const today = new Date();
-                    const yyyy = today.getFullYear();
-                    const mm = String(today.getMonth() + 1).padStart(2, '0');
-                    const dd = String(today.getDate()).padStart(2, '0');
-                    setSelectedDate(new Date(`${yyyy}-${mm}-${dd}`));
+                    const parts = getQatarDateParts(new Date());
+                    if (parts) {
+                      const yyyy = parts.year;
+                      const mm = String(parts.month).padStart(2, '0');
+                      const dd = String(parts.day).padStart(2, '0');
+                      setSelectedDate(new Date(`${yyyy}-${mm}-${dd}`));
+                    }
                   }}
                   className={styles.clearButton}
                   title={t('go_to_today') || 'Go to today'}

@@ -2,6 +2,7 @@ import QRCode from 'qrcode';
 
 
 import { info, error, warn, debug } from '@services/utils/logger.js';
+import { formatDate } from './date-formatter.js';
 
 /**
  * Generate a reference ID for a student based on their UID
@@ -138,7 +139,7 @@ export const generateStudentQRCard = async (studentNumber, studentInfo = {}, opt
     ctx.fillText('Student ID Card', 200, 160);
     
     // Date issued
-    const today = new Date().toLocaleDateString('en-GB', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    const today = formatDate(new Date(), 'en');
     ctx.fillText(`Issued: ${today}`, 200, 180);
     
     // Instructions

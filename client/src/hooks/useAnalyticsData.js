@@ -8,6 +8,7 @@ import { useLookupTypes } from '@hooks/useLookupTypes.js';
 import { ABSENCE_TYPES } from '@constants/absenceTypes';
 import { getCountMetric } from '@constants/widgetDataSources';
 import { getAcademicTermLabel } from '@constants/academicTerms';
+import { getQatarDateParts } from '@utils/date-formatter.js';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 
 const EMPTY_RAW = {
@@ -823,8 +824,8 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
     }
     if (groupBy === 'date') {
       if (item.date) {
-        const d = new Date(item.date);
-        return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        const parts = getQatarDateParts(item.date);
+        if (parts) return `${parts.year}-${String(parts.month).padStart(2, '0')}-${String(parts.day).padStart(2, '0')}`;
       }
       const ts =
         item.when?.seconds ? item.when.seconds * 1000 :
@@ -832,8 +833,9 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
         item.submittedAt?.seconds ? item.submittedAt.seconds * 1000 :
         item.timestamp?.seconds ? item.timestamp.seconds * 1000 : 0;
       if (!ts) return null;
-      const d = new Date(ts);
-      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const parts = getQatarDateParts(ts);
+      if (!parts) return null;
+      return `${parts.year}-${String(parts.month).padStart(2, '0')}-${String(parts.day).padStart(2, '0')}`;
     }
     if (groupBy === 'penaltyType' || (dataSource === 'penalties' && groupBy === 'type')) {
       const ptObj = item.penaltyType || item.type;

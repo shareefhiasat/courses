@@ -9,6 +9,7 @@ import { getThemedIcon, getColoredIcon } from '@constants/iconTypes';
 
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import { formatChatTime } from '@utils/date';
+import { formatFileSize } from '@utils/fileUtils';
 import { 
   REACTION_TYPES, 
   REACTION_COLORS, 
@@ -31,16 +32,9 @@ const withAuthToken = (url) => {
   if (!url) return url;
   const token = localStorage.getItem('keycloak_token');
   if (!token) return url;
-  const sep = url.includes('?') ? '&' : '?';
-  return `${url}${sep}token=${encodeURIComponent(token)}`;
-};
-
-const formatFileSize = (bytes) => {
-  const size = Number(bytes);
-  if (!size || isNaN(size) || size <= 0) return '';
-  if (size < 1024) return `${size} B`;
-  if (size < 1024 * 1024) return `${Math.ceil(size / 1024)} KB`;
-  return `${(size / (1024 * 1024)).toFixed(1)} MB`;
+  const safeUrl = url.replace(/^https?:\/\/localhost:\d+/, '');
+  const sep = safeUrl.includes('?') ? '&' : '?';
+  return `${safeUrl}${sep}token=${encodeURIComponent(token)}`;
 };
 
 const MessageBubble = memo(({ 

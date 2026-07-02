@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { formatDateTime } from '@utils/date';
+import { formatForDateInput } from '@utils/date-formatter.js';
 import './SmartGrid.css';
 import { Modal, useToast } from '@ui';
 import { useLang } from '@contexts/LangContext';
@@ -220,7 +221,7 @@ const SmartGrid = React.memo(({
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${title.toLowerCase().replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `${title.toLowerCase().replace(/\s+/g, '_')}_${formatForDateInput(new Date())}.csv`;
     a.click();
     window.URL.revokeObjectURL(url);
   };

@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { useLang } from '@contexts/LangContext';
-import { formatDateTime } from '@utils/date';
+import { formatDateTime, getQatarDateParts } from '@utils/date';
 
 
 import { info, error, warn, debug } from '@services/utils/logger.js';// Helper: convert various inputs to a datetime-local string (YYYY-MM-DDTHH:MM)
@@ -23,13 +23,10 @@ function toLocalInputValue(val) {
     }
   }
   if (!d) return '';
+  const parts = getQatarDateParts(d);
+  if (!parts) return '';
   const pad = (n) => String(n).padStart(2, '0');
-  const y = d.getFullYear();
-  const m = pad(d.getMonth() + 1);
-  const day = pad(d.getDate());
-  const hh = pad(d.getHours());
-  const mm = pad(d.getMinutes());
-  return `${y}-${m}-${day}T${hh}:${mm}`;
+  return `${parts.year}-${pad(parts.month)}-${pad(parts.day)}T${pad(parts.hours)}:${pad(parts.minutes)}`;
 }
 
 // Helper: from input value to ISO string

@@ -11,6 +11,7 @@
 
 import { info, error, warn, debug } from '../utils/logger.js';
 import attendanceDbService from '../db/attendanceDbService-postgres.js';
+import { formatForDateInput } from '@utils/date-formatter.js';
 
 const serviceName = 'attendanceService';
 
@@ -385,7 +386,7 @@ export const getTodayAttendanceStatus = async (studentId) => {
       };
     }
     
-    const today = new Date().toISOString().split('T')[0];
+    const today = formatForDateInput(new Date());
     const attendance = await getAttendanceByStudent(studentId, { date: today });
     
     return {
@@ -416,7 +417,7 @@ export const rosterQuickAction = async (studentId, classId, status, user = null,
     userId: studentId,
     classId: classId,
     status: status,
-    date: date || new Date().toISOString().split('T')[0],
+    date: date || formatForDateInput(new Date()),
     notes: notes,
     method: 'manual',
     programId: programId,

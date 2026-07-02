@@ -3,7 +3,7 @@ import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { getNotificationLogs } from '@services/business/notificationService';
-import { formatQatarStandard } from '@utils/qatarDate';
+import { formatQatarDateTime } from '@utils/qatarDate';
 import { SimpleLoading, Modal, Select, Button, Card, CardBody, Badge, AdvancedDataGrid, DatePicker, useToast } from '@ui';
 import { getNotificationChannelOptions, NOTIFICATION_CHANNELS, NOTIFICATION_TYPES } from '@constants/notificationTypes';
 import { getThemedIcon } from '@constants/iconTypes';
@@ -101,7 +101,7 @@ const NotificationLogsPage = () => {
     {
       key: 'timestamp',
       label: t('timestamp', 'Timestamp'),
-      render: (value) => formatQatarStandard(value),
+      render: (value) => formatQatarDateTime(value),
       sortable: true
     },
     {
@@ -197,7 +197,7 @@ const NotificationLogsPage = () => {
           <div style={{ padding: '1rem' }}>
             <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr', gap: '0.75rem', marginBottom: '1.5rem' }}>
               <strong>{t('timestamp', 'Timestamp')}:</strong>
-              <div>{formatQatarStandard(selectedNotificationLog.timestamp)}</div>
+              <div>{formatQatarDateTime(selectedNotificationLog.timestamp)}</div>
 
               <strong>{t('trigger', 'Trigger')}:</strong>
               <div><Badge text={selectedNotificationLog.trigger} type="info" size="small" /></div>

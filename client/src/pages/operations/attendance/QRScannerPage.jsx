@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import Joyride from 'react-joyride';
 import TourTooltip from '@ui/TourTooltip/TourTooltip';
+import { formatTime, formatDateTime, formatForDateInput } from '@utils/date-formatter.js';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import { formatQatarDateOnly, getQatarNow } from '@utils/qatarDate';
 import { useAuth } from '@contexts/AuthContext';
@@ -204,7 +205,7 @@ const QRScannerPage = () => {
       if (saved && saved !== '') return saved;
     } catch {}
     const qatarNow = getQatarNow();
-    return qatarNow.toISOString().split('T')[0]; // Format as yyyy-MM-dd
+    return formatForDateInput(qatarNow); // Format as yyyy-MM-dd
   });
   const [attendanceMode, setAttendanceMode] = useState(() => {
     // Restore saved attendance mode from localStorage
@@ -661,7 +662,7 @@ const QRScannerPage = () => {
     const to = anchorDate || formatQatarDateOnly(getQatarNow());
     const fromDate = new Date(`${to}T12:00:00`);
     fromDate.setDate(fromDate.getDate() - 30);
-    const from = fromDate.toISOString().split('T')[0];
+    const from = formatForDateInput(fromDate);
     return { from, to };
   }, []);
 
@@ -1711,7 +1712,7 @@ const QRScannerPage = () => {
       const performedByFields = await getPerformedByFields(user);
 
       // Ensure selectedDate is a string in yyyy-MM-dd format
-      const dateStr = typeof selectedDate === 'string' ? selectedDate : selectedDate.toISOString().split('T')[0];
+      const dateStr = typeof selectedDate === 'string' ? selectedDate : formatForDateInput(selectedDate);
 
       // Get class data to extract programId and subjectId
       const currentClass = classes.find(c => c.id == selectedClassId); // Use == for type coercion
@@ -2078,7 +2079,7 @@ const QRScannerPage = () => {
 
   const handleDownload = useCallback(() => {
     try {
-      const dateStr = selectedDate || new Date().toISOString().split('T')[0];
+      const dateStr = selectedDate || formatForDateInput(new Date());
 
       const downloadCsv = (csvContent, filename) => {
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
@@ -2389,7 +2390,7 @@ const QRScannerPage = () => {
         attendanceData = attendanceData.filter(record => {
           const recordDate = record.date || record.createdAt;
           if (!recordDate) return false;
-          const recordDateStr = typeof recordDate === 'string' ? recordDate.split('T')[0] : new Date(recordDate).toISOString().split('T')[0];
+          const recordDateStr = typeof recordDate === 'string' ? recordDate.split('T')[0] : formatForDateInput(new Date(recordDate));
           return recordDateStr === selectedDate;
         });
 
@@ -2466,16 +2467,11 @@ const QRScannerPage = () => {
           studentNameAr: student?.displayNameAr || student?.firstNameAr || record.user?.displayNameAr || record.user?.firstNameAr || '',
           status: record.status || 'present',
           date: record.date || formatQatarDateOnly(selectedDate),
-          time: safeFormatDate(record.timestamp || record.createdAt || record.updatedAt, (date) => date.toLocaleTimeString('en-US', {
-            hour: '2-digit',
-            minute: '2-digit',
-            hour12: true,
-            timeZone: 'Asia/Qatar'
-          })),
+          time: safeFormatDate(record.timestamp || record.createdAt || record.updatedAt, (date) => formatTime(date, 'en')),
           method: record.method || 'manual',
           notes: record.notes || '',
           markedBy: record.performedByName || record.markedByName || (record.creator ? getLocalizedUserName(record.creator, lang) : '') || (record.createdBy ? (allUsers.find(u => String(u.id) === String(record.createdBy)) ? getLocalizedUserName(allUsers.find(u => String(u.id) === String(record.createdBy)), lang) : '') : '') || '',
-          timestamp: safeFormatDate(record.timestamp || record.createdAt || record.updatedAt, (date) => date.toLocaleString('en-US'))
+          timestamp: safeFormatDate(record.timestamp || record.createdAt || record.updatedAt, (date) => formatDateTime(date, 'en'))
         };
       });
 
@@ -2551,12 +2547,7 @@ const QRScannerPage = () => {
             try {
               const timestampDate = new Date(row.timestamp);
               if (!isNaN(timestampDate.getTime())) {
-                timeStr = timestampDate.toLocaleTimeString('en-US', {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  hour12: true,
-                  timeZone: 'Asia/Qatar'
-                });
+                timeStr = formatTime(timestampDate, 'en');
               }
             } catch (e) {
               console.warn('Failed to parse timestamp for time:', e);
@@ -2647,12 +2638,7 @@ const QRScannerPage = () => {
             try {
               const timestampDate = new Date(row.timestamp);
               if (!isNaN(timestampDate.getTime())) {
-                timeStr = timestampDate.toLocaleTimeString('en-US', {
-                  hour: '2-digit',
-                  minute: '2-digit',
-                  hour12: true,
-                  timeZone: 'Asia/Qatar'
-                });
+                timeStr = formatTime(timestampDate, 'en');
               }
             } catch (e) {
               console.warn('Failed to parse timestamp for time:', e);
@@ -2743,7 +2729,7 @@ const QRScannerPage = () => {
       });
       
       // Format date as YYYY-MM-DD
-      const dateFormatted = new Date(selectedDate).toISOString().split('T')[0];
+      const dateFormatted = formatForDateInput(new Date(selectedDate));
       
       // Derive semester from date (Jan-Jun = S1, Jul-Dec = S2)
       const [yearStr, monthStr] = dateFormatted.split('-');
@@ -3221,7 +3207,7 @@ const QRScannerPage = () => {
         const dateKey =
           typeof raw === 'string'
             ? raw.split('T')[0]
-            : new Date(raw).toISOString().split('T')[0];
+            : formatForDateInput(new Date(raw));
         return dateKey >= dateFrom && dateKey <= dateTo;
       });
 
@@ -3310,7 +3296,7 @@ const QRScannerPage = () => {
         const url = URL.createObjectURL(excelBlob);
         const link = document.createElement('a');
         link.href = url;
-        const violationsDate = new Date().toISOString().split('T')[0];
+        const violationsDate = formatForDateInput(new Date());
         const [vYear, vMonth] = violationsDate.split('-');
         const vSemester = parseInt(vMonth, 10) <= 6 ? 'S1' : 'S2';
         const firstSubject = subjects.find((s) => s.id == exportSubjects[0]);
@@ -3422,7 +3408,7 @@ const QRScannerPage = () => {
         // Standup mode: fetch by program for date range (semester)
         // For now, use a reasonable date range - this could be parameterized
         const startDate = '2024-01-01'; // TODO: Make this configurable
-        const endDate = new Date().toISOString().split('T')[0];
+        const endDate = formatForDateInput(new Date());
         
         console.log('📊 Standup mode - fetching attendance for program:', selectedProgramId, 'from', startDate, 'to', endDate);
         
@@ -3995,7 +3981,7 @@ const QRScannerPage = () => {
       console.log('📊 Sanitized Names:', { programName, subjectName, className });
       
       // Create localized filename with current date
-      const currentDate = new Date().toISOString().split('T')[0];
+      const currentDate = formatForDateInput(new Date());
       
       // Derive semester from date (Jan-Jun = S1, Jul-Dec = S2)
       const [year, month] = currentDate.split('-');
@@ -4330,7 +4316,7 @@ const QRScannerPage = () => {
     try {
       // Fetch all standup attendance for the program (full date range)
       const startDate = '2024-01-01';
-      const endDate = new Date().toISOString().split('T')[0];
+      const endDate = formatForDateInput(new Date());
 
       const attendanceResponse = await getStandupAttendanceByProgramForDateRange(selectedProgramId, startDate, endDate);
       const attendanceData = (attendanceResponse.success ? attendanceResponse.data : []).map(a => ({
@@ -4459,7 +4445,7 @@ const QRScannerPage = () => {
       const sanitize = (str) => str ? str.replace(/[^a-zA-Z0-9\u0600-\u06FF]/g, '_') : '';
       const programNameAr = sanitize(currentProgram?.nameAr || currentProgram?.nameEn || currentProgram?.name || 'UnknownProgram');
       const programNameEn = sanitize(currentProgram?.nameEn || currentProgram?.name || 'UnknownProgram');
-      const formattedDate = new Date().toISOString().split('T')[0];
+      const formattedDate = formatForDateInput(new Date());
       const [stYear, stMonth] = formattedDate.split('-');
       const stSemester = parseInt(stMonth) <= 6 ? 'S1' : 'S2';
       const stYearSemester = `${stYear}_${stSemester}`;
@@ -5107,7 +5093,7 @@ const QRScannerPage = () => {
                     <button
                       onClick={() => {
                         const qatarNow = getQatarNow();
-                        setSelectedDate(qatarNow.toISOString().split('T')[0]);
+                        setSelectedDate(formatForDateInput(qatarNow));
                       }}
                       title={t('go_to_today') || 'Go to today'}
                       style={{

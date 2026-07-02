@@ -4,6 +4,7 @@ import { markAttendance } from '@services/business/attendanceServiceUnified.js';
 import { getUserProfile } from '@services/api/userService.js';
 import { info, error } from '@services/utils/logger.js';
 import { getLocalizedAttendanceLabel } from '@utils/attendanceHelpers.js';
+import { formatForDateInput } from '@utils/date-formatter.js';
 
 /**
  * Custom hook for handling quick attendance marking
@@ -41,7 +42,7 @@ export const useQuickAttendance = (user, selectedDate, selectedClassId, t, lang,
       const attendancePayload = {
         userId: student.id,
         classId: mode === ATTENDANCE_TYPE_CATEGORY.REGULAR ? selectedClassId : undefined,
-        date: selectedDate || new Date().toISOString().split('T')[0],
+        date: selectedDate || formatForDateInput(new Date()),
         status: status,
         notes: getNoteTypeFromStatus(status, 'quick'),
         user: enhancedUser

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState, useCallback, useLayoutEffect } from 'react';
 import Joyride from 'react-joyride';
 import TourTooltip from '@ui/TourTooltip/TourTooltip';
+import { formatDateTime, formatForDateInput } from '@utils/date-formatter.js';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
@@ -521,7 +522,7 @@ const AttendancePage = () => {
       const result = await getAttendanceMarksForExport(sessionId);
       const attendanceData = result.success ? result.data : [];
       
-      const today = new Date().toISOString().split('T')[0];
+      const today = formatForDateInput(new Date());
       
       const submitResult = await submitAttendanceReport(attendanceData, {
         classId: selectedClass.id || selectedClass.docId,
@@ -1059,12 +1060,12 @@ const AttendancePage = () => {
                         const result = await getAttendanceMarksForExport(sessionId);
                         const rows = result.success ? result.data : [];
                         const headers = ['uid','status','deviceHash','scannedAt'];
-                        const dataRows = rows.map(r => [r.uid, r.status||'present', r.deviceHash||'', (r.at && r.at.toDate ? r.at.toDate() : new Date()).toLocaleString('en-GB')]);
+                        const dataRows = rows.map(r => [r.uid, r.status||'present', r.deviceHash||'', formatDateTime((r.at && r.at.toDate ? r.at.toDate() : new Date()), 'en')]);
                         const excelBlob = await exportGeneric(dataRows, headers, {
-                          fileName: `attendance_${sessionId}_${new Date().toISOString().split('T')[0]}.xlsx`
+                          fileName: `attendance_${sessionId}_${formatForDateInput(new Date())}.xlsx`
                         });
                         const url = URL.createObjectURL(excelBlob); const a = document.createElement('a');
-                        a.href = url; a.download = `attendance_${sessionId}_${new Date().toISOString().split('T')[0]}.xlsx`; a.click();
+                        a.href = url; a.download = `attendance_${sessionId}_${formatForDateInput(new Date())}.xlsx`; a.click();
                         setTimeout(()=>URL.revokeObjectURL(url), 1000);
                       } catch(e) { setErr(e?.message || 'Export failed'); }
                     }}

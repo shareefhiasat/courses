@@ -7,6 +7,7 @@ import { Button, useToast } from '@ui';
 import { Card, CardContent, CardHeader, CardTitle } from '@ui';
 import { SimpleLoading, EmptyState } from '@ui';
 import { getAnalyticsData } from '@services/api/workflow-documents-api.js';
+import { formatForDateInput } from '@utils/date-formatter.js';
 
 const WorkflowAnalyticsPage = () => {
   const { t } = useLang();
@@ -85,7 +86,7 @@ const WorkflowAnalyticsPage = () => {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `workflow-analytics-${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `workflow-analytics-${formatForDateInput(new Date())}.csv`;
     a.click();
     URL.revokeObjectURL(url);
 

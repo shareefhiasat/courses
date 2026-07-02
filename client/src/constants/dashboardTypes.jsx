@@ -1,6 +1,7 @@
 import React from 'react';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon, getColoredIcon, getUserRoleIcon } from '@constants/iconTypes';
+import { formatDateTime } from '@utils/date-formatter.js';
 
 import { info, error, warn, debug } from '@services/utils/logger.js';import {
   FileText, Link, Video, Globe, Edit, Trash, 
@@ -203,7 +204,7 @@ export const COMMON_GRID_COLUMNS = {
         const date = timestamp?.seconds ? 
           new Date(timestamp.seconds * 1000) : 
           new Date(timestamp);
-        return date.toLocaleString();
+        return formatDateTime(date, 'en');
       }
     }
   ],

@@ -1,7 +1,44 @@
 /**
  * File Utility Functions
- * Centralized file type detection and preview logic
+ * Centralized file type detection, preview, and formatting logic
  */
+
+/**
+ * Format bytes into a human-readable string (e.g., 1536 → '1.5 KB')
+ * @param {number} bytes - File size in bytes
+ * @returns {string} - Human-readable file size
+ */
+export const formatFileSize = (bytes) => {
+  const size = Number(bytes);
+  if (!size || isNaN(size) || size <= 0) return '0 B';
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB', 'TB'];
+  const i = Math.floor(Math.log(size) / Math.log(k));
+  return parseFloat((size / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+};
+
+const EXT_MAP = {
+  'jpeg': 'JPG', 'jpg': 'JPG', 'png': 'PNG', 'gif': 'GIF', 'webp': 'WEBP',
+  'svg': 'SVG', 'pdf': 'PDF', 'doc': 'DOC', 'docx': 'DOC', 'ppt': 'PPT',
+  'pptx': 'PPT', 'xls': 'XLS', 'xlsx': 'XLS', 'mp4': 'MP4', 'webm': 'WEBM',
+  'mov': 'MOV', 'mp3': 'MP3', 'wav': 'WAV', 'ogg': 'OGG', 'txt': 'TXT',
+  'zip': 'ZIP', 'rar': 'RAR', 'json': 'JSON',
+};
+
+/**
+ * Shorten a file name by truncating the base name while keeping the extension
+ * @param {string} name - Original file name
+ * @param {number} maxBase - Maximum base name length before truncation (default 20)
+ * @returns {string} - Shortened file name with ellipsis if needed
+ */
+export const shortenFileName = (name, maxBase = 20) => {
+  if (!name) return '';
+  const ext = name.split('.').pop()?.toLowerCase() || '';
+  const shortExt = EXT_MAP[ext] || ext.toUpperCase();
+  const baseName = name.substring(0, name.lastIndexOf('.')) || name;
+  const truncated = baseName.length > maxBase ? baseName.substring(0, maxBase) + '…' : baseName;
+  return `${truncated}.${shortExt}`;
+};
 
 const MIME_TYPE_LABELS = {
   'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'PowerPoint',
@@ -148,7 +185,7 @@ export const handleFilePreview = async (file, fileVersionId = null) => {
       console.log('🔍 [fileUtils] Preview response:', response);
 
       if (response.success && response.payload.wopiToken) {
-        const collaboraUrl = `https://localhost:9980/browser/4610258811/cool.html?WOPISrc=${encodeURIComponent('http://host.docker.internal:8001/api/v1/wopi/files/' + file.id)}&access_token=${response.payload.wopiToken}&permission=readonly`;
+        const collaboraUrl = `${import.meta.env.COLLABORA_URL || 'https://localhost:9980'}/browser/4610258811/cool.html?WOPISrc=${encodeURIComponent('http://host.docker.internal:8001/api/v1/wopi/files/' + file.id)}&access_token=${response.payload.wopiToken}&permission=readonly`;
         console.log('🔍 [fileUtils] Opening Collabora URL:', collaboraUrl);
         window.open(collaboraUrl, '_blank', 'noopener,noreferrer');
       } else {

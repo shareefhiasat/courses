@@ -108,7 +108,7 @@ export default function VersionsTab({ fileId, useWorkflowEndpoint = false }) {
         const data = await response.json();
         
         if (data.success && data.payload.wopiToken) {
-          const collaboraUrl = `https://localhost:9980/browser/4610258811/cool.html?WOPISrc=${encodeURIComponent('http://host.docker.internal:8001/api/v1/wopi/files/' + fileId)}&access_token=${data.payload.wopiToken}`;
+          const collaboraUrl = `${import.meta.env.COLLABORA_URL || 'https://localhost:9980'}/browser/4610258811/cool.html?WOPISrc=${encodeURIComponent('http://host.docker.internal:8001/api/v1/wopi/files/' + fileId)}&access_token=${data.payload.wopiToken}`;
           window.open(collaboraUrl, '_blank', 'noopener,noreferrer');
         } else {
           // Fallback to download if preview fails

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef, useCallback, useLayoutEffect } from 'react';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import { useParams, useNavigate } from 'react-router-dom';
+import { formatTime, formatDateTime } from '@utils/date-formatter.js';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
@@ -1058,7 +1059,7 @@ export default function StudentQuizPage() {
             )}
             {quiz?.settings?.timeLimit === 0 && lastSaved && (
               <span className={styles.paletteTimer} style={{ color: '#10b981', fontSize: 'var(--font-size-xs)' }}>
-                {isSaving ? 'Saving...' : `Saved ${lastSaved.toLocaleTimeString()}`}
+                {isSaving ? 'Saving...' : `Saved ${formatTime(lastSaved, 'en')}`}
               </span>
             )}
           </div>
@@ -1321,7 +1322,7 @@ export default function StudentQuizPage() {
                 <strong>{t('quiz_answers') || 'Answers'}:</strong> {Object.keys(savedProgress.answers || {}).length} saved
               </div>
               <div className={styles.progressItem}>
-                <strong>{t('quiz_saved') || 'Saved'}:</strong> {new Date(savedProgress.savedAt).toLocaleString()}
+                <strong>{t('quiz_saved') || 'Saved'}:</strong> {formatDateTime(savedProgress.savedAt, 'en')}
               </div>
             </div>
             <p>{t('quiz_continue_question') || 'Would you like to continue where you left off or start fresh?'}</p>

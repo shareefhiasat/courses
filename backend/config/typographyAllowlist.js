@@ -33,7 +33,7 @@ export const DEFAULT_FONT_LTR = process.env.VITE_DEFAULT_FONT_LTR || 'inter';
 export const DEFAULT_FONT_RTL = process.env.VITE_DEFAULT_FONT_RTL || 'ibm-plex-sans-arabic';
 export const DEFAULT_TEXT_SIZE = process.env.VITE_DEFAULT_TEXT_SIZE || 'default';
 
-export const TEXT_SIZE_IDS = ['default', 'large', 'larger', 'largest'];
+export const TEXT_SIZE_IDS = ['compact', 'small', 'default', 'large', 'larger', 'largest'];
 
 export function isValidTextSize(id) {
   return typeof id === 'string' && TEXT_SIZE_IDS.includes(id);

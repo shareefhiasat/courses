@@ -8,6 +8,7 @@ import { getUserById } from '@services/business/userService';
 import { Select, YearSelect, SimpleLoading } from '@ui';
 import { useOptimizedAnalyticsData } from '@hooks/useOptimizedAnalyticsData';
 import { processWidgetData } from '@hooks/useAnalyticsData';
+import { formatForDateInput } from '@utils/date-formatter.js';
 import useRoleBasedWidgets from '@hooks/useRoleBasedWidgets';
 import DashboardEngine from './analytics/DashboardEngine';
 import WidgetAssignmentManager from './admin/WidgetAssignmentManager';
@@ -201,7 +202,7 @@ export default function AdvancedAnalytics({
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `analytics-${new Date().toISOString().split('T')[0]}.csv`;
+      a.download = `analytics-${formatForDateInput(new Date())}.csv`;
       a.click();
       URL.revokeObjectURL(url);
     } catch (e) {

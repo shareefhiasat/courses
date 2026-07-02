@@ -3,6 +3,7 @@ import { useTheme } from '@contexts/ThemeContext';
 import { useLang } from '@contexts/LangContext';
 import { useToast } from '@ui';
 import { getQatarTimeAgo, formatQatarDate } from '@utils/timezone';
+import { formatDateTime, getQatarDateParts } from '@utils/date-formatter.js';
 import { getThemedIcon } from '@constants/iconTypes';
 import { Button, Input, Select, UserSelect, DateRangeSlider, AdvancedDataGrid, Modal } from '@ui';
 import { getLoginLogs, deleteAllLoginLogs, deleteLoginLogsByType } from '@services/business/activitiesService';
@@ -504,14 +505,14 @@ const LogsActivityPage = () => {
           })() : ''}
           onChange={({ fromDate, toDate }) => {
             if (fromDate) {
-              const date = new Date(fromDate);
-              setLoginFrom(`${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`);
+              const parts = getQatarDateParts(fromDate);
+              setLoginFrom(parts ? `${String(parts.day).padStart(2, '0')}/${String(parts.month).padStart(2, '0')}/${parts.year}` : '');
             } else {
               setLoginFrom('');
             }
             if (toDate) {
-              const date = new Date(toDate);
-              setLoginTo(`${String(date.getDate()).padStart(2, '0')}/${String(date.getMonth() + 1).padStart(2, '0')}/${date.getFullYear()}`);
+              const parts = getQatarDateParts(toDate);
+              setLoginTo(parts ? `${String(parts.day).padStart(2, '0')}/${String(parts.month).padStart(2, '0')}/${parts.year}` : '');
             } else {
               setLoginTo('');
             }
@@ -656,7 +657,7 @@ const LogsActivityPage = () => {
                   qatarTimeAgo,
                   activityType,
                   clientTime: new Date().toISOString(),
-                  clientTimeQatar: new Date().toLocaleString('en-US', { timeZone: 'Asia/Qatar' })
+                  clientTimeQatar: formatDateTime(new Date())
                 });
                 return qatarTimeAgo || formatQatarDate(date);
               }

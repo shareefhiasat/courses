@@ -13,6 +13,7 @@ import { calculateAttentionScore, getRowHighlightStyle } from '@utils/attendance
 import { getNoteTypeFromStatus } from '@constants/noteTypes';
 import { getAttendanceByStudent, rosterQuickAction, deleteAttendance, getStudentAttendanceByDate, markAttendance } from '@services/business/attendanceServiceUnified.js';
 import { getPenalties, getPenaltiesByStudent, deletePenalty } from '@services/business/penaltyService';
+import { getQatarDateParts, formatForDateInput } from '@utils/date-formatter.js';
 import { getParticipations, getParticipationsByStudent, deleteParticipation } from '@services/business/participationService';
 import { getBehaviors, deleteBehavior } from '@services/business/behaviorService';
 import { CheckSmallIcon, ClockSmallIcon } from '@utils/icons.jsx';
@@ -106,9 +107,9 @@ const StudentRoster = React.memo(function StudentRoster({
 
   const toYmd = useCallback((tsOrDate) => {
     if (!tsOrDate) return null;
-    const d = tsOrDate?.toDate ? tsOrDate.toDate() : new Date(tsOrDate);
-    if (Number.isNaN(d.getTime())) return null;
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    const parts = getQatarDateParts(tsOrDate);
+    if (!parts) return null;
+    return `${parts.year}-${String(parts.month).padStart(2, '0')}-${String(parts.day).padStart(2, '0')}`;
   }, []);
 
   // Check if all dropdowns are selected to show total attendance column
@@ -276,8 +277,8 @@ const StudentRoster = React.memo(function StudentRoster({
             id: penalty.docId || penalty.id,
             type: RECORD_TYPES.PENALTY,
             date: penalty.date || (penalty.createdAt?.toDate
-                ? penalty.createdAt.toDate().toISOString().split('T')[0]
-                : new Date(penalty.createdAt).toISOString().split('T')[0]),
+                ? formatForDateInput(penalty.createdAt.toDate())
+                : formatForDateInput(penalty.createdAt)),
             time: penalty.createdAt,
             label: label,
             points: -Math.abs(penalty.points || 0),

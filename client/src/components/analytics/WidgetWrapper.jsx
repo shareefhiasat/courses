@@ -3,6 +3,7 @@ import { useTheme } from '@contexts/ThemeContext';
 import { useLang } from '@contexts/LangContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import PortalTooltip from '@ui/PortalTooltip';
+import { formatDateTime } from '@utils/date-formatter.js';
 import { CircleHelp, Info, ChevronUp, ChevronDown, Pencil, Copy, Download, Trash2, GripVertical } from 'lucide-react';
 import { getSchedulingWidgetHelp } from '@constants/schedulingSummaryWidgets';
 import { getSourceByValue } from '@constants/widgetDataSources';
@@ -108,7 +109,7 @@ const WidgetWrapper = ({
       ? `${t('period') || 'Period'}: ${getDateRangeLabel(widget.dateRange)}`
       : null,
     lastUpdatedAt
-      ? `${t('updated') || 'Updated'}: ${new Date(lastUpdatedAt).toLocaleString('en-GB', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }).replace(',', '')}`
+      ? `${t('updated') || 'Updated'}: ${formatDateTime(lastUpdatedAt, lang)}`
       : null,
   ].filter(Boolean).join('\n');
 

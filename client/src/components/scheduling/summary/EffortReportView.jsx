@@ -3,6 +3,7 @@ import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { Card, CardBody } from '@ui';
 import BarChart from '@components/charts/BarChart';
+import { formatDate } from '@utils/date-formatter.js';
 import PieChart from '@components/charts/PieChart';
 import { CalendarDays, Clock, Users, BookOpen } from 'lucide-react';
 
@@ -162,7 +163,7 @@ export default function EffortReportView({ report, isRTL, hideStatCards = false 
             <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
               {report.sessions.map((s, i) => (
                 <div key={i} style={{ padding: '0.5rem 0', borderBottom: `1px solid ${border}`, fontSize: 'var(--font-size-sm)' }}>
-                  <strong>{new Date(s.date).toLocaleDateString()}</strong>
+                  <strong>{formatDate(s.date, lang)}</strong>
                   {' · '}{isRTL ? s.instructor?.displayNameAr : s.instructor?.displayName}
                   {' · '}{isRTL ? s.subject?.nameAr : s.subject?.nameEn || '—'}
                   {' · '}{s.timeSlot?.startTime}–{s.timeSlot?.endTime}

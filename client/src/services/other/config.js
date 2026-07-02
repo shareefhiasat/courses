@@ -212,7 +212,7 @@ export const getFirebaseConfig = () => {
       name: 'Military LMS',
       version: '1.0.0',
       environment: 'development',
-      apiBaseUrl: 'http://localhost:8001',
+      apiBaseUrl: process.env.VITE_API_BASE_URL || 'http://localhost:8001',
       enableDebugMode: true
     };
   }

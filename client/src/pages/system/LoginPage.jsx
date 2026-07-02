@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Navigate, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@contexts/AuthContext';
+import { formatTime } from '@utils/date-formatter.js';
 import { useTheme } from '@contexts/ThemeContext';
 import { useLang } from '@contexts/LangContext';
 import { Container } from '@ui';
@@ -230,7 +231,7 @@ const LoginPage = () => {
                   fontSize: '0.625rem',
                   color: isDark ? '#9ca3af' : '#9ca3af'
                 }}>
-                  {t('logout_time') || 'Logout time'}: {logoutReason.timestamp.toLocaleTimeString()}
+                  {t('logout_time') || 'Logout time'}: {formatTime(logoutReason.timestamp, 'en')}
                 </div>
               </div>
               <button

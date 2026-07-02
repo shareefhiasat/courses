@@ -2,6 +2,7 @@ import React from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { Card, CardBody } from '@ui';
+import { formatDate } from '@utils/date-formatter.js';
 
 const HOLIDAY_ICONS = {
   Public: '🏛️', National: '🇶🇦', SemesterBreak: '📚', Summer: '☀️', Winter: '❄️', Other: '📅',
@@ -32,7 +33,7 @@ export default function UpcomingHolidaysList({ holidays = [] }) {
                 <span style={{ fontWeight: 500 }}>{isRTL ? h.descriptionAr || h.descriptionEn : h.descriptionEn}</span>
               </div>
               <div style={{ fontSize: 'var(--font-size-xs)', color: muted, marginTop: '0.25rem' }}>
-                {new Date(h.startDate).toLocaleDateString()} – {new Date(h.endDate).toLocaleDateString()}
+                {formatDate(h.startDate, lang)} – {formatDate(h.endDate, lang)}
                 {' · '}{t(`holiday_type_${h.type}`) || h.type}
               </div>
             </div>

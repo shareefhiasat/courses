@@ -4,6 +4,7 @@ import TourTooltip from '@ui/TourTooltip/TourTooltip';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import Calendar from '@toast-ui/react-calendar';
 import '@toast-ui/calendar/dist/toastui-calendar.min.css';
+import { formatDateTime, formatForDateInput, getQatarDateParts } from '@utils/date-formatter.js';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
@@ -402,10 +403,10 @@ const SchedulingCalendarPage = () => {
     return {
       from,
       to,
-      fromStr: from.toISOString().split('T')[0],
-      toStr: to.toISOString().split('T')[0],
-      fromStrLocal: from.toLocaleDateString('en-CA'), // YYYY-MM-DD format in local time
-      toStrLocal: to.toLocaleDateString('en-CA'),
+      fromStr: formatForDateInput(from),
+      toStr: formatForDateInput(to),
+      fromStrLocal: formatForDateInput(from),
+      toStrLocal: formatForDateInput(to),
     };
   });
   const [isFullscreen, setIsFullscreen] = useState(false);
@@ -633,10 +634,10 @@ const SchedulingCalendarPage = () => {
     setCalendarDateRange({
       from,
       to,
-      fromStr: from.toISOString().split('T')[0],
-      toStr: to.toISOString().split('T')[0],
-      fromStrLocal: from.toLocaleDateString('en-CA'), // YYYY-MM-DD format in local time
-      toStrLocal: to.toLocaleDateString('en-CA'),
+      fromStr: formatForDateInput(from),
+      toStr: formatForDateInput(to),
+      fromStrLocal: formatForDateInput(from),
+      toStrLocal: formatForDateInput(to),
     });
   }, [currentDate]);
 
@@ -1080,18 +1081,19 @@ const SchedulingCalendarPage = () => {
     if (workloadDateFilter === 'all') return sessions;
     
     const now = new Date();
+    const nowParts = getQatarDateParts(now);
     let startDate, endDate;
     
     if (workloadDateFilter === 'week') {
       startDate = new Date(now);
-      startDate.setDate(now.getDate() - now.getDay());
+      startDate.setDate(now.getDate() - nowParts.dayOfWeek);
       startDate.setHours(0, 0, 0, 0);
       endDate = new Date(startDate);
       endDate.setDate(startDate.getDate() + 6);
       endDate.setHours(23, 59, 59, 999);
     } else if (workloadDateFilter === 'month') {
-      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
-      endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+      startDate = new Date(nowParts.year, nowParts.month - 1, 1);
+      endDate = new Date(nowParts.year, nowParts.month, 0, 23, 59, 59, 999);
     } else if (workloadDateFilter === 'custom' && workloadStartDate && workloadEndDate) {
       startDate = new Date(workloadStartDate);
       endDate = new Date(workloadEndDate);
@@ -1628,13 +1630,11 @@ const SchedulingCalendarPage = () => {
 
     if (eventType === 'break') {
       const breakSession = event.raw.breakSession;
-      const startHour = start.getHours();
-      const startMinute = start.getMinutes();
-      const endHour = end.getHours();
-      const endMinute = end.getMinutes();
+      const sParts = getQatarDateParts(start);
+      const eParts = getQatarDateParts(end);
 
-      const startStr = `${String(startHour).padStart(2, '0')}:${String(startMinute).padStart(2, '0')}`;
-      const endStr = `${String(endHour).padStart(2, '0')}:${String(endMinute).padStart(2, '0')}`;
+      const startStr = `${String(sParts.hours).padStart(2, '0')}:${String(sParts.minutes).padStart(2, '0')}`;
+      const endStr = `${String(eParts.hours).padStart(2, '0')}:${String(eParts.minutes).padStart(2, '0')}`;
 
       const slotResolution = await resolveBreakTimeSlotForCustomTime({
         breakSession,
@@ -3596,7 +3596,7 @@ const SchedulingCalendarPage = () => {
                     if (suggestion.instructor && suggestion.classroom) {
                       toast.info(`${getLocalizedInstructorName(suggestion.instructor, lang)} — ${getLocalizedClassroomName(suggestion.classroom, lang)}`);
                     } else if (suggestion.startDateTime) {
-                      toast.info(t('suggested_time').replace('{time}', new Date(suggestion.startDateTime).toLocaleString()));
+                      toast.info(t('suggested_time').replace('{time}', formatDateTime(suggestion.startDateTime, lang)));
                     }
                     setShowSuggestions(false);
                   }}>

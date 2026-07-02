@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState, useLayoutEffect, useCallback } from 'react';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
+import { formatDate } from '@utils/date-formatter.js';
 import { useTheme } from '@contexts/ThemeContext';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import { getThemedIcon } from '@constants/iconTypes';
@@ -1089,7 +1090,7 @@ const StudentProfilePage = () => {
                     {/* Progress or Earned Date */}
                     {isEarned ? (
                       <div className="text-[10px] text-gray-600 dark:text-gray-400 mt-1">
-                        {earned.earnedAt && new Date(earned.earnedAt.seconds * 1000).toLocaleDateString()}
+                        {earned.earnedAt && formatDate(earned.earnedAt.seconds * 1000, 'en')}
                       </div>
                     ) : (
                       badge.requirement && (

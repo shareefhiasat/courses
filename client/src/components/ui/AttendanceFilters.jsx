@@ -1,6 +1,7 @@
 import React from 'react';
 import { Select, DatePicker } from '@ui';
 import { ATTENDANCE_STATUS, getLocalizedAttendanceLabel } from '@constants/attendanceTypes';
+import { formatForDateInput } from '@utils/date-formatter.js';
 
 
 import { info, error, warn, debug } from '@services/utils/logger.js';const AttendanceFilters = ({
@@ -182,8 +183,8 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Atten
             <div>
               <DatePicker
                 type="date"
-                value={dateFrom ? (dateFrom.includes('/') ? new Date(dateFrom.split('/').reverse().join('-')).toISOString().split('T')[0] : dateFrom) : ''}
-                onChange={(iso) => setDateFrom(iso ? new Date(iso).toLocaleDateString('en-CA') : '')}
+                value={dateFrom ? (dateFrom.includes('/') ? formatForDateInput(new Date(dateFrom.split('/').reverse().join('-'))) : dateFrom) : ''}
+                onChange={(iso) => setDateFrom(iso ? formatForDateInput(iso) : '')}
                 placeholder={t('from_date') || 'From Date'}
                 fullWidth
               />
@@ -191,8 +192,8 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Atten
             <div>
               <DatePicker
                 type="date"
-                value={dateTo ? (dateTo.includes('/') ? new Date(dateTo.split('/').reverse().join('-')).toISOString().split('T')[0] : dateTo) : ''}
-                onChange={(iso) => setDateTo(iso ? new Date(iso).toLocaleDateString('en-CA') : '')}
+                value={dateTo ? (dateTo.includes('/') ? formatForDateInput(new Date(dateTo.split('/').reverse().join('-'))) : dateTo) : ''}
+                onChange={(iso) => setDateTo(iso ? formatForDateInput(iso) : '')}
                 placeholder={t('to_date') || 'To Date'}
                 fullWidth
               />

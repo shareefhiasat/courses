@@ -3,7 +3,7 @@ import { getAuthToken } from '@utils/authHelpers';
 
 class HelpItemsService {
   constructor() {
-    this.baseURL = process.env.REACT_APP_API_URL || 'http://localhost:8081';
+    this.baseURL = import.meta.env.VITE_HELP_API_URL || 'http://localhost:8081';
   }
 
   /**

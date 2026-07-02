@@ -1,4 +1,5 @@
 import { info, error, warn, debug } from '@services/utils/logger.js';
+import { formatDate as fmtDate } from './date-formatter.js';
 
 /**
  * List Chart Resolvers
@@ -204,11 +205,7 @@ export const formatDate = (date, t) => {
     const dateObj = typeof date === 'string' ? new Date(date) : date;
     if (isNaN(dateObj.getTime())) return '—';
     
-    return dateObj.toLocaleDateString('en-GB', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
+    return fmtDate(dateObj, 'en');
   } catch (e) {
     return '—';
   }

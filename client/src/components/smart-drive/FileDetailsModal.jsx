@@ -249,7 +249,7 @@ export default function FileDetailsModal({ file, onClose, onDownload, onShare, o
                 <Button
                   variant="secondary"
                   onClick={async () => {
-                    const collaboraUrl = `https://localhost:9980/browser/4610258811/cool.html?WOPISrc=${encodeURIComponent('http://host.docker.internal:8001/api/v1/wopi/files/' + file.id)}&access_token=${wopiToken}`;
+                    const collaboraUrl = `${import.meta.env.COLLABORA_URL || 'https://localhost:9980'}/browser/4610258811/cool.html?WOPISrc=${encodeURIComponent('http://host.docker.internal:8001/api/v1/wopi/files/' + file.id)}&access_token=${wopiToken}`;
                     window.open(collaboraUrl, '_blank', 'noopener,noreferrer');
                     // Log activity
                     try {
@@ -402,7 +402,7 @@ export default function FileDetailsModal({ file, onClose, onDownload, onShare, o
               <div ref={previewContainerRef} style={{ width: '100%' }}>
                 <iframe
                   ref={iframeRef}
-                  src={`https://localhost:9980/browser/4610258811/cool.html?WOPISrc=${encodeURIComponent('http://host.docker.internal:8001/api/v1/wopi/files/' + file.id)}&access_token=${wopiToken}`}
+                  src={`${import.meta.env.COLLABORA_URL || 'https://localhost:9980'}/browser/4610258811/cool.html?WOPISrc=${encodeURIComponent('http://host.docker.internal:8001/api/v1/wopi/files/' + file.id)}&access_token=${wopiToken}`}
                   style={{ width: '100%', height: '600px', border: 'none' }}
                   title={file.name}
                 />
@@ -443,7 +443,7 @@ export default function FileDetailsModal({ file, onClose, onDownload, onShare, o
               <div ref={previewContainerRef} style={{ width: '100%' }}>
                 <iframe
                   ref={iframeRef}
-                  src={`https://localhost:9980/browser/4610258811/cool.html?WOPISrc=${encodeURIComponent('http://host.docker.internal:8001/api/v1/wopi/files/' + file.id)}&access_token=${editWopiToken}`}
+                  src={`${import.meta.env.COLLABORA_URL || 'https://localhost:9980'}/browser/4610258811/cool.html?WOPISrc=${encodeURIComponent('http://host.docker.internal:8001/api/v1/wopi/files/' + file.id)}&access_token=${editWopiToken}`}
                   style={{ width: '100%', height: '600px', border: 'none' }}
                   title={file.name}
                 />

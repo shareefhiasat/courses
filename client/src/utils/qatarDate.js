@@ -1,16 +1,18 @@
 import { info, error, warn, debug } from '@services/utils/logger.js';
+import {
+  QATAR_TIMEZONE,
+  formatStandard as fmtStandard,
+  formatFull as fmtFull,
+  formatDateShort as fmtShort,
+  formatLongDate as fmtLongDate,
+  formatTimeWithSeconds as fmtTimeSec,
+  formatForDateTimeInput as fmtInput,
+  formatRelative as fmtRelative,
+  getQatarNow as fmtQatarNow,
+  formatDateTime as fmtDateTime,
+} from './date-formatter.js';
 
-/**
- * Qatar Date Standardization
- * 
- * SINGLE SOURCE OF TRUTH for all date operations in the system.
- * Uses Qatar timezone (UTC+3) and consistent format: "February 7, 2026 at 5:01:45 PM UTC+3"
- * 
- * NO MORE CONVERSIONS - Store everything in Qatar time, display in Qatar time.
- */
-
-// Qatar timezone constant
-export const QATAR_TIMEZONE = 'Asia/Qatar'; // UTC+3
+export { QATAR_TIMEZONE };
 export const QATAR_UTC_OFFSET = '+03:00';
 
 /**
@@ -18,9 +20,16 @@ export const QATAR_UTC_OFFSET = '+03:00';
  * @returns {Date} Date object representing current Qatar time
  */
 export function getQatarNow() {
-  const now = new Date();
-  // Qatar is UTC+3, so we add 3 hours to get local Qatar time
-  return new Date(now.getTime() + (3 * 60 * 60 * 1000));
+  return fmtQatarNow();
+}
+
+/**
+ * Format date and time as "dd/MM/yyyy, hh:mm a" in Qatar timezone
+ * @param {Date|string|number} date - Date to format
+ * @returns {string} Formatted date string e.g. "29/06/2026, 07:44 AM"
+ */
+export function formatQatarDateTime(date) {
+  return fmtDateTime(date);
 }
 
 /**
@@ -29,42 +38,7 @@ export function getQatarNow() {
  * @returns {string} Formatted date string
  */
 export function formatQatarStandard(date) {
-  if (!date) return '';
-  
-  let dateObj;
-  if (typeof date === 'string') {
-    dateObj = new Date(date);
-  } else if (typeof date === 'number') {
-    // Handle Firestore timestamps (seconds) or milliseconds
-    dateObj = date < 10000000000 ? new Date(date * 1000) : new Date(date);
-  } else if (date?.toDate) {
-    // Handle Firestore Timestamp object
-    dateObj = date.toDate();
-  } else {
-    dateObj = date;
-  }
-  
-  if (isNaN(dateObj.getTime())) return '';
-  
-  // Convert to Qatar time (UTC+3)
-  const qatarTime = new Date(dateObj.getTime() + (3 * 60 * 60 * 1000));
-  
-  const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-  
-  const month = months[qatarTime.getMonth()];
-  const day = qatarTime.getDate();
-  const year = qatarTime.getFullYear();
-  
-  let hours = qatarTime.getHours();
-  const minutes = qatarTime.getMinutes();
-  const seconds = qatarTime.getSeconds();
-  const ampm = hours >= 12 ? 'PM' : 'AM';
-  hours = hours % 12;
-  hours = hours || 12; // 0 should be 12
-  
-  const pad = (n) => String(n).padStart(2, '0');
-  
-  return `${month} ${day}, ${year} at ${hours}:${pad(minutes)}:${pad(seconds)} ${ampm}`;
+  return fmtStandard(date);
 }
 
 /**
@@ -74,45 +48,7 @@ export function formatQatarStandard(date) {
  * @returns {string} Formatted date string with UTC offset
  */
 export function formatQatarFull(date) {
-  if (!date) return '';
-  
-  let dateObj;
-  if (typeof date === 'string') {
-    dateObj = new Date(date);
-  } else if (typeof date === 'number') {
-    // Handle Firestore timestamps (seconds) or milliseconds
-    dateObj = date < 10000000000 ? new Date(date * 1000) : new Date(date);
-  } else if (date?.toDate) {
-    // Handle Firestore Timestamp object
-    dateObj = date.toDate();
-  } else {
-    dateObj = date;
-  }
-  
-  if (isNaN(dateObj.getTime())) return '';
-  
-  // Convert to Qatar time (UTC+3)
-  const qatarTime = new Date(dateObj.getTime() + (3 * 60 * 60 * 1000));
-  
-  const months = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
-  ];
-  
-  const month = months[qatarTime.getMonth()];
-  const day = qatarTime.getDate();
-  const year = qatarTime.getFullYear();
-  
-  let hours = qatarTime.getHours();
-  const minutes = qatarTime.getMinutes();
-  const seconds = qatarTime.getSeconds();
-  const ampm = hours >= 12 ? 'PM' : 'AM';
-  hours = hours % 12;
-  hours = hours || 12; // 0 should be 12
-  
-  const pad = (n) => String(n).padStart(2, '0');
-  
-  return `${month} ${day}, ${year} at ${hours}:${pad(minutes)}:${pad(seconds)} ${ampm} UTC+3`;
+  return fmtFull(date);
 }
 
 /**
@@ -130,31 +66,7 @@ export function getQatarTimestampString() {
  * @returns {string} Date string for form input
  */
 export function formatQatarForInput(date) {
-  if (!date) return '';
-  
-  let dateObj;
-  if (typeof date === 'string') {
-    dateObj = new Date(date);
-  } else if (typeof date === 'number') {
-    dateObj = date < 10000000000 ? new Date(date * 1000) : new Date(date);
-  } else if (date?.toDate) {
-    dateObj = date.toDate();
-  } else {
-    dateObj = date;
-  }
-  
-  if (isNaN(dateObj.getTime())) return '';
-  
-  // Convert to Qatar time
-  const qatarTime = new Date(dateObj.getTime() + (3 * 60 * 60 * 1000));
-  
-  const year = qatarTime.getFullYear();
-  const month = String(qatarTime.getMonth() + 1).padStart(2, '0');
-  const day = String(qatarTime.getDate()).padStart(2, '0');
-  const hours = String(qatarTime.getHours()).padStart(2, '0');
-  const minutes = String(qatarTime.getMinutes()).padStart(2, '0');
-  
-  return `${year}-${month}-${day}T${hours}:${minutes}`;
+  return fmtInput(date);
 }
 
 /**
@@ -214,44 +126,7 @@ export function timestampToQatarStandard(timestamp) {
  * @returns {string} Relative time string
  */
 export function getQatarTimeAgo(date) {
-  if (!date) return '';
-  
-  let dateObj;
-  if (typeof date === 'string') {
-    dateObj = new Date(date);
-  } else if (typeof date === 'number') {
-    dateObj = date < 10000000000 ? new Date(date * 1000) : new Date(date);
-  } else if (date?.toDate) {
-    dateObj = date.toDate();
-  } else {
-    dateObj = date;
-  }
-  
-  if (isNaN(dateObj.getTime())) return '';
-  
-  const now = getQatarNow();
-  const diffMs = now - dateObj;
-  const diffSeconds = Math.floor(diffMs / 1000);
-  
-  if (diffSeconds < 60) return 'just now';
-  
-  const intervals = {
-    year: 31536000,
-    month: 2592000,
-    week: 604800,
-    day: 86400,
-    hour: 3600,
-    minute: 60
-  };
-  
-  for (const [unit, secondsInUnit] of Object.entries(intervals)) {
-    const interval = Math.floor(diffSeconds / secondsInUnit);
-    if (interval >= 1) {
-      return interval === 1 ? `1 ${unit} ago` : `${interval} ${unit}s ago`;
-    }
-  }
-  
-  return 'just now';
+  return fmtRelative(date, 'en');
 }
 
 /**
@@ -274,26 +149,7 @@ export function toQatarTime(date) {
  * @returns {string} Short date string
  */
 export function formatQatarShort(date) {
-  if (!date) return '';
-  
-  let dateObj;
-  if (typeof date === 'string') {
-    dateObj = new Date(date);
-  } else if (typeof date === 'number') {
-    dateObj = date < 10000000000 ? new Date(date * 1000) : new Date(date);
-  } else if (date?.toDate) {
-    dateObj = date.toDate();
-  } else {
-    dateObj = date;
-  }
-  
-  if (isNaN(dateObj.getTime())) return '';
-  
-  // Convert to Qatar time
-  const qatarTime = new Date(dateObj.getTime() + (3 * 60 * 60 * 1000));
-  
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-  return `${months[qatarTime.getMonth()]} ${qatarTime.getDate()}, ${qatarTime.getFullYear()}`;
+  return fmtShort(date, 'en');
 }
 
 /**
@@ -302,30 +158,7 @@ export function formatQatarShort(date) {
  * @returns {string} Date only string
  */
 export function formatQatarDateOnly(date) {
-  if (!date) return '';
-  
-  let dateObj;
-  if (typeof date === 'string') {
-    dateObj = new Date(date);
-  } else if (typeof date === 'number') {
-    dateObj = date < 10000000000 ? new Date(date * 1000) : new Date(date);
-  } else if (date?.toDate) {
-    dateObj = date.toDate();
-  } else {
-    dateObj = date;
-  }
-  
-  if (isNaN(dateObj.getTime())) return '';
-  
-  // Convert to Qatar time
-  const qatarTime = new Date(dateObj.getTime() + (3 * 60 * 60 * 1000));
-  
-  const months = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
-  ];
-  
-  return `${months[qatarTime.getMonth()]} ${qatarTime.getDate()}, ${qatarTime.getFullYear()}`;
+  return fmtLongDate(date, 'en');
 }
 
 /**
@@ -334,34 +167,7 @@ export function formatQatarDateOnly(date) {
  * @returns {string} Time only string
  */
 export function formatQatarTimeOnly(date) {
-  if (!date) return '';
-  
-  let dateObj;
-  if (typeof date === 'string') {
-    dateObj = new Date(date);
-  } else if (typeof date === 'number') {
-    dateObj = date < 10000000000 ? new Date(date * 1000) : new Date(date);
-  } else if (date?.toDate) {
-    dateObj = date.toDate();
-  } else {
-    dateObj = date;
-  }
-  
-  if (isNaN(dateObj.getTime())) return '';
-  
-  // Convert to Qatar time
-  const qatarTime = new Date(dateObj.getTime() + (3 * 60 * 60 * 1000));
-  
-  let hours = qatarTime.getHours();
-  const minutes = qatarTime.getMinutes();
-  const seconds = qatarTime.getSeconds();
-  const ampm = hours >= 12 ? 'PM' : 'AM';
-  hours = hours % 12;
-  hours = hours || 12;
-  
-  const pad = (n) => String(n).padStart(2, '0');
-  
-  return `${hours}:${pad(minutes)}:${pad(seconds)} ${ampm}`;
+  return fmtTimeSec(date, 'en');
 }
 
 // Export the main function as default for easy importing

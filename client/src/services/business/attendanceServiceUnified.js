@@ -12,6 +12,7 @@ import attendanceDbService from '../db/attendanceDbService-postgres.js';
 import api from '@services/api/index.js';
 import { ATTENDANCE_STATUS, ATTENDANCE_TYPE_CATEGORY } from '@constants/attendanceTypes.js';
 import { getDatabaseUserId } from './authService.js';
+import { formatForDateInput } from '@utils/date-formatter.js';
 
 const serviceName = 'attendanceServiceUnified';
 
@@ -516,7 +517,7 @@ export const rosterQuickAction = async (studentId, classId, status, user = null,
       userId: studentId,
       classId: classId,
       status: status,
-      date: date || new Date().toISOString().split('T')[0],
+      date: date || formatForDateInput(new Date()),
       notes: notes,
       programId: programId,
       subjectId: subjectId

@@ -3,6 +3,8 @@
  * Persisted per-user in PostgreSQL (user_preferences.settings.dashboards.student_performance)
  */
 
+import { formatForDateInput } from '@utils/date-formatter.js';
+
 export const STUDENT_PERFORMANCE_STORAGE_KEY = 'student_performance';
 export const STUDENT_OVERVIEW_STORAGE_KEY = 'student_overview';
 
@@ -339,7 +341,7 @@ export function buildStudentPerformanceRawData(dashData, lookupData = {}, isRTL 
   const toDateStr = (item) => {
     const d = item.date || item.createdAt;
     if (!d) return null;
-    try { return new Date(d).toISOString().split('T')[0]; } catch { return String(d).substring(0, 10); }
+    try { return formatForDateInput(new Date(d)); } catch { return String(d).substring(0, 10); }
   };
 
   // Enrich attendance with semester/year/className/subjectName

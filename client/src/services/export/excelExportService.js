@@ -1,5 +1,6 @@
 import ExcelJS from 'exceljs';
 import { ATTENDANCE_STATUS } from '@constants/attendanceTypes';
+import { formatDateShort, formatForDateInput } from '@utils/date-formatter.js';
 
 /**
  * Excel Export Service
@@ -608,7 +609,7 @@ export const exportAttendanceViolationsReport = async (data, options = {}) => {
   const groupedByDate = {};
   filteredData.forEach(record => {
     const date = new Date(record.at || record.createdAt || record.timestamp);
-    const dateKey = date.toISOString().split('T')[0]; // YYYY-MM-DD
+    const dateKey = formatForDateInput(date); // YYYY-MM-DD
     
     if (!groupedByDate[dateKey]) {
       groupedByDate[dateKey] = [];
@@ -680,9 +681,7 @@ export const exportAttendanceViolationsReport = async (data, options = {}) => {
   // Process each date group
   Object.keys(groupedByDate).sort().reverse().forEach(dateKey => {
     const date = new Date(dateKey);
-    const dateStr = lang === 'ar' 
-      ? date.toLocaleDateString('ar-SA', { day: '2-digit', month: 'short', year: 'numeric' })
-      : date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    const dateStr = formatDateShort(date, lang);
 
     // Add date header row (merged across all columns)
     const dateLabel = lang === 'ar' ? 'التاريخ' : 'Date';

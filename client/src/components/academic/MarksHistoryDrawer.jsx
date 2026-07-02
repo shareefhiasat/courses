@@ -3,6 +3,7 @@ import { Button, SimpleLoading } from '@ui';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import useHistorySearch from '@hooks/useHistorySearch';
+import { formatDateTime } from '@utils/date-formatter.js';
 
 /**
  * Reusable Marks History Drawer Component
@@ -157,7 +158,7 @@ const MarksHistoryDrawer = memo(({
           color: isDarkMode ? '#9ca3af' : '#6b7280',
           textAlign: 'right'
         }}>
-          {new Date(auditEntry.timestamp).toLocaleString()}
+          {formatDateTime(auditEntry.timestamp, lang)}
         </div>
       </div>
 

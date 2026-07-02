@@ -10,18 +10,29 @@ import jwksClient from 'jwks-rsa';
 import { LMS_ROLES as ROLES } from '../services/keycloakAdminService.js';
 import { getDatabaseUserId } from '../utils/database/userResolver.js';
 
-const KEYCLOAK_URL = process.env.KEYCLOAK_URL || 'http://localhost:8080';
-const KEYCLOAK_REALM = process.env.KEYCLOAK_REALM || 'military-lms';
-const KEYCLOAK_ISSUER = `${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}`;
-
-// Cached JWKS client - fetches and caches Keycloak's public signing keys
-const jwks = jwksClient({
-  jwksUri: `${KEYCLOAK_ISSUER}/protocol/openid-connect/certs`,
-  cache: true,
-  cacheMaxAge: 10 * 60 * 1000, // 10 minutes
-  rateLimit: true,
-  jwksRequestsPerMinute: 1000,
+const getKeycloakConfig = () => ({
+  url: process.env.KEYCLOAK_URL || 'http://localhost:8080',
+  realm: process.env.KEYCLOAK_REALM || 'military-lms',
 });
+
+const getKeycloakIssuer = () => {
+  const { url, realm } = getKeycloakConfig();
+  return `${url}/realms/${realm}`;
+};
+
+let _jwks = null;
+const getJwks = () => {
+  if (!_jwks) {
+    _jwks = jwksClient({
+      jwksUri: `${getKeycloakIssuer()}/protocol/openid-connect/certs`,
+      cache: true,
+      cacheMaxAge: 60 * 1000,
+      rateLimit: true,
+      jwksRequestsPerMinute: 1000,
+    });
+  }
+  return _jwks;
+};
 
 /**
  * Resolve the RSA public key for a given JWT header (by `kid`)
@@ -33,7 +44,7 @@ const getSigningKey = (header) => {
     if (!header || !header.kid) {
       return reject(new Error('Token missing key id (kid)'));
     }
-    jwks.getSigningKey(header.kid, (err, key) => {
+    getJwks().getSigningKey(header.kid, (err, key) => {
       if (err) return reject(err);
       resolve(key.getPublicKey());
     });
@@ -58,7 +69,7 @@ const verifyToken = async (token) => {
 
     const decoded = jwt.verify(token, signingKey, {
       algorithms: ['RS256'],
-      issuer: KEYCLOAK_ISSUER,
+      issuer: getKeycloakIssuer(),
     });
 
     return decoded;

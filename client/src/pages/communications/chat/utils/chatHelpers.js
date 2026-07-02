@@ -3,6 +3,8 @@
  * Utility functions for chat functionality
  */
 
+import { formatDate } from '@utils/date-formatter.js';
+import { formatFileSize } from '@utils/fileUtils';
 import { 
   CHAT_TYPES, 
   MESSAGE_TYPES, 
@@ -201,16 +203,9 @@ export const sanitizeFilename = (filename) => {
 
 /**
  * Format file size for display
+ * Re-exported from shared fileUtils for backward compatibility
  */
-export const formatFileSize = (bytes) => {
-  if (bytes === 0) return '0 Bytes';
-  
-  const k = 1024;
-  const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(k));
-  
-  return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-};
+export { formatFileSize };
 
 /**
  * Check if message is from current user
@@ -258,7 +253,7 @@ export const groupMessagesByDate = (messages) => {
   
   messages.forEach((message) => {
     const msgDate = message.createdAt?.toDate() || new Date();
-    const dateStr = msgDate.toLocaleDateString();
+    const dateStr = formatDate(msgDate, 'en');
     
     if (dateStr !== lastDate) {
       grouped.push({ type: 'date', date: msgDate, dateStr });

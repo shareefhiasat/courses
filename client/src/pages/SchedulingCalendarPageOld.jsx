@@ -3,6 +3,7 @@ import Calendar from '@toast-ui/react-calendar';
 import '@toast-ui/calendar/dist/toastui-calendar.min.css';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
+import { formatDateTime } from '@utils/date-formatter.js';
 import { useTheme } from '@contexts/ThemeContext';
 import { Button, SimpleLoading, useToast, Select, Input } from '@ui';
 import { 
@@ -146,7 +147,7 @@ const SchedulingCalendarPage = () => {
       `Class: ${session.class?.nameEn}\n` +
       `Instructor: ${session.instructor?.displayName}\n` +
       `Classroom: ${session.classroom?.nameEn}\n` +
-      `Time: ${new Date(session.startDateTime).toLocaleString()} - ${new Date(session.endDateTime).toLocaleString()}\n\n` +
+      `Time: ${formatDateTime(session.startDateTime, 'en')} - ${formatDateTime(session.endDateTime, 'en')}\n\n` +
       `Click OK to DELETE this session`
     );
 

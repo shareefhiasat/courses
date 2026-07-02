@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { FileText, Image as ImageIcon, Video, FileArchive, FileAudio, FileSpreadsheet, Eye, Edit3, Share2 } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { useLang } from '@contexts/LangContext';
+import { formatFileSize } from '@utils/fileUtils';
 import FileActionsMenu from './FileActionsMenu';
 
 /**
@@ -23,14 +24,6 @@ const FileCard = ({ file, selected, onSelect, onOpen, onEdit, onShare, onComment
     if (mimeType.includes('excel') || mimeType.includes('spreadsheet')) return FileSpreadsheet;
     
     return FileText;
-  };
-
-  const formatFileSize = (bytes) => {
-    if (!bytes) return '0 B';
-    const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
   const Icon = getFileIcon(file.mimeType);

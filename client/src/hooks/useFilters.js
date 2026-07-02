@@ -6,6 +6,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { getQatarDateParts } from '@utils/date-formatter.js';
 
 export function useFilters() {
   const navigate = useNavigate();
@@ -144,11 +145,12 @@ export function useFilters() {
         }
         case 'date': {
           const now = new Date();
+          const parts = getQatarDateParts(now);
           let d;
-          if (filter.value === 'today') d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+          if (filter.value === 'today') d = new Date(parts.year, parts.month - 1, parts.day);
           else if (filter.value === 'week') d = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-          else if (filter.value === 'month') d = new Date(now.getFullYear(), now.getMonth(), 1);
-          else if (filter.value === 'year') d = new Date(now.getFullYear(), 0, 1);
+          else if (filter.value === 'month') d = new Date(parts.year, parts.month - 1, 1);
+          else if (filter.value === 'year') d = new Date(parts.year, 0, 1);
           if (d) params.modifiedAfter = d.toISOString();
           break;
         }

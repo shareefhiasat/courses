@@ -7,14 +7,15 @@ import { logActivity, ACTIVITY_LOG_TYPES } from '../other/activityLogger';
 import { getCreateAuditData, getUpdateAuditData } from '@utils/auditHelper';
 import behaviorDbService from '../db/behaviorDbService-postgres.js';
 import api from '@services/api/index.js';
+import { getQatarDateParts } from '@utils/date-formatter.js';
 
 const serviceName = 'behaviorService';
 
 const toYmd = (tsOrDate) => {
   if (!tsOrDate) return null;
-  const d = tsOrDate?.toDate ? tsOrDate.toDate() : new Date(tsOrDate);
-  if (Number.isNaN(d.getTime())) return null;
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const parts = getQatarDateParts(tsOrDate);
+  if (!parts) return null;
+  return `${parts.year}-${String(parts.month).padStart(2, '0')}-${String(parts.day).padStart(2, '0')}`;
 };
 
 /**

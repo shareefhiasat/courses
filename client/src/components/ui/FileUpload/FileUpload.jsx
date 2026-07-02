@@ -1,5 +1,6 @@
 import React, { useState, useRef } from 'react';
 import { getThemedIcon } from '@constants/iconTypes';
+import { formatFileSize } from '@utils/fileUtils';
 import styles from './FileUpload.module.css';
 
 
@@ -110,14 +111,6 @@ const FileUpload = ({
 
   const removeFile = (id) => {
     setFiles(prev => prev.filter(f => f.id !== id));
-  };
-
-  const formatFileSize = (bytes) => {
-    if (bytes === 0) return '0 Bytes';
-    const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
-    const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
   };
 
   const dropzoneClasses = [

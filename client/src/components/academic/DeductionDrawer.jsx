@@ -2,6 +2,7 @@ import React, { memo, useMemo, useCallback } from 'react';
 import { Button, SimpleLoading } from '@ui';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
+import { formatDateTime, formatDateShort, getQatarDateParts } from '@utils/date-formatter.js';
 
 const STATUS_LABELS = {
   ABSENT_NO_EXCUSE: 'Absent (No Excuse)',
@@ -133,7 +134,7 @@ const DeductionDrawer = memo(({
             {isReduction ? '↓ Reduction' : isInitial ? '◆ Initial' : '✎ Amendment'}
           </span>
           <span style={{ fontSize: '0.7rem', color: mutedColor }}>
-            {new Date(entry.timestamp).toLocaleString()}
+            {formatDateTime(entry.timestamp, lang)}
           </span>
         </div>
         <div style={{ fontSize: '0.8rem', color: textColor, marginBottom: '0.25rem' }}>
@@ -354,10 +355,10 @@ const DeductionDrawer = memo(({
                           background: cardBg,
                         }}>
                           <div style={{ fontSize: '0.7rem', color: mutedColor }}>
-                            {new Date(item.date).toLocaleDateString(undefined, { month: 'short' })}
+                            {formatDateShort(item.date, lang)}
                           </div>
                           <div style={{ fontSize: '1rem', fontWeight: 700, color: textColor }}>
-                            {new Date(item.date).getDate()}
+                            {getQatarDateParts(item.date)?.day || ''}
                           </div>
                         </div>
 

@@ -677,9 +677,7 @@ router.post('/chat-upload', chatUpload.single('file'), async (req, res) => {
     };
     await putObject(bucket, filePath, req.file.buffer, req.file.size, metaData);
 
-    const protocol = req.protocol;
-    const host = req.get('host');
-    const fileUrl = `${protocol}://${host}/api/v1/drive/chat-file-preview/${encodeURIComponent(filePath)}`;
+    const fileUrl = `/api/v1/drive/chat-file-preview/${encodeURIComponent(filePath)}`;
 
     res.json({ success: true, data: { url: fileUrl, path: filePath, fileName: req.file.originalname, fileType: req.file.mimetype, fileSize: req.file.size } });
   } catch (err) {

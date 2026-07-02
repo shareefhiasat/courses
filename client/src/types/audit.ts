@@ -4,6 +4,8 @@
  * Simplified audit types with minimal duplication for all models
  */
 
+import { formatDateTime } from '@utils/date-formatter.js';
+
 // Base audit fields interface
 export interface AuditFields {
   createdBy?: number | null;
@@ -53,8 +55,8 @@ export const auditHelpers = {
     const updater = record.updater?.displayName || record.updater?.email || 'Unknown';
     
     return {
-      created: new Date(record.createdAt).toLocaleString(),
-      updated: new Date(record.updatedAt).toLocaleString(),
+      created: formatDateTime(record.createdAt, 'en'),
+      updated: formatDateTime(record.updatedAt, 'en'),
       createdBy: creator,
       updatedBy: updater
     };

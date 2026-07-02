@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback, useMemo, useRef, useLayoutEffect } from 'react';
 import { debug } from "@services/utils/logger";
+import { formatDateTime } from '@utils/date-formatter.js';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
@@ -429,8 +430,7 @@ const ParticipationPage = ({ isDashboardTab = false, hideActions = false }) => {
         debug('🔍 PARTICIPATION VIEWING LOG - About to log activity:', {
           timestamp: new Date(),
           timestampUTC: new Date().toISOString(),
-          userTime: new Date().toLocaleString(),
-          qatarTime: new Date().toLocaleString('en-US', { timeZone: 'Asia/Qatar' }),
+          qatarTime: formatDateTime(new Date()),
           userId: user?.uid,
           userEmail: user?.email,
           activityType: ACTIVITY_LOG_TYPES.PARTICIPATION_VIEWED

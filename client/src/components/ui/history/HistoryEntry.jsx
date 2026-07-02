@@ -3,6 +3,7 @@ import { useIsMobile } from '@hooks/useIsMobile';
 import { Button, InfoTooltip, PerformedBy } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
+import { formatTime, getQatarDateParts } from '@utils/date-formatter.js';
 import { ATTENDANCE_TYPE_CATEGORY } from '@constants/attendanceTypes';
 import { getAttendanceMethodLabel, shouldShowMethodLabel } from '@constants';
 import { getLocalizedNoteText } from '@constants/noteTypes';
@@ -58,29 +59,24 @@ export const HistoryEntry = ({
   const isMobile = useIsMobile();
   const palette = getEntryPalette(theme);
 
-  // Handle invalid times - display in local timezone without forcing Qatar timezone
+  // Handle invalid times - display in Qatar timezone
   const getTimeDisplay = () => {
     try {
       const raw = log.time?.toDate ? log.time.toDate() : log.time ? new Date(log.time) : null;
       if (!raw || isNaN(raw.getTime())) return '--:--';
       
       // Check if the timestamp has time information (not just date)
-      const hours = raw.getHours();
-      const minutes = raw.getMinutes();
-      const seconds = raw.getSeconds();
+      const parts = getQatarDateParts(raw);
+      if (!parts) return '--:--';
       
       // If all time components are 0, it's likely a date-only timestamp
       // In this case, don't display a time
-      if (hours === 0 && minutes === 0 && seconds === 0) {
+      if (parts.hours === 0 && parts.minutes === 0 && parts.seconds === 0) {
         return '--:--';
       }
       
-      // Otherwise, display the time in local timezone
-      return new Intl.DateTimeFormat('en-US', {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true
-      }).format(raw);
+      // Otherwise, display the time in Qatar timezone
+      return formatTime(raw, 'en');
     } catch (e) {
       return '--:--';
     }

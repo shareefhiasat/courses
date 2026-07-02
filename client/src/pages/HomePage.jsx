@@ -3,6 +3,7 @@ import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import JoyrideTour from '@ui/JoyrideTour';
 import iconTypes from '@constants/iconTypes';
 import { info, error, warn, debug } from '@services/utils/logger.js';
+import { formatDate } from '@utils/date-formatter.js';
 import { sanitizeHtml } from '@utils/sanitizeHtml';
 import { getAcademicTermOptions, getAcademicTermLabel } from '@constants/academicTerms';
 const { getThemedIcon, getIconWithColor } = iconTypes;
@@ -1972,8 +1973,8 @@ const HomePage = memo(() => {
               }}>
                 {t('posted') || 'Posted:'}{' '}
                 {selectedAnnouncement.createdAt?.seconds
-                  ? new Date(selectedAnnouncement.createdAt.seconds * 1000).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US')
-                  : new Date(selectedAnnouncement.createdAt).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US')}
+                  ? formatDate(selectedAnnouncement.createdAt.seconds * 1000, lang)
+                  : formatDate(selectedAnnouncement.createdAt, lang)}
               </div>
             )}
           </Modal>

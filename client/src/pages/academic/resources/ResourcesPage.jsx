@@ -9,7 +9,7 @@ import { useToast } from '@ui';
 import { useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { AdvancedDataGrid, GridQuickFilterChips } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
-import { formatQatarStandard, formatQatarForInput, parseQatarFromInput, getQatarNow } from '@utils/qatarDate';
+import { formatQatarDateTime, formatQatarForInput, parseQatarFromInput, getQatarNow } from '@utils/qatarDate';
 import { addResource, updateResource, deleteResource, getResources } from '@services/business/resourceService';
 // import { notificationGateway } from '@services/business/notificationGateway'; // Removed - notifications now handled by backend
 import { getEnrollments } from '@services/business/enrollmentService';
@@ -614,7 +614,7 @@ const ResourcesPage = () => {
       valueGetter: (params) => params.value,
       renderCell: (params) => {
         if (!params.value) return (t('no_deadline') || 'No deadline');
-        return formatQatarStandard(params.value);
+        return formatQatarDateTime(params.value);
       }
     },
     {
