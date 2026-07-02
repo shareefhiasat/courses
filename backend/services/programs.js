@@ -6,8 +6,12 @@
  */
 
 import programDbService from '../db/programs-postgres.js';
+import { createTtlCache } from '../utils/ttlCache.js';
 
 const serviceName = 'programsBusinessService';
+
+// Cache: programId → { classes: N, subjects: N }
+const programCountsCache = createTtlCache('programCounts', 60_000);
 
 /**
  * Get all programs with filtering and pagination
@@ -20,6 +24,15 @@ const getAllPrograms = async (params = {}) => {
     console.log(`[${serviceName}] Getting all programs with params:`, params);
     
     const result = await programDbService.getPrograms(params);
+    
+    // Populate cache from fresh data
+    if (result.success && result.data) {
+      result.data.forEach(p => {
+        if (p._count) {
+          programCountsCache.set(p.id, { classes: p._count.classes ?? 0, subjects: p._count.subjects ?? 0 });
+        }
+      });
+    }
     
     return {
       success: result.success,
@@ -136,6 +149,7 @@ const createProgram = async (programData, user = null) => {
     
     if (result.success) {
       console.log(`[${serviceName}] Program created successfully: ${result.data.id}`);
+      programCountsCache.invalidate();
       return {
         success: true,
         data: result.data,
@@ -247,6 +261,7 @@ const updateProgram = async (id, updateData, user = null) => {
     
     if (result.success) {
       console.log(`[${serviceName}] Program updated successfully: ${id}`);
+      programCountsCache.invalidate(id);
       return {
         success: true,
         data: result.data,
@@ -297,6 +312,7 @@ const deleteProgram = async (id, options = {}) => {
     
     if (result.success) {
       console.log(`[${serviceName}] Program deleted successfully: ${id}`);
+      programCountsCache.invalidate(id);
       return result;
     } else {
       console.error(`[${serviceName}] Failed to delete program: ${id}`, result.error);
@@ -338,6 +354,7 @@ const hardDeleteProgram = async (id) => {
     
     if (result.success) {
       console.log(`[${serviceName}] Program hard deleted successfully: ${id}`);
+      programCountsCache.invalidate(id);
       return result;
     } else {
       console.error(`[${serviceName}] Failed to hard delete program: ${id}`, result.error);
@@ -353,11 +370,16 @@ const hardDeleteProgram = async (id) => {
   }
 };
 
+export function invalidateProgramCountsCache(programId) {
+  programCountsCache.invalidate(programId);
+}
+
 export default {
   getAllPrograms,
   getProgramById,
   createProgram,
   updateProgram,
   deleteProgram,
-  hardDeleteProgram
+  hardDeleteProgram,
+  invalidateProgramCountsCache
 };

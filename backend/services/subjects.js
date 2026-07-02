@@ -13,6 +13,10 @@ import {
   deleteSubject as deleteSubjectFromDb, 
   getSubjectsByProgram as getSubjectsByProgramFromDb 
 } from '../db/subjects-postgres.js';
+import { createTtlCache } from '../utils/ttlCache.js';
+
+// Cache: subjectId → { classes: N }
+const subjectCountsCache = createTtlCache('subjectCounts', 60_000);
 
 /**
  * Get all subjects with business logic
@@ -22,13 +26,14 @@ export const getAllSubjects = async (params = {}, user = null) => {
     console.log('🔍 Subjects service called with params:', params);
     const result = await getSubjectsFromDb(params);
     
-    // Debug logging to see what's being returned
-    console.log('🔍 Subjects service result:', {
-      success: result.success,
-      dataLength: result.data?.length,
-      firstSubject: result.data?.[0],
-      result: result
-    });
+    // Populate cache from fresh data
+    if (result.success && result.data) {
+      result.data.forEach(s => {
+        if (s._count) {
+          subjectCountsCache.set(s.id, { classes: s._count.classes ?? 0 });
+        }
+      });
+    }
     
     return result;
   } catch (error) {
@@ -96,6 +101,7 @@ export const createSubject = async (subjectData, user = null) => {
     }
     
     const result = await createSubjectInDb(subjectData, user);
+    if (result.success) subjectCountsCache.invalidate();
     return result;
   } catch (error) {
     console.error('Error in createSubject:', error);
@@ -121,6 +127,7 @@ export const updateSubject = async (subjectId, updateData, user = null) => {
     }
     
     const result = await updateSubjectInDb(subjectId, updateData, user);
+    if (result.success) subjectCountsCache.invalidate(subjectId);
     return result;
   } catch (error) {
     console.error('Error in updateSubject:', error);
@@ -146,6 +153,7 @@ export const deleteSubject = async (subjectId, user = null, options = {}) => {
     }
     
     const result = await deleteSubjectFromDb(subjectId, user, options);
+    if (result.success) subjectCountsCache.invalidate(subjectId);
     return result;
   } catch (error) {
     console.error('Error in deleteSubject:', error);
@@ -182,11 +190,16 @@ export const getSubjectsByProgram = async (programId, params = {}, user = null) 
   }
 };
 
+export function invalidateSubjectCountsCache(subjectId) {
+  subjectCountsCache.invalidate(subjectId);
+}
+
 export default {
   getAllSubjects,
   getSubjectById,
   createSubject,
   updateSubject,
   deleteSubject,
-  getSubjectsByProgram
+  getSubjectsByProgram,
+  invalidateSubjectCountsCache
 };

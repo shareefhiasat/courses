@@ -10,6 +10,7 @@ import { LMS_ROLES } from './keycloakAdminService.js';
 import notificationGateway from './notifications/index.js';
 import { EVENTS } from './notifications/constants.js';
 import { buildLocalizedNameFields, buildNotificationNameVars } from '../utils/localizedUserName.js';
+import { invalidateClassEnrollmentCountsCache } from './classes.js';
 
 const serviceName = "enrollmentsBusinessService";
 
@@ -204,6 +205,11 @@ const prisma = (await import('../db/prismaClient.js')).default;
       }
     }
 
+    // Invalidate class enrollment count cache
+    if (result.success && enrollmentData.classId) {
+      invalidateClassEnrollmentCountsCache(enrollmentData.classId);
+    }
+
     return {
       ...result,
       message: result.success
@@ -370,7 +376,19 @@ export const deleteEnrollment = async (id, user = null) => {
       }
     }
 
+    // Capture classId before deletion for cache invalidation
+    let classIdBeforeDelete = null;
+    const preDeleteEnrollment = await enrollmentDbService.getEnrollmentById(id);
+    if (preDeleteEnrollment.success && preDeleteEnrollment.data) {
+      classIdBeforeDelete = preDeleteEnrollment.data.classId;
+    }
+
     const result = await enrollmentDbService.deleteEnrollment(id);
+
+    // Invalidate class enrollment count cache
+    if (result.success && classIdBeforeDelete) {
+      invalidateClassEnrollmentCountsCache(classIdBeforeDelete);
+    }
 
     // Emit notification for enrollment deletion
     if (result.success) {

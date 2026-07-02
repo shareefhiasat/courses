@@ -15,6 +15,12 @@ import {
   getClassesBySubject as getClassesBySubjectFromDb,
   getClassesByInstructor as getClassesByInstructorFromDb
 } from '../db/classes-postgres.js';
+import { createTtlCache } from '../utils/ttlCache.js';
+import { invalidateProgramCountsCache } from './programs.js';
+import { invalidateSubjectCountsCache } from './subjects.js';
+
+// Cache: classId → { enrollments: N }
+const classEnrollmentCountsCache = createTtlCache('classEnrollmentCounts', 60_000);
 
 /**
  * Get all classes with business logic
@@ -27,6 +33,15 @@ export const getAllClasses = async (params = {}, user = null) => {
   try {
     // Add business logic here (authorization, validation, etc.)
     const result = await getClasses(params);
+    
+    // Populate cache from fresh data
+    if (result.success && result.data) {
+      result.data.forEach(c => {
+        if (c._count) {
+          classEnrollmentCountsCache.set(c.id, { enrollments: c._count.enrollments ?? 0 });
+        }
+      });
+    }
     
     return result;
     
@@ -112,6 +127,11 @@ export const createClass = async (classData, user = null) => {
     }
     
     const result = await createClassInDb(classData, user);
+    if (result.success) {
+      // New class affects program and subject counts
+      invalidateProgramCountsCache();
+      invalidateSubjectCountsCache();
+    }
     return result;
   } catch (error) {
     console.error('Error in createClass:', error);
@@ -142,6 +162,14 @@ export const updateClass = async (classId, updateData, user = null) => {
     }
     
     const result = await updateClassInDb(classId, updateData, user);
+    if (result.success) {
+      classEnrollmentCountsCache.invalidate(classId);
+      // If program or subject changed, invalidate their counts too
+      if (updateData.programId !== undefined || updateData.subjectId !== undefined) {
+        invalidateProgramCountsCache();
+        invalidateSubjectCountsCache();
+      }
+    }
     return result;
   } catch (error) {
     console.error('Error in updateClass:', error);
@@ -171,6 +199,11 @@ export const deleteClass = async (classId, user = null, options = {}) => {
     }
     
     const result = await deleteClassInDb(classId, user, options);
+    if (result.success) {
+      classEnrollmentCountsCache.invalidate(classId);
+      invalidateProgramCountsCache();
+      invalidateSubjectCountsCache();
+    }
     return result;
   } catch (error) {
     console.error('Error in deleteClass:', error);
@@ -272,6 +305,10 @@ export const getClassesByInstructor = async (instructorId, params = {}, user = n
   }
 };
 
+export function invalidateClassEnrollmentCountsCache(classId) {
+  classEnrollmentCountsCache.invalidate(classId);
+}
+
 export default {
   getAllClasses,
   getClassById,
@@ -280,5 +317,6 @@ export default {
   deleteClass,
   getClassesByProgram,
   getClassesBySubject,
-  getClassesByInstructor
+  getClassesByInstructor,
+  invalidateClassEnrollmentCountsCache
 };
