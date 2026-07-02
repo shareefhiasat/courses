@@ -115,6 +115,7 @@ export const createWorkflowDocumentController = async (req, res) => {
       createdBy: user.dbId,
       updatedBy: user.dbId,
       specificUserIds: req.body.specificUserIds,
+      targetStudentId: req.body.targetStudentId,
     });
 
     if (result.success) {
@@ -135,6 +136,12 @@ export const createWorkflowDocumentController = async (req, res) => {
       res.status(201).json({
         success: true,
         data: result.data
+      });
+    } else if (result.code === 409) {
+      res.status(409).json({
+        success: false,
+        error: result.error,
+        existingWorkflow: result.existingDocument
       });
     } else {
       res.status(400).json({
@@ -1078,6 +1085,7 @@ export const createCustomWorkflowDocumentController = async (req, res) => {
       metadata,
       attendanceIds,
       specificUserIds,
+      targetStudentId,
     } = req.body;
 
     if ((!workflowType && !workflowCategory) || !title) {
@@ -1188,6 +1196,7 @@ export const createCustomWorkflowDocumentController = async (req, res) => {
       createdBy: user.dbId,
       updatedBy: user.dbId,
       specificUserIds,
+      targetStudentId,
     });
 
     if (result.success) {
@@ -1209,6 +1218,12 @@ export const createCustomWorkflowDocumentController = async (req, res) => {
       return res.status(201).json({
         success: true,
         data: result.data
+      });
+    } else if (result.code === 409) {
+      return res.status(409).json({
+        success: false,
+        error: result.error,
+        existingWorkflow: result.existingDocument
       });
     } else {
       return res.status(400).json({

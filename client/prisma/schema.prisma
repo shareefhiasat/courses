@@ -676,6 +676,7 @@ model User {
   workflowDocumentsSubmitted     WorkflowDocument[]        @relation("WorkflowDocumentSubmitter")
   workflowDocumentsAssigned      WorkflowDocument[]        @relation("WorkflowDocumentAssignee")
   workflowDocumentsInstructed    WorkflowDocument[]        @relation("WorkflowDocumentInstructor")
+  workflowDocumentsTargetStudent WorkflowDocument[]        @relation("WorkflowDocumentTargetStudent")
   workflowCommentsAuthored       WorkflowComment[]         @relation("WorkflowCommentAuthor")
   workflowStatusHistoryActed     WorkflowStatusHistory[]   @relation("WorkflowStatusHistoryActor")
   permissionDenialAudits        PermissionDenialAudit[]   @relation("PermissionDenialAuditUser")
@@ -2173,6 +2174,7 @@ model WorkflowDocument {
   currentAssigneeId   Int?
   classId             Int?
   instructorId        Int?
+  targetStudentId     Int?
   date                DateTime?
   dateFrom            DateTime?
   dateTo              DateTime?
@@ -2190,6 +2192,7 @@ model WorkflowDocument {
   currentAssignee     User?                   @relation("WorkflowDocumentAssignee", fields: [currentAssigneeId], references: [id])
   instructor          User?                   @relation("WorkflowDocumentInstructor", fields: [instructorId], references: [id])
   class               Class?                  @relation("WorkflowDocumentClass", fields: [classId], references: [id])
+  targetStudent       User?                   @relation("WorkflowDocumentTargetStudent", fields: [targetStudentId], references: [id])
   comments            WorkflowComment[]
   statusHistory       WorkflowStatusHistory[]
   linkedAttendances   WorkflowDocumentAttendance[]
@@ -2204,6 +2207,8 @@ model WorkflowDocument {
   @@index([approvalFlow])
   @@index([date, status])
   @@index([program, subject])
+  @@index([targetStudentId])
+  @@index([classId, targetStudentId, status])
   @@map("workflow_documents")
 }
 

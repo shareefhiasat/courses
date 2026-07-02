@@ -118,6 +118,98 @@ async function shareWorkflowFile({ fileId, submitterId, approvalFlow, specificUs
   }
 }
 
+/**
+ * Statuses considered "in-progress" — a new workflow should not be created
+ * while one of these exists for the same dedup scope.
+ */
+const IN_PROGRESS_STATUSES = [
+  'DRAFT',
+  'SUBMITTED',
+  'UNDER_REVIEW',
+  'UNDER_HR_REVIEW',
+  'UNDER_ADMIN_REVIEW',
+  'AMENDED',
+];
+
+/**
+ * Check whether an in-progress workflow already exists for the same scope.
+ * Dedup rules:
+ *   ATTENDANCE/DAILY          → classId + date
+ *   ATTENDANCE/WEEKLY_SUMMARY → classId + dateFrom + dateTo
+ *   ATTENDANCE/EXCUSE         → classId + targetStudentId + dateFrom + dateTo
+ *   ATTENDANCE/WARNING        → classId + targetStudentId
+ *   PENALTY                   → classId + targetStudentId
+ *   BEHAVIOR                  → classId + targetStudentId
+ *   DISCONTINUATION           → classId + targetStudentId
+ *   GENERAL                   → exempt (no dedup)
+ *
+ * @returns {Promise<{isDuplicate: boolean, existingDocument?: object}>}
+ */
+export async function checkDuplicateWorkflow({
+  workflowCategory,
+  attendanceSubtype,
+  classId,
+  date,
+  dateFrom,
+  dateTo,
+  targetStudentId,
+}) {
+  if (workflowCategory === 'GENERAL') {
+    return { isDuplicate: false };
+  }
+
+  const where = {
+    status: { in: IN_PROGRESS_STATUSES },
+  };
+
+  if (classId) {
+    where.classId = Number(classId);
+  }
+
+  if (workflowCategory === 'ATTENDANCE') {
+    where.workflowCategory = 'ATTENDANCE';
+    if (attendanceSubtype) {
+      where.attendanceSubtype = attendanceSubtype;
+    }
+
+    if (attendanceSubtype === 'DAILY') {
+      if (date) {
+        where.date = new Date(date);
+      }
+    } else if (attendanceSubtype === 'WEEKLY_SUMMARY') {
+      if (dateFrom) where.dateFrom = new Date(dateFrom);
+      if (dateTo) where.dateTo = new Date(dateTo);
+    } else if (attendanceSubtype === 'EXCUSE') {
+      if (targetStudentId) where.targetStudentId = Number(targetStudentId);
+      if (dateFrom) where.dateFrom = new Date(dateFrom);
+      if (dateTo) where.dateTo = new Date(dateTo);
+    } else if (attendanceSubtype === 'WARNING') {
+      if (targetStudentId) where.targetStudentId = Number(targetStudentId);
+    }
+  } else {
+    where.workflowCategory = workflowCategory;
+    if (targetStudentId) {
+      where.targetStudentId = Number(targetStudentId);
+    }
+  }
+
+  const existing = await prisma.workflowDocument.findFirst({
+    where,
+    include: {
+      file: true,
+      submitter: true,
+      class: true,
+    },
+    orderBy: { createdAt: 'desc' },
+  });
+
+  if (existing) {
+    return { isDuplicate: true, existingDocument: existing };
+  }
+
+  return { isDuplicate: false };
+}
+
 /** @deprecated use getAssigneeForApprovalFlow */
 async function getAssigneeForWorkflowType(workflowType) {
   const taxonomy = buildTaxonomyFields({ workflowType });
@@ -152,7 +244,8 @@ export async function createWorkflowDocumentWithUpload(data) {
       subject,
       createdBy,
       updatedBy,
-      specificUserIds
+      specificUserIds,
+      targetStudentId,
     } = data;
 
     const taxonomy = buildTaxonomyFields({
@@ -161,6 +254,25 @@ export async function createWorkflowDocumentWithUpload(data) {
       attendanceSubtype,
       approvalFlow,
     });
+
+    // Check for duplicate in-progress workflow before doing any work
+    const dedupCheck = await checkDuplicateWorkflow({
+      workflowCategory: taxonomy.workflowCategory,
+      attendanceSubtype: taxonomy.attendanceSubtype,
+      classId,
+      date,
+      dateFrom,
+      dateTo,
+      targetStudentId,
+    });
+    if (dedupCheck.isDuplicate) {
+      return {
+        success: false,
+        code: 409,
+        error: 'An in-progress workflow already exists for this scope',
+        existingDocument: dedupCheck.existingDocument,
+      };
+    }
 
     const assigneeId = currentAssigneeId || await getAssigneeForApprovalFlow(taxonomy.approvalFlow);
 
@@ -243,6 +355,7 @@ export async function createWorkflowDocumentWithUpload(data) {
           currentAssigneeId: assigneeId,
           classId,
           instructorId,
+          targetStudentId: targetStudentId ? Number(targetStudentId) : null,
           date: date ? new Date(date) : null,
           dateFrom: dateFrom ? new Date(dateFrom) : null,
           dateTo: dateTo ? new Date(dateTo) : null,
@@ -258,7 +371,8 @@ export async function createWorkflowDocumentWithUpload(data) {
           submitter: true,
           currentAssignee: true,
           instructor: true,
-          class: true
+          class: true,
+          targetStudent: true
         }
       });
 
@@ -965,6 +1079,7 @@ export async function createCustomWorkflowDocument(data) {
       instructorId,
       date,
       specificUserIds,
+      targetStudentId,
     } = data;
 
     const taxonomy = buildTaxonomyFields({
@@ -973,6 +1088,25 @@ export async function createCustomWorkflowDocument(data) {
       attendanceSubtype,
       approvalFlow,
     });
+
+    // Check for duplicate in-progress workflow before doing any work
+    const dedupCheck = await checkDuplicateWorkflow({
+      workflowCategory: taxonomy.workflowCategory,
+      attendanceSubtype: taxonomy.attendanceSubtype,
+      classId,
+      date,
+      dateFrom,
+      dateTo,
+      targetStudentId,
+    });
+    if (dedupCheck.isDuplicate) {
+      return {
+        success: false,
+        code: 409,
+        error: 'An in-progress workflow already exists for this scope',
+        existingDocument: dedupCheck.existingDocument,
+      };
+    }
 
     let filePath = null;
     let fileId = null;
@@ -1087,6 +1221,7 @@ export async function createCustomWorkflowDocument(data) {
       attendanceIds,
       classId: classId ? Number(classId) : null,
       instructorId: resolvedInstructorId,
+      targetStudentId: targetStudentId ? Number(targetStudentId) : null,
       program: resolvedProgram,
       subject: resolvedSubject,
       createdBy,

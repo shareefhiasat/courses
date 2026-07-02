@@ -1,6 +1,6 @@
 import React, { useState, memo, useRef, useMemo, useEffect } from 'react';
 import { useLang } from '@contexts/LangContext';
-import { Modal, Button, Select, DatePicker, ClassSelector } from '@ui';
+import { Modal, Button, Select, DatePicker, ClassSelector, Checkbox } from '@ui';
 import { getPrograms, getSubjects } from '@services/business/programService';
 import { getClasses } from '@services/business/classService';
 import {
@@ -36,6 +36,7 @@ const CustomWorkflowDialog = ({ isOpen, onClose, file, onSubmit }) => {
   const [attendanceIds, setAttendanceIds] = useState([]);
   const [shareTargetMode, setShareTargetMode] = useState('role');
   const [specificUserIds, setSpecificUserIds] = useState([]);
+  const [targetStudentId, setTargetStudentId] = useState(null);
   const [errors, setErrors] = useState({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -82,6 +83,11 @@ const CustomWorkflowDialog = ({ isOpen, onClose, file, onSubmit }) => {
   const requiresSingleDate = selectedSubtype?.requiresSingleDate;
   const requiresClassContext = selectedSubtype?.requiresClassContext;
   const requiresAttendance = selectedSubtype?.requiresAttendance;
+  const requiresTargetStudent =
+    workflowCategory === 'BEHAVIOR' ||
+    workflowCategory === 'PENALTY' ||
+    workflowCategory === 'DISCONTINUATION' ||
+    (workflowCategory === 'ATTENDANCE' && (attendanceSubtype === 'WARNING' || attendanceSubtype === 'EXCUSE'));
 
   const resolvedClassId = useMemo(() => {
     if (!classFilter || classFilter === 'all') return null;
@@ -102,6 +108,7 @@ const CustomWorkflowDialog = ({ isOpen, onClose, file, onSubmit }) => {
     setAttendanceIds([]);
     setShareTargetMode('role');
     setSpecificUserIds([]);
+    setTargetStudentId(null);
     setErrors({});
     setAttachFile(!!file);
   }, [isOpen, file]);
@@ -117,6 +124,7 @@ const CustomWorkflowDialog = ({ isOpen, onClose, file, onSubmit }) => {
       setClassFilter('');
       setDateFrom('');
       setDateTo('');
+      setTargetStudentId(null);
     }
   }, [workflowCategory, attendanceSubtype]);
 
@@ -174,6 +182,9 @@ const CustomWorkflowDialog = ({ isOpen, onClose, file, onSubmit }) => {
     if (shareTargetMode === 'users' && specificUserIds.length === 0) {
       newErrors.specificUserIds = t('workflow.dialog.errors.specificUsersRequired', 'Select at least one user to share with');
     }
+    if (requiresTargetStudent && !targetStudentId) {
+      newErrors.targetStudentId = t('workflow.dialog.errors.targetStudentRequired', 'Select a target student');
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -194,6 +205,7 @@ const CustomWorkflowDialog = ({ isOpen, onClose, file, onSubmit }) => {
     setAttendanceIds([]);
     setShareTargetMode('role');
     setSpecificUserIds([]);
+    setTargetStudentId(null);
     setErrors({});
   };
 
@@ -224,6 +236,7 @@ const CustomWorkflowDialog = ({ isOpen, onClose, file, onSubmit }) => {
         program: workflowCategory === 'ATTENDANCE' ? (selectedProgram?.code || programFilter || null) : null,
         subject: workflowCategory === 'ATTENDANCE' ? (selectedSubject?.code || subjectFilter || null) : null,
         attendanceIds: workflowCategory === 'ATTENDANCE' ? attendanceIds : [],
+        targetStudentId: requiresTargetStudent ? targetStudentId : null,
         specificUserIds: shareTargetMode === 'users' ? specificUserIds : [],
         metadata: workflowCategory === 'ATTENDANCE'
           ? {
@@ -246,7 +259,18 @@ const CustomWorkflowDialog = ({ isOpen, onClose, file, onSubmit }) => {
       onClose();
     } catch (err) {
       console.error('Error creating workflow:', err);
-      setErrors({ submit: t('workflow.dialog.errors.submitFailed', 'Failed to create workflow') });
+      const status = err?.response?.status || err?.code;
+      const existingWorkflow = err?.response?.data?.existingWorkflow || err?.existingWorkflow;
+      if (status === 409 && existingWorkflow) {
+        const wf = existingWorkflow;
+        const wfTitle = wf.title || `#${wf.id}`;
+        const wfStatus = wf.status || 'in progress';
+        setErrors({
+          submit: t('workflow.dialog.errors.duplicateWorkflow', 'An in-progress workflow already exists: "{{title}}" ({{status}}). Please approve or reject it before creating a new one.', { title: wfTitle, status: wfStatus }),
+        });
+      } else {
+        setErrors({ submit: t('workflow.dialog.errors.submitFailed', 'Failed to create workflow') });
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -450,6 +474,23 @@ const CustomWorkflowDialog = ({ isOpen, onClose, file, onSubmit }) => {
               onChange={setAttendanceIds}
             />
             {errors.attendanceIds && <p className={styles.errorText}>{errors.attendanceIds}</p>}
+          </div>
+        )}
+
+        {requiresTargetStudent && (
+          <div className={styles.field}>
+            <label className={styles.label}>
+              {t('workflow.dialog.targetStudent', 'Target student')}
+              <span className={styles.required}>*</span>
+            </label>
+            <ShareUserSelect
+              value={targetStudentId}
+              onChange={setTargetStudentId}
+              placeholder={t('workflow.dialog.selectTargetStudent', 'Select student')}
+              excludeStudents={false}
+              fullWidth
+            />
+            {errors.targetStudentId && <p className={styles.errorText}>{errors.targetStudentId}</p>}
           </div>
         )}
 

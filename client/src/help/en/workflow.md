@@ -3,12 +3,12 @@ title: Workflow
 tags: [workflow, approval, inbox, compliance, analytics]
 route: /workflow/inbox
 order: 50
-keywords: [workflow, approval, inbox, document routing, compliance calendar, analytics, delegate, recall, reject, approve, template, escalation, overdue, auto-escalation, send, return, close, resubmit, withdraw, reupload, upload signed, DRAFT, SUBMITTED, UNDER_HR_REVIEW, UNDER_ADMIN_REVIEW, APPROVED, REJECTED, ATTENDANCE_DAILY, custom workflow, workflow trace, SLA, cycle time, rejection reasons, comments, action history]
+keywords: [workflow, approval, inbox, document routing, compliance calendar, analytics, delegate, recall, reject, approve, template, escalation, overdue, auto-escalation, send, return, close, resubmit, withdraw, reupload, upload signed, DRAFT, SUBMITTED, UNDER_HR_REVIEW, UNDER_ADMIN_REVIEW, APPROVED, REJECTED, ATTENDANCE_DAILY, ATTENDANCE_WEEKLY, custom workflow, workflow trace, SLA, cycle time, rejection reasons, comments, action history, weekly summary, behavioral, penalty, cron, signed document, threshold check]
 ---
 
 # Workflow
 
-The Workflow system manages approval processes and document routing. It ensures that requests (leave, training, equipment, attendance reports, etc.) follow the correct approval chain before being executed. The system supports multiple document types, role-based approval stages, comments, delegation, recall, and analytics.
+The Workflow system manages approval processes and document routing. It ensures that requests (leave, training, equipment, attendance reports, etc.) follow the correct approval chain before being executed. The system supports multiple document types, role-based approval stages, comments, delegation, recall, analytics, weekly attendance summaries, signed document uploads, and automated SLA monitoring.
 
 ## Who can access
 
@@ -51,6 +51,7 @@ Workflow documents move through a defined state machine. Each state determines w
 - **Create from template** — Select a workflow template and fill in the required fields. The system creates a document in `DRAFT` state via `createWorkflowDocument`.
 - **Create custom workflow** — Upload a file from [Smart Drive](/en/smart-drive) and create a custom workflow document around it via `createCustomWorkflow`.
 - **Submit attendance report** — From the [Attendance](/en/attendance) screen, export and submit generates an `ATTENDANCE_DAILY` workflow document with the Excel report attached via `submitAttendanceReport`.
+- **Generate weekly summary** — HR can generate a weekly attendance summary by selecting a date range. The system aggregates all `ATTENDANCE_DAILY` documents in that range and creates an `ATTENDANCE_WEEKLY` workflow document with an Excel report attached. See [Weekly summary auto-export](#weekly-summary-auto-export) below.
 - **Send** — Submit a draft document to the first approval stage. Transitions from `DRAFT` to `SUBMITTED` via `sendWorkflowDocument`. Requires a recipient selection.
 
 ### Approval actions
@@ -65,7 +66,7 @@ Workflow documents move through a defined state machine. Each state determines w
 - **Resubmit** — After rejection, the submitter can resubmit the document. Transitions from `REJECTED` back to `SUBMITTED`.
 - **Withdraw** — The submitter can withdraw a document at various stages. Removes it from the approval chain.
 - **Reupload** — Replace the attached file on an approved document. Useful when a signed version needs to be uploaded.
-- **Upload signed** — Upload a signed/approved version of the document after it has been approved.
+- **Upload signed** — Upload a signed/approved version of the document after it has been approved. For `ATTENDANCE_WEEKLY` documents, only Admin users can upload signed versions. The signed upload creates a new file version and reassigns the document back to HR for final review. Version tracking uses `reviewCycleCount`.
 
 ### Communication
 
@@ -80,6 +81,39 @@ Workflow documents move through a defined state machine. Each state determines w
 - **Approval rates** — Percentage of documents approved vs. rejected, by document type.
 - **Rejection reasons** — Aggregated comments from rejections, showing common reasons.
 - **Bottleneck analysis** — Identifies which approval stage takes the longest.
+
+### Weekly summary auto-export
+
+The weekly summary feature allows HR to aggregate daily attendance documents into a single weekly report:
+
+1. HR selects a date range (`weekStart` and `weekEnd`).
+2. The system queries all `ATTENDANCE_DAILY` workflow documents in that range with status `SUBMITTED`.
+3. Attendance data is aggregated across all daily documents.
+4. An Excel report is generated with class-level summaries.
+5. A new workflow document of type `ATTENDANCE_WEEKLY` is created with category `ATTENDANCE` and subtype `WEEKLY_SUMMARY`.
+6. The approval flow is `HR_THEN_ADMIN` — HR creates and submits, Admin reviews and approves.
+7. The weekly document links back to all source daily documents via `linkedDailyDocumentIds` in its metadata.
+
+This creates an end-to-end audit trail: daily attendance exports → `ATTENDANCE_DAILY` documents → weekly summary → `ATTENDANCE_WEEKLY` document → Admin approval → signed upload.
+
+### Behavioral and penalty report connection
+
+Attendance violations flow through the system as follows:
+
+1. **Attendance marking** — Instructors mark students in the [Attendance](/en/attendance) screen.
+2. **Violations identified** — Absences, late arrivals, and other violations are tracked.
+3. **Behavioral export** — From the attendance screen, a behavioral Excel report can be generated for selected subjects, violation types, and date ranges.
+4. **Penalty reports** — Penalty records are generated from attendance violation data and can be exported as `penalty` type.
+5. **Workflow submission** — Behavioral and penalty reports can be submitted through the workflow system as supporting documents for HR/Admin review.
+
+### Automated monitoring
+
+The system runs automated background jobs via a cron scheduler:
+
+- **SLA monitor** — Runs every 6 hours. Checks workflow documents for overdue SLA items and triggers alerts.
+- **Attendance threshold check** — Runs every 6 hours. Checks attendance thresholds and triggers alerts or penalty records when thresholds are exceeded.
+
+Both jobs run in the `Asia/Riyadh` timezone and are initialized automatically when the backend server starts.
 
 ## Inbox features
 
@@ -111,6 +145,9 @@ The detail page shows comprehensive information about a workflow document:
 - **Role-based actions** — Available actions depend on the user's role and the document's current state. For example, only HR can approve at the `UNDER_HR_REVIEW` stage.
 - **Recipient filtering** — When sending a document, the system filters the available recipients based on the document type and the current stage.
 - **Excel report generation** — When submitting an attendance report, the system generates an Excel file with attendance data and attaches it to the workflow document.
+- **Weekly summary aggregation** — Weekly summaries can only be generated from `ATTENDANCE_DAILY` documents with status `SUBMITTED`. Draft or rejected daily documents are excluded.
+- **Signed upload restriction** — Only `ATTENDANCE_WEEKLY` documents can have signed uploads, and only Admin users can perform the upload.
+- **Cron-based monitoring** — SLA and attendance threshold checks run automatically every 6 hours. No manual intervention is needed.
 
 ## Limitations
 
@@ -119,6 +156,8 @@ The detail page shows comprehensive information about a workflow document:
 - Analytics data is aggregated daily — real-time workflow metrics are not available.
 - Custom workflows require a file from Smart Drive — you cannot create a custom workflow without an attached file.
 - Withdrawn documents cannot be resumed — a new document must be created.
+- Weekly summaries require at least one `ATTENDANCE_DAILY` document in the selected date range. If none exist, the generation fails.
+- Signed document uploads are restricted to `ATTENDANCE_WEEKLY` documents only.
 
 ## Troubleshooting
 
@@ -132,7 +171,8 @@ The detail page shows comprehensive information about a workflow document:
 | Overdue task not escalating | Auto-escalation must be configured by the administrator. Contact your admin to verify the timeout setting. |
 | Cannot see tasks in inbox | Check that you are the assigned approver for the current stage. Verify your role matches the stage requirement. |
 | Export and submit fails | The Workflow system may be unavailable or the `ATTENDANCE_DAILY` type may not be configured. Try exporting from [Attendance](/en/attendance) without submission. |
-| Cannot upload signed version | The document must be in `APPROVED` state to upload a signed version. Check the current state on the detail page. |
+| Cannot upload signed version | The document must be in `APPROVED` state to upload a signed version. Check the current state on the detail page. For `ATTENDANCE_WEEKLY`, only Admin users can upload signed versions. |
+| Weekly summary generation fails | Ensure at least one `ATTENDANCE_DAILY` document with status `SUBMITTED` exists in the selected date range. |
 | Analytics page shows no data | Data is aggregated daily. Check back after the next aggregation cycle, or verify that workflow documents exist. |
 
 ## Related articles
@@ -141,5 +181,5 @@ The detail page shows comprehensive information about a workflow document:
 - [Dashboard](/en/dashboard) — Scheduled Reports tab can generate workflow performance reports.
 - [Profile & Settings](/en/profile) — Manage your workflow notification preferences.
 - [Scheduling](/en/scheduling) — Workflow due dates appear on the compliance calendar alongside scheduling events.
-- [Attendance](/en/attendance) — Export and submit creates an `ATTENDANCE_DAILY` workflow document.
-- [Smart Drive](/en/smart-drive) — Custom workflows can be created from files stored in Smart Drive.
+- [Attendance](/en/attendance) — Export and submit creates an `ATTENDANCE_DAILY` workflow document. Behavioral and penalty reports can also be submitted through workflow.
+- [Smart Drive](/en/smart-drive) — Custom workflows can be created from files stored in Smart Drive. All exports are saved to Smart Drive → Exported Files.

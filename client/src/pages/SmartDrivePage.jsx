@@ -630,6 +630,9 @@ export default function SmartDrivePage() {
         stack: err.stack,
         fullError: err
       });
+      if (err?.response?.status === 409) {
+        throw err;
+      }
       error(t('drive.workflowCreationError', 'Error creating workflow'));
     }
   }, [t, success, error, selectedFileForWorkflow, refreshFiles]);

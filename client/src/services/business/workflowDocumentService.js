@@ -184,6 +184,7 @@ export const createCustomWorkflow = async (file, workflowData) => {
       metadata: workflowData.metadata,
       attendanceIds: workflowData.attendanceIds || [],
       specificUserIds: workflowData.specificUserIds || [],
+      targetStudentId: workflowData.targetStudentId || null,
     };
 
     console.log('🔵 [workflowDocumentService] API Payload:', payload);

@@ -3,7 +3,7 @@ title: Scheduling
 tags: [scheduling, calendar, availability, classes, rooms, instructors]
 route: /scheduling-calendar
 order: 60
-keywords: [scheduling, calendar, session, instructor availability, room availability, rooms management, conflict detection, capacity check, recurring sessions, drag to reschedule, timezone, summary dashboard, export]
+keywords: [scheduling, calendar, session, instructor availability, room availability, rooms management, conflict detection, capacity check, recurring sessions, drag to reschedule, timezone, summary dashboard, export, holiday, weekend, break time, bilingual conflict messages, teacher conflict, classroom conflict, max sessions]
 ---
 
 # Scheduling
@@ -42,11 +42,16 @@ The Scheduling system manages class sessions, instructor availability, and room 
 
 ## Validations & business rules
 
-- **Conflict detection** — The system warns about double-booking before saving:
-  - An instructor cannot be in two sessions at the same time.
-  - A room cannot host two sessions simultaneously.
+- **Conflict detection** — The system warns about scheduling conflicts before saving:
+  - **Teacher conflict** — An instructor cannot be in two sessions at the same time.
+  - **Classroom conflict** — A room cannot host two sessions simultaneously.
+  - **Max sessions exceeded** — Daily or weekly session limits for an instructor or room cannot be exceeded.
+  - **Weekend conflict** — Sessions cannot be scheduled on weekends (configurable).
+  - **Holiday conflict** — Sessions cannot be scheduled on holidays defined in the system.
+  - **Break time conflict** — Sessions cannot overlap with configured break times.
+- **Bilingual conflict messages** — All conflict warnings are displayed in both Arabic and English.
 - **Capacity check** — The number of enrolled students in a class cannot exceed the room's capacity.
-- **Availability enforcement** — Sessions can only be scheduled during the instructor's and room's defined availability windows.
+- **Availability enforcement** — Sessions can only be scheduled during the instructor's and room's defined availability windows. If no availability is set, the system warns but may allow scheduling depending on configuration.
 - **Session duration** — Minimum session duration is 30 minutes. Maximum is 8 hours.
 - **Recurring sessions** — You can create recurring sessions (daily, weekly, bi-weekly) with an optional end date.
 - **Timezone** — All times are displayed in the user's local timezone but stored in UTC.
@@ -68,7 +73,7 @@ The Scheduling system manages class sessions, instructor availability, and room 
 
 | Problem | Solution |
 | --- | --- |
-| Conflict warning when creating a session | The instructor or room is already booked. Choose a different time slot or resource. |
+| Conflict warning when creating a session | The instructor or room is already booked, or the date falls on a holiday/weekend. Choose a different time slot, date, or resource. Check the conflict type in the warning message. |
 | Cannot drag a session to a new time | Drag-to-reschedule only works in week view. Switch to week view and try again. |
 | Instructor not appearing in dropdown | Ensure the instructor has availability set up. Go to Instructor Availability screen. |
 | Room capacity exceeded warning | The enrolled class size exceeds the room's capacity. Choose a larger room or reduce the class size. |

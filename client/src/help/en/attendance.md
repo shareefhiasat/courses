@@ -3,12 +3,12 @@ title: Attendance
 tags: [attendance, qr, check-in, hr]
 route: /attendance
 order: 20
-keywords: [attendance, QR scanner, check-in, HR attendance, bulk attendance, present, absent, late, excused, session, penalties, participation, export, standup, late mode, export and submit, session start, session end]
+keywords: [attendance, QR scanner, check-in, HR attendance, bulk attendance, present, absent, late, excused, session, penalties, participation, export, standup, late mode, export and submit, session start, session end, official report, daily official, attendance official, violations, behavioral, penalty, export drawer, export history, date range, Smart Drive, message instructor, voice message, standup mode, regular mode, PDF, Excel, format picker, serial number, watermark, deduction]
 ---
 
 # Attendance
 
-The Attendance screen allows instructors and HR staff to take, review, and export attendance records. It supports two attendance modes — **regular** (classroom) and **standup** (morning roll-call) — and includes a QR scanner for fast check-in. Attendance data feeds into penalties, participation scores, and workflow approval documents.
+The Attendance screen allows instructors and HR staff to take, review, and export attendance records. It supports two attendance modes — **regular** (classroom) and **standup** (morning roll-call) — and includes a QR scanner for fast check-in. Attendance data feeds into penalties, participation scores, and workflow approval documents. The screen also provides official report generation (PDF/Excel), behavioral and penalty exports with date range selection, an export history drawer for managing all past exports, and a quick-action to message the class instructor.
 
 ## Who can access
 
@@ -41,7 +41,7 @@ Used for classroom sessions. Statuses are set via the main attendance screen or 
 
 ### Standup attendance
 
-Used for morning standup formations. Statuses are prefixed with `STANDUP_`.
+Used for morning standup formations. Statuses are prefixed with `STANDUP_`. Standup mode operates at the **program level** — you select a program instead of a specific class. Standup attendance uses a separate API endpoint (`/standup-attendance`) and does not interfere with regular classroom records.
 
 | Status | Code | Description |
 | --- | --- | --- |
@@ -58,6 +58,7 @@ Used for morning standup formations. Statuses are prefixed with `STANDUP_`.
 - **Select a session** — Choose a class session from the dropdown. Sessions must exist on the [Scheduling](/en/scheduling) calendar.
 - **Mark students** — Click each student's status button (Present, Absent, Late, Excused). The system saves each mark individually via `markAttendance`.
 - **Toggle late mode** — Switch the entire class to late-mode marking. When enabled, all unmarked students are assumed late unless explicitly marked otherwise.
+- **Message class instructor** — Admin, HR, and Super Admin can message the selected class's instructor directly from the attendance screen. Click the message button to open a [Chat](/en/chat) direct message in a new tab. The button only appears when an instructor is assigned to the selected class.
 
 ### Session management
 
@@ -83,6 +84,76 @@ Used for morning standup formations. Statuses are prefixed with `STANDUP_`.
 - **Export to Excel** — Download the current attendance data as an Excel file. Requires `attendance.canExport` or `qr-scanner.canExport`.
 - **Export and submit** — Generates an Excel report and automatically creates a workflow document of type `ATTENDANCE_DAILY`, attaching the Excel file and submitting it for HR/Admin review. This bridges attendance with the [Workflow](/en/workflow) system.
 - **Export summary** — Download a summarised attendance report. Requires `canExportSummary`.
+- **Penalty export** — Export penalty records generated from attendance violations. Logged as `penalty` export type.
+
+All exports are automatically saved to [Smart Drive](/en/smart-drive) → Exported Files and logged in the export history drawer.
+
+### Official reports
+
+The system generates formal official reports with serial numbers, watermarks, and official formatting. Two types are available:
+
+#### Daily Official Report
+
+Generates a formal daily attendance report for the selected class (regular mode) or program (standup mode).
+
+- **Regular mode** — Requires a class selection. The report shows each student's number, name, attendance status marks, and notes.
+- **Standup mode** — Requires a program selection. The report uses program-level data instead of class-level.
+- **Format** — Choose between **PDF** and **Excel** via the format picker.
+- **Serial number** — Each report receives a unique serial number via `buildDailyOfficialSerial`.
+- **Watermark** — Reports include a watermark with the exporting user's name.
+- **Export type** — Logged as `official` in export history.
+
+#### Attendance Official Report (Violations)
+
+Generates a formal violations/behavior report covering a date range. Titled "Behavior / Attendance Violation Form".
+
+- **Date range** — Select a from-date and to-date. Defaults to the last 30 days.
+- **Subject selection** — Choose which subjects to include (multi-select checkboxes).
+- **Violation types** — Filter by violation type: Absent (No Excuse), Excused Leave, Late, Human Case.
+- **Grouping** — Violations are grouped by student → date → violation type → subject, with deduction amounts shown per violation.
+- **Format** — Choose between **PDF** and **Excel** via the format picker.
+- **Serial number** — Each report receives a unique serial number via `buildViolationsOfficialSerial`.
+- **Export type** — Logged as `official_attendance` in export history.
+
+### Attendance violations & behavioral reports
+
+The **Attendance Violations Modal** provides two modes for exporting violation data:
+
+#### Standard mode (behavioral export)
+
+- Exports attendance violations as an Excel file.
+- Filename includes the date, year, semester (S1/S2), program name, and subject label.
+- Logged as `behavioral` export type in export history.
+- Saved to [Smart Drive](/en/smart-drive) → Exported Files.
+
+#### Official mode (official report)
+
+- Opens the format picker to choose PDF or Excel.
+- Uses the `prepareAttendanceOfficialData` engine to build the formal report.
+- See "Attendance Official Report" under Official Reports above.
+
+#### Violations modal controls
+
+| Control | Description |
+| --- | --- |
+| **Date from** | Start date for the report range. Defaults to 30 days before the selected date. |
+| **Date to** | End date for the report range. Defaults to the selected date. |
+| **Subjects** | Multi-select checkboxes for which subjects to include. |
+| **Violation types** | Checkboxes for Absent (No Excuse), Excused Leave, Late, Human Case. |
+| **Format picker** | PDF or Excel (official mode only). Defaults to PDF. |
+
+Validation: at least one subject, one violation type, and a valid date range (end date ≥ start date) are required.
+
+### Export history drawer
+
+The **Export History Drawer** shows all past attendance and behavioral exports in one place.
+
+- **Filter by type** — Filter exports by type: `attendance_daily`, `official`, `behavioral`, `penalty`, `summary`.
+- **Filter by format** — Filter by file format: `pdf`, `excel`.
+- **Grouped by user and date** — Exports are grouped by the user who generated them and the date of export.
+- **File details** — Each entry shows the filename, export type, format, timestamp, and exporting user.
+- **Open/download** — Click any export entry to open or download the file.
+- **Smart Drive integration** — All exports are also available in [Smart Drive](/en/smart-drive) → Exported Files.
 
 ### Editing records
 
@@ -116,6 +187,10 @@ The QR Scanner has its own set of granular operations:
 - **Attendance feeds into penalties** — Absences and late arrivals can automatically generate penalty records via configured rules.
 - **Attendance feeds into participation** — Present and on-time check-ins contribute to participation scores.
 - **Standup vs regular separation** — Standup attendance uses a separate API endpoint and does not interfere with regular classroom attendance records.
+- **Official report prerequisites** — Daily official reports require a class (regular mode) or program (standup mode) selection. Attendance official reports require at least one subject and one violation type selected.
+- **Date range validation** — For violations and official reports, the end date must be on or after the start date. The default range is 30 days.
+- **Export logging** — All exports (daily, official, behavioral, penalty, summary) are logged to export history and saved to Smart Drive → Exported Files.
+- **Deduction calculation** — Official violation reports show deduction amounts per violation type, calculated based on the attendance status and excuse approval status.
 
 ## Prerequisites
 
@@ -124,6 +199,8 @@ The QR Scanner has its own set of granular operations:
 - For QR scanning, the student must have a generated QR code (issued from their [Profile](/en/profile)).
 - For HR bulk attendance, you need `HR` or `Admin` role and access to the `hr-attendance` screen.
 - For export and submit, the [Workflow](/en/workflow) system must be configured to accept `ATTENDANCE_DAILY` document types.
+- For official reports, the selected class (regular) or program (standup) must have attendance data for the chosen date.
+- For behavioral and official violation reports, at least one subject and one violation type must be selected, and a valid date range must be provided.
 
 ## Limitations
 
@@ -132,6 +209,9 @@ The QR Scanner has its own set of granular operations:
 - Attendance export is limited to 10,000 records per request. For larger exports, narrow the date range.
 - Late mode applies to the entire class session — it cannot be toggled per student.
 - Standup attendance statuses are not interchangeable with regular attendance statuses.
+- Official reports in standup mode require a program selection — you cannot generate a daily official report for a single class in standup mode.
+- Export history is limited to exports made within the current academic year. Older exports are available in [Smart Drive](/en/smart-drive) → Exported Files.
+- The message instructor button is only available to Admin, HR, and Super Admin roles, and only when an instructor is assigned to the selected class.
 
 ## Troubleshooting
 
@@ -146,11 +226,19 @@ The QR Scanner has its own set of granular operations:
 | Export and submit fails | The Workflow system may be unavailable. Try exporting without submission, then submit manually from [Workflow](/en/workflow). |
 | Late mode toggle not visible | Late mode is only available for regular attendance. Switch from standup mode to regular mode. |
 | Standup statuses not appearing | Standup attendance requires a standup session on the scheduling calendar. Verify the session type is set to standup. |
+| Official report button is disabled | Ensure a class (regular mode) or program (standup mode) is selected. The report requires attendance data for the selected date. |
+| Violations modal shows no data | Check the date range — there may be no attendance records in the selected period. Try widening the date range. |
+| Export history drawer is empty | No exports have been made yet. Generate an export first, then check the drawer. |
+| Cannot download from export history | The file may have been moved or deleted from Smart Drive. Check Smart Drive → Exported Files directly. |
+| Message instructor button not visible | The button appears only for Admin/HR/Super Admin and only when an instructor is assigned to the selected class. Verify the class has an instructor. |
+| Official report PDF fails to generate | The PDF renderer may be loading. Wait a moment and retry. If the issue persists, try Excel format as a fallback. |
 
 ## Related articles
 
 - [Dashboard](/en/dashboard) — View attendance data in the Operations tabs (Penalty, Participation).
 - [Scheduling](/en/scheduling) — Sessions must exist on the calendar before attendance can be taken.
 - [Notifications](/en/notifications) — Students receive alerts for absences and late marks.
-- [Workflow](/en/workflow) — Export and submit creates a workflow document for HR/Admin review.
+- [Workflow](/en/workflow) — Export and submit creates a workflow document for HR/Admin review. Weekly summaries aggregate daily attendance documents.
 - [Profile & Settings](/en/profile) — Students generate their QR codes from the profile page.
+- [Smart Drive](/en/smart-drive) — All exports are automatically saved to Smart Drive → Exported Files.
+- [Chat](/en/chat) — The message instructor feature opens a direct message in the chat interface.

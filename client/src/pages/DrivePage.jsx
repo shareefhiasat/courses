@@ -172,6 +172,9 @@ export default function DrivePage() {
         error: err.message,
         stack: err.stack
       });
+      if (err?.response?.status === 409) {
+        throw err;
+      }
       alert(t('drive.workflowCreationError', 'Error creating workflow'));
     }
   }, [t, selectedFileForWorkflow, navigate]);

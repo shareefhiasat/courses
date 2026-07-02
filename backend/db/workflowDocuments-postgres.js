@@ -52,6 +52,7 @@ const workflowDocumentIncludes = {
     },
   },
   class: true,
+  targetStudent: true,
   linkedAttendances: {
     include: {
       attendance: {
@@ -86,6 +87,7 @@ export async function createWorkflowDocument(data) {
       currentAssigneeId, 
       classId, 
       instructorId, 
+      targetStudentId,
       date,
       dateFrom,
       dateTo,
@@ -120,6 +122,7 @@ export async function createWorkflowDocument(data) {
           currentAssigneeId,
           classId,
           instructorId,
+          targetStudentId: targetStudentId ? Number(targetStudentId) : null,
           date: date ? new Date(date) : null,
           dateFrom: dateFrom ? new Date(dateFrom) : null,
           dateTo: dateTo ? new Date(dateTo) : null,

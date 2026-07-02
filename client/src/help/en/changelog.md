@@ -10,6 +10,43 @@ keywords: [changelog, whats new, updates, release notes, new features, improveme
 
 Recent updates and improvements to the Military LMS help documentation.
 
+## Recent Updates — Attendance, Chat, Workflow, and Reports
+
+### Attendance
+
+- **Official attendance reports** — Generate formal daily and violations reports with serial numbers, watermarks, and official formatting in PDF or Excel format.
+- **Attendance violations modal** — New modal with date range selection (from/to), subject multi-select, and violation type filtering (Absent No Excuse, Excused Leave, Late, Human Case).
+- **Export history drawer** — Centralized drawer showing all past exports with filters by type (`attendance_daily`, `official`, `behavioral`, `penalty`, `summary`) and format (`pdf`, `excel`).
+- **Behavioral and penalty report exports** — Export attendance violations as behavioral Excel reports or penalty reports, all logged in export history.
+- **Standup attendance mode** — Program-level selection for standup attendance with separate API endpoint and official report support.
+- **Message instructor** — Admin/HR/Super Admin can message the class instructor directly from the attendance screen via chat.
+- **Export auto-save to Smart Drive** — All exports are automatically saved to Smart Drive → Exported Files.
+
+### Chat
+
+- **Group chats** — Create multi-user group chats with admin management (rename, assign admin, leave, room stats).
+- **Direct messages** — One-to-one conversations with any user, created on-demand.
+- **Global chat** — System-wide chat room for all authenticated users.
+- **Voice messages** — Record and send audio clips directly in chat.
+- **Message reactions** — Toggle emoji reactions on any message.
+- **Polls** — Create polls with multiple options and real-time vote tracking.
+- **Star and pin messages** — Bookmark important messages or pin them in group chats.
+- **Read receipts** — Track which messages have been read by participants.
+- **Message editing and deletion** — Edit or delete your own sent messages.
+
+### Workflow
+
+- **Weekly attendance summary** — HR can generate `ATTENDANCE_WEEKLY` documents that aggregate daily attendance documents over a date range.
+- **Signed document upload** — Admin can upload signed versions of weekly summary documents with version tracking.
+- **Behavioral and penalty report connection** — Attendance violations flow into behavioral exports and penalty reports that can be submitted through workflow.
+- **Automated SLA monitoring** — Cron job runs every 6 hours to check for overdue workflow items.
+- **Attendance threshold check** — Cron job runs every 6 hours to trigger alerts when attendance thresholds are exceeded.
+
+### Scheduling
+
+- **Holiday and weekend conflict detection** — Sessions cannot be scheduled on holidays or weekends with bilingual conflict messages.
+- **Expanded conflict types** — Teacher conflict, classroom conflict, max sessions exceeded, weekend, holiday, and break time conflicts.
+
 ## June 2026 — Documentation Overhaul
 
 ### New features
