@@ -234,6 +234,24 @@ const WorkflowInboxPage = () => {
       },
     },
     {
+      field: 'targetStudent',
+      headerName: t('workflow.inbox.targetStudent', 'Target Student'),
+      width: 150,
+      renderCell: (params) => {
+        const student = params.row.targetStudent;
+        if (!student) return <span className="text-sm text-gray-400">—</span>;
+        const displayName = getLocalizedUserName(student, lang, '-');
+        return (
+          <div className="flex items-center gap-2">
+            {React.cloneElement(getUserRoleIcon('student'), { color: getUserRoleColor('student'), size: 16 })}
+            <span className="text-sm" style={{ color: getUserRoleColor('student') }}>
+              {displayName}
+            </span>
+          </div>
+        );
+      }
+    },
+    {
       field: 'title',
       headerName: t('workflow.inbox.workflowTitle', 'Workflow Title'),
       width: 200,

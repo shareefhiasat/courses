@@ -700,6 +700,20 @@ const WorkflowDocumentDetailPage = () => {
                   })()}
                 </span>
               )}
+              {document.targetStudent && (
+                <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted, #6b7280)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                  <span style={{ color: 'var(--text-muted, #6b7280)' }}>·</span>
+                  {React.cloneElement(getUserRoleIcon('student'), { color: getUserRoleColor('student'), size: 12 })}
+                  <span style={{ color: getUserRoleColor('student') }}>
+                    {(() => {
+                      const s = document.targetStudent;
+                      if (lang === 'ar' && s.displayNameAr) return s.displayNameAr;
+                      if (s.firstName && s.lastName) return `${s.firstName} ${s.lastName}`;
+                      return s.displayName || s.firstName || s.email || '';
+                    })()}
+                  </span>
+                </span>
+              )}
             </div>
           </div>
         </CardContent>

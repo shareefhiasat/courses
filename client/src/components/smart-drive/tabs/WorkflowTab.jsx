@@ -1047,6 +1047,14 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                             {getIcon('ui', 'calendar', 14, 'var(--text-muted, #6b7280)')}
                             {formatRelativeTime(workflow.createdAt, lang, t)}
                           </span>
+                          {workflow.targetStudent && (
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                              {(() => { const icon = getUserRoleIcon('student'); const color = getUserRoleColor('student'); return icon ? React.cloneElement(icon, { color, size: 14 }) : null; })()}
+                              <span style={{ color: getUserRoleColor('student'), fontWeight: 500 }}>
+                                {getLocalizedUserName(workflow.targetStudent, lang, '-')}
+                              </span>
+                            </span>
+                          )}
                           {workflow.fileVersionNumber && (
                             <span style={{
                               padding: '0.125rem 0.5rem',
@@ -1320,6 +1328,14 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                     {getIcon('ui', 'calendar', 14)}
                     {formatRelativeTime(workflow.createdAt, lang, t)}
                   </span>
+                  {workflow.targetStudent && (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                      {(() => { const icon = getUserRoleIcon('student'); const color = getUserRoleColor('student'); return icon ? React.cloneElement(icon, { color, size: 14 }) : null; })()}
+                      <span style={{ color: getUserRoleColor('student'), fontWeight: 500 }}>
+                        {getLocalizedUserName(workflow.targetStudent, lang, '-')}
+                      </span>
+                    </span>
+                  )}
                   {workflow.fileVersionNumber && (
                     <span style={{
                       padding: '0.125rem 0.5rem',
