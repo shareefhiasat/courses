@@ -3,7 +3,7 @@ title: Chat
 tags: [chat, messaging, communication, groups, direct messages, polls, reactions, voice messages]
 route: /chat
 order: 30
-keywords: [chat, messaging, real-time, WebSocket, instant message, file attachment, contact list, unread badge, conversation, pin, group chat, direct message, DM, global chat, voice message, reactions, polls, star message, read receipts, group admin, room stats, leave group, assign admin, online status]
+keywords: [chat, messaging, real-time, WebSocket, instant message, file attachment, contact list, unread badge, conversation, pin, group chat, direct message, DM, global chat, voice message, reactions, polls, star message, read receipts, group admin, room stats, leave group, assign admin, online status, wallpaper, lightbox, participant management, group info, media tab, documents tab, starred filter]
 ---
 
 # Chat
@@ -53,8 +53,10 @@ The system supports four types of chat rooms:
 
 - **Reactions** — Toggle emoji reactions on any message. Reactions are visible to all room participants.
 - **Star messages** — Bookmark important messages for quick reference later. Starred messages are private to you.
+- **Starred messages filter** — Toggle the starred filter view to show only starred messages in the current conversation. A count badge shows the number of starred messages. Click the toggle again to return to the normal message view.
 - **Pin messages** — Pin important messages to the top of the conversation. Available in group chats only. Pinned messages are visible to all group members.
 - **Read receipts** — The system tracks which messages have been read by each participant. Read receipts are synced in real time.
+- **Image lightbox** — Click any image in a chat message to open an in-app lightbox preview instead of opening a new tab. Close the lightbox by clicking outside the image or pressing Escape.
 
 ### Polls
 
@@ -66,9 +68,19 @@ The system supports four types of chat rooms:
 
 - **Create group** — Any user can create a group chat. The creator becomes the group admin.
 - **Rename group** — The group admin can rename the group (supports English and Arabic names) via `updateGroupRoom`.
-- **Assign admin** — The group admin can transfer the admin role to another member via `assignGroupAdmin`.
-- **Leave group** — Any member can leave a group chat via `leaveGroupRoom`.
+- **Assign admin** — The group admin can transfer the admin role to another member via `assignGroupAdmin`. A confirmation dialog appears before the transfer is completed.
+- **Leave group** — Any member can leave a group chat via `leaveGroupRoom`. A confirmation dialog appears before leaving.
+- **Participant management** — The group admin can open the Participant Management Modal to view all members, their roles, and status. Admins can assign a new admin or remove themselves from the group from this modal.
 - **Room stats** — View message count, media count, document count, and link count for a group chat via `getRoomStats`.
+- **Group info panel** — Click the group name or info icon to open the Group Info Panel, which has multiple tabs:
+  - **Media** — All images and videos shared in the group, displayed as thumbnails.
+  - **Documents** — All files and documents shared in the group, with file type icons and size.
+  - **Links** — All URLs shared in the group.
+
+### Chat customization
+
+- **Wallpaper picker** — Customize the chat background for any conversation. Choose from preset wallpaper themes. The wallpaper is saved per room using room-specific localStorage keys, with a fallback to global preferences. Each room can have a different wallpaper.
+- **DM display name** — Direct message conversations show the other person's name in the header instead of a generic "Direct Message" label.
 
 ### Sidebar and navigation
 

@@ -3,7 +3,7 @@ title: Notifications
 tags: [notifications, alerts, inbox]
 route: /notifications
 order: 31
-keywords: [notifications, alerts, inbox, unread, read, mark as read, filter, announcement, quiz results, attendance alert, workflow task, chat message, scheduling change, email, push notifications]
+keywords: [notifications, alerts, inbox, unread, read, mark as read, filter, announcement, quiz results, attendance alert, workflow task, chat message, scheduling change, email, push notifications, standup attendance, drive folder, drive comment, public link, workflow comment, workflow withdrawn, behavioral, penalty, participation, marks, resources, bilingual]
 ---
 
 # Notifications
@@ -36,9 +36,26 @@ The Notifications screen shows all system notifications in one place — announc
 | **Announcement** | New announcement posted | [Dashboard](/en/dashboard) → Announcements |
 | **Quiz Result** | Quiz auto-graded or manually graded | [Quizzes](/en/quizzes) |
 | **Attendance Alert** | Student marked absent or late | [Attendance](/en/attendance) |
+| **Standup Attendance** | Student marked at morning standup | [Attendance](/en/attendance) |
 | **Workflow Task** | New task assigned to you | [Workflow](/en/workflow) |
-| **Chat Message** | New chat message received | [Chat](/en/chat) |
+| **Workflow Comment** | Comment added to a workflow document | [Workflow](/en/workflow) |
+| **Workflow Withdrawn** | Document withdrawn by submitter | [Workflow](/en/workflow) |
+| **Chat Message** | New chat message, mention, or group message | [Chat](/en/chat) |
 | **Schedule Change** | Session created, moved, or cancelled | [Scheduling](/en/scheduling) |
+| **Drive File Shared** | File or folder shared with you | [Smart Drive](/en/smart-drive) |
+| **Drive Folder Created** | New folder created | [Smart Drive](/en/smart-drive) |
+| **Drive Folder Deleted** | Folder deleted | [Smart Drive](/en/smart-drive) |
+| **Drive Folder Restored** | Folder restored from trash | [Smart Drive](/en/smart-drive) |
+| **Drive Comment** | Comment added to a file | [Smart Drive](/en/smart-drive) |
+| **Public Link Created** | Public link generated for a file | [Smart Drive](/en/smart-drive) |
+| **Public Link Revoked** | Public link revoked | [Smart Drive](/en/smart-drive) |
+| **Behavior Recorded** | Positive or negative behavior logged | [Dashboard](/en/dashboard) → Behavior |
+| **Penalty Recorded** | Penalty incident recorded | [Dashboard](/en/dashboard) → Penalty |
+| **Participation Recorded** | Participation points awarded | [Dashboard](/en/dashboard) → Participation |
+| **Marks Posted** | Grade posted or marks updated | [Dashboard](/en/dashboard) → Marks Entry |
+| **Resource Added** | New resource uploaded | [Dashboard](/en/dashboard) → Resources |
+
+All notification payloads include bilingual (EN/AR) sender name, recipient type (user/users/role/class), and contextual details (class name, student name, status, etc.).
 
 ## Validations & business rules
 

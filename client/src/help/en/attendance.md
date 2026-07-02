@@ -54,7 +54,17 @@ Used for morning standup formations. Statuses are prefixed with `STANDUP_`. Stan
 
 ### Taking attendance
 
-- **Select a class** — Filter classes by program, subject, or instructor. Only classes with sessions on the current date are shown by default.
+- **Select a class** — Use the cascading filter dropdowns to narrow down classes:
+  1. **Program** — Select a program to filter subjects and classes. Shows "All Programs" by default. Each program option displays subtext with class count, subject count, and date range.
+  2. **Subject** — Select a subject within the chosen program. Subjects are sorted by code. Each subject option shows its class count as subtext. Disabled until a program is selected.
+  3. **Class** — Select a class within the chosen subject. Classes are sorted by code then name. Each class option shows rich subtext including date range, instructor name, substitute instructor, classroom/room, and enrolled student count. Disabled until a subject is selected.
+  4. **Term** — Optional filter by term (Spring, Summer, Fall).
+  5. **Year** — Optional filter by academic year.
+  
+  Changing a program resets subject, class, term, and year. Changing a subject resets class, term, and year. This cascading behavior ensures you only see relevant options at each level.
+
+- **Filter by instructor** — Admin and HR can use the **User Select** dropdown to filter by instructor. This dropdown shows each instructor's name with a status icon (active/inactive/suspended), role icon, and subtext listing the number of classes they teach plus up to 3 class names. Includes an "All Instructors" option.
+
 - **Select a session** — Choose a class session from the dropdown. Sessions must exist on the [Scheduling](/en/scheduling) calendar.
 - **Mark students** — Click each student's status button (Present, Absent, Late, Excused). The system saves each mark individually via `markAttendance`.
 - **Toggle late mode** — Switch the entire class to late-mode marking. When enabled, all unmarked students are assumed late unless explicitly marked otherwise.

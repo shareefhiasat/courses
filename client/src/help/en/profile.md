@@ -3,7 +3,7 @@ title: Profile & Settings
 tags: [profile, settings, password, language, theme]
 route: /profile
 order: 90
-keywords: [profile, settings, password, change password, language, theme, accent color, notification preferences, permission matrix, RBAC, roles, self-lock prevention, audit log, Keycloak]
+keywords: [profile, settings, password, change password, language, theme, accent color, notification preferences, permission matrix, RBAC, roles, self-lock prevention, audit log, Keycloak, font size, typography, large, larger, largest, font family, text size]
 ---
 
 # Profile & Settings
@@ -31,6 +31,8 @@ Manage your personal account settings, preferences, and (for Super Admins) the P
 - **Language** — Switch between English and Arabic. Your preference is saved and applied on every login.
 - **Theme** — Toggle between light and dark mode.
 - **Accent colour** — Choose your preferred accent colour from a preset palette.
+- **Font size** — Select your preferred text size: **Default**, **Large**, **Larger**, or **Largest**. The font size preference is saved per user and applied across the entire application. All UI elements scale proportionally — text, icons, buttons, and spacing adjust to your selected size.
+- **Font family** — Choose your preferred font family from available options.
 - **Notification preferences** — Enable or disable specific notification types (announcements, quiz results, attendance alerts, workflow tasks, chat messages).
 
 ### Permission Matrix (Super Admin only)
@@ -48,6 +50,8 @@ The Permission Matrix is a grid that shows which roles have access to which scre
 - **Current password required** — You cannot change your password without verifying the current one.
 - **Language persistence** — Language preference is stored in local storage and synced with the server.
 - **Theme persistence** — Theme preference is stored in local storage.
+- **Font size persistence** — Font size preference is stored per user on the server and applied on every login. Changes take effect immediately across all screens.
+- **Typography allowlist** — Font size scaling uses a controlled allowlist of components to ensure consistent rendering across the application.
 - **Permission Matrix changes** — All changes are logged with the admin user, timestamp, previous value, and new value.
 - **Self-lock prevention** — You cannot remove your own `view` permission for the Permission Matrix to prevent locking yourself out.
 

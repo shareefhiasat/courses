@@ -88,6 +88,13 @@ The Dashboard is the main administrative hub. It uses a ribbon tab interface to 
 - **Deep linking** — Use the URL hash (e.g., `/dashboard#programs`) to link directly to a specific tab.
 - **Create/Edit forms** — Most forms validate required fields before submission. Invalid data shows inline error messages.
 - **Delete confirmation** — All delete actions require confirmation. Some items use soft-delete and can be restored.
+- **Cascading filters** — On the Student Dashboard and other screens, the Program → Subject → Class dropdowns cascade: selecting a program filters subjects, selecting a subject filters classes. Changing a parent filter resets all child selections.
+- **Rich dropdown options** — Program, subject, and class dropdowns show contextual subtext:
+  - **Programs** show class count, subject count, and date range.
+  - **Subjects** show class count.
+  - **Classes** show date range, instructor name, substitute instructor, classroom/room, and enrolled student count.
+- **User Select dropdown** — When selecting users (e.g., students or instructors), each option shows the user's localized name, a status icon (active/inactive/suspended), a role icon (admin/HR/instructor/super admin), and subtext with enrollment or class count plus up to 3 class names. Searchable by name.
+- **Instructor-scoped filtering** — Instructors only see programs, subjects, and classes they are assigned to. Admin/HR/Super Admin see all programs and classes.
 
 ## Limitations
 

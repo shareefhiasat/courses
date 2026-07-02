@@ -47,6 +47,49 @@ Recent updates and improvements to the Military LMS help documentation.
 - **Holiday and weekend conflict detection** — Sessions cannot be scheduled on holidays or weekends with bilingual conflict messages.
 - **Expanded conflict types** — Teacher conflict, classroom conflict, max sessions exceeded, weekend, holiday, and break time conflicts.
 
+### Smart Drive
+
+- **Folder coloring** — Assign colors to folders (Blue, Green, Amber, Red, Purple, Pink, Teal, Orange, or Default) for visual organisation. Colored folder icons appear in the file roster, folder tree, sidebar, and breadcrumbs.
+- **Bilingual folder names** — Folders support both English and Arabic names. The Arabic name is optional and displayed in RTL mode.
+- **Folder name validation** — Folder names limited to 30 characters with alphanumeric characters, spaces, hyphens, and underscores.
+
+### Filters and Dropdowns
+
+- **Cascading Program → Subject → Class selectors** — Dropdowns cascade: selecting a program filters subjects, selecting a subject filters classes. Changing a parent resets all child selections. Available on Attendance, Student Dashboard, and other screens.
+- **Rich dropdown subtext** — Program options show class count, subject count, and date range. Subject options show class count. Class options show date range, instructor, substitute instructor, classroom, and enrolled student count.
+- **User Select dropdown** — Rich user selector with status icons (active/inactive/suspended), role icons (admin/HR/instructor/super admin), enrollment/class counts, and up to 3 class names as subtext. Searchable by name.
+- **Instructor-scoped filtering** — Instructors only see their assigned programs, subjects, and classes in dropdowns. Admin/HR/Super Admin see all.
+- **TTL count caching** — Program, subject, and class enrollment counts are cached in-memory for 60 seconds with cross-service cache invalidation on create/update/delete operations.
+
+### Workflow
+
+- **Target student support** — BEHAVIOR, PENALTY, DISCONTINUATION, WARNING, and EXCUSE workflow types now require a target student. Student info is displayed in the workflow inbox, document detail page, and file details workflow tab.
+- **Duplicate workflow prevention** — The system blocks creation of overlapping in-progress workflows for the same scope (class + student + date). Returns 409 Conflict with a link to the existing document.
+- **New workflow types** — Added EXCUSE, WARNING, BEHAVIOR, PENALTY, and DISCONTINUATION categories with per-type dedup rules.
+
+### Notifications
+
+- **Enriched notification payloads** — All notifications now include bilingual (EN/AR) sender name, recipient type (user/users/role/class), and contextual details.
+- **New notification types** — Standup attendance, workflow comment added, workflow withdrawn, drive folder created/deleted/restored, drive comment added, public link created/revoked, behavior recorded, penalty recorded, participation recorded, marks posted, resource added.
+
+### Profile & Settings
+
+- **Font size preferences** — Users can select from Default, Large, Larger, or Largest text sizes. Preference is saved per user on the server and applied across the entire application.
+- **Font family picker** — Choose preferred font family from available options.
+
+### Chat
+
+- **Chat wallpaper picker** — Customize chat background per conversation with preset wallpaper themes. Saved per room with global fallback.
+- **Starred messages filter** — Toggle to show only starred messages in a conversation, with count badge.
+- **Image lightbox** — In-app image preview instead of opening a new tab.
+- **Participant management modal** — View all group members with roles and status. Assign admin and leave group with confirmation dialogs.
+- **Group info panel** — Media, Documents, and Links tabs showing all shared content in a group chat.
+- **DM display name** — Direct messages show the person's name instead of a generic label.
+
+### Guided Tours
+
+- **Expanded to 9 pages** — Joyride guided tours added to Workflow Detail, Workflow Analytics, Classrooms Management, User Access, User Category Access, Activity Detail, Student Dashboard, Drive Page, and Group Chat Modal. Each tour has bilingual (EN/AR) translations and can be replayed via the help menu.
+
 ## June 2026 — Documentation Overhaul
 
 ### New features

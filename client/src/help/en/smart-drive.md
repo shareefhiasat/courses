@@ -3,7 +3,7 @@ title: Smart Drive
 tags: [drive, files, storage, upload, share]
 route: /smart-drive
 order: 40
-keywords: [smart drive, files, upload, download, share, preview, MinIO, storage quota, trash, restore, version history, folder, ZIP, file attachment, my-drive, starred, shared, shared-by-me, recent, Collabora, edit, public link, file type, image, video, pdf, document, presentation, spreadsheet, rename, delete, permanent delete, folder tree, breadcrumbs, grid view, list view, guided tour]
+keywords: [smart drive, files, upload, download, share, preview, MinIO, storage quota, trash, restore, version history, folder, ZIP, file attachment, my-drive, starred, shared, shared-by-me, recent, Collabora, edit, public link, file type, image, video, pdf, document, presentation, spreadsheet, rename, delete, permanent delete, folder tree, breadcrumbs, grid view, list view, guided tour, folder color, folder coloring, color picker, bilingual folder name, Arabic folder name]
 ---
 
 # Smart Drive
@@ -61,11 +61,28 @@ The left sidebar provides navigation between different drive spaces:
 
 ### Organising files
 
-- **Create folder** — Click the "New Folder" button to open the Create Folder Modal. Enter a name and confirm.
-- **Folder tree** — The left panel shows a hierarchical tree of your folders for easy navigation.
+- **Create folder** — Click the "New Folder" button to open the Create Folder Modal. Enter a name (English), an optional Arabic name, and choose a folder color. Confirm to create.
+- **Folder coloring** — Assign a color to any folder for visual organisation. Available colors:
+
+  | Color | Value |
+  | --- | --- |
+  | Default | None |
+  | Blue | `#3b82f6` |
+  | Green | `#10b981` |
+  | Amber | `#f59e0b` |
+  | Red | `#ef4444` |
+  | Purple | `#8b5cf6` |
+  | Pink | `#ec4899` |
+  | Teal | `#14b8a6` |
+  | Orange | `#f97316` |
+
+  Colored folders display a colored folder icon throughout the interface — in the file roster, folder tree sidebar, and breadcrumbs. The color picker appears in both the Create Folder and Rename modals.
+
+- **Bilingual folder names** — Folders support both English and Arabic names. The Arabic name (`nameAr`) is optional and displayed in RTL mode.
+- **Folder tree** — The left panel shows a hierarchical tree of your folders for easy navigation. Colored folders show their color in the tree.
 - **Breadcrumbs** — Navigate up the folder hierarchy using breadcrumb links at the top.
 - **Navigate folders** — Click any folder to enter it and view its contents.
-- **Rename** — Right-click a file or folder and select rename. Enter the new name and confirm.
+- **Rename** — Right-click a file or folder and select rename. For folders, you can update the name, Arabic name, and color. Enter the new values and confirm.
 - **Move** — Drag files between folders or use the move action.
 - **Grid/List view** — Toggle between grid view (thumbnails) and list view (detailed rows).
 
@@ -101,7 +118,7 @@ The File Details Modal provides comprehensive file information across multiple t
 | **Versions** | Version history of the file. Download or restore previous versions. |
 | **Comments** | Add, view, and delete comments on the file. |
 | **Activity** | Chronological log of all actions on the file (upload, edit, share, rename, etc.). |
-| **Workflow** | Create a workflow document from this file via `createCustomWorkflow`. Links the file to the [Workflow](/en/workflow) system. |
+| **Workflow** | Create a workflow document from this file via `createCustomWorkflow`. Links the file to the [Workflow](/en/workflow) system. Includes status and role filters, sorting, and grid/list views. Shows target student info when applicable. |
 | **Share** | Manage sharing settings — add/remove users, change permissions, generate/revoke public links. |
 
 ### Workflow integration
@@ -135,6 +152,8 @@ The system detects and categorises files into the following types:
 - **Soft delete** — All deletions are soft-deletes. Files remain in Trash for 30 days before permanent removal.
 - **Version history** — Uploading a file with the same name as an existing file creates a new version. Previous versions are accessible via the Versions tab in File Details.
 - **Folder depth** — Folder hierarchy is limited to 10 levels deep.
+- **Folder name validation** — Folder names must be 30 characters or less, containing only letters, numbers, spaces, hyphens, and underscores.
+- **Folder color persistence** — The selected color is stored on the folder record and displayed consistently across all views (file roster, folder tree, sidebar, breadcrumbs).
 - **Presigned URLs** — File uploads and downloads use MinIO presigned URLs for secure, time-limited access.
 - **Activity logging** — All file operations (upload, download, preview, edit, share, rename, delete, restore) are logged in the Activity tab.
 - **Edit token** — Collabora Online editing requires a backend-issued edit token, ensuring only authorised users can edit.
@@ -158,7 +177,8 @@ The system detects and categorises files into the following types:
 | Shared file not visible to recipient | Ask the recipient to refresh their Smart Drive page. Sharing does not push in real time. |
 | ZIP download fails | Total size exceeds 2 GB limit. Download files individually or in smaller batches. |
 | Collabora editor won't load | Check your network connection. Ensure the file format is supported (DOCX, XLSX, PPTX). Try refreshing the page. |
-| Cannot create folder | Verify you have `create` permission on the `drive` screen. Check that the folder name is valid (no special characters). |
+| Cannot create folder | Verify you have `create` permission on the `drive` screen. Check that the folder name is valid (letters, numbers, spaces, hyphens, underscores only, max 30 characters). |
+| Folder color not showing | The folder may have been created before the coloring feature was added. Right-click the folder, select rename, and choose a color. |
 | Public link not working | The link may have been revoked. Ask the owner to generate a new link. |
 | Version history is empty | Versions are only created when uploading a file with the same name. Ensure the file name matches exactly. |
 | Cannot restore from Trash | The 30-day retention period may have expired. Permanently deleted files cannot be restored. |

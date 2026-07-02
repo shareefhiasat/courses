@@ -3,7 +3,7 @@ title: Workflow
 tags: [workflow, approval, inbox, compliance, analytics]
 route: /workflow/inbox
 order: 50
-keywords: [workflow, approval, inbox, document routing, compliance calendar, analytics, delegate, recall, reject, approve, template, escalation, overdue, auto-escalation, send, return, close, resubmit, withdraw, reupload, upload signed, DRAFT, SUBMITTED, UNDER_HR_REVIEW, UNDER_ADMIN_REVIEW, APPROVED, REJECTED, ATTENDANCE_DAILY, ATTENDANCE_WEEKLY, custom workflow, workflow trace, SLA, cycle time, rejection reasons, comments, action history, weekly summary, behavioral, penalty, cron, signed document, threshold check]
+keywords: [workflow, approval, inbox, document routing, compliance calendar, analytics, delegate, recall, reject, approve, template, escalation, overdue, auto-escalation, send, return, close, resubmit, withdraw, reupload, upload signed, DRAFT, SUBMITTED, UNDER_HR_REVIEW, UNDER_ADMIN_REVIEW, APPROVED, REJECTED, ATTENDANCE_DAILY, ATTENDANCE_WEEKLY, custom workflow, workflow trace, SLA, cycle time, rejection reasons, comments, action history, weekly summary, behavioral, penalty, cron, signed document, threshold check, target student, duplicate prevention, dedup, 409, BEHAVIOR, DISCONTINUATION, WARNING, EXCUSE]
 ---
 
 # Workflow
@@ -106,6 +106,40 @@ Attendance violations flow through the system as follows:
 4. **Penalty reports** — Penalty records are generated from attendance violation data and can be exported as `penalty` type.
 5. **Workflow submission** — Behavioral and penalty reports can be submitted through the workflow system as supporting documents for HR/Admin review.
 
+### Target student support
+
+Certain workflow types require a target student to be selected when creating the document:
+
+| Category | Subtype | Requires target student? |
+| --- | --- | --- |
+| ATTENDANCE | EXCUSE | Yes — scoped to class + student + date range |
+| ATTENDANCE | WARNING | Yes — scoped to class + student |
+| BEHAVIOR | — | Yes — scoped to class + student |
+| PENALTY | — | Yes — scoped to class + student |
+| DISCONTINUATION | — | Yes — scoped to class + student |
+| ATTENDANCE | DAILY | No — scoped to class + date |
+| ATTENDANCE | WEEKLY | No — scoped to class + date range |
+| GENERAL | — | No — exempt from dedup |
+
+When a target student is required, a student selector appears in the Custom Workflow Dialog. The selected student's info is displayed in:
+- **Workflow inbox** — A new column shows the target student with a student icon and localized name.
+- **Document detail page** — Student info appears in the title card.
+- **File Details workflow tab** — Student info appears in both list and grid views.
+
+### Duplicate workflow prevention
+
+The system prevents creation of duplicate in-progress workflows for the same scope. If you try to create a workflow that overlaps with an existing in-progress one, the system returns a **409 Conflict** with the existing workflow details.
+
+Dedup rules by type:
+- **ATTENDANCE/DAILY** — classId + date
+- **ATTENDANCE/WEEKLY** — classId + dateFrom + dateTo
+- **ATTENDANCE/EXCUSE** — classId + targetStudentId + dateFrom + dateTo
+- **ATTENDANCE/WARNING** — classId + targetStudentId
+- **PENALTY/BEHAVIOR/DISCONTINUATION** — classId + targetStudentId
+- **GENERAL** — exempt (no dedup)
+
+The frontend displays a message with a link to the existing workflow document when a 409 is returned.
+
 ### Automated monitoring
 
 The system runs automated background jobs via a cron scheduler:
@@ -148,6 +182,8 @@ The detail page shows comprehensive information about a workflow document:
 - **Weekly summary aggregation** — Weekly summaries can only be generated from `ATTENDANCE_DAILY` documents with status `SUBMITTED`. Draft or rejected daily documents are excluded.
 - **Signed upload restriction** — Only `ATTENDANCE_WEEKLY` documents can have signed uploads, and only Admin users can perform the upload.
 - **Cron-based monitoring** — SLA and attendance threshold checks run automatically every 6 hours. No manual intervention is needed.
+- **Target student required** — BEHAVIOR, PENALTY, DISCONTINUATION, WARNING, and EXCUSE workflow types require a target student. The student selector appears in the Custom Workflow Dialog when needed.
+- **Duplicate prevention** — The system blocks creation of overlapping in-progress workflows for the same scope (class + student + date). A 409 Conflict is returned with a link to the existing document.
 
 ## Limitations
 
@@ -174,6 +210,8 @@ The detail page shows comprehensive information about a workflow document:
 | Cannot upload signed version | The document must be in `APPROVED` state to upload a signed version. Check the current state on the detail page. For `ATTENDANCE_WEEKLY`, only Admin users can upload signed versions. |
 | Weekly summary generation fails | Ensure at least one `ATTENDANCE_DAILY` document with status `SUBMITTED` exists in the selected date range. |
 | Analytics page shows no data | Data is aggregated daily. Check back after the next aggregation cycle, or verify that workflow documents exist. |
+| 409 Conflict when creating workflow | An in-progress workflow already exists for the same class/student/date scope. Click the link in the error message to view the existing document. |
+| Target student selector not appearing | The selector only appears for BEHAVIOR, PENALTY, DISCONTINUATION, WARNING, and EXCUSE types. Verify the workflow category is correct. |
 
 ## Related articles
 
