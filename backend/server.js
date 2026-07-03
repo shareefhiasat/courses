@@ -413,12 +413,12 @@ import scheduleSessionRoutes from "./routes/schedule-sessions.js";
 import adminScopeRoutes from "./routes/admin-scopes.js";
 import dashboardRoutes from "./routes/dashboard.js";
 import schedulingRoutes from "./routes/scheduling.js";
-import flexibleSchedulingRoutes from "./controllers/flexible-scheduling.js";
-import instructorAvailabilityRoutes from "./controllers/instructor-availability.js";
+import flexibleSchedulingRoutes from "./routes/flexible-scheduling.js";
+import instructorAvailabilityRoutes from "./routes/instructor-availability.js";
 import classroomAvailabilityRoutes from "./routes/classroom-availability.js";
-import scheduledSessionRoutes from "./controllers/scheduled-session.js";
+import scheduledSessionRoutes from "./routes/scheduled-session.js";
 import instructorHistoryRoutes from "./routes/instructor-history.js";
-import userCategoryAccessRoutes from "./controllers/user-category-access.js";
+import userCategoryAccessRoutes from "./routes/user-category-access.js";
 import meRoutes from "./routes/me.js";
 import quizRoutes from "./routes/quizzes.js";
 import workflowDocumentRoutes from "./routes/workflow-documents.js";
@@ -540,36 +540,53 @@ const SSL_KEY_PATH = process.env.SSL_KEY_PATH || join(__dirname, "../scripts/doc
 const SSL_CERT_PATH = process.env.SSL_CERT_PATH || join(__dirname, "../scripts/docker/nginx/ssl/cert.pem");
 const DISABLE_HTTPS = process.env.DISABLE_HTTPS === "true";
 
+/**
+ * Print the startup banner with the active protocol.
+ * @param {'http'|'https'} protocol
+ * @param {string} note - Extra line shown after the banner (e.g. HTTPS note)
+ */
+function printStartupBanner(protocol, note = '') {
+  const appName = process.env.APP_NAME || "Military LMS Backend API";
+  const base = `${protocol}://localhost:${PORT}`;
+  console.log(`
+🚀 ${appName} running on ${base}
+📡 API Base URL: ${base}/api/${API_VERSION}
+📊 Swagger Documentation: ${base}/api-docs
+🏥 Health Check: ${base}/api/health
+🏗️ Architecture: Frontend → Backend API → Business Services → DB Services → PostgreSQL
+📝 Swagger JSON: ${base}/api-docs.json
+🔖 API Version: ${API_VERSION}
+🌍 Environment: ${NODE_ENV}
+📦 App Version: ${process.env.APP_VERSION || "1.0.0"}
+🔗 Frontend URL: ${process.env.FRONTEND_URL || "http://localhost:3000"}
+${note}
+  `);
+}
+
+/**
+ * Initialize WebSocket server and cron jobs after the HTTP/HTTPS server is
+ * listening. Called once per server instance — previously duplicated 3x.
+ * @param {import('http').Server|import('https').Server} server
+ */
+function postListenInit(server) {
+  const wsServer = createNotificationWebSocketServer(server);
+  setWSEmitter(wsServer.emit);
+  console.log(`[WebSocket] Server initialized on path: ${process.env.NOTIFICATIONS_WS_PATH || '/ws/notifications'}`);
+
+  import('./services/cronScheduler.js').then(({ initCronJobs }) => {
+    initCronJobs();
+    console.log('[CronScheduler] Scheduled jobs initialized');
+  }).catch(err => console.error('[CronScheduler] Failed to initialize:', err));
+}
+
 let server;
 
 try {
   // Use HTTP if explicitly disabled or in development without HTTPS requirement
   if (DISABLE_HTTPS || NODE_ENV === "development" || !fs.existsSync(SSL_KEY_PATH) || !fs.existsSync(SSL_CERT_PATH)) {
     server = app.listen(PORT, '0.0.0.0', () => {
-      console.log(`
-🚀 ${process.env.APP_NAME || "Military LMS Backend API"} running on http://localhost:${PORT}
-📡 API Base URL: http://localhost:${PORT}/api/${API_VERSION}
-📊 Swagger Documentation: http://localhost:${PORT}/api-docs
-🏥 Health Check: http://localhost:${PORT}/api/health
-🏗️ Architecture: Frontend → Backend API → Business Services → DB Services → PostgreSQL
-📝 Swagger JSON: http://localhost:${PORT}/api-docs.json
-🔖 API Version: ${API_VERSION}
-🌍 Environment: ${NODE_ENV}
-📦 App Version: ${process.env.APP_VERSION || "1.0.0"}
-🔗 Frontend URL: ${process.env.FRONTEND_URL || "http://localhost:3000"}
-⚠️  HTTP mode (HTTPS disabled for development)
-      `);
-      
-      // Initialize WebSocket server after HTTP server is ready
-      const wsServer = createNotificationWebSocketServer(server);
-      setWSEmitter(wsServer.emit);
-      console.log(`[WebSocket] Server initialized on path: ${process.env.NOTIFICATIONS_WS_PATH || '/ws/notifications'}`);
-      
-      // Initialize cron jobs
-      import('./services/cronScheduler.js').then(({ initCronJobs }) => {
-        initCronJobs();
-        console.log('[CronScheduler] Scheduled jobs initialized');
-      }).catch(err => console.error('[CronScheduler] Failed to initialize:', err));
+      printStartupBanner('http', '⚠️  HTTP mode (HTTPS disabled for development)');
+      postListenInit(server);
     });
   } else {
     // Try HTTPS (for production or nginx setup)
@@ -581,59 +598,15 @@ try {
     };
 
     server = https.createServer(sslOptions, app).listen(PORT, '0.0.0.0', () => {
-      console.log(`
-🚀 ${process.env.APP_NAME || "Military LMS Backend API"} running on https://localhost:${PORT}
-📡 API Base URL: https://localhost:${PORT}/api/${API_VERSION}
-📊 Swagger Documentation: https://localhost:${PORT}/api-docs
-🏥 Health Check: https://localhost:${PORT}/api/health
-🏗️ Architecture: Frontend → Backend API → Business Services → DB Services → PostgreSQL
-📝 Swagger JSON: https://localhost:${PORT}/api-docs.json
-🔖 API Version: ${API_VERSION}
-🌍 Environment: ${NODE_ENV}
-📦 App Version: ${process.env.APP_VERSION || "1.0.0"}
-🔗 Frontend URL: ${process.env.FRONTEND_URL || "http://localhost:3000"}
-🔒 HTTPS Enabled (Self-signed certificates)
-      `);
-      
-      // Initialize WebSocket server after HTTP server is ready
-      const wsServer = createNotificationWebSocketServer(server);
-      setWSEmitter(wsServer.emit);
-      console.log(`[WebSocket] Server initialized on path: ${process.env.NOTIFICATIONS_WS_PATH || '/ws/notifications'}`);
-      
-      // Initialize cron jobs
-      import('./services/cronScheduler.js').then(({ initCronJobs }) => {
-        initCronJobs();
-        console.log('[CronScheduler] Scheduled jobs initialized');
-      }).catch(err => console.error('[CronScheduler] Failed to initialize:', err));
+      printStartupBanner('https', '🔒 HTTPS Enabled (Self-signed certificates)');
+      postListenInit(server);
     });
   }
 } catch (error) {
   console.error("❌ Failed to start HTTPS server, falling back to HTTP:", error.message);
   server = app.listen(PORT, () => {
-    console.log(`
-🚀 ${process.env.APP_NAME || "Military LMS Backend API"} running on http://localhost:${PORT}
-📡 API Base URL: http://localhost:${PORT}/api/${API_VERSION}
-📊 Swagger Documentation: http://localhost:${PORT}/api-docs
-🏥 Health Check: http://localhost:${PORT}/api/health
-🏗️ Architecture: Frontend → Backend API → Business Services → DB Services → PostgreSQL
-📝 Swagger JSON: http://localhost:${PORT}/api-docs.json
-🔖 API Version: ${API_VERSION}
-🌍 Environment: ${NODE_ENV}
-📦 App Version: ${process.env.APP_VERSION || "1.0.0"}
-🔗 Frontend URL: ${process.env.FRONTEND_URL || "http://localhost:3000"}
-⚠️  HTTPS disabled - SSL certificates not found
-    `);
-    
-    // Initialize WebSocket server after HTTP server is ready
-    const wsServer = createNotificationWebSocketServer(server);
-    setWSEmitter(wsServer.emit);
-    console.log(`[WebSocket] Server initialized on path: ${process.env.NOTIFICATIONS_WS_PATH || '/ws/notifications'}`);
-    
-    // Initialize cron jobs
-    import('./services/cronScheduler.js').then(({ initCronJobs }) => {
-      initCronJobs();
-      console.log('[CronScheduler] Scheduled jobs initialized');
-    }).catch(err => console.error('[CronScheduler] Failed to initialize:', err));
+    printStartupBanner('http', '⚠️  HTTPS disabled - SSL certificates not found');
+    postListenInit(server);
   });
 }
 

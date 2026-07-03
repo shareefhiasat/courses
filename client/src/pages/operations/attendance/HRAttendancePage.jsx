@@ -797,7 +797,7 @@ const HRAttendancePage = () => {
                 }))
               ]}
               fullWidth
-              placeholder={t('all_programs') || 'All Programs'}
+              placeholder={t('all_programs')}
             />
           </div>
           <div>
@@ -818,7 +818,7 @@ const HRAttendancePage = () => {
                   }))
               ]}
               fullWidth
-              placeholder={t('all_subjects') || 'All Subjects'}
+              placeholder={t('all_subjects')}
             />
           </div>
           <div>
@@ -830,7 +830,7 @@ const HRAttendancePage = () => {
                 setClassFilter(e.target.value);
               }}
               options={[
-                { value: 'all', label: t('all_classes') || 'All Classes' },
+                { value: 'all', label: t('all_classes') },
                 ...classes
                   .filter(c => {
                     if (subjectFilter !== 'all' && c.subjectId !== subjectFilter) return false;
@@ -843,7 +843,7 @@ const HRAttendancePage = () => {
                   .map(c => ({ value: c.id || c.docId, label: c.name || c.code || c.id }))
               ]}
               fullWidth
-              placeholder={t('all_classes') || 'All Classes'}
+              placeholder={t('all_classes')}
             />
           </div>
         </div>
@@ -870,7 +870,7 @@ const HRAttendancePage = () => {
                 }).filter(Boolean))).sort((a, b) => Number(b) - Number(a)).map(year => ({ value: year, label: year }))
               ]}
               fullWidth
-              placeholder={t('all_years') || 'All Years'}
+              placeholder={t('all_years')}
             />
           </div>
           <div>
@@ -893,7 +893,7 @@ const HRAttendancePage = () => {
                 }).filter(Boolean))).sort().map(term => ({ value: term, label: term }))
               ]}
               fullWidth
-              placeholder={t('all_terms') || 'All Terms'}
+              placeholder={t('all_terms')}
             />
           </div>
           <div>
@@ -904,7 +904,7 @@ const HRAttendancePage = () => {
                 info('[HRAttendance] DateFrom changing from:', dateFrom, 'to:', iso ? formatForDateInput(iso) : '');
                 setDateFrom(iso ? formatForDateInput(iso) : '');
               }}
-              placeholder={t('from_date') || 'From Date'}
+              placeholder={t('from_date')}
               fullWidth
             />
           </div>
@@ -916,7 +916,7 @@ const HRAttendancePage = () => {
                 info('[HRAttendance] DateTo changing from:', dateTo, 'to:', iso ? formatForDateInput(iso) : '');
                 setDateTo(iso ? formatForDateInput(iso) : '');
               }}
-              placeholder={t('to_date') || 'To Date'}
+              placeholder={t('to_date')}
               fullWidth
             />
           </div>
@@ -965,7 +965,7 @@ const HRAttendancePage = () => {
                 info('[HRAttendance] Scan from changing to:', value);
                 setScanFrom(value);
               }}
-              // label={t('scan_from') || 'From'}
+              // label={t('scan_from')}
               showValue={true}
             />
             <Slider
@@ -978,7 +978,7 @@ const HRAttendancePage = () => {
                 info('[HRAttendance] Scan to changing to:', value);
                 setScanTo(value);
               }}
-              // label={t('scan_to') || 'To'}
+              // label={t('scan_to')}
               showValue={true}
             />
             
@@ -1048,8 +1048,8 @@ const HRAttendancePage = () => {
             fontSize: 'var(--font-size-sm)', 
             marginBottom: 8,
             color: theme === 'dark' ? '#f9fafb' : '#111827'
-          }}>{t('sessions') || 'Sessions'} ({sessions.length})</div>
-          {initialDataLoaded && sessions.length === 0 && <div style={{ padding: '0.75rem', textAlign: 'center', color: 'var(--muted)', fontSize: 'var(--font-size-xs)' }}>{t('no_sessions') || 'No sessions found'}</div>}
+          }}>{t('sessions')} ({sessions.length})</div>
+          {initialDataLoaded && sessions.length === 0 && <div style={{ padding: '0.75rem', textAlign: 'center', color: 'var(--muted)', fontSize: 'var(--font-size-xs)' }}>{t('no_sessions')}</div>}
           <div style={{ display: 'grid', gap: 6 }}>
             {sessions.map((session, idx) => {
               const className = session.className || classes.find(c => c.id === session.classId)?.name || session.classId;
@@ -1112,14 +1112,14 @@ const HRAttendancePage = () => {
                         session.scanCounts.present || session.scanCounts.ATTENDANCE_PRESENT || 0,
                         'check_circle',
                         '#10b981',
-                        t('present') || 'Present',
+                        t('present'),
                         theme
                       )}
                       {createAttendanceBadge(
                         session.scanCounts.late || session.scanCounts.ATTENDANCE_LATE || 0,
                         'clock',
                         '#f59e0b',
-                        t('late') || 'Late',
+                        t('late'),
                         theme
                       )}
                       {createAttendanceBadge(
@@ -1127,21 +1127,21 @@ const HRAttendancePage = () => {
                         (session.scanCounts.ATTENDANCE_ABSENT || 0),
                         'x_circle',
                         '#ef4444',
-                        t('absent_no_excuse') || 'Absent',
+                        t('absent_no_excuse'),
                         theme
                       )}
                       {createAttendanceBadge(
                         session.scanCounts.excused_leave || session.scanCounts.ATTENDANCE_LEAVE || 0,
                         'heart',
                         '#8b5cf6',
-                        t('excused_leave') || 'Excused Leave',
+                        t('excused_leave'),
                         theme
                       )}
                       {createAttendanceBadge(
                         session.scanCounts.human_case || session.scanCounts.ATTENDANCE_HUMAN_CASE || 0,
                         'heart',
                         '#8b5cf6',
-                        t('human_case') || 'Human Case',
+                        t('human_case'),
                         theme
                       )}
                     </div>
@@ -1178,12 +1178,12 @@ const HRAttendancePage = () => {
                     })()}
                     <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: session.status === 'open' ? '#10b981' : '#6b7280', fontWeight: 600 }}>
                       <span style={{ display: 'inline-block', width: 6, height: 6, borderRadius: '50%', background: session.status === 'open' ? '#10b981' : '#6b7280' }}></span>
-                      {session.status === 'open' ? (t('active_session') || 'Active Session') : (t('ended') || 'Ended')}
+                      {session.status === 'open' ? (t('active_session')) : (t('ended'))}
                     </span>
                     {session.scanCounts && (
                       <span style={{ display: 'flex', alignItems: 'center', gap: 4, color: '#6b7280', fontWeight: 600 }}>
                         {getThemedIcon('ui', 'qr_code', 12, theme)}
-                        {session.scanCounts.total || 0} {t('scans') || 'scans'}
+                        {session.scanCounts.total || 0} {t('scans')}
                       </span>
                     )}
                   </div>
@@ -1199,7 +1199,7 @@ const HRAttendancePage = () => {
             <div style={{ padding: '1.5rem', textAlign: 'center', color: 'var(--muted)' }}>
               {getThemedIcon('ui', 'search', 36, theme)}
               <div style={{ fontSize: 'var(--font-size-sm)', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
-                {t('select_session') || 'Select a session to view attendance details'}
+                {t('select_session')}
               </div>
             </div>
           )}
@@ -1238,7 +1238,7 @@ const HRAttendancePage = () => {
                     color: marks.length > 0 ? actualPrimaryColor : '#6b7280'
                   }}>
                     {getThemedIcon('ui', 'qr_code', 14, theme)}
-                    <span>{marks.length} {t('scans') || 'scans'}</span>
+                    <span>{marks.length} {t('scans')}</span>
                   </div>
                 </div>
                 <Button 
@@ -1248,7 +1248,7 @@ const HRAttendancePage = () => {
                   style={{ background: actualPrimaryColor, borderColor: actualPrimaryColor }}
                   onClick={() => exportSessionCSV(selectedSession.id)}
                 >
-                  {t('export_csv') || 'Export CSV'}
+                  {t('export_csv')}
                 </Button>
               </div>
 
@@ -1289,7 +1289,7 @@ const HRAttendancePage = () => {
                     textAlign: 'center', 
                     color: theme === 'dark' ? '#9ca3af' : '#6b7280' 
                   }}>
-                    {t('no_marks') || 'No attendance records'}
+                    {t('no_marks')}
                   </div>}
                 {marks.length > 0 && (
                 <div style={{ display: 'grid', gap: 6 }}>
@@ -1343,16 +1343,16 @@ const HRAttendancePage = () => {
                                 fontWeight: 600 
                               }}
                             >
-                              {t('edit') || 'Edit'}
+                              {t('edit')}
                             </button>
                             )}
                           </div>
                         </div>
                         {!isEditing && (mark.reason || mark.feedback) && (
                           <div style={{ fontSize: 10, color: '#6b7280', marginTop: 4 }}>
-                            {mark.reason && <span><strong>{t('reason') || 'Reason'}:</strong> {mark.reason}</span>}
+                            {mark.reason && <span><strong>{t('reason')}:</strong> {mark.reason}</span>}
                             {mark.reason && mark.feedback && <span> • </span>}
-                            {mark.feedback && <span><strong>{t('feedback') || 'Note'}:</strong> {mark.feedback}</span>}
+                            {mark.feedback && <span><strong>{t('feedback')}:</strong> {mark.feedback}</span>}
                           </div>
                         )}
                         {isEditing && (
@@ -1370,7 +1370,7 @@ const HRAttendancePage = () => {
                                 fontWeight: 600,
                                 color: theme === 'dark' ? '#f9fafb' : '#111827'
                               }}>
-                                {t('status') || 'Status'}
+                                {t('status')}
                               </label>
                               <Select
                                 size="small"
@@ -1407,11 +1407,11 @@ const HRAttendancePage = () => {
                               />
                             </div>
                             <div style={{ marginBottom: 6 }}>
-                              <label style={{ display: 'block', marginBottom: 3, fontSize: 10, fontWeight: 600 }}>{t('reason') || 'Reason'}</label>
+                              <label style={{ display: 'block', marginBottom: 3, fontSize: 10, fontWeight: 600 }}>{t('reason')}</label>
                               <input value={reason} onChange={(e) => setReason(e.target.value)} placeholder={t('hr_attendance.reason_example', 'e.g., Medical appointment')} style={{ width: '100%', padding: '0.35rem', border: '1px solid var(--border)', borderRadius: 6, fontSize: 11 }} />
                             </div>
                             <div style={{ marginBottom: 6 }}>
-                              <label style={{ display: 'block', marginBottom: 3, fontSize: 10, fontWeight: 600 }}>{t('feedback') || 'Feedback'}</label>
+                              <label style={{ display: 'block', marginBottom: 3, fontSize: 10, fontWeight: 600 }}>{t('feedback')}</label>
                               <textarea value={feedback} onChange={(e) => setFeedback(e.target.value)} placeholder={t('hr_attendance.additional_notes', 'Additional notes...')} rows={2} style={{ width: '100%', padding: '0.35rem', border: '1px solid var(--border)', borderRadius: 6, fontSize: 11, resize: 'vertical' }} />
                             </div>
                             <div style={{ display: 'flex', gap: 6 }}>
@@ -1428,7 +1428,7 @@ const HRAttendancePage = () => {
                                   await loadSessions();
                                 }}
                               >
-                                {t('save') || 'Save'}
+                                {t('save')}
                               </Button>
                               <Button 
                                 variant="outline" 
@@ -1436,7 +1436,7 @@ const HRAttendancePage = () => {
                                 style={{ borderColor: actualPrimaryColor, color: actualPrimaryColor }}
                                 onClick={() => { setEditingMark(null); setReason(''); setFeedback(''); }}
                               >
-                                {t('cancel') || 'Cancel'}
+                                {t('cancel')}
                               </Button>
                             </div>
                           </div>

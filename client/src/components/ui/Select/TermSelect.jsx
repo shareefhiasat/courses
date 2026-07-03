@@ -36,7 +36,7 @@ const TermSelect = ({
   if (includeAll) {
     options.push({
       value: allValue,
-      label: allLabel || (t('all_terms') || 'All Terms')
+      label: allLabel || (t('all_terms'))
     });
   }
   
@@ -44,7 +44,7 @@ const TermSelect = ({
   if (!required) {
     options.push({
       value: '',
-      label: placeholder || (t('select_term') || 'Select Term')
+      label: placeholder || (t('select_term'))
     });
   }
   
@@ -62,7 +62,7 @@ const TermSelect = ({
       disabled={disabled}
       required={required}
       className={className}
-      placeholder={placeholder || (t('select_term') || 'Select Term')}
+      placeholder={placeholder || (t('select_term'))}
       {...rest}
     />
   );

@@ -182,14 +182,14 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Advan
             <h2 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 700, color: '#111827' }}>
               {getThemedIcon('ui', 'filter', 20, theme)}
               <span style={{ marginLeft: '0.5rem' }}>
-                {t('advanced_filters') || 'Advanced Filters'}
+                {t('advanced_filters')}
               </span>
             </h2>
             <div style={{ display: 'flex', gap: '0.5rem' }}>
               <Button variant="ghost" size="sm" onClick={resetFilters}>
                 {getThemedIcon('ui', 'refresh', 16, theme)}
                 <span style={{ marginLeft: '0.25rem' }}>
-                  {t('reset') || 'Reset'}
+                  {t('reset')}
                 </span>
               </Button>
               <Button variant="ghost" size="sm" onClick={onClose}>
@@ -206,56 +206,56 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Advan
             gap: '1rem'
           }}>
             <AnalyticsCard
-              title={t('participation_total') || 'Participation Total'}
+              title={t('participation_total')}
               value={analytics.participationTotal}
               icon="trending_up"
               color="#8b5cf6"
               trend={null}
             />
             <AnalyticsCard
-              title={t('present_total') || 'Present Total'}
+              title={t('present_total')}
               value={analytics.presentCount}
               icon="check_circle"
               color="#10b981"
               trend={null}
             />
             <AnalyticsCard
-              title={t('late_total') || 'Late Total'}
+              title={t('late_total')}
               value={analytics.lateCount}
               icon="clock"
               color="#f59e0b"
               trend={null}
             />
             <AnalyticsCard
-              title={t('absent_total') || 'Absent Total'}
+              title={t('absent_total')}
               value={analytics.absentCount}
               icon="x_circle"
               color="#ef4444"
               trend={null}
             />
             <AnalyticsCard
-              title={t('excused_total') || 'Excused Total'}
+              title={t('excused_total')}
               value={analytics.excusedCount}
               icon="calendar"
               color="#6b7280"
               trend={null}
             />
             <AnalyticsCard
-              title={t('excused_leave_total') || 'Excused Leave Total'}
+              title={t('excused_leave_total')}
               value={analytics.excusedLeaveCount}
               icon="home"
               color="#3b82f6"
               trend={null}
             />
             <AnalyticsCard
-              title={t('human_case_total') || 'Human Case Total'}
+              title={t('human_case_total')}
               value={analytics.humanCaseCount}
               icon="user"
               color="#ec4899"
               trend={null}
             />
             <AnalyticsCard
-              title={t('none_total') || 'None Total'}
+              title={t('none_total')}
               value={analytics.noneCount}
               icon="help_circle"
               color="#9ca3af"
@@ -267,16 +267,16 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Advan
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
             
             {/* Attendance Status Filter */}
-            <FilterSection title={t('attendance_status') || 'Attendance Status'}>
+            <FilterSection title={t('attendance_status')}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.75rem' }}>
                 {[
-                  { value: 'present', label: t('present') || 'Present', color: '#10b981', count: analytics.presentCount, icon: 'check_circle' },
-                  { value: 'absent', label: t('absent') || 'Absent', color: '#ef4444', count: analytics.absentCount, icon: 'x_circle' },
-                  { value: 'late', label: t('late') || 'Late', color: '#f59e0b', count: analytics.lateCount, icon: 'clock' },
-                  { value: 'excused', label: t('excused') || 'Excused', color: '#6b7280', count: analytics.excusedCount, icon: 'calendar' },
-                  { value: 'excused_leave', label: t('excused_leave') || 'Excused Leave', color: '#3b82f6', count: analytics.excusedLeaveCount, icon: 'home' },
-                  { value: 'human_case', label: t('human_case') || 'Human Case', color: '#ec4899', count: analytics.humanCaseCount, icon: 'user' },
-                  { value: 'none', label: t('none') || 'None', color: '#9ca3af', count: analytics.noneCount, icon: 'help_circle' }
+                  { value: 'present', label: t('present'), color: '#10b981', count: analytics.presentCount, icon: 'check_circle' },
+                  { value: 'absent', label: t('absent'), color: '#ef4444', count: analytics.absentCount, icon: 'x_circle' },
+                  { value: 'late', label: t('late'), color: '#f59e0b', count: analytics.lateCount, icon: 'clock' },
+                  { value: 'excused', label: t('excused'), color: '#6b7280', count: analytics.excusedCount, icon: 'calendar' },
+                  { value: 'excused_leave', label: t('excused_leave'), color: '#3b82f6', count: analytics.excusedLeaveCount, icon: 'home' },
+                  { value: 'human_case', label: t('human_case'), color: '#ec4899', count: analytics.humanCaseCount, icon: 'user' },
+                  { value: 'none', label: t('none'), color: '#9ca3af', count: analytics.noneCount, icon: 'help_circle' }
                 ].map(status => (
                   <StatusCard
                     key={status.value}
@@ -300,7 +300,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Advan
             </FilterSection>
 
             {/* Participation Range Filter */}
-            <FilterSection title={t('participation_range') || 'Participation Range'}>
+            <FilterSection title={t('participation_range')}>
               <RangeSlider
                 min={0}
                 max={100}
@@ -313,40 +313,40 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Advan
             </FilterSection>
 
             {/* Behavior Count Filter */}
-            <FilterSection title={t('behavior_incidents') || 'Behavior Incidents'}>
+            <FilterSection title={t('behavior_incidents')}>
               <RangeSlider
                 min={0}
                 max={10}
                 value={selectedFilters.behaviorCount}
                 onChange={(value) => setSelectedFilters(prev => ({ ...prev, behaviorCount: value }))}
-                unit={t('incidents') || 'incidents'}
+                unit={t('incidents')}
                 color="#ef4444"
                 t={t}
               />
             </FilterSection>
 
             {/* Penalty Count Filter */}
-            <FilterSection title={t('penalty_count') || 'Penalty Count'}>
+            <FilterSection title={t('penalty_count')}>
               <RangeSlider
                 min={0}
                 max={5}
                 value={selectedFilters.penaltyCount}
                 onChange={(value) => setSelectedFilters(prev => ({ ...prev, penaltyCount: value }))}
-                unit={t('penalties') || 'penalties'}
+                unit={t('penalties')}
                 color="#8b5cf6"
                 t={t}
               />
             </FilterSection>
 
             {/* Quick Filters */}
-            <FilterSection title={t('quick_filters') || 'Quick Filters'}>
+            <FilterSection title={t('quick_filters')}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '0.75rem' }}>
                 {[
-                  { value: 'present', label: t('show_present') || 'Show Present', color: '#10b981', count: analytics.presentCount, icon: 'check_circle' },
-                  { value: 'absent', label: t('show_absent') || 'Show Absent', color: '#ef4444', count: analytics.absentCount, icon: 'x_circle' },
-                  { value: 'excused', label: t('show_excused') || 'Show Excused', color: '#6b7280', count: analytics.excusedCount, icon: 'calendar' },
-                  { value: 'excused_leave', label: t('show_excused_leave') || 'Show Excused Leave', color: '#3b82f6', count: analytics.excusedLeaveCount, icon: 'home' },
-                  { value: 'human_case', label: t('show_human_case') || 'Show Human Case', color: '#ec4899', count: analytics.humanCaseCount, icon: 'user' }
+                  { value: 'present', label: t('show_present'), color: '#10b981', count: analytics.presentCount, icon: 'check_circle' },
+                  { value: 'absent', label: t('show_absent'), color: '#ef4444', count: analytics.absentCount, icon: 'x_circle' },
+                  { value: 'excused', label: t('show_excused'), color: '#6b7280', count: analytics.excusedCount, icon: 'calendar' },
+                  { value: 'excused_leave', label: t('show_excused_leave'), color: '#3b82f6', count: analytics.excusedLeaveCount, icon: 'home' },
+                  { value: 'human_case', label: t('show_human_case'), color: '#ec4899', count: analytics.humanCaseCount, icon: 'user' }
                 ].map(filter => (
                   <StatusCard
                     key={filter.value}
@@ -381,7 +381,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Advan
             borderTop: '1px solid #e5e7eb'
           }}>
             <Button variant="outline" onClick={onClose}>
-              {t('cancel') || 'Cancel'}
+              {t('cancel')}
             </Button>
             <Button 
               variant="primary" 
@@ -394,7 +394,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Advan
               }}
             >
               {getThemedIcon('ui', 'check', 16, 'white')}
-              {t('apply_filters') || 'Apply Filters'}
+              {t('apply_filters')}
             </Button>
           </div>
         </CardBody>
@@ -595,7 +595,7 @@ const RangeSlider = ({ min, max, value, onChange, unit, color, t }) => {
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
           <div>
             <label style={{ fontSize: 'var(--font-size-xs)', color: '#6b7280', display: 'block' }}>
-              {t ? (t('min') || 'Min') : 'Min'}
+              {t ? (t('min')) : 'Min'}
             </label>
             <input
               type="number"
@@ -616,7 +616,7 @@ const RangeSlider = ({ min, max, value, onChange, unit, color, t }) => {
           <span style={{ color: '#6b7280' }}>-</span>
           <div>
             <label style={{ fontSize: 'var(--font-size-xs)', color: '#6b7280', display: 'block' }}>
-              {t ? (t('max') || 'Max') : 'Max'}
+              {t ? (t('max')) : 'Max'}
             </label>
             <input
               type="number"

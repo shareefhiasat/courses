@@ -13,10 +13,14 @@ const KEYCLOAK_REALM = 'master'; // Force master realm to avoid confusion
 const KEYCLOAK_ADMIN_CLIENT_ID = process.env.KEYCLOAK_ADMIN_CLIENT_ID || 'admin-cli';
 const KEYCLOAK_ADMIN_CLIENT_SECRET = process.env.KEYCLOAK_ADMIN_CLIENT_SECRET;
 
-// Fail hard in production if Keycloak admin credentials are left at defaults
+// Fail hard if Keycloak admin credentials are missing or left at known defaults
 const _KC_ADMIN_PASSWORD = process.env.KEYCLOAK_ADMIN_PASSWORD;
-if ((process.env.NODE_ENV === 'production') && (!_KC_ADMIN_PASSWORD || _KC_ADMIN_PASSWORD === 'admin123')) {
-  console.error('FATAL: KEYCLOAK_ADMIN_PASSWORD must be set to a non-default value in production');
+if (!_KC_ADMIN_PASSWORD) {
+  console.error('FATAL: KEYCLOAK_ADMIN_PASSWORD environment variable is required');
+  process.exit(1);
+}
+if (_KC_ADMIN_PASSWORD === 'admin123') {
+  console.error('FATAL: KEYCLOAK_ADMIN_PASSWORD must be changed from the default "admin123"');
   process.exit(1);
 }
 
@@ -36,7 +40,7 @@ async function getAdminToken() {
   try {
     // Try admin credentials first
     const adminUsername = process.env.KEYCLOAK_ADMIN_USERNAME || 'admin';
-    const adminPassword = process.env.KEYCLOAK_ADMIN_PASSWORD || 'admin123';
+    const adminPassword = _KC_ADMIN_PASSWORD;
     
     const response = await fetch(
       `${KEYCLOAK_URL}/realms/${KEYCLOAK_REALM}/protocol/openid-connect/token`,

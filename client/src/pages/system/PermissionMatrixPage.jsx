@@ -217,7 +217,7 @@ const PermissionMatrixPage = () => {
 
       if (!response.ok) throw new Error('Failed to save permissions');
 
-      setSaveMessage(t('permission_matrix_saved') || 'Permissions saved successfully');
+      setSaveMessage(t('permission_matrix_saved'));
       setPendingUpdates([]);
       setEditMode(false);
       
@@ -243,7 +243,7 @@ const PermissionMatrixPage = () => {
     return (
       <div style={{ padding: '2rem', textAlign: 'center' }}>
         <div style={{ fontSize: '1.25rem', marginBottom: '1rem' }}>
-          {t('loading') || 'Loading...'}
+          {t('loading')}
         </div>
       </div>
     );
@@ -266,7 +266,7 @@ const PermissionMatrixPage = () => {
             cursor: 'pointer'
           }}
         >
-          {t('retry') || 'Retry'}
+          {t('retry')}
         </button>
       </div>
     );
@@ -276,9 +276,9 @@ const PermissionMatrixPage = () => {
     return (
       <div style={{ padding: '2rem', textAlign: 'center' }}>
         <h2 style={{ marginBottom: '1rem' }}>
-          {t('permission_matrix') || 'Permission Matrix'}
+          {t('permission_matrix')}
         </h2>
-        <p>{t('no_permissions_configured') || 'No permissions configured'}</p>
+        <p>{t('no_permissions_configured')}</p>
       </div>
     );
   }
@@ -305,17 +305,17 @@ const PermissionMatrixPage = () => {
       }}>
         <div>
           <h1 style={{ fontSize: '2rem', marginBottom: '0.5rem', margin: 0 }}>
-            {t('permission_matrix') || 'Permission Matrix'}
+            {t('permission_matrix')}
           </h1>
           <p style={{ color: 'var(--text-secondary)', marginBottom: 0 }}>
-            {t('permission_matrix_description') || 'View and manage role-based access control for screens and operations'}
+            {t('permission_matrix_description')}
           </p>
         </div>
 
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
           <input
             type="text"
-            placeholder={t('search_screens') || 'Search screens...'}
+            placeholder={t('search_screens')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             style={{
@@ -331,13 +331,13 @@ const PermissionMatrixPage = () => {
             onClick={expandAll}
             style={{ ...btnStyle, backgroundColor: 'var(--surface)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}
           >
-            {t('expand_all') || 'Expand All'}
+            {t('expand_all')}
           </button>
           <button
             onClick={collapseAll}
             style={{ ...btnStyle, backgroundColor: 'var(--surface)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}
           >
-            {t('collapse_all') || 'Collapse All'}
+            {t('collapse_all')}
           </button>
           {editMode ? (
             <>
@@ -352,7 +352,7 @@ const PermissionMatrixPage = () => {
                   opacity: saving ? 0.6 : 1
                 }}
               >
-                {t('permission_matrix_cancel') || 'Cancel'}
+                {t('permission_matrix_cancel')}
               </button>
               <button
                 onClick={handleSave}
@@ -365,7 +365,7 @@ const PermissionMatrixPage = () => {
                   opacity: (saving || pendingUpdates.length === 0) ? 0.6 : 1
                 }}
               >
-                {saving ? 'Saving...' : (t('permission_matrix_save') || 'Save Changes')}
+                {saving ? 'Saving...' : (t('permission_matrix_save'))}
                 {pendingUpdates.length > 0 && ` (${pendingUpdates.length})`}
               </button>
             </>
@@ -379,7 +379,7 @@ const PermissionMatrixPage = () => {
                 border: '1px solid var(--accent)'
               }}
             >
-              {t('permission_matrix_edit') || 'Edit Permissions'}
+              {t('permission_matrix_edit')}
             </button>
           )}
         </div>
@@ -388,7 +388,7 @@ const PermissionMatrixPage = () => {
       {/* Role Filter Chips */}
       <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
         <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginRight: '0.25rem' }}>
-          {t('filter_by_role') || 'Filter by role:'}
+          {t('filter_by_role')}
         </span>
         <button
           onClick={() => setRoleFilter(null)}
@@ -403,7 +403,7 @@ const PermissionMatrixPage = () => {
             fontWeight: '600'
           }}
         >
-          {t('all_roles') || 'All'}
+          {t('all_roles')}
         </button>
         {allRoles.map(role => (
           <button

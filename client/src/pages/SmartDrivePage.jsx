@@ -438,9 +438,9 @@ export default function SmartDrivePage() {
       await refreshDriveUI();
       const failed = results.filter((r) => !r.success);
       if (failed.length > 0) {
-        error(failed[0].error?.message || failed[0].error || t('drive.restoreFailed') || 'Failed to restore');
+        error(failed[0].error?.message || failed[0].error || t('drive.restoreFailed'));
       } else {
-        success(t('drive.restored') || 'Restored successfully');
+        success(t('drive.restored'));
       }
     } else if (action === 'permanent-delete') {
       const results = await Promise.all(items.map((item) => (
@@ -450,9 +450,9 @@ export default function SmartDrivePage() {
       await refreshDriveUI();
       const failed = results.filter((r) => !r.success);
       if (failed.length > 0) {
-        error(failed[0].error?.message || failed[0].error || t('drive.permanentDeleteFailed') || 'Failed to delete permanently');
+        error(failed[0].error?.message || failed[0].error || t('drive.permanentDeleteFailed'));
       } else {
-        success(t('drive.permanentlyDeleted') || 'Permanently deleted');
+        success(t('drive.permanentlyDeleted'));
       }
     } else if (action === 'download') {
       await Promise.all(items.map((item) => {
@@ -519,20 +519,20 @@ export default function SmartDrivePage() {
       const result = await restoreFolder(folder.id);
       if (result.success) {
         await refreshDriveUI();
-        success(t('drive.restored') || 'Restored successfully');
+        success(t('drive.restored'));
       } else {
-        error(result.error?.message || result.error || t('drive.restoreFailed') || 'Failed to restore');
+        error(result.error?.message || result.error || t('drive.restoreFailed'));
       }
     } else if (action === 'permanent-delete') {
       const result = await permanentDeleteFolder(folder.id);
       if (result.success) {
         await refreshDriveUI();
-        success(t('drive.permanentlyDeleted') || 'Permanently deleted');
+        success(t('drive.permanentlyDeleted'));
       } else {
-        error(result.error?.message || result.error || t('drive.permanentDeleteFailed') || 'Failed to delete permanently');
+        error(result.error?.message || result.error || t('drive.permanentDeleteFailed'));
       }
     } else if (action === 'share') {
-      info(t('drive.folderShareNotAvailable') || 'Folder sharing not available');
+      info(t('drive.folderShareNotAvailable'));
     }
   };
 
@@ -544,7 +544,7 @@ export default function SmartDrivePage() {
     if (result.success) {
       success(result.newStarred ? t('drive.starred') : t('drive.unstarred'));
     } else {
-      error(result.error || t('drive.starFailed') || 'Failed to star');
+      error(result.error || t('drive.starFailed'));
     }
 
     return result;
@@ -657,9 +657,9 @@ export default function SmartDrivePage() {
         : t('drive.uploadCompletePlural', { count: results.completed })
       );
     } else if (results.completed === 0) {
-      error(t('drive.uploadFailed') || 'Upload failed');
+      error(t('drive.uploadFailed'));
     } else {
-      error(t('drive.uploadPartialFailure', { count: results.failed, total: results.completed + results.failed }) || `${results.failed} files failed`);
+      error(t('drive.uploadPartialFailure', { count: results.failed, total: results.completed + results.failed }));
     }
   };
 
@@ -681,7 +681,7 @@ export default function SmartDrivePage() {
     ]);
     await refreshDriveUI();
     setEmptyTrashConfirmOpen(false);
-    success(t('drive.trashEmptied') || 'Trash emptied');
+    success(t('drive.trashEmptied'));
   };
 
   const confirmDelete = async () => {
@@ -697,17 +697,17 @@ export default function SmartDrivePage() {
       await refreshDriveUI();
 
       if (failed.length > 0) {
-        const firstError = failed[0].error?.message || failed[0].error || t('drive.deleteFailed') || 'Failed to move items to trash';
+        const firstError = failed[0].error?.message || failed[0].error || t('drive.deleteFailed');
         error(firstError);
       } else {
-        success(t('drive.deleteSuccess') || 'Items moved to trash');
+        success(t('drive.deleteSuccess'));
       }
     } catch (err) {
       console.error('[SmartDrivePage] confirmDelete error:', err);
       handleClearSelection();
       setDeleteConfirmOpen(false);
       setItemsToDelete([]);
-      error(err?.response?.data?.error || err.message || t('drive.deleteFailed') || 'Failed to move items to trash');
+      error(err?.response?.data?.error || err.message || t('drive.deleteFailed'));
     }
   };
 
@@ -810,7 +810,7 @@ export default function SmartDrivePage() {
   return (
     <div
       className="qr-scanner-container"
-      dir={isRTL ? 'rtl' : 'ltr'}
+
       style={{
         minHeight: '100vh',
         background: 'var(--background-secondary, #f9fafb)',
@@ -864,7 +864,7 @@ export default function SmartDrivePage() {
                   color: 'var(--text, #111827)',
                 }}
               >
-                {t('drive.title') || 'Smart Drive'}
+                {t('drive.title')}
               </h1>
               <p
                 style={{
@@ -873,7 +873,7 @@ export default function SmartDrivePage() {
                   color: 'var(--text-muted, #6b7280)',
                 }}
               >
-                {t('drive.subtitle') || 'Secure file storage & sharing'}
+                {t('drive.subtitle')}
               </p>
             </div>
           </div>
@@ -884,7 +884,7 @@ export default function SmartDrivePage() {
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={t('drive.searchInDrive') || 'Search in Drive'}
+              placeholder={t('drive.searchInDrive')}
               prefix={getThemedIcon('ui', 'search', 16, theme)}
             />
           </div>
@@ -895,7 +895,7 @@ export default function SmartDrivePage() {
           {!isMobile && (
             <button
               onClick={() => setSidebarMinimized((v) => !v)}
-              title={sidebarMinimized ? t('expand') || 'Expand' : t('collapse') || 'Collapse'}
+              title={sidebarMinimized ? t('expand') : t('collapse')}
               style={{
                 padding: '0.5rem',
                 background: 'var(--background-secondary, #f3f4f6)',
@@ -975,7 +975,7 @@ export default function SmartDrivePage() {
                 }}
               >
                 {getThemedIcon('ui', 'upload', 16, 'white')}
-                {t('drive.upload') || 'Upload'}
+                {t('drive.upload')}
               </button>
 
               <button
@@ -996,7 +996,7 @@ export default function SmartDrivePage() {
                 }}
               >
                 {getThemedIcon('ui', 'folder', 16, 'white')}
-                {t('drive.newFolder') || 'New Folder'}
+                {t('drive.newFolder')}
               </button>
             </>
           )}
@@ -1095,7 +1095,7 @@ export default function SmartDrivePage() {
                   }}
                 >
                   {getThemedIcon('ui', 'folder', 16, currentFolderId ? 'primary' : theme)}
-                  <span>{t('drive.myDrive') || 'My Drive'}</span>
+                  <span>{t('drive.myDrive')}</span>
                 </button>
                 {console.log('[Breadcrumb Debug] currentFolderId:', currentFolderId, 'breadcrumbs:', breadcrumbs, 'breadcrumbs.length:', breadcrumbs.length)}
                 {breadcrumbs.map((crumb, idx) => (
@@ -1159,7 +1159,7 @@ export default function SmartDrivePage() {
                   }}
                 >
                   {getThemedIcon('ui', 'chevron_up', 14, theme)}
-                  {t('drive.goUp') || 'Go up'}
+                  {t('drive.goUp')}
                 </button>
               )}
             </div>
@@ -1428,7 +1428,7 @@ export default function SmartDrivePage() {
             }}
           >
             <h3 style={{ margin: '0 0 1rem 0', fontSize: 'var(--font-size-lg)', fontWeight: 600, color: 'var(--text, #111827)' }}>
-              {t('drive.rename') || 'Rename'}
+              {t('drive.rename')}
             </h3>
             <input
               type="text"
@@ -1440,9 +1440,9 @@ export default function SmartDrivePage() {
                   setNewName(value);
                   setRenameError('');
                 } else if (value.length > 255) {
-                  setRenameError(t('drive.renameTooLong') || 'Name must be 255 characters or less');
+                  setRenameError(t('drive.renameTooLong'));
                 } else {
-                  setRenameError(t('drive.renameInvalidChars') || 'Name contains invalid characters');
+                  setRenameError(t('drive.renameInvalidChars'));
                 }
               }}
               autoFocus
@@ -1485,7 +1485,7 @@ export default function SmartDrivePage() {
                     setNewNameAr(value);
                   }
                 }}
-                placeholder={t('drive.folderNameAr') || 'Folder Name (Arabic)'}
+                placeholder={t('drive.folderNameAr')}
                 onKeyDown={async (e) => {
                   if (e.key === 'Enter' && newName && !renameError) {
                     await handleRenameConfirm();
@@ -1519,7 +1519,7 @@ export default function SmartDrivePage() {
             {isDriveFolder(renameTarget) && (
               <div style={{ marginBottom: '1rem' }}>
                 <label style={{ fontSize: 'var(--font-size-sm)', fontWeight: 500, color: 'var(--text-secondary, #374151)', marginBottom: '0.5rem', display: 'block' }}>
-                  {t('drive.folderColor') || 'Folder Color'}
+                  {t('drive.folderColor')}
                 </label>
                 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
                   {FOLDER_COLORS.map((c) => (
@@ -1555,13 +1555,13 @@ export default function SmartDrivePage() {
             )}
             <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
               <Button variant="outline" onClick={() => setRenameTarget(null)}>
-                {t('common.cancel') || 'Cancel'}
+                {t('common.cancel')}
               </Button>
               <Button
                 onClick={handleRenameConfirm}
                 disabled={!newName || !!renameError}
               >
-                {t('drive.rename') || 'Rename'}
+                {t('drive.rename')}
               </Button>
             </div>
           </div>
@@ -1629,7 +1629,7 @@ export default function SmartDrivePage() {
                 color: 'var(--text, #111827)',
               }}
             >
-              {t('drive.deleteConfirm') || 'Move to Trash?'}
+              {t('drive.deleteConfirm')}
             </h2>
             <p
               style={{
@@ -1640,8 +1640,8 @@ export default function SmartDrivePage() {
               }}
             >
               {itemsToDelete.length === 1
-                ? (t('drive.deleteConfirmMessageSingle') || 'This item will be moved to trash. You can restore it from the trash later.')
-                : (t('drive.deleteConfirmMessageMultiple') || 'These items will be moved to trash. You can restore them from the trash later.')}
+                ? (t('drive.deleteConfirmMessageSingle'))
+                : (t('drive.deleteConfirmMessageMultiple'))}
             </p>
             <div
               style={{
@@ -1673,7 +1673,7 @@ export default function SmartDrivePage() {
                   e.currentTarget.style.background = 'transparent';
                 }}
               >
-                {t('common.cancel') || 'Cancel'}
+                {t('common.cancel')}
               </button>
               <button
                 onClick={confirmDelete}
@@ -1698,7 +1698,7 @@ export default function SmartDrivePage() {
                   e.currentTarget.style.transform = 'translateY(0)';
                 }}
               >
-                {t('drive.moveToTrash') || 'Move to Trash'}
+                {t('drive.moveToTrash')}
               </button>
             </div>
           </div>
@@ -1757,7 +1757,7 @@ export default function SmartDrivePage() {
                 color: 'var(--text, #111827)',
               }}
             >
-              {t('drive.emptyTrashConfirm') || 'Empty Trash?'}
+              {t('drive.emptyTrashConfirm')}
             </h2>
             <p
               style={{
@@ -1767,7 +1767,7 @@ export default function SmartDrivePage() {
                 lineHeight: '1.6',
               }}
             >
-              {t('drive.emptyTrashConfirmMessage') || 'This will permanently delete all items in the trash. This action cannot be undone.'}
+              {t('drive.emptyTrashConfirmMessage')}
             </p>
             <div
               style={{
@@ -1796,7 +1796,7 @@ export default function SmartDrivePage() {
                   e.currentTarget.style.background = 'transparent';
                 }}
               >
-                {t('common.cancel') || 'Cancel'}
+                {t('common.cancel')}
               </button>
               <button
                 onClick={confirmEmptyTrash}
@@ -1821,7 +1821,7 @@ export default function SmartDrivePage() {
                   e.currentTarget.style.transform = 'translateY(0)';
                 }}
               >
-                {t('drive.emptyTrash') || 'Empty Trash'}
+                {t('drive.emptyTrash')}
               </button>
             </div>
           </div>

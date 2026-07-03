@@ -34,7 +34,7 @@ export default function ClassCardScheduleSection({
   if (count <= 0) {
     return (
       <div
-        dir={isRTL ? 'rtl' : 'ltr'}
+
         style={{ fontSize: 10, color: 'var(--muted)', textAlign: 'start' }}
       >
         {t('classcard_no_scheduled_sessions')}
@@ -48,7 +48,7 @@ export default function ClassCardScheduleSection({
 
   return (
     <div
-      dir={isRTL ? 'rtl' : 'ltr'}
+
       style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}
       onClick={(e) => e.stopPropagation()}
     >

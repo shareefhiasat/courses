@@ -17,14 +17,7 @@ import prisma from '../db/prismaClient.js';
 import notificationGateway from './notifications/index.js';
 import { EVENTS } from './notifications/constants.js';
 import { buildNotificationNameVars } from '../utils/localizedUserName.js';
-
-
-const ok = (payload) => ({ success: true, payload, timestamp: Date.now() });
-const err = (code, message) => ({
-  success: false,
-  error: { code, message },
-  timestamp: Date.now(),
-});
+import { ok, err } from '../utils/result.js';
 
 /**
  * Helper function to send workflow notifications to initiator

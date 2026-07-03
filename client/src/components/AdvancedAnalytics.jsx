@@ -136,10 +136,10 @@ export default function AdvancedAnalytics({
     
     const termKey = term.toLowerCase();
     const termTranslations = {
-      'spring': t('schedules_spring') || 'Spring',
-      'summer': t('schedules_summer') || 'Summer', 
-      'fall': t('schedules_fall') || 'Fall',
-      'winter': t('schedules_winter') || 'Winter'
+      'spring': t('schedules_spring'),
+      'summer': t('schedules_summer'), 
+      'fall': t('schedules_fall'),
+      'winter': t('schedules_winter')
     };
     
     return termTranslations[termKey] || term;
@@ -205,68 +205,68 @@ export default function AdvancedAnalytics({
     const steps = [
       {
         target: '[data-tour="advanced-analytics-filters"]',
-        content: t('tour.analytics_filters') || 'Use these filters to narrow down all widgets by program, subject, class, year, and student.',
+        content: t('tour.analytics_filters'),
         disableBeacon: true,
         placement: 'bottom'
       },
       {
         target: '[data-tour="advanced-analytics-toolbar"]',
-        content: t('tour.advanced_analytics_toolbar') || 'Use these buttons to add widgets, refresh data, toggle edit layout mode, or export data as CSV.',
+        content: t('tour.advanced_analytics_toolbar'),
         disableBeacon: true,
         placement: 'bottom'
       },
       {
         target: '[data-tour="advanced-analytics-add-widget"]',
-        content: t('tour.advanced_analytics_add_widget') || 'Click Add Widget to create a new chart, list, or single-value counter.',
+        content: t('tour.advanced_analytics_add_widget'),
         disableBeacon: true,
         placement: 'bottom'
       },
       {
         target: '[data-tour="advanced-analytics-engine"]',
-        content: t('tour.advanced_analytics_engine') || 'This is the widget grid. Each card shows a chart or metric. Drag widgets to reorder them in Edit Layout mode.',
+        content: t('tour.advanced_analytics_engine'),
         disableBeacon: true,
         placement: 'top'
       },
       {
         target: '[data-tour="analytics-widget-card"]',
-        content: t('tour.advanced_analytics_widget_hover') || 'Hover over any widget to edit, duplicate, download as SVG, or delete it.',
+        content: t('tour.advanced_analytics_widget_hover'),
         disableBeacon: true,
         placement: 'top'
       },
       {
         target: '[data-tour="widget-builder-modal"]',
-        content: t('tour.advanced_analytics_builder_intro') || 'The widget builder lets you choose the chart type, data source, grouping, date range, and size.',
+        content: t('tour.advanced_analytics_builder_intro'),
         disableBeacon: true,
         placement: 'top',
         data: { openBuilder: true }
       },
       {
         target: '[data-tour="widget-builder-chart-types"]',
-        content: t('tour.advanced_analytics_builder_chart_types') || 'Pick a visualisation: Bar, Line, Pie, Donut, List, or Count. Incompatible options are disabled for the chosen data source.',
+        content: t('tour.advanced_analytics_builder_chart_types'),
         disableBeacon: true,
         placement: 'top'
       },
       {
         target: '[data-tour="widget-builder-data-source"]',
-        content: t('tour.advanced_analytics_builder_data_source') || 'Choose the data source and how to group the data. Some sources also let you pick a numeric measure to sum or average.',
+        content: t('tour.advanced_analytics_builder_data_source'),
         disableBeacon: true,
         placement: 'top'
       },
       {
         target: '[data-tour="widget-builder-date-range"]',
-        content: t('tour.advanced_analytics_builder_date_range') || 'Restrict the data to today, last 7/30/90 days, or a custom date range.',
+        content: t('tour.advanced_analytics_builder_date_range'),
         disableBeacon: true,
         placement: 'top'
       },
       {
         target: '[data-tour="widget-builder-size"]',
-        content: t('tour.advanced_analytics_builder_size') || 'Set the widget width (1-12 grid columns) and height (rows) before saving.',
+        content: t('tour.advanced_analytics_builder_size'),
         disableBeacon: true,
         placement: 'top'
       },
       {
         target: '[data-tour="advanced-analytics-edit-layout"]',
-        content: t('tour.advanced_analytics_edit_layout') || 'Edit Layout lets you drag and resize widgets. Click Reset to restore the default layout.',
+        content: t('tour.advanced_analytics_edit_layout'),
         disableBeacon: true,
         placement: 'bottom'
       }
@@ -394,11 +394,11 @@ export default function AdvancedAnalytics({
         callback={handleTourCallback}
         tooltipComponent={TourTooltipComponent}
         locale={{
-          back: t('tour_back') || (lang === 'ar' ? 'السابق' : 'Back'),
-          close: t('tour_close') || (lang === 'ar' ? 'إغلاق' : 'Close'),
-          last: t('tour_finish') || (lang === 'ar' ? 'إنهاء' : 'Finish'),
-          next: t('tour_next') || (lang === 'ar' ? 'التالي' : 'Next'),
-          skip: t('tour_skip') || (lang === 'ar' ? 'تخطي' : 'Skip')
+          back: t('tour_back'),
+          close: t('tour_close'),
+          last: t('tour_finish'),
+          next: t('tour_next'),
+          skip: t('tour_skip')
         }}
         styles={{
           options: {
@@ -433,12 +433,12 @@ export default function AdvancedAnalytics({
             value={autoRefreshMs}
             onChange={e => setAutoRefreshMs(Number(e.target.value))}
             options={[
-              { value: 0,       label: t('auto_refresh_off') || 'Auto Refresh: Off' },
-              { value: 60000,   label: `1 ${t('minute') || 'min'}` },
-              { value: 300000,  label: `5 ${t('minutes') || 'min'}` },
-              { value: 900000,  label: `15 ${t('minutes') || 'min'}` },
-              { value: 1800000, label: `30 ${t('minutes') || 'min'}` },
-              { value: 3600000, label: `60 ${t('minutes') || 'min'}` }
+              { value: 0,       label: t('auto_refresh_off') },
+              { value: 60000,   label: `1 ${t('minute')}` },
+              { value: 300000,  label: `5 ${t('minutes')}` },
+              { value: 900000,  label: `15 ${t('minutes')}` },
+              { value: 1800000, label: `30 ${t('minutes')}` },
+              { value: 3600000, label: `60 ${t('minutes')}` }
             ]}
             size="small"
           />
@@ -466,7 +466,7 @@ export default function AdvancedAnalytics({
             style={btnStyle('var(--text-muted, #6b7280)')}
           >
             {getThemedIcon('ui', 'rotate_cw', 16, 'white')}
-            {t('refresh') || 'Refresh'}
+            {t('refresh')}
           </button>
 
           {/* Edit Layout toggle */}
@@ -476,7 +476,7 @@ export default function AdvancedAnalytics({
             style={btnStyle(editLayout ? 'var(--color-danger, #ef4444)' : 'var(--color-warning, #f97316)')}
           >
             {getThemedIcon('ui', editLayout ? 'lock' : 'layout_grid', 16, 'white')}
-            {editLayout ? (t('exit_edit_layout') || 'Exit Edit') : (t('edit_layout') || 'Edit Layout')}
+            {editLayout ? (t('exit_edit_layout')) : (t('edit_layout'))}
           </button>
 
           {/* Add Widget */}
@@ -493,7 +493,7 @@ export default function AdvancedAnalytics({
             }}
           >
             {getThemedIcon('ui', 'plus', 16, 'white')}
-            {t('add_widget') || 'Add Widget'}
+            {t('add_widget')}
           </button>
 
           {/* Export */}
@@ -503,7 +503,7 @@ export default function AdvancedAnalytics({
             style={btnStyle('var(--color-success, #10b981)')}
           >
             {getThemedIcon('ui', 'download', 16, 'white')}
-            {t('export') || 'Export'}
+            {t('export')}
           </button>
 
           {/* Schedule Report */}
@@ -512,7 +512,7 @@ export default function AdvancedAnalytics({
             style={btnStyle(accentColor)}
           >
             {getThemedIcon('ui', 'calendar', 16, 'white')}
-            {t('schedule_report') || 'Schedule Report'}
+            {t('schedule_report')}
           </button>
         </div>
       </div>
@@ -523,7 +523,7 @@ export default function AdvancedAnalytics({
           marginBottom: '1rem', padding: '0.75rem 1rem', borderRadius: 8,
           border: '1px solid var(--color-warning, #F59E0B)', background: 'var(--color-warning-light, rgba(245,158,11,0.08))', color: 'var(--color-warning-dark, #92400e)'
         }}>
-          <strong>{t('some_data_not_loaded_permissions') || 'Some collections could not be loaded (permissions):'}</strong>
+          <strong>{t('some_data_not_loaded_permissions')}</strong>
           <div style={{ marginTop: 6, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             {Object.keys(permErrors).map(key => (
               <span key={key} style={{ padding: '2px 8px', borderRadius: 999, background: 'var(--color-warning-surface, rgba(245,158,11,0.15))', border: '1px solid var(--color-warning-border, rgba(245,158,11,0.4))', fontSize: 'var(--font-size-xs)' }}>
@@ -549,7 +549,7 @@ export default function AdvancedAnalytics({
             value={localFilters.programId}
             onChange={e => setLocalFilters(f => ({ ...f, programId: e.target.value, subjectId: '' }))}
             options={[
-              { value: '', label: t('all_programs') || 'All Programs' },
+              { value: '', label: t('all_programs') },
               ...(rawData.programs || []).map(p => ({ value: p.docId || p.id, label: getLocalizedName(p) }))
             ]}
             searchable
@@ -559,7 +559,7 @@ export default function AdvancedAnalytics({
             value={localFilters.subjectId}
             onChange={e => setLocalFilters(f => ({ ...f, subjectId: e.target.value }))}
             options={[
-              { value: '', label: t('all_subjects') || 'All Subjects' },
+              { value: '', label: t('all_subjects') },
               ...(rawData.subjects || [])
                 .filter(s => !localFilters.programId || s.programId === localFilters.programId)
                 .map(s => ({ value: s.docId || s.id, label: `${s.code || ''} - ${getLocalizedName(s)}`.trim() }))
@@ -571,7 +571,7 @@ export default function AdvancedAnalytics({
             value={localFilters.classId}
             onChange={e => setLocalFilters(f => ({ ...f, classId: e.target.value }))}
             options={[
-              { value: '', label: t('all_classes') || 'All Classes' },
+              { value: '', label: t('all_classes') },
               ...(rawData.classes || []).map((c, idx) => {
                 const id = c?.id || c?.docId || `idx_${idx}`;
                 const label = getLocalizedName(c, 'title') || `Class ${id.slice(0, 6)}`;
@@ -585,7 +585,7 @@ export default function AdvancedAnalytics({
             value={localFilters.term}
             onChange={e => setLocalFilters(f => ({ ...f, term: e.target.value }))}
             options={[
-              { value: '', label: t('all_terms') || 'All Terms' },
+              { value: '', label: t('all_terms') },
               ...Array.from(new Set((rawData.classes || []).map(c => {
                 const m = /^(Spring|Summer|Fall|Winter)/i.exec((c?.term || '').toString());
                 return m ? `${m[1][0].toUpperCase()}${m[1].slice(1).toLowerCase()}` : '';
@@ -601,7 +601,7 @@ export default function AdvancedAnalytics({
             yearsAhead={5}
             includeAll
             allValue=""
-            allLabel={t('all_years') || 'All Years'}
+            allLabel={t('all_years')}
             searchable
             fullWidth
             label=""
@@ -613,7 +613,7 @@ export default function AdvancedAnalytics({
             enrollments={rawData.enrollments || []}
             value={localFilters.studentId}
             onChange={e => setLocalFilters(f => ({ ...f, studentId: e.target.value }))}
-            placeholder={t('all_students') || 'All Students'}
+            placeholder={t('all_students')}
             includeAll={true}
             showStatus={true}
             showEnrollments={false}
@@ -625,7 +625,7 @@ export default function AdvancedAnalytics({
             value={localFilters.instructorId}
             onChange={e => setLocalFilters(f => ({ ...f, instructorId: e.target.value }))}
             options={[
-              { value: '', label: t('all_instructors') || 'All Instructors' },
+              { value: '', label: t('all_instructors') },
               ...(rawData.users || [])
                 .filter(u => u.isInstructor)
                 .map(u => ({ value: u.id, label: u.realName || u.displayName || u.email || u.id }))

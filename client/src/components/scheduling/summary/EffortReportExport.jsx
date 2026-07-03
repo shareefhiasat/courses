@@ -39,7 +39,7 @@ export default function EffortReportExport({ report, canExport }) {
     doc.text('QAF — RESTRICTED', 14, y);
     y += 10;
     doc.setFontSize(11);
-    doc.text(t('teacher_effort_report') || 'Teacher Effort Report', 14, y);
+    doc.text(t('teacher_effort_report'), 14, y);
     y += 8;
     doc.text(`${t('total_sessions')}: ${report.totals?.sessionCount}`, 14, y);
     y += 6;
@@ -49,7 +49,7 @@ export default function EffortReportExport({ report, canExport }) {
     y += 10;
 
     doc.setFontSize(10);
-    doc.text(t('teacher_effort_report') || 'Teachers:', 14, y);
+    doc.text(t('teacher_effort_report'), 14, y);
     y += 6;
     (report.teachers || []).forEach((row) => {
       if (y > 270) { doc.addPage(); y = 16; }
@@ -60,7 +60,7 @@ export default function EffortReportExport({ report, canExport }) {
 
     if (report.reportFormat === 'breakdown') {
       y += 6;
-      doc.text(t('session_breakdown') || 'Sessions:', 14, y);
+      doc.text(t('session_breakdown'), 14, y);
       y += 6;
       (report.sessions || []).slice(0, 40).forEach((s) => {
         if (y > 270) { doc.addPage(); y = 16; }
@@ -127,8 +127,8 @@ export default function EffortReportExport({ report, canExport }) {
         onClick={exportPDF}
         disabled={!report}
         data-testid="export-effort-pdf"
-        title={t('export_pdf') || 'Export PDF'}
-        aria-label={t('export_pdf') || 'Export PDF'}
+        title={t('export_pdf')}
+        aria-label={t('export_pdf')}
         style={buttonStyle}
       >
         <FileDown size={16} />
@@ -138,8 +138,8 @@ export default function EffortReportExport({ report, canExport }) {
         onClick={exportExcel}
         disabled={!report}
         data-testid="export-effort-excel"
-        title={t('export_excel') || 'Export Excel'}
-        aria-label={t('export_excel') || 'Export Excel'}
+        title={t('export_excel')}
+        aria-label={t('export_excel')}
         style={buttonStyle}
       >
         <FileSpreadsheet size={16} />

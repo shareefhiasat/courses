@@ -66,10 +66,10 @@ export default function AdvancedAnalytics({
     
     const termKey = term.toLowerCase();
     const termTranslations = {
-      'spring': t('schedules_spring') || 'Spring',
-      'summer': t('schedules_summer') || 'Summer', 
-      'fall': t('schedules_fall') || 'Fall',
-      'winter': t('schedules_winter') || 'Winter'
+      'spring': t('schedules_spring'),
+      'summer': t('schedules_summer'), 
+      'fall': t('schedules_fall'),
+      'winter': t('schedules_winter')
     };
     
     return termTranslations[termKey] || term;
@@ -241,12 +241,12 @@ export default function AdvancedAnalytics({
               value={autoRefreshMs}
               onChange={e => setAutoRefreshMs(Number(e.target.value))}
               options={[
-                { value: 0,       label: t('auto_refresh_off') || 'Auto Refresh: Off' },
-                { value: 60000,   label: `1 ${t('minute') || 'min'}` },
-                { value: 300000,  label: `5 ${t('minutes') || 'min'}` },
-                { value: 900000,  label: `15 ${t('minutes') || 'min'}` },
-                { value: 1800000, label: `30 ${t('minutes') || 'min'}` },
-                { value: 3600000, label: `60 ${t('minutes') || 'min'}` }
+                { value: 0,       label: t('auto_refresh_off') },
+                { value: 60000,   label: `1 ${t('minute')}` },
+                { value: 300000,  label: `5 ${t('minutes')}` },
+                { value: 900000,  label: `15 ${t('minutes')}` },
+                { value: 1800000, label: `30 ${t('minutes')}` },
+                { value: 3600000, label: `60 ${t('minutes')}` }
               ]}
               size="small"
             />
@@ -273,7 +273,7 @@ export default function AdvancedAnalytics({
               style={btnStyle('#6b7280')}
             >
               {getThemedIcon('ui', 'rotate_cw', 16, theme)}
-              {t('refresh') || 'Refresh'}
+              {t('refresh')}
             </button>
 
             {/* Edit Layout toggle - only if user can edit */}
@@ -283,7 +283,7 @@ export default function AdvancedAnalytics({
                 style={btnStyle(editLayout ? '#ef4444' : '#f97316')}
               >
                 {getThemedIcon('ui', editLayout ? 'lock' : 'layout_grid', 16, theme)}
-                {editLayout ? (t('exit_edit_layout') || 'Exit Edit') : (t('edit_layout') || 'Edit Layout')}
+                {editLayout ? (t('exit_edit_layout')) : (t('edit_layout'))}
               </button>
             )}
 
@@ -300,17 +300,17 @@ export default function AdvancedAnalytics({
               }}
             >
               {getThemedIcon('ui', 'plus', 16, theme)}
-              {t('add_widget') || 'Add Widget'}
+              {t('add_widget')}
             </button>
 
             {canEdit && enableCustomization && (
               <button
                 onClick={() => dashboardEngineRef.current?.resetToDefaults?.()}
                 style={btnStyle('#ef4444')}
-                title={t('reset_to_system_default') || 'Reset to system default'}
+                title={t('reset_to_system_default')}
               >
                 {getThemedIcon('ui', 'rotate_ccw', 16, theme)}
-                {t('reset_to_system_default') || 'Reset to Default'}
+                {t('reset_to_system_default')}
               </button>
             )}
 
@@ -321,14 +321,14 @@ export default function AdvancedAnalytics({
                 style={btnStyle('#8b5cf6')}
               >
                 {getThemedIcon('ui', 'settings', 16, theme)}
-                {t('manage_widgets') || 'Manage Widgets'}
+                {t('manage_widgets')}
               </button>
             )}
 
             {/* Export */}
             <button onClick={handleExport} style={btnStyle('#10b981')}>
               {getThemedIcon('ui', 'download', 16, theme)}
-              {t('export') || 'Export'}
+              {t('export')}
             </button>
 
             {/* Schedule Report */}
@@ -337,7 +337,7 @@ export default function AdvancedAnalytics({
               style={btnStyle(accentColor)}
             >
               {getThemedIcon('ui', 'calendar', 16, theme)}
-              {t('schedule_report') || 'Schedule Report'}
+              {t('schedule_report')}
             </button>
           </div>
         </div>
@@ -348,7 +348,7 @@ export default function AdvancedAnalytics({
             marginBottom: '1rem', padding: '0.75rem 1rem', borderRadius: 8,
             border: '1px solid #F59E0B', background: 'rgba(245,158,11,0.08)', color: '#92400e'
           }}>
-            <strong>{t('some_data_not_loaded_permissions') || 'Some collections could not be loaded (permissions):'}</strong>
+            <strong>{t('some_data_not_loaded_permissions')}</strong>
             <div style={{ marginTop: 6, display: 'flex', gap: 8, flexWrap: 'wrap' }}>
               {Object.keys(permErrors).map(key => (
                 <span key={key} style={{ padding: '2px 8px', borderRadius: 999, background: 'rgba(245,158,11,0.15)', border: '1px solid rgba(245,158,11,0.4)', fontSize: 'var(--font-size-xs)' }}>
@@ -372,7 +372,7 @@ export default function AdvancedAnalytics({
               value={localFilters.programId}
               onChange={e => setLocalFilters(f => ({ ...f, programId: e.target.value, subjectId: '' }))}
               options={[
-                { value: '', label: t('all_programs') || 'All Programs' },
+                { value: '', label: t('all_programs') },
                 ...(rawData.programs || []).map(p => ({ value: p.docId || p.id, label: getLocalizedName(p) }))
               ]}
               searchable
@@ -382,7 +382,7 @@ export default function AdvancedAnalytics({
               value={localFilters.subjectId}
               onChange={e => setLocalFilters(f => ({ ...f, subjectId: e.target.value }))}
               options={[
-                { value: '', label: t('all_subjects') || 'All Subjects' },
+                { value: '', label: t('all_subjects') },
                 ...(rawData.subjects || [])
                   .filter(s => !localFilters.programId || s.programId === localFilters.programId)
                   .map(s => ({ value: s.docId || s.id, label: `${s.code || ''} - ${getLocalizedName(s)}`.trim() }))
@@ -394,7 +394,7 @@ export default function AdvancedAnalytics({
               value={localFilters.classId}
               onChange={e => setLocalFilters(f => ({ ...f, classId: e.target.value }))}
               options={[
-                { value: '', label: t('all_classes') || 'All Classes' },
+                { value: '', label: t('all_classes') },
                 ...(rawData.classes || []).map((c, idx) => {
                   const id = c?.id || c?.docId || `idx_${idx}`;
                   const label = getLocalizedName(c, 'title') || `Class ${id.slice(0, 6)}`;
@@ -411,7 +411,7 @@ export default function AdvancedAnalytics({
               yearsAhead={5}
               includeAll
               allValue=""
-              allLabel={t('all_years') || 'All Years'}
+              allLabel={t('all_years')}
               searchable
               fullWidth
             />
@@ -419,7 +419,7 @@ export default function AdvancedAnalytics({
               value={localFilters.studentId}
               onChange={e => setLocalFilters(f => ({ ...f, studentId: e.target.value }))}
               options={[
-                { value: '', label: t('all_students') || 'All Students' },
+                { value: '', label: t('all_students') },
                 ...(rawData.users || [])
                   .filter(u => u.isStudent)
                   .map(u => ({ value: u.id, label: u.realName || u.displayName || u.email || u.id }))
@@ -431,7 +431,7 @@ export default function AdvancedAnalytics({
               value={localFilters.instructorId}
               onChange={e => setLocalFilters(f => ({ ...f, instructorId: e.target.value }))}
               options={[
-                { value: '', label: t('all_instructors') || 'All Instructors' },
+                { value: '', label: t('all_instructors') },
                 ...(rawData.users || [])
                   .filter(u => u.isInstructor)
                   .map(u => ({ value: u.id, label: u.realName || u.displayName || u.email || u.id }))

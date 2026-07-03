@@ -136,7 +136,7 @@ export const HistoryEntry = ({
       )}
 
       {isStandupEntry && (
-        <PortalTooltip content={t('standup_attendance') || 'Standup Attendance'} position="top">
+        <PortalTooltip content={t('standup_attendance')} position="top">
           <span style={{
             background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
             color: 'white',
@@ -148,7 +148,7 @@ export const HistoryEntry = ({
             letterSpacing: '0.025em',
             flexShrink: 0
           }}>
-            {t('standup') || 'Standup'}
+            {t('standup')}
           </span>
         </PortalTooltip>
       )}
@@ -322,7 +322,7 @@ export const HistoryEntry = ({
       )}
       
       {showDeleteButton && onDelete && (
-        <PortalTooltip content={(t('delete_record') || '{type}').replace('{type}', type)} position="top">
+        <PortalTooltip content={(t('delete_record')).replace('{type}', type)} position="top">
         <Button
           variant="ghost"
           size="icon"

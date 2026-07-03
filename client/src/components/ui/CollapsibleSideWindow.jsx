@@ -175,7 +175,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Colla
                 <div style={{ marginBottom: '1rem' }}>
                   <Input
                     type="text"
-                    placeholder={t('search') || 'Search...'}
+                    placeholder={t('search')}
                     value={searchQuery}
                     onChange={handleSearchChange}
                     icon={getThemedIcon('ui', 'search', 16, theme)}

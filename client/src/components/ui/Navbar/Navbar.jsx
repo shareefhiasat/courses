@@ -176,7 +176,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
       setShowProfile(false);
     } catch (err) {
       error('Failed to save profile:', err);
-      alert(t('failed_to_save_profile') || 'Failed to save profile');
+      alert(t('failed_to_save_profile'));
     }
   }, [user, displayName, phoneNumber, primaryColor, realName, displayNameAr, firstNameAr, lastNameAr, studentNumber, notifLang, timeFormat]);
 
@@ -192,7 +192,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
             <button
               onClick={onToggleSidebar}
               className="navbar-hamburger"
-              aria-label={t('menu') || 'Menu'}
+              aria-label={t('menu')}
             >
               {getThemedIcon('ui', 'menu', 18, '#D4AF37')}
             </button>
@@ -203,7 +203,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
           <button
             onClick={toggleNavbar}
             className="navbar-collapse-btn"
-            aria-label={isNavbarCollapsed ? (t('expand_navbar') || 'Expand navbar') : (t('collapse_navbar') || 'Collapse navbar')}
+            aria-label={isNavbarCollapsed ? (t('expand_navbar')) : (t('collapse_navbar'))}
           >
             {getThemedIcon('ui', isNavbarCollapsed ? 'chevron_down' : 'chevron_up', 18, '#D4AF37')}
           </button>
@@ -309,7 +309,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                 </button>
                 </PortalTooltip>
 
-                <PortalTooltip content={t('tour_help') || 'Start guided tour'} position="bottom">
+                <PortalTooltip content={t('tour_help')} position="bottom">
                 <button
                   className="nav-icon-btn nav-help"
                   onClick={() => {
@@ -320,7 +320,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                       window.dispatchEvent(new CustomEvent('app:joyride', { detail: { route: fullPath, search, hash } }));
                     } catch {}
                   }}
-                  aria-label={t('tour_help') || 'Start guided tour'}
+                  aria-label={t('tour_help')}
                   style={{
                     border: theme === 'light' ? '1px solid var(--border)' : '1px solid rgba(255,255,255,0.2)',
                     background: theme === 'light' ? 'var(--panel)' : 'rgba(0,0,0,0.3)',
@@ -338,7 +338,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                 </button>
                 </PortalTooltip>
 
-                <PortalTooltip content={t('help_center') || 'Help Center'} position="bottom">
+                <PortalTooltip content={t('help_center')} position="bottom">
                 <button
                   className="nav-icon-btn"
                   onClick={() => window.open(`${import.meta.env.VITE_HELP_URL || 'http://localhost:3000'}/${lang}`, '_blank', 'noopener,noreferrer')}
@@ -394,9 +394,9 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                   title={(() => {
                     try {
                       const current = localStorage.getItem('filterViewMode') || 'full';
-                      return current === 'full' ? (t('minified_filters') || 'Minified Filters') : (t('full_filters') || 'Full Filters');
+                      return current === 'full' ? (t('minified_filters')) : (t('full_filters'));
                     } catch {
-                      return (t('toggle_filter_view') || 'Toggle Filter View');
+                      return (t('toggle_filter_view'));
                     }
                   })()}
                 >
@@ -526,32 +526,32 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                       </div>
                       {studentNumber && (
                         <div className="student-number" style={{ fontSize: '0.8rem', color: '#666', marginBottom: 8 }}>
-                          {t('student_number') || 'Student Number'}: {studentNumber}
+                          {t('student_number')}: {studentNumber}
                         </div>
                       )}
                       <div className="role-badge" style={{ display:'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems:'center' }}>
                         {isSuperAdmin && (
                           <span style={{ color: getUserRoleColor('super_admin'), background: `${getUserRoleColor('super_admin')}20`, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 'var(--font-size-xs)', fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
-                            {getUserRoleIcon('super_admin')} {t('super_admin') || 'Super Admin'}
+                            {getUserRoleIcon('super_admin')} {t('super_admin')}
                           </span>
                         )}
                         {isAdmin && !isSuperAdmin && (
                           <span style={{ color: getUserRoleColor('admin'), background: `${getUserRoleColor('admin')}20`, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 'var(--font-size-xs)', fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
-                            {getUserRoleIcon('admin')} {t('admin') || 'Admin'}
+                            {getUserRoleIcon('admin')} {t('admin')}
                           </span>
                         )}
                         {isInstructor && (
                           <span style={{ color: getUserRoleColor('instructor'), background: `${getUserRoleColor('instructor')}20`, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 'var(--font-size-xs)', fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
-                            {getUserRoleIcon('instructor')} {t('instructor') || 'Instructor'}
+                            {getUserRoleIcon('instructor')} {t('instructor')}
                           </span>
                         )}
                         {isHR && (
                           <span style={{ color: getUserRoleColor('hr'), background: `${getUserRoleColor('hr')}20`, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 'var(--font-size-xs)', fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
-                            {getUserRoleIcon('hr')} {t('hr') || 'HR'}
+                            {getUserRoleIcon('hr')} {t('hr')}
                           </span>
                         )}
                         {!isSuperAdmin && !isAdmin && !isInstructor && !isHR && (
-                          <span style={{ color: getUserRoleColor('student'), background: `${getUserRoleColor('student')}20`, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 'var(--font-size-xs)', fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>{t('student') || 'Student'}</span>
+                          <span style={{ color: getUserRoleColor('student'), background: `${getUserRoleColor('student')}20`, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 'var(--font-size-xs)', fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>{t('student')}</span>
                         )}
                       </div>
                     </div>
@@ -570,19 +570,19 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
               {!isAdmin && !isSuperAdmin && (
                 <>
                   <NavLink to="/enrollments" className={({isActive})=>`navbar-item${isActive?' active':''}`}>
-                    {t('my_classes') || 'Classes'}
+                    {t('my_classes')}
                   </NavLink>
                   <NavLink to="/progress" className={({isActive})=>`navbar-item${isActive?' active':''}`}>{t('my_progress')}</NavLink>
                 </>
               )}
               <NavLink to="/activities" className={({isActive})=>`navbar-item${isActive?' active':''}`}>
-                {t('view_activities') || 'Activities'}
+                {t('view_activities')}
               </NavLink>
               <NavLink to="/student-dashboard" className={({isActive})=>`navbar-item${isActive?' active':''}`}>
-                {t('student_dashboard') || 'Student Dashboard'}
+                {t('student_dashboard')}
               </NavLink>
               <NavLink to="/course-progress/sample-course" className={({isActive})=>`navbar-item${isActive?' active':''}`}>
-                {t('course_progress') || 'Course Progress'}
+                {t('course_progress')}
               </NavLink>
               <NavLink to="/chat" className={({isActive})=>`navbar-item${isActive?' active':''}`}>{t('chat')}</NavLink>
               <NavLink to="/resources" className={({isActive})=>`navbar-item${isActive?' active':''}`}>{t('resources')}</NavLink>
@@ -596,7 +596,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                     {t('progress')}
                   </NavLink>
                   <NavLink to="/quiz-management" className={({isActive})=>`navbar-item${isActive?' active':''}`}>
-                    {t('quiz_management') || 'Quiz Management'}
+                    {t('quiz_management')}
                   </NavLink>
                 </>
               )}
@@ -635,37 +635,37 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                       <div className="user-email" style={{ fontWeight: 600, marginBottom: 4 }}>{user.email}</div>
                       {displayName && displayName !== user.email && (
                         <div className="display-name" style={{ fontSize: '0.9rem', color: '#333', marginBottom: 4 }}>
-                          {t('display_name') || 'Display Name'}: {displayName}
+                          {t('display_name')}: {displayName}
                         </div>
                       )}
                       {studentNumber && (
                         <div className="student-number" style={{ fontSize: '0.8rem', color: '#666', marginBottom: 8 }}>
-                          {t('student_number') || 'Student Number'}: {studentNumber}
+                          {t('student_number')}: {studentNumber}
                         </div>
                       )}
                       <div className="role-badge" style={{ display:'flex', flexWrap: 'wrap', gap: '0.75rem', alignItems:'center' }}>
                         {isSuperAdmin && (
                           <span style={{ color: getUserRoleColor('super_admin'), background: `${getUserRoleColor('super_admin')}20`, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 'var(--font-size-xs)', fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
-                            {getUserRoleIcon('super_admin')} {t('super_admin') || 'Super Admin'}
+                            {getUserRoleIcon('super_admin')} {t('super_admin')}
                           </span>
                         )}
                         {isAdmin && !isSuperAdmin && (
                           <span style={{ color: getUserRoleColor('admin'), background: `${getUserRoleColor('admin')}20`, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 'var(--font-size-xs)', fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
-                            {getUserRoleIcon('admin')} {t('admin') || 'Admin'}
+                            {getUserRoleIcon('admin')} {t('admin')}
                           </span>
                         )}
                         {isInstructor && (
                           <span style={{ color: getUserRoleColor('instructor'), background: `${getUserRoleColor('instructor')}20`, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 'var(--font-size-xs)', fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
-                            {getUserRoleIcon('instructor')} {t('instructor') || 'Instructor'}
+                            {getUserRoleIcon('instructor')} {t('instructor')}
                           </span>
                         )}
                         {isHR && (
                           <span style={{ color: getUserRoleColor('hr'), background: `${getUserRoleColor('hr')}20`, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 'var(--font-size-xs)', fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>
-                            {getUserRoleIcon('hr')} {t('hr') || 'HR'}
+                            {getUserRoleIcon('hr')} {t('hr')}
                           </span>
                         )}
                         {!isSuperAdmin && !isAdmin && !isInstructor && !isHR && (
-                          <span style={{ color: getUserRoleColor('student'), background: `${getUserRoleColor('student')}20`, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 'var(--font-size-xs)', fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>{t('student') || 'Student'}</span>
+                          <span style={{ color: getUserRoleColor('student'), background: `${getUserRoleColor('student')}20`, display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 'var(--font-size-xs)', fontWeight: 700, padding: '4px 8px', borderRadius: 999 }}>{t('student')}</span>
                         )}
                       </div>
                     </div>
@@ -673,7 +673,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                       {t('edit_profile')}
                     </button>
                     <button className="dropdown-item sign-out-btn" onClick={handleSignOut}>
-                      {t('sign_out') || 'Sign Out'}
+                      {t('sign_out')}
                     </button>
                   </div>
                 )}
@@ -724,11 +724,11 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                 <input type="text" value={studentNumber} onChange={(e)=>setStudentNumber(e.target.value)} placeholder={t('navbar.student_number_placeholder', 'e.g., 202400123')} style={{ width: '100%', padding: '0.75rem', border: theme==='light'?'1px solid #e5e7eb':'1px solid rgba(255,255,255,0.15)', borderRadius: 8, background: theme==='light'?'#ffffff':'#0b1220', color: theme==='light'?'#111827':'#e5e7eb' }} />
               </div>
               <div>
-                <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>{t('phone_number') || 'Phone Number'}</label>
+                <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>{t('phone_number')}</label>
                 <input type="tel" value={phoneNumber} onChange={(e)=>setPhoneNumber(e.target.value)} placeholder={t('navbar.phone_number_placeholder', '+1 234 567 8900')} style={{ width: '100%', padding: '0.75rem', border: theme==='light'?'1px solid #e5e7eb':'1px solid rgba(255,255,255,0.15)', borderRadius: 8, background: theme==='light'?'#ffffff':'#0b1220', color: theme==='light'?'#111827':'#e5e7eb' }} />
               </div>
               <div>
-                <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>{t('message_color') || 'Message Bubble Color'}</label>
+                <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>{t('message_color')}</label>
                 <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                   <input type="color" value={primaryColor} onChange={(e)=>setPrimaryColor(e.target.value)} style={{ width: 60, height: 40, border: '1px solid #ddd', borderRadius: 8, cursor: 'pointer' }} />
                   <div style={{ flex: 1, padding: '0.75rem', background: primaryColor, color: 'white', borderRadius: 8, textAlign: 'center', fontWeight: 600 }}>{t('preview')}</div>
@@ -736,11 +736,11 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
               </div>
               <div>
                 <Select
-                  label={t('notifications_language') || 'Notifications Language'}
+                  label={t('notifications_language')}
                   value={notifLang}
                   onChange={(e)=>setNotifLang(e.target.value)}
                   options={[
-                    { value: 'auto', label: t('auto_follow_ui') || 'Auto (Follow UI Language)' },
+                    { value: 'auto', label: t('auto_follow_ui') },
                     { value: 'en', label: 'English' },
                     { value: 'ar', label: 'العربية' }
                   ]}
@@ -750,13 +750,13 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
             </div>
             {/* Density control (4 levels) */}
             <div style={{ marginTop: 16 }}>
-              <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>{t('density_layout') || 'Layout density (spacing)'}</label>
+              <label style={{ display: 'block', marginBottom: 8, fontWeight: 600 }}>{t('density_layout')}</label>
               <div style={{ display:'grid', gridTemplateColumns:'repeat(4, minmax(0,1fr))', gap: 8 }}>
                 {[
-                  { id:'compact', label: t('compact') || 'Compact' },
-                  { id:'cozy', label: t('cozy') || 'Cozy' },
-                  { id:'comfortable', label: t('comfortable') || 'Comfortable' },
-                  { id:'roomy', label: t('roomy') || 'Roomy' },
+                  { id:'compact', label: t('compact') },
+                  { id:'cozy', label: t('cozy') },
+                  { id:'comfortable', label: t('comfortable') },
+                  { id:'roomy', label: t('roomy') },
                 ].map(opt => (
                   <label key={opt.id} style={{
                     border:'1px solid '+(density===opt.id? '#4f46e5':'var(--border)'),

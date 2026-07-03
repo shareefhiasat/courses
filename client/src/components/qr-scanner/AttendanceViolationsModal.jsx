@@ -67,8 +67,8 @@ const AttendanceViolationsModal = ({
   };
 
   const modalTitle = isOfficial
-    ? t('attendance_official') || 'Attendance Official'
-    : t('attendance_violations_report') || 'Attendance Violations Report';
+    ? t('attendance_official')
+    : t('attendance_violations_report');
 
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={modalTitle} size="large" showCloseButton>
@@ -82,7 +82,7 @@ const AttendanceViolationsModal = ({
               color: 'var(--text-primary, #1f2937)',
             }}
           >
-            {t('date_range') || 'Date range'}
+            {t('date_range')}
           </h3>
           <div
             style={{
@@ -92,7 +92,7 @@ const AttendanceViolationsModal = ({
             }}
           >
             <label style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-              <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 500 }}>{t('date_from') || 'Date from'}</span>
+              <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 500 }}>{t('date_from')}</span>
               <DatePicker
                 value={dateFrom || ''}
                 onChange={setDateFrom}
@@ -101,7 +101,7 @@ const AttendanceViolationsModal = ({
               />
             </label>
             <label style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-              <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 500 }}>{t('date_to') || 'Date to'}</span>
+              <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 500 }}>{t('date_to')}</span>
               <DatePicker
                 value={dateTo || ''}
                 onChange={setDateTo}
@@ -112,7 +112,7 @@ const AttendanceViolationsModal = ({
           </div>
           {dateFrom && dateTo && dateFrom > dateTo && (
             <p style={{ marginTop: '0.5rem', fontSize: 'var(--font-size-sm)', color: 'var(--color-danger, #dc2626)' }}>
-              {t('date_range_invalid') || 'End date must be on or after start date'}
+              {t('date_range_invalid')}
             </p>
           )}
         </div>
@@ -135,7 +135,7 @@ const AttendanceViolationsModal = ({
               color: 'var(--text-primary, #1f2937)',
             }}
           >
-            {t('select_subjects_for_report') || 'Select subjects for report'}
+            {t('select_subjects_for_report')}
           </h3>
           <div
             style={{
@@ -148,7 +148,7 @@ const AttendanceViolationsModal = ({
           >
             {subjects.length === 0 ? (
               <p style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>
-                {t('no_subjects_available') || 'No subjects available'}
+                {t('no_subjects_available')}
               </p>
             ) : (
               subjects.map((subject) => (
@@ -193,7 +193,7 @@ const AttendanceViolationsModal = ({
               color: 'var(--text-primary, #1f2937)',
             }}
           >
-            {t('select_violation_types') || 'Select violation types'}
+            {t('select_violation_types')}
           </h3>
           <div
             style={{
@@ -203,11 +203,11 @@ const AttendanceViolationsModal = ({
             }}
           >
             {[
-              { key: 'absentNoExcuse', label: t('absent_no_excuse') || 'Absent (No Excuse)' },
-              { key: 'absentWithExcuse', label: t('absent_with_excuse') || 'Absent excused' },
-              { key: 'excusedLeave', label: t('excused_leave') || 'Excused Leave' },
-              { key: 'late', label: t('late') || 'Late' },
-              { key: 'humanCase', label: t('human_case') || 'Human Case' },
+              { key: 'absentNoExcuse', label: t('absent_no_excuse') },
+              { key: 'absentWithExcuse', label: t('absent_with_excuse') },
+              { key: 'excusedLeave', label: t('excused_leave') },
+              { key: 'late', label: t('late') },
+              { key: 'humanCase', label: t('human_case') },
             ].map(({ key, label }) => (
               <label
                 key={key}
@@ -257,7 +257,7 @@ const AttendanceViolationsModal = ({
               cursor: isExporting ? 'not-allowed' : 'pointer',
             }}
           >
-            {t('cancel') || 'Cancel'}
+            {t('cancel')}
           </button>
           <button
             type="button"
@@ -274,12 +274,12 @@ const AttendanceViolationsModal = ({
             }}
           >
             {isExporting
-              ? t('exporting') || 'Exporting...'
+              ? t('exporting')
               : isOfficial
                 ? exportFormat === EXPORT_FORMAT.PDF
-                  ? t('export_pdf') || 'Export PDF'
-                  : t('export_excel') || 'Export Excel'
-                : t('export_excel') || 'Export Excel'}
+                  ? t('export_pdf')
+                  : t('export_excel')
+                : t('export_excel')}
           </button>
         </div>
       </div>

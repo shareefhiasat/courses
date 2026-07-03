@@ -93,55 +93,55 @@ const LoginPage = () => {
   const getTimeAgo = useCallback((date) => {
     const seconds = Math.floor((new Date() - date) / 1000);
     
-    if (seconds < 60) return t('just_now') || 'just now';
-    if (seconds < 3600) return `${Math.floor(seconds / 60)} ${t('minute') || 'minute'}${Math.floor(seconds / 60) > 1 ? (t('minutes_plural') || 's') : ''} ${t('ago') || 'ago'}`;
-    if (seconds < 86400) return `${Math.floor(seconds / 3600)} ${t('hour') || 'hour'}${Math.floor(seconds / 3600) > 1 ? (t('hours_plural') || 's') : ''} ${t('ago') || 'ago'}`;
-    return `${Math.floor(seconds / 86400)} ${t('day') || 'day'}${Math.floor(seconds / 86400) > 1 ? (t('days_plural') || 's') : ''} ${t('ago') || 'ago'}`;
+    if (seconds < 60) return t('just_now');
+    if (seconds < 3600) return `${Math.floor(seconds / 60)} ${t('minute', { count: Math.floor(seconds / 60) })} ${t('ago')}`;
+    if (seconds < 86400) return `${Math.floor(seconds / 3600)} ${t('hour', { count: Math.floor(seconds / 3600) })} ${t('ago')}`;
+    return `${Math.floor(seconds / 86400)} ${t('day', { count: Math.floor(seconds / 86400) })} ${t('ago')}`;
   }, [t]);
 
   const getLogoutMessage = useCallback((reason) => {
     switch (reason.type) {
       case 'session_timeout':
-        let message = `${t('auto_logout_inactivity') || 'You were automatically logged out due to inactivity'} ${reason.timeAgo}.`;
+        let message = `${t('auto_logout_inactivity')} ${reason.timeAgo}.`;
         if (reason.lastActivity) {
           const inactiveMinutes = reason.lastActivity.inactiveMinutes;
           if (inactiveMinutes >= 30) {
-            message += ` ${t('last_activity_minutes') || 'Last activity was'} ${inactiveMinutes} ${t('minute') || 'minute'}${inactiveMinutes > 1 ? (t('minutes_plural') || 's') : ''} ${t('ago') || 'ago'}.`;
+            message += ` ${t('last_activity_minutes')} ${inactiveMinutes} ${t('minute', { count: inactiveMinutes })} ${t('ago')}.`;
           } else {
-            message += ` ${t('last_activity_just_now') || 'Last activity was just now'}.`;
+            message += ` ${t('last_activity_just_now')}.`;
           }
         }
         return {
-          title: t('session_expired') || 'Session Expired',
+          title: t('session_expired'),
           message: message,
           type: 'warning',
           icon: '⏰'
         };
       case 'manual_logout':
         return {
-          title: t('successfully_logged_out') || 'Successfully Logged Out',
-          message: `${t('you_logged_out') || 'You logged out'} ${reason.timeAgo}.`,
+          title: t('successfully_logged_out'),
+          message: `${t('you_logged_out')} ${reason.timeAgo}.`,
           type: 'info',
           icon: '👋'
         };
       case 'network_error':
         return {
-          title: t('connection_lost') || 'Connection Lost',
-          message: `${t('logged_out_network_issues') || 'You were logged out due to network issues'} ${reason.timeAgo}.`,
+          title: t('connection_lost'),
+          message: `${t('logged_out_network_issues')} ${reason.timeAgo}.`,
           type: 'error',
           icon: '🔌'
         };
       case 'auth_error':
         return {
-          title: t('authentication_error') || 'Authentication Error',
-          message: `${t('logged_out_auth_issue') || 'You were logged out due to an authentication issue'} ${reason.timeAgo}.`,
+          title: t('authentication_error'),
+          message: `${t('logged_out_auth_issue')} ${reason.timeAgo}.`,
           type: 'error',
           icon: '⚠️'
         };
       default:
         return {
-          title: t('session_ended') || 'Session Ended',
-          message: `${t('session_ended_time') || 'Your session ended'} ${reason.timeAgo}.`,
+          title: t('session_ended'),
+          message: `${t('session_ended_time')} ${reason.timeAgo}.`,
           type: 'info',
           icon: 'ℹ️'
         };
@@ -231,7 +231,7 @@ const LoginPage = () => {
                   fontSize: '0.625rem',
                   color: isDark ? '#9ca3af' : '#9ca3af'
                 }}>
-                  {t('logout_time') || 'Logout time'}: {formatTime(logoutReason.timestamp, 'en')}
+                  {t('logout_time')}: {formatTime(logoutReason.timestamp, 'en')}
                 </div>
               </div>
               <button
@@ -246,7 +246,7 @@ const LoginPage = () => {
                   fontSize: 'var(--font-size-xs)',
                   flexShrink: 0
                 }}
-                title={t('dismiss_message') || 'Dismiss message'}
+                title={t('dismiss_message')}
               >
                 ✕
               </button>

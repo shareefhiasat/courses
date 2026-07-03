@@ -305,7 +305,7 @@ const LookupManagementPage = ({ lookupType }) => {
     return (
       <div style={{ padding: '2rem', textAlign: 'center' }}>
         <div style={{ fontSize: 'var(--font-size-lg)', fontWeight: '500', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
-          {t('access_denied') || 'Access Denied'}
+          {t('access_denied')}
         </div>
       </div>
     );
@@ -583,7 +583,7 @@ const LookupManagementPage = ({ lookupType }) => {
     if (config.fields.some(f => f.key === 'icon')) {
       columns.push({
         field: 'icon',
-        headerName: t('icon') || 'Icon',
+        headerName: t('icon'),
         width: 140,
         renderCell: (params) => params?.value || '—'
       });
@@ -592,7 +592,7 @@ const LookupManagementPage = ({ lookupType }) => {
     if (config.fields.some(f => f.key === 'color')) {
       columns.push({
         field: 'color',
-        headerName: t('color') || 'Color',
+        headerName: t('color'),
         width: 130,
         renderCell: (params) => params?.value || '—'
       });
@@ -601,7 +601,7 @@ const LookupManagementPage = ({ lookupType }) => {
     if (config.fields.some(f => f.key === 'sortOrder' || f.key === 'sort')) {
       columns.push({
         field: 'sortOrder',
-        headerName: t('sort') || 'Sort',
+        headerName: t('sort'),
         width: 90,
         renderCell: (params) => {
           const row = params?.row || {};
@@ -614,7 +614,7 @@ const LookupManagementPage = ({ lookupType }) => {
     if (config.fields.some(f => f.key === 'isPositive')) {
       columns.push({
         field: 'isPositive',
-        headerName: t('is_positive') || 'Is Positive',
+        headerName: t('is_positive'),
         width: 110,
         renderCell: (params) => {
           const value = params?.row?.isPositive;
@@ -642,7 +642,7 @@ const LookupManagementPage = ({ lookupType }) => {
                 onClick={() => handleEdit(row)}
                 disabled={saving}
               >
-                {t('edit') || 'Edit'}
+                {t('edit')}
               </Button>
               <Button
                 variant="destructive"
@@ -650,7 +650,7 @@ const LookupManagementPage = ({ lookupType }) => {
                 onClick={() => deleteEntity(lookupType, row, () => handleDelete(row))}
                 disabled={saving}
               >
-                {t('delete') || 'Delete'}
+                {t('delete')}
               </Button>
             </div>
           );
@@ -684,7 +684,7 @@ const LookupManagementPage = ({ lookupType }) => {
           onClick={refetchLookup}
           style={{ marginTop: '1rem' }}
         >
-          {t('retry') || 'Retry'}
+          {t('retry')}
         </Button>
       </div>
     );
@@ -837,7 +837,7 @@ const LookupPageWithTour = ({
                 onClick={handleCancel}
                 disabled={saving}
               >
-                {t('cancel') || 'Cancel'}
+                {t('cancel')}
               </Button>
             </div>
           </form>

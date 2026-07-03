@@ -98,7 +98,7 @@ export default function SchedulingAvailabilityTimeline({
     time: (event) => {
       const title = event.title || '';
       const timeStr = formatEventTime(event.start, lang);
-      const bookedLabel = event.raw?.type === 'booked' ? (t('booked_session') || 'Booked') : '';
+      const bookedLabel = event.raw?.type === 'booked' ? (t('booked_session')) : '';
 
       return `
         <div style="display:flex;flex-direction:column;line-height:1.25;padding:2px 3px;height:100%;overflow:hidden;">

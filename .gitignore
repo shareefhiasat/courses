@@ -27,6 +27,7 @@ coverage/
 # Local env and credentials
 .env
 .env.*
+.env-root
 *.local
 *.env
 ENV.local.txt
@@ -58,6 +59,7 @@ localhost+*.pem
 
 # Misc
 *.bak
+*.backup
 *.tmp
 *.log
 

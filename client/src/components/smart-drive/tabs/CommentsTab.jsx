@@ -141,7 +141,7 @@ export default function CommentsTab({ fileId, isOwnedByUser = true }) {
         ) : (
           <TimelinePanelLayout
             panelLayoutKey="drive-comments-panels"
-            allItemsLabel={t('drive.allComments') || 'All Comments'}
+            allItemsLabel={t('drive.allComments')}
             allItemsCount={comments.length}
             dates={sortedDates}
             getDateCount={(date) => groupedComments[date]?.length || 0}

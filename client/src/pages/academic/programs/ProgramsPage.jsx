@@ -101,7 +101,7 @@ const ProgramsPage = () => {
       } else {
         // Don't show toast on initial load, only on manual refresh
         if (!isInitial) {
-          toast.error(programsResult.error || t('failed_to_load_programs') || 'Failed to load programs');
+          toast.error(programsResult.error || t('failed_to_load_programs'));
         }
       }
       
@@ -131,7 +131,7 @@ const ProgramsPage = () => {
     let stopLoading = null;
 
     const initialLoad = async () => {
-      stopLoading = startLoading({ message: t('loading_programs') || 'Loading programs...' });
+      stopLoading = startLoading({ message: t('loading_programs') });
       await loadPrograms(true);
       if (stopLoading) stopLoading();
       setLoading(false);
@@ -166,7 +166,7 @@ const ProgramsPage = () => {
     
     // Validation
     if (!textValues.nameEn || !textValues.nameAr || !textValues.code) {
-      toast.error(t('please_fill_required_fields') || 'Please fill in all required fields');
+      toast.error(t('please_fill_required_fields'));
       return;
     }
 
@@ -194,12 +194,12 @@ const ProgramsPage = () => {
             programCode: formData.code
           });
         } catch (e) { /* Activity logging failed */ }
-        toast.success(editingProgram ? t('program_updated_successfully') || 'Program updated successfully' : t('program_created_successfully') || 'Program created successfully');
+        toast.success(editingProgram ? t('program_updated_successfully') : t('program_created_successfully'));
         setEditingProgram(null);
         resetForm();
         loadPrograms();
       } else {
-        toast.error(result.error || t('operation_failed') || 'Operation failed');
+        toast.error(result.error || t('operation_failed'));
       }
     } catch (err) {
       toast.error(err.message || t('programs_error_message', { error: err.message }));
@@ -244,7 +244,7 @@ const ProgramsPage = () => {
               programCode: program.code
             });
           } catch (e) { /* Activity logging failed */ }
-          toast.success(result.message || t('program_deleted_successfully') || 'Program deleted successfully');
+          toast.success(result.message || t('program_deleted_successfully'));
           await loadPrograms();
         } else if (result.code === 'HAS_DEPENDENCIES' && result.dependencies) {
           // Rollback and show force-delete confirmation
@@ -268,7 +268,7 @@ const ProgramsPage = () => {
         } else {
           // Rollback on failure
           setPrograms(prev => [...prev, program]);
-          toast.error(result.error || t('failed_to_delete_program') || 'Failed to delete program');
+          toast.error(result.error || t('failed_to_delete_program'));
         }
       } catch (error) {
         // Rollback on error
@@ -302,7 +302,7 @@ const ProgramsPage = () => {
   const gridColumns = useMemo(() => [
     { 
       field: 'code', 
-      headerName: t('program_code') || 'Code', 
+      headerName: t('program_code'), 
       width: 120,
       valueGetter: (params) => {
         const row = params?.row || {};
@@ -310,17 +310,17 @@ const ProgramsPage = () => {
         return code || '—';
       }
     },
-    { field: 'nameEn', headerName: t('program_name_en') || 'Name (English)', flex: 1, minWidth: 180 },
-    { field: 'nameAr', headerName: t('program_name_ar') || 'Name (Arabic)', flex: 1, minWidth: 180 },
+    { field: 'nameEn', headerName: t('program_name_en'), flex: 1, minWidth: 180 },
+    { field: 'nameAr', headerName: t('program_name_ar'), flex: 1, minWidth: 180 },
     {
       field: 'durationYears',
-      headerName: t('duration_years') || 'Duration (Years)',
+      headerName: t('duration_years'),
       width: 140,
-      valueGetter: (params) => `${params.value || 2} ${t('years') || 'years'}`
+      valueGetter: (params) => `${params.value || 2} ${t('years')}`
     },
     {
       field: 'minGPA',
-      headerName: t('min_gpa_header') || 'Min GPA',
+      headerName: t('min_gpa_header'),
       width: 100,
       valueGetter: (params) => {
         const row = params?.row || {};
@@ -332,11 +332,11 @@ const ProgramsPage = () => {
         return numValue.toFixed(2);
       }
     },
-    { field: 'totalCreditHours', headerName: t('credit_hours_header') || 'Credit Hours', width: 120 },
+    { field: 'totalCreditHours', headerName: t('credit_hours_header'), width: 120 },
     ...auditColumns,
     {
       field: 'actions',
-      headerName: t('actions') || 'Actions',
+      headerName: t('actions'),
       width: 200,
       sortable: false,
       filterable: false,
@@ -348,7 +348,7 @@ const ProgramsPage = () => {
             icon={getThemedIcon('ui', 'edit', 16, theme)}
             onClick={() => handleEdit(params.row)}
           >
-            {t('edit') || 'Edit'}
+            {t('edit')}
           </Button>
           <Button
             size="sm"
@@ -357,7 +357,7 @@ const ProgramsPage = () => {
             onClick={() => handleDelete(params.row)}
             style={{ color: '#dc2626' }}
           >
-            {t('delete') || 'Delete'}
+            {t('delete')}
           </Button>
         </div>
       )
@@ -402,19 +402,19 @@ const ProgramsPage = () => {
           <Input
             ref={codeRef}
             defaultValue={formData.code}
-            placeholder={t('program_code_placeholder') || 'Program Code * (e.g., CS-DIP)'}
+            placeholder={t('program_code_placeholder')}
             required
           />
           <Input
             ref={nameEnRef}
             defaultValue={formData.nameEn}
-            placeholder={t('program_name_en_placeholder') || 'Program Name (English) * (e.g., Computer Science Diploma)'}
+            placeholder={t('program_name_en_placeholder')}
             required
           />
           <Input
             ref={nameArRef}
             defaultValue={formData.nameAr}
-            placeholder={t('program_name_ar_placeholder') || 'Program Name (Arabic) * (e.g., دبلوم علوم الحاسوب)'}
+            placeholder={t('program_name_ar_placeholder')}
             required
             dir="rtl"
           />
@@ -422,7 +422,7 @@ const ProgramsPage = () => {
             ref={durationRef}
             type="number"
             defaultValue={formData.durationYears}
-            placeholder={t('duration_years_placeholder') || 'Duration (Years)'}
+            placeholder={t('duration_years_placeholder')}
             min={1}
             max={10}
           />
@@ -430,7 +430,7 @@ const ProgramsPage = () => {
             ref={minGPARef}
             type="number"
             defaultValue={formData.minGPA}
-            placeholder={t('minimum_gpa_placeholder') || 'Minimum GPA'}
+            placeholder={t('minimum_gpa_placeholder')}
             min={0}
             max={4}
             step={0.1}
@@ -439,7 +439,7 @@ const ProgramsPage = () => {
             ref={creditHoursRef}
             type="number"
             defaultValue={formData.totalCreditHours}
-            placeholder={t('total_credit_hours_placeholder') || 'Total Credit Hours'}
+            placeholder={t('total_credit_hours_placeholder')}
             min={1}
           />
         </div>
@@ -447,18 +447,18 @@ const ProgramsPage = () => {
           <Input
             ref={descEnRef}
             defaultValue={formData.descriptionEn}
-            placeholder={t('description_en_placeholder') || 'Description (English)'}
+            placeholder={t('description_en_placeholder')}
           />
           <Input
             ref={descArRef}
             defaultValue={formData.descriptionAr}
-            placeholder={t('description_ar_placeholder') || 'Description (Arabic) - وصف البرنامج بالعربية'}
+            placeholder={t('description_ar_placeholder')}
             dir="rtl"
           />
         </div>
         <div className="form-actions">
           <Button type="submit" variant="primary" loading={loading}>
-            {editingProgram ? (t('update') || 'Update') : (t('save') || 'Save')}
+            {editingProgram ? (t('update')) : (t('save'))}
           </Button>
           {editingProgram && (
             <Button 
@@ -469,7 +469,7 @@ const ProgramsPage = () => {
                 resetForm();
               }}
             >
-              {t('cancel') || 'Cancel'}
+              {t('cancel')}
             </Button>
           )}
         </div>
@@ -485,8 +485,8 @@ const ProgramsPage = () => {
             checkboxSelection
             exportFileName="programs"
             showExportButton
-            exportLabel={t('export') || 'Export'}
-            loadingOverlayMessage={loading ? (t('loading_programs') || "Loading programs...") : undefined}
+            exportLabel={t('export')}
+            loadingOverlayMessage={loading ? (t('loading_programs')) : undefined}
         />
       </div>
 

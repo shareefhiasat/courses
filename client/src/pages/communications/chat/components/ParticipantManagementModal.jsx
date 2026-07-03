@@ -122,15 +122,15 @@ const ParticipantManagementModal = ({ isOpen, onClose, room, currentUserId, onPa
       setActionLoading(`admin-${participant.userId}`);
       const result = await chatService.assignGroupAdmin(room.id, participant.userId);
       if (result.success) {
-        toast.success(t('chat_admin_assigned') || 'Admin assigned successfully');
+        toast.success(t('chat_admin_assigned'));
         onParticipantsChanged?.();
         onClose();
       } else {
-        toast.error(result.error || t('chat_assign_admin_failed') || 'Failed to assign admin');
+        toast.error(result.error || t('chat_assign_admin_failed'));
       }
     } catch (error) {
       console.error('Failed to assign admin:', error);
-      toast.error(t('chat_assign_admin_failed') || 'Failed to assign admin');
+      toast.error(t('chat_assign_admin_failed'));
     } finally {
       setActionLoading(null);
     }
@@ -299,13 +299,13 @@ const ParticipantManagementModal = ({ isOpen, onClose, room, currentUserId, onPa
                           {(user?._count?.enrollments !== undefined || user?.enrollmentCount !== undefined) && (
                             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: '0.7rem', color: 'var(--muted)', background: 'var(--bg)', padding: '1px 8px', borderRadius: 10, border: '1px solid var(--border)' }}>
                               {getThemedIcon('ui', 'book_open', 10, theme)}
-                              {(user?._count?.enrollments ?? user?.enrollmentCount ?? 0)} {t('classes') || 'classes'}
+                              {(user?._count?.enrollments ?? user?.enrollmentCount ?? 0)} {t('classes')}
                             </span>
                           )}
                           {(user?._count?.chatRoomParticipations !== undefined || user?.groupCount !== undefined) && (
                             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: '0.7rem', color: 'var(--muted)', background: 'var(--bg)', padding: '1px 8px', borderRadius: 10, border: '1px solid var(--border)' }}>
                               {getThemedIcon('ui', 'users', 10, theme)}
-                              {(user?._count?.chatRoomParticipations ?? user?.groupCount ?? 0)} {t('groups') || 'groups'}
+                              {(user?._count?.chatRoomParticipations ?? user?.groupCount ?? 0)} {t('groups')}
                             </span>
                           )}
                         </div>
@@ -316,7 +316,7 @@ const ParticipantManagementModal = ({ isOpen, onClose, room, currentUserId, onPa
                         <button
                           className={styles.addButton}
                           onClick={() => onStartDM(user)}
-                          title={t('chat_new_message') || 'Message'}
+                          title={t('chat_new_message')}
                           style={{ color: 'var(--brand)' }}
                         >
                           {getThemedIcon('ui', 'message_square', 18, theme)}
@@ -328,7 +328,7 @@ const ParticipantManagementModal = ({ isOpen, onClose, room, currentUserId, onPa
                             className={styles.addButton}
                             onClick={() => handleAssignAdmin(participant)}
                             disabled={actionLoading === `admin-${participant.userId}`}
-                            title={t('chat_assign_admin') || 'Assign as Admin'}
+                            title={t('chat_assign_admin')}
                             style={{ color: '#ffc107' }}
                           >
                             {actionLoading === `admin-${participant.userId}` ? t('saving') : getIconWithColor('ui', 'crown', 16, '#ffc107')}
@@ -386,13 +386,13 @@ const ParticipantManagementModal = ({ isOpen, onClose, room, currentUserId, onPa
                               {(user?._count?.enrollments !== undefined || user?.enrollmentCount !== undefined) && (
                                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: '0.7rem', color: 'var(--muted)', background: 'var(--bg)', padding: '1px 8px', borderRadius: 10, border: '1px solid var(--border)' }}>
                                   {getThemedIcon('ui', 'book_open', 10, theme)}
-                                  {(user?._count?.enrollments ?? user?.enrollmentCount ?? 0)} {t('classes') || 'classes'}
+                                  {(user?._count?.enrollments ?? user?.enrollmentCount ?? 0)} {t('classes')}
                                 </span>
                               )}
                               {(user?._count?.chatRoomParticipations !== undefined || user?.groupCount !== undefined) && (
                                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: '0.7rem', color: 'var(--muted)', background: 'var(--bg)', padding: '1px 8px', borderRadius: 10, border: '1px solid var(--border)' }}>
                                   {getThemedIcon('ui', 'users', 10, theme)}
-                                  {(user?._count?.chatRoomParticipations ?? user?.groupCount ?? 0)} {t('groups') || 'groups'}
+                                  {(user?._count?.chatRoomParticipations ?? user?.groupCount ?? 0)} {t('groups')}
                                 </span>
                               )}
                             </div>
@@ -403,7 +403,7 @@ const ParticipantManagementModal = ({ isOpen, onClose, room, currentUserId, onPa
                             <button
                               className={styles.addButton}
                               onClick={() => onStartDM(user)}
-                              title={t('chat_new_message') || 'Message'}
+                              title={t('chat_new_message')}
                               style={{ color: 'var(--brand)' }}
                             >
                               {getThemedIcon('ui', 'message_square', 18, theme)}
@@ -461,20 +461,20 @@ const ParticipantManagementModal = ({ isOpen, onClose, room, currentUserId, onPa
         onConfirm={confirmModal.type === 'assign' ? handleConfirmAssignAdmin : handleConfirmLeaveGroup}
         title={
           confirmModal.type === 'assign'
-            ? (t('chat_assign_admin') || 'Assign as Admin')
-            : (t('chat_leave_group') || 'Leave Group')
+            ? (t('chat_assign_admin'))
+            : (t('chat_leave_group'))
         }
         message={
           confirmModal.type === 'assign'
-            ? (t('chat_assign_admin_confirm') || 'Are you sure you want to make this user the new admin? You will lose your admin privileges.')
-            : (t('chat_leave_group_confirm') || 'Are you sure you want to leave this group?')
+            ? (t('chat_assign_admin_confirm'))
+            : (t('chat_leave_group_confirm'))
         }
         confirmText={
           confirmModal.type === 'assign'
-            ? (t('chat_assign_admin') || 'Assign')
-            : (t('chat_leave_group') || 'Leave')
+            ? (t('chat_assign_admin'))
+            : (t('chat_leave_group'))
         }
-        cancelText={t('cancel') || 'Cancel'}
+        cancelText={t('cancel')}
         variant={confirmModal.type === 'leave' ? 'danger' : 'primary'}
         size="small"
       />

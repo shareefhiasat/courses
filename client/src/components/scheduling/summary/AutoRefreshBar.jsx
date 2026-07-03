@@ -80,7 +80,7 @@ export default function AutoRefreshBar({
       >
         {showInterval && (
           <Select
-            placeholder={t('select_refresh_interval') || 'Refresh interval'}
+            placeholder={t('select_refresh_interval')}
             value={ms}
             onChange={handleIntervalChange}
             options={INTERVALS.map((i) => ({
@@ -96,12 +96,12 @@ export default function AutoRefreshBar({
           type="button"
           onClick={handleRefresh}
           data-testid="manual-refresh-btn"
-          title={t('refresh') || 'Refresh'}
-          aria-label={t('refresh') || 'Refresh'}
+          title={t('refresh')}
+          aria-label={t('refresh')}
           style={compactButtonStyle}
         >
           <RefreshCw size={14} />
-          <span>{t('refresh') || 'Refresh'}</span>
+          <span>{t('refresh')}</span>
         </button>
         {ms > 0 && (
           <div style={{ width: '48px', height: '4px', background: theme === 'dark' ? '#374151' : '#e5e7eb', borderRadius: '2px' }}>
@@ -135,15 +135,15 @@ export default function AutoRefreshBar({
         type="button"
         onClick={handleRefresh}
         data-testid="manual-refresh-btn"
-        title={t('refresh') || 'Refresh'}
-        aria-label={t('refresh') || 'Refresh'}
+        title={t('refresh')}
+        aria-label={t('refresh')}
         style={compactButtonStyle}
       >
         <RefreshCw size={16} />
-        <span>{t('refresh') || 'Refresh'}</span>
+        <span>{t('refresh')}</span>
       </button>
       <Select
-        placeholder={t('select_refresh_interval') || 'Select refresh interval'}
+        placeholder={t('select_refresh_interval')}
         value={ms}
         onChange={handleIntervalChange}
         options={INTERVALS.map((i) => ({
@@ -159,7 +159,7 @@ export default function AutoRefreshBar({
         </div>
       )}
       <span style={{ fontSize: 'var(--font-size-xs)', color: muted }}>
-        {t('last_updated') || 'Last updated'}: {formatTime(lastUpdated, lang)}
+        {t('last_updated')}: {formatTime(lastUpdated, lang)}
       </span>
     </div>
   );

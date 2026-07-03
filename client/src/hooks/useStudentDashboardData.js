@@ -303,7 +303,7 @@ const useStudentDashboardData = (displayStudentId, hasSelection = true, classId 
     } catch (err) {
       error('[StudentDashboardData] Failed to load dashboard data', err);
       setError(err);
-      toast?.showError?.(t('failed_to_load_dashboard') || 'Failed to load dashboard');
+      toast?.showError?.(t('failed_to_load_dashboard'));
     } finally {
       setLoading(false);
     }

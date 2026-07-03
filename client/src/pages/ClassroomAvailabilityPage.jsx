@@ -363,7 +363,7 @@ const ClassroomAvailabilityPage = () => {
     const columns = [
       {
         field: 'classroom',
-        headerName: t('classroom') || 'Classroom',
+        headerName: t('classroom'),
         flex: 1,
         minWidth: 150,
         renderCell: (params) => {
@@ -380,7 +380,7 @@ const ClassroomAvailabilityPage = () => {
       },
       {
         field: 'slots',
-        headerName: t('time_slots') || 'Time Slots',
+        headerName: t('time_slots'),
         width: 200,
         renderCell: (params) => {
           const slots = params?.value;
@@ -390,7 +390,7 @@ const ClassroomAvailabilityPage = () => {
       },
       {
         field: 'daysCount',
-        headerName: t('days_count') || 'Days Count',
+        headerName: t('days_count'),
         width: 100,
         renderCell: (params) => {
           const row = params?.row;
@@ -420,7 +420,7 @@ const ClassroomAvailabilityPage = () => {
       },
       {
         field: 'startDate',
-        headerName: t('start_date') || 'Start Date',
+        headerName: t('start_date'),
         width: 120,
         renderCell: (params) => {
           const value = params?.value;
@@ -429,7 +429,7 @@ const ClassroomAvailabilityPage = () => {
       },
       {
         field: 'endDate',
-        headerName: t('end_date') || 'End Date',
+        headerName: t('end_date'),
         width: 120,
         renderCell: (params) => {
           const value = params?.value;
@@ -456,7 +456,7 @@ const ClassroomAvailabilityPage = () => {
                 onClick={() => handleEditAvailability(row)}
                 disabled={saving}
               >
-                {t('edit') || 'Edit'}
+                {t('edit')}
               </Button>
               <Button
                 variant="destructive"
@@ -464,7 +464,7 @@ const ClassroomAvailabilityPage = () => {
                 onClick={() => deleteEntity('availability', `${row.classroom?.code} - ${row.dayOfWeek}`, () => handleDeleteAvailability(row))}
                 disabled={saving}
               >
-                {t('delete') || 'Delete'}
+                {t('delete')}
               </Button>
             </div>
           );
@@ -523,17 +523,17 @@ const ClassroomAvailabilityPage = () => {
               onChange={(e) => handleInputChange('classroomId', e.target.value)}
               options={classrooms.map(c => ({ value: c.id.toString(), label: classroomLabel(c) }))}
               disabled={saving}
-              placeholder={t('select_classroom') || 'Select classroom'}
+              placeholder={t('select_classroom')}
             />
           </div>
 
           <div>
-            <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: '500' }}>{t('days_of_week') || 'Day(s) of Week'}</label>
+            <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: '500' }}>{t('days_of_week')}</label>
             <MultiSelect
               value={formData.dayOfWeek}
               onChange={(value) => handleInputChange('dayOfWeek', value)}
               options={dayOptions}
-              placeholder={t('select_days') || 'Select days...'}
+              placeholder={t('select_days')}
               disabled={saving}
             />
           </div>
@@ -630,7 +630,7 @@ const ClassroomAvailabilityPage = () => {
               onClick={handleCancel}
               disabled={saving}
             >
-              {t('cancel') || 'Cancel'}
+              {t('cancel')}
             </Button>
           )}
         </div>
@@ -642,7 +642,7 @@ const ClassroomAvailabilityPage = () => {
           <Input
             value={filterSearch}
             onChange={e => setFilterSearch(e.target.value)}
-            placeholder={t('search') || 'Search'}
+            placeholder={t('search')}
           />
         </div>
         <div style={{ flex: '1 1 160px' }}>
@@ -650,7 +650,7 @@ const ClassroomAvailabilityPage = () => {
             value={filterClassroom}
             onChange={e => setFilterClassroom(e.target.value)}
             options={[{ value: '', label: t('all_classrooms') }, ...classrooms.map(c => ({ value: String(c.id), label: classroomLabel(c) }))]}
-            placeholder={t('classroom') || 'Classroom'}
+            placeholder={t('classroom')}
           />
         </div>
         <div style={{ flex: '1 1 130px' }}>
@@ -658,7 +658,7 @@ const ClassroomAvailabilityPage = () => {
             value={filterDay}
             onChange={e => setFilterDay(e.target.value)}
             options={[{ value: '', label: t('all_days') }, ...dayOptions]}
-            placeholder={t('day') || 'Day'}
+            placeholder={t('day')}
           />
         </div>
         <div style={{ flex: '1 1 140px' }}>
@@ -666,7 +666,7 @@ const ClassroomAvailabilityPage = () => {
             type="date"
             value={filterStartDate}
             onChange={e => setFilterStartDate(e.target.value)}
-            placeholder={t('start_date') || 'Start Date'}
+            placeholder={t('start_date')}
           />
         </div>
         <div style={{ flex: '1 1 140px' }}>
@@ -674,7 +674,7 @@ const ClassroomAvailabilityPage = () => {
             type="date"
             value={filterEndDate}
             onChange={e => setFilterEndDate(e.target.value)}
-            placeholder={t('end_date') || 'End Date'}
+            placeholder={t('end_date')}
           />
         </div>
         <div style={{ flex: '1 1 100px' }}>
@@ -682,7 +682,7 @@ const ClassroomAvailabilityPage = () => {
             type="time"
             value={filterTimeFrom}
             onChange={e => setFilterTimeFrom(e.target.value)}
-            placeholder={t('time_from') || 'From'}
+            placeholder={t('time_from')}
           />
         </div>
         <div style={{ flex: '1 1 100px' }}>
@@ -690,7 +690,7 @@ const ClassroomAvailabilityPage = () => {
             type="time"
             value={filterTimeTo}
             onChange={e => setFilterTimeTo(e.target.value)}
-            placeholder={t('time_to') || 'To'}
+            placeholder={t('time_to')}
           />
         </div>
         {(filterSearch || filterClassroom || filterDay || filterStartDate || filterEndDate || filterTimeFrom || filterTimeTo) && (
@@ -713,7 +713,7 @@ const ClassroomAvailabilityPage = () => {
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           
           <Button data-tour="room-avail-export" variant="outline" size="sm" onClick={handleExport} disabled={filteredAvailabilities.length === 0}>
-            {t('export') || 'Export'}
+            {t('export')}
           </Button>
         </div>
       </div>

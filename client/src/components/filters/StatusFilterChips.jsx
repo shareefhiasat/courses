@@ -75,7 +75,7 @@ const StatusFilterChips = ({
       active: requiredFilter,
       toggle: () => setRequiredFilter(v => !v),
       icon: 'alert_circle',
-      label: t('filter_required') || 'Required',
+      label: t('filter_required'),
       badge: requiredCount !== undefined ? requiredCount : undefined,
       colors: {
         border: '#fecaca',
@@ -90,7 +90,7 @@ const StatusFilterChips = ({
       active: optionalFilter,
       toggle: () => setOptionalFilter(v => !v),
       icon: 'book_open',
-      label: t('filter_optional') || 'Optional',
+      label: t('filter_optional'),
       badge: optionalCount !== undefined ? optionalCount : undefined,
       colors: {
         border: '#fed7aa',
@@ -105,7 +105,7 @@ const StatusFilterChips = ({
       active: overdueFilter,
       toggle: () => setOverdueFilter(v => !v),
       icon: 'clock',
-      label: t('filter_overdue') || 'Overdue',
+      label: t('filter_overdue'),
       badge: overdueCount !== undefined ? overdueCount : undefined,
       colors: {
         border: '#fecaca',
@@ -120,7 +120,7 @@ const StatusFilterChips = ({
       active: requiresSubmissionFilter,
       toggle: () => setRequiresSubmissionFilter(v => !v),
       icon: 'send',
-      label: t('filter_requires_submission') || 'Requires Submission',
+      label: t('filter_requires_submission'),
       badge: requiresSubmissionCount !== undefined ? requiresSubmissionCount : undefined,
       colors: {
         border: '#3b82f6',
@@ -136,7 +136,7 @@ const StatusFilterChips = ({
     <div
       className="filter-container flex flex-wrap gap-1 relative z-10 justify-center"
       role="group"
-      aria-label={t('status_filters') || 'Status filters'}
+      aria-label={t('status_filters')}
     >
       {filterChips.map(chip => (
         <PortalTooltip key={chip.id} content={chip.label} position="top">

@@ -98,7 +98,7 @@ const EnrollmentsManagementPage = () => {
       if (activitiesResult.success) setActivities(activitiesResult.data || []);
     } catch (err) {
       error('[EnrollmentManagementPage] Error loading data:', err);
-      toast?.showError(t('failed_to_load_data') || 'Failed to load data');
+      toast?.showError(t('failed_to_load_data'));
     } finally {
       if (!isInitial) setDataLoading(false);
     }
@@ -117,7 +117,7 @@ const EnrollmentsManagementPage = () => {
       if (classesRes.success) setLocalClasses(classesRes.data || []);
     } catch (err) {
       error('[EnrollmentManagementPage] Error loading filters:', err);
-      toast?.showError(t('failed_to_load_filters') || 'Failed to load filters');
+      toast?.showError(t('failed_to_load_filters'));
     }
   }, [t, toast]);
 
@@ -126,7 +126,7 @@ const EnrollmentsManagementPage = () => {
     let stopLoading = null;
 
     const initialLoad = async () => {
-      stopLoading = startLoading({ message: t('loading_enrollments') || 'Loading enrollments...' });
+      stopLoading = startLoading({ message: t('loading_enrollments') });
       await Promise.all([loadFilters(), loadData(true)]);
       if (stopLoading) stopLoading();
       setDataLoading(false);
@@ -358,12 +358,12 @@ const EnrollmentsManagementPage = () => {
     const studentIdToUse = enrollmentForm.studentId;
     
     if (!studentIdToUse) {
-      toast?.showError(t('participation_please_select_student') || 'Please select a student');
+      toast?.showError(t('participation_please_select_student'));
       return;
     }
 
     if (!enrollmentForm.classId) {
-      toast?.showError(t('please_select_class') || 'Please select a class');
+      toast?.showError(t('please_select_class'));
       return;
     }
     
@@ -372,7 +372,7 @@ const EnrollmentsManagementPage = () => {
       enrollment.userId === studentIdToUse && enrollment.classId === enrollmentForm.classId
     );
     if (existingEnrollment) {
-      toast?.showError(t('user_already_enrolled') || 'This user is already enrolled in this class');
+      toast?.showError(t('user_already_enrolled'));
       return;
     }
 
@@ -409,7 +409,7 @@ const EnrollmentsManagementPage = () => {
         }
         await loadData();
         setEnrollmentForm({ studentId: '', classId: '', role: ROLE_STRINGS.STUDENT, programId: '', subjectId: '' });
-        toast?.showSuccess(t('enrollment_added_successfully') || 'Enrollment added successfully!');
+        toast?.showSuccess(t('enrollment_added_successfully'));
       } else {
         toast?.showError(t('error') + ': ' + result.error);
       }
@@ -451,7 +451,7 @@ const EnrollmentsManagementPage = () => {
             classes={localClasses}
             value={enrollmentForm.studentId}
             onChange={(studentId) => setEnrollmentForm((prev) => ({ ...prev, studentId }))}
-            placeholder={t('select_student') || 'Select student'}
+            placeholder={t('select_student')}
             roleFilter={[ROLE_STRINGS.STUDENT]}
             includeAll={false}
             showEnrollments
@@ -463,7 +463,7 @@ const EnrollmentsManagementPage = () => {
         <div className="form-row wide-cols">
           <Select
             searchable
-            placeholder={t('role') || 'Role'}
+            placeholder={t('role')}
             value={enrollmentForm.role}
             onChange={e => setEnrollmentForm({ ...enrollmentForm, role: e.target.value })}
             options={[
@@ -474,7 +474,7 @@ const EnrollmentsManagementPage = () => {
         
         <div className="form-actions" style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
           <Button type="submit" variant="primary" disabled={loading} size="medium">
-            {t('save') || 'Save'}
+            {t('save')}
           </Button>
           
         </div>
@@ -506,7 +506,7 @@ const EnrollmentsManagementPage = () => {
         chips={[
           {
             id: 'all',
-            label: t('total_enrollments') || 'Total enrollments',
+            label: t('total_enrollments'),
             count: enrollmentSummary.total,
             icon: getThemedIcon('ui', 'layers', 16, theme),
             variant: 'blue',
@@ -548,7 +548,7 @@ const EnrollmentsManagementPage = () => {
           },
           {
             id: 'stat-students',
-            label: t('unique_students') || 'Unique students',
+            label: t('unique_students'),
             count: enrollmentSummary.uniqueStudents,
             icon: getThemedIcon('ui', 'user', 16, theme),
             variant: 'green',
@@ -556,7 +556,7 @@ const EnrollmentsManagementPage = () => {
           },
           {
             id: 'stat-classes',
-            label: t('unique_classes') || 'Unique classes',
+            label: t('unique_classes'),
             count: enrollmentSummary.uniqueClasses,
             icon: getThemedIcon('ui', 'home', 16, theme),
             variant: 'amber',
@@ -564,7 +564,7 @@ const EnrollmentsManagementPage = () => {
           },
           ...(enrollmentSummary.uniquePrograms > 0 ? [{
             id: 'stat-programs',
-            label: t('unique_programs') || 'Unique programs',
+            label: t('unique_programs'),
             count: enrollmentSummary.uniquePrograms,
             icon: getThemedIcon('ui', 'grid', 16, theme),
             variant: 'violet',
@@ -582,7 +582,7 @@ const EnrollmentsManagementPage = () => {
           columns={[
           {
             field: 'userId', 
-            headerName: t('student') || 'Student', 
+            headerName: t('student'), 
             flex: 1.5, 
             minWidth: 200,
             valueGetter: (params) => {
@@ -607,7 +607,7 @@ const EnrollmentsManagementPage = () => {
           },
           {
             field: 'programNameDisplay',
-            headerName: t('program') || 'Program',
+            headerName: t('program'),
             flex: 1,
             minWidth: 150,
             renderCell: (params) => (
@@ -618,7 +618,7 @@ const EnrollmentsManagementPage = () => {
           },
           {
             field: 'subjectNameDisplay',
-            headerName: t('subject') || 'Subject',
+            headerName: t('subject'),
             flex: 1,
             minWidth: 150,
             renderCell: (params) => (
@@ -629,7 +629,7 @@ const EnrollmentsManagementPage = () => {
           },
           {
             field: 'classNameDisplay', 
-            headerName: t('class') || 'Class', 
+            headerName: t('class'), 
             flex: 1,
             minWidth: 150,
             renderCell: (params) => (
@@ -641,7 +641,7 @@ const EnrollmentsManagementPage = () => {
           ...enrollmentAuditColumns,
           {
             field: 'status', 
-            headerName: t('status') || 'STATUS', 
+            headerName: t('status'), 
             width: 120,
             valueGetter: (params) => {
               const statusCode = params.row?.status?.code || 'ENROLLED';
@@ -674,12 +674,12 @@ const EnrollmentsManagementPage = () => {
             }
           },
           {
-            field: 'actions', headerName: t('actions') || 'Actions', width: 200, sortable: false, filterable: false,
+            field: 'actions', headerName: t('actions'), width: 200, sortable: false, filterable: false,
             renderCell: (params) => {
               const enrollment = params.row;
               const user = findUserById(enrollment.userId);
               const classItem = localClasses.find(c => matchUserId(c.docId || c.id, enrollment.classId));
-              const userName = user ? getLocalizedUserName(user, lang) : (t('unknown_user') || 'Unknown User');
+              const userName = user ? getLocalizedUserName(user, lang) : (t('unknown_user'));
               const className = classItem ? (classItem.name || classItem.code || 'Unknown Class') : 'Unknown Class';
               const isDisabled = Array.isArray(classItem?.disabledStudents) && classItem.disabledStudents.includes(enrollment.userId);
 
@@ -695,7 +695,7 @@ const EnrollmentsManagementPage = () => {
                       studentName: user?.displayName || user?.realName,
                       className,
                       instructorName: undefined,
-                      lang: t('lang') || 'en'
+                      lang: t('lang')
                     }
                   );
 
@@ -711,7 +711,7 @@ const EnrollmentsManagementPage = () => {
                   }
                 } catch (error) {
                   error('[EnrollmentManagementPage] Failed to toggle student access:', error);
-                  toast?.showError(t('failed_to_update_student_access') || 'Failed to update student access');
+                  toast?.showError(t('failed_to_update_student_access'));
                 }
               };
 
@@ -808,7 +808,7 @@ const EnrollmentsManagementPage = () => {
                           warn('[EnrollmentManagementPage] Failed to log activity:', error);
                         }
                         await loadData();
-                        toast?.showSuccess(t('enrollment_removed_successfully') || 'Enrollment removed successfully!');
+                        toast?.showSuccess(t('enrollment_removed_successfully'));
                       } else {
                         throw new Error(result.error);
                       }
@@ -839,7 +839,7 @@ const EnrollmentsManagementPage = () => {
                     onClick={handleToggleAccess}
                     style={{ border: 'none' }}
                   >
-                    {isDisabled ? (t('enable') || 'Enable') : (t('disable') || 'Disable')}
+                    {isDisabled ? (t('enable')) : (t('disable'))}
                   </Button>
                   <Button 
                     size="sm" 
@@ -849,7 +849,7 @@ const EnrollmentsManagementPage = () => {
                     style={{ color: '#dc2626' }} 
                     onClick={handleFullDelete}
                   >
-                    {t('delete') || 'Delete'}
+                    {t('delete')}
                   </Button>
                 </div>
               );
@@ -861,7 +861,7 @@ const EnrollmentsManagementPage = () => {
           checkboxSelection
           exportFileName="enrollments"
           showExportButton
-          exportLabel={t('export') || 'Export'}
+          exportLabel={t('export')}
         />
       </div>
       

@@ -12,14 +12,7 @@
 import prisma from '../db/prismaClient.js';
 import { Prisma } from '@prisma/client';
 import { getDatabaseUserId } from '../utils/database/userResolver.js';
-
-
-const ok = (payload) => ({ success: true, payload, timestamp: Date.now() });
-const err = (code, message) => ({
-  success: false,
-  error: { code, message },
-  timestamp: Date.now(),
-});
+import { ok, err } from '../utils/result.js';
 
 /**
  * @param {string|object} keycloakUser

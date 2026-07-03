@@ -60,29 +60,29 @@ export default function BreakSessionModal({
   if (!open) return null;
 
   return (
-    <Modal open={open} onClose={onClose} title={t('manage_break_session') || 'Manage Break Session'}>
+    <Modal open={open} onClose={onClose} title={t('manage_break_session')}>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', minWidth: '320px' }}>
         <Select
-          placeholder={t('select_program') || 'Select a program'}
+          placeholder={t('select_program')}
           value={String(form.programId || '')}
           onChange={(e) => setForm({ ...form, programId: e.target.value })}
           options={programs.map((p) => ({ value: String(p.id), label: p.nameEn || p.code }))}
         />
         <Select
-          placeholder={t('select_time_slot') || 'Select a time slot'}
+          placeholder={t('select_time_slot')}
           value={String(form.timeSlotId || '')}
           onChange={(e) => setForm({ ...form, timeSlotId: e.target.value })}
           options={timeSlots.map((ts) => ({ value: String(ts.id), label: `${ts.labelEn} (${ts.startTime}-${ts.endTime})` }))}
         />
         <Select
-          placeholder={t('select_break_type') || 'Select break type'}
+          placeholder={t('select_break_type')}
           value={form.breakType}
           onChange={(e) => setForm({ ...form, breakType: e.target.value })}
           options={BREAK_TYPES.map((bt) => ({ value: bt, label: t(`break_type_${bt}`) || bt }))}
         />
-        <Input type="date" label={t('date') || 'Date'} value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
+        <Input type="date" label={t('date')} value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} />
         <Select
-          placeholder={t('select_instructor_optional') || 'Select instructor (optional)'}
+          placeholder={t('select_instructor_optional')}
           value={String(form.instructorUserId || '')}
           onChange={(e) => setForm({ ...form, instructorUserId: e.target.value })}
           options={instructors.map((i) => ({
@@ -90,11 +90,11 @@ export default function BreakSessionModal({
             label: i.displayName || i.firstName,
           }))}
         />
-        <Input label={t('notes') || 'Notes'} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+        <Input label={t('notes')} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
         <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end' }}>
-          <Button variant="outline" onClick={onClose}>{t('cancel') || 'Cancel'}</Button>
+          <Button variant="outline" onClick={onClose}>{t('cancel')}</Button>
           <Button variant="primary" onClick={handleSave} disabled={saving || !form.timeSlotId || !form.programId}>
-            {saving ? t('saving') || 'Saving...' : t('save') || 'Save'}
+            {saving ? t('saving') : t('save')}
           </Button>
         </div>
       </div>

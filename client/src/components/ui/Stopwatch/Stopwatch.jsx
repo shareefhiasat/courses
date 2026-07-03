@@ -94,9 +94,9 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stopw
         color: '#666',
         marginBottom: '1rem'
       }}>
-        {!isRunning && time === 0 && (t('ready_to_track') || 'Ready to track time')}
-        {isRunning && !isPaused && (t('tracking_time') || 'Tracking time...')}
-        {isPaused && (t('paused') || 'Paused')}
+        {!isRunning && time === 0 && (t('ready_to_track'))}
+        {isRunning && !isPaused && (t('tracking_time'))}
+        {isPaused && (t('paused'))}
       </div>
 
       {/* Controls */}
@@ -121,7 +121,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stopw
                 fontSize: 'var(--font-size-md)'
               }}
             >
-              ▶️ {t('start') || 'Start'}
+              ▶️ {t('start')}
             </button>
           )}
 
@@ -139,7 +139,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stopw
                 fontSize: 'var(--font-size-md)'
               }}
             >
-              ⏸️ {t('pause') || 'Pause'}
+              ⏸️ {t('pause')}
             </button>
           )}
 
@@ -157,7 +157,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stopw
                 fontSize: 'var(--font-size-md)'
               }}
             >
-              ▶️ {t('resume') || 'Resume'}
+              ▶️ {t('resume')}
             </button>
           )}
 
@@ -175,7 +175,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stopw
                 fontSize: 'var(--font-size-md)'
               }}
             >
-              🔄 {t('reset') || 'Reset'}
+              🔄 {t('reset')}
             </button>
           )}
         </div>
@@ -188,9 +188,9 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stopw
           fontSize: 'var(--font-size-xs)',
           color: '#999'
         }}>
-          {time >= 3600 && `${Math.floor(time / 3600)} ${t('hours') || 'hours'} `}
-          {time >= 60 && `${Math.floor((time % 3600) / 60)} ${t('minutes') || 'minutes'} `}
-          {time % 60} {t('seconds') || 'seconds'}
+          {time >= 3600 && `${Math.floor(time / 3600)} ${t('hours')} `}
+          {time >= 60 && `${Math.floor((time % 3600) / 60)} ${t('minutes')} `}
+          {time % 60} {t('seconds')}
         </div>
       )}
     </div>

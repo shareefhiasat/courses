@@ -195,7 +195,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              placeholder={t('attendance.search_placeholder') || 'Search...'}
+              placeholder={t('attendance.search_placeholder')}
               style={{
                 width: '100%',
                 padding: isMobile

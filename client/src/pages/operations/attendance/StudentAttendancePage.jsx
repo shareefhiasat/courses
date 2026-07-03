@@ -345,14 +345,14 @@ const StudentAttendancePage = () => {
     // Handle 6-digit manual code
     if (parsed.manualCode) {
       try {
-        setMessage(t('looking_up_session') || 'Looking up session...');
+        setMessage(t('looking_up_session'));
         const foundSession = await findOpenAttendanceSessionByCode(parsed.manualCode);
         
         if (!foundSession) {
-          setMessage(t('session_not_found') || 'Session not found. Please check the code or use the full attendance link.');
+          setMessage(t('session_not_found'));
           setLastResult({ ok: false, error: 'Session not found' });
           if (toast?.error) {
-            toast.error(t('session_not_found') || 'Session not found. Please use the full link from your instructor.');
+            toast.error(t('session_not_found'));
           }
           return;
         }
@@ -361,10 +361,10 @@ const StudentAttendancePage = () => {
         parsed.token = foundSession.token;
       } catch (e) {
         error('[StudentAttendance] Error looking up manual code:', e);
-        setMessage(t('error_looking_up') || 'Error looking up session. Please use the full attendance link.');
+        setMessage(t('error_looking_up'));
         setLastResult({ ok: false, error: e?.message || 'Lookup failed' });
         if (toast?.error) {
-          toast.error(t('error_looking_up') || 'Error looking up session. Please use the full link.');
+          toast.error(t('error_looking_up'));
         }
         return;
       }
@@ -372,12 +372,12 @@ const StudentAttendancePage = () => {
     
     const { sid, token } = parsed;
     if (!sid || !token) {
-      setMessage(t('invalid_code_or_link') || 'Invalid code or link. Please enter a 6-digit code or paste the full attendance link.');
+      setMessage(t('invalid_code_or_link'));
       setLastResult({ ok: false, error: 'Invalid input' });
       return;
     }
     try {
-      setMessage(t('processing') || 'Processing...');
+      setMessage(t('processing'));
       const payload = { 
         sid, 
         token, 
@@ -393,17 +393,17 @@ const StudentAttendancePage = () => {
       }
       const res = await scanAttendance(payload);
       setLastResult({ ok: true, sid, at: new Date().toISOString() });
-      setMessage(t('attendance_recorded') || 'Attendance recorded.');
+      setMessage(t('attendance_recorded'));
       setLeaveNote(''); // Clear note after successful scan
       setManualText(''); // Clear manual input after successful scan
       
       // Show success toast
       if (toast?.success) {
-        toast.success(t('attendance_recorded') || 'Attendance recorded successfully!');
+        toast.success(t('attendance_recorded'));
       }
     } catch (e) {
       setLastResult({ ok: false, error: e?.message || 'error' });
-      setMessage(`${t('error') || 'Error'}: ${e?.message || 'unknown'}`);
+      setMessage(`${t('error')}: ${e?.message || 'unknown'}`);
     }
   }, [t, toast, classId, attendanceStatus, leaveReason, leaveNote]);
 
@@ -412,7 +412,7 @@ const StudentAttendancePage = () => {
 
   const handleManualSubmit = async () => {
     if (!manualText.trim()) {
-      setMessage(t('please_enter_code') || 'Please enter a code or paste the attendance link');
+      setMessage(t('please_enter_code'));
       return;
     }
     await handleRawValue(manualText.trim());
@@ -439,17 +439,17 @@ const StudentAttendancePage = () => {
             <div style={{ position:'absolute', inset:0, display:'grid', placeItems:'center', color:'#fff', background:'rgba(0,0,0,0.7)', padding: '1rem', textAlign: 'center', zIndex: 1 }}>
               <div>
                 <div style={{ fontSize: '0.9rem', marginBottom: '0.5rem', fontWeight: 600 }}>
-                  {(t('camera_loading') || 'Initializing camera...').replaceAll('_',' ')}
+                  {(t('camera_loading')).replaceAll('_',' ')}
                 </div>
                 <div style={{ fontSize: 'var(--font-size-xs)', opacity: 0.8 }}>
-                  {(t('allow_camera_permission') || 'Please allow camera access when prompted.').replaceAll('_',' ')}
+                  {(t('allow_camera_permission')).replaceAll('_',' ')}
                 </div>
               </div>
             </div>
           )}
           {scanning && (
             <div style={{ position:'absolute', top: 8, left: 8, background:'rgba(16, 185, 129, 0.9)', color:'white', padding:'0.25rem 0.5rem', borderRadius:6, fontSize: 'var(--font-size-xs)', fontWeight:600, zIndex: 2 }}>
-              {(t('scanning') || 'Scanning...').replaceAll('_',' ')}
+              {(t('scanning')).replaceAll('_',' ')}
             </div>
           )}
         </div>
@@ -492,13 +492,13 @@ const StudentAttendancePage = () => {
                 Enter the code shown on instructor's screen, or paste the full attendance link
               </div>
               <div style={{ marginTop: 8, display:'flex', gap: 8 }}>
-                <button onClick={handleManualSubmit} style={{ padding:'0.6rem 1rem', border:'none', borderRadius:8, background:'#800020', color:'#fff', fontWeight:600 }}>{(t('submit') || 'Submit').replaceAll('_',' ')}</button>
-                <div style={{ alignSelf:'center', color:'var(--muted)', fontSize: 'var(--font-size-xs)' }}>{scanning ? ((t('scanning')||'Scanning...').replaceAll('_',' ')) : ((t('scanner_idle')||'Scanner idle').replaceAll('_',' '))}</div>
+                <button onClick={handleManualSubmit} style={{ padding:'0.6rem 1rem', border:'none', borderRadius:8, background:'#800020', color:'#fff', fontWeight:600 }}>{(t('submit')).replaceAll('_',' ')}</button>
+                <div style={{ alignSelf:'center', color:'var(--muted)', fontSize: 'var(--font-size-xs)' }}>{scanning ? ((t('scanning')).replaceAll('_',' ')) : ((t('scanner_idle')).replaceAll('_',' '))}</div>
               </div>
               {message && <div style={{ marginTop: 8, fontSize: 'var(--font-size-sm)' }}>{message}</div>}
               {lastResult && (
                 <div style={{ marginTop: 8, fontSize: 'var(--font-size-xs)', color: lastResult.ok ? '#10b981' : '#ef4444' }}>
-                  {lastResult.ok ? ((t('last_scan_ok') || 'Last scan OK').replaceAll('_',' ')) : ((t('last_scan_failed') || 'Last scan failed').replaceAll('_',' '))}
+                  {lastResult.ok ? ((t('last_scan_ok')).replaceAll('_',' ')) : ((t('last_scan_failed')).replaceAll('_',' '))}
                 </div>
               )}
             </div>
@@ -511,7 +511,7 @@ const StudentAttendancePage = () => {
     {showHistory && <div className="content-section" style={{ maxWidth: 880, margin: '1rem auto', padding: '1rem', background:'var(--panel)', borderRadius:12 }}>
       <div style={{ display:'grid', gridTemplateColumns:'repeat(auto-fit, minmax(120px, 1fr))', gap: 8, marginBottom: 12 }}>
         <div style={{ gridColumn: '1 / -1' }}>
-          <strong style={{ fontSize: 'var(--font-size-md)' }}>{(t('attendance_history') || 'Attendance History').replaceAll('_',' ')}</strong>
+          <strong style={{ fontSize: 'var(--font-size-md)' }}>{(t('attendance_history')).replaceAll('_',' ')}</strong>
         </div>
         <Select
           searchable
@@ -519,7 +519,7 @@ const StudentAttendancePage = () => {
           value={histClassFilter}
           onChange={(e)=>setHistClassFilter(e.target.value)}
           options={[
-            { value: 'all', label: (t('all_classes')||'All Classes').replaceAll('_',' ') },
+            { value: 'all', label: (t('all_classes')).replaceAll('_',' ') },
             ...classOptions.map(c => ({ value: c.id, label: c.name }))
           ]}
         />
@@ -529,24 +529,24 @@ const StudentAttendancePage = () => {
           value={statusFilter}
           onChange={(e)=>setStatusFilter(e.target.value)}
           options={[
-            { value: 'all', label: (t('all')||'All').replaceAll('_',' ') },
-            { value: 'present', label: (t('present')||'Present').replaceAll('_',' ') },
-            { value: 'absent', label: (t('absent')||'Absent').replaceAll('_',' ') },
-            { value: 'leave', label: (t('leave')||'Leave').replaceAll('_',' ') }
+            { value: 'all', label: (t('all')).replaceAll('_',' ') },
+            { value: 'present', label: (t('present')).replaceAll('_',' ') },
+            { value: 'absent', label: (t('absent')).replaceAll('_',' ') },
+            { value: 'leave', label: (t('leave')).replaceAll('_',' ') }
           ]}
         />
         <DatePicker
           type="date"
           value={fromDate}
           onChange={(iso) => setFromDate(iso || '')}
-          placeholder={t('from_date') || 'From Date'}
+          placeholder={t('from_date')}
           size="small"
         />
         <DatePicker
           type="date"
           value={toDate}
           onChange={(iso) => setToDate(iso || '')}
-          placeholder={t('to_date') || 'To Date'}
+          placeholder={t('to_date')}
           size="small"
         />
       </div>
@@ -554,13 +554,13 @@ const StudentAttendancePage = () => {
         <Loading />
       ) : history.length === 0 ? (
         <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--muted)' }}>
-          {t('no_records') || 'No records found'}
+          {t('no_records')}
         </div>
       ) : (
         <>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
             <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--muted)' }}>
-              {t('showing') || 'Showing'} {history.length} {t('records') || 'records'}
+              {t('showing')} {history.length} {t('records')}
             </div>
             <Button 
               variant="secondary" 
@@ -586,7 +586,7 @@ const StudentAttendancePage = () => {
                 setTimeout(()=>URL.revokeObjectURL(url), 1000);
               }}
             >
-              {t('export_excel') || 'Export Excel'}
+              {t('export_excel')}
             </Button>
           </div>
           {history.map((h, i) => (
@@ -594,7 +594,7 @@ const StudentAttendancePage = () => {
               <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', flexWrap:'wrap', gap: 8 }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontWeight:600, wordBreak: 'break-word' }}>{h.className || h.classId || 'Unknown Class'}</div>
-                  <div style={{ fontSize: 'var(--font-size-xs)', color:'#666', marginTop: 4 }}>{(t('session')||'Session').replaceAll('_',' ')}: {h.sessionId ? h.sessionId.slice(0, 8) + '...' : '—'}</div>
+                  <div style={{ fontSize: 'var(--font-size-xs)', color:'#666', marginTop: 4 }}>{(t('session')).replaceAll('_',' ')}: {h.sessionId ? h.sessionId.slice(0, 8) + '...' : '—'}</div>
                 </div>
                 <span style={{ fontWeight:700, color: h.status==='present' ? '#10b981' : h.status==='late' ? '#f59e0b' : h.status==='leave' ? '#8b5cf6' : '#6b7280', whiteSpace: 'nowrap', textTransform: 'capitalize' }}>{(h.status||'—').toString().replace('_', ' ')}</span>
               </div>
@@ -603,7 +603,7 @@ const StudentAttendancePage = () => {
               </div>
               {h.reason && (
                 <div style={{ fontSize:11, color:'#666', fontStyle:'italic' }}>
-                  {t('reason') || 'Reason'}: {h.reason}
+                  {t('reason')}: {h.reason}
                 </div>
               )}
               {h.feedback && (

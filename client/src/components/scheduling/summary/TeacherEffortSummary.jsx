@@ -11,10 +11,10 @@ export default function TeacherEffortSummary({ effort }) {
   if (!effort?.summary) return null;
 
   const cards = [
-    { label: t('total_sessions') || 'Sessions', value: effort.summary.totalSessions, color: '#3b82f6' },
-    { label: t('teaching_hours') || 'Teaching Hours', value: effort.summary.teachingHours, color: '#10b981' },
-    { label: t('total_breaks') || 'Breaks', value: effort.summary.totalBreaks, color: '#f59e0b' },
-    { label: t('holiday_sessions_missed') || 'Holiday Impact', value: effort.summary.sessionsMissedDueToHolidays, color: '#ef4444' },
+    { label: t('total_sessions'), value: effort.summary.totalSessions, color: '#3b82f6' },
+    { label: t('teaching_hours'), value: effort.summary.teachingHours, color: '#10b981' },
+    { label: t('total_breaks'), value: effort.summary.totalBreaks, color: '#f59e0b' },
+    { label: t('holiday_sessions_missed'), value: effort.summary.sessionsMissedDueToHolidays, color: '#ef4444' },
   ];
 
   return (

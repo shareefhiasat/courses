@@ -160,7 +160,7 @@ const SubjectsPage = () => {
     let stopLoading = null;
 
     const initialLoad = async () => {
-      stopLoading = startLoading({ message: t('loading_subjects') || 'Loading subjects...' });
+      stopLoading = startLoading({ message: t('loading_subjects') });
       await loadData(true);
       if (stopLoading) stopLoading();
       setLoading(false);
@@ -196,22 +196,22 @@ const SubjectsPage = () => {
     
     // Validation with specific error messages
     if (!formData.programId) {
-      toast.error(t('please_select_program') || 'Please select a program');
+      toast.error(t('please_select_program'));
       return;
     }
     
     if (!textValues.code || textValues.code.trim() === '') {
-      toast.error(t('please_enter_subject_code') || 'Please enter subject code');
+      toast.error(t('please_enter_subject_code'));
       return;
     }
     
     if (!textValues.nameEn || textValues.nameEn.trim() === '') {
-      toast.error(t('please_enter_subject_name_english') || 'Please enter subject name in English');
+      toast.error(t('please_enter_subject_name_english'));
       return;
     }
     
     if (!textValues.nameAr || textValues.nameAr.trim() === '') {
-      toast.error(t('please_enter_subject_name_arabic') || 'Please enter subject name in Arabic');
+      toast.error(t('please_enter_subject_name_arabic'));
       return;
     }
 
@@ -247,12 +247,12 @@ const SubjectsPage = () => {
             programId: formData.programId
           });
         } catch (e) { warn('Failed to log activity:', e); }
-        toast.success(editingSubject ? t('subject_updated_successfully') || 'Subject updated successfully' : t('subject_created_successfully') || 'Subject created successfully');
+        toast.success(editingSubject ? t('subject_updated_successfully') : t('subject_created_successfully'));
         setEditingSubject(null);
         resetForm();
         // Don't call loadData() here to prevent double loading
       } else {
-        toast.error(result.error || t('operation_failed_subject') || 'Operation failed');
+        toast.error(result.error || t('operation_failed_subject'));
       }
     } catch (error) {
       toast.error(error.message || t('subjects_error_message', { error: error.message }));
@@ -307,7 +307,7 @@ const SubjectsPage = () => {
               subjectCode: subject.code
             });
           } catch (e) { /* Activity logging failed */ }
-          toast.success(result.message || t('subject_deleted_successfully') || 'Subject deleted successfully');
+          toast.success(result.message || t('subject_deleted_successfully'));
         } else if (result.code === 'HAS_DEPENDENCIES' && result.dependencies) {
           // Rollback and show force-delete confirmation
           setSubjects(prev => [...prev, subject]);
@@ -330,7 +330,7 @@ const SubjectsPage = () => {
         } else {
           // Rollback
           setSubjects(prev => [...prev, subject]);
-          toast.error(result.error || t('failed_to_delete_subject') || 'Failed to delete subject');
+          toast.error(result.error || t('failed_to_delete_subject'));
         }
       } catch (error) {
         // Rollback
@@ -365,7 +365,7 @@ const resetForm = () => {
 const gridColumns = useMemo(() => [
     { 
       field: 'code', 
-      headerName: t('code') || 'Code', 
+      headerName: t('code'), 
       width: 120,
       valueGetter: (params) => {
         const row = params?.row || {};
@@ -373,12 +373,12 @@ const gridColumns = useMemo(() => [
         return code || '—';
       }
     },
-    { field: 'nameEn', headerName: t('name_en') || 'Name (EN)', flex: 1, minWidth: 180 },
-    { field: 'nameAr', headerName: t('name_ar') || 'Name (AR)', flex: 1, minWidth: 180 },
-    { field: 'credits', headerName: t('credits') || 'Credits', width: 100 },
+    { field: 'nameEn', headerName: t('name_en'), flex: 1, minWidth: 180 },
+    { field: 'nameAr', headerName: t('name_ar'), flex: 1, minWidth: 180 },
+    { field: 'credits', headerName: t('credits'), width: 100 },
     {
       field: 'type',
-      headerName: t('type') || 'Type',
+      headerName: t('type'),
       width: 120,
       renderCell: (params) => {
         const row = params?.row || {};
@@ -404,7 +404,7 @@ const gridColumns = useMemo(() => [
     },
     {
       field: 'requirementType',
-      headerName: t('requirement_type') || 'Requirement Type',
+      headerName: t('requirement_type'),
       width: 150,
       renderCell: (params) => {
         const row = params?.row || {};
@@ -431,7 +431,7 @@ const gridColumns = useMemo(() => [
     ...auditColumns,
     {
       field: 'actions',
-      headerName: t('actions') || 'Actions',
+      headerName: t('actions'),
       width: 200,
       sortable: false,
       filterable: false,
@@ -443,7 +443,7 @@ const gridColumns = useMemo(() => [
             icon={getThemedIcon('ui', 'edit', 16, theme)}
             onClick={() => handleEdit(params.row)}
           >
-            {t('edit') || 'Edit'}
+            {t('edit')}
           </Button>
           <Button
             size="sm"
@@ -452,7 +452,7 @@ const gridColumns = useMemo(() => [
             onClick={() => handleDelete(params.row)}
             style={{ color: '#dc2626' }}
           >
-            {t('delete') || 'Delete'}
+            {t('delete')}
           </Button>
         </div>
       )
@@ -488,9 +488,9 @@ const gridColumns = useMemo(() => [
           <Select
             value={formData.programId}
             onChange={(e) => setFormData({ ...formData, programId: e.target.value })}
-            placeholder={t('select_program') || 'Select Program *'}
+            placeholder={t('select_program')}
             options={[
-              { value: '', label: t('select_program') || 'Select Program' },
+              { value: '', label: t('select_program') },
               ...programs.map(program => ({
                 value: program.id,
                 label: lang === 'ar' 
@@ -503,19 +503,19 @@ const gridColumns = useMemo(() => [
           <Input
             ref={codeRef}
             defaultValue={formData.code}
-            placeholder={t('subject_code_placeholder') || 'Subject Code * (e.g., CS101)'}
+            placeholder={t('subject_code_placeholder')}
             required
           />
           <Input
             ref={nameEnRef}
             defaultValue={formData.nameEn}
-            placeholder={t('subject_name_en_placeholder') || 'Subject Name (English) * (e.g., Introduction to Programming)'}
+            placeholder={t('subject_name_en_placeholder')}
             required
           />
           <Input
             ref={nameArRef}
             defaultValue={formData.nameAr}
-            placeholder={t('subject_name_ar_placeholder') || 'Subject Name (Arabic) * (e.g., مقدمة في البرمجة)'}
+            placeholder={t('subject_name_ar_placeholder')}
             required
             dir="rtl"
           />
@@ -523,7 +523,7 @@ const gridColumns = useMemo(() => [
             ref={creditHoursRef}
             type="number"
             defaultValue={formData.creditHours}
-            placeholder={t('credit_hours_subject') || 'Credit Hours'}
+            placeholder={t('credit_hours_subject')}
             min={1}
             max={6}
           />
@@ -535,16 +535,16 @@ const gridColumns = useMemo(() => [
               const intValue = parseInt(value) || value;
               setFormData({ ...formData, type: intValue });
             }}
-            placeholder={t('all_types') || 'All Types'}
+            placeholder={t('all_types')}
             options={subjectTypes.length > 0 
               ? createDropdownOptions(subjectTypes, lang, item => item.id, (item, currentLang) => getLocalizedName(item, currentLang)).map(option => ({
                   ...option,
                   icon: getThemedIcon('ui', 'file_text', 16, theme)
                 }))
               : [
-                  { value: 1, label: t('core_subject') || 'Core Subject', icon: getThemedIcon('ui', 'file_text', 16, theme) },
-                  { value: 2, label: t('elective_subject') || 'Elective Subject', icon: getThemedIcon('ui', 'users', 16, theme) },
-                  { value: 3, label: t('specialization_subject') || 'Specialization Subject', icon: getThemedIcon('ui', 'message_square', 16, theme) }
+                  { value: 1, label: t('core_subject'), icon: getThemedIcon('ui', 'file_text', 16, theme) },
+                  { value: 2, label: t('elective_subject'), icon: getThemedIcon('ui', 'users', 16, theme) },
+                  { value: 3, label: t('specialization_subject'), icon: getThemedIcon('ui', 'message_square', 16, theme) }
                 ]
             }
             required
@@ -557,16 +557,16 @@ const gridColumns = useMemo(() => [
               const intValue = parseInt(value) || value;
               setFormData({ ...formData, requirementType: intValue });
             }}
-            placeholder={t('all_requirements') || 'All Requirements'}
+            placeholder={t('all_requirements')}
             options={requirementTypes.length > 0
               ? createDropdownOptions(requirementTypes, lang, item => item.id, (item, currentLang) => getLocalizedName(item, currentLang)).map(option => ({
                   ...option,
                   icon: getThemedIcon('ui', 'filter', 16, theme)
                 }))
               : [
-                  { value: 1, label: t('mandatory') || 'Mandatory', icon: getThemedIcon('ui', 'filter', 16, theme) },
-                  { value: 2, label: t('optional') || 'Optional', icon: getThemedIcon('ui', 'book_open', 16, theme) },
-                  { value: 3, label: t('prerequisite') || 'Prerequisite', icon: getThemedIcon('ui', 'file_text', 16, theme) }
+                  { value: 1, label: t('mandatory'), icon: getThemedIcon('ui', 'filter', 16, theme) },
+                  { value: 2, label: t('optional'), icon: getThemedIcon('ui', 'book_open', 16, theme) },
+                  { value: 3, label: t('prerequisite'), icon: getThemedIcon('ui', 'file_text', 16, theme) }
                 ]
             }
             required
@@ -576,18 +576,18 @@ const gridColumns = useMemo(() => [
           <Input
             ref={descEnRef}
             defaultValue={formData.descriptionEn}
-            placeholder={t('description_en_placeholder') || 'Description (English)'}
+            placeholder={t('description_en_placeholder')}
           />
           <Input
             ref={descArRef}
             defaultValue={formData.descriptionAr}
-            placeholder={t('description_ar_placeholder') || 'Description (Arabic) - وصف المادة'}
+            placeholder={t('description_ar_placeholder')}
             dir="rtl"
           />
         </div>
         <div className="form-actions">
           <Button type="submit" variant="primary" loading={loading}>
-            {editingSubject ? (t('update') || 'Update') : (t('save') || 'Save')}
+            {editingSubject ? (t('update')) : (t('save'))}
           </Button>
           {editingSubject && (
             <Button 
@@ -598,7 +598,7 @@ const gridColumns = useMemo(() => [
                 resetForm();
               }}
             >
-              {t('cancel_edit') || 'Cancel Edit'}
+              {t('cancel_edit')}
             </Button>
           )}
         </div>
@@ -614,8 +614,8 @@ const gridColumns = useMemo(() => [
             checkboxSelection
             exportFileName="subjects"
             showExportButton
-            exportLabel={t('export') || 'Export'}
-            loadingOverlayMessage={loading ? (t('loading_subjects') || "Loading subjects...") : undefined}
+            exportLabel={t('export')}
+            loadingOverlayMessage={loading ? (t('loading_subjects')) : undefined}
         />
       </div>
 

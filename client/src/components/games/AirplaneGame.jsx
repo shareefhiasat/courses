@@ -117,18 +117,18 @@ import { info, error, warn, debug } from '@services/utils/logger.js';export defa
     return (
       <div className="max-w-2xl mx-auto p-8 text-center" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
         <div className="text-6xl mb-4">✈️</div>
-        <h1 className="text-3xl font-extrabold mb-4 text-gray-900 dark:text-white">{t('airplane_game') || 'Airplane Game'}</h1>
+        <h1 className="text-3xl font-extrabold mb-4 text-gray-900 dark:text-white">{t('airplane_game')}</h1>
         <p className="text-lg text-gray-500 dark:text-gray-400 mb-4">
-          {t('fly_instruction') || 'Fly your plane into the correct answers!'}
+          {t('fly_instruction')}
         </p>
         <p className="text-base text-gray-500 dark:text-gray-400 mb-8">
-          {questions.length} {t('questions') || 'questions'} • 3 {t('lives') || 'lives'}
+          {questions.length} {t('questions')} • 3 {t('lives')}
         </p>
         <button
           onClick={() => setGameStarted(true)}
           className="px-12 py-4 bg-gradient-to-r from-blue-500 to-blue-600 text-white text-lg font-bold rounded-xl shadow-lg hover:shadow-blue-500/30 transform hover:scale-105 transition-all"
         >
-          {t('start_flying') || 'START FLYING'}
+          {t('start_flying')}
         </button>
       </div>
     );
@@ -140,16 +140,16 @@ import { info, error, warn, debug } from '@services/utils/logger.js';export defa
       <div className="max-w-2xl mx-auto p-8 text-center" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
         {getThemedIcon('ui', 'trophy', 64, theme)}
         <h1 className="text-3xl font-extrabold mb-4 text-gray-900 dark:text-white">
-          {lives > 0 ? (t('mission_complete') || 'Mission Complete!') : (t('game_over') || 'Game Over')}
+          {lives > 0 ? (t('mission_complete')) : (t('game_over'))}
         </h1>
         <div className="text-5xl font-extrabold text-blue-500 dark:text-blue-400 mb-4">
           {score} / {questions.reduce((sum, q) => sum + (q.points || 1), 0)}
         </div>
         <div className="text-lg text-gray-500 dark:text-gray-400 mb-4">
-          {percentage.toFixed(1)}% {t('score') || 'Score'}
+          {percentage.toFixed(1)}% {t('score')}
         </div>
         <div className="text-base text-gray-500 dark:text-gray-400">
-          {t('lives_remaining') || 'Lives remaining'}: {lives}
+          {t('lives_remaining')}: {lives}
         </div>
       </div>
     );
@@ -161,7 +161,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';export defa
       <div className="flex justify-between items-center mb-4 p-4 bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
         <div>
           <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">
-            {t('question') || 'Question'} {currentIndex + 1} {t('of') || 'of'} {questions.length}
+            {t('question')} {currentIndex + 1} {t('of')} {questions.length}
           </div>
           <div className="text-lg font-bold text-gray-900 dark:text-white">
             {currentQuestion.question}
@@ -180,7 +180,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';export defa
             ))}
           </div>
           <div className="text-lg font-bold text-blue-500 dark:text-blue-400">
-            {t('score') || 'Score'}: {score}
+            {t('score')}: {score}
           </div>
         </div>
       </div>
@@ -224,13 +224,13 @@ import { info, error, warn, debug } from '@services/utils/logger.js';export defa
           <div
             className={`absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 px-12 py-8 rounded-2xl text-2xl font-extrabold z-30 shadow-2xl border-4 ${showFeedback.correct ? 'bg-green-100 border-green-500 text-green-800' : 'bg-red-100 border-red-500 text-red-800'}`}
           >
-            {showFeedback.correct ? (t('correct') || '✓ Correct!') : (t('wrong') || '✗ Wrong!')}
+            {showFeedback.correct ? (t('correct')) : (t('wrong'))}
           </div>
         )}
 
         {/* Instruction */}
         <div className="absolute bottom-5 left-1/2 -translate-x-1/2 px-4 py-2 bg-white/90 rounded-lg text-sm text-gray-600 font-medium z-20 backdrop-blur-sm">
-          {t('move_mouse_instruction') || 'Move your mouse to fly the plane'}
+          {t('move_mouse_instruction')}
         </div>
       </div>
     </div>

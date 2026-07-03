@@ -154,7 +154,7 @@ export default function PieChart({ data = [], size = 300, donut = false, showLab
       calculatedSlices.push({
         path,
         color,
-        label: item.label || getLocalizedName(item, lang) || t('not_specified') || 'Unspecified',
+        label: item.label || getLocalizedName(item, lang) || t('not_specified'),
         labelLines: item.labelLines,
         value,
         percentage: percentage.toFixed(1),
@@ -179,7 +179,7 @@ export default function PieChart({ data = [], size = 300, donut = false, showLab
       return slice.labelLines;
     }
     const label = slice.label || '';
-    if (!label) return [t('not_specified') || 'Unspecified'];
+    if (!label) return [t('not_specified')];
     if (label.includes(' · ')) return label.split(' · ').map((s) => s.trim()).filter(Boolean);
     return [label];
   }, [t]);
@@ -187,7 +187,7 @@ export default function PieChart({ data = [], size = 300, donut = false, showLab
   if (!activeData || activeData.length === 0 || total === 0) {
     return (
       <div style={{ width: chartWidth, height: chartHeight, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999', fontSize: legendFontSize }}>
-        {t('no_data') || 'No data'}
+        {t('no_data')}
       </div>
     );
   }

@@ -269,7 +269,7 @@ export const BulkScanProvider = ({
 
   const submit = useCallback(async () => {
     if (validatedStudents.found.length === 0) {
-      setError(t("no_valid_students_to_submit") || "No valid students to submit");
+      setError(t("no_valid_students_to_submit"));
       return { success: false, error: t("no_valid_students_to_submit") };
     }
 

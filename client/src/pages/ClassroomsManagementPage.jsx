@@ -259,32 +259,32 @@ const ClassroomsManagementPage = () => {
       },
       {
         field: 'capacity',
-        headerName: t('capacity') || 'Capacity',
+        headerName: t('capacity'),
         width: 100,
         renderCell: (params) => params?.value || '—'
       },
       {
         field: 'locationEn',
-        headerName: t('building') || 'Building',
+        headerName: t('building'),
         flex: 1,
         minWidth: 120,
         renderCell: (params) => params?.value || '—'
       },
       {
         field: 'floor',
-        headerName: t('floor') || 'Floor',
+        headerName: t('floor'),
         width: 100,
         renderCell: (params) => params?.value || '—'
       },
       {
         field: 'roomNumber',
-        headerName: t('room_number') || 'Room Number',
+        headerName: t('room_number'),
         width: 120,
         renderCell: (params) => params?.value || '—'
       },
       {
         field: 'status',
-        headerName: t('status') || 'Status',
+        headerName: t('status'),
         width: 100,
         renderCell: (params) => {
           const status = params?.value;
@@ -317,7 +317,7 @@ const ClassroomsManagementPage = () => {
                 onClick={() => handleEditClassroom(row)}
                 disabled={saving}
               >
-                {t('edit') || 'Edit'}
+                {t('edit')}
               </Button>
               <Button
                 variant="destructive"
@@ -325,7 +325,7 @@ const ClassroomsManagementPage = () => {
                 onClick={() => deleteEntity('classroom', row, () => handleDeleteClassroom(row))}
                 disabled={saving}
               >
-                {t('delete') || 'Delete'}
+                {t('delete')}
               </Button>
             </div>
           );
@@ -480,7 +480,7 @@ const ClassroomsManagementPage = () => {
                 onClick={handleCancel}
                 disabled={saving}
               >
-                {t('cancel') || 'Cancel'}
+                {t('cancel')}
               </Button>
             )}
           </div>
@@ -495,7 +495,7 @@ const ClassroomsManagementPage = () => {
           <Input
             value={filterSearch}
             onChange={e => setFilterSearch(e.target.value)}
-            placeholder={t('search') || 'Search'}
+            placeholder={t('search')}
           />
         </div>
         <div style={{ flex: '1 1 140px' }}>
@@ -503,19 +503,19 @@ const ClassroomsManagementPage = () => {
             value={filterStatus}
             onChange={e => setFilterStatus(e.target.value)}
             options={[
-              { value: '', label: t('all_statuses') || 'All Statuses' },
-              { value: 'Available', label: t('available') || 'Available' },
-              { value: 'UnderMaintenance', label: t('under_maintenance') || 'Under Maintenance' },
-              { value: 'Closed', label: t('closed') || 'Closed' }
+              { value: '', label: t('all_statuses') },
+              { value: 'Available', label: t('available') },
+              { value: 'UnderMaintenance', label: t('under_maintenance') },
+              { value: 'Closed', label: t('closed') }
             ]}
-            placeholder={t('status') || 'Status'}
+            placeholder={t('status')}
           />
         </div>
         <div style={{ flex: '1 1 140px' }}>
           <Input
             value={filterBuilding}
             onChange={e => setFilterBuilding(e.target.value)}
-            placeholder={t('building') || 'Building'}
+            placeholder={t('building')}
           />
         </div>
         <div style={{ flex: '1 1 100px' }}>
@@ -523,14 +523,14 @@ const ClassroomsManagementPage = () => {
             type="number"
             value={filterCapacity}
             onChange={e => setFilterCapacity(e.target.value)}
-            placeholder={t('capacity') || 'Capacity'}
+            placeholder={t('capacity')}
           />
         </div>
         <div style={{ flex: '1 1 120px' }}>
           <Input
             value={filterRoomNumber}
             onChange={e => setFilterRoomNumber(e.target.value)}
-            placeholder={t('room_number') || 'Room Number'}
+            placeholder={t('room_number')}
           />
         </div>
         {(filterSearch || filterStatus || filterBuilding || filterCapacity || filterRoomNumber) && (
@@ -561,7 +561,7 @@ const ClassroomsManagementPage = () => {
           onClick={handleExport}
           disabled={filteredClassrooms.length === 0}
         >
-          {t('export') || 'Export'}
+          {t('export')}
         </Button>
       </div>
 

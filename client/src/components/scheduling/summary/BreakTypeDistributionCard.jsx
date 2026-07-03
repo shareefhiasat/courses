@@ -14,11 +14,11 @@ export default function BreakTypeDistributionCard({ distribution = [] }) {
     <Card>
       <CardBody>
         <h3 style={{ fontSize: 'var(--font-size-lg)', fontWeight: 500, marginBottom: '1rem' }}>
-          {t('break_type_distribution') || 'Break Type Distribution'}
+          {t('break_type_distribution')}
         </h3>
         {distribution.length === 0 ? (
           <p style={{ color: theme === 'dark' ? '#9ca3af' : '#6b7280', fontSize: 'var(--font-size-sm)' }}>
-            {t('no_data') || 'No data'}
+            {t('no_data')}
           </p>
         ) : (
           distribution.map((d) => (

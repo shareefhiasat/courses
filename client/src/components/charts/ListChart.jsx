@@ -279,170 +279,170 @@ function ListChart({
     // Default columns based on chart type
     if (chartType === 'activity') {
       return [
-        { key: 'type', label: t('type') || 'Type', width: '12%', isRelated: false },
-        { key: 'title', label: t('title') || 'Title', width: '25%', isRelated: false },
-        { key: 'titleAr', label: t('title_arabic') || 'Title (AR)', width: '20%', isRelated: false },
-        { key: 'createdBy', label: t('created_by') || 'Created By', width: '15%', isRelated: false },
-        { key: 'createdAt', label: t('created_date') || 'Created', width: '13%', isRelated: false },
-        { key: 'id', label: t('id') || 'ID', width: '15%', isRelated: false }
+        { key: 'type', label: t('type'), width: '12%', isRelated: false },
+        { key: 'title', label: t('title'), width: '25%', isRelated: false },
+        { key: 'titleAr', label: t('title_arabic'), width: '20%', isRelated: false },
+        { key: 'createdBy', label: t('created_by'), width: '15%', isRelated: false },
+        { key: 'createdAt', label: t('created_date'), width: '13%', isRelated: false },
+        { key: 'id', label: t('id'), width: '15%', isRelated: false }
       ];
     } else if (chartType === 'attendance') {
       return [
-        { key: 'studentName', label: t('student_name') || 'Student Name', width: '20%', isRelated: false },
-        { key: 'studentNumber', label: t('student_number') || 'Student Number', width: '12%', isRelated: false },
-        { key: 'status', label: t('status') || 'Status', width: '12%', isRelated: false },
-        { key: 'date', label: t('date') || 'Date', width: '15%', isRelated: false },
-        { key: 'className', label: t('class_name') || 'Class', width: '15%', isRelated: false },
-        { key: 'notes', label: t('notes') || 'Notes', width: '16%', isRelated: false },
-        { key: 'id', label: t('id') || 'ID', width: '10%', isRelated: false }
+        { key: 'studentName', label: t('student_name'), width: '20%', isRelated: false },
+        { key: 'studentNumber', label: t('student_number'), width: '12%', isRelated: false },
+        { key: 'status', label: t('status'), width: '12%', isRelated: false },
+        { key: 'date', label: t('date'), width: '15%', isRelated: false },
+        { key: 'className', label: t('class_name'), width: '15%', isRelated: false },
+        { key: 'notes', label: t('notes'), width: '16%', isRelated: false },
+        { key: 'id', label: t('id'), width: '10%', isRelated: false }
       ];
     } else if (chartType === 'penalty' || widget.dataSource === 'penalties') {
       return [
-        { key: 'studentName', label: t('student_name') || 'Student Name', width: '18%', isRelated: false },
-        { key: 'penaltyType', label: t('type') || 'Type', width: '15%', isRelated: false },
-        { key: 'descriptionEn', label: t('description') || 'Description', width: '25%', isRelated: false },
-        { key: 'points', label: t('points') || 'Points', width: '8%', isRelated: false },
-        { key: 'date', label: t('date') || 'Date', width: '12%', isRelated: false },
-        { key: 'className', label: t('class_name') || 'Class', width: '12%', isRelated: false },
-        { key: 'id', label: t('id') || 'ID', width: '10%', isRelated: false }
+        { key: 'studentName', label: t('student_name'), width: '18%', isRelated: false },
+        { key: 'penaltyType', label: t('type'), width: '15%', isRelated: false },
+        { key: 'descriptionEn', label: t('description'), width: '25%', isRelated: false },
+        { key: 'points', label: t('points'), width: '8%', isRelated: false },
+        { key: 'date', label: t('date'), width: '12%', isRelated: false },
+        { key: 'className', label: t('class_name'), width: '12%', isRelated: false },
+        { key: 'id', label: t('id'), width: '10%', isRelated: false }
       ];
     } else if (chartType === 'behavior' || widget.dataSource === 'behaviors') {
       return [
-        { key: 'studentName', label: t('student_name') || 'Student Name', width: '18%', isRelated: false },
-        { key: 'behaviorType', label: t('type') || 'Type', width: '15%', isRelated: false },
-        { key: 'descriptionEn', label: t('description') || 'Description', width: '25%', isRelated: false },
-        { key: 'points', label: t('points') || 'Points', width: '8%', isRelated: false },
-        { key: 'date', label: t('date') || 'Date', width: '12%', isRelated: false },
-        { key: 'className', label: t('class_name') || 'Class', width: '12%', isRelated: false },
-        { key: 'id', label: t('id') || 'ID', width: '10%', isRelated: false }
+        { key: 'studentName', label: t('student_name'), width: '18%', isRelated: false },
+        { key: 'behaviorType', label: t('type'), width: '15%', isRelated: false },
+        { key: 'descriptionEn', label: t('description'), width: '25%', isRelated: false },
+        { key: 'points', label: t('points'), width: '8%', isRelated: false },
+        { key: 'date', label: t('date'), width: '12%', isRelated: false },
+        { key: 'className', label: t('class_name'), width: '12%', isRelated: false },
+        { key: 'id', label: t('id'), width: '10%', isRelated: false }
       ];
     } else if (chartType === 'participation' || widget.dataSource === 'participations') {
       return [
-        { key: 'studentName', label: t('student_name') || 'Student Name', width: '18%', isRelated: false },
-        { key: 'participationType', label: t('type') || 'Type', width: '15%', isRelated: false },
-        { key: 'descriptionEn', label: t('description') || 'Description', width: '25%', isRelated: false },
-        { key: 'points', label: t('points') || 'Points', width: '8%', isRelated: false },
-        { key: 'date', label: t('date') || 'Date', width: '12%', isRelated: false },
-        { key: 'className', label: t('class_name') || 'Class', width: '12%', isRelated: false },
-        { key: 'id', label: t('id') || 'ID', width: '10%', isRelated: false }
+        { key: 'studentName', label: t('student_name'), width: '18%', isRelated: false },
+        { key: 'participationType', label: t('type'), width: '15%', isRelated: false },
+        { key: 'descriptionEn', label: t('description'), width: '25%', isRelated: false },
+        { key: 'points', label: t('points'), width: '8%', isRelated: false },
+        { key: 'date', label: t('date'), width: '12%', isRelated: false },
+        { key: 'className', label: t('class_name'), width: '12%', isRelated: false },
+        { key: 'id', label: t('id'), width: '10%', isRelated: false }
       ];
     } else if (chartType === 'enrollment') {
       return [
-        { key: 'programName', label: t('gb_program') || 'Program', width: '25%', isRelated: false },
-        { key: 'studentName', label: t('student_name') || 'Student', width: '30%', isRelated: false },
-        { key: 'studentNumber', label: t('student_number') || 'Student Number', width: '15%', isRelated: false },
-        { key: 'className', label: t('class_name') || 'Class', width: '20%', isRelated: false },
-        { key: 'status', label: t('status') || 'Status', width: '10%', isRelated: false }
+        { key: 'programName', label: t('gb_program'), width: '25%', isRelated: false },
+        { key: 'studentName', label: t('student_name'), width: '30%', isRelated: false },
+        { key: 'studentNumber', label: t('student_number'), width: '15%', isRelated: false },
+        { key: 'className', label: t('class_name'), width: '20%', isRelated: false },
+        { key: 'status', label: t('status'), width: '10%', isRelated: false }
       ];
     } else if (widget.dataSource === 'studentMarks') {
       return [
-        { key: 'studentName', label: t('student_name') || 'Student Name', width: '15%', isRelated: false },
-        { key: 'subjectName', label: t('gb_subject') || 'Subject', width: '12%', isRelated: false },
-        { key: 'className', label: t('class_name') || 'Class', width: '12%', isRelated: false },
-        { key: 'totalMarks', label: t('total_marks') || 'Total', width: '8%', isRelated: false },
-        { key: 'letterGrade', label: t('grade') || 'Grade', width: '7%', isRelated: false },
-        { key: 'isRepeated', label: t('repeated') || 'Repeated', width: '8%', isRelated: false },
-        { key: 'term', label: t('term') || 'Term', width: '12%', isRelated: false },
-        { key: 'year', label: t('year') || 'Year', width: '8%', isRelated: false },
-        { key: 'id', label: t('id') || 'ID', width: '10%', isRelated: false }
+        { key: 'studentName', label: t('student_name'), width: '15%', isRelated: false },
+        { key: 'subjectName', label: t('gb_subject'), width: '12%', isRelated: false },
+        { key: 'className', label: t('class_name'), width: '12%', isRelated: false },
+        { key: 'totalMarks', label: t('total_marks'), width: '8%', isRelated: false },
+        { key: 'letterGrade', label: t('grade'), width: '7%', isRelated: false },
+        { key: 'isRepeated', label: t('repeated'), width: '8%', isRelated: false },
+        { key: 'term', label: t('term'), width: '12%', isRelated: false },
+        { key: 'year', label: t('year'), width: '8%', isRelated: false },
+        { key: 'id', label: t('id'), width: '10%', isRelated: false }
       ];
     } else if (widget.dataSource === 'schedulingAttendanceRecords') {
       return [
-        { key: 'date', label: t('date') || 'Date', width: '12%', isRelated: false },
-        { key: 'attendanceTypeLabel', label: t('attendance_type') || 'Type', width: '14%', isRelated: false },
-        { key: 'status', label: t('status') || 'Status', width: '12%', isRelated: false },
-        { key: 'studentName', label: t('student_name') || 'Student', width: '18%', isRelated: false },
-        { key: 'studentNumber', label: t('student_number') || 'Number', width: '10%', isRelated: false },
-        { key: 'programName', label: t('gb_program') || 'Program', width: '16%', isRelated: false },
-        { key: 'className', label: t('class_name') || 'Class', width: '14%', isRelated: false },
-        { key: 'instructorName', label: t('gb_instructor') || 'Instructor', width: '14%', isRelated: false },
-        { key: 'markedBy', label: t('marked_by') || 'Marked by', width: '12%', isRelated: false },
+        { key: 'date', label: t('date'), width: '12%', isRelated: false },
+        { key: 'attendanceTypeLabel', label: t('attendance_type'), width: '14%', isRelated: false },
+        { key: 'status', label: t('status'), width: '12%', isRelated: false },
+        { key: 'studentName', label: t('student_name'), width: '18%', isRelated: false },
+        { key: 'studentNumber', label: t('student_number'), width: '10%', isRelated: false },
+        { key: 'programName', label: t('gb_program'), width: '16%', isRelated: false },
+        { key: 'className', label: t('class_name'), width: '14%', isRelated: false },
+        { key: 'instructorName', label: t('gb_instructor'), width: '14%', isRelated: false },
+        { key: 'markedBy', label: t('marked_by'), width: '12%', isRelated: false },
       ];
     } else if (widget.dataSource === 'schedulingInstructorWorkload') {
       return [
-        { key: 'instructorName', label: t('gb_instructor') || 'Instructor', width: '28%', isRelated: false },
-        { key: 'assignedHours', label: t('assigned_hours') || 'Assigned (h)', width: '16%', isRelated: false },
-        { key: 'capacityHours', label: t('capacity_hours') || 'Capacity (h)', width: '16%', isRelated: false },
-        { key: 'utilizationPct', label: t('vf_utilizationPct') || 'Utilization %', width: '14%', isRelated: false },
-        { key: 'metricLabel', label: t('summary') || 'Summary', width: '26%', isRelated: false },
+        { key: 'instructorName', label: t('gb_instructor'), width: '28%', isRelated: false },
+        { key: 'assignedHours', label: t('assigned_hours'), width: '16%', isRelated: false },
+        { key: 'capacityHours', label: t('capacity_hours'), width: '16%', isRelated: false },
+        { key: 'utilizationPct', label: t('vf_utilizationPct'), width: '14%', isRelated: false },
+        { key: 'metricLabel', label: t('summary'), width: '26%', isRelated: false },
       ];
     } else if (widget.dataSource === 'schedulingTeachers') {
       return [
-        { key: 'instructorName', label: t('gb_instructor') || 'Instructor', width: '30%', isRelated: false },
-        { key: 'sessionCount', label: t('vf_sessionCount') || 'Sessions', width: '14%', isRelated: false },
-        { key: 'teachingHours', label: t('vf_teachingHours') || 'Hours', width: '14%', isRelated: false },
-        { key: 'primarySubject', label: t('gb_subject') || 'Subject', width: '22%', isRelated: false },
-        { key: 'classCount', label: t('vf_classCount') || 'Classes', width: '10%', isRelated: false },
+        { key: 'instructorName', label: t('gb_instructor'), width: '30%', isRelated: false },
+        { key: 'sessionCount', label: t('vf_sessionCount'), width: '14%', isRelated: false },
+        { key: 'teachingHours', label: t('vf_teachingHours'), width: '14%', isRelated: false },
+        { key: 'primarySubject', label: t('gb_subject'), width: '22%', isRelated: false },
+        { key: 'classCount', label: t('vf_classCount'), width: '10%', isRelated: false },
       ];
     } else if (widget.dataSource === 'schedulingCourses') {
       return [
-        { key: 'courseLabel', label: t('gb_course') || 'Course', width: '35%', isRelated: false },
-        { key: 'sessionCount', label: t('vf_sessionCount') || 'Sessions', width: '12%', isRelated: false },
-        { key: 'teachingHours', label: t('vf_teachingHours') || 'Hours', width: '12%', isRelated: false },
-        { key: 'location', label: t('gb_location') || 'Location', width: '20%', isRelated: false },
-        { key: 'capacity', label: t('capacity') || 'Capacity', width: '10%', isRelated: false },
+        { key: 'courseLabel', label: t('gb_course'), width: '35%', isRelated: false },
+        { key: 'sessionCount', label: t('vf_sessionCount'), width: '12%', isRelated: false },
+        { key: 'teachingHours', label: t('vf_teachingHours'), width: '12%', isRelated: false },
+        { key: 'location', label: t('gb_location'), width: '20%', isRelated: false },
+        { key: 'capacity', label: t('capacity'), width: '10%', isRelated: false },
       ];
     } else if (widget.dataSource === 'driveRecentFiles') {
       return [
-        { key: 'name', label: t('name') || 'Name', width: '35%', isRelated: false },
-        { key: 'mimeType', label: t('type') || 'Type', width: '12%', isRelated: false },
-        { key: 'size', label: t('size') || 'Size', width: '12%', isRelated: false },
-        { key: 'bucket', label: t('bucket') || 'Bucket', width: '15%', isRelated: false },
-        { key: 'createdAt', label: t('created_date') || 'Created', width: '15%', isRelated: false },
-        { key: 'id', label: t('id') || 'ID', width: '11%', isRelated: false },
+        { key: 'name', label: t('name'), width: '35%', isRelated: false },
+        { key: 'mimeType', label: t('type'), width: '12%', isRelated: false },
+        { key: 'size', label: t('size'), width: '12%', isRelated: false },
+        { key: 'bucket', label: t('bucket'), width: '15%', isRelated: false },
+        { key: 'createdAt', label: t('created_date'), width: '15%', isRelated: false },
+        { key: 'id', label: t('id'), width: '11%', isRelated: false },
       ];
     } else if (widget.dataSource?.startsWith('scheduling')) {
       return [
-        { key: 'title', label: t('title') || 'Title', width: '30%', isRelated: false },
-        { key: 'status', label: t('status') || 'Status', width: '15%', isRelated: false },
-        { key: 'date', label: t('date') || 'Date', width: '15%', isRelated: false },
-        { key: 'instructorName', label: t('gb_instructor') || 'Instructor', width: '20%', isRelated: false },
-        { key: 'sessionCount', label: t('vf_sessionCount') || 'Count', width: '10%', isRelated: false },
+        { key: 'title', label: t('title'), width: '30%', isRelated: false },
+        { key: 'status', label: t('status'), width: '15%', isRelated: false },
+        { key: 'date', label: t('date'), width: '15%', isRelated: false },
+        { key: 'instructorName', label: t('gb_instructor'), width: '20%', isRelated: false },
+        { key: 'sessionCount', label: t('vf_sessionCount'), width: '10%', isRelated: false },
       ];
     }
     // Default columns
     return [
-      { key: 'name', label: t('name') || 'Name', width: '40%', isRelated: false },
-      { key: 'type', label: t('type') || 'Type', width: '20%', isRelated: false },
-      { key: 'date', label: t('date') || 'Date', width: '20%', isRelated: false },
-      { key: 'status', label: t('status') || 'Status', width: '20%', isRelated: false }
+      { key: 'name', label: t('name'), width: '40%', isRelated: false },
+      { key: 'type', label: t('type'), width: '20%', isRelated: false },
+      { key: 'date', label: t('date'), width: '20%', isRelated: false },
+      { key: 'status', label: t('status'), width: '20%', isRelated: false }
     ];
   };
 
   // Helper functions for dynamic column handling
   const getBaseColumnLabel = (key) => {
     const labels = {
-      type: t('type') || 'Type',
-      title: t('title') || 'Title',
-      titleEn: t('title_english') || 'Title (EN)',
-      titleAr: t('title_arabic') || 'Title (AR)',
-      createdBy: t('created_by') || 'Created By',
-      createdAt: t('created_date') || 'Created',
-      studentName: t('student_name') || 'Student Name',
-      studentNumber: t('student_number') || 'Student Number',
-      status: t('status') || 'Status',
-      date: t('date') || 'Date',
-      programName: t('gb_program') || 'Program',
-      className: t('class_name') || 'Class',
-      instructorName: t('gb_instructor') || 'Instructor',
-      markedBy: t('marked_by') || 'Marked by',
-      attendanceTypeLabel: t('attendance_type') || 'Type',
-      nameEn: t('program_name_en') || 'Program Name (EN)',
-      nameAr: t('program_name_ar') || 'Program Name (AR)',
-      realNameEn: t('full_name_en') || 'Full Name (EN)',
-      realNameAr: t('full_name_ar') || 'Full Name (AR)',
-      displayNameEn: t('display_name_en') || 'Display Name (EN)',
-      displayNameAr: t('display_name_ar') || 'Display Name (AR)',
-      totalMarks: t('total_marks') || 'Total Marks',
-      letterGrade: t('grade') || 'Grade',
-      isRepeated: t('repeated') || 'Repeated',
-      term: t('term') || 'Term',
-      year: t('year') || 'Year',
-      id: t('id') || 'ID',
-      name: t('name') || 'Name',
-      mimeType: t('type') || 'Type',
-      size: t('size') || 'Size',
-      bucket: t('bucket') || 'Bucket',
+      type: t('type'),
+      title: t('title'),
+      titleEn: t('title_english'),
+      titleAr: t('title_arabic'),
+      createdBy: t('created_by'),
+      createdAt: t('created_date'),
+      studentName: t('student_name'),
+      studentNumber: t('student_number'),
+      status: t('status'),
+      date: t('date'),
+      programName: t('gb_program'),
+      className: t('class_name'),
+      instructorName: t('gb_instructor'),
+      markedBy: t('marked_by'),
+      attendanceTypeLabel: t('attendance_type'),
+      nameEn: t('program_name_en'),
+      nameAr: t('program_name_ar'),
+      realNameEn: t('full_name_en'),
+      realNameAr: t('full_name_ar'),
+      displayNameEn: t('display_name_en'),
+      displayNameAr: t('display_name_ar'),
+      totalMarks: t('total_marks'),
+      letterGrade: t('grade'),
+      isRepeated: t('repeated'),
+      term: t('term'),
+      year: t('year'),
+      id: t('id'),
+      name: t('name'),
+      mimeType: t('type'),
+      size: t('size'),
+      bucket: t('bucket'),
     };
     return labels[key] || key;
   };
@@ -450,27 +450,27 @@ function ListChart({
   const getFieldLabel = (collection, field) => {
     const labels = {
       users: {
-        studentEmail: t('student_email') || 'Student Email',
-        studentPhone: t('student_phone') || 'Student Phone',
-        studentAddress: t('student_address') || 'Student Address',
-        parentName: t('parent_name') || 'Parent Name',
-        creatorEmail: t('creator_email') || 'Creator Email',
-        creatorRole: t('creator_role') || 'Creator Role'
+        studentEmail: t('student_email'),
+        studentPhone: t('student_phone'),
+        studentAddress: t('student_address'),
+        parentName: t('parent_name'),
+        creatorEmail: t('creator_email'),
+        creatorRole: t('creator_role')
       },
       classes: {
-        classInstructor: t('class_instructor') || 'Class Instructor',
-        classSchedule: t('class_schedule') || 'Class Schedule',
-        classRoom: t('class_room') || 'Class Room',
-        className: t('class_name') || 'Class Name',
-        classSubject: t('class_subject') || 'Class Subject'
+        classInstructor: t('class_instructor'),
+        classSchedule: t('class_schedule'),
+        classRoom: t('class_room'),
+        className: t('class_name'),
+        classSubject: t('class_subject')
       },
       quizzes: {
-        quizTitle: t('quiz_title') || 'Quiz Title',
-        quizDifficulty: t('quiz_difficulty') || 'Quiz Difficulty'
+        quizTitle: t('quiz_title'),
+        quizDifficulty: t('quiz_difficulty')
       },
       programs: {
-        programDuration: t('program_duration') || 'Program Duration',
-        programType: t('program_type') || 'Program Type'
+        programDuration: t('program_duration'),
+        programType: t('program_type')
       }
     };
     return labels[collection]?.[field] || field;
@@ -639,9 +639,9 @@ function ListChart({
 
       case 'attendanceTypeLabel':
         if (item.attendanceType === 'daily') {
-          return lang === 'ar' ? (t('daily_attendance') || 'الحضور اليومي') : (t('daily_attendance_en') || 'Daily attendance');
+          return lang === 'ar' ? (t('daily_attendance')) : (t('daily_attendance_en'));
         }
-        return lang === 'ar' ? (t('class_attendance') || 'حضور الصف') : (t('class_attendance_en') || 'Class attendance');
+        return lang === 'ar' ? (t('class_attendance')) : (t('class_attendance_en'));
 
       case 'studentNumber':
         return resolveStudentNumber(item);
@@ -697,8 +697,8 @@ function ListChart({
         return item.letterGrade || '—';
 
       case 'isRepeated':
-        if (item.isRepeated === true) return t('yes') || 'Yes';
-        if (item.isRepeated === false) return t('no') || 'No';
+        if (item.isRepeated === true) return t('yes');
+        if (item.isRepeated === false) return t('no');
         return '—';
 
       case 'term':
@@ -982,10 +982,10 @@ function ListChart({
     try {
       const tsv = buildTableTsv(columns, listItems, renderCellValue);
       await navigator.clipboard.writeText(tsv);
-      setCopyFeedback(t('copied') || 'Copied');
+      setCopyFeedback(t('copied'));
       setTimeout(() => setCopyFeedback(''), 2000);
     } catch {
-      setCopyFeedback(t('copy_failed') || 'Copy failed');
+      setCopyFeedback(t('copy_failed'));
       setTimeout(() => setCopyFeedback(''), 2000);
     }
   }, [columns, displayItems, t]);
@@ -1027,7 +1027,7 @@ function ListChart({
         color: '#999',
         fontSize: '14px',
       }}>
-        {t('no_data_available') || 'No data available'}
+        {t('no_data_available')}
       </div>
     );
   }
@@ -1057,32 +1057,32 @@ function ListChart({
         alignItems: 'center'
       }}>
         <span>
-          {listTitle} ({displayItems.length} {t('items_label') || t('items') || 'items'})
+          {listTitle} ({displayItems.length} {t('items_label')})
         </span>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           {copyFeedback && <span style={{ fontSize: 10, color: accentColor }}>{copyFeedback}</span>}
-          <PortalTooltip content={t('copy_list') || 'Copy'} position="top">
+          <PortalTooltip content={t('copy_list')} position="top">
             <button type="button" onClick={handleCopy} style={headerBtnStyle}>
               {getThemedIcon('ui', 'copy', 12, theme)}
             </button>
           </PortalTooltip>
-          <PortalTooltip content={t('export_list') || 'Export CSV'} position="top">
+          <PortalTooltip content={t('export_list')} position="top">
             <button type="button" onClick={handleExport} style={headerBtnStyle}>
               {getThemedIcon('ui', 'download', 12, theme)}
             </button>
           </PortalTooltip>
-          <PortalTooltip content={t('font_decrease') || 'Decrease font'} position="top">
+          <PortalTooltip content={t('font_decrease')} position="top">
             <button type="button" onClick={() => setFontScale(s => Math.max(0.7, s - 0.1))} style={headerBtnStyle}>
               <ZoomOut size={12} />
             </button>
           </PortalTooltip>
           <span style={{ fontSize: 9, color: 'var(--muted)', minWidth: 28, textAlign: 'center' }}>{Math.round(fontScale * 100)}%</span>
-          <PortalTooltip content={t('font_increase') || 'Increase font'} position="top">
+          <PortalTooltip content={t('font_increase')} position="top">
             <button type="button" onClick={() => setFontScale(s => Math.min(2, s + 0.1))} style={headerBtnStyle}>
               <ZoomIn size={12} />
             </button>
           </PortalTooltip>
-          <PortalTooltip content={t('fullscreen_view') || 'Full view'} position="top">
+          <PortalTooltip content={t('fullscreen_view')} position="top">
             <button type="button" onClick={() => setIsFullscreen(true)} style={headerBtnStyle}>
               <Maximize2 size={12} />
             </button>
@@ -1170,7 +1170,7 @@ function ListChart({
                     cursor: 'pointer',
                   }}
                   onClick={() => handleHeaderClick(column)}
-                  title={isCollapsed ? `${column.label} — ${t('double_click_expand') || 'Double-click to expand'}` : `${column.label} — ${t('click_sort') || 'Click to sort'}`}
+                  title={isCollapsed ? `${column.label} — ${t('double_click_expand')}` : `${column.label} — ${t('click_sort')}`}
                 >
                   {isCollapsed ? '*' : column.label}
                   {!isCollapsed && isSorted && (
@@ -1185,7 +1185,7 @@ function ListChart({
                       setOpenFilterCol(isFilterOpen ? null : column.key);
                       setFilterSearch('');
                     }}
-                    title={t('column_filter') || 'Filter column'}
+                    title={t('column_filter')}
                     style={{
                       display: 'flex',
                       alignItems: 'center',
@@ -1228,7 +1228,7 @@ function ListChart({
                 >
                   <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6, gap: 4 }}>
                     <span style={{ fontWeight: 600, fontSize: 9, color: 'var(--muted)' }}>
-                      {t('column_filter') || 'Filter'}
+                      {t('column_filter')}
                     </span>
                     {filterActive && (
                       <button
@@ -1236,7 +1236,7 @@ function ListChart({
                         onClick={() => clearColumnFilter(column.key)}
                         style={{ border: 'none', background: 'none', color: accentColor, cursor: 'pointer', fontSize: 9, padding: 0 }}
                       >
-                        {t('filter_clear') || 'Clear'}
+                        {t('filter_clear')}
                       </button>
                     )}
                   </div>
@@ -1246,7 +1246,7 @@ function ListChart({
                       autoFocus
                       value={typeof columnFilters[column.key] === 'string' ? columnFilters[column.key] : ''}
                       onChange={(e) => setColumnTextFilter(column.key, e.target.value)}
-                      placeholder={t('filter_search') || 'Search…'}
+                      placeholder={t('filter_search')}
                       style={{
                         width: '100%',
                         padding: '4px 6px',
@@ -1265,7 +1265,7 @@ function ListChart({
                         autoFocus
                         value={filterSearch}
                         onChange={(e) => setFilterSearch(e.target.value)}
-                        placeholder={t('filter_search') || 'Search…'}
+                        placeholder={t('filter_search')}
                         style={{
                           width: '100%',
                           padding: '4px 6px',
@@ -1291,7 +1291,7 @@ function ListChart({
                           }}
                           style={{ border: 'none', background: 'none', color: accentColor, cursor: 'pointer', fontSize: 9, padding: 0 }}
                         >
-                          {t('filter_select_all') || 'All'}
+                          {t('filter_select_all')}
                         </button>
                       </div>
                       {filteredUniqueValues.map((val) => {
@@ -1316,7 +1316,7 @@ function ListChart({
                         );
                       })}
                       {!filteredUniqueValues.length && (
-                        <div style={{ color: 'var(--muted)', fontSize: 9 }}>{t('no_data') || 'No values'}</div>
+                        <div style={{ color: 'var(--muted)', fontSize: 9 }}>{t('no_data')}</div>
                       )}
                     </>
                   )}
@@ -1346,8 +1346,8 @@ function ListChart({
           {displayItems.length === 0 ? (
             <div style={{ padding: '16px 12px', textAlign: 'center', color: 'var(--muted)', fontSize: 10 * fontScale }}>
               {columnFilteredItems.length === 0 && listItems.length > 0
-                ? (t('no_matching_rows') || 'No rows match the current filters')
-                : (t('no_data') || 'No data')}
+                ? (t('no_matching_rows'))
+                : (t('no_data'))}
             </div>
           ) : displayItems.map((item, idx) => (
             <div
@@ -1410,8 +1410,8 @@ function ListChart({
           borderTop: '1px solid var(--border)'
         }}>
           {displayItems.length !== listItems.length
-            ? `${t('filtered_rows') || 'Filtered'}: ${displayItems.length} / ${listItems.length}`
-            : `${t('showing') || 'Showing'} ${listItems.length} / ${totalCount} ${t('items') || 'items'}`}
+            ? `${t('filtered_rows')}: ${displayItems.length} / ${listItems.length}`
+            : `${t('showing')} ${listItems.length} / ${totalCount} ${t('items')}`}
         </div>
       )}
 
@@ -1436,7 +1436,7 @@ function ListChart({
             fontWeight: '600',
             color: accentColor,
           }}>
-            <span>{listTitle} ({displayItems.length} {t('items_label') || t('items') || 'items'})</span>
+            <span>{listTitle} ({displayItems.length} {t('items_label')})</span>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <button type="button" onClick={() => setFontScale(s => Math.max(0.7, s - 0.1))} style={{ ...headerBtnStyle, fontSize: '12px', padding: '4px 8px' }}>
                 <ZoomOut size={14} />
@@ -1503,7 +1503,7 @@ function ListChart({
               <div style={{ fontSize: `${11 * fontScale}px` }}>
                 {displayItems.length === 0 ? (
                   <div style={{ padding: '24px', textAlign: 'center', color: 'var(--muted)', fontSize: 'var(--font-size-sm)' }}>
-                    {t('no_data') || 'No data'}
+                    {t('no_data')}
                   </div>
                 ) : displayItems.map((item, idx) => (
                   <div

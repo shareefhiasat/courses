@@ -52,10 +52,10 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
     return (
       <div style={{ padding: '2rem', textAlign: 'center' }}>
         <div style={{ fontSize: 'var(--font-size-lg)', fontWeight: '500', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
-          {t('access_denied') || 'Access Denied'}
+          {t('access_denied')}
         </div>
         <div style={{ fontSize: 'var(--font-size-sm)', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '0.5rem' }}>
-          {t('categories_permission_required') || 'You need instructor or admin privileges to view categories.'}
+          {t('categories_permission_required')}
         </div>
       </div>
     );
@@ -204,7 +204,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
         info('🔍 [SUBMIT] Update result:', result);
         
         if (result.success) {
-          toast.success(t('category_updated_successfully') || 'Category updated successfully');
+          toast.success(t('category_updated_successfully'));
           // Refetch lookup data to refresh the grid
           refetchLookup();
         } else {
@@ -217,7 +217,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
         info('🔍 [SUBMIT] Create result:', result);
         
         if (result.success) {
-          toast.success(t('category_created_successfully') || 'Category created successfully');
+          toast.success(t('category_created_successfully'));
           // Refetch lookup data to refresh the grid
           refetchLookup();
         } else {
@@ -264,7 +264,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
         info('🔍 [DELETE] Delete result:', result);
         
         if (result.success) {
-          toast?.success(t('category_deleted_successfully') || 'Category deleted successfully');
+          toast?.success(t('category_deleted_successfully'));
           // Refetch lookup data to refresh the grid
           refetchLookup();
         } else {
@@ -298,7 +298,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
   const columns = useMemo(() => [
     {
       field: 'nameEn',
-      headerName: t('name_english') || 'Name (English)',
+      headerName: t('name_english'),
       flex: 1,
       minWidth: 150,
       renderCell: (params) => {
@@ -308,13 +308,13 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
     },
     {
       field: 'nameAr',
-      headerName: t('name_arabic') || 'Name (Arabic)',
+      headerName: t('name_arabic'),
       flex: 1,
       minWidth: 150
     },
     {
       field: 'descriptionEn',
-      headerName: t('description_english') || 'Description (English)',
+      headerName: t('description_english'),
       flex: 1.5,
       minWidth: 200,
       renderCell: (params) => {
@@ -333,7 +333,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
     },
     {
       field: 'descriptionAr',
-      headerName: t('description_arabic') || 'Description (Arabic)',
+      headerName: t('description_arabic'),
       flex: 1.5,
       minWidth: 200,
       renderCell: (params) => {
@@ -352,7 +352,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
     },
     {
       field: 'icon',
-      headerName: t('icon') || 'Icon',
+      headerName: t('icon'),
       flex: 0.5,
       minWidth: 120,
       renderCell: (params) => {
@@ -372,7 +372,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
     },
     {
       field: 'color',
-      headerName: t('color') || 'Color',
+      headerName: t('color'),
       flex: 0.5,
       minWidth: 100,
       renderCell: (params) => {
@@ -398,7 +398,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
     },
     {
       field: 'sortOrder',
-      headerName: t('sort') || 'Sort',
+      headerName: t('sort'),
       flex: 0.5,
       minWidth: 80,
       renderCell: (params) => {
@@ -409,7 +409,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
     ...auditColumns,
     {
       field: 'actions',
-      headerName: t('actions') || 'Actions',
+      headerName: t('actions'),
       flex: 1,
       minWidth: 150,
       renderCell: (params) => {
@@ -423,9 +423,9 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
               onClick={() => handleEdit(row)}
               disabled={hideActions}
               icon={getThemedIcon('ui', 'edit', 16, theme)}
-              title={t('edit_category') || 'Edit Category'}
+              title={t('edit_category')}
             >
-              {t('edit') || 'Edit'}
+              {t('edit')}
             </Button>
             <Button
               size="small"
@@ -434,9 +434,9 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
               disabled={hideActions}
               style={{ color: '#dc2626' }}
               icon={getThemedIcon('ui', 'trash', 16, theme)}
-              title={t('delete_category') || 'Delete Category'}
+              title={t('delete_category')}
             >
-              {t('delete') || 'Delete'}
+              {t('delete')}
             </Button>
           </div>
         );
@@ -457,7 +457,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
           alignItems: 'center',
           gap: '0.5rem'
         }}>
-          {getThemedIcon('ui', 'edit', 16, theme)} {t('editing_category') || 'Editing Category'}: {editingCategory.nameEn || editingCategory.nameAr || editingCategory.docId}
+          {getThemedIcon('ui', 'edit', 16, theme)} {t('editing_category')}: {editingCategory.nameEn || editingCategory.nameAr || editingCategory.docId}
         </div>
       )}
 
@@ -468,7 +468,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
               ref={nameEnRef}
               type="text"
               defaultValue={formData.nameEn}
-              placeholder={t('enter_name_english') || 'Enter name in English'}
+              placeholder={t('enter_name_english')}
               className="dashboard-input"
               required
             />
@@ -476,7 +476,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
               ref={nameArRef}
               type="text"
               defaultValue={formData.nameAr}
-              placeholder={t('enter_name_arabic') || 'Enter name in Arabic'}
+              placeholder={t('enter_name_arabic')}
               className="dashboard-input"
               style={{ direction: 'rtl' }}
               required
@@ -493,7 +493,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
               onChange={(e) => setFormData({ ...formData, sortOrder: e.target.value })}
               type="number"
               min="1"
-              placeholder={t('enter_sort') || 'Enter sort'}
+              placeholder={t('enter_sort')}
               error={formErrors.sort}
             />
           </div>
@@ -507,7 +507,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
                   setFormData({ ...formData, icon: newIcon });
                 }}
                 options={[
-                  { value: '', label: t('select_icon') || 'Select Icon' },
+                  { value: '', label: t('select_icon') },
                   ...iconOptions.map(opt => ({
                     value: opt.value,
                     label: (
@@ -518,7 +518,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
                     )
                   }))
                 ]}
-                placeholder={t('select_icon') || 'Select an icon'}
+                placeholder={t('select_icon')}
               />
               {formData.icon && (
                 <div style={{ 
@@ -530,7 +530,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
                   alignItems: 'center',
                   gap: '8px'
                 }}>
-                  <span style={{ fontSize: '12px', color: '#6b7280' }}>{t('preview') || 'Preview'}:</span>
+                  <span style={{ fontSize: '12px', color: '#6b7280' }}>{t('preview')}:</span>
                   {getThemedIcon('ui', formData.icon, 20, theme)}
                   <span style={{ fontSize: '12px', color: '#6b7280' }}>{formData.icon}</span>
                 </div>
@@ -544,21 +544,21 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
                 setFormData({ ...formData, color: newColor });
               }}
               type="color"
-              placeholder={t('select_color') || 'Select color'}
+              placeholder={t('select_color')}
             />
           </div>
           <div className="form-row">
             <textarea
               ref={descEnRef}
               defaultValue={formData.descriptionEn}
-              placeholder={t('enter_description_english') || 'Enter description in English'}
+              placeholder={t('enter_description_english')}
               className="dashboard-textarea"
               rows={3}
             />
             <textarea
               ref={descArRef}
               defaultValue={formData.descriptionAr}
-              placeholder={t('enter_description_arabic') || 'Enter description in Arabic'}
+              placeholder={t('enter_description_arabic')}
               className="dashboard-textarea"
               rows={3}
               style={{ direction: 'rtl' }}
@@ -571,7 +571,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
               loading={saving}
               disabled={!isFormValid || saving}
             >
-              {saving ? (t('saving') || 'Saving...') : (editingCategory ? (t('update') || 'Update') : (t('save') || 'Save'))}
+              {saving ? (t('saving')) : (editingCategory ? (t('update')) : (t('save')))}
             </Button>
             {editingCategory && (
               <Button 
@@ -582,7 +582,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
                   resetForm();
                 }}
               >
-                {t('cancel') || 'Cancel'}
+                {t('cancel')}
               </Button>
             )}
           </div>
@@ -594,28 +594,28 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
         chips={[
           {
             id: 'all',
-            label: t('total_categories') || 'Total Categories',
+            label: t('total_categories'),
             count: categoryStats.total,
             icon: getThemedIcon('ui', 'target', 16, theme),
             variant: 'slate',
           },
           ...(categoryStats.withIcons > 0 ? [{
             id: 'withIcons',
-            label: t('with_icons') || 'With Icons',
+            label: t('with_icons'),
             count: categoryStats.withIcons,
             icon: getThemedIcon('ui', 'star', 16, theme),
             variant: 'green',
           }] : []),
           ...(categoryStats.withColors > 0 ? [{
             id: 'withColors',
-            label: t('with_custom_colors') || 'Custom Colors',
+            label: t('with_custom_colors'),
             count: categoryStats.withColors,
             icon: getThemedIcon('ui', 'droplet', 16, theme),
             variant: 'indigo',
           }] : []),
           ...(categoryStats.withDescriptions > 0 ? [{
             id: 'withDescriptions',
-            label: t('with_descriptions') || 'With Descriptions',
+            label: t('with_descriptions'),
             count: categoryStats.withDescriptions,
             icon: getThemedIcon('ui', 'file_text', 16, theme),
             variant: 'amber',
@@ -635,7 +635,7 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
           exportFileName="categories"
           showExportButton
           exportLabel={t('export')}
-          loadingOverlayMessage={pageState === PAGE_STATES.LOADING ? "Loading categories..." : undefined}
+          loadingOverlayMessage={pageState === PAGE_STATES.LOADING ? t('loading_categories') : undefined}
         />
       </div>
 

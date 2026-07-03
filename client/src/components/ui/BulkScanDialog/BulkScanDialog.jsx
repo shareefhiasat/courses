@@ -203,12 +203,12 @@ const BulkScanDialog = ({
   const bulkTabs = [
     {
       value: 'manual',
-      label: t('manual_input') || 'Manual Input',
+      label: t('manual_input'),
       icon: <Upload size={16} />
     },
     {
       value: 'addAll',
-      label: t('add_all') || 'Add All',
+      label: t('add_all'),
       icon: <Users size={16} />
     }
   ];
@@ -373,7 +373,7 @@ const BulkScanDialog = ({
         <div className={styles.header}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <h2 id="bulk-scan-title" className={styles.title} style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
-              {t('bulk_scan_title') || 'Bulk Scan'}
+              {t('bulk_scan_title')}
               <button
                 onClick={() => window.dispatchEvent(new Event('app:bulk-tour'))}
                 style={{
@@ -392,14 +392,14 @@ const BulkScanDialog = ({
                   padding: 0,
                   flexShrink: 0
                 }}
-                title={t('bulk_help_tour') || 'Take a tour of bulk scan features'}
+                title={t('bulk_help_tour')}
               >?</button>
             </h2>
           </div>
           <button
             onClick={handleClose}
             className={styles.closeButton}
-            aria-label={t('close') || 'Close'}
+            aria-label={t('close')}
           >
             <X size={18} />
           </button>
@@ -411,8 +411,8 @@ const BulkScanDialog = ({
             <Layers size={16} style={{ color: '#0284c7' }} />
             <span className={styles.contextValue}>
               {attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP
-                ? (t('standup_mode') || 'Standup Mode')
-                : (t('regular_mode') || 'Regular Mode')
+                ? (t('standup_mode'))
+                : (t('regular_mode'))
               }
             </span>
           </div>
@@ -452,7 +452,7 @@ const BulkScanDialog = ({
           <div className={styles.progressSection}>
             <div className={styles.progressInfo}>
               <span className={styles.progressText}>
-                {t('processing_students') || 'Processing students'}: {progress.processed}/{progress.total}
+                {t('processing_students')}: {progress.processed}/{progress.total}
               </span>
               <span className={styles.progressPercentage}>
                 {progress.percentage}%
@@ -466,7 +466,7 @@ const BulkScanDialog = ({
             </div>
             {progress.totalBatches > 1 && (
               <div className={styles.batchInfo}>
-                {t('batch') || 'Batch'} {progress.currentBatch}/{progress.totalBatches}
+                {t('batch')} {progress.currentBatch}/{progress.totalBatches}
               </div>
             )}
           </div>
@@ -494,7 +494,7 @@ const BulkScanDialog = ({
                       style={{ padding: '0.5rem 0.875rem', fontSize: 'var(--font-size-sm)' }}
                     >
                       <Upload size={16} />
-                      {t('parse_input') || 'Parse'}
+                      {t('parse_input')}
                     </button>
                   )}
                   {activeTab === 'addAllExcept' && (
@@ -507,12 +507,12 @@ const BulkScanDialog = ({
                       {addingAll ? (
                         <>
                           <span className={styles.spinner} />
-                          {t('adding_all') || 'Adding...'}
+                          {t('adding_all')}
                         </>
                       ) : (
                         <>
                           <Users size={14} />
-                          {t('add_all_except') || 'All Except'}
+                          {t('add_all_except')}
                         </>
                       )}
                     </button>
@@ -521,11 +521,11 @@ const BulkScanDialog = ({
                     onClick={clearState}
                     className={`${styles.clearButton} ${styles.tabActionButtons}`}
                     disabled={loading || addingAll}
-                    title={t('clear_and_new') || 'Clear All and Start New Operation'}
+                    title={t('clear_and_new')}
                     style={{ padding: '0.5rem 0.875rem', fontSize: 'var(--font-size-sm)' }}
                   >
                     <RotateCcw size={16} />
-                    {t('clear_new') || 'Clear'}
+                    {t('clear_new')}
                   </button>
                 </div>
               )}
@@ -537,10 +537,10 @@ const BulkScanDialog = ({
             <div className={`${styles.instructionalMessage} ${styles[theme]}`}>
               <Users size={48} className={styles.instructionalIcon} />
               <p className={styles.instructionalTitle}>
-                {t('select_input_method') || 'Select an Input Method'}
+                {t('select_input_method')}
               </p>
               <p className={styles.instructionalDescription}>
-                {t('select_input_method_desc') || 'Choose Manual Input to paste student numbers, or Add All to load all students from the program'}
+                {t('select_input_method_desc')}
               </p>
             </div>
           )}
@@ -549,14 +549,14 @@ const BulkScanDialog = ({
           {activeTab && (
             <>
             {/* Dual-list layout for modern mode */}
-            <div dir={isRTL ? 'rtl' : 'ltr'} style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
+            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '0.5rem' }}>
               {/* Left column: Text area for manual input or excluded students */}
               <div style={{ flex: 0.5, display: 'flex', flexDirection: 'column' }}>
                 <label htmlFor="bulk-input" className={activeTab === 'manual' ? styles.columnLabelManual : styles.columnLabelExcluded}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
                     {activeTab === 'manual'
-                      ? (<><Upload size={16} /> <span style={{ fontSize: 'var(--font-size-md)' }}>{t('paste_student_numbers') || 'Paste Student Numbers'}</span></>)
-                      : (<><Minus size={16} /> <span style={{ fontSize: 'var(--font-size-md)' }}>{t('excluded_students') || 'Excluded'}</span> <span className={`${styles.columnCountBadge} ${styles.columnCountBadge.excluded}`}>{excludedStudents.length}</span></>)
+                      ? (<><Upload size={16} /> <span style={{ fontSize: 'var(--font-size-md)' }}>{t('paste_student_numbers')}</span></>)
+                      : (<><Minus size={16} /> <span style={{ fontSize: 'var(--font-size-md)' }}>{t('excluded_students')}</span> <span className={`${styles.columnCountBadge} ${styles.columnCountBadge.excluded}`}>{excludedStudents.length}</span></>)
                     }
                   </span>
                 </label>
@@ -568,7 +568,7 @@ const BulkScanDialog = ({
                     value={inputText}
                     onChange={(e) => setInputText(e.target.value)}
                     onPaste={handlePaste}
-                    placeholder={t('bulk_paste_placeholder') || 'Paste student numbers here...\n12345\n67890\n...'}
+                    placeholder={t('bulk_paste_placeholder')}
                     className={`${styles.textarea} ${styles.manualColumn}`}
                     rows={10}
                     disabled={loading}
@@ -578,7 +578,7 @@ const BulkScanDialog = ({
                   <div className={`${styles.chipsContainer} ${styles.excludedColumn}`} role="list" style={{ minHeight: '300px', maxHeight: '400px', overflowY: 'auto', padding: '0.5rem' }}>
                     {excludedStudents.length === 0 ? (
                       <div style={{ color: '#b45309', textAlign: 'center', padding: '2rem', fontSize: '0.9rem' }}>
-                        {t('no_excluded_students') || 'No excluded students'}
+                        {t('no_excluded_students')}
                       </div>
                     ) : (
                       excludedStudents.map((student) => (
@@ -605,7 +605,7 @@ const BulkScanDialog = ({
                       onClick={moveAllToExcluded}
                       className={styles.clearButton}
                       disabled={selectedStudents.length === 0 || loading}
-                      title={t('move_all_left') || 'Move all to excluded'}
+                      title={t('move_all_left')}
                       style={{ padding: '0.5rem' }}
                     >
                       <Minus size={16} />
@@ -614,7 +614,7 @@ const BulkScanDialog = ({
                       onClick={moveAllToSelected}
                       className={styles.clearButton}
                       disabled={excludedStudents.length === 0 || loading}
-                      title={t('move_all_right') || 'Move all to selected'}
+                      title={t('move_all_right')}
                       style={{ padding: '0.5rem' }}
                     >
                       <Plus size={16} />
@@ -628,7 +628,7 @@ const BulkScanDialog = ({
                 <label className={styles.columnLabelSelected}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
                     <CheckCircle size={16} />
-                    <span style={{ fontSize: 'var(--font-size-md)' }}>{t('selected_students') || 'Selected'}</span>
+                    <span style={{ fontSize: 'var(--font-size-md)' }}>{t('selected_students')}</span>
                     <span className={`${styles.columnCountBadge} ${styles.columnCountBadge.selected}`}>{selectedStudents.length}</span>
                   </span>
                 </label>
@@ -636,8 +636,8 @@ const BulkScanDialog = ({
                   {selectedStudents.length === 0 ? (
                     <div style={{ color: '#166534', textAlign: 'center', padding: '2rem', fontSize: '0.9rem' }}>
                       {activeTab === 'manual'
-                        ? (t('no_students_selected') || 'No students selected yet')
-                        : (t('click_add_all') || 'Click Add All to load students')
+                        ? (t('no_students_selected'))
+                        : (t('click_add_all'))
                       }
                     </div>
                   ) : (
@@ -684,7 +684,7 @@ const BulkScanDialog = ({
             <div className={styles.notFoundSection}>
               <div className={styles.notFoundHeader}>
                 <AlertCircle size={16} />
-                <span>{t('students_not_found') || 'Students Not Found'} ({validatedStudents.notFound.length})</span>
+                <span>{t('students_not_found')} ({validatedStudents.notFound.length})</span>
               </div>
               <div className={styles.notFoundList}>
                 {validatedStudents.notFound.slice(0, 10).join(', ')}
@@ -744,7 +744,7 @@ const BulkScanDialog = ({
                     }
                   }}
                   className={styles.clearButton}
-                  title={t('go_to_today') || 'Go to today'}
+                  title={t('go_to_today')}
                   disabled={loading}
                   style={{ padding: '0.375rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                 >
@@ -772,7 +772,7 @@ const BulkScanDialog = ({
               className={styles.cancelButton}
             disabled={loading}
           >
-            {t('cancel') || 'Cancel'}
+            {t('cancel')}
           </button>
           <button
             onClick={handleSubmit}

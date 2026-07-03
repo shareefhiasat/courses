@@ -36,7 +36,7 @@ const HierarchyFilters = ({
   showTerms = false
 }) => {
   const programOptions = useMemo(() => [
-    { value: 'all', label: t('all_programs') || 'All Programs' },
+    { value: 'all', label: t('all_programs') },
     ...programs.map(p => ({
       value: p.docId || p.id,
       label: lang === 'ar' ? (p.nameAr || p.nameEn || p.code) : (p.nameEn || p.nameAr || p.code)
@@ -44,7 +44,7 @@ const HierarchyFilters = ({
   ], [programs, lang, t]);
 
   const subjectOptions = useMemo(() => [
-    { value: 'all', label: t('all_subjects') || 'All Subjects' },
+    { value: 'all', label: t('all_subjects') },
     ...subjects
       .filter(s => selectedProgram === 'all' || String(s.programId) === String(selectedProgram))
       .map(s => ({
@@ -54,7 +54,7 @@ const HierarchyFilters = ({
   ], [subjects, selectedProgram, lang, t]);
 
   const classOptions = useMemo(() => [
-    { value: 'all', label: t('all_classes') || 'All Classes' },
+    { value: 'all', label: t('all_classes') },
     ...classes
       .filter(c => {
         if (selectedSubject !== 'all') return String(c.subjectId) === String(selectedSubject);
@@ -71,7 +71,7 @@ const HierarchyFilters = ({
   ], [classes, selectedSubject, selectedProgram, subjects, t]);
 
   const studentOptions = useMemo(() => [
-    { value: 'all', label: t('all_students') || 'All Students' },
+    { value: 'all', label: t('all_students') },
     ...students
       .filter(s => {
         // If no filters selected, show all students
@@ -173,7 +173,7 @@ const HierarchyFilters = ({
             }}
             includeAll
             allValue="all"
-            allLabel={t('all_years') || 'All Years'}
+            allLabel={t('all_years')}
             startYear={Number(years[0]) || 2024}
             yearsAhead={6}
             fullWidth
@@ -191,7 +191,7 @@ const HierarchyFilters = ({
               setSelectedTerm(val);
             }}
             data={terms}
-            allLabel={t('all_terms') || 'All Terms'}
+            allLabel={t('all_terms')}
             fullWidth
           />
         </div>

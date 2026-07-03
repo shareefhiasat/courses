@@ -96,11 +96,11 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Repor
               fontWeight: 700
             }}>
               {isSummaryReport ? (
-                (t('summary_report') || 'Summary')
+                (t('summary_report'))
               ) : isDailyOfficial ? (
-                (t('daily_official') || 'Daily Official')
+                (t('daily_official'))
               ) : (
-                (t('daily_report') || 'Daily')
+                (t('daily_report'))
               )}
             </h2>
           </div>
@@ -117,7 +117,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Repor
           
           {isSummaryReport && (
             <h3 style={{ marginBottom: '1rem', fontSize: '1.25rem', fontWeight: 600 }}>
-              {t('export_preferences') || 'Export Preferences'}
+              {t('export_preferences')}
             </h3>
           )}
           
@@ -176,8 +176,8 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Repor
     <div style={{ marginBottom: '1rem' }}>
       <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>
         {isStandupMode 
-          ? (t('select_programs') || 'Select Programs for Report')
-          : (t('select_subjects') || 'Select Subjects for Report')
+          ? (t('select_programs'))
+          : (t('select_subjects'))
         }
       </label>
       
@@ -269,11 +269,11 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Repor
       <div style={{ fontSize: 'var(--font-size-xs)', color: '#6b7280', marginTop: '0.5rem' }}>
         {isStandupMode 
           ? ((selectedProgramsForReport?.length || 0) === 0 
-              ? (t('select_at_least_one_program') || 'Please select at least one program')
-              : (t('programs_selected') || 'Programs selected') + ': ' + selectedProgramsForReport.length)
+              ? (t('select_at_least_one_program'))
+              : (t('programs_selected')) + ': ' + selectedProgramsForReport.length)
           : (selectedSubjectsForReport.length === 0 
-              ? (t('select_at_least_one_subject') || 'Please select at least one subject')
-              : (t('subjects_selected') || 'Subjects selected') + ': ' + selectedSubjectsForReport.length)
+              ? (t('select_at_least_one_subject'))
+              : (t('subjects_selected')) + ': ' + selectedSubjectsForReport.length)
         }
       </div>
     </div>
@@ -318,7 +318,7 @@ const EmailOption = ({
         />
         <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           {getThemedIcon('ui', 'send', 16, theme)}
-          {t('send_via_email') || 'Send via Email instead of downloading'}
+          {t('send_via_email')}
         </span>
       </label>
       
@@ -354,7 +354,7 @@ const RecipientSelection = ({
     <div style={{ marginTop: '0.75rem' }}>
       <div style={{ marginBottom: '0.5rem' }}>
         <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: 'var(--font-size-sm)', fontWeight: 500 }}>
-          {t('select_recipients') || 'Select Recipients'}
+          {t('select_recipients')}
         </label>
         
         {usersLoading ? (
@@ -364,7 +364,7 @@ const RecipientSelection = ({
             color: '#64748b', 
             fontSize: 'var(--font-size-sm)' 
           }}>
-            {t('loading_recipients') || 'Loading recipients...'}
+            {t('loading_recipients')}
           </div>
         ) : (
           <>
@@ -391,8 +391,8 @@ const RecipientSelection = ({
       
       <div style={{ marginTop: '0.75rem', fontSize: 'var(--font-size-sm)', color: '#1e40af', fontWeight: 500 }}>
         {emailRecipients.length === 0 
-          ? (t('select_at_least_one_recipient') || 'Please select at least one recipient')
-          : (t('recipients_selected') || 'Recipients selected') + ': ' + emailRecipients.length
+          ? (t('select_at_least_one_recipient'))
+          : (t('recipients_selected')) + ': ' + emailRecipients.length
         }
       </div>
     </div>
@@ -424,7 +424,7 @@ const SelfEmailChip = ({ emailRecipients, setEmailRecipients, user, theme, t }) 
           fontWeight: 500
         }}
       >
-        {t('send_to_myself') || 'Send to myself'} ({user?.email || ''})
+        {t('send_to_myself')} ({user?.email || ''})
         {emailRecipients.includes('self') && (
           <span style={{ marginLeft: '0.5rem', fontWeight: '600' }}>✓</span>
         )}
@@ -474,7 +474,7 @@ const OtherRecipients = ({
         flexWrap: 'wrap',
         gap: '0.5rem'
       }}>
-        <span>{t('additional_recipients') || 'Additional Recipients'}</span>
+        <span>{t('additional_recipients')}</span>
         <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
           {hasSelections && (
             <button
@@ -492,7 +492,7 @@ const OtherRecipients = ({
               onMouseOver={(e) => e.target.style.background = '#dc2626'}
               onMouseOut={(e) => e.target.style.background = '#ef4444'}
             >
-              {t('clear_all') || 'Clear All'}
+              {t('clear_all')}
             </button>
           )}
           {studentCount > 10 && (
@@ -511,7 +511,7 @@ const OtherRecipients = ({
               onMouseOver={(e) => e.target.style.background = '#7c3aed'}
               onMouseOut={(e) => e.target.style.background = '#8b5cf6'}
             >
-              {t('scroll_to_students') || `Scroll to Students (${studentCount})`}
+              {t('scroll_to_students')}
             </button>
           )}
         </div>
@@ -519,7 +519,7 @@ const OtherRecipients = ({
       
       <RoleSection
         role={RECIPIENT_ROLES.INSTRUCTORS}
-        title={t('instructors') || 'Instructors'}
+        title={t('instructors')}
         icon="users"
         users={availableUsers.instructors || []}
         emailRecipients={emailRecipients}
@@ -532,7 +532,7 @@ const OtherRecipients = ({
       
       <RoleSection
         role={RECIPIENT_ROLES.ADMINS}
-        title={t('admins') || 'Admins'}
+        title={t('admins')}
         icon="shield"
         users={availableUsers.admins || []}
         emailRecipients={emailRecipients}
@@ -545,7 +545,7 @@ const OtherRecipients = ({
       
       <RoleSection
         role={RECIPIENT_ROLES.HR}
-        title={t('hr') || 'HR'}
+        title={t('hr')}
         icon="user_check"
         users={availableUsers.hr || []}
         emailRecipients={emailRecipients}
@@ -559,7 +559,7 @@ const OtherRecipients = ({
       <div id="students-section">
         <RoleSection
           role={RECIPIENT_ROLES.STUDENTS}
-          title={t('students') || 'Students'}
+          title={t('students')}
           icon="users"
           users={availableUsers.students || []}
           emailRecipients={emailRecipients}
@@ -623,7 +623,7 @@ const RoleSection = ({
             e.target.style.borderColor = allSelected ? '#d1d5db' : '#3b82f6';
           }}
         >
-          {allSelected ? (t('deselect_all') || 'Deselect All') : (t('select_all') || 'Select All')}
+          {allSelected ? (t('deselect_all')) : (t('select_all'))}
         </button>
       </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
@@ -648,7 +648,7 @@ const RoleSection = ({
             borderRadius: '0.375rem',
             width: '100%'
           }}>
-            {t('no_users_found') || 'No users found'}
+            {t('no_users_found')}
           </div>
         )}
       </div>
@@ -705,11 +705,11 @@ const ActionButtons = ({
 
   const exportLabel = isDailyOfficial
     ? officialExportFormat === EXPORT_FORMAT.PDF
-      ? t('export_pdf') || 'Export PDF'
-      : t('export_excel') || 'Export Excel'
+      ? t('export_pdf')
+      : t('export_excel')
     : exportFormat === 'email'
-      ? t('send_email') || 'Send Email'
-      : t('export_csv_excel') || 'Export CSV (Excel)';
+      ? t('send_email')
+      : t('export_csv_excel');
 
   return (
     <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1.5rem' }}>
@@ -740,7 +740,7 @@ const ActionButtons = ({
               if (!selectedProgramsForReport || selectedProgramsForReport.length === 0) {
                 error('❌ No programs selected for report');
                 if (showError) {
-                  showError(t('select_at_least_one_program') || 'Please select at least one program for the report');
+                  showError(t('select_at_least_one_program'));
                 }
                 return;
               }
@@ -749,7 +749,7 @@ const ActionButtons = ({
               if (!selectedSubjectsForReport || selectedSubjectsForReport.length === 0) {
                 error('❌ No subjects selected for report');
                 if (showError) {
-                  showError(t('select_at_least_one_subject') || 'Please select at least one subject for the report');
+                  showError(t('select_at_least_one_subject'));
                 }
                 return;
               }
@@ -760,7 +760,7 @@ const ActionButtons = ({
             if (!emailRecipients || emailRecipients.length === 0) {
               console.error('❌ No email recipients selected');
               if (showError) {
-                showError(t('select_at_least_one_recipient') || 'Please select at least one email recipient');
+                showError(t('select_at_least_one_recipient'));
               }
               return;
             }

@@ -392,8 +392,8 @@ export default function QuestionBankPage() {
         {filteredQuestions.length === 0 ? (
           <EmptyState
             icon={getThemedIcon('ui', 'search', 48, theme)}
-            title={t('no_questions_found') || 'No questions found'}
-            description={t('try_adjusting_search') || 'Try adjusting your search or filters'}
+            title={t('no_questions_found')}
+            description={t('try_adjusting_search')}
           />
         ) : (
           <div className={styles.questionsList}>

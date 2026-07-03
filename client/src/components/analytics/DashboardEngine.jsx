@@ -432,7 +432,7 @@ const DashboardEngine = React.forwardRef(({
     const duplicatedWidget = {
       ...widgetToDuplicate,
       id: 'w' + Date.now(),
-      title: `${widgetToDuplicate.title} (${t('copy') || 'Copy'})`,
+      title: `${widgetToDuplicate.title} (${t('copy')})`,
       layout: {
         x: (widgetToDuplicate.layout?.x || 0) + 1, // Offset position slightly
         y: (widgetToDuplicate.layout?.y || 0) + 1,
@@ -497,7 +497,7 @@ const DashboardEngine = React.forwardRef(({
       : widgetCategoryResolver === 'class'
       ? getClassWidgetDisplayTitle(widget, t, lang)
       : getWidgetDisplayTitle(widget, t, lang);
-    const sliceLabel = dataPoint.label || dataPoint.lines?.[0] || t('not_specified') || 'Item';
+    const sliceLabel = dataPoint.label || dataPoint.lines?.[0] || t('not_specified');
     const newTitle = `${parentTitle} - ${sliceLabel}`;
     const newListWidget = {
       id: 'list-' + Date.now(),
@@ -564,9 +564,9 @@ const DashboardEngine = React.forwardRef(({
           color: 'var(--text)',
           fontSize: 'var(--font-size-sm)',
         }}>
-          <strong>{t('widget_limit_reached') || 'Widget limit reached'}</strong>
+          <strong>{t('widget_limit_reached')}</strong>
           {' — '}
-          {t('widget_limit_message') || `Maximum ${widgetLimit} widgets (system default). Delete or edit existing widgets before adding more.`}
+          {t('widget_limit_message')}
         </div>
       )}
       {/* Scoped CSS */}
@@ -661,7 +661,7 @@ const DashboardEngine = React.forwardRef(({
           fontSize: '16px',
           fontWeight: '500'
         }}>
-          {t('loading_dashboard') || 'Loading dashboard...'}
+          {t('loading_dashboard')}
         </div>
       ) : (
         <ResponsiveGrid
@@ -718,8 +718,8 @@ const DashboardEngine = React.forwardRef(({
           padding: '4rem 2rem', gap: 16, color: 'var(--muted)', textAlign: 'center'
         }}>
           <span style={{ fontSize: 48, opacity: 0.25 }}>{getThemedIcon('ui', 'bar_chart3', 48, theme)}</span>
-          <p style={{ margin: 0, fontSize: 'var(--font-size-md)', fontWeight: 600 }}>{t('no_widgets_yet') || 'No widgets yet'}</p>
-          <p style={{ margin: 0, fontSize: 'var(--font-size-sm)' }}>{t('add_widget_hint') || 'Click "Add Widget" to build your first chart.'}</p>
+          <p style={{ margin: 0, fontSize: 'var(--font-size-md)', fontWeight: 600 }}>{t('no_widgets_yet')}</p>
+          <p style={{ margin: 0, fontSize: 'var(--font-size-sm)' }}>{t('add_widget_hint')}</p>
         </div>
       )}
 
@@ -747,10 +747,10 @@ const DashboardEngine = React.forwardRef(({
           setWidgetUpdatedAt({});
           setShowResetConfirm(false);
         }}
-        title={t('reset_dashboard') || 'Reset Dashboard'}
-        message={t('reset_dashboard_confirm') || 'Reset dashboard to system defaults? Your custom layout will be lost.'}
-        confirmText={t('reset') || 'Reset'}
-        cancelText={t('cancel') || 'Cancel'}
+        title={t('reset_dashboard')}
+        message={t('reset_dashboard_confirm')}
+        confirmText={t('reset')}
+        cancelText={t('cancel')}
         variant="danger"
         size="small"
       />

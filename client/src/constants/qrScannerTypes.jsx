@@ -157,16 +157,16 @@ export const getCameraConstraints = (isMobile = false, cameraMode = 'environment
 // Error Messages for Camera Issues
 export const getCameraErrorMessage = (error, t) => {
   const errorMessages = {
-    'NotAllowedError': t('camera_permission_denied') || 'Camera permission denied. Please allow camera access.',
-    'NotFoundError': t('camera_not_found') || 'No camera found on this device.',
-    'NotReadableError': t('camera_already_in_use') || 'Camera is already in use by another application.',
-    'OverconstrainedError': t('camera_constraints_not_supported') || 'Camera constraints not supported.',
-    'SecurityError': t('camera_security_error') || 'Camera access blocked due to security restrictions.',
-    'TypeError': t('camera_type_error') || 'Camera API not available in this browser.'
+    'NotAllowedError': t('camera_permission_denied'),
+    'NotFoundError': t('camera_not_found'),
+    'NotReadableError': t('camera_already_in_use'),
+    'OverconstrainedError': t('camera_constraints_not_supported'),
+    'SecurityError': t('camera_security_error'),
+    'TypeError': t('camera_type_error')
   };
   
   return errorMessages[error.name] || 
-    `${t('camera_access_failed') || 'Failed to access camera'}: ${error.message}`;
+    `${t('camera_access_failed')}: ${error.message}`;
 };
 
 // Mobile Detection

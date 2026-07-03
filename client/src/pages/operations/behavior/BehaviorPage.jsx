@@ -806,7 +806,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
                           marginLeft: 'auto'
                         }}>
                           {statusLabel}
-                          {enrollmentCount > 0 && ` • ${enrollmentCount} ${t('enrollments') || 'enrollments'}`}
+                          {enrollmentCount > 0 && ` • ${enrollmentCount} ${t('enrollments')}`}
                         </span>
                       </div>
                     ),
@@ -934,7 +934,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
               value={studentFilter}
               onChange={(e) => setStudentFilter(e.target.value)}
               options={[
-                { value: '', label: t('all_students') || 'All Students' },
+                { value: '', label: t('all_students') },
                 ...selectStudents
                   .map(u => {
                     // Get user enrollments count
@@ -959,7 +959,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
                     
                     return {
                       value: u.docId || u.id,
-                      displayLabel: u.displayName || u.realName || u.email || (t('unknown') || 'Unknown'),
+                      displayLabel: u.displayName || u.realName || u.email || (t('unknown')),
                       label: (
                         <div style={{ 
                           display: 'flex', 
@@ -972,7 +972,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
                             textDecoration: isDisabled ? 'line-through' : 'none',
                             flex: 1
                           }}>
-                            {u.displayName || u.realName || u.email || (t('unknown') || 'Unknown')}
+                            {u.displayName || u.realName || u.email || (t('unknown'))}
                           </span>
                         </div>
                       ),
@@ -1044,7 +1044,7 @@ const BehaviorPage = ({ isDashboardTab = false, hideActions = false }) => {
           color: '#1e40af'
         }}>
           {getThemedIcon('ui', 'filter', 14, theme)}
-          {t('showing_filtered') || 'Showing'} {filteredBehaviors.length} {t('of') || 'of'} {behaviorsRaw.length} {t('behaviors') || 'Behaviors'}
+          {t('showing_filtered')} {filteredBehaviors.length} {t('of')} {behaviorsRaw.length} {t('behaviors')}
         </div>
       )}
 

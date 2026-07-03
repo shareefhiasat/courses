@@ -27,16 +27,16 @@ export default function TeacherEffortExport({ teacherId, params, effort, canExpo
     doc.setFontSize(14);
     doc.text('QAF — RESTRICTED', 14, 16);
     doc.setFontSize(11);
-    doc.text(t('teacher_effort_report') || 'Teacher Effort Report', 14, 26);
-    doc.text(`${t('teacher') || 'Teacher'}: ${name}`, 14, 34);
-    doc.text(`${t('total_sessions') || 'Sessions'}: ${effort.summary.totalSessions}`, 14, 42);
-    doc.text(`${t('teaching_hours') || 'Hours'}: ${effort.summary.teachingHours}`, 14, 50);
-    doc.text(`${t('total_breaks') || 'Breaks'}: ${effort.summary.totalBreaks}`, 14, 58);
-    doc.text(`${t('holiday_sessions_missed') || 'Holiday Impact'}: ${effort.summary.sessionsMissedDueToHolidays}`, 14, 66);
+    doc.text(t('teacher_effort_report'), 14, 26);
+    doc.text(`${t('teacher')}: ${name}`, 14, 34);
+    doc.text(`${t('total_sessions')}: ${effort.summary.totalSessions}`, 14, 42);
+    doc.text(`${t('teaching_hours')}: ${effort.summary.teachingHours}`, 14, 50);
+    doc.text(`${t('total_breaks')}: ${effort.summary.totalBreaks}`, 14, 58);
+    doc.text(`${t('holiday_sessions_missed')}: ${effort.summary.sessionsMissedDueToHolidays}`, 14, 66);
 
     let y = 78;
     doc.setFontSize(10);
-    doc.text(t('subject_distribution') || 'Subjects:', 14, y);
+    doc.text(t('subject_distribution'), 14, y);
     y += 6;
     (effort.subjectDistribution || []).forEach((s) => {
       doc.text(`  ${s.subjectNameEn}: ${s.sessionCount}`, 14, y);
@@ -90,11 +90,11 @@ export default function TeacherEffortExport({ teacherId, params, effort, canExpo
     <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1rem' }}>
       <Button variant="outline" size="sm" onClick={exportPDF} disabled={!effort} data-testid="export-pdf-btn">
         <FileDown size={14} style={{ marginInlineEnd: '0.25rem' }} />
-        {t('export_pdf') || 'Export PDF'}
+        {t('export_pdf')}
       </Button>
       <Button variant="outline" size="sm" onClick={exportExcel} disabled={!teacherId} data-testid="export-excel-btn">
         <FileSpreadsheet size={14} style={{ marginInlineEnd: '0.25rem' }} />
-        {t('export_excel') || 'Export Excel'}
+        {t('export_excel')}
       </Button>
     </div>
   );

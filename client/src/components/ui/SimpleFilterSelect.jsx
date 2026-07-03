@@ -33,7 +33,7 @@ const SimpleFilterSelect = ({
 
   // Generate options directly from data
   const options = [
-    { value: 'all', label: t(`all_${filterKey}`) || `All ${filterKey}` },
+    { value: 'all', label: t(`all_${filterKey}`) },
     ...data.map(item => {
       const itemValue = item.id || item.docId || item.value;
       const itemLabel = item.nameEn || item.name || item.label || item.code || itemValue;

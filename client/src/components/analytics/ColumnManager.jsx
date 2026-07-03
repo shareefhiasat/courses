@@ -28,170 +28,170 @@ export default function ColumnManager({
     const baseColumns = {
       // Attendance columns
       attendance: [
-        { key: 'studentName', label: t('student_name') || 'Student Name', required: true },
-        { key: 'studentNumber', label: t('student_number') || 'Student Number', required: false },
-        { key: 'status', label: t('status') || 'Status', required: true },
-        { key: 'date', label: t('date') || 'Date', required: true },
-        { key: 'className', label: t('class_name') || 'Class Name', required: false },
-        { key: 'createdAt', label: t('created_date') || 'Created Date', required: false },
-        { key: 'createdBy', label: t('created_by') || 'Created By', required: false },
-        { key: 'id', label: t('id') || 'ID', required: false }
+        { key: 'studentName', label: t('student_name'), required: true },
+        { key: 'studentNumber', label: t('student_number'), required: false },
+        { key: 'status', label: t('status'), required: true },
+        { key: 'date', label: t('date'), required: true },
+        { key: 'className', label: t('class_name'), required: false },
+        { key: 'createdAt', label: t('created_date'), required: false },
+        { key: 'createdBy', label: t('created_by'), required: false },
+        { key: 'id', label: t('id'), required: false }
       ],
       
       // Activity columns (for activities, announcements, resources)
       activity: [
-        { key: 'type', label: t('type') || 'Type', required: true },
-        { key: 'title', label: t('title') || 'Title', required: true },
-        { key: 'titleEn', label: t('title_english') || 'Title (EN)', required: false },
-        { key: 'titleAr', label: t('title_arabic') || 'Title (AR)', required: false },
-        { key: 'createdBy', label: t('created_by') || 'Created By', required: false },
-        { key: 'createdAt', label: t('created_date') || 'Created Date', required: false },
-        { key: 'className', label: t('class_name') || 'Class Name', required: false },
-        { key: 'id', label: t('id') || 'ID', required: false }
+        { key: 'type', label: t('type'), required: true },
+        { key: 'title', label: t('title'), required: true },
+        { key: 'titleEn', label: t('title_english'), required: false },
+        { key: 'titleAr', label: t('title_arabic'), required: false },
+        { key: 'createdBy', label: t('created_by'), required: false },
+        { key: 'createdAt', label: t('created_date'), required: false },
+        { key: 'className', label: t('class_name'), required: false },
+        { key: 'id', label: t('id'), required: false }
       ],
       
       // Enrollment columns
       enrollment: [
-        { key: 'programName', label: t('program_name') || 'Program Name', required: true },
-        { key: 'studentName', label: t('student_name') || 'Student Name', required: true },
-        { key: 'studentNumber', label: t('student_number') || 'Student Number', required: false },
-        { key: 'className', label: t('class_name') || 'Class Name', required: false },
-        { key: 'status', label: t('status') || 'Status', required: false },
-        { key: 'enrollmentDate', label: t('enrollment_date') || 'Enrollment Date', required: false },
-        { key: 'createdAt', label: t('created_date') || 'Created Date', required: false },
-        { key: 'createdBy', label: t('created_by') || 'Created By', required: false }
+        { key: 'programName', label: t('program_name'), required: true },
+        { key: 'studentName', label: t('student_name'), required: true },
+        { key: 'studentNumber', label: t('student_number'), required: false },
+        { key: 'className', label: t('class_name'), required: false },
+        { key: 'status', label: t('status'), required: false },
+        { key: 'enrollmentDate', label: t('enrollment_date'), required: false },
+        { key: 'createdAt', label: t('created_date'), required: false },
+        { key: 'createdBy', label: t('created_by'), required: false }
       ],
       
       // User columns
       users: [
-        { key: 'realNameEn', label: t('full_name_en') || 'Full Name (EN)', required: true },
-        { key: 'realNameAr', label: t('full_name_ar') || 'Full Name (AR)', required: true },
-        { key: 'displayNameEn', label: t('display_name_en') || 'Display Name (EN)', required: false },
-        { key: 'displayNameAr', label: t('display_name_ar') || 'Display Name (AR)', required: false },
-        { key: 'email', label: t('email') || 'Email', required: false },
-        { key: 'role', label: t('role') || 'Role', required: true },
-        { key: 'studentNumber', label: t('student_number') || 'Student Number', required: false },
-        { key: 'status', label: t('status') || 'Status', required: false }
+        { key: 'realNameEn', label: t('full_name_en'), required: true },
+        { key: 'realNameAr', label: t('full_name_ar'), required: true },
+        { key: 'displayNameEn', label: t('display_name_en'), required: false },
+        { key: 'displayNameAr', label: t('display_name_ar'), required: false },
+        { key: 'email', label: t('email'), required: false },
+        { key: 'role', label: t('role'), required: true },
+        { key: 'studentNumber', label: t('student_number'), required: false },
+        { key: 'status', label: t('status'), required: false }
       ],
       
       // Class columns
       classes: [
-        { key: 'nameEn', label: t('class_name_en') || 'Class Name (EN)', required: true },
-        { key: 'nameAr', label: t('class_name_ar') || 'Class Name (AR)', required: true },
-        { key: 'programName', label: t('program_name') || 'Program Name', required: false },
-        { key: 'instructor', label: t('instructor') || 'Instructor', required: false },
-        { key: 'term', label: t('term') || 'Term', required: false },
-        { key: 'createdAt', label: t('created_date') || 'Created Date', required: false },
-        { key: 'createdBy', label: t('created_by') || 'Created By', required: false }
+        { key: 'nameEn', label: t('class_name_en'), required: true },
+        { key: 'nameAr', label: t('class_name_ar'), required: true },
+        { key: 'programName', label: t('program_name'), required: false },
+        { key: 'instructor', label: t('instructor'), required: false },
+        { key: 'term', label: t('term'), required: false },
+        { key: 'createdAt', label: t('created_date'), required: false },
+        { key: 'createdBy', label: t('created_by'), required: false }
       ],
       
       // Participation columns
       participations: [
-        { key: 'studentName', label: t('student_name') || 'Student Name', required: true },
-        { key: 'type', label: t('type') || 'Type', required: true },
-        { key: 'date', label: t('date') || 'Date', required: true },
-        { key: 'className', label: t('class_name') || 'Class Name', required: false },
-        { key: 'points', label: t('points') || 'Points', required: false },
-        { key: 'notes', label: t('notes') || 'Notes', required: false },
-        { key: 'createdAt', label: t('created_date') || 'Created Date', required: false },
-        { key: 'createdBy', label: t('created_by') || 'Created By', required: false }
+        { key: 'studentName', label: t('student_name'), required: true },
+        { key: 'type', label: t('type'), required: true },
+        { key: 'date', label: t('date'), required: true },
+        { key: 'className', label: t('class_name'), required: false },
+        { key: 'points', label: t('points'), required: false },
+        { key: 'notes', label: t('notes'), required: false },
+        { key: 'createdAt', label: t('created_date'), required: false },
+        { key: 'createdBy', label: t('created_by'), required: false }
       ],
       
       // Penalty columns
       penalties: [
-        { key: 'studentName', label: t('student_name') || 'Student Name', required: true },
-        { key: 'penaltyType', label: t('penalty_type') || 'Penalty Type', required: true },
-        { key: 'date', label: t('date') || 'Date', required: true },
-        { key: 'className', label: t('class_name') || 'Class Name', required: false },
-        { key: 'points', label: t('points') || 'Points', required: false },
-        { key: 'reason', label: t('reason') || 'Reason', required: false },
-        { key: 'createdAt', label: t('created_date') || 'Created Date', required: false },
-        { key: 'createdBy', label: t('created_by') || 'Created By', required: false }
+        { key: 'studentName', label: t('student_name'), required: true },
+        { key: 'penaltyType', label: t('penalty_type'), required: true },
+        { key: 'date', label: t('date'), required: true },
+        { key: 'className', label: t('class_name'), required: false },
+        { key: 'points', label: t('points'), required: false },
+        { key: 'reason', label: t('reason'), required: false },
+        { key: 'createdAt', label: t('created_date'), required: false },
+        { key: 'createdBy', label: t('created_by'), required: false }
       ],
       
       // Behavior columns
       behaviors: [
-        { key: 'studentName', label: t('student_name') || 'Student Name', required: true },
-        { key: 'type', label: t('type') || 'Type', required: true },
-        { key: 'date', label: t('date') || 'Date', required: true },
-        { key: 'className', label: t('class_name') || 'Class Name', required: false },
-        { key: 'severity', label: t('severity') || 'Severity', required: false },
-        { key: 'description', label: t('description') || 'Description', required: false },
-        { key: 'createdAt', label: t('created_date') || 'Created Date', required: false },
-        { key: 'createdBy', label: t('created_by') || 'Created By', required: false }
+        { key: 'studentName', label: t('student_name'), required: true },
+        { key: 'type', label: t('type'), required: true },
+        { key: 'date', label: t('date'), required: true },
+        { key: 'className', label: t('class_name'), required: false },
+        { key: 'severity', label: t('severity'), required: false },
+        { key: 'description', label: t('description'), required: false },
+        { key: 'createdAt', label: t('created_date'), required: false },
+        { key: 'createdBy', label: t('created_by'), required: false }
       ],
       
       // Program columns
       programs: [
-        { key: 'nameEn', label: t('program_name_en') || 'Program Name (EN)', required: true },
-        { key: 'nameAr', label: t('program_name_ar') || 'Program Name (AR)', required: true },
-        { key: 'type', label: t('program_type') || 'Program Type', required: false },
-        { key: 'duration', label: t('program_duration') || 'Program Duration', required: false },
-        { key: 'createdAt', label: t('created_date') || 'Created Date', required: false },
-        { key: 'createdBy', label: t('created_by') || 'Created By', required: false }
+        { key: 'nameEn', label: t('program_name_en'), required: true },
+        { key: 'nameAr', label: t('program_name_ar'), required: true },
+        { key: 'type', label: t('program_type'), required: false },
+        { key: 'duration', label: t('program_duration'), required: false },
+        { key: 'createdAt', label: t('created_date'), required: false },
+        { key: 'createdBy', label: t('created_by'), required: false }
       ],
       
       // Subject columns
       subjects: [
-        { key: 'nameEn', label: t('subject_name_en') || 'Subject Name (EN)', required: true },
-        { key: 'nameAr', label: t('subject_name_ar') || 'Subject Name (AR)', required: true },
-        { key: 'type', label: t('subject_type') || 'Subject Type', required: false },
-        { key: 'credits', label: t('credits') || 'Credits', required: false },
-        { key: 'createdAt', label: t('created_date') || 'Created Date', required: false },
-        { key: 'createdBy', label: t('created_by') || 'Created By', required: false }
+        { key: 'nameEn', label: t('subject_name_en'), required: true },
+        { key: 'nameAr', label: t('subject_name_ar'), required: true },
+        { key: 'type', label: t('subject_type'), required: false },
+        { key: 'credits', label: t('credits'), required: false },
+        { key: 'createdAt', label: t('created_date'), required: false },
+        { key: 'createdBy', label: t('created_by'), required: false }
       ],
 
       schedulingInstructorWorkload: [
-        { key: 'instructorName', label: t('gb_instructor') || 'Instructor', required: true },
-        { key: 'assignedHours', label: t('assigned_hours') || 'Assigned (h)', required: true },
-        { key: 'capacityHours', label: t('capacity_hours') || 'Capacity (h)', required: true },
-        { key: 'utilizationPct', label: t('vf_utilizationPct') || 'Utilization %', required: false },
-        { key: 'metricLabel', label: t('summary') || 'Summary', required: false },
+        { key: 'instructorName', label: t('gb_instructor'), required: true },
+        { key: 'assignedHours', label: t('assigned_hours'), required: true },
+        { key: 'capacityHours', label: t('capacity_hours'), required: true },
+        { key: 'utilizationPct', label: t('vf_utilizationPct'), required: false },
+        { key: 'metricLabel', label: t('summary'), required: false },
       ],
 
       schedulingTeachers: [
-        { key: 'instructorName', label: t('gb_instructor') || 'Instructor', required: true },
-        { key: 'sessionCount', label: t('vf_sessionCount') || 'Sessions', required: true },
-        { key: 'teachingHours', label: t('vf_teachingHours') || 'Hours', required: true },
-        { key: 'primarySubject', label: t('gb_subject') || 'Subject', required: false },
-        { key: 'classCount', label: t('vf_classCount') || 'Classes', required: false },
+        { key: 'instructorName', label: t('gb_instructor'), required: true },
+        { key: 'sessionCount', label: t('vf_sessionCount'), required: true },
+        { key: 'teachingHours', label: t('vf_teachingHours'), required: true },
+        { key: 'primarySubject', label: t('gb_subject'), required: false },
+        { key: 'classCount', label: t('vf_classCount'), required: false },
       ],
 
       schedulingCourses: [
-        { key: 'courseLabel', label: t('gb_course') || 'Course', required: true },
-        { key: 'sessionCount', label: t('vf_sessionCount') || 'Sessions', required: true },
-        { key: 'teachingHours', label: t('vf_teachingHours') || 'Hours', required: false },
-        { key: 'location', label: t('gb_location') || 'Location', required: false },
-        { key: 'capacity', label: t('capacity') || 'Capacity', required: false },
+        { key: 'courseLabel', label: t('gb_course'), required: true },
+        { key: 'sessionCount', label: t('vf_sessionCount'), required: true },
+        { key: 'teachingHours', label: t('vf_teachingHours'), required: false },
+        { key: 'location', label: t('gb_location'), required: false },
+        { key: 'capacity', label: t('capacity'), required: false },
       ],
 
       schedulingAttendanceRecords: [
-        { key: 'date', label: t('date') || 'Date', required: false },
-        { key: 'attendanceTypeLabel', label: t('attendance_type') || 'Type', required: false },
-        { key: 'status', label: t('status') || 'Status', required: true },
-        { key: 'studentName', label: t('student_name') || 'Student', required: true },
-        { key: 'studentNumber', label: t('student_number') || 'Number', required: false },
-        { key: 'programName', label: t('program_name') || 'Program', required: false },
-        { key: 'className', label: t('class_name') || 'Class', required: false },
-        { key: 'instructorName', label: t('gb_instructor') || 'Instructor', required: false },
-        { key: 'markedBy', label: t('marked_by') || 'Marked by', required: false },
+        { key: 'date', label: t('date'), required: false },
+        { key: 'attendanceTypeLabel', label: t('attendance_type'), required: false },
+        { key: 'status', label: t('status'), required: true },
+        { key: 'studentName', label: t('student_name'), required: true },
+        { key: 'studentNumber', label: t('student_number'), required: false },
+        { key: 'programName', label: t('program_name'), required: false },
+        { key: 'className', label: t('class_name'), required: false },
+        { key: 'instructorName', label: t('gb_instructor'), required: false },
+        { key: 'markedBy', label: t('marked_by'), required: false },
       ],
 
       scheduling: [
-        { key: 'title', label: t('title') || 'Title', required: true },
-        { key: 'status', label: t('status') || 'Status', required: false },
-        { key: 'date', label: t('date') || 'Date', required: false },
-        { key: 'instructorName', label: t('gb_instructor') || 'Instructor', required: false },
-        { key: 'sessionCount', label: t('vf_sessionCount') || 'Count', required: false },
+        { key: 'title', label: t('title'), required: true },
+        { key: 'status', label: t('status'), required: false },
+        { key: 'date', label: t('date'), required: false },
+        { key: 'instructorName', label: t('gb_instructor'), required: false },
+        { key: 'sessionCount', label: t('vf_sessionCount'), required: false },
       ],
 
       driveRecentFiles: [
-        { key: 'name', label: t('name') || 'Name', required: true },
-        { key: 'mimeType', label: t('type') || 'Type', required: false },
-        { key: 'size', label: t('size') || 'Size', required: false },
-        { key: 'bucket', label: t('bucket') || 'Bucket', required: false },
-        { key: 'createdAt', label: t('created_date') || 'Created', required: false },
-        { key: 'id', label: t('id') || 'ID', required: false },
+        { key: 'name', label: t('name'), required: true },
+        { key: 'mimeType', label: t('type'), required: false },
+        { key: 'size', label: t('size'), required: false },
+        { key: 'bucket', label: t('bucket'), required: false },
+        { key: 'createdAt', label: t('created_date'), required: false },
+        { key: 'id', label: t('id'), required: false },
       ],
     };
 
@@ -241,18 +241,18 @@ export default function ColumnManager({
         { 
           collection: 'users', 
           columns: [
-            { key: 'studentEmail', label: t('student_email') || 'Student Email', relation: 'studentId' },
-            { key: 'studentPhone', label: t('student_phone') || 'Student Phone', relation: 'studentId' },
-            { key: 'studentAddress', label: t('student_address') || 'Student Address', relation: 'studentId' },
-            { key: 'parentName', label: t('parent_name') || 'Parent Name', relation: 'studentId' }
+            { key: 'studentEmail', label: t('student_email'), relation: 'studentId' },
+            { key: 'studentPhone', label: t('student_phone'), relation: 'studentId' },
+            { key: 'studentAddress', label: t('student_address'), relation: 'studentId' },
+            { key: 'parentName', label: t('parent_name'), relation: 'studentId' }
           ]
         },
         { 
           collection: 'classes', 
           columns: [
-            { key: 'classInstructor', label: t('class_instructor') || 'Class Instructor', relation: 'classId' },
-            { key: 'classSchedule', label: t('class_schedule') || 'Class Schedule', relation: 'classId' },
-            { key: 'classRoom', label: t('class_room') || 'Class Room', relation: 'classId' }
+            { key: 'classInstructor', label: t('class_instructor'), relation: 'classId' },
+            { key: 'classSchedule', label: t('class_schedule'), relation: 'classId' },
+            { key: 'classRoom', label: t('class_room'), relation: 'classId' }
           ]
         }
       ],
@@ -261,22 +261,22 @@ export default function ColumnManager({
         { 
           collection: 'users', 
           columns: [
-            { key: 'creatorEmail', label: t('creator_email') || 'Creator Email', relation: 'createdBy' },
-            { key: 'creatorRole', label: t('creator_role') || 'Creator Role', relation: 'createdBy' }
+            { key: 'creatorEmail', label: t('creator_email'), relation: 'createdBy' },
+            { key: 'creatorRole', label: t('creator_role'), relation: 'createdBy' }
           ]
         },
         { 
           collection: 'classes', 
           columns: [
-            { key: 'className', label: t('class_name') || 'Class Name', relation: 'classId' },
-            { key: 'classSubject', label: t('class_subject') || 'Class Subject', relation: 'classId' }
+            { key: 'className', label: t('class_name'), relation: 'classId' },
+            { key: 'classSubject', label: t('class_subject'), relation: 'classId' }
           ]
         },
         { 
           collection: 'quizzes', 
           columns: [
-            { key: 'quizTitle', label: t('quiz_title') || 'Quiz Title', relation: 'quizId' },
-            { key: 'quizDifficulty', label: t('quiz_difficulty') || 'Quiz Difficulty', relation: 'quizId' }
+            { key: 'quizTitle', label: t('quiz_title'), relation: 'quizId' },
+            { key: 'quizDifficulty', label: t('quiz_difficulty'), relation: 'quizId' }
           ]
         }
       ],
@@ -285,19 +285,19 @@ export default function ColumnManager({
         { 
           collection: 'users', 
           columns: [
-            { key: 'studentEmail', label: t('student_email') || 'Student Email', relation: 'studentId' }
+            { key: 'studentEmail', label: t('student_email'), relation: 'studentId' }
           ]
         },
         { 
           collection: 'classes', 
           columns: [
-            { key: 'classInstructor', label: t('class_instructor') || 'Class Instructor', relation: 'classId' }
+            { key: 'classInstructor', label: t('class_instructor'), relation: 'classId' }
           ]
         },
         { 
           collection: 'programs', 
           columns: [
-            { key: 'programName', label: t('program_name') || 'Program Name', relation: 'programId' }
+            { key: 'programName', label: t('program_name'), relation: 'programId' }
           ]
         }
       ],
@@ -306,14 +306,14 @@ export default function ColumnManager({
         { 
           collection: 'users', 
           columns: [
-            { key: 'studentEmail', label: t('student_email') || 'Student Email', relation: 'studentId' },
-            { key: 'studentNumber', label: t('student_number') || 'Student Number', relation: 'studentId' }
+            { key: 'studentEmail', label: t('student_email'), relation: 'studentId' },
+            { key: 'studentNumber', label: t('student_number'), relation: 'studentId' }
           ]
         },
         { 
           collection: 'classes', 
           columns: [
-            { key: 'classInstructor', label: t('class_instructor') || 'Class Instructor', relation: 'classId' }
+            { key: 'classInstructor', label: t('class_instructor'), relation: 'classId' }
           ]
         }
       ],
@@ -322,14 +322,14 @@ export default function ColumnManager({
         { 
           collection: 'users', 
           columns: [
-            { key: 'studentEmail', label: t('student_email') || 'Student Email', relation: 'studentId' },
-            { key: 'studentNumber', label: t('student_number') || 'Student Number', relation: 'studentId' }
+            { key: 'studentEmail', label: t('student_email'), relation: 'studentId' },
+            { key: 'studentNumber', label: t('student_number'), relation: 'studentId' }
           ]
         },
         { 
           collection: 'classes', 
           columns: [
-            { key: 'classInstructor', label: t('class_instructor') || 'Class Instructor', relation: 'classId' }
+            { key: 'classInstructor', label: t('class_instructor'), relation: 'classId' }
           ]
         }
       ],
@@ -338,14 +338,14 @@ export default function ColumnManager({
         { 
           collection: 'users', 
           columns: [
-            { key: 'studentEmail', label: t('student_email') || 'Student Email', relation: 'studentId' },
-            { key: 'studentNumber', label: t('student_number') || 'Student Number', relation: 'studentId' }
+            { key: 'studentEmail', label: t('student_email'), relation: 'studentId' },
+            { key: 'studentNumber', label: t('student_number'), relation: 'studentId' }
           ]
         },
         { 
           collection: 'classes', 
           columns: [
-            { key: 'classInstructor', label: t('class_instructor') || 'Class Instructor', relation: 'classId' }
+            { key: 'classInstructor', label: t('class_instructor'), relation: 'classId' }
           ]
         }
       ],
@@ -354,8 +354,8 @@ export default function ColumnManager({
         { 
           collection: 'users', 
           columns: [
-            { key: 'creatorEmail', label: t('creator_email') || 'Creator Email', relation: 'createdBy' },
-            { key: 'creatorRole', label: t('creator_role') || 'Creator Role', relation: 'createdBy' }
+            { key: 'creatorEmail', label: t('creator_email'), relation: 'createdBy' },
+            { key: 'creatorRole', label: t('creator_role'), relation: 'createdBy' }
           ]
         }
       ],
@@ -364,15 +364,15 @@ export default function ColumnManager({
         { 
           collection: 'users', 
           columns: [
-            { key: 'creatorEmail', label: t('creator_email') || 'Creator Email', relation: 'createdBy' },
-            { key: 'creatorRole', label: t('creator_role') || 'Creator Role', relation: 'createdBy' }
+            { key: 'creatorEmail', label: t('creator_email'), relation: 'createdBy' },
+            { key: 'creatorRole', label: t('creator_role'), relation: 'createdBy' }
           ]
         },
         { 
           collection: 'programs', 
           columns: [
-            { key: 'programName', label: t('program_name') || 'Program Name', relation: 'programId' },
-            { key: 'programType', label: t('program_type') || 'Program Type', relation: 'programId' }
+            { key: 'programName', label: t('program_name'), relation: 'programId' },
+            { key: 'programType', label: t('program_type'), relation: 'programId' }
           ]
         }
       ]
@@ -460,7 +460,7 @@ export default function ColumnManager({
           alignItems: 'center'
         }}>
           <h2 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: 'var(--text)' }}>
-            {getThemedIcon('ui', 'settings', 20, theme)} {t('manage_columns') || 'Manage Columns'}
+            {getThemedIcon('ui', 'settings', 20, theme)} {t('manage_columns')}
           </h2>
           <button
             onClick={onClose}
@@ -483,7 +483,7 @@ export default function ColumnManager({
           {/* Base Columns */}
           <div style={{ marginBottom: '2rem' }}>
             <h3 style={{ margin: '0 0 1rem 0', fontSize: '14px', fontWeight: '600', color: 'var(--text)' }}>
-              {t('base_columns') || 'Base Columns'}
+              {t('base_columns')}
             </h3>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '8px' }}>
               {availableColumns.map(column => (
@@ -520,7 +520,7 @@ export default function ColumnManager({
           {relatedColumns.length > 0 && (
             <div>
               <h3 style={{ margin: '0 0 1rem 0', fontSize: '14px', fontWeight: '600', color: 'var(--text)' }}>
-                {t('related_collection_columns') || 'Related Collection Columns'}
+                {t('related_collection_columns')}
               </h3>
               {relatedColumns.map(({ collection, columns }) => (
                 <div key={collection} style={{ marginBottom: '1rem' }}>
@@ -578,7 +578,7 @@ export default function ColumnManager({
               color: 'var(--text)'
             }}
           >
-            {t('cancel') || 'Cancel'}
+            {t('cancel')}
           </button>
           <button
             onClick={onClose}
@@ -593,7 +593,7 @@ export default function ColumnManager({
               fontWeight: '500'
             }}
           >
-            {t('apply') || 'Apply'}
+            {t('apply')}
           </button>
         </div>
       </div>

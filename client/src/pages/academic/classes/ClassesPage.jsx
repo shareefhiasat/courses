@@ -274,7 +274,7 @@ const ClassesPage = () => {
     let stopLoading = null;
 
     const initialLoad = async () => {
-      stopLoading = startLoading({ message: t('loading_classes') || 'Loading classes...' });
+      stopLoading = startLoading({ message: t('loading_classes') });
       await loadData(true);
       if (stopLoading) stopLoading();
       setLoading(false);
@@ -337,12 +337,12 @@ const ClassesPage = () => {
     }
 
     if (!classForm.programId) {
-      toast?.showError(t('program_required') || 'Program is required');
+      toast?.showError(t('program_required'));
       return;
     }
 
     if (!classForm.subjectId) {
-      toast?.showError(t('subject_required') || 'Subject is required');
+      toast?.showError(t('subject_required'));
       return;
     }
 
@@ -595,10 +595,10 @@ const handleCancelEdit = useCallback(() => {
   const auditColumns = useAuditGridColumns({ users });
 
   const gridColumns = useMemo(() => [
-    { field: 'nameEn', headerName: t('name') || 'Name', flex: 1, minWidth: 180 },
+    { field: 'nameEn', headerName: t('name'), flex: 1, minWidth: 180 },
     { 
       field: 'nameAr', 
-      headerName: t('name_arabic') || 'Arabic Name', 
+      headerName: t('name_arabic'), 
       flex: 1, 
       minWidth: 180,
       renderCell: (params) => {
@@ -608,7 +608,7 @@ const handleCancelEdit = useCallback(() => {
     },
     { 
       field: 'code', 
-      headerName: t('code') || 'Code', 
+      headerName: t('code'), 
       width: 120,
       valueGetter: (params) => {
         const row = params?.row || {};
@@ -617,7 +617,7 @@ const handleCancelEdit = useCallback(() => {
       }
     },
     {
-      field: 'subjectId', headerName: t('subject') || 'Subject', flex: 1, minWidth: 180,
+      field: 'subjectId', headerName: t('subject'), flex: 1, minWidth: 180,
       valueGetter: (params) => {
         const row = params?.row || {};
         return row.subjectId || row.subject || params?.value || null;
@@ -626,7 +626,7 @@ const handleCancelEdit = useCallback(() => {
         const subjectId = params.value || params.row?.subjectId || params.row?.subject;
         if (!subjectId) return (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-            {t('general') || 'General'}
+            {t('general')}
           </span>
         );
         const subject = subjects.find(s => (s.docId || s.id) === subjectId);
@@ -641,7 +641,7 @@ const handleCancelEdit = useCallback(() => {
         );
       },
       valueFormatter: (params) => {
-        if (!params.value) return t('general') || 'General';
+        if (!params.value) return t('general');
         const subject = subjects.find(s => (s.docId || s.id) === params.value);
         if (!subject) return '—';
         const subjectName = lang === 'ar' 
@@ -651,7 +651,7 @@ const handleCancelEdit = useCallback(() => {
       }
     },
     {
-      field: 'programId', headerName: t('program') || 'Program', flex: 1, minWidth: 180,
+      field: 'programId', headerName: t('program'), flex: 1, minWidth: 180,
       valueGetter: (params) => {
         const row = params?.row || {};
         return row.programId || row.program || params?.value || null;
@@ -660,7 +660,7 @@ const handleCancelEdit = useCallback(() => {
         const programId = params.value || params.row?.programId || params.row?.program;
         if (!programId) return (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-            {t('general') || 'General'}
+            {t('general')}
           </span>
         );
         const program = programs.find(p => (p.docId || p.id) === programId);
@@ -675,7 +675,7 @@ const handleCancelEdit = useCallback(() => {
         );
       },
       valueFormatter: (params) => {
-        if (!params.value) return t('general') || 'General';
+        if (!params.value) return t('general');
         const program = programs.find(p => (p.docId || p.id) === params.value);
         if (!program) return '—';
         const programName = lang === 'ar' 
@@ -686,7 +686,7 @@ const handleCancelEdit = useCallback(() => {
     },
     { 
       field: 'term', 
-      headerName: t('term') || 'Term', 
+      headerName: t('term'), 
       width: 140,
       valueGetter: (params) => {
         const term = params.value || params.row?.term;
@@ -715,7 +715,7 @@ const handleCancelEdit = useCallback(() => {
     },
     {
       field: 'year',
-      headerName: t('year') || 'Year', 
+      headerName: t('year'), 
       width: 100,
       valueGetter: (params) => {
         // Check for separate year field first
@@ -751,7 +751,7 @@ const handleCancelEdit = useCallback(() => {
     },
     {
       field: 'startDate',
-      headerName: t('class_start_date') || 'Start Date',
+      headerName: t('class_start_date'),
       width: 130,
       valueGetter: (params) => {
         const val = params.value || params.row?.startDate;
@@ -766,7 +766,7 @@ const handleCancelEdit = useCallback(() => {
     },
     {
       field: 'endDate',
-      headerName: t('class_end_date') || 'End Date',
+      headerName: t('class_end_date'),
       width: 130,
       valueGetter: (params) => {
         const val = params.value || params.row?.endDate;
@@ -786,7 +786,7 @@ const handleCancelEdit = useCallback(() => {
     },
     {
       field: 'locationEn',
-      headerName: t('location_english') || 'Location (English)',
+      headerName: t('location_english'),
       flex: 1, minWidth: 150,
       valueGetter: (params) => params.value || params.row?.locationEn || '—',
       renderCell: (params) => {
@@ -796,7 +796,7 @@ const handleCancelEdit = useCallback(() => {
     },
     {
       field: 'locationAr',
-      headerName: t('location_arabic') || 'Location (Arabic)',
+      headerName: t('location_arabic'),
       flex: 1, minWidth: 150,
       valueGetter: (params) => params.value || params.row?.locationAr || '—',
       renderCell: (params) => {
@@ -806,7 +806,7 @@ const handleCancelEdit = useCallback(() => {
     },
     {
       field: 'descriptionEn',
-      headerName: t('description_english') || 'Description (English)',
+      headerName: t('description_english'),
       flex: 1, minWidth: 200,
       valueGetter: (params) => params.value || params.row?.descriptionEn || '—',
       renderCell: (params) => {
@@ -816,7 +816,7 @@ const handleCancelEdit = useCallback(() => {
     },
     {
       field: 'descriptionAr',
-      headerName: t('description_arabic') || 'Description (Arabic)',
+      headerName: t('description_arabic'),
       flex: 1, minWidth: 200,
       valueGetter: (params) => params.value || params.row?.descriptionAr || '—',
       renderCell: (params) => {
@@ -826,7 +826,7 @@ const handleCancelEdit = useCallback(() => {
     },
     {
       field: 'maxCapacity', 
-      headerName: t('capacity') || 'Capacity', 
+      headerName: t('capacity'), 
       width: 100,
       valueGetter: (params) => params.value || params.row?.maxCapacity || '—',
       renderCell: (params) => {
@@ -835,7 +835,7 @@ const handleCancelEdit = useCallback(() => {
       }
     },
     {
-      field: 'ownerEmail', headerName: t('owner') || 'Owner', flex: 1, minWidth: 200,
+      field: 'ownerEmail', headerName: t('owner'), flex: 1, minWidth: 200,
       valueGetter: (params) => {
         const row = params?.row || {};
         const email = row.ownerEmail || params?.value;
@@ -874,7 +874,7 @@ const handleCancelEdit = useCallback(() => {
     },
     ...auditColumns,
     {
-      field: 'actions', headerName: t('actions') || 'Actions', width: 200, sortable: false, filterable: false,
+      field: 'actions', headerName: t('actions'), width: 200, sortable: false, filterable: false,
       renderCell: (params) => (
         <div style={{ display: 'flex', gap: 8 }}>
           <Button 
@@ -894,7 +894,7 @@ const handleCancelEdit = useCallback(() => {
             style={{ color: '#dc2626' }} 
             onClick={() => handleDelete(params)}
           >
-            {t('delete') || 'Delete'}
+            {t('delete')}
           </Button>
         </div>
       )
@@ -961,18 +961,18 @@ const handleCancelEdit = useCallback(() => {
         <div className="form-row">
           <Input
             ref={locationEnRef}
-            placeholder={t('location_english') || 'Location (English)'}
+            placeholder={t('location_english')}
             defaultValue={classForm.locationEn || ''}
           />
           <Input
             ref={locationArRef}
-            placeholder={t('location_arabic') || 'Location (Arabic)'}
+            placeholder={t('location_arabic')}
             defaultValue={classForm.locationAr || ''}
             dir="rtl"
           />
           <Input
             ref={capacityRef}
-            placeholder={t('capacity') || 'Capacity'}
+            placeholder={t('capacity')}
             defaultValue={classForm.maxCapacity || ''}
             type="number"
             min="1"
@@ -983,12 +983,12 @@ const handleCancelEdit = useCallback(() => {
         <div className="form-row">
           <Input
             ref={descriptionEnRef}
-            placeholder={t('description_english') || 'Description (English)'}
+            placeholder={t('description_english')}
             defaultValue={classForm.descriptionEn || ''}
           />
           <Input
             ref={descriptionArRef}
-            placeholder={t('description_arabic') || 'Description (Arabic)'}
+            placeholder={t('description_arabic')}
             defaultValue={classForm.descriptionAr || ''}
             dir="rtl"
           />
@@ -1082,10 +1082,10 @@ const handleCancelEdit = useCallback(() => {
             value={classForm.term || ''}
             onChange={e => setClassForm({ ...classForm, term: e.target.value })}
             options={[
-              { value: '', label: t('term') || 'Select Term' },
-              { value: 'Fall', label: t('fall') || 'Fall' },
-              { value: 'Spring', label: t('spring') || 'Spring' },
-              { value: 'Summer', label: t('summer') || 'Summer' }
+              { value: '', label: t('term') },
+              { value: 'Fall', label: t('fall') },
+              { value: 'Spring', label: t('spring') },
+              { value: 'Summer', label: t('summer') }
             ]}
             required
           />
@@ -1096,7 +1096,7 @@ const handleCancelEdit = useCallback(() => {
               startYear={2024}
               yearsAhead={5}
               label={null}
-              placeholder={t('year') || 'Year'}
+              placeholder={t('year')}
               searchable
               required
             />
@@ -1130,7 +1130,7 @@ const handleCancelEdit = useCallback(() => {
               variant="outline" 
               onClick={handleCancelEdit}
             >
-              {t('cancel') || 'Cancel'}
+              {t('cancel')}
             </Button>
           )}
         </div>
@@ -1238,7 +1238,7 @@ const handleCancelEdit = useCallback(() => {
           color: '#1e40af'
         }}>
           {getThemedIcon('ui', 'filter', 14, theme)}
-          {t('showing_filtered') || 'Showing'} {filteredClasses.length} {t('of') || 'of'} {classes.length} {t('classes') || 'Classes'}
+          {t('showing_filtered')} {filteredClasses.length} {t('of')} {classes.length} {t('classes')}
         </div>
       )}
 
@@ -1283,8 +1283,8 @@ const handleCancelEdit = useCallback(() => {
           checkboxSelection
           exportFileName="classes"
           showExportButton
-          exportLabel={t('export') || 'Export'}
-          loadingOverlayMessage={loading ? "Loading classes..." : undefined}
+          exportLabel={t('export')}
+          loadingOverlayMessage={loading ? t('loading_classes') : undefined}
         />
       </div>
 

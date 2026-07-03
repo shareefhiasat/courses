@@ -64,7 +64,7 @@ const AttendancePage = () => {
   const [programs, setPrograms] = useState([]);
   const [subjects, setSubjects] = useState([]);
   const [qrSize, setQrSize] = useState(() => {
-    try { return parseInt(localStorage.getItem('attendance_qr_size') || '200', 10); } catch { return 200; }
+    try { return parseInt(localStorage.getItem('attendance_qr_size'), 10); } catch { return 200; }
   });
   const [sessionStartTime, setSessionStartTime] = useState(null);
   const [showSubmitDialog, setShowSubmitDialog] = useState(false);
@@ -497,7 +497,7 @@ const AttendancePage = () => {
       setCfg(v => ({ ...v, lateMode: newLateMode }));
       await updateAttendanceSessionLateMode(sessionId, newLateMode);
     } catch(e) {
-      setErr(e?.message || (t('failed_to_toggle_late_mode') || 'Failed to toggle late mode'));
+      setErr(e?.message || (t('failed_to_toggle_late_mode')));
     }
   };
 
@@ -582,10 +582,10 @@ const AttendancePage = () => {
   const textColor = theme === 'dark' ? '#f3f4f6' : '#1f2937';
 
   const overviewCards = useMemo(() => [
-    { value: sessionId ? durationDisplay : '—', label: t('attendance_session_duration') || 'Duration', Icon: Clock, iconColor: '#6366f1', iconBg: 'rgba(99,102,241,0.12)' },
-    { value: attendanceCount, label: t('attendance_scanned') || 'Scanned', Icon: Users, iconColor: '#10b981', iconBg: 'rgba(16,185,129,0.12)' },
-    { value: filteredClasses.length, label: t('attendance_classes_available') || 'Classes', Icon: ClipboardList, iconColor: '#f59e0b', iconBg: 'rgba(245,158,11,0.12)' },
-    { value: selectedClass ? getLocalizedClassName(selectedClass, lang, selectedClass.name || selectedClass.code || '') : t('none') || 'None', label: t('attendance_selected_class') || 'Selected', Icon: CheckCircle, iconColor: '#800020', iconBg: 'rgba(128,0,32,0.12)' },
+    { value: sessionId ? durationDisplay : '—', label: t('attendance_session_duration'), Icon: Clock, iconColor: '#6366f1', iconBg: 'rgba(99,102,241,0.12)' },
+    { value: attendanceCount, label: t('attendance_scanned'), Icon: Users, iconColor: '#10b981', iconBg: 'rgba(16,185,129,0.12)' },
+    { value: filteredClasses.length, label: t('attendance_classes_available'), Icon: ClipboardList, iconColor: '#f59e0b', iconBg: 'rgba(245,158,11,0.12)' },
+    { value: selectedClass ? getLocalizedClassName(selectedClass, lang, selectedClass.name || selectedClass.code || '') : t('none'), label: t('attendance_selected_class'), Icon: CheckCircle, iconColor: '#800020', iconBg: 'rgba(128,0,32,0.12)' },
   ], [sessionId, durationDisplay, attendanceCount, filteredClasses.length, selectedClass, lang, t]);
 
   return (
@@ -603,11 +603,11 @@ const AttendancePage = () => {
         spotlightClicks={false}
         callback={handleTourCallback}
         locale={{
-          back: t('tour_back') || 'Back',
-          close: t('tour_close') || 'Close',
-          last: t('tour_finish') || 'Finish',
-          next: t('tour_next') || 'Next',
-          skip: t('tour_skip') || 'Skip',
+          back: t('tour_back'),
+          close: t('tour_close'),
+          last: t('tour_finish'),
+          next: t('tour_next'),
+          skip: t('tour_skip'),
         }}
         styles={{
           options: {
@@ -677,7 +677,7 @@ const AttendancePage = () => {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
             <Badge style={{ background: 'rgba(255,255,255,0.2)', color: 'white', padding: '0.5rem 1rem', borderRadius: 8, fontWeight: 600, fontSize: 'var(--font-size-sm)' }}>
-              {attendanceCount} {t('students') || 'Students'}
+              {attendanceCount} {t('students')}
             </Badge>
             <button
               onClick={endSession}
@@ -697,7 +697,7 @@ const AttendancePage = () => {
               }}
             >
               <Square size={14} />
-              {t('attendance_end_session') || 'End Session'}
+              {t('attendance_end_session')}
             </button>
           </div>
         </div>
@@ -744,12 +744,12 @@ const AttendancePage = () => {
                     value={termFilter}
                     onChange={(e) => setTermFilter(e.target.value)}
                     options={[
-                      { value: '', label: t('all_terms') || 'All Terms' },
-                      { value: 'spring', label: t('spring') || 'Spring' },
-                      { value: 'summer', label: t('summer') || 'Summer' },
-                      { value: 'fall', label: t('fall') || 'Fall' }
+                      { value: '', label: t('all_terms') },
+                      { value: 'spring', label: t('spring') },
+                      { value: 'summer', label: t('summer') },
+                      { value: 'fall', label: t('fall') }
                     ]}
-                    placeholder={t('select_term') || 'Select Term'}
+                    placeholder={t('select_term')}
                     fullWidth
                   />
                 </div>
@@ -758,13 +758,13 @@ const AttendancePage = () => {
                     value={yearFilter}
                     onChange={(e) => setYearFilter(e.target.value)}
                     options={[
-                      { value: '', label: t('all_years') || 'All Years' },
+                      { value: '', label: t('all_years') },
                       ...Array.from({length: 5}, (_, i) => {
                         const year = new Date().getFullYear() - 2 + i;
                         return { value: String(year), label: String(year) };
                       })
                     ]}
-                    placeholder={t('select_year') || 'Select Year'}
+                    placeholder={t('select_year')}
                     fullWidth
                   />
                 </div>
@@ -777,7 +777,7 @@ const AttendancePage = () => {
                   classes={classOptions}
                   value={instructorFilter}
                   onChange={(val) => setInstructorFilter(val === 'all' ? '' : (val || ''))}
-                  placeholder={t('attendance_filter_by_instructor') || 'Filter by Instructor'}
+                  placeholder={t('attendance_filter_by_instructor')}
                   roleFilter={[ROLE_STRINGS.INSTRUCTOR]}
                   includeAll
                   showEnrollments
@@ -794,7 +794,7 @@ const AttendancePage = () => {
             type="text"
             value={classQuickFilter}
             onChange={(e) => setClassQuickFilter(e.target.value)}
-            placeholder={t('attendance_quick_filter_classes') || 'Quick filter classes...'}
+            placeholder={t('attendance_quick_filter_classes')}
             style={{
               width: '100%',
               padding: '0.5rem 0.75rem',
@@ -900,7 +900,7 @@ const AttendancePage = () => {
 
       {/* Guidelines - Collapsible */}
       <CollapsibleSection
-        title={t('attendance_how_to_use') || 'How to Use'}
+        title={t('attendance_how_to_use')}
         icon={ListOrdered}
         defaultOpen={false}
         storageKey="attendance-guidelines"
@@ -938,7 +938,7 @@ const AttendancePage = () => {
 
       {/* QR Code Panel - Collapsible */}
       <CollapsibleSection
-        title={t('attendance_live_qr') || 'Live QR Code'}
+        title={t('attendance_live_qr')}
         icon={QrCode}
         defaultOpen
         storageKey="attendance-qr"
@@ -1070,7 +1070,7 @@ const AttendancePage = () => {
                       } catch(e) { setErr(e?.message || 'Export failed'); }
                     }}
                   >
-                    {t('export_excel') || 'Export Excel'}
+                    {t('export_excel')}
                   </Button>
                   {isInstructor && (
                     <Button 
@@ -1080,7 +1080,7 @@ const AttendancePage = () => {
                       onClick={handleExportAndSubmit}
                       disabled={!sessionId || loading}
                     >
-                      {t('export_submit_hr') || 'Export & Submit for HR Review'}
+                      {t('export_submit_hr')}
                     </Button>
                   )}
                 </div>
@@ -1135,7 +1135,7 @@ const AttendancePage = () => {
       <Modal
         isOpen={showSubmitDialog}
         onClose={() => { setShowSubmitDialog(false); setSubmitComments(''); }}
-        title={t('submit_attendance_report') || 'Submit Attendance Report for HR Review'}
+        title={t('submit_attendance_report')}
         size="medium"
         footer={
           <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
@@ -1144,7 +1144,7 @@ const AttendancePage = () => {
               onClick={() => { setShowSubmitDialog(false); setSubmitComments(''); }}
               disabled={isSubmitting}
             >
-              {t('cancel') || 'Cancel'}
+              {t('cancel')}
             </Button>
             <Button
               variant="primary"
@@ -1152,22 +1152,22 @@ const AttendancePage = () => {
               disabled={isSubmitting}
               style={{ background: isSubmitting ? '#9ca3af' : '#10b981' }}
             >
-              {isSubmitting ? (t('submitting') || 'Submitting...') : (t('confirm_submit') || 'Confirm & Submit')}
+              {isSubmitting ? (t('submitting')) : (t('confirm_submit'))}
             </Button>
           </div>
         }
       >
         <p style={{ margin: '0 0 1rem 0', color: mutedColor, fontSize: 'var(--font-size-sm)' }}>
-          {t('submit_confirmation') || 'This will generate an attendance report and submit it to HR for review. Are you sure you want to proceed?'}
+          {t('submit_confirmation')}
         </p>
         <div>
           <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500, color: textColor, fontSize: 'var(--font-size-sm)' }}>
-            {t('optional_comments') || 'Optional Comments'}
+            {t('optional_comments')}
           </label>
           <Textarea
             value={submitComments}
             onChange={(e) => setSubmitComments(e.target.value)}
-            placeholder={t('add_submission_notes') || 'Add any notes for HR...'}
+            placeholder={t('add_submission_notes')}
             rows={3}
           />
         </div>

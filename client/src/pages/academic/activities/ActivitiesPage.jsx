@@ -187,7 +187,7 @@ const ActivitiesPage = () => {
     let stopLoading = null;
 
     const initialLoad = async () => {
-      stopLoading = startLoading({ message: t('loading_activities') || 'Loading activities...' });
+      stopLoading = startLoading({ message: t('loading_activities') });
       await loadData(true);
       if (stopLoading) stopLoading();
       setDataLoading(false);
@@ -499,7 +499,7 @@ const ActivitiesPage = () => {
     },
     {
       field: 'programId',
-      headerName: t('program') || 'Program',
+      headerName: t('program'),
       width: 150,
       valueGetter: (params) => {
         const row = params?.row || {};
@@ -509,7 +509,7 @@ const ActivitiesPage = () => {
         const programId = params.value || params.row?.programId || params.row?.program;
         if (!programId) return (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-            {t('general') || 'General'}
+            {t('general')}
           </span>
         );
         const program = programs.find(p => (p.docId || p.id) === programId);
@@ -524,7 +524,7 @@ const ActivitiesPage = () => {
         );
       },
       valueFormatter: (params) => {
-        if (!params.value) return t('general') || 'General';
+        if (!params.value) return t('general');
         const program = programs.find(p => (p.docId || p.id) === params.value);
         if (!program) return '—';
         const programName = lang === 'ar' 
@@ -535,7 +535,7 @@ const ActivitiesPage = () => {
     },
     {
       field: 'subjectId',
-      headerName: t('subject') || 'Subject',
+      headerName: t('subject'),
       width: 150,
       valueGetter: (params) => {
         const row = params?.row || {};
@@ -545,7 +545,7 @@ const ActivitiesPage = () => {
         const subjectId = params.value || params.row?.subjectId || params.row?.subject;
         if (!subjectId) return (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-            {t('general') || 'General'}
+            {t('general')}
           </span>
         );
         const subject = subjects.find(s => (s.docId || s.id) === subjectId);
@@ -560,7 +560,7 @@ const ActivitiesPage = () => {
         );
       },
       valueFormatter: (params) => {
-        if (!params.value) return t('general') || 'General';
+        if (!params.value) return t('general');
         const subject = subjects.find(s => (s.docId || s.id) === params.value);
         if (!subject) return '—';
         const subjectName = lang === 'ar' 
@@ -571,7 +571,7 @@ const ActivitiesPage = () => {
     },
     { 
       field: 'classId', 
-      headerName: t('class_col') || 'Class', 
+      headerName: t('class_col'), 
       width: 180,
       valueGetter: (params) => {
         const row = params?.row || {};
@@ -580,7 +580,7 @@ const ActivitiesPage = () => {
       renderCell: (params) => {
         if (!params.value) return (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-            {t('general') || 'General'}
+            {t('general')}
           </span>
         );
         const classItem = classes.find(c => (c.docId || c.id) === params.value);
@@ -596,7 +596,7 @@ const ActivitiesPage = () => {
         );
       },
       valueFormatter: (params) => {
-        if (!params.value) return t('general') || 'General';
+        if (!params.value) return t('general');
         const classItem = classes.find(c => (c.docId || c.id) === params.value);
         if (!classItem) return params.value;
         const className = lang === 'ar' 
@@ -608,7 +608,7 @@ const ActivitiesPage = () => {
     },
     { 
       field: 'type', 
-      headerName: t('type_col') || 'Type', 
+      headerName: t('type_col'), 
       width: 140,
       valueGetter: (params) => {
         const row = params?.row || {};
@@ -653,14 +653,14 @@ const ActivitiesPage = () => {
     },
     {
       field: 'maxScore',
-      headerName: t('max_score') || 'Max Score',
+      headerName: t('max_score'),
       width: 120,
       renderCell: (params) => params.value || '—',
       valueFormatter: (params) => params.value || '—'
     },
     {
       field: 'quizId',
-      headerName: t('quiz') || 'Quiz',
+      headerName: t('quiz'),
       width: 200,
       valueGetter: (params) => {
         const row = params?.row || {};
@@ -685,15 +685,15 @@ const ActivitiesPage = () => {
     {
       field: 'dueDate', headerName: t('assignment_due_date_col'), flex: 1, minWidth: 200,
       valueGetter: (params) => params.value,
-      renderCell: (params) => (params.value ? formatQatarDateTime(params.value) : (t('no_deadline_set') || 'No deadline set')),
+      renderCell: (params) => (params.value ? formatQatarDateTime(params.value) : (t('no_deadline_set'))),
       valueFormatter: (params) => {
-        if (!params.value) return t('no_deadline_set') || 'No deadline set';
+        if (!params.value) return t('no_deadline_set');
         return formatQatarDateTime(params.value);
       }
     },
     ...auditColumns,
     {
-      field: 'show', headerName: t('visible') || 'Visible', width: 100,
+      field: 'show', headerName: t('visible'), width: 100,
       renderCell: (params) => {
         const isVisible = params.value;
         return (
@@ -708,10 +708,10 @@ const ActivitiesPage = () => {
           </span>
         );
       },
-      valueFormatter: (params) => params.value ? (t('yes') || 'Yes') : (t('no') || 'No')
+      valueFormatter: (params) => params.value ? (t('yes')) : (t('no'))
     },
     {
-      field: 'allowRetake', headerName: t('allow_retakes') || 'Retakable', width: 120,
+      field: 'allowRetake', headerName: t('allow_retakes'), width: 120,
       renderCell: (params) => {
         const allowed = params.value;
         return (
@@ -726,10 +726,10 @@ const ActivitiesPage = () => {
           </span>
         );
       },
-      valueFormatter: (params) => params.value ? (t('yes') || 'Yes') : (t('no') || 'No')
+      valueFormatter: (params) => params.value ? (t('yes')) : (t('no'))
     },
     {
-      field: 'featured', headerName: t('featured') || 'Featured', width: 100,
+      field: 'featured', headerName: t('featured'), width: 100,
       renderCell: (params) => {
         const isFeatured = params.value;
         return (
@@ -744,10 +744,10 @@ const ActivitiesPage = () => {
           </span>
         );
       },
-      valueFormatter: (params) => params.value ? (t('yes') || 'Yes') : (t('no') || 'No')
+      valueFormatter: (params) => params.value ? (t('yes')) : (t('no'))
     },
     {
-      field: 'optional', headerName: t('optional') || 'Optional', width: 100,
+      field: 'optional', headerName: t('optional'), width: 100,
       renderCell: (params) => {
         const isOptional = params.value;
         return (
@@ -762,10 +762,10 @@ const ActivitiesPage = () => {
           </span>
         );
       },
-      valueFormatter: (params) => params.value ? (t('yes') || 'Yes') : (t('no') || 'No')
+      valueFormatter: (params) => params.value ? (t('yes')) : (t('no'))
     },
     {
-      field: 'requiresSubmission', headerName: t('requires_submission') || 'Requires Submission', width: 150,
+      field: 'requiresSubmission', headerName: t('requires_submission'), width: 150,
       renderCell: (params) => {
         const required = params.value;
         return (
@@ -780,14 +780,14 @@ const ActivitiesPage = () => {
           </span>
         );
       },
-      valueFormatter: (params) => params.value ? (t('yes') || 'Yes') : (t('no') || 'No')
+      valueFormatter: (params) => params.value ? (t('yes')) : (t('no'))
     },
     {
-      field: 'actions', headerName: t('actions') || 'Actions', width: 150, sortable: false, filterable: false,
+      field: 'actions', headerName: t('actions'), width: 150, sortable: false, filterable: false,
       renderCell: (params) => (
         <div style={{ display: 'flex', gap: 8 }}>
           <Button size="sm" variant="ghost" className="editHover" icon={getThemedIcon('ui', 'edit', 16, theme)} onClick={() => handleEditActivity(params.row)}>
-            {t('edit') || 'Edit'}
+            {t('edit')}
           </Button>
           <Button size="sm" variant="ghost" className="deleteHover" icon={getThemedIcon('ui', 'trash', 16, theme)} style={{ color: '#dc2626' }} onClick={() => {
             const activity = params.row;
@@ -796,7 +796,7 @@ const ActivitiesPage = () => {
               try {
                 const result = await deleteActivityService(activity.docId, activity);
                 if (result.success) {
-                  toast?.showSuccess(result.message || t('activity_deleted_successfully') || 'Activity deleted successfully!');
+                  toast?.showSuccess(result.message || t('activity_deleted_successfully'));
                   await loadData();
                 } else if (result.code === 'HAS_DEPENDENCIES' && result.dependencies) {
                   // Rollback and show force-delete confirmation
@@ -819,15 +819,15 @@ const ActivitiesPage = () => {
                   }, { relatedRecords: result.dependencies });
                 } else {
                   setActivities(prev => [...prev, activity].sort((a, b) => a.order - b.order));
-                  toast?.showError(result.error || t('error_deleting_activity') || 'Error deleting activity');
+                  toast?.showError(result.error || t('error_deleting_activity'));
                 }
               } catch (error) {
                 setActivities(prev => [...prev, activity].sort((a, b) => a.order - b.order));
-                toast?.showError(t('error_deleting_activity') || 'Error deleting activity: ' + error.message);
+                toast?.showError(t('error_deleting_activity') + error.message);
               }
             });
           }}>
-            {t('delete') || 'Delete'}
+            {t('delete')}
           </Button>
         </div>
       )
@@ -884,7 +884,7 @@ const ActivitiesPage = () => {
     const chips = [
       {
         id: 'all',
-        label: t('total') || 'Total',
+        label: t('total'),
         count: activities.length,
         icon: getThemedIcon('ui', 'target', 16, theme),
         variant: 'blue',
@@ -922,7 +922,7 @@ const ActivitiesPage = () => {
     if (visibleCount > 0) {
       chips.push({
         id: 'visible',
-        label: t('visible') || 'Visible',
+        label: t('visible'),
         count: visibleCount,
         icon: getThemedIcon('ui', 'eye', 16, theme),
         variant: 'blue',
@@ -931,7 +931,7 @@ const ActivitiesPage = () => {
     if (hiddenCount > 0) {
       chips.push({
         id: 'hidden',
-        label: t('hidden') || 'Hidden',
+        label: t('hidden'),
         count: hiddenCount,
         icon: getThemedIcon('ui', 'eye_off', 16, theme),
         variant: 'gray',
@@ -942,7 +942,7 @@ const ActivitiesPage = () => {
     if (featuredCount > 0) {
       chips.push({
         id: 'featured',
-        label: t('featured') || 'Featured',
+        label: t('featured'),
         count: featuredCount,
         icon: getThemedIcon('ui', 'star', 16, theme),
         variant: 'amber',
@@ -954,7 +954,7 @@ const ActivitiesPage = () => {
     if (optionalCount > 0) {
       chips.push({
         id: 'optional',
-        label: t('optional') || 'Optional',
+        label: t('optional'),
         count: optionalCount,
         icon: getThemedIcon('ui', 'check_circle', 16, theme),
         variant: 'sky',
@@ -963,7 +963,7 @@ const ActivitiesPage = () => {
     if (requiredCount > 0) {
       chips.push({
         id: 'required',
-        label: t('required') || 'Required',
+        label: t('required'),
         count: requiredCount,
         icon: getThemedIcon('ui', 'alert_circle', 16, theme),
         variant: 'indigo',
@@ -974,7 +974,7 @@ const ActivitiesPage = () => {
     if (submissionCount > 0) {
       chips.push({
         id: 'requiresSubmission',
-        label: t('requires_submission') || 'Requires Submission',
+        label: t('requires_submission'),
         count: submissionCount,
         icon: getThemedIcon('ui', 'upload', 16, theme),
         variant: 'red',
@@ -985,7 +985,7 @@ const ActivitiesPage = () => {
     if (retakableCount > 0) {
       chips.push({
         id: 'retakable',
-        label: t('retakable') || 'Retakable',
+        label: t('retakable'),
         count: retakableCount,
         icon: getThemedIcon('ui', 'repeat', 16, theme),
         variant: 'purple',
@@ -1013,7 +1013,7 @@ const ActivitiesPage = () => {
           gap: '0.5rem',
           color: isDark ? '#fef3c7' : '#78350f'
         }}>
-          {getThemedIcon('ui', 'edit', 16, theme)} {t('editing_activity') || 'Editing Activity'}: {editingActivity.titleEn || editingActivity.title}
+          {getThemedIcon('ui', 'edit', 16, theme)} {t('editing_activity')}: {editingActivity.titleEn || editingActivity.title}
         </div>
       )}
 
@@ -1053,7 +1053,7 @@ const ActivitiesPage = () => {
             <div className="form-row">
               <Select
                 searchable
-                placeholder={t('type') || 'Activity Type'}
+                placeholder={t('type')}
                 value={activityForm.type}
                 onChange={(e) => handleFieldChange('type', e.target.value)}
                 options={ACTIVITY_TYPE_OPTIONS}
@@ -1063,11 +1063,11 @@ const ActivitiesPage = () => {
               <div style={{ position: 'relative', width: '100%' }}>
                 <Select
                   searchable
-                  placeholder={t('difficulty') || 'Difficulty'}
+                  placeholder={t('difficulty')}
                   value={activityForm.difficulty || DIFFICULTY_TYPES.BEGINNER}
                   onChange={(e) => {
                     if (activityForm.quizId && !activityForm.overrideQuizSettings) {
-                      toast?.showInfo?.(t('difficulty_synced_from_quiz') || 'Difficulty is synced from quiz. Enable "Override quiz settings" to edit.');
+                      toast?.showInfo?.(t('difficulty_synced_from_quiz'));
                       return;
                     }
                     handleFieldChange('difficulty', e.target.value);
@@ -1101,7 +1101,7 @@ const ActivitiesPage = () => {
                 <input
                   ref={titleEnRef}
                   type="text"
-                  placeholder={(t('title_english') || 'Title (English)') + '*'}
+                  placeholder={(t('title_english')) + '*'}
                   defaultValue={activityForm.titleEn}
                   className="dashboard-input"
                   required
@@ -1110,7 +1110,7 @@ const ActivitiesPage = () => {
               <input
                 ref={titleArRef}
                 type="text"
-                placeholder={t('title_arabic') || 'Title (Arabic)'}
+                placeholder={t('title_arabic')}
                 defaultValue={activityForm.titleAr}
                 className="dashboard-input"
                 style={{ direction: 'rtl' }}
@@ -1123,7 +1123,7 @@ const ActivitiesPage = () => {
             <RichTextEditor
               value={activityForm.descriptionEn}
               onChange={handleDescriptionEnChange}
-              placeholder={t('description_english') || 'Description (English)'}
+              placeholder={t('description_english')}
               height={100}
               dir="ltr"
             />
@@ -1132,7 +1132,7 @@ const ActivitiesPage = () => {
             <RichTextEditor
               value={activityForm.descriptionAr}
               onChange={handleDescriptionArChange}
-              placeholder={t('description_arabic') || 'Description (Arabic)'}
+              placeholder={t('description_arabic')}
               height={100}
               dir="rtl"
             />
@@ -1151,7 +1151,7 @@ const ActivitiesPage = () => {
                 type="datetime"
                 value={activityForm.dueDate || ''}
                 onChange={(iso) => handleFieldChange('dueDate', iso || undefined)}
-                placeholder={t('pick_due_date') || 'Pick due date & time'}
+                placeholder={t('pick_due_date')}
                 theme={theme}
               />
               <input
@@ -1168,7 +1168,7 @@ const ActivitiesPage = () => {
                 value={activityForm.maxScore || 100}
                 onChange={(e) => {
                   if (activityForm.quizId && !activityForm.overrideQuizSettings) {
-                    toast?.showInfo?.(t('max_score_synced_from_quiz') || 'Max score is synced from quiz. Enable "Override quiz settings" to edit.');
+                    toast?.showInfo?.(t('max_score_synced_from_quiz'));
                     return;
                   }
                   handleFieldChange('maxScore', Math.max(1, Number.parseInt(e.target.value || '0', 10)));
@@ -1186,7 +1186,7 @@ const ActivitiesPage = () => {
               <div className="form-row single-column">
                 <Select
                   searchable
-                  placeholder={t('select_quiz') || 'Select Quiz (Optional)'}
+                  placeholder={t('select_quiz')}
                   value={activityForm.quizId || ''}
                   onChange={(e) => {
                     const selectedQuizId = e.target.value;
@@ -1220,7 +1220,7 @@ const ActivitiesPage = () => {
                     }
                   }}
                   options={[
-                    { value: '', label: t('select_quiz') || 'Select Quiz (Optional)' },
+                    { value: '', label: t('select_quiz') },
                     ...quizzes
                       .filter((quiz, index, self) => 
                         index === self.findIndex(q => q.id === quiz.id)
@@ -1236,7 +1236,7 @@ const ActivitiesPage = () => {
                 {activityForm.quizId && (
                   <div>
                     <ToggleSwitch
-                      label={t('override_quiz_settings') || 'Override quiz settings (retake, difficulty, total marks)'}
+                      label={t('override_quiz_settings')}
                       checked={activityForm.overrideQuizSettings || false}
                       onChange={(checked) => {
                         setActivityForm(prev => {
@@ -1280,18 +1280,18 @@ const ActivitiesPage = () => {
         <div className="form-row compact-cols">
           <ToggleSwitch
             key="toggle-show"
-            label={t('show_to_students') || 'Show to students'}
+            label={t('show_to_students')}
             checked={activityForm.show}
             onChange={(checked) => handleFieldChange('show', checked)}
           />
           <div key="toggle-allowRetake-wrapper" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <ToggleSwitch
               key="toggle-allowRetake"
-              label={t('allow_retakes') || 'Retakable'}
+              label={t('allow_retakes')}
               checked={activityForm.allowRetake || false}
               onChange={(checked) => {
                 if (activityForm.quizId && !activityForm.overrideQuizSettings) {
-                  toast?.showInfo?.(t('allow_retakes_synced_from_quiz') || 'Retakable is synced from quiz. Enable "Override quiz settings" to edit.');
+                  toast?.showInfo?.(t('allow_retakes_synced_from_quiz'));
                   return;
                 }
                 handleFieldChange('allowRetake', checked);
@@ -1310,19 +1310,19 @@ const ActivitiesPage = () => {
           </div>
           <ToggleSwitch
             key="toggle-featured"
-            label={t('featured') || 'Featured'}
+            label={t('featured')}
             checked={activityForm.featured}
             onChange={(checked) => handleFieldChange('featured', checked)}
           />
           <ToggleSwitch
             key="toggle-optional"
-            label={t('optional') || 'Optional (if off: Required)'}
+            label={t('optional')}
             checked={activityForm.optional}
             onChange={(checked) => handleFieldChange('optional', checked)}
           />
           <ToggleSwitch
             key="toggle-requiresSubmission"
-            label={t('requires_submission') || 'Requires Submission'}
+            label={t('requires_submission')}
             checked={activityForm.requiresSubmission}
             onChange={(checked) => handleFieldChange('requiresSubmission', checked)}
           />
@@ -1333,7 +1333,7 @@ const ActivitiesPage = () => {
           <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
               <Button type="submit" variant="primary" loading={loading}>
-                {(editingActivity ? (t('update') || 'Update') : (t('save') || 'Save'))}
+                {(editingActivity ? (t('update')) : (t('save')))}
               </Button>
             </div>
             <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
@@ -1347,7 +1347,7 @@ const ActivitiesPage = () => {
                 }}
                 style={{ display: editingActivity ? 'block' : 'none' }}
               >
-                {t('cancel') || 'Cancel'}
+                {t('cancel')}
               </Button>
             </div>
           </div>
@@ -1389,20 +1389,20 @@ const ActivitiesPage = () => {
             value={activityTypeFilter || ''}
             onChange={(e) => setActivityTypeFilter(e.target.value)}
             options={[
-              { value: '', label: t('all_types') || 'All Types', icon: getThemedIcon('ui', 'filter', 16, theme) },
+              { value: '', label: t('all_types'), icon: getThemedIcon('ui', 'filter', 16, theme) },
               ...ACTIVITY_TYPE_OPTIONS
             ]}
-            placeholder={t('all_types') || 'All Types'}
+            placeholder={t('all_types')}
             style={{ minWidth: '200px' }}
           />
           <Select
             value={activityDifficultyFilter || ''}
             onChange={(e) => setActivityDifficultyFilter(e.target.value)}
             options={[
-              { value: '', label: t('all_difficulties') || 'All Difficulties', icon: getThemedIcon('ui', 'filter', 16, theme) },
+              { value: '', label: t('all_difficulties'), icon: getThemedIcon('ui', 'filter', 16, theme) },
               ...difficultyOptions
             ]}
-            placeholder={t('all_difficulties') || 'All Difficulties'}
+            placeholder={t('all_difficulties')}
             style={{ minWidth: '200px' }}
           />
         </div>
@@ -1458,7 +1458,7 @@ const ActivitiesPage = () => {
           color: isDark ? '#dbeafe' : '#1e40af'
         }}>
           {getThemedIcon('ui', 'filter', 14, theme)}
-          {t('showing_filtered') || 'Showing'} {filteredActivities.length} {t('of') || 'of'} {activities.length} {t('activities') || 'Activities'}
+          {t('showing_filtered')} {filteredActivities.length} {t('of')} {activities.length} {t('activities')}
         </div>
       )}
       
@@ -1482,7 +1482,7 @@ const ActivitiesPage = () => {
           checkboxSelection
           exportFileName="activities"
           showExportButton
-          exportLabel={t('export') || 'Export'}
+          exportLabel={t('export')}
           loadingOverlayMessage={loading ? "Loading..." : undefined}
         />
       </div>

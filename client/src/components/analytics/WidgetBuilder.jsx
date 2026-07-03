@@ -164,12 +164,12 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
   };
 
   const CHART_TYPES = [
-    { type: 'bar',  icon: getThemedIcon('ui', 'bar_chart3', 16, theme),   label: t('bar')  || 'Bar' },
-    { type: 'line', icon: getThemedIcon('ui', 'line_chart', 16, theme),   label: t('line') || 'Line' },
-    { type: 'pie',  icon: getThemedIcon('ui', 'pie_chart', 16, theme),    label: t('pie')  || 'Pie' },
-    { type: 'donut', icon: getThemedIcon('ui', 'pie_chart', 16, theme),  label: t('donut') || 'Donut' },
-    { type: 'list', icon: getThemedIcon('ui', 'list', 16, theme),        label: t('list') || 'List' },
-    { type: 'count', icon: getThemedIcon('ui', 'hash', 16, theme),       label: t('count') || 'Count' },
+    { type: 'bar',  icon: getThemedIcon('ui', 'bar_chart3', 16, theme),   label: t('bar') },
+    { type: 'line', icon: getThemedIcon('ui', 'line_chart', 16, theme),   label: t('line') },
+    { type: 'pie',  icon: getThemedIcon('ui', 'pie_chart', 16, theme),    label: t('pie') },
+    { type: 'donut', icon: getThemedIcon('ui', 'pie_chart', 16, theme),  label: t('donut') },
+    { type: 'list', icon: getThemedIcon('ui', 'list', 16, theme),        label: t('list') },
+    { type: 'count', icon: getThemedIcon('ui', 'hash', 16, theme),       label: t('count') },
   ];
 
   return (
@@ -194,12 +194,12 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
             <h2 style={{ margin: 0, fontSize: 20, fontWeight: 700, color: 'var(--text)' }}>
-              {isEditing ? (t('edit_widget') || 'Edit Widget') : (t('create_new_widget') || 'Create New Widget')}
+              {isEditing ? (t('edit_widget')) : (t('create_new_widget'))}
             </h2>
-            <PortalTooltip content={t('widget_builder_help') || 'Choose the chart type, data source, grouping, date range, and layout size. Only options compatible with the selected source are enabled.'} position="top">
+            <PortalTooltip content={t('widget_builder_help')} position="top">
               <span
                 style={{ display: 'flex', color: 'var(--muted)', cursor: 'help' }}
-                aria-label={t('widget_builder_help') || 'Widget builder help'}
+                aria-label={t('widget_builder_help')}
               >
                 {getThemedIcon('ui', 'help_circle', 16, theme)}
               </span>
@@ -216,34 +216,34 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
         <div style={{ display: 'grid', gap: 20 }}>
 
           {/* Widget Title */}
-          <Field label={t('title') || 'Title'}>
+          <Field label={t('title')}>
             <input
               type="text"
               value={config.title}
               onChange={e => set({ title: e.target.value })}
-              placeholder={t('widget_title_placeholder') || 'e.g., Submissions by Status'}
+              placeholder={t('widget_title_placeholder')}
               style={getInputStyle()}
             />
           </Field>
 
           {/* Bilingual Titles */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <Field label={t('title_en') || 'Title (English)'}>
+            <Field label={t('title_en')}>
               <input
                 type="text"
                 value={config.titleEn || ''}
                 onChange={e => set({ titleEn: e.target.value })}
-                placeholder={t('widget_title_en_placeholder') || 'e.g., Attendance by Type'}
+                placeholder={t('widget_title_en_placeholder')}
                 style={getInputStyle()}
                 dir="ltr"
               />
             </Field>
-            <Field label={t('title_ar') || 'Title (Arabic)'}>
+            <Field label={t('title_ar')}>
               <input
                 type="text"
                 value={config.titleAr || ''}
                 onChange={e => set({ titleAr: e.target.value })}
-                placeholder={t('widget_title_ar_placeholder') || 'مثال: الحضور حسب النوع'}
+                placeholder={t('widget_title_ar_placeholder')}
                 style={getInputStyle()}
                 dir="rtl"
               />
@@ -299,7 +299,7 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
 
           {/* Data source */}
           <div data-tour="widget-builder-data-source">
-          <Field label={t('data_source') || 'Data Source'}>
+          <Field label={t('data_source')}>
             {categoryTabs.length > 1 && (
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 10 }}>
               {categoryTabs.map((cat) => (
@@ -355,7 +355,7 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
                 set(patch);
               }}
               options={availableDataSources.map(s => ({ value: s.value, label: t(s.labelKey) || s.label || s.value }))}
-              placeholder={t('select_data_source') || 'Select a data source'}
+              placeholder={t('select_data_source')}
               fullWidth
             />
           </Field>
@@ -363,7 +363,7 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
 
           {/* Count metric picker */}
           {showCountMetricPicker && (
-            <Field label={t('what_to_count') || t('metric') || 'What to count'}>
+            <Field label={t('what_to_count')}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 8 }}>
                 {countOptions.map((stat) => {
                   const selectedMetric = config.countMetric || config.statKey;
@@ -397,7 +397,7 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
 
           {/* Value field for sum aggregation on scheduling sources */}
           {!isListWidget && !isCountWidget && currentSource?.valueFields?.length > 0 && (
-            <Field label={t('measure_field') || 'Measure'}>
+            <Field label={t('measure_field')}>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 {valueFieldOptions.map((vf) => (
                   <div
@@ -422,7 +422,7 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
 
           {/* List row limit */}
           {isListWidget && (
-            <Field label={t('list_row_limit') || 'Row limit'}>
+            <Field label={t('list_row_limit')}>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
                 {LIST_LIMIT_OPTIONS.map((limit) => (
                   <div
@@ -448,9 +448,9 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
           {/* Group By + Aggregation */}
           <div style={{ display: 'grid', gridTemplateColumns: isListWidget ? '1fr' : '1fr 1fr', gap: 12 }}>
             {!isListWidget && !isCountWidget && (
-              <Field label={t('group_by') || 'Group By'}>
+              <Field label={t('group_by')}>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', gap: 8, marginTop: 4 }}>
-                  {[{ value: '', label: t('none') || 'None' }, ...groupByOptions].map((option) => {
+                  {[{ value: '', label: t('none') }, ...groupByOptions].map((option) => {
                     const selected = (config.groupBy || '') === option.value;
                     return (
                       <div
@@ -537,7 +537,7 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
 
           {/* Date Range */}
           <div data-tour="widget-builder-date-range">
-          <Field label={t('date_range') || 'Date Range'}>
+          <Field label={t('date_range')}>
           <div style={{
             display: 'flex',
             flexWrap: 'nowrap',
@@ -576,8 +576,8 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
                   fromDate={config.customDateFrom}
                   toDate={config.customDateTo}
                   onChange={({ fromDate, toDate }) => set({ customDateFrom: fromDate, customDateTo: toDate })}
-                  placeholderFrom={t('from_date') || 'From Date'}
-                  placeholderTo={t('to_date') || 'To Date'}
+                  placeholderFrom={t('from_date')}
+                  placeholderTo={t('to_date')}
                   fullWidth
                 />
               </div>
@@ -593,7 +593,7 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
                 onChange={e => set({ comparisonMode: e.target.checked })}
                 style={{ width: 16, height: 16, accentColor }}
               />
-              {t('comparison_mode') || 'Comparison Mode'}
+              {t('comparison_mode')}
             </label>
             {config.comparisonMode && (
               <div style={{ marginTop: 10 }}>
@@ -601,8 +601,8 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
                   value={config.comparisonPeriod}
                   onChange={e => set({ comparisonPeriod: e.target.value })}
                   options={[
-                    { value: 'previous', label: t('vs_previous_period') || 'vs Previous Period' },
-                    { value: 'lastYear', label: t('vs_last_year') || 'vs Last Year' },
+                    { value: 'previous', label: t('vs_previous_period') },
+                    { value: 'lastYear', label: t('vs_last_year') },
                   ]}
                   fullWidth
                 />
@@ -612,7 +612,7 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
 
           {/* Grid Size hint */}
           <div data-tour="widget-builder-size" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-            <Field label={t('width_columns') || 'Width (columns 1–12)'}>
+            <Field label={t('width_columns')}>
               <input
                 type="number"
                 min={2} max={12}
@@ -621,7 +621,7 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
                 style={getInputStyle()}
               />
             </Field>
-            <Field label={t('height_rows') || 'Height (rows)'}>
+            <Field label={t('height_rows')}>
               <input
                 type="number"
                 min={2} max={12}
@@ -639,14 +639,14 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
             onClick={onCancel}
             style={{ padding: '0.7rem 1.4rem', background: '#6b7280', color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}
           >
-            {t('cancel') || 'Cancel'}
+            {t('cancel')}
           </button>
           <button
             onClick={onSave}
             style={{ padding: '0.7rem 1.4rem', background: accentColor, color: 'white', border: 'none', borderRadius: 8, cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}
           >
             {getThemedIcon('ui', 'save', 16, 'white')}
-            {isEditing ? (t('update') || 'Update') : (t('create') || 'Create')}
+            {isEditing ? (t('update')) : (t('create'))}
           </button>
         </div>
       </div>

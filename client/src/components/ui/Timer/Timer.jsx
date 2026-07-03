@@ -120,10 +120,10 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Timer
         color: '#666',
         marginBottom: '1rem'
       }}>
-        {!isRunning && timeLeft === duration && (t('ready_to_start') || 'Ready to start')}
-        {isRunning && !isPaused && (t('time_running') || 'Time running...')}
-        {isPaused && (t('paused') || 'Paused')}
-        {timeLeft === 0 && (t('time_up') || 'Time\'s up!')}
+        {!isRunning && timeLeft === duration && (t('ready_to_start'))}
+        {isRunning && !isPaused && (t('time_running'))}
+        {isPaused && (t('paused'))}
+        {timeLeft === 0 && (t('time_up'))}
       </div>
 
       {/* Controls */}
@@ -148,7 +148,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Timer
                 fontSize: 'var(--font-size-md)'
               }}
             >
-              ▶️ {t('start') || 'Start'}
+              ▶️ {t('start')}
             </button>
           )}
 
@@ -166,7 +166,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Timer
                 fontSize: 'var(--font-size-md)'
               }}
             >
-              ⏸️ {t('pause') || 'Pause'}
+              ⏸️ {t('pause')}
             </button>
           )}
 
@@ -184,7 +184,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Timer
                 fontSize: 'var(--font-size-md)'
               }}
             >
-              ▶️ {t('resume') || 'Resume'}
+              ▶️ {t('resume')}
             </button>
           )}
 
@@ -202,7 +202,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Timer
                 fontSize: 'var(--font-size-md)'
               }}
             >
-              🔄 {t('reset') || 'Reset'}
+              🔄 {t('reset')}
             </button>
           )}
         </div>

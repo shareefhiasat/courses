@@ -166,14 +166,14 @@ export default function ChartBrushControls({
 
         <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', gap: 4, flexShrink: 0 }}>
           {isZoomed && (
-            <button type="button" onClick={onReset} title={t('chart_reset_zoom') || 'Reset zoom'} style={iconBtn(false)}>
+            <button type="button" onClick={onReset} title={t('chart_reset_zoom')} style={iconBtn(false)}>
               <IconReset size={14} color="var(--text)" />
             </button>
           )}
           <button
             type="button"
             onClick={onDownload}
-            title={t('chart_download_svg') || 'Download SVG'}
+            title={t('chart_download_svg')}
             style={iconBtn(true)}
           >
             <IconDownload size={14} color={accentColor} />

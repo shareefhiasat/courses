@@ -277,7 +277,7 @@ const MarksHistoryDrawer = memo(({
             alignItems: 'center' 
           }}>
             <h3 id="history-drawer-title" style={{ margin: 0, color: isDarkMode ? '#f3f4f6' : '#111827' }}>
-              {t('marks_history') || 'Marks History'}
+              {t('marks_history')}
             </h3>
             <Button
               size="sm"
@@ -356,7 +356,7 @@ const MarksHistoryDrawer = memo(({
           {/* History Entries */}
           {loading ? (
             <div style={{ textAlign: 'center', padding: '2rem' }}>
-              <SimpleLoading message={t('loading_history') || 'Loading history...'} />
+              <SimpleLoading message={t('loading_history')} />
             </div>
           ) : filteredData.length > 0 ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
@@ -365,8 +365,8 @@ const MarksHistoryDrawer = memo(({
           ) : (
             <div style={{ textAlign: 'center', padding: '2rem', color: isDarkMode ? '#9ca3af' : '#6b7280' }}>
               {hasSearch ? 
-                (t('no_search_results') || 'No results found for your search') : 
-                (t('no_history_found') || 'No history found')
+                (t('no_search_results')) : 
+                (t('no_history_found'))
               }
             </div>
           )}

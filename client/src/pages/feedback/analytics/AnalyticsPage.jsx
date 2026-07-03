@@ -188,15 +188,15 @@ export default function AnalyticsPage() {
       {/* Header */}
       <div className={styles.header}>
         <div>
-          <h1>{t('analytics') || 'Analytics'}</h1>
-          <p>{t('comprehensive_overview') || 'Comprehensive overview of attendance, performance, and engagement'}</p>
+          <h1>{t('analytics')}</h1>
+          <p>{t('comprehensive_overview')}</p>
         </div>
         <Button
           onClick={exportCSV}
           icon={getThemedIcon('ui', 'download', 18, theme)}
           variant="primary"
         >
-          {t('export_csv') || 'Export CSV'}
+          {t('export_csv')}
         </Button>
       </div>
 
@@ -204,31 +204,31 @@ export default function AnalyticsPage() {
 
       {/* KPI Cards */}
       <div className={styles.kpiGrid}>
-        <KPICard label={t('total_sessions') || 'Total Sessions'} value={attendanceStats.totalSessions} icon={() => getThemedIcon('ui', 'calendar', 24, theme)} color="#800020" />
-        <KPICard label={t('total_students') || 'Total Students'} value={studentStats.total} icon={() => getThemedIcon('ui', 'users', 24, theme)} color="#10b981" />
-        <KPICard label={t('attendance_rate') || 'Attendance Rate'} value={attendanceRate + '%'} subtitle={`${attendanceStats.present} / ${attendanceStats.totalMarks} ${t('present') || 'present'}`} icon={() => getThemedIcon('ui', 'trending_up', 24, theme)} color="#f59e0b" />
-        <KPICard label={t('avg_performance') || 'Avg Performance'} value={performanceStats.avgScore} subtitle={t('based_on_graded_submissions') || 'Based on graded submissions'} icon={() => getThemedIcon('ui', 'award', 24, theme)} color="#8b5cf6" />
-        <KPICard label={t('total_submissions') || 'Total Submissions'} value={submissionStats.total} subtitle={`${submissionStats.graded} ${t('graded') || 'graded'}`} icon={() => getThemedIcon('ui', 'file_text', 24, theme)} color="#06b6d4" />
+        <KPICard label={t('total_sessions')} value={attendanceStats.totalSessions} icon={() => getThemedIcon('ui', 'calendar', 24, theme)} color="#800020" />
+        <KPICard label={t('total_students')} value={studentStats.total} icon={() => getThemedIcon('ui', 'users', 24, theme)} color="#10b981" />
+        <KPICard label={t('attendance_rate')} value={attendanceRate + '%'} subtitle={`${attendanceStats.present} / ${attendanceStats.totalMarks} ${t('present')}`} icon={() => getThemedIcon('ui', 'trending_up', 24, theme)} color="#f59e0b" />
+        <KPICard label={t('avg_performance')} value={performanceStats.avgScore} subtitle={t('based_on_graded_submissions')} icon={() => getThemedIcon('ui', 'award', 24, theme)} color="#8b5cf6" />
+        <KPICard label={t('total_submissions')} value={submissionStats.total} subtitle={`${submissionStats.graded} ${t('graded')}`} icon={() => getThemedIcon('ui', 'file_text', 24, theme)} color="#06b6d4" />
       </div>
 
       {/* Attendance Breakdown */}
       <Grid cols={2} gap="md" className={styles.breakdownGrid}>
         <Card>
           <CardBody>
-            <h3 className={styles.sectionTitle}>{t('attendance_breakdown') || 'Attendance Breakdown'}</h3>
-            <ProgressBar label={t('present') || 'Present'} value={attendanceStats.present} max={attendanceStats.totalMarks} color="success" />
-            <ProgressBar label={t('absent') || 'Absent'} value={attendanceStats.absent} max={attendanceStats.totalMarks} color="danger" />
-            <ProgressBar label={t('late') || 'Late'} value={attendanceStats.late} max={attendanceStats.totalMarks} color="warning" />
-            <ProgressBar label={t('leave') || 'Leave'} value={attendanceStats.leave} max={attendanceStats.totalMarks} color="info" />
+            <h3 className={styles.sectionTitle}>{t('attendance_breakdown')}</h3>
+            <ProgressBar label={t('present')} value={attendanceStats.present} max={attendanceStats.totalMarks} color="success" />
+            <ProgressBar label={t('absent')} value={attendanceStats.absent} max={attendanceStats.totalMarks} color="danger" />
+            <ProgressBar label={t('late')} value={attendanceStats.late} max={attendanceStats.totalMarks} color="warning" />
+            <ProgressBar label={t('leave')} value={attendanceStats.leave} max={attendanceStats.totalMarks} color="info" />
           </CardBody>
         </Card>
 
         <Card>
           <CardBody>
-            <h3 className={styles.sectionTitle}>{t('submission_status') || 'Submission Status'}</h3>
-            <ProgressBar label={t('graded') || 'Graded'} value={submissionStats.graded} max={submissionStats.total} color="success" />
-            <ProgressBar label={t('pending') || 'Pending'} value={submissionStats.pending} max={submissionStats.total} color="warning" />
-            <ProgressBar label={t('late_submissions') || 'Late Submissions'} value={submissionStats.late} max={submissionStats.total} color="danger" />
+            <h3 className={styles.sectionTitle}>{t('submission_status')}</h3>
+            <ProgressBar label={t('graded')} value={submissionStats.graded} max={submissionStats.total} color="success" />
+            <ProgressBar label={t('pending')} value={submissionStats.pending} max={submissionStats.total} color="warning" />
+            <ProgressBar label={t('late_submissions')} value={submissionStats.late} max={submissionStats.total} color="danger" />
           </CardBody>
         </Card>
       </Grid>
@@ -236,21 +236,21 @@ export default function AnalyticsPage() {
       {/* Attendance by Class */}
       <Card>
         <CardBody>
-          <h3 className={styles.sectionTitle}>{t('attendance_by_class') || 'Attendance by Class'}</h3>
+          <h3 className={styles.sectionTitle}>{t('attendance_by_class')}</h3>
           {byClass.length === 0 ? (
-            <div className={styles.noData}>{t('no_data') || 'No data available'}</div>
+            <div className={styles.noData}>{t('no_data')}</div>
           ) : (
             <div className={styles.tableWrapper}>
               <table className={styles.table}>
                 <thead>
                   <tr>
-                    <th>{t('class') || 'CLASS'}</th>
-                    <th>{t('total') || 'TOTAL'}</th>
-                    <th>{t('present') || 'ATTENDANCE_PRESENT'}</th>
-                    <th>{t('absent') || 'ABSENT'}</th>
-                    <th>{t('late') || 'ATTENDANCE_LATE'}</th>
-                    <th>{t('leave') || 'LEAVE'}</th>
-                    <th>{t('rate') || 'RATE'}</th>
+                    <th>{t('class')}</th>
+                    <th>{t('total')}</th>
+                    <th>{t('present')}</th>
+                    <th>{t('absent')}</th>
+                    <th>{t('late')}</th>
+                    <th>{t('leave')}</th>
+                    <th>{t('rate')}</th>
                   </tr>
                 </thead>
                 <tbody>

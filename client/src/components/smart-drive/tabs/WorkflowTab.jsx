@@ -30,9 +30,9 @@ const formatRelativeTime = (date, lang, t) => {
   const days = Math.floor(hours / 24);
   
   if (seconds < 60) return t('common.justNow', 'just now');
-  if (minutes < 60) return t('common.minutesAgo', { count: minutes }) || `${minutes}m ago`;
-  if (hours < 24) return t('common.hoursAgo', { count: hours }) || `${hours}h ago`;
-  if (days < 7) return t('common.daysAgo', { count: days }) || `${days}d ago`;
+  if (minutes < 60) return t('common.minutesAgo', { count: minutes });
+  if (hours < 24) return t('common.hoursAgo', { count: hours });
+  if (days < 7) return t('common.daysAgo', { count: days });
   return formatQatarDateOnly(date);
 };
 
@@ -915,7 +915,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
               letterSpacing: '0.05em'
             }}>
               {getIcon('ui', 'clock', 16)}
-              {t('drive.timeline') || 'Timeline'}
+              {t('drive.timeline')}
             </h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
               <button
@@ -935,7 +935,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                 onMouseEnter={(e) => !selectedDate && (e.currentTarget.style.background = 'var(--background-secondary, #f9fafb)')}
                 onMouseLeave={(e) => !selectedDate && (e.currentTarget.style.background = 'transparent')}
               >
-                {t('drive.allActivities') || 'All Workflows'} ({workflows.length})
+                {t('drive.allActivities')} ({workflows.length})
               </button>
               {sortedDates.map((date) => (
                 <button

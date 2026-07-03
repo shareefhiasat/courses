@@ -63,20 +63,20 @@ const iconComponentToSvg = (iconComponent) => {
  */
 export const getDeleteMessage = (entityType, entityName, options = {}, t = (key) => key) => {
   const { relatedRecords, theme = 'light' } = options;
-  const actualEntityName = entityName || t('this_item') || 'this item';
+  const actualEntityName = entityName || t('this_item');
   
   // Special handling for entities with related records
   if (entityType === RECORD_TYPES.USER && relatedRecords) {
     // Create a formatted table for the related records using Lucide icons
     const recordTypes = [
-      { key: 'enrollments', label: t('enrollments') || 'Enrollments', icon: 'book_open' },
-      { key: 'classes', label: t('classes') || 'Classes', icon: 'home' },
-      { key: 'attendance', label: t('attendance_records') || 'Attendance Records', icon: 'calendar' },
-      { key: 'penalties', label: t('penalties') || 'Penalties', icon: 'alert_triangle' },
-      { key: 'participations', label: t('participations') || 'Participations', icon: 'users' },
-      { key: 'behaviors', label: t('behaviors') || 'Behaviors', icon: 'bar_chart' },
-      { key: 'activities', label: t('activities') || 'Activities', icon: 'target' },
-      { key: 'submissions', label: t('submissions') || 'Submissions', icon: 'file_text' }
+      { key: 'enrollments', label: t('enrollments'), icon: 'book_open' },
+      { key: 'classes', label: t('classes'), icon: 'home' },
+      { key: 'attendance', label: t('attendance_records'), icon: 'calendar' },
+      { key: 'penalties', label: t('penalties'), icon: 'alert_triangle' },
+      { key: 'participations', label: t('participations'), icon: 'users' },
+      { key: 'behaviors', label: t('behaviors'), icon: 'bar_chart' },
+      { key: 'activities', label: t('activities'), icon: 'target' },
+      { key: 'submissions', label: t('submissions'), icon: 'file_text' }
     ];
 
     const tableRows = recordTypes
@@ -181,8 +181,8 @@ export const getDeleteMessage = (entityType, entityName, options = {}, t = (key)
 
     // Fallback: always show a detailed message with the formatted table
     return `<div style="line-height: 1.6;">
-      <p style="margin: 0 0 16px 0; font-weight: 500;">${t('are_you_sure_delete', { itemName: actualEntityName }) || `Are you sure you want to delete <strong>"${actualEntityName}"</strong>?`}</p>
-      <p style="margin: 0 0 8px 0; color: #6b7280;">${t('will_delete_related_records') || 'This will also delete the following related records:'}</p>
+      <p style="margin: 0 0 16px 0; font-weight: 500;">${t('are_you_sure_delete', { itemName: actualEntityName })}</p>
+      <p style="margin: 0 0 8px 0; color: #6b7280;">${t('will_delete_related_records')}</p>
       ${tableHtml}
       <p style="margin: 16px 0 0 0; color: #dc2626; font-weight: 500;">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display: inline; margin-right: 8px; vertical-align: middle;">
@@ -190,7 +190,7 @@ export const getDeleteMessage = (entityType, entityName, options = {}, t = (key)
           <line x1="12" y1="9" x2="12" y2="13"></line>
           <line x1="12" y1="17" x2="12.01" y2="17"></line>
         </svg>
-        ${t('action_cannot_be_undone') || 'This action cannot be undone.'}
+        ${t('action_cannot_be_undone')}
       </p>
     </div>`;
   }
@@ -204,15 +204,15 @@ export const getDeleteMessage = (entityType, entityName, options = {}, t = (key)
         .filter(([_, count]) => count > 0)
         .map(([type, count]) => {
           const typeLabels = {
-            enrollments: t('enrollments') || 'Enrollments',
-            classes: t('classes') || 'Classes',
-            activities: t('activities') || 'Activities',
-            submissions: t('submissions') || 'Submissions',
-            attendance: t('attendance_records') || 'Attendance Records',
-            penalties: t('penalties') || 'Penalties',
-            participations: t('participations') || 'Participations',
-            behaviors: t('behaviors') || 'Behaviors',
-            quizzes: t('quizzes') || 'Quizzes'
+            enrollments: t('enrollments'),
+            classes: t('classes'),
+            activities: t('activities'),
+            submissions: t('submissions'),
+            attendance: t('attendance_records'),
+            penalties: t('penalties'),
+            participations: t('participations'),
+            behaviors: t('behaviors'),
+            quizzes: t('quizzes')
           };
           return `${count} ${typeLabels[type] || type}`;
         })
@@ -234,14 +234,14 @@ export const getDeleteMessage = (entityType, entityName, options = {}, t = (key)
         .filter(([_, count]) => count > 0)
         .map(([type, count]) => {
           const typeLabels = {
-            subjects: t('subjects') || 'Subjects',
-            classes: t('classes') || 'Classes',
-            activities: t('activities') || 'Activities',
-            students: t('students') || 'Students',
-            enrollments: t('enrollments') || 'Enrollments',
-            assignments: t('assignments') || 'Assignments',
-            quizzes: t('quizzes') || 'Quizzes',
-            resources: t('resources') || 'Resources'
+            subjects: t('subjects'),
+            classes: t('classes'),
+            activities: t('activities'),
+            students: t('students'),
+            enrollments: t('enrollments'),
+            assignments: t('assignments'),
+            quizzes: t('quizzes'),
+            resources: t('resources')
           };
           return `${count} ${typeLabels[type] || type}`;
         })
@@ -278,75 +278,75 @@ export const getDeleteMessage = (entityType, entityName, options = {}, t = (key)
  */
 export const getDeleteTitle = (entityType, t = (key) => key) => {
   const entityTypes = {
-    [RECORD_TYPES.ACTIVITY]: t('activity') || 'Activity',
-    [RECORD_TYPES.USER]: t('user') || 'User',
-    [RECORD_TYPES.PROGRAM]: t('program') || 'Program',
-    [RECORD_TYPES.SUBJECT]: t('subject') || 'Subject',
-    [RECORD_TYPES.CLASS]: t('class') || 'Class',
-    [RECORD_TYPES.CATEGORY]: t('category') || 'Category',
-    [RECORD_TYPES.QUIZ]: t('quiz') || 'Quiz',
-    [RECORD_TYPES.ATTENDANCE]: t('attendance') || 'Attendance',
-    [RECORD_TYPES.PARTICIPATION]: t('participation') || 'Participation',
-    [RECORD_TYPES.BEHAVIOR]: t('behavior') || 'Behavior',
-    [RECORD_TYPES.PENALTY]: t('penalty') || 'Penalty',
-    [RECORD_TYPES.RESOURCE]: t('resource') || 'Resource',
-    [RECORD_TYPES.ENROLLMENT]: t('enrollment') || 'Enrollment',
-    [RECORD_TYPES.ANNOUNCEMENT]: t('announcement') || 'Announcement',
-    [RECORD_TYPES.SUBMISSION]: t('submission') || 'Submission',
-    [RECORD_TYPES.ASSIGNMENT]: t('assignment') || 'Assignment',
-    [RECORD_TYPES.COURSE]: t('course') || 'Course',
-    [RECORD_TYPES.MARK]: t('mark') || 'Mark',
-    [RECORD_TYPES.GRADE]: t('grade') || 'Grade',
-    [RECORD_TYPES.SCHEDULE]: t('schedule') || 'Schedule',
-    [RECORD_TYPES.EVENT]: t('event') || 'Event',
-    [RECORD_TYPES.NOTIFICATION]: t('notification') || 'Notification',
+    [RECORD_TYPES.ACTIVITY]: t('activity'),
+    [RECORD_TYPES.USER]: t('user'),
+    [RECORD_TYPES.PROGRAM]: t('program'),
+    [RECORD_TYPES.SUBJECT]: t('subject'),
+    [RECORD_TYPES.CLASS]: t('class'),
+    [RECORD_TYPES.CATEGORY]: t('category'),
+    [RECORD_TYPES.QUIZ]: t('quiz'),
+    [RECORD_TYPES.ATTENDANCE]: t('attendance'),
+    [RECORD_TYPES.PARTICIPATION]: t('participation'),
+    [RECORD_TYPES.BEHAVIOR]: t('behavior'),
+    [RECORD_TYPES.PENALTY]: t('penalty'),
+    [RECORD_TYPES.RESOURCE]: t('resource'),
+    [RECORD_TYPES.ENROLLMENT]: t('enrollment'),
+    [RECORD_TYPES.ANNOUNCEMENT]: t('announcement'),
+    [RECORD_TYPES.SUBMISSION]: t('submission'),
+    [RECORD_TYPES.ASSIGNMENT]: t('assignment'),
+    [RECORD_TYPES.COURSE]: t('course'),
+    [RECORD_TYPES.MARK]: t('mark'),
+    [RECORD_TYPES.GRADE]: t('grade'),
+    [RECORD_TYPES.SCHEDULE]: t('schedule'),
+    [RECORD_TYPES.EVENT]: t('event'),
+    [RECORD_TYPES.NOTIFICATION]: t('notification'),
     // Common entity types
-    'enrollment': t('enrollment') || 'Enrollment',
-    'announcement': t('announcement') || 'Announcement',
-    'submission': t('submission') || 'Submission',
-    'assignment': t('assignment') || 'Assignment',
-    'course': t('course') || 'Course',
-    'mark': t('mark') || 'Mark',
-    'grade': t('grade') || 'Grade',
-    'schedule': t('schedule') || 'Schedule',
-    'event': t('event') || 'Event',
-    'notification': t('notification') || 'Notification',
-    'email': t('email') || 'Email',
-    'template': t('template') || 'Template',
-    'report': t('report') || 'Report',
-    'document': t('document') || 'Document',
-    'file': t('file') || 'File',
-    'folder': t('folder') || 'Folder',
-    'comment': t('comment') || 'Comment',
-    'tag': t('tag') || 'Tag',
-    'setting': t('setting') || 'Setting',
-    'permission': t('permission') || 'Permission',
-    'role': t('role') || 'Role',
-    'group': t('group') || 'Group',
-    'team': t('team') || 'Team',
-    'project': t('project') || 'Project',
-    'task': t('task') || 'Task',
-    'note': t('note') || 'Note',
-    'message': t('message') || 'Message',
-    'chat': t('chat') || 'Chat',
-    'thread': t('thread') || 'Thread',
-    'post': t('post') || 'Post',
-    'reply': t('reply') || 'Reply',
-    'like': t('like') || 'Like',
-    'bookmark': t('bookmark') || 'Bookmark',
-    'favorite': t('favorite') || 'Favorite',
-    'subscription': t('subscription') || 'Subscription',
-    'payment': t('payment') || 'Payment',
-    'invoice': t('invoice') || 'Invoice',
-    'receipt': t('receipt') || 'Receipt',
-    'transaction': t('transaction') || 'Transaction',
-    'order': t('order') || 'Order',
-    'product': t('product') || 'Product',
-    'service': t('service') || 'Service',
-    'item': t('item') || 'Item'
+    'enrollment': t('enrollment'),
+    'announcement': t('announcement'),
+    'submission': t('submission'),
+    'assignment': t('assignment'),
+    'course': t('course'),
+    'mark': t('mark'),
+    'grade': t('grade'),
+    'schedule': t('schedule'),
+    'event': t('event'),
+    'notification': t('notification'),
+    'email': t('email'),
+    'template': t('template'),
+    'report': t('report'),
+    'document': t('document'),
+    'file': t('file'),
+    'folder': t('folder'),
+    'comment': t('comment'),
+    'tag': t('tag'),
+    'setting': t('setting'),
+    'permission': t('permission'),
+    'role': t('role'),
+    'group': t('group'),
+    'team': t('team'),
+    'project': t('project'),
+    'task': t('task'),
+    'note': t('note'),
+    'message': t('message'),
+    'chat': t('chat'),
+    'thread': t('thread'),
+    'post': t('post'),
+    'reply': t('reply'),
+    'like': t('like'),
+    'bookmark': t('bookmark'),
+    'favorite': t('favorite'),
+    'subscription': t('subscription'),
+    'payment': t('payment'),
+    'invoice': t('invoice'),
+    'receipt': t('receipt'),
+    'transaction': t('transaction'),
+    'order': t('order'),
+    'product': t('product'),
+    'service': t('service'),
+    'item': t('item')
   };
 
-  const typeLabel = entityTypes[entityType] || t('item') || 'Item';
+  const typeLabel = entityTypes[entityType] || t('item');
   const translationKey = 'delete_entity_title';
   const translated = t(translationKey, { type: typeLabel });
   

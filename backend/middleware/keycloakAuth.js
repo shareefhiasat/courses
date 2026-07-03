@@ -134,37 +134,45 @@ export const clearTokenCookie = (res) => {
 };
 
 /**
+ * Extract and normalize all roles from a decoded JWT token.
+ * Handles realm_access and resource_access (client) roles, and normalizes
+ * common Keycloak role format variations (e.g. super-admin → super_admin).
+ * @param {Object} decoded - Decoded JWT token payload
+ * @returns {string[]} Array of normalized role strings
+ */
+const extractNormalizedRoles = (decoded) => {
+  const userRoles = [];
+
+  // Extract roles from realm_access
+  if (decoded.realm_access && decoded.realm_access.roles) {
+    userRoles.push(...decoded.realm_access.roles);
+  }
+
+  // Extract roles from client_access (resource_access)
+  if (decoded.resource_access) {
+    Object.values(decoded.resource_access).forEach(client => {
+      if (client.roles) {
+        userRoles.push(...client.roles);
+      }
+    });
+  }
+
+  // Normalize role names to match LMS canonical roles
+  return userRoles.map(role => {
+    const lowerRole = role.toLowerCase();
+    if (lowerRole === 'super-admin' || lowerRole === 'superadmin' || lowerRole === 'super_admin') return ROLES.SUPER_ADMIN;
+    return lowerRole;
+  });
+};
+
+/**
  * Check if user has required role
  * @param {Object} token - Decoded JWT token
  * @param {string[]} requiredRoles - Required roles
  * @returns {boolean} Whether user has required role
  */
 const hasRequiredRole = (token, requiredRoles) => {
-  const userRoles = [];
-  
-  // Extract roles from realm_access
-  if (token.realm_access && token.realm_access.roles) {
-    userRoles.push(...token.realm_access.roles);
-  }
-  
-  // Extract roles from client_access
-  if (token.resource_access) {
-    Object.values(token.resource_access).forEach(client => {
-      if (client.roles) {
-        userRoles.push(...client.roles);
-      }
-    });
-  }
-  
-  // Normalize role names to match LMS canonical roles
-  const normalizedRoles = userRoles.map(role => {
-    const lowerRole = role.toLowerCase();
-    // Handle common Keycloak role format variations
-    if (lowerRole === 'super-admin' || lowerRole === 'superadmin') return ROLES.SUPER_ADMIN;
-    return lowerRole;
-  });
-  
-  // Check if user has any of the required roles
+  const normalizedRoles = extractNormalizedRoles(token);
   return requiredRoles.some(role => normalizedRoles.includes(role));
 };
 
@@ -217,29 +225,9 @@ export const keycloakAuth = (requiredRoles = []) => {
         });
       }
       
-      // Extract all roles from token
-      const userRoles = [];
-      
-      // Extract roles from realm_access
-      if (decoded.realm_access && decoded.realm_access.roles) {
-        userRoles.push(...decoded.realm_access.roles);
-      }
-      
-      // Extract roles from client_access
-      if (decoded.resource_access) {
-        Object.values(decoded.resource_access).forEach(client => {
-          if (client.roles) {
-            userRoles.push(...client.roles);
-          }
-        });
-      }
-      
-      // Normalize role names
-      const normalizedRoles = userRoles.map(role => {
-        if (role === 'super-admin' || role === 'superadmin' || role === 'super_admin') return ROLES.SUPER_ADMIN;
-        return role.toLowerCase();
-      });
-      
+      // Extract and normalize all roles from token (single source of truth)
+      const normalizedRoles = extractNormalizedRoles(decoded);
+
       // Add user info to request
       req.user = {
         id: decoded.sub,                 // Keycloak UUID (legacy alias)
@@ -250,7 +238,7 @@ export const keycloakAuth = (requiredRoles = []) => {
         lastName: decoded.family_name,
         displayName: decoded.name,
         roles: normalizedRoles,
-        isAdmin: hasRequiredRole(decoded, [ROLES.SUPER_ADMIN, ROLES.ADMIN])
+        isAdmin: normalizedRoles.includes(ROLES.SUPER_ADMIN) || normalizedRoles.includes(ROLES.ADMIN)
       };
 
       // Resolve local DB user id once per request. Failures don't block the

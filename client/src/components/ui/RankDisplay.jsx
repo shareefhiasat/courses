@@ -50,7 +50,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const RankD
       )}
       
       <div className="rank-points" style={{ marginBottom: '0.75rem' }}>
-        {totalPoints.toLocaleString()} {t('points') || 'Points'}
+        {totalPoints.toLocaleString()} {t('points')}
       </div>
 
       {showProgress && next && (
@@ -64,7 +64,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const RankD
             </div>
           </div>
           <div className="rank-progress-text" style={{ fontSize: 'var(--font-size-sm)', marginTop: '0.5rem' }}>
-            {pointsToNext.toLocaleString()} {t('points_to_next_rank') || 'points to'} {nextRankName}
+            {pointsToNext.toLocaleString()} {t('points_to_next_rank')} {nextRankName}
           </div>
         </div>
       )}

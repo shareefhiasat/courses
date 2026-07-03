@@ -60,9 +60,9 @@ import { info, error, warn, debug } from '@services/utils/logger.js';export defa
       <div className="max-w-2xl mx-auto p-8" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 px-8 py-10 text-center">
           <div className="text-5xl mb-4">✓✗</div>
-          <h1 className="text-2xl font-bold mb-3 text-gray-900">{t('true_false_quiz') || 'True or False'}</h1>
+          <h1 className="text-2xl font-bold mb-3 text-gray-900">{t('true_false_quiz')}</h1>
           <p className="text-sm text-gray-500 mb-8">
-            {questions.length} {t('questions') || 'questions'} • {settings?.timePerQuestion ? `${settings.timePerQuestion}s ${t('per_question') || 'per question'}` : (t('no_time_limit') || 'No time limit')}
+            {questions.length} {t('questions')} • {settings?.timePerQuestion ? `${settings.timePerQuestion}s ${t('per_question')}` : (t('no_time_limit'))}
           </p>
           <button
             onClick={() => {
@@ -71,7 +71,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';export defa
             }}
             className="px-10 py-3 bg-[#0066ff] hover:bg-[#0052cc] text-white text-sm font-semibold rounded-full shadow-md transition-colors"
           >
-            {t('start') || 'Start'}
+            {t('start')}
           </button>
         </div>
       </div>
@@ -84,29 +84,29 @@ import { info, error, warn, debug } from '@services/utils/logger.js';export defa
       <div className="max-w-2xl mx-auto p-8" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
         <div className="bg-white rounded-2xl shadow-sm border border-gray-200 px-8 py-10 text-center">
           {getThemedIcon('ui', 'trophy', 56, theme)}
-          <h1 className="text-2xl font-bold mb-3 text-gray-900">{t('quiz_complete') || 'Quiz Complete!'}</h1>
+          <h1 className="text-2xl font-bold mb-3 text-gray-900">{t('quiz_complete')}</h1>
           <div className="text-3xl font-extrabold text-indigo-600 mb-2">
             {score} / {questions.reduce((sum, q) => sum + (q.points || 1), 0)}
           </div>
           <div className="text-sm text-gray-500 mb-6">
-            {percentage.toFixed(1)}% {t('score') || 'Score'}
+            {percentage.toFixed(1)}% {t('score')}
           </div>
 
         {settings?.showCorrectAnswers && (
           <div className="mt-6 text-left border-t border-gray-100 pt-4">
-            <h3 className="text-sm font-semibold mb-3 text-gray-900">{t('review_answers') || 'Review Answers'}</h3>
+            <h3 className="text-sm font-semibold mb-3 text-gray-900">{t('review_answers')}</h3>
             {questions.map((q, idx) => {
               const userAnswer = answers[idx];
               return (
                 <div key={q.id} className={`p-3 rounded-xl mb-2 ${userAnswer?.correct ? 'bg-green-50' : 'bg-red-50'}`}>
                   <div className="text-sm font-semibold mb-1 text-gray-900">Q{idx + 1}: {q.question}</div>
                   <div className="text-xs text-gray-700">
-                    {t('your_answer') || 'Your answer'}: {userAnswer?.answer === true ? (t('true') || 'True') : userAnswer?.answer === false ? (t('false') || 'False') : (t('no_answer') || 'No answer')}
+                    {t('your_answer')}: {userAnswer?.answer === true ? (t('true')) : userAnswer?.answer === false ? (t('false')) : (t('no_answer'))}
                     {userAnswer?.correct ? ' ✓' : ' ✗'}
                   </div>
                   {!userAnswer?.correct && (
                     <div className="text-xs mt-1 text-green-700">
-                      {t('correct_answer') || 'Correct answer'}: {q.correctAnswer ? (t('true') || 'True') : (t('false') || 'False')}
+                      {t('correct_answer')}: {q.correctAnswer ? (t('true')) : (t('false'))}
                     </div>
                   )}
                 </div>
@@ -124,7 +124,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';export defa
       {/* Progress Bar */}
       <div className="mb-8">
         <div className="flex justify-between mb-2">
-          <span className="text-xs font-semibold text-gray-500">{t('question') || 'Question'} {currentIndex + 1} {t('of') || 'of'} {questions.length}</span>
+          <span className="text-xs font-semibold text-gray-500">{t('question')} {currentIndex + 1} {t('of')} {questions.length}</span>
           {settings?.timePerQuestion > 0 && (
             <span className={`text-xs font-semibold flex items-center gap-1 ${timeLeft < 10 ? 'text-red-500' : 'text-indigo-600'}`}>
               {getThemedIcon('ui', 'clock', 16, theme)}
@@ -157,20 +157,20 @@ import { info, error, warn, debug } from '@services/utils/logger.js';export defa
           className="p-5 bg-green-50 border border-green-300 text-green-800 rounded-2xl shadow-sm hover:bg-green-500 hover:text-white hover:border-green-500 transition-all flex flex-col items-center justify-center gap-1 group"
         >
           {getThemedIcon('ui', 'check_circle', 32, theme)}
-          <div className="text-base font-semibold">{t('true') || 'True'}</div>
+          <div className="text-base font-semibold">{t('true')}</div>
         </button>
         <button
           onClick={() => handleAnswer(false)}
           className="p-5 bg-red-50 border border-red-300 text-red-800 rounded-2xl shadow-sm hover:bg-red-500 hover:text-white hover:border-red-500 transition-all flex flex-col items-center justify-center gap-1 group"
         >
           {getThemedIcon('ui', 'x_circle', 32, theme)}
-          <div className="text-base font-semibold">{t('false') || 'False'}</div>
+          <div className="text-base font-semibold">{t('false')}</div>
         </button>
       </div>
 
       {/* Score Display */}
       <div className="mt-6 text-center text-sm font-semibold text-gray-500">
-        {t('current_score') || 'Current Score'}: {score}
+        {t('current_score')}: {score}
       </div>
     </div>
   );

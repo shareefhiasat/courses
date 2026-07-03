@@ -104,7 +104,7 @@ const UserSelect = ({
 
     // Add "All Users" option if requested
     if (includeAll) {
-      const allLabel = t('user_select_all_users') || 'All Users';
+      const allLabel = t('user_select_all_users');
       options.push({
         value: 'all',
         displayLabel: allLabel,
@@ -145,8 +145,8 @@ const UserSelect = ({
         }
         
         enrollmentCount = taughtClasses.length;
-        const classLabel = enrollmentCount === 1 ? (t('class') || 'class') : (t('classes') || 'classes');
-        displayCount = enrollmentCount > 0 ? `${enrollmentCount} ${classLabel}` : (t('user_select_no_classes') || 'No classes');
+        const classLabel = t('class', { count: enrollmentCount });
+        displayCount = enrollmentCount > 0 ? `${enrollmentCount} ${classLabel}` : (t('user_select_no_classes'));
         subtextLines.push(displayCount);
         // Show up to 3 class names
         taughtClasses.slice(0, 3).forEach(c => {
@@ -154,14 +154,14 @@ const UserSelect = ({
           if (name) subtextLines.push(name);
         });
         if (taughtClasses.length > 3) {
-          subtextLines.push(`+${taughtClasses.length - 3} ${t('more') || 'more'}`);
+          subtextLines.push(`+${taughtClasses.length - 3} ${t('more')}`);
         }
       } else {
         // For students: count their enrollments (classes they belong to)
         const userEnrollments = enrollments.filter(e => e.userId === (u.docId || u.id));
         enrollmentCount = userEnrollments.length;
-        const classLabel = enrollmentCount === 1 ? (t('class') || 'class') : (t('classes') || 'classes');
-        displayCount = enrollmentCount > 0 ? `${enrollmentCount} ${classLabel}` : (t('user_select_no_enrollments') || 'No classes');
+        const classLabel = t('class', { count: enrollmentCount });
+        displayCount = enrollmentCount > 0 ? `${enrollmentCount} ${classLabel}` : (t('user_select_no_enrollments'));
         subtextLines.push(displayCount);
         // Show up to 3 class names from enrollments
         if (classes && classes.length > 0 && userEnrollments.length > 0) {
@@ -173,7 +173,7 @@ const UserSelect = ({
             if (name) subtextLines.push(name);
           });
           if (studentClasses.length > 3) {
-            subtextLines.push(`+${studentClasses.length - 3} ${t('more') || 'more'}`);
+            subtextLines.push(`+${studentClasses.length - 3} ${t('more')}`);
           }
         }
       }

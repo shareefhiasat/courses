@@ -154,7 +154,7 @@ export default function VersionsTab({ fileId, useWorkflowEndpoint = false }) {
   return (
     <TimelinePanelLayout
       panelLayoutKey="drive-versions-panels"
-      allItemsLabel={t('drive.allVersions') || 'All Versions'}
+      allItemsLabel={t('drive.allVersions')}
       allItemsCount={filteredVersions.length}
       dates={filteredSortedDates}
       getDateCount={(date) => filteredGroupedVersions[date]?.length || 0}
@@ -163,7 +163,7 @@ export default function VersionsTab({ fileId, useWorkflowEndpoint = false }) {
       onDateSelect={setSelectedDate}
       filterText={searchQuery}
       onFilterChange={setSearchQuery}
-      filterPlaceholder={t('drive.searchVersions') || 'Search versions...'}
+      filterPlaceholder={t('drive.searchVersions')}
       sectionTitle={`${selectedDate ? formatDateHeader(selectedDate) : t('drive.versionHistory')} (${selectedVersions.length})`}
     >
       <DriveTimelineList>

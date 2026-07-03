@@ -107,7 +107,7 @@ const LogsActivityPage = () => {
     let stopLoading = null;
 
     const initialLoad = async () => {
-      stopLoading = startLoading({ message: t('loading_logs') || 'Loading logs...' });
+      stopLoading = startLoading({ message: t('loading_logs') });
       await loadData(true);
       if (stopLoading) stopLoading();
       setLoading(false);
@@ -196,129 +196,129 @@ const LogsActivityPage = () => {
 
   const getActivityLogOptions = (t) => [
     // All Activities
-    { value: 'all', label: t('all_activities') || 'All Activities' },
+    { value: 'all', label: t('all_activities') },
 
     // Authentication & Security
-    { value: 'login', label: t('login') || 'Login' },
-    { value: 'logout', label: t('logout') || 'Logout' },
-    { value: 'session_timeout', label: t('session_timeout') || 'Session Timeout' },
-    { value: 'profile_update', label: t('profile_update') || 'Profile Update' },
-    { value: 'password_change', label: t('password_change') || 'Password Change' },
-    { value: 'email_change', label: t('email_change') || 'Email Change' },
-    { value: 'role_change', label: t('role_change') || 'Role Change' },
-    { value: 'impersonation_start', label: t('impersonation_start') || 'Impersonation Start' },
-    { value: 'impersonation_end', label: t('impersonation_end') || 'Impersonation End' },
-    { value: 'security_alert', label: t('security_alert') || 'Security Alert' },
-    { value: 'api_access', label: t('api_access') || 'API Access' },
+    { value: 'login', label: t('login') },
+    { value: 'logout', label: t('logout') },
+    { value: 'session_timeout', label: t('session_timeout') },
+    { value: 'profile_update', label: t('profile_update') },
+    { value: 'password_change', label: t('password_change') },
+    { value: 'email_change', label: t('email_change') },
+    { value: 'role_change', label: t('role_change') },
+    { value: 'impersonation_start', label: t('impersonation_start') },
+    { value: 'impersonation_end', label: t('impersonation_end') },
+    { value: 'security_alert', label: t('security_alert') },
+    { value: 'api_access', label: t('api_access') },
 
     // Quiz & Assessment Activities
-    { value: 'quiz_started', label: t('quiz_started') || 'Quiz Started' },
-    { value: 'quiz_submitted', label: t('quiz_submitted') || 'Quiz Submitted' },
-    { value: 'quiz_retake', label: t('quiz_retake') || 'Quiz Retake' },
-    { value: 'quiz_saved', label: t('quiz_saved') || 'Quiz Saved' },
+    { value: 'quiz_started', label: t('quiz_started') },
+    { value: 'quiz_submitted', label: t('quiz_submitted') },
+    { value: 'quiz_retake', label: t('quiz_retake') },
+    { value: 'quiz_saved', label: t('quiz_saved') },
 
     // Assignment Activities
-    { value: 'assignment_started', label: t('assignment_started') || 'Assignment Started' },
-    { value: 'assignment_submitted', label: t('assignment_submitted') || 'Assignment Submitted' },
+    { value: 'assignment_started', label: t('assignment_started') },
+    { value: 'assignment_submitted', label: t('assignment_submitted') },
 
     // Grading & Feedback
-    { value: 'submission_graded', label: t('submission_graded') || 'Submission Graded' },
-    { value: 'feedback_given', label: t('feedback_given') || 'Feedback Given' },
+    { value: 'submission_graded', label: t('submission_graded') },
+    { value: 'feedback_given', label: t('feedback_given') },
 
     // Resource Activities
-    { value: 'resource_completed', label: t('resource_completed') || 'Resource Completed' },
-    { value: 'resource_bookmarked', label: t('resource_bookmarked') || 'Resource Bookmarked' },
-    { value: 'resource_downloaded', label: t('resource_downloaded') || 'Resource Downloaded' },
+    { value: 'resource_completed', label: t('resource_completed') },
+    { value: 'resource_bookmarked', label: t('resource_bookmarked') },
+    { value: 'resource_downloaded', label: t('resource_downloaded') },
 
     // Attendance
-    { value: 'attendance_marked', label: t('attendance_marked') || 'Attendance Marked' },
+    { value: 'attendance_marked', label: t('attendance_marked') },
 
     // Communication & Announcements
-    { value: 'message_sent', label: t('message_sent') || 'Message Sent' },
-    { value: 'message_received', label: t('message_received') || 'Message Received' },
-    { value: 'announcement_read', label: t('announcement_read') || 'Announcement Read' },
-    { value: 'announcement_created', label: t('announcement_created') || 'Announcement Created' },
-    { value: 'announcement_updated', label: t('announcement_updated') || 'Announcement Updated' },
-    { value: 'announcement_deleted', label: t('announcement_deleted') || 'Announcement Deleted' },
+    { value: 'message_sent', label: t('message_sent') },
+    { value: 'message_received', label: t('message_received') },
+    { value: 'announcement_read', label: t('announcement_read') },
+    { value: 'announcement_created', label: t('announcement_created') },
+    { value: 'announcement_updated', label: t('announcement_updated') },
+    { value: 'announcement_deleted', label: t('announcement_deleted') },
 
     // Tools & Utilities
-    { value: 'calculator_opened', label: t('calculator_opened') || 'Calculator Opened' },
-    { value: 'scratch_pad_opened', label: t('scratch_pad_opened') || 'Scratch Pad Opened' },
-    { value: 'formula_sheet_opened', label: t('formula_sheet_opened') || 'Formula Sheet Opened' },
+    { value: 'calculator_opened', label: t('calculator_opened') },
+    { value: 'scratch_pad_opened', label: t('scratch_pad_opened') },
+    { value: 'formula_sheet_opened', label: t('formula_sheet_opened') },
 
     // Notifications
-    { value: 'notification_clicked', label: t('notification_clicked') || 'Notification Clicked' },
-    { value: 'notification_dismissed', label: t('notification_dismissed') || 'Notification Dismissed' },
+    { value: 'notification_clicked', label: t('notification_clicked') },
+    { value: 'notification_dismissed', label: t('notification_dismissed') },
 
     // Class Activities
-    { value: 'class_joined', label: t('class_joined') || 'Class Joined' },
-    { value: 'class_left', label: t('class_left') || 'Class Left' },
+    { value: 'class_joined', label: t('class_joined') },
+    { value: 'class_left', label: t('class_left') },
 
     // Admin & Management Activities
-    { value: 'user_created', label: t('user_created') || 'User Created' },
-    { value: 'user_updated', label: t('user_updated') || 'User Updated' },
-    { value: 'user_deleted', label: t('user_deleted') || 'User Deleted' },
-    { value: 'quiz_created', label: t('quiz_created') || 'Quiz Created' },
-    { value: 'quiz_deleted', label: t('quiz_deleted') || 'Quiz Deleted' },
-    { value: 'quiz_published', label: t('quiz_published') || 'Quiz Published' },
+    { value: 'user_created', label: t('user_created') },
+    { value: 'user_updated', label: t('user_updated') },
+    { value: 'user_deleted', label: t('user_deleted') },
+    { value: 'quiz_created', label: t('quiz_created') },
+    { value: 'quiz_deleted', label: t('quiz_deleted') },
+    { value: 'quiz_published', label: t('quiz_published') },
 
     // Activity CRUD
-    { value: 'activity_created', label: t('activity_created') || 'Activity Created' },
-    { value: 'activity_updated', label: t('activity_updated') || 'Activity Updated' },
-    { value: 'activity_deleted', label: t('activity_deleted') || 'Activity Deleted' },
+    { value: 'activity_created', label: t('activity_created') },
+    { value: 'activity_updated', label: t('activity_updated') },
+    { value: 'activity_deleted', label: t('activity_deleted') },
 
     // Penalties CRUD
-    { value: 'penalty_created', label: t('penalty_created') || 'Penalty Created' },
-    { value: 'penalty_updated', label: t('penalty_updated') || 'Penalty Updated' },
-    { value: 'penalty_deleted', label: t('penalty_deleted') || 'Penalty Deleted' },
-    { value: 'penalty_searched', label: t('penalty_searched') || 'Penalty Searched' },
+    { value: 'penalty_created', label: t('penalty_created') },
+    { value: 'penalty_updated', label: t('penalty_updated') },
+    { value: 'penalty_deleted', label: t('penalty_deleted') },
+    { value: 'penalty_searched', label: t('penalty_searched') },
 
     // Participation CRUD
-    { value: 'participation_created', label: t('participation_created') || 'Participation Created' },
-    { value: 'participation_updated', label: t('participation_updated') || 'Participation Updated' },
-    { value: 'participation_deleted', label: t('participation_deleted') || 'Participation Deleted' },
-    { value: 'participation_searched', label: t('participation_searched') || 'Participation Searched' },
+    { value: 'participation_created', label: t('participation_created') },
+    { value: 'participation_updated', label: t('participation_updated') },
+    { value: 'participation_deleted', label: t('participation_deleted') },
+    { value: 'participation_searched', label: t('participation_searched') },
 
     // Behavior CRUD
-    { value: 'behavior_created', label: t('behavior_created') || 'Behavior Created' },
-    { value: 'behavior_updated', label: t('behavior_updated') || 'Behavior Updated' },
-    { value: 'behavior_deleted', label: t('behavior_deleted') || 'Behavior Deleted' },
-    { value: 'behavior_searched', label: t('behavior_searched') || 'Behavior Searched' },
+    { value: 'behavior_created', label: t('behavior_created') },
+    { value: 'behavior_updated', label: t('behavior_updated') },
+    { value: 'behavior_deleted', label: t('behavior_deleted') },
+    { value: 'behavior_searched', label: t('behavior_searched') },
 
     // Class CRUD
-    { value: 'class_created', label: t('class_created') || 'Class Created' },
-    { value: 'class_updated', label: t('class_updated') || 'Class Updated' },
-    { value: 'class_deleted', label: t('class_deleted') || 'Class Deleted' },
-    { value: 'class_searched', label: t('class_searched') || 'Class Searched' },
+    { value: 'class_created', label: t('class_created') },
+    { value: 'class_updated', label: t('class_updated') },
+    { value: 'class_deleted', label: t('class_deleted') },
+    { value: 'class_searched', label: t('class_searched') },
 
     // Subject CRUD
-    { value: 'subject_created', label: t('subject_created') || 'Subject Created' },
-    { value: 'subject_updated', label: t('subject_updated') || 'Subject Updated' },
-    { value: 'subject_deleted', label: t('subject_deleted') || 'Subject Deleted' },
-    { value: 'subject_searched', label: t('subject_searched') || 'Subject Searched' },
+    { value: 'subject_created', label: t('subject_created') },
+    { value: 'subject_updated', label: t('subject_updated') },
+    { value: 'subject_deleted', label: t('subject_deleted') },
+    { value: 'subject_searched', label: t('subject_searched') },
 
     // Program CRUD
-    { value: 'program_created', label: t('program_created') || 'Program Created' },
-    { value: 'program_updated', label: t('program_updated') || 'Program Updated' },
-    { value: 'program_deleted', label: t('program_deleted') || 'Program Deleted' },
-    { value: 'program_searched', label: t('program_searched') || 'Program Searched' },
+    { value: 'program_created', label: t('program_created') },
+    { value: 'program_updated', label: t('program_updated') },
+    { value: 'program_deleted', label: t('program_deleted') },
+    { value: 'program_searched', label: t('program_searched') },
 
     // Enrollment CRUD
-    { value: 'enrollment_created', label: t('enrollment_created') || 'Enrollment Created' },
-    { value: 'enrollment_updated', label: t('enrollment_updated') || 'Enrollment Updated' },
-    { value: 'enrollment_deleted', label: t('enrollment_deleted') || 'Enrollment Deleted' },
-    { value: 'enrollment_searched', label: t('enrollment_searched') || 'Enrollment Searched' },
+    { value: 'enrollment_created', label: t('enrollment_created') },
+    { value: 'enrollment_updated', label: t('enrollment_updated') },
+    { value: 'enrollment_deleted', label: t('enrollment_deleted') },
+    { value: 'enrollment_searched', label: t('enrollment_searched') },
 
     // Mark Entry CRUD
-    { value: 'mark_entry_created', label: t('mark_entry_created') || 'Mark Entry Created' },
-    { value: 'mark_entry_updated', label: t('mark_entry_updated') || 'Mark Entry Updated' },
-    { value: 'mark_entry_deleted', label: t('mark_entry_deleted') || 'Mark Entry Deleted' },
-    { value: 'mark_entry_searched', label: t('mark_entry_searched') || 'Mark Entry Searched' },
+    { value: 'mark_entry_created', label: t('mark_entry_created') },
+    { value: 'mark_entry_updated', label: t('mark_entry_updated') },
+    { value: 'mark_entry_deleted', label: t('mark_entry_deleted') },
+    { value: 'mark_entry_searched', label: t('mark_entry_searched') },
 
     // Generic Actions
-    { value: 'search_performed', label: t('search_performed') || 'Search Performed' },
-    { value: 'save_action', label: t('save_action') || 'Save Action' },
-    { value: 'export_action', label: t('export_action') || 'Export Action' }
+    { value: 'search_performed', label: t('search_performed') },
+    { value: 'save_action', label: t('save_action') },
+    { value: 'export_action', label: t('export_action') }
   ];
 
   const getActivityLogTypeConfig = (type, theme) => {
@@ -472,7 +472,7 @@ const LogsActivityPage = () => {
           enrollments={enrollments}
           value={loginUserFilter}
           onChange={(e) => setLoginUserFilter(e.target.value)}
-          placeholder={t('all_users') || 'All Users'}
+          placeholder={t('all_users')}
           includeAll={true}
           showEnrollments={true}
           showStatus={true}
@@ -517,8 +517,8 @@ const LogsActivityPage = () => {
               setLoginTo('');
             }
           }}
-          placeholderFrom={t('from') || 'From'}
-          placeholderTo={t('to') || 'To'}
+          placeholderFrom={t('from')}
+          placeholderTo={t('to')}
           style={{ minWidth: '250px', flex: '1' }}
         />
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
@@ -547,7 +547,7 @@ const LogsActivityPage = () => {
             }} 
             variant="outline" 
             size="small" 
-            title={t('refresh') || 'Refresh'}
+            title={t('refresh')}
             icon={getThemedIcon('ui', 'refresh', 16)}
           >
             Refresh
@@ -615,7 +615,7 @@ const LogsActivityPage = () => {
             headerName: (
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                 <Activity size={16} color={theme === 'dark' ? '#fff' : '#374151'} />
-                {t('type_col') || 'Type'}
+                {t('type_col')}
               </span>
             ), 
             width: 200,
@@ -634,7 +634,7 @@ const LogsActivityPage = () => {
             headerName: (
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                 <Clock size={16} color={theme === 'dark' ? '#fff' : '#374151'} />
-                {t('when') || 'When'}
+                {t('when')}
               </span>
             ), 
             width: 180,
@@ -670,7 +670,7 @@ const LogsActivityPage = () => {
             headerName: (
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                 <User size={16} color={theme === 'dark' ? '#fff' : '#374151'} />
-                {t('user_col') || 'User'}
+                {t('user_col')}
               </span>
             ), 
             flex: 1, 
@@ -687,7 +687,7 @@ const LogsActivityPage = () => {
             headerName: (
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                 <Mail size={16} color={theme === 'dark' ? '#fff' : '#374151'} />
-                {t('email_col') || 'Email'}
+                {t('email_col')}
               </span>
             ), 
             flex: 1, 
@@ -704,7 +704,7 @@ const LogsActivityPage = () => {
             headerName: (
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                 <Monitor size={16} color={theme === 'dark' ? '#fff' : '#374151'} />
-                {t('user_agent_col') || 'User Agent'}
+                {t('user_agent_col')}
               </span>
             ), 
             flex: 2, 
@@ -721,7 +721,7 @@ const LogsActivityPage = () => {
             headerName: (
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
                 <FileText size={16} color={theme === 'dark' ? '#fff' : '#374151'} />
-                {t('description_col') || 'Description'}
+                {t('description_col')}
               </span>
             ),
             flex: 1,
@@ -762,8 +762,8 @@ const LogsActivityPage = () => {
         checkboxSelection
         exportFileName="login-activity"
         showExportButton
-        exportLabel={t('export') || 'Export'}
-        loadingOverlayMessage={loading ? "Loading login activity..." : undefined}
+        exportLabel={t('export')}
+        loadingOverlayMessage={loading ? t('loading_login_activity') : undefined}
       />
       {/* Delete Confirmation Modal */}
       {deleteModal.open && (
@@ -785,14 +785,14 @@ const LogsActivityPage = () => {
                 variant="outline"
                 onClick={() => setDeleteModal({ open: false })}
               >
-                {t('cancel') || 'Cancel'}
+                {t('cancel')}
               </Button>
               <Button
                 variant="danger"
                 loading={loading}
                 onClick={deleteModal.onConfirm}
               >
-                {t('delete') || 'Delete'}
+                {t('delete')}
               </Button>
             </div>
           </div>

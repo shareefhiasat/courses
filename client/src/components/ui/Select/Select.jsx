@@ -50,7 +50,7 @@ const Select = forwardRef(({
   const { t } = useLang();
 
   // Localize placeholder inside component body
-  const localizedPlaceholder = placeholder === 'Select an option' ? (t('select_placeholder') || 'Select...') : (placeholder || t('select_placeholder') || 'Select...');
+  const localizedPlaceholder = placeholder === 'Select an option' ? (t('select_placeholder')) : (placeholder || t('select_placeholder'));
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
@@ -75,8 +75,7 @@ const Select = forwardRef(({
     // Don't close if clicking on the select itself or its children
     if (containerRef.current && !containerRef.current.contains(event.target)) {
       // Check if the click is on a dropdown option or inside the dropdown portal
-      const isOptionClick = event.target.closest(`.${styles.option}`) ||
-                           (dropdownRef.current && dropdownRef.current.contains(event.target));
+      const isOptionClick = event.target.closest(`.${styles.option}`);
 
       if (!isOptionClick) {
         // console.log('🔵 [Select] Click outside detected, closing dropdown');
@@ -415,7 +414,7 @@ const Select = forwardRef(({
                   ref={searchInputRef}
                   type="text"
                   className={styles.searchInput}
-                  placeholder={searchPlaceholder || t('search') || 'Search...'}
+                  placeholder={searchPlaceholder || t('search')}
                   value={searchTerm}
                   onChange={handleSearchChange}
                   onClick={(e) => e.stopPropagation()}
@@ -426,7 +425,7 @@ const Select = forwardRef(({
             
             <div className={styles.optionsList}>
               {filteredOptions.length === 0 ? (
-                <div className={styles.noOptions}>{t('no_options_found') || 'No options found'}</div>
+                <div className={styles.noOptions}>{t('no_options_found')}</div>
               ) : (
                 filteredOptions.map((option, index) => {
                   const optionClasses = [

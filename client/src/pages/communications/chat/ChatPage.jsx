@@ -184,7 +184,7 @@ const ChatPage = memo(() => {
   const [isUploading, setIsUploading] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
   const [sidebarWidth, setSidebarWidth] = useState(() => {
-    const saved = parseInt(localStorage.getItem(LOCAL_STORAGE_KEYS.SIDEBAR_WIDTH) || '0', 10);
+    const saved = parseInt(localStorage.getItem(LOCAL_STORAGE_KEYS.SIDEBAR_WIDTH), 10);
     return Number.isFinite(saved) && saved >= SIDEBAR_CONFIG.MIN_WIDTH && saved <= SIDEBAR_CONFIG.MAX_WIDTH 
       ? saved 
       : SIDEBAR_CONFIG.DEFAULT_WIDTH;
@@ -196,7 +196,7 @@ const ChatPage = memo(() => {
   const [selectedClassName, setSelectedClassName] = useState('');
   const resizingRef = useRef(false);
   const [sidebarDividerHeight, setSidebarDividerHeight] = useState(() => {
-    const saved = parseInt(localStorage.getItem(LOCAL_STORAGE_KEYS.SIDEBAR_DIVIDER_HEIGHT) || '0', 10);
+    const saved = parseInt(localStorage.getItem(LOCAL_STORAGE_KEYS.SIDEBAR_DIVIDER_HEIGHT), 10);
     return Number.isFinite(saved) && saved > 0 ? saved : null; // null = auto/flex
   });
   const dividerDraggingRef = useRef(false);
@@ -339,11 +339,11 @@ const ChatPage = memo(() => {
             ? { ...m, starredBy: result.data.starredBy }
             : m
         ));
-        toast?.showSuccess(result.data.isStarred ? (t('message_starred') || 'Message starred') : (t('message_unstarred') || 'Message unstarred'));
+        toast?.showSuccess(result.data.isStarred ? (t('message_starred')) : (t('message_unstarred')));
       }
     } catch (err) {
       error('Failed to toggle star:', err);
-      toast?.showError(t('failed_to_star') || 'Failed to star message');
+      toast?.showError(t('failed_to_star'));
     }
   }, [t, toast, setMessages]);
 
@@ -362,11 +362,11 @@ const ChatPage = memo(() => {
           }
           return m;
         }));
-        toast?.showSuccess(result.data.isPinned ? (t('message_pinned') || 'Message pinned') : (t('message_unpinned') || 'Message unpinned'));
+        toast?.showSuccess(result.data.isPinned ? (t('message_pinned')) : (t('message_unpinned')));
       }
     } catch (err) {
       error('Failed to toggle pin:', err);
-      toast?.showError(t('failed_to_pin') || 'Failed to pin message');
+      toast?.showError(t('failed_to_pin'));
     }
   }, [t, toast, setMessages, user]);
 
@@ -1398,7 +1398,7 @@ const ChatPage = memo(() => {
               })}
             </div>
             <div style={{ padding:'0.75rem 1.25rem', textAlign:'right', borderTop:'1px solid var(--border)' }}>
-              <button onClick={()=>setReceiptsFor(null)} style={{ padding:'0.6rem 1.2rem', background:'var(--brand)', color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontWeight:600 }}>{t('close')||'Close'}</button>
+              <button onClick={()=>setReceiptsFor(null)} style={{ padding:'0.6rem 1.2rem', background:'var(--brand)', color:'#fff', border:'none', borderRadius:8, cursor:'pointer', fontWeight:600 }}>{t('close')}</button>
             </div>
           </div>
         </div>
@@ -1636,7 +1636,7 @@ const ChatPage = memo(() => {
                   <input
                     type="text"
                     autoComplete="off"
-                    placeholder={t('chat_search_groups') || t('chat_search_users')}
+                    placeholder={t('chat_search_groups')}
                     value={groupSearch}
                     onChange={(e) => setGroupSearch(e.target.value)}
                     style={{ margin: '0.5rem 1rem', padding: '6px 10px', border: '1px solid #ddd', borderRadius: 6, fontSize: '0.85rem', width: 'calc(100% - 2rem)' }}
@@ -1686,7 +1686,7 @@ const ChatPage = memo(() => {
               <button
                 onClick={createSelfDM}
                 style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--brand)', fontSize: '1.1rem', padding: '2px 6px', borderRadius: 4 }}
-                title={t('message_yourself') || 'Message Yourself'}
+                title={t('message_yourself')}
               >
                 {getThemedIcon('ui', 'edit', 16, theme)}
               </button>
@@ -1756,7 +1756,7 @@ const ChatPage = memo(() => {
             const isSelfDM = room.participantA === room.participantB && room.participantA != null;
             const otherUser = isSelfDM ? null : (room.userA?.id === user?.dbId || (user?.email && room.userA?.email === user?.email)) ? room.userB : room.userA;
             const otherId = otherUser?.id;
-            const label = isSelfDM ? (t('your_notes') || 'Your Notes') : (otherUser ? getChatUserDisplayName(otherUser, lang) || otherUser.email || t('conversation') : t('conversation'));
+            const label = isSelfDM ? (t('your_notes')) : (otherUser ? getChatUserDisplayName(otherUser, lang) || otherUser.email || t('conversation') : t('conversation'));
             const initial = isSelfDM ? null : (label || t('conversation'))[0]?.toUpperCase();
             const lastTime = room.lastMessageAt?.toDate?.();
             return (
@@ -1784,7 +1784,7 @@ const ChatPage = memo(() => {
                               {selfInitial}
                             </div>
                           )}
-                          <div style={{ position: 'absolute', bottom: -2, insetInlineEnd: -2, width: 14, height: 14, borderRadius: '50%', background: 'var(--panel)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1.5px solid var(--panel)', boxShadow: '0 0 0 1px var(--border)' }} title={t('your_notes') || 'Your Notes'}>
+                          <div style={{ position: 'absolute', bottom: -2, insetInlineEnd: -2, width: 14, height: 14, borderRadius: '50%', background: 'var(--panel)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1.5px solid var(--panel)', boxShadow: '0 0 0 1px var(--border)' }} title={t('your_notes')}>
                             {getThemedIcon('ui', 'edit', 8, theme)}
                           </div>
                         </div>
@@ -1931,7 +1931,7 @@ const ChatPage = memo(() => {
                    ? (()=>{ 
                       const room = directRooms.find(r=>`dm:${r.id}`===selectedClass); 
                       const isSelfDM = room && room.participantA === room.participantB && room.participantA != null;
-                      if (isSelfDM) return t('your_notes') || 'Your Notes';
+                      if (isSelfDM) return t('your_notes');
                       const otherUser = (room?.userA?.id === user?.dbId || (user?.email && room?.userA?.email === user?.email)) ? room?.userB : room?.userA;
                       return otherUser ? getChatUserDisplayName(otherUser, lang) || otherUser.email || t('direct_message') : (pendingDMUserName || t('direct_message'));
                     })()
@@ -1951,7 +1951,7 @@ const ChatPage = memo(() => {
                 if (isSelfDM) {
                   return (
                     <div style={{ fontSize: '0.9rem', color: 'var(--muted)', marginTop: '0.25rem', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      {t('message_yourself_hint') || 'Personal notes and reminders'}
+                      {t('message_yourself_hint')}
                     </div>
                   );
                 }
@@ -1990,10 +1990,10 @@ const ChatPage = memo(() => {
                       }}
                       onMouseEnter={(e) => { e.target.style.borderColor = 'var(--brand)'; e.target.style.color = 'var(--brand)'; }}
                       onMouseLeave={(e) => { e.target.style.borderColor = 'var(--border)'; e.target.style.color = 'var(--muted)'; }}
-                      title={t('chat_group_info') || 'Info'}
+                      title={t('chat_group_info')}
                     >
                       {getThemedIcon('ui', 'info', 12, theme)}
-                      {t('chat_group_info') || 'Info'}
+                      {t('chat_group_info')}
                     </button>
                   </div>
                 );
@@ -2025,10 +2025,10 @@ const ChatPage = memo(() => {
                       }}
                       onMouseEnter={(e) => { e.target.style.borderColor = 'var(--brand)'; e.target.style.color = 'var(--brand)'; }}
                       onMouseLeave={(e) => { e.target.style.borderColor = 'var(--border)'; e.target.style.color = 'var(--muted)'; }}
-                      title={t('chat_group_info') || 'Group Info'}
+                      title={t('chat_group_info')}
                     >
                       {getThemedIcon('ui', 'info', 12, theme)}
-                      {t('chat_group_info') || 'Info'}
+                      {t('chat_group_info')}
                     </button>
                     {isCreator && (
                       <span style={{ fontSize: '0.7rem', background: 'rgba(255, 193, 7, 0.12)', color: '#ffc107', padding: '1px 6px', borderRadius: 8, fontWeight: 600, display: 'inline-flex', alignItems: 'center', gap: 3 }}>
@@ -2103,7 +2103,7 @@ const ChatPage = memo(() => {
             <button
               type="button"
               onClick={() => setShowStarredOnly(!showStarredOnly)}
-              title={t('starred_messages') || 'Starred Messages'}
+              title={t('starred_messages')}
               style={{ 
                 background: showStarredOnly ? 'rgba(250,204,21,0.15)' : 'transparent', 
                 border: showStarredOnly ? '1px solid #facc15' : '1px solid var(--border)',
@@ -2186,7 +2186,7 @@ const ChatPage = memo(() => {
           const pinnedMsg = (safeMessages || []).find(m => m.pinnedById !== null && m.pinnedById !== undefined && !m.isDeleted);
           if (!pinnedMsg) return null;
           const pinnedSender = (allUsers || []).find(u => u.docId === pinnedMsg.senderId || u.id === pinnedMsg.senderId || String(u.id) === String(pinnedMsg.senderId));
-          const pinnedSenderName = pinnedMsg.senderName || getChatUserDisplayName(pinnedSender, lang) || t('unknown') || 'Unknown';
+          const pinnedSenderName = pinnedMsg.senderName || getChatUserDisplayName(pinnedSender, lang) || t('unknown');
           return (
             <div
               style={{
@@ -2213,7 +2213,7 @@ const ChatPage = memo(() => {
               {getThemedIcon('ui', 'pin', 14, theme)}
               <div style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 <span style={{ fontSize: 'var(--font-size-xs)', fontWeight: 600, color: 'var(--brand)', marginRight: '0.25rem' }}>
-                  {t('pinned_message') || 'Pinned'}
+                  {t('pinned_message')}
                 </span>
                 <span style={{ fontSize: '0.8rem', color: 'var(--text)', opacity: 0.8 }}>
                   {pinnedMsg.content || pinnedMsg.pollQuestion || pinnedMsg.fileName || '...'}
@@ -2256,10 +2256,10 @@ const ChatPage = memo(() => {
               }}
               onMouseEnter={(e) => { e.target.style.borderColor = 'var(--brand)'; e.target.style.color = 'var(--brand)'; }}
               onMouseLeave={(e) => { e.target.style.borderColor = 'var(--border)'; e.target.style.color = 'var(--muted)'; }}
-              title={t('chat_group_info') || 'Info'}
+              title={t('chat_group_info')}
             >
               {getThemedIcon('ui', 'info', 12, theme)}
-              {t('chat_group_info') || 'Info'}
+              {t('chat_group_info')}
             </button>
           </div>
         )}
@@ -2279,7 +2279,7 @@ const ChatPage = memo(() => {
           }}>
             <span style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
               {getIconWithColor('ui', 'star', 14, 'var(--brand)')}
-              {t('starred_messages') || 'Starred Messages'}
+              {t('starred_messages')}
             </span>
             <button
               onClick={() => setShowStarredOnly(false)}
@@ -2360,7 +2360,7 @@ const ChatPage = memo(() => {
                     maxWidth: 320,
                     lineHeight: 1.6,
                   }}>
-                    {showStarredOnly ? (t('no_starred_messages') || 'No starred messages yet. Star a message by clicking the star icon.') : (msgQuery?.trim() || globalChatSearch) ? (t('no_messages_found')) : (t('no_messages'))}
+                    {showStarredOnly ? (t('no_starred_messages')) : (msgQuery?.trim() || globalChatSearch) ? (t('no_messages_found')) : (t('no_messages'))}
                   </p>
                 </div>
               );
@@ -3008,7 +3008,7 @@ const ChatPage = memo(() => {
                             style={{ display:'flex', alignItems:'center', gap:'8px', background:'transparent', border:'none', padding:'8px 12px', width:'100%', textAlign:'start', cursor:'pointer', color:'var(--text)', transition:'background 0.2s' }}
                           >
                             {getThemedIcon('ui', 'edit', 14, theme)}
-                            {t('edit')||'Edit'}
+                            {t('edit')}
                           </button>
                         )}
                         {/* Star button — available to all users in all chat types */}
@@ -3022,7 +3022,7 @@ const ChatPage = memo(() => {
                           {(() => {
                             const starredBy = Array.isArray(msg.starredBy) ? msg.starredBy : [];
                             const isStarred = starredBy.includes(user?.dbId) || starredBy.includes(user?.uid);
-                            return isStarred ? (t('unstar') || 'Unstar') : (t('star') || 'Star');
+                            return isStarred ? (t('unstar')) : (t('star'));
                           })()}
                         </button>
                         {/* Pin button — group chats only */}
@@ -3034,7 +3034,7 @@ const ChatPage = memo(() => {
                             style={{ display:'flex', alignItems:'center', gap:'8px', background:'transparent', border:'none', padding:'8px 12px', width:'100%', textAlign:'start', cursor:'pointer', color: msg.pinnedById ? 'var(--brand)' : 'var(--text)', transition:'background 0.2s', borderBottom:'1px solid var(--border)' }}
                           >
                             {getThemedIcon('ui', 'pin', 14, theme)}
-                            {msg.pinnedById ? (t('unpin') || 'Unpin') : (t('pin') || 'Pin')}
+                            {msg.pinnedById ? (t('unpin')) : (t('pin'))}
                           </button>
                         )}
                         <button
@@ -3099,7 +3099,7 @@ const ChatPage = memo(() => {
                           style={{ display:'flex', alignItems:'center', gap:'8px', background:'transparent', border:'none', padding:'8px 12px', width:'100%', textAlign:'start', cursor:'pointer', color:'var(--brand)', transition:'background 0.2s', borderBottom:'1px solid var(--border)' }}
                         >
                           {getThemedIcon('ui', 'share', 14, theme)}
-                          {t('chat_share_message') || 'Share'}
+                          {t('chat_share_message')}
                         </button>
                         <button
                           onClick={()=>{
@@ -3117,7 +3117,7 @@ const ChatPage = memo(() => {
                           style={{ display:'flex', alignItems:'center', gap:'8px', background:'transparent', border:'none', padding:'8px 12px', width:'100%', textAlign:'start', cursor:'pointer', color:'var(--brand)', transition:'background 0.2s', borderBottom:'1px solid var(--border)' }}
                         >
                           {getThemedIcon('ui', 'copy', 14, theme)}
-                          {t('chat_copy_message') || 'Copy'}
+                          {t('chat_copy_message')}
                         </button>
                         {(isOwnMessage || isAdmin) && (
                           <button
@@ -3694,7 +3694,7 @@ const ChatPage = memo(() => {
               autoComplete="off"
               value={pollQuestion}
               onChange={(e)=>setPollQuestion(e.target.value)}
-              placeholder={t('chat_question_placeholder') || 'What would you like to know?'}
+              placeholder={t('chat_question_placeholder')}
               style={{ width:'100%', padding:'0.75rem', border:'2px solid var(--border)', borderRadius:10, background:'var(--panel)', color:'var(--text)', fontSize:'0.9rem', transition:'border-color 0.2s', outline:'none' }}
               onFocus={(e)=>e.target.style.borderColor='var(--brand)'}
               onBlur={(e)=>e.target.style.borderColor='var(--border)'}
@@ -3718,7 +3718,7 @@ const ChatPage = memo(() => {
                       newOpts[idx] = e.target.value;
                       setPollOptions(newOpts);
                     }}
-                    placeholder={t('chat.option_number', { number: idx + 1 }) || `Option ${idx + 1}`}
+                    placeholder={t('chat.option_number', { number: idx + 1 })}
                     style={{ flex:1, padding:'0.5rem 0.75rem', border:'1px solid var(--border)', borderRadius:8, background:'var(--panel)', color:'var(--text)', fontSize:'0.85rem', transition:'border-color 0.2s', outline:'none' }}
                     onFocus={(e)=>e.target.style.borderColor='var(--brand)'}
                     onBlur={(e)=>e.target.style.borderColor='var(--border)'}
@@ -3729,7 +3729,7 @@ const ChatPage = memo(() => {
                       style={{ width:28, height:28, background:'transparent', color:'var(--muted)', border:'1px solid var(--border)', borderRadius:'50%', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontSize:'0.9rem', flexShrink:0, transition:'all 0.2s' }}
                       onMouseEnter={(e)=>{e.target.style.background='#ef4444'; e.target.style.color='white'; e.target.style.borderColor='#ef4444';}}
                       onMouseLeave={(e)=>{e.target.style.background='transparent'; e.target.style.color='var(--muted)'; e.target.style.borderColor='var(--border)';}}
-                      title={t('remove') || 'Remove'}
+                      title={t('remove')}
                     >
                       ✕
                     </button>
@@ -3820,10 +3820,10 @@ const ChatPage = memo(() => {
       isOpen={showLeaveGroupConfirm}
       onClose={() => setShowLeaveGroupConfirm(false)}
       onConfirm={handleLeaveGroupConfirm}
-      title={t('chat_leave_group') || 'Leave Group'}
-      message={t('chat_leave_group_confirm') || 'Are you sure you want to leave this group?'}
-      confirmText={t('chat_leave_group') || 'Leave'}
-      cancelText={t('cancel') || 'Cancel'}
+      title={t('chat_leave_group')}
+      message={t('chat_leave_group_confirm')}
+      confirmText={t('chat_leave_group')}
+      cancelText={t('cancel')}
       variant="danger"
       size="small"
     />

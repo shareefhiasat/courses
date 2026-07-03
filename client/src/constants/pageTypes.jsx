@@ -234,7 +234,7 @@ export const COMMON_GRID_COLUMNS = {
 // Common Form Validation Rules
 export const VALIDATION_RULES = {
   required: (value) => !!value || 'This field is required',
-  email: (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value) || 'Invalid email address',
+  email: (value) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value),
   minLength: (min) => (value) => value.length >= min || `Minimum ${min} characters required`,
   maxLength: (max) => (value) => value.length <= max || `Maximum ${max} characters allowed`,
   number: (value) => !isNaN(value) || 'Must be a number',

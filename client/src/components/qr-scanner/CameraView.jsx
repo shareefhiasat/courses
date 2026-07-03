@@ -39,7 +39,7 @@ const CameraView = ({
             margin: '0 auto 0.75rem'
           }}></div>
           <p style={{ color: '#94a3b8', fontSize: 'var(--font-size-sm)', margin: 0 }}>
-            {t('loading') || 'Loading...'}
+            {t('loading')}
           </p>
         </div>
       ) : !isScanning ? (

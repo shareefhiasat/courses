@@ -59,8 +59,8 @@ export default function ReportFilterBar({
   ].filter(Boolean).length;
 
   const summary = activeCount
-    ? `${activeCount} ${t('filters_active') || 'filters active'}`
-    : t('all_filters_cleared') || 'All filters cleared';
+    ? `${activeCount} ${t('filters_active')}`
+    : t('all_filters_cleared');
 
   const grid = (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
@@ -71,19 +71,19 @@ export default function ReportFilterBar({
         alignItems: 'center',
       }}>
         <Select
-          placeholder={t('select_program') || 'Select a program'}
+          placeholder={t('select_program')}
           value={filters.programId || ''}
           onChange={(e) => set('programId', e.target.value)}
           options={itemOptions(programs, isRTL)}
         />
         <Select
-          placeholder={t('select_subject') || 'Select a subject'}
+          placeholder={t('select_subject')}
           value={filters.subjectId || ''}
           onChange={(e) => set('subjectId', e.target.value)}
           options={itemOptions(filteredSubjects, isRTL)}
         />
         <Select
-          placeholder={t('select_class') || 'Select a class'}
+          placeholder={t('select_class')}
           value={filters.classId || ''}
           onChange={(e) => set('classId', e.target.value)}
           options={itemOptions(filteredClasses, isRTL)}
@@ -96,20 +96,20 @@ export default function ReportFilterBar({
         alignItems: 'center',
       }}>
         <Select
-          placeholder={t('select_term') || 'Select a term'}
+          placeholder={t('select_term')}
           value={filters.term || ''}
           onChange={(e) => set('term', e.target.value)}
           options={termOptions}
         />
         <Select
-          placeholder={t('select_year') || 'Select a year'}
+          placeholder={t('select_year')}
           value={filters.year || ''}
           onChange={(e) => set('year', e.target.value)}
           options={YEAR_OPTIONS}
         />
         {showInstructor && (
           <Select
-            placeholder={t('select_instructor') || 'Select an instructor'}
+            placeholder={t('select_instructor')}
             value={filters.instructorId || ''}
             onChange={(e) => set('instructorId', e.target.value)}
             options={instructors.map((i) => ({
@@ -124,7 +124,7 @@ export default function ReportFilterBar({
 
   return (
     <CollapsibleSection
-      title={t('report_filters') || 'Report Filters'}
+      title={t('report_filters')}
       summary={summary}
       icon={Filter}
       defaultOpen={defaultOpen}

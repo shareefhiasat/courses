@@ -65,7 +65,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
   const { textSize } = useTypography();
   const navIconSize = resolveIconSize(18);
   const [drawerWidth, setDrawerWidth] = useState(() => {
-    try { return Math.min(600, Math.max(320, parseInt(localStorage.getItem('drawer_width') || '380', 10))); } catch { return 380; }
+    try { return Math.min(600, Math.max(320, parseInt(localStorage.getItem('drawer_width'), 10))); } catch { return 380; }
   });
   const [density, setDensity] = useState(() => {
     try { return document.documentElement.getAttribute('data-density') || 'compact'; } catch { return 'compact'; }
@@ -818,7 +818,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
             >
               <button
                 onClick={() => setIsHovering(true)}
-                title={t('expand') || 'Expand'}
+                title={t('expand')}
                 style={{
                   position: 'absolute',
                   top: 12,
@@ -895,7 +895,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
             {collapsed && (
               <button
                 onClick={() => setCollapsed(false)}
-                title={t('expand') || 'Expand'}
+                title={t('expand')}
                 style={{
                   position: 'absolute',
                   top: '50%',
@@ -931,7 +931,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
                 window.addEventListener('mousemove', onMove);
                 window.addEventListener('mouseup', onUp);
               }}
-              title={t('resize') || 'Resize'}
+              title={t('resize')}
               style={{ position:'absolute', top:0, right:-5, width:10, height:'100%', cursor:'ew-resize',
                 background: 'linear-gradient(to right, transparent 0%, rgba(255,255,255,0.08) 50%, transparent 100%)' }}
             />
@@ -1006,7 +1006,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
                     <div style={{ display: 'flex', flexDirection: collapsed ? 'column' : 'row', gap: collapsed ? '0.5rem' : '0' }}>
                       <button
                         onClick={toggleTheme}
-                        title={theme==='light' ? (t('switch_to_dark')||'Dark') : (t('switch_to_light')||'Light')}
+                        title={theme==='light' ? (t('switch_to_dark')) : (t('switch_to_light'))}
                         data-base-bg={neutralBg}
                         data-hover-bg={neutralHover}
                         style={{
@@ -1034,7 +1034,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
                             setAutoHide(false);
                           }
                         }}
-                        title={collapsed ? (t('expand')||'Expand Drawer') : (t('collapse')||'Collapse Drawer')}
+                        title={collapsed ? (t('expand')) : (t('collapse'))}
                         data-base-bg={collapsed ? accentBg : neutralBg}
                         data-hover-bg={collapsed ? accentHover : neutralHover}
                         style={{
@@ -1052,7 +1052,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
                       </button>
                       <button
                         onClick={() => setAutoHide(v=>!v)}
-                        title={autoHide ? (t('disable_auto_hide')||'Disable auto-hide') : (t('enable_auto_hide')||'Enable auto-hide')}
+                        title={autoHide ? (t('disable_auto_hide')) : (t('enable_auto_hide'))}
                         data-base-bg={autoHide ? accentBg : neutralBg}
                         data-hover-bg={autoHide ? accentHover : neutralHover}
                         style={{
@@ -1070,7 +1070,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
                       </button>
                       <button
                         onClick={() => setStickyMode(v => !v)}
-                        title={stickyMode ? (t('disable_sticky') || 'Disable Sticky Mode') : (t('enable_sticky') || 'Enable Sticky Mode')}
+                        title={stickyMode ? (t('disable_sticky')) : (t('enable_sticky'))}
                         data-base-bg={stickyMode ? accentBg : neutralBg}
                         data-hover-bg={stickyMode ? accentHover : neutralHover}
                         style={{
@@ -1122,7 +1122,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
                   {pinTimer && (
                     <button
                       onClick={() => setShowTimerPanel(v=>!v)}
-                      title={t('timer') || 'Timer'}
+                      title={t('timer')}
                       data-base-bg={theme==='light' ? '#e2e8f0' : 'rgba(255,255,255,0.12)'}
                       data-hover-bg={theme==='light' ? '#cbd5f5' : 'rgba(255,255,255,0.22)'}
                       style={{ padding:'0.5rem', borderRadius:8, background: theme==='light' ? '#e2e8f0' : 'rgba(255,255,255,0.12)', border:'1px solid rgba(0,0,0,0.15)', color:'#111827',
@@ -1170,7 +1170,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
                   color: 'white'
                 }}>
                   <div style={{ fontWeight: 600, marginBottom: '0.5rem', display:'flex', alignItems:'center', gap:6 }}>
-                    {getThemedIcon('ui', 'help_circle', 16, theme)} {t('impersonating') || 'Impersonating'}
+                    {getThemedIcon('ui', 'help_circle', 16, theme)} {t('impersonating')}
                   </div>
                   <button
                     onClick={handleStopImpersonation}
@@ -1186,7 +1186,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
                       fontSize: 'var(--font-size-sm)'
                     }}
                   >
-                    {t('stop_impersonation') || 'Stop Impersonation'}
+                    {t('stop_impersonation')}
                   </button>
                 </div>
               )}
@@ -1352,7 +1352,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
                       )}
                       {!collapsed && density === 'compact' && (
                       <button
-                        title={t('open_in_new_tab') || 'Open in new tab'}
+                        title={t('open_in_new_tab')}
                         onClick={() => link.key==='timerControl' ? setShowTimerPanel(v=>!v) : window.open(`${window.location.origin}${link.path}`, '_blank', 'noopener,noreferrer')}
                         style={{
                           background: theme==='light' ? '#ffffff' : 'rgba(255,255,255,0.06)',
@@ -1374,7 +1374,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
                         const pinned = link.key==='timerControl' ? pinTimer : isPinned(link.path);
                         return (
                           <button
-                            title={pinned ? (t('unpin') || 'Unpin') : (t('pin') || 'Pin')}
+                            title={pinned ? (t('unpin')) : (t('pin'))}
                             onClick={() => link.key==='timerControl' ? setPinTimer(v=>!v) : togglePinLink(link.path)}
                             style={{
                               background: pinned
@@ -1456,7 +1456,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
                   toggleLang();
                   if (!collapsed) onClose();
                 }}
-                title={collapsed ? (t('switch_language') || (lang === 'en' ? 'العربية' : 'English')) : ''}
+                title={collapsed ? (t('switch_language')) : ''}
                 style={{
                   ...langButtonStyle,
                   margin: '0',
@@ -1467,13 +1467,13 @@ const SideDrawer = ({ isOpen, onClose }) => {
                 onMouseEnter={onFooterHover}
                 onMouseLeave={onFooterLeave}
               >
-                {collapsed ? getThemedIcon('ui', 'globe', 16, theme) : <span>{t(lang === 'en' ? 'arabic' : 'english') || (lang === 'en' ? 'العربية' : 'English')}</span>}
+                {collapsed ? getThemedIcon('ui', 'globe', 16, theme) : <span>{t(lang === 'en' ? 'arabic' : 'english')}</span>}
               </button>
 
               {/* Logout */}
               <button
                 onClick={handleLogout}
-                title={collapsed ? (t('logout') || 'Logout') : ''}
+                title={collapsed ? (t('logout')) : ''}
                 style={{
                   ...logoutButtonStyle,
                   margin: '0',
@@ -1484,7 +1484,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
                 onMouseEnter={onFooterHover}
                 onMouseLeave={onFooterLeave}
               >
-                {collapsed ? getThemedIcon('ui', 'log_out', 16, theme) : <span>{t('logout') || 'Logout'}</span>}
+                {collapsed ? getThemedIcon('ui', 'log_out', 16, theme) : <span>{t('logout')}</span>}
               </button>
               </div>
             </div>

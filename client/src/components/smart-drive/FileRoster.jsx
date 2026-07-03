@@ -83,7 +83,7 @@ export default function FileRoster({
   // Helper to format owner name
   const formatOwnerName = (owner) => {
     if (!owner) {
-      return t('drive.unknown') || 'Unknown';
+      return t('drive.unknown');
     }
 
     // Always show displayName if available
@@ -105,19 +105,19 @@ export default function FileRoster({
       }
     }
 
-    return t('drive.unknown') || 'Unknown';
+    return t('drive.unknown');
   };
 
   // Helper to get user-friendly text for delete reason
   const getDeleteReasonText = (reason) => {
     const reasonMap = {
-      'FILE_SHARED': t('drive.deleteReasonShared') || 'File is shared with others',
-      'WORKFLOW_ACTIVE': t('drive.deleteReasonWorkflow') || 'File has an active workflow',
-      'WORKFLOW_NOT_OWNER': t('drive.deleteReasonWorkflowOwner') || 'Only workflow owner can delete',
-      'NOT_OWNER': t('drive.deleteReasonNotOwner') || 'You are not the owner',
-      'FILE_NOT_FOUND': t('drive.deleteReasonNotFound') || 'File not found',
+      'FILE_SHARED': t('drive.deleteReasonShared'),
+      'WORKFLOW_ACTIVE': t('drive.deleteReasonWorkflow'),
+      'WORKFLOW_NOT_OWNER': t('drive.deleteReasonWorkflowOwner'),
+      'NOT_OWNER': t('drive.deleteReasonNotOwner'),
+      'FILE_NOT_FOUND': t('drive.deleteReasonNotFound'),
     };
-    return reasonMap[reason] || t('drive.deleteReasonUnknown') || 'Cannot delete this file';
+    return reasonMap[reason] || t('drive.deleteReasonUnknown');
   };
 
   const allItems = [...folders, ...files];
@@ -217,7 +217,7 @@ export default function FileRoster({
         borderRadius: '0.75rem',
         overflow: 'visible',
       }}
-      dir={isRTL ? 'rtl' : 'ltr'}
+
     >
       {/* Toolbar */}
       <div
@@ -236,7 +236,7 @@ export default function FileRoster({
             type="text"
             value={searchQuery}
             onChange={(e) => onSearchChange?.(e.target.value)}
-            placeholder={t('drive.searchFiles') || 'Search files'}
+            placeholder={t('drive.searchFiles')}
             prefix={getThemedIcon('ui', 'search', 16, theme)}
           />
         </div>
@@ -259,14 +259,14 @@ export default function FileRoster({
             }}
           >
             {getThemedIcon('ui', 'trash', 14, 'error')}
-            {t('drive.emptyTrash') || 'Empty trash'}
+            {t('drive.emptyTrash')}
           </button>
         )}
 
         {selectedIds.size > 0 ? (
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
             <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text, #111827)', fontWeight: 600 }}>
-              {selectedIds.size} {t('selected') || 'selected'}
+              {selectedIds.size} {t('selected')}
             </span>
             <Button
               variant="outline"
@@ -280,7 +280,7 @@ export default function FileRoster({
                 onFileAction?.('share', selectedItems);
               }}
             >
-              {t('share') || 'Share'}
+              {t('share')}
             </Button>
             <Button
               variant="outline"
@@ -295,7 +295,7 @@ export default function FileRoster({
               }}
               leftIcon={getThemedIcon('ui', 'download', 14, theme)}
             >
-              {t('download') || 'Download'}
+              {t('download')}
             </Button>
             <Button
               variant="outline"
@@ -311,10 +311,10 @@ export default function FileRoster({
               leftIcon={getThemedIcon('ui', 'trash', 14, theme)}
               style={{ color: '#dc2626', borderColor: '#fecaca' }}
             >
-              {t('delete') || 'Delete'}
+              {t('delete')}
             </Button>
             <Button variant="ghost" size="small" onClick={onClearSelection}>
-              {t('clear') || 'Clear'}
+              {t('clear')}
             </Button>
           </div>
         ) : (
@@ -336,7 +336,7 @@ export default function FileRoster({
               }}
             >
               {getThemedIcon('ui', 'folder', 14, showFolders ? 'white' : 'muted')}
-              {showFolders ? (t('drive.folders') || 'Folders') : (t('drive.folders') || 'Folders')}
+              {showFolders ? (t('drive.folders')) : (t('drive.folders'))}
             </button>
             <div
               style={{
@@ -360,7 +360,7 @@ export default function FileRoster({
                   display: 'flex',
                   alignItems: 'center',
                 }}
-                title={t('list_view') || 'List view'}
+                title={t('list_view')}
               >
                 {getThemedIcon('ui', 'list', 16, viewMode === 'list' ? 'white' : theme)}
               </button>
@@ -376,7 +376,7 @@ export default function FileRoster({
                   display: 'flex',
                   alignItems: 'center',
                 }}
-                title={t('grid_view') || 'Grid view'}
+                title={t('grid_view')}
               >
                 {getThemedIcon('ui', 'grid', 16, viewMode === 'grid' ? 'white' : theme)}
               </button>
@@ -392,7 +392,7 @@ export default function FileRoster({
                   display: 'flex',
                   alignItems: 'center',
                 }}
-                title={t('drive.status') || 'Status'}
+                title={t('drive.status')}
               >
                 {getThemedIcon('ui', 'check_circle', 16, showStatus ? 'white' : theme)}
               </button>
@@ -408,7 +408,7 @@ export default function FileRoster({
                   display: 'flex',
                   alignItems: 'center',
                 }}
-                title={t('drive.created') || 'Created'}
+                title={t('drive.created')}
               >
                 {getThemedIcon('ui', 'calendar', 16, showCreated ? 'white' : theme)}
               </button>
@@ -421,8 +421,8 @@ export default function FileRoster({
       {filteredFolders.length === 0 && filteredFiles.length === 0 && (
         <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>
           {searchQuery
-            ? t('drive.noMatches') || 'No matches found.'
-            : t('drive.noFiles') || 'No files yet. Upload to get started.'}
+            ? t('drive.noMatches')
+            : t('drive.noFiles')}
         </div>
       )}
 
@@ -450,9 +450,9 @@ export default function FileRoster({
             <div style={{ width: 40, display: 'flex', justifyContent: 'center' }}>
               {getThemedIcon('ui', 'star', 14, 'muted')}
             </div>
-            <div style={{ flex: 1.2, textAlign: isRTL ? 'right' : 'left', paddingRight: isRTL ? 0 : '0.5rem', paddingLeft: isRTL ? '0.5rem' : 0 }}>
+            <div style={{ flex: 1.2, textAlign: 'start', paddingInlineEnd: '0.5rem' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                <span>{t('drive.name') || 'Name'}</span>
+                <span>{t('drive.name')}</span>
                 <button
                   onClick={() => setShowFolders(!showFolders)}
                   style={{
@@ -527,7 +527,7 @@ export default function FileRoster({
                 borderBottom: '1px solid var(--border, #e5e7eb)',
               }}
             >
-              {filteredFolders.length} {t('drive.folders') || 'folders'}
+              {filteredFolders.length} {t('drive.folders')}
             </div>
           )}
 
@@ -580,7 +580,7 @@ export default function FileRoster({
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}
-                  title={folder.starred ? t('drive.unstar') || 'Unstar' : t('drive.star') || 'Star'}
+                  title={folder.starred ? t('drive.unstar') : t('drive.star')}
                 >
                   {folder.starred 
                     ? <svg width="16" height="16" viewBox="0 0 24 24" fill="#fbbf24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
@@ -588,7 +588,7 @@ export default function FileRoster({
                   }
                 </button>
               </div>
-              <div style={{ flex: 1.2, display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0, paddingRight: isRTL ? 0 : '0.5rem', paddingLeft: isRTL ? '0.5rem' : 0 }}>
+              <div style={{ flex: 1.2, display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0, paddingInlineEnd: '0.5rem' }}>
                 <div
                   style={{
                     width: 40,
@@ -620,17 +620,17 @@ export default function FileRoster({
                     {(() => { const displayName = getLocalizedFolderName(folder, lang); return displayName.length > 80 ? `${displayName.substring(0, 80)}...` : displayName; })()}
                   </div>
                   <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted, #6b7280)' }}>
-                    {t('drive.folder') || 'Folder'}
+                    {t('drive.folder')}
                   </div>
                 </div>
               </div>
               {showStatus && (
-                <div style={{ width: 60, paddingRight: isRTL ? 0 : '0.5rem', paddingLeft: isRTL ? '0.5rem' : 0 }}>
+                <div style={{ width: 60, paddingInlineEnd: '0.5rem' }}>
                   —
                 </div>
               )}
               {showOwner && (
-                <div style={{ width: 100, fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary, #374151)', paddingRight: isRTL ? 0 : '0.5rem', paddingLeft: isRTL ? '0.5rem' : 0 }}>
+                <div style={{ width: 100, fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary, #374151)', paddingInlineEnd: '0.5rem' }}>
                   {formatOwnerName(folder.owner)}
                 </div>
               )}
@@ -638,16 +638,15 @@ export default function FileRoster({
                 <div
                   style={{
                     width: 80,
-                    textAlign: isRTL ? 'left' : 'right',
+                    textAlign: 'end',
                     fontSize: 'var(--font-size-sm)',
                     color: 'var(--text-muted, #6b7280)',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: isRTL ? 'flex-start' : 'flex-end',
+                    justifyContent: 'end',
                     whiteSpace: 'pre-line',
                     lineHeight: 1.2,
-                    paddingRight: isRTL ? 0 : '0.5rem',
-                    paddingLeft: isRTL ? '0.5rem' : 0,
+paddingInlineEnd: '0.5rem',
                   }}
                 >
                   {formatDateTime(folder.createdAt)}
@@ -657,14 +656,13 @@ export default function FileRoster({
                 <div
                   style={{
                     width: 70,
-                    textAlign: isRTL ? 'left' : 'right',
+                    textAlign: 'end',
                     fontSize: 'var(--font-size-sm)',
                     color: 'var(--text-muted, #6b7280)',
                     display: 'flex',
                     alignItems: 'center',
-                    justifyContent: isRTL ? 'flex-start' : 'flex-end',
-                    paddingRight: isRTL ? 0 : '0.5rem',
-                    paddingLeft: isRTL ? '0.5rem' : 0,
+                    justifyContent: 'end',
+paddingInlineEnd: '0.5rem',
                   }}
                 >
                   —
@@ -691,7 +689,7 @@ export default function FileRoster({
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}
-                  title={t('drive.more') || 'More'}
+                  title={t('drive.more')}
                 >
                   {getThemedIcon('ui', 'more_vertical', 16, 'muted')}
                 </button>
@@ -734,14 +732,14 @@ export default function FileRoster({
                   {[
                     ...(isTrashView
                       ? [
-                          { key: 'restore', label: t('drive.restore') || 'Restore', icon: 'info', color: '#059669' },
-                          ...(!isProtectedFolder(folder) ? [{ key: 'permanent-delete', label: t('drive.permanentDelete') || 'Delete permanently', icon: 'trash', danger: true }] : []),
+                          { key: 'restore', label: t('drive.restore'), icon: 'info', color: '#059669' },
+                          ...(!isProtectedFolder(folder) ? [{ key: 'permanent-delete', label: t('drive.permanentDelete'), icon: 'trash', danger: true }] : []),
                         ]
                       : [
-                          { key: 'open', label: t('drive.open') || 'Open', icon: 'external_link' },
-                          { key: 'download', label: t('drive.download') || 'Download', icon: 'download' },
-                          ...(!isProtectedFolder(folder) ? [{ key: 'rename', label: t('drive.rename') || 'Rename', icon: 'edit' }] : []),
-                          ...(!isProtectedFolder(folder) ? [{ key: 'delete', label: t('drive.delete') || 'Delete', icon: 'trash', danger: true }] : []),
+                          { key: 'open', label: t('drive.open'), icon: 'external_link' },
+                          { key: 'download', label: t('drive.download'), icon: 'download' },
+                          ...(!isProtectedFolder(folder) ? [{ key: 'rename', label: t('drive.rename'), icon: 'edit' }] : []),
+                          ...(!isProtectedFolder(folder) ? [{ key: 'delete', label: t('drive.delete'), icon: 'trash', danger: true }] : []),
                         ]),
                   ].map((action) => (
                     <button
@@ -767,7 +765,7 @@ export default function FileRoster({
                         fontSize: 'var(--font-size-sm)',
                         fontWeight: 500,
                         color: action.danger ? '#dc2626' : action.color || 'var(--text, #111827)',
-                        textAlign: isRTL ? 'right' : 'left',
+                        textAlign: 'start',
                         transition: 'all 0.15s ease',
                         minHeight: '44px',
                       }}
@@ -806,7 +804,7 @@ export default function FileRoster({
                 borderBottom: '1px solid var(--border, #e5e7eb)',
               }}
             >
-              {filteredFiles.length} {t('drive.files') || 'files'}
+              {filteredFiles.length} {t('drive.files')}
             </div>
           )}
 
@@ -863,7 +861,7 @@ export default function FileRoster({
                       alignItems: 'center',
                       justifyContent: 'center',
                     }}
-                    title={file.starred ? t('drive.unstar') || 'Unstar' : t('drive.star') || 'Star'}
+                    title={file.starred ? t('drive.unstar') : t('drive.star')}
                   >
                     {file.starred 
                       ? <svg width="16" height="16" viewBox="0 0 24 24" fill="#fbbf24" xmlns="http://www.w3.org/2000/svg"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
@@ -871,7 +869,7 @@ export default function FileRoster({
                     }
                   </button>
                 </div>
-                <div style={{ flex: 1.2, display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0, paddingRight: isRTL ? 0 : '0.5rem', paddingLeft: isRTL ? '0.5rem' : 0 }}>
+                <div style={{ flex: 1.2, display: 'flex', alignItems: 'center', gap: '0.75rem', minWidth: 0, paddingInlineEnd: '0.5rem' }}>
                   <div
                     style={{
                       width: 36,
@@ -919,12 +917,12 @@ export default function FileRoster({
                   </div>
                 </div>
                 {showStatus && (
-                  <div style={{ width: 60, paddingRight: isRTL ? 0 : '0.5rem', paddingLeft: isRTL ? '0.5rem' : 0 }}>
+                  <div style={{ width: 60, paddingInlineEnd: '0.5rem' }}>
                     <StatusColumn file={file} onClick={() => onFileOpen?.(file)} />
                   </div>
                 )}
                 {showOwner && (
-                  <div style={{ width: 100, fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary, #374151)', paddingRight: isRTL ? 0 : '0.5rem', paddingLeft: isRTL ? '0.5rem' : 0 }}>
+                  <div style={{ width: 100, fontSize: 'var(--font-size-sm)', color: 'var(--text-secondary, #374151)', paddingInlineEnd: '0.5rem' }}>
                     {formatOwnerName(file.owner)}
                   </div>
                 )}
@@ -932,16 +930,15 @@ export default function FileRoster({
                   <div
                     style={{
                       width: 80,
-                      textAlign: isRTL ? 'left' : 'right',
+                      textAlign: 'end',
                       fontSize: 'var(--font-size-sm)',
                       color: 'var(--text-muted, #6b7280)',
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: isRTL ? 'flex-start' : 'flex-end',
+                      justifyContent: 'end',
                       whiteSpace: 'pre-line',
                       lineHeight: 1.2,
-                      paddingRight: isRTL ? 0 : '0.5rem',
-                      paddingLeft: isRTL ? '0.5rem' : 0,
+paddingInlineEnd: '0.5rem',
                     }}
                   >
                     {formatDateTime(file.createdAt)}
@@ -951,14 +948,13 @@ export default function FileRoster({
                   <div
                     style={{
                       width: 70,
-                      textAlign: isRTL ? 'left' : 'right',
+                      textAlign: 'end',
                       fontSize: 'var(--font-size-sm)',
                       color: 'var(--text-muted, #6b7280)',
                       display: 'flex',
                       alignItems: 'center',
-                      justifyContent: isRTL ? 'flex-start' : 'flex-end',
-                      paddingRight: isRTL ? 0 : '0.5rem',
-                      paddingLeft: isRTL ? '0.5rem' : 0,
+                      justifyContent: 'end',
+paddingInlineEnd: '0.5rem',
                     }}
                   >
                     {formatSize(file.size)}
@@ -1006,8 +1002,8 @@ export default function FileRoster({
                         color: 'var(--text-secondary, #374151)',
                       }}
                       className="focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-1"
-                      title={t('more_actions') || 'More actions'}
-                      aria-label={t('more_actions') || 'More actions'}
+                      title={t('more_actions')}
+                      aria-label={t('more_actions')}
                     >
                       {getThemedIcon('ui', 'more_vertical', 16, theme)}
                     </button>
@@ -1049,16 +1045,16 @@ export default function FileRoster({
                         {[
                           ...(isTrashView
                             ? [
-                                { key: 'restore', label: t('drive.restore') || 'Restore', icon: 'info', color: '#059669' },
-                                { key: 'permanent-delete', label: t('drive.permanentDelete') || 'Delete permanently', icon: 'trash', danger: true },
+                                { key: 'restore', label: t('drive.restore'), icon: 'info', color: '#059669' },
+                                { key: 'permanent-delete', label: t('drive.permanentDelete'), icon: 'trash', danger: true },
                               ]
                             : [
-                                ...(isPreviewable(file) ? [{ key: 'open', label: t('drive.open') || 'Open', icon: 'external_link' }] : []),
-                                { key: 'download', label: t('drive.download') || 'Download', icon: 'download' },
-                                { key: 'share', label: t('drive.share') || 'Share', icon: 'send' },
-                                { key: 'create-workflow', label: t('drive.workflow') || 'Workflow', icon: 'workflow', color: '#8b5cf6' },
-                                { key: 'rename', label: t('drive.rename') || 'Rename', icon: 'edit' },
-                                { key: 'delete', label: t('drive.delete') || 'Delete', icon: 'trash', danger: true },
+                                ...(isPreviewable(file) ? [{ key: 'open', label: t('drive.open'), icon: 'external_link' }] : []),
+                                { key: 'download', label: t('drive.download'), icon: 'download' },
+                                { key: 'share', label: t('drive.share'), icon: 'send' },
+                                { key: 'create-workflow', label: t('drive.workflow'), icon: 'workflow', color: '#8b5cf6' },
+                                { key: 'rename', label: t('drive.rename'), icon: 'edit' },
+                                { key: 'delete', label: t('drive.delete'), icon: 'trash', danger: true },
                               ]),
                         ].map((action) => (
                           <button
@@ -1081,7 +1077,7 @@ export default function FileRoster({
                               fontSize: 'var(--font-size-sm)',
                               fontWeight: 500,
                               color: action.danger ? '#dc2626' : action.color || 'var(--text, #111827)',
-                              textAlign: isRTL ? 'right' : 'left',
+                              textAlign: 'start',
                               transition: 'all 0.15s ease',
                               minHeight: '44px',
                             }}
@@ -1184,7 +1180,7 @@ export default function FileRoster({
                   marginTop: 2,
                 }}
               >
-                {t('drive.folder') || 'Folder'}
+                {t('drive.folder')}
               </div>
             </div>
           ))}

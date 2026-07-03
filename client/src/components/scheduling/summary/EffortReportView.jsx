@@ -122,7 +122,7 @@ export default function EffortReportView({ report, isRTL, hideStatCards = false 
 
       <Card style={{ marginBottom: '1.5rem' }}>
         <CardBody>
-          <h4 style={{ marginBottom: '0.75rem' }}>{t('courses') || 'Courses'}</h4>
+          <h4 style={{ marginBottom: '0.75rem' }}>{t('courses')}</h4>
           <div style={{ overflowX: 'auto' }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 'var(--font-size-sm)' }}>
               <thead>
@@ -159,7 +159,7 @@ export default function EffortReportView({ report, isRTL, hideStatCards = false 
       {report.reportFormat === 'breakdown' && report.sessions?.length > 0 && (
         <Card>
           <CardBody>
-            <h4 style={{ marginBottom: '0.75rem' }}>{t('session_breakdown') || 'Session Breakdown'}</h4>
+            <h4 style={{ marginBottom: '0.75rem' }}>{t('session_breakdown')}</h4>
             <div style={{ maxHeight: '400px', overflowY: 'auto' }}>
               {report.sessions.map((s, i) => (
                 <div key={i} style={{ padding: '0.5rem 0', borderBottom: `1px solid ${border}`, fontSize: 'var(--font-size-sm)' }}>

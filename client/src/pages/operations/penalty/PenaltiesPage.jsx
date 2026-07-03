@@ -616,7 +616,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
         if (!result.success) {
           throw new Error(result.error);
         }
-        toast.success(t('penalty_deleted') || 'Penalty deleted successfully');
+        toast.success(t('penalty_deleted'));
         await loadPenalties();
       } catch (error) {
         setPenalties(prev => [...prev, penalty]);
@@ -859,7 +859,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
     },
     {
       field: 'programName',
-      headerName: t('program') || 'Program',
+      headerName: t('program'),
       flex: 1,
       minWidth: 150,
       valueGetter: (params) => {
@@ -879,7 +879,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
     },
     {
       field: 'subjectName',
-      headerName: t('subject') || 'Subject',
+      headerName: t('subject'),
       flex: 1,
       minWidth: 120,
       valueGetter: (params) => {
@@ -910,7 +910,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
     },
     {
       field: 'comment',
-      headerName: t('comment') || 'Comment',
+      headerName: t('comment'),
       flex: 1,
       minWidth: 150,
       valueGetter: (params) => params.value || '—'
@@ -931,7 +931,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
             onClick={() => window.open(`/student-profile/${params.row.studentId}`, '_blank')}
             style={{ color: 'var(--attendance-accent, #800020)' }}
           >
-            {t('profile') || 'Profile'}
+            {t('profile')}
           </Button>
           <Button
             size="sm"
@@ -1062,7 +1062,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
                           marginLeft: 'auto'
                         }}>
                           {statusLabel}
-                          {enrollmentCount > 0 && ` • ${enrollmentCount} ${t('enrollments') || 'enrollments'}`}
+                          {enrollmentCount > 0 && ` • ${enrollmentCount} ${t('enrollments')}`}
                         </span>
                       </div>
                     ),
@@ -1094,7 +1094,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
           <textarea
             ref={commentRef}
             defaultValue={formData.comment}
-            placeholder={t('comment_optional') || 'Comment (optional)'}
+            placeholder={t('comment_optional')}
             className="dashboard-textarea"
             rows={3}
           />
@@ -1123,7 +1123,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
                 resetForm();
               }}
             >
-              {t('cancel_edit') || 'Cancel Edit'}
+              {t('cancel_edit')}
             </Button>
           )}
         </div>
@@ -1157,7 +1157,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
               value={studentFilter}
               onChange={(e) => setStudentFilter(e.target.value)}
               options={[
-                { value: '', label: t('all_students') || 'All Students' },
+                { value: '', label: t('all_students') },
                 ...selectStudents
                   .map(u => {
                     // Get user enrollments count
@@ -1215,7 +1215,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
                 { value: 'all', label: t('penalty_all_types') },
                 ...(lookupData['penalty-types'] || []).map(pt => ({ value: pt.id, label: lang === 'ar' ? (pt.nameAr || pt.nameEn) : pt.nameEn, icon: PENALTY_TYPE_ICONS[pt.id] }))
               ]}
-              placeholder={t('type') || 'Type'}
+              placeholder={t('type')}
             />
           </div>
         </div>
@@ -1236,7 +1236,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
           color: '#1e40af'
         }}>
           {getThemedIcon('ui', 'filter', 14, theme)}
-          {t('showing_filtered') || 'Showing'} {filteredPenalties.length} {t('of') || 'of'} {penalties.length} {t('penalties') || 'Penalties'}
+          {t('showing_filtered')} {filteredPenalties.length} {t('of')} {penalties.length} {t('penalties')}
         </div>
       )}
 
@@ -1246,7 +1246,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
         chips={[
           {
             id: 'all',
-            label: t('total') || 'Total',
+            label: t('total'),
             count: penalties.length,
             icon: getThemedIcon('ui', 'alert_circle', 16, theme),
             variant: 'red',
@@ -1267,7 +1267,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
           },
           {
             id: 'stat-students',
-            label: t('students') || 'Students',
+            label: t('students'),
             count: new Set(penalties.map((p) => p.studentId)).size,
             icon: getThemedIcon('ui', 'users', 16, theme),
             variant: 'red',
@@ -1298,7 +1298,7 @@ const PenaltiesPage = ({ isDashboardTab = false, hideActions = false }) => {
           disableRowSelectionOnClick
           exportFileName="penalties"
           showExportButton
-          exportLabel={t('export') || 'Export'}
+          exportLabel={t('export')}
           loadingOverlayMessage={loading ? t('penalty_loading_penalties_overlay') : undefined}
         />
       </div>

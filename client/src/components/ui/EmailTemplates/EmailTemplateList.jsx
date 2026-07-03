@@ -108,7 +108,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
       setSettings(next);
       // TODO: Replace with GraphQL mutation
       console.log('🔄 Settings updated (mock):', next);
-      toast?.showSuccess(enabled ? (t('email_notifications_enabled') || 'Email notifications enabled') : (t('email_notifications_disabled') || 'Email notifications disabled'));
+      toast?.showSuccess(enabled ? (t('email_notifications_enabled')) : (t('email_notifications_disabled')));
     } catch (e) {
       error('Error saving setting:', e);
       toast?.showError(t('failed_to_save_setting') + ': ' + e.message);
@@ -172,7 +172,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
   };
 
   const deleteTemplate = async (templateId, templateName) => {
-    if (!window.confirm(t('confirm_delete_template', { name: templateName }) || `Delete template "${templateName}"? This cannot be undone.`)) {
+    if (!window.confirm(t('confirm_delete_template', { name: templateName }))) {
       return;
     }
 
@@ -186,7 +186,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
         docId: result.docId 
       });
       
-      toast?.showSuccess(t('template_deleted_successfully') || 'Template deleted successfully!');
+      toast?.showSuccess(t('template_deleted_successfully'));
       
       // Wait a moment for Firestore to sync, then refresh
       setTimeout(async () => {
@@ -211,7 +211,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
     try {
       const newTemplate = {
         ...template,
-        name: `${template.name} ${t('copy') || '(Copy)'}`,
+        name: `${template.name} ${t('copy')}`,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
@@ -220,7 +220,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
 
       // Mock implementation - replace with actual API call
       console.log('📋 Duplicate template (mock):', newTemplate);
-      toast?.showSuccess(t('template_duplicated_successfully') || 'Template duplicated successfully!');
+      toast?.showSuccess(t('template_duplicated_successfully'));
       loadTemplates();
     } catch (error) {
       error('Error duplicating template:', error);
@@ -263,7 +263,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
             <input
                 type="text"
-                placeholder={t('search_templates') || 'Search templates by name, subject, type, or ID...'}
+                placeholder={t('search_templates')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 style={{
@@ -349,7 +349,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
                   fontSize: '0.95rem'
                 }}
             >
-              {t('create_new_template') || 'Create New Template'}
+              {t('create_new_template')}
             </button>
           </div>
         </div>
@@ -363,7 +363,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
               border: '2px dashed #ddd'
             }}>
               <p style={{ fontSize: '1.1rem', color: '#666', marginBottom: '1rem' }}>
-                {searchTerm ? (t('no_templates_found') || 'No templates found matching your search.') : (t('no_email_templates_yet') || 'No email templates yet.')}
+                {searchTerm ? (t('no_templates_found')) : (t('no_email_templates_yet'))}
               </p>
               {!searchTerm && (
                   <button
@@ -378,7 +378,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
                         fontWeight: 600
                       }}
                   >
-                    {t('create_your_first_template') || 'Create Your First Template'}
+                    {t('create_your_first_template')}
                   </button>
               )}
             </div>
@@ -431,7 +431,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
                           </div>
                           <div style={{ display: 'flex', gap: '0.5rem', alignItems:'center' }}>
                             <div style={{ display:'flex', alignItems:'center', gap:8, marginRight:12 }}>
-                              <span style={{ color:'#666', fontSize:'0.85rem' }}>{t('enabled') || 'Enabled'}</span>
+                              <span style={{ color:'#666', fontSize:'0.85rem' }}>{t('enabled')}</span>
                               <ToggleSwitch
                                   checked={!!settings?.[mapTypeToTrigger(template.type)]?.enabled}
                                   onChange={(val) => saveSetting(template.type, val, template.id)}
@@ -466,7 +466,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
                                     console.log('📧 Email variables (mock):', vars);
                                     
                                     // Simulate success
-                                    toast?.showSuccess(t('test_email_sent') || 'Test email sent to your email');
+                                    toast?.showSuccess(t('test_email_sent'));
                                   } catch (err) {
                                     error(err);
                                     toast?.showError(t('failed_to_send_test_email') + ': ' + err.message);
@@ -484,7 +484,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
                                   fontSize: '0.85rem'
                                 }}
                             >
-                              {testingEmail === template.id ? (t('sending') || 'Sending…') : (t('test_email') || 'Test Email')}
+                              {testingEmail === template.id ? (t('sending')) : (t('test_email'))}
                             </button>
                             <button
                                 onClick={(e) => {
@@ -501,7 +501,7 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
                                   fontSize: '0.85rem'
                                 }}
                             >
-                              {t('duplicate') || 'Duplicate'}
+                              {t('duplicate')}
                             </button>
                             <button
                                 onClick={(e) => {
@@ -518,12 +518,12 @@ const EmailTemplateList = ({ onEdit, onCreateNew, highlightId }) => {
                                   fontSize: '0.85rem'
                                 }}
                             >
-                              {t('delete') || 'Delete'}
+                              {t('delete')}
                             </button>
                           </div>
                         </div>
                         <p style={{ margin: '0.75rem 0', color: '#000', fontSize: '0.9rem' }}>
-                          <strong>{t('subject') || 'Subject'}:</strong> {template.subject}
+                          <strong>{t('subject')}:</strong> {template.subject}
                         </p>
                         {template.variables && template.variables.length > 0 && (
                             <div style={{ marginTop: '0.75rem' }}>

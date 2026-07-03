@@ -5,14 +5,13 @@
 
 import jwt from 'jsonwebtoken';
 
-const NODE_ENV = process.env.NODE_ENV || 'development';
 const WOPI_SECRET = process.env.WOPI_SECRET;
 
-if (!WOPI_SECRET && NODE_ENV === 'production') {
-  console.error('FATAL: WOPI_SECRET environment variable is required in production');
+if (!WOPI_SECRET) {
+  console.error('FATAL: WOPI_SECRET environment variable is required');
   process.exit(1);
 }
-const _WOPI_SECRET = WOPI_SECRET || 'wopi-dev-secret-not-for-production';
+const _WOPI_SECRET = WOPI_SECRET;
 const TOKEN_EXPIRY = '1h'; // 1 hour
 
 /**

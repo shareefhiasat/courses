@@ -359,7 +359,7 @@ const ChatWallpaperPicker = ({ theme, t, roomId }) => {
         ref={buttonRef}
         type="button"
         onClick={() => setOpen(!open)}
-        title={t('chat_wallpaper') || 'Chat Wallpaper'}
+        title={t('chat_wallpaper')}
         style={{
           background: 'transparent',
           border: '1px solid var(--border)',
@@ -408,7 +408,7 @@ const ChatWallpaperPicker = ({ theme, t, roomId }) => {
             marginBottom: '0.75rem',
           }}>
             <span style={{ fontWeight: 700, fontSize: '0.95rem', color: 'var(--text)' }}>
-              {t('chat_wallpaper') || 'Chat Wallpaper'}
+              {t('chat_wallpaper')}
             </span>
             <button
               onClick={() => setOpen(false)}
@@ -510,7 +510,7 @@ const ChatWallpaperPicker = ({ theme, t, roomId }) => {
                 marginBottom: '0.4rem',
               }}>
                 <span style={{ fontWeight: 600, fontSize: '0.8rem', color: 'var(--text)' }}>
-                  {t('chat_bg_color') || 'Background Color'}
+                  {t('chat_bg_color')}
                 </span>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                   <input
@@ -576,7 +576,7 @@ const ChatWallpaperPicker = ({ theme, t, roomId }) => {
                   marginBottom: '0.4rem',
                 }}>
                   <span style={{ fontWeight: 600, fontSize: '0.8rem', color: 'var(--text)' }}>
-                    {t('chat_pattern_color') || 'Pattern Color'}
+                    {t('chat_pattern_color')}
                   </span>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                     <input
@@ -652,7 +652,7 @@ const ChatWallpaperPicker = ({ theme, t, roomId }) => {
                 onMouseOver={(e) => { e.currentTarget.style.borderColor = 'var(--brand)'; e.currentTarget.style.color = 'var(--brand)'; }}
                 onMouseOut={(e) => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--muted)'; }}
               >
-                {t('chat_reset_colors') || 'Reset to Default Colors'}
+                {t('chat_reset_colors')}
               </button>
             )}
           </div>

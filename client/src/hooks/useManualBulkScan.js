@@ -314,8 +314,8 @@ const useManualBulkScan = ({
         );
         setError(
           attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP
-            ? (t("failed_to_fetch_program_students") || "Failed to fetch program students")
-            : (t("failed_to_fetch_class_students") || "Failed to fetch class students"),
+            ? (t("failed_to_fetch_program_students"))
+            : (t("failed_to_fetch_class_students")),
         );
         return;
       }
@@ -572,7 +572,7 @@ const useManualBulkScan = ({
   const submit = useCallback(async () => {
     if (validatedStudents.found.length === 0) {
       setError(
-        t("no_valid_students_to_submit") || "No valid students to submit",
+        t("no_valid_students_to_submit"),
       );
       return;
     }

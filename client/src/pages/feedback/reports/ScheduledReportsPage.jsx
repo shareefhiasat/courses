@@ -366,8 +366,8 @@ const ScheduledReportsPage = () => {
                     value={formData.reportType}
                     onChange={(e) => setFormData({ ...formData, reportType: e.target.value })}
                     options={[
-                      { value: 'analytics', label: t('advanced_analytics') || 'Advanced Analytics', icon: <BarChart3 size={16} color="var(--text-secondary, #374151)" /> },
-                      { value: 'student-dashboard', label: t('student_dashboard_status') || 'Student Dashboard Status', icon: <Users size={16} color="var(--text-secondary, #374151)" /> }
+                      { value: 'analytics', label: t('advanced_analytics'), icon: <BarChart3 size={16} color="var(--text-secondary, #374151)" /> },
+                      { value: 'student-dashboard', label: t('student_dashboard_status'), icon: <Users size={16} color="var(--text-secondary, #374151)" /> }
                     ]}
                     fullWidth
                   />

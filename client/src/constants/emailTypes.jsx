@@ -72,31 +72,31 @@ export const getEmailStatusBadge = (status, t, theme = 'light') => {
   const statusConfig = {
     [EMAIL_STATUS.SENT]: { 
       icon: getThemedIcon('ui', 'send', 14, theme), 
-      label: t('sent_status') || 'Sent' 
+      label: t('sent_status') 
     },
     [EMAIL_STATUS.DELIVERED]: { 
       icon: getThemedIcon('ui', 'check_circle', 14, theme), 
-      label: t('delivered_status') || 'Delivered' 
+      label: t('delivered_status') 
     },
     [EMAIL_STATUS.FAILED]: { 
       icon: getThemedIcon('ui', 'x_circle', 14, theme), 
-      label: t('failed_status') || 'Failed' 
+      label: t('failed_status') 
     },
     [EMAIL_STATUS.OPENED]: { 
       icon: getThemedIcon('ui', 'mail_open', 14, theme), 
-      label: t('opened_status') || 'Opened' 
+      label: t('opened_status') 
     },
     [EMAIL_STATUS.CLICKED]: { 
       icon: getThemedIcon('ui', 'mouse_pointer_click', 14, theme), 
-      label: t('clicked_status') || 'Clicked' 
+      label: t('clicked_status') 
     },
     [EMAIL_STATUS.BOUNCED]: { 
       icon: getThemedIcon('ui', 'corner_down_left', 14, theme), 
-      label: t('bounced_status') || 'Bounced' 
+      label: t('bounced_status') 
     },
     [EMAIL_STATUS.COMPLAINED]: { 
       icon: getThemedIcon('ui', 'flag', 14, theme), 
-      label: t('complained_status') || 'Complained' 
+      label: t('complained_status') 
     }
   };
 
@@ -128,43 +128,43 @@ export const getEmailStatusBadgeWithColors = (status, t, theme = 'light') => {
       icon: getThemedIcon('ui', 'send', 14, theme), 
       color: '#155724', 
       bg: '#d4edda', 
-      label: t('sent_status') || 'Sent' 
+      label: t('sent_status') 
     },
     [EMAIL_STATUS.DELIVERED]: { 
       icon: getThemedIcon('ui', 'check_circle', 14, theme), 
       color: '#155724', 
       bg: '#d4edda', 
-      label: t('delivered_status') || 'Delivered' 
+      label: t('delivered_status') 
     },
     [EMAIL_STATUS.FAILED]: { 
       icon: getThemedIcon('ui', 'x_circle', 14, theme), 
       color: '#721c24', 
       bg: '#f8d7da', 
-      label: t('failed_status') || 'Failed' 
+      label: t('failed_status') 
     },
     [EMAIL_STATUS.OPENED]: { 
       icon: getThemedIcon('ui', 'mail_open', 14, theme), 
       color: '#0c5460', 
       bg: '#d1ecf1', 
-      label: t('opened_status') || 'Opened' 
+      label: t('opened_status') 
     },
     [EMAIL_STATUS.CLICKED]: { 
       icon: getThemedIcon('ui', 'mouse_pointer_click', 14, theme), 
       color: '#004085', 
       bg: '#cce5ff', 
-      label: t('clicked_status') || 'Clicked' 
+      label: t('clicked_status') 
     },
     [EMAIL_STATUS.BOUNCED]: { 
       icon: getThemedIcon('ui', 'corner_down_left', 14, theme), 
       color: '#856404', 
       bg: '#fff3cd', 
-      label: t('bounced_status') || 'Bounced' 
+      label: t('bounced_status') 
     },
     [EMAIL_STATUS.COMPLAINED]: { 
       icon: getThemedIcon('ui', 'flag', 14, theme), 
       color: '#721c24', 
       bg: '#f8d7da', 
-      label: t('complained_status') || 'Complained' 
+      label: t('complained_status') 
     }
   };
 

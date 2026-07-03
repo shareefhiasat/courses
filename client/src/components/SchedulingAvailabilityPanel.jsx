@@ -130,7 +130,7 @@ export default function SchedulingAvailabilityPanel({
           onClick={() => navigate(instructorId ? `/summary-dashboard?instructorId=${instructorId}` : '/summary-dashboard')}
           style={{ fontSize: 'var(--font-size-xs)', background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', textDecoration: 'underline' }}
         >
-          {t('view_summary') || 'View Summary'}
+          {t('view_summary')}
         </button>
       </div>
 

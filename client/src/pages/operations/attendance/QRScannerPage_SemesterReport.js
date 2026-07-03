@@ -5,7 +5,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';
 
 const exportSemesterReport = useCallback(async () => {
   if (!selectedClassId) {
-    showError(t('please_select_class') || 'Please select a class first');
+    showError(t('please_select_class'));
     return;
   }
 
@@ -126,41 +126,41 @@ const exportSemesterReport = useCallback(async () => {
     });
 
     if (enrichedData.length === 0) {
-      showError(t('no_attendance_records_found') || 'No attendance records found for this semester');
+      showError(t('no_attendance_records_found'));
       return;
     }
 
     // Create CSV content with headers
     const headers = lang === 'ar' ? [
       '#',
-      t('student_number') || 'رقم الطالب',
-      t('student_name') || 'اسم الطالب',
-      t('present') || 'حاضر',
-      t('absent') || 'غائب',
-      t('late') || 'متأخر',
-      t('human_case') || 'حالة إنسانية',
-      t('absence_excused') || 'غياب معذور',
-      t('total_sessions') || 'إجمالي الجلسات',
-      t('attendance_percentage') || 'نسبة الحضور',
-      t('absent_deduction') || 'خصم الغياب (×0.5)',
-      t('excused_deduction') || 'خصم المعذور (×0.5)',
-      t('human_case_deduction') || 'خصم الحالة (×0.5)',
-      t('total_mark_deduction') || 'إجمالي الخصم'
+      t('student_number'),
+      t('student_name'),
+      t('present'),
+      t('absent'),
+      t('late'),
+      t('human_case'),
+      t('absence_excused'),
+      t('total_sessions'),
+      t('attendance_percentage'),
+      t('absent_deduction'),
+      t('excused_deduction'),
+      t('human_case_deduction'),
+      t('total_mark_deduction')
     ] : [
       '#',
-      t('student_number') || 'Student Number',
-      t('student_name') || 'Student Name',
-      t('present') || 'Present',
-      t('absent') || 'Absent',
-      t('late') || 'Late',
-      t('human_case') || 'Human Case',
-      t('absence_excused') || 'Absence Excused',
-      t('total_sessions') || 'Total Sessions',
-      t('attendance_percentage') || 'Attendance %',
-      t('absent_deduction') || 'Absent Deduction (×0.5)',
-      t('excused_deduction') || 'Excused Deduction (×0.5)',
-      t('human_case_deduction') || 'Human Case Deduction (×0.5)',
-      t('total_mark_deduction') || 'Total Mark Deduction'
+      t('student_number'),
+      t('student_name'),
+      t('present'),
+      t('absent'),
+      t('late'),
+      t('human_case'),
+      t('absence_excused'),
+      t('total_sessions'),
+      t('attendance_percentage'),
+      t('absent_deduction'),
+      t('excused_deduction'),
+      t('human_case_deduction'),
+      t('total_mark_deduction')
     ];
 
     const csvContent = [
@@ -216,10 +216,10 @@ const exportSemesterReport = useCallback(async () => {
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
 
-    showSuccess(t('semester_report_exported_successfully') || 'Semester report exported successfully');
+    showSuccess(t('semester_report_exported_successfully'));
 
   } catch (error) {
     error('Semester Report Export failed:', error);
-    showError((t('export_failed') || 'Export failed: ') + error.message);
+    showError((t('export_failed')) + error.message);
   }
 }, [selectedClassId, selectedSubjectId, selectedProgramId, programs, subjects, classes, lang, t, showError, showSuccess]);

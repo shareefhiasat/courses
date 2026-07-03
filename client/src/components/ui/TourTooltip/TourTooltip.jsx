@@ -73,12 +73,12 @@ const TourTooltip = ({ tourSeenKey } = {}) => {
       color: variant === 'primary' ? '#fff' : (isDark ? '#e5e7eb' : '#374151'),
     });
 
-    const checkboxLabel = t('tour_dont_show_again') || "Don't show this tour again";
-    const closeLabel = t('tour_close') || 'Close';
-    const skipLabel = t('tour_skip') || 'Skip';
-    const nextLabel = t('tour_next') || 'Next';
-    const finishLabel = t('tour_finish') || 'Finish';
-    const backLabel = t('tour_back') || 'Back';
+    const checkboxLabel = t('tour_dont_show_again');
+    const closeLabel = t('tour_close');
+    const skipLabel = t('tour_skip');
+    const nextLabel = t('tour_next');
+    const finishLabel = t('tour_finish');
+    const backLabel = t('tour_back');
     const stepLabel = isRTL
       ? `الخطوة ${currentStep} من ${totalSteps}`
       : `Step ${currentStep} of ${totalSteps}`;
@@ -86,7 +86,7 @@ const TourTooltip = ({ tourSeenKey } = {}) => {
     return (
       <div
         {...tooltipProps}
-        dir={isRTL ? 'rtl' : 'ltr'}
+
         style={{
           background: isDark ? '#1f2937' : '#fff',
           color: isDark ? '#e5e7eb' : '#111',
@@ -161,7 +161,7 @@ const TourTooltip = ({ tourSeenKey } = {}) => {
           </div>
 
           {/* Content */}
-          <div style={{ marginBottom: 14, textAlign: isRTL ? 'right' : 'left' }}>
+          <div style={{ marginBottom: 14, textAlign: 'start' }}>
             {step.content}
           </div>
 

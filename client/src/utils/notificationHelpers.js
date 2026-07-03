@@ -12,10 +12,10 @@ export const formatNotificationTime = (timestamp, t) => {
   const now = new Date();
   const diff = now - date;
 
-  if (diff < 60000) return t('notifications.just_now') || t('notifications_just_now') || 'Just now';
-  if (diff < 3600000) return `${Math.floor(diff / 60000)}${t('notifications.minutes_ago') || t('notifications_minutes_ago') || 'm ago'}`;
-  if (diff < 86400000) return `${Math.floor(diff / 3600000)}${t('notifications.hours_ago') || t('notifications_hours_ago') || 'h ago'}`;
-  if (diff < 604800000) return `${Math.floor(diff / 86400000)}${t('notifications.days_ago') || t('notifications_days_ago') || 'd ago'}`;
+  if (diff < 60000) return t('notifications.just_now');
+  if (diff < 3600000) return `${Math.floor(diff / 60000)}${t('notifications.minutes_ago')}`;
+  if (diff < 86400000) return `${Math.floor(diff / 3600000)}${t('notifications.hours_ago')}`;
+  if (diff < 604800000) return `${Math.floor(diff / 86400000)}${t('notifications.days_ago')}`;
   return formatDateTime(date);
 };
 
@@ -53,10 +53,10 @@ export const getDateGroup = (timestamp) => {
  */
 export const getGroupLabel = (group, t) => {
   const labels = {
-    Today: t('notifications.today') || 'Today',
-    Yesterday: t('notifications.yesterday') || 'Yesterday',
-    'This Week': t('notifications.this_week') || 'This Week',
-    Earlier: t('notifications.earlier') || 'Earlier'
+    Today: t('notifications.today'),
+    Yesterday: t('notifications.yesterday'),
+    'This Week': t('notifications.this_week'),
+    Earlier: t('notifications.earlier')
   };
   return labels[group] || group;
 };

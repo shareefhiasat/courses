@@ -30,12 +30,12 @@ export default function CreateFolderModal({ parentFolderId, onCreate, onClose })
       return t('drive.folderNameRequired');
     }
     if (name.length > 30) {
-      return t('drive.folderNameTooLong') || 'Folder name must be 30 characters or less';
+      return t('drive.folderNameTooLong');
     }
     // Allow only alphanumeric, spaces, hyphens, and underscores
     const validPattern = /^[a-zA-Z0-9\s\-_]+$/;
     if (!validPattern.test(name)) {
-      return t('drive.folderNameInvalid') || 'Folder name can only contain letters, numbers, spaces, hyphens, and underscores';
+      return t('drive.folderNameInvalid');
     }
     return null;
   };
@@ -86,17 +86,17 @@ export default function CreateFolderModal({ parentFolderId, onCreate, onClose })
         />
 
         <Input
-          label={t('drive.folderNameAr') || 'Folder Name (Arabic)'}
+          label={t('drive.folderNameAr')}
           value={folderNameAr}
           onChange={(e) => setFolderNameAr(e.target.value)}
-          placeholder={t('drive.enterFolderNameAr') || 'Enter folder name in Arabic (optional)'}
+          placeholder={t('drive.enterFolderNameAr')}
           fullWidth
           size="medium"
         />
 
         <div>
           <label style={{ fontSize: 'var(--font-size-sm)', fontWeight: 500, color: 'var(--text-secondary, #374151)', marginBottom: '0.5rem', display: 'block' }}>
-            {t('drive.folderColor') || 'Folder Color'}
+            {t('drive.folderColor')}
           </label>
           <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
             {FOLDER_COLORS.map((c) => (

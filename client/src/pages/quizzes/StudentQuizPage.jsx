@@ -232,7 +232,7 @@ export default function StudentQuizPage() {
         // Log quiz view
         if (user) {
           try {
-            await ActivityLogger.quizViewed(quizId, getQuizText(result.data, 'title') || t('student_quiz_untitled_quiz'));
+            await ActivityLogger.quizViewed(quizId, getQuizText(result.data, 'title'));
           } catch (e) { 
             warn('Failed to log quiz view:', e); 
           }
@@ -652,7 +652,7 @@ export default function StudentQuizPage() {
         // Log quiz submission
         if (user) {
           try {
-            await ActivityLogger.quizSubmitted(quizId, getQuizText(quiz, 'title') || t('student_quiz_untitled_quiz'), score.percentage);
+            await ActivityLogger.quizSubmitted(quizId, getQuizText(quiz, 'title'), score.percentage);
           } catch (e) { 
             console.warn('[Submit] Failed to log quiz submission:', e); 
           }
@@ -808,11 +808,11 @@ export default function StudentQuizPage() {
                 </Badge>
                 <Badge variant="subtle" color="info" size="small">
                   {getThemedIcon('ui', 'list_checks', 12, theme)}
-                  {quiz?.questions?.length || 0} {quiz?.questions?.length === 1 ? 'question' : 'questions'}
+                  {quiz?.questions?.length || 0} {t('question', { count: quiz?.questions?.length || 0 })}
                 </Badge>
                 <Badge variant="subtle" color="warning" size="small">
                   {getThemedIcon('ui', 'award', 12, theme)}
-                  {quiz?.questions?.reduce((sum, q) => sum + (q.points || 1), 0) || 0} points
+                  {quiz?.questions?.reduce((sum, q) => sum + (q.points || 1), 0) || 0} {t('point', { count: quiz?.questions?.reduce((sum, q) => sum + (q.points || 1), 0) || 0 })}
                 </Badge>
                 {quiz?.settings?.timeLimit > 0 ? (
                   <Badge variant="outline" color="danger" size="small">
@@ -1123,7 +1123,7 @@ export default function StudentQuizPage() {
                   </div>
                   <div className={styles.questionMeta}>
                     <div className={styles.questionPoints}>
-                      {currentQuestion.points || 1} point{currentQuestion.points !== 1 ? 's' : ''}
+                      {currentQuestion.points || 1} {t('point', { count: currentQuestion.points || 1 })}
                     </div>
                     <Button
                       variant={markedForReview.has(currentQuestion.id) ? 'primary' : 'outline'}
@@ -1310,36 +1310,36 @@ export default function StudentQuizPage() {
         <Modal
           isOpen={showResumeModal}
           onClose={() => setShowResumeModal(false)}
-          title={t('quiz_resume_title') || 'Resume Quiz?'}
+          title={t('quiz_resume_title')}
         >
           <div className={styles.resumeModal}>
-            <p>{t('quiz_in_progress') || 'You have an in-progress attempt for this quiz.'}</p>
+            <p>{t('quiz_in_progress')}</p>
             <div className={styles.progressInfo}>
               <div className={styles.progressItem}>
-                <strong>{t('quiz_progress') || 'Progress'}:</strong> {savedProgress.currentQuestionIndex + 1} / {quiz?.questions?.length || 0} questions
+                <strong>{t('quiz_progress')}:</strong> {savedProgress.currentQuestionIndex + 1} / {quiz?.questions?.length || 0} questions
               </div>
               <div className={styles.progressItem}>
-                <strong>{t('quiz_answers') || 'Answers'}:</strong> {Object.keys(savedProgress.answers || {}).length} saved
+                <strong>{t('quiz_answers')}:</strong> {Object.keys(savedProgress.answers || {}).length} saved
               </div>
               <div className={styles.progressItem}>
-                <strong>{t('quiz_saved') || 'Saved'}:</strong> {formatDateTime(savedProgress.savedAt, 'en')}
+                <strong>{t('quiz_saved')}:</strong> {formatDateTime(savedProgress.savedAt, 'en')}
               </div>
             </div>
-            <p>{t('quiz_continue_question') || 'Would you like to continue where you left off or start fresh?'}</p>
+            <p>{t('quiz_continue_question')}</p>
             <div className={styles.resumeActions}>
               <Button
                 variant="outline"
                 onClick={startFresh}
               >
                 {getThemedIcon('ui', 'rotate_ccw', 16, theme)}
-                {t('quiz_start_fresh') || 'Start Fresh'}
+                {t('quiz_start_fresh')}
               </Button>
               <Button
                 variant="primary"
                 onClick={resumeQuiz}
               >
                 {getThemedIcon('ui', 'play', 16, theme)}
-                {t('quiz_continue') || 'Continue'}
+                {t('quiz_continue')}
               </Button>
             </div>
           </div>

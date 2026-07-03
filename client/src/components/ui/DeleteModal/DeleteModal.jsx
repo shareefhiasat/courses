@@ -149,7 +149,7 @@ const DeleteModal = ({
               opacity: loading ? 0.5 : 1
             }}
           >
-            {t('cancel') || 'Cancel'}
+            {t('cancel')}
           </button>
           <button
             onClick={handleConfirm}
@@ -167,7 +167,7 @@ const DeleteModal = ({
               opacity: loading ? 0.6 : 1
             }}
           >
-            {loading ? '...' : (t('delete') || 'Delete')}
+            {loading ? '...' : (t('delete'))}
           </button>
         </div>
       </div>

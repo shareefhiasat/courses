@@ -119,7 +119,7 @@ const WeeklySummaryPage = () => {
   return (
     <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
       <h1 style={{ fontSize: '2rem', fontWeight: 600, marginBottom: '1.5rem' }}>
-        {t('weekly_summary') || 'Weekly Attendance Summary'}
+        {t('weekly_summary')}
       </h1>
 
       {error && (
@@ -157,13 +157,13 @@ const WeeklySummaryPage = () => {
         marginBottom: '1.5rem'
       }}>
         <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '1rem' }}>
-          {t('select_date_range') || 'Select Date Range'}
+          {t('select_date_range')}
         </h2>
 
         <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <div style={{ flex: 1, minWidth: '200px' }}>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>
-              {t('week_start') || 'Week Start'}
+              {t('week_start')}
             </label>
             <input
               type="date"
@@ -181,7 +181,7 @@ const WeeklySummaryPage = () => {
 
           <div style={{ flex: 1, minWidth: '200px' }}>
             <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>
-              {t('week_end') || 'Week End'}
+              {t('week_end')}
             </label>
             <input
               type="date"
@@ -202,7 +202,7 @@ const WeeklySummaryPage = () => {
             onClick={handleCurrentWeek}
             disabled={isGenerating}
           >
-            {t('current_week') || 'Current Week'}
+            {t('current_week')}
           </Button>
 
           <Button
@@ -210,7 +210,7 @@ const WeeklySummaryPage = () => {
             onClick={handlePreviousWeek}
             disabled={isGenerating}
           >
-            {t('previous_week') || 'Previous Week'}
+            {t('previous_week')}
           </Button>
         </div>
       </div>
@@ -224,12 +224,12 @@ const WeeklySummaryPage = () => {
         marginBottom: '1.5rem'
       }}>
         <h2 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '1rem' }}>
-          {t('daily_documents') || 'Daily Attendance Documents'} ({dailyDocuments.length})
+          {t('daily_documents')} ({dailyDocuments.length})
         </h2>
 
         {dailyDocuments.length === 0 ? (
           <p style={{ color: '#666' }}>
-            {t('no_documents_found') || 'No daily attendance documents found for the selected date range.'}
+            {t('no_documents_found')}
           </p>
         ) : (
           <div style={{ overflowX: 'auto' }}>
@@ -237,22 +237,22 @@ const WeeklySummaryPage = () => {
               <thead>
                 <tr style={{ borderBottom: '2px solid #e5e7eb' }}>
                   <th style={{ padding: '0.75rem', textAlign: 'left', fontWeight: 600 }}>
-                    {t('date') || 'Date'}
+                    {t('date')}
                   </th>
                   <th style={{ padding: '0.75rem', textAlign: 'left', fontWeight: 600 }}>
-                    {t('class') || 'Class'}
+                    {t('class')}
                   </th>
                   <th style={{ padding: '0.75rem', textAlign: 'left', fontWeight: 600 }}>
-                    {t('program') || 'Program'}
+                    {t('program')}
                   </th>
                   <th style={{ padding: '0.75rem', textAlign: 'left', fontWeight: 600 }}>
-                    {t('subject') || 'Subject'}
+                    {t('subject')}
                   </th>
                   <th style={{ padding: '0.75rem', textAlign: 'left', fontWeight: 600 }}>
-                    {t('instructor') || 'Instructor'}
+                    {t('instructor')}
                   </th>
                   <th style={{ padding: '0.75rem', textAlign: 'left', fontWeight: 600 }}>
-                    {t('status') || 'Status'}
+                    {t('status')}
                   </th>
                 </tr>
               </thead>
@@ -300,7 +300,7 @@ const WeeklySummaryPage = () => {
               onClick={handleGenerate}
               disabled={isGenerating}
             >
-              {t('generate_weekly_summary') || 'Generate Weekly Summary'}
+              {t('generate_weekly_summary')}
             </Button>
           </div>
         )}
@@ -329,19 +329,19 @@ const WeeklySummaryPage = () => {
             boxShadow: '0 10px 40px rgba(0,0,0,0.2)'
           }}>
             <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.25rem', fontWeight: 600 }}>
-              {t('generate_weekly_summary') || 'Generate Weekly Summary'}
+              {t('generate_weekly_summary')}
             </h3>
             <p style={{ margin: '0 0 1rem 0', color: '#666' }}>
-              {t('generate_confirmation') || `This will generate a weekly summary aggregating ${dailyDocuments.length} daily attendance documents from ${weekStart} to ${weekEnd}. The summary will be submitted to Admin for review. Are you sure you want to proceed?`}
+              {t('generate_confirmation')}
             </p>
             <div style={{ marginBottom: '1rem' }}>
               <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>
-                {t('optional_comments') || 'Optional Comments'}
+                {t('optional_comments')}
               </label>
               <textarea
                 value={comments}
                 onChange={(e) => setComments(e.target.value)}
-                placeholder={t('add_notes') || 'Add any notes for Admin...'}
+                placeholder={t('add_notes')}
                 style={{
                   width: '100%',
                   minHeight: '80px',
@@ -370,7 +370,7 @@ const WeeklySummaryPage = () => {
                   cursor: isGenerating ? 'not-allowed' : 'pointer'
                 }}
               >
-                {t('cancel') || 'Cancel'}
+                {t('cancel')}
               </button>
               <button
                 onClick={confirmGeneration}
@@ -385,7 +385,7 @@ const WeeklySummaryPage = () => {
                   cursor: isGenerating ? 'not-allowed' : 'pointer'
                 }}
               >
-                {isGenerating ? (t('generating') || 'Generating...') : (t('confirm_generate') || 'Confirm & Generate')}
+                {isGenerating ? (t('generating')) : (t('confirm_generate'))}
               </button>
             </div>
           </div>

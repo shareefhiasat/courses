@@ -73,12 +73,12 @@ import { info, error, warn, debug } from '@services/utils/logger.js';export defa
     return (
       <div className="max-w-2xl mx-auto p-8 text-center" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
         {getThemedIcon('ui', 'trophy', 64, theme)}
-        <h1 className="text-3xl font-extrabold mb-4 text-gray-900 dark:text-white">{t('all_answered') || 'All Questions Answered!'}</h1>
+        <h1 className="text-3xl font-extrabold mb-4 text-gray-900 dark:text-white">{t('all_answered')}</h1>
         <div className="text-5xl font-extrabold text-indigo-600 dark:text-indigo-400 mb-4">
           {score} / {questions.reduce((sum, q) => sum + (q.points || 1), 0)}
         </div>
         <div className="text-lg text-gray-500 dark:text-gray-400">
-          {percentage.toFixed(1)}% {t('score') || 'Score'}
+          {percentage.toFixed(1)}% {t('score')}
         </div>
       </div>
     );
@@ -111,7 +111,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';export defa
         </div>
 
         <div className="text-center text-lg font-semibold text-gray-500 dark:text-gray-400">
-          {t('score') || 'Score'}: {score} | {t('remaining') || 'Remaining'}: {questions.length - answers.length}
+          {t('score')}: {score} | {t('remaining')}: {questions.length - answers.length}
         </div>
       </div>
     );
@@ -119,9 +119,9 @@ import { info, error, warn, debug } from '@services/utils/logger.js';export defa
 
   return (
     <div className="max-w-4xl mx-auto p-8 text-center" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
-      <h1 className="text-3xl font-extrabold mb-2 text-gray-900 dark:text-white">{t('spin_wheel') || 'Spin the Wheel'}</h1>
+      <h1 className="text-3xl font-extrabold mb-2 text-gray-900 dark:text-white">{t('spin_wheel')}</h1>
       <p className="text-lg text-gray-500 dark:text-gray-400 mb-8">
-        {t('score') || 'Score'}: {score} | {t('questions_left') || 'Questions left'}: {questions.length - answers.length}
+        {t('score')}: {score} | {t('questions_left')}: {questions.length - answers.length}
       </p>
 
       {/* Wheel Container */}
@@ -205,7 +205,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';export defa
         className={`px-12 py-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-lg font-bold rounded-xl shadow-lg hover:shadow-indigo-500/30 inline-flex items-center gap-2 transition-all ${spinning ? 'opacity-50 cursor-not-allowed' : 'hover:scale-105'}`}
       >
         {getThemedIcon('ui', 'rotate_cw', 20, theme)}
-        {spinning ? (t('spinning') || 'Spinning...') : (t('spin_it') || 'Spin It!')}
+        {spinning ? (t('spinning')) : (t('spin_it'))}
       </button>
     </div>
   );

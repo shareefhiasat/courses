@@ -37,15 +37,6 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
-          // Firebase — catch both firebase/ and @firebase/ internal packages
-          if (id.includes('node_modules/firebase') || id.includes('node_modules/@firebase')) {
-            if (id.includes('firestore')) return 'vendor-firebase-firestore';
-            if (id.includes('auth')) return 'vendor-firebase-auth';
-            if (id.includes('functions')) return 'vendor-firebase-functions';
-            if (id.includes('storage')) return 'vendor-firebase-storage';
-            if (id.includes('database') || id.includes('rtdb')) return 'vendor-firebase-database';
-            return 'vendor-firebase-core';
-          }
           // MUI + Emotion — large, rarely changes
           if (id.includes('node_modules/@mui/') || id.includes('node_modules/@emotion/')) return 'vendor-mui';
           // Framer Motion
@@ -63,7 +54,7 @@ export default defineConfig({
           // Quill rich text editor
           if (id.includes('node_modules/quill') || id.includes('node_modules/react-quill')) return 'vendor-editor';
           // Date libs
-          if (id.includes('node_modules/date-fns') || id.includes('node_modules/moment')) return 'vendor-date';
+          if (id.includes('node_modules/date-fns')) return 'vendor-date';
           // Analytics / monitoring (defer-able, never on critical path)
           if (id.includes('node_modules/@sentry')) return 'vendor-monitoring';
           // Calendar / grid layout
@@ -91,7 +82,7 @@ export default defineConfig({
       key: './localhost-key.pem',
       cert: './localhost-cert.pem'
     },
-    allowedHosts: ['all'],
+    allowedHosts: ['localhost', '127.0.0.1', '.local'],
     // Optional: if HMR has issues over LAN, set your LAN IP below:
     // hmr: { host: '192.168.1.7', protocol: 'ws', port: 5174 },
     proxy: {

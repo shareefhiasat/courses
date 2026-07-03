@@ -66,12 +66,12 @@ const ProfileSettingsPage = () => {
   const tourSeenKey = `profileTourSeen_${lang}`;
 
   const buildTourSteps = useCallback(() => [
-    { target: '[data-tour="profile-personal-info"]', content: t('tour.profile_personal_info') || 'Update your personal details. Some fields like email and display name are managed by Keycloak.', disableBeacon: true, placement: 'bottom' },
-    { target: '[data-tour="profile-arabic-names"]', content: t('tour.profile_arabic_names') || 'Enter your name in Arabic for bilingual display.', disableBeacon: true, placement: 'bottom' },
-    { target: '[data-tour="profile-images"]', content: t('tour.profile_images') || 'Upload your profile photo, QID, and military ID images.', disableBeacon: true, placement: 'bottom' },
-    { target: '[data-tour="profile-appearance"]', content: t('tour.profile_appearance') || 'Customize your accent color, language preference, and security settings.', disableBeacon: true, placement: 'bottom' },
-    { target: '[data-tour="profile-notifications"]', content: t('tour.profile_notifications') || 'Configure notification channels, device alerts, and category preferences.', disableBeacon: true, placement: 'top' },
-    { target: '[data-tour="profile-save"]', content: t('tour.profile_save') || 'Don\'t forget to save your changes when you\'re done.', disableBeacon: true, placement: 'top' },
+    { target: '[data-tour="profile-personal-info"]', content: t('tour.profile_personal_info'), disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="profile-arabic-names"]', content: t('tour.profile_arabic_names'), disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="profile-images"]', content: t('tour.profile_images'), disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="profile-appearance"]', content: t('tour.profile_appearance'), disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="profile-notifications"]', content: t('tour.profile_notifications'), disableBeacon: true, placement: 'top' },
+    { target: '[data-tour="profile-save"]', content: t('tour.profile_save'), disableBeacon: true, placement: 'top' },
   ].filter(s => !!document.querySelector(s.target)), [t]);
 
   const startTour = useCallback(() => {
@@ -212,25 +212,25 @@ const ProfileSettingsPage = () => {
 
   const handleTestBrowserNotification = async () => {
     if (!checkSupport().notification) {
-      toast.error(t('notifications_browser_not_supported') || 'Your browser does not support notifications.');
+      toast.error(t('notifications_browser_not_supported'));
       return;
     }
     if (typeof Notification !== 'undefined' && Notification.permission === 'denied') {
-      toast.error(t('notifications_permission_denied') || 'Notification permission was denied. Please enable it in your browser settings.');
+      toast.error(t('notifications_permission_denied'));
       return;
     }
     try {
-      await notificationManager.smartNotification('default', t('profile_test_notification') || 'Test Notification', t('profile_test_notification_message') || 'This is a test notification.', {
+      await notificationManager.smartNotification('default', t('profile_test_notification'), t('profile_test_notification_message'), {
         settings: {
           sound: notificationSettings.soundEnabled,
           vibration: notificationSettings.vibrationEnabled,
           browser: true
         }
       });
-      toast.success(t('profile_test_notification_sent') || 'Test notification sent.');
+      toast.success(t('profile_test_notification_sent'));
     } catch (err) {
       error('Failed to send test notification:', err);
-      toast.error(t('notifications_failed_to_send_test_notification') || 'Failed to send test notification.');
+      toast.error(t('notifications_failed_to_send_test_notification'));
     }
   };
 
@@ -382,11 +382,11 @@ const ProfileSettingsPage = () => {
         tooltipComponent={TourTooltipComponent}
         callback={handleTourCallback}
         locale={{
-          back: t('tour_back') || (lang === 'ar' ? 'السابق' : 'Back'),
-          close: t('tour_close') || (lang === 'ar' ? 'إغلاق' : 'Close'),
-          last: t('tour_finish') || (lang === 'ar' ? 'إنهاء' : 'Finish'),
-          next: t('tour_next') || (lang === 'ar' ? 'التالي' : 'Next'),
-          skip: t('tour_skip') || (lang === 'ar' ? 'تخطي' : 'Skip')
+          back: t('tour_back'),
+          close: t('tour_close'),
+          last: t('tour_finish'),
+          next: t('tour_next'),
+          skip: t('tour_skip')
         }}
         styles={{
           options: {
@@ -561,7 +561,7 @@ const ProfileSettingsPage = () => {
           <CardBody>
             <div className={styles.cardHeader}>
               {getThemedIcon('ui', 'palette', 24, theme)}
-              <h2>{t('appearance') || 'Appearance'}</h2>
+              <h2>{t('appearance')}</h2>
             </div>
 
             <div className={styles.formSection}>
@@ -593,7 +593,7 @@ const ProfileSettingsPage = () => {
                         </div>
                         <div className={styles.hexInputWrapper}>
                           <Input
-                            label={t('hex') || 'HEX'}
+                            label={t('hex')}
                             value={customColorInput}
                             onChange={(e) => handleCustomColorInput(e.target.value)}
                             placeholder="#667EEA"
@@ -609,22 +609,22 @@ const ProfileSettingsPage = () => {
               <div className={styles.typographySection} data-tour="profile-typography">
                 <h3 className={styles.sectionSubtitle}>
                   {getThemedIcon('ui', 'file_text', 18, theme)}
-                  {t('profile_typography') || 'Typography'}
+                  {t('profile_typography')}
                 </h3>
                 <p className={styles.sectionHint}>
-                  {t('profile_typography_hint') || 'Choose separate fonts for English and Arabic. Changes apply immediately; click Save to sync across devices.'}
+                  {t('profile_typography_hint')}
                 </p>
                 <FontFamilyPicker
                   script="ltr"
                   value={fontLtr}
                   onChange={setFontLtr}
-                  label={t('profile_font_english') || 'English font'}
+                  label={t('profile_font_english')}
                 />
                 <FontFamilyPicker
                   script="rtl"
                   value={fontRtl}
                   onChange={setFontRtl}
-                  label={t('profile_font_arabic') || 'Arabic font'}
+                  label={t('profile_font_arabic')}
                 />
                 <TextSizePicker />
               </div>
@@ -663,7 +663,7 @@ const ProfileSettingsPage = () => {
 
               <div className={styles.notificationPanel}>
                 <div className={styles.panelHeader}>
-                  <span className={styles.panelTitle}>{t('profile_notification_channels') || 'Notification Channels'}</span>
+                  <span className={styles.panelTitle}>{t('profile_notification_channels')}</span>
                   <span className={styles.deviceBadge}>
                     {isMobileDevice
                       ? getThemedIcon('ui', 'smartphone', 12, theme)
@@ -674,7 +674,7 @@ const ProfileSettingsPage = () => {
 
                 <div className={styles.channelGrid}>
                   {/* Sound */}
-                  <PortalTooltip content={t('notifications_sound_enabled') || 'Sound Effects'} position="top">
+                  <PortalTooltip content={t('notifications_sound_enabled')} position="top">
                     <button
                       className={`${styles.channelBtn} ${notificationSettings.soundEnabled ? styles.channelActive : ''}`}
                       onClick={async () => {
@@ -685,13 +685,13 @@ const ProfileSettingsPage = () => {
                       }}
                     >
                       {getThemedIcon('ui', 'volume2', 22, notificationSettings.soundEnabled ? '#fff' : theme)}
-                      <span className={styles.channelLabel}>{t('profile_sound_effects') || 'Sound'}</span>
+                      <span className={styles.channelLabel}>{t('profile_sound_effects')}</span>
                     </button>
                   </PortalTooltip>
 
                   {/* Vibration — only on mobile */}
                   {checkSupport().vibration && (
-                    <PortalTooltip content={t('notifications_vibration_enabled') || 'Vibration'} position="top">
+                    <PortalTooltip content={t('notifications_vibration_enabled')} position="top">
                       <button
                         className={`${styles.channelBtn} ${notificationSettings.vibrationEnabled ? styles.channelActive : ''}`}
                         onClick={async () => {
@@ -702,14 +702,14 @@ const ProfileSettingsPage = () => {
                         }}
                       >
                         {getThemedIcon('ui', 'vibrate', 22, notificationSettings.vibrationEnabled ? '#fff' : theme)}
-                        <span className={styles.channelLabel}>{t('profile_vibration') || 'Vibrate'}</span>
+                        <span className={styles.channelLabel}>{t('profile_vibration')}</span>
                       </button>
                     </PortalTooltip>
                   )}
 
                   {/* Browser notifications */}
                   {checkSupport().notification && (
-                    <PortalTooltip content={t('notifications_browser_notifications') || 'Browser Notifications'} position="top">
+                    <PortalTooltip content={t('notifications_browser_notifications')} position="top">
                       <button
                         className={`${styles.channelBtn} ${notificationSettings.browserNotificationsEnabled ? styles.channelActive : ''}`}
                         onClick={async () => {
@@ -722,19 +722,19 @@ const ProfileSettingsPage = () => {
                         }}
                       >
                         {getThemedIcon('ui', 'bell', 22, notificationSettings.browserNotificationsEnabled ? '#fff' : theme)}
-                        <span className={styles.channelLabel}>{t('profile_browser_notifications') || 'Browser'}</span>
+                        <span className={styles.channelLabel}>{t('profile_browser_notifications')}</span>
                       </button>
                     </PortalTooltip>
                   )}
 
                   {/* Test notification */}
-                  <PortalTooltip content={t('notifications_test_browser_notification') || 'Test Browser Notification'} position="top">
+                  <PortalTooltip content={t('notifications_test_browser_notification')} position="top">
                     <button
                       className={styles.channelBtn}
                       onClick={handleTestBrowserNotification}
                     >
                       {getThemedIcon('ui', 'test_tube', 22, theme)}
-                      <span className={styles.channelLabel}>{t('profile_test_notification_button') || 'Test'}</span>
+                      <span className={styles.channelLabel}>{t('profile_test_notification_button')}</span>
                     </button>
                   </PortalTooltip>
                 </div>
@@ -743,10 +743,10 @@ const ProfileSettingsPage = () => {
                 {checkSupport().notification && (
                   <div className={styles.permissionHint}>
                     {typeof Notification !== 'undefined' && Notification.permission === 'granted'
-                      ? `✓ ${t('profile_browser_notifications_enabled') || 'Browser notifications enabled'}`
+                      ? `✓ ${t('profile_browser_notifications_enabled')}`
                       : typeof Notification !== 'undefined' && Notification.permission === 'denied'
-                        ? `⚠ ${t('notifications_permission_denied') || 'Permission denied — enable in browser settings'}`
-                        : `ℹ ${t('profile_permission_description') || 'Click the bell icon to request permission'}`}
+                        ? `⚠ ${t('notifications_permission_denied')}`
+                        : `ℹ ${t('profile_permission_description')}`}
                   </div>
                 )}
               </div>

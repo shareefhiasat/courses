@@ -703,12 +703,12 @@ const UsersPage = ({ isDashboardTab = false }) => {
 
   // Memoized options for dropdowns
   const roleOptions = useMemo(() => [
-    { value: 'all', label: t('all_roles') || 'All Roles' },
-    { value: ROLE_STRINGS.SUPER_ADMIN, label: t('super_admin') || 'Super Admin' },
-    { value: ROLE_STRINGS.ADMIN, label: t('admin') || 'Admin' },
-    { value: ROLE_STRINGS.INSTRUCTOR, label: t('instructor') || 'Instructor' },
-    { value: ROLE_STRINGS.HR, label: t('hr') || 'HR' },
-    { value: ROLE_STRINGS.STUDENT, label: t('student') || 'Student' }
+    { value: 'all', label: t('all_roles') },
+    { value: ROLE_STRINGS.SUPER_ADMIN, label: t('super_admin') },
+    { value: ROLE_STRINGS.ADMIN, label: t('admin') },
+    { value: ROLE_STRINGS.INSTRUCTOR, label: t('instructor') },
+    { value: ROLE_STRINGS.HR, label: t('hr') },
+    { value: ROLE_STRINGS.STUDENT, label: t('student') }
   ], [t]);
   
   const statusOptions = useMemo(() => [
@@ -716,7 +716,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
       value: 'all', 
       label: (
         <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          {t('all_status') || 'All Status'}
+          {t('all_status')}
         </span>
       )
     },
@@ -725,7 +725,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
       label: (
         <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-success, #28a745)' }}>
           {getThemedIcon('ui', 'check_circle', 16, theme)}
-          {t('active') || 'Active'}
+          {t('active')}
         </span>
       )
     },
@@ -734,7 +734,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
       label: (
         <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--color-danger, #dc2626)' }}>
           {getThemedIcon('ui', 'user_x', 16, theme)}
-          {t('disabled') || 'Disabled'}
+          {t('disabled')}
         </span>
       )
     }
@@ -742,15 +742,15 @@ const UsersPage = ({ isDashboardTab = false }) => {
 
   // Memoized options for enrollment status filter
   const enrollmentStatusOptions = useMemo(() => [
-    { value: 'all', label: t('all_enrollment_status') || 'All Enrollment Status' },
-    { value: 'active', label: t('enrollment_active') || 'Active' },
-    { value: 'inactive', label: t('enrollment_inactive') || 'Inactive/Dropped' },
-    { value: 'none', label: t('no_enrollment') || 'No Enrollment' }
+    { value: 'all', label: t('all_enrollment_status') },
+    { value: 'active', label: t('enrollment_active') },
+    { value: 'inactive', label: t('enrollment_inactive') },
+    { value: 'none', label: t('no_enrollment') }
   ], [t]);
 
   // Memoized options for program, class, and subject filters
   const programOptions = useMemo(() => [
-    { value: '', label: t('all_programs') || 'All Programs' },
+    { value: '', label: t('all_programs') },
     ...programs.map(program => ({
       value: program.docId || program.id,
       label: program.title || program.name || program.programName || `Program ${program.docId?.slice(0, 8) || 'Unknown'}`
@@ -758,7 +758,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
   ], [programs, t]);
 
   const classOptions = useMemo(() => [
-    { value: '', label: t('all_classes') || 'All Classes' },
+    { value: '', label: t('all_classes') },
     ...classes.map(cls => ({
       value: cls.docId || cls.id,
       label: cls.title || cls.name || cls.className || `Class ${cls.docId?.slice(0, 8) || 'Unknown'}`
@@ -766,7 +766,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
   ], [classes, t]);
 
   const subjectOptions = useMemo(() => [
-    { value: '', label: t('all_subjects') || 'All Subjects' },
+    { value: '', label: t('all_subjects') },
     ...subjects.map(subject => ({
       value: subject.docId || subject.id,
       label: subject.title || subject.name || subject.subjectName || `Subject ${subject.docId?.slice(0, 8) || 'Unknown'}`
@@ -796,7 +796,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
     },
     { 
       field: 'realName', 
-      headerName: t('real_name') || 'Real Name', 
+      headerName: t('real_name'), 
       flex: 1, 
       minWidth: 180,
       renderCell: (params) => {
@@ -812,7 +812,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
     },
     {
       field: 'sequence', 
-      headerName: t('order') || 'Order', 
+      headerName: t('order'), 
       width: 120,
       valueGetter: (params) => params.row.sequence,
       renderCell: (params) => {
@@ -830,7 +830,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
     },
     {
       field: 'studentNumber', 
-      headerName: t('student_number') || 'Student Number', 
+      headerName: t('student_number'), 
       width: 150,
       valueGetter: (params) => params.row.studentNumber,
       renderCell: (params) => {
@@ -848,7 +848,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
     },
     {
       field: 'roleIcons', 
-      headerName: t('roles') || 'Roles', 
+      headerName: t('roles'), 
       width: 180,
       sortable: false,
       filterable: false,
@@ -959,7 +959,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
           return (
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem', color: 'var(--color-warning, #f59e0b)', fontWeight: 500 }}>
               {getThemedIcon('ui', 'mail', 14, theme)}
-              {t('status_invited') || 'Invited'}
+              {t('status_invited')}
             </span>
           );
         }
@@ -969,14 +969,14 @@ const UsersPage = ({ isDashboardTab = false }) => {
           return (
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem', color: 'var(--color-danger, #dc2626)', fontWeight: 500 }}>
               {getThemedIcon('ui', 'user_x', 14, theme)}
-              {t('status_disabled') || 'Disabled'}
+              {t('status_disabled')}
             </span>
           );
         } else {
           return (
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '0.85rem', color: 'var(--color-success, #28a745)', fontWeight: 500 }}>
               {getThemedIcon('ui', 'check_circle', 14, theme)}
-              {t('status_active') || 'Active'}
+              {t('status_active')}
             </span>
           );
         }
@@ -1088,9 +1088,9 @@ const UsersPage = ({ isDashboardTab = false }) => {
                   let title;
                   
                   if (canUseQR) {
-                    title = t('view_qr_code') || 'View QR Code';
+                    title = t('view_qr_code');
                   } else if (isSuperAdminUser && isInstructorUser) {
-                    title = t('qr_code_student_only_super_admin_instructor') || 'QR Code (Student only) - Super Admin & Instructor';
+                    title = t('qr_code_student_only_super_admin_instructor');
                   } else if (isSuperAdminUser) {
                     title = t('qr_code_student_only_super_admin');
                   } else if (isInstructorUser) {
@@ -1151,9 +1151,9 @@ const UsersPage = ({ isDashboardTab = false }) => {
                     style={{ color: '#dc2626', opacity: canDelete ? 1 : 0.5 }}
                     onClick={() => canDelete && handleDeleteUser(params.row)}
                     disabled={!canDelete}
-                    title={canDelete ? (t('delete') || 'Delete') : (isStudentRole ? 'Cannot delete this user' : 'Only students can be deleted')}
+                    title={canDelete ? (t('delete')) : (isStudentRole ? 'Cannot delete this user' : 'Only students can be deleted')}
                   >
-                    {t('delete') || 'Delete'}
+                    {t('delete')}
                   </Button>
                 );
               })()}
@@ -1340,7 +1340,7 @@ const UsersPage = ({ isDashboardTab = false }) => {
             });
             
             if (result.success) {
-              toast?.showSuccess(t('user_created_successfully') || 'User created successfully');
+              toast?.showSuccess(t('user_created_successfully'));
               debouncedLoadData();
             } else {
               throw new Error(result.error || 'Failed to create user in Keycloak');
@@ -1524,7 +1524,7 @@ borderColor: theme === 'dark' ? '#374151' : 'transparent',
         <div style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap', width: '100%' }}>
           <Input
             type="text"
-            placeholder={t('search_users') || 'Search by email or name...'}
+            placeholder={t('search_users')}
             value={searchFilter}
             onChange={(e) => setSearchFilter(e.target.value)}
             prefix={getThemedIcon('ui', 'search', 16, theme)}
@@ -1543,7 +1543,7 @@ borderColor: theme === 'dark' ? '#374151' : 'transparent',
                 </span>
               )
             }))}
-            placeholder={t('filter_by_role') || 'Filter by Role'}
+            placeholder={t('filter_by_role')}
             style={{ minWidth: '200px', flex: 1 }}
           />
           
@@ -1551,7 +1551,7 @@ borderColor: theme === 'dark' ? '#374151' : 'transparent',
             value={statusFilter || 'all'}
             onChange={(e) => setStatusFilter(e.target.value)}
             options={statusOptions}
-            placeholder={t('filter_by_status') || 'Filter by Status'}
+            placeholder={t('filter_by_status')}
             style={{ minWidth: '200px', flex: 1 }}
           />
 
@@ -1559,7 +1559,7 @@ borderColor: theme === 'dark' ? '#374151' : 'transparent',
             value={enrollmentStatusFilter || 'all'}
             onChange={(e) => setEnrollmentStatusFilter(e.target.value)}
             options={enrollmentStatusOptions}
-            placeholder={t('filter_by_enrollment_status') || 'Filter by enrollment status'}
+            placeholder={t('filter_by_enrollment_status')}
             style={{ minWidth: '200px', flex: 1 }}
           />
         </div>
@@ -1580,7 +1580,7 @@ borderColor: theme === 'dark' ? '#374151' : 'transparent',
           color: theme === 'dark' ? '#93c5fd' : '#1e40af'
         }}>
           {getThemedIcon('ui', 'filter', 14, theme)}
-          {t('showing_filtered') || 'Showing'} {filteredUsers.length} {t('of') || 'of'} {users.length} {t('users') || 'Users'}
+          {t('showing_filtered')} {filteredUsers.length} {t('of')} {users.length} {t('users')}
         </div>
       )}
 
@@ -1665,13 +1665,13 @@ borderColor: theme === 'dark' ? '#374151' : 'transparent',
           <Input
             type="text"
             ref={realNameRef}
-            placeholder={t('real_name_placeholder') || 'Real Name (First Last)'}
+            placeholder={t('real_name_placeholder')}
             onChange={(e) => setFormData(prev => ({ ...prev, realName: e.target.value }))}
           />
           <Input
             type="text"
             ref={studentNumberRef}
-            placeholder={t('student_number_placeholder') || 'Student Number'}
+            placeholder={t('student_number_placeholder')}
             required={formData.role === ROLE_STRINGS.STUDENT}
             onChange={(e) => {
               setFormData(prev => ({ ...prev, studentNumber: e.target.value }));
@@ -1680,8 +1680,8 @@ borderColor: theme === 'dark' ? '#374151' : 'transparent',
           <Input
             type="number"
             ref={orderRef}
-            placeholder={t('student_order_placeholder') || 'Order/Sequence'}
-            description={t('student_order_description') || 'Display order for student lists'}
+            placeholder={t('student_order_placeholder')}
+            description={t('student_order_description')}
             onChange={(e) => setFormData(prev => ({ ...prev, sequence: e.target.value }))}
           />
         </div>
@@ -1722,7 +1722,7 @@ borderColor: theme === 'dark' ? '#374151' : 'transparent',
                 setFormData(prev => ({ ...prev, role: ROLE_STRINGS.STUDENT }));
               }
             }}
-            placeholder={t('select_roles') || 'Select roles...'}
+            placeholder={t('select_roles')}
             searchable
             style={{ flex: 1 }}
           />
@@ -1748,7 +1748,7 @@ borderColor: theme === 'dark' ? '#374151' : 'transparent',
               variant="outline" 
               onClick={() => resetForm(true)}
             >
-              {t('cancel') || 'Cancel'}
+              {t('cancel')}
             </Button>
           </div>
         </div>
@@ -1758,9 +1758,9 @@ borderColor: theme === 'dark' ? '#374151' : 'transparent',
         {/* No loading state needed - GlobalLoading handles initial page load */}
         {pageState === PAGE_STATES.ERROR ? (
           <div style={{ textAlign: 'center', padding: '2rem' }}>
-            <p style={{ color: theme === 'dark' ? '#f87171' : '#ef4444' }}>{t('error_loading_users') || 'Error loading users'}</p>
+            <p style={{ color: theme === 'dark' ? '#f87171' : '#ef4444' }}>{t('error_loading_users')}</p>
             <Button onClick={() => debouncedLoadData(true)} style={{ marginTop: '1rem' }}>
-              {getThemedIcon('ui', 'refresh', 16, theme)} {t('retry') || 'Retry'}
+              {getThemedIcon('ui', 'refresh', 16, theme)} {t('retry')}
             </Button>
           </div>
         ) : (
@@ -1857,7 +1857,7 @@ borderColor: theme === 'dark' ? '#374151' : 'transparent',
               checkboxSelection
               exportFileName="users"
               showExportButton
-              exportLabel={t('export') || 'Export'}
+              exportLabel={t('export')}
               width="100%"
               sx={{
                 '& .MuiDataGrid-root': {

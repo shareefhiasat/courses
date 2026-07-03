@@ -18,7 +18,7 @@ export const useChatStateMinimal = (user) => {
   const [selectedClassMinimal, setSelectedClassMinimal] = useState(CHAT_TYPES.GLOBAL);
   const [sidebarWidthMinimal, setSidebarWidthMinimal] = useState(() => {
     try {
-      const saved = parseInt(localStorage.getItem(LOCAL_STORAGE_KEYS.SIDEBAR_WIDTH) || '0', 10);
+      const saved = parseInt(localStorage.getItem(LOCAL_STORAGE_KEYS.SIDEBAR_WIDTH), 10);
       return Number.isFinite(saved) && saved >= SIDEBAR_CONFIG.MIN_WIDTH && saved <= SIDEBAR_CONFIG.MAX_WIDTH 
         ? saved 
         : SIDEBAR_CONFIG.DEFAULT_WIDTH;

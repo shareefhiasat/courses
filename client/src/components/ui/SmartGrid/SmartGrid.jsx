@@ -267,7 +267,7 @@ const SmartGrid = React.memo(({
         <div className="smart-grid-actions">
           <input
             type="text"
-            placeholder={searchPlaceholder || t('search') || 'Search...'}
+            placeholder={searchPlaceholder || t('search')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="search-input"

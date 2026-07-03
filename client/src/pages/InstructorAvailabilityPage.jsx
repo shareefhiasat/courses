@@ -447,7 +447,7 @@ const InstructorAvailabilityPage = () => {
     const columns = [
       {
         field: 'instructor',
-        headerName: t('instructor') || 'Instructor',
+        headerName: t('instructor'),
         flex: 1,
         minWidth: 200,
         renderCell: (params) => {
@@ -464,7 +464,7 @@ const InstructorAvailabilityPage = () => {
       },
       {
         field: 'slots',
-        headerName: t('time_slots') || 'Time Slots',
+        headerName: t('time_slots'),
         width: 200,
         renderCell: (params) => {
           const slots = params?.value;
@@ -474,7 +474,7 @@ const InstructorAvailabilityPage = () => {
       },
       {
         field: 'daysCount',
-        headerName: t('days_count') || 'Days Count',
+        headerName: t('days_count'),
         width: 100,
         renderCell: (params) => {
           const row = params?.row;
@@ -504,7 +504,7 @@ const InstructorAvailabilityPage = () => {
       },
       {
         field: 'startDate',
-        headerName: t('start_date') || 'Start Date',
+        headerName: t('start_date'),
         width: 120,
         renderCell: (params) => {
           const value = params?.value;
@@ -513,7 +513,7 @@ const InstructorAvailabilityPage = () => {
       },
       {
         field: 'endDate',
-        headerName: t('end_date') || 'End Date',
+        headerName: t('end_date'),
         width: 120,
         renderCell: (params) => {
           const value = params?.value;
@@ -573,7 +573,7 @@ const InstructorAvailabilityPage = () => {
                 onClick={() => handleEditAvailability(row)}
                 disabled={saving}
               >
-                {t('edit') || 'Edit'}
+                {t('edit')}
               </Button>
               <Button
                 variant="destructive"
@@ -581,7 +581,7 @@ const InstructorAvailabilityPage = () => {
                 onClick={() => deleteEntity('availability', `${row.instructor?.code} - ${row.dayOfWeek}`, () => handleDeleteAvailability(row))}
                 disabled={saving}
               >
-                {t('delete') || 'Delete'}
+                {t('delete')}
               </Button>
             </div>
           );
@@ -634,7 +634,7 @@ const InstructorAvailabilityPage = () => {
           marginBottom: '1.5rem'
         }}>
           <div>
-            <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: '500' }}>{t('instructor') || 'Instructor'} *</label>
+            <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: '500' }}>{t('instructor')} *</label>
             <UserSelect
               value={formData.instructorUserId}
               onChange={(value) => handleInputChange('instructorUserId', value)}
@@ -644,12 +644,12 @@ const InstructorAvailabilityPage = () => {
           </div>
 
           <div>
-            <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: '500' }}>{t('days_of_week') || 'Day(s) of Week'}</label>
+            <label style={{ display: 'block', marginBottom: '0.25rem', fontWeight: '500' }}>{t('days_of_week')}</label>
             <MultiSelect
               value={formData.dayOfWeek}
               onChange={(value) => handleInputChange('dayOfWeek', value)}
               options={dayOptions}
-              placeholder={t('select_days') || 'Select days...'}
+              placeholder={t('select_days')}
               disabled={saving}
             />
           </div>
@@ -776,7 +776,7 @@ const InstructorAvailabilityPage = () => {
               onClick={handleCancel}
               disabled={saving}
             >
-              {t('cancel') || 'Cancel'}
+              {t('cancel')}
             </Button>
           )}
         </div>
@@ -788,7 +788,7 @@ const InstructorAvailabilityPage = () => {
           <Input
             value={filterSearch}
             onChange={e => setFilterSearch(e.target.value)}
-            placeholder={t('search') || 'Search'}
+            placeholder={t('search')}
           />
         </div>
         <div style={{ flex: '1 1 180px' }}>
@@ -796,10 +796,10 @@ const InstructorAvailabilityPage = () => {
             value={filterInstructor}
             onChange={setFilterInstructor}
             users={instructors}
-            placeholder={t('instructor') || 'Instructor'}
+            placeholder={t('instructor')}
             includeAll={true}
             allValue=""
-            allLabel={t('all_instructors') || 'All Instructors'}
+            allLabel={t('all_instructors')}
           />
         </div>
         <div style={{ flex: '1 1 130px' }}>
@@ -807,7 +807,7 @@ const InstructorAvailabilityPage = () => {
             value={filterDay}
             onChange={e => setFilterDay(e.target.value)}
             options={[{ value: '', label: t('all_days') }, ...dayOptions]}
-            placeholder={t('day') || 'Day'}
+            placeholder={t('day')}
           />
         </div>
         <div style={{ flex: '1 1 140px' }}>
@@ -815,7 +815,7 @@ const InstructorAvailabilityPage = () => {
             type="date"
             value={filterStartDate}
             onChange={e => setFilterStartDate(e.target.value)}
-            placeholder={t('start_date') || 'Start Date'}
+            placeholder={t('start_date')}
           />
         </div>
         <div style={{ flex: '1 1 140px' }}>
@@ -823,7 +823,7 @@ const InstructorAvailabilityPage = () => {
             type="date"
             value={filterEndDate}
             onChange={e => setFilterEndDate(e.target.value)}
-            placeholder={t('end_date') || 'End Date'}
+            placeholder={t('end_date')}
           />
         </div>
         <div style={{ flex: '1 1 100px' }}>
@@ -831,7 +831,7 @@ const InstructorAvailabilityPage = () => {
             type="time"
             value={filterTimeFrom}
             onChange={e => setFilterTimeFrom(e.target.value)}
-            placeholder={t('time_from') || 'From'}
+            placeholder={t('time_from')}
           />
         </div>
         <div style={{ flex: '1 1 100px' }}>
@@ -839,7 +839,7 @@ const InstructorAvailabilityPage = () => {
             type="time"
             value={filterTimeTo}
             onChange={e => setFilterTimeTo(e.target.value)}
-            placeholder={t('time_to') || 'To'}
+            placeholder={t('time_to')}
           />
         </div>
         <div style={{ flex: '1 1 150px' }}>
@@ -886,7 +886,7 @@ const InstructorAvailabilityPage = () => {
         <div style={{ display: 'flex', gap: '0.5rem' }}>
           
           <Button data-tour="instr-avail-export" variant="outline" size="sm" onClick={handleExport} disabled={filteredAvailabilities.length === 0}>
-            {t('export') || 'Export'}
+            {t('export')}
           </Button>
         </div>
       </div>

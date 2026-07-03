@@ -40,12 +40,12 @@ export default function DriveSpacesSidebar({
   };
 
   const spaces = [
-    { id: 'my-drive', label: t('drive.myDrive') || 'My Drive', icon: 'folder' },
-    { id: 'shared', label: t('drive.sharedWithMe') || 'Inbox', icon: 'users' },
-    { id: 'shared-by-me', label: t('drive.sharedByMe') || 'Outbox', icon: 'share' },
-    { id: 'recent', label: t('drive.recent') || 'Recent', icon: 'clock' },
-    { id: 'starred', label: t('drive.starred') || 'Starred', icon: 'star' },
-    { id: 'trash', label: t('drive.trash') || 'Trash', icon: 'trash' },
+    { id: 'my-drive', label: t('drive.myDrive'), icon: 'folder' },
+    { id: 'shared', label: t('drive.sharedWithMe'), icon: 'users' },
+    { id: 'shared-by-me', label: t('drive.sharedByMe'), icon: 'share' },
+    { id: 'recent', label: t('drive.recent'), icon: 'clock' },
+    { id: 'starred', label: t('drive.starred'), icon: 'star' },
+    { id: 'trash', label: t('drive.trash'), icon: 'trash' },
   ];
 
   const cardStyle = {
@@ -96,7 +96,7 @@ export default function DriveSpacesSidebar({
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }} dir={isRTL ? 'rtl' : 'ltr'}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
       {/* New / Upload Button */}
       <button
         onClick={onUploadClick}
@@ -124,10 +124,10 @@ export default function DriveSpacesSidebar({
           e.currentTarget.style.transform = 'translateY(0)';
           e.currentTarget.style.boxShadow = '0 2px 8px rgba(37, 99, 235, 0.25)';
         }}
-        title={isMinimized ? t('drive.newUpload') || 'New' : undefined}
+        title={isMinimized ? t('drive.newUpload') : undefined}
       >
         {getThemedIcon('ui', 'plus', 16, 'white')}
-        {!isMinimized && (t('drive.newUpload') || 'New')}
+        {!isMinimized && (t('drive.newUpload'))}
       </button>
 
       {/* Spaces */}
@@ -143,7 +143,7 @@ export default function DriveSpacesSidebar({
               paddingLeft: '0.5rem',
             }}
           >
-            {t('drive.spaces') || 'Spaces'}
+            {t('drive.spaces')}
           </div>
         )}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>{spaces.map(spaceButton)}</div>
@@ -162,7 +162,7 @@ export default function DriveSpacesSidebar({
               paddingLeft: '0.5rem',
             }}
           >
-            {t('drive.folders') || 'Folders'}
+            {t('drive.folders')}
           </div>
           {activeSpace === 'my-drive' ? (
             <DriveTreeView
@@ -228,7 +228,7 @@ export default function DriveSpacesSidebar({
               }}
             >
               {getThemedIcon('ui', 'hard_drive', 14, theme)}
-              {t('drive.storage') || 'Storage'}
+              {t('drive.storage')}
             </span>
             <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted, #6b7280)' }}>
               {isSuperAdmin ? getThemedIcon('ui', 'infinity', 14, 'muted') : `${storagePercentage.toFixed(0)}%`}
@@ -284,7 +284,7 @@ export default function DriveSpacesSidebar({
                   }}
                 >
                   {getThemedIcon('ui', 'folder', 12, 'muted')}
-                  {t('drive.folderStorage') || 'This folder'}
+                  {t('drive.folderStorage')}
                 </span>
                 <span style={{ fontSize: '0.7rem', color: 'var(--text-muted, #6b7280)' }}>
                   {fmt(folderStorage)}

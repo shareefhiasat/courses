@@ -49,8 +49,8 @@ function formatDateLabel(dateStr, lang, t) {
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
 
-  if (d.toDateString() === today.toDateString()) return t('today') || 'Today';
-  if (d.toDateString() === yesterday.toDateString()) return t('yesterday') || 'Yesterday';
+  if (d.toDateString() === today.toDateString()) return t('today');
+  if (d.toDateString() === yesterday.toDateString()) return t('yesterday');
 
   return formatDateShort(d, lang);
 }
@@ -107,7 +107,7 @@ function ExportEntryRow({
       });
     } catch (err) {
       console.error('Failed to open export file:', err);
-      alert(err.message || t('export_file_unavailable') || 'File unavailable');
+      alert(err.message || t('export_file_unavailable'));
     } finally {
       setOpening(false);
     }
@@ -135,7 +135,7 @@ function ExportEntryRow({
             cursor: hasFile ? 'pointer' : 'default',
             textDecoration: hasFile ? 'underline' : 'none',
           }}
-          title={hasFile ? entry.filename : `${entry.filename} (${t('export_file_unavailable') || 'File unavailable'})`}
+          title={hasFile ? entry.filename : `${entry.filename} (${t('export_file_unavailable')})`}
           onClick={() => hasFile && handleOpen(entry.format !== 'pdf')}
         >
           {entry.filename}
@@ -193,9 +193,9 @@ function ExportEntryRow({
           {!hasFile && (
             <span
               style={{ fontSize: 'var(--font-size-xs)', color: 'var(--muted)', fontStyle: 'italic' }}
-              title={t('export_file_unavailable') || 'File unavailable'}
+              title={t('export_file_unavailable')}
             >
-              {t('export_file_unavailable') || 'File unavailable'}
+              {t('export_file_unavailable')}
             </span>
           )}
         </div>
@@ -206,7 +206,7 @@ function ExportEntryRow({
             type="button"
             disabled={opening}
             onClick={() => handleOpen(false)}
-            title={t('export_view_file') || 'View file'}
+            title={t('export_view_file')}
             style={{
               background: 'transparent',
               border: '1px solid var(--border)',
@@ -217,13 +217,13 @@ function ExportEntryRow({
               color: 'var(--text)',
             }}
           >
-            {t('export_view_file') || 'View'}
+            {t('export_view_file')}
           </button>
           <button
             type="button"
             disabled={opening}
             onClick={() => handleOpen(true)}
-            title={t('export_download_file') || 'Download file'}
+            title={t('export_download_file')}
             style={{
               background: 'transparent',
               border: '1px solid var(--border)',
@@ -320,12 +320,12 @@ const ExportHistoryDrawer = ({ isOpen, onClose, lang, t, theme }) => {
   if (!isOpen) return null;
 
   const groupChips = [
-    { key: 'official', label: t('export_group_official') || 'Official', color: '#8b5cf6', types: EXPORT_TYPE_GROUPS.official },
-    { key: 'standard', label: t('export_group_standard') || 'Standard', color: '#3b82f6', types: EXPORT_TYPE_GROUPS.standard },
+    { key: 'official', label: t('export_group_official'), color: '#8b5cf6', types: EXPORT_TYPE_GROUPS.official },
+    { key: 'standard', label: t('export_group_standard'), color: '#3b82f6', types: EXPORT_TYPE_GROUPS.standard },
   ];
 
   const formatChips = [
-    { key: 'all', label: t('all_formats') || 'All Formats', color: null, icon: null },
+    { key: 'all', label: t('all_formats'), color: null, icon: null },
     ...FORMAT_KEYS.map((key) => ({
       key,
       label: key.toUpperCase(),
@@ -357,7 +357,7 @@ const ExportHistoryDrawer = ({ isOpen, onClose, lang, t, theme }) => {
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'var(--text)' }}>
-            {t('export_history') || 'Export History'}
+            {t('export_history')}
           </h3>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             {!isSuperAdmin && (
@@ -374,7 +374,7 @@ const ExportHistoryDrawer = ({ isOpen, onClose, lang, t, theme }) => {
                   color: 'var(--color-primary, #2563eb)',
                 }}
               >
-                {t('open_exported_folder') || 'Open Exported'}
+                {t('open_exported_folder')}
               </button>
             )}
             <button
@@ -398,7 +398,7 @@ const ExportHistoryDrawer = ({ isOpen, onClose, lang, t, theme }) => {
           <input
             type="text"
             autoComplete="off"
-            placeholder={t('search_exports') || 'Search by filename or user...'}
+            placeholder={t('search_exports')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             style={{
@@ -436,7 +436,7 @@ const ExportHistoryDrawer = ({ isOpen, onClose, lang, t, theme }) => {
               whiteSpace: 'nowrap',
             }}
           >
-            {t('all') || 'All'}
+            {t('all')}
           </button>
 
           {/* Group buttons */}
@@ -494,7 +494,7 @@ const ExportHistoryDrawer = ({ isOpen, onClose, lang, t, theme }) => {
                     key={typeKey}
                     type="button"
                     disabled={isBeta}
-                    title={isBeta ? (t('coming_soon') || 'Coming soon') : undefined}
+                    title={isBeta ? (t('coming_soon')) : undefined}
                     onClick={() => { if (!isBeta) setTypeFilter(typeKey); }}
                     style={{
                       display: 'inline-flex',
@@ -577,11 +577,11 @@ const ExportHistoryDrawer = ({ isOpen, onClose, lang, t, theme }) => {
         <div style={{ flex: 1, overflowY: 'auto', maxHeight: 'calc(100vh - 280px)' }}>
           {loading ? (
             <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--muted)' }}>
-              <p>{t('loading_dots') || 'Loading...'}</p>
+              <p>{t('loading_dots')}</p>
             </div>
           ) : groupedData.length === 0 || groupedData.every((g) => g.entries.length === 0) ? (
             <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--muted)' }}>
-              <p>{t('no_export_history') || 'No export history found'}</p>
+              <p>{t('no_export_history')}</p>
             </div>
           ) : (
             groupedData.map((group) => {

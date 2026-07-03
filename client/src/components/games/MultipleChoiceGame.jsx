@@ -103,9 +103,9 @@ import { info, error, warn, debug } from '@services/utils/logger.js';export defa
     return (
       <div className="max-w-2xl mx-auto p-8 text-center" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
         <div className="text-6xl mb-4">📝</div>
-        <h1 className="text-3xl font-extrabold mb-4 text-gray-900 dark:text-white">{t('multiple_choice_quiz') || 'Multiple Choice Quiz'}</h1>
+        <h1 className="text-3xl font-extrabold mb-4 text-gray-900 dark:text-white">{t('multiple_choice_quiz')}</h1>
         <p className="text-lg text-gray-500 dark:text-gray-400 mb-8">
-          {totalQuestions} {t('questions') || 'questions'} • {settings?.timeLimit ? `${settings.timeLimit / 60} ${t('minutes') || 'minutes'}` : (t('no_time_limit') || 'No time limit')}
+          {totalQuestions} {t('questions')} • {settings?.timeLimit ? `${settings.timeLimit / 60} ${t('minutes')}` : (t('no_time_limit'))}
         </p>
         <button
           onClick={() => {
@@ -114,7 +114,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';export defa
           }}
           className="px-12 py-4 bg-gradient-to-r from-indigo-500 to-purple-600 text-white text-lg font-bold rounded-xl shadow-lg hover:shadow-indigo-500/30 transform hover:scale-105 transition-all"
         >
-          {t('start_quiz') || 'START QUIZ'}
+          {t('start_quiz')}
         </button>
       </div>
     );
@@ -125,17 +125,17 @@ import { info, error, warn, debug } from '@services/utils/logger.js';export defa
     return (
       <div className="max-w-2xl mx-auto p-8 text-center" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
         {getThemedIcon('ui', 'trophy', 64, theme)}
-        <h1 className="text-3xl font-extrabold mb-4 text-gray-900 dark:text-white">{t('quiz_complete') || 'Quiz Complete!'}</h1>
+        <h1 className="text-3xl font-extrabold mb-4 text-gray-900 dark:text-white">{t('quiz_complete')}</h1>
         <div className="text-5xl font-extrabold text-indigo-600 dark:text-indigo-400 mb-4">
           {score} / {questions.reduce((sum, q) => sum + (q.points || 1), 0)}
         </div>
         <div className="text-lg text-gray-500 dark:text-gray-400 mb-8">
-          {percentage.toFixed(1)}% {t('score') || 'Score'}
+          {percentage.toFixed(1)}% {t('score')}
         </div>
 
         {settings?.showCorrectAnswers && (
           <div className="mt-8 text-left">
-            <h3 className="text-lg font-bold mb-4 text-gray-900 dark:text-white">{t('review_answers') || 'Review Answers'}</h3>
+            <h3 className="text-lg font-bold mb-4 text-gray-900 dark:text-white">{t('review_answers')}</h3>
             {questions.map((q, idx) => {
               const userAnswer = answers[q.id];
               const correctOption = q.options.find(opt => opt.correct);
@@ -150,11 +150,11 @@ import { info, error, warn, debug } from '@services/utils/logger.js';export defa
                     Q{idx + 1}: {q.question}
                   </div>
                   <div className="text-sm text-gray-700 dark:text-gray-300">
-                    {t('your_answer') || 'Your answer'}: {userOption?.text || (t('no_answer') || '(No answer)')} {userAnswer?.correct ? '✓' : '✗'}
+                    {t('your_answer')}: {userOption?.text || (t('no_answer'))} {userAnswer?.correct ? '✓' : '✗'}
                   </div>
                   {!userAnswer?.correct && (
                     <div className="text-sm mt-1 text-green-700 dark:text-green-400">
-                      {t('correct_answer') || 'Correct answer'}: {correctOption?.text}
+                      {t('correct_answer')}: {correctOption?.text}
                     </div>
                   )}
                 </div>
@@ -172,10 +172,10 @@ import { info, error, warn, debug } from '@services/utils/logger.js';export defa
       <div className="flex justify-between items-center mb-6 p-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 shadow-sm">
         <div>
           <div className="text-sm text-gray-500 dark:text-gray-400 mb-1">
-            {t('question') || 'Question'} {currentIndex + 1} {t('of') || 'of'} {totalQuestions}
+            {t('question')} {currentIndex + 1} {t('of')} {totalQuestions}
           </div>
           <div className="text-base font-semibold text-gray-900 dark:text-white">
-            {t('score') || 'Score'}: {score}
+            {t('score')}: {score}
           </div>
         </div>
         {settings?.timeLimit > 0 && (
@@ -262,7 +262,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';export defa
           className="px-6 py-3 bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl font-semibold flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
         >
           {getThemedIcon('ui', 'chevron_left', 20, theme)}
-          {t('previous') || 'Previous'}
+          {t('previous')}
         </button>
 
         {!showFeedback && (
@@ -271,7 +271,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';export defa
             disabled={!selectedAnswer}
             className={`px-8 py-3 rounded-xl font-bold text-white shadow-lg transition-all flex items-center gap-2 ${!selectedAnswer ? 'bg-gray-400 cursor-not-allowed' : 'bg-gradient-to-r from-indigo-500 to-purple-600 hover:shadow-indigo-500/30 hover:scale-105'}`}
           >
-            {currentIndex === totalQuestions - 1 ? (t('finish_quiz') || 'Finish Quiz') : (t('next_question') || 'Next Question')}
+            {currentIndex === totalQuestions - 1 ? (t('finish_quiz')) : (t('next_question'))}
             {currentIndex !== totalQuestions - 1 && getThemedIcon('ui', 'chevron_right', 20, theme)}
           </button>
         )}

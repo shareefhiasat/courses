@@ -161,7 +161,7 @@ const StudentScanDialog = ({
           color: '#111827',
           margin: '0 0 1rem 0'
         }}>
-          {t('choose_action') || 'Choose Action'}
+          {t('choose_action')}
         </h3>
 
         <div style={{
@@ -197,7 +197,7 @@ const StudentScanDialog = ({
               </div>
             ) : (
               <div style={{ fontStyle: 'italic' }}>
-                {t('no_name_available') || 'Not available'}
+                {t('no_name_available')}
               </div>
             )}
 
@@ -273,12 +273,12 @@ const StudentScanDialog = ({
                     borderRadius: '50%',
                     animation: 'spin 1s linear infinite'
                   }} />
-                  {t('processing') || 'Processing...'}
+                  {t('processing')}
                 </>
               ) : (
                 <>
                   <PenaltyIcon style={{ width: '18px', height: '18px' }} />
-                  {t('penalty') || 'Penalty'}
+                  {t('penalty')}
                 </>
               )}
             </button>
@@ -328,12 +328,12 @@ const StudentScanDialog = ({
                     borderRadius: '50%',
                     animation: 'spin 1s linear infinite'
                   }} />
-                  {t('processing') || 'Processing...'}
+                  {t('processing')}
                 </>
               ) : (
                 <>
                   <ParticipationIcon style={{ width: '18px', height: '18px' }} />
-                  {t('participation') || 'Participation'}
+                  {t('participation')}
                 </>
               )}
             </button>
@@ -383,12 +383,12 @@ const StudentScanDialog = ({
                     borderRadius: '50%',
                     animation: 'spin 1s linear infinite'
                   }} />
-                  {t('processing') || 'Processing...'}
+                  {t('processing')}
                 </>
               ) : (
                 <>
                   <ZapIcon style={{ width: '18px', height: '18px' }} />
-                  {t('behavior') || 'Behavior'}
+                  {t('behavior')}
                 </>
               )}
             </button>
@@ -451,12 +451,12 @@ const StudentScanDialog = ({
                     borderRadius: '50%',
                     animation: 'spin 1s linear infinite'
                   }} />
-                  {t('processing') || 'Processing...'}
+                  {t('processing')}
                 </>
               ) : (
                 <>
                   <DetailsIcon style={{ width: '18px', height: '18px' }} />
-                  {t('details') || 'Details'}
+                  {t('details')}
                 </>
               )}
             </button>
@@ -507,12 +507,12 @@ const StudentScanDialog = ({
                     borderRadius: '50%',
                     animation: 'spin 1s linear infinite'
                   }} />
-                  {t('processing') || 'Processing...'}
+                  {t('processing')}
                 </>
               ) : (
                 <>
                   <ZapIcon style={{ width: '18px', height: '18px' }} />
-                  {t('actions') || 'Actions'}
+                  {t('actions')}
                 </>
               )}
             </button>
@@ -541,7 +541,7 @@ const StudentScanDialog = ({
             e.target.style.background = '#f3f4f6';
           }}
         >
-          {t('cancel') || 'Cancel'}
+          {t('cancel')}
         </button>
       </div>
     </div>

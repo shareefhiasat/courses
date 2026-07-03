@@ -35,14 +35,7 @@ import {
 import { mapBucketName } from '../constants/driveConstants.js';
 import { getDatabaseUserId } from '../utils/database/userResolver.js';
 import { LMS_ROLES } from './keycloakAdminService.js';
-
-
-const ok = (payload) => ({ success: true, payload, timestamp: Date.now() });
-const err = (code, message, extra = {}) => ({
-  success: false,
-  error: { code, message, ...extra },
-  timestamp: Date.now(),
-});
+import { ok, err } from '../utils/result.js';
 
 /**
  * Build the S3 key for a specific version of a file.

@@ -105,9 +105,9 @@ export default function StudentDashboardPage() {
   const displayName = useMemo(() => {
     if (permissions.isStaff && filters.selectedStudentId) {
       const found = filters.filteredStudents.find(s => (s.id || s.uid) === filters.selectedStudentId);
-      return found?.displayName || t('student') || 'Student';
+      return found?.displayName || t('student');
     }
-    return userProfile?.displayName || user?.displayName || user?.email?.split('@')[0] || t('student') || 'Student';
+    return userProfile?.displayName || user?.displayName || user?.email?.split('@')[0] || t('student');
   }, [permissions.isStaff, filters.selectedStudentId, filters.filteredStudents, userProfile, user, t]);
 
   // ─── Data hooks with proper conditional loading ────────────────────────────────
@@ -217,16 +217,16 @@ export default function StudentDashboardPage() {
 
   // ─── Memoized select options
   const studentOptions = useMemo(() => [
-    { value: '', label: t('filters.select_student') || (lang === 'ar' ? 'اختر طالب' : 'Select Student') },
+    { value: '', label: t('filters.select_student') },
     ...filters.filteredStudents.map(s => ({ value: s.id || s.uid, label: s.displayName || s.email || '' })),
   ], [filters.filteredStudents, lang, t]);
 
   // ─── Memoized tabs configuration (Performance optimization) ─────────────────────
   const dashTabs = useMemo(() => {
     const tabs = [
-      { value: 'overview',      label: t('dashboard.overview') || (lang === 'ar' ? 'نظرة عامة'   : 'Overview') },
-      { value: 'performance',   label: t('dashboard.performance') || (lang === 'ar' ? 'الأداء'        : 'Performance') },
-      { value: 'marks',         label: t('dashboard.marks') || (lang === 'ar' ? 'الدرجات'      : 'Marks') },
+      { value: 'overview',      label: t('dashboard.overview') },
+      { value: 'performance',   label: t('dashboard.performance') },
+      { value: 'marks',         label: t('dashboard.marks') },
     ];
     
     // Add Class tab for staff roles only (Super Admin, HR, Instructor, Admin)
@@ -254,11 +254,11 @@ export default function StudentDashboardPage() {
         spotlightClicks={false}
         callback={handleTourCallback}
         locale={{
-          back: t('tour_back') || 'Back',
-          close: t('tour_close') || 'Close',
-          last: t('tour_finish') || 'Finish',
-          next: t('tour_next') || 'Next',
-          skip: t('tour_skip') || 'Skip',
+          back: t('tour_back'),
+          close: t('tour_close'),
+          last: t('tour_finish'),
+          next: t('tour_next'),
+          skip: t('tour_skip'),
         }}
         styles={{
           options: {
@@ -307,7 +307,7 @@ export default function StudentDashboardPage() {
                 classes={filters.classes}
                 value={filters.selectedStudentId}
                 onChange={filters.setSelectedStudentId}
-                placeholder={t('filters.select_student') || (lang === 'ar' ? 'اختر طالب' : 'Select Student')}
+                placeholder={t('filters.select_student')}
                 roleFilter={[ROLE_STRINGS.STUDENT]}
                 includeAll={false}
                 showEnrollments
@@ -377,7 +377,7 @@ export default function StudentDashboardPage() {
         {/* ── Loading state (no skeleton) ── */}
         {(dashData.loading || classMetrics.loading) && !showSelectionPrompt && (
           <div className={styles.loadingState}>
-            <p>{t('common.loading') || 'Loading...'}</p>
+            <p>{t('common.loading')}</p>
           </div>
         )}
 
@@ -477,8 +477,8 @@ export default function StudentDashboardPage() {
             {/* ── Attendance Analytics ── */}
             <div data-tour="student-attendance-analytics">
               <CollapsibleSection
-                title={t('attendance_analytics') || 'Attendance Analytics'}
-                summary={`${STUDENT_ATTENDANCE_MAX_WIDGETS} ${t('widgets') || 'widgets'} · ${t('student_attendance') || 'Student Attendance'}`}
+                title={t('attendance_analytics')}
+                summary={`${STUDENT_ATTENDANCE_MAX_WIDGETS} ${t('widgets')} · ${t('student_attendance')}`}
                 icon={ClipboardList}
                 defaultOpen={false}
                 testId="attendance-analytics-section"
@@ -503,8 +503,8 @@ export default function StudentDashboardPage() {
             {/* ── Drive, Workflow & Activity Analytics ── */}
             <div data-tour="student-drive-analytics">
             <CollapsibleSection
-              title={t('drive_workflow_activity_analytics') || 'Drive, Workflow & Activity Analytics'}
-              summary={`${analyticsHook.loading ? '…' : (t('ready') || 'Ready')} · ${t('role_based_metrics') || 'Role-based metrics'}`}
+              title={t('drive_workflow_activity_analytics')}
+              summary={`${analyticsHook.loading ? '…' : (t('ready'))} · ${t('role_based_metrics')}`}
               icon={BarChart3}
               defaultOpen={false}
               testId="dashboard-analytics-section"

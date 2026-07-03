@@ -37,8 +37,8 @@ export default function RoleMultiSelect({
       options={options}
       value={value}
       onChange={onChange}
-      placeholder={placeholder || t('select_roles') || 'Select roles...'}
-      searchPlaceholder={t('search') || 'Search...'}
+      placeholder={placeholder || t('select_roles')}
+      searchPlaceholder={t('search')}
       disabled={disabled}
       fullWidth={fullWidth}
       className={className}

@@ -329,13 +329,13 @@ const GroupChatModal = ({ isOpen, onClose, onGroupCreated }) => {
                           {(user.enrollmentCount !== undefined || user.classCount !== undefined) && (
                             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: '0.7rem', color: 'var(--muted)', background: 'var(--panel)', padding: '1px 8px', borderRadius: 10, border: '1px solid var(--border)' }}>
                               {getThemedIcon('ui', 'book_open', 10, theme)}
-                              {(user.enrollmentCount ?? user.classCount ?? 0)} {t('classes') || 'classes'}
+                              {(user.enrollmentCount ?? user.classCount ?? 0)} {t('classes')}
                             </span>
                           )}
                           {(user.groupCount !== undefined || user._count?.chatRoomParticipations !== undefined) && (
                             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: '0.7rem', color: 'var(--muted)', background: 'var(--panel)', padding: '1px 8px', borderRadius: 10, border: '1px solid var(--border)' }}>
                               {getThemedIcon('ui', 'users', 10, theme)}
-                              {(user.groupCount ?? user._count?.chatRoomParticipations ?? 0)} {t('groups') || 'groups'}
+                              {(user.groupCount ?? user._count?.chatRoomParticipations ?? 0)} {t('groups')}
                             </span>
                           )}
                         </div>

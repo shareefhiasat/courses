@@ -966,11 +966,11 @@ const StudentProfilePage = () => {
             <div className="flex items-center gap-3">
               {getThemedIcon('ui', 'trophy', 24, theme)}
               <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
-                {t('badges_achievements') || 'Badges & Achievements'}
+                {t('badges_achievements')}
               </h2>
             </div>
             <div className="text-sm text-gray-600 dark:text-gray-400">
-              {badges.length} / {allBadges.length} {t('earned') || 'earned'}
+              {badges.length} / {allBadges.length} {t('earned')}
             </div>
           </div>
 
@@ -981,11 +981,11 @@ const StudentProfilePage = () => {
                 <div className="flex items-center gap-2 mb-2">
                   <Flame className="w-5 h-5 text-orange-500" />
                   <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    {t('login_streak') || 'Login Streak'}
+                    {t('login_streak')}
                   </span>
                 </div>
                 <div className="text-3xl font-bold text-orange-600">
-                  {userStats.loginStreak || 0} {t('days') || 'days'}
+                  {userStats.loginStreak || 0} {t('days')}
                 </div>
               </div>
 
@@ -993,7 +993,7 @@ const StudentProfilePage = () => {
                 <div className="flex items-center gap-2 mb-2">
                   <Clock className="w-5 h-5 text-blue-500" />
                   <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    {t('time_spent') || 'Time Spent'}
+                    {t('time_spent')}
                   </span>
                 </div>
                 <div className="text-3xl font-bold text-blue-600">
@@ -1005,7 +1005,7 @@ const StudentProfilePage = () => {
                 <div className="flex items-center gap-2 mb-2">
                   {getThemedIcon('ui', 'target', 20, theme)}
                   <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    {t('avg_score') || 'Avg Score'}
+                    {t('avg_score')}
                   </span>
                 </div>
                 <div className="text-3xl font-bold text-green-600">
@@ -1017,7 +1017,7 @@ const StudentProfilePage = () => {
                 <div className="flex items-center gap-2 mb-2">
                   {getThemedIcon('ui', 'award', 20, theme)}
                   <span className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                    {t('perfect_scores') || 'Perfect Scores'}
+                    {t('perfect_scores')}
                   </span>
                 </div>
                 <div className="text-3xl font-bold text-purple-600">
@@ -1030,7 +1030,7 @@ const StudentProfilePage = () => {
           {/* Recent Badges (compact row) */}
           {badges && badges.length > 0 && (
             <div className="mb-4">
-              <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">{t('recent_badges') || 'Recent Badges'}</div>
+              <div className="text-sm text-gray-600 dark:text-gray-400 mb-2">{t('recent_badges')}</div>
               <div className="flex items-center gap-2 flex-wrap">
                 {badges
                   .slice()
@@ -1123,7 +1123,7 @@ const StudentProfilePage = () => {
           {allBadges.length === 0 && (
             <div className="text-center py-12 text-gray-500 dark:text-gray-400">
               {getThemedIcon('ui', 'trophy', 64, theme)}
-              <p>{t('no_badges_available') || 'No badges available yet'}</p>
+              <p>{t('no_badges_available')}</p>
             </div>
           )}
         </div>

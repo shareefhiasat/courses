@@ -196,10 +196,10 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
                       onClick={(e) => e.stopPropagation()}
                       title={
                         student.linkedWorkflow.status === WORKFLOW_STATUS.APPROVED
-                          ? (t('alibi_approved') || 'Excuse approved') + ` — #${student.linkedWorkflow.id}`
+                          ? (t('alibi_approved')) + ` — #${student.linkedWorkflow.id}`
                           : student.linkedWorkflow.status === WORKFLOW_STATUS.REJECTED
-                          ? (t('alibi_rejected') || 'Excuse rejected') + ` — #${student.linkedWorkflow.id}`
-                          : (t('alibi_in_progress') || 'Excuse workflow in progress') + ` — #${student.linkedWorkflow.id}`
+                          ? (t('alibi_rejected')) + ` — #${student.linkedWorkflow.id}`
+                          : (t('alibi_in_progress')) + ` — #${student.linkedWorkflow.id}`
                       }
                       style={{
                         display: 'inline-flex',
@@ -258,7 +258,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
         {/* Hide attendance section on mobile to make space for part/behavior/penalty */}
         <div style={{ display: isMobile ? 'none' : 'flex', alignItems: 'center', gap: isMobile ? '0.375rem' : '0.5rem' }}>
           <span style={{ fontSize: isMobile ? '0.7rem' : '0.75rem', color: 'var(--text-muted, #6b7280)' }}>
-            {t('today') || "Today"}:
+            {t('today')}:
           </span>
           {student.attendance ? (
             getAttendanceBadge(student.attendance)
@@ -311,7 +311,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
         </div>
         <div style={{ display: isMobile ? 'none' : 'flex', alignItems: 'center', gap: isMobile ? '0.375rem' : '0.5rem' }}>
           <span style={{ fontSize: isMobile ? '0.7rem' : '0.75rem', color: 'var(--text-muted, #6b7280)' }}>
-            {t('penalties') || 'Penalties'}:
+            {t('penalties')}:
           </span>
           <span style={{
             display: 'inline-flex',
@@ -331,7 +331,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
         </div>
         <div style={{ display: isMobile ? 'none' : 'flex', alignItems: 'center', gap: isMobile ? '0.375rem' : '0.5rem' }}>
           <span style={{ fontSize: isMobile ? '0.7rem' : '0.75rem', color: 'var(--text-muted, #6b7280)' }}>
-            {t('id') || 'ID'}:
+            {t('id')}:
           </span>
           <span style={{
             display: 'inline-flex',

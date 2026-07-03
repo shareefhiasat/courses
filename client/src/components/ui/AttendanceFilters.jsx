@@ -112,14 +112,14 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Atten
             value={classFilter}
             onChange={(e) => setClassFilter(e.target.value)}
             options={[
-              { value: 'all', label: t('all_classes') || 'All Classes' },
+              { value: 'all', label: t('all_classes') },
               ...filteredClasses.map(c => ({ 
                 value: c.id || c.docId, 
                 label: c.name || c.code || c.id 
               }))
             ]}
             fullWidth
-            placeholder={t('class') || 'Class'}
+            placeholder={t('class')}
           />
         </div>
 
@@ -164,7 +164,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Atten
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
             options={[
-              { value: 'all', label: t('all') || 'All Status' },
+              { value: 'all', label: t('all') },
               { value: ATTENDANCE_STATUS.PRESENT, label: getLocalizedAttendanceLabel(ATTENDANCE_STATUS.PRESENT) },
               { value: ATTENDANCE_STATUS.LATE, label: getLocalizedAttendanceLabel(ATTENDANCE_STATUS.LATE) },
               { value: ATTENDANCE_STATUS.ABSENT_NO_EXCUSE, label: getLocalizedAttendanceLabel(ATTENDANCE_STATUS.ABSENT_NO_EXCUSE) },
@@ -172,7 +172,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Atten
               { value: ATTENDANCE_STATUS.HUMAN_CASE, label: getLocalizedAttendanceLabel(ATTENDANCE_STATUS.HUMAN_CASE) }
             ]}
             fullWidth
-            placeholder={t('status') || 'Status'}
+            placeholder={t('status')}
           />
         </div>
 
@@ -184,7 +184,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Atten
                 type="date"
                 value={dateFrom ? (dateFrom.includes('/') ? formatForDateInput(new Date(dateFrom.split('/').reverse().join('-'))) : dateFrom) : ''}
                 onChange={(iso) => setDateFrom(iso ? formatForDateInput(iso) : '')}
-                placeholder={t('from_date') || 'From Date'}
+                placeholder={t('from_date')}
                 fullWidth
               />
             </div>
@@ -193,7 +193,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Atten
                 type="date"
                 value={dateTo ? (dateTo.includes('/') ? formatForDateInput(new Date(dateTo.split('/').reverse().join('-'))) : dateTo) : ''}
                 onChange={(iso) => setDateTo(iso ? formatForDateInput(iso) : '')}
-                placeholder={t('to_date') || 'To Date'}
+                placeholder={t('to_date')}
                 fullWidth
               />
             </div>

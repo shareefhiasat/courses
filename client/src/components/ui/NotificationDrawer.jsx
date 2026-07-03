@@ -309,7 +309,7 @@ const NotificationDrawer = ({ isOpen, onClose, feed }) => {
             <div style={{ display: 'flex', gap: '0.25rem', alignItems: 'center' }}>
               
               {/* Pushable settings icon buttons */}
-              <PortalTooltip content={t('notifications_sound_enabled') || 'Sound'} position="top">
+              <PortalTooltip content={t('notifications_sound_enabled')} position="top">
                 <button
                   onClick={(e) => { e.stopPropagation(); updateSetting('soundEnabled', !soundEnabled) }}
                   style={{
@@ -325,7 +325,7 @@ const NotificationDrawer = ({ isOpen, onClose, feed }) => {
                 </button>
               </PortalTooltip>
               {checkSupport().notification && (
-                <PortalTooltip content={t('notifications_browser_notifications') || 'Browser Notifications'} position="top">
+                <PortalTooltip content={t('notifications_browser_notifications')} position="top">
                   <button
                     onClick={(e) => { e.stopPropagation(); updateSetting('browserNotificationsEnabled', !browserNotificationsEnabled) }}
                     style={{
@@ -351,7 +351,7 @@ const NotificationDrawer = ({ isOpen, onClose, feed }) => {
                   </button>
                 </PortalTooltip>
               )}
-              <PortalTooltip content={t('notifications_notification_settings') || 'Notification Settings'} position="top">
+              <PortalTooltip content={t('notifications_notification_settings')} position="top">
                 <button
                   data-tour="notif-drawer-settings"
                   onClick={(e) => { e.stopPropagation(); onClose(); navigate('/profile'); }}
@@ -387,7 +387,7 @@ const NotificationDrawer = ({ isOpen, onClose, feed }) => {
           <div data-tour="notif-drawer-search" style={{ marginBottom: '0.6rem' }}>
             <Input
               type="text"
-              placeholder={t('search_notifications') || 'Search notifications...'}
+              placeholder={t('search_notifications')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               style={inputStyle}
@@ -401,8 +401,8 @@ const NotificationDrawer = ({ isOpen, onClose, feed }) => {
               onChange={(e) => setFilterType(e.target.value)}
               options={getNotificationStatusOptions(t, lang).map(option => ({
                 ...option,
-                label: option.value === NOTIFICATION_STATUS.UNREAD ? `${t('unread') || 'Unread'} (${unreadCount})` :
-                       option.value === NOTIFICATION_STATUS.ARCHIVED ? `${t('archived') || 'Archived'} (${archivedCount})` :
+                label: option.value === NOTIFICATION_STATUS.UNREAD ? `${t('unread')} (${unreadCount})` :
+                       option.value === NOTIFICATION_STATUS.ARCHIVED ? `${t('archived')} (${archivedCount})` :
                        option.label
               }))}
               size="small"
@@ -417,11 +417,11 @@ const NotificationDrawer = ({ isOpen, onClose, feed }) => {
                   setFilterAttendanceStatus('all');
                   setFilterAbsenceType('all');
                 }}
-                options={[{ value: 'all', label: t('all_categories') || 'All' }, ...getNotificationTypeOptions(t, lang)]}
+                options={[{ value: 'all', label: t('all_categories') }, ...getNotificationTypeOptions(t, lang)]}
                 size="small"
                 style={{ flex: 1, fontSize: 'var(--font-size-xs)' }}
               />
-              <PortalTooltip content={t('advanced_filters') || 'Advanced filters'} position="top">
+              <PortalTooltip content={t('advanced_filters')} position="top">
                 <button
                   onClick={(e) => { e.stopPropagation(); setShowAdvanced(!showAdvanced) }}
                   style={{
@@ -449,7 +449,7 @@ const NotificationDrawer = ({ isOpen, onClose, feed }) => {
                 value={filterPenaltyType}
                 onChange={(e) => setFilterPenaltyType(e.target.value)}
                 options={[
-                  { value: 'all', label: t('all_penalty_types') || 'All' },
+                  { value: 'all', label: t('all_penalty_types') },
                   ...(lookupData['penalty-types'] || []).map(pt => ({ value: pt.id, label: pt.nameEn || pt.code }))
                 ]}
                 size="small"
@@ -461,12 +461,12 @@ const NotificationDrawer = ({ isOpen, onClose, feed }) => {
                 value={filterAttendanceStatus}
                 onChange={(e) => setFilterAttendanceStatus(e.target.value)}
                 options={[
-                  { value: 'all', label: t('all_statuses') || 'All' },
-                  { value: ATTENDANCE_STATUS.PRESENT, label: t('present') || 'Present' },
-                  { value: ATTENDANCE_STATUS.LATE, label: t('late') || 'Late' },
-                  { value: ATTENDANCE_STATUS.ABSENT_NO_EXCUSE, label: t('absent_no_excuse') || 'Absent (No Excuse)' },
-                  { value: ATTENDANCE_STATUS.EXCUSED_LEAVE, label: t('excused_leave') || 'Excused Leave' },
-                  { value: ATTENDANCE_STATUS.HUMAN_CASE, label: t('human_case') || 'Human Case' }
+                  { value: 'all', label: t('all_statuses') },
+                  { value: ATTENDANCE_STATUS.PRESENT, label: t('present') },
+                  { value: ATTENDANCE_STATUS.LATE, label: t('late') },
+                  { value: ATTENDANCE_STATUS.ABSENT_NO_EXCUSE, label: t('absent_no_excuse') },
+                  { value: ATTENDANCE_STATUS.EXCUSED_LEAVE, label: t('excused_leave') },
+                  { value: ATTENDANCE_STATUS.HUMAN_CASE, label: t('human_case') }
                 ]}
                 size="small"
                 style={{ flex: 1, minWidth: '100px', fontSize: 'var(--font-size-xs)' }}
@@ -477,7 +477,7 @@ const NotificationDrawer = ({ isOpen, onClose, feed }) => {
                 value={filterAbsenceType}
                 onChange={(e) => setFilterAbsenceType(e.target.value)}
                 options={[
-                  { value: 'all', label: t('all_absence_types') || 'All' },
+                  { value: 'all', label: t('all_absence_types') },
                   ...ABSENCE_TYPES.map(at => ({ value: at.id, label: at.label_en }))
                 ]}
                 size="small"
@@ -511,7 +511,7 @@ const NotificationDrawer = ({ isOpen, onClose, feed }) => {
                       value={filterProgram}
                       onChange={(e) => { setFilterProgram(e.target.value); setFilterSubject('all'); setFilterClass('all') }}
                       options={[
-                        { value: 'all', label: t('all_programs') || 'All Programs' },
+                        { value: 'all', label: t('all_programs') },
                         ...(programs || []).map(p => ({ value: p.docId || p.id, label: p.nameEn || p.name || p.code || p.docId }))
                       ]}
                       size="small" searchable fullWidth style={{ fontSize: 'var(--font-size-xs)' }}
@@ -520,7 +520,7 @@ const NotificationDrawer = ({ isOpen, onClose, feed }) => {
                       value={filterSubject}
                       onChange={(e) => { setFilterSubject(e.target.value); setFilterClass('all') }}
                       options={[
-                        { value: 'all', label: t('all_subjects') || 'All Subjects' },
+                        { value: 'all', label: t('all_subjects') },
                         ...(subjects || []).filter(s => filterProgram === 'all' || s.programId === filterProgram).map(s => ({
                           value: s.docId || s.id,
                           label: `${s.code || ''} - ${s.nameEn || s.name || s.docId}`.trim()
@@ -532,7 +532,7 @@ const NotificationDrawer = ({ isOpen, onClose, feed }) => {
                       value={filterClass}
                       onChange={(e) => setFilterClass(e.target.value)}
                       options={[
-                        { value: 'all', label: t('all_classes') || 'All Classes' },
+                        { value: 'all', label: t('all_classes') },
                         ...(classes || []).filter(c => {
                           if (filterSubject !== 'all' && c.subjectId !== filterSubject) return false;
                           if (filterProgram !== 'all') {
@@ -599,8 +599,8 @@ const NotificationDrawer = ({ isOpen, onClose, feed }) => {
               {getThemedIcon('ui', 'bell', 48, theme)}
               <p style={{ margin: '0.5rem 0 0', fontSize: '0.9rem' }}>
                 {searchTerm || filterType !== 'all' || filterCategory !== 'all'
-                  ? t('no_notifications_match_filters') || 'No notifications match your filters'
-                  : t('no_notifications_yet') || 'No notifications yet'}
+                  ? t('no_notifications_match_filters')
+                  : t('no_notifications_yet')}
               </p>
             </div>
           ) : (

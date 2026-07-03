@@ -372,7 +372,7 @@ export default function QuizzesPage() {
     
     // Only require at least one title to be present
     if (!titleEn && !titleAr) {
-      toast?.showError?.(t('quiz_title_required') || 'Please enter a quiz title');
+      toast?.showError?.(t('quiz_title_required'));
       return;
     }
     if (quizData.questions.length === 0) {
@@ -1097,7 +1097,7 @@ export default function QuizzesPage() {
               <Card style={{ cursor: 'pointer', transition: 'all 0.2s', border: '2px dashed var(--color-primary, #800020)' }} onClick={handleAddNew}>
                 <CardBody style={{ padding: '1rem 1.5rem', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', minHeight: '100px' }}>
                   {getThemedIcon('ui', 'plus', 24, theme)}
-                  <span style={{ fontWeight: 600, color: 'var(--color-primary, #800020)', fontSize: 'var(--font-size-sm)' }}>{t('create_quiz') || 'Create Quiz'}</span>
+                  <span style={{ fontWeight: 600, color: 'var(--color-primary, #800020)', fontSize: 'var(--font-size-sm)' }}>{t('create_quiz')}</span>
                 </CardBody>
               </Card>
               )}
@@ -1192,14 +1192,14 @@ export default function QuizzesPage() {
                 <CardBody className={QuizManagementPageStyles.emptyState}>
                   {getThemedIcon('ui', 'help_circle', 48, theme)}
                   <h3>{t('no_quizzes_yet')}</h3>
-                  {!isStudent && <p>{t('create_quiz') || 'Create your first quiz to get started'}</p>}
+                  {!isStudent && <p>{t('create_quiz')}</p>}
                   {!isStudent && (
                   <Button
                     variant="primary"
                     onClick={handleAddNew}
                   >
                     {getThemedIcon('ui', 'plus', 16, theme)}
-                    {t('create_quiz') || 'Create Quiz'}
+                    {t('create_quiz')}
                   </Button>
                   )}
                 </CardBody>

@@ -139,7 +139,7 @@ const DataGrid = ({
           {getThemedIcon('ui', 'search', 18, theme)}
           <input
             type="text"
-            placeholder={t('search') || 'Search...'}
+            placeholder={t('search')}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className={styles.searchInput}

@@ -133,7 +133,7 @@ const ProgramsSelect = ({
 
   // Format options for Select components
   const programOptions = [
-    { value: '', label: t('all_programs') || 'All Programs' },
+    { value: '', label: t('all_programs') },
     ...filteredPrograms.map(program => ({
       value: String(program.id || ''),
       label: getProgramOptionLabel(program, lang),
@@ -144,7 +144,7 @@ const ProgramsSelect = ({
 
   const sortedSubjects = sortSubjectsByCode(filteredSubjects);
   const subjectOptions = [
-    { value: '', label: t('all_subjects') || 'All Subjects' },
+    { value: '', label: t('all_subjects') },
     ...sortedSubjects.map(subject => ({
       value: String(subject.id || ''),
       label: getSubjectOptionLabel(subject, lang),
@@ -155,7 +155,7 @@ const ProgramsSelect = ({
 
   const sortedClasses = sortClassesForSelect(filteredClasses, lang);
   const classOptions = [
-    { value: '', label: t('all_classes') || 'All Classes' },
+    { value: '', label: t('all_classes') },
     ...sortedClasses.map(cls => ({
       value: String(cls.id || ''),
       label: getClassOptionLabel(cls, lang),
@@ -170,7 +170,7 @@ const ProgramsSelect = ({
       {/* Row 1: Program only — full width */}
       <div style={{ width: '100%' }}>
         <Select
-          label={showLabels ? (t('program') || 'Program') : ''}
+          label={showLabels ? (t('program')) : ''}
           options={programOptions}
           value={selectedProgram || ''}  // Use the raw selectedProgram value
           onChange={(e) => {
@@ -186,7 +186,7 @@ const ProgramsSelect = ({
             if (onTermChange) onTermChange?.('');
             if (onYearChange) onYearChange?.('');
           }}
-          placeholder={t('all_programs') || 'All Programs'}
+          placeholder={t('all_programs')}
           disabled={disabled || programs.length === 0}
         />
       </div>
@@ -196,7 +196,7 @@ const ProgramsSelect = ({
       {showSubjects && (
         <div style={{ flex: '1 1 240px', minWidth: '240px' }}>
           <Select
-            label={showLabels ? (t('subject') || 'Subject') : ''}
+            label={showLabels ? (t('subject')) : ''}
             options={subjectOptions}
             value={String(normalizedSelectedSubject || '')}
             onChange={(e) => {
@@ -210,7 +210,7 @@ const ProgramsSelect = ({
               if (onTermChange) onTermChange?.('');
               if (onYearChange) onYearChange?.('');
             }}
-            placeholder={normalizedSelectedProgram ? (t('select_subject') || 'Select subject') : (t('all_subjects') || 'All Subjects')}
+            placeholder={normalizedSelectedProgram ? (t('select_subject')) : (t('all_subjects'))}
             disabled={disabled || !normalizedSelectedProgram || filteredSubjects.length === 0}
           />
         </div>
@@ -219,7 +219,7 @@ const ProgramsSelect = ({
       {showClasses && showSubjects && (
         <div style={{ flex: '1.2 1 280px', minWidth: '280px' }}>
           <Select
-            label={showLabels ? (t('class') || 'Class') : ''}
+            label={showLabels ? (t('class')) : ''}
             options={classOptions}
             value={String(selectedClass || '')}
             onChange={(e) => {
@@ -229,7 +229,7 @@ const ProgramsSelect = ({
               // Pass the value directly (not as an event object)
               onClassChange?.(value);
             }}
-            placeholder={normalizedSelectedSubject ? (t('select_class') || 'Select class') : (t('all_classes') || 'All Classes')}
+            placeholder={normalizedSelectedSubject ? (t('select_class')) : (t('all_classes'))}
             disabled={disabled || !normalizedSelectedSubject || filteredClasses.length === 0}
           />
         </div>
@@ -238,7 +238,7 @@ const ProgramsSelect = ({
       {showTerms && (
         <div style={{ flex: '1 1 150px', minWidth: '150px' }}>
           <TermSelect
-            label={showLabels ? (t('term') || 'Term') : ''}
+            label={showLabels ? (t('term')) : ''}
             value={selectedTerm || ''}
             onChange={(e) => {
               const value = e?.target?.value !== undefined ? e.target.value : (e?.value || e || '');
@@ -248,7 +248,7 @@ const ProgramsSelect = ({
             }}
             includeAll={true}
             allValue="all"
-            allLabel={t('all_terms') || 'All Terms'}
+            allLabel={t('all_terms')}
             disabled={disabled}
             searchable={true}
           />
@@ -258,7 +258,7 @@ const ProgramsSelect = ({
       {showYears && (
         <div style={{ flex: '1 1 150px', minWidth: '150px' }}>
           <YearSelect
-            label={showLabels ? (t('year') || 'Year') : ''}
+            label={showLabels ? (t('year')) : ''}
             value={selectedYear || ''}
             onChange={(e) => {
               const value = e?.target?.value !== undefined ? e.target.value : (e?.value || e || '');
@@ -268,7 +268,7 @@ const ProgramsSelect = ({
             }}
             includeAll={true}
             allValue="all"
-            allLabel={t('all_years') || 'All Years'}
+            allLabel={t('all_years')}
             disabled={disabled}
             searchable={true}
             yearsAhead={3}

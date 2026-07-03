@@ -286,7 +286,7 @@ export default function QuizManagementPage() {
     chips.push(
       <span key={`${quiz.id}-questions`} className={`${styles.metaChip} ${styles.infoChip}`}>
         <span className={styles.metaChipIcon}><ListChecks size={14} /></span>
-        <span>{quiz.questionCount || 0} {quiz.questionCount === 1 ? (t('question') || 'question') : (t('questions') || 'questions')}</span>
+        <span>{quiz.questionCount || 0} {quiz.questionCount === 1 ? (t('question')) : (t('questions'))}</span>
       </span>
     );
 
@@ -294,7 +294,7 @@ export default function QuizManagementPage() {
       chips.push(
         <span key={`${quiz.id}-time`} className={`${styles.metaChip} ${styles.infoChip}`}>
           <span className={styles.metaChipIcon}><Clock size={14} /></span>
-          <span>{quiz.estimatedTime} {t('min') || 'min'}</span>
+          <span>{quiz.estimatedTime} {t('min')}</span>
         </span>
       );
     }
@@ -310,7 +310,7 @@ export default function QuizManagementPage() {
       chips.push(
         <span key={`${quiz.id}-retake`} className={`${styles.metaChip} ${styles.retakeChip}`}>
           <span className={styles.metaChipIcon}><Repeat size={14} /></span>
-          <span>{t('retake_allowed') || 'Retake allowed'}</span>
+          <span>{t('retake_allowed')}</span>
         </span>
       );
     }
@@ -325,9 +325,9 @@ export default function QuizManagementPage() {
   const formatCreatedInfo = (quiz) => {
     // Always show only the creator name (no email, no date stamp)
     if (quiz.creatorName && quiz.creatorName !== 'Unknown') {
-      return (t('created_by') || 'Created by') + ` ${quiz.creatorName}`;
+      return (t('created_by')) + ` ${quiz.creatorName}`;
     }
-    return (t('created_automatically') || 'Created automatically');
+    return (t('created_automatically'));
   };
 
   const totalAttempts = quizzes.reduce((sum, quiz) => sum + (quiz.totalAttempts || 0), 0);
@@ -381,7 +381,7 @@ export default function QuizManagementPage() {
                   </div>
                   <div className={styles.statInfo}>
                     <h3 className={styles.statValue}>{quizzes.length}</h3>
-                    <p className={styles.statLabel}>{t('total_quizzes') || 'Total Quizzes'}</p>
+                    <p className={styles.statLabel}>{t('total_quizzes')}</p>
                   </div>
                 </div>
               </CardBody>
@@ -395,7 +395,7 @@ export default function QuizManagementPage() {
                   </div>
                   <div className={styles.statInfo}>
                     <h3 className={styles.statValue}>{totalAttempts}</h3>
-                    <p className={styles.statLabel}>{t('total_attempts') || 'Total Attempts'}</p>
+                    <p className={styles.statLabel}>{t('total_attempts')}</p>
                   </div>
                 </div>
               </CardBody>
@@ -409,7 +409,7 @@ export default function QuizManagementPage() {
                   </div>
                   <div className={styles.statInfo}>
                     <h3 className={styles.statValue}>{averageScore}%</h3>
-                    <p className={styles.statLabel}>{t('average_score') || 'Average Score'}</p>
+                    <p className={styles.statLabel}>{t('average_score')}</p>
                   </div>
                 </div>
               </CardBody>
@@ -425,7 +425,7 @@ export default function QuizManagementPage() {
                     <h3 className={styles.statValue}>
                       {quizzes.reduce((sum, q) => sum + (q.estimatedTime || 0), 0)}
                     </h3>
-                    <p className={styles.statLabel}>{t('total_minutes') || 'Total Minutes'}</p>
+                    <p className={styles.statLabel}>{t('total_minutes')}</p>
                   </div>
                 </div>
               </CardBody>
@@ -441,7 +441,7 @@ export default function QuizManagementPage() {
                     <h3 className={styles.statValue}>
                       {quizzes.reduce((sum, q) => sum + (q.questionCount || 0), 0)}
                     </h3>
-                    <p className={styles.statLabel}>{t('total_questions') || 'Total Questions'}</p>
+                    <p className={styles.statLabel}>{t('total_questions')}</p>
                   </div>
                 </div>
               </CardBody>
@@ -462,14 +462,14 @@ export default function QuizManagementPage() {
             <Card>
               <CardBody className={styles.emptyState}>
                 <HelpCircle size={48} style={{ color: '#d1d5db', marginBottom: 16 }} />
-                <h3>{t('no_quizzes_yet') || 'No Quizzes Yet'}</h3>
-                <p>{t('create_first_quiz_to_get_started') || 'Create your first quiz to get started'}</p>
+                <h3>{t('no_quizzes_yet')}</h3>
+                <p>{t('create_first_quiz_to_get_started')}</p>
                 <Button
                   variant="primary"
                   onClick={() => navigate('/quiz-builder')}
                 >
                   <Plus size={16} style={{ marginRight: 6 }} />
-                  {t('create_quiz') || 'Create Quiz'}
+                  {t('create_quiz')}
                 </Button>
               </CardBody>
             </Card>
@@ -483,8 +483,8 @@ export default function QuizManagementPage() {
                         {renderMetaChips(quiz)}
                         <h3 className={styles.quizTitle}>
                           {lang === 'ar' 
-                            ? (quiz.titleAr || quiz.titleEn || quiz.title || (t('untitled_quiz') || 'Untitled Quiz'))
-                            : (quiz.titleEn || quiz.titleAr || quiz.title || (t('untitled_quiz') || 'Untitled Quiz'))}
+                            ? (quiz.titleAr || quiz.titleEn || quiz.title || (t('untitled_quiz')))
+                            : (quiz.titleEn || quiz.titleAr || quiz.title || (t('untitled_quiz')))}
                         </h3>
                         {(quiz.descriptionEn || quiz.descriptionAr || quiz.description) && (
                           <p className={styles.quizDescription}>
@@ -497,11 +497,11 @@ export default function QuizManagementPage() {
                         <div className={styles.quizStats}>
                           <div className={styles.statItem}>
                             <Users size={14} style={{ color: '#64748b' }} />
-                            <span>{quiz.totalAttempts || 0} {t('attempts') || 'attempts'}</span>
+                            <span>{quiz.totalAttempts || 0} {t('attempts')}</span>
                           </div>
                           <div className={styles.statItem}>
                             <CheckCircle size={14} style={{ color: '#10b981' }} />
-                            <span>{quiz.averageScore || 0}% {t('avg_score') || 'avg score'}</span>
+                            <span>{quiz.averageScore || 0}% {t('avg_score')}</span>
                           </div>
                         </div>
                       </div>
@@ -566,8 +566,8 @@ export default function QuizManagementPage() {
         open={deleteModal.open}
         onClose={() => setDeleteModal({ open: false, item: null, onConfirm: null, relatedData: null, warningMessage: null })}
         onConfirm={deleteModal.onConfirm || (() => {})}
-        title={t('delete_quiz') || 'Delete Quiz'}
-        message={t('delete_quiz_confirmation') || 'Are you sure you want to delete this quiz? This action cannot be undone.'}
+        title={t('delete_quiz')}
+        message={t('delete_quiz_confirmation')}
         itemName={deleteModal.item?._displayName || deleteModal.item?.title || deleteModal.item?.name || deleteModal.item?.id}
         relatedData={deleteModal.relatedData}
         warningMessage={deleteModal.warningMessage}

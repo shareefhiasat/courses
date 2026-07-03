@@ -27,7 +27,7 @@ const useStudentAttendanceActions = ({ classId, selectedDate, onRefresh }) => {
 
   const handleMarkAttendance = useCallback(async (studentId, status, notes = '', method = ATTENDANCE_METHODS.MANUAL_INSTRUCTOR) => {
     if (!classId || !selectedDate) {
-      toast?.showError?.(t('select_class_and_date') || 'Please select a class and date first');
+      toast?.showError?.(t('select_class_and_date'));
       return { success: false };
     }
     try {
@@ -49,13 +49,13 @@ const useStudentAttendanceActions = ({ classId, selectedDate, onRefresh }) => {
 
       if (result?.success !== false) {
         eventBus.emit(EVENTS.ATTENDANCE_MARKED, { studentId, classId, status });
-        toast?.showSuccess?.(t('attendance_marked') || 'Attendance marked');
+        toast?.showSuccess?.(t('attendance_marked'));
         onRefresh?.();
       }
       return result;
     } catch (error) {
       error('[AttendanceActions] markAttendance failed', error);
-      toast?.showError?.(t('failed_to_mark_attendance') || 'Failed to mark attendance');
+      toast?.showError?.(t('failed_to_mark_attendance'));
       return { success: false, error };
     }
   }, [classId, selectedDate, user, t, toast, onRefresh]);
@@ -65,13 +65,13 @@ const useStudentAttendanceActions = ({ classId, selectedDate, onRefresh }) => {
       const result = await deleteAttendance(recordId);
       if (result?.success !== false) {
         eventBus.emit(EVENTS.ATTENDANCE_MARKED, { studentId, classId });
-        toast?.showSuccess?.(t('record_deleted') || 'Record deleted');
+        toast?.showSuccess?.(t('record_deleted'));
         onRefresh?.();
       }
       return result;
     } catch (error) {
       error('[AttendanceActions] deleteAttendance failed', error);
-      toast?.showError?.(t('failed_to_delete_record') || 'Failed to delete record');
+      toast?.showError?.(t('failed_to_delete_record'));
       return { success: false, error };
     }
   }, [classId, t, toast, onRefresh]);
@@ -89,13 +89,13 @@ const useStudentAttendanceActions = ({ classId, selectedDate, onRefresh }) => {
       });
       if (result?.success !== false) {
         eventBus.emit(EVENTS.PARTICIPATION_ADDED, { studentId });
-        toast?.showSuccess?.(t('participation_added') || 'Participation added');
+        toast?.showSuccess?.(t('participation_added'));
         onRefresh?.();
       }
       return result;
     } catch (error) {
       error('[AttendanceActions] createParticipation failed', error);
-      toast?.showError?.(t('failed_to_add_participation') || 'Failed to add participation');
+      toast?.showError?.(t('failed_to_add_participation'));
       return { success: false, error };
     }
   }, [classId, selectedDate, user, t, toast, onRefresh]);
@@ -105,13 +105,13 @@ const useStudentAttendanceActions = ({ classId, selectedDate, onRefresh }) => {
       const result = await deleteParticipation(recordId);
       if (result?.success !== false) {
         eventBus.emit(EVENTS.PARTICIPATION_ADDED, { studentId, status: 'deleted' });
-        toast?.showSuccess?.(t('record_deleted') || 'Record deleted');
+        toast?.showSuccess?.(t('record_deleted'));
         onRefresh?.();
       }
       return result;
     } catch (error) {
       error('[AttendanceActions] deleteParticipation failed', error);
-      toast?.showError?.(t('failed_to_delete_record') || 'Failed to delete record');
+      toast?.showError?.(t('failed_to_delete_record'));
       return { success: false, error };
     }
   }, [t, toast, onRefresh]);
@@ -129,13 +129,13 @@ const useStudentAttendanceActions = ({ classId, selectedDate, onRefresh }) => {
       });
       if (result?.success !== false) {
         eventBus.emit(EVENTS.PENALTY_ASSIGNED, { studentId });
-        toast?.showSuccess?.(t('penalty_added') || 'Penalty added');
+        toast?.showSuccess?.(t('penalty_added'));
         onRefresh?.();
       }
       return result;
     } catch (error) {
       error('[AttendanceActions] createPenalty failed', error);
-      toast?.showError?.(t('failed_to_add_penalty') || 'Failed to add penalty');
+      toast?.showError?.(t('failed_to_add_penalty'));
       return { success: false, error };
     }
   }, [classId, selectedDate, user, t, toast, onRefresh]);
@@ -145,13 +145,13 @@ const useStudentAttendanceActions = ({ classId, selectedDate, onRefresh }) => {
       const result = await deletePenalty(recordId);
       if (result?.success !== false) {
         eventBus.emit(EVENTS.PENALTY_ASSIGNED, { studentId, status: 'deleted' });
-        toast?.showSuccess?.(t('record_deleted') || 'Record deleted');
+        toast?.showSuccess?.(t('record_deleted'));
         onRefresh?.();
       }
       return result;
     } catch (error) {
       error('[AttendanceActions] deletePenalty failed', error);
-      toast?.showError?.(t('failed_to_delete_record') || 'Failed to delete record');
+      toast?.showError?.(t('failed_to_delete_record'));
       return { success: false, error };
     }
   }, [t, toast, onRefresh]);
@@ -169,13 +169,13 @@ const useStudentAttendanceActions = ({ classId, selectedDate, onRefresh }) => {
       });
       if (result?.success !== false) {
         eventBus.emit(EVENTS.BEHAVIOR_LOGGED, { studentId });
-        toast?.showSuccess?.(t('behavior_logged') || 'Behavior logged');
+        toast?.showSuccess?.(t('behavior_logged'));
         onRefresh?.();
       }
       return result;
     } catch (error) {
       error('[AttendanceActions] createBehavior failed', error);
-      toast?.showError?.(t('failed_to_log_behavior') || 'Failed to log behavior');
+      toast?.showError?.(t('failed_to_log_behavior'));
       return { success: false, error };
     }
   }, [classId, selectedDate, user, t, toast, onRefresh]);
@@ -185,13 +185,13 @@ const useStudentAttendanceActions = ({ classId, selectedDate, onRefresh }) => {
       const result = await deleteBehavior(recordId);
       if (result?.success !== false) {
         eventBus.emit(EVENTS.BEHAVIOR_LOGGED, { studentId, status: 'deleted' });
-        toast?.showSuccess?.(t('record_deleted') || 'Record deleted');
+        toast?.showSuccess?.(t('record_deleted'));
         onRefresh?.();
       }
       return result;
     } catch (error) {
       error('[AttendanceActions] deleteBehavior failed', error);
-      toast?.showError?.(t('failed_to_delete_record') || 'Failed to delete record');
+      toast?.showError?.(t('failed_to_delete_record'));
       return { success: false, error };
     }
   }, [t, toast, onRefresh]);

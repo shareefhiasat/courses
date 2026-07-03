@@ -128,14 +128,14 @@ const QREmailModal = ({
         onClick={handleClose}
         disabled={loading}
       >
-        {t('cancel') || 'Cancel'}
+        {t('cancel')}
       </Button>
       <Button 
         variant="primary" 
         onClick={handleSendQRCode} 
         loading={loading}
       >
-        {t('send_qr_code') || 'Send QR Code'}
+        {t('send_qr_code')}
       </Button>
     </>
   );
@@ -147,7 +147,7 @@ const QREmailModal = ({
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
-      title={t('send_qr_code_email') || 'Send QR Code Email'}
+      title={t('send_qr_code_email')}
       footer={footer}
       size="small"
       closeOnOverlayClick={!loading}
@@ -164,7 +164,7 @@ const QREmailModal = ({
             marginBottom: '4px',
             color: 'var(--color-muted-foreground, #6b7280)'
           }}>
-            {t('student') || 'Student'}:
+            {t('student')}:
           </div>
           <div style={{ 
             fontSize: '0.95rem', 
@@ -183,7 +183,7 @@ const QREmailModal = ({
             marginBottom: '12px',
             color: 'var(--color-muted-foreground, #6b7280)'
           }}>
-            {t('send_to_email') || 'Send to email'}:
+            {t('send_to_email')}:
           </div>
           
           {/* Default Email Option */}
@@ -230,7 +230,7 @@ const QREmailModal = ({
                 color: 'var(--color-foreground, #1f2937)',
                 marginBottom: '4px'
               }}>
-                {t('default_email') || 'Default Email'}
+                {t('default_email')}
               </div>
               <div style={{ 
                 fontSize: 'var(--font-size-sm)', 
@@ -285,12 +285,12 @@ const QREmailModal = ({
                 color: 'var(--color-foreground, #1f2937)',
                 marginBottom: '8px'
               }}>
-                {t('custom_email') || 'Custom Email'}
+                {t('custom_email')}
               </div>
               <Input
                 ref={customEmailRef}
                 type="email"
-                placeholder={t('enter_custom_email') || 'Enter custom email address'}
+                placeholder={t('enter_custom_email')}
                 defaultValue={customEmail}
                 onChange={(e) => setCustomEmail(e.target.value)}
                 disabled={!useCustomEmail}

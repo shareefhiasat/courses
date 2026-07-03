@@ -89,7 +89,7 @@ const ClassCard = ({
   return (
     <div
       key={clsId}
-      dir={isRTL ? 'rtl' : 'ltr'}
+
       style={{
         background: isEmptySchedule
           ? (theme === 'dark' ? '#111827' : '#f3f4f6')

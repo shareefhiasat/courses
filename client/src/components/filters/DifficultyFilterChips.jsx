@@ -22,7 +22,7 @@ const DifficultyFilterChips = ({
   const difficulties = [
     {
       value: 'all',
-      label: t('all_levels') || 'All Levels',
+      label: t('all_levels'),
       icon: 'filter',
       colors: {
         border: `${primaryColor}40`,
@@ -34,7 +34,7 @@ const DifficultyFilterChips = ({
     },
     {
       value: 'beginner',
-      label: t('beginner') || 'Beginner',
+      label: t('beginner'),
       icon: 'help_circle',
       count: beginnerCount,
       colors: {
@@ -47,7 +47,7 @@ const DifficultyFilterChips = ({
     },
     {
       value: 'intermediate',
-      label: t('intermediate') || 'Intermediate',
+      label: t('intermediate'),
       icon: 'help_circle',
       count: intermediateCount,
       colors: {
@@ -60,7 +60,7 @@ const DifficultyFilterChips = ({
     },
     {
       value: 'advanced',
-      label: t('advanced') || 'Advanced',
+      label: t('advanced'),
       icon: 'help_circle',
       count: advancedCount,
       colors: {

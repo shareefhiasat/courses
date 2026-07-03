@@ -642,7 +642,7 @@ export const AuthProvider = ({ children }) => {
 
   // Get token expiry in local time
   const getTokenExpiryLocalTime = () => {
-    if (!keycloak.tokenParsed?.exp) return t('unknown') || 'Unknown';
+    if (!keycloak.tokenParsed?.exp) return t('unknown');
     const expiryDate = new Date(keycloak.tokenParsed.exp * 1000);
     return formatTimeWithSeconds(expiryDate, 'en');
   };

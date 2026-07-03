@@ -15,11 +15,11 @@ export default function BreakSessionTimeline({ breaks = [] }) {
     <Card>
       <CardBody>
         <h3 style={{ fontSize: 'var(--font-size-lg)', fontWeight: 500, marginBottom: '1rem' }}>
-          {t('today_break_sessions') || "Today's Break Sessions"}
+          {t('today_break_sessions')}
         </h3>
         {breaks.length === 0 ? (
           <p style={{ color: muted, fontSize: 'var(--font-size-sm)', textAlign: 'center', padding: '1rem' }}>
-            {t('no_break_sessions') || 'No break sessions today'}
+            {t('no_break_sessions')}
           </p>
         ) : (
           <div style={{ maxHeight: '220px', overflowY: 'auto' }}>

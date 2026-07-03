@@ -94,7 +94,7 @@ export default function StudentDashboardPageModern() {
 
   const studentOptions = useMemo(() => {
     return [
-      { value: 'all', label: t('all_students') || 'All Students' },
+      { value: 'all', label: t('all_students') },
       ...students.map(student => ({
         value: student.id,
         label: student.displayName || student.email
@@ -185,7 +185,7 @@ export default function StudentDashboardPageModern() {
             stats={stats}
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
-            searchPlaceholder={t('search_students') || 'Search students...'}
+            searchPlaceholder={t('search_students')}
             programs={programs}
             subjects={subjects}
             classes={classes}

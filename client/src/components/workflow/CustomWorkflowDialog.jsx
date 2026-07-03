@@ -384,8 +384,8 @@ const CustomWorkflowDialog = ({ isOpen, onClose, file, onSubmit }) => {
           <button
             data-tour="workflow-help-btn"
             onClick={startTour}
-            title={t('tour.replay') || 'Start guided tour'}
-            aria-label={t('tour.replay') || 'Start guided tour'}
+            title={t('tour.replay')}
+            aria-label={t('tour.replay')}
             style={{
               flexShrink: 0,
               width: 28,

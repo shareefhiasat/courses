@@ -68,7 +68,7 @@ const ToggleFilterChips = ({
       active: bookmarkFilter,
       toggle: () => setBookmarkFilter(v => !v),
       icon: bookmarkFilter ? 'star' : 'star_off',
-      label: t('bookmarked') || 'Bookmarked',
+      label: t('bookmarked'),
       colors: {
         border: '#f5c518',
         bg: '#fff',
@@ -85,7 +85,7 @@ const ToggleFilterChips = ({
       active: featuredFilter,
       toggle: () => setFeaturedFilter(v => !v),
       icon: 'pin',
-      label: t('featured') || 'Featured',
+      label: t('featured'),
       colors: {
         border: '#c7d2fe',
         bg: '#eef2ff',
@@ -102,7 +102,7 @@ const ToggleFilterChips = ({
       active: retakableFilter,
       toggle: () => setRetakableFilter(v => !v),
       icon: 'repeat',
-      label: t('retake_allowed') || 'Retake',
+      label: t('retake_allowed'),
       colors: {
         border: '#bae6fd',
         bg: '#ecfeff',

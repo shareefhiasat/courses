@@ -40,7 +40,7 @@ const ReviewResultsPage = () => {
   });
 
   // Focus on activities mode only - simplified from HomePage
-  const [activityType, setActivityType] = useState(searchParams.get('activityType') || 'all');
+  const [activityType, setActivityType] = useState(searchParams.get('activityType'));
 
   // Update URL when activityType changes
   const handleActivityTypeChange = useCallback((newActivityType) => {
@@ -647,7 +647,7 @@ const ReviewResultsPage = () => {
           stats={stats}
           searchTerm={searchTerm}
           setSearchTerm={setSearchTerm}
-          searchPlaceholder={t('search') || 'Search...'}
+          searchPlaceholder={t('search')}
           filterCounts={filterCounts}
           // Status filters
           completedFilter={completedFilter}
@@ -733,8 +733,8 @@ const ReviewResultsPage = () => {
               padding: '3rem',
               color: isDark ? '#9ca3af' : '#666'
             }}>
-              <h3>{t('no_results_found') || 'No results found'}</h3>
-              <p>{t('try_adjusting_filters') || 'Try adjusting your filters'}</p>
+              <h3>{t('no_results_found')}</h3>
+              <p>{t('try_adjusting_filters')}</p>
             </div>
           ) : (
             filteredSubmissions.map(submission => {
@@ -765,7 +765,7 @@ const ReviewResultsPage = () => {
                     )}
                     {isActivityWithoutSubmission && (
                       <Badge variant="secondary">
-                        {t('no_submissions') || 'No Submissions'}
+                        {t('no_submissions')}
                       </Badge>
                     )}
                   </div>
@@ -776,9 +776,9 @@ const ReviewResultsPage = () => {
                       {submission.score}/{submission.maxScore}
                     </div>
                     <div className={`score-badge ${scoreClass}`}>
-                      {scoreClass === 'excellent' ? (t('excellent') || 'Excellent') : 
-                       scoreClass === 'good' ? (t('passed') || 'Passed') : 
-                       (t('failed') || 'Failed')}
+                      {scoreClass === 'excellent' ? (t('excellent')) : 
+                       scoreClass === 'good' ? (t('passed')) : 
+                       (t('failed'))}
                     </div>
                   </div>
                 )}
@@ -786,7 +786,7 @@ const ReviewResultsPage = () => {
                 {isActivityWithoutSubmission && (
                   <div className="submission-card-score" style={{ textAlign: 'center', padding: '1rem 0' }}>
                     <div style={{ fontSize: 'var(--font-size-md)', fontWeight: 600, color: '#6b7280' }}>
-                      {t('activity_pending') || 'Activity Pending'}
+                      {t('activity_pending')}
                     </div>
                     <div style={{ fontSize: 'var(--font-size-sm)', color: '#9ca3af', marginTop: '0.25rem' }}>
                       {submission.activityType && (
@@ -827,12 +827,12 @@ const ReviewResultsPage = () => {
                         )}
                         {!submission.activity.optional && (
                           <div className="tag" style={{ borderColor: '#dc2626', color: '#dc2626' }}>
-                            {t('required') || 'Required'}
+                            {t('required')}
                           </div>
                         )}
                         {submission.activity.optional && (
                           <div className="tag" style={{ borderColor: '#f59e0b', color: '#f59e0b' }}>
-                            {t('optional') || 'Optional'}
+                            {t('optional')}
                           </div>
                         )}
                       </>
@@ -855,7 +855,7 @@ const ReviewResultsPage = () => {
                           handleViewDetails(submission);
                         }}
                       >
-                        {t('view_details') || 'View Details'}
+                        {t('view_details')}
                       </button>
                     )}
                   </div>

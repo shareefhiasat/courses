@@ -66,7 +66,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';export defa
       <Container maxWidth="lg">
         <Card>
           <CardBody>
-            <h2 className={styles.notFound}>{t('not_found') || 'Not found'}</h2>
+            <h2 className={styles.notFound}>{t('not_found')}</h2>
           </CardBody>
         </Card>
       </Container>
@@ -96,7 +96,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';export defa
                 {activity.createdAt && (
                   <Badge variant="subtle" color="default">
                     {getThemedIcon('ui', 'calendar', 14, theme)}
-                    {t('created') || 'Created'}: {formatDateTime(activity.createdAt)}
+                    {t('created')}: {formatDateTime(activity.createdAt)}
                   </Badge>
                 )}
                 {activity.dueDate && (
@@ -108,7 +108,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';export defa
                 {activity.allowRetake && (
                   <Badge variant="subtle" color="info">
                     {getThemedIcon('ui', 'repeat', 14, theme)}
-                    {t('retake_allowed') || 'Retakable'}
+                    {t('retake_allowed')}
                   </Badge>
                 )}
               </div>
@@ -120,7 +120,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';export defa
                 icon={getThemedIcon('ui', 'qr_code', 16, theme)}
                 onClick={() => setShowQR(true)}
               >
-                {t('share') || 'Share'}
+                {t('share')}
               </Button>
             </div>
           </div>
@@ -132,7 +132,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';export defa
                 icon={getThemedIcon('ui', 'play', 16, theme)}
                 onClick={() => navigate(`/quiz/${activity.quizId}`)}
               >
-                {t('start_quiz') || 'Start Quiz'}
+                {t('start_quiz')}
               </Button>
             ) : activity.url ? (
               <Button
@@ -140,7 +140,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';export defa
                 icon={getThemedIcon('ui', 'external_link', 16, theme)}
                 onClick={() => window.open(activity.url, '_blank')}
               >
-                {t('open') || 'Open'}
+                {t('open')}
               </Button>
             ) : null}
           </div>
@@ -150,7 +150,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';export defa
       <Modal
         isOpen={showQR}
         onClose={() => setShowQR(false)}
-        title={t('share_activity') || 'Share Activity'}
+        title={t('share_activity')}
         size="sm"
       >
         <QRCodeGenerator url={shareUrl} title={title} />

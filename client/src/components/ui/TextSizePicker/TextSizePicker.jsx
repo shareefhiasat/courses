@@ -12,8 +12,8 @@ export default function TextSizePicker() {
 
   return (
     <div className={styles.wrapper}>
-      <label className={styles.label}>{t('profile_text_size') || 'Text size'}</label>
-      <div className={styles.options} role="radiogroup" aria-label={t('profile_text_size') || 'Text size'}>
+      <label className={styles.label}>{t('profile_text_size')}</label>
+      <div className={styles.options} role="radiogroup" aria-label={t('profile_text_size')}>
         {textSizeOptions.map((id) => (
           <label
             key={id}

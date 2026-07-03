@@ -134,7 +134,7 @@ const StudentTableRow = ({
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
           {ICON_TYPES.attendance_status.none}
           <span style={{ fontSize: 'var(--font-size-xs)', color: '#9ca3af', fontWeight: 500 }}>
-            {t('none') || 'None'}
+            {t('none')}
           </span>
         </div>
       );
@@ -213,7 +213,7 @@ const StudentTableRow = ({
       // Show success message with student name (same format as activity list)
       const studentName = getLocalizedUserName(student, lang);
       const statusLabel = getLocalizedAttendanceLabel(status, lang);
-      showResult('success', <span>{t('marked_as', { status: statusLabel }) || `Marked as ${statusLabel}!`}<br/><b style={{ textDecoration: 'underline' }}>{studentName}</b></span>, status);
+      showResult('success', <span>{t('marked_as', { status: statusLabel })}<br/><b style={{ textDecoration: 'underline' }}>{studentName}</b></span>, status);
     } catch (error) {
       const studentName = getLocalizedUserName(student, lang);
       const statusLabel = getLocalizedAttendanceLabel(status, lang);

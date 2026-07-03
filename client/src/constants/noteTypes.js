@@ -68,38 +68,38 @@ export const getLocalizedNoteText = (noteType, t) => {
 
   const noteMap = {
     // Quick notes
-    [QUICK_NOTE_TYPES.QUICK_ATTENDANCE_LATE]: t('note_quick_late') || 'Quick Late',
-    [QUICK_NOTE_TYPES.QUICK_ATTENDANCE_PRESENT]: t('note_quick_present') || 'Quick Present',
-    [QUICK_NOTE_TYPES.QUICK_ATTENDANCE_ABSENT]: t('note_quick_absent_no_excuse') || 'Quick Absent',
-    [QUICK_NOTE_TYPES.QUICK_ATTENDANCE_LEAVE]: t('note_quick_excused_leave') || 'Quick Excused Leave',
-    [QUICK_NOTE_TYPES.QUICK_ATTENDANCE_HUMAN_CASE]: t('note_quick_human_case') || 'Quick Human Case',
+    [QUICK_NOTE_TYPES.QUICK_ATTENDANCE_LATE]: t('note_quick_late'),
+    [QUICK_NOTE_TYPES.QUICK_ATTENDANCE_PRESENT]: t('note_quick_present'),
+    [QUICK_NOTE_TYPES.QUICK_ATTENDANCE_ABSENT]: t('note_quick_absent_no_excuse'),
+    [QUICK_NOTE_TYPES.QUICK_ATTENDANCE_LEAVE]: t('note_quick_excused_leave'),
+    [QUICK_NOTE_TYPES.QUICK_ATTENDANCE_HUMAN_CASE]: t('note_quick_human_case'),
 
     // Manual notes
-    [MANUAL_NOTE_TYPES.MANUAL_ATTENDANCE_LATE]: t('note_manual_late') || 'Manual Late',
-    [MANUAL_NOTE_TYPES.MANUAL_ATTENDANCE_PRESENT]: t('note_manual_present') || 'Manual Present',
-    [MANUAL_NOTE_TYPES.MANUAL_ATTENDANCE_ABSENT]: t('note_manual_absent_no_excuse') || 'Manual Absent',
-    [MANUAL_NOTE_TYPES.MANUAL_ATTENDANCE_LEAVE]: t('note_manual_excused_leave') || 'Manual Excused Leave',
-    [MANUAL_NOTE_TYPES.MANUAL_ATTENDANCE_HUMAN_CASE]: t('note_manual_human_case') || 'Manual Human Case',
+    [MANUAL_NOTE_TYPES.MANUAL_ATTENDANCE_LATE]: t('note_manual_late'),
+    [MANUAL_NOTE_TYPES.MANUAL_ATTENDANCE_PRESENT]: t('note_manual_present'),
+    [MANUAL_NOTE_TYPES.MANUAL_ATTENDANCE_ABSENT]: t('note_manual_absent_no_excuse'),
+    [MANUAL_NOTE_TYPES.MANUAL_ATTENDANCE_LEAVE]: t('note_manual_excused_leave'),
+    [MANUAL_NOTE_TYPES.MANUAL_ATTENDANCE_HUMAN_CASE]: t('note_manual_human_case'),
 
     // QR notes
-    [QR_NOTE_TYPES.QR_ATTENDANCE_LATE]: t('note_qr_late') || 'QR Late',
-    [QR_NOTE_TYPES.QR_ATTENDANCE_PRESENT]: t('note_qr_present') || 'QR Present',
-    [QR_NOTE_TYPES.QR_ATTENDANCE_ABSENT]: t('note_qr_absent_no_excuse') || 'QR Absent',
-    [QR_NOTE_TYPES.QR_ATTENDANCE_LEAVE]: t('note_qr_excused_leave') || 'QR Excused Leave',
-    [QR_NOTE_TYPES.QR_ATTENDANCE_HUMAN_CASE]: t('note_qr_human_case') || 'QR Human Case',
+    [QR_NOTE_TYPES.QR_ATTENDANCE_LATE]: t('note_qr_late'),
+    [QR_NOTE_TYPES.QR_ATTENDANCE_PRESENT]: t('note_qr_present'),
+    [QR_NOTE_TYPES.QR_ATTENDANCE_ABSENT]: t('note_qr_absent_no_excuse'),
+    [QR_NOTE_TYPES.QR_ATTENDANCE_LEAVE]: t('note_qr_excused_leave'),
+    [QR_NOTE_TYPES.QR_ATTENDANCE_HUMAN_CASE]: t('note_qr_human_case'),
 
     // Standup notes
-    [STANDUP_NOTE_TYPES.STANDUP_PRESENT]: t('note_standup_present') || 'Standup Present',
-    [STANDUP_NOTE_TYPES.STANDUP_LATE]: t('note_standup_late') || 'Standup Late',
-    [STANDUP_NOTE_TYPES.STANDUP_ABSENT]: t('note_standup_absent') || 'Standup Absent',
-    [STANDUP_NOTE_TYPES.STANDUP_CLINIC]: t('note_standup_clinic') || 'Standup Clinic',
+    [STANDUP_NOTE_TYPES.STANDUP_PRESENT]: t('note_standup_present'),
+    [STANDUP_NOTE_TYPES.STANDUP_LATE]: t('note_standup_late'),
+    [STANDUP_NOTE_TYPES.STANDUP_ABSENT]: t('note_standup_absent'),
+    [STANDUP_NOTE_TYPES.STANDUP_CLINIC]: t('note_standup_clinic'),
 
     // Bulk scan notes
-    [BULK_NOTE_TYPES.BULK_ATTENDANCE_PRESENT]: t('note_bulk_present') || 'Bulk Present',
-    [BULK_NOTE_TYPES.BULK_ATTENDANCE_LATE]: t('note_bulk_late') || 'Bulk Late',
-    [BULK_NOTE_TYPES.BULK_ATTENDANCE_ABSENT]: t('note_bulk_absent_no_excuse') || 'Bulk Absent',
-    [BULK_NOTE_TYPES.BULK_ATTENDANCE_LEAVE]: t('note_bulk_excused_leave') || 'Bulk Excused Leave',
-    [BULK_NOTE_TYPES.BULK_ATTENDANCE_HUMAN_CASE]: t('note_bulk_human_case') || 'Bulk Human Case'
+    [BULK_NOTE_TYPES.BULK_ATTENDANCE_PRESENT]: t('note_bulk_present'),
+    [BULK_NOTE_TYPES.BULK_ATTENDANCE_LATE]: t('note_bulk_late'),
+    [BULK_NOTE_TYPES.BULK_ATTENDANCE_ABSENT]: t('note_bulk_absent_no_excuse'),
+    [BULK_NOTE_TYPES.BULK_ATTENDANCE_LEAVE]: t('note_bulk_excused_leave'),
+    [BULK_NOTE_TYPES.BULK_ATTENDANCE_HUMAN_CASE]: t('note_bulk_human_case')
   };
 
   return noteMap[noteType] || noteType;

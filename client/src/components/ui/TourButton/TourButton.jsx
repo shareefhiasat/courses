@@ -11,8 +11,8 @@ const TourButton = ({ onStart, style = {} }) => {
     <button
       type="button"
       onClick={onStart}
-      title={t('tour_help') || 'Start guided tour'}
-      aria-label={t('tour_help') || 'Start guided tour'}
+      title={t('tour_help')}
+      aria-label={t('tour_help')}
       style={{
         display: 'inline-flex',
         alignItems: 'center',
@@ -29,7 +29,7 @@ const TourButton = ({ onStart, style = {} }) => {
       }}
     >
       <span style={{ fontWeight: 700 }}>?</span>
-      <span>{t('tour_help') || 'Tour'}</span>
+      <span>{t('tour_help')}</span>
     </button>
   );
 };

@@ -13,6 +13,7 @@ import { Modal, Button, SimpleLoading } from '@ui';
 import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { InfoTooltip } from '@ui';
 import { RibbonTabs } from '@ui';
+import { LOOKUPS, LOOKUP_TYPES } from '@constants/lookupTypes';
 import './DashboardPage.css';
 
 // ===== PHASE 1: Core Entities =====
@@ -23,19 +24,8 @@ const ActivitiesPage = lazy(() => import('../academic/activities/ActivitiesPage.
 const ProgramsManagementPage = lazy(() => import('../academic/programs/ProgramsPage.jsx'));
 const SubjectsManagementPage = lazy(() => import('../academic/subjects/SubjectsPage.jsx'));
 
-// ===== LOOKUP MANAGEMENT PAGES =====
-const ResourceTypesPage = lazy(() => import('../ResourceTypesPage.jsx'));
-const PriorityTypesPage = lazy(() => import('../PriorityTypesPage.jsx'));
-const UserRolesPage = lazy(() => import('../UserRolesPage.jsx'));
-const SubjectTypesPage = lazy(() => import('../SubjectTypesPage.jsx'));
-const AssessmentTypesPage = lazy(() => import('../AssessmentTypesPage.jsx'));
-const QuestionTypesPage = lazy(() => import('../QuestionTypesPage.jsx'));
-const AttendanceStatusTypesPage = lazy(() => import('../AttendanceStatusTypesPage.jsx'));
-const EnrollmentStatusTypesPage = lazy(() => import('../EnrollmentStatusTypesPage.jsx'));
-const ActivityTypesPage = lazy(() => import('../ActivityTypesPage.jsx'));
-const BehaviorTypesPage = lazy(() => import('../BehaviorTypesPage.jsx'));
-const ParticipationTypesPage = lazy(() => import('../ParticipationTypesPage.jsx'));
-const PenaltyTypesPage = lazy(() => import('../PenaltyTypesPage.jsx'));
+// ===== LOOKUP MANAGEMENT =====
+const LookupManagementPage = lazy(() => import('../LookupManagementPage.jsx'));
 
 // ===== PHASE 2: Deferred Features =====
 const CategoriesPage = lazy(() => import('../CategoriesPage.jsx'));
@@ -123,7 +113,7 @@ const DashboardPage = () => {
     const tabItem = ribbonCategories
       .flatMap(cat => cat.items)
       .find(item => item.key === tab);
-    const tabLabel = tabItem?.label || t('loading') || 'Loading';
+    const tabLabel = tabItem?.label || t('loading');
     
     const stopLoading = startLoading({ 
       message: t('loading_tab') ? `${t('loading_tab')} ${tabLabel}` : `Loading ${tabLabel}...` 
@@ -142,7 +132,7 @@ const DashboardPage = () => {
     // Stop loading after a short delay to allow lazy components to load
     setTimeout(() => stopLoading(), 500);
     // Tabs that should update the URL with query parameters
-    const queryParamTabs = [MODE_TYPES.ACTIVITIES, MODE_TYPES.ANNOUNCEMENTS, MODE_TYPES.RESOURCES, 'users', /* 'allowlist' - removed, now using Keycloak */ 'programs', 'subjects', 'classes', 'enrollments', 'manage-enrollments', 'marks', 'penalty', 'participation', 'behavior', /* 'smtp' - DEPRECATED */ 'emailTemplates', 'notificationLogs', 'scheduled-reports', 'categories', 'logging', 'resource-types', 'priority-types', 'user-roles', 'subject-types', 'assessment-types', 'question-types', 'attendance-status-types', 'enrollment-status-types', 'activity-types', 'behavior-types', 'participation-types', 'penalty-types'];
+    const queryParamTabs = [MODE_TYPES.ACTIVITIES, MODE_TYPES.ANNOUNCEMENTS, MODE_TYPES.RESOURCES, 'users', /* 'allowlist' - removed, now using Keycloak */ 'programs', 'subjects', 'classes', 'enrollments', 'manage-enrollments', 'marks', 'penalty', 'participation', 'behavior', /* 'smtp' - DEPRECATED */ 'emailTemplates', 'notificationLogs', 'scheduled-reports', 'categories', 'logging', ...Object.values(LOOKUPS)];
     if (queryParamTabs.includes(tab)) {
       const searchParams = new URLSearchParams(location.search);
       searchParams.set('tab', tab);
@@ -201,7 +191,7 @@ const DashboardPage = () => {
       return result;
     } catch (error) {
       error('❌ Upload function error:', error);
-      alert((t('error_uploading_templates') || 'Error uploading templates: ') + error.message);
+      alert((t('error_uploading_templates')) + error.message);
       return { success: false, error: error.message };
     }
   }, [t]);
@@ -253,108 +243,108 @@ const DashboardPage = () => {
     const categories = [
     {
       id: 'content',
-      label: t('content') || 'Content',
+      label: t('content'),
       items: [
-        { key: MODE_TYPES.ACTIVITIES, label: t('activities') || 'Activities' },
-        { key: MODE_TYPES.ANNOUNCEMENTS, label: t('announcements') || 'Announcements' },
-        { key: MODE_TYPES.RESOURCES, label: t('resources') || 'Resources' }
+        { key: MODE_TYPES.ACTIVITIES, label: t('activities') },
+        { key: MODE_TYPES.ANNOUNCEMENTS, label: t('announcements') },
+        { key: MODE_TYPES.RESOURCES, label: t('resources') }
       ]
     },
     {
       id: 'academic',
-      label: t('academic') || 'Academic',
+      label: t('academic'),
       items: [
-        { key: 'programs', label: t('programs') || 'Programs' },
-        { key: 'subjects', label: t('subjects') || 'Subjects' },
-        { key: 'classes', label: t('classes') || 'Classes' }
+        { key: 'programs', label: t('programs') },
+        { key: 'subjects', label: t('subjects') },
+        { key: 'classes', label: t('classes') }
       ]
     },
     {
       id: 'enrollments',
-      label: t('enrollments') || 'Enrollments',
+      label: t('enrollments'),
       items: [
-        { key: 'enrollments', label: t('enrollments') || 'Enrollments' },
-        { key: 'manage-enrollments', label: t('manage_enrollments') || 'Manage Enrollments' },
-        { key: 'marks', label: t('mark_entry') || 'Marks Entry' }
+        { key: 'enrollments', label: t('enrollments') },
+        { key: 'manage-enrollments', label: t('manage_enrollments') },
+        { key: 'marks', label: t('mark_entry') }
       ]
     },
     {
       id: 'operations',
-      label: t('operations') || 'Operations',
+      label: t('operations'),
       items: [
-        { key: 'penalty', label: t('penalty') || 'Penalty' },
-        { key: 'participation', label: t('participation') || 'Participation' },
-        { key: 'behavior', label: t('behavior') || 'Behavior' }
+        { key: 'penalty', label: t('penalty') },
+        { key: 'participation', label: t('participation') },
+        { key: 'behavior', label: t('behavior') }
       ]
     },
     {
       id: 'users',
-      label: t('users') || 'Users',
+      label: t('users'),
       items: [
-        { key: 'users', label: t('users') || 'Users' },
+        { key: 'users', label: t('users') },
         ...(isSuperAdmin ? [
-          { key: 'user-category-access', label: t('user_access') || 'User Access' }
+          { key: 'user-category-access', label: t('user_access') }
         ] : [])
       ]
     },
     {
       id: 'communication',
-      label: t('communication') || 'Communication',
+      label: t('communication'),
       items: [
-        { key: 'emailTemplates', label: t('templates') || 'Templates' },
-        { key: 'notificationLogs', label: t('notification_logs') || 'Notification Logs' },
-        { key: 'scheduled-reports', label: t('scheduled_reports') || 'Scheduled Reports' }
+        { key: 'emailTemplates', label: t('templates') },
+        { key: 'notificationLogs', label: t('notification_logs') },
+        { key: 'scheduled-reports', label: t('scheduled_reports') }
       ]
     },
     {
       id: 'settings',
-      label: t('settings') || 'Settings',
+      label: t('settings'),
       items: [
-        { key: 'categories', label: t('categories') || 'Categories' },
-        { key: 'activity-types', label: t('activity_types') || 'Activity Types' },
-        { key: 'behavior-types', label: t('behavior_types') || 'Behavior Types' },
-        { key: 'participation-types', label: t('participation_types') || 'Participation Types' },
-        { key: 'penalty-types', label: t('penalty_types') || 'Penalty Types' }
+        { key: 'categories', label: t('categories') },
+        { key: LOOKUPS.ACTIVITY_TYPES, label: t('activity_types') },
+        { key: LOOKUPS.BEHAVIOR_TYPES, label: t('behavior_types') },
+        { key: LOOKUPS.PARTICIPATION_TYPES, label: t('participation_types') },
+        { key: LOOKUPS.PENALTY_TYPES, label: t('penalty_types') }
       ]
     },
     {
       id: 'flexible-scheduling',
-      label: t('scheduling_and_availabilities') || t('scheduling') || 'Scheduling and Availabilities',
+      label: t('scheduling_and_availabilities'),
       items: [
-        { key: 'summary-dashboard', label: t('summary_dashboard') || 'Summary Dashboard' },
-        { key: 'scheduling-calendar', label: t('scheduling_calendar') || 'Scheduling Calendar' },
+        { key: 'summary-dashboard', label: t('summary_dashboard') },
+        { key: 'scheduling-calendar', label: t('scheduling_calendar') },
         ...(isSuperAdmin ? [
-          { key: 'user-category-access', label: t('user_access') || 'User Access' }
+          { key: 'user-category-access', label: t('user_access') }
         ] : []),
       ]
     },
     {
       id: 'availability-setup',
-      label: t('availability_setup') || 'Availability Setup',
+      label: t('availability_setup'),
       items: [
-        { key: 'instructor-availability', label: t('instructor_availability_setup') || t('instructor_availability') || 'Instructor Availability Setup' },
-        { key: 'classroom-availability', label: t('room_availability_setup') || t('room_availability') || 'Room Availability Setup' },
+        { key: 'instructor-availability', label: t('instructor_availability_setup') },
+        { key: 'classroom-availability', label: t('room_availability_setup') },
       ]
     },
     {
       id: 'rooms',
-      label: t('rooms') || 'Rooms',
+      label: t('rooms'),
       items: [
-        { key: 'classrooms-management', label: t('rooms_management') || 'Rooms Management' },
+        { key: 'classrooms-management', label: t('rooms_management') },
       ]
     },
     {
       id: 'system-lookups',
-      label: t('system_lookups') || 'System Lookups (Read-Only)',
+      label: t('system_lookups'),
       items: [
-        { key: 'resource-types', label: t('resource_types') || 'Resource Types' },
-        { key: 'priority-types', label: t('priority_types') || 'Priority Types' },
-        { key: 'user-roles', label: t('user_roles') || 'User Roles' },
-        { key: 'subject-types', label: t('subject_types') || 'Subject Types' },
-        { key: 'assessment-types', label: t('assessment_types') || 'Assessment Types' },
-        { key: 'question-types', label: t('question_types') || 'Question Types' },
-        { key: 'attendance-status-types', label: t('attendance_status') || 'Attendance Status' },
-        { key: 'enrollment-status-types', label: t('enrollment_status') || 'Enrollment Status' }
+        { key: LOOKUPS.RESOURCE_TYPES, label: t('resource_types') },
+        { key: LOOKUPS.PRIORITY_TYPES, label: t('priority_types') },
+        { key: LOOKUPS.USER_ROLES, label: t('user_roles') },
+        { key: LOOKUPS.SUBJECT_TYPES, label: t('subject_types') },
+        { key: LOOKUPS.ASSESSMENT_TYPES, label: t('assessment_types') },
+        { key: LOOKUPS.QUESTION_TYPES, label: t('question_types') },
+        { key: LOOKUPS.ATTENDANCE_STATUS_TYPES, label: t('attendance_status') },
+        { key: LOOKUPS.ENROLLMENT_STATUS_TYPES, label: t('enrollment_status') }
       ]
     }
     ];
@@ -371,41 +361,41 @@ const DashboardPage = () => {
 
     // Add a step for each visible ribbon tab
     const tabDescriptions = {
-      activities: t('tour.tab_activities') || 'Create and manage class activities, assignments, and quizzes.',
-      announcements: t('tour.tab_announcements') || 'Post announcements visible to students in their classes.',
-      resources: t('tour.tab_resources') || 'Upload and organize shared files and learning resources.',
-      programs: t('tour.tab_programs') || 'Define academic programs (e.g., Diploma, Bachelor).',
-      subjects: t('tour.tab_subjects') || 'Manage subjects offered under each program.',
-      classes: t('tour.tab_classes') || 'Create and manage individual class sections.',
-      enrollments: t('tour.tab_enrollments') || 'View and manage student enrollments across classes.',
-      'manage-enrollments': t('tour.tab_manage_enrollments') || 'Enable/disable student access per class.',
-      marks: t('tour.tab_marks') || 'Enter and manage student grades and marks.',
-      penalty: t('tour.tab_penalty') || 'Record and track student penalties.',
-      participation: t('tour.tab_participation') || 'Track student participation scores.',
-      behavior: t('tour.tab_behavior') || 'Log and monitor student behavior incidents.',
-      users: t('tour.tab_users') || 'Manage user accounts, roles, and permissions.',
-      'user-category-access': t('tour.tab_user_access') || 'Configure category-level access per user role.',
-      emailTemplates: t('tour.tab_email_templates') || 'Customize email notification templates.',
-      notificationLogs: t('tour.tab_notification_logs') || 'View sent notification history and delivery status.',
-      'scheduled-reports': t('tour.tab_scheduled_reports') || 'Configure automated report delivery schedules.',
-      categories: t('tour.tab_categories') || 'Manage classification categories for activities and resources.',
-      'activity-types': t('tour.tab_activity_types') || 'Configure activity type lookups (read-only).',
-      'behavior-types': t('tour.tab_behavior_types') || 'Configure behavior type lookups.',
-      'participation-types': t('tour.tab_participation_types') || 'Configure participation type lookups.',
-      'penalty-types': t('tour.tab_penalty_types') || 'Configure penalty type lookups.',
-      'summary-dashboard': t('tour.tab_summary_dashboard') || 'View scheduling overview and statistics.',
-      'scheduling-calendar': t('tour.tab_scheduling_calendar') || 'Plan and manage class schedules on a calendar.',
-      'instructor-availability': t('tour.tab_instructor_availability') || 'Set up instructor availability time slots.',
-      'classroom-availability': t('tour.tab_classroom_availability') || 'Set up room availability for scheduling.',
-      'classrooms-management': t('tour.tab_classrooms_management') || 'Manage classroom locations and capacities.',
-      'resource-types': t('tour.tab_resource_types') || 'View resource type lookups (read-only).',
-      'priority-types': t('tour.tab_priority_types') || 'View priority type lookups (read-only).',
-      'user-roles': t('tour.tab_user_roles') || 'View user role definitions (read-only).',
-      'subject-types': t('tour.tab_subject_types') || 'View subject type lookups (read-only).',
-      'assessment-types': t('tour.tab_assessment_types') || 'View assessment type lookups (read-only).',
-      'question-types': t('tour.tab_question_types') || 'View question type lookups (read-only).',
-      'attendance-status-types': t('tour.tab_attendance_status_types') || 'View attendance status lookups (read-only).',
-      'enrollment-status-types': t('tour.tab_enrollment_status_types') || 'View enrollment status lookups (read-only).',
+      activities: t('tour.tab_activities'),
+      announcements: t('tour.tab_announcements'),
+      resources: t('tour.tab_resources'),
+      programs: t('tour.tab_programs'),
+      subjects: t('tour.tab_subjects'),
+      classes: t('tour.tab_classes'),
+      enrollments: t('tour.tab_enrollments'),
+      'manage-enrollments': t('tour.tab_manage_enrollments'),
+      marks: t('tour.tab_marks'),
+      penalty: t('tour.tab_penalty'),
+      participation: t('tour.tab_participation'),
+      behavior: t('tour.tab_behavior'),
+      users: t('tour.tab_users'),
+      'user-category-access': t('tour.tab_user_access'),
+      emailTemplates: t('tour.tab_email_templates'),
+      notificationLogs: t('tour.tab_notification_logs'),
+      'scheduled-reports': t('tour.tab_scheduled_reports'),
+      categories: t('tour.tab_categories'),
+      [LOOKUPS.ACTIVITY_TYPES]: t('tour.tab_activity_types'),
+      [LOOKUPS.BEHAVIOR_TYPES]: t('tour.tab_behavior_types'),
+      [LOOKUPS.PARTICIPATION_TYPES]: t('tour.tab_participation_types'),
+      [LOOKUPS.PENALTY_TYPES]: t('tour.tab_penalty_types'),
+      'summary-dashboard': t('tour.tab_summary_dashboard'),
+      'scheduling-calendar': t('tour.tab_scheduling_calendar'),
+      'instructor-availability': t('tour.tab_instructor_availability'),
+      'classroom-availability': t('tour.tab_classroom_availability'),
+      'classrooms-management': t('tour.tab_classrooms_management'),
+      [LOOKUPS.RESOURCE_TYPES]: t('tour.tab_resource_types'),
+      [LOOKUPS.PRIORITY_TYPES]: t('tour.tab_priority_types'),
+      [LOOKUPS.USER_ROLES]: t('tour.tab_user_roles'),
+      [LOOKUPS.SUBJECT_TYPES]: t('tour.tab_subject_types'),
+      [LOOKUPS.ASSESSMENT_TYPES]: t('tour.tab_assessment_types'),
+      [LOOKUPS.QUESTION_TYPES]: t('tour.tab_question_types'),
+      [LOOKUPS.ATTENDANCE_STATUS_TYPES]: t('tour.tab_attendance_status_types'),
+      [LOOKUPS.ENROLLMENT_STATUS_TYPES]: t('tour.tab_enrollment_status_types'),
     };
     ribbonCategories.forEach(cat => {
       cat.items.forEach(item => {
@@ -506,8 +496,8 @@ const DashboardPage = () => {
     return (
       <div className="dashboard-page">
         <div className="access-denied">
-          <h2>{t('access_denied') || 'Access Denied'}</h2>
-          <p>{t('insufficient_privileges') || 'You need admin privileges to access this page.'}</p>
+          <h2>{t('access_denied')}</h2>
+          <p>{t('insufficient_privileges')}</p>
         </div>
     </div>
     );
@@ -527,11 +517,11 @@ const DashboardPage = () => {
           tooltipComponent={TourTooltipComponent}
           callback={handleJoyrideCallback}
           locale={{
-            back: t('tour_back') || (lang === 'ar' ? 'السابق' : 'Back'),
-            close: t('tour_close') || (lang === 'ar' ? 'إغلاق' : 'Close'),
-            last: t('tour_finish') || (lang === 'ar' ? 'إنهاء' : 'Finish'),
-            next: t('tour_next') || (lang === 'ar' ? 'التالي' : 'Next'),
-            skip: t('tour_skip') || (lang === 'ar' ? 'تخطي' : 'Skip')
+            back: t('tour_back'),
+            close: t('tour_close'),
+            last: t('tour_finish'),
+            next: t('tour_next'),
+            skip: t('tour_skip')
           }}
           styles={{
             // Use the app's primary color so the Joyride buttons (Back/Next) match other UI buttons
@@ -561,7 +551,7 @@ const DashboardPage = () => {
     <div className="tab-header">
       <h2>{(() => {
         const currentTabItem = ribbonCategories.flatMap(cat => cat.items).find(item => item.key === activeTab);
-        return currentTabItem ? currentTabItem.label : (t('activity') || 'Activity');
+        return currentTabItem ? currentTabItem.label : (t('activity'));
       })()}</h2>
              <div className="tooltip-wrapper">
                <InfoTooltip contentKey={`help.${activeTab}`} />
@@ -613,18 +603,7 @@ const DashboardPage = () => {
           {activeTab === 'notificationLogs' && <NotificationLogsPage />}
           
           {/* ===== LOOKUP MANAGEMENT PAGES ===== */}
-          {activeTab === 'resource-types' && <ResourceTypesPage />}
-          {activeTab === 'priority-types' && <PriorityTypesPage />}
-          {activeTab === 'user-roles' && <UserRolesPage />}
-          {activeTab === 'subject-types' && <SubjectTypesPage />}
-          {activeTab === 'assessment-types' && <AssessmentTypesPage />}
-          {activeTab === 'question-types' && <QuestionTypesPage />}
-          {activeTab === 'attendance-status-types' && <AttendanceStatusTypesPage />}
-          {activeTab === 'enrollment-status-types' && <EnrollmentStatusTypesPage />}
-          {activeTab === 'activity-types' && <ActivityTypesPage />}
-          {activeTab === 'behavior-types' && <BehaviorTypesPage />}
-          {activeTab === 'participation-types' && <ParticipationTypesPage />}
-          {activeTab === 'penalty-types' && <PenaltyTypesPage />}
+          {LOOKUP_TYPES.has(activeTab) && <LookupManagementPage lookupType={activeTab} />}
           
           {/* AllowlistPage removed - now using Keycloak for user management */}
           
@@ -642,20 +621,20 @@ const DashboardPage = () => {
       <Modal
         isOpen={deleteModal.open}
         onClose={() => setDeleteModal({ open: false, item: null, type: null, onConfirm: null, relatedData: null, warningMessage: null })}
-        title={t(`delete_${deleteModal.type}`) || t('confirm_deletion') || 'Confirm Deletion'}
+        title={t(`delete_${deleteModal.type}`)}
         size="small"
       >
         <div style={{ padding: '1rem' }}>
-          <p>{t(`delete_${deleteModal.type}_confirm`) || t('delete_confirm_generic') || 'Are you sure you want to delete this item? This action cannot be undone.'}</p>
+          <p>{t(`delete_${deleteModal.type}_confirm`)}</p>
           {deleteModal.warningMessage && (
             <p style={{ color: '#dc2626', fontSize: 'var(--font-size-sm)' }}>{deleteModal.warningMessage}</p>
           )}
           <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'flex-end', marginTop: '1rem' }}>
             <Button variant="outline" onClick={() => setDeleteModal({ open: false, item: null, type: null, onConfirm: null, relatedData: null, warningMessage: null })}>
-              {t('cancel') || 'Cancel'}
+              {t('cancel')}
             </Button>
             <Button variant="primary" onClick={deleteModal.onConfirm || (() => {})} style={{ backgroundColor: '#dc2626' }}>
-              {t('delete') || 'Delete'}
+              {t('delete')}
             </Button>
           </div>
         </div>

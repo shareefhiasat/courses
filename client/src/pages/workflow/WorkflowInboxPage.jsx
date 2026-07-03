@@ -67,8 +67,8 @@ const WorkflowInboxPage = () => {
     return (
       <div className="dashboard-page">
         <div className="access-denied">
-          <h2>{t('access_denied') || 'Access Denied'}</h2>
-          <p>{t('insufficient_privileges') || 'You need admin privileges to access this page.'}</p>
+          <h2>{t('access_denied')}</h2>
+          <p>{t('insufficient_privileges')}</p>
         </div>
       </div>
     );

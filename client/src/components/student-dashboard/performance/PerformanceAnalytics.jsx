@@ -83,8 +83,8 @@ export default function PerformanceAnalytics({
             type="search"
             value={widgetSearch}
             onChange={(e) => setWidgetSearch(e.target.value)}
-            placeholder={t('search_widgets') || 'Search widgets…'}
-            aria-label={t('search_widgets') || 'Search widgets'}
+            placeholder={t('search_widgets')}
+            aria-label={t('search_widgets')}
             data-testid="widget-search-input"
             style={{
               minWidth: 160,
@@ -139,8 +139,8 @@ export default function PerformanceAnalytics({
             type="button"
             onClick={() => setEditLayout((v) => !v)}
             style={iconBtnStyle(accentColor, editLayout)}
-            title={t('edit_layout') || 'Edit layout'}
-            aria-label={t('edit_layout') || 'Edit layout'}
+            title={t('edit_layout')}
+            aria-label={t('edit_layout')}
           >
             {getThemedIcon('ui', 'layout_dashboard', 16, theme)}
           </button>
@@ -148,8 +148,8 @@ export default function PerformanceAnalytics({
             type="button"
             onClick={handleAddWidget}
             style={iconBtnStyle(accentColor)}
-            title={t('add_widget') || 'Add widget'}
-            aria-label={t('add_widget') || 'Add widget'}
+            title={t('add_widget')}
+            aria-label={t('add_widget')}
           >
             {getThemedIcon('ui', 'plus', 16, theme)}
           </button>
@@ -157,8 +157,8 @@ export default function PerformanceAnalytics({
             type="button"
             onClick={() => engineRef.current?.resetToDefaults?.()}
             style={iconBtnStyle('#ef4444')}
-            title={t('reset_to_system_default') || 'Reset to system default'}
-            aria-label={t('reset_to_system_default') || 'Reset to system default'}
+            title={t('reset_to_system_default')}
+            aria-label={t('reset_to_system_default')}
           >
             <History size={16} strokeWidth={2} />
           </button>

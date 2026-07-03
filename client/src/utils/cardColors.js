@@ -114,7 +114,7 @@ export const getCardConfig = (type, t = (key) => key, theme = 'light') => {
           bg: "rgba(128, 0, 32, 0.1)",
           iconColor: "#800020",
           shape: "rounded",
-          label: t("enrolled_classes") || "Enrolled Classes",
+          label: t("enrolled_classes"),
           gradient: "linear-gradient(135deg, #800020 0%, #810C29FF 100%)",
         },
         programs: {
@@ -122,7 +122,7 @@ export const getCardConfig = (type, t = (key) => key, theme = 'light') => {
           bg: "rgba(128, 0, 32, 0.1)",
           iconColor: "#800020",
           shape: "rounded",
-          label: t("programs") || "Programs",
+          label: t("programs"),
           gradient: "linear-gradient(135deg, #800020 0%, #810C29FF 100%)",
         },
         subjects: {
@@ -130,7 +130,7 @@ export const getCardConfig = (type, t = (key) => key, theme = 'light') => {
           bg: "rgba(128, 0, 32, 0.1)",
           iconColor: "#800020",
           shape: "rounded",
-          label: t("subjects") || "Subjects",
+          label: t("subjects"),
           gradient: "linear-gradient(135deg, #800020 0%, #810C29FF 100%)",
         },
         classes: {
@@ -138,7 +138,7 @@ export const getCardConfig = (type, t = (key) => key, theme = 'light') => {
           bg: "rgba(128, 0, 32, 0.1)",
           iconColor: "#800020",
           shape: "rounded",
-          label: t("classes") || "Classes",
+          label: t("classes"),
           gradient: "linear-gradient(135deg, #800020 0%, #810C29FF 100%)",
         },
         enrollments: {
@@ -146,7 +146,7 @@ export const getCardConfig = (type, t = (key) => key, theme = 'light') => {
           bg: "rgba(128, 0, 32, 0.1)",
           iconColor: "#800020",
           shape: "rounded",
-          label: t("enrollments") || "Enrollments",
+          label: t("enrollments"),
           gradient: "linear-gradient(135deg, #800020 0%, #810C29FF 100%)",
         },
         users: {
@@ -154,7 +154,7 @@ export const getCardConfig = (type, t = (key) => key, theme = 'light') => {
           bg: "rgba(128, 0, 32, 0.1)",
           iconColor: "#800020",
           shape: "rounded",
-          label: t("users") || "Users",
+          label: t("users"),
           gradient: "linear-gradient(135deg, #800020 0%, #810C29FF 100%)",
         },
         students: {
@@ -162,7 +162,7 @@ export const getCardConfig = (type, t = (key) => key, theme = 'light') => {
           bg: "rgba(16, 185, 129, 0.1)",
           iconColor: "#10b981",
           shape: "rounded",
-          label: t("students") || "Students",
+          label: t("students"),
           gradient: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
         },
         instructors: {
@@ -170,7 +170,7 @@ export const getCardConfig = (type, t = (key) => key, theme = 'light') => {
           bg: "rgba(99, 102, 241, 0.1)",
           iconColor: "#6366f1",
           shape: "rounded",
-          label: t("instructors") || "Instructors",
+          label: t("instructors"),
           gradient: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
         },
         hr: {
@@ -178,7 +178,7 @@ export const getCardConfig = (type, t = (key) => key, theme = 'light') => {
           bg: "rgba(245, 158, 11, 0.1)",
           iconColor: "#f59e0b",
           shape: "rounded",
-          label: t("hr") || "HR",
+          label: t("hr"),
           gradient: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
         },
         admins: {
@@ -186,7 +186,7 @@ export const getCardConfig = (type, t = (key) => key, theme = 'light') => {
           bg: "rgba(239, 68, 68, 0.1)",
           iconColor: "#ef4444",
           shape: "rounded",
-          label: t("admins") || "Admins",
+          label: t("admins"),
           gradient: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
         },
         superadmins: {
@@ -194,7 +194,7 @@ export const getCardConfig = (type, t = (key) => key, theme = 'light') => {
           bg: "rgba(139, 92, 246, 0.1)",
           iconColor: "#8b5cf6",
           shape: "rounded",
-          label: t("Super admins") || "Super admins",
+          label: t("Super admins"),
           gradient: "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)",
         },
         submissions: {
@@ -202,7 +202,7 @@ export const getCardConfig = (type, t = (key) => key, theme = 'light') => {
           bg: "rgba(128, 0, 32, 0.1)",
           iconColor: "#800020",
           shape: "rounded",
-          label: t("submissions") || "Submissions",
+          label: t("submissions"),
           gradient: "linear-gradient(135deg, #800020 0%, #810C29FF 100%)",
         },
         quizzes: {
@@ -210,7 +210,7 @@ export const getCardConfig = (type, t = (key) => key, theme = 'light') => {
           bg: "rgba(236, 72, 153, 0.1)",
           iconColor: "#ec4899",
           shape: "rounded",
-          label: t("quizzes") || "Quizzes",
+          label: t("quizzes"),
           gradient: "linear-gradient(135deg, #ec4899 0%, #db2777 100%)",
         },
         announcements: {
@@ -218,7 +218,7 @@ export const getCardConfig = (type, t = (key) => key, theme = 'light') => {
           bg: "rgba(107, 114, 128, 0.1)",
           iconColor: "#6b7280",
           shape: "rounded",
-          label: t("announcements") || "Announcements",
+          label: t("announcements"),
           gradient: "linear-gradient(135deg, #6b7280 0%, #4b5563 100%)",
         },
         resources: {
@@ -226,7 +226,7 @@ export const getCardConfig = (type, t = (key) => key, theme = 'light') => {
           bg: "rgba(107, 114, 128, 0.1)",
           iconColor: "#6b7280",
           shape: "rounded",
-          label: t("resources") || "Resources",
+          label: t("resources"),
           gradient: "linear-gradient(135deg, #6b7280 0%, #4b5563 100%)",
         },
 
@@ -236,7 +236,7 @@ export const getCardConfig = (type, t = (key) => key, theme = 'light') => {
           bg: "rgba(128, 0, 32, 0.1)",
           iconColor: "#800020",
           shape: "rounded",
-          label: t("average_grade") || "Average Grade",
+          label: t("average_grade"),
           gradient: "linear-gradient(135deg, #800020 0%, #810C29FF 100%)",
         },
         "average-score": {
@@ -244,7 +244,7 @@ export const getCardConfig = (type, t = (key) => key, theme = 'light') => {
           bg: "rgba(128, 0, 32, 0.1)",
           iconColor: "#800020",
           shape: "rounded",
-          label: t("average_score") || "Average Score",
+          label: t("average_score"),
           gradient: "linear-gradient(135deg, #800020 0%, #810C29FF 100%)",
         },
         "total-results": {
@@ -252,7 +252,7 @@ export const getCardConfig = (type, t = (key) => key, theme = 'light') => {
           bg: "rgba(128, 0, 32, 0.1)",
           iconColor: "#800020",
           shape: "rounded",
-          label: t("total_results") || "Total Results",
+          label: t("total_results"),
           gradient: "linear-gradient(135deg, #800020 0%, #810C29FF 100%)",
         },
         passed: {
@@ -260,7 +260,7 @@ export const getCardConfig = (type, t = (key) => key, theme = 'light') => {
           bg: "rgba(16, 185, 129, 0.1)",
           iconColor: "#10b981",
           shape: "rounded",
-          label: t("passed") || "Passed",
+          label: t("passed"),
           gradient: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
         },
         excellent: {
@@ -268,7 +268,7 @@ export const getCardConfig = (type, t = (key) => key, theme = 'light') => {
           bg: "rgba(16, 185, 129, 0.1)",
           iconColor: "#10b981",
           shape: "rounded",
-          label: t("excellent") || "Excellent (90%+)",
+          label: t("excellent"),
           gradient: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
         },
         good: {
@@ -276,7 +276,7 @@ export const getCardConfig = (type, t = (key) => key, theme = 'light') => {
           bg: "rgba(245, 158, 11, 0.1)",
           iconColor: "#f59e0b",
           shape: "rounded",
-          label: t("good") || "Good (70-89%)",
+          label: t("good"),
           gradient: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
         },
         award: {
@@ -284,7 +284,7 @@ export const getCardConfig = (type, t = (key) => key, theme = 'light') => {
           bg: "rgba(128, 0, 32, 0.1)",
           iconColor: "#800020",
           shape: "rounded",
-          label: t("award") || "Award",
+          label: t("award"),
           gradient: "linear-gradient(135deg, #800020 0%, #810C29FF 100%)",
         },
         trophy: {
@@ -292,7 +292,7 @@ export const getCardConfig = (type, t = (key) => key, theme = 'light') => {
           bg: "rgba(128, 0, 32, 0.1)",
           iconColor: "#800020",
           shape: "rounded",
-          label: t("trophy") || "Trophy",
+          label: t("trophy"),
           gradient: "linear-gradient(135deg, #800020 0%, #810C29FF 100%)",
         },
 
@@ -302,7 +302,7 @@ export const getCardConfig = (type, t = (key) => key, theme = 'light') => {
           bg: "rgba(236, 72, 153, 0.1)",
           iconColor: "#ec4899",
           shape: "rounded",
-          label: t("tasks_completed") || "Tasks Completed",
+          label: t("tasks_completed"),
           gradient: "linear-gradient(135deg, #ec4899 0%, #db2777 100%)",
         },
         tasks: {
@@ -310,7 +310,7 @@ export const getCardConfig = (type, t = (key) => key, theme = 'light') => {
           bg: "rgba(236, 72, 153, 0.1)",
           iconColor: "#ec4899",
           shape: "rounded",
-          label: t("tasks") || "Tasks",
+          label: t("tasks"),
           gradient: "linear-gradient(135deg, #ec4899 0%, #db2777 100%)",
         },
         activities: {
@@ -318,7 +318,7 @@ export const getCardConfig = (type, t = (key) => key, theme = 'light') => {
           bg: "rgba(236, 72, 153, 0.1)",
           iconColor: "#ec4899",
           shape: "rounded",
-          label: t("activities") || "Activities",
+          label: t("activities"),
           gradient: "linear-gradient(135deg, #ec4899 0%, #db2777 100%)",
         },
         homework: {
@@ -326,7 +326,7 @@ export const getCardConfig = (type, t = (key) => key, theme = 'light') => {
           bg: "rgba(236, 72, 153, 0.1)",
           iconColor: "#ec4899",
           shape: "rounded",
-          label: t("homework") || "Homework",
+          label: t("homework"),
           gradient: "linear-gradient(135deg, #ec4899 0%, #db2777 100%)",
         },
         // Attendance
@@ -335,7 +335,7 @@ export const getCardConfig = (type, t = (key) => key, theme = 'light') => {
           bg: "rgba(245, 158, 11, 0.1)",
           iconColor: "#f59e0b",
           shape: "rounded",
-          label: t("attendance") || "Attendance",
+          label: t("attendance"),
           gradient: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
         },
         "attendance-rate": {
@@ -343,7 +343,7 @@ export const getCardConfig = (type, t = (key) => key, theme = 'light') => {
           bg: "rgba(245, 158, 11, 0.1)",
           iconColor: "#f59e0b",
           shape: "rounded",
-          label: t("attendance") || "Attendance",
+          label: t("attendance"),
           gradient: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
         },
 // Participation
@@ -352,7 +352,7 @@ export const getCardConfig = (type, t = (key) => key, theme = 'light') => {
           bg: "rgba(99, 102, 241, 0.1)",
           iconColor: "#6366f1",
           shape: "rounded",
-          label: t("participation") || "Participation",
+          label: t("participation"),
           gradient: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
         },
         participations: {
@@ -360,7 +360,7 @@ export const getCardConfig = (type, t = (key) => key, theme = 'light') => {
           bg: "rgba(99, 102, 241, 0.1)",
           iconColor: "#6366f1",
           shape: "rounded",
-          label: t("Participations") || "Participations",
+          label: t("Participations"),
           gradient: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
         },
         "active-students": {
@@ -368,7 +368,7 @@ export const getCardConfig = (type, t = (key) => key, theme = 'light') => {
           bg: "rgba(99, 102, 241, 0.1)",
           iconColor: "#6366f1",
           shape: "rounded",
-          label: t("active_students") || "Active Students",
+          label: t("active_students"),
           gradient: "linear-gradient(135deg, #6366f1 0%, #4f46e5 100%)",
         },
 
@@ -378,7 +378,7 @@ export const getCardConfig = (type, t = (key) => key, theme = 'light') => {
           bg: "rgba(239, 68, 68, 0.1)",
           iconColor: "#ef4444",
           shape: "rounded",
-          label: t("penalties") || "Penalties",
+          label: t("penalties"),
           gradient: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
         },
         behaviors: {
@@ -386,7 +386,7 @@ export const getCardConfig = (type, t = (key) => key, theme = 'light') => {
           bg: "rgba(245, 158, 11, 0.1)",
           iconColor: "#f59e0b",
           shape: "rounded",
-          label: t("behaviors") || "Behaviors",
+          label: t("behaviors"),
           gradient: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
         },
         behavior: {
@@ -394,7 +394,7 @@ export const getCardConfig = (type, t = (key) => key, theme = 'light') => {
           bg: "rgba(245, 158, 11, 0.1)",
           iconColor: "#f59e0b",
           shape: "rounded",
-          label: t("behavior") || "Behavior",
+          label: t("behavior"),
           gradient: "linear-gradient(135deg, #f59e0b 0%, #d97706 100%)",
         },
         penalty: {
@@ -402,7 +402,7 @@ export const getCardConfig = (type, t = (key) => key, theme = 'light') => {
           bg: "rgba(239, 68, 68, 0.1)",
           iconColor: "#ef4444",
           shape: "rounded",
-          label: t("penalty") || "Penalty",
+          label: t("penalty"),
           gradient: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
         },
         failed: {
@@ -410,7 +410,7 @@ export const getCardConfig = (type, t = (key) => key, theme = 'light') => {
           bg: "rgba(239, 68, 68, 0.1)",
           iconColor: "#ef4444",
           shape: "rounded",
-          label: t("failed") || "Failed",
+          label: t("failed"),
           gradient: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
         },
         "needs-improvement": {
@@ -418,7 +418,7 @@ export const getCardConfig = (type, t = (key) => key, theme = 'light') => {
           bg: "rgba(239, 68, 68, 0.1)",
           iconColor: "#ef4444",
           shape: "rounded",
-          label: t("needs_improvement") || "Needs Improvement",
+          label: t("needs_improvement"),
           gradient: "linear-gradient(135deg, #ef4444 0%, #dc2626 100%)",
         },
         // Statistics
@@ -427,7 +427,7 @@ export const getCardConfig = (type, t = (key) => key, theme = 'light') => {
           bg: "rgba(139, 92, 246, 0.1)",
           iconColor: "#8b5cf6",
           shape: "rounded",
-          label: t("pass_rate") || "Pass Rate",
+          label: t("pass_rate"),
           gradient: "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)",
         },
         "unique-students": {
@@ -435,7 +435,7 @@ export const getCardConfig = (type, t = (key) => key, theme = 'light') => {
           bg: "rgba(139, 92, 246, 0.1)",
           iconColor: "#8b5cf6",
           shape: "rounded",
-          label: t("unique_students") || "Unique Students",
+          label: t("unique_students"),
           gradient: "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)",
         }
         ,
@@ -444,7 +444,7 @@ export const getCardConfig = (type, t = (key) => key, theme = 'light') => {
           bg: "rgba(139, 92, 246, 0.1)",
           iconColor: "#8b5cf6",
           shape: "rounded",
-          label: t("unique_quizzes") || "Unique Quizzes",
+          label: t("unique_quizzes"),
           gradient: "linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)",
         },
         // Default
@@ -454,7 +454,7 @@ export const getCardConfig = (type, t = (key) => key, theme = 'light') => {
               bg: "rgba(107, 114, 128, 0.1)",
               iconColor: "#6b7280",
               shape: "rounded",
-              label: t("metric") || "Metric",
+              label: t("metric"),
               gradient: "linear-gradient(135deg, #6b7280 0%, #4b5563 100%)",
             },
       };

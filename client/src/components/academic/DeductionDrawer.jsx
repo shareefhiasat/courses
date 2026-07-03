@@ -194,9 +194,9 @@ const DeductionDrawer = memo(({
           zIndex: 10,
         }}>
           <h3 style={{ margin: 0, color: textColor, fontSize: '1.125rem', fontWeight: 700 }}>
-            {type === 'absence' ? (t('absence_deductions') || 'Absence Deductions') :
-             type === 'penalty' ? (t('penalty_deductions') || 'Penalty Deductions') :
-             (t('deductions') || 'Deductions')}
+            {type === 'absence' ? (t('absence_deductions')) :
+             type === 'penalty' ? (t('penalty_deductions')) :
+             (t('deductions'))}
           </h3>
         </div>
 
@@ -248,11 +248,11 @@ const DeductionDrawer = memo(({
 
         {loading ? (
           <div style={{ textAlign: 'center', padding: '3rem' }}>
-            <SimpleLoading message={t('loading_deductions') || 'Loading deductions...'} />
+            <SimpleLoading message={t('loading_deductions')} />
           </div>
         ) : !data ? (
           <div style={{ textAlign: 'center', padding: '3rem', color: mutedColor }}>
-            {t('no_deduction_data') || 'No deduction data available'}
+            {t('no_deduction_data')}
           </div>
         ) : (
           <div style={{ padding: '1rem' }}>
@@ -268,7 +268,7 @@ const DeductionDrawer = memo(({
               <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
                 <div style={{ flex: 1, textAlign: 'center', padding: '0.75rem', borderRadius: '8px', background: isDarkMode ? '#1f2937' : '#fff', border: `1px solid ${borderColor}` }}>
                   <div style={{ fontSize: '0.7rem', color: mutedColor, textTransform: 'uppercase', fontWeight: 600, marginBottom: '0.25rem' }}>
-                    {t('deducted') || 'Deducted'}
+                    {t('deducted')}
                   </div>
                   <div style={{ fontSize: '1.75rem', fontWeight: 800, color: getProgressColor(totalDeduction, weight) }}>
                     -{formatDeduction(totalDeduction)}
@@ -277,7 +277,7 @@ const DeductionDrawer = memo(({
                 </div>
                 <div style={{ flex: 1, textAlign: 'center', padding: '0.75rem', borderRadius: '8px', background: isDarkMode ? '#1f2937' : '#fff', border: `1px solid ${borderColor}` }}>
                   <div style={{ fontSize: '0.7rem', color: mutedColor, textTransform: 'uppercase', fontWeight: 600, marginBottom: '0.25rem' }}>
-                    {t('remaining_score') || 'Remaining Score'}
+                    {t('remaining_score')}
                   </div>
                   <div style={{ fontSize: '1.75rem', fontWeight: 800, color: suggestedScore > 0 ? '#22c55e' : '#ef4444' }}>
                     {formatDeduction(suggestedScore)}
@@ -287,8 +287,8 @@ const DeductionDrawer = memo(({
               </div>
 
               {/* Progress bars */}
-              {renderProgressBar(t('marks_lost') || 'Marks Lost', totalDeduction, weight)}
-              {renderProgressBar(t('absences') || 'Absences', absenceCount, thresholds.failureCount, true)}
+              {renderProgressBar(t('marks_lost'), totalDeduction, weight)}
+              {renderProgressBar(t('absences'), absenceCount, thresholds.failureCount, true)}
 
               {/* Failure Warning */}
               {failureGrade && (
@@ -305,10 +305,10 @@ const DeductionDrawer = memo(({
                   <span style={{ fontSize: '1.5rem' }}>⚠️</span>
                   <div>
                     <div style={{ fontWeight: 700, color: '#dc2626', fontSize: '0.875rem' }}>
-                      {t('attendance_failure') || 'Attendance Failure'}: {failureGrade}
+                      {t('attendance_failure')}: {failureGrade}
                     </div>
                     <div style={{ fontSize: '0.7rem', color: mutedColor }}>
-                      {t('reached_threshold') || `Reached ${thresholds.failureCount} absence threshold`}
+                      {t('reached_threshold')}
                     </div>
                   </div>
                 </div>
@@ -326,7 +326,7 @@ const DeductionDrawer = memo(({
                   marginBottom: '0.75rem',
                   letterSpacing: '0.05em',
                 }}>
-                  {t('itemized_deductions') || 'Itemized Deductions'} ({items.length})
+                  {t('itemized_deductions')} ({items.length})
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                   {items.map((item, idx) => {
@@ -380,7 +380,7 @@ const DeductionDrawer = memo(({
                               color: '#22c55e',
                               fontWeight: 600,
                             }}>
-                              ✓ {t('excused_via_workflow') || 'Excused via workflow'}
+                              ✓ {t('excused_via_workflow')}
                             </div>
                           )}
                         </div>
@@ -417,7 +417,7 @@ const DeductionDrawer = memo(({
                   marginBottom: '0.75rem',
                   letterSpacing: '0.05em',
                 }}>
-                  {t('deduction_history') || 'Deduction History'} ({history.length})
+                  {t('deduction_history')} ({history.length})
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                   {history.map((entry, idx) => renderHistoryEntry(entry, idx))}
@@ -427,7 +427,7 @@ const DeductionDrawer = memo(({
 
             {items.length === 0 && history.length === 0 && (
               <div style={{ textAlign: 'center', padding: '2rem', color: mutedColor }}>
-                {t('no_deductions_found') || 'No deductions found for this student'}
+                {t('no_deductions_found')}
               </div>
             )}
           </div>

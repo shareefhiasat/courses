@@ -82,15 +82,15 @@ const GroupInfoPanel = ({ isOpen, onClose, roomId, roomName, isCreator, currentU
       setActionLoading(true);
       const result = await chatService.assignGroupAdmin(roomId, participant.userId);
       if (result.success) {
-        toast.success(t('chat_admin_assigned') || 'Admin assigned successfully');
+        toast.success(t('chat_admin_assigned'));
         onAdminChanged?.();
         onClose();
       } else {
-        toast.error(result.error || t('chat_assign_admin_failed') || 'Failed to assign admin');
+        toast.error(result.error || t('chat_assign_admin_failed'));
       }
     } catch (err) {
       console.error('[GroupInfoPanel] Error assigning admin:', err);
-      toast.error(t('chat_assign_admin_failed') || 'Failed to assign admin');
+      toast.error(t('chat_assign_admin_failed'));
     } finally {
       setActionLoading(false);
     }
@@ -197,7 +197,7 @@ const GroupInfoPanel = ({ isOpen, onClose, roomId, roomName, isCreator, currentU
         }}>
           <div style={{ flex: 1, minWidth: 0 }}>
             <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-              {roomName || t('chat_group_info') || 'Info'}
+              {roomName || t('chat_group_info')}
             </h3>
           </div>
           <button
@@ -212,7 +212,7 @@ const GroupInfoPanel = ({ isOpen, onClose, roomId, roomName, isCreator, currentU
               padding: '4px 8px',
               borderRadius: 6,
             }}
-            title={t('close') || 'Close'}
+            title={t('close')}
           >
             ✕
           </button>
@@ -238,7 +238,7 @@ const GroupInfoPanel = ({ isOpen, onClose, roomId, roomName, isCreator, currentU
             <span style={{ fontWeight: 700, color: 'var(--text)' }}>
               {stats ? stats.totalMessages : '...'}
             </span>
-            <span>{t('chat_total_messages') || 'messages'}</span>
+            <span>{t('chat_total_messages')}</span>
           </div>
           {stats && stats.voiceCount > 0 && (
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', fontSize: '0.8rem', color: 'var(--muted)' }}>
@@ -256,7 +256,7 @@ const GroupInfoPanel = ({ isOpen, onClose, roomId, roomName, isCreator, currentU
             flexShrink: 0,
           }}>
             <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text)', marginBottom: '0.5rem' }}>
-              {t('chat_members') || 'Members'} ({stats.participantCount})
+              {t('chat_members')} ({stats.participantCount})
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', border: '1px solid var(--border)', borderRadius: 8, background: 'var(--bg)', maxHeight: 280, overflowY: 'auto' }}>
               {stats.participants.map((p, idx) => {
@@ -274,7 +274,7 @@ const GroupInfoPanel = ({ isOpen, onClose, roomId, roomName, isCreator, currentU
                           {isRoomCreator && (
                             <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', padding: '0.125rem 0.5rem', background: 'rgba(255, 193, 7, 0.12)', color: '#ffc107', borderRadius: 12, fontSize: 'var(--font-size-xs)', fontWeight: 600, flexShrink: 0 }}>
                               {getIconWithColor('ui', 'crown', 14, '#ffc107')}
-                              {t('chat_creator') || 'Creator'}
+                              {t('chat_creator')}
                             </span>
                           )}
                         </div>
@@ -287,13 +287,13 @@ const GroupInfoPanel = ({ isOpen, onClose, roomId, roomName, isCreator, currentU
                           {(p.user?._count?.enrollments !== undefined) && (
                             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: '0.7rem', color: 'var(--muted)', background: 'var(--panel)', padding: '1px 8px', borderRadius: 10, border: '1px solid var(--border)' }}>
                               {getThemedIcon('ui', 'book_open', 10, theme)}
-                              {p.user._count.enrollments} {t('classes') || 'classes'}
+                              {p.user._count.enrollments} {t('classes')}
                             </span>
                           )}
                           {(p.user?._count?.chatRoomParticipations !== undefined) && (
                             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: '0.7rem', color: 'var(--muted)', background: 'var(--panel)', padding: '1px 8px', borderRadius: 10, border: '1px solid var(--border)' }}>
                               {getThemedIcon('ui', 'users', 10, theme)}
-                              {p.user._count.chatRoomParticipations} {t('groups') || 'groups'}
+                              {p.user._count.chatRoomParticipations} {t('groups')}
                             </span>
                           )}
                         </div>
@@ -303,7 +303,7 @@ const GroupInfoPanel = ({ isOpen, onClose, roomId, roomName, isCreator, currentU
                       {onStartDM && p.userId !== currentUser?.dbId && (
                         <button
                           onClick={() => onStartDM(p.user)}
-                          title={t('chat_new_message') || 'Message'}
+                          title={t('chat_new_message')}
                           style={{ background: 'none', border: 'none', padding: '0.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, flexShrink: 0, color: 'var(--brand)' }}
                         >
                           {getThemedIcon('ui', 'message_square', 18, theme)}
@@ -313,7 +313,7 @@ const GroupInfoPanel = ({ isOpen, onClose, roomId, roomName, isCreator, currentU
                         <button
                           onClick={() => openAssignAdminConfirm(p)}
                           disabled={actionLoading}
-                          title={t('chat_assign_admin') || 'Assign as Admin'}
+                          title={t('chat_assign_admin')}
                           style={{ background: 'none', border: 'none', padding: '0.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, flexShrink: 0, color: '#ffc107' }}
                         >
                           {getIconWithColor('ui', 'crown', 16, '#ffc107')}
@@ -339,7 +339,7 @@ const GroupInfoPanel = ({ isOpen, onClose, roomId, roomName, isCreator, currentU
               onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#dc2626'; }}
             >
               {getThemedIcon('ui', 'x', 16, theme)}
-              {actionLoading ? (t('leaving') || 'Leaving...') : (t('chat_leave_group') || 'Leave Group')}
+              {actionLoading ? (t('leaving')) : (t('chat_leave_group'))}
             </button>
           </div>
         )}
@@ -349,7 +349,7 @@ const GroupInfoPanel = ({ isOpen, onClose, roomId, roomName, isCreator, currentU
           <input
             type="text"
             autoComplete="off"
-            placeholder={t('chat_search_media_docs') || 'Search media, docs, links...'}
+            placeholder={t('chat_search_media_docs')}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             style={{
@@ -421,7 +421,7 @@ const GroupInfoPanel = ({ isOpen, onClose, roomId, roomName, isCreator, currentU
         }}>
           {loading && (
             <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--muted)' }}>
-              {t('loading') || 'Loading...'}
+              {t('loading')}
             </div>
           )}
 
@@ -443,7 +443,7 @@ const GroupInfoPanel = ({ isOpen, onClose, roomId, roomName, isCreator, currentU
             (activeTab === 'links' && (searchQuery ? filterItems(stats.linkItems).length : stats.linkCount) === 0)
           ) && (
             <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--muted)', fontSize: '0.85rem' }}>
-              {searchQuery ? (t('chat_no_search_results') || 'No matching items') : (t('chat_no_items') || 'No items found')}
+              {searchQuery ? (t('chat_no_search_results')) : (t('chat_no_items'))}
             </div>
           )}
         </div>
@@ -456,26 +456,26 @@ const GroupInfoPanel = ({ isOpen, onClose, roomId, roomName, isCreator, currentU
         onConfirm={handleConfirmAction}
         title={
           confirmModal.type === 'assign'
-            ? (t('chat_assign_admin') || 'Assign as Admin')
+            ? (t('chat_assign_admin'))
             : confirmModal.type === 'leave_blocked'
-            ? (t('chat_cannot_leave_title') || 'Cannot Leave Group')
-            : (t('chat_leave_group') || 'Leave Group')
+            ? (t('chat_cannot_leave_title'))
+            : (t('chat_leave_group'))
         }
         message={
           confirmModal.type === 'assign'
-            ? (t('chat_assign_admin_confirm') || 'Are you sure you want to make this user the new admin? You will lose your admin privileges.')
+            ? (t('chat_assign_admin_confirm'))
             : confirmModal.type === 'leave_blocked'
-            ? (t('chat_assign_admin_first') || 'You are the only admin of this group. Please assign another member as admin before leaving.')
-            : (t('chat_leave_group_confirm') || 'Are you sure you want to leave this group?')
+            ? (t('chat_assign_admin_first'))
+            : (t('chat_leave_group_confirm'))
         }
         confirmText={
           confirmModal.type === 'assign'
-            ? (t('chat_assign_admin') || 'Assign')
+            ? (t('chat_assign_admin'))
             : confirmModal.type === 'leave_blocked'
-            ? (t('ok') || 'OK')
-            : (t('chat_leave_group') || 'Leave')
+            ? (t('ok'))
+            : (t('chat_leave_group'))
         }
-        cancelText={t('cancel') || 'Cancel'}
+        cancelText={t('cancel')}
         loading={actionLoading}
         variant={confirmModal.type === 'leave' ? 'danger' : 'primary'}
         size="small"

@@ -188,7 +188,7 @@ const UnifiedFilterSection = ({
         <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
           <input
             type="search"
-            placeholder={searchPlaceholder || (t('search') || 'Search...')}
+            placeholder={searchPlaceholder || (t('search'))}
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             style={{ 

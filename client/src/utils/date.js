@@ -121,7 +121,7 @@ export const getCurrentLanguage = (t) => {
   
   // Check if any Arabic translation is present
   const arabicIndicators = ['الإثنين', 'يناير', 'فبراير', 'مارس', 'أبريل'];
-  const sampleText = t('mon') || '';
+  const sampleText = t('mon');
   
   return arabicIndicators.some(indicator => sampleText.includes(indicator)) ? 'ar' : 'en';
 };

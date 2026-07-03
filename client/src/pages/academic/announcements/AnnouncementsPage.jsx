@@ -197,7 +197,7 @@ const AnnouncementsPage = ({ isDashboardTab = false }) => {
     let stopLoading = null;
 
     const initialLoad = async () => {
-      stopLoading = startLoading({ message: t('loading_announcements') || 'Loading announcements...' });
+      stopLoading = startLoading({ message: t('loading_announcements') });
       await loadData(true);
       if (stopLoading) stopLoading();
       setDataLoading(false);
@@ -426,7 +426,7 @@ const AnnouncementsPage = ({ isDashboardTab = false }) => {
       },
       renderCell: (params) => {
         const title = params?.row?.titleEn || params?.row?.title || params?.value || '';
-        return title || (t('no_title') || 'No title');
+        return title || (t('no_title'));
       }
     },
     { 
@@ -440,12 +440,12 @@ const AnnouncementsPage = ({ isDashboardTab = false }) => {
       },
       renderCell: (params) => {
         const title = params?.row?.titleAr || params?.row?.title || params?.value || '';
-        return title || (t('no_title') || 'No title');
+        return title || (t('no_title'));
       }
     },
     {
       field: 'priorityId', 
-      headerName: t('priority') || 'Priority', 
+      headerName: t('priority'), 
       width: 120,
       valueGetter: (params) => {
         const row = params?.row || {};
@@ -498,7 +498,7 @@ const AnnouncementsPage = ({ isDashboardTab = false }) => {
       },
       renderCell: (params) => {
         const content = params?.row?.descriptionEn || params?.row?.contentEn || params?.row?.content_en || params?.value || '';
-        if (!content) return t('announcements_no_content') || 'No content';
+        if (!content) return t('announcements_no_content');
         // Strip HTML tags for display
         const plainText = content.replace(/<[^>]*>/g, '');
         return plainText.length > 100 ? plainText.substring(0, 100) + '...' : plainText;
@@ -515,7 +515,7 @@ const AnnouncementsPage = ({ isDashboardTab = false }) => {
       },
       renderCell: (params) => {
         const content = params?.row?.descriptionAr || params?.row?.contentAr || params?.row?.content_ar || params?.value || '';
-        if (!content) return t('announcements_no_content') || 'No content';
+        if (!content) return t('announcements_no_content');
         // Strip HTML tags for display
         const plainText = content.replace(/<[^>]*>/g, '');
         return plainText.length > 100 ? plainText.substring(0, 100) + '...' : plainText;
@@ -523,7 +523,7 @@ const AnnouncementsPage = ({ isDashboardTab = false }) => {
     },
     {
       field: 'programId',
-      headerName: t('program') || 'Program',
+      headerName: t('program'),
       width: 150,
       renderCell: (params) => {
         const programId = params.value || params.row?.programId;
@@ -536,7 +536,7 @@ const AnnouncementsPage = ({ isDashboardTab = false }) => {
     },
     {
       field: 'subjectId',
-      headerName: t('subject') || 'Subject',
+      headerName: t('subject'),
       width: 150,
       renderCell: (params) => {
         const subjectId = params.value || params.row?.subjectId;
@@ -549,7 +549,7 @@ const AnnouncementsPage = ({ isDashboardTab = false }) => {
     },
     {
       field: 'classId',
-      headerName: t('class_col') || 'Class',
+      headerName: t('class_col'),
       width: 150,
       renderCell: (params) => {
         const classId = params.value || params.row?.classId;
@@ -580,7 +580,7 @@ const AnnouncementsPage = ({ isDashboardTab = false }) => {
     },
     ...auditColumns,
     {
-      field: 'actions', headerName: t('actions') || 'Actions', width: 200, sortable: false, filterable: false,
+      field: 'actions', headerName: t('actions'), width: 200, sortable: false, filterable: false,
       renderCell: (params) => (
         <div style={{ display: 'flex', gap: 8 }}>
           <Button 
@@ -590,7 +590,7 @@ const AnnouncementsPage = ({ isDashboardTab = false }) => {
             icon={getThemedIcon('ui', 'edit', 16, theme)} 
             onClick={() => handleEditAnnouncement(params.row)}
           >
-            {t('edit') || 'Edit'}
+            {t('edit')}
           </Button>
           <Button 
             size="sm" 
@@ -613,20 +613,20 @@ const AnnouncementsPage = ({ isDashboardTab = false }) => {
                   info('[DEBUG] Delete result:', result);
                   
                   if (result.success) {
-                    toast?.showSuccess(result.message || t('announcement_deleted_successfully') || 'Announcement deleted successfully!');
+                    toast?.showSuccess(result.message || t('announcement_deleted_successfully'));
                     await loadData();
                   } else {
                     setAnnouncements(prev => [...prev, announcement]);
-                    toast?.showError(result.error || t('error_deleting_announcement') || 'Error deleting announcement');
+                    toast?.showError(result.error || t('error_deleting_announcement'));
                   }
                 } catch (err) {
                   setAnnouncements(prev => [...prev, announcement]);
-                  toast?.showError(t('error_deleting_announcement') || 'Error deleting announcement: ' + err.message);
+                  toast?.showError(t('error_deleting_announcement') + err.message);
                 }
               });
             }}
           >
-            {t('delete') || 'Delete'}
+            {t('delete')}
           </Button>
         </div>
       )
@@ -671,7 +671,7 @@ const AnnouncementsPage = ({ isDashboardTab = false }) => {
           gap: '0.5rem',
           color: isDark ? '#fef3c7' : '#78350f'
         }}>
-          {getThemedIcon('ui', 'edit', 16, theme)} {t('editing_announcement') || 'Editing Announcement'}: {editingAnnouncement.title}
+          {getThemedIcon('ui', 'edit', 16, theme)} {t('editing_announcement')}: {editingAnnouncement.title}
         </div>
       )}
 
@@ -700,7 +700,7 @@ const AnnouncementsPage = ({ isDashboardTab = false }) => {
         <div className="form-row">
           <Select
             searchable
-            placeholder={t('target_audience') || 'Target Audience'}
+            placeholder={t('target_audience')}
             value={announcementForm.target}
             onChange={(e) => setAnnouncementForm(prev => ({ ...prev, target: e.target.value }))}
             options={TARGET_AUDIENCE_OPTIONS.map(type => ({
@@ -713,7 +713,7 @@ const AnnouncementsPage = ({ isDashboardTab = false }) => {
           
           <Select
             searchable
-            placeholder={t('priority') || 'Priority'}
+            placeholder={t('priority')}
             value={announcementForm.priorityId}
             onChange={(e) => setAnnouncementForm(prev => ({ ...prev, priorityId: parseInt(e.target.value) }))}
             options={priorityTypes.map(priority => ({
@@ -730,7 +730,7 @@ const AnnouncementsPage = ({ isDashboardTab = false }) => {
           <input
             ref={titleRef}
             type="text"
-            placeholder={(t('title_english') || 'Title (English)') + '*'}
+            placeholder={(t('title_english')) + '*'}
             defaultValue={announcementForm.titleEn || announcementForm.title}
             className="dashboard-input"
             required
@@ -738,7 +738,7 @@ const AnnouncementsPage = ({ isDashboardTab = false }) => {
           <input
             ref={titleArRef}
             type="text"
-            placeholder={t('title_arabic') || 'Title (Arabic)'}
+            placeholder={t('title_arabic')}
             defaultValue={announcementForm.titleAr}
             className="dashboard-input"
             style={{ direction: 'rtl' }}
@@ -751,7 +751,7 @@ const AnnouncementsPage = ({ isDashboardTab = false }) => {
             <RichTextEditor
               value={announcementForm.contentEn}
               onChange={(html) => setAnnouncementForm(prev => ({ ...prev, contentEn: html }))}
-              placeholder={t('announcement_content_english') || 'Announcement Content (English)'}
+              placeholder={t('announcement_content_english')}
               height={120}
               dir="ltr"
             />
@@ -760,7 +760,7 @@ const AnnouncementsPage = ({ isDashboardTab = false }) => {
             <RichTextEditor
               value={arabicContent}
               onChange={setArabicContent}
-              placeholder={t('announcement_content_arabic') || 'المحتوى بالعربية'}
+              placeholder={t('announcement_content_arabic')}
               height={120}
               dir="rtl"
             />
@@ -770,20 +770,20 @@ const AnnouncementsPage = ({ isDashboardTab = false }) => {
         {/* Toggles row: Featured + Email on same line */}
         <div style={{ display: 'flex', gap: '1.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
           <ToggleSwitch
-            label={t('featured') || 'Featured'}
+            label={t('featured')}
             checked={announcementForm.featured || false}
             onChange={(checked) => setAnnouncementForm(prev => ({ ...prev, featured: checked }))}
           />
           {/* Email notification option hidden per user request */}
           {/* <ToggleSwitch
-            label={t('send_email_notification') || 'Send email notification'}
+            label={t('send_email_notification')}
             checked={emailOptions.sendEmail}
             onChange={(checked) => handleEmailOptionChange('sendEmail', checked)}
           />
           {emailOptions.sendEmail && (
             <Select
               searchable
-              placeholder={t('language') || 'Language'}
+              placeholder={t('language')}
               value={emailOptions.emailLang}
               onChange={(e) => handleEmailOptionChange('emailLang', e.target.value)}
               options={[
@@ -801,7 +801,7 @@ const AnnouncementsPage = ({ isDashboardTab = false }) => {
           <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
               <Button type="submit" variant="primary" loading={loading}>
-                {(editingAnnouncement ? (t('update') || 'Update') : (t('save') || 'Save'))}
+                {(editingAnnouncement ? (t('update')) : (t('save')))}
               </Button>
             </div>
             <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
@@ -811,7 +811,7 @@ const AnnouncementsPage = ({ isDashboardTab = false }) => {
                 onClick={handleCancelEdit}
                 style={{ display: editingAnnouncement ? 'block' : 'none' }}
               >
-                {t('cancel') || 'Cancel'}
+                {t('cancel')}
               </Button>
             </div>
           </div>
@@ -906,7 +906,7 @@ const AnnouncementsPage = ({ isDashboardTab = false }) => {
           color: isDark ? '#dbeafe' : '#1e40af'
         }}>
           {getThemedIcon('ui', 'filter', 14, theme)}
-          {t('showing_filtered') || 'Showing'} {filteredAnnouncements.length} {t('of') || 'of'} {announcements.length} {t('announcements') || 'Announcements'}
+          {t('showing_filtered')} {filteredAnnouncements.length} {t('of')} {announcements.length} {t('announcements')}
         </div>
       )}
 
@@ -916,7 +916,7 @@ const AnnouncementsPage = ({ isDashboardTab = false }) => {
         chips={[
           {
             id: 'all',
-            label: t('total') || 'Total',
+            label: t('total'),
             count: announcements.length,
             icon: getThemedIcon('ui', 'target', 16, theme),
             variant: 'blue',
@@ -973,7 +973,7 @@ const AnnouncementsPage = ({ isDashboardTab = false }) => {
           checkboxSelection
           exportFileName="announcements"
           showExportButton
-          exportLabel={t('export') || 'Export'}
+          exportLabel={t('export')}
           loadingOverlayMessage={dataLoading ? "Loading..." : undefined}
         />
       </div>

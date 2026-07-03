@@ -425,7 +425,7 @@ export default function StudentActionStatsPanel({
               ? getRecordTypeLabel(RECORD_TYPES.PARTICIPATION, lang)
               : (record.category === RECORD_TYPES.BEHAVIOR
                   ? getRecordTypeLabel(RECORD_TYPES.BEHAVIOR, lang)
-                  : (getLocalizedAttendanceLabel(record.status, lang) || record.status || t('unknown') || 'Unknown')),
+                  : (getLocalizedAttendanceLabel(record.status, lang) || record.status || t('unknown'))),
           points: record.delta || 0,
           comment: (() => {
             const noteContent = record.reason || record.notes || '';
@@ -1078,8 +1078,8 @@ export default function StudentActionStatsPanel({
     // If no currentAttendanceStatus, check todayLogs for attendance records
     if (!hasTodayAttendance) {
       return {
-        en: t('none') || 'None',
-        ar: t('none') || 'لا شيء',
+        en: t('none'),
+        ar: t('none'),
         color: '#9ca3af'
       };
     }
@@ -1087,8 +1087,8 @@ export default function StudentActionStatsPanel({
     // If there are attendance records but no currentAttendanceStatus, use the latest from todayLogs
     // This shouldn't normally happen since todayLogs should set currentAttendanceStatus
     return {
-      en: t('none') || 'None',
-      ar: t('none') || 'لا شيء',
+      en: t('none'),
+      ar: t('none'),
       color: '#9ca3af'
     };
   }, [hasTodayAttendance, todayLogs, currentAttendanceStatus, t, lang]);
@@ -1205,7 +1205,7 @@ export default function StudentActionStatsPanel({
             </div>
         )}
 
-        <div dir={isRTL ? 'rtl' : 'ltr'} style={{
+        <div style={{
           position: 'fixed',
           top: 0,
           [isRTL ? 'left' : 'right']: 0,

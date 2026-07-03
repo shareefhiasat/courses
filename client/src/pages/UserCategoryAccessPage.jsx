@@ -346,7 +346,7 @@ const UserCategoryAccessPage = () => {
                 onClick={() => handleEditAccess(row)}
                 disabled={saving}
               >
-                {t('edit') || 'Edit'}
+                {t('edit')}
               </Button>
               <Button
                 variant="destructive"
@@ -354,7 +354,7 @@ const UserCategoryAccessPage = () => {
                 onClick={() => deleteEntity('user access', row, () => handleDeleteAccess(row))}
                 disabled={saving}
               >
-                {t('delete') || 'Delete'}
+                {t('delete')}
               </Button>
             </div>
           );
@@ -506,7 +506,7 @@ const UserCategoryAccessPage = () => {
                 onClick={handleCancel}
                 disabled={saving}
               >
-                {t('cancel') || 'Cancel'}
+                {t('cancel')}
               </Button>
             )}
           </div>
@@ -521,7 +521,7 @@ const UserCategoryAccessPage = () => {
           <Input
             value={filterSearch}
             onChange={e => setFilterSearch(e.target.value)}
-            placeholder={t('search') || 'Search'}
+            placeholder={t('search')}
           />
         </div>
         <div style={{ flex: '1 1 140px' }}>
@@ -535,7 +535,7 @@ const UserCategoryAccessPage = () => {
                 label: localizedName(category)
               }))
             ]}
-            placeholder={t('category') || 'Category'}
+            placeholder={t('category')}
           />
         </div>
         <div style={{ flex: '1 1 140px' }}>
@@ -549,7 +549,7 @@ const UserCategoryAccessPage = () => {
                 label: localizedName(program)
               }))
             ]}
-            placeholder={t('program') || 'Program'}
+            placeholder={t('program')}
           />
         </div>
         <div style={{ flex: '1 1 140px' }}>
@@ -563,7 +563,7 @@ const UserCategoryAccessPage = () => {
                 label: localizedName(subject)
               }))
             ]}
-            placeholder={t('subject') || 'Subject'}
+            placeholder={t('subject')}
           />
         </div>
         <div style={{ flex: '1 1 140px' }}>
@@ -577,7 +577,7 @@ const UserCategoryAccessPage = () => {
                 label: localizedName(cls)
               }))
             ]}
-            placeholder={t('class') || 'Class'}
+            placeholder={t('class')}
           />
         </div>
         {(filterSearch || filterCategory || filterProgram || filterSubject || filterClass) && (

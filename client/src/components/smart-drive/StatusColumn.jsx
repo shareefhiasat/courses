@@ -166,24 +166,24 @@ export default function StatusColumn({ file, onClick }) {
           onMouseLeave={() => setHovered(false)}
         >
           <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, marginBottom: '0.5rem' }}>
-            {t('drive.statusDetails') || 'Status Details'}
+            {t('drive.statusDetails')}
           </div>
           
           {/* Share details */}
           {hasShares && (
             <div style={{ marginBottom: '0.5rem' }}>
               <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted, #6b7280)', marginBottom: '0.25rem' }}>
-                {t('drive.sharedWith') || 'Shared with'}
+                {t('drive.sharedWith')}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: 'var(--font-size-xs)' }}>
                 {shareCounts.people > 0 && (
                   <span style={{ color: '#f97316', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                    {getThemedIcon('ui', 'user', 12, '#f97316')} {shareCounts.people} {t('drive.people') || 'people'}
+                    {getThemedIcon('ui', 'user', 12, '#f97316')} {shareCounts.people} {t('drive.people')}
                   </span>
                 )}
                 {shareCounts.roles > 0 && (
                   <span style={{ color: '#8b5cf6', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                    {getThemedIcon('ui', 'shield', 12, '#8b5cf6')} {shareCounts.roles} {t('drive.roles') || 'roles'}
+                    {getThemedIcon('ui', 'shield', 12, '#8b5cf6')} {shareCounts.roles} {t('drive.roles')}
                   </span>
                 )}
               </div>
@@ -194,7 +194,7 @@ export default function StatusColumn({ file, onClick }) {
           {hasActiveWorkflow && (
             <div>
               <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted, #6b7280)', marginBottom: '0.25rem' }}>
-                {t('drive.workflowStatus') || 'Workflow Status'}
+                {t('drive.workflowStatus')}
               </div>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.75rem', fontSize: 'var(--font-size-xs)' }}>
                 {Object.entries(workflowCounts)
@@ -227,21 +227,21 @@ export default function StatusColumn({ file, onClick }) {
           {hasPublicLinks && (
             <div>
               <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted, #6b7280)', marginBottom: '0.25rem' }}>
-                {t('drive.publicLinks') || 'Public Links'}
+                {t('drive.publicLinks')}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', fontSize: 'var(--font-size-xs)', color: '#10b981' }}>
                 <span style={{ fontSize: 'var(--font-size-sm)' }}>
                   {getThemedIcon('ui', 'link', 12, '#10b981')}
                 </span>
                 <span style={{ fontWeight: 600 }}>{publicLinksCount}</span>
-                <span>{t('drive.active') || 'active link'}{publicLinksCount > 1 ? 's' : ''}</span>
+                <span>{t('drive.active')}{publicLinksCount > 1 ? 's' : ''}</span>
               </div>
             </div>
           )}
 
           {!hasShares && !hasActiveWorkflow && !hasPublicLinks && (
             <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted, #6b7280)' }}>
-              {t('drive.noStatus') || 'No status information'}
+              {t('drive.noStatus')}
             </div>
           )}
         </div>

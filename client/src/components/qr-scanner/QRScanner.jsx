@@ -143,7 +143,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           margin: '0 auto 1rem'
         }}></div>
         <p style={{ color: '#6b7280', fontSize: 'var(--font-size-sm)', margin: 0 }}>
-          {t('loading') || 'Loading...'}
+          {t('loading')}
         </p>
       </div>
     );
@@ -578,8 +578,8 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
       // Don't show toast notification - using modal system instead
       // const message = type === GENERAL_STATUS.SUCCESS
-      //   ? (t('qr_scan_success') || 'QR Code scanned successfully!')
-      //   : (t('qr_scan_error') || 'QR Code scan failed. Please try again.');
+      //   ? (t('qr_scan_success'))
+      //   : (t('qr_scan_error'));
       //
       // addToast(message, type);
     } catch (err) {
@@ -590,7 +590,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
   const startCamera = useCallback(async () => {
     // Check if all required fields are selected before starting camera
     if (!selectedProgramId || !selectedSubjectId || !selectedClassId) {
-      showResult('error', t('please_select_program_subject_class') || 'Please select Program, Subject, and Class before scanning');
+      showResult('error', t('please_select_program_subject_class'));
       addDebugLog('❌ Cannot start camera: Missing required selections', 'error');
       return;
     }
@@ -671,14 +671,14 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
       // In regular mode, require Program, Subject, and Class
       if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
         if (!selectedProgramId || selectedProgramId === 'all') {
-          showResult('error', t('please_select_program') || 'Please select Program before scanning');
+          showResult('error', t('please_select_program'));
           return;
         }
       } else {
         if (!selectedProgramId || selectedProgramId === 'all' ||
             !selectedSubjectId || selectedSubjectId === 'all' ||
             !selectedClassId || selectedClassId === 'all') {
-          showResult('error', t('please_select_program_subject_class') || 'Please select Program, Subject, and Class before scanning');
+          showResult('error', t('please_select_program_subject_class'));
           return;
         }
       }
@@ -694,13 +694,13 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     // In regular mode, require Program, Subject, and Class
     if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
       if (!selectedProgramId || selectedProgramId === 'all') {
-        showResult('error', t('please_select_program') || 'Please select Program before scanning');
+        showResult('error', t('please_select_program'));
         addDebugLog('❌ Cannot scan manually: Missing program selection', 'error');
         return;
       }
     } else {
       if (!selectedProgramId || !selectedSubjectId || !selectedClassId) {
-        showResult('error', t('please_select_program_subject_class') || 'Please select Program, Subject, and Class before scanning');
+        showResult('error', t('please_select_program_subject_class'));
         addDebugLog('❌ Cannot scan manually: Missing required selections', 'error');
         return;
       }
@@ -1590,7 +1590,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
         if (attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP) {
           const isMarked = await isStudentMarkedToday(studentId);
           if (isMarked) {
-            showResult('info', t('already_marked_for_today') || 'Student is already marked for today.');
+            showResult('info', t('already_marked_for_today'));
             setShowScanDialog(false);
             return;
           }
@@ -1617,7 +1617,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
           setShowScanDialog(false);
           const statusLabel = getLocalizedAttendanceLabel(status, lang);
           const scannedStudentName = getLocalizedUserName(lastScannedStudent, lang);
-          showResult('success', <span>{t('student_marked_as', { name: scannedStudentName, status: statusLabel }) || `${scannedStudentName} marked as ${statusLabel}!`}<br/><b style={{ textDecoration: 'underline' }}>{scannedStudentName}</b></span>, status);
+          showResult('success', <span>{t('student_marked_as', { name: scannedStudentName, status: statusLabel })}<br/><b style={{ textDecoration: 'underline' }}>{scannedStudentName}</b></span>, status);
 
           // Emit proper attendance event
           eventBus.emit(EVENTS.ATTENDANCE_MARKED, {
@@ -1724,7 +1724,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
     if (!student || !status) return;
 
     const statusLabel = getLocalizedAttendanceLabel(status, lang);
-    addDebugLog(`⚡ ${t('quick') || 'Quick'} marking ${student.displayName || student.name} as ${statusLabel}`, 'info');
+    addDebugLog(`⚡ ${t('quick')} marking ${student.displayName || student.name} as ${statusLabel}`, 'info');
 
     try {
       const dateStr = (typeof selectedDate === 'string' && selectedDate) 
@@ -1757,7 +1757,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
       if (result.success) {
         const studentName = getLocalizedUserName(student, lang);
-        showResult('success', <span>{t('marked_as', { status: statusLabel }) || `Marked as ${statusLabel}!`}<br/><b style={{ textDecoration: 'underline' }}>{studentName}</b></span>, status);
+        showResult('success', <span>{t('marked_as', { status: statusLabel })}<br/><b style={{ textDecoration: 'underline' }}>{studentName}</b></span>, status);
 
         eventBus.emit(EVENTS.ATTENDANCE_MARKED, {
           studentId: student.id,
@@ -1793,7 +1793,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
   // Clear all standup attendance for current date/program
   const handleClearStandup = useCallback(async () => {
     if (!selectedProgramId || selectedProgramId === 'all') {
-      showResult('error', t('please_select_program') || 'Please select Program');
+      showResult('error', t('please_select_program'));
       return;
     }
 
@@ -1880,7 +1880,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
   // Clear all attendance for today in regular mode
   const handleClearRegular = useCallback(async () => {
     if (!selectedClassId || selectedClassId === 'all') {
-      showResult('error', t('please_select_class') || 'Please select Class');
+      showResult('error', t('please_select_class'));
       return;
     }
 
@@ -2009,7 +2009,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
   return (
       <CollapsibleSection
           sectionId="qr-scanner-v2"
-           title={t('activity_list') || 'Activity list'}
+           title={t('activity_list')}
           titleStyle={{ fontSize: 'var(--font-size-xs)' }}
           icon={<QrCodeIcon />}
           color="#8b5cf6"
@@ -2022,8 +2022,8 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
             <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', justifyContent: 'space-between' }}>
           <span style={{ fontSize: 'var(--font-size-sm)', color: '#6b7280' }}>
             {isScanning ?
-                t('scanning') || 'Scanning...' :
-                t('ready_to_scan') || 'Ready to scan'
+                t('scanning') :
+                t('ready_to_scan')
             }
           </span>
               <PortalTooltip content={t('toggle_minimization')} position="top">
@@ -2039,7 +2039,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
             </div>
           }
       >
-        <div dir={isRTL ? 'rtl' : 'ltr'} style={{
+        <div style={{
           background: 'var(--panel, white)',
           // borderRadius: '0.75rem',
           // border: '1px solid var(--border, #e5e7eb)',
@@ -2054,7 +2054,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               <QrCodeIcon className="w-5 h-5" style={{ width: '1.25rem', height: '1.25rem', color: 'var(--color-primary, #8b5cf6)' }} />
               <h3 style={{ fontWeight: 600, color: 'var(--text, #111827)', margin: 0, fontSize: 'var(--font-size-sm)' }}>
-                {t('scanner')} {isScanning ? t('active') || 'Active' : t('ready') || 'Ready'}
+                {t('scanner')} {isScanning ? t('active') : t('ready')}
               </h3>
             </div>
             <span style={{
@@ -2062,7 +2062,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
               color: isScanning ? '#166534' : '#1e40af',
               fontWeight: 500
             }}>
-          {isScanning ? t('scanning') || 'SCANNING' : t('idle') || 'IDLE'}
+          {isScanning ? t('scanning') : t('idle')}
         </span>
           </div> */}
 
@@ -2100,7 +2100,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
               }}>
                 {isMobile && (
                   <>
-                    <PortalTooltip content={vibrationEnabled ? (t('disable_vibration') || 'Disable vibration') : (t('enable_vibration') || 'Enable vibration')} position="top">
+                    <PortalTooltip content={vibrationEnabled ? (t('disable_vibration')) : (t('enable_vibration'))} position="top">
                     <button
                         onClick={() => setVibrationEnabled(!vibrationEnabled)}
                         style={{
@@ -2122,7 +2122,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                       </button>
                     </PortalTooltip>
 
-                    <PortalTooltip content={soundEnabled ? (t('disable_sound') || 'Disable sound') : (t('enable_sound') || 'Enable sound')} position="top">
+                    <PortalTooltip content={soundEnabled ? (t('disable_sound')) : (t('enable_sound'))} position="top">
                     <button
                         onClick={() => setSoundEnabled(!soundEnabled)}
                         style={{
@@ -2170,10 +2170,10 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                 {canManualInput && (
                   <PortalTooltip content={attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP
                     ? ((!selectedProgramId || selectedProgramId === 'all')
-                      ? (t('please_select_program') || 'Please select Program')
+                      ? (t('please_select_program'))
                       : t('manual_student_id_input'))
                     : ((!selectedProgramId || selectedProgramId === 'all' || !selectedSubjectId || selectedSubjectId === 'all' || !selectedClassId || selectedClassId === 'all')
-                      ? (t('please_select_program_subject_class') || 'Please select Program, Subject, and Class')
+                      ? (t('please_select_program_subject_class'))
                       : t('manual_student_id_input')
                       )
                     } position="top">
@@ -2183,12 +2183,12 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                           // Check if all required fields are selected before allowing manual input
                           if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
                             if (!selectedProgramId || selectedProgramId === 'all') {
-                              showResult('error', t('please_select_program') || 'Please select Program before scanning');
+                              showResult('error', t('please_select_program'));
                               return;
                             }
                           } else {
                             if (!selectedProgramId || selectedProgramId === 'all' || !selectedSubjectId || selectedSubjectId === 'all' || !selectedClassId || selectedClassId === 'all') {
-                              showResult('error', t('please_select_program_subject_class') || 'Please select Program, Subject, and Class before scanning');
+                              showResult('error', t('please_select_program_subject_class'));
                               return;
                             }
                           }
@@ -2216,17 +2216,17 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                 )}
 
                 {canBulkScan && (
-                  <PortalTooltip content={(attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || selectedProgramId === 'all' || !selectedSubjectId || selectedSubjectId === 'all' || !selectedClassId || selectedClassId === 'all')) ? t(attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'please_select_program' : 'please_select_program_subject_class') : (t('bulk_scan') || 'Bulk Scan')} position="top">
+                  <PortalTooltip content={(attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || selectedProgramId === 'all' || !selectedSubjectId || selectedSubjectId === 'all' || !selectedClassId || selectedClassId === 'all')) ? t(attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'please_select_program' : 'please_select_program_subject_class') : (t('bulk_scan'))} position="top">
                   <button
                       onClick={() => {
                         if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
                           if (!selectedProgramId || selectedProgramId === 'all') {
-                            showResult('error', t('please_select_program') || 'Please select Program before scanning');
+                            showResult('error', t('please_select_program'));
                             return;
                           }
                         } else {
                           if (!selectedProgramId || selectedProgramId === 'all' || !selectedSubjectId || selectedSubjectId === 'all' || !selectedClassId || selectedClassId === 'all') {
-                            showResult('error', t('please_select_program_subject_class') || 'Please select Program, Subject, and Class before scanning');
+                            showResult('error', t('please_select_program_subject_class'));
                             return;
                           }
                         }
@@ -2288,16 +2288,16 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                         animation: activityLoading ? 'spin 1s linear infinite' : 'none'
                       }} 
                     />
-                    {/*{t('refresh_today') || 'Refresh Today'}*/}
+                    {/*{t('refresh_today')}*/}
                   </button>
                 </PortalTooltip>
 
                 {/* Activity List Help Tour Button */}
-                <PortalTooltip content={t('activity_help_tour') || 'Take a tour of the activity list features'} position="top">
+                <PortalTooltip content={t('activity_help_tour')} position="top">
                   <button
                     onClick={() => {
                       if (recentActivity.length === 0) {
-                        showResult('error', t('no_todays_transactions') || 'No transactions Today');
+                        showResult('error', t('no_todays_transactions'));
                         return;
                       }
                       window.dispatchEvent(new Event('app:activity-tour'));
@@ -2325,7 +2325,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
 
                 {/* Recycle Button - Clear attendance for today */}
                 {canClearToday && (
-                  <PortalTooltip content={attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (t('clear_standup_for_today') || 'Clear Standup For Today') : (t('clear_attendance_for_today') || 'Clear Attendance For Today')} position="top">
+                  <PortalTooltip content={attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (t('clear_standup_for_today')) : (t('clear_attendance_for_today'))} position="top">
                     <button
                       onClick={attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? handleClearStandup : handleClearRegular}
                       disabled={activityLoading || (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedClassId || selectedClassId === 'all'))}
@@ -2814,14 +2814,14 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                     color: '#111827',
                     marginBottom: '0.75rem'
                   }}>
-                    {t('confirm_clear') || 'Confirm Clear'}
+                    {t('confirm_clear')}
                   </h3>
                   <p style={{
                     fontSize: 'var(--font-size-sm)',
                     color: '#6b7280',
                     marginBottom: '1rem'
                   }}>
-                    {t('confirm_clear_message') || 'Select the scope for clearing records:'}
+                    {t('confirm_clear_message')}
                   </p>
                   
                   <div style={{
@@ -2846,7 +2846,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                         onChange={() => setClearScope('today')}
                         style={{ cursor: 'pointer' }}
                       />
-                      <span>{t('clear_today') || 'Clear Today Only'}</span>
+                      <span>{t('clear_today')}</span>
                     </label>
                     <label style={{
                       display: 'flex',
@@ -2864,7 +2864,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                         onChange={() => setClearScope('all')}
                         style={{ cursor: 'pointer' }}
                       />
-                      <span>{t('clear_all_days') || 'Clear All Days'}</span>
+                      <span>{t('clear_all_days')}</span>
                     </label>
                   </div>
 
@@ -2888,7 +2888,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                           cursor: 'pointer'
                         }}
                     >
-                      {t('cancel') || 'Cancel'}
+                      {t('cancel')}
                     </button>
                     <button
                         onClick={async () => {
@@ -3046,7 +3046,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                             setShowScanDialog(false);
                           } catch (err) {
                             addDebugLog(`❌ Error clearing today's scans: ${err.message}`, 'error');
-                            showResult('error', `${t('clear_error') || 'Failed to clear today\'s scans'}: ${err.message}`);
+                            showResult('error', `${t('clear_error')}: ${err.message}`);
                           } finally {
                             setActionLoading(false);
                             setCurrentAction(null);
@@ -3063,7 +3063,7 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
                           cursor: actionLoading ? 'not-allowed' : 'pointer'
                         }}
                     >
-                      {actionLoading ? (t('clearing') || 'Clearing...') : (t('confirm_clear') || 'Confirm Clear')}
+                      {actionLoading ? (t('clearing')) : (t('confirm_clear'))}
                     </button>
                   </div>
                 </div>
@@ -3076,11 +3076,11 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
             onClose={() => setClearStandupModal({ isOpen: false, loading: false, recordCount: 0 })}
             onConfirm={confirmClearStandup}
             loading={clearStandupModal.loading}
-            customTitle={t('confirm_clear_standup') || 'Clear Standup Attendance'}
+            customTitle={t('confirm_clear_standup')}
             customMessage={
               clearStandupModal.recordCount > 0
-                ? `${t('confirm_clear_standup_message') || 'Are you sure you want to clear all standup attendance for today?'}\n\n${t('this_will_delete') || 'This will delete'} ${clearStandupModal.recordCount} ${t('standup_attendance_records') || 'standup attendance records'} ${t('for_today') || 'for today'}.\n\n⚠️ ${t('this_action_cannot_be_undone') || 'This action cannot be undone.'}`
-                : `${t('no_standup_records_today') || 'No standup attendance records found for today.'}`
+                ? `${t('confirm_clear_standup_message')}\n\n${t('this_will_delete')} ${clearStandupModal.recordCount} ${t('standup_attendance_records')} ${t('for_today')}.\n\n⚠️ ${t('this_action_cannot_be_undone')}`
+                : `${t('no_standup_records_today')}`
             }
             t={t}
           />
@@ -3091,11 +3091,11 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
             onClose={() => setClearRegularModal({ isOpen: false, loading: false, recordCount: 0 })}
             onConfirm={confirmClearRegular}
             loading={clearRegularModal.loading}
-            customTitle={t('confirm_clear_today') || 'Clear Today\'s Scans'}
+            customTitle={t('confirm_clear_today')}
             customMessage={
               clearRegularModal.recordCount > 0
-                ? `${t('confirm_clear_message') || 'Are you sure you want to clear all records for today? This will permanently delete all attendance records for today\'s date.'}\n\n${t('this_will_delete') || 'This will delete'} ${clearRegularModal.recordCount} ${t('attendance_records') || 'attendance records'} ${t('for_today') || 'for today'}.\n\n⚠️ ${t('this_action_cannot_be_undone') || 'This action cannot be undone.'}`
-                : `${t('no_attendance_records_today') || 'No attendance records found for today.'}`
+                ? `${t('confirm_clear_message')}\n\n${t('this_will_delete')} ${clearRegularModal.recordCount} ${t('attendance_records')} ${t('for_today')}.\n\n⚠️ ${t('this_action_cannot_be_undone')}`
+                : `${t('no_attendance_records_today')}`
             }
             t={t}
           />

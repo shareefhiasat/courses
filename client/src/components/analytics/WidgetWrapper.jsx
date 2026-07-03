@@ -60,7 +60,7 @@ const WidgetWrapper = ({
     const localized = lang === 'ar'
       ? (widget.titleAr || widget.titleEn || widget.title)
       : (widget.titleEn || widget.titleAr || widget.title);
-    return titleFromKey || localized || t('untitled') || 'Untitled';
+    return titleFromKey || localized || t('untitled');
   }, [widget, t, lang]);
 
   const downloadWidgetSvg = useCallback(() => {
@@ -80,13 +80,13 @@ const WidgetWrapper = ({
   // Helper to get localized date range label
   const getDateRangeLabel = useCallback((dateRange) => {
     const labels = {
-      all: t('all_time') || 'All',
-      current: t('current_period') || 'Current period',
-      today: t('today') || 'Today',
-      last7: t('last_7_days') || 'Last 7 Days',
-      last30: t('last_30_days') || 'Last 30 Days',
-      last90: t('last_90_days') || 'Last 90 Days',
-      custom: t('custom_range') || 'Custom'
+      all: t('all_time'),
+      current: t('current_period'),
+      today: t('today'),
+      last7: t('last_7_days'),
+      last30: t('last_30_days'),
+      last90: t('last_90_days'),
+      custom: t('custom_range')
     };
     return labels[dateRange] || dateRange;
   }, [t]);
@@ -106,10 +106,10 @@ const WidgetWrapper = ({
   }[widget.chartType] || widget.chartType;
   const metaTooltip = [
     widget.dateRange && widget.dateRange !== 'current'
-      ? `${t('period') || 'Period'}: ${getDateRangeLabel(widget.dateRange)}`
+      ? `${t('period')}: ${getDateRangeLabel(widget.dateRange)}`
       : null,
     lastUpdatedAt
-      ? `${t('updated') || 'Updated'}: ${formatDateTime(lastUpdatedAt, lang)}`
+      ? `${t('updated')}: ${formatDateTime(lastUpdatedAt, lang)}`
       : null,
   ].filter(Boolean).join('\n');
 
@@ -153,7 +153,7 @@ const WidgetWrapper = ({
     >
       {/* Refresh — local re-render only - HIDDEN FOR NOW */}
       {/* <ActionBtn
-        title={isRefreshing ? (t('refreshing') || 'Refreshing...') : (t('refresh') || 'Refresh')}
+        title={isRefreshing ? (t('refreshing')) : (t('refresh'))}
         onClick={async () => {
           info('[WIDGET WRAPPER DEBUG] 🔄 Refresh button clicked in wrapper!');
           console.log('[WIDGET WRAPPER DEBUG] 📊 Widget title:', widget.title || 'Untitled');
@@ -205,7 +205,7 @@ const WidgetWrapper = ({
       </PortalTooltip>
 
       {widget.chartType !== 'list' && widget.chartType !== 'count' && (
-        <PortalTooltip content={t('download') || 'Download'} position="top">
+        <PortalTooltip content={t('download')} position="top">
           <button type="button" onClick={downloadWidgetSvg} style={tinyBtn}>
             <ActionIcon><Download size={11} /></ActionIcon>
           </button>
@@ -256,7 +256,7 @@ const WidgetWrapper = ({
               <PortalTooltip content={helpText} position="top">
                 <span
                   style={{ display: 'flex', color: 'var(--muted)', cursor: 'help', marginTop: 2, flexShrink: 0 }}
-                  aria-label={t('widget_help') || 'What does this show?'}
+                  aria-label={t('widget_help')}
                   onClick={(e) => e.stopPropagation()}
                 >
                   <CircleHelp size={12} />
@@ -267,7 +267,7 @@ const WidgetWrapper = ({
               <PortalTooltip content={metaTooltip} position="top">
                 <span
                   style={{ display: 'flex', color: 'var(--muted)', cursor: 'help', marginTop: 2, flexShrink: 0 }}
-                  aria-label={t('widget_meta') || 'Widget info'}
+                  aria-label={t('widget_meta')}
                   onClick={(e) => e.stopPropagation()}
                 >
                   <Info size={12} />
@@ -292,7 +292,7 @@ const WidgetWrapper = ({
               )}
               {isMinimized && (
                 <span style={{ color: 'var(--muted)', fontSize: 11, fontWeight: 400, marginInlineStart: 6 }}>
-                  — {t('click_to_expand') || 'click to expand'}
+                  — {t('click_to_expand')}
                 </span>
               )}
             </h3>

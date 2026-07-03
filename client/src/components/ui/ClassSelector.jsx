@@ -96,7 +96,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Class
 
   // Create options for selects
   const programOptions = useMemo(() => {
-    const options = showAllOption ? [{ value: 'all', label: t('all_programs') || 'All Programs' }] : [];
+    const options = showAllOption ? [{ value: 'all', label: t('all_programs') }] : [];
     return [
       ...options,
       ...programs.map(program => ({
@@ -107,7 +107,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Class
   }, [programs, showAllOption, t, lang]);
 
   const subjectOptions = useMemo(() => {
-    const options = showAllOption ? [{ value: 'all', label: t('all_subjects') || 'All Subjects' }] : [];
+    const options = showAllOption ? [{ value: 'all', label: t('all_subjects') }] : [];
     return [
       ...options,
       ...sortSubjectsByCode(filteredSubjects).map(subject => ({
@@ -118,7 +118,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Class
   }, [filteredSubjects, showAllOption, t, lang]);
 
   const classOptions = useMemo(() => {
-    const options = showAllOption ? [{ value: 'all', label: t('all_classes') || 'All Classes' }] : [];
+    const options = showAllOption ? [{ value: 'all', label: t('all_classes') }] : [];
     return [
       ...options,
       ...sortClassesForSelect(filteredClasses, lang).map(cls => ({
@@ -141,7 +141,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Class
           value={programValue}
           onChange={handleProgramChange}
           options={programOptions}
-          placeholder={t('select_program') || 'Select Program'}
+          placeholder={t('select_program')}
           required={required}
           disabled={disabled}
           fullWidth
@@ -155,7 +155,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Class
           value={subjectValue}
           onChange={handleSubjectChange}
           options={subjectOptions}
-          placeholder={t('select_subject') || 'Select Subject'}
+          placeholder={t('select_subject')}
           required={required}
           disabled={disabled || !programValue || programValue === 'all'}
           fullWidth
@@ -169,7 +169,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Class
           value={classValue}
           onChange={handleClassChange}
           options={classOptions}
-          placeholder={t('select_class') || 'Select Class'}
+          placeholder={t('select_class')}
           required={required}
           disabled={disabled || !subjectValue || subjectValue === 'all'}
           fullWidth
@@ -311,7 +311,7 @@ const ClassSelectorAdvanced = ({
 
   // Create options
   const programOptions = useMemo(() => {
-    const options = showAllOption ? [{ value: 'all', label: t('all_programs') || 'All Programs' }] : [];
+    const options = showAllOption ? [{ value: 'all', label: t('all_programs') }] : [];
     return [
       ...options,
       ...programs.map(program => ({
@@ -322,7 +322,7 @@ const ClassSelectorAdvanced = ({
   }, [programs, showAllOption, t, lang]);
 
   const subjectOptions = useMemo(() => {
-    const options = showAllOption ? [{ value: 'all', label: t('all_subjects') || 'All Subjects' }] : [];
+    const options = showAllOption ? [{ value: 'all', label: t('all_subjects') }] : [];
     return [
       ...options,
       ...sortSubjectsByCode(filteredSubjects).map(subject => ({
@@ -333,7 +333,7 @@ const ClassSelectorAdvanced = ({
   }, [filteredSubjects, showAllOption, t, lang]);
 
   const classOptions = useMemo(() => {
-    const options = showAllOption ? [{ value: 'all', label: t('all_classes') || 'All Classes' }] : [];
+    const options = showAllOption ? [{ value: 'all', label: t('all_classes') }] : [];
     return [
       ...options,
       ...sortClassesForSelect(filteredClasses, lang).map(cls => ({
@@ -344,7 +344,7 @@ const ClassSelectorAdvanced = ({
   }, [filteredClasses, showAllOption, t, lang]);
 
   const yearOptions = useMemo(() => {
-    const options = showAllOption ? [{ value: 'all', label: t('all_years') || 'All Years' }] : [];
+    const options = showAllOption ? [{ value: 'all', label: t('all_years') }] : [];
     const uniqueYears = Array.from(new Set(classes.map(c => {
       if (c.year) return String(c.year);
       if (c.term && c.term.includes(' ')) {
@@ -361,7 +361,7 @@ const ClassSelectorAdvanced = ({
   }, [classes, showAllOption, t]);
 
   const termOptions = useMemo(() => {
-    const options = showAllOption ? [{ value: 'all', label: t('all_terms') || 'All Terms' }] : [];
+    const options = showAllOption ? [{ value: 'all', label: t('all_terms') }] : [];
     const uniqueTerms = Array.from(new Set(classes.map(c => {
       if (c.term) {
         // For separate term field, use it directly
@@ -388,7 +388,7 @@ const ClassSelectorAdvanced = ({
           value={programValue}
           onChange={(e) => handleProgramChange(e.target.value)}
           options={programOptions}
-          placeholder={t('select_program') || 'Select Program'}
+          placeholder={t('select_program')}
           required={required}
           disabled={disabled}
           fullWidth
@@ -402,7 +402,7 @@ const ClassSelectorAdvanced = ({
           value={subjectValue}
           onChange={(e) => handleSubjectChange(e.target.value)}
           options={subjectOptions}
-          placeholder={t('select_subject') || 'Select Subject'}
+          placeholder={t('select_subject')}
           required={required}
           disabled={disabled || (!programValue || programValue === 'all')}
           fullWidth
@@ -417,7 +417,7 @@ const ClassSelectorAdvanced = ({
             value={yearValue}
             onChange={(e) => handleYearChange(e.target.value)}
             options={yearOptions}
-            placeholder={t('select_year') || 'Select Year'}
+            placeholder={t('select_year')}
             disabled={disabled}
             fullWidth
           />
@@ -432,7 +432,7 @@ const ClassSelectorAdvanced = ({
             value={termValue}
             onChange={(e) => handleTermChange(e.target.value)}
             options={termOptions}
-            placeholder={t('select_term') || 'Select Term'}
+            placeholder={t('select_term')}
             disabled={disabled}
             fullWidth
           />
@@ -446,7 +446,7 @@ const ClassSelectorAdvanced = ({
           value={classValue}
           onChange={(e) => handleClassChange(e.target.value)}
           options={classOptions}
-          placeholder={t('select_class') || 'Select Class'}
+          placeholder={t('select_class')}
           required={required}
           disabled={disabled || (!subjectValue || subjectValue === 'all')}
           fullWidth

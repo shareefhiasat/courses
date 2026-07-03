@@ -1,5 +1,5 @@
 import { useContext } from 'react';
-import { LangContext } from '../contexts/LangContext';
+import { LangContext, DICT } from '../contexts/LangContext';
 
 
 import { info, error, warn, debug } from '@services/utils/logger.js';/**
@@ -73,16 +73,10 @@ export const useBilingualNotes = () => {
         
         // For system-defined notes, try to translate using the dictionary
         if (typeof noteKey === 'string') {
-          // Import dynamically to avoid circular dependencies
-          try {
-            const { DICT } = require('../contexts/LangContext');
-            const translationKey = noteKey.toLowerCase().replace(/\s+/g, '_');
-            const translated = DICT[lang]?.[translationKey];
-            if (translated && translated !== noteKey) {
-              return translated;
-            }
-          } catch (dictError) {
-            // Dictionary not available, fallback to original
+          const translationKey = noteKey.toLowerCase().replace(/\s+/g, '_');
+          const translated = DICT[lang]?.[translationKey];
+          if (translated && translated !== noteKey) {
+            return translated;
           }
         }
         

@@ -145,8 +145,8 @@ export default function StudentDashboardExport({ dashData, lookupData, isRTL }) 
         type="button"
         onClick={exportPDF}
         data-testid="export-student-pdf"
-        title={t('export_pdf') || 'Export PDF'}
-        aria-label={t('export_pdf') || 'Export PDF'}
+        title={t('export_pdf')}
+        aria-label={t('export_pdf')}
         style={buttonStyle}
       >
         <FileDown size={16} />
@@ -155,8 +155,8 @@ export default function StudentDashboardExport({ dashData, lookupData, isRTL }) 
         type="button"
         onClick={exportExcel}
         data-testid="export-student-excel"
-        title={t('export_excel') || 'Export Excel'}
-        aria-label={t('export_excel') || 'Export Excel'}
+        title={t('export_excel')}
+        aria-label={t('export_excel')}
         style={buttonStyle}
       >
         <FileSpreadsheet size={16} />

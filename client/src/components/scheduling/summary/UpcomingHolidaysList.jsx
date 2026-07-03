@@ -19,11 +19,11 @@ export default function UpcomingHolidaysList({ holidays = [] }) {
     <Card>
       <CardBody>
         <h3 style={{ fontSize: 'var(--font-size-lg)', fontWeight: 500, marginBottom: '1rem' }}>
-          {t('upcoming_holidays') || 'Upcoming Holidays'}
+          {t('upcoming_holidays')}
         </h3>
         {holidays.length === 0 ? (
           <p style={{ color: muted, fontSize: 'var(--font-size-sm)', textAlign: 'center' }}>
-            {t('no_upcoming_holidays') || 'No upcoming holidays'}
+            {t('no_upcoming_holidays')}
           </p>
         ) : (
           holidays.map((h) => (

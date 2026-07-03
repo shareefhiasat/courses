@@ -29,7 +29,7 @@ export default function QuizPreviewPage() {
 
   const loadQuiz = useCallback(async () => {
     if (!quizId) {
-      setError(t('quiz_id_not_provided') || 'Quiz ID not provided');
+      setError(t('quiz_id_not_provided'));
       return;
     }
 
@@ -37,20 +37,20 @@ export default function QuizPreviewPage() {
     try {
       const result = await getQuiz(quizId);
       if (!result.success) {
-        throw new Error(result.error || (t('failed_to_load_quiz') || 'Failed to load quiz'));
+        throw new Error(result.error || (t('failed_to_load_quiz')));
       }
 
       const quiz = result.data;
       
       // Load creator name (show only a clean name, never raw email)
-      let creatorName = t('unknown') || 'Unknown';
+      let creatorName = t('unknown');
       if (quiz.createdBy) {
         try {
           const userResult = await getUser(quiz.createdBy);
           if (userResult.success && userResult.data) {
             const { realName, displayName, name, email } = userResult.data;
             const emailName = email ? email.split('@')[0] : '';
-            creatorName = realName || displayName || name || emailName || (t('unknown') || 'Unknown');
+            creatorName = realName || displayName || name || emailName || (t('unknown'));
           }
         } catch (err) {
           warn('Failed to load creator name:', err);
@@ -63,7 +63,7 @@ export default function QuizPreviewPage() {
         questionCount: quiz.questions?.length || 0
       });
     } catch (error) {
-      setError(error.message || (t('failed_to_load_quiz') || 'Failed to load quiz'));
+      setError(error.message || (t('failed_to_load_quiz')));
       error('Error loading quiz:', error);
     } finally {
       setLoading(false);
@@ -90,13 +90,13 @@ export default function QuizPreviewPage() {
   const getQuestionTypeLabel = useCallback((type) => {
     switch (type) {
       case 'multiple_choice':
-        return t('multiple_choice') || 'Multiple Choice';
+        return t('multiple_choice');
       case 'single_choice':
-        return t('single_choice') || 'Single Choice';
+        return t('single_choice');
       case 'true_false':
-        return t('true_false') || 'True/False';
+        return t('true_false');
       default:
-        return t('question') || 'Question';
+        return t('question');
     }
   }, [t]);
 
@@ -122,12 +122,12 @@ export default function QuizPreviewPage() {
       case DIFFICULTY_TYPES.ADVANCED:
         return DIFFICULTY_LABELS[DIFFICULTY_TYPES.ADVANCED];
       default:
-        return difficulty || (t('general') || 'General');
+        return difficulty || (t('general'));
     }
   }, [t]);
 
   const handleStartQuiz = () => {
-    toast?.showInfo?.(t('starting_quiz') || 'Starting quiz...');
+    toast?.showInfo?.(t('starting_quiz'));
     navigate(`/quiz/${quizId}`);
   };
 
@@ -175,10 +175,10 @@ export default function QuizPreviewPage() {
         <Container maxWidth="lg">
           <Card>
             <CardBody className={styles.errorContent}>
-              <h3>{t('error') || 'Error'}</h3>
-              <p>{error || (t('quiz_not_found') || 'Quiz not found')}</p>
+              <h3>{t('error')}</h3>
+              <p>{error || (t('quiz_not_found'))}</p>
               <Button variant="outline" onClick={() => navigate('/quiz-management')}>
-                {t('back_to_quiz_management') || 'Back to Quiz Management'}
+                {t('back_to_quiz_management')}
               </Button>
             </CardBody>
           </Card>
@@ -201,7 +201,7 @@ export default function QuizPreviewPage() {
                 onClick={() => navigate('/quizzes')}
               >
                 <ArrowLeft size={14} />
-                {t('back_to_edit') || 'Back to Edit'}
+                {t('back_to_edit')}
               </Badge>
               <h1 className={styles.quizTitle} style={{ marginBottom: '0.75rem', fontSize: '2rem', fontWeight: 700, color: '#1f2937' }}>{quizData.title}</h1>
               {quizData.description && (
@@ -214,21 +214,21 @@ export default function QuizPreviewPage() {
                 </Badge>
                 <Badge variant="subtle" color="info" size="medium">
                   <ListChecks size={14} style={{ marginRight: '0.5rem' }} />
-                  {quizData.questions.length} {quizData.questions.length === 1 ? (t('question') || 'question') : (t('questions') || 'questions')}
+                  {quizData.questions.length} {quizData.questions.length === 1 ? (t('question')) : (t('questions'))}
                 </Badge>
                 <Badge variant="subtle" color="warning" size="medium">
                   <Award size={14} style={{ marginRight: '0.5rem' }} />
-                  {quizData.questions.reduce((sum, q) => sum + (q.points || 1), 0)} {t('points') || 'points'}
+                  {quizData.questions.reduce((sum, q) => sum + (q.points || 1), 0)} {t('points')}
                 </Badge>
                 {(quizData.settings?.timeLimit > 0) ? (
                   <Badge variant="outline" color="danger" size="medium">
                     <Clock size={14} style={{ marginRight: '0.5rem' }} />
-                    {quizData.settings.timeLimit} {t('min_limit') || 'min limit'}
+                    {quizData.settings.timeLimit} {t('min_limit')}
                   </Badge>
                 ) : (
                   <Badge variant="subtle" color="info" size="medium">
                     <Clock size={14} style={{ marginRight: '0.5rem' }} />
-                    {quizData.estimatedTime} {t('min') || 'min'}
+                    {quizData.estimatedTime} {t('min')}
                   </Badge>
                 )}
                 <Badge variant="subtle" color={getDifficultyColor(quizData.difficulty)} size="medium">
@@ -237,24 +237,24 @@ export default function QuizPreviewPage() {
                 {quizData.settings?.allowRetake && (
                   <Badge variant="outline" color="info" size="medium">
                     <Repeat size={14} style={{ marginRight: '0.5rem' }} />
-                    {t('retake_allowed') || 'Retake allowed'}
+                    {t('retake_allowed')}
                   </Badge>
                 )}
                 {quizData.settings?.randomizeOrder && (
                   <Badge variant="outline" color="primary" size="medium">
                     <Shuffle size={14} style={{ marginRight: '0.5rem' }} />
-                    {t('shuffle_questions') || 'Shuffle questions'}
+                    {t('shuffle_questions')}
                   </Badge>
                 )}
                 {quizData.settings?.shuffleOptions && (
                   <Badge variant="outline" color="primary" size="medium">
                     <Shuffle size={14} style={{ marginRight: '0.5rem' }} />
-                    {t('shuffle_options') || 'Shuffle options'}
+                    {t('shuffle_options')}
                   </Badge>
                 )}
                 {quizData.creatorName && quizData.creatorName !== 'Unknown' && (
                   <Badge variant="outline" color="default" size="medium">
-                    {t('created_by') || 'Created by'} {quizData.creatorName}
+                    {t('created_by')} {quizData.creatorName}
                   </Badge>
                 )}
               </div>
@@ -266,10 +266,10 @@ export default function QuizPreviewPage() {
                   color="primary"
                   style={{ cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '0.5rem', padding: '0.5rem 1rem', fontSize: 'var(--font-size-sm)' }}
                   onClick={handleEditQuiz}
-                  title={t('edit_quiz') || 'Edit quiz'}
+                  title={t('edit_quiz')}
                 >
                   <Edit size={14} />
-                  {t('edit') || 'Edit'}
+                  {t('edit')}
                 </Badge>
               ) : null}
               <Badge
@@ -279,7 +279,7 @@ export default function QuizPreviewPage() {
                 onClick={handleStartQuiz}
               >
                 <Play size={16} />
-                {t('start_quiz') || 'Start Quiz'}
+                {t('start_quiz')}
               </Badge>
             </div>
           </div>
@@ -287,7 +287,7 @@ export default function QuizPreviewPage() {
 
         {/* Questions */}
         <div className={styles.questionsSection} style={{ marginTop: '2rem' }}>
-          <h2 style={{ fontSize: '1.5rem', fontWeight: 600, color: '#1f2937', marginBottom: '1.5rem' }}>{t('questions_preview') || 'Questions Preview'}</h2>
+          <h2 style={{ fontSize: '1.5rem', fontWeight: 600, color: '#1f2937', marginBottom: '1.5rem' }}>{t('questions_preview')}</h2>
           <div className={styles.questionsList} style={{ display: 'grid', gap: '1.25rem' }}>
             {quizData.questions.map((question, qIndex) => (
               <Card key={question.id} className={styles.questionCard} style={{ padding: '1.5rem', background: 'white', borderRadius: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}>
@@ -299,7 +299,7 @@ export default function QuizPreviewPage() {
                       <span style={{ marginLeft: '0.5rem' }}>{getQuestionTypeLabel(question.type)}</span>
                     </Badge>
                     <Badge variant="subtle" color="default" size="medium">
-                      {question.points || 1} {t('point') || 'point'}{question.points !== 1 ? (t('points_plural') || 's') : ''}
+                      {question.points || 1} {t('point')}{question.points !== 1 ? (t('points_plural')) : ''}
                     </Badge>
                   </div>
 

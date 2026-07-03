@@ -99,8 +99,8 @@ const DraggableClock = ({
     // Extract time part and localize AM/PM
     let timeStr = localized.time;
     if (lang === 'ar') {
-      timeStr = timeStr.replace('AM', t('am') || 'ص');
-      timeStr = timeStr.replace('PM', t('pm') || 'م');
+      timeStr = timeStr.replace('AM', t('am'));
+      timeStr = timeStr.replace('PM', t('pm'));
     }
     
     if (!showSeconds) {

@@ -82,7 +82,7 @@ export default function TimelinePanelLayout({
               gap: '0.5rem',
             }}>
               {getIcon('ui', 'clock', 16)}
-              {t('drive.timeline') || 'Timeline'}
+              {t('drive.timeline')}
             </h4>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
               <button

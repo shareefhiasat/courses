@@ -40,8 +40,8 @@ const MultiSelect = ({
   const searchInputRef = useRef(null);
 
   const isDark = theme === 'dark';
-  const localizedPlaceholder = placeholder || t('select_options') || 'Select options...';
-  const localizedSearchPlaceholder = searchPlaceholder || t('search') || 'Search...';
+  const localizedPlaceholder = placeholder || t('select_options');
+  const localizedSearchPlaceholder = searchPlaceholder || t('search');
 
   const wrapperClasses = [
     selectStyles.selectWrapper,
@@ -286,7 +286,7 @@ const MultiSelect = ({
                 color: isDark ? '#9ca3af' : '#6b7280',
                 fontSize: '14px'
               }}>
-                {t('no_options_found') || 'No options found'}
+                {t('no_options_found')}
               </div>
             ) : (
               filteredOptions.map((option, index) => {

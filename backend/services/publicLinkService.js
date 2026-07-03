@@ -17,14 +17,7 @@
 import prisma from '../db/prismaClient.js';
 import bcrypt from 'bcryptjs';
 import crypto from 'node:crypto';
-
-
-const ok = (payload) => ({ success: true, payload, timestamp: Date.now() });
-const err = (code, message) => ({
-  success: false,
-  error: { code, message },
-  timestamp: Date.now(),
-});
+import { ok, err } from '../utils/result.js';
 
 const DEFAULT_EXPIRY_DAYS = parseInt(process.env.PUBLIC_LINK_DEFAULT_EXPIRY_DAYS || '7', 10);
 

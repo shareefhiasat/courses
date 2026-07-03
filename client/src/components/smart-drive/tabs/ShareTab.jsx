@@ -258,10 +258,10 @@ export default function ShareTab({ fileId, onShare, onGenerateLink }) {
               <div>
                 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', padding: '0.75rem', border: '1px solid var(--border, #e5e7eb)', borderRadius: '0.5rem', background: 'var(--background-secondary, #f3f4f6)' }}>
                   {[
-                    { value: PERMISSIONS.VIEW, label: t('drive.permission.view') || 'View' },
-                    { value: PERMISSIONS.DOWNLOAD, label: t('drive.permission.download') || 'Download' },
-                    { value: PERMISSIONS.COMMENT, label: t('drive.permission.comment') || 'Comment' },
-                    { value: PERMISSIONS.EDIT, label: t('drive.permission.edit') || 'Edit' }
+                    { value: PERMISSIONS.VIEW, label: t('drive.permission.view') },
+                    { value: PERMISSIONS.DOWNLOAD, label: t('drive.permission.download') },
+                    { value: PERMISSIONS.COMMENT, label: t('drive.permission.comment') },
+                    { value: PERMISSIONS.EDIT, label: t('drive.permission.edit') }
                   ].map(perm => (
                     <ToggleSwitch
                       key={perm.value}
@@ -305,7 +305,7 @@ export default function ShareTab({ fileId, onShare, onGenerateLink }) {
                   value={selectedRoles}
                   onChange={setSelectedRoles}
                   includeRoles={DRIVE_SHARE_ROLES}
-                  placeholder={t('select_roles') || t('drive.selectRole')}
+                  placeholder={t('select_roles')}
                   disabled={loading}
                 />
 
@@ -327,10 +327,10 @@ export default function ShareTab({ fileId, onShare, onGenerateLink }) {
               <div>
                 <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', padding: '0.75rem', border: '1px solid var(--border, #e5e7eb)', borderRadius: '0.5rem', background: 'var(--background-secondary, #f3f4f6)' }}>
                   {[
-                    { value: PERMISSIONS.VIEW, label: t('drive.permission.view') || 'View' },
-                    { value: PERMISSIONS.DOWNLOAD, label: t('drive.permission.download') || 'Download' },
-                    { value: PERMISSIONS.COMMENT, label: t('drive.permission.comment') || 'Comment' },
-                    { value: PERMISSIONS.EDIT, label: t('drive.permission.edit') || 'Edit' }
+                    { value: PERMISSIONS.VIEW, label: t('drive.permission.view') },
+                    { value: PERMISSIONS.DOWNLOAD, label: t('drive.permission.download') },
+                    { value: PERMISSIONS.COMMENT, label: t('drive.permission.comment') },
+                    { value: PERMISSIONS.EDIT, label: t('drive.permission.edit') }
                   ].map(perm => (
                     <ToggleSwitch
                       key={perm.value}

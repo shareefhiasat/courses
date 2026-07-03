@@ -35,14 +35,14 @@ const ManualInputForm = ({
         fontWeight: 600,
         color: '#111827'
       }}>
-        {t('manual_student_id') || 'Manual Student ID'}
+        {t('manual_student_id')}
       </h3>
 
       <input
         type="text"
         value={manualStudentId}
         onChange={(e) => setManualStudentId(e.target.value)}
-        placeholder={t('enter_reference_id') || 'Enter student number or reference ID...'}
+        placeholder={t('enter_reference_id')}
         style={{
           width: '100%',
           padding: '0.75rem',
@@ -82,7 +82,7 @@ const ManualInputForm = ({
             transition: 'all 0.2s ease'
           }}
         >
-          {t('simulate_scan') || 'Simulate Scan'}
+          {t('simulate_scan')}
         </button>
 
         <button
@@ -100,7 +100,7 @@ const ManualInputForm = ({
             transition: 'all 0.2s ease'
           }}
         >
-          {t('cancel') || 'Cancel'}
+          {t('cancel')}
         </button>
       </div>
     </div>

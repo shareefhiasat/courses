@@ -25,7 +25,7 @@ const StatsBar = ({
       icon: 'check_circle',
       color: '#16a34a',
       value: stats.completed,
-      title: t('completed') || 'Completed'
+      title: t('completed')
     });
   }
 
@@ -34,7 +34,7 @@ const StatsBar = ({
       icon: 'hourglass',
       color: '#f59e0b',
       value: stats.pending,
-      title: t('pending') || 'Pending'
+      title: t('pending')
     });
   }
 
@@ -43,7 +43,7 @@ const StatsBar = ({
       icon: 'clock',
       color: '#dc2626',
       value: stats.overdue,
-      title: t('overdue') || 'Overdue'
+      title: t('overdue')
     });
   }
 
@@ -52,7 +52,7 @@ const StatsBar = ({
       icon: 'alert_circle',
       color: '#b91c1c',
       value: stats.required,
-      title: t('required') || 'Required'
+      title: t('required')
     });
   }
 
@@ -61,7 +61,7 @@ const StatsBar = ({
       icon: 'book_open',
       color: '#f57c00',
       value: stats.optional,
-      title: t('optional') || 'Optional'
+      title: t('optional')
     });
   }
 
@@ -70,7 +70,7 @@ const StatsBar = ({
       icon: 'pin',
       color: '#4f46e5',
       value: stats.featured,
-      title: t('featured') || 'Featured'
+      title: t('featured')
     });
   }
 
@@ -79,7 +79,7 @@ const StatsBar = ({
       icon: 'star',
       color: '#f5c518',
       value: stats.bookmarked,
-      title: t('bookmarked') || 'Bookmarked'
+      title: t('bookmarked')
     });
   }
 
@@ -88,7 +88,7 @@ const StatsBar = ({
       icon: 'repeat',
       color: '#0ea5e9',
       value: stats.retakable,
-      title: t('retake_allowed') || 'Retakable'
+      title: t('retake_allowed')
     });
   }
 
@@ -97,7 +97,7 @@ const StatsBar = ({
       icon: 'help_circle',
       color: primaryColor,
       value: stats.total,
-      title: t('total') || 'Total'
+      title: t('total')
     });
   }
 
@@ -107,7 +107,7 @@ const StatsBar = ({
       icon: 'check_circle',
       color: '#16a34a',
       value: stats.passed,
-      title: t('passed') || 'Passed'
+      title: t('passed')
     });
   }
 
@@ -116,7 +116,7 @@ const StatsBar = ({
       icon: 'x_circle',
       color: '#dc2626',
       value: stats.failed,
-      title: t('failed') || 'Failed'
+      title: t('failed')
     });
   }
 
@@ -125,7 +125,7 @@ const StatsBar = ({
       icon: 'award',
       color: '#10b981',
       value: stats.excellent,
-      title: t('excellent') || 'Excellent'
+      title: t('excellent')
     });
   }
 
@@ -134,7 +134,7 @@ const StatsBar = ({
       icon: 'bar_chart_3',
       color: '#f59e0b',
       value: `${stats.average}%`,
-      title: t('average_score') || 'Average Score'
+      title: t('average_score')
     });
   }
 

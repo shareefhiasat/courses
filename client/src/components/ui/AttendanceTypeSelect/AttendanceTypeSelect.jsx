@@ -19,7 +19,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Atten
   const options = [
     { 
       value: 'all', 
-      label: placeholder || t('all_attendance_types') || 'All Attendance Types'
+      label: placeholder || t('all_attendance_types')
     },
     { 
       value: ATTENDANCE_STATUS.PRESENT, 
@@ -55,7 +55,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Atten
       onChange={onChange}
       options={options}
       fullWidth={fullWidth}
-      placeholder={placeholder || t('all_attendance_types') || 'All Attendance Types'}
+      placeholder={placeholder || t('all_attendance_types')}
       disabled={disabled}
     />
   );

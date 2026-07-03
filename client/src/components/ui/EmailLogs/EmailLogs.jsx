@@ -274,7 +274,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Email
             checkboxSelection
             exportFileName="email-logs"
             showExportButton
-            exportLabel={t('export') || 'Export'}
+            exportLabel={t('export')}
             loadingOverlayMessage={loading ? "Loading email logs..." : undefined}
         />
 

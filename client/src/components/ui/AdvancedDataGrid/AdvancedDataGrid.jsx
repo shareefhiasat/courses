@@ -279,7 +279,7 @@ const AdvancedDataGrid = ({
       : (enUS.components?.MuiDataGrid?.defaultProps?.localeText ?? {});
     return {
       ...base,
-      noRowsLabel: lang === 'ar' ? 'لا توجد بيانات' : (t('no_data') || 'No Data'),
+      noRowsLabel: lang === 'ar' ? 'لا توجد بيانات' : (t('no_data')),
     };
   }, [lang, t]);
 

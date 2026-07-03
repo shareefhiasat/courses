@@ -71,8 +71,8 @@ const StudentChip = ({
         onClick={handleMove}
         className={styles.chipRemove}
         disabled={disabled}
-        aria-label={`${t('move_to_selected') || 'Move to selected'}: ${studentNumber}`}
-        title={`${isToSelected ? (t('move_to_selected') || 'Move to selected') : (t('move_to_excluded') || 'Move to excluded')}: ${studentNumber}`}
+        aria-label={`${t('move_to_selected')}: ${studentNumber}`}
+        title={`${isToSelected ? (t('move_to_selected')) : (t('move_to_excluded'))}: ${studentNumber}`}
         style={{
           backgroundColor: buttonColor,
           color: 'white',

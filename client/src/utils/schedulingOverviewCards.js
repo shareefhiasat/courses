@@ -14,9 +14,9 @@ export function buildSchedulingOverviewCards(stats, t) {
   const card = (value, label, Icon, iconColor, iconBg) => ({ value, label, Icon, iconColor, iconBg });
 
   return [
-    card(stats.totalPrograms ?? 0, t('stats_total_programs') || t('programs'), BookOpen, '#6366f1', '#e0e7ff'),
-    card(stats.totalSubjects ?? 0, t('stats_total_subjects') || t('subjects'), BookOpen, '#6366f1', '#e0e7ff'),
-    card(stats.totalClasses ?? 0, t('stats_total_classes') || t('classes'), GraduationCap, '#8b5cf6', '#ede9fe'),
+    card(stats.totalPrograms ?? 0, t('stats_total_programs'), BookOpen, '#6366f1', '#e0e7ff'),
+    card(stats.totalSubjects ?? 0, t('stats_total_subjects'), BookOpen, '#6366f1', '#e0e7ff'),
+    card(stats.totalClasses ?? 0, t('stats_total_classes'), GraduationCap, '#8b5cf6', '#ede9fe'),
     card(stats.thisWeekSessions ?? 0, t('this_week'), CalendarIcon, STATUS_COLORS.scheduled, '#dbeafe'),
     card(stats.todaySessionCount ?? 0, t('stats_today_sessions'), CalendarDays, '#0ea5e9', '#e0f2fe'),
     card(stats.totalSessions ?? 0, t('total_sessions'), Clock, STATUS_COLORS.scheduled, '#dbeafe'),
@@ -58,7 +58,7 @@ export function buildOverviewSummary(stats, t) {
 export function buildInstructorOverviewCards(stats, t, instructorName) {
   const card = (value, label, Icon, iconColor, iconBg) => ({ value, label, Icon, iconColor, iconBg });
   return [
-    card(instructorName || '—', t('instructor') || 'Instructor', Users, '#3b82f6', '#dbeafe'),
+    card(instructorName || '—', t('instructor'), Users, '#3b82f6', '#dbeafe'),
     card(stats.totalSessions ?? 0, t('total_sessions'), Clock, STATUS_COLORS.scheduled, '#dbeafe'),
     card(stats.teachingHours ?? 0, t('teaching_hours'), BarChart3, '#10b981', '#d1fae5'),
     card(stats.subjectCount ?? 0, t('subjects'), BookOpen, '#6366f1', '#e0e7ff'),

@@ -67,7 +67,7 @@ const HomePage = memo(() => {
   const [category, setCategory] = useState('');
   
   // Auto-search from URL params (from notifications)
-  const urlSearchTerm = searchParams.get('search') || '';
+  const urlSearchTerm = searchParams.get('search');
   
   // Filter view mode: 'full' | 'minified'
   const [filterViewMode, setFilterViewMode] = useState(() => {
@@ -158,7 +158,7 @@ const HomePage = memo(() => {
   } = useBookmarks({ enableRealtime: false });
   
   // Common filters (visible for all modes)
-  const [searchTerm, setSearchTerm] = useState(urlSearchTerm);
+  const [searchTerm, setSearchTerm] = useState(urlSearchTerm || '');
   
   // Auto-fill search when URL param changes
   useEffect(() => {
@@ -1270,25 +1270,25 @@ const HomePage = memo(() => {
             tabs={[
               {
                 value: MODE_TYPES.ACTIVITIES,
-                label: t('activities') || 'Activities',
+                label: t('activities'),
                 icon: mode === MODE_TYPES.ACTIVITIES ? getIconWithColor('ui', 'clipboard_list', 16, '#ffffff') : getIconWithColor('ui', 'clipboard_list', 16, primaryColor),
                 badge: modeCounts.activities
               },
               {
                 value: 'resources',
-                label: t('resources') || 'Resources',
+                label: t('resources'),
                 icon: mode === 'resources' ? getIconWithColor('ui', 'book_open', 16, '#ffffff') : getIconWithColor('ui', 'book_open', 16, primaryColor),
                 badge: modeCounts.resources
               },
               {
                 value: MODE_TYPES.ANNOUNCEMENTS,
-                label: t('announcements') || 'Announcements',
+                label: t('announcements'),
                 icon: mode === MODE_TYPES.ANNOUNCEMENTS ? getIconWithColor('ui', 'megaphone', 16, '#ffffff') : getIconWithColor('ui', 'megaphone', 16, primaryColor),
                 badge: modeCounts.announcements
               },
               {
                 value: MODE_TYPES.REVIEW,
-                label: t('review_results') || 'Review Results',
+                label: t('review_results'),
                 icon: mode === MODE_TYPES.REVIEW ? getIconWithColor('ui', 'eye', 16, '#ffffff') : getIconWithColor('ui', 'eye', 16, primaryColor),
                 badge: mode === MODE_TYPES.REVIEW ? filteredReviewItems.length : reviewSubmissions.length
               }
@@ -1306,31 +1306,31 @@ const HomePage = memo(() => {
               tabs={[
                 {
                   value: 'all',
-                  label: t('all') || (lang === 'en' ? 'All' : 'الكل'),
+                  label: t('all'),
                   icon: activityType === 'all' ? getIconWithColor('ui', 'globe2', 16, '#ffffff') : getIconWithColor('ui', 'globe2', 16, primaryColor),
                   badge: activityTypeCounts.all
                 },
                 {
                   value: ACTIVITY_TYPES.QUIZ,
-                  label: t('quiz') || 'Quiz',
+                  label: t('quiz'),
                   icon: activityType === ACTIVITY_TYPES.QUIZ ? getIconWithColor('ui', 'list_checks', 16, '#ffffff') : getIconWithColor('ui', 'list_checks', 16, primaryColor),
                   badge: activityTypeCounts.quiz
                 },
                 {
                   value: ACTIVITY_TYPES.HOMEWORK,
-                  label: t('homework') || 'Homework',
+                  label: t('homework'),
                   icon: activityType === ACTIVITY_TYPES.HOMEWORK ? getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.HOMEWORK).icon, 16, '#ffffff') : getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.HOMEWORK).icon, 16, primaryColor),
                   badge: activityTypeCounts.homework
                 },
                 {
                   value: ACTIVITY_TYPES.TRAINING,
-                  label: t('training') || 'Training',
+                  label: t('training'),
                   icon: activityType === ACTIVITY_TYPES.TRAINING ? getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.TRAINING).icon, 16, '#ffffff') : getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.TRAINING).icon, 16, primaryColor),
                   badge: activityTypeCounts.training
                 },
                 {
                   value: 'lab_work',
-                  label: (t('lab_and_project') || 'Lab & Project').replace(/\b\w/g, l => l.toUpperCase()),
+                  label: (t('lab_and_project')).replace(/\b\w/g, l => l.toUpperCase()),
                   icon: activityType === 'lab_work' ? getIconWithColor('activity_type', getActivityTypeConfig('lab_work').icon, 16, '#ffffff') : getIconWithColor('activity_type', getActivityTypeConfig('lab_work').icon, 16, primaryColor),
                   badge: activityTypeCounts.labandproject
                 }
@@ -1411,10 +1411,10 @@ const HomePage = memo(() => {
                 <Tabs
                   tabs={[
                     { value: 'all', label: lang === 'en' ? 'All' : 'الكل', icon: activityType === 'all' ? getIconWithColor('ui', 'globe2', 16, '#ffffff') : getIconWithColor('ui', 'globe2', 16, primaryColor) },
-                    { value: ACTIVITY_TYPES.QUIZ, label: t('quiz') || 'Quiz', icon: activityType === ACTIVITY_TYPES.QUIZ ? getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.QUIZ).icon, 16, '#ffffff') : getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.QUIZ).icon, 16, primaryColor) },
-                    { value: ACTIVITY_TYPES.HOMEWORK, label: t('homework') || 'Homework', icon: activityType === ACTIVITY_TYPES.HOMEWORK ? getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.HOMEWORK).icon, 16, '#ffffff') : getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.HOMEWORK).icon, 16, primaryColor) },
-                    { value: ACTIVITY_TYPES.TRAINING, label: t('training') || 'Training', icon: activityType === ACTIVITY_TYPES.TRAINING ? getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.TRAINING).icon, 16, '#ffffff') : getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.TRAINING).icon, 16, primaryColor) },
-                    { value: ACTIVITY_TYPES.LAB_AND_PROJECT, label: (t('lab_and_project') || 'Lab & Project').replace(/\b\w/g, l => l.toUpperCase()), icon: activityType === ACTIVITY_TYPES.LAB_AND_PROJECT ? getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.LAB_AND_PROJECT).icon, 16, '#ffffff') : getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.LAB_AND_PROJECT).icon, 16, primaryColor) }
+                    { value: ACTIVITY_TYPES.QUIZ, label: t('quiz'), icon: activityType === ACTIVITY_TYPES.QUIZ ? getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.QUIZ).icon, 16, '#ffffff') : getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.QUIZ).icon, 16, primaryColor) },
+                    { value: ACTIVITY_TYPES.HOMEWORK, label: t('homework'), icon: activityType === ACTIVITY_TYPES.HOMEWORK ? getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.HOMEWORK).icon, 16, '#ffffff') : getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.HOMEWORK).icon, 16, primaryColor) },
+                    { value: ACTIVITY_TYPES.TRAINING, label: t('training'), icon: activityType === ACTIVITY_TYPES.TRAINING ? getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.TRAINING).icon, 16, '#ffffff') : getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.TRAINING).icon, 16, primaryColor) },
+                    { value: ACTIVITY_TYPES.LAB_AND_PROJECT, label: (t('lab_and_project')).replace(/\b\w/g, l => l.toUpperCase()), icon: activityType === ACTIVITY_TYPES.LAB_AND_PROJECT ? getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.LAB_AND_PROJECT).icon, 16, '#ffffff') : getIconWithColor('activity_type', getActivityTypeConfig(ACTIVITY_TYPES.LAB_AND_PROJECT).icon, 16, primaryColor) }
                   ]}
                   activeTab={activityType}
                   onTabChange={setActivityType}
@@ -1444,7 +1444,7 @@ const HomePage = memo(() => {
                     value={selectedStudent}
                     onChange={(e) => setSelectedStudent(e.target.value)}
                     options={[
-                      { value: 'all', label: t('all_students') || 'All Students' },
+                      { value: 'all', label: t('all_students') },
                       ...reviewStudents.map(s => ({
                         value: s.uid || s.id,
                         label: s.displayName || s.email || s.uid
@@ -1452,15 +1452,15 @@ const HomePage = memo(() => {
                     ]}
                     style={{ flex: '1 1 auto', minWidth: 180 }}
                     fullWidth
-                    placeholder={t('all_students') || 'All Students'}
+                    placeholder={t('all_students')}
                   />
                 )}
                 {/* Year filter */}
                 {reviewAvailableYears.length > 0 && (
                   <div style={{ flex: '1 1 auto', minWidth: 120 }}>
-                    <div style={{ fontSize: 'var(--font-size-xs)', fontWeight: 600, color: isDark ? '#9ca3af' : '#6b7280', marginBottom: '0.25rem' }}>{t('year') || 'Year'}</div>
+                    <div style={{ fontSize: 'var(--font-size-xs)', fontWeight: 600, color: isDark ? '#9ca3af' : '#6b7280', marginBottom: '0.25rem' }}>{t('year')}</div>
                     <select value={selectedYear} onChange={e => setSelectedYear(e.target.value)} style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: isDark ? '1px solid #333' : '1px solid #e5e7eb', background: isDark ? '#0f172a' : '#fff', color: isDark ? '#f8fafc' : '#111', fontSize: 'var(--font-size-sm)', outline: 'none' }}>
-                      <option value="all">{t('all') || 'All'}</option>
+                      <option value="all">{t('all')}</option>
                       {reviewAvailableYears.map(y => <option key={y} value={y}>{y}</option>)}
                     </select>
                   </div>
@@ -1468,9 +1468,9 @@ const HomePage = memo(() => {
                 {/* Term filter */}
                 {reviewAvailableTerms.length > 0 && (
                   <div style={{ flex: '1 1 auto', minWidth: 120 }}>
-                    <div style={{ fontSize: 'var(--font-size-xs)', fontWeight: 600, color: isDark ? '#9ca3af' : '#6b7280', marginBottom: '0.25rem' }}>{t('term') || 'Term'}</div>
+                    <div style={{ fontSize: 'var(--font-size-xs)', fontWeight: 600, color: isDark ? '#9ca3af' : '#6b7280', marginBottom: '0.25rem' }}>{t('term')}</div>
                     <select value={selectedTerm} onChange={e => setSelectedTerm(e.target.value)} style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: isDark ? '1px solid #333' : '1px solid #e5e7eb', background: isDark ? '#0f172a' : '#fff', color: isDark ? '#f8fafc' : '#111', fontSize: 'var(--font-size-sm)', outline: 'none' }}>
-                      <option value="all">{t('all') || 'All'}</option>
+                      <option value="all">{t('all')}</option>
                       {reviewAvailableTerms.map(term => <option key={term} value={term}>{term}</option>)}
                     </select>
                   </div>
@@ -1484,7 +1484,7 @@ const HomePage = memo(() => {
                   filterCounts={{}}
                   searchTerm={searchTerm}
                   setSearchTerm={setSearchTerm}
-                  searchPlaceholder={t('search_results') || 'Search results...'}
+                  searchPlaceholder={t('search_results')}
                   completedFilter={completedFilter}
                   setCompletedFilter={setCompletedFilter}
                   pendingFilter={pendingFilter}
@@ -1523,12 +1523,12 @@ const HomePage = memo(() => {
               {/* Review cards grid */}
               {reviewLoading ? (
                 <div style={{ textAlign: 'center', padding: '3rem', color: isDark ? '#9ca3af' : '#666' }}>
-                  <p>{t('loading') || 'Loading...'}</p>
+                  <p>{t('loading')}</p>
                 </div>
               ) : filteredReviewItems.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '3rem', color: isDark ? '#9ca3af' : '#666' }}>
-                  <h3>{t('no_results_found') || 'No results found'}</h3>
-                  <p>{t('try_adjusting_filters') || 'Try adjusting your filters'}</p>
+                  <h3>{t('no_results_found')}</h3>
+                  <p>{t('try_adjusting_filters')}</p>
                 </div>
               ) : (
                 <div style={{ display: 'grid', gap: '1.5rem', gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', marginTop: '1rem' }}>
@@ -1583,9 +1583,9 @@ const HomePage = memo(() => {
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
             searchPlaceholder={
-              mode === 'resources' ? (t('search_resources') || 'Search resources...') :
-              (mode === MODE_TYPES.ACTIVITIES && activityType === ACTIVITY_TYPES.QUIZ) ? (t('search_quizzes') || 'Search quizzes...') :
-              (t('search_activities') || 'Search activities...')
+              mode === 'resources' ? (t('search_resources')) :
+              (mode === MODE_TYPES.ACTIVITIES && activityType === ACTIVITY_TYPES.QUIZ) ? (t('search_quizzes')) :
+              (t('search_activities'))
             }
             completedFilter={completedFilter}
             setCompletedFilter={setCompletedFilter}
@@ -1683,8 +1683,8 @@ const HomePage = memo(() => {
                 padding: '3rem',
                 color: '#666'
               }}>
-                <h3>{t('no_items_found') || 'No items found'}</h3>
-                <p>{t('try_adjusting_filters') || 'Try adjusting your filters'}</p>
+                <h3>{t('no_items_found')}</h3>
+                <p>{t('try_adjusting_filters')}</p>
               </div>
             ) : (
               filteredItems.map(item => {
@@ -1945,7 +1945,7 @@ const HomePage = memo(() => {
                 {isFullPage
                   ? (getThemedIcon('ui', 'chevron_up', 14, theme))
                   : (getThemedIcon('ui', 'chevron_down', 14, theme))}
-                {isFullPage ? (t('collapse') || 'Collapse') : (t('expand') || 'Expand')}
+                {isFullPage ? (t('collapse')) : (t('expand'))}
               </button>
             </div>
             <div
@@ -1960,7 +1960,7 @@ const HomePage = memo(() => {
             >
               {isHtml
                 ? <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(annContent) }} />
-                : <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{annContent || (t('no_content') || 'No content available.')}</p>
+                : <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{annContent || (t('no_content'))}</p>
               }
             </div>
             {selectedAnnouncement.createdAt && (
@@ -1971,7 +1971,7 @@ const HomePage = memo(() => {
                 fontSize: '0.8rem',
                 color: isDark ? '#9ca3af' : '#6b7280'
               }}>
-                {t('posted') || 'Posted:'}{' '}
+                {t('posted')}{' '}
                 {selectedAnnouncement.createdAt?.seconds
                   ? formatDate(selectedAnnouncement.createdAt.seconds * 1000, lang)
                   : formatDate(selectedAnnouncement.createdAt, lang)}

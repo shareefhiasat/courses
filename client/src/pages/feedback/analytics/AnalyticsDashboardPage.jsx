@@ -76,31 +76,31 @@ const AnalyticsDashboardPage = memo(() => {
     setTourSteps([
       {
         target: '[data-tour="analytics-filters"]',
-        content: t('tour.analytics_filters') || 'Use these filters to narrow down statistics by program, subject, and class.',
+        content: t('tour.analytics_filters'),
         disableBeacon: true,
         placement: 'bottom'
       },
       {
         target: '[data-tour="summary-cards"]',
-        content: t('tour.summary_cards') || 'These cards show key counts for your accessible programs, classes, enrollments, activities, and resources.',
+        content: t('tour.summary_cards'),
         disableBeacon: true,
         placement: 'bottom'
       },
       {
         target: '[data-tour="user-cards"]',
-        content: t('tour.user_cards') || 'This row shows user counts by role: students, instructors, HR, admins, and super admins.',
+        content: t('tour.user_cards'),
         disableBeacon: true,
         placement: 'bottom'
       },
       {
         target: '[data-tour="activity-cards"]',
-        content: t('tour.activity_cards') || 'Here you can see totals for quizzes, announcements, penalties, behaviors, and participation records.',
+        content: t('tour.activity_cards'),
         disableBeacon: true,
         placement: 'top'
       },
       {
         target: '[data-tour="view-options"]',
-        content: t('tour.analytics_refresh') || 'Open the view-options menu to refresh the dashboard with the latest data.',
+        content: t('tour.analytics_refresh'),
         disableBeacon: true,
         placement: 'top'
       }
@@ -302,11 +302,11 @@ const AnalyticsDashboardPage = memo(() => {
         spotlightClicks={false}
         callback={handleJoyrideCallback}
         locale={{
-          back: t('tour_back') || (lang === 'ar' ? 'السابق' : 'Back'),
-          close: t('tour_close') || (lang === 'ar' ? 'إغلاق' : 'Close'),
-          last: t('tour_finish') || (lang === 'ar' ? 'إنهاء' : 'Finish'),
-          next: t('tour_next') || (lang === 'ar' ? 'التالي' : 'Next'),
-          skip: t('tour_skip') || (lang === 'ar' ? 'تخطي' : 'Skip')
+          back: t('tour_back'),
+          close: t('tour_close'),
+          last: t('tour_finish'),
+          next: t('tour_next'),
+          skip: t('tour_skip')
         }}
         styles={{
           options: {
@@ -321,7 +321,7 @@ const AnalyticsDashboardPage = memo(() => {
       />
       <CollapsibleDashboardSection
         sectionId="summary-cards"
-        title={t('dashboard_statistics') || 'Dashboard Statistics'}
+        title={t('dashboard_statistics')}
         icon={getThemedIcon('ui', 'bar_chart', 20, theme)}
         color="var(--color-primary, var(--primary-maroon, #800020))"
         defaultMode="full"
@@ -375,7 +375,7 @@ const AnalyticsDashboardPage = memo(() => {
             ...(isSuperAdmin ? [{
               type: 'programs',
               value: safePrograms.length,
-              tooltip: t('total_programs_system') || 'Total number of programs in the system'
+              tooltip: t('total_programs_system')
             }] : []),
             // Subjects - Admin and Super Admin
             ...((isAdmin || isSuperAdmin) ? [{
@@ -384,7 +384,7 @@ const AnalyticsDashboardPage = memo(() => {
                 if (enrollmentProgramFilter && enrollmentProgramFilter !== '') return s.programId === enrollmentProgramFilter;
                 return true;
               }).length,
-              tooltip: isSuperAdmin ? (t('total_subjects_all') || 'Total number of subjects') : (t('total_subjects_accessible') || 'Subjects in your accessible programs')
+              tooltip: isSuperAdmin ? (t('total_subjects_all')) : (t('total_subjects_accessible'))
             }] : []),
             // Classes - All roles with filtering
             {
@@ -405,7 +405,7 @@ const AnalyticsDashboardPage = memo(() => {
                 }
                 return true;
               }).length,
-              tooltip: isSuperAdmin ? (t('total_classes_system') || 'Total number of classes') : isAdmin ? (t('total_classes_accessible') || 'Classes in your accessible programs') : (t('total_classes_instructor') || 'Your classes')
+              tooltip: isSuperAdmin ? (t('total_classes_system')) : isAdmin ? (t('total_classes_accessible')) : (t('total_classes_instructor'))
             },
             // Enrollments
             {
@@ -429,7 +429,7 @@ const AnalyticsDashboardPage = memo(() => {
                 }
                 return true;
               }).length,
-              tooltip: isSuperAdmin ? (t('total_enrollments_system') || 'Total number of enrollments') : isAdmin ? (t('total_enrollments_accessible') || 'Enrollments in your accessible programs') : (t('total_enrollments_instructor') || 'Enrollments in your classes')
+              tooltip: isSuperAdmin ? (t('total_enrollments_system')) : isAdmin ? (t('total_enrollments_accessible')) : (t('total_enrollments_instructor'))
             },
             // Activities
             {
@@ -453,13 +453,13 @@ const AnalyticsDashboardPage = memo(() => {
                 }
                 return true;
               }).length,
-              tooltip: isSuperAdmin ? (t('total_activities_system') || 'Total number of activities') : isAdmin ? (t('total_activities_accessible') || 'Activities in your accessible programs') : (t('total_activities_instructor') || 'Activities in your classes')
+              tooltip: isSuperAdmin ? (t('total_activities_system')) : isAdmin ? (t('total_activities_accessible')) : (t('total_activities_instructor'))
             },
             // Resources - Core statistic positioned on first line
             {
               type: 'resources',
               value: loadingResourceCount ? '...' : resourceCount,
-              tooltip: loadingResourceCount ? (t('loading_resource_count') || 'Loading resource count...') : (t('total_resources') || 'Total number of resources (server-side count)')
+              tooltip: loadingResourceCount ? (t('loading_resource_count')) : (t('total_resources'))
             }
           ].map((stat, idx) => {
             const config = getCardConfig(stat.type, t, theme);
@@ -565,27 +565,27 @@ const AnalyticsDashboardPage = memo(() => {
               {
                 type: 'students',
                 value: users.filter(u => u.isStudent === true).length,
-                tooltip: t('total_students_system') || 'Total number of students in the system'
+                tooltip: t('total_students_system')
               },
               {
                 type: 'instructors',
                 value: users.filter(u => u.isInstructor === true).length,
-                tooltip: t('total_instructors_system') || 'Total number of instructors/teachers in the system'
+                tooltip: t('total_instructors_system')
               },
               {
                 type: 'hr',
                 value: users.filter(u => u.isHR === true).length,
-                tooltip: t('total_hr_system') || 'Total number of HR users in the system'
+                tooltip: t('total_hr_system')
               },
               {
                 type: 'admins',
                 value: users.filter(u => u.isAdmin === true).length,
-                tooltip: t('total_admins_system') || 'Total number of admin users in the system'
+                tooltip: t('total_admins_system')
               },
               {
                 type: 'superadmins',
                 value: users.filter(u => u.isSuperAdmin === true).length,
-                tooltip: t('total_superadmins_system') || 'Total number of super admin users in the system'
+                tooltip: t('total_superadmins_system')
               }
             ].map((stat, idx) => {
               const config = getCardConfig(stat.type, t, theme);
@@ -695,13 +695,13 @@ const AnalyticsDashboardPage = memo(() => {
                 }
                 return true;
               }).length,
-              tooltip: isSuperAdmin ? (t('total_activities_system') || 'Total number of activities') : isAdmin ? (t('total_activities_accessible') || 'Activities in your accessible programs') : (t('total_activities_instructor') || 'Activities in your classes')
+              tooltip: isSuperAdmin ? (t('total_activities_system')) : isAdmin ? (t('total_activities_accessible')) : (t('total_activities_instructor'))
             },
             // Quizzes
             {
               type: 'quizzes',
               value: quizzes.length,
-              tooltip: t('total_quizzes') || 'Total number of quizzes. Click to view all quizzes.',
+              tooltip: t('total_quizzes'),
               onClick: () => window.location.href = '/quizzes',
               hoverable: true
             },
@@ -720,7 +720,7 @@ const AnalyticsDashboardPage = memo(() => {
                 }
                 return true;
               }).length,
-              tooltip: t('total_announcements') || 'Total number of announcements'
+              tooltip: t('total_announcements')
             },
             // Penalties
             {
@@ -740,7 +740,7 @@ const AnalyticsDashboardPage = memo(() => {
                 }
                 return true;
               }).length,
-              tooltip: t('total_penalties') || 'Total number of penalties'
+              tooltip: t('total_penalties')
             },
             // Behaviors
             {
@@ -760,7 +760,7 @@ const AnalyticsDashboardPage = memo(() => {
                 }
                 return true;
               }).length,
-              tooltip: t('total_behaviors') || 'Total number of behavior records'
+              tooltip: t('total_behaviors')
             },
             // Participations
             {
@@ -780,7 +780,7 @@ const AnalyticsDashboardPage = memo(() => {
                 }
                 return true;
               }).length,
-              tooltip: t('total_participations') || 'Total number of participation records'
+              tooltip: t('total_participations')
             }
           ].map((stat, idx) => {
             const config = getCardConfig(stat.type, t, theme);

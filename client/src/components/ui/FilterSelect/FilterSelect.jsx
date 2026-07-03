@@ -68,7 +68,7 @@ const FilterSelect = ({
       value={value}
       onChange={handleChange}
       options={options}
-      placeholder={placeholder || t(config.placeholder) || 'Select...'}
+      placeholder={placeholder || t(config.placeholder)}
       fullWidth
       searchable
       style={style}

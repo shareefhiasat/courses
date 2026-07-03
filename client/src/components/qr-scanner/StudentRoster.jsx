@@ -799,7 +799,7 @@ const StudentRoster = React.memo(function StudentRoster({
       //     userId: student.id,
       //     role: 'student',
       //     email: student.email,
-      //     title: `📊 ${t('student_summary_report') || 'Student Summary Report'} - ${student.name}`,
+      //     title: `📊 ${t('student_summary_report')} - ${student.name}`,
       //     message: t('student_summary_email_message', {
       //       studentName: student.name,
       //       participation: student.participation || 0,
@@ -836,12 +836,12 @@ const StudentRoster = React.memo(function StudentRoster({
       //   }
       // );
       
-      showSuccess(t('summary_email_sent_successfully') || 'Summary email sent successfully!');
+      showSuccess(t('summary_email_sent_successfully'));
       debug('✅ Summary email sent successfully to:', student.email);
     } catch (error) {
       error('❌ Error sending summary email:', error);
       // Show user-friendly error message
-      alert(t('failed_to_send_email') || 'Failed to send summary email. Please try again.');
+      alert(t('failed_to_send_email'));
     } finally {
       setSendingEmails(prev => ({
         ...prev,
@@ -966,7 +966,7 @@ const StudentRoster = React.memo(function StudentRoster({
             color: 'var(--text-muted, #9ca3af)',
             border: '1px solid var(--border, #e5e7eb)'
           }}>
-          {t('none') || 'None'}
+          {t('none')}
         </span>
       );
     }
@@ -988,7 +988,7 @@ const StudentRoster = React.memo(function StudentRoster({
             color: 'var(--text-muted, #9ca3af)',
             border: '1px solid var(--border, #e5e7eb)'
           }}>
-          {t('none') || 'None'}
+          {t('none')}
         </span>
       );
     }
@@ -1085,7 +1085,7 @@ const StudentRoster = React.memo(function StudentRoster({
   }, [students, showFavoritesOnly, favoriteStudents]);
 
   return (
-    <div dir={isRTL ? 'rtl' : 'ltr'} style={{
+    <div style={{
       background: 'var(--panel, white)',
       borderRadius: '0.75rem',
       border: '1px solid var(--border, #e5e7eb)',
@@ -1110,9 +1110,9 @@ const StudentRoster = React.memo(function StudentRoster({
               marginTop: '0.25rem',
               marginBottom: 0
             }}>
-              {totalStudents} {t('students') || 'Students'}
+              {totalStudents} {t('students')}
             </p>
-            <PortalTooltip content={t('roster_help_tour') || 'Take a tour of the roster features'} position="bottom">
+            <PortalTooltip content={t('roster_help_tour')} position="bottom">
               <button
                 onClick={() => window.dispatchEvent(new Event('app:roster-tour'))}
                 style={{
@@ -1187,7 +1187,7 @@ const StudentRoster = React.memo(function StudentRoster({
           </div>
           {/* Compact highlight toggle */}
           <div data-tour="roster-highlight-toggle">
-          <PortalTooltip content={highlightEnabled ? t('highlight_attention_rows') : (t('highlight_disabled') || 'Highlighting disabled')} position="top">
+          <PortalTooltip content={highlightEnabled ? t('highlight_attention_rows') : (t('highlight_disabled'))} position="top">
             <button
               onClick={() => onHighlightToggle?.(!highlightEnabled)}
               style={{
@@ -1214,7 +1214,7 @@ const StudentRoster = React.memo(function StudentRoster({
               </Button> */}
               <div data-tour="roster-favorite-toggle">
               <PortalTooltip 
-                content={`${showFavoritesOnly ? t('show_all_students') : t('show_favorites_only')} (${favoriteStudents.length} ${t('bookmarked') || 'bookmarked'})`} 
+                content={`${showFavoritesOnly ? t('show_all_students') : t('show_favorites_only')} (${favoriteStudents.length} ${t('bookmarked')})`} 
                 position="top"
               >
                 <Button 
@@ -1331,7 +1331,7 @@ const StudentRoster = React.memo(function StudentRoster({
                     width: '80px'
                   }}
                 >
-                  {t('student_number') || 'Student Number'}
+                  {t('student_number')}
                 </th>
                 <th style={{ width: '30px', padding: '0.5rem 0.5rem' }}></th>
                 <th 
@@ -1365,7 +1365,7 @@ const StudentRoster = React.memo(function StudentRoster({
                       userSelect: 'none'
                     }}
                   >
-                    {t('todays_attendance') || "TODAY"} {getSortIcon(RECORD_TYPES.ATTENDANCE)}
+                    {t('todays_attendance')} {getSortIcon(RECORD_TYPES.ATTENDANCE)}
                   </th>
                 )}
                 {attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP && (
@@ -1383,7 +1383,7 @@ const StudentRoster = React.memo(function StudentRoster({
                       userSelect: 'none'
                     }}
                   >
-                    {t('standup') || "STANDUP"} {getSortIcon('standupStatus')}
+                    {t('standup')} {getSortIcon('standupStatus')}
                   </th>
                 )}
                 {attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && (
@@ -1699,7 +1699,7 @@ const StudentRoster = React.memo(function StudentRoster({
                   fontSize: 'var(--font-size-sm)',
                   color: theme === 'dark' ? '#ffffff' : 'var(--text-primary, #111827)'
                 }}>
-                  {t('total') || 'Total'}
+                  {t('total')}
                 </td>
                 <td style={{
                   padding: '0.75rem',
@@ -1707,7 +1707,7 @@ const StudentRoster = React.memo(function StudentRoster({
                   fontSize: 'var(--font-size-sm)',
                   color: theme === 'dark' ? '#ffffff' : 'var(--text-primary, #111827)'
                 }}>
-                  {students.filter(student => !showFavoritesOnly || favoriteStudents.includes(student.id)).length} {t('students') || 'students'}
+                  {students.filter(student => !showFavoritesOnly || favoriteStudents.includes(student.id)).length} {t('students')}
                 </td>
                 {attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && (
                   <td style={{

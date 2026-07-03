@@ -19,15 +19,15 @@ const AlibiWorkflowIndicator = ({ workflow, t, lang }) => {
 
   if (isApproved) {
     iconColor = '#10b981';
-    tooltipText = (t('alibi_approved') || 'Excuse approved') + ` — #${workflow.id}`;
+    tooltipText = (t('alibi_approved')) + ` — #${workflow.id}`;
     IconComponent = CheckSmallIcon;
   } else if (isRejected) {
     iconColor = '#ef4444';
-    tooltipText = (t('alibi_rejected') || 'Excuse rejected') + ` — #${workflow.id}`;
+    tooltipText = (t('alibi_rejected')) + ` — #${workflow.id}`;
     IconComponent = XSmallIcon;
   } else {
     iconColor = '#f59e0b';
-    tooltipText = (t('alibi_in_progress') || 'Excuse workflow in progress') + ` — #${workflow.id}`;
+    tooltipText = (t('alibi_in_progress')) + ` — #${workflow.id}`;
     IconComponent = ClockSmallIcon;
   }
 
@@ -64,7 +64,7 @@ const AttendanceStatusCell = ({ status, type = ATTENDANCE_TYPE_CATEGORY.REGULAR,
       return (
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
           <CircleIcon style={{ width: type === ATTENDANCE_TYPE_CATEGORY.REGULAR ? '12px' : '16px', height: type === ATTENDANCE_TYPE_CATEGORY.REGULAR ? '12px' : '16px', stroke: '#9ca3af' }} />
-          <span style={{ fontSize: '0.7rem', color: '#9ca3af', fontWeight: 500 }}>{t('none') || 'None'}</span>
+          <span style={{ fontSize: '0.7rem', color: '#9ca3af', fontWeight: 500 }}>{t('none')}</span>
           {linkedWorkflow && <AlibiWorkflowIndicator workflow={linkedWorkflow} t={t} lang={lang} />}
         </div>
       );
@@ -114,7 +114,7 @@ const AttendanceStatusCell = ({ status, type = ATTENDANCE_TYPE_CATEGORY.REGULAR,
       <svg width={iconSize} height={iconSize} viewBox="0 0 24 24" fill="none" stroke="#9ca3af" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="12" r="10"></circle>
       </svg>
-      <span style={{ fontSize: fontSize, color: '#9ca3af', fontWeight: 500 }}>{t('none') || 'None'}</span>
+      <span style={{ fontSize: fontSize, color: '#9ca3af', fontWeight: 500 }}>{t('none')}</span>
       {linkedWorkflow && <AlibiWorkflowIndicator workflow={linkedWorkflow} t={t} lang={lang} />}
     </div>
   );

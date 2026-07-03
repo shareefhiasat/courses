@@ -163,14 +163,14 @@ const MarksTab = React.memo(({
     return [
       {
         field: 'subjectName',
-        headerName: t('subject') || 'Subject',
+        headerName: t('subject'),
         flex: 1,
         minWidth: 150,
         editable: false,
       },
       {
         field: 'className',
-        headerName: t('class') || 'Class',
+        headerName: t('class'),
         flex: 1,
         minWidth: 120,
         editable: false,
@@ -184,7 +184,7 @@ const MarksTab = React.memo(({
       makeMarkCell('attendance', 'attendance', 10),
       {
         field: 'totalMarks',
-        headerName: t('total') || 'Total',
+        headerName: t('total'),
         width: 100,
         editable: false,
         renderCell: (params) => {
@@ -211,7 +211,7 @@ const MarksTab = React.memo(({
       },
       {
         field: 'letterGrade',
-        headerName: t('grade') || 'Grade',
+        headerName: t('grade'),
         width: 80,
         editable: false,
         renderCell: (params) => {
@@ -232,21 +232,21 @@ const MarksTab = React.memo(({
       },
       {
         field: 'isRepeated',
-        headerName: t('repeated') || 'Repeated',
+        headerName: t('repeated'),
         width: 100,
         editable: false,
         renderCell: (params) => {
           const isRepeated = Boolean(params.value);
           return (
             <Badge variant={isRepeated ? 'success' : 'secondary'}>
-              {isRepeated ? (t('yes') || 'Yes') : (t('no') || 'No')}
+              {isRepeated ? (t('yes')) : (t('no'))}
             </Badge>
           );
         },
       },
       {
         field: 'history',
-        headerName: t('history') || 'History',
+        headerName: t('history'),
         width: 80,
         sortable: false,
         filterable: false,
@@ -259,7 +259,7 @@ const MarksTab = React.memo(({
             disabled={historyLoading}
             style={{ padding: '4px 8px', fontSize: 'var(--font-size-xs)', minWidth: '60px' }}
           >
-            {historyLoading ? '...' : (t('history') || 'History')}
+            {historyLoading ? '...' : (t('history'))}
           </Button>
         ),
       },
@@ -299,12 +299,12 @@ const MarksTab = React.memo(({
       const result = await updateStudentMarks(newRow.studentId, newRow.subjectId, newRow.classId, marksData);
       if (result.success) {
         await loadMarksReport();
-        toast?.success?.(t('marks_updated') || 'Marks updated');
+        toast?.success?.(t('marks_updated'));
       }
       return newRow;
     } catch (err) {
       error('[MarksTab] Error saving marks:', err);
-      toast?.error?.(t('error_saving_marks') || 'Error saving marks');
+      toast?.error?.(t('error_saving_marks'));
       throw err;
     }
   }, [marksDistribution, toast, t, loadMarksReport]);
@@ -333,8 +333,8 @@ const MarksTab = React.memo(({
       <div className={styles.container}>
         <EmptyState
           icon={getThemedIcon('ui', 'clipboard', 48)}
-          title={t('no_marks_found') || (lang === 'ar' ? 'لا توجد درجات' : 'No Marks Found')}
-          description={t('no_marks_description') || (lang === 'ar' ? 'لم يتم العثور على درجات لهذا الطالب' : 'No marks records found for this student')}
+          title={t('no_marks_found')}
+          description={t('no_marks_description')}
         />
       </div>
     );
@@ -348,17 +348,17 @@ const MarksTab = React.memo(({
           <GraduationCap size={28} color="white" />
         </div>
         <div className={styles.gpaInfo}>
-          <span className={styles.gpaLabel}>{t('gpa') || 'GPA'}</span>
+          <span className={styles.gpaLabel}>{t('gpa')}</span>
           <span className={styles.gpaValue}>{overallGPA.toFixed(2)}</span>
         </div>
         <div className={styles.gpaDivider} />
         <div className={styles.gpaInfo}>
-          <span className={styles.gpaLabel}>{t('total_courses') || 'Total Courses'}</span>
+          <span className={styles.gpaLabel}>{t('total_courses')}</span>
           <span className={styles.gpaValue}>{marksReportData.length}</span>
         </div>
         <div className={styles.gpaDivider} />
         <div className={styles.gpaInfo}>
-          <span className={styles.gpaLabel}>{t('repeated') || 'Repeated'}</span>
+          <span className={styles.gpaLabel}>{t('repeated')}</span>
           <span className={styles.gpaValue}>{totalRepeated}</span>
         </div>
       </div>
@@ -368,13 +368,13 @@ const MarksTab = React.memo(({
         <Card style={{ marginBottom: '1rem' }}>
           <CardBody>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', fontSize: 'var(--font-size-sm)' }}>
-              <span>{t('mid_term') || 'Mid-Term'}: {marksDistribution.midTermExam}%</span>
-              <span>{t('final') || 'Final'}: {marksDistribution.finalExam}%</span>
-              <span>{t('homework') || 'Homework'}: {marksDistribution.homework}%</span>
-              <span>{t('labs') || 'Labs'}: {marksDistribution.labsProjectResearch}%</span>
-              <span>{t('quizzes') || 'Quizzes'}: {marksDistribution.quizzes}%</span>
-              <span>{t('participation') || 'Participation'}: {marksDistribution.participation}%</span>
-              <span>{t('attendance') || 'Attendance'}: {marksDistribution.attendance}%</span>
+              <span>{t('mid_term')}: {marksDistribution.midTermExam}%</span>
+              <span>{t('final')}: {marksDistribution.finalExam}%</span>
+              <span>{t('homework')}: {marksDistribution.homework}%</span>
+              <span>{t('labs')}: {marksDistribution.labsProjectResearch}%</span>
+              <span>{t('quizzes')}: {marksDistribution.quizzes}%</span>
+              <span>{t('participation')}: {marksDistribution.participation}%</span>
+              <span>{t('attendance')}: {marksDistribution.attendance}%</span>
             </div>
           </CardBody>
         </Card>
@@ -399,8 +399,8 @@ const MarksTab = React.memo(({
             disableRowSelectionOnClick
             exportFileName={`marks-${group.semester}-${group.year}`}
             showExportButton
-            exportLabel={t('export') || 'Export'}
-            loadingOverlayMessage={marksReportLoading ? (t('loading_marks') || 'Loading marks...') : undefined}
+            exportLabel={t('export')}
+            loadingOverlayMessage={marksReportLoading ? (t('loading_marks')) : undefined}
             processRowUpdate={canEdit ? processRowUpdate : undefined}
           />
         </CollapsibleSection>

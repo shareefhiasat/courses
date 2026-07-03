@@ -35,7 +35,7 @@ const BulkSuccessModal = ({
     <Modal
       isOpen={isOpen}
       onClose={handleOK}
-      title={t('bulk_operation_complete') || 'Bulk Operation Complete'}
+      title={t('bulk_operation_complete')}
       size="medium"
       showCloseButton={false}
       closeOnOverlayClick={true}
@@ -93,7 +93,7 @@ const BulkSuccessModal = ({
               {successPercentage}%
             </div>
             <div style={{ fontSize: 'var(--font-size-sm)', color: '#6b7280' }}>
-              {t('completed') || 'Completed'}
+              {t('completed')}
             </div>
           </div>
         </div>
@@ -115,7 +115,7 @@ const BulkSuccessModal = ({
               {result.summary.total}
             </div>
             <div style={{ fontSize: 'var(--font-size-sm)', color: '#6b7280' }}>
-              {t('total_students') || 'Total Students'}
+              {t('total_students')}
             </div>
           </div>
 
@@ -129,7 +129,7 @@ const BulkSuccessModal = ({
               {result.summary.succeeded}
             </div>
             <div style={{ fontSize: 'var(--font-size-sm)', color: '#6b7280' }}>
-              {t('succeeded') || 'Succeeded'}
+              {t('succeeded')}
             </div>
           </div>
         </div>
@@ -143,7 +143,7 @@ const BulkSuccessModal = ({
               color: '#374151', 
               marginBottom: '0.75rem' 
             }}>
-              {t('processed_students') || 'Processed Students'}:
+              {t('processed_students')}:
             </div>
             <div style={{
               display: 'flex',
@@ -179,7 +179,7 @@ const BulkSuccessModal = ({
                   fontSize: 'var(--font-size-sm)',
                   color: '#64748b'
                 }}>
-                  +{result.results.detailed.length - 10} {t('more') || 'more'}
+                  +{result.results.detailed.length - 10} {t('more')}
                 </div>
               )}
             </div>
@@ -205,7 +205,7 @@ const BulkSuccessModal = ({
             }}
           >
             <CheckCircle size={18} />
-            {t('ok_refresh') || 'OK - Refresh Data'}
+            {t('ok_refresh')}
           </button>
         </div>
       </div>

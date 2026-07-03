@@ -286,11 +286,11 @@ const MarksPage = () => {
         setMarksDistribution(result.data);
       } else {
         error('[MarksPage] Error loading marks distribution:', result.error);
-        toast?.error?.(result.error || t('error_loading_distribution') || 'Error loading marks distribution');
+        toast?.error?.(result.error || t('error_loading_distribution'));
       }
     } catch (error) {
       error('[MarksPage] Error loading marks distribution:', error);
-      toast?.error?.(t('error_loading_distribution') || 'Error loading marks distribution');
+      toast?.error?.(t('error_loading_distribution'));
     }
   }, [selectedSubject, t, toast]);
 
@@ -303,11 +303,11 @@ const MarksPage = () => {
         setStudentMarks(result.data || {});
       } else {
         error('[MarksPage] Error loading student marks:', result.error);
-        toast?.error?.(result.error || t('error_loading_marks') || 'Error loading student marks');
+        toast?.error?.(result.error || t('error_loading_marks'));
       }
     } catch (error) {
       error('[MarksPage] Error loading student marks:', error);
-      toast?.error?.(t('error_loading_marks') || 'Error loading student marks');
+      toast?.error?.(t('error_loading_marks'));
     }
   }, [selectedSubject, t, toast]);
 
@@ -435,7 +435,7 @@ const MarksPage = () => {
   const columns = useMemo(() => [
     {
       field: 'studentName',
-      headerName: t('user') || 'User',
+      headerName: t('user'),
       flex: 1,
       minWidth: 200,
       renderCell: (params) => {
@@ -469,7 +469,7 @@ const MarksPage = () => {
                 icon={getThemedIcon('penalty_type', 'cheating', 14, theme)}
                 onClick={() => openSideWindow(RECORD_TYPES.PENALTY, student, filters)}
               >
-                {t('penalties') || 'Penalties'}
+                {t('penalties')}
               </Button>
               <Button
                 variant="ghost"
@@ -477,7 +477,7 @@ const MarksPage = () => {
                 icon={getThemedIcon('behavior_type', 'disruptive', 14, theme)}
                 onClick={() => openSideWindow(RECORD_TYPES.BEHAVIOR, student, filters)}
               >
-                {t('behaviors') || 'Behaviors'}
+                {t('behaviors')}
               </Button>
               <Button
                 variant="ghost"
@@ -485,7 +485,7 @@ const MarksPage = () => {
                 icon={getThemedIcon('ui', 'award', 14, theme)}
                 onClick={() => openSideWindow(RECORD_TYPES.PARTICIPATION, student, filters)}
               >
-                {t('participation') || 'Participation'}
+                {t('participation')}
               </Button>
               <Button
                 variant="ghost"
@@ -493,7 +493,7 @@ const MarksPage = () => {
                 icon={getThemedIcon('ui', 'eye', 14, theme)}
                 onClick={() => openSideWindow('sneakpeek', student, filters)}
               >
-                {t('peek') || 'Peek'}
+                {t('peek')}
               </Button>
             </div>
           </div>
@@ -502,7 +502,7 @@ const MarksPage = () => {
     },
     {
       field: 'midTermExam',
-      headerName: t('mid_term') || 'Mid-Term',
+      headerName: t('mid_term'),
       width: 100,
       editable: true,
       type: 'number',
@@ -525,7 +525,7 @@ const MarksPage = () => {
     },
     {
       field: 'finalExam',
-      headerName: t('final') || 'Final',
+      headerName: t('final'),
       width: 100,
       editable: true,
       type: 'number',
@@ -548,7 +548,7 @@ const MarksPage = () => {
     },
     {
       field: 'homework',
-      headerName: t('homework') || 'Homework',
+      headerName: t('homework'),
       width: 100,
       editable: true,
       type: 'number',
@@ -571,7 +571,7 @@ const MarksPage = () => {
     },
     {
       field: 'labsProjectResearch',
-      headerName: t('labs_projects_research') || 'Labs/Projects/Research',
+      headerName: t('labs_projects_research'),
       width: 150,
       editable: true,
       type: 'number',
@@ -594,7 +594,7 @@ const MarksPage = () => {
     },
     {
       field: 'quizzes',
-      headerName: t('quizzes') || 'Quizzes',
+      headerName: t('quizzes'),
       width: 100,
       editable: true,
       type: 'number',
@@ -617,7 +617,7 @@ const MarksPage = () => {
     },
     {
       field: 'participation',
-      headerName: t('participation') || 'Participation',
+      headerName: t('participation'),
       width: 120,
       editable: true,
       type: 'number',
@@ -640,7 +640,7 @@ const MarksPage = () => {
     },
     {
       field: 'attendance',
-      headerName: t('attendance') || 'Attendance',
+      headerName: t('attendance'),
       width: 100,
       editable: true,
       type: 'number',
@@ -663,7 +663,7 @@ const MarksPage = () => {
     },
     {
       field: 'totalScore',
-      headerName: t('total_marks') || 'Total Marks',
+      headerName: t('total_marks'),
       width: 120,
       type: 'number',
       editable: false,
@@ -719,23 +719,23 @@ const MarksPage = () => {
       case 'sneakpeek':
         return (
           <div style={{ padding: '1rem' }}>
-            <h3 style={{ marginTop: 0 }}>{t('student_overview') || 'Student Overview'}</h3>
+            <h3 style={{ marginTop: 0 }}>{t('student_overview')}</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               <div>
-                <strong>{t('name') || 'Name'}:</strong> {sideWindowStudent.displayName || sideWindowStudent.email}
+                <strong>{t('name')}:</strong> {sideWindowStudent.displayName || sideWindowStudent.email}
               </div>
               <div>
-                <strong>{t('email') || 'Email'}:</strong> {sideWindowStudent.email}
+                <strong>{t('email')}:</strong> {sideWindowStudent.email}
               </div>
               {(() => {
                 const studentId = sideWindowStudent.uid || sideWindowStudent.docId || sideWindowStudent.id;
                 const marks = studentMarks[studentId];
                 return marks && (
                   <div>
-                    <strong>{t('current_marks') || 'Current Marks'}:</strong>
+                    <strong>{t('current_marks')}:</strong>
                     <div style={{ marginTop: '0.5rem', display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                      <div>{t('total_score') || 'Total Score'}: {marks.totalScore?.toFixed?.(2) || 0}</div>
-                      <div>{t('grade') || 'Grade'}: {marks.grade || 'N/A'}</div>
+                      <div>{t('total_score')}: {marks.totalScore?.toFixed?.(2) || 0}</div>
+                      <div>{t('grade')}: {marks.grade || 'N/A'}</div>
                     </div>
                   </div>
                 );
@@ -797,13 +797,13 @@ const MarksPage = () => {
             <CardBody>
               <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: '0.5rem' }}>
                 <div className={styles.distributionGrid} style={{ flex: 1, marginRight: '0.5rem' }}>
-                  <div>{t('mid_term') || 'Mid-Term'} {displayVal(dist?.midTermExam)}</div>
-                  <div>{t('final') || 'Final'} {displayVal(dist?.finalExam)}</div>
-                  <div>{t('homework') || 'Homework'} {displayVal(dist?.homework)}</div>
-                  <div>{t('labs_projects_research') || 'Labs/Projects/Research'} {displayVal(dist?.labsProjectResearch)}</div>
-                  <div>{t('quizzes') || 'Quizzes'} {displayVal(dist?.quizzes)}</div>
-                  <div>{t('participation') || 'Participation'} {displayVal(dist?.participation)}</div>
-                  <div>{t('attendance') || 'Attendance'} {displayVal(dist?.attendance)}</div>
+                  <div>{t('mid_term')} {displayVal(dist?.midTermExam)}</div>
+                  <div>{t('final')} {displayVal(dist?.finalExam)}</div>
+                  <div>{t('homework')} {displayVal(dist?.homework)}</div>
+                  <div>{t('labs_projects_research')} {displayVal(dist?.labsProjectResearch)}</div>
+                  <div>{t('quizzes')} {displayVal(dist?.quizzes)}</div>
+                  <div>{t('participation')} {displayVal(dist?.participation)}</div>
+                  <div>{t('attendance')} {displayVal(dist?.attendance)}</div>
                 </div>
                 <Button
                   variant="outline"
@@ -835,9 +835,9 @@ const MarksPage = () => {
         <Card style={{ marginBottom: '1rem', background: '#fef3c7', border: '1px solid #fbbf24' }}>
           <CardBody>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
-              <h3 style={{ margin: 0 }}>{t('edit_marks_distribution') || 'Edit Marks Distribution'}</h3>
+              <h3 style={{ margin: 0 }}>{t('edit_marks_distribution')}</h3>
               <Button variant="ghost" size="sm" onClick={() => setEditingDistribution(false)}>
-                {t('cancel') || 'Cancel'}
+                {t('cancel')}
               </Button>
             </div>
             <form
@@ -853,19 +853,19 @@ const MarksPage = () => {
                   (distributionForm.attendance || 0)
                 );
                 if (Math.abs(total - 100) > 0.01) {
-                  toast?.error?.(t('distribution_must_sum_100') || 'Distribution must sum to 100%');
+                  toast?.error?.(t('distribution_must_sum_100'));
                   return;
                 }
 
                 // Validate: new max must not be below existing student marks
                 const categories = [
-                  { key: 'midTermExam', label: t('mid_term') || 'Mid-Term' },
-                  { key: 'finalExam', label: t('final') || 'Final' },
-                  { key: 'homework', label: t('homework') || 'Homework' },
-                  { key: 'labsProjectResearch', label: t('labs_projects_research') || 'Labs/Projects/Research' },
-                  { key: 'quizzes', label: t('quizzes') || 'Quizzes' },
-                  { key: 'participation', label: t('participation') || 'Participation' },
-                  { key: 'attendance', label: t('attendance') || 'Attendance' },
+                  { key: 'midTermExam', label: t('mid_term') },
+                  { key: 'finalExam', label: t('final') },
+                  { key: 'homework', label: t('homework') },
+                  { key: 'labsProjectResearch', label: t('labs_projects_research') },
+                  { key: 'quizzes', label: t('quizzes') },
+                  { key: 'participation', label: t('participation') },
+                  { key: 'attendance', label: t('attendance') },
                 ];
                 const subjectRows = marksReportData.filter(row => row.subjectId == subjectFilter);
                 const collisionErrors = [];
@@ -899,13 +899,13 @@ const MarksPage = () => {
                   });
                 } catch (error) {
                   error('[MarksPage] Error updating distribution:', error);
-                  toast?.error?.(t('error_updating_distribution') || 'Error updating distribution');
+                  toast?.error?.(t('error_updating_distribution'));
                 }
               }}
             >
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
                 <div>
-                  <label>{t('mid_term') || 'Mid-Term'} (%)</label>
+                  <label>{t('mid_term')} (%)</label>
                   <Input
                     type="number"
                     min="0"
@@ -917,7 +917,7 @@ const MarksPage = () => {
                   />
                 </div>
                 <div>
-                  <label>{t('final') || 'Final'} (%)</label>
+                  <label>{t('final')} (%)</label>
                   <Input
                     type="number"
                     min="0"
@@ -929,7 +929,7 @@ const MarksPage = () => {
                   />
                 </div>
                 <div>
-                  <label>{t('homework') || 'Homework'} (%)</label>
+                  <label>{t('homework')} (%)</label>
                   <Input
                     type="number"
                     min="0"
@@ -941,7 +941,7 @@ const MarksPage = () => {
                   />
                 </div>
                 <div>
-                  <label>{t('labs_projects_research') || 'Labs/Projects/Research'} (%)</label>
+                  <label>{t('labs_projects_research')} (%)</label>
                   <Input
                     type="number"
                     min="0"
@@ -953,7 +953,7 @@ const MarksPage = () => {
                   />
                 </div>
                 <div>
-                  <label>{t('quizzes') || 'Quizzes'} (%)</label>
+                  <label>{t('quizzes')} (%)</label>
                   <Input
                     type="number"
                     min="0"
@@ -965,7 +965,7 @@ const MarksPage = () => {
                   />
                 </div>
                 <div>
-                  <label>{t('participation') || 'Participation'} (%)</label>
+                  <label>{t('participation')} (%)</label>
                   <Input
                     type="number"
                     min="0"
@@ -977,7 +977,7 @@ const MarksPage = () => {
                   />
                 </div>
                 <div>
-                  <label>{t('attendance') || 'Attendance'} (%)</label>
+                  <label>{t('attendance')} (%)</label>
                   <Input
                     type="number"
                     min="0"
@@ -991,7 +991,7 @@ const MarksPage = () => {
               </div>
               <div style={{ marginTop: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div style={{ fontSize: 'var(--font-size-sm)', color: theme === 'dark' ? '#9ca3af' : '#6b7280' }}>
-                  {t('total') || 'Total'}: {(
+                  {t('total')}: {(
                     (distributionForm.midTermExam || 0) +
                     (distributionForm.finalExam || 0) +
                     (distributionForm.homework || 0) +
@@ -1002,7 +1002,7 @@ const MarksPage = () => {
                   )}%
                 </div>
                 <Button type="submit" variant="primary">
-                  {t('save') || 'Save'}
+                  {t('save')}
                 </Button>
               </div>
             </form>
@@ -1020,35 +1020,35 @@ const MarksPage = () => {
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 8, marginBottom: '1rem' }}>
             <Select
               searchable
-              placeholder={t('select_year') || 'Select Year'}
+              placeholder={t('select_year')}
               value={yearFilter}
               onChange={(e) => setYearFilter(e.target.value)}
               options={[
-                { value: '', label: t('all_years') || 'All Years' },
+                { value: '', label: t('all_years') },
                 ...availableYears.map(year => ({ value: year, label: year }))
               ]}
               fullWidth
             />
             <Select
               searchable
-              placeholder={t('select_term') || 'Select Term'}
+              placeholder={t('select_term')}
               value={termFilter}
               onChange={(e) => setTermFilter(e.target.value)}
               options={[
-                { value: '', label: t('all_terms') || 'All Terms' },
+                { value: '', label: t('all_terms') },
                 ...availableTerms.map(term => ({ value: term, label: term }))
               ]}
               fullWidth
             />
             <Select
               searchable
-              placeholder={t('select_status') || 'Select Status'}
+              placeholder={t('select_status')}
               value={repeatedFilter}
               onChange={(e) => setRepeatedFilter(e.target.value)}
               options={[
-                { value: '', label: t('all') || 'All' },
-                { value: 'false', label: t('first_attempt') || 'First Attempt' },
-                { value: 'true', label: t('repeated') || 'Repeated' }
+                { value: '', label: t('all') },
+                { value: 'false', label: t('first_attempt') },
+                { value: 'true', label: t('repeated') }
               ]}
               fullWidth
             />
@@ -1058,13 +1058,13 @@ const MarksPage = () => {
             <SimpleLoading loading type="spinner" size="md" />
           ) : !selectedSubject ? (
             <div style={{ textAlign: 'center', padding: '2rem' }}>
-              <p>{t('select_subject_to_view') || 'Select a subject to view student marks'}</p>
+              <p>{t('select_subject_to_view')}</p>
             </div>
           ) : marksReportData.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '2rem' }}>
-                <p>{t('no_students_found') || 'No students found for the selected filters'}</p>
+                <p>{t('no_students_found')}</p>
                 <p style={{ fontSize: 'var(--font-size-sm)', color: '#666' }}>
-                  {t('try_different_filters') || 'Try adjusting your filters or check if students are enrolled'}
+                  {t('try_different_filters')}
                 </p>
               </div>
             ) : (
@@ -1074,7 +1074,7 @@ const MarksPage = () => {
                 columns={[
                   {
                     field: 'studentNumber',
-                    headerName: t('student_number') || 'Student No.',
+                    headerName: t('student_number'),
                     width: 100,
                     editable: false,
                     valueFormatter: (params) => {
@@ -1089,35 +1089,35 @@ const MarksPage = () => {
                   },
                   {
                     field: 'studentName',
-                    headerName: t('student_name') || 'Student Name',
+                    headerName: t('student_name'),
                     flex: 1,
                     minWidth: 180,
                     editable: false
                   },
                   {
                     field: 'programName',
-                    headerName: t('program') || 'Program',
+                    headerName: t('program'),
                     flex: 1,
                     minWidth: 120,
                     editable: false
                   },
                   {
                     field: 'subjectName',
-                    headerName: t('subject') || 'Subject',
+                    headerName: t('subject'),
                     flex: 1,
                     minWidth: 120,
                     editable: false
                   },
                   {
                     field: 'className',
-                    headerName: t('class') || 'Class',
+                    headerName: t('class'),
                     flex: 1,
                     minWidth: 120,
                     editable: false
                   },
                   {
                     field: 'midTermExam',
-                    headerName: t('mid_term') || 'Mid-Term',
+                    headerName: t('mid_term'),
                     width: 90,
                     editable: true,
                     type: 'number',
@@ -1143,7 +1143,7 @@ const MarksPage = () => {
                   },
                   {
                     field: 'finalExam',
-                    headerName: t('final') || 'Final',
+                    headerName: t('final'),
                     width: 90,
                     editable: true,
                     type: 'number',
@@ -1169,7 +1169,7 @@ const MarksPage = () => {
                   },
                   {
                     field: 'homework',
-                    headerName: t('homework') || 'Homework',
+                    headerName: t('homework'),
                     width: 90,
                     editable: true,
                     type: 'number',
@@ -1195,7 +1195,7 @@ const MarksPage = () => {
                   },
                   {
                     field: 'labsProjectResearch',
-                    headerName: t('labs') || 'Labs',
+                    headerName: t('labs'),
                     width: 90,
                     editable: true,
                     type: 'number',
@@ -1221,7 +1221,7 @@ const MarksPage = () => {
                   },
                   {
                     field: 'quizzes',
-                    headerName: t('quizzes') || 'Quizzes',
+                    headerName: t('quizzes'),
                     width: 90,
                     editable: true,
                     type: 'number',
@@ -1247,7 +1247,7 @@ const MarksPage = () => {
                   },
                   {
                     field: 'participation',
-                    headerName: t('participation') || 'Participation',
+                    headerName: t('participation'),
                     width: 90,
                     editable: true,
                     type: 'number',
@@ -1273,7 +1273,7 @@ const MarksPage = () => {
                   },
                   {
                     field: 'attendance',
-                    headerName: t('attendance') || 'Attendance',
+                    headerName: t('attendance'),
                     width: 90,
                     editable: true,
                     type: 'number',
@@ -1299,12 +1299,12 @@ const MarksPage = () => {
                   },
                   {
                     field: 'gradeType',
-                    headerName: t('grade_type') || 'Grade Type',
+                    headerName: t('grade_type'),
                     width: 120,
                     editable: true,
                     type: 'singleSelect',
                     valueOptions: [
-                      { value: 'calculated', label: t('calculated') || 'Calculated' },
+                      { value: 'calculated', label: t('calculated') },
                       { value: 'FB', label: 'FB - Fail Due to Absence' },
                       { value: 'FA', label: 'FA - Fail Due to Absence' },
                       { value: 'WF', label: 'WF - Withdrawal' }
@@ -1312,7 +1312,7 @@ const MarksPage = () => {
                     valueFormatter: (params) => {
                       const value = params?.value || 'calculated';
                       const options = {
-                        'calculated': t('calculated') || 'Calculated',
+                        'calculated': t('calculated'),
                         'FB': 'FB - Fail Due to Absence',
                         'FA': 'FA - Fail Due to Absence',
                         'WF': 'WF - Withdrawal'
@@ -1322,7 +1322,7 @@ const MarksPage = () => {
                     renderCell: (params) => {
                       const value = params.value || 'calculated';
                       const options = {
-                        'calculated': t('calculated') || 'Calculated',
+                        'calculated': t('calculated'),
                         'FB': 'FB - Fail Due to Absence',
                         'FA': 'FA - Fail Due to Absence',
                         'WF': 'WF - Withdrawal'
@@ -1344,7 +1344,7 @@ const MarksPage = () => {
                   },
                   {
                     field: 'totalMarks',
-                    headerName: t('total') || 'Total',
+                    headerName: t('total'),
                     width: 100,
                     editable: false,
                     valueFormatter: (params) => {
@@ -1391,7 +1391,7 @@ const MarksPage = () => {
                   },
                   {
                     field: 'letterGrade',
-                    headerName: t('grade') || 'Grade',
+                    headerName: t('grade'),
                     width: 80,
                     editable: false,
                     valueFormatter: (params) => {
@@ -1442,17 +1442,17 @@ const MarksPage = () => {
                   // Hide these columns to save space
                   {
                     field: 'gradeRange',
-                    headerName: t('range') || 'Range',
+                    headerName: t('range'),
                     width: 80,
                     editable: false
                   },
                   {
                     field: 'isRepeated',
-                    headerName: t('repeated') || 'Repeated',
+                    headerName: t('repeated'),
                     width: 120,
                     editable: false,
                     valueFormatter: (params) => {
-                      return Boolean(params?.value) ? (t('yes') || 'Yes') : (t('no') || 'No');
+                      return Boolean(params?.value) ? (t('yes')) : (t('no'));
                     },
                     renderCell: (params) => {
                       const isRepeated = Boolean(params.value);
@@ -1515,7 +1515,7 @@ const MarksPage = () => {
                                 // Update the local state to show immediate feedback
                                 params.api.updateRows([{ id: params.id, isRepeated: !isRepeated }]);
                                 
-                                toast?.success?.(t('marks_updated_successfully') || 'Marks updated successfully');
+                                toast?.success?.(t('marks_updated_successfully'));
                               } catch (error) {
                                 console.error('Error updating isRepeated:', error);
                                 toast?.error?.(error.message || 'Failed to update marks');
@@ -1545,7 +1545,7 @@ const MarksPage = () => {
                   },
                   {
                     field: 'deductions',
-                    headerName: t('deductions') || 'Deductions',
+                    headerName: t('deductions'),
                     width: 110,
                     sortable: false,
                     filterable: false,
@@ -1618,7 +1618,7 @@ const MarksPage = () => {
                             ) : (
                               <>
                                 {getThemedIcon('ui', 'alert_triangle', 14, theme)}
-                                <span style={{ marginLeft: '4px' }}>{t('view') || 'View'}</span>
+                                <span style={{ marginLeft: '4px' }}>{t('view')}</span>
                               </>
                             )}
                           </Button>
@@ -1628,7 +1628,7 @@ const MarksPage = () => {
                   },
                   {
                     field: 'history',
-                    headerName: t('history') || 'History',
+                    headerName: t('history'),
                     width: 80,
                     sortable: false,
                     filterable: false,
@@ -1652,7 +1652,7 @@ const MarksPage = () => {
                             ) : (
                               <>
                                 {getThemedIcon('ui', 'clock', 14, theme)}
-                                <span style={{ marginLeft: '4px' }}>{t('history') || 'History'}</span>
+                                <span style={{ marginLeft: '4px' }}>{t('history')}</span>
                               </>
                             )}
                           </Button>
@@ -1667,8 +1667,8 @@ const MarksPage = () => {
                 disableRowSelectionOnClick
                 exportFileName="student-marks"
                 showExportButton
-                exportLabel={t('export') || 'Export'}
-                loadingOverlayMessage={marksReportLoading ? (t('loading_marks') || 'Loading marks...') : undefined}
+                exportLabel={t('export')}
+                loadingOverlayMessage={marksReportLoading ? (t('loading_marks')) : undefined}
                 processRowUpdate={async (newRow) => {
                   try {
                     // Get current marks distribution for validation
@@ -1720,12 +1720,12 @@ const MarksPage = () => {
                       // Refresh the marks report data to get updated calculations
                       await loadMarksReport();
                       
-                      toast?.success?.(t('marks_updated') || 'Marks updated');
+                      toast?.success?.(t('marks_updated'));
                     }
                     return newRow;
                   } catch (err) {
                     error('[MarksPage] Error saving marks:', err);
-                    toast?.error?.(t('error_saving_marks') || 'Error saving marks');
+                    toast?.error?.(t('error_saving_marks'));
                     throw err;
                   }
                 }}

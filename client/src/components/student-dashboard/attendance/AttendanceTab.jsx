@@ -222,7 +222,7 @@ const AttendanceTab = React.memo(({
     const behaviorCount = behaviors.length;
     behaviorBreakdown.push({
       id: '__total__',
-      label: t('behavior') || 'Behavior',
+      label: t('behavior'),
       total: behaviorPoints,
       count: behaviorCount,
       hasEntries: behaviorCount > 0,
@@ -496,7 +496,7 @@ const AttendanceTab = React.memo(({
   if (groupedLogs.length === 0) {
     return (
       <EmptyState
-        title={t('attendance.no_records_found') || (lang === 'ar' ? 'لا توجد سجلات حضور' : 'No attendance records found')}
+        title={t('attendance.no_records_found')}
       />
     );
   }
@@ -504,7 +504,7 @@ const AttendanceTab = React.memo(({
   const SectionHeader = ({ label, bg, sectionKey, points, count }) => (
     <div onClick={() => toggleSection(sectionKey)} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.5rem 0.75rem', background: bg, borderRadius: expandedSections[sectionKey] ? '0.5rem 0.5rem 0 0' : '0.5rem', cursor: 'pointer', userSelect: 'none' }}>
       <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, color: 'white' }}>
-        {label} ({points} {t('points') || 'Points'}, {count} {t('entries') || 'entries'})
+        {label} ({points} {t('points')}, {count} {t('entries')})
       </span>
       <span style={{ transform: expandedSections[sectionKey] ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.2s', flexShrink: 0, display: 'inline-flex' }}>
         {getThemedIcon('ui', 'chevron_down', 16, 'white')}
@@ -516,7 +516,7 @@ const AttendanceTab = React.memo(({
     <div className={styles.sectionRow} style={{ background: item.isTotal ? totalBg : (item.hasEntries ? undefined : undefined), fontWeight: item.isTotal ? 600 : 400 }}>
       <span style={{ color: textColor, flex: 1, fontSize: 'var(--font-size-sm)' }}>{item.label}</span>
       <span style={{ color: item.hasEntries ? textColor : '#9ca3af', fontSize: 'var(--font-size-xs)', whiteSpace: 'nowrap' }}>
-        {t('total') || 'Total'}: {item.total >= 0 ? '+' : ''}{item.total}&nbsp;&nbsp;{t('count') || 'Count'}: ({item.count})
+        {t('total')}: {item.total >= 0 ? '+' : ''}{item.total}&nbsp;&nbsp;{t('count')}: ({item.count})
       </span>
       {item.hasEntries && canDeleteRecords && <span style={{ width: 16 }} />}
     </div>
@@ -528,19 +528,19 @@ const AttendanceTab = React.memo(({
       <div className={styles.statGrid4}>
         <div style={{ padding: '0.5rem 0.25rem', background: '#16a34a', borderRadius: '0.5rem', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '3rem' }}>
           <div style={{ fontSize: 'var(--font-size-lg)', fontWeight: 700, color: 'white', lineHeight: 1 }}>{stats.present}</div>
-          <div style={{ fontSize: '0.625rem', color: 'rgba(255,255,255,0.92)', fontWeight: 500, marginTop: '0.2rem', lineHeight: 1.2 }}>{t('present') || 'Present'}</div>
+          <div style={{ fontSize: '0.625rem', color: 'rgba(255,255,255,0.92)', fontWeight: 500, marginTop: '0.2rem', lineHeight: 1.2 }}>{t('present')}</div>
         </div>
         <div style={{ padding: '0.5rem 0.25rem', background: '#dc2626', borderRadius: '0.5rem', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '3rem' }}>
           <div style={{ fontSize: 'var(--font-size-lg)', fontWeight: 700, color: 'white', lineHeight: 1 }}>{stats.penaltyCount}</div>
-          <div style={{ fontSize: '0.625rem', color: 'rgba(255,255,255,0.92)', fontWeight: 500, marginTop: '0.2rem', lineHeight: 1.2 }}>{t('penalty') || 'Penalty'}</div>
+          <div style={{ fontSize: '0.625rem', color: 'rgba(255,255,255,0.92)', fontWeight: 500, marginTop: '0.2rem', lineHeight: 1.2 }}>{t('penalty')}</div>
         </div>
         <div style={{ padding: '0.5rem 0.25rem', background: '#f97316', borderRadius: '0.5rem', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '3rem' }}>
           <div style={{ fontSize: 'var(--font-size-lg)', fontWeight: 700, color: 'white', lineHeight: 1 }}>{stats.behaviorPoints}</div>
-          <div style={{ fontSize: '0.625rem', color: 'rgba(255,255,255,0.92)', fontWeight: 500, marginTop: '0.2rem', lineHeight: 1.2 }}>{t('behavior') || 'Behavior'}</div>
+          <div style={{ fontSize: '0.625rem', color: 'rgba(255,255,255,0.92)', fontWeight: 500, marginTop: '0.2rem', lineHeight: 1.2 }}>{t('behavior')}</div>
         </div>
         <div style={{ padding: '0.5rem 0.25rem', background: '#3b82f6', borderRadius: '0.5rem', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '3rem' }}>
           <div style={{ fontSize: 'var(--font-size-lg)', fontWeight: 700, color: 'white', lineHeight: 1 }}>{stats.participationCount}</div>
-          <div style={{ fontSize: '0.625rem', color: 'rgba(255,255,255,0.92)', fontWeight: 500, marginTop: '0.2rem', lineHeight: 1.2 }}>{t('participation') || 'Participation'}</div>
+          <div style={{ fontSize: '0.625rem', color: 'rgba(255,255,255,0.92)', fontWeight: 500, marginTop: '0.2rem', lineHeight: 1.2 }}>{t('participation')}</div>
         </div>
       </div>
 
@@ -548,23 +548,23 @@ const AttendanceTab = React.memo(({
       <div className={styles.statGrid5}>
         <div style={{ padding: '0.5rem 0.25rem', background: '#eab308', borderRadius: '0.5rem', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '3rem' }}>
           <div style={{ fontSize: 'var(--font-size-lg)', fontWeight: 700, color: 'white', lineHeight: 1 }}>{stats.late}</div>
-          <div style={{ fontSize: '0.625rem', color: 'rgba(255,255,255,0.92)', fontWeight: 500, marginTop: '0.2rem', lineHeight: 1.2 }}>{t('late') || 'Late'}</div>
+          <div style={{ fontSize: '0.625rem', color: 'rgba(255,255,255,0.92)', fontWeight: 500, marginTop: '0.2rem', lineHeight: 1.2 }}>{t('late')}</div>
         </div>
         <div style={{ padding: '0.5rem 0.25rem', background: '#ef4444', borderRadius: '0.5rem', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '3rem' }}>
           <div style={{ fontSize: 'var(--font-size-lg)', fontWeight: 700, color: 'white', lineHeight: 1 }}>{stats.excusedLeave}</div>
-          <div style={{ fontSize: '0.625rem', color: 'rgba(255,255,255,0.92)', fontWeight: 500, marginTop: '0.2rem', lineHeight: 1.2 }}>{t('excused_leave') || 'Excused Leave'}</div>
+          <div style={{ fontSize: '0.625rem', color: 'rgba(255,255,255,0.92)', fontWeight: 500, marginTop: '0.2rem', lineHeight: 1.2 }}>{t('excused_leave')}</div>
         </div>
         <div style={{ padding: '0.5rem 0.25rem', background: '#ef4444', borderRadius: '0.5rem', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '3rem' }}>
           <div style={{ fontSize: 'var(--font-size-lg)', fontWeight: 700, color: 'white', lineHeight: 1 }}>{stats.absentWithExcuse}</div>
-          <div style={{ fontSize: '0.625rem', color: 'rgba(255,255,255,0.92)', fontWeight: 500, marginTop: '0.2rem', lineHeight: 1.2 }}>{t('absent_excused') || 'Absent (Excused)'}</div>
+          <div style={{ fontSize: '0.625rem', color: 'rgba(255,255,255,0.92)', fontWeight: 500, marginTop: '0.2rem', lineHeight: 1.2 }}>{t('absent_excused')}</div>
         </div>
         <div style={{ padding: '0.5rem 0.25rem', background: '#ef4444', borderRadius: '0.5rem', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '3rem' }}>
           <div style={{ fontSize: 'var(--font-size-lg)', fontWeight: 700, color: 'white', lineHeight: 1 }}>{stats.absentNoExcuse}</div>
-          <div style={{ fontSize: '0.625rem', color: 'rgba(255,255,255,0.92)', fontWeight: 500, marginTop: '0.2rem', lineHeight: 1.2 }}>{t('absent') || 'Absent'}</div>
+          <div style={{ fontSize: '0.625rem', color: 'rgba(255,255,255,0.92)', fontWeight: 500, marginTop: '0.2rem', lineHeight: 1.2 }}>{t('absent')}</div>
         </div>
         <div style={{ padding: '0.5rem 0.25rem', background: '#8b5cf6', borderRadius: '0.5rem', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '3rem' }}>
           <div style={{ fontSize: 'var(--font-size-lg)', fontWeight: 700, color: 'white', lineHeight: 1 }}>{stats.humanCase}</div>
-          <div style={{ fontSize: '0.625rem', color: 'rgba(255,255,255,0.92)', fontWeight: 500, marginTop: '0.2rem', lineHeight: 1.2 }}>{t('human_case') || 'Human Case'}</div>
+          <div style={{ fontSize: '0.625rem', color: 'rgba(255,255,255,0.92)', fontWeight: 500, marginTop: '0.2rem', lineHeight: 1.2 }}>{t('human_case')}</div>
         </div>
       </div>
 
@@ -572,7 +572,7 @@ const AttendanceTab = React.memo(({
       <div className={styles.sectionsContainer}>
 
         {/* Participation */}
-        <SectionHeader label={t('participation_details') || 'Participation Details'} bg="#3b82f6" sectionKey="participation" points={stats.participationPoints} count={stats.participationCount} />
+        <SectionHeader label={t('participation_details')} bg="#3b82f6" sectionKey="participation" points={stats.participationPoints} count={stats.participationCount} />
         {expandedSections.participation && (
           <div className={styles.sectionBody} style={{ borderInlineStart: '3px solid #3b82f6', background: '#f0f7ff', borderRadius: '0 0 0.5rem 0.5rem', padding: '0.25rem 0' }}>
             {typeBreakdown.participationBreakdown.map(item => (
@@ -582,7 +582,7 @@ const AttendanceTab = React.memo(({
         )}
 
         {/* Behavior */}
-        <SectionHeader label={t('behavior_details') || 'Behavior Details'} bg="#f97316" sectionKey="behavior" points={stats.behaviorPoints} count={stats.behaviorCount} />
+        <SectionHeader label={t('behavior_details')} bg="#f97316" sectionKey="behavior" points={stats.behaviorPoints} count={stats.behaviorCount} />
         {expandedSections.behavior && (
           <div className={styles.sectionBody} style={{ borderInlineStart: '3px solid #f97316', background: '#fff7f0', borderRadius: '0 0 0.5rem 0.5rem', padding: '0.25rem 0' }}>
             {typeBreakdown.behaviorBreakdown.map(item => (
@@ -592,7 +592,7 @@ const AttendanceTab = React.memo(({
         )}
 
         {/* Penalty */}
-        <SectionHeader label={t('penalty_details') || 'Penalty Details'} bg="#dc2626" sectionKey="penalty" points={stats.penaltyPoints} count={stats.penaltyCount} />
+        <SectionHeader label={t('penalty_details')} bg="#dc2626" sectionKey="penalty" points={stats.penaltyPoints} count={stats.penaltyCount} />
         {expandedSections.penalty && (
           <div className={styles.sectionBody} style={{ borderInlineStart: '3px solid #dc2626', background: '#fff5f5', borderRadius: '0 0 0.5rem 0.5rem', padding: '0.25rem 0' }}>
             {typeBreakdown.penaltyBreakdown.map(item => (
@@ -670,7 +670,7 @@ const AttendanceTab = React.memo(({
               fontWeight: 600,
               color: '#111827'
             }}>
-              {t('confirm_delete_record') || 'Delete Record'}
+              {t('confirm_delete_record')}
             </h3>
             <p style={{
               margin: '0 0 1.5rem 0',
@@ -678,7 +678,7 @@ const AttendanceTab = React.memo(({
               color: '#6b7280',
               lineHeight: '1.5'
             }}>
-              {t('confirm_delete_message') || `Are you sure you want to delete this ${deleteModalData.type} record? This action cannot be undone.`}
+              {t('confirm_delete_message')}
             </p>
             <div style={{
               display: 'flex',
@@ -697,7 +697,7 @@ const AttendanceTab = React.memo(({
                   cursor: 'pointer'
                 }}
               >
-                {t('cancel') || 'Cancel'}
+                {t('cancel')}
               </button>
               <button
                 onClick={executeDelete}
@@ -711,7 +711,7 @@ const AttendanceTab = React.memo(({
                   cursor: 'pointer'
                 }}
               >
-                {t('delete') || 'Delete'}
+                {t('delete')}
               </button>
             </div>
           </div>

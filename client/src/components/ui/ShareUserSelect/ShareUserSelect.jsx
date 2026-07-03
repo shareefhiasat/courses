@@ -191,8 +191,8 @@ export default function ShareUserSelect({
     : (pickerValue || (value != null && value !== '' ? String(value) : ''));
 
   const resolvedPlaceholder = loading
-    ? (t('common.loading') || 'Loading...')
-    : (placeholder || t('drive.selectUser') || t('select_user') || 'Select user');
+    ? (t('common.loading'))
+    : (placeholder || t('drive.selectUser'));
 
   return (
     <div className={className} style={{ width: fullWidth ? '100%' : undefined, ...style }}>
@@ -205,7 +205,7 @@ export default function ShareUserSelect({
         value={selectValue}
         onChange={handleUserSelectChange}
         placeholder={resolvedPlaceholder}
-        searchPlaceholder={t('search') || 'Search...'}
+        searchPlaceholder={t('search')}
         useEmailAsValue={false}
         showEnrollments={false}
         showStatus={true}
@@ -256,7 +256,7 @@ export default function ShareUserSelect({
                     }}
                     onMouseEnter={(e) => e.target.style.opacity = '1'}
                     onMouseLeave={(e) => e.target.style.opacity = '0.7'}
-                    aria-label={t('common.remove') || 'Remove'}
+                    aria-label={t('common.remove')}
                   >
                     ×
                   </button>

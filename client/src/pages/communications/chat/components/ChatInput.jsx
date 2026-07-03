@@ -792,7 +792,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const ChatI
                   boxShadow:'0 4px 6px -1px rgba(0, 0, 0, 0.1)' 
                 }}
               >
-                {t('create')||'Create'}
+                {t('create')}
               </button>
             </div>
           </div>

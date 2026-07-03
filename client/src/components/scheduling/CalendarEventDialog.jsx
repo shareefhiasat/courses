@@ -554,7 +554,7 @@ function CalendarEventDialog({
                   </span>
                 </div>
                 <div style={{ fontSize: 'var(--font-size-sm)', color: theme === 'dark' ? '#fca5a5' : '#991b1b' }}>
-                  {breakConflicts.length} {t('session')}{breakConflicts.length === 1 ? '' : 's'} {t('for_same_program')} {t('on_selected_date_time')}
+                  {breakConflicts.length} {t('session', { count: breakConflicts.length })} {t('for_same_program')} {t('on_selected_date_time')}
                 </div>
                 <div style={{ marginTop: '0.5rem', fontSize: 'var(--font-size-xs)', color: theme === 'dark' ? '#fca5a5' : '#991b1b' }}>
                   {t('break_conflict_warning')}

@@ -35,18 +35,18 @@ export default function TeacherSubjectDistribution({ effort }) {
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '1rem' }}>
       <ListCard
-        title={t('subject_distribution') || 'Subject Distribution'}
+        title={t('subject_distribution')}
         items={effort.subjectDistribution}
         labelFn={(item) => (isRTL ? item.subjectNameAr : item.subjectNameEn)}
       />
       <ListCard
-        title={t('break_type_distribution') || 'Break Distribution'}
+        title={t('break_type_distribution')}
         items={effort.breakByType}
         labelFn={(item) => t(`break_type_${item.breakType}`) || item.breakType}
         countKey="count"
       />
       <ListCard
-        title={t('classroom_utilization') || 'Classroom Utilization'}
+        title={t('classroom_utilization')}
         items={effort.classroomUtilization}
         labelFn={(item) => item.classroom?.nameEn || '—'}
       />

@@ -154,8 +154,8 @@ export default function StudentActionZapPanel({
     
     info('🔧 No valid attendance found - showing None');
     return {
-      en: t('none') || 'None',
-      ar: t('none') || 'لا شيء',
+      en: t('none'),
+      ar: t('none'),
       color: '#9ca3af'
     };
   }, [currentAttendanceStatus, t, lang]);
@@ -330,7 +330,7 @@ export default function StudentActionZapPanel({
         }}
         onClick={onClose}
       />
-      <div dir={isRTL ? 'rtl' : 'ltr'} style={{
+      <div style={{
         position: 'fixed',
         top: 0,
         [isRTL ? 'left' : 'right']: 0,
@@ -380,7 +380,7 @@ export default function StudentActionZapPanel({
               fontWeight: 500,
               color: 'var(--text, #111827)'
             }}>
-              {t('saving') || 'Saving...'}
+              {t('saving')}
             </div>
           </div>
         </div>
@@ -423,7 +423,7 @@ export default function StudentActionZapPanel({
             }}>
               {getThemedIcon('ui', 'refresh_cw', 20, theme)}
               <span style={{ marginLeft: '0.5rem' }}>
-                {t('reloading') || 'Reloading...'}
+                {t('reloading')}
               </span>
             </div>
           </div>
@@ -1029,7 +1029,7 @@ export default function StudentActionZapPanel({
                   borderRadius: '50%',
                   animation: 'spin 1s linear infinite'
                 }}></div>
-                <span>{t('saving') || 'Saving...'}</span>
+                <span>{t('saving')}</span>
               </>
             ) : (
               <>{t('save_actions')} ({selectedActions.length})</>

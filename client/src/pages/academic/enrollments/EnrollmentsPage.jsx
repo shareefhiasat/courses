@@ -200,7 +200,7 @@ const EnrollmentsPage = () => {
         setClasses(classesSnap.data);
       } else {
         error('[EnrollmentsPage] Classes service error:', classesSnap.error);
-        toast.error(classesSnap.error || t('failed_to_load_classes') || 'Failed to load classes');
+        toast.error(classesSnap.error || t('failed_to_load_classes'));
       }
     } catch (e) {
       error('[EnrollmentsPage] Error loading data:', e);
@@ -272,7 +272,7 @@ const EnrollmentsPage = () => {
           studentName: getLocalizedUserName(student, lang),
           className: selectedClass.name || selectedClass.code,
           instructorName: getLocalizedUserName(user, lang),
-          lang: t('lang') || 'en'
+          lang: t('lang')
         }
       );
       
@@ -289,7 +289,7 @@ const EnrollmentsPage = () => {
       }
     } catch (error) {
       error('Failed to toggle student access:', error);
-      toast?.showError(t('failed_to_update_student_access') || 'Failed to update student access');
+      toast?.showError(t('failed_to_update_student_access'));
     } finally {
       // Clear button loading state
       setButtonLoading(null);
@@ -324,8 +324,8 @@ const EnrollmentsPage = () => {
     return (
       <Container maxWidth="md" className={styles.accessDenied}>
         {getThemedIcon('ui', 'shield', 48, theme)}
-        <h2>{t('access_denied') || 'Access Denied'}</h2>
-        <p>{t('page_only_accessible_instructors_admins') || 'This page is only accessible to instructors and admins.'}</p>
+        <h2>{t('access_denied')}</h2>
+        <p>{t('page_only_accessible_instructors_admins')}</p>
       </Container>
     );
   }
@@ -346,7 +346,7 @@ const EnrollmentsPage = () => {
         <Card data-tour="enroll-classes" className={styles.classList}>
           <CardBody style={{ position: 'relative' }}>
             <div className={styles.classListHeader} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <span>{t('classes') || 'Classes'} ({filteredClasses.length})</span>
+              <span>{t('classes')} ({filteredClasses.length})</span>
               
             </div>
             
@@ -385,7 +385,7 @@ const EnrollmentsPage = () => {
             <div style={{ marginBottom: '0.5rem' }}>
               <Input
                 type="text"
-                placeholder={t('search_classes_quick') || 'Quick search: class name, code, year, semester...'}
+                placeholder={t('search_classes_quick')}
                 value={classSearch}
                 onChange={(e) => setClassSearch(e.target.value)}
                 style={{ width: '100%' }}
@@ -521,16 +521,16 @@ const EnrollmentsPage = () => {
           {!selectedClass ? (
             <EmptyState
               icon={getThemedIcon('ui', 'search', 16, theme)}
-              title={t('select_class') || 'Select a class to manage student access'}
+              title={t('select_class')}
             />
           ) : (
             <>
               <div className={styles.selectedClassHeader}>
                 <h2>{selectedClass.name || selectedClass.code}</h2>
                 <div className={styles.stats}>
-                  {t('total_students') || 'Total Students'}: {students.length}
+                  {t('total_students')}: {students.length}
                   {' • '}
-                  {t('disabled') || 'Disabled'}: {students.filter(s => s.isDisabled).length}
+                  {t('disabled')}: {students.filter(s => s.isDisabled).length}
                 </div>
               </div>
 
@@ -538,7 +538,7 @@ const EnrollmentsPage = () => {
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
                 <Input
                   type="text"
-                  placeholder={t('search_students') || 'Search students...'}
+                  placeholder={t('search_students')}
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                   className={styles.searchInput}
@@ -549,11 +549,11 @@ const EnrollmentsPage = () => {
                   value={enrollmentStatusFilter}
                   onChange={(e) => setEnrollmentStatusFilter(e.target.value)}
                   options={[
-                    { value: 'all', label: t('all_enrollment_status') || 'All Enrollment Status' },
-                    { value: 'active', label: t('enrollment_active') || 'Active' },
-                    { value: 'inactive', label: t('enrollment_inactive') || 'Inactive/Dropped' }
+                    { value: 'all', label: t('all_enrollment_status') },
+                    { value: 'active', label: t('enrollment_active') },
+                    { value: 'inactive', label: t('enrollment_inactive') }
                   ]}
-                  placeholder={t('filter_by_enrollment_status') || 'Filter by enrollment status'}
+                  placeholder={t('filter_by_enrollment_status')}
                   style={{ minWidth: '180px' }}
                 />
                 
@@ -607,18 +607,18 @@ const EnrollmentsPage = () => {
                     }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', fontWeight: '600', color: '#343a40' }}>
                         {getThemedIcon('ui', 'alert_circle', 16, theme)}
-                        <span>{t('disabling_students') || 'Disabling Students'}</span>
+                        <span>{t('disabling_students')}</span>
                       </div>
                       <div style={{ lineHeight: '1.4' }}>
-                        {t('disable_student_info') || 'When you disable a student, they lose access to:'}
+                        {t('disable_student_info')}
                         <ul style={{ margin: '0.5rem 0', paddingLeft: '1.2rem', color: '#6c757d' }}>
-                          <li>{t('class_chat_participation') || 'Class chat participation'}</li>
-                          <li>{t('viewing_class_activities') || 'Viewing class activities'}</li>
-                          <li>{t('submitting_assignments') || 'Submitting assignments'}</li>
-                          <li>{t('attendance_scanning') || 'Attendance scanning'}</li>
+                          <li>{t('class_chat_participation')}</li>
+                          <li>{t('viewing_class_activities')}</li>
+                          <li>{t('submitting_assignments')}</li>
+                          <li>{t('attendance_scanning')}</li>
                         </ul>
                         <div style={{ marginTop: '0.5rem', fontStyle: 'italic', color: '#8b5cf6' }}>
-                          {t('re_enable_access') || 'You can re-enable access anytime.'}
+                          {t('re_enable_access')}
                         </div>
                       </div>
                     </div>
@@ -681,8 +681,8 @@ const EnrollmentsPage = () => {
                               ? getThemedIcon('ui', 'user_x', 14, theme)
                               : getThemedIcon('ui', 'check_circle', 14, theme)}
                             {student.isDisabled
-                              ? (t('status_disabled') || 'Disabled')
-                              : (t('status_active') || 'Active')}
+                              ? (t('status_disabled'))
+                              : (t('status_active'))}
                           </span>
                         </div>
                         <div className={styles.studentEmail}>

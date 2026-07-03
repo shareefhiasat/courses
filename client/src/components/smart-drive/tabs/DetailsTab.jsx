@@ -313,7 +313,7 @@ export default function DetailsTab({ file }) {
           }}
         >
           <p style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text, #111827)', margin: 0, marginBottom: '0.25rem' }}>
-            {t('drive.checksum')} ({t('drive.checksumSha256') || 'SHA-256'})
+            {t('drive.checksum')} ({t('drive.checksumSha256')})
           </p>
           <p style={{ fontSize: 'var(--font-size-xs)', fontFamily: 'ui-monospace, monospace', color: 'var(--text, #111827)', margin: 0, wordBreak: 'break-all' }}>
             {file.checksumSha256}

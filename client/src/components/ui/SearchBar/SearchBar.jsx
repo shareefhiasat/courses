@@ -22,7 +22,7 @@ const SearchBar = ({
   const [localValue, setLocalValue] = useState(value || '');
 
   // Use localized placeholder if none provided
-  const localizedPlaceholder = placeholder || t('search') || 'Search...';
+  const localizedPlaceholder = placeholder || t('search');
 
   const handleChange = (e) => {
     const newValue = e.target.value;

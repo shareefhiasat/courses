@@ -32,7 +32,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const SeedD
         info('💾 Creating template (mock):', { id: template.id, name: template.name });
       }
 
-      toast?.showSuccess(t('templates_created_successfully', { count: defaultTemplates.length }) || `Successfully created ${defaultTemplates.length} default templates!`);
+      toast?.showSuccess(t('templates_created_successfully', { count: defaultTemplates.length }));
       onComplete?.();
     } catch (error) {
       error('Error seeding templates:', error);
@@ -51,46 +51,46 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const SeedD
       textAlign: 'center',
       margin: '2rem 0'
     }}>
-      <h3 style={{ color: '#800020', margin: '0 0 1rem 0' }}>📧 {t('default_email_templates') || 'Default Email Templates'}</h3>
+      <h3 style={{ color: '#800020', margin: '0 0 1rem 0' }}>📧 {t('default_email_templates')}</h3>
       <p style={{ color: '#666', marginBottom: '1.5rem', lineHeight: 1.6 }}>
-        {t('create_default_templates_description') || 'Create 9 professional bilingual email templates to get started quickly:'}
+        {t('create_default_templates_description')}
       </p>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
         <div style={{ background: 'white', padding: '1rem', borderRadius: 8 }}>
           <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📢</div>
-          <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{t('announcement') || 'Announcement'}</div>
+          <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{t('announcement')}</div>
         </div>
         <div style={{ background: 'white', padding: '1rem', borderRadius: 8 }}>
           <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📝</div>
-          <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{t('new_activity') || 'New Activity'}</div>
+          <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{t('new_activity')}</div>
         </div>
         <div style={{ background: 'white', padding: '1rem', borderRadius: 8 }}>
           <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🎯</div>
-          <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{t('activity_graded') || 'Activity Graded'}</div>
+          <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{t('activity_graded')}</div>
         </div>
         <div style={{ background: 'white', padding: '1rem', borderRadius: 8 }}>
           <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>✅</div>
-          <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{t('activity_complete') || 'Activity Complete'}</div>
+          <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{t('activity_complete')}</div>
         </div>
         <div style={{ background: 'white', padding: '1rem', borderRadius: 8 }}>
           <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>🎓</div>
-          <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{t('enrollment') || 'Enrollment'}</div>
+          <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{t('enrollment')}</div>
         </div>
         <div style={{ background: 'white', padding: '1rem', borderRadius: 8 }}>
           <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📚</div>
-          <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{t('new_resource') || 'New Resource'}</div>
+          <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{t('new_resource')}</div>
         </div>
         <div style={{ background: 'white', padding: '1rem', borderRadius: 8 }}>
           <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>💬</div>
-          <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{t('chat_digest') || 'Chat Digest'}</div>
+          <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{t('chat_digest')}</div>
         </div>
         <div style={{ background: 'white', padding: '1rem', borderRadius: 8 }}>
           <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📱</div>
-          <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{t('qr_code') || 'QR Code'}</div>
+          <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{t('qr_code')}</div>
         </div>
         <div style={{ background: 'white', padding: '1rem', borderRadius: 8 }}>
           <div style={{ fontSize: '2rem', marginBottom: '0.5rem' }}>📊</div>
-          <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{t('student_summary') || 'Student Summary'}</div>
+          <div style={{ fontSize: '0.9rem', fontWeight: 600 }}>{t('student_summary')}</div>
         </div>
       </div>
 
@@ -105,7 +105,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const SeedD
             }} />
           </div>
           <p style={{ margin: '0.5rem 0 0 0', color: '#666', fontSize: '0.9rem' }}>
-            {t('creating_template_progress', { current: progress.current, total: progress.total }) || `Creating template ${progress.current} of ${progress.total}...`}
+            {t('creating_template_progress', { current: progress.current, total: progress.total })}
           </p>
         </div>
       )}
@@ -124,11 +124,11 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const SeedD
           fontSize: 'var(--font-size-md)'
         }}
       >
-        {seeding ? (t('creating_templates') || 'Creating Templates...') : (t('create_default_templates') || '✨ Create Default Templates')}
+        {seeding ? (t('creating_templates')) : (t('create_default_templates'))}
       </button>
 
       <p style={{ margin: '1rem 0 0 0', color: '#999', fontSize: '0.85rem' }}>
-        {t('templates_bilingual_info') || 'All templates are bilingual (EN + AR) and use Qatar timezone (UTC+3)'}
+        {t('templates_bilingual_info')}
       </p>
     </div>
   );

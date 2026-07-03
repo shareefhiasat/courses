@@ -114,7 +114,7 @@ export default function PanelHeader({ student, attendanceStatus, t, lang, isRTL,
               <>
                 <CircleIcon style={{ width: '14px', height: '14px', stroke: 'var(--text-muted, #9ca3af)' }} />
                 <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-muted, #9ca3af)' }}>
-                  {t('none') || 'None'}
+                  {t('none')}
                 </span>
               </>
             )}

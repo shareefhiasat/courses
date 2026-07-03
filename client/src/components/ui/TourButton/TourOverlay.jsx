@@ -26,11 +26,11 @@ const TourOverlay = ({ run, steps, callback }) => {
       tooltipComponent={useMemo(() => TourTooltip({}), [])}
       callback={callback}
       locale={{
-        back: t('tour_back') || 'Back',
-        close: t('tour_close') || 'Close',
-        last: t('tour_finish') || 'Finish',
-        next: t('tour_next') || 'Next',
-        skip: t('tour_skip') || 'Skip',
+        back: t('tour_back'),
+        close: t('tour_close'),
+        last: t('tour_finish'),
+        next: t('tour_next'),
+        skip: t('tour_skip'),
       }}
       styles={{
         options: {

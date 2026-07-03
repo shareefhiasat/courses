@@ -15,12 +15,12 @@ export default function OfficialExportFormatPicker({
   const options = [
     {
       value: EXPORT_FORMAT.PDF,
-      label: t('export_pdf') || 'PDF (watermarked)',
+      label: t('export_pdf'),
       icon: 'file_signature',
     },
     {
       value: EXPORT_FORMAT.EXCEL,
-      label: t('export_excel') || 'Excel (no watermark)',
+      label: t('export_excel'),
       icon: 'file_text',
     },
   ];
@@ -28,7 +28,7 @@ export default function OfficialExportFormatPicker({
   return (
     <div style={{ marginBottom: '1.5rem' }}>
       <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>
-        {t('export_format') || 'Export format'}
+        {t('export_format')}
       </label>
       <div
         dir="ltr"

@@ -82,7 +82,7 @@ const ActivityList = ({
           color: '#9ca3af',
           fontSize: 'var(--font-size-sm)'
         }}>
-          {t('no_todays_transactions') || 'No transactions Today'}
+          {t('no_todays_transactions')}
         </div>
       ) : (
         recentActivity.map((activity) => (
@@ -265,17 +265,17 @@ const ActivityList = ({
                 )}
                 {activity.label && activity.type === RECORD_TYPES.PENALTY && (
                   <div style={{ marginBottom: '0.25rem' }}>
-                    {activity.label || t('penalty_type') || 'Penalty Type'}
+                    {activity.label || t('penalty_type')}
                   </div>
                 )}
                 {activity.type === RECORD_TYPES.PARTICIPATION && (
                   <div style={{ marginBottom: '0.25rem', textTransform: 'capitalize' }}>
-                    {activity.label || t('participation') || 'Participation'}
+                    {activity.label || t('participation')}
                   </div>
                 )}
                 {activity.type === RECORD_TYPES.BEHAVIOR && (
                   <div style={{ marginBottom: '0.25rem' }}>
-                    {activity.label || t('behavior') || 'Behavior'}
+                    {activity.label || t('behavior')}
                   </div>
                 )}
               </div>

@@ -76,7 +76,7 @@ const GridQuickFilterChips = ({
       className={`${styles.row} ${className}`}
       style={style}
       role="toolbar"
-      aria-label={t('grid_quick_filters') || 'Quick filters'}
+      aria-label={t('grid_quick_filters')}
     >
       {chips.map((chip) => {
         const isActive = activeId === chip.id;
@@ -132,8 +132,8 @@ const GridQuickFilterChips = ({
             aria-pressed={isActive}
             title={
               isActive
-                ? (t('grid_chip_clear_filter') || 'Click to clear filter')
-                : (t('grid_chip_apply_filter') || 'Click to filter')
+                ? (t('grid_chip_clear_filter'))
+                : (t('grid_chip_apply_filter'))
             }
           >
             {content}

@@ -47,7 +47,7 @@ export default function TimeRangeSelector({ timeRange, startDate, endDate, onCha
         </>
       )}
       <Button variant="primary" size="sm" onClick={onApply} data-testid="apply-time-range">
-        {t('apply_filter') || 'Apply'}
+        {t('apply_filter')}
       </Button>
     </div>
   );

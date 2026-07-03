@@ -269,7 +269,7 @@ const SummaryDashboardPage = () => {
     );
     if (!allowed && instructors.length > 0) {
       setReportFilters((f) => ({ ...f, instructorId: '' }));
-      toast.error(t('access_denied') || 'Access denied');
+      toast.error(t('access_denied'));
     }
   }, [prefilterInstructor, instructors, scope.unrestricted, isSelfView, toast, t]);
 
@@ -357,12 +357,12 @@ const SummaryDashboardPage = () => {
       </button>
       <button type="button" style={headerButtonStyle} onClick={() => navigate('/instructor-availability')} title={t('manage_instructor_availability')} aria-label={t('manage_instructor_availability')}>
         <User size={16} />
-        <span>{t('instructors') || 'Instructors'}</span>
+        <span>{t('instructors')}</span>
         <ExternalLink size={13} aria-hidden style={{ opacity: 0.65 }} />
       </button>
       <button type="button" style={headerButtonStyle} onClick={() => navigate('/classroom-availability')} title={t('manage_room_availability')} aria-label={t('manage_room_availability')}>
         <DoorOpen size={16} />
-        <span>{t('rooms') || 'Rooms'}</span>
+        <span>{t('rooms')}</span>
         <ExternalLink size={13} aria-hidden style={{ opacity: 0.65 }} />
       </button>
       
@@ -397,11 +397,11 @@ const SummaryDashboardPage = () => {
         spotlightClicks={false}
         callback={handleTourCallback}
         locale={{
-          back: t('tour_back') || 'Back',
-          close: t('tour_close') || 'Close',
-          last: t('tour_finish') || 'Finish',
-          next: t('tour_next') || 'Next',
-          skip: t('tour_skip') || 'Skip',
+          back: t('tour_back'),
+          close: t('tour_close'),
+          last: t('tour_finish'),
+          next: t('tour_next'),
+          skip: t('tour_skip'),
         }}
         styles={{
           options: {
@@ -460,7 +460,7 @@ const SummaryDashboardPage = () => {
           {overviewCards.length > 0 && (
             <div data-tour="summary-overview">
               <SchedulingOverviewPanel
-                title={isInstructorDetailView ? (t('instructor_overview') || 'Instructor Overview') : (t('scheduling_overview') || 'Scheduling Overview')}
+                title={isInstructorDetailView ? (t('instructor_overview')) : (t('scheduling_overview'))}
                 stats={overviewStats}
                 cards={overviewCards}
                 defaultOpen
@@ -470,8 +470,8 @@ const SummaryDashboardPage = () => {
 
           <div data-tour="summary-analytics">
           <CollapsibleSection
-            title={isInstructorDetailView ? (t('teacher_effort_report') || 'Teacher Effort') : (t('analytics') || 'Analytics')}
-            summary={`${SCHEDULING_SUMMARY_DEFAULT_WIDGETS.length} ${t('widgets') || 'widgets'} · ${effortReport?.totals?.sessionCount ?? 0} ${t('sessions')} · ${effortReport?.totals?.teacherCount ?? 0} ${t('total_teachers')}`}
+            title={isInstructorDetailView ? (t('teacher_effort_report')) : (t('analytics'))}
+            summary={`${SCHEDULING_SUMMARY_DEFAULT_WIDGETS.length} ${t('widgets')} · ${effortReport?.totals?.sessionCount ?? 0} ${t('sessions')} · ${effortReport?.totals?.teacherCount ?? 0} ${t('total_teachers')}`}
             icon={BarChart3}
             defaultOpen
             testId="effort-report-section"
@@ -489,7 +489,7 @@ const SummaryDashboardPage = () => {
 
           {isInstructorDetailView && teacherEffort && (
             <CollapsibleSection
-              title={t('instructor_detail') || 'Instructor Detail'}
+              title={t('instructor_detail')}
               summary={isRTL ? teacherEffort.teacher?.instructorNameAr : teacherEffort.teacher?.instructorName}
               icon={User}
               defaultOpen
@@ -509,15 +509,15 @@ const SummaryDashboardPage = () => {
           {dashboardData && (
             <div data-tour="summary-breaks">
               <CollapsibleSection
-                title={t('breaks_and_holidays_analytics') || 'Breaks & Holidays Analytics'}
-                summary={`${SCHEDULING_BREAKS_HOLIDAYS_MAX_WIDGETS} ${t('widgets') || 'widgets'} · ${dashboardData.breakSessions?.length ?? 0} ${t('breaks')} · ${dashboardData.holidays?.length ?? 0} ${t('holidays')}`}
+                title={t('breaks_and_holidays_analytics')}
+                summary={`${SCHEDULING_BREAKS_HOLIDAYS_MAX_WIDGETS} ${t('widgets')} · ${dashboardData.breakSessions?.length ?? 0} ${t('breaks')} · ${dashboardData.holidays?.length ?? 0} ${t('holidays')}`}
                 icon={Palmtree}
                 defaultOpen={false}
                 testId="breaks-holidays-section"
                 actions={(
                   <button type="button" style={headerButtonStyle} onClick={() => navigate('/scheduling-calendar')} title={t('manage_breaks_and_holidays')} aria-label={t('manage_breaks_and_holidays')}>
                     <CalendarDays size={14} />
-                    <span>{t('manage_in_calendar') || 'Manage in Calendar'}</span>
+                    <span>{t('manage_in_calendar')}</span>
                   </button>
                 )}
               >
@@ -538,8 +538,8 @@ const SummaryDashboardPage = () => {
           {dashboardData && (
             <div data-tour="summary-attendance">
               <CollapsibleSection
-                title={t('attendance_analytics') || 'Attendance Analytics'}
-                summary={`${SCHEDULING_ATTENDANCE_MAX_WIDGETS} ${t('widgets') || 'widgets'} · ${t('class_and_daily') || 'Class & Daily'}`}
+                title={t('attendance_analytics')}
+                summary={`${SCHEDULING_ATTENDANCE_MAX_WIDGETS} ${t('widgets')} · ${t('class_and_daily')}`}
                 icon={ClipboardList}
                 defaultOpen={false}
                 testId="attendance-analytics-section"
@@ -560,8 +560,8 @@ const SummaryDashboardPage = () => {
 
           <div data-tour="summary-drive-analytics">
             <CollapsibleSection
-              title={t('drive_workflow_activity_analytics') || 'Drive, Workflow & Activity Analytics'}
-              summary={`${analyticsHook.loading ? '…' : (t('ready') || 'Ready')} · ${t('role_based_metrics') || 'Role-based metrics'}`}
+              title={t('drive_workflow_activity_analytics')}
+              summary={`${analyticsHook.loading ? '…' : (t('ready'))} · ${t('role_based_metrics')}`}
               icon={BarChart3}
               defaultOpen={false}
               testId="dashboard-analytics-section"

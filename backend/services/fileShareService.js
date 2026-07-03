@@ -18,14 +18,7 @@ import { SHARE_SUBJECT_TYPES, SHARE_PERMISSIONS } from '../constants/driveConsta
 import notificationGateway from './notifications/index.js';
 import { EVENTS } from './notifications/constants.js';
 import { buildNotificationNameVars } from '../utils/localizedUserName.js';
-
-
-const ok = (data) => ({ success: true, data, timestamp: Date.now() });
-const err = (code, message) => ({
-  success: false,
-  error: { code, message },
-  timestamp: Date.now(),
-});
+import { okData as ok, err } from '../utils/result.js';
 
 const VALID_PERMISSIONS = new Set(Object.values(SHARE_PERMISSIONS));
 

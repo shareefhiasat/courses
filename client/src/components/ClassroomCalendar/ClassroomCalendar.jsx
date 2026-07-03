@@ -67,7 +67,7 @@ const ClassroomCalendar = ({
                 fontSize: { xs: '0.75rem', sm: '0.875rem' },
               }}
             >
-              {t('classroom') || 'Classroom'}
+              {t('classroom')}
             </Typography>
           </Grid>
           {daysOfWeek.map((day) => (
@@ -187,7 +187,7 @@ const ClassroomCalendar = ({
             }}
           >
             <Typography variant="body1">
-              {t('no_classrooms') || 'No classrooms configured'}
+              {t('no_classrooms')}
             </Typography>
           </Box>
         )}

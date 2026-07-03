@@ -189,7 +189,7 @@ export const SearchBar = () => {
   
   return (
     <Input
-      placeholder={t('search_activities') || 'Search activities...'}
+      placeholder={t('search_activities')}
       value={search}
       onChange={(e) => setSearch(e.target.value)}
       prefix={getThemedIcon('ui', 'search', 16, theme)}

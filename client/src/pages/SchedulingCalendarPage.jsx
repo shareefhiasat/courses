@@ -1588,7 +1588,7 @@ const SchedulingCalendarPage = () => {
       setValidationResult(validation);
 
       if (!validation.valid) {
-        toast.error(formatValidationConflict(validation.conflicts?.[0], t) || t('validation_failed'));
+        toast.error(formatValidationConflict(validation.conflicts?.[0], t));
         const altTimes = await schedulingService.getAlternativeTimes(
           session.classId,
           session.instructorId,

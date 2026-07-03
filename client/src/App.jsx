@@ -76,36 +76,62 @@ const CalendarCompliancePage = lazy(() => import('./pages/workflow/CalendarCompl
 const WorkflowAnalyticsPage = lazy(() => import('./pages/workflow/WorkflowAnalyticsPage'));
 const SmartDrivePage = lazy(() => import('./pages/SmartDrivePage'));
 
-// Handle MobX State Tree errors globally
-if (typeof window !== 'undefined') {
-  const originalConsoleError = console.error;
-  console.error = (...args) => {
-    // Suppress MobX State Tree errors
-    if (args[0] && typeof args[0] === 'string' && args[0].includes('mobx-state-tree')) {
-      return;
-    }
-    if (args[0] && args[0].message && args[0].message.includes('mobx-state-tree')) {
-      return;
-    }
-    originalConsoleError.apply(console, args);
-  };
+const lazyProtectedRoutes = [
+  { path: '/dashboard', screenId: 'dashboard', screenName: 'Dashboard', Component: DashboardPage },
+  { path: '/summary-dashboard', screenId: 'summaryDashboard', screenName: 'Summary Dashboard', Component: SummaryDashboardPage },
+  { path: '/scheduling-calendar', screenId: 'schedulingCalendar', screenName: 'Scheduling Calendar', Component: SchedulingCalendarPage },
+  { path: '/instructor-availability', screenId: 'instructorAvailability', screenName: 'Instructor Availability', Component: InstructorAvailabilityPage },
+  { path: '/user-category-access', screenId: 'userCategoryAccess', screenName: 'User Access', Component: UserCategoryAccessPage },
+  { path: '/classroom-availability', screenId: 'classroomAvailability', screenName: 'Classroom Availability', Component: ClassroomAvailabilityPage },
+  { path: '/categories', screenId: 'categories', screenName: 'Categories', Component: CategoriesPage },
+  { path: '/student-dashboard', screenId: 'studentDashboard', screenName: 'Student Dashboard', Component: StudentDashboardPage },
+  { path: '/workflow/inbox', screenId: 'workflow', screenName: 'Workflow Inbox', Component: WorkflowInboxPage },
+  { path: '/workflow-documents/:documentId', screenId: 'workflow', screenName: 'Workflow Document Detail', Component: WorkflowDocumentDetailPage },
+  { path: '/smart-drive', screenId: 'drive', screenName: 'Smart Drive', Component: SmartDrivePage },
+  { path: '/workflow/:documentId', screenId: 'workflow', screenName: 'Workflow Detail', Component: WorkflowDetailPage },
+  { path: '/workflow/compliance', screenId: 'workflow', screenName: 'Calendar Compliance', Component: CalendarCompliancePage },
+  { path: '/workflow/analytics', screenId: 'workflow', screenName: 'Workflow Analytics', Component: WorkflowAnalyticsPage },
+];
 
-  // Handle unhandled errors
-  window.addEventListener('error', (event) => {
-    if (event.message && event.message.includes('mobx-state-tree')) {
-      event.preventDefault();
-      return false;
-    }
-  });
+const protectedRoutes = [
+  { path: '/', screenId: 'home', screenName: 'Home', Component: HomePage },
+  { path: '/student-profile', screenId: 'studentProfile', screenName: 'Student Profile', Component: StudentProfilePage },
+  { path: '/activity/:activityId', screenId: 'activities', screenName: 'Activity Details', Component: ActivityDetailPage },
+  { path: '/quizzes', screenId: 'quizzes', screenName: 'Quizzes', Component: QuizzesPage },
+  { path: '/quiz-preview/:quizId', screenId: 'quizzes', screenName: 'Quiz Preview', Component: QuizPreviewPage },
+  { path: '/quiz/:quizId', screenId: 'quizzes', screenName: 'Take Quiz', Component: StudentQuizPage },
+  { path: '/review-results', screenId: 'review-results', screenName: 'Review Results', Component: ReviewResultsPage },
+  { path: '/attendance', screenId: 'attendance', screenName: 'Attendance', Component: AttendancePage },
+  { path: '/hr-attendance', screenId: 'hrAttendance', screenName: 'HR Attendance', Component: HRAttendancePage },
+  { path: '/penalty', screenId: 'penalty', screenName: 'Penalty', Component: PenaltiesPage },
+  { path: '/participation', screenId: 'participation', screenName: 'Participation', Component: ParticipationPage },
+  { path: '/behavior', screenId: 'behavior', screenName: 'Behavior', Component: BehaviorPage },
+  { path: '/qr-scanner', screenId: 'qrScanner', screenName: 'QR Scanner', Component: QRScannerPage },
+  { path: '/enrollments', screenId: 'enrollments', screenName: 'Enrollments', Component: EnrollmentsPage },
+  { path: '/manage-enrollments', screenId: 'manageEnrollments', screenName: 'Manage Enrollments', Component: EnrollmentsPage },
+  { path: '/programs', screenId: 'programs', screenName: 'Programs', Component: ProgramsManagementPage },
+  { path: '/subjects', screenId: 'subjects', screenName: 'Subjects', Component: SubjectsManagementPage },
+  { path: '/marks-entry', screenId: 'marksEntry', screenName: 'Marks Entry', Component: MarksPage },
+  { path: '/advanced-analytics', screenId: 'advancedAnalytics', screenName: 'Advanced Analytics', Component: AdvancedAnalytics },
+  { path: '/chat', screenId: 'chat', screenName: 'Chat', Component: ChatPage },
+  { path: '/notifications', screenId: 'notifications', screenName: 'Notifications', Component: NotificationsPage },
+  { path: '/scheduled-reports', screenId: 'scheduledReports', screenName: 'Scheduled Reports', Component: ScheduledReportsPage },
+  { path: '/profile', screenId: 'profile', screenName: 'Profile Settings', Component: ProfileSettingsPage },
+];
 
-  // Handle unhandled promise rejections
-  window.addEventListener('unhandledrejection', (event) => {
-    if (event.reason && event.reason.message && event.reason.message.includes('mobx-state-tree')) {
-      event.preventDefault();
-      return false;
-    }
-  });
-}
+const redirectRoutes = [
+  { from: '/home', to: '/' },
+  { from: '/activities', to: '/?mode=activities' },
+  { from: '/resources', to: '/?mode=resources' },
+  { from: '/progress', to: '/student-dashboard' },
+  { from: '/my-attendance', to: '/student-dashboard' },
+  { from: '/my-enrollments', to: '/student-dashboard' },
+  { from: '/my-progress', to: '/student-dashboard' },
+  { from: '/quiz-management', to: '/quizzes' },
+  { from: '/quiz-builder', to: '/quizzes?mode=add' },
+  { from: '/course-progress/:courseId', to: '/student-dashboard' },
+  { from: '/class-schedules', to: '/scheduling-calendar?tab=classes' },
+];
 
 // Track page views
 function PageTracker() {
@@ -186,401 +212,37 @@ const AppContent = () => {
           <Route path="/silent-check-sso.html" element={<SilentCheckSso />} />
           
           {/* ============================================ */}
-          {/* SYSTEM ROUTES */}
-          {/* ============================================ */}
-          <Route path="/unauthorized" element={<UnauthorizedPage />} />
-          
           {/* ============================================ */}
           {/* MAIN ROUTES (Auth + Role Guard) */}
           {/* ============================================ */}
-          <Route 
-            path="/" 
-            element={
-              <ProtectedRoute screenId="home" screenName="Home">
-                <HomePage />
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route 
-            path="/dashboard" 
-            element={
-              <ProtectedRoute screenId="dashboard" screenName="Dashboard">
-                <Suspense fallback={<GlobalLoadingFallback />}>
-                  <DashboardPage />
-                </Suspense>
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route 
-            path="/summary-dashboard" 
-            element={
-              <ProtectedRoute screenId="summaryDashboard" screenName="Summary Dashboard">
-                <Suspense fallback={<GlobalLoadingFallback />}>
-                  <SummaryDashboardPage />
-                </Suspense>
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route 
-            path="/scheduling-calendar" 
-            element={
-              <ProtectedRoute screenId="schedulingCalendar" screenName="Scheduling Calendar">
-                <Suspense fallback={<GlobalLoadingFallback />}>
-                  <SchedulingCalendarPage />
-                </Suspense>
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route 
-            path="/instructor-availability" 
-            element={
-              <ProtectedRoute screenId="instructorAvailability" screenName="Instructor Availability">
-                <Suspense fallback={<GlobalLoadingFallback />}>
-                  <InstructorAvailabilityPage />
-                </Suspense>
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route 
-            path="/user-category-access" 
-            element={
-              <ProtectedRoute screenId="userCategoryAccess" screenName="User Access">
-                <Suspense fallback={<GlobalLoadingFallback />}>
-                  <UserCategoryAccessPage />
-                </Suspense>
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route 
-            path="/classroom-availability" 
-            element={
-              <ProtectedRoute screenId="classroomAvailability" screenName="Classroom Availability">
-                <Suspense fallback={<GlobalLoadingFallback />}>
-                  <ClassroomAvailabilityPage />
-                </Suspense>
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route 
-            path="/categories" 
-            element={
-              <ProtectedRoute screenId="categories" screenName="Categories">
-                <Suspense fallback={<GlobalLoadingFallback />}>
-                  <CategoriesPage />
-                </Suspense>
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route 
-            path="/student-dashboard" 
-            element={
-              <ProtectedRoute screenId="studentDashboard" screenName="Student Dashboard">
-                <Suspense fallback={<GlobalLoadingFallback />}>
-                  <StudentDashboardPage />
-                </Suspense>
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route 
-            path="/student-profile" 
-            element={
-              <ProtectedRoute screenId="studentProfile" screenName="Student Profile">
-                <StudentProfilePage />
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route 
-            path="/activity/:activityId" 
-            element={
-              <ProtectedRoute screenId="activities" screenName="Activity Details">
-                <ActivityDetailPage />
-              </ProtectedRoute>
-            } 
-          />
-          
-          {/* ============================================ */}
-          {/* QUIZ ROUTES (Auth + Role Guard) */}
-          {/* ============================================ */}
-          <Route 
-            path="/quizzes" 
-            element={
-              <ProtectedRoute screenId="quizzes" screenName="Quizzes">
-                <QuizzesPage />
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route 
-            path="/quiz-preview/:quizId" 
-            element={
-              <ProtectedRoute screenId="quizzes" screenName="Quiz Preview">
-                <QuizPreviewPage />
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route 
-            path="/quiz/:quizId" 
-            element={
-              <ProtectedRoute screenId="quizzes" screenName="Take Quiz">
-                <StudentQuizPage />
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route 
-            path="/review-results" 
-            element={
-              <ProtectedRoute screenId="review-results" screenName="Review Results">
-                <ReviewResultsPage />
-              </ProtectedRoute>
-            }
-          />
-          
-          {/* ============================================ */}
-          {/* ATTENDANCE ROUTES (Auth + Role Guard) */}
-          {/* ============================================ */}
-          <Route 
-            path="/attendance" 
-            element={
-              <ProtectedRoute screenId="attendance" screenName="Attendance">
-                <AttendancePage />
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route 
-            path="/hr-attendance" 
-            element={
-              <ProtectedRoute screenId="hrAttendance" screenName="HR Attendance">
-                <HRAttendancePage />
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route 
-            path="/penalty" 
-            element={
-              <ProtectedRoute screenId="penalty" screenName="Penalty">
-                <PenaltiesPage />
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route 
-            path="/participation" 
-            element={
-              <ProtectedRoute screenId="participation" screenName="Participation">
-                <ParticipationPage />
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route 
-            path="/behavior" 
-            element={
-              <ProtectedRoute screenId="behavior" screenName="Behavior">
-                <BehaviorPage />
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route 
-            path="/qr-scanner" 
-            element={
-              <ProtectedRoute screenId="qrScanner" screenName="QR Scanner">
-                <QRScannerPage />
-              </ProtectedRoute>
-            } 
-          />
-          
-          {/* ============================================ */}
-          {/* ENROLLMENT & CLASS ROUTES (Auth + Role Guard) */}
-          {/* ============================================ */}
-          <Route 
-            path="/enrollments" 
-            element={
-              <ProtectedRoute screenId="enrollments" screenName="Enrollments">
-                <EnrollmentsPage />
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route 
-            path="/manage-enrollments" 
-            element={
-              <ProtectedRoute screenId="manageEnrollments" screenName="Manage Enrollments">
-                <EnrollmentsPage />
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route 
-            path="/programs" 
-            element={
-              <ProtectedRoute screenId="programs" screenName="Programs">
-                <ProgramsManagementPage />
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route 
-            path="/subjects" 
-            element={
-              <ProtectedRoute screenId="subjects" screenName="Subjects">
-                <SubjectsManagementPage />
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route 
-            path="/marks-entry" 
-            element={
-              <ProtectedRoute screenId="marksEntry" screenName="Marks Entry">
-                <MarksPage />
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route 
-            path="/class-schedules" 
-            element={<Navigate to="/scheduling-calendar?tab=classes" replace />}
-          />
-          
-          {/* ============================================ */}
-          {/* ANALYTICS ROUTES (Auth + Role Guard) */}
-          {/* ============================================ */}
-          <Route 
-            path="/advanced-analytics" 
-            element={
-              <ProtectedRoute screenId="advancedAnalytics" screenName="Advanced Analytics">
-                <AdvancedAnalytics />
-              </ProtectedRoute>
-            } 
-          />
-          
-                    
-          {/* ============================================ */}
-          {/* COMMUNICATION ROUTES (Auth + Role Guard) */}
-          {/* ============================================ */}
-          <Route 
-            path="/chat" 
-            element={
-              <ProtectedRoute screenId="chat" screenName="Chat">
-                <ChatPage />
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route 
-            path="/notifications" 
-            element={
-              <ProtectedRoute screenId="notifications" screenName="Notifications">
-                <NotificationsPage />
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route 
-            path="/scheduled-reports" 
-            element={
-              <ProtectedRoute screenId="scheduledReports" screenName="Scheduled Reports">
-                <ScheduledReportsPage />
-              </ProtectedRoute>
-            } 
-          />
-          
-          {/* ============================================ */}
-          {/* WORKFLOW ROUTES (Auth + Role Guard) */}
-          {/* ============================================ */}
-          <Route 
-            path="/workflow/inbox" 
-            element={
-              <ProtectedRoute screenId="workflow" screenName="Workflow Inbox">
-                <Suspense fallback={<GlobalLoadingFallback />}>
-                  <WorkflowInboxPage />
-                </Suspense>
-              </ProtectedRoute>
-            } 
-          />
-          
-          <Route 
-            path="/workflow-documents/:documentId" 
-            element={
-              <ProtectedRoute screenId="workflow" screenName="Workflow Document Detail">
-                <Suspense fallback={<GlobalLoadingFallback />}>
-                  <WorkflowDocumentDetailPage />
-                </Suspense>
-              </ProtectedRoute>
-            } 
-          />
+          <Route path="/unauthorized" element={<UnauthorizedPage />} />
 
-          <Route
-            path="/smart-drive"
-            element={
-              <ProtectedRoute screenId="drive" screenName="Smart Drive">
-                <Suspense fallback={<GlobalLoadingFallback />}>
-                  <SmartDrivePage />
-                </Suspense>
-              </ProtectedRoute>
-            }
-          />
+          {lazyProtectedRoutes.map(({ path, screenId, screenName, Component }) => (
+            <Route
+              key={path}
+              path={path}
+              element={
+                <ProtectedRoute screenId={screenId} screenName={screenName}>
+                  <Suspense fallback={<GlobalLoadingFallback />}>
+                    <Component />
+                  </Suspense>
+                </ProtectedRoute>
+              }
+            />
+          ))}
 
-          <Route 
-            path="/workflow/:documentId" 
-            element={
-              <ProtectedRoute screenId="workflow" screenName="Workflow Detail">
-                <Suspense fallback={<GlobalLoadingFallback />}>
-                  <WorkflowDetailPage />
-                </Suspense>
-              </ProtectedRoute>
-            } 
-          />
+          {protectedRoutes.map(({ path, screenId, screenName, Component }) => (
+            <Route
+              key={path}
+              path={path}
+              element={
+                <ProtectedRoute screenId={screenId} screenName={screenName}>
+                  <Component />
+                </ProtectedRoute>
+              }
+            />
+          ))}
 
-          <Route 
-            path="/workflow/compliance" 
-            element={
-              <ProtectedRoute screenId="workflow" screenName="Calendar Compliance">
-                <Suspense fallback={<GlobalLoadingFallback />}>
-                  <CalendarCompliancePage />
-                </Suspense>
-              </ProtectedRoute>
-            } 
-          />
-
-          <Route 
-            path="/workflow/analytics" 
-            element={
-              <ProtectedRoute screenId="workflow" screenName="Workflow Analytics">
-                <Suspense fallback={<GlobalLoadingFallback />}>
-                  <WorkflowAnalyticsPage />
-                </Suspense>
-              </ProtectedRoute>
-            } 
-          />
-          
-          {/* ============================================ */}
-          {/* SETTINGS ROUTES (Auth + Role Guard) */}
-          {/* ============================================ */}
-          <Route 
-            path="/profile" 
-            element={
-              <ProtectedRoute screenId="profile" screenName="Profile Settings">
-                <ProfileSettingsPage />
-              </ProtectedRoute>
-            } 
-          />
-          
           {/* Permission Matrix - Super Admin only */}
           <Route
             path="/permission-matrix"
@@ -590,22 +252,13 @@ const AppContent = () => {
               </ProtectedRoute>
             }
           />
-          
-          {/* RoleAccessPro route removed - now using Keycloak roles for RBAC */}
-          
+
           {/* ============================================ */}
           {/* REDIRECTS */}
           {/* ============================================ */}
-          <Route path="/home" element={<Navigate to="/" replace />} />
-          <Route path="/activities" element={<Navigate to="/?mode=activities" replace />} />
-          <Route path="/resources" element={<Navigate to="/?mode=resources" replace />} />
-          <Route path="/progress" element={<Navigate to="/student-dashboard" replace />} />
-          <Route path="/my-attendance" element={<Navigate to="/student-dashboard" replace />} />
-          <Route path="/my-enrollments" element={<Navigate to="/student-dashboard" replace />} />
-          <Route path="/my-progress" element={<Navigate to="/student-dashboard" replace />} />
-          <Route path="/quiz-management" element={<Navigate to="/quizzes" replace />} />
-          <Route path="/quiz-builder" element={<Navigate to="/quizzes?mode=add" replace />} />
-          <Route path="/course-progress/:courseId" element={<Navigate to="/student-dashboard" replace />} />
+          {redirectRoutes.map(({ from, to }) => (
+            <Route key={from} path={from} element={<Navigate to={to} replace />} />
+          ))}
         </Routes>
         </Suspense>
         </main>

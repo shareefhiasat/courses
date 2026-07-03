@@ -137,17 +137,17 @@ import { info, error, warn, debug } from '@services/utils/logger.js';export defa
     return (
       <div className="max-w-3xl mx-auto p-8 text-center" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
         {getThemedIcon('ui', 'trophy', 64)}
-        <h1 className="text-3xl font-extrabold mb-4 text-gray-900 dark:text-white">{t('categorization_complete') || 'Categorization Complete!'}</h1>
+        <h1 className="text-3xl font-extrabold mb-4 text-gray-900 dark:text-white">{t('categorization_complete')}</h1>
         <div className="text-5xl font-extrabold text-cyan-500 dark:text-cyan-400 mb-4">
           {score} / {totalItems}
         </div>
         <div className="text-lg text-gray-500 dark:text-gray-400 mb-8">
-          {percentage.toFixed(1)}% {t('correct') || 'Correct'}
+          {percentage.toFixed(1)}% {t('correct')}
         </div>
 
         {settings?.showCorrectAnswers && (
           <div className="mt-8 text-left">
-            <h3 className="text-lg font-bold mb-4 text-gray-900 dark:text-white">{t('review') || 'Review'}</h3>
+            <h3 className="text-lg font-bold mb-4 text-gray-900 dark:text-white">{t('review')}</h3>
             {categories.map((category, categoryIndex) => (
               <div key={categoryIndex} className="mb-6">
                 <div
@@ -193,7 +193,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';export defa
             className="mt-8 px-8 py-4 bg-cyan-600 text-white rounded-xl font-semibold flex items-center gap-2 mx-auto hover:bg-cyan-700 transition-colors"
           >
             {getThemedIcon('ui', 'rotate_ccw', 18)}
-            {t('try_again') || 'Try Again'}
+            {t('try_again')}
           </button>
         )}
       </div>
@@ -204,9 +204,9 @@ import { info, error, warn, debug } from '@services/utils/logger.js';export defa
     <div className="max-w-[1400px] mx-auto p-6" dir={lang === 'ar' ? 'rtl' : 'ltr'}>
       {/* Header */}
       <div className="mb-8 text-center">
-        <h1 className="text-3xl font-extrabold mb-2 text-gray-900 dark:text-white">{t('categorize') || 'Categorize'}</h1>
+        <h1 className="text-3xl font-extrabold mb-2 text-gray-900 dark:text-white">{t('categorize')}</h1>
         <p className="text-base text-gray-500 dark:text-gray-400">
-          {t('drag_category_instruction') || 'Drag each item into its correct category'}
+          {t('drag_category_instruction')}
         </p>
       </div>
 
@@ -218,7 +218,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';export defa
           className="p-6 bg-gray-50 dark:bg-gray-800/50 rounded-xl border-2 border-dashed border-gray-300 dark:border-gray-700 min-h-[500px] lg:sticky lg:top-5 h-fit"
         >
           <h3 className="text-base font-bold mb-4 text-gray-500 dark:text-gray-400">
-            {t('items') || 'Items'} ({items.length})
+            {t('items')} ({items.length})
           </h3>
           <div className="grid gap-2">
             {items.map(item => (
@@ -296,7 +296,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';export defa
           disabled={items.length > 0}
           className={`px-12 py-4 rounded-xl text-lg font-bold text-white shadow-lg transition-all ${items.length > 0 ? 'bg-gray-400 cursor-not-allowed' : 'bg-gradient-to-r from-cyan-500 to-cyan-600 hover:shadow-cyan-500/30 hover:scale-105'}`}
         >
-          {items.length > 0 ? `${t('categorize_all_first') || 'Categorize all items first'} (${items.length} ${t('remaining') || 'remaining'})` : (t('submit_answers') || 'Submit Answers')}
+          {items.length > 0 ? `${t('categorize_all_first')} (${items.length} ${t('remaining')})` : (t('submit_answers'))}
         </button>
       </div>
     </div>

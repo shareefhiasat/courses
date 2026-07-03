@@ -258,8 +258,8 @@ export default function ShareDialog({ file, onShare, onGenerateLink, onClose }) 
           <button
             data-tour="share-help-btn"
             onClick={startTour}
-            title={t('tour.replay') || 'Start guided tour'}
-            aria-label={t('tour.replay') || 'Start guided tour'}
+            title={t('tour.replay')}
+            aria-label={t('tour.replay')}
             style={{
               flexShrink: 0,
               width: 32,
@@ -359,7 +359,7 @@ export default function ShareDialog({ file, onShare, onGenerateLink, onClose }) 
                     value={selectedRoles}
                     onChange={setSelectedRoles}
                     includeRoles={DRIVE_SHARE_ROLES}
-                    placeholder={t('select_roles') || t('drive.selectRole')}
+                    placeholder={t('select_roles')}
                     disabled={loading}
                   />
                 </div>

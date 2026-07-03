@@ -52,45 +52,25 @@ const Calendar = ({
   }, [theme]);
 
   const messages = useMemo(() => {
-    if (lang === 'ar') {
-      return {
-        date: 'التاريخ',
-        time: 'الوقت',
-        event: 'الحدث',
-        allDay: 'طوال اليوم',
-        week: 'أسبوع',
-        work_week: 'أسبوع العمل',
-        day: 'يوم',
-        month: 'شهر',
-        previous: 'السابق',
-        next: 'التالي',
-        yesterday: 'أمس',
-        tomorrow: 'غداً',
-        today: 'اليوم',
-        agenda: 'جدول الأعمال',
-        noEventsInRange: 'لا توجد أحداث في هذا النطاق',
-        showMore: (total) => `+${total} المزيد`
-      };
-    }
     return {
-      date: 'Date',
-      time: 'Time',
-      event: 'Event',
-      allDay: 'All Day',
-      week: 'Week',
-      work_week: 'Work Week',
-      day: 'Day',
-      month: 'Month',
-      previous: 'Previous',
-      next: 'Next',
-      yesterday: 'Yesterday',
-      tomorrow: 'Tomorrow',
-      today: 'Today',
-      agenda: 'Agenda',
-      noEventsInRange: 'No events in this range',
-      showMore: (total) => `+${total} more`
+      date: t('calendar_date'),
+      time: t('calendar_time'),
+      event: t('calendar_event'),
+      allDay: t('calendar_all_day'),
+      week: t('calendar_week'),
+      work_week: t('calendar_work_week'),
+      day: t('calendar_day'),
+      month: t('calendar_month'),
+      previous: t('calendar_previous'),
+      next: t('calendar_next'),
+      yesterday: t('calendar_yesterday'),
+      tomorrow: t('calendar_tomorrow'),
+      today: t('calendar_today'),
+      agenda: t('calendar_agenda'),
+      noEventsInRange: t('calendar_no_events'),
+      showMore: (total) => `+${total} ${t('calendar_more')}`
     };
-  }, [lang]);
+  }, [lang, t]);
 
   return (
     <div 

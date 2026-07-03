@@ -209,7 +209,7 @@ const UnifiedCard = memo(({
 
   const getTypeLabel = () => {
     if (flavor === RECORD_TYPES.QUIZ) {
-      const label = t('activity_type_quiz') || t('quiz') || 'quiz';
+      const label = t('activity_type_quiz');
       return label.charAt(0).toUpperCase() + label.slice(1).toLowerCase();
     }
     if (flavor === RECORD_TYPES.RESOURCE) {
@@ -226,7 +226,7 @@ const UnifiedCard = memo(({
       return label.charAt(0).toUpperCase() + label.slice(1).toLowerCase();
     }
     if (flavor === RECORD_TYPES.ANNOUNCEMENT) {
-      const label = t('activity_type_announcement') || t('announcement') || 'announcement';
+      const label = t('activity_type_announcement');
       return label.charAt(0).toUpperCase() + label.slice(1).toLowerCase();
     }
     const rawType = item.type;
@@ -530,7 +530,7 @@ const UnifiedCard = memo(({
                   fontWeight: 600,
                   cursor: 'default'
                 }}>
-              {getTypeIcon()} {item.questions.length} {t('questions') || 'questions'}
+              {getTypeIcon()} {item.questions.length} {t('questions')}
             </span>
             )}
 
@@ -549,7 +549,7 @@ const UnifiedCard = memo(({
                   fontWeight: 600,
                   cursor: 'default'
                 }}>
-              {getColoredIcon('ui', 'clock', 12, '#d97706', theme)} {item.estimatedTime} {t('min') || 'min'}
+              {getColoredIcon('ui', 'clock', 12, '#d97706', theme)} {item.estimatedTime} {t('min')}
             </span>
             )}
 
@@ -569,7 +569,7 @@ const UnifiedCard = memo(({
                   cursor: 'default'
                 }}>
               {getColoredIcon('ui', 'book_open', 10, '#f57c00', theme)}
-                {!isMinified && <span>{t('optional') || 'Optional'}</span>}
+                {!isMinified && <span>{t('optional')}</span>}
             </span>
             )}
 
@@ -589,7 +589,7 @@ const UnifiedCard = memo(({
                   cursor: 'default'
                 }}>
               {getColoredIcon('ui', 'repeat', 12, '#3b82f6', theme)}
-                {!isMinified && <span>{t('retakable') || 'Retakable'}</span>}
+                {!isMinified && <span>{t('retakable')}</span>}
             </span>
             )}
 
@@ -609,7 +609,7 @@ const UnifiedCard = memo(({
                   cursor: 'default'
                 }}>
               {getColoredIcon('ui', 'alert_circle', 14, '#b91c1c', theme)}
-                {!isMinified && <span>{t('required') || 'Required'}</span>}
+                {!isMinified && <span>{t('required')}</span>}
             </span>
             )}
           </div>
@@ -703,7 +703,7 @@ const UnifiedCard = memo(({
                         transition: 'all 0.2s'
                       }}
                       onClick={() => onStart(item)}
-                      aria-label={t('view') || 'View'}
+                      aria-label={t('view')}
                       onMouseEnter={(e) => {
                         e.target.style.backgroundColor = isDark ? '#4b5563' : '#f9fafb';
                       }}
@@ -729,7 +729,7 @@ const UnifiedCard = memo(({
                         justifyContent: 'center'
                       }}
                       onClick={() => onStart(item)}
-                      aria-label={t('start') || 'Start'}
+                      aria-label={t('start')}
                     >
                       {getWhiteIcon('ui', 'play', 14)}
                     </Button>
@@ -767,7 +767,7 @@ const UnifiedCard = memo(({
                         e.stopPropagation();
                         onComplete(item);
                       }}
-                      aria-label={isCompleted ? t('mark_incomplete') || 'Mark incomplete' : t('mark_complete') || 'Mark complete'}
+                      aria-label={isCompleted ? t('mark_incomplete') : t('mark_complete')}
                   >
                     {isCompleted ? (
                         getWhiteIcon('ui', 'check', 14)

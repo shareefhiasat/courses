@@ -324,38 +324,38 @@ const QRScannerPage = () => {
     const isStandup = attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP;
     const steps = [
       { target: '[data-tour="qr-roster"]', content: t('tour.qr_roster'), disableBeacon: true, placement: 'top' },
-      { target: '[data-tour="roster-student-count"]', content: t('tour.roster_student_count') || 'Shows the total number of students in the selected class or program.', disableBeacon: true, placement: 'bottom' },
-      { target: '[data-tour="roster-highlight-toggle"]', content: t('tour.roster_highlight_toggle') || 'Toggle row highlighting to visually flag students who need attention. Rows turn yellow (4-5 absences), orange (6-7 absences), or red (8+ absences) based on absence count.', disableBeacon: true, placement: 'bottom' },
-      { target: '[data-tour="roster-favorite-toggle"]', content: t('tour.roster_favorite_toggle') || 'Bookmark students to filter and quickly access your favorites. Bookmarked students appear at the top of the roster. The badge shows how many students are bookmarked.', disableBeacon: true, placement: 'bottom' },
+      { target: '[data-tour="roster-student-count"]', content: t('tour.roster_student_count'), disableBeacon: true, placement: 'bottom' },
+      { target: '[data-tour="roster-highlight-toggle"]', content: t('tour.roster_highlight_toggle'), disableBeacon: true, placement: 'bottom' },
+      { target: '[data-tour="roster-favorite-toggle"]', content: t('tour.roster_favorite_toggle'), disableBeacon: true, placement: 'bottom' },
     ];
     if (canExport) {
-      steps.push({ target: '[data-tour="roster-download"]', content: t('tour.roster_download') || 'Export the current roster data as a CSV file for offline use or reporting.', disableBeacon: true, placement: 'bottom' });
+      steps.push({ target: '[data-tour="roster-download"]', content: t('tour.roster_download'), disableBeacon: true, placement: 'bottom' });
     }
-    steps.push({ target: '[data-tour="roster-refresh"]', content: t('tour.roster_refresh') || 'Refresh the roster to pull the latest attendance and activity data from the server.', disableBeacon: true, placement: 'bottom' });
+    steps.push({ target: '[data-tour="roster-refresh"]', content: t('tour.roster_refresh'), disableBeacon: true, placement: 'bottom' });
 
     if (isStandup) {
       steps.push({
         target: '[data-tour="qr-roster"] tbody tr:first-child',
-        content: t('tour.roster_quick_actions_standup') || 'Each student row has quick action buttons for marking standup attendance (Present, Late, Absent, Clinic) and expanding to view full attendance history. Available actions depend on your permissions.',
+        content: t('tour.roster_quick_actions_standup'),
         disableBeacon: true,
         placement: 'left',
       });
       steps.push({
         target: '[data-tour="roster-summary-counts"]',
-        content: t('tour.roster_summary_counts_standup') || 'The footer row shows totals for Present, Late, Absent, and Clinic counts across all displayed students.',
+        content: t('tour.roster_summary_counts_standup'),
         disableBeacon: true,
         placement: 'top',
       });
     } else {
       steps.push({
         target: '[data-tour="qr-roster"] tbody tr:first-child',
-        content: t('tour.roster_quick_actions') || 'Each student row has quick action buttons for marking attendance (Present, Late, Absent) and expanding to view full history, penalties, participation, and behavior logs. Available actions depend on your permissions.',
+        content: t('tour.roster_quick_actions'),
         disableBeacon: true,
         placement: 'left',
       });
       steps.push({
         target: '[data-tour="roster-summary-counts"]',
-        content: t('tour.roster_summary_counts') || 'The footer row shows totals for participation, behavior, penalties, and attendance counts across all displayed students.',
+        content: t('tour.roster_summary_counts'),
         disableBeacon: true,
         placement: 'top',
       });
@@ -392,15 +392,15 @@ const QRScannerPage = () => {
 
   useEffect(() => {
     const steps = [
-      { target: '[data-tour="bulk-context"]', content: t('tour.bulk_context') || 'Shows the current attendance mode and selected program, class, and subject for the bulk operation.', disableBeacon: true, placement: 'bottom' },
-      { target: '[data-tour="bulk-tabs"]', content: t('tour.bulk_tabs') || 'Choose Manual Input to paste student numbers, or Add All to load all students from the program or class.', disableBeacon: true, placement: 'bottom' },
+      { target: '[data-tour="bulk-context"]', content: t('tour.bulk_context'), disableBeacon: true, placement: 'bottom' },
+      { target: '[data-tour="bulk-tabs"]', content: t('tour.bulk_tabs'), disableBeacon: true, placement: 'bottom' },
     ];
     if (canManualInput) {
-      steps.push({ target: '[data-tour="bulk-textarea"]', content: t('tour.bulk_textarea') || 'Paste student numbers here, one per line. Click Parse Input to validate them against the class roster.', disableBeacon: true, placement: 'right' });
+      steps.push({ target: '[data-tour="bulk-textarea"]', content: t('tour.bulk_textarea'), disableBeacon: true, placement: 'right' });
     }
-    steps.push({ target: '[data-tour="bulk-status-cards"]', content: t('tour.bulk_status_cards') || 'Select the attendance status to apply to all selected students.', disableBeacon: true, placement: 'top' });
-    steps.push({ target: '[data-tour="bulk-date"]', content: t('tour.bulk_date') || 'Choose the date for the bulk attendance records.', disableBeacon: true, placement: 'top' });
-    steps.push({ target: '[data-tour="bulk-footer"]', content: t('tour.bulk_footer') || 'Click Submit to mark attendance for all selected students. The count shows how many students will be processed.', disableBeacon: true, placement: 'top' });
+    steps.push({ target: '[data-tour="bulk-status-cards"]', content: t('tour.bulk_status_cards'), disableBeacon: true, placement: 'top' });
+    steps.push({ target: '[data-tour="bulk-date"]', content: t('tour.bulk_date'), disableBeacon: true, placement: 'top' });
+    steps.push({ target: '[data-tour="bulk-footer"]', content: t('tour.bulk_footer'), disableBeacon: true, placement: 'top' });
     setBulkTourSteps(steps);
   }, [lang, t, canManualInput]);
 
@@ -426,15 +426,15 @@ const QRScannerPage = () => {
 
   useEffect(() => {
     const steps = [
-      { target: '[data-tour="activity-list"]', content: t('tour.activity_list') || 'This is the Today\'s Activity list. It shows all attendance records, penalties, participation, and behavior logs for the selected date in real-time.', disableBeacon: true, placement: 'right' },
+      { target: '[data-tour="activity-list"]', content: t('tour.activity_list'), disableBeacon: true, placement: 'right' },
     ];
     if (canSeeQuickButtons && canMarkAttendance) {
-      steps.push({ target: '[data-tour="activity-quick-actions"]', content: t('tour.activity_quick_actions') || 'Quick action buttons appear on attendance records for fast status changes. Click to mark Present, Late, or Absent without expanding the row.', disableBeacon: true, placement: 'left' });
+      steps.push({ target: '[data-tour="activity-quick-actions"]', content: t('tour.activity_quick_actions'), disableBeacon: true, placement: 'left' });
     }
     if (canDeleteAttendance) {
-      steps.push({ target: '[data-tour="activity-delete"]', content: t('tour.activity_delete') || 'Click the delete icon to remove an individual activity record. This action cannot be undone.', disableBeacon: true, placement: 'left' });
+      steps.push({ target: '[data-tour="activity-delete"]', content: t('tour.activity_delete'), disableBeacon: true, placement: 'left' });
     }
-    steps.push({ target: '[data-tour="activity-list"]', content: t('tour.activity_expand') || 'Click any row or the chevron icon to expand and see details: timestamp, subject, program, class, who performed the action, and notes.', disableBeacon: true, placement: 'right' });
+    steps.push({ target: '[data-tour="activity-list"]', content: t('tour.activity_expand'), disableBeacon: true, placement: 'right' });
     setActivityTourSteps(steps);
   }, [lang, t, canSeeQuickButtons, canMarkAttendance, canDeleteAttendance]);
 
@@ -652,10 +652,10 @@ const QRScannerPage = () => {
       if (result.success && result.data?.id) {
         window.open(`/chat?dest=dm:${result.data.id}`, '_blank', 'noopener,noreferrer');
       } else {
-        showError(t('chat_dm_failed') || 'Could not open chat with instructor');
+        showError(t('chat_dm_failed'));
       }
     } catch (err) {
-      showError((t('chat_dm_failed') || 'Could not open chat with instructor') + ': ' + err.message);
+      showError((t('chat_dm_failed')) + ': ' + err.message);
     }
   }, [classInstructorInfo, showError, t]);
 
@@ -2117,28 +2117,28 @@ const QRScannerPage = () => {
         const programName = currentProgram?.nameEn || currentProgram?.name || currentProgram?.code || 'Program';
 
         const headers = [
-          t('student_number') || 'Student No.',
-          t('id') || 'ID',
-          t('student') || 'Student',
-          t('standup') || 'STANDUP',
-          t('not_marked') || 'Not Marked',
-          t('present') || 'Present',
-          t('late') || 'Late',
-          t('absent') || 'Absent',
-          t('clinic') || 'Clinic'
+          t('student_number'),
+          t('id'),
+          t('student'),
+          t('standup'),
+          t('not_marked'),
+          t('present'),
+          t('late'),
+          t('absent'),
+          t('clinic')
         ];
 
         const counts = { present: 0, late: 0, absent: 0, clinic: 0, notMarked: 0 };
         const rows = students.map(student => {
           const status = student.standupStatus;
-          let statusLabel = t('not_marked') || 'Not Marked';
+          let statusLabel = t('not_marked');
           let isNotMarked = 1;
           if (status) {
             const upperStatus = status.toUpperCase();
-            if (upperStatus === ATTENDANCE_STATUS.STANDUP_PRESENT) { counts.present++; statusLabel = t('present') || 'Present'; isNotMarked = 0; }
-            else if (upperStatus === ATTENDANCE_STATUS.STANDUP_LATE) { counts.late++; statusLabel = t('late') || 'Late'; isNotMarked = 0; }
-            else if (upperStatus === ATTENDANCE_STATUS.STANDUP_ABSENT) { counts.absent++; statusLabel = t('absent') || 'Absent'; isNotMarked = 0; }
-            else if (upperStatus === ATTENDANCE_STATUS.STANDUP_CLINIC) { counts.clinic++; statusLabel = t('clinic') || 'Clinic'; isNotMarked = 0; }
+            if (upperStatus === ATTENDANCE_STATUS.STANDUP_PRESENT) { counts.present++; statusLabel = t('present'); isNotMarked = 0; }
+            else if (upperStatus === ATTENDANCE_STATUS.STANDUP_LATE) { counts.late++; statusLabel = t('late'); isNotMarked = 0; }
+            else if (upperStatus === ATTENDANCE_STATUS.STANDUP_ABSENT) { counts.absent++; statusLabel = t('absent'); isNotMarked = 0; }
+            else if (upperStatus === ATTENDANCE_STATUS.STANDUP_CLINIC) { counts.clinic++; statusLabel = t('clinic'); isNotMarked = 0; }
             else { statusLabel = getLocalizedAttendanceLabel(status, lang); isNotMarked = 0; }
           } else {
             counts.notMarked++;
@@ -2161,7 +2161,7 @@ const QRScannerPage = () => {
         const summaryRow = [
           '',
           '',
-          `"${t('total') || 'Total'}: ${students.length}"`,
+          `"${t('total')}: ${students.length}"`,
           '',
           counts.notMarked,
           counts.present,
@@ -2183,20 +2183,20 @@ const QRScannerPage = () => {
       const subjectName = currentSubject?.name || currentSubject?.code || 'Subject';
 
       const headers = [
-        t('student_number') || 'Student No.',
-        t('id') || 'ID',
-        t('student') || 'Student',
-        t('todays_attendance') || 'TODAY',
-        t('not_marked') || 'Not Marked',
-        t('part') || 'Participation',
-        t('behavior') || 'Behavior',
-        t('penalties') || 'Penalty',
-        t('present') || 'Present',
-        t('late') || 'Late',
-        t('absent') || 'Absent',
-        t('absent_excused') || 'Absent Excused',
-        t('excused_leave') || 'Excused Leave',
-        t('human') || 'Human'
+        t('student_number'),
+        t('id'),
+        t('student'),
+        t('todays_attendance'),
+        t('not_marked'),
+        t('part'),
+        t('behavior'),
+        t('penalties'),
+        t('present'),
+        t('late'),
+        t('absent'),
+        t('absent_excused'),
+        t('excused_leave'),
+        t('human')
       ];
 
       const sums = { participation: 0, behavior: 0, penalty: 0, present: 0, late: 0, absent: 0, absentExcused: 0, excusedLeave: 0, human: 0, notMarked: 0 };
@@ -2213,7 +2213,7 @@ const QRScannerPage = () => {
         sums.human += stats.humanitarianCase || 0;
 
         const isNotMarked = student.attendance ? 0 : 1;
-        const todayLabel = student.attendance ? getLocalizedAttendanceLabel(student.attendance, lang) : (t('not_marked') || 'Not Marked');
+        const todayLabel = student.attendance ? getLocalizedAttendanceLabel(student.attendance, lang) : (t('not_marked'));
         if (!student.attendance) sums.notMarked++;
 
         return [
@@ -2237,7 +2237,7 @@ const QRScannerPage = () => {
       const summaryRow = [
         '',
         '',
-        `"${t('total') || 'Total'}: ${students.length}"`,
+        `"${t('total')}: ${students.length}"`,
         '',
         sums.notMarked,
         sums.participation,
@@ -2256,7 +2256,7 @@ const QRScannerPage = () => {
       debug('Attendance CSV downloaded successfully');
     } catch (err) {
       error('Error downloading CSV:', err);
-      alert(t('failed_to_download_csv') || 'Failed to download CSV. Please try again.');
+      alert(t('failed_to_download_csv'));
     }
   }, [students, classes, subjects, programs, selectedClassId, selectedSubjectId, selectedProgramId, selectedDate, t, lang, attendanceMode]);
 
@@ -2353,12 +2353,12 @@ const QRScannerPage = () => {
     // Validate based on attendance mode
     if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
       if (!selectedProgramId || selectedProgramId === 'all') {
-        showError(t('please_select_program') || 'Please select a program first');
+        showError(t('please_select_program'));
         return;
       }
     } else {
       if (!selectedClassId || selectedClassId === 'all') {
-        showError(t('please_select_class') || 'Please select a class first');
+        showError(t('please_select_class'));
         return;
       }
     }
@@ -2428,10 +2428,7 @@ const QRScannerPage = () => {
       
       // If no data found, try alternative methods
       if (attendanceData.length === 0) {
-        const message = t('no_attendance_records_found') || 
-          (lang === 'ar' 
-            ? 'لا توجد سجلات حضور لهذا التاريخ. يرجى تسجيل الحضور أولاً.'
-            : 'No attendance records found for this date. Please mark attendance first.');
+        const message = t('no_attendance_records_found');
         showError(message);
         
         // Skip alternative method for now since getAttendanceByDate is not available
@@ -2503,10 +2500,7 @@ const QRScannerPage = () => {
       if (enrichedData.length === 0) {
         console.log('🔍 Export Debug - No attendance data found for export');
         
-        const message = t('no_attendance_records_found') || 
-          (lang === 'ar' 
-            ? 'لا توجد سجلات حضور لهذا التاريخ. يرجى تسجيل الحضور أولاً.'
-            : 'No attendance records found for this date. Please mark attendance first.');
+        const message = t('no_attendance_records_found');
         
         showError(message);
         
@@ -2526,35 +2520,35 @@ const QRScannerPage = () => {
       if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
         // Standup mode: use standup-specific columns
         headers = lang === 'ar' ? [
-          t('serial') || 'ت',
-          t('student_number') || 'رقم الطالب',
-          t('id') || 'ID',
-          t('student_name') || 'اسم الطالب',
-          t('present') || 'حاضر',
-          t('late') || 'متأخر',
-          t('absent') || 'غائب',
-          t('clinic') || 'عيادة',
-          t('not_marked') || 'غير مسجل',
-          t('date') || 'التاريخ',
-          t('time') || 'الوقت',
-          t('method') || 'الطريقة',
-          t('marked_by') || 'سجل بواسطة',
-          t('notes') || 'ملاحظات'
+          t('serial'),
+          t('student_number'),
+          t('id'),
+          t('student_name'),
+          t('present'),
+          t('late'),
+          t('absent'),
+          t('clinic'),
+          t('not_marked'),
+          t('date'),
+          t('time'),
+          t('method'),
+          t('marked_by'),
+          t('notes')
         ] : [
-          t('serial') || 'Serial',
-          t('student_number') || 'Student Number',
-          t('id') || 'ID',
-          t('student_name') || 'Student Name',
-          t('present') || 'Present',
-          t('late') || 'Late',
-          t('absent') || 'Absent',
-          t('clinic') || 'Clinic',
-          t('not_marked') || 'Not Marked',
-          t('date') || 'Date',
-          t('time') || 'Time',
-          t('method') || 'Method',
-          t('marked_by') || 'Marked by',
-          t('notes') || 'Notes'
+          t('serial'),
+          t('student_number'),
+          t('id'),
+          t('student_name'),
+          t('present'),
+          t('late'),
+          t('absent'),
+          t('clinic'),
+          t('not_marked'),
+          t('date'),
+          t('time'),
+          t('method'),
+          t('marked_by'),
+          t('notes')
         ];
         
         excelData = enrichedData.map((row, index) => {
@@ -2598,7 +2592,7 @@ const QRScannerPage = () => {
         const absentCount = excelData.filter(r => r[6] === 'X').length;
         const clinicCount = excelData.filter(r => r[7] === 'X').length;
         const notMarkedCount = excelData.filter(r => r[8] === 1).length;
-        const summaryLabel = lang === 'ar' ? (t('total_count') || 'الإجمالي') : (t('total_count') || 'Total');
+        const summaryLabel = lang === 'ar' ? (t('total_count')) : (t('total_count'));
         excelData.push([
           summaryLabel,
           '',
@@ -2626,26 +2620,26 @@ const QRScannerPage = () => {
         }));
         
         headers = lang === 'ar' ? [
-          t('serial') || 'ت',
+          t('serial'),
           t('student_number'),
-          t('id') || 'ID',
+          t('id'),
           t('student_name'),
           ...attendanceTypesArray.map(type => type.label_ar),
-          t('date') || 'التاريخ',
-          t('time') || 'الوقت',
+          t('date'),
+          t('time'),
           t('method'),
-          t('marked_by') || 'سجل بواسطة',
+          t('marked_by'),
           t('notes')
         ] : [
-          t('serial') || 'Serial',
+          t('serial'),
           t('student_number'),
-          t('id') || 'ID',
+          t('id'),
           t('student_name'),
           ...attendanceTypesArray.map(type => type.label_en),
-          t('date') || 'Date',
-          t('time') || 'Time',
+          t('date'),
+          t('time'),
           t('method'),
-          t('marked_by') || 'Marked by',
+          t('marked_by'),
           t('notes')
         ];
         
@@ -2682,7 +2676,7 @@ const QRScannerPage = () => {
         const attendanceTypesArrayForTotals = Object.entries(ATTENDANCE_STATUS)
           .filter(([key]) => !key.startsWith('STANDUP_'))
           .map(([, value]) => value);
-        const totalsLabel = lang === 'ar' ? (t('total_count') || 'الإجمالي') : (t('total_count') || 'TOTAL');
+        const totalsLabel = lang === 'ar' ? (t('total_count')) : (t('total_count'));
         const totalsRow = [totalsLabel, '', '', ''];
         attendanceTypesArrayForTotals.forEach(statusCode => {
           totalsRow.push(enrichedData.filter(r => r.status === statusCode).length);
@@ -2736,9 +2730,9 @@ const QRScannerPage = () => {
         currentClass
       });
       
-      const programName = currentProgram ? (lang === 'ar' ? (currentProgram.nameAr || currentProgram.nameEn || currentProgram.name) : (currentProgram.nameEn || currentProgram.name)) : (t('all_programs') || 'All');
-      const subjectName = currentSubject ? (lang === 'ar' ? (currentSubject.nameAr || currentSubject.nameEn || currentSubject.name) : (currentSubject.nameEn || currentSubject.name)) : (t('all_subjects') || 'All');
-      const className = currentClass ? (lang === 'ar' ? (currentClass.nameAr || currentClass.nameEn || currentClass.name) : (currentClass.nameEn || currentClass.name)) : (t('all_classes') || 'All');
+      const programName = currentProgram ? (lang === 'ar' ? (currentProgram.nameAr || currentProgram.nameEn || currentProgram.name) : (currentProgram.nameEn || currentProgram.name)) : (t('all_programs'));
+      const subjectName = currentSubject ? (lang === 'ar' ? (currentSubject.nameAr || currentSubject.nameEn || currentSubject.name) : (currentSubject.nameEn || currentSubject.name)) : (t('all_subjects'));
+      const className = currentClass ? (lang === 'ar' ? (currentClass.nameAr || currentClass.nameEn || currentClass.name) : (currentClass.nameEn || currentClass.name)) : (t('all_classes'));
       
       console.log('🔍 Export Debug - Final Names:', {
         programName,
@@ -2922,10 +2916,7 @@ const QRScannerPage = () => {
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
 
-        const successMessage = t('report_exported_successfully') || 
-          (lang === 'ar' 
-            ? 'تم تصدير التقرير بنجاح'
-            : 'Report exported successfully');
+        const successMessage = t('report_exported_successfully');
         showSuccess(successMessage);
 
         persistAndLogExport({
@@ -2938,13 +2929,13 @@ const QRScannerPage = () => {
           subjectId: selectedSubjectId,
           programId: selectedProgramId,
           reportDate: formattedDate,
-          onSaved: () => showSuccess(t('export_saved_to_drive') || 'Also saved to Smart Drive → Exported Files'),
+          onSaved: () => showSuccess(t('export_saved_to_drive')),
         }).catch((e) => console.warn('Failed to log export history:', e));
       }
 
     } catch (error) {
       console.error('Export failed:', error);
-      const errorMessage = (t('export_failed') || 'Export failed: ') + error.message;
+      const errorMessage = (t('export_failed')) + error.message;
       showError(errorMessage);
     } finally {
       // Reset loading state
@@ -2956,11 +2947,11 @@ const QRScannerPage = () => {
     const isStandup = attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP;
     if (isStandup) {
       if (!selectedProgramId || selectedProgramId === 'all') {
-        showError(t('please_select_program') || 'Please select a program first');
+        showError(t('please_select_program'));
         return;
       }
     } else if (!selectedClassId || selectedClassId === 'all') {
-      showError(t('please_select_class') || 'Please select a class first');
+      showError(t('please_select_class'));
       return;
     }
 
@@ -3066,7 +3057,7 @@ const QRScannerPage = () => {
         filename,
       });
 
-      showSuccess(t('report_exported_successfully') || 'Report exported successfully');
+      showSuccess(t('report_exported_successfully'));
 
       persistAndLogExport({
         blob,
@@ -3078,11 +3069,11 @@ const QRScannerPage = () => {
         subjectId: selectedSubjectId,
         programId: selectedProgramId,
         reportDate: formattedDate,
-        onSaved: () => showSuccess(t('export_saved_to_drive') || 'Also saved to Smart Drive → Exported Files'),
+        onSaved: () => showSuccess(t('export_saved_to_drive')),
       }).catch((e) => console.warn('Failed to log export history:', e));
     } catch (err) {
       console.error('Daily official export failed:', err);
-      showError((t('export_failed') || 'Export failed: ') + err.message);
+      showError((t('export_failed')) + err.message);
     } finally {
       setIsExporting(false);
     }
@@ -3184,18 +3175,18 @@ const QRScannerPage = () => {
     } = options;
 
     if (exportSubjects.length === 0) {
-      showError(t('select_at_least_one_subject') || 'Please select at least one subject for the report');
+      showError(t('select_at_least_one_subject'));
       return;
     }
 
     const hasSelectedViolationType = Object.values(exportViolationTypes).some((v) => v);
     if (!hasSelectedViolationType) {
-      showError(t('select_at_least_one_violation_type') || 'Please select at least one violation type');
+      showError(t('select_at_least_one_violation_type'));
       return;
     }
 
     if (!dateFrom || !dateTo || dateFrom > dateTo) {
-      showError(t('date_range_invalid') || 'Please select a valid date range');
+      showError(t('date_range_invalid'));
       return;
     }
 
@@ -3230,7 +3221,7 @@ const QRScannerPage = () => {
       });
 
       if (inRange.length === 0 && mode !== 'official') {
-        showError(t('no_attendance_records_found') || 'No attendance records found');
+        showError(t('no_attendance_records_found'));
         return;
       }
 
@@ -3267,7 +3258,7 @@ const QRScannerPage = () => {
       });
 
       if (filteredData.length === 0 && mode !== 'official') {
-        showError(t('no_records_match_filters') || 'No records match the selected violation types');
+        showError(t('no_records_match_filters'));
         return;
       }
 
@@ -3306,7 +3297,7 @@ const QRScannerPage = () => {
           format,
           programId: selectedProgramId,
           reportDate: `${dateFrom}_${dateTo}`,
-          onSaved: () => showSuccess(t('export_saved_to_drive') || 'Also saved to Smart Drive → Exported Files'),
+          onSaved: () => showSuccess(t('export_saved_to_drive')),
         }).catch((e) => console.warn('Failed to log export history:', e));
       } else {
         const excelBlob = await exportAttendanceViolationsReport(filteredData, { lang, t });
@@ -3338,7 +3329,7 @@ const QRScannerPage = () => {
           format: 'excel',
           programId: selectedProgramId,
           reportDate: `${dateFrom}_${dateTo}`,
-          onSaved: () => showSuccess(t('export_saved_to_drive') || 'Also saved to Smart Drive → Exported Files'),
+          onSaved: () => showSuccess(t('export_saved_to_drive')),
         }).catch((e) => console.warn('Failed to log export history:', e));
       }
 
@@ -3348,7 +3339,7 @@ const QRScannerPage = () => {
       );
     } catch (exportError) {
       console.error('❌ Attendance Violations Report export failed:', exportError);
-      showError((t('export_failed') || 'Export failed: ') + exportError.message);
+      showError((t('export_failed')) + exportError.message);
     } finally {
       setIsExportingBehavioral(false);
     }
@@ -3380,28 +3371,28 @@ const QRScannerPage = () => {
       // Standup mode: requires program selection and program report selection
       if (!selectedProgramId || selectedProgramId === 'all') {
         console.error('❌ No program selected for standup mode');
-        showError(t('please_select_program') || 'Please select a program first');
+        showError(t('please_select_program'));
         return;
       }
       
       // Validate program selection for report
       if (selectedProgramsForReport.length === 0) {
         console.error('❌ No programs selected for standup report');
-        showError(t('select_at_least_one_program') || 'Please select at least one program for the report');
+        showError(t('select_at_least_one_program'));
         return;
       }
     } else {
       // Regular mode: requires class or program selection
       if (!selectedClassId && !selectedProgramId) {
         console.error('❌ No class or program selected');
-        showError(t('please_select_class_or_program') || 'Please select a class or program first');
+        showError(t('please_select_class_or_program'));
         return;
       }
 
       // Validate subject selection (only for regular mode)
       if (selectedSubjectsForReport.length === 0) {
         console.error('❌ No subjects selected for report');
-        showError(t('select_at_least_one_subject') || 'Please select at least one subject for the report');
+        showError(t('select_at_least_one_subject'));
         return;
       }
     }
@@ -3409,7 +3400,7 @@ const QRScannerPage = () => {
     // Validate email recipients if email format is selected
     if (exportFormat === 'email' && emailRecipients.length === 0) {
       console.error('❌ No email recipients selected');
-      showError(t('select_at_least_one_recipient') || 'Please select at least one recipient for the email');
+      showError(t('select_at_least_one_recipient'));
       return;
     }
 
@@ -3622,7 +3613,7 @@ const QRScannerPage = () => {
 
       if (enrichedData.length === 0) {
         setIsExporting(false);
-        showError(t('no_attendance_records_found') || 'No attendance records found for this semester');
+        showError(t('no_attendance_records_found'));
         return;
       }
 
@@ -3631,53 +3622,53 @@ const QRScannerPage = () => {
       let headers;
       if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
         headers = lang === 'ar' ? [
-          t('serial') || 'ت',
-          t('student_number') || 'رقم الطالب',
-          t('id') || 'ID',
-          t('student_name') || 'اسم الطالب',
-          t('present') || 'حاضر',
-          t('late') || 'متأخر',
-          t('absent') || 'غائب',
-          t('clinic') || 'عيادة',
-          t('not_marked') || 'غير مسجل',
-          t('total_sessions') || 'إجمالي الجلسات'
+          t('serial'),
+          t('student_number'),
+          t('id'),
+          t('student_name'),
+          t('present'),
+          t('late'),
+          t('absent'),
+          t('clinic'),
+          t('not_marked'),
+          t('total_sessions')
         ] : [
-          t('serial') || 'Serial',
-          t('student_number') || 'Student Number',
-          t('id') || 'ID',
-          t('student_name') || 'Student Name',
-          t('present') || 'Present',
-          t('late') || 'Late',
-          t('absent') || 'Absent',
-          t('clinic') || 'Clinic',
-          t('not_marked') || 'Not Marked',
-          t('total_sessions') || 'Total Sessions'
+          t('serial'),
+          t('student_number'),
+          t('id'),
+          t('student_name'),
+          t('present'),
+          t('late'),
+          t('absent'),
+          t('clinic'),
+          t('not_marked'),
+          t('total_sessions')
         ];
       } else {
         headers = lang === 'ar' ? [
-          t('serial') || 'ت',
-          t('student_number') || 'رقم الطالب',
-          t('id') || 'ID',
-          t('student_name') || 'اسم الطالب',
-          t('present') || 'حاضر',
-          t('late') || 'متأخر',
-          t('absent_no_excuse') || 'غائب بدون عذر',
-          t('absent_with_excuse') || 'غائب مع عذر',
-          t('excused_leave') || 'استئذان',
-          t('human_case') || 'حالة إنسانية',
-          t('total_sessions') || 'إجمالي الجلسات'
+          t('serial'),
+          t('student_number'),
+          t('id'),
+          t('student_name'),
+          t('present'),
+          t('late'),
+          t('absent_no_excuse'),
+          t('absent_with_excuse'),
+          t('excused_leave'),
+          t('human_case'),
+          t('total_sessions')
         ] : [
-          t('serial') || 'Serial',
-          t('student_number') || 'Student Number',
-          t('id') || 'ID',
-          t('student_name') || 'Student Name',
-          t('present') || 'Present',
-          t('late') || 'Late',
-          t('absent_no_excuse') || 'Absent (No Excuse)',
-          t('absent_with_excuse') || 'Absent excused',
-          t('excused_leave') || 'Excused Leave',
-          t('human_case') || 'Human Case',
-          t('total_sessions') || 'Total Sessions'
+          t('serial'),
+          t('student_number'),
+          t('id'),
+          t('student_name'),
+          t('present'),
+          t('late'),
+          t('absent_no_excuse'),
+          t('absent_with_excuse'),
+          t('excused_leave'),
+          t('human_case'),
+          t('total_sessions')
         ];
       }
 
@@ -3685,25 +3676,25 @@ const QRScannerPage = () => {
       if (attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP) {
         if (lang === 'ar') {
           headers.push(
-            t('absent_no_excuse_deduction') || 'خصم الغياب بدون عذر (×0.5)',
-            t('late_deduction') || 'خصم التأخر (×0.5)',
-            t('absent_with_excuse_deduction') || 'خصم الغياب مع عذر (×0.5)',
-            t('excused_leave_deduction') || 'خصم الاستئذان (×0.5)',
-            t('human_case_deduction') || 'خصم الحالة (×0.5)',
-            t('total_mark_deduction') || 'إجمالي الخصم',
-            t('grade') || 'الدرجة',
-            t('attendance_failure') || 'فشل الحضور'
+            t('absent_no_excuse_deduction'),
+            t('late_deduction'),
+            t('absent_with_excuse_deduction'),
+            t('excused_leave_deduction'),
+            t('human_case_deduction'),
+            t('total_mark_deduction'),
+            t('grade'),
+            t('attendance_failure')
           );
         } else {
           headers.push(
-            t('absent_no_excuse_deduction') || 'Absent No Excuse Deduction (×0.5)',
-            t('late_deduction') || 'Late Deduction (×0.5)',
-            t('absent_with_excuse_deduction') || 'Absent With Excuse Deduction (×0.5)',
-            t('excused_leave_deduction') || 'Excused Leave Deduction (×0.5)',
-            t('human_case_deduction') || 'Human Case Deduction (×0.5)',
-            t('total_mark_deduction') || 'Total Mark Deduction',
-            t('grade') || 'Grade',
-            t('attendance_failure') || 'Attendance Failure'
+            t('absent_no_excuse_deduction'),
+            t('late_deduction'),
+            t('absent_with_excuse_deduction'),
+            t('excused_leave_deduction'),
+            t('human_case_deduction'),
+            t('total_mark_deduction'),
+            t('grade'),
+            t('attendance_failure')
           );
         }
       }
@@ -3715,12 +3706,12 @@ const QRScannerPage = () => {
         
         programSubjects.forEach(subject => {
           const subjectName = subject.nameEn || subject.name || 'Unknown Subject';
-          headers.push(`${subjectName} - ${t('present') || 'Present'}`);
-          headers.push(`${subjectName} - ${t('absent') || 'Absent'}`);
-          headers.push(`${subjectName} - ${t('percentage') || 'Percentage'}`);
-          headers.push(`${subjectName} - ${t('deduction') || 'Deduction'}`);
+          headers.push(`${subjectName} - ${t('present')}`);
+          headers.push(`${subjectName} - ${t('absent')}`);
+          headers.push(`${subjectName} - ${t('percentage')}`);
+          headers.push(`${subjectName} - ${t('deduction')}`);
           headers.push(`${subjectName} - ${t('attendance_failure') || ABSENCE_THRESHOLDS.FAILURE_GRADE}`);
-          headers.push(`${subjectName} - ${t('grade') || 'Grade'}`);
+          headers.push(`${subjectName} - ${t('grade')}`);
         });
       }
 
@@ -4288,7 +4279,7 @@ const QRScannerPage = () => {
         URL.revokeObjectURL(url);
         
         console.log('📊 Excel file downloaded:', filename);
-        showSuccess(t('summary_report_exported_successfully') || 'Summary report exported successfully');
+        showSuccess(t('summary_report_exported_successfully'));
 
         persistAndLogExport({
           blob: excelBlob,
@@ -4299,13 +4290,13 @@ const QRScannerPage = () => {
           classId: selectedClassId,
           subjectId: selectedSubjectId,
           programId: selectedProgramId,
-          onSaved: () => showSuccess(t('export_saved_to_drive') || 'Also saved to Smart Drive → Exported Files'),
+          onSaved: () => showSuccess(t('export_saved_to_drive')),
         }).catch((e) => console.warn('Failed to log export history:', e));
       }
 
     } catch (error) {
       console.error('Semester Report Export failed:', error);
-      showError((t('export_failed') || 'Export failed: ') + error.message);
+      showError((t('export_failed')) + error.message);
     } finally {
       setIsExporting(false);
     }
@@ -4316,12 +4307,12 @@ const QRScannerPage = () => {
     console.log('📊 Standup Summary Export called', { selectedProgramId });
 
     if (!selectedProgramId || selectedProgramId === 'all') {
-      showError(t('please_select_program') || 'Please select a program first');
+      showError(t('please_select_program'));
       return;
     }
 
     if (exportFormat === 'email' && emailRecipients.length === 0) {
-      showError(t('select_at_least_one_recipient') || 'Please select at least one recipient for the email');
+      showError(t('select_at_least_one_recipient'));
       return;
     }
 
@@ -4394,33 +4385,33 @@ const QRScannerPage = () => {
 
       if (enrichedData.length === 0) {
         setIsExporting(false);
-        showError(t('no_attendance_records_found') || 'No attendance records found');
+        showError(t('no_attendance_records_found'));
         return;
       }
 
       // Headers — standup only, no deductions/marks
       const headers = lang === 'ar' ? [
-        t('serial') || 'ت',
-        t('student_number') || 'رقم الطالب',
-        t('id') || 'ID',
-        t('student_name') || 'اسم الطالب',
-        t('present') || 'حاضر',
-        t('late') || 'متأخر',
-        t('absent') || 'غائب',
-        t('clinic') || 'عيادة',
-        t('not_marked') || 'غير مسجل',
-        t('total_sessions') || 'إجمالي الجلسات'
+        t('serial'),
+        t('student_number'),
+        t('id'),
+        t('student_name'),
+        t('present'),
+        t('late'),
+        t('absent'),
+        t('clinic'),
+        t('not_marked'),
+        t('total_sessions')
       ] : [
-        t('serial') || 'Serial',
-        t('student_number') || 'Student Number',
-        t('id') || 'ID',
-        t('student_name') || 'Student Name',
-        t('present') || 'Present',
-        t('late') || 'Late',
-        t('absent') || 'Absent',
-        t('clinic') || 'Clinic',
-        t('not_marked') || 'Not Marked',
-        t('total_sessions') || 'Total Sessions'
+        t('serial'),
+        t('student_number'),
+        t('id'),
+        t('student_name'),
+        t('present'),
+        t('late'),
+        t('absent'),
+        t('clinic'),
+        t('not_marked'),
+        t('total_sessions')
       ];
 
       // Excel data rows
@@ -4490,11 +4481,11 @@ const QRScannerPage = () => {
           const recipientEmails = emailRecipients.map(r => r.email).filter(Boolean);
           // Email logic same as regular report
           if (recipientEmails.length > 0) {
-            showInfo(t('email_sent_successfully') || 'Email sent successfully');
+            showInfo(t('email_sent_successfully'));
           }
         } catch (emailErr) {
           console.error('📧 Email send failed:', emailErr);
-          showError((t('email_send_failed') || 'Email send failed: ') + emailErr.message);
+          showError((t('email_send_failed')) + emailErr.message);
         }
       } else {
         const url = URL.createObjectURL(excelBlob);
@@ -4506,12 +4497,12 @@ const QRScannerPage = () => {
         document.body.removeChild(link);
         URL.revokeObjectURL(url);
         console.log('📊 Standup summary downloaded:', filename);
-        showSuccess(t('summary_report_exported_successfully') || 'Summary report exported successfully');
+        showSuccess(t('summary_report_exported_successfully'));
       }
 
     } catch (error) {
       console.error('Standup Summary Export failed:', error);
-      showError((t('export_failed') || 'Export failed: ') + error.message);
+      showError((t('export_failed')) + error.message);
     } finally {
       setIsExporting(false);
     }
@@ -4876,7 +4867,7 @@ const QRScannerPage = () => {
   }
 
   return (
-    <div className="qr-scanner-container" dir={isRTL ? 'rtl' : 'ltr'} style={{
+    <div className="qr-scanner-container" style={{
       minHeight: '100vh',
       background: 'var(--background-secondary, #f9fafb)',
       fontFamily: 'var(--font-family-sans)'
@@ -4894,11 +4885,11 @@ const QRScannerPage = () => {
         spotlightClicks={false}
         callback={handleTourCallback}
         locale={{
-          back: t('tour_back') || 'Back',
-          close: t('tour_close') || 'Close',
-          last: t('tour_finish') || 'Finish',
-          next: t('tour_next') || 'Next',
-          skip: t('tour_skip') || 'Skip',
+          back: t('tour_back'),
+          close: t('tour_close'),
+          last: t('tour_finish'),
+          next: t('tour_next'),
+          skip: t('tour_skip'),
         }}
         styles={{
           options: {
@@ -4924,11 +4915,11 @@ const QRScannerPage = () => {
         spotlightClicks={false}
         callback={handleRosterTourCallback}
         locale={{
-          back: t('tour_back') || 'Back',
-          close: t('tour_close') || 'Close',
-          last: t('tour_finish') || 'Finish',
-          next: t('tour_next') || 'Next',
-          skip: t('tour_skip') || 'Skip',
+          back: t('tour_back'),
+          close: t('tour_close'),
+          last: t('tour_finish'),
+          next: t('tour_next'),
+          skip: t('tour_skip'),
         }}
         styles={{
           options: {
@@ -4954,11 +4945,11 @@ const QRScannerPage = () => {
         spotlightClicks={false}
         callback={handleBulkTourCallback}
         locale={{
-          back: t('tour_back') || 'Back',
-          close: t('tour_close') || 'Close',
-          last: t('tour_finish') || 'Finish',
-          next: t('tour_next') || 'Next',
-          skip: t('tour_skip') || 'Skip',
+          back: t('tour_back'),
+          close: t('tour_close'),
+          last: t('tour_finish'),
+          next: t('tour_next'),
+          skip: t('tour_skip'),
         }}
         styles={{
           options: {
@@ -4984,11 +4975,11 @@ const QRScannerPage = () => {
         spotlightClicks={false}
         callback={handleActivityTourCallback}
         locale={{
-          back: t('tour_back') || 'Back',
-          close: t('tour_close') || 'Close',
-          last: t('tour_finish') || 'Finish',
-          next: t('tour_next') || 'Next',
-          skip: t('tour_skip') || 'Skip',
+          back: t('tour_back'),
+          close: t('tour_close'),
+          last: t('tour_finish'),
+          next: t('tour_next'),
+          skip: t('tour_skip'),
         }}
         styles={{
           options: {
@@ -5050,11 +5041,11 @@ const QRScannerPage = () => {
                     fontSize: 'var(--font-size-xs)',
                     fontWeight: 600
                   }}
-                  data-tooltip={t('attendance_mode') || 'Attendance'}
+                  data-tooltip={t('attendance_mode')}
                   data-tooltip-pos="bottom"
                 >
                   {getThemedIcon('ui', 'check_circle', 14, attendanceMode === ATTENDANCE_TYPE_CATEGORY.REGULAR ? 'white' : theme)}
-                  <span>{t('attendance_mode') || 'Attendance'}</span>
+                  <span>{t('attendance_mode')}</span>
                 </button>
                 {canSeeStandupMode && (
                   <button
@@ -5081,11 +5072,11 @@ const QRScannerPage = () => {
                       fontSize: 'var(--font-size-xs)',
                       fontWeight: 600
                     }}
-                    data-tooltip={t('standup_mode') || 'Standup'}
+                    data-tooltip={t('standup_mode')}
                     data-tooltip-pos="bottom"
                   >
                     {getThemedIcon('ui', 'users', 14, attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? 'white' : theme)}
-                    <span>{t('standup_mode') || 'Standup'}</span>
+                    <span>{t('standup_mode')}</span>
                   </button>
                 )}
               </div>
@@ -5109,7 +5100,7 @@ const QRScannerPage = () => {
                         const qatarNow = getQatarNow();
                         setSelectedDate(formatForDateInput(qatarNow));
                       }}
-                      title={t('go_to_today') || 'Go to today'}
+                      title={t('go_to_today')}
                       style={{
                         height: '42px',
                         width: '42px',
@@ -5140,7 +5131,7 @@ const QRScannerPage = () => {
                     color: '#9ca3af',
                     fontSize: 'var(--font-size-sm)'
                   }}>
-                    {t('loading') || 'Loading...'}
+                    {t('loading')}
                   </div>
                 )}
               </div>
@@ -5204,10 +5195,10 @@ const QRScannerPage = () => {
                 }}
               >
                 <span style={{ fontWeight: 600, color: 'var(--text-muted, #6b7280)' }}>
-                  {t('class_instructor') || 'Instructor'}:
+                  {t('class_instructor')}:
                 </span>
                 {classInstructorLoading ? (
-                  <span style={{ color: 'var(--text-muted, #6b7280)' }}>{t('loading') || 'Loading...'}</span>
+                  <span style={{ color: 'var(--text-muted, #6b7280)' }}>{t('loading')}</span>
                 ) : classInstructorInfo?.name ? (
                   <>
                     <span style={{ fontWeight: 600 }}>{classInstructorInfo.name}</span>
@@ -5215,7 +5206,7 @@ const QRScannerPage = () => {
                       <button
                         type="button"
                         onClick={handleMessageClassInstructor}
-                        title={t('message_instructor') || 'Message instructor'}
+                        title={t('message_instructor')}
                         style={{
                           marginInlineStart: '0.25rem',
                           padding: '0.25rem 0.5rem',
@@ -5230,13 +5221,13 @@ const QRScannerPage = () => {
                         }}
                       >
                         {getThemedIcon('ui', 'message_square', 14, theme)}
-                        <span>{t('message_instructor') || 'Message'}</span>
+                        <span>{t('message_instructor')}</span>
                       </button>
                     )}
                   </>
                 ) : (
                   <span style={{ color: 'var(--color-warning, #d97706)', fontWeight: 500 }}>
-                    {t('no_instructor_for_class') || 'No instructor assigned to this class'}
+                    {t('no_instructor_for_class')}
                   </span>
                 )}
               </div>
@@ -5284,11 +5275,11 @@ const QRScannerPage = () => {
                       fontSize: 'var(--font-size-xs)',
                       fontWeight: 600,
                     }}
-                    data-tooltip={t('standard_reports') || 'Standard reports'}
+                    data-tooltip={t('standard_reports')}
                     data-tooltip-pos="bottom"
                   >
                     {getThemedIcon('ui', 'file', 14, !useOfficialReports ? 'white' : theme)}
-                    <span>{t('standard_reports') || 'Standard'}</span>
+                    <span>{t('standard_reports')}</span>
                   </button>
                   <button
                     type="button"
@@ -5309,11 +5300,11 @@ const QRScannerPage = () => {
                       fontSize: 'var(--font-size-xs)',
                       fontWeight: 600,
                     }}
-                    data-tooltip={t('official_reports') || 'Official reports'}
+                    data-tooltip={t('official_reports')}
                     data-tooltip-pos="bottom"
                   >
                     {getThemedIcon('ui', 'file_signature', 14, useOfficialReports ? 'white' : theme)}
-                    <span>{t('official_reports') || 'Official'}</span>
+                    <span>{t('official_reports')}</span>
                   </button>
                 </div>
               )}
@@ -5324,12 +5315,12 @@ const QRScannerPage = () => {
                     onClick={() => {
                       if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
                         if (!selectedProgramId || selectedProgramId === 'all') {
-                          showError(t('please_select_program') || 'Please select a program first');
+                          showError(t('please_select_program'));
                           return;
                         }
                       } else {
                         if (!selectedClassId || selectedClassId === 'all') {
-                          showError(t('please_select_class') || 'Please select a class first');
+                          showError(t('please_select_class'));
                           return;
                         }
                       }
@@ -5365,11 +5356,11 @@ const QRScannerPage = () => {
                       opacity: (isExporting || isExportingBehavioral || (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || selectedProgramId === 'all' || !selectedSubjectId || selectedSubjectId === 'all' || !selectedClassId || selectedClassId === 'all'))) ? 0.5 : 1
                     }}
                     disabled={gridLoading || isExporting || isExportingBehavioral || (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || selectedProgramId === 'all' || !selectedSubjectId || selectedSubjectId === 'all' || !selectedClassId || selectedClassId === 'all'))}
-                    data-tooltip={t('export_daily_report') || 'Export daily attendance report'}
+                    data-tooltip={t('export_daily_report')}
                     data-tooltip-pos="bottom"
                   >
                     {getThemedIcon('ui', 'file', 16, 'white')}
-                    {t('daily_report') || 'Daily'}
+                    {t('daily_report')}
                   </button>
               )}
 
@@ -5379,11 +5370,11 @@ const QRScannerPage = () => {
                   onClick={() => {
                     if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
                       if (!selectedProgramId || selectedProgramId === 'all') {
-                        showError(t('please_select_program') || 'Please select a program first');
+                        showError(t('please_select_program'));
                         return;
                       }
                     } else if (!selectedClassId || selectedClassId === 'all') {
-                      showError(t('please_select_class') || 'Please select a class first');
+                      showError(t('please_select_class'));
                       return;
                     }
                     setShowDailyOfficialModal(true);
@@ -5407,11 +5398,11 @@ const QRScannerPage = () => {
                     opacity: (isExporting || isExportingBehavioral || (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || selectedProgramId === 'all' || !selectedSubjectId || selectedSubjectId === 'all' || !selectedClassId || selectedClassId === 'all'))) ? 0.5 : 1
                   }}
                   disabled={gridLoading || isExporting || isExportingBehavioral || (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || selectedProgramId === 'all' || !selectedSubjectId || selectedSubjectId === 'all' || !selectedClassId || selectedClassId === 'all'))}
-                  data-tooltip={t('export_daily_official') || 'Export official daily attendance report'}
+                  data-tooltip={t('export_daily_official')}
                   data-tooltip-pos="bottom"
                 >
                   {getThemedIcon('ui', 'file_signature', 16, 'white')}
-                  {t('daily_official') || 'Daily Official'}
+                  {t('daily_official')}
                 </button>
               )}
 
@@ -5450,11 +5441,11 @@ const QRScannerPage = () => {
                       opacity: (isExporting || isExportingBehavioral || (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || selectedProgramId === 'all' || !selectedSubjectId || selectedSubjectId === 'all' || !selectedClassId || selectedClassId === 'all'))) ? 0.5 : 1
                     }}
                     disabled={isExporting || isExportingBehavioral || (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || selectedProgramId === 'all' || !selectedSubjectId || selectedSubjectId === 'all' || !selectedClassId || selectedClassId === 'all'))}
-                    data-tooltip={t('export_attendance_violations') || 'Export attendance violations report'}
+                    data-tooltip={t('export_attendance_violations')}
                     data-tooltip-pos="bottom"
                   >
                     {getThemedIcon('ui', 'alert_triangle', 16, 'white')}
-                    {t('attendance') || 'Attendance'}
+                    {t('attendance')}
                   </button>
               )}
 
@@ -5481,11 +5472,11 @@ const QRScannerPage = () => {
                       opacity: (isExporting || isExportingBehavioral || (!selectedProgramId || selectedProgramId === 'all' || !selectedSubjectId || selectedSubjectId === 'all' || !selectedClassId || selectedClassId === 'all')) ? 0.5 : 1
                     }}
                     disabled={isExporting || isExportingBehavioral || (!selectedProgramId || selectedProgramId === 'all' || !selectedSubjectId || selectedSubjectId === 'all' || !selectedClassId || selectedClassId === 'all')}
-                    data-tooltip={t('export_attendance_official') || 'Export official attendance violations report'}
+                    data-tooltip={t('export_attendance_official')}
                     data-tooltip-pos="bottom"
                   >
                     {getThemedIcon('ui', 'shield', 16, 'white')}
-                    {t('attendance_official') || 'Attendance Official'}
+                    {t('attendance_official')}
                   </button>
               )}
 
@@ -5524,11 +5515,11 @@ const QRScannerPage = () => {
                       opacity: (isExporting || isExportingBehavioral || (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || selectedProgramId === 'all' || !selectedSubjectId || selectedSubjectId === 'all' || !selectedClassId || selectedClassId === 'all'))) ? 0.5 : 1
                     }}
                     disabled={gridLoading || isExporting || isExportingBehavioral || (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || selectedProgramId === 'all' || !selectedSubjectId || selectedSubjectId === 'all' || !selectedClassId || selectedClassId === 'all'))}
-                    data-tooltip={t('export_summary_report') || 'Export comprehensive summary report'}
+                    data-tooltip={t('export_summary_report')}
                     data-tooltip-pos="bottom"
                   >
                     {getThemedIcon('ui', 'send', 16, 'white')}
-                    {t('summary_report') || 'Summary'}
+                    {t('summary_report')}
                   </button>
               )}
 
@@ -5551,11 +5542,11 @@ const QRScannerPage = () => {
                   minWidth: '100px',
                   justifyContent: 'center',
                 }}
-                data-tooltip={t('export_history_tooltip') || t('export_history') || 'View export history'}
+                data-tooltip={t('export_history_tooltip')}
                 data-tooltip-pos="bottom"
               >
                 {getThemedIcon('ui', 'history', 16, 'white')}
-                {t('history') || 'History'}
+                {t('history')}
               </button>
 
               {canBulkScan && !useOfficialReports && (
@@ -5564,7 +5555,7 @@ const QRScannerPage = () => {
                   onClick={() => {
                     // In standup mode, allow bulk operations without class selection
                     if (attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && (!selectedClassId || selectedClassId === 'all')) {
-                      showError(t('please_select_class') || 'Please select a class first');
+                      showError(t('please_select_class'));
                       return;
                     }
                     setShowBulkScanDialog(true);
@@ -5588,11 +5579,11 @@ const QRScannerPage = () => {
                     justifyContent: 'center',
                     opacity: (isExporting || isExportingBehavioral || (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedClassId || selectedClassId === 'all'))) ? 0.5 : 1
                   }}
-                  data-tooltip={t('bulk_scan_attendance') || 'Bulk scan attendance for multiple students'}
+                  data-tooltip={t('bulk_scan_attendance')}
                   data-tooltip-pos="bottom"
                 >
                   {getThemedIcon('ui', 'users', 16, 'white')}
-                  {t('bulk_scan') || 'Bulk Scan'}
+                  {t('bulk_scan')}
                 </button>
               )}
           
@@ -5631,7 +5622,7 @@ const QRScannerPage = () => {
             fontWeight: 600,
             color: 'var(--text-primary, #374151)',
           }}>
-            {t('exporting_report') || 'Exporting report...'}
+            {t('exporting_report')}
           </span>
         </div>
       )}
@@ -5743,7 +5734,7 @@ const QRScannerPage = () => {
               textAlign: 'center'
             }}>
               <p style={{ color: 'var(--text-muted, #6b7280)', margin: 0 }}>
-                {t('select_program_to_view_students') || 'Please select a Program to view students'}
+                {t('select_program_to_view_students')}
               </p>
             </div>
           ) : (

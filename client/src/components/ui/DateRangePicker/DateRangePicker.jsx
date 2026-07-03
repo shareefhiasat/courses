@@ -17,8 +17,8 @@ const DateRangePicker = ({
   toDate,
   onChange,
   label,
-  placeholderFrom = 'From Date',
-  placeholderTo = 'To Date',
+  placeholderFrom,
+  placeholderTo,
   error,
   helperText,
   disabled = false,
@@ -32,6 +32,9 @@ const DateRangePicker = ({
 }) => {
   const { theme } = useTheme();
   const { t } = useLang();
+
+  const fromPlaceholder = placeholderFrom || t('from_date');
+  const toPlaceholder = placeholderTo || t('to_date');
   
   const [isOpen, setIsOpen] = useState(false);
   const popoverRef = useRef(null);
@@ -116,9 +119,9 @@ const DateRangePicker = ({
       return `${format(selectedRange.from, 'MMM dd, yyyy')} - ${format(selectedRange.to, 'MMM dd, yyyy')}`;
     }
     if (selectedRange.from) {
-      return `${format(selectedRange.from, 'MMM dd, yyyy')} - ${placeholderTo}`;
+      return `${format(selectedRange.from, 'MMM dd, yyyy')} - ${toPlaceholder}`;
     }
-    return `${placeholderFrom} - ${placeholderTo}`;
+    return `${fromPlaceholder} - ${toPlaceholder}`;
   };
 
   const wrapperClasses = [

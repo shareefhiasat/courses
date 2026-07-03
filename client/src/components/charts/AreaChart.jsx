@@ -10,7 +10,7 @@ export default function AreaChart({ data = [], width = 400, height = 300, accent
   const { t } = useLang();
   
   if (!data || data.length === 0) {
-    return <div style={{ width, height, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>{t('no_data') || 'No data'}</div>;
+    return <div style={{ width, height, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>{t('no_data')}</div>;
   }
 
   const padding = { top: 20, right: 20, bottom: 60, left: 60 };

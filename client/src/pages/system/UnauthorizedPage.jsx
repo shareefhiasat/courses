@@ -42,7 +42,7 @@ const UnauthorizedPage = () => {
 
   // Get the page they tried to access
   const backUrl = searchParams.get('backUrl') || location.state?.from || '/';
-  const screenName = searchParams.get('screen') || t('this_page') || 'this page';
+  const screenName = searchParams.get('screen');
 
   const handleGoBack = () => {
     if (window.history.length > 2) {
@@ -72,7 +72,7 @@ const UnauthorizedPage = () => {
 
             {/* Title */}
             <h1 className="unauthorized-title">
-              {t('access_denied') || 'Access Denied'}
+              {t('access_denied')}
             </h1>
 
             {/* Message */}
@@ -89,11 +89,11 @@ const UnauthorizedPage = () => {
                 <div className="role-badge" data-theme={theme}>
                   {getThemedIcon('ui', 'user', 16, theme)}
                   <span>
-                    {t('your_role') || 'Your Role'}: <strong>{getUserRoleDisplay(user, t, lang)}</strong>
+                    {t('your_role')}: <strong>{getUserRoleDisplay(user, t, lang)}</strong>
                   </span>
                 </div>
                 <p className="role-hint">
-                  {t('contact_admin_for_access') || 'Contact your administrator if you need access to this page.'}
+                  {t('contact_admin_for_access')}
                 </p>
               </div>
             )}
@@ -106,7 +106,7 @@ const UnauthorizedPage = () => {
                 style={{ minWidth: 120 }}
               >
                 <span style={{ marginLeft: lang === 'ar' ? 0 : 8, marginRight: lang === 'ar' ? 8 : 0 }}>
-                  {t('go_back') || 'Go Back'}
+                  {t('go_back')}
                 </span>
               </Button>
 
@@ -116,7 +116,7 @@ const UnauthorizedPage = () => {
                 style={{ minWidth: 120 }}
               >
                 <span style={{ marginLeft: lang === 'ar' ? 0 : 8, marginRight: lang === 'ar' ? 8 : 0 }}>
-                  {t('go_home') || 'Go Home'}
+                  {t('go_home')}
                 </span>
               </Button>
             </div>

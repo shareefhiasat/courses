@@ -84,7 +84,7 @@ function BarChart({ data = [], size = { width: 400, height: 300 }, horizontal = 
   if (!baseData || baseData.length === 0) {
     return (
       <div style={{ width, height, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>
-        {t('no_data') || 'No data'}
+        {t('no_data')}
       </div>
     );
   }
@@ -211,7 +211,7 @@ function BarChart({ data = [], size = { width: 400, height: 300 }, horizontal = 
               rx="4"
               style={{ transition: 'opacity 0.15s ease', cursor: 'pointer' }}
               onMouseEnter={(e) => {
-                const hoverLines = bar.labelLines.length > 0 ? bar.labelLines : [t('not_specified') || 'Unspecified'];
+                const hoverLines = bar.labelLines.length > 0 ? bar.labelLines : [t('not_specified')];
                 setHovered({ idx: bar.idx, x: e.clientX, y: e.clientY, lines: hoverLines, value: bar.value });
               }}
               onMouseMove={(e) => {

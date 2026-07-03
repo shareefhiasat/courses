@@ -158,7 +158,7 @@ GenericFilters.configurations = {
       label: 'Class',
       type: 'select',
       options: [
-        { value: 'all', label: t('all_classes') || 'All Classes' },
+        { value: 'all', label: t('all_classes') },
         ...classes.map(c => ({ 
           value: c.id || c.docId, 
           label: c.name || c.code || c.id 
@@ -170,7 +170,7 @@ GenericFilters.configurations = {
       label: 'Status',
       type: 'select',
       options: [
-        { value: 'all', label: t('all') || 'All Status' },
+        { value: 'all', label: t('all') },
         { value: ATTENDANCE_STATUS.PRESENT, label: getLocalizedAttendanceLabel(ATTENDANCE_STATUS.PRESENT) },
         { value: ATTENDANCE_STATUS.LATE, label: getLocalizedAttendanceLabel(ATTENDANCE_STATUS.LATE) },
         { value: ATTENDANCE_STATUS.ABSENT_NO_EXCUSE, label: getLocalizedAttendanceLabel(ATTENDANCE_STATUS.ABSENT_NO_EXCUSE) },
@@ -180,12 +180,12 @@ GenericFilters.configurations = {
     },
     {
       key: 'dateFrom',
-      label: t('from_date') || 'From Date',
+      label: t('from_date'),
       type: 'date'
     },
     {
       key: 'dateTo',
-      label: t('to_date') || 'To Date',
+      label: t('to_date'),
       type: 'date'
     }
   ],
@@ -197,7 +197,7 @@ GenericFilters.configurations = {
       label: 'Program',
       type: 'select',
       options: [
-        { value: 'all', label: t('all_programs') || 'All Programs' },
+        { value: 'all', label: t('all_programs') },
         ...programs.map(p => ({
           value: p.docId || p.id,
           label: p.nameEn || p.nameAr || p.code || p.docId
@@ -209,7 +209,7 @@ GenericFilters.configurations = {
       label: 'Subject',
       type: 'select',
       options: [
-        { value: 'all', label: t('all_subjects') || 'All Subjects' },
+        { value: 'all', label: t('all_subjects') },
         ...subjects.map(s => ({
           value: s.docId || s.id,
           label: `${s.code || ''} - ${s.nameEn || s.nameAr || s.docId}`
@@ -221,7 +221,7 @@ GenericFilters.configurations = {
       label: 'Class',
       type: 'select',
       options: [
-        { value: 'all', label: t('all_classes') || 'All Classes' },
+        { value: 'all', label: t('all_classes') },
         ...classes.map(c => ({ 
           value: c.id || c.docId, 
           label: c.name || c.code || c.id 
@@ -234,12 +234,12 @@ GenericFilters.configurations = {
   dateRange: (t) => [
     {
       key: 'dateFrom',
-      label: t('from_date') || 'From Date',
+      label: t('from_date'),
       type: 'date'
     },
     {
       key: 'dateTo',
-      label: t('to_date') || 'To Date',
+      label: t('to_date'),
       type: 'date'
     }
   ]

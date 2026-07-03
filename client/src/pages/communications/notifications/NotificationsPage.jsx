@@ -235,7 +235,7 @@ const NotificationsPage = () => {
                 Mark all read
               </Button>
             )}
-            <PortalTooltip content={t('notifications_notification_settings') || 'Notification Settings'} position="top">
+            <PortalTooltip content={t('notifications_notification_settings')} position="top">
               <Button
                 size="sm"
                 variant="ghost"
@@ -254,7 +254,7 @@ const NotificationsPage = () => {
             {getThemedIcon('ui', 'search', 18, theme)}
             <Input
               type="text"
-              placeholder={t('search_notifications') || 'Search notifications...'}
+              placeholder={t('search_notifications')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               style={{
@@ -274,8 +274,8 @@ const NotificationsPage = () => {
             onChange={(e) => setFilterType(e.target.value)}
             options={getNotificationStatusOptions(t, lang).map(option => ({
               ...option,
-              label: option.value === 'unread' ? `${t('unread') || 'Unread'} (${unreadCount})` : 
-                     option.value === 'archived' ? `${t('archived') || 'Archived'} (${archivedCount})` : 
+              label: option.value === 'unread' ? `${t('unread')} (${unreadCount})` : 
+                     option.value === 'archived' ? `${t('archived')} (${archivedCount})` : 
                      option.label
             }))}
             size="small"
@@ -289,7 +289,7 @@ const NotificationsPage = () => {
               setFilterAttendanceStatus('all');
               setFilterAbsenceType('all');
             }}
-            options={[{ value: 'all', label: t('all_categories') || 'All' }, ...getNotificationTypeOptions(t, lang)]}
+            options={[{ value: 'all', label: t('all_categories') }, ...getNotificationTypeOptions(t, lang)]}
             size="small"
             fullWidth
           />
@@ -298,7 +298,7 @@ const NotificationsPage = () => {
               value={filterPenaltyType}
               onChange={(e) => setFilterPenaltyType(e.target.value)}
               options={[
-                { value: 'all', label: t('all_penalty_types') || 'All Penalty Types' },
+                { value: 'all', label: t('all_penalty_types') },
                 ...(lookupData['penalty-types'] || []).map(pt => ({ value: pt.id, label: pt.nameEn }))
               ]}
               size="small"
@@ -326,7 +326,7 @@ const NotificationsPage = () => {
               value={filterAbsenceType}
               onChange={(e) => setFilterAbsenceType(e.target.value)}
               options={[
-                { value: 'all', label: t('all_absence_types') || 'All Absence Types' },
+                { value: 'all', label: t('all_absence_types') },
                 ...ABSENCE_TYPES.map(at => ({ value: at.id, label: at.label_en }))
               ]}
               size="small"
@@ -420,7 +420,7 @@ const NotificationsPage = () => {
             value={filterSemester}
             onChange={(e) => setFilterSemester(e.target.value)}
             options={[
-              { value: 'all', label: t('all_semesters') || 'All Semesters' },
+              { value: 'all', label: t('all_semesters') },
               ...Array.from(new Set((subjects || []).map(s => s.semester).filter(Boolean))).map(v => ({ value: v, label: v }))
             ]}
             size="small"
@@ -446,8 +446,8 @@ const NotificationsPage = () => {
             {getThemedIcon('ui', 'bell', 64, theme)}
             <p style={{ margin: 0, fontSize: 'var(--font-size-md)', fontWeight: 500 }}>
               {searchTerm || filterType !== 'all' || filterCategory !== 'all'
-                ? t('no_notifications_match_filters') || 'No notifications match your filters'
-                : t('no_notifications_yet') || 'No notifications yet'}
+                ? t('no_notifications_match_filters')
+                : t('no_notifications_yet')}
             </p>
           </div>
         ) : (
@@ -539,7 +539,7 @@ const NotificationsPage = () => {
                           e.stopPropagation();
                           handleMarkAsRead(notification.id);
                         }}
-                        title={t('mark_as_read') || 'Mark as read'}
+                        title={t('mark_as_read')}
                         style={{
                           background: 'transparent',
                           border: 'none',
@@ -566,7 +566,7 @@ const NotificationsPage = () => {
                           e.stopPropagation();
                           handleMarkAsUnread(notification.id);
                         }}
-                        title={t('mark_as_unread') || 'Mark as unread'}
+                        title={t('mark_as_unread')}
                         style={{
                           background: 'transparent',
                           border: 'none',
@@ -594,7 +594,7 @@ const NotificationsPage = () => {
                           e.stopPropagation();
                           handleArchive(notification.id);
                         }}
-                        title={t('archive') || 'Archive'}
+                        title={t('archive')}
                         style={{
                           background: 'transparent',
                           border: 'none',
@@ -621,7 +621,7 @@ const NotificationsPage = () => {
                         e.stopPropagation();
                         handleDelete(notification.id);
                       }}
-                      title={t('delete') || 'Delete'}
+                      title={t('delete')}
                       style={{
                         background: 'transparent',
                         border: 'none',

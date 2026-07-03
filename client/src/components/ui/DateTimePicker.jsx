@@ -70,7 +70,7 @@ export default function DateTimePicker({ value, onChange, placeholder = 'DD/MM/Y
   }, [value]);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, direction: isRTL ? 'rtl' : 'ltr' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
       <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
         <input
           id={id}

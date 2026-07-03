@@ -41,7 +41,7 @@ function LineChart({ data = [], size = { width: 400, height: 300 }, accentColor 
   if (!baseData || baseData.length === 0) {
     return (
       <div style={{ width, height, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#999' }}>
-        {t('no_data') || 'No data'}
+        {t('no_data')}
       </div>
     );
   }

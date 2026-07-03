@@ -29,7 +29,7 @@ const NotificationLogsPage = () => {
   const [notificationLogModalOpen, setNotificationLogModalOpen] = useState(false);
   
   const triggerOptions = useMemo(() => {
-    const options = [{ value: '', label: t('all_triggers') || 'All Triggers' }];
+    const options = [{ value: '', label: t('all_triggers') }];
     Object.entries(NOTIFICATION_TYPES).forEach(([key, value]) => {
       options.push({ value, label: value.charAt(0) + value.slice(1).toLowerCase() });
     });
@@ -37,7 +37,7 @@ const NotificationLogsPage = () => {
   }, [t]);
   
   const channelOptions = useMemo(() => {
-    const options = [{ value: '', label: t('all_channels') || 'All Channels' }];
+    const options = [{ value: '', label: t('all_channels') }];
     Object.entries(NOTIFICATION_CHANNELS).forEach(([key, value]) => {
       options.push({ value, label: value.toUpperCase() });
     });
@@ -65,7 +65,7 @@ const NotificationLogsPage = () => {
     let stopLoading = null;
 
     const initialLoad = async () => {
-      stopLoading = startLoading({ message: t('loading_notifications') || 'Loading notifications...' });
+      stopLoading = startLoading({ message: t('loading_notifications') });
       await loadData(true);
       if (stopLoading) stopLoading();
       setLoading(false);

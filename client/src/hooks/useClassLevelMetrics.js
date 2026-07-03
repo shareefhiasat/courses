@@ -169,7 +169,7 @@ const useClassLevelMetrics = (classId, shouldLoad = true) => {
     } catch (err) {
       error('[ClassLevelMetrics] Failed to load class metrics', err);
       setError(err);
-      toast?.showError?.(t('failed_to_load_class_metrics') || 'Failed to load class metrics');
+      toast?.showError?.(t('failed_to_load_class_metrics'));
     } finally {
       setLoading(false);
     }

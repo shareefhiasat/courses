@@ -43,7 +43,7 @@ const PerformanceTab = memo(({
   return (
     <div>
       <CollapsibleSection
-        title={t('performance_analytics') || (lang === 'ar' ? 'تحليلات الأداء' : 'Performance Analytics')}
+        title={t('performance_analytics')}
         summary={summaryText}
         icon={BarChart3}
         defaultOpen
@@ -59,7 +59,7 @@ const PerformanceTab = memo(({
       </CollapsibleSection>
 
       <CollapsibleSection
-        title={t('attendance_history') || (lang === 'ar' ? 'سجل الحضور' : 'Attendance History')}
+        title={t('attendance_history')}
         summary={`${attendance?.length || 0} ${tFn('records') || 'records'}`}
         icon={ClipboardList}
         defaultOpen={false}

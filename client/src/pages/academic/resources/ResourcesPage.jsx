@@ -189,7 +189,7 @@ const ResourcesPage = () => {
       else console.error('[ResourcesPage] Failed to load resource types:', resourceTypesResult.error);
     } catch (error) {
       error('Error loading data:', error);
-      toast?.showError(t('error_loading_data') || 'Error loading data');
+      toast?.showError(t('error_loading_data'));
     } finally {
       if (!isInitial) setLoading(false);
     }
@@ -200,7 +200,7 @@ const ResourcesPage = () => {
     let stopLoading = null;
 
     const initialLoad = async () => {
-      stopLoading = startLoading({ message: t('loading_resources') || 'Loading resources...' });
+      stopLoading = startLoading({ message: t('loading_resources') });
       await loadData(true);
       if (stopLoading) stopLoading();
       setLoading(false);
@@ -361,7 +361,7 @@ const ResourcesPage = () => {
         if (titleArRef.current) titleArRef.current.value = '';
         setResourceEmailOptions({ sendEmail: false, createAnnouncement: false });
         setEditingResource(null);
-        toast?.showSuccess(editingResource ? (t('resource_updated_successfully') || 'Resource updated successfully!') : (t('resource_created_successfully') || 'Resource created successfully!'));
+        toast?.showSuccess(editingResource ? (t('resource_updated_successfully')) : (t('resource_created_successfully')));
       } else {
         toast?.showError(t('resources_error_updating_creating', { action: editingResource ? 'updating' : 'creating', error: result.error }));
       }
@@ -420,7 +420,7 @@ const ResourcesPage = () => {
       minWidth: 200,
       renderCell: (params) => {
         const title = params?.row?.titleEn || params?.value || '';
-        return title || (t('no_title') || 'No title');
+        return title || (t('no_title'));
       }
     },
     { 
@@ -430,7 +430,7 @@ const ResourcesPage = () => {
       minWidth: 200,
       renderCell: (params) => {
         const title = params?.row?.titleAr || params?.value || '';
-        return title || (t('no_title') || 'No title');
+        return title || (t('no_title'));
       }
     },
     {
@@ -524,7 +524,7 @@ const ResourcesPage = () => {
     },
     {
       field: 'programId',
-      headerName: t('program') || 'Program',
+      headerName: t('program'),
       width: 150,
       valueGetter: (params) => {
         const row = params?.row || {};
@@ -555,7 +555,7 @@ const ResourcesPage = () => {
     },
     {
       field: 'subjectId',
-      headerName: t('subject') || 'Subject',
+      headerName: t('subject'),
       width: 150,
       valueGetter: (params) => {
         const row = params?.row || {};
@@ -582,7 +582,7 @@ const ResourcesPage = () => {
     },
     {
       field: 'classId',
-      headerName: t('class_col') || 'Class',
+      headerName: t('class_col'),
       width: 180,
       valueGetter: (params) => {
         const row = params?.row || {};
@@ -613,7 +613,7 @@ const ResourcesPage = () => {
       field: 'dueDate', headerName: t('due_date_col'), width: 180,
       valueGetter: (params) => params.value,
       renderCell: (params) => {
-        if (!params.value) return (t('no_deadline') || 'No deadline');
+        if (!params.value) return (t('no_deadline'));
         return formatQatarDateTime(params.value);
       }
     },
@@ -647,7 +647,7 @@ const ResourcesPage = () => {
     },
     ...auditColumns,
     {
-      field: 'actions', headerName: t('actions') || 'Actions', width: 200, sortable: false, filterable: false,
+      field: 'actions', headerName: t('actions'), width: 200, sortable: false, filterable: false,
       renderCell: (params) => (
         <div style={{ display: 'flex', gap: 8 }}>
           <Button 
@@ -657,7 +657,7 @@ const ResourcesPage = () => {
             icon={getThemedIcon('ui', 'edit', 16, theme)} 
             onClick={() => handleEdit(params)}
           >
-            {t('edit') || 'Edit'}
+            {t('edit')}
           </Button>
           <Button 
             size="sm" 
@@ -667,7 +667,7 @@ const ResourcesPage = () => {
             style={{ color: '#dc2626' }} 
             onClick={() => handleDelete(params)}
           >
-            {t('delete') || 'Delete'}
+            {t('delete')}
           </Button>
         </div>
       )
@@ -725,7 +725,7 @@ const ResourcesPage = () => {
           gap: '0.5rem',
           color: isDark ? '#fef3c7' : '#78350f'
         }}>
-          {getThemedIcon('ui', 'edit', 16, theme)} {t('editing_resource') || 'Editing Resource'}: {editingResource.title || editingResource.titleEn}
+          {getThemedIcon('ui', 'edit', 16, theme)} {t('editing_resource')}: {editingResource.title || editingResource.titleEn}
         </div>
       )}
 
@@ -752,11 +752,11 @@ const ResourcesPage = () => {
         <div className="form-row">
           <Select
             searchable
-            placeholder={t('category_optional') || 'Category (Optional)'}
+            placeholder={t('category_optional')}
             value={resourceForm.categoryId ? String(resourceForm.categoryId) : ''}
             onChange={(e) => setResourceForm({ ...resourceForm, categoryId: e.target.value ? parseInt(e.target.value) : null })}
             options={[
-              { value: '', label: t('no_category') || 'No Category', icon: getThemedIcon('ui', 'folder', 16, theme) },
+              { value: '', label: t('no_category'), icon: getThemedIcon('ui', 'folder', 16, theme) },
               ...categories.map(category => ({
                 value: String(category.id),
                 label: getLocalizedName(category, lang),
@@ -766,7 +766,7 @@ const ResourcesPage = () => {
           />
           <Select
             searchable
-            placeholder={t('resource_type_optional') || 'Resource Type (Optional)'}
+            placeholder={t('resource_type_optional')}
             value={resourceForm.typeId ? String(resourceForm.typeId) : ''}
             onChange={(e) => setResourceForm({ ...resourceForm, typeId: e.target.value ? parseInt(e.target.value) : null })}
             options={resourceTypes.length > 0 
@@ -822,7 +822,7 @@ const ResourcesPage = () => {
           <input
             ref={urlRef}
             type="url"
-            placeholder={t('resource_url') || 'Resource URL*'}
+            placeholder={t('resource_url')}
             defaultValue={resourceForm.url}
             className="dashboard-input"
             required
@@ -846,13 +846,13 @@ const ResourcesPage = () => {
             onChange={(checked) => setResourceForm({ ...resourceForm, optional: checked })}
           />
           <ToggleSwitch
-            label={t('featured_resource') || 'Featured Resource'}
+            label={t('featured_resource')}
             checked={resourceForm.featured}
             onChange={(checked) => setResourceForm({ ...resourceForm, featured: checked })}
           />
           {/* Email notification option hidden */}
           {/* <ToggleSwitch
-            label={t('send_email_notification') || 'Send email notification'}
+            label={t('send_email_notification')}
             checked={resourceEmailOptions.sendEmail}
             onChange={(checked) => setResourceEmailOptions({ ...resourceEmailOptions, sendEmail: checked })}
           /> */}
@@ -912,14 +912,14 @@ const ResourcesPage = () => {
             value={resourceTypeFilter || ''}
             onChange={(e) => setResourceTypeFilter(e.target.value)}
             options={resourceTypes.length > 0 
-              ? [{ value: '', label: t('all_types') || 'All Types', icon: getThemedIcon('ui', 'filter', 16, theme) }, 
+              ? [{ value: '', label: t('all_types'), icon: getThemedIcon('ui', 'filter', 16, theme) }, 
                 ...createDropdownOptions(resourceTypes, lang, item => item.id, (item, currentLang) => getLocalizedName(item, currentLang)).map(option => ({
                   ...option,
                   icon: getThemedIcon('ui', option.icon || 'file', 16, theme)
                 }))]
               : getResourceTypeOptions(theme)
             }
-            placeholder={t('all_types') || 'All Types'}
+            placeholder={t('all_types')}
             style={{ minWidth: '300px', width: '300px' }}
           />
           
@@ -927,7 +927,7 @@ const ResourcesPage = () => {
             value={resourceCategoryFilter || ''}
             onChange={(e) => setResourceCategoryFilter(e.target.value)}
             options={categories.length > 0 
-              ? [{ value: '', label: t('all_categories') || 'All Categories', icon: getThemedIcon('ui', 'folder', 16, theme) },
+              ? [{ value: '', label: t('all_categories'), icon: getThemedIcon('ui', 'folder', 16, theme) },
                 ...categories.map(category => ({
                   value: String(category.id),
                   label: getLocalizedName(category, lang),
@@ -935,7 +935,7 @@ const ResourcesPage = () => {
                 }))]
               : [{ value: '', label: lang === 'ar' ? 'جميع الفئات' : 'All Categories', icon: getThemedIcon('ui', 'folder', 16, theme) }]
             }
-            placeholder={t('all_categories') || 'All Categories'}
+            placeholder={t('all_categories')}
             style={{ minWidth: '200px' }}
           />
         </div>
@@ -991,7 +991,7 @@ const ResourcesPage = () => {
           color: isDark ? '#dbeafe' : '#1e40af'
         }}>
           {getThemedIcon('ui', 'filter', 14, theme)}
-          {t('showing_filtered') || 'Showing'} {filteredResources.length} {t('of') || 'of'} {resources.length} {t('resources') || 'Resources'}
+          {t('showing_filtered')} {filteredResources.length} {t('of')} {resources.length} {t('resources')}
         </div>
       )}
 
@@ -1031,7 +1031,7 @@ const ResourcesPage = () => {
           checkboxSelection
           exportFileName="resources"
           showExportButton
-          exportLabel={t('export') || 'Export'}
+          exportLabel={t('export')}
         />
       </div>
 

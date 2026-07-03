@@ -205,7 +205,7 @@ export default function SchedulingClassesView({
 
   return (
     <div
-      dir={isRTL ? 'rtl' : 'ltr'}
+
       style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', height: '100%', overflow: 'hidden' }}
     >
       <div style={{

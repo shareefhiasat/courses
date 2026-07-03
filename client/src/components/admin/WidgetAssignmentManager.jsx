@@ -25,17 +25,17 @@ const WidgetAssignmentManager = ({ isOpen, onClose, onSave }) => {
 
   // Role options for dropdown
   const roleOptions = useMemo(() => [
-    { value: ROLE_STRINGS.STUDENT, label: t('roles.student') || 'Student' },
-    { value: ROLE_STRINGS.INSTRUCTOR, label: t('roles.instructor') || 'Instructor' },
-    { value: ROLE_STRINGS.HR, label: t('roles.hr') || 'HR' },
-    { value: ROLE_STRINGS.ADMIN, label: t('roles.admin') || 'Admin' },
-    { value: ROLE_STRINGS.SUPER_ADMIN, label: t('roles.super_admin') || 'Super Admin' }
+    { value: ROLE_STRINGS.STUDENT, label: t('roles.student') },
+    { value: ROLE_STRINGS.INSTRUCTOR, label: t('roles.instructor') },
+    { value: ROLE_STRINGS.HR, label: t('roles.hr') },
+    { value: ROLE_STRINGS.ADMIN, label: t('roles.admin') },
+    { value: ROLE_STRINGS.SUPER_ADMIN, label: t('roles.super_admin') }
   ], [t]);
 
   // Dashboard options
   const dashboardOptions = useMemo(() => [
-    { value: 'overview', label: t('dashboard.overview') || 'Overview' },
-    { value: 'performance', label: t('dashboard.performance') || 'Performance' }
+    { value: 'overview', label: t('dashboard.overview') },
+    { value: 'performance', label: t('dashboard.performance') }
   ], [t]);
 
   // Load widgets when role/dashboard changes
@@ -139,7 +139,7 @@ const WidgetAssignmentManager = ({ isOpen, onClose, onSave }) => {
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={t('widget_assignment_manager') || 'Widget Assignment Manager'}
+      title={t('widget_assignment_manager')}
       size="xl"
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', padding: '1rem' }}>
@@ -150,14 +150,14 @@ const WidgetAssignmentManager = ({ isOpen, onClose, onSave }) => {
             value={selectedRole}
             onChange={e => setSelectedRole(e.target.value)}
             options={roleOptions}
-            label={t('select_role') || 'Select Role'}
+            label={t('select_role')}
           />
           
           <Select
             value={selectedDashboard}
             onChange={e => setSelectedDashboard(e.target.value)}
             options={dashboardOptions}
-            label={t('select_dashboard') || 'Select Dashboard'}
+            label={t('select_dashboard')}
           />
         </div>
 
@@ -167,7 +167,7 @@ const WidgetAssignmentManager = ({ isOpen, onClose, onSave }) => {
           {/* Available Widgets */}
           <div>
             <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.1rem', fontWeight: 600 }}>
-              {t('available_widgets') || 'Available Widgets'}
+              {t('available_widgets')}
             </h3>
             
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
@@ -208,7 +208,7 @@ const WidgetAssignmentManager = ({ isOpen, onClose, onSave }) => {
           {/* Assigned Widgets */}
           <div>
             <h3 style={{ margin: '0 0 1rem 0', fontSize: '1.1rem', fontWeight: 600 }}>
-              {t('assigned_widgets') || 'Assigned Widgets'}
+              {t('assigned_widgets')}
               <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--muted)', marginLeft: '0.5rem' }}>
                 ({assignedWidgets.length})
               </span>
@@ -223,7 +223,7 @@ const WidgetAssignmentManager = ({ isOpen, onClose, onSave }) => {
                   border: '2px dashed var(--border)',
                   borderRadius: '8px'
                 }}>
-                  {t('no_widgets_assigned') || 'No widgets assigned yet'}
+                  {t('no_widgets_assigned')}
                 </div>
               ) : (
                 assignedWidgets.map((widget, index) => (
@@ -303,7 +303,7 @@ const WidgetAssignmentManager = ({ isOpen, onClose, onSave }) => {
             onClick={onClose}
             disabled={isSaving}
           >
-            {t('cancel') || 'Cancel'}
+            {t('cancel')}
           </Button>
           
           <Button
@@ -311,7 +311,7 @@ const WidgetAssignmentManager = ({ isOpen, onClose, onSave }) => {
             loading={isSaving}
             disabled={assignedWidgets.length === 0}
           >
-            {t('save_configuration') || 'Save Configuration'}
+            {t('save_configuration')}
           </Button>
         </div>
       </div>

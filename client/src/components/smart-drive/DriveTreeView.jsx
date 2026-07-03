@@ -227,7 +227,7 @@ export default function DriveTreeView({ folders, onFolderSelect, currentFolderId
           }}
         >
           {getThemedIcon('ui', 'chevron_up', 14, 'muted')}
-          {t('drive.collapseAll') || 'Collapse All'}
+          {t('drive.collapseAll')}
         </button>
       )}
     </div>

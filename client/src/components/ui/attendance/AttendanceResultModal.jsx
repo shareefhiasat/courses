@@ -85,7 +85,7 @@ const AttendanceResultModal = ({
           margin: '0 0 0.5rem 0'
         }}>
           {attendanceStatus ? getLocalizedAttendanceLabel(attendanceStatus, lang) : 
-            (type === 'success' ? (t('success') || 'Success') : type === 'error' ? (t('error') || 'Error') : type === 'info' ? (t('info') || 'Info') : (t('information') || 'Information'))}
+            (type === 'success' ? (t('success')) : type === 'error' ? (t('error')) : type === 'info' ? (t('info')) : (t('information')))}
         </h3>
 
         <p style={{
@@ -111,7 +111,7 @@ const AttendanceResultModal = ({
             width: '100%'
           }}
         >
-          {t('ok') || 'OK'}
+          {t('ok')}
         </button>
       </div>
     </div>,

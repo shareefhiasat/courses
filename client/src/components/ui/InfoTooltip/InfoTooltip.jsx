@@ -102,7 +102,7 @@ const InfoTooltip = ({ contentKey, children, asDiv = false }) => {
         ref={triggerRef}
         className={`info-tooltip-trigger ${useDiv ? 'info-tooltip-div' : ''}`}
         onClick={toggleTooltip}
-        aria-label={t('info_tooltip.trigger_aria_label') || 'Show information'}
+        aria-label={t('info_tooltip.trigger_aria_label')}
         aria-expanded={isVisible}
         {...triggerProps}
       >

@@ -118,7 +118,7 @@ const useDashboardData = (selectedStudentId = null) => {
 
     } catch (error) {
       error('Failed to load dashboard data', error);
-      toast?.showError?.(t('failed_to_load_dashboard') || 'Failed to load dashboard');
+      toast?.showError?.(t('failed_to_load_dashboard'));
     } finally {
       setLoading(false);
     }

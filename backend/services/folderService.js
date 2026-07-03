@@ -17,14 +17,7 @@ import { LMS_ROLES } from './keycloakAdminService.js';
 import notificationGateway from './notifications/index.js';
 import { EVENTS } from './notifications/constants.js';
 import { buildNotificationNameVars } from '../utils/localizedUserName.js';
-
-
-const ok = (payload) => ({ success: true, payload, timestamp: Date.now() });
-const err = (code, message) => ({
-  success: false,
-  error: { code, message },
-  timestamp: Date.now(),
-});
+import { ok, err } from '../utils/result.js';
 
 const PROTECTED_FOLDER_NAMES = ['Exported Files', 'Exported'];
 const PROTECTED_FOLDER_NAMES_AR = ['الملفات المستخرجة', 'مصدّر'];
