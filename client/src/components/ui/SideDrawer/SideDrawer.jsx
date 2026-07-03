@@ -129,7 +129,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
   }, [collapsed]);
   useEffect(() => {
     try { localStorage.setItem('drawer_sticky_mode', String(stickyMode)); } catch {}
-    if (stickyMode && !collapsed && !isMobile) {
+    if (stickyMode && !isMobile) {
       const width = collapsed ? 80 : drawerWidth;
       document.documentElement.style.setProperty('--drawer-width', `${width}px`);
       document.documentElement.classList.add('drawer-sticky-open');

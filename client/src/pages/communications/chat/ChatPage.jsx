@@ -2993,11 +2993,11 @@ const ChatPage = memo(() => {
                     <button
                       onMouseDown={(e)=>e.stopPropagation()}
                       onClick={(e)=>{ e.stopPropagation(); setMenuOpenId(menuOpenId===msg.id?null:msg.id); }}
-                      style={{ position:'absolute', top:4, insetInlineEnd: 4, background:'transparent', border:'none', color:'var(--text)', cursor:'pointer', fontSize: 'var(--font-size-md)', padding:'2px 4px', lineHeight:1, opacity:0.8 }}
+                      style={{ position:'absolute', top:4, [isOwnMessage ? 'insetInlineStart' : 'insetInlineEnd']: 4, background:'transparent', border:'none', color:'var(--text)', cursor:'pointer', fontSize: 'var(--font-size-md)', padding:'2px 4px', lineHeight:1, opacity:0.8, zIndex: 3 }}
                     >⋮</button>
                     {menuOpenId===msg.id && (
                       <div
-                        style={{ position:'absolute', top:26, insetInlineEnd: 6, background:'var(--panel)', color:'var(--text)', border:'1px solid var(--border)', borderRadius:8, boxShadow:'0 6px 16px rgba(0,0,0,0.2)', zIndex:5 }}
+                        style={{ position:'absolute', top:26, [isOwnMessage ? 'insetInlineStart' : 'insetInlineEnd']: 6, background:'var(--panel)', color:'var(--text)', border:'1px solid var(--border)', borderRadius:8, boxShadow:'0 6px 16px rgba(0,0,0,0.2)', zIndex:5 }}
                         onMouseDown={(e)=>e.stopPropagation()}
                       >
                         {(isOwnMessage || isAdmin) && msg.messageType !== 'voice' && msg.messageType !== 'file' && msg.messageType !== 'poll' && (
@@ -4189,6 +4189,20 @@ const ChatPage = memo(() => {
                         )}
                       </div>
                       <div style={{ fontSize: 'var(--font-size-xs)', color: 'var(--muted)' }}>{m.email}</div>
+                      <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginTop: '0.15rem' }}>
+                        {(m._count?.enrollments !== undefined) && (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: '0.7rem', color: 'var(--muted)', background: 'var(--panel)', padding: '1px 8px', borderRadius: 10, border: '1px solid var(--border)' }}>
+                            {getThemedIcon('ui', 'book_open', 10, theme)}
+                            {m._count.enrollments} {t('classes')}
+                          </span>
+                        )}
+                        {(m._count?.chatRoomParticipations !== undefined) && (
+                          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: '0.7rem', color: 'var(--muted)', background: 'var(--panel)', padding: '1px 8px', borderRadius: 10, border: '1px solid var(--border)' }}>
+                            {getThemedIcon('ui', 'users', 10, theme)}
+                            {m._count.chatRoomParticipations} {t('groups')}
+                          </span>
+                        )}
+                      </div>
                     </div>
                   </div>
                   {m.docId !== user.uid && (

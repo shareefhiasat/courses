@@ -348,14 +348,30 @@ const ProfileSettingsPage = () => {
   const keycloakHelperStyle = { color: '#F59E0B' };
 
   const colorOptions = [
-    '#8B5CF6', // Purple
-    '#800020', // Blue
-    '#10B981', // Green
-    '#F59E0B', // Orange
-    '#EF4444', // Red
-    '#EC4899', // Pink
+    '#800020', // Burgundy (default)
+    '#810C29', // Deep Burgundy
+    '#DC2626', // Red
+    '#EF4444', // Bright Red
+    '#F97316', // Orange
+    '#F59E0B', // Amber
+    '#EAB308', // Yellow
+    '#84CC16', // Lime
+    '#22C55E', // Green
+    '#10B981', // Emerald
     '#14B8A6', // Teal
+    '#06B6D4', // Cyan
+    '#0EA5E9', // Sky
+    '#3B82F6', // Blue
     '#6366F1', // Indigo
+    '#8B5CF6', // Violet
+    '#A855F7', // Purple
+    '#D946EF', // Fuchsia
+    '#EC4899', // Pink
+    '#F43F5E', // Rose
+    '#78716C', // Stone
+    '#525252', // Neutral Gray
+    '#1E293B', // Slate Dark
+    '#0F172A', // Midnight
   ];
 
   const renderRoleBadge = (role, labelKey) => {

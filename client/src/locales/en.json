@@ -4656,6 +4656,7 @@
   "uca_stat_attendance": "Attendance",
   "uca_stat_sessions": "Sessions",
   "uca_rows_count": "{count} Scope Row(s)",
+  "access_rows": "Access",
   "tour.access_studio_header": "Welcome to User Access Studio. Configure academic boundaries and visibility lenses per user.",
   "tour.access_studio_roster": "Select a user from the roster. Each card shows avatar, role badge, and bilingual display name.",
   "tour.access_studio_role_filter": "Filter the roster by role: All, HR, Admin, or Instructor — same pattern as chat.",

@@ -89,6 +89,7 @@ export function dispatchPageTourIfRegistered() {
 
 /**
  * Delay child page tour auto-start until the dashboard tour finishes.
+ * After the dashboard tour completes, waits ~1s before starting the page tour.
  * If the dashboard tour does not auto-start within a short window (e.g. user landed
  * on a tab with its own tour), the page tour starts anyway.
  */
@@ -106,9 +107,13 @@ export function scheduleTourStart(tourSeenKey, lang, startTour) {
         window.removeEventListener('dashboard-tour-finished', onDashboardDone);
         clearTimeout(fallbackTimer);
       };
-      const onDashboardDone = () => startOnce();
+      const onDashboardDone = () => {
+        if (started) return;
+        clearTimeout(fallbackTimer);
+        setTimeout(startOnce, 1000);
+      };
       window.addEventListener('dashboard-tour-finished', onDashboardDone);
-      const fallbackTimer = setTimeout(startOnce, 450);
+      const fallbackTimer = setTimeout(startOnce, 1000);
       return () => {
         window.removeEventListener('dashboard-tour-finished', onDashboardDone);
         clearTimeout(fallbackTimer);

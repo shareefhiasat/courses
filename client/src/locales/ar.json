@@ -3034,6 +3034,7 @@
   "uca_stat_attendance": "حضور",
   "uca_stat_sessions": "جلسات",
   "uca_rows_count": "{count} صف(وف) نطاق",
+  "access_rows": "وصول",
   "tour.access_studio_header": "مرحباً بك في استوديو وصول المستخدم. اضبط الحدود الأكاديمية وعدسات الرؤية لكل مستخدم.",
   "tour.access_studio_roster": "اختر مستخدماً من القائمة. كل بطاقة تعرض الصورة الرمزية وشارة الدور والاسم ثنائي اللغة.",
   "tour.access_studio_role_filter": "صفِّ المستخدمين حسب الدور: الكل، HR، Admin، أو Instructor — نفس نمط الدردشة.",

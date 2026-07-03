@@ -142,7 +142,13 @@ export const listUsersController = async (req, res) => {
               }
             }
           }
-        }
+        },
+        _count: {
+          select: {
+            enrollments: true,
+            chatRoomParticipations: true,
+          },
+        },
       },
       take: limit,
       orderBy: { displayName: 'asc' },

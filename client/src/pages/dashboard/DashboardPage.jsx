@@ -7,7 +7,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { MODE_TYPES } from '@utils/sharedTypes';
 import { DASHBOARD_TAB_SCREEN_IDS } from '@config/navigationRegistry.js';
 import { usePermissions } from '@hooks/usePermissions';
-import { DASHBOARD_TABS_WITH_PAGE_TOUR, dispatchPageTourIfRegistered, registerTourAvailability } from '@utils/tourScheduler';
+import { dispatchPageTourIfRegistered, registerTourAvailability } from '@utils/tourScheduler';
 import Joyride from 'react-joyride';
 import TourTooltip from '@ui/TourTooltip/TourTooltip';
 import { Modal, Button, SimpleLoading } from '@ui';
@@ -315,9 +315,6 @@ const DashboardPage = () => {
       items: [
         { key: 'summary-dashboard', label: t('summary_dashboard') },
         { key: 'scheduling-calendar', label: t('scheduling_calendar') },
-        ...(isSuperAdmin ? [
-          { key: 'user-category-access', label: t('user_access') }
-        ] : []),
       ]
     },
     {
@@ -439,10 +436,9 @@ const DashboardPage = () => {
     const tourSeenKey = `dashboardHelpSeen_${lang}`;
     try {
       if (localStorage.getItem(tourSeenKey)) return;
-      if (DASHBOARD_TABS_WITH_PAGE_TOUR.has(activeTab)) return;
       startTour();
     } catch { /* ignore */ }
-  }, [lang, activeTab, startTour]);
+  }, [lang, startTour]);
 
   // Auto-start on demand via app event in HomePage (optional)
   useEffect(() => {

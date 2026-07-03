@@ -412,7 +412,7 @@ const MessageBubble = memo(({
           onMouseDown={(e)=>e.stopPropagation()}
           onClick={(e)=>{ e.stopPropagation(); onContextMenu?.(msg.id); }}
           title={t('more')}
-          style={{ position:'absolute', top:4, right:4, background:'transparent', border:'none', color:'var(--muted)', cursor:'pointer', fontSize: 'var(--font-size-md)', padding:'2px 4px', lineHeight:1 }}
+          style={{ position:'absolute', top:4, [isOwn ? 'insetInlineStart' : 'insetInlineEnd']: 4, background:'transparent', border:'none', color:'var(--muted)', cursor:'pointer', fontSize: 'var(--font-size-md)', padding:'2px 4px', lineHeight:1, zIndex: 3 }}
         >⋮</button>
       </>
     );
@@ -455,7 +455,8 @@ const MessageBubble = memo(({
           background: isHighlighted ? '#fff3cdCC' : '#ffffffCC',
           color: isHighlighted ? '#1e293b' : '#000000',
           padding: '0.5rem 0.75rem',
-          paddingRight: (isOwn || isAdmin) ? '2.5rem' : '0.75rem',
+          paddingInlineStart: isOwn ? '2.5rem' : '0.75rem',
+          paddingInlineEnd: (!isOwn && isAdmin) ? '2.5rem' : '0.75rem',
           paddingBottom: '1.5rem',
           borderRadius: '12px',
           boxShadow: isHighlighted ? '0 0 20px rgba(255,193,7,0.5)' : '0 2px 4px rgba(0,0,0,0.08)',

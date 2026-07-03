@@ -437,11 +437,26 @@ function UserAccessStudio() {
               {u.email}
             </div>
           )}
-          {ucaCount > 0 && (
-            <span style={{ fontSize: 10, color: muted, marginTop: 2, display: 'inline-block' }}>
-              {t('uca_rows_count', { count: ucaCount })}
-            </span>
-          )}
+          <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginTop: '0.15rem' }}>
+            {(u._count?.enrollments !== undefined) && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: '0.7rem', color: muted, background: isDark ? '#1f2937' : '#f3f4f6', padding: '1px 8px', borderRadius: 10, border: `1px solid ${border}` }}>
+                <GraduationCap size={10} />
+                {u._count.enrollments} {t('classes')}
+              </span>
+            )}
+            {(u._count?.chatRoomParticipations !== undefined) && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: '0.7rem', color: muted, background: isDark ? '#1f2937' : '#f3f4f6', padding: '1px 8px', borderRadius: 10, border: `1px solid ${border}` }}>
+                <MessageSquare size={10} />
+                {u._count.chatRoomParticipations} {t('groups')}
+              </span>
+            )}
+            {ucaCount > 0 && (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3, fontSize: '0.7rem', color: muted, background: isDark ? '#1f2937' : '#f3f4f6', padding: '1px 8px', borderRadius: 10, border: `1px solid ${border}` }}>
+                <Shield size={10} />
+                {ucaCount} {t('access_rows')}
+              </span>
+            )}
+          </div>
         </div>
         {showDm && (
           <button
@@ -654,8 +669,8 @@ function UserAccessStudio() {
                   />
                 </div>
               </div>
-              <Button type="button" onClick={handleAddUca} disabled={saving || !selectedUserId || selectedIsSuperAdmin}>
-                <Plus size={16} /> {t('add_access_row')}
+              <Button type="button" onClick={handleAddUca} disabled={saving || !selectedUserId || selectedIsSuperAdmin} style={{ flexShrink: 0, whiteSpace: 'nowrap' }}>
+                <Plus size={16} style={{ flexShrink: 0 }} /> {t('add_access_row')}
               </Button>
 
               <div data-tour="access-studio-uca-list" style={{ marginTop: '1.25rem', display: 'flex', flexDirection: 'column', gap: 8 }}>

@@ -14,6 +14,7 @@ import { getAllPrograms } from '@services/business/programService.js';
 import { getAllSubjects } from '@services/business/subjectService.js';
 import { getAllClasses } from '@services/business/classService.js';
 import { useAuditGridColumns } from '@hooks/useAuditGridColumns.js';
+import { scheduleTourStart, registerPageTour, registerTourAvailability, notifyPageTourFinished } from '@utils/tourScheduler';
 
 const UserCategoryAccessPage = () => {
   const { user, isSuperAdmin } = useAuth();
@@ -31,16 +32,17 @@ const UserCategoryAccessPage = () => {
     { target: '[data-tour="access-filters"]', content: t('tour.access_filters'), disableBeacon: true, placement: 'bottom' },
     { target: '[data-tour="access-grid"]', content: t('tour.access_grid'), disableBeacon: true, placement: 'top' },
   ].filter(s => !!document.querySelector(s.target)), [t]);
+  const getTourStepCount = useCallback(() => buildTourSteps().length, [buildTourSteps]);
   const startTour = useCallback(() => { const steps = buildTourSteps(); if (!steps.length) return; setTourSteps(steps); setRunTour(true); }, [buildTourSteps]);
-  useEffect(() => {
-    window.addEventListener('app:joyride', startTour);
-    window.addEventListener('app:help', startTour);
-    return () => { window.removeEventListener('app:joyride', startTour); window.removeEventListener('app:help', startTour); };
-  }, [startTour]);
-  useEffect(() => { try { if (!localStorage.getItem(tourSeenKey)) startTour(); } catch {} }, [tourSeenKey, startTour]);
+  useEffect(() => registerPageTour('user-access', startTour, getTourStepCount), [startTour, getTourStepCount]);
+  useEffect(() => registerTourAvailability('user-access', {
+    tourSeenKey: (l) => `userAccessTourSeen_${l}`,
+    getStepCount: getTourStepCount,
+  }), [getTourStepCount]);
+  useEffect(() => scheduleTourStart(tourSeenKey, lang, startTour), [tourSeenKey, lang, startTour]);
   const handleTourCallback = useCallback((data) => {
     const { status, action } = data || {};
-    if (status === 'finished' || status === 'skipped' || action === 'close') { setRunTour(false); try { localStorage.setItem(tourSeenKey, 'true'); } catch {} }
+    if (status === 'finished' || status === 'skipped' || action === 'close') { setRunTour(false); try { localStorage.setItem(tourSeenKey, 'true'); } catch {} notifyPageTourFinished({ id: 'user-access' }); }
   }, [tourSeenKey]);
   const TourTooltipComponent = useMemo(() => TourTooltip({ tourSeenKey }), [tourSeenKey]);
   // ──────────────────────────────────────────────────────────────────────────
