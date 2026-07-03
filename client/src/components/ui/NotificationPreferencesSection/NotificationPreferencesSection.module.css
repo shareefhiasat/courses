@@ -55,6 +55,57 @@
   white-space: nowrap;
 }
 
+.matrixList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+
+.matrixHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0 0.75rem 0.375rem;
+}
+
+.matrixHeaderSpacer {
+  flex: 1;
+}
+
+.matrixHeaderIcon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  opacity: 0.6;
+}
+
+.matrixRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--panel, #fff);
+  border-radius: 6px;
+  border: 1px solid var(--border, #e5e7eb);
+}
+
+.matrixToggles {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+.matrixToggleItem {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+}
+
 .matrixWrap {
   overflow-x: auto;
 }

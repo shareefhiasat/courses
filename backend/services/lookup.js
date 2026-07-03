@@ -36,7 +36,7 @@ const LOOKUP_CONFIG = {
   },
   'category-types': {
     model: 'categoryTypes',
-    defaultFields: ['id', 'code', 'nameEn', 'nameAr', 'descriptionEn', 'descriptionAr', 'icon', 'color', 'sort', 'isActive', 'createdAt', 'updatedAt', 'createdBy', 'updatedBy']
+    defaultFields: ['id', 'code', 'nameEn', 'nameAr', 'descriptionEn', 'descriptionAr', 'icon', 'color', 'sort', 'categoryType', 'isActive', 'createdAt', 'updatedAt', 'createdBy', 'updatedBy']
   },
   'resource-types': {
     model: 'resourceTypes',

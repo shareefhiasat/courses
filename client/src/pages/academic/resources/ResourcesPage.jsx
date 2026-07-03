@@ -22,7 +22,7 @@ import { DeleteModal, useDeleteModal } from '@ui';
 import { getResourceTypeConfig, getResourceTypeOptions } from '@constants/dashboardTypes.jsx';
 // OLD: import { RESOURCE_TYPES } from '@constants/dashboardTypes.jsx';
 // NOW: Using database-driven resource types via getResourceTypes service
-import { getCategories } from '@services/business/categoryService';
+import { getContentCategories } from '@services/business/categoryService';
 import { getResourceTypes } from '@services/business/resourceTypeService';
 import { getAllPriorityTypes } from '@services/business/priorityTypesService.js';
 import { ProgramsSelect } from '@ui';
@@ -168,7 +168,7 @@ const ResourcesPage = () => {
         getCourses(),
         getUsers(),
         getResources(),
-        getCategories(),
+        getContentCategories(),
         getResourceTypes(),
       ]);
       

@@ -8,7 +8,7 @@ import { Button, SimpleLoading, useToast, Input, Select, DeleteModal, UserSelect
 import { useDeleteModal } from '@hooks/useDeleteModal.js';
 import AdvancedDataGrid from '@components/ui/AdvancedDataGrid';
 import userCategoryAccessService from '@services/business/userCategoryAccessService.js';
-import { getCategories } from '@services/business/categoryService.js';
+import { getAccessScopeCategories } from '@services/business/categoryService.js';
 import { getAllUsers, getUserRoles } from '@services/business/userService.js';
 import { getAllPrograms } from '@services/business/programService.js';
 import { getAllSubjects } from '@services/business/subjectService.js';
@@ -93,7 +93,7 @@ const UserCategoryAccessPage = () => {
   
   const loadCategories = useCallback(async () => {
     try {
-      const result = await getCategories();
+      const result = await getAccessScopeCategories();
       if (result.success) {
         setCategories(result.data);
       }

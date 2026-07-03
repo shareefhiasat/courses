@@ -511,7 +511,7 @@ model CategoryTypes {
   icon          String?
   color         String?
   sort          Int        @default(0)
-  categoryType  String     @default("ACADEMIC") // ACADEMIC, TRAINING, HR_GROUP, TARGET_AUDIENCE
+  categoryType  String     @default("ACADEMIC") // ACCESS_SCOPE: ACADEMIC, TRAINING, HR_GROUP, ACCESS_SCOPE — CONTENT: CONTENT, TARGET_AUDIENCE
   isActive      Boolean    @default(true)
   createdBy     Int?
   updatedBy     Int?

@@ -212,6 +212,8 @@ export const createCategoryType = async (data, userId) => {
         descriptionAr: data.descriptionAr || null,
         icon: data.icon || null,
         color: data.color || null,
+        categoryType: data.categoryType || data.categoryPurpose || 'ACADEMIC',
+        sort: data.sort ?? data.sortOrder ?? 0,
         isActive: data.isActive !== false,
         createdBy: parseInt(userId)
       },
@@ -276,6 +278,8 @@ export const updateCategoryType = async (id, data, userId) => {
         ...(data.descriptionAr !== undefined && { descriptionAr: data.descriptionAr }),
         ...(data.icon !== undefined && { icon: data.icon }),
         ...(data.color !== undefined && { color: data.color }),
+        ...(data.sort !== undefined && { sort: data.sort }),
+        ...(data.categoryType !== undefined && { categoryType: data.categoryType }),
         ...(data.isActive !== undefined && { isActive: data.isActive }),
         updatedBy: parseInt(userId)
       },

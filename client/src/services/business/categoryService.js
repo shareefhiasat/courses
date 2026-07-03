@@ -2,6 +2,8 @@ import { createServiceLogger } from '@logger';
 import api from '@api';
 import { getDatabaseUserId } from './authService.js';
 
+import { CATEGORY_PURPOSE, filterCategoriesByPurpose } from '@constants/categoryPurpose.js';
+
 const logger = createServiceLogger('categoryService');
 
 const normalizeCategory = (item = {}) => ({
@@ -20,24 +22,24 @@ export const getCategories = async (params = {}) => {
   try {
     logger.info('getCategories', { params });
     
-    // Use unified lookup endpoint instead of deprecated category-types endpoint
     const queryParams = new URLSearchParams({
       types: 'category-types',
       activeOnly: params.activeOnly !== false ? 'true' : 'false',
       ...(params.orderBy && { orderBy: params.orderBy }),
       ...(params.page && { page: params.page.toString() }),
-      ...(params.limit && { limit: params.limit.toString() })
+      ...(params.limit && { limit: params.limit.toString() }),
     });
     
     const result = await api.get(`/lookup?${queryParams}`);
     
-    // Extract the category-types array from the lookup response
     if (result.success && result.data && result.data['category-types']) {
-      return {
-        success: true,
-        data: (result.data['category-types'] || []).map(normalizeCategory),
-        error: null
-      };
+      let data = (result.data['category-types'] || []).map(normalizeCategory);
+      if (params.purpose) {
+        data = filterCategoriesByPurpose(data, params.purpose, {
+          programCategoryIds: params.programCategoryIds || [],
+        });
+      }
+      return { success: true, data, error: null };
     }
     
     return {
@@ -54,6 +56,18 @@ export const getCategories = async (params = {}) => {
     };
   }
 };
+
+/** Categories for UCA / programs / user access studio */
+export const getAccessScopeCategories = async (params = {}) => getCategories({
+  ...params,
+  purpose: CATEGORY_PURPOSE.ACCESS_SCOPE,
+});
+
+/** Categories for home activity & resource tabs */
+export const getContentCategories = async (params = {}) => getCategories({
+  ...params,
+  purpose: CATEGORY_PURPOSE.CONTENT,
+});
 
 /**
  * Add a new category - using lookup CRUD endpoint
@@ -155,6 +169,8 @@ export const deleteCategory = async (categoryId, user = null) => {
 
 export default {
   getCategories,
+  getAccessScopeCategories,
+  getContentCategories,
   addCategory,
   updateCategory,
   deleteCategory

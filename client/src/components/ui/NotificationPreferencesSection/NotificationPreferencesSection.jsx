@@ -178,39 +178,41 @@ const NotificationPreferencesSection = forwardRef(function NotificationPreferenc
       <div>
         <h3 className={styles.subsectionTitle}>{t('profile_category_preferences')}</h3>
         <p className={styles.subsectionDesc}>{t('profile_category_preferences_desc')}</p>
-        <div className={styles.matrixWrap}>
-          <table className={styles.matrixTable}>
-            <thead>
-              <tr>
-                <th>{t('profile_category_column')}</th>
+        <div className={styles.matrixHeader}>
+          <span className={styles.matrixHeaderSpacer} />
+          <div className={styles.matrixToggles}>
+            {channels.map(channel => (
+              <PortalTooltip key={channel.key} content={channel.label} position="top">
+                <span className={styles.matrixHeaderIcon}>
+                  {getThemedIcon('ui', channel.icon, 14, theme)}
+                </span>
+              </PortalTooltip>
+            ))}
+          </div>
+        </div>
+        <div className={styles.matrixList}>
+          {categories.map(category => (
+            <div key={category.key} className={styles.matrixRow}>
+              <span className={styles.categoryCell}>
+                {getThemedIcon('ui', category.icon, 14, theme)}
+                {category.label}
+              </span>
+              <div className={styles.matrixToggles}>
                 {channels.map(channel => (
-                  <th key={channel.key}>{channel.label}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {categories.map(category => (
-                <tr key={category.key}>
-                  <td>
-                    <span className={styles.categoryCell}>
-                      {getThemedIcon('ui', category.icon, 14, theme)}
-                      {category.label}
-                    </span>
-                  </td>
-                  {channels.map(channel => (
-                    <td key={channel.key}>
+                  <PortalTooltip key={channel.key} content={channel.label} position="top">
+                    <div className={styles.matrixToggleItem}>
                       <ToggleSwitch
                         checked={isChannelEnabled(channel.key) && isCategoryChannelEnabled(category.key, channel.key)}
                         onChange={(value) => handleMatrixToggle(category.key, channel.key, value)}
                         disabled={!isChannelEnabled(channel.key)}
                         size="sm"
                       />
-                    </td>
-                  ))}
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    </div>
+                  </PortalTooltip>
+                ))}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>

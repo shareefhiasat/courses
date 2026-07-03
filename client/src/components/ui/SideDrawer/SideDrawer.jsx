@@ -65,7 +65,12 @@ const SideDrawer = ({ isOpen, onClose }) => {
   const { textSize } = useTypography();
   const navIconSize = resolveIconSize(18);
   const [drawerWidth, setDrawerWidth] = useState(() => {
-    try { return Math.min(600, Math.max(320, parseInt(localStorage.getItem('drawer_width'), 10))); } catch { return 380; }
+    try {
+      const parsed = parseInt(localStorage.getItem('drawer_width'), 10);
+      return Math.min(600, Math.max(280, Number.isFinite(parsed) ? parsed : 380));
+    } catch {
+      return 380;
+    }
   });
   const [density, setDensity] = useState(() => {
     try { return document.documentElement.getAttribute('data-density') || 'compact'; } catch { return 'compact'; }
@@ -130,7 +135,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
   useEffect(() => {
     try { localStorage.setItem('drawer_sticky_mode', String(stickyMode)); } catch {}
     if (stickyMode && !isMobile) {
-      const width = collapsed ? 80 : drawerWidth;
+      const width = collapsed ? 80 : (autoHide && !isHovering ? 8 : drawerWidth);
       document.documentElement.style.setProperty('--drawer-width', `${width}px`);
       document.documentElement.classList.add('drawer-sticky-open');
     } else {
@@ -141,7 +146,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
       document.documentElement.style.removeProperty('--drawer-width');
       document.documentElement.classList.remove('drawer-sticky-open');
     };
-  }, [stickyMode, collapsed, drawerWidth, isMobile]);
+  }, [stickyMode, collapsed, drawerWidth, isMobile, autoHide, isHovering]);
   useEffect(() => {
     const handler = (e) => setDensity((e && e.detail && e.detail.density) ? e.detail.density : (document.documentElement.getAttribute('data-density') || 'compact'));
     window.addEventListener('density-change', handler);
@@ -801,7 +806,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
           />) : null}
 
           {/* Auto-hide hover hotspot + restore tab */}
-          {(autoHide && !isHovering) && (
+          {(autoHide && !isHovering && !collapsed) && (
             <div
               onMouseEnter={() => setIsHovering(true)}
               style={{
@@ -845,28 +850,31 @@ const SideDrawer = ({ isOpen, onClose }) => {
           <motion.div
             initial={{ x: 0 }}
             animate={{
-              x: (stickyMode ? 0 : (autoHide && !isHovering && !collapsed))
+              x: (!stickyMode && autoHide && !isHovering && !collapsed)
                 ? (lang==='ar' ? (drawerWidth - 8) : -(drawerWidth - 8))
                 : 0
             }}
             exit={{ x: stickyMode ? 0 : (lang==='ar' ? drawerWidth : -drawerWidth) }}
             transition={{
               type: 'tween',
-              duration: (autoHide && !isHovering && !collapsed && !stickyMode) ? 0.5 : 0.3,
+              duration: (!stickyMode && autoHide && !isHovering && !collapsed) ? 0.5 : 0.3,
               ease: [0.4, 0, 0.2, 1]
             }}
             style={{
-              position: stickyMode ? 'fixed' : 'fixed',
+              position: 'fixed',
               top: 0,
-              left: lang==='ar' ? 'auto' : (stickyMode && isOpen ? 0 : (autoHide && !isHovering && !collapsed ? -(drawerWidth - 8) : 0)),
-              right: lang==='ar' ? (stickyMode && isOpen ? 0 : (autoHide && !isHovering && !collapsed ? -(drawerWidth - 8) : 0)) : 'auto',
+              left: lang==='ar' ? 'auto' : (stickyMode ? 0 : (autoHide && !isHovering && !collapsed ? -(drawerWidth - 8) : 0)),
+              right: lang==='ar' ? (stickyMode ? 0 : (autoHide && !isHovering && !collapsed ? -(drawerWidth - 8) : 0)) : 'auto',
               bottom: 0,
               height: '100vh',
               // Width rules:
-              // - Collapsed: fixed 64px (icons only)
-              // - Auto-hide (not hovering): keep full width so hover area expands smoothly; we shift with x
+              // - Collapsed: fixed 80px (icons only)
+              // - Sticky + auto-hide: shrink to strip width (content margin syncs via --drawer-width)
+              // - Overlay + auto-hide: full width; slide off-screen with x transform
               // - Normal: drawerWidth
-              width: collapsed ? 80 : drawerWidth,
+              width: collapsed
+                ? 80
+                : (stickyMode && autoHide && !isHovering ? 8 : drawerWidth),
               background: theme === 'light' ? '#ffffff' : 'linear-gradient(180deg, #0f172a, #111827)',
               borderRight: lang==='ar' ? 'none' : (theme === 'light' ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.1)'),
               borderLeft: lang==='ar' ? (theme === 'light' ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.1)') : 'none',
@@ -877,16 +885,18 @@ const SideDrawer = ({ isOpen, onClose }) => {
               flexDirection: 'column',
               boxShadow: stickyMode ? 'none' : '2px 0 10px rgba(0, 0, 0, 0.1)',
               overflow: 'hidden',
-              transition: stickyMode ? 'none' : 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+              transition: stickyMode
+                ? 'width 0.3s ease'
+                : 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
               flexShrink: 0
             }}
             onMouseEnter={() => {
-              if (autoHide && !collapsed && !stickyMode) {
+              if (autoHide && !collapsed) {
                 setIsHovering(true);
               }
             }}
             onMouseLeave={() => {
-              if (autoHide && !collapsed && !stickyMode) {
+              if (autoHide && !collapsed) {
                 setIsHovering(false);
               }
             }}
@@ -919,12 +929,14 @@ const SideDrawer = ({ isOpen, onClose }) => {
               onMouseDown={(e) => {
                 e.preventDefault();
                 const startX = e.clientX; const startW = drawerWidth;
+                let newW = startW;
                 const onMove = (ev) => {
-                  const w = Math.min(480, Math.max(280, startW + (ev.clientX - startX)));
-                  setDrawerWidth(w);
+                  const delta = lang==='ar' ? (startX - ev.clientX) : (ev.clientX - startX);
+                  newW = Math.min(600, Math.max(280, startW + delta));
+                  setDrawerWidth(newW);
                 };
                 const onUp = () => {
-                  try { localStorage.setItem('drawer_width', String(drawerWidth)); } catch {}
+                  try { localStorage.setItem('drawer_width', String(newW)); } catch {}
                   window.removeEventListener('mousemove', onMove);
                   window.removeEventListener('mouseup', onUp);
                 };
@@ -932,7 +944,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
                 window.addEventListener('mouseup', onUp);
               }}
               title={t('resize')}
-              style={{ position:'absolute', top:0, right:-5, width:10, height:'100%', cursor:'ew-resize',
+              style={{ position:'absolute', top:0, [lang==='ar' ? 'left' : 'right']: -5, width:10, height:'100%', cursor:'ew-resize',
                 background: 'linear-gradient(to right, transparent 0%, rgba(255,255,255,0.08) 50%, transparent 100%)' }}
             />
 
@@ -1368,7 +1380,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
                           cursor: 'pointer'
                         }}
                       >
-                        {getThemedIcon('ui', 'external_link', 12, theme)}
+                        {getThemedIcon('ui', 'external_link', 12, theme==='light' ? '#111827' : '#e5e7eb')}
                       </button>)}
                       {!collapsed && density === 'compact' && (() => {
                         const pinned = link.key==='timerControl' ? pinTimer : isPinned(link.path);
@@ -1396,7 +1408,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
                               cursor: 'pointer'
                             }}
                           >
-                            {pinned ? getThemedIcon('ui', 'pin_off', 12, theme) : getThemedIcon('ui', 'pin', 12, theme)}
+                            {pinned ? getThemedIcon('ui', 'pin_off', 12, pinned ? userAccentColor : (theme==='light' ? '#111827' : '#e5e7eb')) : getThemedIcon('ui', 'pin', 12, pinned ? userAccentColor : (theme==='light' ? '#111827' : '#e5e7eb'))}
                           </button>
                         );
                       })()}

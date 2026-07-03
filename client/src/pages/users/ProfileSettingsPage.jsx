@@ -10,7 +10,6 @@ import { getAllUserImages } from '@services/business/userImageService';
 import { getThemedIcon, getUserRoleColor, getIconWithColor } from '@constants/iconTypes';
 import { Container, Card, CardBody, Button, Input, Spinner, useToast, FontFamilyPicker, TextSizePicker } from '@ui';
 import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
-import { ToggleSwitch } from '@ui';
 import Joyride from 'react-joyride';
 import TourTooltip from '@ui/TourTooltip/TourTooltip';
 import styles from './ProfileSettingsPage.module.css';
@@ -67,9 +66,10 @@ const ProfileSettingsPage = () => {
 
   const buildTourSteps = useCallback(() => [
     { target: '[data-tour="profile-personal-info"]', content: t('tour.profile_personal_info'), disableBeacon: true, placement: 'bottom' },
-    { target: '[data-tour="profile-arabic-names"]', content: t('tour.profile_arabic_names'), disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="profile-editable-info"]', content: t('tour.profile_editable_info'), disableBeacon: true, placement: 'bottom' },
     { target: '[data-tour="profile-images"]', content: t('tour.profile_images'), disableBeacon: true, placement: 'bottom' },
     { target: '[data-tour="profile-appearance"]', content: t('tour.profile_appearance'), disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="profile-typography"]', content: t('tour.profile_typography'), disableBeacon: true, placement: 'bottom' },
     { target: '[data-tour="profile-notifications"]', content: t('tour.profile_notifications'), disableBeacon: true, placement: 'top' },
     { target: '[data-tour="profile-save"]', content: t('tour.profile_save'), disableBeacon: true, placement: 'top' },
   ].filter(s => !!document.querySelector(s.target)), [t]);
@@ -474,7 +474,18 @@ const ProfileSettingsPage = () => {
                 maxLength={100}
                 description={t('student_number_readonly')}
               />
+            </div>
+          </CardBody>
+        </Card>
 
+        <Card data-tour="profile-editable-info">
+          <CardBody>
+            <div className={styles.cardHeader}>
+              {getThemedIcon('ui', 'edit', 24, theme)}
+              <h2>{t('profile_editable_information')}</h2>
+            </div>
+
+            <div className={styles.formGrid}>
               <Input
                 id="phoneNumber"
                 type="tel"
@@ -485,7 +496,7 @@ const ProfileSettingsPage = () => {
                 maxLength={100}
               />
 
-              <div className={styles.formGridFull} data-tour="profile-arabic-names">
+              <div className={styles.formGridFull}>
                 <h3 className={styles.sectionHeading}>{t('arabic_name_section')}</h3>
                 <p className={styles.sectionHint}>{t('arabic_name_helper')}</p>
               </div>
@@ -577,12 +588,20 @@ const ProfileSettingsPage = () => {
           <CardBody>
             <div className={styles.cardHeader}>
               {getThemedIcon('ui', 'palette', 24, theme)}
-              <h2>{t('appearance')}</h2>
+              <h2>{t('profile_theme_color')}</h2>
+              <div className={styles.langPillToggle}>
+                <button
+                  className={`${styles.langPillBtn} ${lang === 'en' ? styles.langPillActive : ''}`}
+                  onClick={() => { if (lang !== 'en') toggleLang(); }}
+                >EN</button>
+                <button
+                  className={`${styles.langPillBtn} ${lang === 'ar' ? styles.langPillActive : ''}`}
+                  onClick={() => { if (lang !== 'ar') toggleLang(); }}
+                >ع</button>
+              </div>
             </div>
 
             <div className={styles.formSection}>
-              {/* Theme Color Selection */}
-
               <div className={styles.colorSelectionArea}>
                   <div className={styles.colorPicker}>
                     {colorOptions.map(color => (
@@ -607,29 +626,36 @@ const ProfileSettingsPage = () => {
                             onChange={(e) => handleColorSelection(e.target.value)}
                           />
                         </div>
-                        <div className={styles.hexInputWrapper}>
+                        <div className={styles.hexInputCompact}>
                           <Input
                             label={t('hex')}
                             value={customColorInput}
                             onChange={(e) => handleCustomColorInput(e.target.value)}
-                            placeholder="#667EEA"
+                            placeholder="#800020"
                             size="small"
-                            maxLength={100}
+                            maxLength={7}
                           />
                         </div>
                       </div>
                     </div>
                   </div>
                 </div>
+            </div>
+          </CardBody>
+        </Card>
 
-              <div className={styles.typographySection} data-tour="profile-typography">
-                <h3 className={styles.sectionSubtitle}>
-                  {getThemedIcon('ui', 'file_text', 18, theme)}
-                  {t('profile_typography')}
-                </h3>
-                <p className={styles.sectionHint}>
-                  {t('profile_typography_hint')}
-                </p>
+        <Card data-tour="profile-typography">
+          <CardBody>
+            <div className={styles.cardHeader}>
+              {getThemedIcon('ui', 'file_text', 24, theme)}
+              <h2>{t('profile_typography')}</h2>
+            </div>
+
+            <div className={styles.formSection}>
+              <p className={styles.sectionHint}>
+                {t('profile_typography_hint')}
+              </p>
+              <div className={styles.typographyGrid}>
                 <FontFamilyPicker
                   script="ltr"
                   value={fontLtr}
@@ -642,23 +668,8 @@ const ProfileSettingsPage = () => {
                   onChange={setFontRtl}
                   label={t('profile_font_arabic')}
                 />
-                <TextSizePicker />
               </div>
-
-              {/* Compact Settings Row */}
-              <div className={styles.appearanceRow}>
-                <div className={styles.appearanceToggle}>
-                  <span className={styles.appearanceToggleLabel}>
-                    {getThemedIcon('ui', 'globe', 18, theme)}
-                    {t('profile_language')}
-                  </span>
-                  <ToggleSwitch
-                    checked={lang === 'ar'}
-                    onChange={() => toggleLang()}
-                  />
-                </div>
-
-              </div>
+              <TextSizePicker />
             </div>
           </CardBody>
         </Card>

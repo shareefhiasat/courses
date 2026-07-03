@@ -2,23 +2,28 @@ import React from 'react';
 import { Select } from '@ui';
 import { useLang } from '@contexts/LangContext';
 import { getThemedIcon } from '@constants/iconTypes';
+import { getCategoryPurposeLabelKey } from '@constants/categoryPurpose.js';
 
 /**
- * CategorySelect Component
- * 
- * A reusable category selection dropdown with icons
- * 
- * @param {Object} props
- * @param {Array} props.categories - Array of category objects
- * @param {string} props.value - Selected value
- * @param {Function} props.onChange - Change handler
- * @param {boolean} props.disabled - Disabled state
- * @param {string} props.placeholder - Placeholder text
- * @param {Object} props.theme - Theme object
+ * CategorySelect — purpose-aware dropdown for CategoryTypes.
+ *
+ * @param {'access'|'content'} purpose — access = UCA/programs; content = activity/resource tabs
  */
-const CategorySelect = ({ categories, value, onChange, disabled = false, placeholder = 'Select category', theme = 'light' }) => {
+const CategorySelect = ({
+  categories,
+  value,
+  onChange,
+  disabled = false,
+  placeholder = 'Select category',
+  theme = 'light',
+  purpose = 'access',
+}) => {
   const { lang, t } = useLang();
-  // Generate category options with icons
+
+  const purposeShortKey = purpose === 'content'
+    ? 'category_purpose_content_short'
+    : 'category_purpose_access_scope_short';
+
   const generateCategoryOptions = () => {
     if (!categories || categories.length === 0) {
       return [{ value: '', label: placeholder }];
@@ -26,16 +31,24 @@ const CategorySelect = ({ categories, value, onChange, disabled = false, placeho
 
     return [
       { value: '', label: placeholder },
-      ...categories.map(category => {
+      ...categories.map((category) => {
         const IconComponent = getThemedIcon('ui', category.icon || 'folder', 16, theme);
         const categoryLabel = lang === 'ar'
           ? (category.nameAr || category.nameEn || category.name || t('category'))
           : (category.nameEn || category.nameAr || category.name || t('category'));
+        const purposeBadge = t(getCategoryPurposeLabelKey(category));
         const displayContent = (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
             <span>{categoryLabel}</span>
-            <span style={{ color: '#6b7280', fontSize: 'var(--font-size-sm)' }}>
-              ({category.categoryType || 'General'})
+            <span style={{
+              color: purpose === 'content' ? '#7c3aed' : '#2563eb',
+              fontSize: 'var(--font-size-xs)',
+              fontWeight: 600,
+              background: purpose === 'content' ? 'rgba(124,58,237,0.1)' : 'rgba(37,99,235,0.1)',
+              padding: '1px 6px',
+              borderRadius: 999,
+            }}>
+              {purposeBadge}
             </span>
           </div>
         );
@@ -44,25 +57,10 @@ const CategorySelect = ({ categories, value, onChange, disabled = false, placeho
           label: categoryLabel,
           icon: IconComponent,
           displayLabel: displayContent,
-          searchText: categoryLabel
+          searchText: `${categoryLabel} ${purposeBadge}`,
         };
-      })
+      }),
     ];
-  };
-
-  // Get icon based on category type
-  const getCategoryIcon = (categoryType, theme) => {
-    const iconMap = {
-      'academic': getThemedIcon('ui', 'book_open', 16, theme),
-      'training': getThemedIcon('ui', 'award', 16, theme),
-      'general': getThemedIcon('ui', 'folder', 16, theme),
-      'military': getThemedIcon('ui', 'shield', 16, theme),
-      'technical': getThemedIcon('ui', 'code', 16, theme),
-      'default': getThemedIcon('ui', 'folder', 16, theme)
-    };
-
-    const type = (categoryType || '').toLowerCase();
-    return iconMap[type] || iconMap.default;
   };
 
   const options = generateCategoryOptions();
@@ -73,7 +71,7 @@ const CategorySelect = ({ categories, value, onChange, disabled = false, placeho
       onChange={(e) => onChange(e)}
       options={options}
       disabled={disabled}
-      placeholder={placeholder}
+      placeholder={placeholder || t(purposeShortKey)}
     />
   );
 };

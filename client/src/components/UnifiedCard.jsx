@@ -7,7 +7,6 @@ import { DIFFICULTY_TYPES } from '@constants/difficultyTypes';
 import { useLookupTypes } from '@hooks/useLookupTypes.js';
 // OLD: import { ACTIVITY_TYPES } from '@constants/activityTypes';
 // NOW: Using useLookupTypes hook for all lookup data
-import { getResourceTypeConfig } from '@constants/resourceTypes';
 import { ACTIVITY_DISPLAY_NAMES } from '@constants/activityTypes';
 import { RECORD_TYPES } from '@utils/sharedTypes';
 import { sanitizeHtml } from '@utils/sanitizeHtml';
@@ -182,8 +181,15 @@ const UnifiedCard = memo(({
       return getIconWithColor('ui', 'help', 14, iconColor || '#7c3aed');
     }
     if (flavor === RECORD_TYPES.RESOURCE) {
-      const resourceConfig = getResourceTypeConfig(item.type || 'document', theme, lang);
-      return resourceConfig.icon;
+      const resourceType = item.type || 'document';
+      const iconMap = {
+        all: 'folder',
+        video: 'video',
+        link: 'link',
+        document: 'file_text'
+      };
+      const iconName = iconMap[resourceType] || 'file';
+      return getIconWithColor('ui', iconName, 14, iconColor || '#3b82f6');
     }
     if (flavor === RECORD_TYPES.ANNOUNCEMENT) {
       return getIconWithColor('ui', 'megaphone', 14, iconColor || '#dc2626');

@@ -171,8 +171,8 @@ const UnifiedFilterSection = ({
         border: isDark ? '1px solid #333' : 'none'
       }}>
       
-      {/* Row 1: Stats + Search */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap', marginBottom: '0.75rem' }}>
+      {/* Single row: Stats + Search + Status + Difficulty + Toggle filters */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
         {/* Stats */}
         {stats && (
           <StatsBar
@@ -185,7 +185,7 @@ const UnifiedFilterSection = ({
         )}
         
         {/* Search */}
-        <div style={{ position: 'relative', flex: 1, minWidth: 200 }}>
+        <div style={{ position: 'relative', flex: 1, minWidth: 150, maxWidth: 250 }}>
           <input
             type="search"
             placeholder={searchPlaceholder || (t('search'))}
@@ -203,41 +203,35 @@ const UnifiedFilterSection = ({
             }}
           />
         </div>
-      </div>
 
-      {/* Row 2: Status Filter Chips */}
-      {showStatusFilters && (
-        <div style={{ marginBottom: '0.75rem', display: 'flex', justifyContent: 'center' }}>
+        {/* Status Filter Chips */}
+        {showStatusFilters && (
           <StatusFilterChips
-          completedFilter={completedFilter}
-          setCompletedFilter={setCompletedFilter}
-          pendingFilter={pendingFilter}
-          setPendingFilter={setPendingFilter}
-          requiredFilter={requiredFilter}
-          setRequiredFilter={setRequiredFilter}
-          optionalFilter={optionalFilter}
-          setOptionalFilter={setOptionalFilter}
-          overdueFilter={overdueFilter}
-          setOverdueFilter={setOverdueFilter}
-          requiresSubmissionFilter={requiresSubmissionFilter}
-          setRequiresSubmissionFilter={setRequiresSubmissionFilter}
-          completedCount={filterCounts.completed || completedCount}
-          pendingCount={filterCounts.pending || pendingCount}
-          requiredCount={filterCounts.required || requiredCount}
-          optionalCount={filterCounts.optional || optionalCount}
-          overdueCount={filterCounts.overdue || overdueCount}
-          requiresSubmissionCount={filterCounts.requiresSubmission || requiresSubmissionCount}
-          isMinified={isMinified}
-          theme={theme}
-          lang={lang}
-          t={t}
-        />
-        </div>
-      )}
+            completedFilter={completedFilter}
+            setCompletedFilter={setCompletedFilter}
+            pendingFilter={pendingFilter}
+            setPendingFilter={setPendingFilter}
+            requiredFilter={requiredFilter}
+            setRequiredFilter={setRequiredFilter}
+            optionalFilter={optionalFilter}
+            setOptionalFilter={setOptionalFilter}
+            overdueFilter={overdueFilter}
+            setOverdueFilter={setOverdueFilter}
+            requiresSubmissionFilter={requiresSubmissionFilter}
+            setRequiresSubmissionFilter={setRequiresSubmissionFilter}
+            completedCount={filterCounts.completed || completedCount}
+            pendingCount={filterCounts.pending || pendingCount}
+            requiredCount={filterCounts.required || requiredCount}
+            optionalCount={filterCounts.optional || optionalCount}
+            overdueCount={filterCounts.overdue || overdueCount}
+            requiresSubmissionCount={filterCounts.requiresSubmission || requiresSubmissionCount}
+            isMinified={isMinified}
+            theme={theme}
+            lang={lang}
+            t={t}
+          />
+        )}
 
-      {/* Row 4: Difficulty + Hierarchy + Toggle Filters */}
-      <div style={{ marginBottom: '0.75rem' }}>
-        <div className="filter-container filter-row" style={{ display: 'flex', gap: '0.35rem', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center' }}>
         {/* Difficulty chips */}
         {showDifficultyFilters && (
           <DifficultyFilterChips
@@ -259,7 +253,6 @@ const UnifiedFilterSection = ({
           <div style={{ display: 'inline-flex', gap: '0.35rem', flexWrap: 'wrap' }}>
             {resourceTypes.map(type => {
               const isActive = resourceTypeFilter === type.value;
-              // Define colors like difficulty chips
               const typeColor = type.color || primaryColor;
               const colors = {
                 border: hexToRgba(typeColor, 0.5),
@@ -329,7 +322,6 @@ const UnifiedFilterSection = ({
             {...toggleConfig}
           />
         )}
-      </div>
       </div>
 
       {/* Row 5: Hierarchy Dropdowns (separate row for proper height) */}

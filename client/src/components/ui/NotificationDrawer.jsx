@@ -262,7 +262,7 @@ const NotificationDrawer = ({ isOpen, onClose, feed }) => {
           top: 0,
           [isRTL ? 'left' : 'right']: 0,
           height: '100vh',
-          width: 'min(840px, 90vw)',
+          width: 'min(480px, 90vw)',
           background: isDark ? '#1a1a2e' : '#ffffff',
           boxShadow: isRTL ? '2px 0 20px rgba(0,0,0,0.15)' : '-2px 0 20px rgba(0,0,0,0.15)',
           zIndex: 1002,

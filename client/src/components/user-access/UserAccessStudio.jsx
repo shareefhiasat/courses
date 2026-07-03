@@ -13,7 +13,7 @@ import { Button, useToast, CategorySelect, Select, DeleteModal, MultiSelect } fr
 import { useDeleteModal } from '@hooks/useDeleteModal.js';
 import userCategoryAccessService from '@services/business/userCategoryAccessService.js';
 import userDataScopeService from '@services/business/userDataScopeService.js';
-import { getCategories } from '@services/business/categoryService.js';
+import { getAccessScopeCategories } from '@services/business/categoryService.js';
 import { getAllUsers, getUserRoles } from '@services/business/userService.js';
 import { getAllPrograms } from '@services/business/programService.js';
 import { getAllSubjects } from '@services/business/subjectService.js';
@@ -212,12 +212,16 @@ function UserAccessStudio() {
   const TourTooltipComponent = useMemo(() => TourTooltip({ tourSeenKey }), [tourSeenKey]);
 
   const loadReferenceData = useCallback(async () => {
-    const [u, c, p, s, cl, cr] = await Promise.all([
-      getAllUsers(), getCategories(), getAllPrograms(), getAllSubjects(), getAllClasses(), getAllClassrooms(),
+    const [u, p, s, cl, cr] = await Promise.all([
+      getAllUsers(), getAllPrograms(), getAllSubjects(), getAllClasses(), getAllClassrooms(),
     ]);
     if (u.success) setUsers(u.data || []);
-    if (c.success) setCategories(c.data || []);
-    if (p.success) setPrograms(p.data || []);
+    if (p.success) {
+      setPrograms(p.data || []);
+      const programCategoryIds = [...new Set((p.data || []).map((prog) => prog.categoryId).filter(Boolean))];
+      const c = await getAccessScopeCategories({ programCategoryIds });
+      if (c.success) setCategories(c.data || []);
+    }
     if (s.success) setSubjects(s.data || []);
     if (cl.success) setClasses(cl.data || []);
     if (cr.success) setClassrooms(cr.data || []);
@@ -627,6 +631,9 @@ function UserAccessStudio() {
               <p style={{ color: muted, fontSize: 'var(--font-size-sm)', marginTop: 0 }}>
                 {t('uca_boundary_help')}
               </p>
+              <p style={{ color: muted, fontSize: 'var(--font-size-xs)', marginTop: 0, marginBottom: '0.75rem' }}>
+                {t('category_purpose_help')}
+              </p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginBottom: '1rem' }}>
                 <CategorySelect
                   categories={categories}
@@ -635,6 +642,7 @@ function UserAccessStudio() {
                   theme={theme}
                   placeholder={t('access_studio_category_placeholder')}
                   disabled={selectedIsSuperAdmin}
+                  purpose="access"
                 />
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: '0.75rem' }}>
                   <Select

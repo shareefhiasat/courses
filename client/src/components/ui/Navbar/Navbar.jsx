@@ -28,7 +28,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
   const location = useLocation();
   const [showDropdown, setShowDropdown] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
-  const [displayName, setDisplayName] = useState('');
+  const [displayName, setDisplayName] = useState(() => user?.displayName || '');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [realName, setRealName] = useState('');
   const [displayNameAr, setDisplayNameAr] = useState('');
@@ -89,6 +89,26 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
     document.addEventListener('keydown', onKey);
     return () => { document.removeEventListener('mousedown', onDocClick); document.removeEventListener('keydown', onKey); };
   }, [showDropdown]);
+
+  // Load user profile data on mount (for dropdown display)
+  useEffect(() => {
+    if (!user?.uid) return;
+    const loadProfile = async () => {
+      try {
+        const me = await getUserProfile(user);
+        if (me) {
+          setDisplayName(me.displayName || user?.displayName || '');
+          setRealName(me.realName || '');
+          setDisplayNameAr(me.displayNameAr || '');
+          setFirstNameAr(me.firstNameAr || '');
+          setLastNameAr(me.lastNameAr || '');
+          setStudentNumber(me.studentNumber || '');
+          setPhoneNumber(me.phoneNumber || '');
+        }
+      } catch (e) { /* noop */ }
+    };
+    loadProfile();
+  }, [user]);
 
   // Load user images
   useEffect(() => {
@@ -161,7 +181,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
     try {
       if (!user) return;
       const dataToSave = {
-        displayName: displayName || null,
+        displayName: displayName || user?.displayName || null,
         phoneNumber: phoneNumber || null,
         messageColor: normalizeHexColor(primaryColor, ACCENT_FALLBACK),
         realName: realName || null,

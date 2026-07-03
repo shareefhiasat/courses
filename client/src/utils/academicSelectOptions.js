@@ -3,6 +3,8 @@
  * Matches QR Scanner ProgramsSelect conventions.
  */
 
+import { formatDate } from './date-formatter';
+
 export function sortSubjectsByCode(subjects = []) {
   return [...subjects].sort((a, b) =>
     (a.code || '').localeCompare(b.code || '', undefined, { numeric: true, sensitivity: 'base' })
@@ -49,9 +51,7 @@ export function getClassOptionLabel(cls, lang = 'en') {
 
 function formatDateShort(dateStr, lang = 'en') {
   if (!dateStr) return '';
-  const d = new Date(dateStr);
-  if (isNaN(d.getTime())) return '';
-  return d.toLocaleDateString(lang === 'ar' ? 'ar' : 'en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  return formatDate(dateStr, lang);
 }
 
 export function getClassDateRangeSubtext(cls, lang = 'en', t) {

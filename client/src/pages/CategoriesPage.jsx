@@ -9,10 +9,8 @@ import { DeleteModal, useDeleteModal } from '@ui';
 import { getCategories, addCategory, updateCategory, deleteCategory } from '@services/business/categoryService';
 import { useAuditGridColumns } from '@hooks/useAuditGridColumns.js';
 import { useLookupTypes } from '@hooks/useLookupTypes.js';
-import { 
-  PAGE_STATES, 
-  FORM_STATES
-} from '@constants/pageTypes';
+import { CATEGORY_PURPOSE, CATEGORY_PURPOSE_OPTIONS, normalizeCategoryPurpose } from '@constants/categoryPurpose.js';
+import { PAGE_STATES, FORM_STATES } from '@constants/pageTypes';
 
 const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
   const { user, isInstructor, isAdmin, isSuperAdmin } = useAuth();
@@ -39,7 +37,8 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
     descriptionEn: '',
     descriptionAr: '',
     color: '#3b82f6',
-    sortOrder: 1
+    sortOrder: 1,
+    categoryPurpose: CATEGORY_PURPOSE.ACCESS_SCOPE,
   });
   const [saving, setSaving] = useState(false);
   // Remove user caching since backend now includes user objects in the response
@@ -190,7 +189,8 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
         descriptionEn: textValues.descriptionEn.trim(),
         descriptionAr: textValues.descriptionAr.trim(),
         color: formData.color,
-        sortOrder: parseInt(formData.sortOrder) || 1
+        sortOrder: parseInt(formData.sortOrder) || 1,
+        categoryType: formData.categoryPurpose === CATEGORY_PURPOSE.CONTENT ? 'CONTENT' : 'ACCESS_SCOPE',
       };
       
       info('🔍 [SUBMIT] Submitting category data:', categoryData);
@@ -248,7 +248,8 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
       descriptionEn: category.descriptionEn || '',
       descriptionAr: category.descriptionAr || '',
       color: category.color || '#3b82f6',
-      sortOrder: category.sortOrder ?? category.sort ?? 1
+      sortOrder: category.sortOrder ?? category.sort ?? 1,
+      categoryPurpose: normalizeCategoryPurpose(category.categoryType),
     };
     
     info('🔍 [EDIT] Setting form data:', formDataToSet);
@@ -290,12 +291,24 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
       descriptionEn: '',
       descriptionAr: '',
       color: '#3b82f6',
-      sortOrder: 1
+      sortOrder: 1,
+      categoryPurpose: CATEGORY_PURPOSE.ACCESS_SCOPE,
     });
     setEditingCategory(null);
   };
 
   const columns = useMemo(() => [
+    {
+      field: 'categoryType',
+      headerName: t('category_purpose'),
+      width: 160,
+      renderCell: (params) => {
+        const key = normalizeCategoryPurpose(params?.value) === CATEGORY_PURPOSE.CONTENT
+          ? 'category_purpose_content'
+          : 'category_purpose_access_scope';
+        return t(key);
+      },
+    },
     {
       field: 'nameEn',
       headerName: t('name_english'),
@@ -487,6 +500,15 @@ const CategoriesPage = ({ isDashboardTab = false, hideActions = false }) => {
               type="text"
               placeholder={t('enter_code')}
               error={formErrors.code}
+            />
+            <Select
+              value={formData.categoryPurpose}
+              onChange={(e) => setFormData({ ...formData, categoryPurpose: e.target.value })}
+              options={CATEGORY_PURPOSE_OPTIONS.map((opt) => ({
+                value: opt.value,
+                label: t(opt.labelKey),
+              }))}
+              placeholder={t('category_purpose')}
             />
             <Input
               value={formData.sortOrder}

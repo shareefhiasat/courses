@@ -3,7 +3,7 @@ import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import JoyrideTour from '@ui/JoyrideTour';
 import iconTypes from '@constants/iconTypes';
 import { info, error, warn, debug } from '@services/utils/logger.js';
-import { formatDate } from '@utils/date-formatter.js';
+import { formatDateTime } from '@utils/date-formatter.js';
 import { sanitizeHtml } from '@utils/sanitizeHtml';
 import { getAcademicTermOptions, getAcademicTermLabel } from '@constants/academicTerms';
 const { getThemedIcon, getIconWithColor } = iconTypes;
@@ -18,13 +18,13 @@ import { getAllQuizzes } from '@services/business/quizService';
 import { getUserSubmissions } from '@services/business/submissionService';
 import { getSubmissions } from '@services/business/submissionsService';
 import { getUserProfile, updateUserProgress, getUsers } from '@services/business/userService';
-import { getCategories } from '@services/business/categoryService';
+import { getContentCategories } from '@services/business/categoryService';
+import { getAllPrograms } from '@services/business/programService';
 import { getPrograms, getSubjects } from '@services/business/programService';
 import { getClasses } from '@services/business/classService';
 import ProgramsSelect from '@components/ui/Select/ProgramsSelect';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
-import { formatDateTime } from '@utils/date';
 import { SUBMISSION_STATUS, TASK_STATUS, getStatusLabel, MODE_TYPES, RESOURCE_TYPES, RECORD_TYPES } from '@utils/sharedTypes';
 import { ACTIVITY_TYPES } from '@constants/activityTypes';
 import { DIFFICULTY_TYPES } from '@constants/difficultyTypes';
@@ -260,6 +260,9 @@ const HomePage = memo(() => {
     try {
       debug('[HomePage] Starting loadData - calling all services...');
       
+      const programsResult = await getAllPrograms().catch(() => ({ success: false, data: [] }));
+      const programCategoryIds = [...new Set((programsResult.data || []).map((p) => p.categoryId).filter(Boolean))];
+
       const [activitiesResult, resourcesResult, quizzesResult, announcementsResult, coursesResult, categoriesResult] = await Promise.all([
         getActivities().catch(err => {
           console.error('[HomePage] getActivities FAILED:', err);
@@ -272,7 +275,7 @@ const HomePage = memo(() => {
         getAllQuizzes(),
         getAnnouncements(),
         getCourses(),
-        getCategories()
+        getContentCategories({ programCategoryIds }),
       ]);
 
       // Process results
@@ -351,7 +354,25 @@ const HomePage = memo(() => {
       setReviewSubjects(subjectsData);
       setReviewClasses(classesData);
       setReviewActivities(activitiesData);
-      setReviewStudents(usersData.filter(u => u.isStudent));
+      const studentUsers = usersData.filter(u => u.isStudent);
+      setReviewStudents(studentUsers);
+
+      console.log('[HomePage] loadReviewData — students:', {
+        totalUsers: usersData.length,
+        studentCount: studentUsers.length,
+        allStudentKeys: studentUsers[0] ? Object.keys(studentUsers[0]) : [],
+        sampleStudents: studentUsers.slice(0, 3).map(s => ({
+          uid: s.uid,
+          id: s.id,
+          docId: s.docId,
+          displayName: s.displayName,
+          isStudent: s.isStudent,
+          enrolledClasses: s.enrolledClasses,
+          enrollments: s.enrollments,
+          classId: s.classId,
+        })),
+        classesSample: classesData.slice(0, 3).map(c => ({ id: c.id, docId: c.docId, name: c.name, code: c.code })),
+      });
 
       const submissionsResult = await getSubmissions();
       let submissionsData = submissionsResult.success ? submissionsResult.data : [];
@@ -1082,13 +1103,13 @@ const HomePage = memo(() => {
 
     // Program / Subject / Class hierarchy filters
     if (selectedProgram && selectedProgram !== 'all') {
-      filtered = filtered.filter(sub => sub.programId === selectedProgram);
+      filtered = filtered.filter(sub => String(sub.programId) === String(selectedProgram));
     }
     if (selectedSubject && selectedSubject !== 'all') {
-      filtered = filtered.filter(sub => sub.subjectId === selectedSubject);
+      filtered = filtered.filter(sub => String(sub.subjectId) === String(selectedSubject));
     }
     if (selectedClass && selectedClass !== 'all') {
-      filtered = filtered.filter(sub => sub.classId === selectedClass);
+      filtered = filtered.filter(sub => String(sub.classId) === String(selectedClass));
     }
 
     // Student filter (non-student roles only)
@@ -1438,14 +1459,29 @@ const HomePage = memo(() => {
                   style={{ flex: '1 1 auto', minWidth: 0 }}
                   fullWidth
                 />
-                {canFilterByStudent && (
+                {canFilterByStudent && (() => {
+                  const classFilteredStudents = reviewStudents.filter(s => {
+                    if (selectedClass === 'all') return true;
+                    return s.enrolledClasses?.some(cid => String(cid) === String(selectedClass))
+                      || s.enrollments?.some(e => String(e.classId) === String(selectedClass))
+                      || String(s.classId) === String(selectedClass);
+                  });
+                  console.log('[HomePage] review student dropdown — filtered by class:', {
+                    selectedClass,
+                    totalReviewStudents: reviewStudents.length,
+                    filteredCount: classFilteredStudents.length,
+                    sampleEnrolledClasses: reviewStudents.slice(0, 3).map(s => ({
+                      uid: s.uid, displayName: s.displayName, enrolledClasses: s.enrolledClasses, classId: s.classId
+                    })),
+                  });
+                  return (
                   <Select
                     searchable
                     value={selectedStudent}
                     onChange={(e) => setSelectedStudent(e.target.value)}
                     options={[
                       { value: 'all', label: t('all_students') },
-                      ...reviewStudents.map(s => ({
+                      ...classFilteredStudents.map(s => ({
                         value: s.uid || s.id,
                         label: s.displayName || s.email || s.uid
                       }))
@@ -1454,7 +1490,8 @@ const HomePage = memo(() => {
                     fullWidth
                     placeholder={t('all_students')}
                   />
-                )}
+                  );
+                })()}
                 {/* Year filter */}
                 {reviewAvailableYears.length > 0 && (
                   <div style={{ flex: '1 1 auto', minWidth: 120 }}>
@@ -1926,41 +1963,20 @@ const HomePage = memo(() => {
               padding: '0.75rem 0'
             }}
           >
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.5rem' }}>
-              <button
-                onClick={() => setAnnouncementFullPage(p => !p)}
-                style={{
-                  background: 'none',
-                  border: `1px solid ${isDark ? '#4b5563' : '#e5e7eb'}`,
-                  borderRadius: 6,
-                  padding: '2px 6px',
-                  cursor: 'pointer',
-                  fontSize: 'var(--font-size-xs)',
-                  color: isDark ? '#9ca3af' : '#6b7280',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 4
-                }}
-              >
-                {isFullPage
-                  ? (getThemedIcon('ui', 'chevron_up', 14, theme))
-                  : (getThemedIcon('ui', 'chevron_down', 14, theme))}
-                {isFullPage ? (t('collapse')) : (t('expand'))}
-              </button>
-            </div>
             <div
               style={{
                 fontSize: '0.95rem',
                 lineHeight: '1.7',
                 color: isDark ? '#e5e7eb' : '#1f2937',
                 direction: lang === 'ar' ? 'rtl' : 'ltr',
-                maxHeight: isFullPage ? 'none' : '60vh',
-                overflowY: isFullPage ? 'visible' : 'auto',
+                maxHeight: isFullPage ? '60vh' : '200px',
+                overflowY: 'auto',
+                transition: 'max-height 0.3s ease',
               }}
             >
               {isHtml
                 ? <div dangerouslySetInnerHTML={{ __html: sanitizeHtml(annContent) }} />
-                : <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{annContent || (t('no_content'))}</p>
+                : <p style={{ margin: 0, whiteSpace: 'pre-wrap' }}>{annContent || (t('announcements_no_content'))}</p>
               }
             </div>
             {selectedAnnouncement.createdAt && (
@@ -1969,12 +1985,49 @@ const HomePage = memo(() => {
                 paddingTop: '0.75rem',
                 borderTop: `1px solid ${isDark ? '#374151' : '#e5e7eb'}`,
                 fontSize: '0.8rem',
-                color: isDark ? '#9ca3af' : '#6b7280'
+                color: isDark ? '#9ca3af' : '#6b7280',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '0.5rem',
+                flexWrap: 'wrap'
               }}>
-                {t('posted')}{' '}
-                {selectedAnnouncement.createdAt?.seconds
-                  ? formatDate(selectedAnnouncement.createdAt.seconds * 1000, lang)
-                  : formatDate(selectedAnnouncement.createdAt, lang)}
+                <span>
+                  {t('announcements_posted')}{' '}
+                  {selectedAnnouncement.createdAt?.seconds
+                    ? formatDateTime(selectedAnnouncement.createdAt.seconds * 1000, lang)
+                    : formatDateTime(selectedAnnouncement.createdAt, lang)}
+                </span>
+                <button
+                  onClick={() => setAnnouncementFullPage(p => !p)}
+                  style={{
+                    background: 'none',
+                    border: `1px solid ${isDark ? '#4b5563' : '#e5e7eb'}`,
+                    borderRadius: 6,
+                    padding: '4px 10px',
+                    cursor: 'pointer',
+                    fontSize: 'var(--font-size-xs)',
+                    color: isDark ? '#9ca3af' : '#6b7280',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 4,
+                    transition: 'all 0.2s ease',
+                    whiteSpace: 'nowrap'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = isDark ? '#6b7280' : '#d1d5db';
+                    e.currentTarget.style.color = isDark ? '#e5e7eb' : '#374151';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = isDark ? '#4b5563' : '#e5e7eb';
+                    e.currentTarget.style.color = isDark ? '#9ca3af' : '#6b7280';
+                  }}
+                >
+                  {isFullPage
+                    ? (getThemedIcon('ui', 'chevron_up', 14, theme))
+                    : (getThemedIcon('ui', 'chevron_down', 14, theme))}
+                  {isFullPage ? (t('collapse')) : (t('expand'))}
+                </button>
               </div>
             )}
           </Modal>

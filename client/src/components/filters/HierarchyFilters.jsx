@@ -81,17 +81,32 @@ const HierarchyFilters = ({
         
         // Filter by class if specified
         if (selectedClass !== 'all') {
-          return s.enrollments?.some(e => String(e.classId) === String(selectedClass)) || String(s.classId) === String(selectedClass);
+          return s.enrollments?.some(e => String(e.classId) === String(selectedClass))
+            || s.enrolledClasses?.some(cid => String(cid) === String(selectedClass))
+            || String(s.classId) === String(selectedClass);
         }
         
-        // Filter by subject if specified
+        // Filter by subject if specified — look up classes for that subject
         if (selectedSubject !== 'all') {
-          return s.enrollments?.some(e => String(e.subjectId) === String(selectedSubject)) || String(s.subjectId) === String(selectedSubject);
+          const subjectClassIds = classes
+            .filter(c => String(c.subjectId) === String(selectedSubject))
+            .map(c => String(c.id || c.docId));
+          return s.enrollments?.some(e => String(e.subjectId) === String(selectedSubject))
+            || s.enrolledClasses?.some(cid => subjectClassIds.includes(String(cid)))
+            || String(s.subjectId) === String(selectedSubject);
         }
         
-        // Filter by program if specified
+        // Filter by program if specified — look up classes for that program
         if (selectedProgram !== 'all') {
-          return s.enrollments?.some(e => String(e.programId) === String(selectedProgram)) || String(s.programId) === String(selectedProgram);
+          const programClassIds = classes
+            .filter(c => {
+              const subj = subjects.find(sj => String(sj.docId || sj.id) === String(c.subjectId));
+              return String(subj?.programId) === String(selectedProgram);
+            })
+            .map(c => String(c.id || c.docId));
+          return s.enrollments?.some(e => String(e.programId) === String(selectedProgram))
+            || s.enrolledClasses?.some(cid => programClassIds.includes(String(cid)))
+            || String(s.programId) === String(selectedProgram);
         }
         
         return true;
@@ -100,7 +115,7 @@ const HierarchyFilters = ({
         value: s.id || s.docId || s.uid,
         label: s.displayName || s.realName || s.email || `${s.firstName || ''} ${s.lastName || ''}`.trim() || 'Unknown Student'
       }))
-  ], [students, selectedProgram, selectedSubject, selectedClass, t]);
+  ], [students, selectedProgram, selectedSubject, selectedClass, classes, subjects, t]);
 
   return (
     <div style={{ display: 'grid', gap: '0.35rem', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', width: '100%' }}>

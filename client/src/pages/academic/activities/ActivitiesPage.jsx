@@ -20,7 +20,7 @@ import { DIFFICULTY_TYPES, getDifficultyConfig } from '@constants/difficultyType
 import { getPrograms } from '@services/business/programService.js';
 import { getSubjects } from '@services/business/subjectService.js';
 import { getClasses } from '@services/business/classService.js';
-import { getCategories } from '@services/business/categoryService';
+import { getContentCategories } from '@services/business/categoryService';
 import { getActivities, addActivity, updateActivity, deleteActivity as deleteActivityService } from '@services/business/activitiesService';
 import { getUsers } from '@services/business/userService.js';
 import { getAllQuizzes } from '@services/business/quizService';
@@ -160,7 +160,7 @@ const ActivitiesPage = () => {
         getPrograms(),
         getSubjects(), 
         getClasses(),
-        getCategories(),
+        getContentCategories(),
         getActivities(),
         getAllQuizzes(),
         getUsers()
