@@ -5,7 +5,7 @@
  * ARCHITECTURE: HTTP Requests → Controllers → Business Services → DB Services → PostgreSQL
  */
 
-import { resolveApprovalFlow } from '../utils/workflowTaxonomy.js';
+import { getRequestScope, filterRecordsByScope, isRecordInScope } from '../utils/scopeAccess.js';
 import prisma from '../db/prismaClient.js';
 import { LMS_ROLES } from '../services/keycloakAdminService.js';
 import { approveWorkflow, rejectWorkflow, returnWorkflow, submitWorkflow, resubmitWorkflow } from '../workflows/workflowService.js';
@@ -251,11 +251,20 @@ export const getWorkflowDocumentsController = async (req, res) => {
     }
 
     if (result.success) {
+      let data = result.data || [];
+      const scope = await getRequestScope(req);
+      if (!scope.unrestricted && Array.isArray(data)) {
+        data = filterRecordsByScope(data, scope, {
+          classField: 'classId',
+          programField: 'programId',
+          subjectField: 'subjectId',
+        });
+      }
       res.status(200).json({
         success: true,
-        data: result.data,
-        total: result.total,
-        userDbId: user.dbId  // Include user's database ID for frontend filtering
+        data,
+        total: data.length,
+        userDbId: user.dbId
       });
     } else {
       res.status(400).json({

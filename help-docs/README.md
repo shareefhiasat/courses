@@ -1,6 +1,6 @@
-# Military LMS Help Center (Nextra)
+# Military LMS Help Center
 
-Real Nextra documentation sub-app for the help center.
+Documentation sub-app for the help center.
 
 ## Run
 
@@ -18,7 +18,7 @@ Help articles live in `client/src/help/` and are symlinked here:
 - `pages/en` → `../client/src/help/en`
 - `pages/ar` → `../client/src/help/ar`
 
-Edit the markdown files in `client/src/help/` only; both the main app command palette and this Nextra site read from the same source.
+Edit the markdown files in `client/src/help/` only; both the main app command palette and this site read from the same source.
 
 ## Build / serve
 
@@ -29,4 +29,4 @@ pnpm docs:start
 
 ## Later: same domain
 
-The main app keeps the `/help` route, which redirects to the Nextra site. In production you can proxy `/help` to the Nextra app, or serve it as a subdomain (`docs.yoursite.com`).
+The main app keeps the `/help` route, which redirects to the docs site. In production you can proxy `/help` to the docs app, or serve it as a subdomain (`docs.yoursite.com`).

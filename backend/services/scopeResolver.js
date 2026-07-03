@@ -1,11 +1,21 @@
 /**
  * Effective data scope for admin / HR / instructor users.
  * Super admin is always unrestricted.
+ *
+ * Layer 1 — UCA: academic boundary (programs/subjects/classes for operational data)
+ * Layer 2 — Visibility profile: ALL | UCA | EXPLICIT per dimension (pickers, analytics, availability)
  */
 
 import prisma from '../db/prismaClient.js';
 import { LMS_ROLES as ROLES } from '../services/keycloakAdminService.js';
 
+const DEFAULT_VISIBILITY = {
+  programs: 'UCA',
+  subjects: 'UCA',
+  classes: 'UCA',
+  instructors: 'ALL',
+  rooms: 'ALL',
+};
 
 function normalizeRoles(roles = []) {
   return roles.map((r) => {
@@ -23,6 +33,35 @@ function hasRole(roles, role) {
   return roles.includes(role);
 }
 
+async function loadVisibilityContext(userId) {
+  const [profile, instructorGrants, roomGrants, programGrants, subjectGrants, classGrants] = await Promise.all([
+    prisma.userDataScopeProfile.findUnique({ where: { userId } }),
+    prisma.userInstructorGrant.findMany({ where: { userId, isActive: true }, select: { instructorUserId: true } }),
+    prisma.userRoomGrant.findMany({ where: { userId, isActive: true }, select: { classroomId: true } }),
+    prisma.userProgramGrant.findMany({ where: { userId, isActive: true }, select: { programId: true } }),
+    prisma.userSubjectGrant.findMany({ where: { userId, isActive: true }, select: { subjectId: true } }),
+    prisma.userClassGrant.findMany({ where: { userId, isActive: true }, select: { classId: true } }),
+  ]);
+
+  const p = profile || {};
+  return {
+    visibility: {
+      programs: p.programsMode || DEFAULT_VISIBILITY.programs,
+      subjects: p.subjectsMode || DEFAULT_VISIBILITY.subjects,
+      classes: p.classesMode || DEFAULT_VISIBILITY.classes,
+      instructors: p.instructorsMode || DEFAULT_VISIBILITY.instructors,
+      rooms: p.roomsMode || DEFAULT_VISIBILITY.rooms,
+    },
+    explicitGrants: {
+      instructorIds: instructorGrants.map((g) => g.instructorUserId),
+      roomIds: roomGrants.map((g) => g.classroomId),
+      programIds: programGrants.map((g) => g.programId),
+      subjectIds: subjectGrants.map((g) => g.subjectId),
+      classIds: classGrants.map((g) => g.classId),
+    },
+  };
+}
+
 /**
  * @param {number} userId - DB user id
  * @param {string[]} roles - Keycloak roles
@@ -38,18 +77,20 @@ export async function getEffectiveDataScope(userId, roles = []) {
       subjectIds: [],
       classIds: [],
       source: 'super_admin',
-    };
-  }
-
-  // HR always sees all data (attendance daily screen, reports, etc.)
-  if (hasRole(normalized, ROLES.HR)) {
-    return {
-      unrestricted: true,
-      categoryIds: [],
-      programIds: [],
-      subjectIds: [],
-      classIds: [],
-      source: 'hr',
+      visibility: {
+        programs: 'ALL',
+        subjects: 'ALL',
+        classes: 'ALL',
+        instructors: 'ALL',
+        rooms: 'ALL',
+      },
+      explicitGrants: {
+        instructorIds: [],
+        roomIds: [],
+        programIds: [],
+        subjectIds: [],
+        classIds: [],
+      },
     };
   }
 
@@ -61,6 +102,10 @@ export async function getEffectiveDataScope(userId, roles = []) {
       subjectIds: [],
       classIds: [],
       source: 'anonymous',
+      visibility: { ...DEFAULT_VISIBILITY },
+      explicitGrants: {
+        instructorIds: [], roomIds: [], programIds: [], subjectIds: [], classIds: [],
+      },
     };
   }
 
@@ -70,7 +115,11 @@ export async function getEffectiveDataScope(userId, roles = []) {
   const classIds = new Set();
 
   const accesses = await prisma.userCategoryAccess.findMany({
-    where: { userId, isActive: true, canView: true },
+    where: {
+      userId,
+      isActive: true,
+      OR: [{ canView: true }, { canManage: true }],
+    },
     include: {
       category: {
         include: {
@@ -83,19 +132,12 @@ export async function getEffectiveDataScope(userId, roles = []) {
   for (const access of accesses) {
     categoryIds.add(access.categoryId);
 
-    if (access.classId) {
-      classIds.add(access.classId);
-    }
-    if (access.subjectId) {
-      subjectIds.add(access.subjectId);
-    }
-    if (access.programId) {
-      programIds.add(access.programId);
-    }
+    if (access.classId) classIds.add(access.classId);
+    if (access.subjectId) subjectIds.add(access.subjectId);
+    if (access.programId) programIds.add(access.programId);
 
-    // Category-wide access expands to all programs in category when not narrowed
     if (!access.programId && !access.subjectId && !access.classId && access.category?.programs) {
-      access.category.programs.forEach((p) => programIds.add(p.id));
+      access.category.programs.forEach((prog) => programIds.add(prog.id));
     }
   }
 
@@ -111,20 +153,8 @@ export async function getEffectiveDataScope(userId, roles = []) {
     });
   }
 
-  const isAdminLike = hasRole(normalized, ROLES.ADMIN);
+  const { visibility, explicitGrants } = await loadVisibilityContext(userId);
   const hasExplicitScope = categoryIds.size > 0 || programIds.size > 0 || subjectIds.size > 0 || classIds.size > 0;
-
-  // Backward compatibility: admin without UCA rows keeps full access until scoped
-  if (isAdminLike && !hasExplicitScope) {
-    return {
-      unrestricted: true,
-      categoryIds: [],
-      programIds: [],
-      subjectIds: [],
-      classIds: [],
-      source: 'admin_legacy_unrestricted',
-    };
-  }
 
   return {
     unrestricted: false,
@@ -133,14 +163,36 @@ export async function getEffectiveDataScope(userId, roles = []) {
     subjectIds: [...subjectIds],
     classIds: [...classIds],
     source: hasExplicitScope ? 'user_category_access' : 'empty',
+    canManageCategoryIds: accesses.filter((a) => a.canManage).map((a) => a.categoryId),
+    visibility,
+    explicitGrants,
   };
 }
 
-/**
- * Filter array of records that have id + optional hierarchy fields.
- */
+/** Academic writes always use UCA class/program ids (visibility ALL does not widen writes). */
+export function canWriteInScope(scope) {
+  if (!scope || scope.unrestricted) return true;
+  return (scope.canManageCategoryIds || []).length > 0;
+}
+
 export function filterByDataScope(items, scope, fieldMap = {}) {
+  return filterByDataScopeWithMode(items, scope, fieldMap, 'classes');
+}
+
+/** Filter list by visibility mode for a dimension (programs|subjects|classes|instructors|rooms). */
+export function filterByDataScopeWithMode(items, scope, fieldMap = {}, dimension = 'classes') {
   if (!scope || scope.unrestricted) return items;
+
+  const modeKey = {
+    programs: 'programs',
+    subjects: 'subjects',
+    classes: 'classes',
+    instructors: 'instructors',
+    rooms: 'rooms',
+  }[dimension] || 'classes';
+
+  const mode = scope.visibility?.[modeKey] ?? DEFAULT_VISIBILITY[modeKey];
+  if (mode === 'ALL') return items;
 
   const {
     idField = 'id',
@@ -148,22 +200,48 @@ export function filterByDataScope(items, scope, fieldMap = {}) {
     programField = 'programId',
     subjectField = 'subjectId',
     classField = 'classId',
+    instructorField = 'instructorUserId',
+    roomField = 'classroomId',
   } = fieldMap;
 
-  const { categoryIds, programIds, subjectIds, classIds } = scope;
+  if (mode === 'EXPLICIT') {
+    const grants = scope.explicitGrants || {};
+    const grantMap = {
+      programs: grants.programIds,
+      subjects: grants.subjectIds,
+      classes: grants.classIds,
+      instructors: grants.instructorIds,
+      rooms: grants.roomIds,
+    };
+    const allowed = new Set(grantMap[modeKey] || []);
+    return (items || []).filter((item) => {
+      const id = item[idField] ?? item[instructorField] ?? item[roomField] ?? item[classField];
+      return id != null && allowed.has(Number(id));
+    });
+  }
 
+  const { categoryIds, programIds, subjectIds, classIds } = scope;
   return (items || []).filter((item) => {
     const classId = item[classField];
     const subjectId = item[subjectField];
     const programId = item[programField];
     const categoryId = item[categoryField];
     const id = item[idField];
+    const instructorId = item[instructorField] ?? item.instructorId;
+    const roomId = item[roomField];
 
-    if (classId != null && classIds.includes(classId)) return true;
-    if (subjectId != null && subjectIds.includes(subjectId)) return true;
-    if (programId != null && programIds.includes(programId)) return true;
-    if (categoryId != null && categoryIds.includes(categoryId)) return true;
-    if (id != null && classIds.includes(id)) return true;
+    if (modeKey === 'instructors' && instructorId != null) {
+      return classIds.length > 0 || programIds.length > 0; // UCA linkage checked by caller for instructors
+    }
+    if (modeKey === 'rooms' && roomId != null) {
+      return classIds.includes(Number(roomId)); // rooms UCA handled in schedulingScope
+    }
+
+    if (classId != null && classIds.includes(Number(classId))) return true;
+    if (subjectId != null && subjectIds.includes(Number(subjectId))) return true;
+    if (programId != null && programIds.includes(Number(programId))) return true;
+    if (categoryId != null && categoryIds.includes(Number(categoryId))) return true;
+    if (id != null && classIds.includes(Number(id))) return true;
     return false;
   });
 }
@@ -171,4 +249,6 @@ export function filterByDataScope(items, scope, fieldMap = {}) {
 export default {
   getEffectiveDataScope,
   filterByDataScope,
+  filterByDataScopeWithMode,
+  canWriteInScope,
 };

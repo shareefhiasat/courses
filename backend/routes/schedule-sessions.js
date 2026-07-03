@@ -17,8 +17,10 @@ import {
   deleteScheduleSessionController,
   bulkCreateScheduleSessionsController
 } from '../controllers/schedule-sessions.js';
+import { screenOps } from '../middleware/requirePermission.js';
 
 const router = Router();
+const schedOps = screenOps('scheduling-calendar');
 
 /**
  * @swagger
@@ -79,7 +81,7 @@ const router = Router();
  *       200:
  *         description: List of schedule sessions
  */
-router.get('/', getAllScheduleSessionsController);
+router.get('/', schedOps.view, getAllScheduleSessionsController);
 
 /**
  * @swagger
@@ -116,7 +118,7 @@ router.get('/', getAllScheduleSessionsController);
  *       200:
  *         description: List of schedule sessions in date range
  */
-router.get('/range', getScheduleSessionsByRangeController);
+router.get('/range', schedOps.view, getScheduleSessionsByRangeController);
 
 /**
  * @swagger
@@ -152,7 +154,7 @@ router.get('/range', getScheduleSessionsByRangeController);
  *       200:
  *         description: Conflict detection result
  */
-router.post('/check-conflicts', checkConflictsController);
+router.post('/check-conflicts', schedOps.view, checkConflictsController);
 
 /**
  * @swagger
@@ -179,7 +181,7 @@ router.post('/check-conflicts', checkConflictsController);
  *       409:
  *         description: Scheduling conflicts detected
  */
-router.post('/bulk', bulkCreateScheduleSessionsController);
+router.post('/bulk', schedOps.create, bulkCreateScheduleSessionsController);
 
 /**
  * @swagger
@@ -199,7 +201,7 @@ router.post('/bulk', bulkCreateScheduleSessionsController);
  *       404:
  *         description: Schedule session not found
  */
-router.get('/:id', getScheduleSessionByIdController);
+router.get('/:id', schedOps.view, getScheduleSessionByIdController);
 
 /**
  * @swagger
@@ -243,7 +245,7 @@ router.get('/:id', getScheduleSessionByIdController);
  *       400:
  *         description: Invalid input
  */
-router.post('/', createScheduleSessionController);
+router.post('/', schedOps.create, createScheduleSessionController);
 
 /**
  * @swagger
@@ -276,7 +278,7 @@ router.post('/', createScheduleSessionController);
  *       404:
  *         description: Schedule session not found
  */
-router.put('/:id', updateScheduleSessionController);
+router.put('/:id', schedOps.update, updateScheduleSessionController);
 
 /**
  * @swagger
@@ -304,7 +306,7 @@ router.put('/:id', updateScheduleSessionController);
  *       404:
  *         description: Schedule session not found
  */
-router.post('/:id/cancel', cancelScheduleSessionController);
+router.post('/:id/cancel', schedOps.update, cancelScheduleSessionController);
 
 /**
  * @swagger
@@ -324,6 +326,6 @@ router.post('/:id/cancel', cancelScheduleSessionController);
  *       404:
  *         description: Schedule session not found
  */
-router.delete('/:id', deleteScheduleSessionController);
+router.delete('/:id', schedOps.delete, deleteScheduleSessionController);
 
 export default router;

@@ -1126,7 +1126,7 @@ export default function StudentActionStatsPanel({
         else if (status === ATTENDANCE_STATUS.HUMAN_CASE) acc.human_case++;
       }
       return acc;
-    }, { present: 0, late: 0, absent_no_excuse: 0, excused_leave: 0, excused_leave: 0, human_case: 0 });
+    }, { present: 0, late: 0, absent_no_excuse: 0, excused_leave: 0, human_case: 0 });
 
     // If there's a current attendance status that's different from todayLogs,
     // increment the appropriate counter (for immediate UI feedback during selection)
@@ -1163,7 +1163,7 @@ export default function StudentActionStatsPanel({
         else if (status === ATTENDANCE_STATUS.HUMAN_CASE) acc.human_case++;
       }
       return acc;
-    }, { present: 0, late: 0, absent_no_excuse: 0, excused_leave: 0, excused_leave: 0, human_case: 0 });
+    }, { present: 0, late: 0, absent_no_excuse: 0, excused_leave: 0, human_case: 0 });
   }, [historicalLogs]);
 
   const totalPoints = useMemo(() =>

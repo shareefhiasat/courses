@@ -5,6 +5,7 @@
 
 import { permissionsService } from '../services/permissions.js';
 import { isSuperAdmin, getEffectiveRoles } from '../utils/roleUtils.js';
+import { getPrerequisitesFor } from '../utils/permissionDependencies.js';
 import { buildOperationKey } from '../../client/src/config/navigationRegistry.js';
 
 function resolveOperationKey(screenId, operation) {
@@ -47,6 +48,19 @@ export function requirePermission(screenId, operation) {
           error: 'Insufficient permissions',
           operationKey,
         });
+      }
+
+      // Defense in depth: verify prerequisites unless super admin
+      for (const prereq of getPrerequisitesFor(operationKey)) {
+        const prereqAllowed = await permissionsService.checkPermissionForRoles(roles, prereq);
+        if (!prereqAllowed) {
+          return res.status(403).json({
+            success: false,
+            error: 'Missing prerequisite permission',
+            operationKey,
+            missingPrerequisite: prereq,
+          });
+        }
       }
 
       return next();

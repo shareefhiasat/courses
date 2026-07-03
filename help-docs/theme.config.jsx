@@ -7,10 +7,6 @@ export default {
       </span>
     </>
   ),
-  project: {
-    link: 'https://github.com/shareefhiasat/courses',
-  },
-  docsRepositoryBase: 'https://github.com/shareefhiasat/courses/tree/main/help-docs',
   footer: {
     text: 'Military LMS Help Center',
   },
@@ -28,4 +24,10 @@ export default {
   },
   darkMode: true,
   primaryHue: 217,
+  feedback: {
+    content: null,
+  },
+  editLink: {
+    component: () => null,
+  },
 }

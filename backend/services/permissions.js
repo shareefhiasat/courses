@@ -6,6 +6,7 @@
  */
 
 import prisma from '../db/prismaClient.js';
+import { expandWithDependencies, SUPER_ADMIN_ONLY_OPERATION_KEYS } from '../utils/permissionDependencies.js';
 
 
 /**
@@ -71,43 +72,71 @@ export const permissionsService = {
   async updatePermissions(updates) {
     try {
       console.log(`📝 Updating ${updates.length} permissions`);
-      
-      // Use transaction for atomic updates
+
+      const allOps = await prisma.operation.findMany({
+        where: { isActive: true },
+        select: { id: true, operationKey: true, screenId: true },
+      });
+      const opById = new Map(allOps.map((o) => [o.id, o]));
+      const opByKey = new Map(allOps.map((o) => [o.operationKey, o]));
+
+      const grantingKeys = [];
+      const grantUpdates = [];
+      for (const update of updates) {
+        if (!update.allowed) continue;
+        const op = opById.get(update.operationId);
+        if (!op) continue;
+        if (SUPER_ADMIN_ONLY_OPERATION_KEYS.has(op.operationKey) && update.role !== 'super_admin') {
+          continue;
+        }
+        grantingKeys.push(op.operationKey);
+        grantUpdates.push({ update, op });
+      }
+
+      const { implied } = expandWithDependencies(grantingKeys, opByKey);
+
+      const merged = new Map();
+      for (const update of updates) {
+        merged.set(`${update.role}:${update.operationId}`, update);
+      }
+
+      for (const { update, op } of grantUpdates) {
+        const { implied: perOpImplied } = expandWithDependencies([op.operationKey], opByKey);
+        for (const item of perOpImplied) {
+          const prereqOp = opByKey.get(item.operationKey);
+          if (!prereqOp) continue;
+          if (SUPER_ADMIN_ONLY_OPERATION_KEYS.has(item.operationKey) && update.role !== 'super_admin') {
+            continue;
+          }
+          merged.set(`${update.role}:${prereqOp.id}`, {
+            role: update.role,
+            screenId: prereqOp.screenId,
+            operationId: prereqOp.id,
+            allowed: true,
+          });
+        }
+      }
+
+      const mergedUpdates = [...merged.values()];
+
       const result = await prisma.$transaction(async (tx) => {
         const results = [];
-        
-        for (const update of updates) {
+        for (const update of mergedUpdates) {
           const { role, screenId, operationId, allowed } = update;
-          
-          // Upsert the permission
           const permission = await tx.rolePermission.upsert({
             where: {
-              role_screenId_operationId: {
-                role,
-                screenId,
-                operationId
-              }
+              role_screenId_operationId: { role, screenId, operationId },
             },
-            update: {
-              allowed,
-              updatedAt: new Date()
-            },
-            create: {
-              role,
-              screenId,
-              operationId,
-              allowed
-            }
+            update: { allowed, updatedAt: new Date() },
+            create: { role, screenId, operationId, allowed },
           });
-          
           results.push(permission);
         }
-        
         return results;
       });
-      
+
       console.log('✅ Permissions updated successfully');
-      return result;
+      return { permissions: result, impliedGrants: implied };
     } catch (error) {
       console.error('Error updating permissions:', error);
       throw error;

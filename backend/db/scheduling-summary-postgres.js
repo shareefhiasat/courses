@@ -14,7 +14,7 @@ import {
   buildUpcomingHolidayWhere,
   resolveClassIds,
 } from '../utils/schedulingDateRange.js';
-import { intersectClassIdLists } from '../utils/schedulingScope.js';
+import { intersectClassIdLists, resolveInstructorIdsInScope, resolveClassroomIdsInScope } from '../utils/schedulingScope.js';
 import { getBreakTypeDistribution } from './break-sessions-postgres.js';
 
 
@@ -42,7 +42,7 @@ async function getHolidayImpact(programId, start, end) {
 }
 
 async function computeOverviewStats(params = {}) {
-  const { programId, subjectId, classId, term, year, instructorId, start, end, scopeClassIds = null } = params;
+  const { programId, subjectId, classId, term, year, instructorId, start, end, scopeClassIds = null, _scope = null } = params;
   let classIds = await resolveClassIds(prisma, { programId, subjectId, classId, term, year });
   classIds = intersectClassIdLists(classIds, scopeClassIds);
 
@@ -77,15 +77,37 @@ async function computeOverviewStats(params = {}) {
   else if (subjectId) scheduledWhere.class = { subjectId: parseInt(subjectId, 10) };
   else if (programId) scheduledWhere.class = { programId: parseInt(programId, 10) };
 
-  const programWhere = programId ? { id: parseInt(programId, 10), isActive: true } : { isActive: true };
+  const programWhere = { isActive: true };
   const subjectWhere = { isActive: true };
-  if (programId) subjectWhere.programId = parseInt(programId, 10);
   const classWhere = { isActive: true };
-  if (programId) classWhere.programId = parseInt(programId, 10);
-  if (subjectId) classWhere.subjectId = parseInt(subjectId, 10);
+  if (classIds?.length) {
+    classWhere.id = { in: classIds };
+    const scopedPrograms = [...new Set(
+      (await prisma.class.findMany({ where: { id: { in: classIds } }, select: { programId: true } }))
+        .map((c) => c.programId)
+        .filter(Boolean),
+    )];
+    if (scopedPrograms.length) {
+      programWhere.id = { in: scopedPrograms };
+      subjectWhere.programId = { in: scopedPrograms };
+    }
+  } else if (programId) {
+    programWhere.id = parseInt(programId, 10);
+    subjectWhere.programId = parseInt(programId, 10);
+    classWhere.programId = parseInt(programId, 10);
+  }
+  if (subjectId && !classIds?.length) subjectWhere.id = parseInt(subjectId, 10);
+  if (subjectId && !classIds?.length) classWhere.subjectId = parseInt(subjectId, 10);
   if (term) classWhere.term = term;
   if (year) classWhere.year = String(year);
-  if (classId) classWhere.id = parseInt(classId, 10);
+  if (classId && !classIds?.length) classWhere.id = parseInt(classId, 10);
+
+  const scopedInstructorIds = scopeClassIds !== null && scopeClassIds !== undefined && _scope
+    ? await resolveInstructorIdsInScope(_scope, classIds)
+    : null;
+  const scopedClassroomIds = scopeClassIds !== null && scopeClassIds !== undefined && _scope
+    ? await resolveClassroomIdsInScope(_scope, classIds)
+    : null;
 
   const [scheduledSessions, totalPrograms, totalSubjects, totalClasses, totalClassrooms, instructorCount] = await Promise.all([
     prisma.scheduledSession.findMany({
@@ -97,8 +119,12 @@ async function computeOverviewStats(params = {}) {
     prisma.program.count({ where: programWhere }),
     prisma.subject.count({ where: subjectWhere }),
     prisma.class.count({ where: classWhere }),
-    prisma.classroom.count(),
-    prisma.user.count({ where: { roleAssignments: { some: { role: { code: 'INSTRUCTOR' } } } } }),
+    scopedClassroomIds !== null
+      ? scopedClassroomIds.length
+      : prisma.classroom.count(),
+    scopedInstructorIds !== null
+      ? scopedInstructorIds.length
+      : prisma.user.count({ where: { roleAssignments: { some: { role: { code: 'INSTRUCTOR' } } } } }),
   ]);
 
   const now = new Date();
@@ -150,24 +176,71 @@ function weeksInRange(start, end) {
 }
 
 async function buildScheduledSessionWhere(params) {
-  const { programId, subjectId, classId, term, year, instructorId, start, end } = params;
-  const classIds = await resolveClassIds(prisma, { programId, subjectId, classId, term, year });
+  const { programId, subjectId, classId, term, year, instructorId, start, end, scopeClassIds = null } = params;
+  let classIds = await resolveClassIds(prisma, { programId, subjectId, classId, term, year });
+  classIds = intersectClassIdLists(classIds, scopeClassIds);
+
+  if (scopeClassIds !== null && scopeClassIds !== undefined && (!classIds || classIds.length === 0)) {
+    return null;
+  }
+
   const where = {
     deletedAt: null,
     isActive: true,
     startDateTime: toDateTimeRange(start, end),
   };
   if (instructorId) where.instructorId = parseInt(instructorId, 10);
-  if (classIds) where.classId = { in: classIds };
+  if (classIds?.length) where.classId = { in: classIds };
   else if (subjectId) where.class = { subjectId: parseInt(subjectId, 10) };
   else if (programId) where.class = { programId: parseInt(programId, 10) };
   return where;
 }
 
 async function computeWidgetAnalytics(params) {
-  const { start, end, overview } = params;
+  const { start, end, overview, scopeClassIds = null, _scope = null } = params;
   const sessionWhere = await buildScheduledSessionWhere(params);
+
+  if (!sessionWhere) {
+    return {
+      sessionTimeline: [],
+      recurrenceBreakdown: [],
+      classCoverage: [],
+      instructorWorkload: [],
+      holidayOverlap: [],
+      holidayCount: 0,
+      attendanceOverview: { totalRecords: 0, classRecords: 0, dailyRecords: 0, presentCount: 0, absentCount: 0, lateCount: 0, uniqueStudents: 0, uniqueClasses: 0, statusTypes: 0, programs: 0 },
+      attendanceRecords: [],
+      attendanceByStatus: [],
+      classAttendanceByStatus: [],
+      dailyAttendanceByStatus: [],
+      attendanceByProgram: [],
+      classAttendanceByProgram: [],
+      dailyAttendanceByProgram: [],
+      attendanceByInstructor: [],
+      classAttendanceByClass: [],
+      attendanceByType: [],
+      attendanceTimeline: [],
+      classAttendanceTimeline: [],
+      dailyAttendanceTimeline: [],
+      workflowOverview: { totalDocuments: 0, statusTypes: 0, workflowTypes: 0 },
+      workflowByStatus: [],
+      workflowByType: [],
+      workflowByProgram: [],
+      workflowTimeline: [],
+    };
+  }
+
   const weeks = weeksInRange(start, end);
+
+  const instructorAvailabilityWhere = { isActive: true };
+  if (_scope && !_scope.unrestricted && scopeClassIds !== null) {
+    const instructorIds = await resolveInstructorIdsInScope(_scope, scopeClassIds);
+    if (!instructorIds.length) {
+      instructorAvailabilityWhere.instructorUserId = -1;
+    } else {
+      instructorAvailabilityWhere.instructorUserId = { in: instructorIds };
+    }
+  }
 
   const [timelineSessions, recurrenceSessions, classGroups, instructorSessions, availabilities, holidayData] = await Promise.all([
     prisma.scheduledSession.findMany({
@@ -198,7 +271,7 @@ async function computeWidgetAnalytics(params) {
       },
     }),
     prisma.instructorAvailability.findMany({
-      where: { isActive: true },
+      where: instructorAvailabilityWhere,
       include: { slots: true },
     }),
     getHolidayImpact(params.programId, start, end),
@@ -221,11 +294,16 @@ async function computeWidgetAnalytics(params) {
   }
 
   const classWhere = { isActive: true };
-  if (params.programId) classWhere.programId = parseInt(params.programId, 10);
-  if (params.subjectId) classWhere.subjectId = parseInt(params.subjectId, 10);
-  if (params.term) classWhere.term = params.term;
-  if (params.year) classWhere.year = String(params.year);
-  if (params.classId) classWhere.id = parseInt(params.classId, 10);
+  let classIds = await resolveClassIds(prisma, params);
+  classIds = intersectClassIdLists(classIds, scopeClassIds);
+  if (classIds?.length) classWhere.id = { in: classIds };
+  else {
+    if (params.programId) classWhere.programId = parseInt(params.programId, 10);
+    if (params.subjectId) classWhere.subjectId = parseInt(params.subjectId, 10);
+    if (params.term) classWhere.term = params.term;
+    if (params.year) classWhere.year = String(params.year);
+    if (params.classId) classWhere.id = parseInt(params.classId, 10);
+  }
 
   const allClasses = await prisma.class.findMany({
     where: classWhere,
@@ -278,16 +356,29 @@ async function computeWidgetAnalytics(params) {
   const totalSessions = overview?.totalSessions ?? timelineSessions.length;
   const affected = holidayData.affectedSessions ?? 0;
 
-  const classIds = await resolveClassIds(prisma, params);
   const attendanceWhere = { date: toDateTimeRange(start, end) };
-  if (classIds) attendanceWhere.classId = { in: classIds };
+  if (classIds?.length) attendanceWhere.classId = { in: classIds };
   else if (params.programId) attendanceWhere.programId = parseInt(params.programId, 10);
-  if (params.subjectId && !classIds) {
+  if (params.subjectId && !classIds?.length) {
     attendanceWhere.class = { subjectId: parseInt(params.subjectId, 10) };
   }
 
   const standupWhere = { date: toDateTimeRange(start, end) };
-  if (params.programId) standupWhere.programId = parseInt(params.programId, 10);
+  if (classIds?.length) {
+    const programIds = [...new Set(
+      (await prisma.class.findMany({ where: { id: { in: classIds } }, select: { programId: true } }))
+        .map((c) => c.programId)
+        .filter(Boolean),
+    )];
+    if (programIds.length) standupWhere.programId = { in: programIds };
+  } else if (params.programId) {
+    standupWhere.programId = parseInt(params.programId, 10);
+  }
+
+  const workflowWhere = { createdAt: toDateTimeRange(start, end) };
+  if (classIds?.length) {
+    workflowWhere.classId = { in: classIds };
+  }
 
   const isPresentCode = (code) => code === 'ATTENDANCE_PRESENT' || code === 'STANDUP_PRESENT';
   const isAbsentCode = (code) => code === 'ATTENDANCE_ABSENT' || code === 'STANDUP_ABSENT';
@@ -367,7 +458,7 @@ async function computeWidgetAnalytics(params) {
       },
     }),
     prisma.workflowDocument.findMany({
-      where: { createdAt: toDateTimeRange(start, end) },
+      where: workflowWhere,
       select: {
         status: true,
         workflowType: true,
@@ -620,7 +711,7 @@ export const getSchedulingSummary = async (params = {}) => {
   try {
     const {
       programId, subjectId, classId, term, year, instructorId,
-      timeRange = 'week', startDate, endDate, scopeClassIds = null,
+      timeRange = 'week', startDate, endDate, scopeClassIds = null, _scope = null,
     } = params;
     const { start, end } = resolveDateRange(timeRange, startDate, endDate);
     const today = toDateStr(new Date());
@@ -632,7 +723,7 @@ export const getSchedulingSummary = async (params = {}) => {
       return {
         success: true,
         data: {
-          overview: await computeOverviewStats({ ...params, start, end, scopeClassIds }),
+          overview: await computeOverviewStats({ ...params, start, end, scopeClassIds, _scope }),
           todaySchedule: [],
           breakSessions: [],
           holidays: [],
@@ -659,6 +750,13 @@ export const getSchedulingSummary = async (params = {}) => {
       }
     }
 
+    const scopedInstructorIds = scopeClassIds !== null && _scope
+      ? await resolveInstructorIdsInScope(_scope, scopedClassIds)
+      : null;
+    const scopedClassroomIds = scopeClassIds !== null && _scope
+      ? await resolveClassroomIdsInScope(_scope, scopedClassIds)
+      : null;
+
     const [
       totalTeachers,
       activeTeachers,
@@ -675,16 +773,35 @@ export const getSchedulingSummary = async (params = {}) => {
       holidayImpact,
       overview,
     ] = await Promise.all([
-      prisma.user.count({
-        where: { roleAssignments: { some: { role: { code: 'INSTRUCTOR' } } } },
-      }),
-      prisma.user.count({
-        where: { roleAssignments: { some: { role: { code: 'INSTRUCTOR' } } }, isActive: true },
-      }),
-      prisma.subject.count(programId ? { where: { programId: parseInt(programId, 10) } } : undefined),
+      scopedInstructorIds !== null
+        ? scopedInstructorIds.length
+        : prisma.user.count({
+            where: { roleAssignments: { some: { role: { code: 'INSTRUCTOR' } } } },
+          }),
+      scopedInstructorIds !== null
+        ? prisma.user.count({
+            where: {
+              id: { in: scopedInstructorIds },
+              isActive: true,
+            },
+          })
+        : prisma.user.count({
+            where: { roleAssignments: { some: { role: { code: 'INSTRUCTOR' } } }, isActive: true },
+          }),
+      prisma.subject.count(
+        scopedClassIds?.length
+          ? { where: { programId: { in: [...new Set((await prisma.class.findMany({ where: { id: { in: scopedClassIds } }, select: { programId: true } })).map((c) => c.programId).filter(Boolean))] } } }
+          : programId ? { where: { programId: parseInt(programId, 10) } } : undefined,
+      ),
       prisma.categoryTypes.count(),
-      prisma.classroom.count(),
-      prisma.classroom.count({ where: { status: 'Available' } }),
+      scopedClassroomIds !== null
+        ? scopedClassroomIds.length
+        : prisma.classroom.count(),
+      scopedClassroomIds !== null
+        ? prisma.classroom.count({
+            where: { id: { in: scopedClassroomIds }, status: 'Available' },
+          })
+        : prisma.classroom.count({ where: { status: 'Available' } }),
       countSessions(sessionWhere),
       prisma.flexibleScheduleSession.findMany({
         where: todayWhere,
@@ -718,7 +835,7 @@ export const getSchedulingSummary = async (params = {}) => {
       }),
       getBreakTypeDistribution({ programId, instructorId, start, end }),
       getHolidayImpact(programId, start, end),
-      computeOverviewStats({ programId, subjectId, classId, term, year, instructorId, start, end, scopeClassIds }),
+      computeOverviewStats({ programId, subjectId, classId, term, year, instructorId, start, end, scopeClassIds, _scope }),
     ]);
 
     const subjectIds = subjectSessionsData.map((s) => s.subjectId).filter(Boolean);
@@ -730,7 +847,7 @@ export const getSchedulingSummary = async (params = {}) => {
       : [];
     const subjectMap = Object.fromEntries(subjects.map((s) => [s.id, s]));
 
-    const teacherLoad = await Promise.all(
+    let teacherLoad = await Promise.all(
       teacherLoadData.map(async (tl) => {
         const instructor = await prisma.user.findUnique({
           where: { id: tl.instructorUserId },
@@ -749,6 +866,10 @@ export const getSchedulingSummary = async (params = {}) => {
         };
       }),
     );
+    if (scopedInstructorIds !== null) {
+      const allowed = new Set(scopedInstructorIds);
+      teacherLoad = teacherLoad.filter((row) => allowed.has(row.instructorId));
+    }
 
     const subjectSessions = subjectSessionsData.map((ss) => ({
       subjectId: ss.subjectId,
@@ -779,6 +900,7 @@ export const getSchedulingSummary = async (params = {}) => {
 
     const widgetAnalytics = await computeWidgetAnalytics({
       programId, subjectId, classId, term, year, instructorId, start, end, overview,
+      scopeClassIds, _scope,
     });
 
     return {

@@ -711,6 +711,15 @@ model User {
   chatRoomsCreated               ChatRoom[]                 @relation("ChatRoomCreator")
   chatRoomParticipations         ChatRoomParticipant[]      @relation("ChatRoomParticipations")
   exportHistory                  ExportHistory[]            @relation("ExportHistoryUser")
+  dataScopeProfile               UserDataScopeProfile?      @relation("UserDataScopeProfile")
+  instructorGrantsOwned          UserInstructorGrant[]      @relation("UserInstructorGrantOwner")
+  instructorGrantsTarget       UserInstructorGrant[]      @relation("UserInstructorGrantTarget")
+  roomGrants                     UserRoomGrant[]            @relation("UserRoomGrantOwner")
+  programGrants                  UserProgramGrant[]         @relation("UserProgramGrantOwner")
+  subjectGrants                  UserSubjectGrant[]         @relation("UserSubjectGrantOwner")
+  classGrants                    UserClassGrant[]           @relation("UserClassGrantOwner")
+  createdDataScopeProfiles       UserDataScopeProfile[]     @relation("UserDataScopeProfileCreator")
+  updatedDataScopeProfiles       UserDataScopeProfile[]     @relation("UserDataScopeProfileUpdater")
 
   @@map("users")
 }
@@ -753,6 +762,7 @@ model Program {
   category            CategoryTypes?       @relation("ProgramCategory", fields: [categoryId], references: [id])
   userCategoryAccesses UserCategoryAccess[] @relation("UserCategoryAccessProgram")
   instructorAvailabilities InstructorAvailability[] @relation("InstructorAvailabilityProgram")
+  userProgramGrants    UserProgramGrant[]   @relation("UserProgramGrantProgram")
 
   @@map("programs")
 }
@@ -787,6 +797,7 @@ model Subject {
   updater            User?              @relation("SubjectUpdater", fields: [updatedBy], references: [id])
   userCategoryAccesses UserCategoryAccess[] @relation("UserCategoryAccessSubject")
   instructorAvailabilities InstructorAvailability[] @relation("InstructorAvailabilitySubject")
+  userSubjectGrants    UserSubjectGrant[]   @relation("UserSubjectGrantSubject")
 
   @@index([programId])
   @@index([typeId])
@@ -833,6 +844,7 @@ model Class {
   updater        User?           @relation("ClassUpdater", fields: [updatedBy], references: [id])
   userCategoryAccesses UserCategoryAccess[] @relation("UserCategoryAccessClass")
   instructorAvailabilities InstructorAvailability[] @relation("InstructorAvailabilityClass")
+  userClassGrants      UserClassGrant[]     @relation("UserClassGrantClass")
   scheduledSessions  ScheduledSession[] @relation("ScheduledSessionClass")
   sessionSeries      SessionSeries[] @relation("ClassSessionSeries")
   enrollments    Enrollment[]
@@ -2017,6 +2029,7 @@ model Classroom {
   sessionSeries        SessionSeries[]  @relation("ClassroomSessionSeries")
   creator              User?            @relation("ClassroomCreator", fields: [createdBy], references: [id])
   updater              User?            @relation("ClassroomUpdater", fields: [updatedBy], references: [id])
+  userRoomGrants       UserRoomGrant[]  @relation("UserRoomGrantClassroom")
 
   @@map("classrooms")
 }
@@ -2578,6 +2591,109 @@ model NotificationLog {
   @@map("notification_log")
 }
 
+enum DataVisibilityMode {
+  UCA
+  ALL
+  EXPLICIT
+}
+
+/// Per-user visibility lens: how wide pickers, analytics, and availability screens read beyond UCA.
+model UserDataScopeProfile {
+  id              Int                @id @default(autoincrement())
+  userId          Int                @unique
+  programsMode    DataVisibilityMode @default(UCA)
+  subjectsMode    DataVisibilityMode @default(UCA)
+  classesMode     DataVisibilityMode @default(UCA)
+  instructorsMode DataVisibilityMode @default(ALL)
+  roomsMode       DataVisibilityMode @default(ALL)
+  notes           String?
+  createdBy       Int?
+  updatedBy       Int?
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  user    User  @relation("UserDataScopeProfile", fields: [userId], references: [id], onDelete: Cascade)
+  creator User? @relation("UserDataScopeProfileCreator", fields: [createdBy], references: [id])
+  updater User? @relation("UserDataScopeProfileUpdater", fields: [updatedBy], references: [id])
+
+  @@map("user_data_scope_profiles")
+}
+
+model UserInstructorGrant {
+  id               Int      @id @default(autoincrement())
+  userId           Int
+  instructorUserId Int
+  isActive         Boolean  @default(true)
+  createdAt        DateTime @default(now())
+
+  user       User @relation("UserInstructorGrantOwner", fields: [userId], references: [id], onDelete: Cascade)
+  instructor User @relation("UserInstructorGrantTarget", fields: [instructorUserId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, instructorUserId])
+  @@index([instructorUserId])
+  @@map("user_instructor_grants")
+}
+
+model UserRoomGrant {
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  classroomId Int
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+
+  user      User      @relation("UserRoomGrantOwner", fields: [userId], references: [id], onDelete: Cascade)
+  classroom Classroom @relation("UserRoomGrantClassroom", fields: [classroomId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, classroomId])
+  @@index([classroomId])
+  @@map("user_room_grants")
+}
+
+model UserProgramGrant {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  programId Int
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  user    User    @relation("UserProgramGrantOwner", fields: [userId], references: [id], onDelete: Cascade)
+  program Program @relation("UserProgramGrantProgram", fields: [programId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, programId])
+  @@index([programId])
+  @@map("user_program_grants")
+}
+
+model UserSubjectGrant {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  subjectId Int
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  user    User    @relation("UserSubjectGrantOwner", fields: [userId], references: [id], onDelete: Cascade)
+  subject Subject @relation("UserSubjectGrantSubject", fields: [subjectId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, subjectId])
+  @@index([subjectId])
+  @@map("user_subject_grants")
+}
+
+model UserClassGrant {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  classId   Int
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+
+  user  User  @relation("UserClassGrantOwner", fields: [userId], references: [id], onDelete: Cascade)
+  class Class @relation("UserClassGrantClass", fields: [classId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, classId])
+  @@index([classId])
+  @@map("user_class_grants")
+}
+
 model UserCategoryAccess {
   id         Int      @id @default(autoincrement())
   userId     Int
@@ -2602,7 +2718,7 @@ model UserCategoryAccess {
   creator    User?    @relation("UserCategoryAccessCreator", fields: [createdBy], references: [id])
   updater    User?    @relation("UserCategoryAccessUpdater", fields: [updatedBy], references: [id])
 
-  @@unique([userId, categoryId])
+  @@index([userId, categoryId, programId, subjectId, classId])
   @@index([categoryId])
   @@index([programId])
   @@index([subjectId])

@@ -22,9 +22,10 @@ Welcome to the **Military LMS Help Center**. This documentation covers every scr
 If you are new to the system, read these articles first:
 
 1. [Home](/en/home) — Overview of the home page, role-based widgets, and navigation.
-2. [Dashboard](/en/dashboard) — The administrative hub: activities, announcements, resources, programs, and more.
-3. [Attendance](/en/attendance) — Taking attendance, QR scanner, and HR attendance.
-4. [Quizzes](/en/quizzes) — Creating, previewing, and taking quizzes.
+2. [User Access & Permissions](/en/user-access) — Permission matrix, UCA, **User Access Studio** (visibility lens), charts scope, and Super Admin vs HR/Admin.
+3. [Dashboard](/en/dashboard) — The administrative hub: activities, announcements, resources, programs, and more.
+4. [Attendance](/en/attendance) — Taking attendance, QR scanner, and HR attendance.
+5. [Quizzes](/en/quizzes) — Creating, previewing, and taking quizzes.
 
 ## Roles in the system
 
@@ -32,13 +33,13 @@ The LMS uses role-based access control. Your role determines which screens you c
 
 | Role | Description |
 | --- | --- |
-| **Super Admin** | Full access to all screens, settings, and the Permission Matrix. Can override any configuration. |
-| **Admin** | Manage academic content, users, enrollments, and operations. Cannot access the Permission Matrix. |
-| **HR** | Manage attendance, penalties, and user accounts. Focused on personnel operations. |
-| **Instructor** | Create activities and quizzes, take attendance, schedule sessions, and enter marks. |
+| **Super Admin** | Full access to all screens, settings, and the Permission Matrix. Unrestricted data scope. |
+| **Admin** | Matrix-configurable screens/actions. Data visible only via **User Category Access** rows. |
+| **HR** | Same data rules as Admin. Matrix-configurable (Super Admin sets HR vs Admin differences). |
+| **Instructor** | Matrix-configurable. Sees taught classes **plus** UCA rows. |
 | **Student** | View assigned content, take quizzes, check attendance, and track progress. |
 
-> Permissions are managed through the [Permission Matrix](/en/profile) (Super Admin only).
+> Full guide: [User Access & Permissions](/en/user-access). Permissions matrix: Super Admin only.
 
 ## Screen access by role
 

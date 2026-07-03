@@ -73,6 +73,7 @@ const CategorySelect = ({ categories, value, onChange, disabled = false, placeho
       onChange={(e) => onChange(e)}
       options={options}
       disabled={disabled}
+      placeholder={placeholder}
     />
   );
 };

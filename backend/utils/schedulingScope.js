@@ -3,7 +3,7 @@
  */
 
 import prisma from '../db/prismaClient.js';
-import { getRequestScope, assertClassInScope, assertProgramInScope } from './scopeAccess.js';
+import { getRequestScope, assertClassInScope, assertProgramInScope, isRecordInScope } from './scopeAccess.js';
 
 
 /** Intersect filter-derived class IDs with scope constraint (null scopeClassIds = unrestricted). */
@@ -34,6 +34,125 @@ async function expandScopeClassIds(scope) {
   }
 
   return [...allowed];
+}
+
+/** Effective class IDs from UCA (program expands to all classes in program; class row = one class). */
+export async function resolveEffectiveClassIds(scope, scopedClassIds = null) {
+  if (scopedClassIds !== null && scopedClassIds !== undefined) return scopedClassIds;
+  if (!scope || scope.unrestricted) return null;
+  return expandScopeClassIds(scope);
+}
+
+/** Instructors visible per visibility profile (null = no filter / all). */
+export async function resolveInstructorIdsInScope(scope, scopedClassIds = null) {
+  if (!scope || scope.unrestricted) return null;
+
+  const mode = scope.visibility?.instructors ?? 'ALL';
+  if (mode === 'ALL') return null;
+  if (mode === 'EXPLICIT') {
+    const ids = scope.explicitGrants?.instructorIds ?? [];
+    return ids;
+  }
+
+  const classIds = scopedClassIds ?? await expandScopeClassIds(scope);
+  if (!classIds.length) return [];
+
+  const ids = new Set();
+  const classes = await prisma.class.findMany({
+    where: { id: { in: classIds }, isActive: true },
+    select: { instructorId: true, programId: true },
+  });
+  classes.forEach((c) => {
+    if (c.instructorId) ids.add(c.instructorId);
+  });
+
+  const programIds = [...new Set(classes.map((c) => c.programId).filter(Boolean))];
+  if (programIds.length) {
+    const flexRows = await prisma.flexibleScheduleSession.findMany({
+      where: {
+        isActive: true,
+        programId: { in: programIds },
+        instructorUserId: { not: null },
+      },
+      select: { instructorUserId: true },
+      distinct: ['instructorUserId'],
+    });
+    flexRows.forEach((r) => ids.add(r.instructorUserId));
+  }
+
+  return [...ids];
+}
+
+/** Rooms visible per visibility profile (null = all rooms). */
+export async function resolveClassroomIdsInScope(scope, scopedClassIds = null) {
+  if (!scope || scope.unrestricted) return null;
+
+  const mode = scope.visibility?.rooms ?? 'ALL';
+  if (mode === 'ALL') return null;
+  if (mode === 'EXPLICIT') {
+    return scope.explicitGrants?.roomIds ?? [];
+  }
+
+  const classIds = scopedClassIds ?? await expandScopeClassIds(scope);
+  if (!classIds.length) return [];
+
+  const ids = new Set();
+  const classes = await prisma.class.findMany({
+    where: { id: { in: classIds }, isActive: true },
+    select: { classroomId: true, programId: true },
+  });
+  classes.forEach((c) => {
+    if (c.classroomId) ids.add(c.classroomId);
+  });
+
+  const sessionRooms = await prisma.scheduledSession.findMany({
+    where: {
+      classId: { in: classIds },
+      isActive: true,
+      deletedAt: null,
+      classroomId: { not: null },
+    },
+    select: { classroomId: true },
+    distinct: ['classroomId'],
+  });
+  sessionRooms.forEach((r) => ids.add(r.classroomId));
+
+  const programIds = [...new Set(classes.map((c) => c.programId).filter(Boolean))];
+  if (programIds.length) {
+    const flexRooms = await prisma.flexibleScheduleSession.findMany({
+      where: { programId: { in: programIds }, isActive: true, classroomId: { not: null } },
+      select: { classroomId: true },
+      distinct: ['classroomId'],
+    });
+    flexRooms.forEach((r) => ids.add(r.classroomId));
+  }
+
+  return [...ids];
+}
+
+/** Instructor availability rows: instructor in scope OR row tagged to scoped program/subject/class. */
+export async function filterInstructorAvailabilityByScope(items, scope, scopedClassIds = null) {
+  if (!scope || scope.unrestricted) return items;
+  const allowed = await resolveInstructorIdsInScope(scope, scopedClassIds);
+  if (allowed === null) return items;
+  const allowedSet = new Set(allowed);
+  return (items || []).filter((row) => {
+    if (allowedSet.has(row.instructorUserId)) return true;
+    return isRecordInScope(scope, {
+      programId: row.programId,
+      subjectId: row.subjectId,
+      classId: row.classId,
+    });
+  });
+}
+
+export async function filterClassroomAvailabilityByScope(items, scope, scopedClassIds = null) {
+  if (!scope || scope.unrestricted) return items;
+  const allowedRooms = await resolveClassroomIdsInScope(scope, scopedClassIds);
+  if (allowedRooms === null) return items;
+  if (!allowedRooms.length) return [];
+  const roomSet = new Set(allowedRooms);
+  return (items || []).filter((row) => roomSet.has(row.classroomId));
 }
 
 /**
@@ -155,6 +274,11 @@ export async function applySchedulingDataScope(req, params) {
 export default {
   intersectClassIdLists,
   resolveSchedulingClassScope,
+  resolveEffectiveClassIds,
+  resolveInstructorIdsInScope,
+  resolveClassroomIdsInScope,
+  filterInstructorAvailabilityByScope,
+  filterClassroomAvailabilityByScope,
   canAccessTeacherInScope,
   applySchedulingDataScope,
 };

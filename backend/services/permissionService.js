@@ -68,12 +68,9 @@ export async function canAccessFile(fileId, actor) {
   if (workflowDoc) {
     const isSubmitter = workflowDoc.submitterId === actor.userId;
     const isAssignee = workflowDoc.currentAssigneeId === actor.userId;
-    // HR/Admin roles are always workflow participants in the simple document system
-    const actorRolesUpper = (actor.roles || []).map(r => r.toUpperCase());
-    const isHRorAdmin = actorRolesUpper.includes('HR') || actorRolesUpper.includes('ADMIN') || actorRolesUpper.includes('SUPER_ADMIN');
 
-    if (isSubmitter || isAssignee || isHRorAdmin) {
-      return ok('COMMENT'); // Workflow participants get COMMENT access (includes VIEW + DOWNLOAD + COMMENT)
+    if (isSubmitter || isAssignee) {
+      return ok('COMMENT');
     }
   }
 

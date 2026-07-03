@@ -46,8 +46,9 @@ export const updatePermissionsController = async (req, res) => {
     
     res.json({
       success: true,
-      data: result,
-      message: 'Permissions updated successfully'
+      data: result.permissions ?? result,
+      impliedGrants: result.impliedGrants ?? [],
+      message: 'Permissions updated successfully',
     });
   } catch (error) {
     console.error('Error updating permissions:', error);

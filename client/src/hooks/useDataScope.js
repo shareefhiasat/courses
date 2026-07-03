@@ -15,7 +15,7 @@ const EMPTY_SCOPE = {
  * Load effective data scope for the logged-in user (category/program/subject/class).
  */
 export function useDataScope() {
-  const { user, isSuperAdmin, isHR } = useAuth();
+  const { user, isSuperAdmin } = useAuth();
   const [scope, setScope] = useState(EMPTY_SCOPE);
   const [loading, setLoading] = useState(true);
 
@@ -26,8 +26,8 @@ export function useDataScope() {
       return;
     }
 
-    if (isSuperAdmin || isHR) {
-      setScope({ ...EMPTY_SCOPE, unrestricted: true, source: isSuperAdmin ? 'super_admin' : 'hr' });
+    if (isSuperAdmin) {
+      setScope({ ...EMPTY_SCOPE, unrestricted: true, source: 'super_admin' });
       setLoading(false);
       return;
     }
@@ -54,7 +54,7 @@ export function useDataScope() {
     })();
 
     return () => { cancelled = true; };
-  }, [user, isSuperAdmin, isHR]);
+  }, [user, isSuperAdmin]);
 
   const filterItems = useCallback((items, fieldMap) => {
     if (scope.unrestricted) return items || [];

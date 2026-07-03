@@ -31,6 +31,7 @@ import { createShare } from './fileShareService.js';
 import notificationGateway from './notifications/index.js';
 import { EVENTS } from './notifications/constants.js';
 import { buildNotificationNameVars } from '../utils/localizedUserName.js';
+import { getEffectiveDataScope } from './scopeResolver.js';
 import { LMS_ROLES } from './keycloakAdminService.js';
 
 
@@ -71,17 +72,43 @@ function getRoleForApprovalFlow(approvalFlow) {
 }
 
 /**
- * Auto-share a workflow file with the approval-flow role (default) or specific users (override).
- * Creates FileShare records with DOWNLOAD permission so the file appears in "Shared with me".
- * Best-effort: logs warnings on failure, does not block workflow creation.
- *
- * @param {object} params
- * @param {string} params.fileId           - The File record ID to share
- * @param {number} params.submitterId      - The submitter's DB user ID (acts as sharer)
- * @param {string} params.approvalFlow     - The approval flow value
- * @param {number[]} [params.specificUserIds] - Optional override: share with these users instead of role
+ * Users with the given role who have data scope on classId (UCA or instructor assignment).
  */
-async function shareWorkflowFile({ fileId, submitterId, approvalFlow, specificUserIds }) {
+async function getScopedUsersForRoleAndClass(roleCode, classId) {
+  const roleUsers = await byRole(roleCode);
+  if (!classId || roleUsers.length === 0) return roleUsers;
+
+  const cls = await prisma.class.findUnique({
+    where: { id: parseInt(classId, 10) },
+    select: { id: true, programId: true, subjectId: true },
+  });
+  if (!cls) return [];
+
+  const scoped = [];
+  for (const u of roleUsers) {
+    const userRoles = await prisma.userRoleAssignment.findMany({
+      where: { userId: u.userId },
+      include: { role: true },
+    });
+    const roles = userRoles.map((ra) => ra.role.code);
+    const scope = await getEffectiveDataScope(u.userId, roles);
+    if (scope.unrestricted) {
+      scoped.push(u);
+      continue;
+    }
+    const inScope =
+      scope.classIds.includes(cls.id)
+      || (cls.subjectId && scope.subjectIds.includes(cls.subjectId))
+      || (cls.programId && scope.programIds.includes(cls.programId));
+    if (inScope) scoped.push(u);
+  }
+  return scoped;
+}
+
+/**
+ * Auto-share a workflow file with scoped users on the workflow class, or role fallback.
+ */
+async function shareWorkflowFile({ fileId, submitterId, approvalFlow, specificUserIds, classId }) {
   if (!fileId) {
     console.warn('[shareWorkflowFile] No fileId provided, skipping auto-share');
     return;
@@ -102,6 +129,32 @@ async function shareWorkflowFile({ fileId, submitterId, approvalFlow, specificUs
         }, actor);
         if (!result.success) {
           console.warn(`[shareWorkflowFile] Failed to share with user ${userId}:`, result.error);
+        }
+      }
+    } else if (classId) {
+      const role = getRoleForApprovalFlow(approvalFlow);
+      const scopedUsers = await getScopedUsersForRoleAndClass(role, classId);
+      if (scopedUsers.length > 0) {
+        for (const u of scopedUsers) {
+          const result = await createShare({
+            fileId,
+            subjectType: 'USER',
+            subjectUserId: u.userId,
+            permission,
+          }, actor);
+          if (!result.success) {
+            console.warn(`[shareWorkflowFile] Failed to share with scoped user ${u.userId}:`, result.error);
+          }
+        }
+      } else {
+        const result = await createShare({
+          fileId,
+          subjectType: 'ROLE',
+          subjectRole: role,
+          permission,
+        }, actor);
+        if (!result.success) {
+          console.warn(`[shareWorkflowFile] Failed to share with role ${role}:`, result.error);
         }
       }
     } else {
@@ -411,6 +464,7 @@ export async function createWorkflowDocumentWithUpload(data) {
       submitterId,
       approvalFlow: taxonomy.approvalFlow,
       specificUserIds,
+      classId: data.classId,
     });
 
     return { 
@@ -1355,6 +1409,7 @@ export async function createCustomWorkflowDocument(data) {
         submitterId,
         approvalFlow: taxonomy.approvalFlow,
         specificUserIds,
+        classId: data.classId,
       });
     }
 

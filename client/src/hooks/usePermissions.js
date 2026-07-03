@@ -2,6 +2,7 @@ import { useMemo, useEffect, useState } from 'react';
 import { useAuth } from '@contexts/AuthContext';
 import { resolveScreenIdFromNavItem } from '@config/navigationRegistry.js';
 import { getAuthToken } from '@utils/authHelpers';
+import { hasPermissionWithDeps } from '@constants/permissionDependencies.js';
 
 const ROLE_HIERARCHY = ['student', 'instructor', 'hr', 'admin', 'super_admin'];
 
@@ -87,7 +88,7 @@ export const usePermissions = () => {
     roleCode: highestRoleCode,
     allRoles: roleCodes,
     ...permissions,
-    hasPermission: (permissionName) => permissions[permissionName] || false,
+    hasPermission: (permissionName) => hasPermissionWithDeps(permissions, permissionName),
     canAccessScreen: (target) => {
       if (isSuperAdmin || roleCodes.includes('super_admin')) return true;
 

@@ -2,13 +2,19 @@ import express from 'express';
 const router = express.Router();
 import * as instructorAvailabilityDb from '../db/instructor-availability-postgres.js';
 import { validateInstructorAvailabilityChange } from '../services/availabilityGuardService.js';
+import { screenOps } from '../middleware/requirePermission.js';
+import { resolveSchedulingClassScope, filterInstructorAvailabilityByScope, canAccessTeacherInScope } from '../utils/schedulingScope.js';
+import { scopeForbidden } from '../utils/scopeAccess.js';
+
+const availOps = screenOps('instructor-availability-view');
+const setupOps = screenOps('instructor-availability-setup');
 
 /**
  * Instructor Availability Routes
  */
 
 // Validate instructor availability change (live preview)
-router.post('/validate-change', async (req, res) => {
+router.post('/validate-change', setupOps.update, async (req, res) => {
   try {
     const result = await validateInstructorAvailabilityChange(req.body);
     res.json({ success: true, ...result });
@@ -18,7 +24,7 @@ router.post('/validate-change', async (req, res) => {
 });
 
 // Create instructor availability
-router.post('/', async (req, res) => {
+router.post('/', setupOps.create, async (req, res) => {
   try {
     const result = await instructorAvailabilityDb.createInstructorAvailability(req.body);
     if (result.success) {
@@ -32,8 +38,10 @@ router.post('/', async (req, res) => {
 });
 
 // Get instructor availability by user ID
-router.get('/instructor/:instructorUserId', async (req, res) => {
+router.get('/instructor/:instructorUserId', availOps.view, async (req, res) => {
   try {
+    const inScope = await canAccessTeacherInScope(req, req.params.instructorUserId);
+    if (!inScope) return scopeForbidden(res);
     const result = await instructorAvailabilityDb.getInstructorAvailabilityByUserId(req.params.instructorUserId);
     if (result.success) {
       res.json(result);
@@ -46,7 +54,7 @@ router.get('/instructor/:instructorUserId', async (req, res) => {
 });
 
 // Get all instructor availabilities
-router.get('/', async (req, res) => {
+router.get('/', availOps.view, async (req, res) => {
   try {
     const filters = {
       ...req.query,
@@ -55,6 +63,24 @@ router.get('/', async (req, res) => {
       classId: req.query.classId,
     };
     const result = await instructorAvailabilityDb.getInstructorAvailabilities(filters);
+    if (result.success && Array.isArray(result.data)) {
+      const resolved = await resolveSchedulingClassScope(req, {
+        programId: filters.programId ? parseInt(filters.programId, 10) : null,
+        subjectId: filters.subjectId ? parseInt(filters.subjectId, 10) : null,
+        classId: filters.classId ? parseInt(filters.classId, 10) : null,
+      });
+      if (!resolved.ok) {
+        result.data = [];
+        result.total = 0;
+      } else if (!resolved.scope.unrestricted) {
+        result.data = await filterInstructorAvailabilityByScope(
+          result.data,
+          resolved.scope,
+          resolved.scopeClassIds,
+        );
+        result.total = result.data.length;
+      }
+    }
     res.json(result);
   } catch (error) {
     res.status(500).json({ success: false, error: "Internal server error" });
@@ -62,7 +88,7 @@ router.get('/', async (req, res) => {
 });
 
 // Update instructor availability by ID
-router.put('/:id', async (req, res) => {
+router.put('/:id', setupOps.update, async (req, res) => {
   try {
     const result = await instructorAvailabilityDb.updateInstructorAvailability(req.params.id, req.body);
     if (result.success) {
@@ -76,7 +102,7 @@ router.put('/:id', async (req, res) => {
 });
 
 // Delete instructor availability by ID
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', setupOps.delete, async (req, res) => {
   try {
     const result = await instructorAvailabilityDb.deleteInstructorAvailability(req.params.id);
     if (result.success) {

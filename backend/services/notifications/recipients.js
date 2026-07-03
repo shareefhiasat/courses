@@ -190,7 +190,33 @@ export const byEnrollment = async ({ subjectId, programId }) => {
  * @returns {Promise<Array>} Array of recipient objects
  */
 export const resolveRecipients = async (criteria) => {
-  const { userId, userIds, role, classId, subjectId, programId } = criteria;
+  const { userId, userIds, role, classId, subjectId, programId, scopedRole, scopedClassId } = criteria;
+
+  if (scopedRole && scopedClassId) {
+    const roleUsers = await byRole(scopedRole);
+    const { getEffectiveDataScope } = await import('../services/scopeResolver.js');
+    const cls = await prisma.class.findUnique({
+      where: { id: parseInt(scopedClassId, 10) },
+      select: { id: true, programId: true, subjectId: true },
+    });
+    if (!cls) return [];
+    const filtered = [];
+    for (const u of roleUsers) {
+      const assignments = await prisma.userRoleAssignment.findMany({
+        where: { userId: u.userId },
+        include: { role: true },
+      });
+      const roles = assignments.map((a) => a.role.code);
+      const scope = await getEffectiveDataScope(u.userId, roles);
+      if (scope.unrestricted
+        || scope.classIds.includes(cls.id)
+        || (cls.subjectId && scope.subjectIds.includes(cls.subjectId))
+        || (cls.programId && scope.programIds.includes(cls.programId))) {
+        filtered.push(u);
+      }
+    }
+    return filtered;
+  }
   
   if (userId) {
     return await byUserId(userId);

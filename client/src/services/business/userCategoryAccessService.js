@@ -244,6 +244,16 @@ export const bulkAssignCategoryAccess = async (assignments) => {
   }
 };
 
+export const getUcaActivityStats = async (userId) => {
+  try {
+    const response = await fetch(`${API_BASE}/user/${userId}/activity-stats`);
+    return response.json();
+  } catch (err) {
+    error('Error getting UCA activity stats:', err);
+    return { success: false, error: err.message };
+  }
+};
+
 export default {
   getAllUserCategoryAccesses,
   getUserCategoryAccessById,
@@ -255,5 +265,6 @@ export default {
   checkUserCategoryAccess,
   getAccessibleCategoriesForUser,
   getAccessibleProgramsForUser,
+  getUcaActivityStats,
   bulkAssignCategoryAccess,
 };

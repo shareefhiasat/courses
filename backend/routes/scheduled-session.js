@@ -3,17 +3,21 @@ import * as scheduledSessionDb from '../db/scheduled-session-postgres.js';
 import * as schedulingEngine from '../services/schedulingEngine.js';
 import * as suggestionEngine from '../services/suggestionEngine.js';
 import sessionStatusService from '../services/sessionStatusService.js';
+import { screenOps } from '../middleware/requirePermission.js';
+import { applyListScope } from '../utils/applyListScope.js';
 
 const router = express.Router();
+const calendarOps = screenOps('scheduling-calendar');
 
 /**
  * Get all scheduled sessions
  * GET /api/v1/scheduled-sessions
  */
-router.get('/', async (req, res) => {
+router.get('/', calendarOps.view, async (req, res) => {
   try {
     const result = await scheduledSessionDb.getScheduledSessions(req.query);
-    res.json(result);
+    const scoped = await applyListScope(req, result, 'classLinked');
+    res.json(scoped);
   } catch (error) {
     res.status(500).json({ success: false, error: "Internal server error" });
   }

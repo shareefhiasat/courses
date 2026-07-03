@@ -6,6 +6,7 @@
 
 import prisma from '../db/prismaClient.js';
 import { mapNotifications } from '../services/notifications/mapper.js';
+import { getRequestScope, isRecordInScope } from '../utils/scopeAccess.js';
 
 
 export async function getNotifications(req, res) {
@@ -24,12 +25,24 @@ export async function getNotifications(req, res) {
       orderBy: { createdAt: 'desc' },
       take: limit ? parseInt(limit, 10) : 50,
     });
+
+    const scope = await getRequestScope(req);
+    const filtered = scope.unrestricted
+      ? notifications
+      : notifications.filter((n) => {
+          const meta = n.metadata && typeof n.metadata === 'object' ? n.metadata : {};
+          const classId = meta.classId ?? meta.class_id;
+          const programId = meta.programId ?? meta.program_id;
+          const subjectId = meta.subjectId ?? meta.subject_id;
+          if (classId == null && programId == null && subjectId == null) return true;
+          return isRecordInScope(scope, { classId, programId, subjectId });
+        });
     
     const unreadCount = await prisma.notification.count({
       where: { userId, isRead: false, isArchived: false },
     });
     
-    return res.json({ success: true, notifications: mapNotifications(notifications), unreadCount });
+    return res.json({ success: true, notifications: mapNotifications(filtered), unreadCount });
   } catch (error) {
     console.error('[notificationController.getNotifications]', error);
     return res.status(500).json({ success: false, error: "Internal server error" });

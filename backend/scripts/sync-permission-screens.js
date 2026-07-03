@@ -27,11 +27,9 @@ const INSTRUCTOR_QR_OPS = new Set([
 const DEFAULT_ROLE_PRESETS = {
   super_admin: () => true,
   hr: (screen, opType) => {
-    if (screen.category === 'admin' && screen.screenId === 'permission-matrix') return false;
-    if (screen.category === 'admin' && screen.screenId === 'user-category-access') return opType === 'canView';
+    if (['permission-matrix', 'user-category-access'].includes(screen.screenId)) return false;
     if (screen.category === 'settings') return opType === 'canView';
-    if (['canView', 'canCreate', 'canUpdate', 'canExport'].includes(opType)) return true;
-    return opType === 'canView';
+    return ['canView', 'canCreate', 'canUpdate', 'canExport'].includes(opType);
   },
   admin: (screen, opType) => {
     if (['permission-matrix', 'user-category-access'].includes(screen.screenId)) return false;

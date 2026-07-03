@@ -4,8 +4,10 @@
 
 import express from 'express';
 import chatController from '../controllers/chatController.js';
+import { screenOps } from '../middleware/requirePermission.js';
 
 const router = express.Router();
+const chatOps = screenOps('chat');
 
 /**
  * @swagger
@@ -17,7 +19,7 @@ const router = express.Router();
  *       200:
  *         description: List of chat rooms
  */
-router.get('/rooms', chatController.getRooms);
+router.get('/rooms', chatOps.view, chatController.getRooms);
 
 /**
  * @swagger
@@ -47,7 +49,7 @@ router.get('/rooms', chatController.getRooms);
  *       200:
  *         description: List of messages
  */
-router.get('/rooms/:roomId/messages', chatController.getMessages);
+router.get('/rooms/:roomId/messages', chatOps.view, chatController.getMessages);
 
 /**
  * @swagger
@@ -83,7 +85,7 @@ router.get('/rooms/:roomId/messages', chatController.getMessages);
  *       200:
  *         description: Message sent
  */
-router.post('/rooms/:roomId/messages', chatController.sendMessage);
+router.post('/rooms/:roomId/messages', chatOps.create, chatController.sendMessage);
 
 /**
  * @swagger
@@ -110,7 +112,7 @@ router.post('/rooms/:roomId/messages', chatController.sendMessage);
  *       200:
  *         description: Message updated
  */
-router.put('/messages/:messageId', chatController.updateMessage);
+router.put('/messages/:messageId', chatOps.update, chatController.updateMessage);
 
 /**
  * @swagger
@@ -128,7 +130,7 @@ router.put('/messages/:messageId', chatController.updateMessage);
  *       200:
  *         description: Message deleted
  */
-router.delete('/messages/:messageId', chatController.deleteMessage);
+router.delete('/messages/:messageId', chatOps.delete, chatController.deleteMessage);
 
 /**
  * @swagger
@@ -149,7 +151,7 @@ router.delete('/messages/:messageId', chatController.deleteMessage);
  *       200:
  *         description: DM room created or retrieved
  */
-router.post('/dm', chatController.createDM);
+router.post('/dm', chatOps.create, chatController.createDM);
 
 /**
  * @swagger
@@ -217,7 +219,7 @@ router.post('/messages/:messageId/vote', chatController.votePoll);
  *       200:
  *         description: List of available users
  */
-router.get('/users', chatController.getAvailableUsers);
+router.get('/users', chatOps.view, chatController.getAvailableUsers);
 
 /**
  * @swagger
@@ -247,7 +249,7 @@ router.get('/users', chatController.getAvailableUsers);
  *       403:
  *         description: Only staff can create groups
  */
-router.post('/rooms/group', chatController.createGroupRoom);
+router.post('/rooms/group', chatOps.create, chatController.createGroupRoom);
 
 /**
  * @swagger

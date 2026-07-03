@@ -28,8 +28,10 @@ import {
   deleteWorkflowDocumentController,
   getLinkedWorkflowsController
 } from '../controllers/workflowDocuments.js';
+import { screenOps } from '../middleware/requirePermission.js';
 
 const router = Router();
+const wfOps = screenOps('workflow');
 
 /**
  * @swagger
@@ -161,7 +163,7 @@ const router = Router();
  *       500:
  *         description: Internal server error
  */
-router.post('/', createWorkflowDocumentController);
+router.post('/', wfOps.create, createWorkflowDocumentController);
 
 /**
  * @swagger
@@ -210,7 +212,7 @@ router.post('/', createWorkflowDocumentController);
  *       500:
  *         description: Internal server error
  */
-router.get('/', getWorkflowDocumentsController);
+router.get('/', wfOps.view, getWorkflowDocumentsController);
 
 /**
  * @swagger
@@ -267,7 +269,7 @@ router.post('/linked-by-attendance', getLinkedWorkflowsController);
  *       500:
  *         description: Internal server error
  */
-router.get('/:id', getWorkflowDocumentController);
+router.get('/:id', wfOps.view, getWorkflowDocumentController);
 
 /**
  * @swagger
@@ -294,7 +296,7 @@ router.get('/:id', getWorkflowDocumentController);
  *       500:
  *         description: Internal server error
  */
-router.delete('/:id', deleteWorkflowDocumentController);
+router.delete('/:id', wfOps.delete, deleteWorkflowDocumentController);
 
 /**
  * @swagger
@@ -893,6 +895,6 @@ router.get('/:fileId/versions/:versionId/download', downloadFileVersionControlle
  *       500:
  *         description: Internal server error
  */
-router.post('/custom', createCustomWorkflowDocumentController);
+router.post('/custom', wfOps.create, createCustomWorkflowDocumentController);
 
 export default router;

@@ -138,7 +138,7 @@ const ProgramsSelect = ({
       value: String(program.id || ''),
       label: getProgramOptionLabel(program, lang),
       displayLabel: getProgramOptionLabel(program, lang),
-      subtext: getProgramSubtextLines(program, lang, t),
+      subtext: getProgramSubtextLines(program, lang, t, { classes, subjects }),
     })),
   ];
 
@@ -149,7 +149,7 @@ const ProgramsSelect = ({
       value: String(subject.id || ''),
       label: getSubjectOptionLabel(subject, lang),
       displayLabel: getSubjectOptionLabel(subject, lang),
-      subtext: getSubjectSubtextLines(subject, lang, t),
+      subtext: getSubjectSubtextLines(subject, lang, t, { classes: filteredClassesByRole }),
     })),
   ];
 

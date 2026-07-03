@@ -1,7 +1,7 @@
 {
   "name": "military-lms-help-docs",
   "version": "1.0.0",
-  "description": "Military LMS Help Center — Nextra documentation site",
+  "description": "Military LMS Help Center — documentation site",
   "private": true,
   "type": "module",
   "scripts": {

@@ -7,6 +7,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { MODE_TYPES } from '@utils/sharedTypes';
 import { DASHBOARD_TAB_SCREEN_IDS } from '@config/navigationRegistry.js';
 import { usePermissions } from '@hooks/usePermissions';
+import { DASHBOARD_TABS_WITH_PAGE_TOUR, dispatchPageTourIfRegistered, registerTourAvailability } from '@utils/tourScheduler';
 import Joyride from 'react-joyride';
 import TourTooltip from '@ui/TourTooltip/TourTooltip';
 import { Modal, Button, SimpleLoading } from '@ui';
@@ -74,6 +75,7 @@ const DashboardPage = () => {
       }
       // Notify child pages that the dashboard tour is done so they can start theirs
       window.dispatchEvent(new CustomEvent('dashboard-tour-finished'));
+      window.dispatchEvent(new CustomEvent('tour-availability-changed'));
     }
   }, [lang]);
   const TourTooltipComponent = useMemo(() => TourTooltip({ tourSeenKey: `dashboardHelpSeen_${lang}` }), [lang]);
@@ -419,6 +421,13 @@ const DashboardPage = () => {
     return allSteps.filter(s => !!document.querySelector(s.target));
   }, [t, ribbonCategories]);
 
+  useEffect(() => {
+    return registerTourAvailability('dashboard-shell', {
+      tourSeenKey: (l) => `dashboardHelpSeen_${l}`,
+      getStepCount: () => buildTourSteps().length,
+    });
+  }, [buildTourSteps]);
+
   const startTour = useCallback(() => {
     const steps = buildTourSteps();
     if (steps.length === 0) return;
@@ -428,18 +437,41 @@ const DashboardPage = () => {
 
   useEffect(() => {
     const tourSeenKey = `dashboardHelpSeen_${lang}`;
-    try { if (!localStorage.getItem(tourSeenKey)) startTour(); } catch {}
-  }, [lang, startTour]);
+    try {
+      if (localStorage.getItem(tourSeenKey)) return;
+      if (DASHBOARD_TABS_WITH_PAGE_TOUR.has(activeTab)) return;
+      startTour();
+    } catch { /* ignore */ }
+  }, [lang, activeTab, startTour]);
 
   // Auto-start on demand via app event in HomePage (optional)
   useEffect(() => {
-    window.addEventListener('app:joyride', startTour);
-    window.addEventListener('app:help', startTour);
-    return () => {
-      window.removeEventListener('app:joyride', startTour);
-      window.removeEventListener('app:help', startTour);
+    const onHelp = () => {
+      if (dispatchPageTourIfRegistered()) return;
+      startTour();
     };
-  }, []);
+    window.addEventListener('app:joyride', onHelp);
+    window.addEventListener('app:help', onHelp);
+    return () => {
+      window.removeEventListener('app:joyride', onHelp);
+      window.removeEventListener('app:help', onHelp);
+    };
+  }, [startTour]);
+
+  // After a nested page tour finishes, offer the dashboard shell tour if still unseen
+  useEffect(() => {
+    const onPageTourFinished = () => {
+      try {
+        const key = `dashboardHelpSeen_${lang}`;
+        if (!localStorage.getItem(key)) {
+          setTimeout(() => startTour(), 700);
+        }
+      } catch { /* ignore */ }
+    };
+    window.addEventListener('page-tour-finished', onPageTourFinished);
+    return () => window.removeEventListener('page-tour-finished', onPageTourFinished);
+  }, [lang, startTour]);
+
   // Delete confirmation modal (shared across child pages via context if needed)
   const [deleteModal, setDeleteModal] = useState({ open: false, item: null, type: null, onConfirm: null, relatedData: null, warningMessage: null });
   const [hashProcessed, setHashProcessed] = useState(false);

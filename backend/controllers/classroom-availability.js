@@ -12,6 +12,7 @@ import {
   deleteClassroomAvailability
 } from '../db/classroom-availability-postgres.js';
 import { validateClassroomAvailabilityChange } from '../services/availabilityGuardService.js';
+import { resolveSchedulingClassScope, filterClassroomAvailabilityByScope } from '../utils/schedulingScope.js';
 
 /**
  * POST /api/v1/classroom-availability/validate-change
@@ -34,6 +35,21 @@ export const validateClassroomAvailabilityChangeController = async (req, res) =>
 export const getAllClassroomAvailabilitiesController = async (req, res) => {
   try {
     const result = await getClassroomAvailabilities(req.query);
+
+    if (result.success && Array.isArray(result.data)) {
+      const resolved = await resolveSchedulingClassScope(req, {});
+      if (!resolved.ok) {
+        result.data = [];
+        if (result.pagination) result.pagination.total = 0;
+      } else if (!resolved.scope.unrestricted) {
+        result.data = await filterClassroomAvailabilityByScope(
+          result.data,
+          resolved.scope,
+          resolved.scopeClassIds,
+        );
+        if (result.pagination) result.pagination.total = result.data.length;
+      }
+    }
     
     if (result.success) {
       res.status(200).json({

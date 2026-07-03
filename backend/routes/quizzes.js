@@ -16,8 +16,10 @@ import {
   getQuizStatsController
 } from '../controllers/quizzes.js';
 import { validateBody, validateParams } from '../middleware/validateInput.js';
+import { screenOps } from '../middleware/requirePermission.js';
 
 const router = Router();
+const ops = screenOps('quizzes');
 
 /**
  * @swagger
@@ -129,7 +131,7 @@ const router = Router();
  *       500:
  *         description: Server error
  */
-router.get('/', getAllQuizzesController);
+router.get('/', ops.view, getAllQuizzesController);
 
 /**
  * @swagger
@@ -150,7 +152,7 @@ router.get('/', getAllQuizzesController);
  *       500:
  *         description: Server error
  */
-router.get('/stats', getQuizStatsController);
+router.get('/stats', ops.view, getQuizStatsController);
 
 /**
  * @swagger
@@ -181,7 +183,7 @@ router.get('/stats', getQuizStatsController);
  *       500:
  *         description: Server error
  */
-router.get('/creator/:userId', getQuizzesByCreatorController);
+router.get('/creator/:userId', ops.view, getQuizzesByCreatorController);
 
 /**
  * @swagger
@@ -204,7 +206,7 @@ router.get('/creator/:userId', getQuizzesByCreatorController);
  *       500:
  *         description: Server error
  */
-router.get('/:id', getQuizByIdController);
+router.get('/:id', ops.view, getQuizByIdController);
 
 /**
  * @swagger
@@ -256,7 +258,7 @@ router.get('/:id', getQuizByIdController);
  *       500:
  *         description: Server error
  */
-router.post('/', validateBody({
+router.post('/', ops.create, validateBody({
   titleEn: { type: 'string', required: true, maxLength: 300 },
   titleAr: { type: 'string', required: false, maxLength: 300 },
   descriptionEn: { type: 'string', required: false, maxLength: 5000 },
@@ -326,7 +328,7 @@ router.post('/', validateBody({
  *       500:
  *         description: Server error
  */
-router.put('/:id', validateParams({
+router.put('/:id', ops.update, validateParams({
   id: { type: 'string', required: true },
 }), validateBody({
   titleEn: { type: 'string', required: false, maxLength: 300 },
@@ -362,6 +364,6 @@ router.put('/:id', validateParams({
  *       500:
  *         description: Server error
  */
-router.delete('/:id', deleteQuizController);
+router.delete('/:id', ops.delete, deleteQuizController);
 
 export default router;

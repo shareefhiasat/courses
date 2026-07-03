@@ -6,6 +6,7 @@
  * RUN: node backend/server.js
  */
 
+import './loadEnv.js';
 import express from "express";
 import cors from "cors";
 import helmet from "helmet";
@@ -419,6 +420,7 @@ import classroomAvailabilityRoutes from "./routes/classroom-availability.js";
 import scheduledSessionRoutes from "./routes/scheduled-session.js";
 import instructorHistoryRoutes from "./routes/instructor-history.js";
 import userCategoryAccessRoutes from "./routes/user-category-access.js";
+import userDataScopeRoutes from "./routes/user-data-scope.js";
 import meRoutes from "./routes/me.js";
 import quizRoutes from "./routes/quizzes.js";
 import workflowDocumentRoutes from "./routes/workflow-documents.js";
@@ -471,6 +473,7 @@ app.use(`/api/${API_VERSION}/classroom-availability`, classroomAvailabilityRoute
 app.use(`/api/${API_VERSION}/scheduled-sessions`, scheduledSessionRoutes);
 app.use(`/api/${API_VERSION}/instructor-history`, instructorHistoryRoutes);
 app.use(`/api/${API_VERSION}/user-category-access`, userCategoryAccessRoutes);
+app.use(`/api/${API_VERSION}/user-data-scope`, userDataScopeRoutes);
 
 // Dashboard routes
 app.use(`/api/${API_VERSION}/dashboard`, dashboardRoutes);

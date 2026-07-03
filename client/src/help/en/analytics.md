@@ -12,7 +12,9 @@ The analytics experience is a flexible, widget-based dashboard system. You can b
 
 The analytics screen has two major areas:
 
-1. **Dashboard Statistics** — Summary cards showing key counts (programs, subjects, classes, enrollments, activities, resources, users by role, quizzes, announcements, penalties, behaviors, participations) with filtering by program, subject, and class.
+> **Chart components** (`BarChart`, `LineChart`, `PieChart`, `AreaChart`, `ListChart`) are shared across Summary Dashboard, Advanced Analytics, Student Dashboard, and scheduling widgets. All chart data is loaded from scoped APIs — see [User Access & Permissions](/en/user-access).
+
+1. **Dashboard Statistics** — Summary cards showing key counts
 2. **Dashboard Analytics Panel** — A widget-based grid with draggable, resizable chart widgets covering Drive, Workflow, and Activity categories.
 
 ## Who can access
@@ -20,8 +22,8 @@ The analytics screen has two major areas:
 | Role | Access |
 | --- | --- |
 | Super Admin | Full analytics, all widgets, export, and layout editing. Sees system-wide counts. |
-| Admin | Full analytics scoped to accessible programs. Sees counts for accessible programs. |
-| HR | User and attendance-related analytics. |
+| Admin | Full analytics scoped to **UCA-assigned programs** (not unrestricted). |
+| HR | Same UCA scope as Admin; matrix defines which analytics screens are visible. |
 | Instructor | Personal classes, activities, attendance, and marks analytics. Sees only own classes and related data. |
 | Student | Limited or read-only analytics depending on role settings. |
 

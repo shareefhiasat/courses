@@ -14,8 +14,10 @@ import {
   deleteActivityController,
   getActivitiesByClassController
 } from '../controllers/activities.js';
+import { screenOps } from '../middleware/requirePermission.js';
 
 const router = Router();
+const ops = screenOps('activities');
 
 /**
  * @swagger
@@ -191,7 +193,7 @@ const router = Router();
  *                   type: integer
  *                   example: 2
  */
-router.get('/', getAllActivitiesController);
+router.get('/', ops.view, getAllActivitiesController);
 
 /**
  * @swagger
@@ -223,7 +225,7 @@ router.get('/', getAllActivitiesController);
  *       404:
  *         description: Activity not found
  */
-router.get('/:id', getActivityByIdController);
+router.get('/:id', ops.view, getActivityByIdController);
 
 /**
  * @swagger
@@ -293,7 +295,7 @@ router.get('/:id', getActivityByIdController);
  *       400:
  *         description: Bad request - validation error
  */
-router.post('/', createActivityController);
+router.post('/', ops.create, createActivityController);
 
 /**
  * @swagger
@@ -360,7 +362,7 @@ router.post('/', createActivityController);
  *       404:
  *         description: Activity not found
  */
-router.put('/:id', updateActivityController);
+router.put('/:id', ops.update, updateActivityController);
 
 /**
  * @swagger
@@ -401,7 +403,7 @@ router.put('/:id', updateActivityController);
  *       400:
  *         description: Cannot delete activity with submissions
  */
-router.delete('/:id', deleteActivityController);
+router.delete('/:id', ops.delete, deleteActivityController);
 
 /**
  * @swagger
@@ -467,6 +469,6 @@ router.delete('/:id', deleteActivityController);
  *                   type: integer
  *                   example: 1
  */
-router.get('/class/:classId', getActivitiesByClassController);
+router.get('/class/:classId', ops.view, getActivitiesByClassController);
 
 export default router;

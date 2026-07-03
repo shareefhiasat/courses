@@ -10,6 +10,7 @@ import './Navbar.css';
 import { getThemedIcon, getWhiteIcon, getIconWithColor, getUserRoleIcon, getUserRoleColor } from '@constants/iconTypes';
 import LanguageSwitcher from '../LanguageSwitcher/LanguageSwitcher';
 import { useTheme } from '@contexts/ThemeContext';
+import useTourBadgeCount from '@hooks/useTourBadgeCount.js';
 import { useColorTheme } from '@contexts/ColorThemeContext';
 import { useGlobalLoading } from '@contexts/GlobalLoadingContext';
 import { getTimeFormatPreference, setTimeFormatPreference } from '@utils/date';
@@ -42,6 +43,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
   });
   const [timeFormat, setTimeFormat] = useState(() => getTimeFormatPreference());
   const { lang, toggleLang, t } = useLang();
+  const tourBadgeCount = useTourBadgeCount();
   const { theme, toggleTheme } = useTheme();
   const { primaryColor, setPrimaryColor } = useColorTheme();
   const [notifLang, setNotifLang] = useState('auto');
@@ -309,7 +311,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                 </button>
                 </PortalTooltip>
 
-                <PortalTooltip content={t('tour_help')} position="bottom">
+                <PortalTooltip content={tourBadgeCount > 0 ? t('tour_help_count', { count: tourBadgeCount }) : t('tour_help')} position="bottom">
                 <button
                   className="nav-icon-btn nav-help"
                   onClick={() => {
@@ -320,8 +322,9 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                       window.dispatchEvent(new CustomEvent('app:joyride', { detail: { route: fullPath, search, hash } }));
                     } catch {}
                   }}
-                  aria-label={t('tour_help')}
+                  aria-label={tourBadgeCount > 0 ? t('tour_help_count', { count: tourBadgeCount }) : t('tour_help')}
                   style={{
+                    position: 'relative',
                     border: theme === 'light' ? '1px solid var(--border)' : '1px solid rgba(255,255,255,0.2)',
                     background: theme === 'light' ? 'var(--panel)' : 'rgba(0,0,0,0.3)',
                     borderRadius: '50%',
@@ -335,6 +338,17 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                   }}
                 >
                   {getThemedIcon('ui', 'help_circle', 16, theme === 'light' ? 'var(--text-primary)' : '#fff')}
+                  {tourBadgeCount > 0 && (
+                    <span style={{
+                      position: 'absolute', top: -4, insetInlineEnd: -4,
+                      minWidth: 16, height: 16, padding: '0 4px',
+                      borderRadius: 999, background: 'var(--color-primary, #800020)', color: '#fff',
+                      fontSize: 10, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      lineHeight: 1, boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
+                    }}>
+                      {tourBadgeCount}
+                    </span>
+                  )}
                 </button>
                 </PortalTooltip>
 

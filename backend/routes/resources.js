@@ -14,8 +14,10 @@ import {
   deleteResourceController,
   getResourcesByClassController
 } from '../controllers/resources.js';
+import { screenOps } from '../middleware/requirePermission.js';
 
 const router = Router();
+const ops = screenOps('resources');
 
 /**
  * @swagger
@@ -190,7 +192,7 @@ const router = Router();
  *                   type: integer
  *                   example: 2
  */
-router.get('/', getAllResourcesController);
+router.get('/', ops.view, getAllResourcesController);
 
 /**
  * @swagger
@@ -222,7 +224,7 @@ router.get('/', getAllResourcesController);
  *       404:
  *         description: Resource not found
  */
-router.get('/:id', getResourceByIdController);
+router.get('/:id', ops.view, getResourceByIdController);
 
 /**
  * @swagger
@@ -293,7 +295,7 @@ router.get('/:id', getResourceByIdController);
  *       400:
  *         description: Bad request - validation error
  */
-router.post('/', createResourceController);
+router.post('/', ops.create, createResourceController);
 
 /**
  * @swagger
@@ -359,7 +361,7 @@ router.post('/', createResourceController);
  *       404:
  *         description: Resource not found
  */
-router.put('/:id', updateResourceController);
+router.put('/:id', ops.update, updateResourceController);
 
 /**
  * @swagger
@@ -398,7 +400,7 @@ router.put('/:id', updateResourceController);
  *       404:
  *         description: Resource not found
  */
-router.delete('/:id', deleteResourceController);
+router.delete('/:id', ops.delete, deleteResourceController);
 
 /**
  * @swagger
@@ -469,6 +471,6 @@ router.delete('/:id', deleteResourceController);
  *                   type: integer
  *                   example: 1
  */
-router.get('/class/:classId', getResourcesByClassController);
+router.get('/class/:classId', ops.view, getResourcesByClassController);
 
 export default router;

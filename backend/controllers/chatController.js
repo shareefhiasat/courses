@@ -9,6 +9,7 @@ import prisma from '../db/prismaClient.js';
 import notificationGateway from '../services/notifications/index.js';
 import { EVENTS } from '../services/notifications/constants.js';
 import { buildNotificationNameVars } from '../utils/localizedUserName.js';
+import { getRequestScope, isRecordInScope } from '../utils/scopeAccess.js';
 
 
 /**
@@ -57,7 +58,15 @@ export const getRooms = async (req, res) => {
     const enrolledClassIds = enrollments.map(e => e.classId);
 
     // Get rooms
-    const rooms = await chatDb.getUserRooms(userId, roles, enrolledClassIds);
+    let rooms = await chatDb.getUserRooms(userId, roles, enrolledClassIds);
+
+    const scope = await getRequestScope(req);
+    if (!scope.unrestricted) {
+      rooms = rooms.filter((room) => {
+        if (!room.classId) return true;
+        return isRecordInScope(scope, { classId: room.classId });
+      });
+    }
 
     // Normalize profileImageUrl for all users in the response
     const normalizeProfileUrl = (url, keycloakId) => {

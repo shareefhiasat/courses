@@ -21,6 +21,7 @@ import {
   getCurrentUserController
 } from '../controllers/users.js';
 import { requireSuperAdmin } from '../middleware/keycloakAuth.js';
+import { screenOps } from '../middleware/requirePermission.js';
 import { validateBody, validateParams } from '../middleware/validateInput.js';
 
 const router = Router();
@@ -178,21 +179,20 @@ router.get('/programs', getProgramsController);
  */
 router.get('/subjects', getSubjectsController);
 
+const userOps = screenOps('users');
+
 // Admin user management routes (Keycloak-based)
-// Protected by Keycloak middleware (super_admin role required)
-// Temporarily disabled for testing - will re-enable after fixing token issue
-// router.get('/', requireSuperAdmin, listUsersController);
-router.get('/', listUsersController);
+router.get('/', userOps.view, listUsersController);
 router.get('/me', getCurrentUserController);
-router.get('/:id', getUserByIdController);
-router.post('/', validateBody({
+router.get('/:id', userOps.view, getUserByIdController);
+router.post('/', userOps.create, validateBody({
   email: { type: 'string', required: true, format: 'email', maxLength: 255 },
   displayName: { type: 'string', required: true, maxLength: 200 },
   role: { type: 'string', required: false, enum: ['admin', 'hr', 'instructor', 'student', 'super_admin'] },
   studentNumber: { type: 'string', required: false, maxLength: 50 },
   sequence: { type: 'number', required: false, min: 1 },
 }), createUserController);
-router.put('/:id', validateParams({
+router.put('/:id', userOps.update, validateParams({
   id: { type: 'string', required: true },
 }), updateUserController);
 // Tighter rate limit for sensitive account operations
@@ -206,7 +206,7 @@ const sensitiveLimiter = rateLimit({
 
 router.put('/:id/password', sensitiveLimiter, setPasswordController);
 router.put('/:id/enabled', sensitiveLimiter, setEnabledController);
-router.delete('/:id', deleteUserController);
+router.delete('/:id', userOps.delete, deleteUserController);
 
 /**
  * @swagger

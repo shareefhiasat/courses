@@ -8,8 +8,11 @@
 import express from 'express';
 import { getDashboardSummary, getTeacherDashboard } from '../controllers/dashboard.js';
 import dashboardAnalyticsController from '../controllers/dashboard-analytics.js';
+import { screenOps } from '../middleware/requirePermission.js';
 
 const router = express.Router();
+const dashOps = screenOps('dashboard');
+const analyticsOps = screenOps('advanced-analytics');
 
 const dashboardController = {
   getDashboardSummary,
@@ -43,7 +46,7 @@ const dashboardController = {
  *       500:
  *         description: Server error
  */
-router.get('/summary', dashboardController.getDashboardSummary);
+router.get('/summary', dashOps.view, dashboardController.getDashboardSummary);
 
 /**
  * @swagger
@@ -70,12 +73,12 @@ router.get('/summary', dashboardController.getDashboardSummary);
  *       500:
  *         description: Server error
  */
-router.get('/teacher/:teacherUserId', dashboardController.getTeacherDashboard);
+router.get('/teacher/:teacherUserId', dashOps.view, dashboardController.getTeacherDashboard);
 
 // Analytics endpoints for dashboard widgets
-router.get('/analytics', dashboardAnalyticsController.getAnalytics);
-router.get('/analytics/drive', dashboardAnalyticsController.getDriveAnalytics);
-router.get('/analytics/workflow', dashboardAnalyticsController.getWorkflowAnalytics);
-router.get('/analytics/activity', dashboardAnalyticsController.getActivityAnalytics);
+router.get('/analytics', analyticsOps.view, dashboardAnalyticsController.getAnalytics);
+router.get('/analytics/drive', analyticsOps.view, dashboardAnalyticsController.getDriveAnalytics);
+router.get('/analytics/workflow', analyticsOps.view, dashboardAnalyticsController.getWorkflowAnalytics);
+router.get('/analytics/activity', analyticsOps.view, dashboardAnalyticsController.getActivityAnalytics);
 
 export default router;

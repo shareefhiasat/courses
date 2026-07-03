@@ -48,6 +48,16 @@ router.get('/user/:userId/programs', async (req, res) => {
 });
 
 // Get all category access for a user
+router.get('/user/:userId/activity-stats', async (req, res) => {
+  try {
+    const result = await userCategoryAccessDb.getUcaActivityStats(req.params.userId);
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ success: false, error: "Internal server error" });
+  }
+});
+
+// Get all category access for a user
 router.get('/user/:userId', async (req, res) => {
   try {
     const result = await userCategoryAccessDb.getUserCategoryAccessByUserId(req.params.userId);

@@ -3,12 +3,18 @@
  * Provides aggregated metrics for drive, workflow, and activity widgets.
  */
 import dashboardAnalyticsDb from '../db/dashboard-analytics-postgres.js';
+import { getRequestScope } from '../utils/scopeAccess.js';
+
+const resolveAnalyticsRole = async (req) => {
+  const scope = await getRequestScope(req);
+  return scope.unrestricted ? 'SUPER_ADMIN' : 'INSTRUCTOR';
+};
 
 const getAnalytics = async (req, res) => {
   try {
-    const { userId, roles, isAdmin } = req.user;
+    const { userId } = req.user;
     const { classId } = req.query;
-    const role = (roles && roles.some(r => ['SUPER_ADMIN', 'ADMIN', 'HR'].includes(r))) ? 'SUPER_ADMIN' : (isAdmin ? 'SUPER_ADMIN' : 'INSTRUCTOR');
+    const role = await resolveAnalyticsRole(req);
 
     const result = await dashboardAnalyticsDb.getDashboardAnalytics({
       userId,
@@ -29,8 +35,8 @@ const getAnalytics = async (req, res) => {
 
 const getDriveAnalytics = async (req, res) => {
   try {
-    const { userId, roles, isAdmin } = req.user;
-    const role = (roles && roles.some(r => ['SUPER_ADMIN', 'ADMIN', 'HR'].includes(r))) ? 'SUPER_ADMIN' : (isAdmin ? 'SUPER_ADMIN' : 'INSTRUCTOR');
+    const { userId } = req.user;
+    const role = await resolveAnalyticsRole(req);
     const result = await dashboardAnalyticsDb.getDriveAnalytics({ userId, role });
     res.status(200).json(result);
   } catch (error) {
@@ -40,8 +46,8 @@ const getDriveAnalytics = async (req, res) => {
 
 const getWorkflowAnalytics = async (req, res) => {
   try {
-    const { userId, roles, isAdmin } = req.user;
-    const role = (roles && roles.some(r => ['SUPER_ADMIN', 'ADMIN', 'HR'].includes(r))) ? 'SUPER_ADMIN' : (isAdmin ? 'SUPER_ADMIN' : 'INSTRUCTOR');
+    const { userId } = req.user;
+    const role = await resolveAnalyticsRole(req);
     const result = await dashboardAnalyticsDb.getWorkflowAnalytics({ userId, role });
     res.status(200).json(result);
   } catch (error) {
@@ -51,8 +57,8 @@ const getWorkflowAnalytics = async (req, res) => {
 
 const getActivityAnalytics = async (req, res) => {
   try {
-    const { userId, roles, isAdmin } = req.user;
-    const role = (roles && roles.some(r => ['SUPER_ADMIN', 'ADMIN', 'HR'].includes(r))) ? 'SUPER_ADMIN' : (isAdmin ? 'SUPER_ADMIN' : 'INSTRUCTOR');
+    const { userId } = req.user;
+    const role = await resolveAnalyticsRole(req);
     const { classId } = req.query;
     const result = await dashboardAnalyticsDb.getActivityAnalytics({ userId, role, classId });
     res.status(200).json(result);

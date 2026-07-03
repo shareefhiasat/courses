@@ -1,4 +1,5 @@
 import { info, error, warn, debug } from '../services/utils/logger.js';
+import { ATTENDANCE_METHODS } from './attendanceMethods.jsx';
 
 // Attendance Status Types - canonical codes prefixed with ATTENDANCE_
 export const ATTENDANCE_STATUS = {

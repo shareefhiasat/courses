@@ -24,8 +24,10 @@ import {
   reviseInstance,
   cancelInstance,
 } from '../controllers/workflowController.js';
+import { screenOps } from '../middleware/requirePermission.js';
 
 const router = Router();
+const wfOps = screenOps('workflow');
 
 // All workflow routes require auth.
 router.use(keycloakAuth([]));
@@ -33,34 +35,34 @@ router.use(keycloakAuth([]));
 // --------------------------------------------------------------------------
 // Workflow Definitions (admin only)
 // --------------------------------------------------------------------------
-router.post('/definitions', createDefinition);
-router.get('/definitions', listDefinitions);
-router.get('/definitions/:definitionId', getDefinition);
+router.post('/definitions', wfOps.create, createDefinition);
+router.get('/definitions', wfOps.view, listDefinitions);
+router.get('/definitions/:definitionId', wfOps.view, getDefinition);
 
 // --------------------------------------------------------------------------
 // Workflow Instances
 // --------------------------------------------------------------------------
-router.post('/instances', startInstance);
-router.get('/instances', listInstances);
-router.get('/instances/:instanceId', getInstance);
-router.post('/instances/:instanceId/approve', approveInstance);
-router.post('/instances/:instanceId/reject', rejectInstance);
-router.get('/instances/:instanceId/history', getInstanceHistory);
+router.post('/instances', wfOps.create, startInstance);
+router.get('/instances', wfOps.view, listInstances);
+router.get('/instances/:instanceId', wfOps.view, getInstance);
+router.post('/instances/:instanceId/approve', wfOps.update, approveInstance);
+router.post('/instances/:instanceId/reject', wfOps.update, rejectInstance);
+router.get('/instances/:instanceId/history', wfOps.view, getInstanceHistory);
 
 // --------------------------------------------------------------------------
 // Simplified Single-Stage Workflow Actions
 // --------------------------------------------------------------------------
-router.post('/instances/:instanceId/submit', submitInstance);
-router.post('/instances/:instanceId/send-for-review', sendForReview);
-router.post('/instances/:instanceId/send-for-approval', sendForApproval);
-router.post('/instances/:instanceId/approve-simplified', approveInstanceSimplified);
-router.post('/instances/:instanceId/reject-simplified', rejectInstanceSimplified);
-router.post('/instances/:instanceId/revise', reviseInstance);
-router.post('/instances/:instanceId/cancel', cancelInstance);
+router.post('/instances/:instanceId/submit', wfOps.update, submitInstance);
+router.post('/instances/:instanceId/send-for-review', wfOps.update, sendForReview);
+router.post('/instances/:instanceId/send-for-approval', wfOps.update, sendForApproval);
+router.post('/instances/:instanceId/approve-simplified', wfOps.update, approveInstanceSimplified);
+router.post('/instances/:instanceId/reject-simplified', wfOps.update, rejectInstanceSimplified);
+router.post('/instances/:instanceId/revise', wfOps.update, reviseInstance);
+router.post('/instances/:instanceId/cancel', wfOps.delete, cancelInstance);
 
 // --------------------------------------------------------------------------
 // My Tasks (pending approvals for current user)
 // --------------------------------------------------------------------------
-router.get('/my-tasks', getMyTasks);
+router.get('/my-tasks', wfOps.view, getMyTasks);
 
 export default router;

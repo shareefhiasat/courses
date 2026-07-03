@@ -1,6 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { getAuthToken } from '@utils/authHelpers';
+import {
+  expandWithDependencies,
+  SUPER_ADMIN_ONLY_OPERATION_KEYS,
+} from '@constants/permissionDependencies.js';
 
 /**
  * Permission Matrix Visualization Page (Editable)
@@ -20,6 +24,7 @@ const PermissionMatrixPage = () => {
   const [pendingUpdates, setPendingUpdates] = useState([]);
   const [saving, setSaving] = useState(false);
   const [saveMessage, setSaveMessage] = useState('');
+  const [impliedGrantsMessage, setImpliedGrantsMessage] = useState('');
   const [searchQuery, setSearchQuery] = useState('');
   const [roleFilter, setRoleFilter] = useState(null);
 
@@ -152,8 +157,11 @@ const PermissionMatrixPage = () => {
     }
   };
 
-  const handleTogglePermission = (screenId, operationId, role, currentAllowed) => {
+  const handleTogglePermission = (screenId, operationId, role, currentAllowed, operationKey) => {
     if (!editMode) return;
+    if (role !== 'super_admin' && SUPER_ADMIN_ONLY_OPERATION_KEYS.has(operationKey) && !currentAllowed) {
+      return;
+    }
 
     const update = {
       role,
@@ -176,9 +184,22 @@ const PermissionMatrixPage = () => {
       return [...prev, update];
     });
 
+    // Auto-grant prerequisites in UI when enabling
+    if (!currentAllowed && operationKey) {
+      const { implied } = expandWithDependencies([operationKey]);
+      if (implied.length > 0) {
+        const labels = implied.map((i) => i.operationKey).join(', ');
+        setImpliedGrantsMessage(
+          lang === 'ar'
+            ? `سيتم أيضًا تفعيل: ${labels}`
+            : `Also enabled: ${labels}`,
+        );
+      }
+    }
+
     // Optimistic UI update
     setPermissions(prev => {
-      return prev.map(screen => {
+      let next = prev.map(screen => {
         if (screen.id !== screenId) return screen;
         
         return {
@@ -196,6 +217,26 @@ const PermissionMatrixPage = () => {
           })
         };
       });
+
+      if (!currentAllowed && operationKey) {
+        const { implied } = expandWithDependencies([operationKey]);
+        for (const item of implied) {
+          next = next.map((screen) => ({
+            ...screen,
+            operations: screen.operations.map((op) => {
+              if (op.operationKey !== item.operationKey) return op;
+              return {
+                ...op,
+                permissions: op.permissions.map((perm) =>
+                  perm.role === role ? { ...perm, allowed: true } : perm,
+                ),
+              };
+            }),
+          }));
+        }
+      }
+
+      return next;
     });
   };
 
@@ -216,6 +257,16 @@ const PermissionMatrixPage = () => {
       });
 
       if (!response.ok) throw new Error('Failed to save permissions');
+
+      const saved = await response.json();
+      if (saved.impliedGrants?.length) {
+        const labels = saved.impliedGrants.map((g) => g.operationKey).join(', ');
+        setImpliedGrantsMessage(
+          lang === 'ar'
+            ? `تم تفعيل المتطلبات تلقائيًا: ${labels}`
+            : `Auto-granted prerequisites: ${labels}`,
+        );
+      }
 
       setSaveMessage(t('permission_matrix_saved'));
       setPendingUpdates([]);
@@ -421,6 +472,11 @@ const PermissionMatrixPage = () => {
             }}
           >
             {roleDisplayNames[role]}
+            {role === 'super_admin' && (
+              <span style={{ marginLeft: '0.35rem', fontSize: '0.65rem', opacity: 0.85 }} title="Bypasses matrix at runtime">
+                (System)
+              </span>
+            )}
           </button>
         ))}
       </div>
@@ -435,6 +491,19 @@ const PermissionMatrixPage = () => {
           fontSize: 'var(--font-size-sm)'
         }}>
           {saveMessage}
+        </div>
+      )}
+      {impliedGrantsMessage && (
+        <div style={{
+          padding: '0.75rem 1rem',
+          backgroundColor: 'var(--warning-bg, #fffbeb)',
+          color: 'var(--warning-text, #b45309)',
+          borderRadius: '4px',
+          marginBottom: '1rem',
+          fontSize: 'var(--font-size-sm)',
+          border: '1px solid var(--warning-border, #fcd34d)',
+        }}>
+          {impliedGrantsMessage}
         </div>
       )}
 
@@ -557,6 +626,8 @@ const PermissionMatrixPage = () => {
                               if (roleFilter && roleFilter !== role) return null;
                               const perm = operation.permissions.find(p => p.role === role);
                               const allowed = perm ? perm.allowed : false;
+                              const isSuperAdminOnly = SUPER_ADMIN_ONLY_OPERATION_KEYS.has(operation.operationKey);
+                              const checkboxDisabled = !editMode || (isSuperAdminOnly && role !== 'super_admin');
                               const hasPendingUpdate = pendingUpdates.some(
                                 u => u.role === role && u.screenId === screen.id && u.operationId === operation.id
                               );
@@ -571,16 +642,17 @@ const PermissionMatrixPage = () => {
                                     padding: '0.4rem',
                                     backgroundColor: hasPendingUpdate ? 'var(--accent-light)' : 'transparent',
                                     borderRadius: '4px',
-                                    transition: 'background-color 0.15s'
+                                    transition: 'background-color 0.15s',
+                                    opacity: checkboxDisabled && isSuperAdminOnly && role !== 'super_admin' ? 0.45 : 1,
                                   }}
                                 >
                                   <input
                                     type="checkbox"
                                     checked={allowed}
-                                    disabled={!editMode}
-                                    onChange={() => handleTogglePermission(screen.id, operation.id, role, allowed)}
+                                    disabled={checkboxDisabled}
+                                    onChange={() => handleTogglePermission(screen.id, operation.id, role, allowed, operation.operationKey)}
                                     style={{
-                                      cursor: editMode ? 'pointer' : 'default',
+                                      cursor: editMode && !checkboxDisabled ? 'pointer' : 'default',
                                       width: '16px',
                                       height: '16px'
                                     }}

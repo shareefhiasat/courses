@@ -9,6 +9,7 @@ import rateLimit from 'express-rate-limit';
 import { keycloakAuth } from '../middleware/keycloakAuth.js';
 import prisma from '../db/prismaClient.js';
 import { isHrAccessibleWorkflow, isAdminAccessibleWorkflow } from '../utils/workflowTaxonomy.js';
+import { screenOps } from '../middleware/requirePermission.js';
 import { BUCKETS, putObject, streamObject, deleteObject } from '../services/minioService.js';
 
 
@@ -80,6 +81,7 @@ import {
 import { getFileActivities } from '../controllers/fileActivityController.js';
 
 const router = Router();
+const driveOps = screenOps('drive');
 
 // WOPI endpoints for Collabora - no auth required (Collabora accesses these directly)
 const wopiRouter = Router();
@@ -386,13 +388,13 @@ const uploadLimiter = rateLimit({
   message: { success: false, error: 'Too many upload requests, please try again later.' },
 });
 
-router.post('/upload/initiate', uploadLimiter, initiateUpload);
-router.post('/upload/:fileId/complete', uploadLimiter, completeUpload);
-router.get('/files', listFiles);
-router.get('/files/search', searchFiles);
-router.get('/files/:fileId', getFile);
-router.put('/files/:fileId', updateFile);
-router.delete('/files/:fileId', deleteFile);
+router.post('/upload/initiate', driveOps.create, uploadLimiter, initiateUpload);
+router.post('/upload/:fileId/complete', driveOps.create, uploadLimiter, completeUpload);
+router.get('/files', driveOps.view, listFiles);
+router.get('/files/search', driveOps.view, searchFiles);
+router.get('/files/:fileId', driveOps.view, getFile);
+router.put('/files/:fileId', driveOps.update, updateFile);
+router.delete('/files/:fileId', driveOps.delete, deleteFile);
 
 // Star, Trash, Restore
 router.patch('/files/:fileId/star', toggleStarFile);
@@ -611,10 +613,10 @@ router.post('/files/:fileId/activity', async (req, res) => {
 router.get('/files-by-key/:s3Key/download', downloadFile);
 
 // ---------------- Folders (v2) ----------------
-router.get('/folders', listFolderChildren);
-router.get('/folders/tree', getFolderTree);
-router.get('/folders/:folderId', getFolder);
-router.post('/folders', createFolderV2);
+router.get('/folders', driveOps.view, listFolderChildren);
+router.get('/folders/tree', driveOps.view, getFolderTree);
+router.get('/folders/:folderId', driveOps.view, getFolder);
+router.post('/folders', driveOps.create, createFolderV2);
 // Legacy path used by existing front-end code — points at same handler.
 router.post('/folders/legacy', createFolder);
 router.patch('/folders/:folderId', updateFolder);

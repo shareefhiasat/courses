@@ -16,8 +16,10 @@ import {
   getAnnouncementsByClassController
 } from '../controllers/announcements.js';
 import { validateBody, validateParams } from '../middleware/validateInput.js';
+import { screenOps } from '../middleware/requirePermission.js';
 
 const router = Router();
+const ops = screenOps('announcements');
 
 /**
  * @swagger
@@ -195,7 +197,7 @@ const router = Router();
  *                   type: integer
  *                   example: 2
  */
-router.get('/', getAllAnnouncementsController);
+router.get('/', ops.view, getAllAnnouncementsController);
 
 /**
  * @swagger
@@ -227,7 +229,7 @@ router.get('/', getAllAnnouncementsController);
  *       404:
  *         description: Announcement not found
  */
-router.get('/:id', getAnnouncementByIdController);
+router.get('/:id', ops.view, getAnnouncementByIdController);
 
 /**
  * @swagger
@@ -302,7 +304,7 @@ router.get('/:id', getAnnouncementByIdController);
  *       400:
  *         description: Bad request - validation error
  */
-router.post('/', validateBody({
+router.post('/', ops.create, validateBody({
   titleEn: { type: 'string', required: true, maxLength: 300 },
   titleAr: { type: 'string', required: false, maxLength: 300 },
   contentEn: { type: 'string', required: true, maxLength: 10000 },
@@ -385,7 +387,7 @@ router.post('/', validateBody({
  *       404:
  *         description: Announcement not found
  */
-router.put('/:id', validateParams({
+router.put('/:id', ops.update, validateParams({
   id: { type: 'string', required: true },
 }), validateBody({
   titleEn: { type: 'string', required: false, maxLength: 300 },
@@ -434,7 +436,7 @@ router.put('/:id', validateParams({
  *       404:
  *         description: Announcement not found
  */
-router.delete('/:id', deleteAnnouncementController);
+router.delete('/:id', ops.delete, deleteAnnouncementController);
 
 /**
  * @swagger
@@ -512,7 +514,7 @@ router.delete('/:id', deleteAnnouncementController);
  *                   type: integer
  *                   example: 1
  */
-router.get('/program/:programId', getAnnouncementsByProgramController);
+router.get('/program/:programId', ops.view, getAnnouncementsByProgramController);
 
 /**
  * @swagger
@@ -590,6 +592,6 @@ router.get('/program/:programId', getAnnouncementsByProgramController);
  *                   type: integer
  *                   example: 1
  */
-router.get('/class/:classId', getAnnouncementsByClassController);
+router.get('/class/:classId', ops.view, getAnnouncementsByClassController);
 
 export default router;

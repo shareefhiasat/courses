@@ -7,6 +7,7 @@
  * ARCHITECTURE: Backend Controllers → Keycloak Admin Service → Keycloak Server
  */
 
+import '../loadEnv.js';
 
 const KEYCLOAK_URL = process.env.KEYCLOAK_URL || 'http://localhost:8080';
 const KEYCLOAK_REALM = 'master'; // Force master realm to avoid confusion
@@ -19,7 +20,7 @@ if (!_KC_ADMIN_PASSWORD) {
   console.error('FATAL: KEYCLOAK_ADMIN_PASSWORD environment variable is required');
   process.exit(1);
 }
-if (_KC_ADMIN_PASSWORD === 'admin123') {
+if (_KC_ADMIN_PASSWORD === 'admin123' && process.env.NODE_ENV === 'production') {
   console.error('FATAL: KEYCLOAK_ADMIN_PASSWORD must be changed from the default "admin123"');
   process.exit(1);
 }

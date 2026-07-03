@@ -5,6 +5,7 @@
 
 import { Router } from 'express';
 import { keycloakAuth } from '../middleware/keycloakAuth.js';
+import { screenOps } from '../middleware/requirePermission.js';
 import {
   getNotifications,
   markNotificationRead,
@@ -19,22 +20,23 @@ import {
 } from '../controllers/notificationController.js';
 
 const router = Router();
+const notifOps = screenOps('notifications');
 
 // All notification routes require auth.
 router.use(keycloakAuth([]));
 
 // Notification CRUD
-router.get('/', getNotifications);
-router.patch('/:notificationId/read', markNotificationRead);
-router.patch('/:notificationId/unread', markNotificationUnread);
-router.post('/mark-all-read', markAllRead);
-router.patch('/:notificationId/archive', archiveNotification);
-router.post('/archive-all-read', archiveAllRead);
-router.delete('/:notificationId', deleteNotification);
+router.get('/', notifOps.view, getNotifications);
+router.patch('/:notificationId/read', notifOps.update, markNotificationRead);
+router.patch('/:notificationId/unread', notifOps.update, markNotificationUnread);
+router.post('/mark-all-read', notifOps.update, markAllRead);
+router.patch('/:notificationId/archive', notifOps.update, archiveNotification);
+router.post('/archive-all-read', notifOps.update, archiveAllRead);
+router.delete('/:notificationId', notifOps.update, deleteNotification);
 
 // Preferences
-router.get('/preferences', getPreferences);
-router.put('/preferences', updatePreferences);
+router.get('/preferences', notifOps.view, getPreferences);
+router.put('/preferences', notifOps.update, updatePreferences);
 
 // Admin test endpoint (admin role required)
 router.post('/admin/test', keycloakAuth(['admin']), testNotification);

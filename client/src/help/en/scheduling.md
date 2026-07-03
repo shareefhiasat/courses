@@ -16,8 +16,8 @@ The Scheduling system manages class sessions, instructor availability, and room 
 | --- | --- | --- |
 | Super Admin | view, create, update, delete | Full scheduling management |
 | Admin | view, create, update, delete | Full scheduling management |
-| HR | view | View scheduling calendar |
-| Instructor | view, create, update | Create and manage their own sessions |
+| HR | view (matrix) | View calendar and availability **scoped to UCA** — Program A UCA shows Program A instructors/sessions only |
+| Instructor | view, create, update | Create and manage their own sessions (within scope) |
 | Student | view | View scheduled sessions |
 
 > **Screen IDs:** `scheduling-calendar` (main), `summary-dashboard` (metrics), `instructor-availability-setup` / `instructor-availability-view`, `room-availability-setup` / `room-availability-view`, `rooms-management`, `classes-availability`.
@@ -39,6 +39,16 @@ The Scheduling system manages class sessions, instructor availability, and room 
 - **Drag to reschedule** — Drag a session to a new time slot. The system checks for conflicts before saving.
 - **Set availability** — Define recurring availability patterns for instructors and rooms (e.g., "available Mon–Fri, 08:00–16:00").
 - **Export** — Download the calendar as Excel or PDF. Requires `export` permission on `summary-dashboard`.
+
+## Data scope (HR / Admin on one program)
+
+If HR or Admin has **User Category Access** on Program A and matrix permission for availability or calendar **View**:
+
+- Dropdowns (program, subject, class, instructor) list only scoped entities.
+- Calendar sessions and availability blocks outside Program A are hidden.
+- Chart widgets on Summary Dashboard use the same scoped APIs.
+
+Super Admin sees all programs. See [User Access & Permissions](/en/user-access) for the full model.
 
 ## Validations & business rules
 

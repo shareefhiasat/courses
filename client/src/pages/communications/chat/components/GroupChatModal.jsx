@@ -153,14 +153,14 @@ const GroupChatModal = ({ isOpen, onClose, onGroupCreated }) => {
 
   return (
     <div className={styles.overlay} onClick={onClose}>
+      <div
+        className={`${styles.drawer} ${isRTL ? styles.rtl : ''}`}
+        onClick={(e) => e.stopPropagation()}
+      >
       <Joyride continuous run={runTour && tourSteps.length > 0} steps={tourSteps} callback={handleTourCallback} scrollOffset={100} scrollToFirstStep showSkipButton showProgress tooltipComponent={TourTooltipComponent}
         locale={{ back: t('tour_back'), close: t('tour_close'), last: t('tour_finish'), next: t('tour_next'), skip: t('tour_skip') }}
         styles={{ options: { primaryColor: 'var(--color-primary,#800020)', textColor: theme === 'dark' ? '#e5e7eb' : '#111', backgroundColor: theme === 'dark' ? '#1f2937' : '#fff', zIndex: 10000 } }}
       />
-      <div 
-        className={`${styles.drawer} ${isRTL ? styles.rtl : ''}`}
-        onClick={(e) => e.stopPropagation()}
-      >
         <div className={styles.header}>
           <div className={styles.headerTitle}>
             {getThemedIcon('ui', 'users', 24, theme)}

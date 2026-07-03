@@ -13,8 +13,11 @@ import {
   deleteClassroomAvailabilityController,
   validateClassroomAvailabilityChangeController
 } from '../controllers/classroom-availability.js';
+import { screenOps } from '../middleware/requirePermission.js';
 
 const router = Router();
+const roomAvailOps = screenOps('room-availability-view');
+const roomSetupOps = screenOps('room-availability-setup');
 
 /**
  * @swagger
@@ -52,9 +55,9 @@ const router = Router();
  *       200:
  *         description: List of classroom availability entries
  */
-router.get('/', getAllClassroomAvailabilitiesController);
+router.get('/', roomAvailOps.view, getAllClassroomAvailabilitiesController);
 
-router.post('/validate-change', validateClassroomAvailabilityChangeController);
+router.post('/validate-change', roomSetupOps.update, validateClassroomAvailabilityChangeController);
 
 /**
  * @swagger
@@ -110,7 +113,7 @@ router.post('/validate-change', validateClassroomAvailabilityChangeController);
  *       400:
  *         description: Invalid input or time conflict
  */
-router.post('/', createClassroomAvailabilityController);
+router.post('/', roomSetupOps.create, createClassroomAvailabilityController);
 
 /**
  * @swagger
@@ -164,7 +167,7 @@ router.post('/', createClassroomAvailabilityController);
  *       404:
  *         description: Classroom availability entry not found
  */
-router.put('/:id', updateClassroomAvailabilityController);
+router.put('/:id', roomSetupOps.update, updateClassroomAvailabilityController);
 
 /**
  * @swagger
@@ -184,6 +187,6 @@ router.put('/:id', updateClassroomAvailabilityController);
  *       404:
  *         description: Classroom availability entry not found
  */
-router.delete('/:id', deleteClassroomAvailabilityController);
+router.delete('/:id', roomSetupOps.delete, deleteClassroomAvailabilityController);
 
 export default router;

@@ -4,7 +4,7 @@ import { calculateLetterGrade, MANUAL_GRADES } from '../utils/formatting/grading
 import notificationGateway from '../services/notifications/index.js';
 import { EVENTS } from '../services/notifications/constants.js';
 import { buildLocalizedNameFields, buildNotificationNameVars } from '../utils/localizedUserName.js';
-import { getRequestScope, isRecordInScope, scopeForbidden } from '../utils/scopeAccess.js';
+import { getRequestScope, isRecordInScope, assertClassInScope, scopeForbidden } from '../utils/scopeAccess.js';
 import { scopeArray } from '../utils/applyListScope.js';
 
 
@@ -253,6 +253,12 @@ const getStudentMarks = async (req, res) => {
 const updateStudentMarks = async (req, res) => {
   try {
     const { userId, subjectId, classId } = req.params;
+
+    const classCheck = await assertClassInScope(req, classId);
+    if (!classCheck.ok) {
+      return scopeForbidden(res);
+    }
+
     const marks = req.body || {};
     const isRepeated = Boolean(marks.isRepeated);
     const gradeType = marks.gradeType || 'calculated';

@@ -32,9 +32,9 @@ function parseQueryParams(req) {
 
 function canAccessTeacherData(req, teacherUserId) {
   const roles = getEffectiveRoles(req.user?.roles || []);
-  if (isSuperAdmin(roles) || roles.includes('hr')) return true;
+  if (isSuperAdmin(roles)) return true;
   if (req.user?.dbId === parseInt(teacherUserId, 10)) return true;
-  return null; // defer to scope check
+  return null; // HR/Admin defer to UCA scope check
 }
 
 async function assertTeacherAccess(req, res, teacherUserId) {
