@@ -38,49 +38,68 @@ The system supports four types of chat rooms:
 ### Starting a conversation
 
 - **Select a room** — Choose a class chat, DM, group, or the global chat from the sidebar.
-- **Start a DM** — Select a user from the contact list to create or open a direct message room via `createDM`.
-- **Create a group** — Create a new group chat, add members, and set a group name (supports both English and Arabic names).
+- **Start a DM** — Click the new DM button to open the **DM Picker Drawer**. Search for a user by name and click to start a direct message. The drawer shows all users you can message, with search and filtering. The other person's name is shown in the DM header instead of a generic label.
+- **Create a group** — Click the new group button to open the **Group Chat Modal**. Enter a group name (English and/or Arabic), filter members by role, search by name, select users from the list, and confirm. The creator becomes the group admin. A guided tour is available for first-time group creation.
+- **Message instructor** — From the [Attendance](/en/attendance) screen, admins/HR can click the message button to open a DM with the class instructor in a new tab.
 
 ### Sending messages
 
-- **Text messages** — Type and send text messages in real time. Messages are delivered instantly via WebSocket — no refresh needed.
-- **File attachments** — Upload files from [Smart Drive](/en/smart-drive) or your device.
-- **Voice messages** — Record and send audio clips directly in the chat.
+- **Text messages** — Type and send text messages in real time. Messages are delivered instantly via WebSocket — no refresh needed. URLs in messages are automatically linkified.
+- **File attachments** — Upload files from [Smart Drive](/en/smart-drive) or your device. Supported types include images, videos, documents, and archives. File names are shortened for display (e.g., `jpeg` → `JPG`, `docx` → `DOC`).
+- **Voice messages** — Record and send audio clips directly in the chat. Press the microphone icon to start recording, press again to stop, or cancel. Recording duration is tracked and displayed on playback. Voice messages require microphone permission.
+- **Image previews** — Images sent in chat show an inline thumbnail. Click any image to open an in-app lightbox preview.
 - **Message editing** — Edit your own sent messages. The updated message is broadcast to all participants in real time.
 - **Message deletion** — Delete your own messages. The deletion is synced to all participants.
 
 ### Message interactions
 
 - **Reactions** — Toggle emoji reactions on any message. Reactions are visible to all room participants.
-- **Star messages** — Bookmark important messages for quick reference later. Starred messages are private to you.
-- **Starred messages filter** — Toggle the starred filter view to show only starred messages in the current conversation. A count badge shows the number of starred messages. Click the toggle again to return to the normal message view.
-- **Pin messages** — Pin important messages to the top of the conversation. Available in group chats only. Pinned messages are visible to all group members.
+- **Star messages** — Bookmark important messages for quick reference later. Starred messages are private to you — other users cannot see which messages you have starred.
+- **Starred messages filter** — Toggle the starred filter button in the chat header to show only starred messages in the current conversation. A count badge on the button shows the number of starred messages. Click the toggle again to return to the normal message view.
+- **Pin messages** — Pin important messages to the top of the conversation. Available in group chats only. Pinned messages are visible to all group members. A **pinned message banner** appears at the top of the chat showing the pinned content and sender name — click it to scroll to the original message.
 - **Read receipts** — The system tracks which messages have been read by each participant. Read receipts are synced in real time.
 - **Image lightbox** — Click any image in a chat message to open an in-app lightbox preview instead of opening a new tab. Close the lightbox by clicking outside the image or pressing Escape.
+- **URL linkification** — URLs in text messages are automatically converted to clickable links.
 
 ### Polls
 
-- **Create a poll** — Create a poll with multiple options within any chat room.
+- **Create a poll** — Click the poll button in the chat input area to open the poll modal. Enter a question and two or more options. Submit to post the poll in the chat room.
 - **Vote on a poll** — Select an option to vote. Votes are tallied in real time and visible to all participants.
 - **Real-time updates** — Poll results update instantly as new votes come in via WebSocket.
+- **Poll display** — Polls appear as special message cards in the conversation with the question, options, vote counts, and percentages.
 
 ### Group chat management
 
-- **Create group** — Any user can create a group chat. The creator becomes the group admin.
+- **Create group** — Any user can create a group chat. The creator becomes the group admin. The Group Chat Modal includes role filtering, user search, and a member list with avatars.
 - **Rename group** — The group admin can rename the group (supports English and Arabic names) via `updateGroupRoom`.
 - **Assign admin** — The group admin can transfer the admin role to another member via `assignGroupAdmin`. A confirmation dialog appears before the transfer is completed.
 - **Leave group** — Any member can leave a group chat via `leaveGroupRoom`. A confirmation dialog appears before leaving.
-- **Participant management** — The group admin can open the Participant Management Modal to view all members, their roles, and status. Admins can assign a new admin or remove themselves from the group from this modal.
+- **Participant management** — The group admin can open the **Participant Management Modal** to view all members with their avatars, roles, and online status. Admins can assign a new admin or remove themselves from the group from this modal.
+- **Members side drawer** — Click the member count in the chat header to open a side drawer showing all group members. Quick actions are available per member.
 - **Room stats** — View message count, media count, document count, and link count for a group chat via `getRoomStats`.
-- **Group info panel** — Click the group name or info icon to open the Group Info Panel, which has multiple tabs:
-  - **Media** — All images and videos shared in the group, displayed as thumbnails.
-  - **Documents** — All files and documents shared in the group, with file type icons and size.
-  - **Links** — All URLs shared in the group.
+- **Group info panel** — Click the group name or info icon to open the **Group Info Panel**, a slide-out drawer with multiple tabs:
+  - **Media** — All images and videos shared in the group, displayed as a thumbnail grid. Click to open the lightbox.
+  - **Documents** — All files and documents shared in the group, with file type icons, names, and sizes.
+  - **Links** — All URLs shared in the group, extracted from messages.
+  - Each tab includes a search bar to filter items.
 
 ### Chat customization
 
 - **Wallpaper picker** — Customize the chat background for any conversation. Choose from preset wallpaper themes. The wallpaper is saved per room using room-specific localStorage keys, with a fallback to global preferences. Each room can have a different wallpaper.
 - **DM display name** — Direct message conversations show the other person's name in the header instead of a generic "Direct Message" label.
+
+### Drawers and panels
+
+The chat interface uses several slide-out drawers and panels:
+
+| Drawer / Panel | How to open | What it shows |
+| --- | --- | --- |
+| **DM Picker Drawer** | Click the new DM (+) button in the sidebar | Searchable list of all users you can message. Click a user to start a DM. |
+| **Members Side Drawer** | Click the member count in the chat header | List of all group members with avatars, roles, and quick actions. |
+| **Group Info Panel** | Click the group name or info icon | Tabs for Media, Documents, and Links shared in the group, with search. |
+| **Participant Management Modal** | From the Group Info Panel | Manage members — assign admin, leave group, view roles and status. |
+| **Pinned Message Banner** | Appears automatically when a message is pinned | Shows pinned message content and sender. Click to scroll to the message. |
+| **Starred Messages Filter** | Click the star button in the chat header | Filters the conversation to show only your starred messages, with a count badge. |
 
 ### Sidebar and navigation
 

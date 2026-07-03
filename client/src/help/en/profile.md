@@ -32,7 +32,39 @@ Manage your personal account settings, preferences, and (for Super Admins) the P
 - **Theme** — Toggle between light and dark mode.
 - **Accent colour** — Choose your preferred accent colour from a preset palette.
 - **Font size** — Select your preferred text size: **Default**, **Large**, **Larger**, or **Largest**. The font size preference is saved per user and applied across the entire application. All UI elements scale proportionally — text, icons, buttons, and spacing adjust to your selected size.
-- **Font family** — Choose your preferred font family from available options.
+- **Font family** — Choose separate fonts for English (LTR) and Arabic (RTL) interfaces. Each font includes a live preview so you can see how it looks before applying. All fonts are self-hosted (offline, no external requests).
+
+  **English (LTR) fonts:**
+
+  | Font | Family name |
+  | --- | --- |
+  | Inter | Inter Variable |
+  | IBM Plex Sans | IBM Plex Sans |
+  | Source Sans 3 | Source Sans 3 |
+  | Open Sans | Open Sans |
+  | Roboto | Roboto |
+  | Nunito Sans | Nunito Sans |
+  | Work Sans | Work Sans |
+  | Lato | Lato |
+  | Plus Jakarta Sans | Plus Jakarta Sans |
+  | Manrope | Manrope |
+
+  **Arabic (RTL) fonts:**
+
+  | Font | Family name |
+  | --- | --- |
+  | IBM Plex Sans Arabic | IBM Plex Sans Arabic |
+  | Noto Sans Arabic | Noto Sans Arabic |
+  | Cairo | Cairo |
+  | Tajawal | Tajawal |
+  | Almarai | Almarai |
+  | Readex Pro | Readex Pro |
+  | Changa | Changa |
+  | Harmattan | Harmattan |
+  | Rubik | Rubik |
+  | El Messiri | El Messiri |
+
+  Defaults: **Inter** for English, **IBM Plex Sans Arabic** for Arabic. Font changes apply immediately in the browser and are synced to the server when you click Save.
 - **Notification preferences** — Enable or disable specific notification types (announcements, quiz results, attendance alerts, workflow tasks, chat messages).
 
 ### Permission Matrix (Super Admin only)
