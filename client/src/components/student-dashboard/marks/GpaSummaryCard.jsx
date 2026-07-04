@@ -20,6 +20,33 @@ export default function GpaSummaryCard({
   const latestSemester = semesterGroups[0];
   const otherSemesters = semesterGroups.slice(1);
 
+  const letterColor = (letter) => {
+    if (letter === 'A') return '#10b981';
+    if (letter === 'B') return '#3b82f6';
+    if (letter === 'C') return '#f59e0b';
+    if (letter === 'D') return '#60a5fa';
+    return '#ef4444';
+  };
+
+  const LetterBadge = ({ letter }) => (
+    <span style={{
+      display: 'inline-flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: '24px',
+      height: '24px',
+      borderRadius: '50%',
+      fontSize: '0.75rem',
+      fontWeight: 700,
+      color: '#fff',
+      background: letterColor(letter),
+      flexShrink: 0,
+      marginInlineStart: '0.4rem',
+    }}>
+      {letter}
+    </span>
+  );
+
   return (
     <div className={styles.wrapper}>
       <div className={styles.gpaCard}>
@@ -29,7 +56,10 @@ export default function GpaSummaryCard({
 
         <div className={styles.gpaInfo}>
           <span className={styles.gpaLabel}>{t('cumulative_gpa')}</span>
-          <span className={styles.gpaValue}>{cumulativeGpa.toFixed(2)}</span>
+          <span className={styles.gpaValue}>
+            {cumulativeGpa.toFixed(2)}
+            <LetterBadge letter={standing.letter} />
+          </span>
           <span className={styles.gpaStanding}>{standing.label}</span>
         </div>
 
@@ -39,7 +69,10 @@ export default function GpaSummaryCard({
           <>
             <div className={styles.gpaInfo}>
               <span className={styles.gpaLabel}>{t('semester_gpa')}</span>
-              <span className={styles.gpaValue}>{latestSemester.gpa.toFixed(2)}</span>
+              <span className={styles.gpaValue}>
+                {latestSemester.gpa.toFixed(2)}
+                <LetterBadge letter={getGpaStanding(latestSemester.gpa, lang).letter} />
+              </span>
               <span className={styles.gpaStanding}>
                 {getGpaStanding(latestSemester.gpa, lang).label}
               </span>
@@ -97,7 +130,10 @@ export default function GpaSummaryCard({
                   </span>
                 </div>
                 <div className={styles.semesterGpa}>
-                  <span className={styles.semesterGpaValue}>{sg.gpa.toFixed(2)}</span>
+                  <span className={styles.semesterGpaValue}>
+                    {sg.gpa.toFixed(2)}
+                    <LetterBadge letter={semStanding.letter} />
+                  </span>
                   <span className={styles.semesterStanding}>{semStanding.label}</span>
                 </div>
               </div>

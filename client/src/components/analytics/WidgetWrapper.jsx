@@ -7,6 +7,7 @@ import { formatDateTime } from '@utils/date-formatter.js';
 import { CircleHelp, Info, ChevronUp, ChevronDown, Pencil, Copy, Download, Trash2, GripVertical } from 'lucide-react';
 import { getSchedulingWidgetHelp } from '@constants/schedulingSummaryWidgets';
 import { getSourceByValue } from '@constants/widgetDataSources';
+import ChartExportDialog from '@components/charts/ChartExportDialog';
 
 
 import { info, error, warn, debug } from '@services/utils/logger.js';/**
@@ -63,19 +64,11 @@ const WidgetWrapper = ({
     return titleFromKey || localized || t('untitled');
   }, [widget, t, lang]);
 
+  const [showExportDialog, setShowExportDialog] = useState(false);
+
   const downloadWidgetSvg = useCallback(() => {
-    const svg = widgetRef.current?.querySelector('svg');
-    if (!svg) return;
-    const cloned = svg.cloneNode(true);
-    cloned.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-    const blob = new Blob([new XMLSerializer().serializeToString(cloned)], { type: 'image/svg+xml;charset=utf-8' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `${getWidgetTitle().replace(/[^\w\u0600-\u06FF]+/g, '_') || 'widget'}.svg`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }, [getWidgetTitle]);
+    setShowExportDialog(true);
+  }, []);
 
   // Helper to get localized date range label
   const getDateRangeLabel = useCallback((dateRange) => {
@@ -211,6 +204,14 @@ const WidgetWrapper = ({
           </button>
         </PortalTooltip>
       )}
+      {showExportDialog && (
+        <ChartExportDialog
+          target={widgetRef.current}
+          filename={getWidgetTitle().replace(/[^\w\u0600-\u06FF]+/g, '_') || 'widget'}
+          title={getWidgetTitle()}
+          onClose={() => setShowExportDialog(false)}
+        />
+      )}
 
       <PortalTooltip content={t('delete')} position="top">
         <button type="button" onClick={onDelete} style={{ ...tinyBtn, borderColor: 'var(--color-danger, #ef4444)', color: 'var(--color-danger, #ef4444)' }}>
@@ -257,7 +258,10 @@ const WidgetWrapper = ({
                 <span
                   style={{ display: 'flex', color: 'var(--muted)', cursor: 'help', marginTop: 2, flexShrink: 0 }}
                   aria-label={t('widget_help')}
-                  onClick={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    window.dispatchEvent(new CustomEvent('app:joyride'));
+                  }}
                 >
                   <CircleHelp size={12} />
                 </span>

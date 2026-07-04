@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useLayoutEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import Joyride from 'react-joyride';
 import { usePageTour } from '@hooks/usePageTour';
 import { getJoyrideBaseProps, getTourStyles } from '@utils/tourConfig';
@@ -33,6 +34,7 @@ import { useTheme } from '@contexts/ThemeContext';
 import { getStudentMarksHistory } from '@services/business/enrollmentMarksService';
 import { getThemedIcon } from '@constants/iconTypes';
 import { CollapsibleSideWindow } from '@ui';
+import usePersistentState from '@hooks/usePersistentState';
 import BehaviorPage from '../../../operations/behavior/BehaviorPage';
 import PenaltiesPage from '../../../operations/penalty/PenaltiesPage';
 import ParticipationPage from '../../../operations/participation/ParticipationPage';
@@ -106,13 +108,13 @@ const MarksPage = () => {
   const [deductionStudent, setDeductionStudent] = useState(null);
   const [deductionCache, setDeductionCache] = useState({});
 
-  // Filters
-  const [programFilter, setProgramFilter] = useState('');
-  const [subjectFilter, setSubjectFilter] = useState('');
-  const [classFilter, setClassFilter] = useState('');
-  const [termFilter, setTermFilter] = useState('');
-  const [yearFilter, setYearFilter] = useState('');
-  const [repeatedFilter, setRepeatedFilter] = useState(''); // '', 'true', 'false'
+  // Filters (persisted to localStorage)
+  const [programFilter, setProgramFilter] = usePersistentState('marks_filter_program', '');
+  const [subjectFilter, setSubjectFilter] = usePersistentState('marks_filter_subject', '');
+  const [classFilter, setClassFilter] = usePersistentState('marks_filter_class', '');
+  const [termFilter, setTermFilter] = usePersistentState('marks_filter_term', '');
+  const [yearFilter, setYearFilter] = usePersistentState('marks_filter_year', '');
+  const [repeatedFilter, setRepeatedFilter] = usePersistentState('marks_filter_repeated', ''); // '', 'true', 'false'
 
   // Side window state
   const [sideWindowOpen, setSideWindowOpen] = useState(false);
@@ -245,7 +247,7 @@ const MarksPage = () => {
       for (const row of result.data || []) {
         const key = row.studentId;
         if (!byStudent.has(key)) {
-          byStudent.set(key, { studentId: key, studentName: row.studentName, marks: [] });
+          byStudent.set(key, { studentId: key, studentName: row.studentName, studentNameAr: row.studentNameAr, marks: [] });
         }
         byStudent.get(key).marks.push(row);
       }
@@ -253,7 +255,7 @@ const MarksPage = () => {
         Array.from(byStudent.values()).map((entry) => {
           const { gpa } = calculateGpaFromMarks(entry.marks);
           const standing = getGpaStanding(gpa, lang);
-          return { ...entry, gpa, standing: standing.label };
+          return { ...entry, gpa, standing: standing.label, gpaLetter: standing.letter };
         }).sort((a, b) => a.studentName.localeCompare(b.studentName))
       );
     })();
@@ -831,7 +833,7 @@ const MarksPage = () => {
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.75rem' }}>
               {classGpaRows
-                .filter(row => !gpaSearch || row.studentName?.toLowerCase().includes(gpaSearch.toLowerCase()))
+                .filter(row => !gpaSearch || (row.studentName?.toLowerCase().includes(gpaSearch.toLowerCase()) || row.studentNameAr?.toLowerCase().includes(gpaSearch.toLowerCase())))
                 .map((row) => {
                 const studentInfo = students.find(s => String(s.uid) === String(row.studentId));
                 const avatarUrl = studentInfo?.profileImageUrl;
@@ -854,18 +856,33 @@ const MarksPage = () => {
                   >
                     <div style={{ width: 36, height: 36, borderRadius: '50%', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--border)', fontSize: '0.85rem', fontWeight: 700, color: 'var(--text)' }}>
                       {avatarUrl ? (
-                        <img src={avatarUrl} alt={row.studentName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.target.style.display = 'none'; }} />
+                        <img src={avatarUrl} alt={lang === 'ar' ? (row.studentNameAr || row.studentName) : row.studentName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.target.style.display = 'none'; }} />
                       ) : (
-                        row.studentName?.charAt(0)?.toUpperCase() || '?'
+                        (lang === 'ar' ? (row.studentNameAr || row.studentName) : row.studentName)?.charAt(0)?.toUpperCase() || '?'
                       )}
                     </div>
                     <div style={{ minWidth: 0, flex: 1 }}>
                       <div style={{ fontWeight: 600, fontSize: 'var(--font-size-sm)', marginBottom: '0.25rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {row.studentName}
+                        {lang === 'ar' ? (row.studentNameAr || row.studentName) : row.studentName}
                       </div>
-                      <div style={{ fontSize: '1.25rem', fontWeight: 700 }}>
+                      <div style={{ fontSize: '1.25rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
                         {row.gpa.toFixed(2)}
-                        <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 500, marginInlineStart: '0.5rem', opacity: 0.85 }}>
+                        <span style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          width: '22px',
+                          height: '22px',
+                          borderRadius: '50%',
+                          fontSize: '0.7rem',
+                          fontWeight: 700,
+                          color: '#fff',
+                          background: row.gpaLetter === 'A' ? '#10b981' : row.gpaLetter === 'B' ? '#3b82f6' : row.gpaLetter === 'C' ? '#f59e0b' : row.gpaLetter === 'D' ? '#60a5fa' : '#ef4444',
+                          flexShrink: 0,
+                        }}>
+                          {row.gpaLetter}
+                        </span>
+                        <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 500, opacity: 0.85 }}>
                           {row.standing}
                         </span>
                       </div>
@@ -933,7 +950,7 @@ const MarksPage = () => {
                         key={s.key}
                         className={styles.distSegment}
                         style={{ width: `${s.weight}%`, background: s.color }}
-                        onMouseEnter={(e) => setHoveredTip({ text: `${s.label}: ${s.weight}%`, x: e.currentTarget.offsetLeft + e.currentTarget.offsetWidth / 2, y: e.currentTarget.offsetTop })}
+                        onMouseMove={(e) => setHoveredTip({ text: `${s.label}: ${s.weight}%`, x: e.clientX, y: e.clientY })}
                         onMouseLeave={() => setHoveredTip(null)}
                       />
                     ))}
@@ -949,7 +966,7 @@ const MarksPage = () => {
                           key={s.key}
                           className={styles.distSegment}
                           style={{ width: `${s.weight}%`, background: 'var(--border)' }}
-                          onMouseEnter={(e) => setHoveredTip({ text: `${s.label}: ${mark}/${s.weight}`, x: e.currentTarget.offsetLeft + e.currentTarget.offsetWidth / 2, y: e.currentTarget.offsetTop })}
+                          onMouseMove={(e) => setHoveredTip({ text: `${s.label}: ${mark}/${s.weight}`, x: e.clientX, y: e.clientY })}
                           onMouseLeave={() => setHoveredTip(null)}
                         >
                           <div style={{ width: `${fillPct}%`, height: '100%', background: s.color, opacity: 0.7, transition: 'width 0.3s ease', pointerEvents: 'none' }} />
@@ -958,12 +975,12 @@ const MarksPage = () => {
                     })}
                   </div>
                 )}
-                {hoveredTip && (
+                {hoveredTip && createPortal(
                   <div style={{
-                    position: 'absolute',
+                    position: 'fixed',
                     left: `${hoveredTip.x}px`,
-                    top: `${hoveredTip.y - 6}px`,
-                    transform: 'translate(-50%, -100%)',
+                    top: `${hoveredTip.y}px`,
+                    transform: 'translate(-50%, -120%)',
                     background: '#1f2937',
                     color: '#fff',
                     padding: '4px 10px',
@@ -972,11 +989,12 @@ const MarksPage = () => {
                     fontWeight: 600,
                     whiteSpace: 'nowrap',
                     pointerEvents: 'none',
-                    zIndex: 9999,
+                    zIndex: 99999,
                     boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
                   }}>
                     {hoveredTip.text}
-                  </div>
+                  </div>,
+                  document.body
                 )}
                 <div className={styles.distributionLegend}>
                   <Button
@@ -1076,7 +1094,7 @@ const MarksPage = () => {
                 try {
                   await setSubjectMarksDistribution(selectedSubject.docId || selectedSubject.id, distributionForm);
                   setEditingDistribution(false);
-                  toast?.success?.('Distribution updated');
+                  toast?.success?.(t('marks_distribution_updated'));
                   // Reload just the marks distribution, not all data
                   const result = await getSubjectMarksDistribution(selectedSubject.docId || selectedSubject.id);
                   if (result.success) {
@@ -1747,7 +1765,7 @@ const MarksPage = () => {
                                 toast?.success?.(t('marks_updated_successfully'));
                               } catch (error) {
                                 console.error('Error updating isRepeated:', error);
-                                toast?.error?.(error.message || 'Failed to update marks');
+                                toast?.error?.(error.message || t('failed_to_update_marks'));
                               }
                             }}
                           >
@@ -1992,6 +2010,7 @@ const MarksPage = () => {
         type="absence"
         weight={marksDistribution?.attendance || 10}
         thresholds={{ failureCount: 8, failureGrade: 'FB' }}
+        programId={programFilter}
       />
     </Container>
   );

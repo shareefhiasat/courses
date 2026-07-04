@@ -1,9 +1,11 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '@contexts/AuthContext';
 import { getUsers } from '@services/business/userService';
 import { getPrograms, getSubjects } from '@services/business/programService';
 import { getClasses } from '@services/business/classService';
 import useDataScope from '@hooks/useDataScope';
+import usePersistentState from '@hooks/usePersistentState';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 
 /**
@@ -33,14 +35,32 @@ const useStudentDashboardFilters = ({ isStaff = false } = {}) => {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Cascade selections
-  const [selectedProgramId, setSelectedProgramIdRaw] = useState('all');
-  const [selectedSubjectId, setSelectedSubjectIdRaw] = useState('all');
-  const [selectedClassId, setSelectedClassIdRaw] = useState('all');
-  const [selectedStudentId, setSelectedStudentIdRaw] = useState('');
+  // Cascade selections (persisted to localStorage)
+  const [selectedProgramId, setSelectedProgramIdRaw] = usePersistentState('sd_filter_program', 'all');
+  const [selectedSubjectId, setSelectedSubjectIdRaw] = usePersistentState('sd_filter_subject', 'all');
+  const [selectedClassId, setSelectedClassIdRaw] = usePersistentState('sd_filter_class', 'all');
+  const [selectedStudentId, setSelectedStudentIdRaw] = usePersistentState('sd_filter_student', '');
 
-  // Grouping mode
-  const [grouping, setGrouping] = useState('class');
+  // Grouping mode (persisted)
+  const [grouping, setGrouping] = usePersistentState('sd_filter_grouping', 'class');
+
+  // URL search params override for deep-linking (e.g. from DeductionDrawer)
+  const [searchParams] = useSearchParams();
+  const deepLinkApplied = useRef(false);
+  useEffect(() => {
+    if (deepLinkApplied.current) return;
+    const urlStudentId = searchParams.get('studentId');
+    const urlProgramId = searchParams.get('programId');
+    const urlSubjectId = searchParams.get('subjectId');
+    const urlClassId = searchParams.get('classId');
+    if (urlStudentId || urlProgramId || urlSubjectId || urlClassId) {
+      deepLinkApplied.current = true;
+      if (urlProgramId) setSelectedProgramIdRaw(urlProgramId);
+      if (urlSubjectId) setSelectedSubjectIdRaw(urlSubjectId);
+      if (urlClassId) setSelectedClassIdRaw(urlClassId);
+      if (urlStudentId) setSelectedStudentIdRaw(urlStudentId);
+    }
+  }, [searchParams, setSelectedProgramIdRaw, setSelectedSubjectIdRaw, setSelectedClassIdRaw, setSelectedStudentIdRaw]);
 
   // Cascade: selecting program resets downstream
   const setSelectedProgramId = useCallback((id) => {

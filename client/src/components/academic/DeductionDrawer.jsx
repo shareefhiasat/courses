@@ -1,4 +1,5 @@
 import React, { memo, useMemo, useCallback } from 'react';
+import { ExternalLink } from 'lucide-react';
 import { Button, SimpleLoading } from '@ui';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
@@ -44,6 +45,7 @@ const DeductionDrawer = memo(({
   weight = 10,
   thresholds = { failureCount: 8, failureGrade: 'FB' },
   width = 400,
+  programId = '',
 }) => {
   const { t, lang, isRTL } = useLang();
   const { theme } = useTheme();
@@ -234,8 +236,36 @@ const DeductionDrawer = memo(({
                 .toUpperCase()}
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{ fontWeight: 600, color: textColor, fontSize: '0.9rem' }}>
-                {student.studentName || student.displayName || student.name || 'Unknown'}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <div style={{ fontWeight: 600, color: textColor, fontSize: '0.9rem' }}>
+                  {student.studentName || student.displayName || student.name || 'Unknown'}
+                </div>
+                {student.studentId && (
+                  <button
+                    onClick={() => {
+                      const params = new URLSearchParams();
+                      if (student.studentId) params.set('studentId', student.studentId);
+                      if (programId) params.set('programId', programId);
+                      if (student.subjectId) params.set('subjectId', student.subjectId);
+                      if (student.classId) params.set('classId', student.classId);
+                      window.open(`/student-dashboard?${params.toString()}`, '_blank');
+                    }}
+                    title={t('open_student_dashboard') || 'Open student dashboard'}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      cursor: 'pointer',
+                      padding: '2px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      color: mutedColor,
+                      borderRadius: '4px',
+                      flexShrink: 0,
+                    }}
+                  >
+                    <ExternalLink size={14} />
+                  </button>
+                )}
               </div>
               <div style={{ fontSize: '0.75rem', color: mutedColor, lineHeight: 1.4 }}>
                 {student.studentNumber && <div>#{student.studentNumber}</div>}

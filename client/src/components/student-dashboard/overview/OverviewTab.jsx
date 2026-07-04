@@ -117,6 +117,7 @@ const OverviewTab = memo(({
         icon={BarChart3}
         defaultOpen={false}
         testId="performance-analytics-section"
+        storageKey="sd_performance"
       >
         <PerformanceAnalytics
           dashData={dashData}
@@ -133,6 +134,7 @@ const OverviewTab = memo(({
         icon={LayoutDashboard}
         defaultOpen={false}
         testId="student-overview-analytics-section"
+        storageKey="sd_overview_analytics"
       >
         <OverviewAnalytics
           dashData={dashData}
@@ -149,6 +151,7 @@ const OverviewTab = memo(({
         icon={ClipboardList}
         defaultOpen={false}
         testId="attendance-history-section"
+        storageKey="sd_attendance_history"
       >
         <AttendanceTab
           studentId={studentId}

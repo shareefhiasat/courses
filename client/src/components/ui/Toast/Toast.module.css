@@ -167,43 +167,41 @@
   }
 }
 
-/* Dark Mode Support */
-@media (prefers-color-scheme: dark) {
-  .toast {
-    background: #1f2937;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.1);
-  }
+/* Dark Mode Support — scoped to app theme class, not OS preference */
+:global(.dark-mode) .toast {
+  background: #1f2937;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2), 0 0 0 1px rgba(255, 255, 255, 0.1);
+}
 
-  .toastMessage {
-    color: #f9fafb;
-  }
+:global(.dark-mode) .toastMessage {
+  color: #f9fafb;
+}
 
-  .toastClose {
-    color: #9ca3af;
-  }
+:global(.dark-mode) .toastClose {
+  color: #9ca3af;
+}
 
-  .toastClose:hover {
-    background: rgba(255, 255, 255, 0.1);
-    color: #f9fafb;
-  }
+:global(.dark-mode) .toastClose:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #f9fafb;
+}
 
-  .toastClose:active {
-    background: rgba(255, 255, 255, 0.15);
-  }
+:global(.dark-mode) .toastClose:active {
+  background: rgba(255, 255, 255, 0.15);
+}
 
-  .success .toastIcon {
-    background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.2) 100%);
-  }
+:global(.dark-mode) .success .toastIcon {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.2) 100%);
+}
 
-  .error .toastIcon {
-    background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(220, 38, 38, 0.2) 100%);
-  }
+:global(.dark-mode) .error .toastIcon {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.2) 0%, rgba(220, 38, 38, 0.2) 100%);
+}
 
-  .warning .toastIcon {
-    background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(217, 119, 6, 0.2) 100%);
-  }
+:global(.dark-mode) .warning .toastIcon {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.2) 0%, rgba(217, 119, 6, 0.2) 100%);
+}
 
-  .info .toastIcon {
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(37, 99, 235, 0.2) 100%);
-  }
+:global(.dark-mode) .info .toastIcon {
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(37, 99, 235, 0.2) 100%);
 }

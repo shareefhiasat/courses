@@ -19,6 +19,7 @@ import useStudentDashboardFilters from '@hooks/useStudentDashboardFilters';
 import useStudentDashboardData from '@hooks/useStudentDashboardData';
 import useClassLevelMetrics from '@hooks/useClassLevelMetrics';
 import useDashboardAnalytics from '@hooks/useDashboardAnalytics';
+import usePersistentState from '@hooks/usePersistentState';
 import DashboardAnalyticsPanel from '@components/analytics/DashboardAnalyticsPanel';
 import AttendanceAnalyticsPanel from '@components/analytics/AttendanceAnalyticsPanel';
 import CollapsibleSection from '@components/scheduling/CollapsibleSection';
@@ -57,7 +58,7 @@ export default function StudentDashboardPage() {
   const { startLoading } = useGlobalLoading();
   const userSelectRef = useRef(null);
 
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = usePersistentState('sd_active_tab', 'overview');
 
   // ── Guided Tour ────────────────────────────────────────────────────────────
   const [runTour, setRunTour] = useState(false);
@@ -523,6 +524,7 @@ export default function StudentDashboardPage() {
                     icon={ClipboardList}
                     defaultOpen={false}
                     testId="attendance-analytics-section"
+                    storageKey="sd_attendance_analytics"
                   >
                     <AttendanceAnalyticsPanel
                       rawData={buildStudentPerformanceRawData(
@@ -545,6 +547,7 @@ export default function StudentDashboardPage() {
                     icon={ClipboardList}
                     defaultOpen={false}
                     testId="attendance-history-section-tab"
+                    storageKey="sd_attendance_history_tab"
                   >
                     <AttendanceTab
                       studentId={displayStudentId}
@@ -572,6 +575,7 @@ export default function StudentDashboardPage() {
                     icon={HardDrive}
                     defaultOpen={false}
                     testId="dashboard-drive-analytics-section"
+                    storageKey="sd_drive_analytics"
                   >
                     <DashboardAnalyticsPanel
                       analyticsData={analyticsHook.data}
@@ -590,6 +594,7 @@ export default function StudentDashboardPage() {
                     icon={GitBranch}
                     defaultOpen={false}
                     testId="dashboard-workflow-analytics-section"
+                    storageKey="sd_workflow_analytics"
                   >
                     <DashboardAnalyticsPanel
                       analyticsData={analyticsHook.data}
@@ -608,6 +613,7 @@ export default function StudentDashboardPage() {
                     icon={Activity}
                     defaultOpen={false}
                     testId="dashboard-activity-analytics-section"
+                    storageKey="sd_activity_analytics"
                   >
                     <DashboardAnalyticsPanel
                       analyticsData={analyticsHook.data}

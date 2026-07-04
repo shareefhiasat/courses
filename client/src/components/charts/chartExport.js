@@ -17,7 +17,13 @@ const TITLE_HEIGHT = 28;
  * @returns {SVGSVGElement} Combined SVG element
  */
 function buildCombinedSvg(container, { title } = {}) {
-  const svgs = Array.from(container.querySelectorAll('svg'));
+  // Filter out tiny icon SVGs — only keep chart-sized SVGs (>= 50px in either dimension)
+  const allSvgs = Array.from(container.querySelectorAll('svg'));
+  const svgs = allSvgs.filter(svg => {
+    const w = parseFloat(svg.getAttribute('width')) || svg.clientWidth || 0;
+    const h = parseFloat(svg.getAttribute('height')) || svg.clientHeight || 0;
+    return w >= 50 || h >= 50;
+  });
   if (svgs.length === 0) return null;
 
   // Compute bounding box of all SVGs
@@ -31,9 +37,38 @@ function buildCombinedSvg(container, { title } = {}) {
     maxY = Math.max(maxY, h);
   });
 
+  // Collect HTML legend items (pie/donut charts render legends as HTML divs)
+  const legendItems = [];
+  const legendDivs = container.querySelectorAll('div[title]');
+  legendDivs.forEach(div => {
+    // Legend items have a title attribute like "Label\nValue (Pct%)"
+    const titleAttr = div.getAttribute('title') || '';
+    if (!titleAttr) return;
+    const swatch = div.querySelector('div[style*="border-radius"]');
+    const textSpan = div.querySelector('span');
+    if (!textSpan) return;
+
+    // Extract color from the swatch div
+    let swatchColor = '#888';
+    if (swatch) {
+      const bgMatch = swatch.style.background.match(/rgb\([^)]+\)|#[0-9a-fA-F]+/);
+      if (bgMatch) swatchColor = bgMatch[0];
+    }
+
+    // Extract text content
+    const text = textSpan.textContent || titleAttr.split('\n')[0] || '';
+
+    legendItems.push({ color: swatchColor, text });
+  });
+
   const hasTitle = Boolean(title);
+  const hasLegend = legendItems.length > 0;
+  const LEGEND_LINE_HEIGHT = 20;
+  const LEGEND_PADDING = 8;
+  const legendHeight = hasLegend ? legendItems.length * LEGEND_LINE_HEIGHT + LEGEND_PADDING * 2 : 0;
+
   const totalW = maxX - minX + PADDING * 2;
-  const totalH = maxY - minY + PADDING * 2 + (hasTitle ? TITLE_HEIGHT : 0);
+  const totalH = maxY - minY + PADDING * 2 + (hasTitle ? TITLE_HEIGHT : 0) + legendHeight;
 
   const combined = document.createElementNS(SVG_NS, 'svg');
   combined.setAttribute('xmlns', SVG_NS);
@@ -76,6 +111,32 @@ function buildCombinedSvg(container, { title } = {}) {
     clone.setAttribute('height', h);
     combined.appendChild(clone);
   });
+
+  // Append legend as SVG elements
+  if (hasLegend) {
+    const legendY = yOffset + (maxY - minY) + LEGEND_PADDING;
+    legendItems.forEach((item, i) => {
+      const itemY = legendY + i * LEGEND_LINE_HEIGHT;
+      // Color swatch
+      const rect = document.createElementNS(SVG_NS, 'rect');
+      rect.setAttribute('x', PADDING);
+      rect.setAttribute('y', itemY);
+      rect.setAttribute('width', 12);
+      rect.setAttribute('height', 12);
+      rect.setAttribute('rx', 2);
+      rect.setAttribute('fill', item.color);
+      combined.appendChild(rect);
+      // Label text
+      const text = document.createElementNS(SVG_NS, 'text');
+      text.setAttribute('x', PADDING + 20);
+      text.setAttribute('y', itemY + 10);
+      text.setAttribute('font-size', '12');
+      text.setAttribute('font-family', 'sans-serif');
+      text.setAttribute('fill', '#1f2937');
+      text.textContent = item.text;
+      combined.appendChild(text);
+    });
+  }
 
   return combined;
 }

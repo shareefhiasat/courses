@@ -170,6 +170,7 @@ export default function ReportFilterBar({
       icon={Filter}
       defaultOpen={defaultOpen}
       testId="report-filter-bar"
+      storageKey="summary_report_filter_bar"
     >
       {grid}
     </CollapsibleSection>

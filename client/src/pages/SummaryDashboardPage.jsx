@@ -58,6 +58,7 @@ import {
 } from '@constants/dashboardAnalyticsWidgets';
 import useDashboardAnalytics from '@hooks/useDashboardAnalytics';
 import useStudentDashboardData from '@hooks/useStudentDashboardData';
+import usePersistentState from '@hooks/usePersistentState';
 import AttendanceTab from '@components/student-dashboard/attendance/AttendanceTab';
 
 const SummaryDashboardPage = () => {
@@ -83,7 +84,7 @@ const SummaryDashboardPage = () => {
   const [subjects, setSubjects] = useState([]);
   const [classes, setClasses] = useState([]);
   const [instructors, setInstructors] = useState([]);
-  const [reportFilters, setReportFilters] = useState({
+  const [reportFilters, setReportFilters] = usePersistentState('summary_report_filters', {
     programId: '',
     subjectId: '',
     classId: '',
@@ -92,10 +93,10 @@ const SummaryDashboardPage = () => {
     instructorId: prefilterInstructor || (isSelfView && dbUserId ? String(dbUserId) : ''),
     reportFormat: 'summary',
   });
-  const [timeRange, setTimeRange] = useState('year');
-  const [startDate, setStartDate] = useState('');
-  const [endDate, setEndDate] = useState('');
-  const [refreshInterval, setRefreshInterval] = useState(30000);
+  const [timeRange, setTimeRange] = usePersistentState('summary_time_range', 'year');
+  const [startDate, setStartDate] = usePersistentState('summary_start_date', '');
+  const [endDate, setEndDate] = usePersistentState('summary_end_date', '');
+  const [refreshInterval, setRefreshInterval] = usePersistentState('summary_refresh_interval', 30000);
   const [lastUpdatedAt, setLastUpdatedAt] = useState(Date.now());
   const analyticsHook = useDashboardAnalytics();
   const recordsClassId = reportFilters.classId || null;
@@ -518,6 +519,7 @@ const SummaryDashboardPage = () => {
                 cards={overviewCards}
                 defaultOpen={false}
                 testId="summary-overview-panel"
+                storageKey="summary_overview"
               />
             </div>
           )}
@@ -529,6 +531,7 @@ const SummaryDashboardPage = () => {
             icon={BarChart3}
             defaultOpen={false}
             testId="effort-report-section"
+            storageKey="summary_effort_report"
           >
             <SchedulingSummaryAnalytics
               effortReport={effortReport}
@@ -548,6 +551,7 @@ const SummaryDashboardPage = () => {
               icon={User}
               defaultOpen={false}
               testId="instructor-detail-section"
+              storageKey="summary_instructor_detail"
             >
               <TeacherEffortExport
                 teacherId={String(activeInstructorId)}
@@ -568,6 +572,7 @@ const SummaryDashboardPage = () => {
                 icon={Palmtree}
                 defaultOpen={false}
                 testId="breaks-holidays-section"
+                storageKey="summary_breaks_holidays"
                 actions={(
                   <button type="button" style={headerButtonStyle} onClick={() => navigate('/scheduling-calendar')} title={t('manage_breaks_and_holidays')} aria-label={t('manage_breaks_and_holidays')}>
                     <CalendarDays size={14} />
@@ -597,6 +602,7 @@ const SummaryDashboardPage = () => {
                 icon={ClipboardList}
                 defaultOpen={false}
                 testId="attendance-analytics-section"
+                storageKey="summary_attendance_analytics"
               >
                 <AttendanceAnalyticsPanel
                   rawData={buildSchedulingRawData(effortReport, dashboardData, isRTL)}
@@ -619,6 +625,7 @@ const SummaryDashboardPage = () => {
               icon={ClipboardList}
               defaultOpen={false}
               testId="summary-student-records-section"
+              storageKey="summary_student_records"
             >
               {!recordsClassId ? (
                 <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--muted)' }}>
@@ -652,6 +659,7 @@ const SummaryDashboardPage = () => {
               icon={HardDrive}
               defaultOpen={false}
               testId="summary-drive-analytics-section"
+              storageKey="summary_drive_analytics"
             >
               <DashboardAnalyticsPanel
                 analyticsData={analyticsHook.data}
@@ -670,6 +678,7 @@ const SummaryDashboardPage = () => {
               icon={GitBranch}
               defaultOpen={false}
               testId="summary-workflow-analytics-section"
+              storageKey="summary_workflow_analytics"
             >
               <DashboardAnalyticsPanel
                 analyticsData={analyticsHook.data}
@@ -688,6 +697,7 @@ const SummaryDashboardPage = () => {
               icon={Activity}
               defaultOpen={false}
               testId="summary-activity-analytics-section"
+              storageKey="summary_activity_analytics"
             >
               <DashboardAnalyticsPanel
                 analyticsData={analyticsHook.data}

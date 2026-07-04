@@ -368,6 +368,8 @@ const gridColumns = useMemo(() => [
       field: 'type',
       headerName: t('type'),
       width: 120,
+      type: 'singleSelect',
+      valueOptions: subjectTypes.map(st => ({ value: st.id, label: getLocalizedName(st, lang) })),
       renderCell: (params) => {
         const row = params?.row || {};
         
@@ -388,12 +390,18 @@ const gridColumns = useMemo(() => [
         
         // Final fallback - show the raw typeId with indicator
         return `Type ${typeId}`;
+      },
+      valueGetter: (params) => {
+        const row = params?.row || {};
+        return row.typeId || null;
       }
     },
     {
       field: 'requirementType',
       headerName: t('requirement_type'),
       width: 150,
+      type: 'singleSelect',
+      valueOptions: requirementTypes.map(rt => ({ value: rt.id, label: getLocalizedName(rt, lang) })),
       renderCell: (params) => {
         const row = params?.row || {};
         
@@ -414,6 +422,10 @@ const gridColumns = useMemo(() => [
         
         // Fallback to ID if lookup not loaded
         return requirementTypeId;
+      },
+      valueGetter: (params) => {
+        const row = params?.row || {};
+        return row.requirementTypeId || null;
       }
     },
     ...auditColumns,

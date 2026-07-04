@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useLang } from '@contexts/LangContext';
-import { PIE_LEGEND_TEXT_STYLE, PIE_LEGEND_ITEM_BG } from './chartLabelStyles';
+import { CHART_LABEL_SHADOW, CHART_LABEL_FILL, BAR_LABEL_BG } from './chartLabelStyles';
 import ChartExportDialog from './ChartExportDialog';
 
 /**
@@ -206,7 +206,7 @@ export default function PieChart({ data = [], size = 300, donut = false, showLab
         gap: sideLegend ? 0 : 4,
         width: chartWidth,
         height: chartHeight,
-        overflow: 'hidden',
+        overflow: 'visible',
       }}>
         <svg
           width={chartSize}
@@ -302,7 +302,7 @@ export default function PieChart({ data = [], size = 300, donut = false, showLab
                   gap: 4,
                   minWidth: 0,
                   pointerEvents: 'auto',
-                  background: PIE_LEGEND_ITEM_BG,
+                  background: BAR_LABEL_BG,
                   borderRadius: 4,
                   padding: '2px 5px',
                 }}
@@ -310,10 +310,14 @@ export default function PieChart({ data = [], size = 300, donut = false, showLab
               >
                 <div style={{ width: 10, height: 10, borderRadius: 2, background: slice.color, marginTop: 2, flexShrink: 0, boxShadow: '0 0 0 1px rgba(255,255,255,0.8), 0 1px 3px rgba(255,255,255,0.6)' }} />
                 <span style={{
-                  ...PIE_LEGEND_TEXT_STYLE,
+                  color: CHART_LABEL_FILL,
+                  lineHeight: 1.3,
                   fontSize: legendFontSize,
                   whiteSpace: sideLegend ? 'nowrap' : 'normal',
                   wordBreak: 'break-word',
+                  WebkitTextStroke: '2.5px rgba(0, 0, 0, 0.9)',
+                  WebkitTextFillColor: CHART_LABEL_FILL,
+                  paintOrder: 'stroke',
                 }}>
                   {slice.label} ({slice.value})
                 </span>
@@ -321,32 +325,6 @@ export default function PieChart({ data = [], size = 300, donut = false, showLab
             ))}
           </div>
         )}
-      </div>
-      {/* Download button */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', width: chartWidth }}>
-        <button
-          type="button"
-          onClick={() => setShowExportDialog(true)}
-          title={t('chart_download') || 'Download'}
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: 24,
-            height: 24,
-            padding: 0,
-            border: `1px solid ${accentColor}`,
-            borderRadius: 5,
-            background: `${accentColor}12`,
-            cursor: 'pointer',
-            flexShrink: 0,
-          }}
-        >
-          <svg width={14} height={14} viewBox="0 0 24 24" fill="none" aria-hidden="true">
-            <path d="M12 3v12M7 10l5 5 5-5" stroke={accentColor} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke={accentColor} strokeWidth="2.2" strokeLinecap="round" />
-          </svg>
-        </button>
       </div>
       {showExportDialog && (
         <ChartExportDialog

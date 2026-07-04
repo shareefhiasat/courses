@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
@@ -17,6 +18,7 @@ import {
   getGradeColor,
   calculateGpaFromMarks,
   groupMarksBySemester,
+  getGpaStanding,
 } from '@services/business/enrollmentMarksService';
 import MarksHistoryDrawer from '@components/academic/MarksHistoryDrawer';
 import GpaSummaryCard from './GpaSummaryCard';
@@ -437,10 +439,11 @@ const MarksTab = React.memo(({
         <CollapsibleSection
           key={`${group.semester}-${group.year}`}
           title={`${group.semester} ${group.year}`}
-          summary={`${t('semester_gpa')}: ${group.gpa.toFixed(2)} · ${group.courseCount} ${tFn('courses') || 'courses'}${group.repeatedCount > 0 ? ` · ${group.repeatedCount} ${tFn('repeated') || 'repeated'}` : ''}`}
+          summary={`${t('semester_gpa')}: ${group.gpa.toFixed(2)} (${getGpaStanding(group.gpa, lang).letter}) · ${group.courseCount} ${tFn('courses') || 'courses'}${group.repeatedCount > 0 ? ` · ${group.repeatedCount} ${tFn('repeated') || 'repeated'}` : ''}`}
           icon={ClipboardList}
           defaultOpen={false}
           testId={`marks-semester-${group.semester}-${group.year}`}
+          storageKey={`sd_marks_semester_${group.semester}_${group.year}`}
         >
           {group.courses.map((course) => {
             const dist = subjectDistributions[course.subjectId];
@@ -474,7 +477,7 @@ const MarksTab = React.memo(({
                       key={s.key}
                       className={styles.distSegment}
                       style={{ width: `${s.weight}%`, background: s.color }}
-                      onMouseEnter={(e) => setHoveredTip({ text: `${s.label}: ${s.weight}%`, x: e.currentTarget.offsetLeft + e.currentTarget.offsetWidth / 2, y: e.currentTarget.offsetTop })}
+                      onMouseMove={(e) => setHoveredTip({ text: `${s.label}: ${s.weight}%`, x: e.clientX, y: e.clientY })}
                       onMouseLeave={() => setHoveredTip(null)}
                     />
                   ))}
@@ -488,7 +491,7 @@ const MarksTab = React.memo(({
                         key={s.key}
                         className={styles.distSegment}
                         style={{ width: `${s.weight}%`, background: 'var(--border, #e5e7eb)' }}
-                        onMouseEnter={(e) => setHoveredTip({ text: `${s.label}: ${s.mark}/${s.weight}`, x: e.currentTarget.offsetLeft + e.currentTarget.offsetWidth / 2, y: e.currentTarget.offsetTop })}
+                        onMouseMove={(e) => setHoveredTip({ text: `${s.label}: ${s.mark}/${s.weight}`, x: e.clientX, y: e.clientY })}
                         onMouseLeave={() => setHoveredTip(null)}
                       >
                         <div style={{ width: `${fillPct}%`, height: '100%', background: s.color, opacity: 0.7, transition: 'width 0.3s ease', pointerEvents: 'none' }} />
@@ -496,12 +499,12 @@ const MarksTab = React.memo(({
                     );
                   })}
                 </div>
-                {hoveredTip && (
+                {hoveredTip && createPortal(
                   <div style={{
-                    position: 'absolute',
+                    position: 'fixed',
                     left: `${hoveredTip.x}px`,
-                    top: `${hoveredTip.y - 6}px`,
-                    transform: 'translate(-50%, -100%)',
+                    top: `${hoveredTip.y}px`,
+                    transform: 'translate(-50%, -120%)',
                     background: '#1f2937',
                     color: '#fff',
                     padding: '4px 10px',
@@ -510,11 +513,12 @@ const MarksTab = React.memo(({
                     fontWeight: 600,
                     whiteSpace: 'nowrap',
                     pointerEvents: 'none',
-                    zIndex: 9999,
+                    zIndex: 99999,
                     boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
                   }}>
                     {hoveredTip.text}
-                  </div>
+                  </div>,
+                  document.body
                 )}
                 <div className={styles.distributionLegend}>
                   {segments.map(s => (

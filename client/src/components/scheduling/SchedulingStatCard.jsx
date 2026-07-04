@@ -6,33 +6,33 @@ export default function SchedulingStatCard({ value, label, Icon, iconColor, icon
     <div style={{
       backgroundColor: theme === 'dark' ? '#1f2937' : '#f9fafb',
       borderRadius: '0.375rem',
-      padding: '0.5rem',
+      padding: '0.75rem',
       border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`,
       display: 'flex',
       flexDirection: 'column',
       alignItems: 'center',
       textAlign: 'center',
-      gap: '0.25rem',
+      gap: '0.375rem',
       minWidth: 0,
     }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', minWidth: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', minWidth: 0 }}>
         <div style={{
           backgroundColor: iconBg,
-          borderRadius: '0.25rem',
-          padding: '0.25rem',
+          borderRadius: '0.375rem',
+          padding: '0.375rem',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           flexShrink: 0,
         }}>
-          <Icon size={13} color={iconColor} />
+          <Icon size={18} color={iconColor} />
         </div>
-        <div style={{ fontSize: '0.95rem', fontWeight: 700, lineHeight: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        <div style={{ fontSize: '1.1rem', fontWeight: 700, lineHeight: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
           {value}
         </div>
       </div>
       <div style={{
-        fontSize: '0.65rem',
+        fontSize: '0.75rem',
         color: muted,
         lineHeight: 1.2,
         overflow: 'hidden',

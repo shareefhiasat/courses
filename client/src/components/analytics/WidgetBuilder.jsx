@@ -1,4 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
+import Joyride from 'react-joyride';
+import TourTooltip from '@ui/TourTooltip/TourTooltip';
 import { useTheme } from '@contexts/ThemeContext';
 import { useLang } from '@contexts/LangContext';
 import { getThemedIcon } from '@constants/iconTypes';
@@ -92,7 +94,7 @@ const LIST_LIMIT_OPTIONS = [10, 25, 50, 100, 200];
  */
 const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing = false, accentColor, categoryScope = null }) => {
   const { theme } = useTheme();
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const categoryTabs = useMemo(() => {
     if (categoryScope) {
       return SOURCE_CATEGORIES.filter((c) => c.id === categoryScope);
@@ -100,6 +102,28 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
     return SOURCE_CATEGORIES.filter((c) => c.id !== 'all');
   }, [categoryScope]);
   const [sourceCategory, setSourceCategory] = useState(categoryScope || categoryTabs[0]?.id || 'academic');
+  const [runBuilderTour, setRunBuilderTour] = useState(false);
+  const builderTourSeenKey = `widgetBuilderTourSeen_${lang}`;
+  const BuilderTourTooltip = useMemo(() => TourTooltip({ tourSeenKey: builderTourSeenKey }), [builderTourSeenKey]);
+
+  const builderTourSteps = useMemo(() => [
+    { target: '[data-tour="widget-builder-chart-types"]', content: t('tour.advanced_analytics_builder_chart_types'), disableBeacon: true, placement: 'top' },
+    { target: '[data-tour="widget-builder-data-source"]', content: t('tour.advanced_analytics_builder_data_source'), disableBeacon: true, placement: 'top' },
+    { target: '[data-tour="widget-builder-date-range"]', content: t('tour.advanced_analytics_builder_date_range'), disableBeacon: true, placement: 'top' },
+    { target: '[data-tour="widget-builder-size"]', content: t('tour.advanced_analytics_builder_size'), disableBeacon: true, placement: 'top' },
+  ], [t, lang]);
+
+  const handleBuilderTourCallback = useCallback((data) => {
+    const { status, action } = data || {};
+    if (status === 'finished' || status === 'skipped' || action === 'close') {
+      setRunBuilderTour(false);
+      try { localStorage.setItem(builderTourSeenKey, 'true'); } catch {}
+    }
+  }, [builderTourSeenKey]);
+
+  const startBuilderTour = useCallback(() => {
+    setRunBuilderTour(true);
+  }, []);
 
   const isListWidget = config.chartType === 'list';
   const isCountWidget = config.chartType === 'count';
@@ -198,8 +222,9 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
             </h2>
             <PortalTooltip content={t('widget_builder_help')} position="top">
               <span
-                style={{ display: 'flex', color: 'var(--muted)', cursor: 'help' }}
+                style={{ display: 'flex', color: 'var(--muted)', cursor: 'pointer' }}
                 aria-label={t('widget_builder_help')}
+                onClick={startBuilderTour}
               >
                 {getThemedIcon('ui', 'help_circle', 16, theme)}
               </span>
@@ -650,6 +675,34 @@ const WidgetBuilder = ({ isOpen, config, onChange, onSave, onCancel, isEditing =
           </button>
         </div>
       </div>
+
+      <Joyride
+        run={runBuilderTour}
+        steps={builderTourSteps}
+        continuous
+        showSkipButton
+        showProgress
+        spotlightClicks={false}
+        callback={handleBuilderTourCallback}
+        tooltipComponent={BuilderTourTooltip}
+        locale={{
+          back: t('tour_back'),
+          close: t('tour_close'),
+          last: t('tour_finish'),
+          next: t('tour_next'),
+          skip: t('tour_skip'),
+        }}
+        styles={{
+          options: {
+            primaryColor: accentColor || 'var(--color-primary, #800020)',
+            textColor: theme === 'dark' ? '#e5e7eb' : '#000',
+            backgroundColor: theme === 'dark' ? '#1f2937' : '#fff',
+            overlayColor: 'rgba(0,0,0,0.5)',
+            arrowColor: theme === 'dark' ? '#1f2937' : '#fff',
+            zIndex: 10001,
+          },
+        }}
+      />
     </div>
   );
 };

@@ -3,6 +3,7 @@ export const LOOKUPS = {
   PRIORITY_TYPES: 'priority-types',
   USER_ROLES: 'user-roles',
   SUBJECT_TYPES: 'subject-types',
+  REQUIREMENT_TYPES: 'requirement-types',
   ASSESSMENT_TYPES: 'assessment-types',
   QUESTION_TYPES: 'question-types',
   ATTENDANCE_STATUS_TYPES: 'attendance-status-types',

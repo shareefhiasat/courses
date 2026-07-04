@@ -32,8 +32,8 @@ export default function SchedulingOverviewPanel({
     >
       <div style={{
         display: 'grid',
-        gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))',
-        gap: '0.5rem',
+        gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+        gap: '0.625rem',
       }}>
         {cards.map(({ value, label, Icon, iconColor, iconBg }) => (
           <SchedulingStatCard
