@@ -290,6 +290,49 @@ export function groupMarksBySemester(marksRows) {
     });
 }
 
+export function mergeComplementaryRecords(rows) {
+  const groups = new Map();
+  for (const row of rows || []) {
+    const key = `${row.studentId}-${row.subjectId}-${row.classId}`;
+    if (!groups.has(key)) {
+      groups.set(key, []);
+    }
+    groups.get(key).push(row);
+  }
+
+  const result = [];
+  for (const [, groupRows] of groups) {
+    if (groupRows.length === 1) {
+      result.push(groupRows[0]);
+      continue;
+    }
+
+    const calculated = groupRows.find(
+      (r) => (r.gradeType || GRADE_TYPE.CALCULATED) === GRADE_TYPE.CALCULATED
+    );
+    const complementary = groupRows.find(
+      (r) => r.gradeType === GRADE_TYPE.COMPLEMENTARY
+    );
+
+    if (calculated && complementary) {
+      result.push({
+        ...calculated,
+        complementaryAttempt: {
+          finalExam: complementary.finalExam,
+          totalMarks: complementary.totalMarks,
+          letterGrade: complementary.letterGrade,
+          gradePoints: complementary.gradePoints,
+          isRepeated: complementary.isRepeated,
+          gradeType: complementary.gradeType,
+        },
+      });
+    } else {
+      for (const r of groupRows) result.push(r);
+    }
+  }
+  return result;
+}
+
 export function getAllGradingStandards() {
   return GRADING_STANDARDS;
 }

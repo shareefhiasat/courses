@@ -18,6 +18,7 @@ import {
   getGradeColor,
   calculateGpaFromMarks,
   groupMarksBySemester,
+  mergeComplementaryRecords,
   getGpaStanding,
 } from '@services/business/enrollmentMarksService';
 import MarksHistoryDrawer from '@components/academic/MarksHistoryDrawer';
@@ -49,6 +50,7 @@ const MarksTab = React.memo(({
   const [historyLoading, setHistoryLoading] = useState(false);
   const [selectedHistoryStudent, setSelectedHistoryStudent] = useState(null);
   const [hoveredTip, setHoveredTip] = useState(null);
+  const [refreshCounter, setRefreshCounter] = useState(0);
 
   const loadMarksReport = useCallback(async () => {
     if (!studentId && !classId) return;
@@ -93,7 +95,7 @@ const MarksTab = React.memo(({
   }, [firstSubjectId]);
 
   const groupedMarks = useMemo(
-    () => groupMarksBySemester(marksReportData),
+    () => groupMarksBySemester(mergeComplementaryRecords(marksReportData)),
     [marksReportData]
   );
 
@@ -161,7 +163,8 @@ const MarksTab = React.memo(({
           return <span style={{ opacity: 0.4 }}>—</span>;
         }
         const value = params.value || 0;
-        const max = marksDistribution?.[field] || maxDefault;
+        const isComp = (row.gradeType || GRADE_TYPE.CALCULATED) === GRADE_TYPE.COMPLEMENTARY;
+        const max = (isComp && field === 'finalExam') ? 100 : (marksDistribution?.[field] || maxDefault);
         return (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
             <span>{value}/{max}</span>
@@ -183,6 +186,18 @@ const MarksTab = React.memo(({
         headerName: t('class'),
         flex: 1,
         minWidth: 120,
+        editable: false,
+      },
+      {
+        field: 'year',
+        headerName: t('year') || 'Year',
+        width: 80,
+        editable: false,
+      },
+      {
+        field: 'term',
+        headerName: t('term') || t('semester') || 'Term',
+        width: 90,
         editable: false,
       },
       makeMarkCell('midTermExam', 'mid_term', 20),
@@ -319,7 +334,7 @@ const MarksTab = React.memo(({
       {
         field: 'gradeType',
         headerName: t('grade_type'),
-        width: 110,
+        width: 130,
         editable: false,
         renderCell: (params) => {
           const value = params.value || GRADE_TYPE.CALCULATED;
@@ -329,9 +344,21 @@ const MarksTab = React.memo(({
             FB: 'FB', FA: 'FA', WF: 'WF',
           };
           return (
-            <span style={{ fontSize: 'var(--font-size-xs)' }}>
-              {labels[value] || value}
-            </span>
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+              <span style={{ fontSize: 'var(--font-size-xs)' }}>
+                {labels[value] || value}
+              </span>
+              {params.row.complementaryAttempt && (
+                <span style={{
+                  fontSize: 'var(--font-size-xs)',
+                  color: '#6b7280',
+                  whiteSpace: 'nowrap',
+                  lineHeight: 1.2,
+                }}>
+                  {t('complementary_exam_short') || 'Comp'}: {params.row.complementaryAttempt.finalExam}/100 → {params.row.complementaryAttempt.letterGrade}
+                </span>
+              )}
+            </div>
           );
         },
       },
@@ -378,6 +405,11 @@ const MarksTab = React.memo(({
           toast?.error?.(validationErrors.join(', '));
           throw new Error('Validation failed');
         }
+      } else if (gradeType === GRADE_TYPE.COMPLEMENTARY) {
+        if ((newRow.finalExam || 0) > 100) {
+          toast?.error?.('Complementary exam score cannot exceed 100');
+          throw new Error('Validation failed');
+        }
       }
 
       const marksData = {
@@ -394,6 +426,7 @@ const MarksTab = React.memo(({
       const result = await updateStudentMarks(newRow.studentId, newRow.subjectId, newRow.classId, marksData);
       if (result.success) {
         await loadMarksReport();
+        setRefreshCounter(c => c + 1);
         toast?.success?.(t('marks_updated'));
       }
       return newRow;
@@ -402,7 +435,7 @@ const MarksTab = React.memo(({
       toast?.error?.(t('error_saving_marks'));
       throw err;
     }
-  }, [marksDistribution, toast, t, loadMarksReport]);
+  }, [marksDistribution, toast, t, loadMarksReport, refreshCounter]);
 
   if (marksReportLoading && marksReportData.length === 0) {
     return (
@@ -537,7 +570,7 @@ const MarksTab = React.memo(({
             );
           })}
           <AdvancedDataGrid
-            key={`marks-grid-${group.semester}-${group.year}-${group.courses.length}`}
+            key={`marks-grid-${group.semester}-${group.year}-${group.courses.length}-${refreshCounter}`}
             rows={group.courses}
             columns={columns}
             pageSize={10}

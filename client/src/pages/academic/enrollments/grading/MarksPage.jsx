@@ -18,6 +18,7 @@ import {
   getGradeColor,
   getGpaStanding,
   calculateGpaFromMarks,
+  mergeComplementaryRecords,
 } from '@services/business/enrollmentMarksService';
 import { getUsers } from '@services/business/userService';
 import { getEnrollments } from '@services/business/enrollmentService';
@@ -115,6 +116,7 @@ const MarksPage = () => {
   const [termFilter, setTermFilter] = usePersistentState('marks_filter_term', '');
   const [yearFilter, setYearFilter] = usePersistentState('marks_filter_year', '');
   const [repeatedFilter, setRepeatedFilter] = usePersistentState('marks_filter_repeated', ''); // '', 'true', 'false'
+  const [refreshCounter, setRefreshCounter] = useState(0);
 
   // Side window state
   const [sideWindowOpen, setSideWindowOpen] = useState(false);
@@ -1277,8 +1279,8 @@ const MarksPage = () => {
               </div>
             ) : (
               <AdvancedDataGrid
-                key={`marks-grid-${subjectFilter}-${marksReportData.map(r => `${r.userId}-${r.subjectId}`).join('|')}`}
-                rows={marksReportData.filter(row => row.subjectId == subjectFilter)}
+                key={`marks-grid-${subjectFilter}-${refreshCounter}-${marksReportData.length}`}
+                rows={mergeComplementaryRecords(marksReportData.filter(row => row.subjectId == subjectFilter))}
                 columns={[
                   {
                     field: 'studentNumber',
@@ -1324,6 +1326,18 @@ const MarksPage = () => {
                     editable: false
                   },
                   {
+                    field: 'year',
+                    headerName: t('year') || 'Year',
+                    width: 80,
+                    editable: false,
+                  },
+                  {
+                    field: 'term',
+                    headerName: t('term') || t('semester') || 'Term',
+                    width: 90,
+                    editable: false,
+                  },
+                  {
                     field: 'midTermExam',
                     headerName: t('mid_term'),
                     width: 90,
@@ -1355,19 +1369,24 @@ const MarksPage = () => {
                     width: 90,
                     editable: true,
                     type: 'number',
-                    valueParser: (value) => {
+                    valueParser: (value, row) => {
                       const num = parseFloat(value);
-                      const max = marksDistribution?.finalExam || 40;
+                      const isComp = (row?.gradeType || 'calculated') === GRADE_TYPE.COMPLEMENTARY;
+                      const max = isComp ? 100 : (marksDistribution?.finalExam || 40);
                       return isNaN(num) ? 0 : Math.max(0, Math.min(max, num));
                     },
                     valueFormatter: (params) => {
                       const value = params?.value || 0;
-                      const max = marksDistribution?.finalExam || 40;
+                      const row = params?.row || {};
+                      const isComp = (row.gradeType || 'calculated') === GRADE_TYPE.COMPLEMENTARY;
+                      const max = isComp ? 100 : (marksDistribution?.finalExam || 40);
                       return `${value}/${max}`;
                     },
                     renderCell: (params) => {
                       const value = params.value || 0;
-                      const max = marksDistribution?.finalExam || 40;
+                      const row = params.row || {};
+                      const isComp = (row.gradeType || 'calculated') === GRADE_TYPE.COMPLEMENTARY;
+                      const max = isComp ? 100 : (marksDistribution?.finalExam || 40);
                       return (
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                           <span>{value}/{max}</span>
@@ -1539,16 +1558,29 @@ const MarksPage = () => {
                         WF: `WF - ${t('grade_wf')}`,
                       };
                       return (
-                        <div style={{ 
-                          padding: '4px 8px', 
-                          borderRadius: '4px',
-                          background: value === 'calculated' ? '#e5e7eb' : '#fef3c7',
-                          color: value === 'calculated' ? '#374151' : '#92400e',
-                          textAlign: 'center',
-                          fontSize: 'var(--font-size-sm)',
-                          fontWeight: 500
-                        }}>
-                          {options[value] || value}
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                          <div style={{ 
+                            padding: '4px 8px', 
+                            borderRadius: '4px',
+                            background: value === 'calculated' ? '#e5e7eb' : '#fef3c7',
+                            color: value === 'calculated' ? '#374151' : '#92400e',
+                            textAlign: 'center',
+                            fontSize: 'var(--font-size-sm)',
+                            fontWeight: 500
+                          }}>
+                            {options[value] || value}
+                          </div>
+                          {params.row.complementaryAttempt && (
+                            <div style={{
+                              fontSize: 'var(--font-size-xs)',
+                              color: '#6b7280',
+                              textAlign: 'center',
+                              lineHeight: 1.2,
+                              whiteSpace: 'nowrap',
+                            }}>
+                              {t('complementary_exam_short') || 'Comp'}: {params.row.complementaryAttempt.finalExam}/100 → {params.row.complementaryAttempt.letterGrade}
+                            </div>
+                          )}
                         </div>
                       );
                     }
@@ -1758,6 +1790,7 @@ const MarksPage = () => {
                                 
                                 // Render filtered history data to get updated grades
                                 await loadMarksReport();
+                                setRefreshCounter(c => c + 1);
                                 
                                 // Update the local state to show immediate feedback
                                 params.api.updateRows([{ id: params.id, isRepeated: !isRepeated }]);
@@ -1929,8 +1962,11 @@ const MarksPage = () => {
                       attendance: 10
                     };
                     
-                    // Validate marks against distribution
+                    const gradeType = newRow.gradeType || 'calculated';
+
+                    // Validate marks against distribution (only for calculated grades)
                     const validationErrors = [];
+                    if (gradeType === 'calculated') {
                     if (newRow.midTermExam > distribution.midTermExam) validationErrors.push(`Mid-term exam cannot exceed ${distribution.midTermExam}`);
                     if (newRow.finalExam > distribution.finalExam) validationErrors.push(`Final exam cannot exceed ${distribution.finalExam}`);
                     if (newRow.homework > distribution.homework) validationErrors.push(`Homework cannot exceed ${distribution.homework}`);
@@ -1938,6 +1974,9 @@ const MarksPage = () => {
                     if (newRow.quizzes > distribution.quizzes) validationErrors.push(`Quizzes cannot exceed ${distribution.quizzes}`);
                     if (newRow.participation > distribution.participation) validationErrors.push(`Participation cannot exceed ${distribution.participation}`);
                     if (newRow.attendance > distribution.attendance) validationErrors.push(`Attendance cannot exceed ${distribution.attendance}`);
+                    } else if (gradeType === GRADE_TYPE.COMPLEMENTARY) {
+                      if ((newRow.finalExam || 0) > 100) validationErrors.push('Complementary exam score cannot exceed 100');
+                    }
                     
                     if (validationErrors.length > 0) {
                       toast?.error?.(validationErrors.join(', '));
@@ -1953,7 +1992,7 @@ const MarksPage = () => {
                       participation: newRow.participation || 0,
                       attendance: newRow.attendance || 0,
                       isRepeated: Boolean(newRow.isRepeated),
-                      gradeType: newRow.gradeType || 'calculated'
+                      gradeType
                     };
                     
                     const result = await updateStudentMarks(
@@ -1966,6 +2005,7 @@ const MarksPage = () => {
                     if (result.success) {
                       // Refresh the marks report data to get updated calculations
                       await loadMarksReport();
+                      setRefreshCounter(c => c + 1);
                       
                       toast?.success?.(t('marks_updated'));
                     }
