@@ -25,15 +25,28 @@ const CATEGORY_ICONS = {
   activity: Activity,
 };
 
-export default function DashboardAnalyticsPanel({ analyticsData, loading, onReload, lastUpdatedAt }) {
+export default function DashboardAnalyticsPanel({
+  analyticsData,
+  loading,
+  onReload,
+  lastUpdatedAt,
+  lockedCategory = null,
+  storageKeySuffix = '',
+  defaultWidgets: customDefaultWidgets = null,
+  maxWidgets: customMaxWidgets = null,
+}) {
   const { t, lang } = useLang();
   const { theme } = useTheme();
   const engineRef = useRef(null);
   const guard = useEditLayoutGuard(engineRef, { t });
   const { autoSave, editLayout, showExitDialog } = guard;
   const [widgetSearch, setWidgetSearch] = useState('');
-  const [widgetCategory, setWidgetCategory] = useState('all');
+  const [widgetCategory, setWidgetCategory] = useState(lockedCategory || 'all');
   const accentColor = DEFAULT_ACCENT;
+
+  const storageKey = DASHBOARD_ANALYTICS_STORAGE_KEY + storageKeySuffix;
+  const defaultWidgets = customDefaultWidgets || DASHBOARD_ANALYTICS_DEFAULT_WIDGETS;
+  const maxWidgets = customMaxWidgets || DASHBOARD_ANALYTICS_MAX_WIDGETS;
 
   const rawData = useMemo(
     () => {
@@ -189,6 +202,7 @@ export default function DashboardAnalyticsPanel({ analyticsData, loading, onRelo
             </button>
           </div>
         </div>
+        {!lockedCategory && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.35rem', alignItems: 'center' }}>
           {ANALYTICS_WIDGET_CATEGORIES.map((cat) => {
             const active = widgetCategory === cat.id;
@@ -222,6 +236,7 @@ export default function DashboardAnalyticsPanel({ analyticsData, loading, onRelo
             );
           })}
         </div>
+        )}
       </div>
 
       <DashboardEngine
@@ -231,8 +246,8 @@ export default function DashboardAnalyticsPanel({ analyticsData, loading, onRelo
         accentColor={normalizeHexColor(accentColor)}
         editLayout={editLayout}
         autoSave={autoSave}
-        defaultWidgets={DASHBOARD_ANALYTICS_DEFAULT_WIDGETS}
-        storageKey={DASHBOARD_ANALYTICS_STORAGE_KEY}
+        defaultWidgets={defaultWidgets}
+        storageKey={storageKey}
         isLoading={loading}
         lastUpdatedAt={lastUpdatedAt}
         onSmartReload={onReload}
@@ -240,7 +255,7 @@ export default function DashboardAnalyticsPanel({ analyticsData, loading, onRelo
         widgetCategory={widgetCategory}
         widgetCategoryResolver="analytics"
         builderCategoryScope="analytics"
-        maxWidgets={DASHBOARD_ANALYTICS_MAX_WIDGETS}
+        maxWidgets={maxWidgets}
       />
 
       <Modal

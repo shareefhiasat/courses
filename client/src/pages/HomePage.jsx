@@ -31,6 +31,7 @@ import { ACTIVITY_TYPES } from '@constants/activityTypes';
 import { DIFFICULTY_TYPES } from '@constants/difficultyTypes';
 import { ROLE_STRINGS } from '@utils/userUtils';
 import { useFilterCounts } from '@hooks/useFilterCounts';
+import { saveFiltersToStorage, loadFiltersFromStorage } from '@hooks/usePersistentState';
 import { getActivityTypeConfig } from '@constants/activityTypes';
 import { getDifficultyConfig } from '@constants/difficultyTypes';
 import { getResourceTypeConfig } from '@constants/resourceTypes';
@@ -199,12 +200,13 @@ const HomePage = memo(() => {
   const [reviewEnrollments, setReviewEnrollments] = useState([]);
   const [reviewClassEnrollments, setReviewClassEnrollments] = useState([]);
   const [reviewActivities, setReviewActivities] = useState([]);
-  const [selectedProgram, setSelectedProgram] = useState('all');
-  const [selectedSubject, setSelectedSubject] = useState('all');
-  const [selectedClass, setSelectedClass] = useState('all');
-  const [selectedStudent, setSelectedStudent] = useState('all');
-  const [selectedYear, setSelectedYear] = useState('all');
-  const [selectedTerm, setSelectedTerm] = useState('all');
+  const savedHierarchy = loadFiltersFromStorage('homepage_review_hierarchy', {});
+  const [selectedProgram, setSelectedProgram] = useState(savedHierarchy.selectedProgram || 'all');
+  const [selectedSubject, setSelectedSubject] = useState(savedHierarchy.selectedSubject || 'all');
+  const [selectedClass, setSelectedClass] = useState(savedHierarchy.selectedClass || 'all');
+  const [selectedStudent, setSelectedStudent] = useState(savedHierarchy.selectedStudent || 'all');
+  const [selectedYear, setSelectedYear] = useState(savedHierarchy.selectedYear || 'all');
+  const [selectedTerm, setSelectedTerm] = useState(savedHierarchy.selectedTerm || 'all');
 
   // Save filter view mode preference
   useEffect(() => {
@@ -223,6 +225,64 @@ const HomePage = memo(() => {
     window.addEventListener('filter-view-mode-changed', handler);
     return () => window.removeEventListener('filter-view-mode-changed', handler);
   }, []);
+
+  // Toggle filter view mode between 'full' and 'minified'
+  const toggleFilterViewMode = useCallback(() => {
+    setFilterViewMode(prev => prev === 'minified' ? 'full' : 'minified');
+  }, []);
+
+  // Persist filter chips per mode to localStorage
+
+  // Save current filter values whenever they change (per mode)
+  useEffect(() => {
+    const filterValues = {
+      bookmarkFilter, difficultyFilter, completedFilter, requiredFilter,
+      optionalFilter, overdueFilter, pendingFilter, requiresSubmissionFilter,
+      retakableFilter, featuredFilter, gradedFilter, activityTypeFilter,
+      resourceTypeFilter, classFilter, category
+    };
+    saveFiltersToStorage(`homepage_filters_${mode}`, filterValues);
+  }, [
+    mode, bookmarkFilter, difficultyFilter, completedFilter, requiredFilter,
+    optionalFilter, overdueFilter, pendingFilter, requiresSubmissionFilter,
+    retakableFilter, featuredFilter, gradedFilter, activityTypeFilter,
+    resourceTypeFilter, classFilter, category
+  ]);
+
+  // Restore filter values when mode changes
+  const modeChangeRef = useRef(mode);
+  useEffect(() => {
+    if (modeChangeRef.current !== mode) {
+      modeChangeRef.current = mode;
+      const saved = loadFiltersFromStorage(`homepage_filters_${mode}`, {});
+      if (Object.keys(saved).length > 0) {
+        if (saved.bookmarkFilter !== undefined) setBookmarkFilter(saved.bookmarkFilter);
+        if (saved.difficultyFilter !== undefined) setDifficultyFilter(saved.difficultyFilter);
+        if (saved.completedFilter !== undefined) setCompletedFilter(saved.completedFilter);
+        if (saved.requiredFilter !== undefined) setRequiredFilter(saved.requiredFilter);
+        if (saved.optionalFilter !== undefined) setOptionalFilter(saved.optionalFilter);
+        if (saved.overdueFilter !== undefined) setOverdueFilter(saved.overdueFilter);
+        if (saved.pendingFilter !== undefined) setPendingFilter(saved.pendingFilter);
+        if (saved.requiresSubmissionFilter !== undefined) setRequiresSubmissionFilter(saved.requiresSubmissionFilter);
+        if (saved.retakableFilter !== undefined) setRetakableFilter(saved.retakableFilter);
+        if (saved.featuredFilter !== undefined) setFeaturedFilter(saved.featuredFilter);
+        if (saved.gradedFilter !== undefined) setGradedFilter(saved.gradedFilter);
+        if (saved.activityTypeFilter !== undefined) setActivityTypeFilter(saved.activityTypeFilter);
+        if (saved.resourceTypeFilter !== undefined) setResourceTypeFilter(saved.resourceTypeFilter);
+        if (saved.classFilter !== undefined) setClassFilter(saved.classFilter);
+        if (saved.category !== undefined) setCategory(saved.category);
+        debug(`[HomePage] Restored filters for mode: ${mode}`, saved);
+      }
+    }
+  }, [mode]);
+
+  // Persist review hierarchy dropdown selections
+  useEffect(() => {
+    saveFiltersToStorage('homepage_review_hierarchy', {
+      selectedProgram, selectedSubject, selectedClass,
+      selectedStudent, selectedYear, selectedTerm
+    });
+  }, [selectedProgram, selectedSubject, selectedClass, selectedStudent, selectedYear, selectedTerm]);
 
   // Listen for help button click from navbar
   useEffect(() => {
@@ -362,6 +422,18 @@ const HomePage = memo(() => {
       setReviewUsers(usersData);
       setReviewEnrollments(enrollmentsData);
 
+      debug('[HomePage] loadReviewData raw counts:', {
+        programs: programsData.length,
+        subjects: subjectsData.length,
+        classes: classesData.length,
+        activities: activitiesData.length,
+        users: usersData.length,
+        enrollments: enrollmentsData.length,
+        sampleEnrollment: enrollmentsData[0],
+        sampleUser: usersData[0],
+        sampleClass: classesData[0],
+      });
+
       const submissionsResult = await getSubmissions();
       let submissionsData = submissionsResult.success ? submissionsResult.data : [];
 
@@ -396,6 +468,21 @@ const HomePage = memo(() => {
       });
 
       setReviewSubmissions(enriched);
+
+      debug('[HomePage] loadReviewData enriched submissions:', {
+        total: enriched.length,
+        withProgramId: enriched.filter(s => s.programId).length,
+        withSubjectId: enriched.filter(s => s.subjectId).length,
+        withClassId: enriched.filter(s => s.classId).length,
+        sampleEnriched: enriched[0] ? {
+          programId: enriched[0].programId,
+          subjectId: enriched[0].subjectId,
+          classId: enriched[0].classId,
+          programName: enriched[0].programName,
+          subjectName: enriched[0].subjectName,
+          className: enriched[0].className,
+        } : null,
+      });
     } catch (error) {
       error('[HomePage] loadReviewData error:', error);
     } finally {
@@ -420,9 +507,17 @@ const HomePage = memo(() => {
     }
     let cancelled = false;
     (async () => {
+      debug('[HomePage] Loading students for class:', selectedClass);
       const result = await getStudentsByClass(selectedClass);
       if (!cancelled) {
-        setReviewClassEnrollments(result.success ? (result.data || []) : []);
+        const data = result.success ? (result.data || []) : [];
+        setReviewClassEnrollments(data);
+        debug('[HomePage] getStudentsByClass result:', {
+          success: result.success,
+          count: data.length,
+          sample: data[0],
+          selectedClass,
+        });
       }
     })();
     return () => { cancelled = true; };
@@ -1086,18 +1181,35 @@ const HomePage = memo(() => {
   const reviewStudentUsers = useMemo(() => {
     const hasClassFilter = selectedClass && selectedClass !== 'all' && selectedClass !== '';
     if (hasClassFilter && reviewClassEnrollments.length > 0) {
-      return reviewClassEnrollments
+      const users = reviewClassEnrollments
         .map(e => (e.user ? { ...e.user, id: e.user.id ?? e.userId } : null))
         .filter(Boolean);
+      debug('[HomePage] reviewStudentUsers from classEnrollments:', {
+        selectedClass, count: users.length, sampleEnrollment: reviewClassEnrollments[0],
+      });
+      return users;
     }
-    if (!hasClassFilter) return reviewUsers;
-    return reviewUsers.filter(s => {
+    if (!hasClassFilter) {
+      debug('[HomePage] reviewStudentUsers (no class filter):', {
+        count: reviewUsers.length,
+        selectedProgram, selectedSubject,
+      });
+      return reviewUsers;
+    }
+    const filtered = reviewUsers.filter(s => {
       const userId = s.id || s.docId || s.uid;
       return reviewEnrollments.some(e =>
         String(e.userId) === String(userId) && String(e.classId) === String(selectedClass)
       );
     });
-  }, [reviewUsers, reviewEnrollments, reviewClassEnrollments, selectedClass]);
+    debug('[HomePage] reviewStudentUsers filtered by enrollments:', {
+      selectedClass, totalUsers: reviewUsers.length, totalEnrollments: reviewEnrollments.length,
+      matchedCount: filtered.length,
+      enrollmentClassIds: [...new Set(reviewEnrollments.map(e => e.classId))].slice(0, 10),
+      selectedClassType: typeof selectedClass,
+    });
+    return filtered;
+  }, [reviewUsers, reviewEnrollments, reviewClassEnrollments, selectedClass, selectedProgram, selectedSubject]);
 
   // Review mode: filtered items with role-based scoping + all active filters
   const filteredReviewItems = useMemo(() => {
@@ -1148,13 +1260,28 @@ const HomePage = memo(() => {
 
     // Program / Subject / Class hierarchy filters
     if (selectedProgram && selectedProgram !== 'all') {
+      const before = filtered.length;
       filtered = filtered.filter(sub => String(sub.programId) === String(selectedProgram));
+      debug('[HomePage] filteredReviewItems program filter:', {
+        selectedProgram, before, after: filtered.length,
+        sampleSubProgramId: reviewSubmissions[0]?.programId,
+        sampleSubSubjectId: reviewSubmissions[0]?.subjectId,
+        sampleSubClassId: reviewSubmissions[0]?.classId,
+      });
     }
     if (selectedSubject && selectedSubject !== 'all') {
+      const before = filtered.length;
       filtered = filtered.filter(sub => String(sub.subjectId) === String(selectedSubject));
+      debug('[HomePage] filteredReviewItems subject filter:', {
+        selectedSubject, before, after: filtered.length,
+      });
     }
     if (selectedClass && selectedClass !== 'all') {
+      const before = filtered.length;
       filtered = filtered.filter(sub => String(sub.classId) === String(selectedClass));
+      debug('[HomePage] filteredReviewItems class filter:', {
+        selectedClass, before, after: filtered.length,
+      });
     }
 
     // Student filter (non-student roles only)
@@ -1575,6 +1702,7 @@ const HomePage = memo(() => {
                   gradedFilter={gradedFilter}
                   setGradedFilter={setGradedFilter}
                   isMinified={isMinified}
+                  onToggleViewMode={toggleFilterViewMode}
                   theme={theme}
                   lang={lang}
                   t={t}
@@ -1683,6 +1811,7 @@ const HomePage = memo(() => {
             selectedClass={classFilter}
             setSelectedClass={setClassFilter}
             isMinified={isMinified}
+            onToggleViewMode={toggleFilterViewMode}
             theme={theme}
             lang={lang}
             t={t}

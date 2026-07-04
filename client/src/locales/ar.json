@@ -6437,6 +6437,15 @@
   "qid_image": "صورة الهوية",
   "military_id_image": "صورة الهوية العسكرية",
   "additional_image": "صورة إضافية",
+  "first_name": "الاسم الأول",
+  "last_name": "اسم العائلة",
+  "drive_analytics": "تحليلات القرص",
+  "workflow_analytics": "تحليلات سير العمل",
+  "activity_analytics": "تحليلات الأنشطة",
+  "performance_analytics": "تحليلات الأداء",
+  "attendance_history": "سجل الحضور",
+  "student_records": "سجلات الطلاب",
+  "records": "سجلات",
   "tab_activity": "النشاط",
   "tab_attendance_analytics": "الحضور"
 }

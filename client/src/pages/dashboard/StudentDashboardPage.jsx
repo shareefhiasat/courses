@@ -22,7 +22,7 @@ import useDashboardAnalytics from '@hooks/useDashboardAnalytics';
 import DashboardAnalyticsPanel from '@components/analytics/DashboardAnalyticsPanel';
 import AttendanceAnalyticsPanel from '@components/analytics/AttendanceAnalyticsPanel';
 import CollapsibleSection from '@components/scheduling/CollapsibleSection';
-import { BarChart3, ClipboardList } from 'lucide-react';
+import { ClipboardList, HardDrive, GitBranch, Activity } from 'lucide-react';
 
 import {
   STUDENT_ATTENDANCE_DEFAULT_WIDGETS,
@@ -32,10 +32,20 @@ import {
 } from '@constants/studentPerformanceWidgets';
 
 import {
+  DRIVE_ANALYTICS_DEFAULT_WIDGETS,
+  DRIVE_ANALYTICS_MAX_WIDGETS,
+  WORKFLOW_ANALYTICS_DEFAULT_WIDGETS,
+  WORKFLOW_ANALYTICS_MAX_WIDGETS,
+  ACTIVITY_ANALYTICS_DEFAULT_WIDGETS,
+  ACTIVITY_ANALYTICS_MAX_WIDGETS,
+} from '@constants/dashboardAnalyticsWidgets';
+
+import {
   OverviewTab,
   MarksTab,
   ClassTab,
 } from '@components/student-dashboard';
+import AttendanceTab from '@components/student-dashboard/attendance/AttendanceTab';
 import styles from './StudentDashboardPage.module.css';
 
 export default function StudentDashboardPage() {
@@ -446,7 +456,6 @@ export default function StudentDashboardPage() {
                     icon={ClipboardList}
                     defaultOpen={false}
                     testId="attendance-analytics-section"
-                    storageKey="student-attendance-analytics-tab"
                   >
                     <AttendanceAnalyticsPanel
                       rawData={buildStudentPerformanceRawData(
@@ -463,23 +472,85 @@ export default function StudentDashboardPage() {
                       lastUpdatedAt={Date.now()}
                     />
                   </CollapsibleSection>
+                  <CollapsibleSection
+                    title={t('student_records')}
+                    summary={`${dashData.attendance?.length || 0} ${t('records') || 'records'}`}
+                    icon={ClipboardList}
+                    defaultOpen={false}
+                    testId="attendance-history-section-tab"
+                  >
+                    <AttendanceTab
+                      studentId={displayStudentId}
+                      classId={filters.selectedClassId !== 'all' ? filters.selectedClassId : undefined}
+                      attendance={dashData.attendance}
+                      participations={dashData.participations}
+                      penalties={dashData.penalties}
+                      behaviors={dashData.behaviors}
+                      students={studentUsers}
+                      canInlineEdit={permissions.canInlineEdit}
+                      canDeleteRecords={permissions.canDeleteRecords}
+                      onRefresh={dashData.reload}
+                      t={t}
+                      lang={lang}
+                      studentName={displayName}
+                    />
+                  </CollapsibleSection>
                 </div>
               )}
               {activeTab === 'activity' && (
                 <div data-tour="student-drive-analytics">
                   <CollapsibleSection
-                    title={t('drive_workflow_activity_analytics')}
-                    summary={`${analyticsHook.loading ? '…' : (t('ready'))} · ${t('role_based_metrics')}`}
-                    icon={BarChart3}
+                    title={t('drive_analytics')}
+                    summary={analyticsHook.loading ? '…' : t('ready')}
+                    icon={HardDrive}
                     defaultOpen={false}
-                    testId="dashboard-analytics-section"
-                    storageKey="student-activity-analytics-tab"
+                    testId="dashboard-drive-analytics-section"
                   >
                     <DashboardAnalyticsPanel
                       analyticsData={analyticsHook.data}
                       loading={analyticsHook.loading}
                       onReload={analyticsHook.reload}
                       lastUpdatedAt={Date.now()}
+                      lockedCategory="drive"
+                      storageKeySuffix="_drive"
+                      defaultWidgets={DRIVE_ANALYTICS_DEFAULT_WIDGETS}
+                      maxWidgets={DRIVE_ANALYTICS_MAX_WIDGETS}
+                    />
+                  </CollapsibleSection>
+                  <CollapsibleSection
+                    title={t('workflow_analytics')}
+                    summary={analyticsHook.loading ? '…' : t('ready')}
+                    icon={GitBranch}
+                    defaultOpen={false}
+                    testId="dashboard-workflow-analytics-section"
+                  >
+                    <DashboardAnalyticsPanel
+                      analyticsData={analyticsHook.data}
+                      loading={analyticsHook.loading}
+                      onReload={analyticsHook.reload}
+                      lastUpdatedAt={Date.now()}
+                      lockedCategory="workflow"
+                      storageKeySuffix="_workflow"
+                      defaultWidgets={WORKFLOW_ANALYTICS_DEFAULT_WIDGETS}
+                      maxWidgets={WORKFLOW_ANALYTICS_MAX_WIDGETS}
+                    />
+                  </CollapsibleSection>
+                  <CollapsibleSection
+                    title={t('activity_analytics')}
+                    summary={analyticsHook.loading ? '…' : t('ready')}
+                    icon={Activity}
+                    defaultOpen={false}
+                    testId="dashboard-activity-analytics-section"
+                  >
+                    <DashboardAnalyticsPanel
+                      analyticsData={analyticsHook.data}
+                      loading={analyticsHook.loading}
+                      onReload={analyticsHook.reload}
+                      lastUpdatedAt={Date.now()}
+                      lockedCategory="activity"
+                      storageKeySuffix="_activity"
+                      defaultWidgets={ACTIVITY_ANALYTICS_DEFAULT_WIDGETS}
+                      maxWidgets={ACTIVITY_ANALYTICS_MAX_WIDGETS}
                     />
                   </CollapsibleSection>
                 </div>

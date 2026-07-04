@@ -6320,6 +6320,15 @@
   "qid_image": "QID Image",
   "military_id_image": "Military ID Image",
   "additional_image": "Additional Image",
+  "first_name": "First Name",
+  "last_name": "Last Name",
+  "drive_analytics": "Drive Analytics",
+  "workflow_analytics": "Workflow Analytics",
+  "activity_analytics": "Activity Analytics",
+  "performance_analytics": "Performance Analytics",
+  "attendance_history": "Attendance History",
+  "student_records": "Student Records",
+  "records": "Records",
   "tab_activity": "Activity",
   "tab_attendance_analytics": "Attendance"
 }

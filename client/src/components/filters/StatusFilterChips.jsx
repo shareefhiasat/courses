@@ -143,7 +143,7 @@ const StatusFilterChips = ({
         <button
           className={`filter-button inline-flex items-center justify-center cursor-pointer transition-all duration-200 ease-in-out hover:scale-105 focus:outline-none focus:ring-2 focus:ring-offset-1 ${
             isMinified 
-              ? 'w-8 h-8 rounded-full border-1 p-0' 
+              ? 'rounded-full border-1 p-0' 
               : 'px-2 py-1 rounded-full border-1 text-xs font-semibold gap-1'
           }`}
           onClick={chip.toggle}
@@ -158,7 +158,8 @@ const StatusFilterChips = ({
             borderRadius: 999,
             fontSize: 'var(--font-size-xs)',
             fontWeight: 600,
-            border: `1px solid ${chip.colors.border}`
+            border: `1px solid ${chip.colors.border}`,
+            ...(isMinified && { width: 38, height: 30 })
           }}
         >
           {getColoredIcon('ui', chip.icon, isMinified ? 14 : 12, chip.active ? chip.colors.activeText : chip.colors.text, theme)}
@@ -167,8 +168,8 @@ const StatusFilterChips = ({
             <span 
               className="inline-flex items-center justify-center text-xs font-normal rounded-full"
               style={{
-                backgroundColor: chip.active ? chip.colors.activeText : chip.colors.text,
-                color: chip.active ? chip.colors.activeBg : chip.colors.bg,
+                backgroundColor: chip.active ? 'rgba(255, 255, 255, 0.25)' : `${chip.colors.text}25`,
+                color: chip.active ? chip.colors.activeText : chip.colors.text,
                 minWidth: '1rem',
                 height: '1rem',
                 padding: '0 0.25rem',

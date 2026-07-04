@@ -49,6 +49,8 @@ const StudentProfilePanel = memo(({ student, t, lang }) => {
 
   const displayName = student.displayName || student.name || '';
   const displayNameAr = student.displayNameAr || '';
+  const firstName = student.firstName || '';
+  const lastName = student.lastName || '';
   const studentNumber = student.studentNumber || '';
   const sequence = student.sequence || '';
   const phoneNumber = student.phoneNumber || '';
@@ -93,7 +95,6 @@ const StudentProfilePanel = memo(({ student, t, lang }) => {
       icon={User}
       defaultOpen={false}
       testId="student-profile-section"
-      storageKey="student-profile-panel"
     >
       <div className={styles.profileContainer}>
         <div className={styles.profileHeader}>
@@ -125,6 +126,8 @@ const StudentProfilePanel = memo(({ student, t, lang }) => {
         </div>
 
         <div className={styles.fieldsGrid}>
+          <FieldRow icon={User} label={t('first_name')} value={firstName} />
+          <FieldRow icon={User} label={t('last_name')} value={lastName} />
           <FieldRow icon={IdCard} label={t('student_number')} value={studentNumber} />
           <FieldRow icon={Hash} label={t('sequence')} value={sequence || ''} />
           <FieldRow icon={Mail} label={t('email')} value={email} />

@@ -51,7 +51,7 @@ export default function CollapsibleSection({
         borderRadius: '0.5rem',
         padding: open ? '0.625rem 0.75rem' : '0.375rem 0.75rem',
         border: `1px solid ${showHover ? '#810C29' : border}`,
-        marginBottom: '0.75rem',
+        marginBottom: '0.5rem',
         transition: 'background-color 0.18s ease, border-color 0.18s ease',
       }}
     >

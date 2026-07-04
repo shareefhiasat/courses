@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
 import { useFilterCounts } from '@hooks/useFilterCounts';
+import { usePersistentState, saveFiltersToStorage, loadFiltersFromStorage } from '@hooks/usePersistentState';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
@@ -99,28 +100,28 @@ const ReviewResultsPage = () => {
     }));
   }, [submissions, lang, t]);
 
-  // Filter states - using filter chips like HomePage
+  // Filter states - persisted to localStorage
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedProgram, setSelectedProgram] = useState('all');
-  const [selectedSubject, setSelectedSubject] = useState('all');
-  const [selectedClass, setSelectedClass] = useState('all');
-  const [selectedStudent, setSelectedStudent] = useState('all');
-  const [selectedYear, setSelectedYear] = useState('all');
-  const [selectedTerm, setSelectedTerm] = useState('all');
-  const [difficultyFilter, setDifficultyFilter] = useState('all');
+  const [selectedProgram, setSelectedProgram] = usePersistentState('review_selectedProgram', 'all');
+  const [selectedSubject, setSelectedSubject] = usePersistentState('review_selectedSubject', 'all');
+  const [selectedClass, setSelectedClass] = usePersistentState('review_selectedClass', 'all');
+  const [selectedStudent, setSelectedStudent] = usePersistentState('review_selectedStudent', 'all');
+  const [selectedYear, setSelectedYear] = usePersistentState('review_selectedYear', 'all');
+  const [selectedTerm, setSelectedTerm] = usePersistentState('review_selectedTerm', 'all');
+  const [difficultyFilter, setDifficultyFilter] = usePersistentState('review_difficultyFilter', 'all');
   // Status filters
-  const [completedFilter, setCompletedFilter] = useState(false);
-  const [pendingFilter, setPendingFilter] = useState(false);
-  const [requiredFilter, setRequiredFilter] = useState(false);
-  const [optionalFilter, setOptionalFilter] = useState(false);
-  const [overdueFilter, setOverdueFilter] = useState(false);
+  const [completedFilter, setCompletedFilter] = usePersistentState('review_completedFilter', false);
+  const [pendingFilter, setPendingFilter] = usePersistentState('review_pendingFilter', false);
+  const [requiredFilter, setRequiredFilter] = usePersistentState('review_requiredFilter', false);
+  const [optionalFilter, setOptionalFilter] = usePersistentState('review_optionalFilter', false);
+  const [overdueFilter, setOverdueFilter] = usePersistentState('review_overdueFilter', false);
   // Additional status filters
-  const [requiresSubmissionFilter, setRequiresSubmissionFilter] = useState(false);
+  const [requiresSubmissionFilter, setRequiresSubmissionFilter] = usePersistentState('review_requiresSubmissionFilter', false);
   // Toggle filters
-  const [bookmarkFilter, setBookmarkFilter] = useState(false);
-  const [featuredFilter, setFeaturedFilter] = useState(false);
-  const [retakableFilter, setRetakableFilter] = useState(false);
-  const [gradedFilter, setGradedFilter] = useState('all');
+  const [bookmarkFilter, setBookmarkFilter] = usePersistentState('review_bookmarkFilter', false);
+  const [featuredFilter, setFeaturedFilter] = usePersistentState('review_featuredFilter', false);
+  const [retakableFilter, setRetakableFilter] = usePersistentState('review_retakableFilter', false);
+  const [gradedFilter, setGradedFilter] = usePersistentState('review_gradedFilter', 'all');
   // Performance filters
   const [filterViewMode, setFilterViewMode] = useState(() => {
     try {
@@ -165,6 +166,19 @@ const ReviewResultsPage = () => {
       setActivities(activitiesData);
       setStudents(usersData.filter(u => u.role === 'student'));
       setCategories(categoriesRes.success ? (categoriesRes.data || []) : []);
+
+      debug('[ReviewResults] loadData counts:', {
+        programs: programsData.length,
+        subjects: subjectsData.length,
+        classes: classesData.length,
+        activities: activitiesData.length,
+        users: usersData.length,
+        students: usersData.filter(u => u.role === 'student').length,
+        sampleUser: usersData[0],
+        sampleClass: classesData[0],
+        sampleSubject: subjectsData[0],
+        sampleProgram: programsData[0],
+      });
 
       // Set role-specific data
       if (user?.role === 'student') {
@@ -225,6 +239,21 @@ const ReviewResultsPage = () => {
       });
 
       setSubmissions(enrichedSubmissions);
+
+      debug('[ReviewResults] enriched submissions:', {
+        total: enrichedSubmissions.length,
+        withProgramId: enrichedSubmissions.filter(s => s.programId).length,
+        withSubjectId: enrichedSubmissions.filter(s => s.subjectId).length,
+        withClassId: enrichedSubmissions.filter(s => s.classId).length,
+        sampleEnriched: enrichedSubmissions[0] ? {
+          programId: enrichedSubmissions[0].programId,
+          subjectId: enrichedSubmissions[0].subjectId,
+          classId: enrichedSubmissions[0].classId,
+          programName: enrichedSubmissions[0].programName,
+          subjectName: enrichedSubmissions[0].subjectName,
+          className: enrichedSubmissions[0].className,
+        } : null,
+      });
     } catch (error) {
       error('Failed to load data:', error);
     } finally {
@@ -420,22 +449,33 @@ const ReviewResultsPage = () => {
 
     // Program filter
     if (selectedProgram !== 'all') {
+      const before = filtered.length;
       filtered = filtered.filter(sub => String(sub.programId) === String(selectedProgram));
+      debug('[ReviewResults] program filter:', {
+        selectedProgram, before, after: filtered.length,
+        sampleSub: submissions[0] ? { programId: submissions[0].programId, subjectId: submissions[0].subjectId, classId: submissions[0].classId } : null,
+      });
     }
 
     // Subject filter
     if (selectedSubject !== 'all') {
+      const before = filtered.length;
       filtered = filtered.filter(sub => String(sub.subjectId) === String(selectedSubject));
+      debug('[ReviewResults] subject filter:', { selectedSubject, before, after: filtered.length });
     }
 
     // Class filter
     if (selectedClass !== 'all') {
+      const before = filtered.length;
       filtered = filtered.filter(sub => String(sub.classId) === String(selectedClass));
+      debug('[ReviewResults] class filter:', { selectedClass, before, after: filtered.length });
     }
 
     // Student filter
     if (selectedStudent !== 'all') {
+      const before = filtered.length;
       filtered = filtered.filter(sub => String(sub.userId) === String(selectedStudent));
+      debug('[ReviewResults] student filter:', { selectedStudent, before, after: filtered.length });
     }
 
     // Difficulty filter
@@ -562,6 +602,14 @@ const ReviewResultsPage = () => {
   };
 
   const isMinified = filterViewMode === 'minified';
+
+  const toggleFilterViewMode = useCallback(() => {
+    setFilterViewMode(prev => {
+      const next = prev === 'minified' ? 'full' : 'minified';
+      try { localStorage.setItem('filterViewMode', next); } catch {}
+      return next;
+    });
+  }, []);
 
   // Auth loading check
   // Use GlobalLoading for initial data load
@@ -695,6 +743,7 @@ const ReviewResultsPage = () => {
           selectedTerm={selectedTerm}
           setSelectedTerm={setSelectedTerm}
           isMinified={isMinified}
+          onToggleViewMode={toggleFilterViewMode}
           theme={theme}
           lang={lang}
           t={t}

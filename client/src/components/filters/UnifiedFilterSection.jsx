@@ -1,4 +1,5 @@
 import React from 'react';
+import PortalTooltip from '@ui/PortalTooltip';
 
 // Convert hex color to rgba with alpha
 const hexToRgba = (hex, alpha = 1) => {
@@ -9,7 +10,6 @@ const hexToRgba = (hex, alpha = 1) => {
   return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 };
 
-import StatsBar from './StatsBar';
 import StatusFilterChips from './StatusFilterChips';
 import DifficultyFilterChips from './DifficultyFilterChips';
 import ToggleFilterChips from './ToggleFilterChips';
@@ -132,6 +132,7 @@ const UnifiedFilterSection = ({
   setSelectedTerm,
   // UI config
   isMinified = false,
+  onToggleViewMode,
   theme = 'light',
   lang = 'en',
   t = (key) => key,
@@ -171,19 +172,33 @@ const UnifiedFilterSection = ({
         border: isDark ? '1px solid #333' : 'none'
       }}>
       
-      {/* Single row: Stats + Search + Status + Difficulty + Toggle filters */}
+      {/* Single row: Toggle + Search + Status + Difficulty + Toggle filters */}
       <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-        {/* Stats */}
-        {stats && (
-          <StatsBar
-            stats={stats}
-            theme={theme}
-            primaryColor={primaryColor}
-            t={t}
-            lang={lang}
-          />
+        {/* View mode toggle button */}
+        {onToggleViewMode && (
+          <button
+            type="button"
+            onClick={onToggleViewMode}
+            title={isMinified ? (t('full_filters') || 'Full Filters') : (t('minified_filters') || 'Minified Filters')}
+            aria-label={isMinified ? (t('full_filters') || 'Full Filters') : (t('minified_filters') || 'Minified Filters')}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 28,
+              height: 28,
+              borderRadius: 8,
+              border: isDark ? '1px solid #333' : '1px solid #e5e7eb',
+              background: isDark ? '#0f172a' : '#fff',
+              color: isDark ? '#f8fafc' : '#111',
+              cursor: 'pointer',
+              flexShrink: 0,
+            }}
+          >
+            {isMinified ? '☰' : '⊟'}
+          </button>
         )}
-        
+
         {/* Search */}
         <div style={{ position: 'relative', flex: 1, minWidth: 150, maxWidth: 250 }}>
           <input
@@ -219,12 +234,12 @@ const UnifiedFilterSection = ({
             setOverdueFilter={setOverdueFilter}
             requiresSubmissionFilter={requiresSubmissionFilter}
             setRequiresSubmissionFilter={setRequiresSubmissionFilter}
-            completedCount={filterCounts.completed || completedCount}
-            pendingCount={filterCounts.pending || pendingCount}
-            requiredCount={filterCounts.required || requiredCount}
-            optionalCount={filterCounts.optional || optionalCount}
-            overdueCount={filterCounts.overdue || overdueCount}
-            requiresSubmissionCount={filterCounts.requiresSubmission || requiresSubmissionCount}
+            completedCount={filterCounts.completedCount ?? completedCount}
+            pendingCount={filterCounts.pendingCount ?? pendingCount}
+            requiredCount={filterCounts.requiredCount ?? requiredCount}
+            optionalCount={filterCounts.optionalCount ?? optionalCount}
+            overdueCount={filterCounts.overdueCount ?? overdueCount}
+            requiresSubmissionCount={filterCounts.requiresSubmissionCount ?? requiresSubmissionCount}
             isMinified={isMinified}
             theme={theme}
             lang={lang}
@@ -242,9 +257,9 @@ const UnifiedFilterSection = ({
             primaryColor={primaryColor}
             t={t}
             lang={lang}
-            beginnerCount={filterCounts.beginner || 0}
-            intermediateCount={filterCounts.intermediate || 0}
-            advancedCount={filterCounts.advanced || 0}
+            beginnerCount={filterCounts.beginner ?? 0}
+            intermediateCount={filterCounts.intermediate ?? 0}
+            advancedCount={filterCounts.advanced ?? 0}
           />
         )}
 
@@ -261,6 +276,48 @@ const UnifiedFilterSection = ({
                 text: typeColor,
                 activeText: '#fff'
               };
+
+              if (isMinified) {
+                return (
+                  <PortalTooltip key={type.value} content={`${type.label}${type.count !== undefined ? ` (${type.count})` : ''}`} position="top">
+                  <button
+                    key={type.value}
+                    className="filter-button"
+                    onClick={() => setResourceTypeFilter && setResourceTypeFilter(type.value)}
+                    style={{
+                      width: 38,
+                      height: 30,
+                      borderRadius: 999,
+                      border: `1px solid ${colors.border}`,
+                      background: isActive ? colors.activeBg : colors.bg,
+                      color: isActive ? colors.activeText : colors.text,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      padding: 0,
+                      transition: 'all 0.2s ease',
+                      position: 'relative',
+                      gap: 2,
+                    }}
+                  >
+                    {type.icon && React.isValidElement(type.icon)
+                      ? React.cloneElement(type.icon, { size: 12, color: isActive ? colors.activeText : colors.text })
+                      : type.icon}
+                    {type.count !== undefined && (
+                      <span style={{
+                        fontWeight: 700,
+                        fontSize: '0.625rem',
+                        minWidth: '0.75rem',
+                        textAlign: 'center',
+                      }}>
+                        {type.count > 99 ? '99+' : type.count}
+                      </span>
+                    )}
+                  </button>
+                  </PortalTooltip>
+                );
+              }
 
               return (
                 <button
@@ -286,7 +343,8 @@ const UnifiedFilterSection = ({
                   <span>{type.label}</span>
                   {type.count !== undefined && (
                     <span style={{
-                      backgroundColor: isActive ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)',
+                      backgroundColor: isActive ? 'rgba(255, 255, 255, 0.25)' : `${colors.text}25`,
+                      color: isActive ? colors.activeText : colors.text,
                       padding: '0.125rem 0.375rem',
                       borderRadius: 999,
                       fontSize: '0.7rem',

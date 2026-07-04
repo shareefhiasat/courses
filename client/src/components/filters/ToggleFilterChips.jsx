@@ -133,13 +133,15 @@ const ToggleFilterChips = ({
   return (
     <div style={{ display: 'inline-flex', gap: '0.35rem', flexWrap: 'wrap' }}>
       {isMinified ? (
-        toggleChips.map(chip => (
-          <PortalTooltip key={chip.id} content={chip.label} position="top">
+        toggleChips.map(chip => {
+          const count = filterCounts[chip.id];
+          return (
+          <PortalTooltip key={chip.id} content={`${chip.label}${count !== undefined ? ` (${count})` : ''}`} position="top">
           <button
             onClick={chip.toggle}
             style={{
-              width: 28,
-              height: 28,
+              width: 38,
+              height: 30,
               borderRadius: 999,
               border: `1px solid ${chip.colors.border}`,
               background: chip.active ? chip.colors.activeBg : chip.colors.bg,
@@ -149,7 +151,8 @@ const ToggleFilterChips = ({
               justifyContent: 'center',
               cursor: 'pointer',
               padding: 0,
-              transition: 'all 0.2s ease'
+              transition: 'all 0.2s ease',
+              position: 'relative',
             }}
           >
             {chip.id === 'bookmark' ? (
@@ -161,9 +164,29 @@ const ToggleFilterChips = ({
             ) : (
               getColoredIcon('ui', chip.icon, 14, chip.colors.text, theme)
             )}
+            {count !== undefined && count > 0 && (
+              <span style={{
+                position: 'absolute',
+                top: -4,
+                right: -4,
+                backgroundColor: chip.active ? 'rgba(255, 255, 255, 0.25)' : `${chip.colors.text}25`,
+                color: chip.active ? chip.colors.activeText : chip.colors.text,
+                minWidth: '1rem',
+                height: '1rem',
+                padding: '0 0.25rem',
+                borderRadius: 999,
+                fontSize: '0.625rem',
+                fontWeight: 700,
+                lineHeight: '1rem',
+                textAlign: 'center',
+              }}>
+                {count > 99 ? '99+' : count}
+              </span>
+            )}
           </button>
           </PortalTooltip>
-        ))
+          );
+        })
       ) : (
         toggleChips.map(chip => (
           <button
@@ -196,7 +219,8 @@ const ToggleFilterChips = ({
             <span>{chip.label}</span>
             {filterCounts[chip.id] !== undefined && (
               <span style={{
-                backgroundColor: chip.active ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)',
+                backgroundColor: chip.active ? 'rgba(255, 255, 255, 0.25)' : `${chip.colors.text}25`,
+                color: chip.active ? chip.colors.activeText : chip.colors.text,
                 padding: '0.125rem 0.375rem',
                 borderRadius: 999,
                 fontSize: '0.7rem',

@@ -137,6 +137,18 @@ export const ANALYTICS_SOURCE_FILTER_MAP = {
   activityRecentResources: 'activity',
 };
 
+// ── Category-filtered widget sets ──────────────────────────────────────────
+const filterWidgetsByCategory = (widgets, category) =>
+  widgets.filter(w => ANALYTICS_SOURCE_FILTER_MAP[w.dataSource] === category);
+
+export const DRIVE_ANALYTICS_DEFAULT_WIDGETS = filterWidgetsByCategory(DASHBOARD_ANALYTICS_DEFAULT_WIDGETS, 'drive');
+export const WORKFLOW_ANALYTICS_DEFAULT_WIDGETS = filterWidgetsByCategory(DASHBOARD_ANALYTICS_DEFAULT_WIDGETS, 'workflow');
+export const ACTIVITY_ANALYTICS_DEFAULT_WIDGETS = filterWidgetsByCategory(DASHBOARD_ANALYTICS_DEFAULT_WIDGETS, 'activity');
+
+export const DRIVE_ANALYTICS_MAX_WIDGETS = DRIVE_ANALYTICS_DEFAULT_WIDGETS.length;
+export const WORKFLOW_ANALYTICS_MAX_WIDGETS = WORKFLOW_ANALYTICS_DEFAULT_WIDGETS.length;
+export const ACTIVITY_ANALYTICS_MAX_WIDGETS = ACTIVITY_ANALYTICS_DEFAULT_WIDGETS.length;
+
 /**
  * Build rawData for DashboardEngine from useDashboardAnalytics output.
  * Maps the API response into the format expected by processWidgetData.

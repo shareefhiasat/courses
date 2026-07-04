@@ -12,12 +12,12 @@
 }
 
 .avatar {
-  width: 64px;
-  height: 64px;
+  width: 96px;
+  height: 96px;
   border-radius: 50%;
   overflow: hidden;
   flex-shrink: 0;
-  border: 2px solid var(--border, #e5e7eb);
+  border: 3px solid var(--border, #e5e7eb);
 }
 
 .avatarImg {
@@ -34,7 +34,7 @@
   justify-content: center;
   background: linear-gradient(135deg, var(--primary, #6366f1) 0%, #8b5cf6 100%);
   color: #fff;
-  font-size: 1.5rem;
+  font-size: 2rem;
   font-weight: 700;
 }
 
@@ -144,7 +144,7 @@
   }
 
   .avatar {
-    width: 56px;
-    height: 56px;
+    width: 80px;
+    height: 80px;
   }
 }

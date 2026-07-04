@@ -110,7 +110,6 @@ const OverviewTab = memo(({
         icon={LayoutDashboard}
         defaultOpen={false}
         testId="student-overview-analytics-section"
-        storageKey="student-overview-analytics"
       >
         <OverviewAnalytics
           dashData={dashData}
@@ -127,7 +126,6 @@ const OverviewTab = memo(({
         icon={BarChart3}
         defaultOpen={false}
         testId="performance-analytics-section"
-        storageKey="student-performance-analytics"
       >
         <PerformanceAnalytics
           dashData={dashData}
@@ -139,12 +137,11 @@ const OverviewTab = memo(({
       </CollapsibleSection>
 
       <CollapsibleSection
-        title={t('attendance_history')}
+        title={t('student_records')}
         summary={`${attendance?.length || 0} ${tFn('records') || 'records'}`}
         icon={ClipboardList}
         defaultOpen={false}
         testId="attendance-history-section"
-        storageKey="student-attendance-history"
       >
         <AttendanceTab
           studentId={studentId}

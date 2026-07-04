@@ -24,6 +24,7 @@ import SchedulingOverviewPanel from '@components/scheduling/SchedulingOverviewPa
 import CollapsibleSection from '@components/scheduling/CollapsibleSection';
 import {
   CalendarDays, Coffee, User, DoorOpen, BarChart3, Palmtree, ExternalLink, ClipboardList,
+  HardDrive, GitBranch, Activity,
 } from 'lucide-react';
 import { getAllUsers, getUserRoles } from '@services/business/userService';
 import { getAllSubjects } from '@services/business/subjectService';
@@ -47,7 +48,17 @@ import {
 import DashboardAnalyticsPanel from '@components/analytics/DashboardAnalyticsPanel';
 import AttendanceAnalyticsPanel from '@components/analytics/AttendanceAnalyticsPanel';
 import BreaksHolidaysAnalyticsPanel from '@components/analytics/BreaksHolidaysAnalyticsPanel';
+import {
+  DRIVE_ANALYTICS_DEFAULT_WIDGETS,
+  DRIVE_ANALYTICS_MAX_WIDGETS,
+  WORKFLOW_ANALYTICS_DEFAULT_WIDGETS,
+  WORKFLOW_ANALYTICS_MAX_WIDGETS,
+  ACTIVITY_ANALYTICS_DEFAULT_WIDGETS,
+  ACTIVITY_ANALYTICS_MAX_WIDGETS,
+} from '@constants/dashboardAnalyticsWidgets';
 import useDashboardAnalytics from '@hooks/useDashboardAnalytics';
+import useStudentDashboardData from '@hooks/useStudentDashboardData';
+import AttendanceTab from '@components/student-dashboard/attendance/AttendanceTab';
 
 const SummaryDashboardPage = () => {
   const { user, isAdmin, isHR, isSuperAdmin, isInstructor } = useAuth();
@@ -87,6 +98,8 @@ const SummaryDashboardPage = () => {
   const [refreshInterval, setRefreshInterval] = useState(30000);
   const [lastUpdatedAt, setLastUpdatedAt] = useState(Date.now());
   const analyticsHook = useDashboardAnalytics();
+  const recordsClassId = reportFilters.classId || null;
+  const recordsHook = useStudentDashboardData(null, Boolean(recordsClassId), recordsClassId, reportFilters.programId || null);
 
   // ── Guided Tour ────────────────────────────────────────────────────────────
   const [runTour, setRunTour] = useState(false);
@@ -465,7 +478,6 @@ const SummaryDashboardPage = () => {
                 cards={overviewCards}
                 defaultOpen={false}
                 testId="summary-overview-panel"
-                storageKey="summary-overview"
               />
             </div>
           )}
@@ -477,7 +489,6 @@ const SummaryDashboardPage = () => {
             icon={BarChart3}
             defaultOpen={false}
             testId="effort-report-section"
-            storageKey="summary-effort-report"
           >
             <SchedulingSummaryAnalytics
               effortReport={effortReport}
@@ -497,7 +508,6 @@ const SummaryDashboardPage = () => {
               icon={User}
               defaultOpen={false}
               testId="instructor-detail-section"
-              storageKey="summary-instructor-detail"
             >
               <TeacherEffortExport
                 teacherId={String(activeInstructorId)}
@@ -518,7 +528,6 @@ const SummaryDashboardPage = () => {
                 icon={Palmtree}
                 defaultOpen={false}
                 testId="breaks-holidays-section"
-                storageKey="summary-breaks-holidays"
                 actions={(
                   <button type="button" style={headerButtonStyle} onClick={() => navigate('/scheduling-calendar')} title={t('manage_breaks_and_holidays')} aria-label={t('manage_breaks_and_holidays')}>
                     <CalendarDays size={14} />
@@ -548,7 +557,6 @@ const SummaryDashboardPage = () => {
                 icon={ClipboardList}
                 defaultOpen={false}
                 testId="attendance-analytics-section"
-                storageKey="summary-attendance-analytics"
               >
                 <AttendanceAnalyticsPanel
                   rawData={buildSchedulingRawData(effortReport, dashboardData, isRTL)}
@@ -564,20 +572,90 @@ const SummaryDashboardPage = () => {
             </div>
           )}
 
+          {recordsClassId && (
+            <div data-tour="summary-student-records">
+              <CollapsibleSection
+                title={t('student_records')}
+                summary={recordsHook.loading ? '…' : `${(recordsHook.attendance?.length || 0) + (recordsHook.penalties?.length || 0) + (recordsHook.behaviors?.length || 0) + (recordsHook.participations?.length || 0)} ${t('records') || 'records'}`}
+                icon={ClipboardList}
+                defaultOpen={false}
+                testId="summary-student-records-section"
+              >
+                {recordsHook.loading ? (
+                  <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--muted)' }}>
+                    {t('common.loading')}
+                  </div>
+                ) : (
+                  <AttendanceTab
+                    studentId={null}
+                    classId={recordsClassId}
+                    attendance={recordsHook.attendance || []}
+                    participations={recordsHook.participations || []}
+                    penalties={recordsHook.penalties || []}
+                    behaviors={recordsHook.behaviors || []}
+                    students={[]}
+                    onRefresh={recordsHook.reload}
+                    t={t}
+                    lang={lang}
+                  />
+                )}
+              </CollapsibleSection>
+            </div>
+          )}
+
           <div data-tour="summary-drive-analytics">
             <CollapsibleSection
-              title={t('drive_workflow_activity_analytics')}
-              summary={`${analyticsHook.loading ? '…' : (t('ready'))} · ${t('role_based_metrics')}`}
-              icon={BarChart3}
+              title={t('drive_analytics')}
+              summary={analyticsHook.loading ? '…' : t('ready')}
+              icon={HardDrive}
               defaultOpen={false}
-              testId="dashboard-analytics-section"
-              storageKey="summary-drive-analytics"
+              testId="summary-drive-analytics-section"
             >
               <DashboardAnalyticsPanel
                 analyticsData={analyticsHook.data}
                 loading={analyticsHook.loading}
                 onReload={analyticsHook.reload}
                 lastUpdatedAt={lastUpdatedAt}
+                lockedCategory="drive"
+                storageKeySuffix="_drive"
+                defaultWidgets={DRIVE_ANALYTICS_DEFAULT_WIDGETS}
+                maxWidgets={DRIVE_ANALYTICS_MAX_WIDGETS}
+              />
+            </CollapsibleSection>
+            <CollapsibleSection
+              title={t('workflow_analytics')}
+              summary={analyticsHook.loading ? '…' : t('ready')}
+              icon={GitBranch}
+              defaultOpen={false}
+              testId="summary-workflow-analytics-section"
+            >
+              <DashboardAnalyticsPanel
+                analyticsData={analyticsHook.data}
+                loading={analyticsHook.loading}
+                onReload={analyticsHook.reload}
+                lastUpdatedAt={lastUpdatedAt}
+                lockedCategory="workflow"
+                storageKeySuffix="_workflow"
+                defaultWidgets={WORKFLOW_ANALYTICS_DEFAULT_WIDGETS}
+                maxWidgets={WORKFLOW_ANALYTICS_MAX_WIDGETS}
+              />
+            </CollapsibleSection>
+            <CollapsibleSection
+              title={t('activity_analytics')}
+              summary={analyticsHook.loading ? '…' : t('ready')}
+              icon={Activity}
+              defaultOpen={false}
+              testId="summary-activity-analytics-section"
+            >
+              <DashboardAnalyticsPanel
+                analyticsData={analyticsHook.data}
+                loading={analyticsHook.loading}
+                onReload={analyticsHook.reload}
+                lastUpdatedAt={lastUpdatedAt}
+                lockedCategory="activity"
+                storageKeySuffix="_activity"
+                defaultWidgets={ACTIVITY_ANALYTICS_DEFAULT_WIDGETS}
+                maxWidgets={ACTIVITY_ANALYTICS_MAX_WIDGETS}
               />
             </CollapsibleSection>
           </div>

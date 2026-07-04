@@ -83,7 +83,9 @@ const DifficultyFilterChips = ({
             className="filter-button"
             onClick={() => setDifficultyFilter(diff.value)}
             style={{
-              padding: isMinified ? '4px 8px' : '4px 10px',
+              padding: isMinified ? 0 : '4px 10px',
+              width: isMinified ? 38 : undefined,
+              height: isMinified ? 30 : undefined,
               borderRadius: 999,
               border: `1px solid ${diff.colors.border}`,
               background: isActive ? diff.colors.activeBg : diff.colors.bg,
@@ -92,19 +94,32 @@ const DifficultyFilterChips = ({
               fontWeight: diff.value === 'all' ? 700 : 600,
               display: 'inline-flex',
               alignItems: 'center',
-              gap: isMinified ? 0 : 4,
+              justifyContent: 'center',
+              gap: isMinified ? 2 : 4,
               cursor: 'pointer',
-              transition: 'all 0.2s ease'
+              transition: 'all 0.2s ease',
+              position: 'relative',
             }}
           >
             {isMinified && getColoredIcon('ui', diff.icon, 12, isActive ? diff.colors.activeText : diff.colors.text, theme)}
+            {isMinified && diff.count !== undefined && (
+              <span style={{
+                fontWeight: 700,
+                fontSize: '0.625rem',
+                minWidth: '0.75rem',
+                textAlign: 'center',
+              }}>
+                {diff.count > 99 ? '99+' : diff.count}
+              </span>
+            )}
             {!isMinified && (
               <>
                 {diff.value !== 'all' && getColoredIcon('ui', diff.icon, 12, isActive ? diff.colors.activeText : diff.colors.text, theme)}
                 <span>{diff.label}</span>
                 {diff.count !== undefined && (
                   <span style={{
-                    backgroundColor: isActive ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.1)',
+                    backgroundColor: isActive ? 'rgba(255, 255, 255, 0.25)' : `${diff.colors.text}25`,
+                    color: isActive ? diff.colors.activeText : diff.colors.text,
                     padding: '0.125rem 0.375rem',
                     borderRadius: 999,
                     fontSize: '0.7rem',
