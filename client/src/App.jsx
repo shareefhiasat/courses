@@ -11,6 +11,8 @@ import { GlobalLoadingProvider, GlobalLoadingFallback } from '@contexts/GlobalLo
 import HelpCommandPalette from './components/help/HelpCommandPalette.jsx';
 import HelpRedirect from './components/help/HelpRedirect.jsx';
 import { info, error, warn, debug } from './services/utils/logger.js';
+import { drawerTlog } from '@utils/drawerTlog';
+import { installTourEventRouter } from '@utils/tourScheduler';
 import { ROLE_STRINGS } from './utils/userUtils.js';
 import ProtectedRoute from './components/ProtectedRoute.jsx';
 import ErrorBoundary from './components/ui/ErrorBoundary.jsx';
@@ -159,24 +161,50 @@ const AppContent = () => {
   // useRealTimeUpdates(); // Temporarily disabled to fix notification spam
   
   const toggleSideDrawer = useCallback(() => {
+    drawerTlog('app:hamburger-click', { isSideDrawerCollapsed, isSideDrawerOpen });
     if (isSideDrawerCollapsed) {
+      drawerTlog('app:hamburger-uncollapse-orphan', {
+        note: 'App isSideDrawerCollapsed was true; SideDrawer uses its own collapsed state',
+      });
       setIsSideDrawerCollapsed(false);
     } else {
-      setIsSideDrawerOpen((prev) => !prev);
+      setIsSideDrawerOpen((prev) => {
+        const next = !prev;
+        drawerTlog('app:isOpen-toggle', {
+          from: prev,
+          to: next,
+          hint: 'SideDrawer visible when isOpen || stickyMode (sticky from localStorage)',
+        });
+        return next;
+      });
     }
-  }, [isSideDrawerCollapsed]);
+  }, [isSideDrawerCollapsed, isSideDrawerOpen]);
 
   const closeSideDrawer = useCallback(() => {
+    drawerTlog('app:onClose', {
+      wasOpen: isSideDrawerOpen,
+      note: 'drawer may stay mounted when auto-hide edge strip is active',
+    });
     setIsSideDrawerOpen(false);
-  }, []);
+  }, [isSideDrawerOpen]);
+
+  const openSideDrawer = useCallback(() => {
+    drawerTlog('app:onOpen', { wasOpen: isSideDrawerOpen });
+    setIsSideDrawerOpen(true);
+  }, [isSideDrawerOpen]);
 
   const toggleSideDrawerCollapse = useCallback(() => {
     setIsSideDrawerCollapsed((prev) => !prev);
   }, []);
 
+  useEffect(() => {
+    installTourEventRouter();
+  }, []);
+
   // Handle keyboard shortcut to toggle drawer (Cmd+M / Ctrl+M)
   useEffect(() => {
     const handleToggleDrawer = () => {
+      drawerTlog('app:keyboard-toggle', { key: 'Cmd/Ctrl+M' });
       toggleSideDrawer();
     };
     window.addEventListener('toggle-drawer', handleToggleDrawer);
@@ -195,6 +223,7 @@ const AppContent = () => {
             <SideDrawer
               isOpen={isSideDrawerOpen}
               onClose={closeSideDrawer}
+              onOpen={openSideDrawer}
               isCollapsed={isSideDrawerCollapsed}
               onToggleCollapse={toggleSideDrawerCollapse}
             />

@@ -429,6 +429,88 @@ export const getWidgetCollections = (widget) => {
 };
 
 /**
+ * localizeAnalyticsLabel
+ * Translates raw analytics label values (file actions, file types, buckets,
+ * workflow statuses, workflow types) using i18n keys.
+ * Falls back to the raw value if no translation is found.
+ *
+ * @param {string} rawValue - The raw label from the data (e.g. "UNDER_HR_REVIEW", "preview", "PDF")
+ * @param {string} groupBy - The groupBy field (e.g. "action", "status", "label", "bucket", "workflowType")
+ * @param {string} dataSource - The data source (e.g. "driveFileActivities", "workflowByStatus")
+ * @param {Function|null} t - Translation function
+ * @returns {string} Localized label or raw value
+ */
+const localizeAnalyticsLabel = (rawValue, groupBy, dataSource, t) => {
+  if (!t || rawValue == null) return String(rawValue);
+
+  const val = String(rawValue);
+  const lower = val.toLowerCase();
+  const upper = val.toUpperCase();
+
+  // File activity actions (driveFileActivities, groupBy: 'action')
+  if (groupBy === 'action' || dataSource === 'driveFileActivities') {
+    const key = `analytics.label.action_${lower}`;
+    const translated = t(key);
+    if (translated && translated !== key) return translated;
+  }
+
+  // File types / MIME types (driveFilesByMimeType, groupBy: 'label')
+  if (groupBy === 'label' && dataSource === 'driveFilesByMimeType') {
+    const key = `analytics.label.type_${lower}`;
+    const translated = t(key);
+    if (translated && translated !== key) return translated;
+  }
+
+  // File buckets (driveFilesByBucket, groupBy: 'bucket')
+  if (groupBy === 'bucket' || dataSource === 'driveFilesByBucket') {
+    const key = `analytics.label.bucket_${lower}`;
+    const translated = t(key);
+    if (translated && translated !== key) return translated;
+  }
+
+  // Workflow statuses (workflowByStatus, groupBy: 'status')
+  if (groupBy === 'status' && (dataSource === 'workflowByStatus' || dataSource === 'workflowOverview')) {
+    const key = `analytics.label.wf_status_${upper}`;
+    const translated = t(key);
+    if (translated && translated !== key) return translated;
+    // Also try lowercase variant for mixed-case statuses
+    const key2 = `analytics.label.wf_status_${val}`;
+    const translated2 = t(key2);
+    if (translated2 && translated2 !== key2) return translated2;
+  }
+
+  // Workflow types (workflowByType, groupBy: 'workflowType')
+  if (groupBy === 'workflowType' || dataSource === 'workflowByType') {
+    const key = `analytics.label.wf_type_${val}`;
+    const translated = t(key);
+    if (translated && translated !== key) return translated;
+  }
+
+  // Submission statuses (submissionsByStatus, groupBy: 'status')
+  if (groupBy === 'status' && dataSource === 'submissionsByStatus') {
+    const key = `analytics.label.sub_status_${lower}`;
+    const translated = t(key);
+    if (translated && translated !== key) return translated;
+  }
+
+  // Activity types (activitiesByType, groupBy: 'activityType')
+  if (groupBy === 'activityType' || dataSource === 'activitiesByType') {
+    const key = `analytics.label.act_type_${lower}`;
+    const translated = t(key);
+    if (translated && translated !== key) return translated;
+  }
+
+  // Resource types (resourcesByType, groupBy: 'resourceType')
+  if (groupBy === 'resourceType' || dataSource === 'resourcesByType') {
+    const key = `analytics.label.res_type_${lower}`;
+    const translated = t(key);
+    if (translated && translated !== key) return translated;
+  }
+
+  return val;
+};
+
+/**
  * processWidgetData
  * Pure function: takes a widget config + rawData + globalFilters and returns
  * an array of { label, value } chart data points.
@@ -539,12 +621,33 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
       return [{ label: widget.title || 'Count', value: dataset.length }];
     }
     const map = new Map();
-    const isPreAggregated = (row) => row.recordCount != null || row.documentCount != null;
+    const isPreAggregated = (row) =>
+      row.recordCount != null ||
+      row.documentCount != null ||
+      row.activityCount != null ||
+      row.fileCount != null ||
+      row.submissionCount != null ||
+      row.resourceCount != null ||
+      row.storageMB != null;
     const metricFromRow = (row) => {
       if (row.recordCount != null) return Number(row.recordCount) || 0;
       if (row.documentCount != null) return Number(row.documentCount) || 0;
+      if (row.activityCount != null) return Number(row.activityCount) || 0;
+      if (row.fileCount != null) return Number(row.fileCount) || 0;
+      if (row.submissionCount != null) return Number(row.submissionCount) || 0;
+      if (row.resourceCount != null) return Number(row.resourceCount) || 0;
+      if (row.storageMB != null) return Number(row.storageMB) || 0;
       return Number(row[valueField]) || Number(row.value) || 0;
     };
+    // Debug: log dataset for analytics data sources
+    if (dataSource.includes('drive') || dataSource.includes('workflow') || dataSource.includes('File') || dataSource.includes('Activity')) {
+      console.log(`[processWidgetData DEBUG] dataSource="${dataSource}" groupBy="${groupBy}"`, {
+        datasetLength: dataset.length,
+        datasetSample: dataset.slice(0, 3),
+        isPreAggSample: dataset.length > 0 ? isPreAggregated(dataset[0]) : 'empty',
+        groupByField: dataset.length > 0 ? dataset[0][groupBy] : 'N/A',
+      });
+    }
     for (const row of dataset) {
       const raw = row[groupBy];
       if (raw == null || raw === '' || raw === '—') continue;
@@ -553,7 +656,7 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
         const labelLines = [];
         const primary = groupBy === 'term'
           ? getAcademicTermLabel(raw, lang)
-          : String(key);
+          : localizeAnalyticsLabel(key, groupBy, dataSource, t);
         labelLines.push(primary);
         if (groupBy !== 'term' && row.term) {
           labelLines.push(getAcademicTermLabel(row.term, lang));
@@ -1014,7 +1117,8 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
       return typeMap[rawType] || rawType;
     }
     const fallbackVal = item[groupBy];
-    return typeof fallbackVal === 'object' ? normField(fallbackVal) : String(fallbackVal || 'Unknown');
+    const rawResult = typeof fallbackVal === 'object' ? normField(fallbackVal) : String(fallbackVal || 'Unknown');
+    return localizeAnalyticsLabel(rawResult, groupBy, dataSource, t);
   };
 
   const accumulate = (key, item) => {

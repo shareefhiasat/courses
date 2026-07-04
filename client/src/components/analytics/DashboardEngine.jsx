@@ -76,6 +76,7 @@ const DashboardEngine = React.forwardRef(({
   widgetCategoryResolver = null,
   builderCategoryScope = null,
   maxWidgets = null,
+  autoSave = true,
 }, ref) => {
   const { theme } = useTheme();
   const { t, lang } = useLang();
@@ -87,7 +88,11 @@ const DashboardEngine = React.forwardRef(({
     setWidgets,
     loading: dashLoading,
     resetToDefaults,
-  } = useWidgetDashboard(user?.dbId, storageKey, defaultWidgets);
+    hasUnsavedChanges,
+    snapshotWidgets,
+    commitSave,
+    discardChanges,
+  } = useWidgetDashboard(user?.dbId, storageKey, defaultWidgets, autoSave);
 
   // ── Local UI state ────────────────────────────────────────────────────────
   const [showBuilder, setShowBuilder] = useState(false);
@@ -288,6 +293,13 @@ const DashboardEngine = React.forwardRef(({
     setWidgetConfig(DEFAULT_WIDGET_CONFIG);
   }, []);
 
+  // ── Snapshot on edit mode enter ──────────────────────────────────────────
+  useEffect(() => {
+    if (editLayout && !autoSave) {
+      snapshotWidgets();
+    }
+  }, [editLayout, autoSave, snapshotWidgets]);
+
   // Expose methods via ref
   useImperativeHandle(ref, () => ({
     openBuilder,
@@ -295,7 +307,10 @@ const DashboardEngine = React.forwardRef(({
     resetToDefaults: () => {
       setShowResetConfirm(true);
     },
-  }), [openBuilder, closeBuilder]);
+    saveLayout: () => commitSave(),
+    discardLayout: () => discardChanges(),
+    hasUnsavedChanges,
+  }), [openBuilder, closeBuilder, commitSave, discardChanges, hasUnsavedChanges]);
 
   const handleSave = useCallback(() => {
     if (editingWidget) {
@@ -468,6 +483,17 @@ const DashboardEngine = React.forwardRef(({
     const map = {};
     filteredWidgets.forEach((w) => {
       map[w.id] = processWidgetData(w, rawData, globalFilters, 0, t, lang);
+      // Debug: log analytics widget data processing
+      if (w.dataSource && (w.dataSource.includes('drive') || w.dataSource.includes('workflow') || w.dataSource.includes('File'))) {
+        const rawDs = rawData[w.dataSource];
+        console.log(`[ANALYTICS DEBUG] Widget "${w.id}" (${w.dataSource}) groupBy="${w.groupBy}"`, {
+          rawDataExists: !!rawDs,
+          rawDataLength: Array.isArray(rawDs) ? rawDs.length : (typeof rawDs === 'object' ? Object.keys(rawDs) : 'N/A'),
+          rawDataSample: Array.isArray(rawDs) ? rawDs.slice(0, 3) : rawDs,
+          processedData: map[w.id],
+          processedLength: map[w.id]?.length,
+        });
+      }
     });
     return map;
   }, [

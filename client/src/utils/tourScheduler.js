@@ -13,6 +13,32 @@
 
 const pageTourStack = [];
 const tourProviders = new Map();
+let tourRouterInstalled = false;
+
+/** Suppress any in-flight dashboard/shell tour before starting a nested page tour. */
+function suppressShellTours() {
+  window.dispatchEvent(new CustomEvent('tour-suppress-shell'));
+}
+
+/**
+ * Install a capture-phase router so help/joyride events reach only one tour.
+ * Nested page tours (registerPageTour) win over shell tours and duplicate listeners.
+ */
+export function installTourEventRouter() {
+  if (tourRouterInstalled) return;
+  tourRouterInstalled = true;
+
+  const route = (e) => {
+    if (pageTourStack.length === 0) return;
+    suppressShellTours();
+    const top = pageTourStack[pageTourStack.length - 1];
+    top.startTour();
+    e.stopImmediatePropagation();
+  };
+
+  window.addEventListener('app:joyride', route, true);
+  window.addEventListener('app:help', route, true);
+}
 
 /** Dashboard tabs whose embedded page owns its own tour on first visit. */
 export const DASHBOARD_TABS_WITH_PAGE_TOUR = new Set([
@@ -82,6 +108,7 @@ export function registerPageTour(id, startTour, getStepCount) {
 /** Returns true when a nested page tour consumed the event. */
 export function dispatchPageTourIfRegistered() {
   if (pageTourStack.length === 0) return false;
+  suppressShellTours();
   const top = pageTourStack[pageTourStack.length - 1];
   top.startTour();
   return true;

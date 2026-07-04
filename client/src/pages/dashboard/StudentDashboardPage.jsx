@@ -33,7 +33,6 @@ import {
 
 import {
   OverviewTab,
-  PerformanceTab,
   MarksTab,
   ClassTab,
 } from '@components/student-dashboard';
@@ -61,7 +60,6 @@ export default function StudentDashboardPage() {
       { target: '[data-tour="student-filters"]',              content: t('tour.student_filters'),              disableBeacon: true, placement: 'bottom' },
       { target: '[data-tour="student-tabs"]',                 content: t('tour.student_tabs'),                 disableBeacon: true, placement: 'bottom' },
       { target: '[data-tour="student-overview"]',             content: t('tour.student_overview'),             disableBeacon: true, placement: 'top' },
-      { target: '[data-tour="student-performance"]',          content: t('tour.student_performance'),          disableBeacon: true, placement: 'top' },
       { target: '[data-tour="student-marks"]',                content: t('tour.student_marks'),                disableBeacon: true, placement: 'top' },
       { target: '[data-tour="student-class-tab"]',            content: t('tour.student_class_tab'),            disableBeacon: true, placement: 'top' },
       { target: '[data-tour="student-attendance-analytics"]', content: t('tour.student_attendance_analytics'), disableBeacon: true, placement: 'top' },
@@ -154,6 +152,25 @@ export default function StudentDashboardPage() {
     return allUsers.filter(u => u.email !== user?.email);
   }, [allUsers, user?.email]);
 
+  // ─── Resolve selected student object for profile panel ────────────────────
+  const selectedStudent = useMemo(() => {
+    if (permissions.isStaff && filters.selectedStudentId) {
+      const matchId = String(filters.selectedStudentId);
+      const found = studentUsers.find(s =>
+        String(s.docId) === matchId ||
+        String(s.id) === matchId ||
+        String(s.uid) === matchId
+      ) || filters.filteredStudents.find(s =>
+        String(s.docId) === matchId ||
+        String(s.id) === matchId ||
+        String(s.uid) === matchId
+      );
+      if (found) return found;
+    }
+    // For non-staff or when no student is selected, show own profile
+    return userProfile || user || null;
+  }, [permissions.isStaff, filters.selectedStudentId, studentUsers, filters.filteredStudents, userProfile, user]);
+
   // ─── Selection prompt state (needed early for debugging) ─────────────────────
   const showSelectionPrompt = permissions.isStaff && !filters.hasSelection;
 
@@ -225,14 +242,15 @@ export default function StudentDashboardPage() {
   const dashTabs = useMemo(() => {
     const tabs = [
       { value: 'overview',      label: t('dashboard.overview') },
-      { value: 'performance',   label: t('dashboard.performance') },
-      { value: 'marks',         label: t('dashboard.marks') },
+      { value: 'attendance',    label: t('tab_attendance_analytics') },
+      { value: 'activity',      label: t('tab_activity') },
     ];
     
-    // Add Class tab for staff roles only (Super Admin, HR, Instructor, Admin)
+    // Class tab for staff; Marks tab is always last
     if (permissions.isStaff) {
       tabs.push({ value: 'class', label: lang === 'ar' ? 'تحليلات الفصل' : 'Class' });
     }
+    tabs.push({ value: 'marks', label: t('dashboard.marks') });
     
     return tabs;
   }, [lang, t, permissions.isStaff]);
@@ -300,6 +318,27 @@ export default function StudentDashboardPage() {
                 showLabels={false}
                 className="w-full"
               />
+              {(() => {
+                info('[StudentDashboardPage] UserSelect props:', {
+                  studentUsersCount: studentUsers.length,
+                  filteredStudentsCount: filters.filteredStudents.length,
+                  dashDataEnrollmentsCount: dashData.enrollments?.length || 0,
+                  dashDataEnrollmentsSample: (dashData.enrollments || []).slice(0, 3).map(e => ({
+                    userId: e.userId,
+                    classId: e.classId,
+                    id: e.id,
+                  })),
+                  selectedClassId: filters.selectedClassId,
+                  selectedStudentId: filters.selectedStudentId,
+                  isClassMode: !displayStudentId && filters.selectedClassId,
+                  studentUsersSample: studentUsers.slice(0, 3).map(u => ({
+                    id: u.id,
+                    docId: u.docId,
+                    email: u.email,
+                  })),
+                });
+                return null;
+              })()}
               <UserSelect
                 ref={userSelectRef}
                 users={studentUsers}
@@ -310,41 +349,11 @@ export default function StudentDashboardPage() {
                 placeholder={t('filters.select_student')}
                 roleFilter={[ROLE_STRINGS.STUDENT]}
                 includeAll={false}
-                showEnrollments
+                showEnrollments={!filters.selectedClassId || filters.selectedClassId === 'all'}
                 searchable
                 fullWidth
                 disabled={filters.loading}
               />
-              {/* Debug info for student filtering */}
-              {import.meta.env.MODE === 'development' && (
-                <details closed={true} style={{ marginTop: '1rem' }}>
-                  <summary style={{ cursor: 'pointer', padding: '1rem', background: '#f0f9ff', border: '1px solid #3b82f6', borderRadius: '8px', fontSize: '0.8rem' }}>
-                    <strong>Debug - Student Selection</strong>
-                  </summary>
-                  <div style={{ padding: '1rem', background: '#f8fafc', border: '1px solid #3b82f6', borderTop: 'none', borderRadius: '0 0 8px 8px', fontSize: '0.8rem' }}>
-                    Selected Program: {filters.selectedProgramId || 'All'}<br/>
-                    Selected Subject: {filters.selectedSubjectId || 'All'}<br/>
-                    Selected Class: {filters.selectedClassId || 'All'}<br/>
-                    Total Students: {filters.students.length}<br/>
-                    Filtered Students (shown in dropdown): {studentUsers.length}<br/>
-                    Selected Student: {filters.selectedStudentId || 'None'}<br/>
-                    Is Unrestricted: {filters.isUnrestricted ? 'Yes' : 'No'}<br/>
-                    {studentUsers.length > 0 && (
-                      <details closed={true} style={{ marginTop: '0.5rem' }}>
-                        <summary style={{ cursor: 'pointer', fontSize: '0.7rem' }}>View Filtered Students</summary>
-                        <div style={{ fontSize: '0.6rem', background: '#f8fafc', padding: '0.5rem', borderRadius: '4px', marginTop: '0.25rem', maxHeight: '100px', overflow: 'auto' }}>
-                          {studentUsers.slice(0, 10).map(student => (
-                            <div key={student.id || student.docId}>
-                              {student.displayName || student.email} ({student.id || student.docId})
-                            </div>
-                          ))}
-                          {studentUsers.length > 10 && <div>... and {studentUsers.length - 10} more</div>}
-                        </div>
-                      </details>
-                    )}
-                  </div>
-                </details>
-              )}
             </div>
           )}
         </div>
@@ -389,7 +398,8 @@ export default function StudentDashboardPage() {
             </div>
             <div style={{ display: 'none' }}>
               <span data-tour="student-tab-overview" />
-              <span data-tour="student-tab-performance" />
+              <span data-tour="student-tab-attendance" />
+              <span data-tour="student-tab-activity" />
               <span data-tour="student-tab-marks" />
             </div>
 
@@ -414,12 +424,6 @@ export default function StudentDashboardPage() {
                   lookupData={{ programs: filters.programs, subjects: filters.subjects, classes: filters.classes }}
                   isRTL={lang === 'ar'}
                   lastUpdatedAt={Date.now()}
-                />
-                </div>
-              )}
-              {activeTab === 'performance' && (
-                <div data-tour="student-performance">
-                <PerformanceTab
                   studentId={displayStudentId}
                   classId={filters.selectedClassId !== 'all' ? filters.selectedClassId : undefined}
                   attendance={dashData.attendance}
@@ -429,13 +433,55 @@ export default function StudentDashboardPage() {
                   canInlineEdit={permissions.canInlineEdit}
                   canDeleteRecords={permissions.canDeleteRecords}
                   onRefresh={dashData.reload}
-                  t={t}
-                  lang={lang}
-                  dashData={dashData}
-                  lookupData={{ programs: filters.programs, subjects: filters.subjects, classes: filters.classes }}
-                  isRTL={lang === 'ar'}
-                  lastUpdatedAt={Date.now()}
+                  student={selectedStudent}
+                  students={studentUsers}
                 />
+                </div>
+              )}
+              {activeTab === 'attendance' && (
+                <div data-tour="student-attendance-analytics">
+                  <CollapsibleSection
+                    title={t('attendance')}
+                    summary={`${STUDENT_ATTENDANCE_MAX_WIDGETS} ${t('widgets')}`}
+                    icon={ClipboardList}
+                    defaultOpen={false}
+                    testId="attendance-analytics-section"
+                    storageKey="student-attendance-analytics-tab"
+                  >
+                    <AttendanceAnalyticsPanel
+                      rawData={buildStudentPerformanceRawData(
+                        dashData,
+                        { programs: filters.programs, subjects: filters.subjects, classes: filters.classes },
+                        lang === 'ar'
+                      )}
+                      defaultWidgets={STUDENT_ATTENDANCE_DEFAULT_WIDGETS}
+                      storageKey={STUDENT_ATTENDANCE_STORAGE_KEY}
+                      maxWidgets={STUDENT_ATTENDANCE_MAX_WIDGETS}
+                      widgetCategoryResolver="student"
+                      builderCategoryScope="student"
+                      onReload={dashData.reload}
+                      lastUpdatedAt={Date.now()}
+                    />
+                  </CollapsibleSection>
+                </div>
+              )}
+              {activeTab === 'activity' && (
+                <div data-tour="student-drive-analytics">
+                  <CollapsibleSection
+                    title={t('drive_workflow_activity_analytics')}
+                    summary={`${analyticsHook.loading ? '…' : (t('ready'))} · ${t('role_based_metrics')}`}
+                    icon={BarChart3}
+                    defaultOpen={false}
+                    testId="dashboard-analytics-section"
+                    storageKey="student-activity-analytics-tab"
+                  >
+                    <DashboardAnalyticsPanel
+                      analyticsData={analyticsHook.data}
+                      loading={analyticsHook.loading}
+                      onReload={analyticsHook.reload}
+                      lastUpdatedAt={Date.now()}
+                    />
+                  </CollapsibleSection>
                 </div>
               )}
               {activeTab === 'marks' && (
@@ -472,50 +518,6 @@ export default function StudentDashboardPage() {
                 />
                 </div>
               )}
-            </div>
-
-            {/* ── Attendance Analytics ── */}
-            <div data-tour="student-attendance-analytics">
-              <CollapsibleSection
-                title={t('attendance_analytics')}
-                summary={`${STUDENT_ATTENDANCE_MAX_WIDGETS} ${t('widgets')} · ${t('student_attendance')}`}
-                icon={ClipboardList}
-                defaultOpen={false}
-                testId="attendance-analytics-section"
-              >
-                <AttendanceAnalyticsPanel
-                  rawData={buildStudentPerformanceRawData(
-                    dashData,
-                    { programs: filters.programs, subjects: filters.subjects, classes: filters.classes },
-                    lang === 'ar'
-                  )}
-                  defaultWidgets={STUDENT_ATTENDANCE_DEFAULT_WIDGETS}
-                  storageKey={STUDENT_ATTENDANCE_STORAGE_KEY}
-                  maxWidgets={STUDENT_ATTENDANCE_MAX_WIDGETS}
-                  widgetCategoryResolver="student"
-                  builderCategoryScope="student"
-                  onReload={dashData.reload}
-                  lastUpdatedAt={Date.now()}
-                />
-              </CollapsibleSection>
-            </div>
-
-            {/* ── Drive, Workflow & Activity Analytics ── */}
-            <div data-tour="student-drive-analytics">
-            <CollapsibleSection
-              title={t('drive_workflow_activity_analytics')}
-              summary={`${analyticsHook.loading ? '…' : (t('ready'))} · ${t('role_based_metrics')}`}
-              icon={BarChart3}
-              defaultOpen={false}
-              testId="dashboard-analytics-section"
-            >
-              <DashboardAnalyticsPanel
-                analyticsData={analyticsHook.data}
-                loading={analyticsHook.loading}
-                onReload={analyticsHook.reload}
-                lastUpdatedAt={Date.now()}
-              />
-            </CollapsibleSection>
             </div>
           </div>
         )}

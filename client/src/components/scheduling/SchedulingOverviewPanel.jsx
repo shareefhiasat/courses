@@ -13,6 +13,7 @@ export default function SchedulingOverviewPanel({
   defaultOpen = false,
   actions,
   testId = 'scheduling-overview-panel',
+  storageKey,
 }) {
   const { t } = useLang();
   const { theme } = useTheme();
@@ -27,6 +28,7 @@ export default function SchedulingOverviewPanel({
       defaultOpen={defaultOpen}
       actions={actions}
       testId={testId}
+      storageKey={storageKey}
     >
       <div style={{
         display: 'grid',

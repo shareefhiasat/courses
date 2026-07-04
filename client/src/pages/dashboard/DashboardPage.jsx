@@ -8,6 +8,7 @@ import { MODE_TYPES } from '@utils/sharedTypes';
 import { DASHBOARD_TAB_SCREEN_IDS } from '@config/navigationRegistry.js';
 import { usePermissions } from '@hooks/usePermissions';
 import { dispatchPageTourIfRegistered, registerTourAvailability } from '@utils/tourScheduler';
+import { getJoyrideBaseProps, getTourStyles, ribbonTabStep } from '@utils/tourConfig';
 import Joyride from 'react-joyride';
 import TourTooltip from '@ui/TourTooltip/TourTooltip';
 import { Modal, Button, SimpleLoading } from '@ui';
@@ -78,6 +79,14 @@ const DashboardPage = () => {
       window.dispatchEvent(new CustomEvent('tour-availability-changed'));
     }
   }, [lang]);
+
+  // Stop shell tour when a nested page tour takes over (help button / capture router)
+  useEffect(() => {
+    const suppress = () => setRunTour(false);
+    window.addEventListener('tour-suppress-shell', suppress);
+    return () => window.removeEventListener('tour-suppress-shell', suppress);
+  }, []);
+
   const TourTooltipComponent = useMemo(() => TourTooltip({ tourSeenKey: `dashboardHelpSeen_${lang}` }), [lang]);
   const navigate = useNavigate();
   const location = useLocation();
@@ -354,68 +363,34 @@ const DashboardPage = () => {
   }, [t, isSuperAdmin, isAdmin, isHR, canAccessScreen]);
   // Build tour steps at start time — only include elements present in the DOM
   const buildTourSteps = useCallback(() => {
+    const tabContent = (key, label) => {
+      const dictKey = `tour.tab_${key}`;
+      const translated = t(dictKey);
+      if (translated === dictKey.replaceAll('_', ' ')) {
+        return t('tour.tab_default', { label });
+      }
+      return translated;
+    };
+
     const allSteps = [
-      { target: '[data-tour="mode-switcher"]', content: t('tour.mode_switcher_content'), disableBeacon: true, placement: 'bottom' },
+      ribbonTabStep('[data-tour="mode-switcher"]', t('tour.mode_switcher_content')),
     ];
 
-    // Add a step for each visible ribbon tab
-    const tabDescriptions = {
-      activities: t('tour.tab_activities'),
-      announcements: t('tour.tab_announcements'),
-      resources: t('tour.tab_resources'),
-      programs: t('tour.tab_programs'),
-      subjects: t('tour.tab_subjects'),
-      classes: t('tour.tab_classes'),
-      enrollments: t('tour.tab_enrollments'),
-      'manage-enrollments': t('tour.tab_manage_enrollments'),
-      marks: t('tour.tab_marks'),
-      penalty: t('tour.tab_penalty'),
-      participation: t('tour.tab_participation'),
-      behavior: t('tour.tab_behavior'),
-      users: t('tour.tab_users'),
-      'user-category-access': t('tour.tab_user_access'),
-      emailTemplates: t('tour.tab_email_templates'),
-      notificationLogs: t('tour.tab_notification_logs'),
-      'scheduled-reports': t('tour.tab_scheduled_reports'),
-      categories: t('tour.tab_categories'),
-      [LOOKUPS.ACTIVITY_TYPES]: t('tour.tab_activity_types'),
-      [LOOKUPS.BEHAVIOR_TYPES]: t('tour.tab_behavior_types'),
-      [LOOKUPS.PARTICIPATION_TYPES]: t('tour.tab_participation_types'),
-      [LOOKUPS.PENALTY_TYPES]: t('tour.tab_penalty_types'),
-      'summary-dashboard': t('tour.tab_summary_dashboard'),
-      'scheduling-calendar': t('tour.tab_scheduling_calendar'),
-      'instructor-availability': t('tour.tab_instructor_availability'),
-      'classroom-availability': t('tour.tab_classroom_availability'),
-      'classrooms-management': t('tour.tab_classrooms_management'),
-      [LOOKUPS.RESOURCE_TYPES]: t('tour.tab_resource_types'),
-      [LOOKUPS.PRIORITY_TYPES]: t('tour.tab_priority_types'),
-      [LOOKUPS.USER_ROLES]: t('tour.tab_user_roles'),
-      [LOOKUPS.SUBJECT_TYPES]: t('tour.tab_subject_types'),
-      [LOOKUPS.ASSESSMENT_TYPES]: t('tour.tab_assessment_types'),
-      [LOOKUPS.QUESTION_TYPES]: t('tour.tab_question_types'),
-      [LOOKUPS.ATTENDANCE_STATUS_TYPES]: t('tour.tab_attendance_status_types'),
-      [LOOKUPS.ENROLLMENT_STATUS_TYPES]: t('tour.tab_enrollment_status_types'),
-    };
-    ribbonCategories.forEach(cat => {
-      cat.items.forEach(item => {
+    ribbonCategories.forEach((cat) => {
+      cat.items.forEach((item) => {
         const selector = `[data-tour="tab-${item.key}"]`;
         if (document.querySelector(selector)) {
-          allSteps.push({
-            target: selector,
-            content: tabDescriptions[item.key] || item.label,
-            disableBeacon: true,
-            placement: 'bottom',
-          });
+          allSteps.push(ribbonTabStep(selector, tabContent(item.key, item.label)));
         }
       });
     });
 
     allSteps.push(
-      { target: '[data-tour="stats"]',         content: t('tour.stats_content'),         disableBeacon: true, placement: 'bottom' },
-      { target: '[data-tour="filters"]',       content: t('tour.filters_content'),       disableBeacon: true, placement: 'bottom' },
-      { target: '[data-tour="cards-grid"]',    content: t('tour.cards_grid_content'),    disableBeacon: true, placement: 'top' },
+      ribbonTabStep('[data-tour="stats"]', t('tour.stats_content')),
+      ribbonTabStep('[data-tour="filters"]', t('tour.filters_content')),
+      { target: '[data-tour="cards-grid"]', content: t('tour.cards_grid_content'), disableBeacon: true, placement: 'top', spotlightPadding: 8 },
     );
-    return allSteps.filter(s => !!document.querySelector(s.target));
+    return allSteps.filter((s) => !!document.querySelector(s.target));
   }, [t, ribbonCategories]);
 
   useEffect(() => {
@@ -537,32 +512,14 @@ const DashboardPage = () => {
       <div className="dashboard-content">
         {/* Joyride dashboard tour component injected to guide through tabs */}
         <Joyride
-          continuous
+          {...getJoyrideBaseProps({ theme, t })}
           run={runTour}
           steps={tourSteps}
-          showSkipButton
-          showProgress
           tooltipComponent={TourTooltipComponent}
           callback={handleJoyrideCallback}
-          locale={{
-            back: t('tour_back'),
-            close: t('tour_close'),
-            last: t('tour_finish'),
-            next: t('tour_next'),
-            skip: t('tour_skip')
-          }}
-          styles={{
-            // Use the app's primary color so the Joyride buttons (Back/Next) match other UI buttons
-            // Fallback to blue if the CSS var is not defined
-            options: {
-              primaryColor: 'var(--color-primary, #1e90ff)',
-              textColor: theme === 'dark' ? '#e5e7eb' : '#000',
-              backgroundColor: theme === 'dark' ? '#1f2937' : '#fff',
-              overlayColor: 'rgba(0,0,0,0.5)'
-            }
-          }}
+          styles={getTourStyles(theme)}
         />
-        <div data-tour="mode-switcher">
+        <div data-tour="mode-switcher" style={{ scrollMarginTop: 88 }}>
     <RibbonTabs
       categories={ribbonCategories}
       activeCategory={activeCategory}

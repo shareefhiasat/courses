@@ -34,7 +34,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * @param {Object} props.style - Inline styles
  * @param {'light'|'dark'} props.theme - Theme variant
  */
-const UserSelect = ({
+const UserSelect = React.forwardRef(({
   users = [],
   enrollments = [],
   classes = [],
@@ -53,8 +53,19 @@ const UserSelect = ({
   style = {},
   theme = 'light',
   ...rest
-}) => {
+}, ref) => {
   const { lang, t } = useLang();
+
+  const getUserIdKey = (user) => String(user?.docId ?? user?.id ?? '');
+  const enrollmentMatchesUser = (enrollment, user) => {
+    const enrollmentUserId = String(enrollment?.userId ?? '');
+    if (!enrollmentUserId) return false;
+    // Check against all possible ID fields on the user object
+    return enrollmentUserId === String(user?.docId ?? '') ||
+           enrollmentUserId === String(user?.id ?? '') ||
+           enrollmentUserId === String(user?.uid ?? '') ||
+           enrollmentUserId === String(user?.userId ?? '');
+  };
   
   // Icon component mapping using centralized system
   const getIconComponent = (iconName) => {
@@ -117,12 +128,22 @@ const UserSelect = ({
       });
     }
 
+    info('[UserSelect] generateUserOptions start:', {
+      usersCount: users.length,
+      filteredUsersCount: filteredUsers.length,
+      enrollmentsCount: enrollments.length,
+      showEnrollments,
+      enrollmentSample: enrollments.slice(0, 2),
+      userSample: filteredUsers.slice(0, 2).map(u => ({ id: u.id, docId: u.docId, email: u.email, role: u.role })),
+    });
+
     // Add user options
     filteredUsers.forEach(u => {
       // Get user enrollments count (for students) or classes taught (for instructors)
       let enrollmentCount = 0;
       let displayCount = '';
       let subtextLines = [];
+      let userEnrollments = [];
       
       if (isInstructor(u) || isAdmin(u)) {
         // For instructors: count classes they teach
@@ -158,15 +179,22 @@ const UserSelect = ({
         }
       } else {
         // For students: count their enrollments (classes they belong to)
-        const userEnrollments = enrollments.filter(e => e.userId === (u.docId || u.id));
+        userEnrollments = enrollments.filter(e => enrollmentMatchesUser(e, u));
         enrollmentCount = userEnrollments.length;
+        info('[UserSelect] Student enrollment match:', {
+          userId: getUserIdKey(u),
+          userEmail: u.email,
+          totalEnrollments: enrollments.length,
+          matchedCount: enrollmentCount,
+          enrollmentUserIds: enrollments.slice(0, 5).map(e => e.userId),
+        });
         const classLabel = t('class', { count: enrollmentCount });
         displayCount = enrollmentCount > 0 ? `${enrollmentCount} ${classLabel}` : (t('user_select_no_enrollments'));
         subtextLines.push(displayCount);
         // Show up to 3 class names from enrollments
-        if (classes && classes.length > 0 && userEnrollments.length > 0) {
+        if (userEnrollments.length > 0) {
           const studentClasses = userEnrollments
-            .map(e => classes.find(c => (c.id || c.docId) === (e.classId || e.classDocId)))
+            .map(e => classes.find(c => String(c.id || c.docId) === String(e.classId || e.classDocId)) || e.class)
             .filter(Boolean);
           studentClasses.slice(0, 3).forEach(c => {
             const name = lang === 'ar' ? (c.nameAr || c.nameEn || c.code) : (c.nameEn || c.nameAr || c.code);
@@ -215,8 +243,8 @@ const UserSelect = ({
         };
       } else {
         // For students: use the normal status calculation
-        status = getUserStatus(u, enrollments);
-        statusSummary = getUserStatusSummary(u, enrollments);
+        status = getUserStatus(u, userEnrollments);
+        statusSummary = getUserStatusSummary(u, userEnrollments);
         
         // For students with no enrollments, show them as Active with green icon
         if (status === USER_STATUS.NO_ENROLLMENTS) {
@@ -271,6 +299,7 @@ const UserSelect = ({
 
   return (
     <Select
+      ref={ref}
       value={value}
       onChange={(e) => {
         const selectedValue = e?.target?.value || e?.value || '';
@@ -287,6 +316,7 @@ const UserSelect = ({
       {...rest}
     />
   );
-};
+});
 
+UserSelect.displayName = 'UserSelect';
 export default UserSelect;

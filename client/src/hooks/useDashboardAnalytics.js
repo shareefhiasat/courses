@@ -18,6 +18,20 @@ export default function useDashboardAnalytics(classId = null) {
     setError(null);
     try {
       const result = await dashboardAnalyticsService.getAnalytics({ classId });
+      console.log('[useDashboardAnalytics DEBUG] API result:', {
+        success: result.success,
+        hasData: !!result.data,
+        drive: result.data?.drive ? {
+          overview: result.data.drive.overview,
+          fileActivitiesLength: result.data.drive.fileActivities?.length,
+          fileActivities: result.data.drive.fileActivities,
+        } : 'missing',
+        workflow: result.data?.workflow ? {
+          overview: result.data.workflow.overview,
+          workflowByStatusLength: result.data.workflow.workflowByStatus?.length,
+          workflowByStatus: result.data.workflow.workflowByStatus,
+        } : 'missing',
+      });
       if (result.success) {
         setData(result.data);
       } else {

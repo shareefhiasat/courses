@@ -391,6 +391,15 @@ function ListChart({
         { key: 'createdAt', label: t('created_date'), width: '15%', isRelated: false },
         { key: 'id', label: t('id'), width: '11%', isRelated: false },
       ];
+    } else if (widget.dataSource === 'workflowRecentDocuments') {
+      return [
+        { key: 'title', label: t('title'), width: '25%', isRelated: false },
+        { key: 'workflowType', label: t('type'), width: '15%', isRelated: false },
+        { key: 'submitterName', label: t('submitted_by'), width: '15%', isRelated: false },
+        { key: 'createdAt', label: t('created_date'), width: '13%', isRelated: false },
+        { key: 'status', label: t('status'), width: '15%', isRelated: false },
+        { key: 'program', label: t('gb_program'), width: '17%', isRelated: false },
+      ];
     } else if (widget.dataSource?.startsWith('scheduling')) {
       return [
         { key: 'title', label: t('title'), width: '30%', isRelated: false },
@@ -659,10 +668,31 @@ function ListChart({
       case 'createdAt':
         return formatDate(item.createdAt?.seconds ? new Date(item.createdAt.seconds * 1000) : item.createdAt, t);
 
+      case 'workflowType':
+        if (!item.workflowType) return '—';
+        { const _key = `analytics.label.wf_type_${item.workflowType}`; const _tr = t(_key); if (_tr && _tr !== _key) return _tr; }
+        return item.workflowType;
+
+      case 'submitterName':
+        if (item.submitterName) return lang === 'ar' ? (item.submitterNameAr || item.submitterName) : item.submitterName;
+        return '—';
+
+      case 'program':
+        if (!item.program) return '—';
+        { const _key = `gb_program_${item.program}`; const _tr = t(_key); if (_tr && _tr !== _key) return _tr; }
+        return item.program;
+
       case 'status':
         if (item.status) {
           if (typeof item.status === 'object') {
             return lang === 'ar' ? (item.status.nameAr || item.status.nameEn || item.status.code || '—') : (item.status.nameEn || item.status.nameAr || item.status.code || '—');
+          }
+          // Workflow document statuses (e.g. UNDER_HR_REVIEW, APPROVED, etc.)
+          if (widget.dataSource === 'workflowRecentDocuments') {
+            const wfKey = `analytics.label.wf_status_${String(item.status).toUpperCase()}`;
+            const wfTr = t(wfKey);
+            if (wfTr && wfTr !== wfKey) return wfTr;
+            return item.status;
           }
           return normalizeAttendanceStatus(item.status, t);
         }
@@ -1015,6 +1045,31 @@ function ListChart({
   };
 
   const listTitle = getWidgetDisplayTitle(widget, t, lang);
+
+  const workflowStatusColor = (status) => {
+    const s = String(status || '').toUpperCase();
+    const map = {
+      APPROVED: '#16a34a',
+      REJECTED: '#dc2626',
+      AMENDED: '#ea580c',
+      DRAFT: '#6b7280',
+      SUBMITTED: '#2563eb',
+      UNDER_REVIEW: '#f59e0b',
+      UNDER_HR_REVIEW: '#f59e0b',
+      UNDER_ADMIN_REVIEW: '#f59e0b',
+      PENDING: '#6b7280',
+      IN_PROGRESS: '#2563eb',
+      COMPLETED: '#16a34a',
+      RETURNED: '#dc2626',
+      CLOSED: '#6b7280',
+      NEEDS_FEEDBACK: '#ea580c',
+    };
+    return map[s] || null;
+  };
+
+  const isWorkflowStatusCol = (column) => {
+    return column.key === 'status' && widget.dataSource === 'workflowRecentDocuments';
+  };
 
   if (listItems.length === 0) {
     return (
@@ -1370,6 +1425,8 @@ function ListChart({
               {columns.map((column) => {
                 const isCollapsed = collapsedCols.has(column.key);
                 const width = getResolvedWidth(column);
+                const isWfStatus = isWorkflowStatusCol(column);
+                const wfColor = isWfStatus ? workflowStatusColor(item.status) : null;
                 return (
                 <div
                   key={column.key}
@@ -1389,7 +1446,20 @@ function ListChart({
                   }}
                   title={isCollapsed ? '' : renderCellValue(item, column)}
                 >
-                  {isCollapsed ? '·' : renderCellValue(item, column)}
+                  {isCollapsed ? '·' : isWfStatus && wfColor ? (
+                    <span style={{
+                      display: 'inline-block',
+                      padding: '2px 8px',
+                      borderRadius: '10px',
+                      fontSize: `${9 * fontScale}px`,
+                      fontWeight: 600,
+                      color: '#fff',
+                      background: wfColor,
+                      whiteSpace: 'nowrap',
+                    }}>
+                      {renderCellValue(item, column)}
+                    </span>
+                  ) : renderCellValue(item, column)}
                 </div>
               );})}
             </div>

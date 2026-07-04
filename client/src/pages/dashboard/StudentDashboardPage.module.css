@@ -86,7 +86,7 @@
 }
 
 .detailsSection {
-  margin-block-start: 3rem;
+  margin-block-start: 1.5rem;
   background: var(--card-bg, #ffffff);
   border-radius: 12px;
   padding: 1.5rem;

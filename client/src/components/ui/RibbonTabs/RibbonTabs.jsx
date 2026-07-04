@@ -64,6 +64,7 @@ export default function RibbonTabs({ categories = [], activeCategory, activeItem
                       gap: '2px',
                       padding: '6px 10px',
                       borderRadius: 6,
+                      scrollMarginTop: 88,
                       border: isActive ? '1px solid var(--color-primary, #10B981)' : (isDarkMode ? '1px solid #374151' : '1px solid rgba(0,0,0,0.06)'),
                       background: isActive ? 'var(--color-primary, #10B981)' : (isDarkMode ? '#1f2937' : 'white'),
                       color: isActive ? 'white' : (isDarkMode ? '#f9fafb' : '#111827'),

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef, useLayoutEffect } from 'react';
 import Joyride from 'react-joyride';
-import TourTooltip from '@ui/TourTooltip/TourTooltip';
-import { scheduleTourStart } from '@utils/tourScheduler';
+import { usePageTour } from '@hooks/usePageTour';
+import { getJoyrideBaseProps, getTourStyles } from '@utils/tourConfig';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useAuth } from '@contexts/AuthContext';
@@ -96,8 +96,6 @@ const ResourcesPage = () => {
   const { deleteModal, showDeleteModal, hideDeleteModal } = useDeleteModal(t);
 
   // ── Guided Tour ──────────────────────────────────────────────────────────
-  const [runTour, setRunTour] = useState(false);
-  const tourSeenKey = `resourcesTourSeen_${lang}`;
   const tourSteps = useMemo(() => [
     { target: 'body', content: t('tour.resources_filters'), disableBeacon: true, placement: 'center' },
     { target: '[data-tour="resources-form"]', content: t('tour.resources_upload'), disableBeacon: true, placement: 'bottom' },
@@ -107,18 +105,8 @@ const ResourcesPage = () => {
     { target: '[data-tour="resources-grid"]', content: t('tour.resources_delete'), disableBeacon: true, placement: 'top' },
     { target: '[data-tour="resources-grid"]', content: t('tour.resources_export'), disableBeacon: true, placement: 'top' },
   ], [lang, t]);
-  useEffect(() => {
-    const start = () => setRunTour(true);
-    window.addEventListener('app:joyride', start);
-    window.addEventListener('app:help', start);
-    return () => { window.removeEventListener('app:joyride', start); window.removeEventListener('app:help', start); };
-  }, []);
-  useEffect(() => scheduleTourStart(tourSeenKey, lang, () => setRunTour(true)), [tourSeenKey, lang]);
-  const handleTourCallback = useCallback((data) => {
-    const { status, action } = data || {};
-    if (status === 'finished' || status === 'skipped' || action === 'close') { setRunTour(false); try { localStorage.setItem(tourSeenKey, 'true'); } catch {} }
-  }, [tourSeenKey]);
-  const TourTooltipComponent = useMemo(() => TourTooltip({ tourSeenKey }), [tourSeenKey]);
+  const { run: runTour, steps: activeTourSteps, callback: handleTourCallback, TourTooltipComponent } =
+    usePageTour('resources', 'resourcesTourSeen', tourSteps);
   // ──────────────────────────────────────────────────────────────────────────
   
   // Refs for text inputs — avoids re-rendering on every keystroke
@@ -709,9 +697,13 @@ const ResourcesPage = () => {
 
   return (
     <div className="resources-tab">
-      <Joyride continuous run={runTour} steps={tourSteps} callback={handleTourCallback} scrollOffset={100} scrollToFirstStep showSkipButton showProgress tooltipComponent={TourTooltipComponent}
-        locale={{ back: t('tour_back'), close: t('tour_close'), last: t('tour_finish'), next: t('tour_next'), skip: t('tour_skip') }}
-        styles={{ options: { primaryColor: 'var(--color-primary,#800020)', textColor: theme === 'dark' ? '#e5e7eb' : '#111', backgroundColor: theme === 'dark' ? '#1f2937' : '#fff', zIndex: 10000 } }}
+      <Joyride
+        {...getJoyrideBaseProps({ theme, t })}
+        run={runTour}
+        steps={activeTourSteps}
+        callback={handleTourCallback}
+        tooltipComponent={TourTooltipComponent}
+        styles={getTourStyles(theme)}
       />
       {editingResource && (
         <div style={{ 

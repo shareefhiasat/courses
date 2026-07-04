@@ -1,6 +1,6 @@
 import prisma from '../db/prismaClient.js';
 import { suggestAttendanceMarkComponent, listDeductionRules, getDeductionHistory } from '../services/attendanceDeductionService.js';
-import { calculateLetterGrade, MANUAL_GRADES } from '../utils/formatting/gradingStandards.js';
+import { calculateLetterGrade, MANUAL_GRADES, GRADE_TYPE, resolveMarkGrade, resolveComplementaryGrade } from '../utils/formatting/gradingStandards.js';
 import notificationGateway from '../services/notifications/index.js';
 import { EVENTS } from '../services/notifications/constants.js';
 import { buildLocalizedNameFields, buildNotificationNameVars } from '../utils/localizedUserName.js';
@@ -271,7 +271,12 @@ const updateStudentMarks = async (req, res) => {
     let totalMarks = 0;
     let letterGrade = 'F';
     
-    if (gradeType === 'calculated' && distribution) {
+    if (gradeType === GRADE_TYPE.COMPLEMENTARY) {
+      const examScore = marks.finalExam || 0;
+      const compResult = resolveComplementaryGrade(examScore);
+      letterGrade = compResult.letter;
+      totalMarks = compResult.totalMarks;
+    } else if (gradeType === 'calculated' && distribution) {
       // Normal calculation for calculated grades
       totalMarks = 
         ((marks.midTermExam || 0) / distribution.midTermExam * distribution.midTermExam) +
@@ -1099,30 +1104,43 @@ const getAllStudentMarksReport = async (req, res) => {
           ((studentMarks.attendance || 0) / distribution.attendance * distribution.attendance);
         
         const gradeType = studentMarks.gradeType || 'calculated';
-        let letterGrade, gradeRange, gradeDescriptionEn, gradeDescriptionAr, gradingStandard;
-        
-        if (gradeType !== 'calculated') {
-          const MANUAL_GRADES = [
-            { letter: 'FB', description: 'Fail Due to Absence', descriptionAr: 'راسب بسبب الغياب' },
-            { letter: 'FA', description: 'Fail Due to Absence', descriptionAr: 'راسب بسبب التغيب' },
-            { letter: 'WF', description: 'Withdrawal with Grade', descriptionAr: 'انسحاب مع درجة' }
-          ];
-          
-          const manualGrade = MANUAL_GRADES.find(g => g.letter === gradeType);
-          if (manualGrade) {
-            letterGrade = manualGrade.letter;
-            gradeRange = 'Manual';
-            gradeDescriptionEn = manualGrade.description;
-            gradeDescriptionAr = manualGrade.descriptionAr;
-            gradingStandard = 'Manual';
-          }
+        let letterGrade, gradeRange, gradeDescriptionEn, gradeDescriptionAr, gradingStandard, gradePoints, displayTotalMarks;
+
+        if (gradeType === GRADE_TYPE.COMPLEMENTARY) {
+          const resolved = resolveMarkGrade({
+            gradeType,
+            isRepeated: studentMarks.isRepeated || false,
+            complementaryScore: studentMarks.finalExam || 0,
+          });
+          letterGrade = resolved.letter;
+          gradeRange = resolved.gradeRange;
+          gradeDescriptionEn = resolved.gradeDescriptionEn;
+          gradeDescriptionAr = resolved.gradeDescriptionAr;
+          gradingStandard = resolved.gradingStandard;
+          gradePoints = resolved.points;
+          displayTotalMarks = resolved.totalMarks;
+        } else if (gradeType !== 'calculated') {
+          const resolved = resolveMarkGrade({ gradeType, isRepeated: studentMarks.isRepeated || false });
+          letterGrade = resolved.letter;
+          gradeRange = resolved.gradeRange;
+          gradeDescriptionEn = resolved.gradeDescriptionEn;
+          gradeDescriptionAr = resolved.gradeDescriptionAr;
+          gradingStandard = resolved.gradingStandard;
+          gradePoints = resolved.points;
+          displayTotalMarks = resolved.totalMarks;
         } else {
-          const gradeResult = calculateLetterGrade(totalMarks, studentMarks.isRepeated || false);
-          letterGrade = gradeResult.letter;
-          gradeRange = gradeResult.range;
-          gradeDescriptionEn = gradeResult.descriptionEn;
-          gradeDescriptionAr = gradeResult.descriptionAr;
-          gradingStandard = studentMarks.isRepeated ? 'Repeated' : 'First Attempt';
+          const resolved = resolveMarkGrade({
+            totalMarks,
+            gradeType,
+            isRepeated: studentMarks.isRepeated || false,
+          });
+          letterGrade = resolved.letter;
+          gradeRange = resolved.gradeRange;
+          gradeDescriptionEn = resolved.gradeDescriptionEn;
+          gradeDescriptionAr = resolved.gradeDescriptionAr;
+          gradingStandard = resolved.gradingStandard;
+          gradePoints = resolved.points;
+          displayTotalMarks = totalMarks;
         }
         
         const studentNames = buildLocalizedNameFields(enrollment.user, 'Unknown Student');
@@ -1151,8 +1169,9 @@ const getAllStudentMarksReport = async (req, res) => {
           quizzes: studentMarks.quizzes || 0,
           participation: studentMarks.participation || 0,
           attendance: studentMarks.attendance || 0,
-          totalMarks: gradeType !== 'calculated' ? 0 : totalMarks,
+          totalMarks: displayTotalMarks,
           letterGrade: letterGrade,
+          gradePoints: gradePoints,
           gradeRange: gradeRange,
           gradeDescriptionEn: gradeDescriptionEn,
           gradeDescriptionAr: gradeDescriptionAr,
@@ -1185,30 +1204,43 @@ const getAllStudentMarksReport = async (req, res) => {
           ((studentMarks.attendance || 0) / distribution.attendance * distribution.attendance);
         
         const gradeType = studentMarks.gradeType || 'calculated';
-        let letterGrade, gradeRange, gradeDescriptionEn, gradeDescriptionAr, gradingStandard;
-        
-        if (gradeType !== 'calculated') {
-          const MANUAL_GRADES = [
-            { letter: 'FB', description: 'Fail Due to Absence', descriptionAr: 'راسب بسبب الغياب' },
-            { letter: 'FA', description: 'Fail Due to Absence', descriptionAr: 'راسب بسبب التغيب' },
-            { letter: 'WF', description: 'Withdrawal with Grade', descriptionAr: 'انسحاب مع درجة' }
-          ];
-          
-          const manualGrade = MANUAL_GRADES.find(g => g.letter === gradeType);
-          if (manualGrade) {
-            letterGrade = manualGrade.letter;
-            gradeRange = 'Manual';
-            gradeDescriptionEn = manualGrade.description;
-            gradeDescriptionAr = manualGrade.descriptionAr;
-            gradingStandard = 'Manual';
-          }
+        let letterGrade, gradeRange, gradeDescriptionEn, gradeDescriptionAr, gradingStandard, gradePoints, displayTotalMarks;
+
+        if (gradeType === GRADE_TYPE.COMPLEMENTARY) {
+          const resolved = resolveMarkGrade({
+            gradeType,
+            isRepeated: studentMarks.isRepeated || false,
+            complementaryScore: studentMarks.finalExam || 0,
+          });
+          letterGrade = resolved.letter;
+          gradeRange = resolved.gradeRange;
+          gradeDescriptionEn = resolved.gradeDescriptionEn;
+          gradeDescriptionAr = resolved.gradeDescriptionAr;
+          gradingStandard = resolved.gradingStandard;
+          gradePoints = resolved.points;
+          displayTotalMarks = resolved.totalMarks;
+        } else if (gradeType !== 'calculated') {
+          const resolved = resolveMarkGrade({ gradeType, isRepeated: studentMarks.isRepeated || false });
+          letterGrade = resolved.letter;
+          gradeRange = resolved.gradeRange;
+          gradeDescriptionEn = resolved.gradeDescriptionEn;
+          gradeDescriptionAr = resolved.gradeDescriptionAr;
+          gradingStandard = resolved.gradingStandard;
+          gradePoints = resolved.points;
+          displayTotalMarks = resolved.totalMarks;
         } else {
-          const gradeResult = calculateLetterGrade(totalMarks, studentMarks.isRepeated || false);
-          letterGrade = gradeResult.letter;
-          gradeRange = gradeResult.range;
-          gradeDescriptionEn = gradeResult.descriptionEn;
-          gradeDescriptionAr = gradeResult.descriptionAr;
-          gradingStandard = studentMarks.isRepeated ? 'Repeated' : 'First Attempt';
+          const resolved = resolveMarkGrade({
+            totalMarks,
+            gradeType,
+            isRepeated: studentMarks.isRepeated || false,
+          });
+          letterGrade = resolved.letter;
+          gradeRange = resolved.gradeRange;
+          gradeDescriptionEn = resolved.gradeDescriptionEn;
+          gradeDescriptionAr = resolved.gradeDescriptionAr;
+          gradingStandard = resolved.gradingStandard;
+          gradePoints = resolved.points;
+          displayTotalMarks = totalMarks;
         }
         
         const studentNames = buildLocalizedNameFields(enrollment.user, 'Unknown Student');
@@ -1237,8 +1269,9 @@ const getAllStudentMarksReport = async (req, res) => {
           quizzes: studentMarks.quizzes || 0,
           participation: studentMarks.participation || 0,
           attendance: studentMarks.attendance || 0,
-          totalMarks: gradeType !== 'calculated' ? 0 : totalMarks,
+          totalMarks: displayTotalMarks,
           letterGrade: letterGrade,
+          gradePoints: gradePoints,
           gradeRange: gradeRange,
           gradeDescriptionEn: gradeDescriptionEn,
           gradeDescriptionAr: gradeDescriptionAr,

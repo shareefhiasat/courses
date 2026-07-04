@@ -24,6 +24,17 @@
   transition: margin-left 0.3s ease, margin-right 0.3s ease;
 }
 
+/* Slower content push when sticky + auto-hide is expanding/collapsing */
+.drawer-sticky-open.drawer-auto-hide .navbar,
+.drawer-sticky-open.drawer-auto-hide .main-content {
+  transition: margin-left 0.75s ease, margin-right 0.75s ease;
+}
+
+[dir="rtl"].drawer-sticky-open.drawer-auto-hide .navbar,
+[dir="rtl"].drawer-sticky-open.drawer-auto-hide .main-content {
+  transition: margin-left 0.75s ease, margin-right 0.75s ease;
+}
+
 /* Ensure body doesn't overflow when drawer is sticky */
 .drawer-sticky-open body {
   overflow-x: hidden;

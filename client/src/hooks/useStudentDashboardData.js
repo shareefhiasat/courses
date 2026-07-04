@@ -144,6 +144,12 @@ const useStudentDashboardData = (displayStudentId, hasSelection = true, classId 
 
         // Set the aggregated results
         enrollmentsRes = { status: 'fulfilled', value: { data: aggregatedData.enrollments } };
+        info('[StudentDashboardData] Class mode aggregated enrollments:', {
+          classId,
+          totalEnrollments: aggregatedData.enrollments.length,
+          enrollmentUserIds: aggregatedData.enrollments.slice(0, 10).map(e => e.userId),
+          enrollmentSample: aggregatedData.enrollments.slice(0, 3),
+        });
         attendanceRes = { status: 'fulfilled', value: { data: aggregatedData.attendance } };
         penaltiesRes = { status: 'fulfilled', value: { data: aggregatedData.penalties } };
         participationsRes = { status: 'fulfilled', value: { data: aggregatedData.participations } };
@@ -183,7 +189,7 @@ const useStudentDashboardData = (displayStudentId, hasSelection = true, classId 
           getPenalties({ userId: effectiveUserId, limit: 100 }),
           getParticipations({ userId: effectiveUserId, limit: 100 }),
           getBehaviors({ userId: effectiveUserId, limit: 100 }),
-          classId ? getAllStudentMarksReport({ classId }) : getStudentMarks(effectiveUserId),
+          classId ? getAllStudentMarksReport({ classId }) : getAllStudentMarksReport({ userId: effectiveUserId }),
           getSubmissionsByUser(effectiveUserId),
         ]);
       }

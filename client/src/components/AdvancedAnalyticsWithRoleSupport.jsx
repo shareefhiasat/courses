@@ -1,17 +1,19 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon, ROLE_STRINGS } from '@constants';
 import { normalizeHexColor, DEFAULT_ACCENT } from '../utils/color';
 import { getUserById } from '@services/business/userService';
-import { Select, YearSelect, SimpleLoading } from '@ui';
+import { Select, YearSelect, SimpleLoading, Modal, Button } from '@ui';
 import { useOptimizedAnalyticsData } from '@hooks/useOptimizedAnalyticsData';
 import { processWidgetData } from '@hooks/useAnalyticsData';
+import useEditLayoutGuard from '@hooks/useEditLayoutGuard';
 import { formatForDateInput } from '@utils/date-formatter.js';
 import useRoleBasedWidgets from '@hooks/useRoleBasedWidgets';
 import DashboardEngine from './analytics/DashboardEngine';
 import WidgetAssignmentManager from './admin/WidgetAssignmentManager';
+import { Save, Trash2 } from 'lucide-react';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import PortalTooltip from '@ui/PortalTooltip';
 
@@ -173,7 +175,8 @@ export default function AdvancedAnalytics({
   }, [localFilters, externalFilters]);
 
   // ── Layout edit mode ──────────────────────────────────────────────────────
-  const [editLayout, setEditLayout] = useState(false);
+  const guard = useEditLayoutGuard(dashboardEngineRef, { t });
+  const { autoSave, editLayout, showExitDialog } = guard;
 
   // ── Auto-refresh ──────────────────────────────────────────────────────────
   const [autoRefreshMs, setAutoRefreshMs] = useState(0);
@@ -279,11 +282,39 @@ export default function AdvancedAnalytics({
             {/* Edit Layout toggle - only if user can edit */}
             {canEdit && enableCustomization && (
               <button
-                onClick={() => setEditLayout(v => !v)}
+                onClick={guard.handleToggleEditLayout}
                 style={btnStyle(editLayout ? '#ef4444' : '#f97316')}
               >
                 {getThemedIcon('ui', editLayout ? 'lock' : 'layout_grid', 16, theme)}
                 {editLayout ? (t('exit_edit_layout')) : (t('edit_layout'))}
+              </button>
+            )}
+            {canEdit && enableCustomization && !autoSave && editLayout && (
+              <button
+                onClick={guard.handleSaveChanges}
+                style={btnStyle('#10b981')}
+              >
+                <Save size={16} />
+                {t('save_layout')}
+              </button>
+            )}
+            {canEdit && enableCustomization && !autoSave && editLayout && (
+              <button
+                onClick={guard.handleDiscardChanges}
+                style={btnStyle('#ef4444')}
+              >
+                <Trash2 size={16} />
+                {t('discard_changes')}
+              </button>
+            )}
+            {canEdit && enableCustomization && (
+              <button
+                onClick={guard.toggleAutoSave}
+                style={btnStyle(autoSave ? '#10b981' : '#6b7280')}
+                title={autoSave ? t('auto_save_on') : t('auto_save_off')}
+              >
+                <Save size={16} />
+                {t('auto_save')}
               </button>
             )}
 
@@ -449,6 +480,7 @@ export default function AdvancedAnalytics({
           globalFilters={mergedFilters}
           accentColor={accentColor}
           editLayout={editLayout && canEdit}
+          autoSave={autoSave}
           defaultWidgets={effectiveWidgets}
           storageKey={propStorageKey || `analytics_${userRole}_${dashboard}`}
           isLoading={loading}
@@ -464,6 +496,22 @@ export default function AdvancedAnalytics({
           onSave={handleWidgetAssignmentSave}
         />
       )}
+
+      <Modal
+        isOpen={showExitDialog}
+        onClose={guard.handleCancelExit}
+        title={t('unsaved_changes_title')}
+        size="small"
+        footer={
+          <>
+            <Button variant="outline" onClick={guard.handleCancelExit}>{t('cancel')}</Button>
+            <Button variant="danger" onClick={guard.handleDiscardChanges}>{t('discard_changes')}</Button>
+            <Button variant="primary" onClick={guard.handleSaveChanges}>{t('save_layout')}</Button>
+          </>
+        }
+      >
+        <p>{t('unsaved_changes_message')}</p>
+      </Modal>
     </>
   );
 }

@@ -18,6 +18,7 @@ import { getAllQuizzes } from '@services/business/quizService';
 import { getUserSubmissions } from '@services/business/submissionService';
 import { getSubmissions } from '@services/business/submissionsService';
 import { getUserProfile, updateUserProgress, getUsers } from '@services/business/userService';
+import { getEnrollments, getStudentsByClass } from '@services/business/enrollmentService';
 import { getContentCategories } from '@services/business/categoryService';
 import { getAllPrograms } from '@services/business/programService';
 import { getPrograms, getSubjects } from '@services/business/programService';
@@ -34,7 +35,7 @@ import { getActivityTypeConfig } from '@constants/activityTypes';
 import { getDifficultyConfig } from '@constants/difficultyTypes';
 import { getResourceTypeConfig } from '@constants/resourceTypes';
 import { ActivityLogger } from '@services/other/activityLogger';
-import { Card, CardBody, Modal, EmptyState, Select } from '@ui';
+import { Card, CardBody, Modal, EmptyState, Select, UserSelect } from '@ui';
 import { useToast } from '@ui';
 import UnifiedCard from '@components/UnifiedCard';
 import { UnifiedFilterSection } from '@components/filters';
@@ -194,7 +195,9 @@ const HomePage = memo(() => {
   const [reviewPrograms, setReviewPrograms] = useState([]);
   const [reviewSubjects, setReviewSubjects] = useState([]);
   const [reviewClasses, setReviewClasses] = useState([]);
-  const [reviewStudents, setReviewStudents] = useState([]);
+  const [reviewUsers, setReviewUsers] = useState([]);
+  const [reviewEnrollments, setReviewEnrollments] = useState([]);
+  const [reviewClassEnrollments, setReviewClassEnrollments] = useState([]);
   const [reviewActivities, setReviewActivities] = useState([]);
   const [selectedProgram, setSelectedProgram] = useState('all');
   const [selectedSubject, setSelectedSubject] = useState('all');
@@ -336,12 +339,13 @@ const HomePage = memo(() => {
     if (!user) return;
     setReviewLoading(true);
     try {
-      const [programsRes, subjectsRes, classesRes, activitiesRes, usersRes] = await Promise.all([
+      const [programsRes, subjectsRes, classesRes, activitiesRes, usersRes, enrollmentsRes] = await Promise.all([
         getPrograms(),
         getSubjects(),
         getClasses(),
         getActivities(),
-        getUsers()
+        getUsers(),
+        getEnrollments({ limit: 5000 })
       ]);
 
       let programsData = programsRes.success ? (programsRes.data || []) : [];
@@ -349,30 +353,14 @@ const HomePage = memo(() => {
       let classesData = classesRes.success ? (classesRes.data || []) : [];
       let activitiesData = activitiesRes.success ? (activitiesRes.data || []) : [];
       const usersData = usersRes.success ? (usersRes.data || []) : [];
+      const enrollmentsData = enrollmentsRes.success ? (enrollmentsRes.data || []) : [];
 
       setReviewPrograms(programsData);
       setReviewSubjects(subjectsData);
       setReviewClasses(classesData);
       setReviewActivities(activitiesData);
-      const studentUsers = usersData.filter(u => u.isStudent);
-      setReviewStudents(studentUsers);
-
-      console.log('[HomePage] loadReviewData — students:', {
-        totalUsers: usersData.length,
-        studentCount: studentUsers.length,
-        allStudentKeys: studentUsers[0] ? Object.keys(studentUsers[0]) : [],
-        sampleStudents: studentUsers.slice(0, 3).map(s => ({
-          uid: s.uid,
-          id: s.id,
-          docId: s.docId,
-          displayName: s.displayName,
-          isStudent: s.isStudent,
-          enrolledClasses: s.enrolledClasses,
-          enrollments: s.enrollments,
-          classId: s.classId,
-        })),
-        classesSample: classesData.slice(0, 3).map(c => ({ id: c.id, docId: c.docId, name: c.name, code: c.code })),
-      });
+      setReviewUsers(usersData);
+      setReviewEnrollments(enrollmentsData);
 
       const submissionsResult = await getSubmissions();
       let submissionsData = submissionsResult.success ? submissionsResult.data : [];
@@ -421,6 +409,24 @@ const HomePage = memo(() => {
       loadReviewData();
     }
   }, [mode, user, authLoading, loadReviewData]);
+
+  // Load enrolled students for the selected class (same pattern as student dashboard)
+  useEffect(() => {
+    if (mode !== MODE_TYPES.REVIEW) return;
+    const hasClassFilter = selectedClass && selectedClass !== 'all' && selectedClass !== '';
+    if (!hasClassFilter) {
+      setReviewClassEnrollments([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const result = await getStudentsByClass(selectedClass);
+      if (!cancelled) {
+        setReviewClassEnrollments(result.success ? (result.data || []) : []);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [mode, selectedClass]);
 
   // Load user data with global loading to prevent flicker
   useLayoutEffect(() => {
@@ -1001,7 +1007,7 @@ const HomePage = memo(() => {
 
   // Calculate comprehensive stats using the same hook as ReviewResultsPage
   const stats = useMemo(() => {
-    return {
+    const baseStats = {
       // Map filterCounts to StatsBar expected format
       completed: hookFilterCounts.completedCount,
       pending: hookFilterCounts.pendingCount,
@@ -1015,7 +1021,21 @@ const HomePage = memo(() => {
       // Additional stats for specific modes
       total: getCurrentItems().length
     };
-  }, [hookFilterCounts, getCurrentItems]);
+
+    // Mode-specific badges beside search
+    if (mode === MODE_TYPES.ACTIVITIES) {
+      baseStats.quiz = activityTypeCounts.quiz;
+      baseStats.homework = activityTypeCounts.homework;
+      baseStats.training = activityTypeCounts.training;
+      baseStats.labProject = activityTypeCounts.labandproject;
+    } else if (mode === MODE_TYPES.RESOURCES) {
+      baseStats.video = resourceTypeCounts[RESOURCE_TYPES.VIDEO] || 0;
+      baseStats.link = resourceTypeCounts[RESOURCE_TYPES.LINK] || 0;
+      baseStats.document = resourceTypeCounts[RESOURCE_TYPES.DOCUMENT] || 0;
+    }
+
+    return baseStats;
+  }, [hookFilterCounts, getCurrentItems, mode, activityTypeCounts, resourceTypeCounts]);
 
   // Debug logging to see what the hook returns
   debug('[HomePage] Hook filter counts:', {
@@ -1054,6 +1074,31 @@ const HomePage = memo(() => {
     }));
   }, [reviewSubmissions, lang, t]);
 
+  const reviewEnrollmentsForSelect = useMemo(() => {
+    const hasClassFilter = selectedClass && selectedClass !== 'all' && selectedClass !== '';
+    if (hasClassFilter && reviewClassEnrollments.length > 0) return reviewClassEnrollments;
+    if (hasClassFilter) {
+      return reviewEnrollments.filter(e => String(e.classId) === String(selectedClass));
+    }
+    return reviewEnrollments;
+  }, [reviewEnrollments, reviewClassEnrollments, selectedClass]);
+
+  const reviewStudentUsers = useMemo(() => {
+    const hasClassFilter = selectedClass && selectedClass !== 'all' && selectedClass !== '';
+    if (hasClassFilter && reviewClassEnrollments.length > 0) {
+      return reviewClassEnrollments
+        .map(e => (e.user ? { ...e.user, id: e.user.id ?? e.userId } : null))
+        .filter(Boolean);
+    }
+    if (!hasClassFilter) return reviewUsers;
+    return reviewUsers.filter(s => {
+      const userId = s.id || s.docId || s.uid;
+      return reviewEnrollments.some(e =>
+        String(e.userId) === String(userId) && String(e.classId) === String(selectedClass)
+      );
+    });
+  }, [reviewUsers, reviewEnrollments, reviewClassEnrollments, selectedClass]);
+
   // Review mode: filtered items with role-based scoping + all active filters
   const filteredReviewItems = useMemo(() => {
     if (mode !== MODE_TYPES.REVIEW) return [];
@@ -1065,9 +1110,9 @@ const HomePage = memo(() => {
     // Instructor classes for scoping
     const instructorClassIds = new Set(reviewClasses.map(c => c.id || c.docId));
     const instructorStudentIds = new Set(
-      reviewStudents
-        .filter(s => s.enrolledClasses?.some(cid => instructorClassIds.has(cid)))
-        .map(s => s.uid)
+      reviewEnrollments
+        .filter(e => instructorClassIds.has(e.classId) || instructorClassIds.has(String(e.classId)))
+        .map(e => e.userId)
     );
 
     // Start from enriched submissions
@@ -1180,7 +1225,7 @@ const HomePage = memo(() => {
 
     return filtered;
   }, [
-    mode, reviewSubmissions, reviewClasses, reviewStudents, user,
+    mode, reviewSubmissions, reviewClasses, reviewEnrollments, user,
     activityType, searchTerm, selectedProgram, selectedSubject, selectedClass,
     selectedStudent, selectedYear, selectedTerm,
     difficultyFilter, completedFilter, pendingFilter, requiredFilter, optionalFilter,
@@ -1454,44 +1499,29 @@ const HomePage = memo(() => {
                   selectedClass={selectedClass}
                   onProgramChange={(val) => { setSelectedProgram(val); setSelectedSubject('all'); setSelectedClass('all'); }}
                   onSubjectChange={(val) => { setSelectedSubject(val); setSelectedClass('all'); }}
-                  onClassChange={setSelectedClass}
+                  onClassChange={(val) => { setSelectedClass(val); setSelectedStudent('all'); }}
                   showLabels={false}
                   style={{ flex: '1 1 auto', minWidth: 0 }}
                   fullWidth
                 />
-                {canFilterByStudent && (() => {
-                  const classFilteredStudents = reviewStudents.filter(s => {
-                    if (selectedClass === 'all') return true;
-                    return s.enrolledClasses?.some(cid => String(cid) === String(selectedClass))
-                      || s.enrollments?.some(e => String(e.classId) === String(selectedClass))
-                      || String(s.classId) === String(selectedClass);
-                  });
-                  console.log('[HomePage] review student dropdown — filtered by class:', {
-                    selectedClass,
-                    totalReviewStudents: reviewStudents.length,
-                    filteredCount: classFilteredStudents.length,
-                    sampleEnrolledClasses: reviewStudents.slice(0, 3).map(s => ({
-                      uid: s.uid, displayName: s.displayName, enrolledClasses: s.enrolledClasses, classId: s.classId
-                    })),
-                  });
-                  return (
-                  <Select
+                {canFilterByStudent && (
+                  <UserSelect
+                    users={reviewStudentUsers}
+                    enrollments={reviewEnrollmentsForSelect}
+                    classes={reviewClasses}
+                    value={selectedStudent === 'all' ? 'all' : selectedStudent}
+                    onChange={setSelectedStudent}
+                    placeholder={t('filters.select_student')}
+                    roleFilter={[ROLE_STRINGS.STUDENT]}
+                    includeAll
+                    showEnrollments
                     searchable
-                    value={selectedStudent}
-                    onChange={(e) => setSelectedStudent(e.target.value)}
-                    options={[
-                      { value: 'all', label: t('all_students') },
-                      ...classFilteredStudents.map(s => ({
-                        value: s.uid || s.id,
-                        label: s.displayName || s.email || s.uid
-                      }))
-                    ]}
-                    style={{ flex: '1 1 auto', minWidth: 180 }}
                     fullWidth
-                    placeholder={t('all_students')}
+                    disabled={reviewLoading}
+                    theme={theme}
+                    style={{ flex: '1 1 auto', minWidth: 180 }}
                   />
-                  );
-                })()}
+                )}
                 {/* Year filter */}
                 {reviewAvailableYears.length > 0 && (
                   <div style={{ flex: '1 1 auto', minWidth: 120 }}>

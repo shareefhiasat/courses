@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useLayoutEffect, useRef } from 'react';
 import Joyride from 'react-joyride';
-import TourTooltip from '@ui/TourTooltip/TourTooltip';
-import { scheduleTourStart } from '@utils/tourScheduler';
+import { usePageTour } from '@hooks/usePageTour';
+import { getJoyrideBaseProps, getTourStyles } from '@utils/tourConfig';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
@@ -13,7 +13,11 @@ import {
   getStudentMarks,
   updateStudentMarks,
   getAllStudentMarksReport,
-  calculateLetterGrade
+  GRADE_TYPE,
+  resolveMarkGrade,
+  getGradeColor,
+  getGpaStanding,
+  calculateGpaFromMarks,
 } from '@services/business/enrollmentMarksService';
 import { getUsers } from '@services/business/userService';
 import { getEnrollments } from '@services/business/enrollmentService';
@@ -45,27 +49,14 @@ const MarksPage = () => {
   const toast = useToast();
 
   // ── Guided Tour ───────────────────────────────────────────────────────────
-  const [runTour, setRunTour] = useState(false);
-  const [tourSteps, setTourSteps] = useState([]);
-  const tourSeenKey = `marksTourSeen_${lang}`;
   const buildTourSteps = useCallback(() => [
     { target: '[data-tour="marks-filters"]',      content: t('tour.marks_filters'),  disableBeacon: true, placement: 'bottom' },
     { target: '[data-tour="marks-distribution"]', content: t('tour.marks_bulk'),     disableBeacon: true, placement: 'bottom' },
     { target: '[data-tour="marks-grid"]',         content: t('tour.marks_grid'),     disableBeacon: true, placement: 'top' },
     { target: '[data-tour="marks-export"]',       content: t('tour.marks_export'),   disableBeacon: true, placement: 'top' },
   ].filter(s => !!document.querySelector(s.target)), [t]);
-  const startTour = useCallback(() => { const steps = buildTourSteps(); if (!steps.length) return; setTourSteps(steps); setRunTour(true); }, [buildTourSteps]);
-  useEffect(() => {
-    window.addEventListener('app:joyride', startTour);
-    window.addEventListener('app:help', startTour);
-    return () => { window.removeEventListener('app:joyride', startTour); window.removeEventListener('app:help', startTour); };
-  }, [startTour]);
-  useEffect(() => scheduleTourStart(tourSeenKey, lang, startTour), [tourSeenKey, lang, startTour]);
-  const handleTourCallback = useCallback((data) => {
-    const { status, action } = data || {};
-    if (status === 'finished' || status === 'skipped' || action === 'close') { setRunTour(false); try { localStorage.setItem(tourSeenKey, 'true'); } catch {} }
-  }, [tourSeenKey]);
-  const TourTooltipComponent = useMemo(() => TourTooltip({ tourSeenKey }), [tourSeenKey]);
+  const { run: runTour, steps: activeTourSteps, callback: handleTourCallback, TourTooltipComponent } =
+    usePageTour('marks', 'marksTourSeen', buildTourSteps);
   // ─────────────────────────────────────────────────────────────────────────
   const { startLoading } = useGlobalLoading();
   
@@ -234,6 +225,37 @@ const MarksPage = () => {
   useEffect(() => {
     loadMarksReport();
   }, [loadMarksReport]);
+
+  // Per-student GPA overview when a class is selected (all subjects in class)
+  const [classGpaRows, setClassGpaRows] = useState([]);
+  useEffect(() => {
+    if (!classFilter) {
+      setClassGpaRows([]);
+      return;
+    }
+    (async () => {
+      const filters = { classId: classFilter };
+      if (yearFilter) filters.year = yearFilter;
+      if (termFilter) filters.term = termFilter;
+      const result = await getAllStudentMarksReport(filters);
+      if (!result.success) return;
+      const byStudent = new Map();
+      for (const row of result.data || []) {
+        const key = row.studentId;
+        if (!byStudent.has(key)) {
+          byStudent.set(key, { studentId: key, studentName: row.studentName, marks: [] });
+        }
+        byStudent.get(key).marks.push(row);
+      }
+      setClassGpaRows(
+        Array.from(byStudent.values()).map((entry) => {
+          const { gpa } = calculateGpaFromMarks(entry.marks);
+          const standing = getGpaStanding(gpa, lang);
+          return { ...entry, gpa, standing: standing.label };
+        }).sort((a, b) => a.studentName.localeCompare(b.studentName))
+      );
+    })();
+  }, [classFilter, yearFilter, termFilter, lang]);
 
   const loadData = useCallback(async (isInitial = false) => {
     if (!isInitial) setLoading(true);
@@ -764,9 +786,13 @@ const MarksPage = () => {
 
   return (
     <Container maxWidth="xl" className={styles.page} style={{ padding: '1rem 0' }}>
-      <Joyride continuous run={runTour && tourSteps.length > 0} steps={tourSteps} callback={handleTourCallback} scrollOffset={100} scrollToFirstStep showSkipButton showProgress tooltipComponent={TourTooltipComponent}
-        locale={{ back: t('tour_back'), close: t('tour_close'), last: t('tour_finish'), next: t('tour_next'), skip: t('tour_skip') }}
-        styles={{ options: { primaryColor: 'var(--color-primary,#800020)', textColor: theme === 'dark' ? '#e5e7eb' : '#111', backgroundColor: theme === 'dark' ? '#1f2937' : '#fff', zIndex: 10000 } }}
+      <Joyride
+        {...getJoyrideBaseProps({ theme, t })}
+        run={runTour}
+        steps={activeTourSteps}
+        callback={handleTourCallback}
+        tooltipComponent={TourTooltipComponent}
+        styles={getTourStyles(theme)}
       />
       <Card style={{ marginBottom: '1.5rem' }}>
         <CardBody>
@@ -787,6 +813,39 @@ const MarksPage = () => {
           </div>
         </CardBody>
       </Card>
+
+      {classGpaRows.length > 0 && (
+        <Card style={{ marginBottom: '1.5rem' }}>
+          <CardBody>
+            <h3 style={{ margin: '0 0 1rem', fontSize: '1rem', fontWeight: 600 }}>
+              {t('student_gpa_overview')}
+            </h3>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.75rem' }}>
+              {classGpaRows.map((row) => (
+                <div
+                  key={row.studentId}
+                  style={{
+                    padding: '0.75rem 1rem',
+                    borderRadius: '8px',
+                    border: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`,
+                    background: isDarkMode ? '#111827' : '#f9fafb',
+                  }}
+                >
+                  <div style={{ fontWeight: 600, fontSize: 'var(--font-size-sm)', marginBottom: '0.25rem' }}>
+                    {row.studentName}
+                  </div>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 700 }}>
+                    {row.gpa.toFixed(2)}
+                    <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 500, marginInlineStart: '0.5rem', opacity: 0.85 }}>
+                      {row.standing}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardBody>
+        </Card>
+      )}
 
       {(() => {
         const dist = marksDistribution;
@@ -1305,27 +1364,30 @@ const MarksPage = () => {
                     type: 'singleSelect',
                     valueOptions: [
                       { value: 'calculated', label: t('calculated') },
-                      { value: 'FB', label: 'FB - Fail Due to Absence' },
-                      { value: 'FA', label: 'FA - Fail Due to Absence' },
-                      { value: 'WF', label: 'WF - Withdrawal' }
+                      { value: GRADE_TYPE.COMPLEMENTARY, label: t('complementary_exam') },
+                      { value: 'FB', label: `FB - ${t('grade_fb')}` },
+                      { value: 'FA', label: `FA - ${t('grade_fa')}` },
+                      { value: 'WF', label: `WF - ${t('grade_wf')}` },
                     ],
                     valueFormatter: (params) => {
                       const value = params?.value || 'calculated';
                       const options = {
-                        'calculated': t('calculated'),
-                        'FB': 'FB - Fail Due to Absence',
-                        'FA': 'FA - Fail Due to Absence',
-                        'WF': 'WF - Withdrawal'
+                        calculated: t('calculated'),
+                        [GRADE_TYPE.COMPLEMENTARY]: t('complementary_exam'),
+                        FB: `FB - ${t('grade_fb')}`,
+                        FA: `FA - ${t('grade_fa')}`,
+                        WF: `WF - ${t('grade_wf')}`,
                       };
                       return options[value] || value;
                     },
                     renderCell: (params) => {
                       const value = params.value || 'calculated';
                       const options = {
-                        'calculated': t('calculated'),
-                        'FB': 'FB - Fail Due to Absence',
-                        'FA': 'FA - Fail Due to Absence',
-                        'WF': 'WF - Withdrawal'
+                        calculated: t('calculated'),
+                        [GRADE_TYPE.COMPLEMENTARY]: t('complementary_exam'),
+                        FB: `FB - ${t('grade_fb')}`,
+                        FA: `FA - ${t('grade_fa')}`,
+                        WF: `WF - ${t('grade_wf')}`,
                       };
                       return (
                         <div style={{ 
@@ -1356,10 +1418,26 @@ const MarksPage = () => {
                     },
                     renderCell: (params) => {
                       const row = params.row;
-                      const gradeType = row.gradeType || 'calculated';
+                      const gradeType = row.gradeType || GRADE_TYPE.CALCULATED;
                       
-                      // For manual grades, show the grade letter instead of percentage
-                      if (gradeType !== 'calculated') {
+                      if (gradeType === GRADE_TYPE.COMPLEMENTARY) {
+                        const resolved = resolveMarkGrade({
+                          gradeType,
+                          complementaryScore: row.finalExam,
+                          lang,
+                        });
+                        return (
+                          <div style={{ 
+                            padding: '4px 8px', borderRadius: '4px',
+                            background: resolved.passed ? '#60a5fa' : '#ef4444',
+                            color: 'white', textAlign: 'center', fontWeight: 600, fontSize: '0.75rem',
+                          }}>
+                            {resolved.passed ? `${resolved.totalMarks}%` : `${row.finalExam}/100`}
+                          </div>
+                        );
+                      }
+
+                      if (gradeType !== GRADE_TYPE.CALCULATED) {
                         return (
                           <div style={{ 
                             padding: '4px 8px', 
@@ -1379,7 +1457,7 @@ const MarksPage = () => {
                         <div style={{ 
                           padding: '4px 8px', 
                           borderRadius: '4px',
-                          background: value >= 90 ? '#dc2626' : value >= 80 ? '#f59e0b' : value >= 70 ? '#fbbf24' : value >= 60 ? '#60a5fa' : '#ef4444',
+                          background: value >= 90 ? '#10b981' : value >= 80 ? '#3b82f6' : value >= 70 ? '#f59e0b' : value >= 60 ? '#60a5fa' : '#ef4444',
                           color: 'white',
                           textAlign: 'center',
                           fontWeight: 500
@@ -1396,48 +1474,68 @@ const MarksPage = () => {
                     editable: false,
                     valueFormatter: (params) => {
                       const row = params?.row || {};
-                      const gradeType = row.gradeType || 'calculated';
-                      if (gradeType !== 'calculated') return gradeType;
+                      const gradeType = row.gradeType || GRADE_TYPE.CALCULATED;
+                      if (gradeType !== GRADE_TYPE.CALCULATED) {
+                        const resolved = resolveMarkGrade({ gradeType, complementaryScore: row.finalExam, lang });
+                        return resolved.letter;
+                      }
                       return params?.value || '';
                     },
                     renderCell: (params) => {
                       const row = params.row;
-                      const gradeType = row.gradeType || 'calculated';
-                      const grade = params.value || '';
-                      
-                      // For manual grades, show the manual grade description
-                      if (gradeType !== 'calculated') {
-                        const manualGrades = {
-                          'FB': { description: 'Fail Due to Absence', color: '#dc2626' },
-                          'FA': { description: 'Fail Due to Absence', color: '#dc2626' },
-                          'WF': { description: 'Withdrawal', color: '#6b7280' }
-                        };
-                        const manual = manualGrades[gradeType];
-                        return (
-                          <div style={{ 
-                            padding: '4px 8px', 
-                            borderRadius: '4px',
-                            background: manual.color,
-                            color: 'white',
-                            textAlign: 'center',
-                            fontSize: 'var(--font-size-xs)',
-                            fontWeight: 600
-                          }}>
-                            {gradeType}
-                          </div>
-                        );
-                      }
-                      
-                      // Normal calculated grades
-                      let className = '';
-                      if (grade === 'A+' || grade === 'A' || grade === 'A-') className = 'grade-excellent';
-                      else if (grade.startsWith('B')) className = 'grade-good';
-                      else if (grade.startsWith('C')) className = 'grade-average';
-                      else if (grade.startsWith('D')) className = 'grade-pass';
-                      else className = 'grade-fail';
-                      
-                      return <span className={className}>{grade}</span>;
+                      const resolved = resolveMarkGrade({
+                        totalMarks: row.totalMarks,
+                        letterGrade: params.value,
+                        gradeType: row.gradeType,
+                        isRepeated: row.isRepeated,
+                        complementaryScore: row.finalExam,
+                        lang,
+                      });
+                      const color = getGradeColor(resolved.letter);
+                      return (
+                        <div style={{ 
+                          padding: '4px 8px', borderRadius: '4px',
+                          background: color, color: 'white',
+                          textAlign: 'center', fontSize: 'var(--font-size-xs)', fontWeight: 600
+                        }}>
+                          {resolved.letter}
+                        </div>
+                      );
                     }
+                  },
+                  {
+                    field: 'gradeDescription',
+                    headerName: t('grade_description'),
+                    width: 130,
+                    editable: false,
+                    valueGetter: (params) => {
+                      const row = params.row;
+                      return resolveMarkGrade({
+                        totalMarks: row.totalMarks,
+                        letterGrade: row.letterGrade,
+                        gradeType: row.gradeType,
+                        isRepeated: row.isRepeated,
+                        complementaryScore: row.finalExam,
+                        lang,
+                      }).gradeDescription;
+                    },
+                  },
+                  {
+                    field: 'gradePoints',
+                    headerName: t('grade_points'),
+                    width: 80,
+                    editable: false,
+                    valueGetter: (params) => {
+                      const row = params.row;
+                      return resolveMarkGrade({
+                        totalMarks: row.totalMarks,
+                        letterGrade: row.letterGrade,
+                        gradeType: row.gradeType,
+                        isRepeated: row.isRepeated,
+                        complementaryScore: row.finalExam,
+                        lang,
+                      }).points ?? row.gradePoints ?? 0;
+                    },
                   },
                   // Hide these columns to save space
                   {

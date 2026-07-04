@@ -4,9 +4,11 @@ import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { DEFAULT_ACCENT, normalizeHexColor } from '@utils/color';
 import DashboardEngine from '@components/analytics/DashboardEngine';
+import useEditLayoutGuard from '@hooks/useEditLayoutGuard';
+import { Modal, Button } from '@ui';
 import {
   LayoutDashboard, BarChart3, LineChart, ClipboardList, AlertTriangle,
-  User, Award, BookOpen, GraduationCap, History, Shield,
+  User, Award, BookOpen, GraduationCap, History, Shield, Save, Trash2,
 } from 'lucide-react';
 import {
   CLASS_ANALYTICS_DEFAULT_WIDGETS,
@@ -43,7 +45,8 @@ export default function ClassAnalytics({
   const { t, lang } = useLang();
   const { theme } = useTheme();
   const engineRef = useRef(null);
-  const [editLayout, setEditLayout] = useState(false);
+  const guard = useEditLayoutGuard(engineRef, { t });
+  const { autoSave, editLayout, showExitDialog } = guard;
   const [widgetSearch, setWidgetSearch] = useState('');
   const [widgetCategory, setWidgetCategory] = useState('overview');
   const accentColor = DEFAULT_ACCENT;
@@ -149,12 +152,43 @@ export default function ClassAnalytics({
           </button>
           <button
             type="button"
-            onClick={() => setEditLayout((v) => !v)}
+            onClick={guard.handleToggleEditLayout}
             style={iconBtnStyle(accentColor, editLayout)}
-            title={t('edit_layout')}
-            aria-label={t('edit_layout')}
+            title={editLayout ? t('exit_edit_layout') : t('edit_layout')}
+            aria-label={editLayout ? t('exit_edit_layout') : t('edit_layout')}
           >
             {getThemedIcon('ui', 'layout_dashboard', 16, theme)}
+          </button>
+          {!autoSave && editLayout && (
+            <button
+              type="button"
+              onClick={guard.handleSaveChanges}
+              style={iconBtnStyle('#10b981')}
+              title={t('save_layout')}
+              aria-label={t('save_layout')}
+            >
+              <Save size={16} strokeWidth={2} />
+            </button>
+          )}
+          {!autoSave && editLayout && (
+            <button
+              type="button"
+              onClick={guard.handleDiscardChanges}
+              style={iconBtnStyle('#ef4444')}
+              title={t('discard_changes')}
+              aria-label={t('discard_changes')}
+            >
+              <Trash2 size={16} strokeWidth={2} />
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={guard.toggleAutoSave}
+            style={iconBtnStyle(autoSave ? '#10b981' : '#6b7280', !autoSave)}
+            title={autoSave ? t('auto_save_on') : t('auto_save_off')}
+            aria-label={t('auto_save')}
+          >
+            <Save size={16} strokeWidth={2} />
           </button>
           <button
             type="button"
@@ -183,6 +217,7 @@ export default function ClassAnalytics({
         globalFilters={{}}
         accentColor={normalizeHexColor(accentColor)}
         editLayout={editLayout}
+        autoSave={autoSave}
         defaultWidgets={CLASS_ANALYTICS_DEFAULT_WIDGETS}
         storageKey={storageKey}
         isLoading={false}
@@ -194,6 +229,22 @@ export default function ClassAnalytics({
         builderCategoryScope="student"
         maxWidgets={CLASS_ANALYTICS_MAX_WIDGETS}
       />
+
+      <Modal
+        isOpen={showExitDialog}
+        onClose={guard.handleCancelExit}
+        title={t('unsaved_changes_title')}
+        size="small"
+        footer={
+          <>
+            <Button variant="outline" onClick={guard.handleCancelExit}>{t('cancel')}</Button>
+            <Button variant="danger" onClick={guard.handleDiscardChanges}>{t('discard_changes')}</Button>
+            <Button variant="primary" onClick={guard.handleSaveChanges}>{t('save_layout')}</Button>
+          </>
+        }
+      >
+        <p>{t('unsaved_changes_message')}</p>
+      </Modal>
     </div>
   );
 }

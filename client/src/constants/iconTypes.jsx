@@ -378,6 +378,7 @@ export const ICON_TYPES = {
     // Missing icons causing warnings
     volume2: <Volume2 size={16} />,
     test_tube: <FlaskConical size={16} />,
+    flask: <FlaskConical size={16} />,
     palette: <Sun size={16} />,
     smartphone: <Phone size={16} />,
     clipboard: <Clipboard size={16} />,
@@ -460,11 +461,24 @@ export const ICON_TYPES = {
 
 // Centralized Category Icons for reuse across application
 export const CATEGORY_ICONS = [
-  'folder', 'book', 'code', 'database', 'globe', 'monitor', 
-  'server', 'cloud', 'cpu', 'hard_drive', 'wifi', 'shield', 
-  'lock', 'key', 'bug', 'puzzle', 'layers', 'package', 
+  'folder', 'book', 'book_open', 'code', 'database', 'globe', 'monitor',
+  'server', 'cloud', 'cpu', 'hard_drive', 'wifi', 'shield',
+  'lock', 'key', 'bug', 'puzzle', 'layers', 'package',
   'terminal', 'settings', 'brain', 'star', 'heart', 'zap',
-  'target', 'award', 'trophy', 'flag', 'bookmark', 'tag'
+  'target', 'award', 'trophy', 'flag', 'bookmark', 'tag',
+  'file', 'file_text', 'file-check', 'file-check', 'plus-circle', 'help-circle',
+  'clipboard', 'clipboard_list', 'megaphone', 'bell', 'book-open',
+  'graduation_cap', 'academic', 'users', 'user', 'message', 'mail',
+  'video', 'link', 'external_link', 'download', 'upload', 'archive',
+  'calendar', 'clock', 'check_circle', 'x_circle', 'alert_circle',
+  'alert_triangle', 'info', 'lightbulb', 'pencil', 'edit', 'trash',
+  'eye', 'search', 'filter', 'list', 'grid', 'layout_grid',
+  'bar_chart3', 'pie_chart', 'trending_up', 'activity', 'globe2',
+  'headphones', 'mic', 'camera', 'image', 'palette', 'ruler',
+  'wrench', 'hammer', 'flask', 'test_tube', 'calculator',
+  'presentation', 'play', 'play_circle', 'pause_circle', 'repeat',
+  'shuffle', 'skip_forward', 'rotate_cw', 'rotate_ccw',
+  'crown', 'medal', 'ribbon', 'thumbs_up', 'smile', 'frown'
 ];
 
 // Color Constants for Dashboard and Chat

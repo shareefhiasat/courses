@@ -463,7 +463,9 @@ const SummaryDashboardPage = () => {
                 title={isInstructorDetailView ? (t('instructor_overview')) : (t('scheduling_overview'))}
                 stats={overviewStats}
                 cards={overviewCards}
-                defaultOpen
+                defaultOpen={false}
+                testId="summary-overview-panel"
+                storageKey="summary-overview"
               />
             </div>
           )}
@@ -473,8 +475,9 @@ const SummaryDashboardPage = () => {
             title={isInstructorDetailView ? (t('teacher_effort_report')) : (t('analytics'))}
             summary={`${SCHEDULING_SUMMARY_DEFAULT_WIDGETS.length} ${t('widgets')} · ${effortReport?.totals?.sessionCount ?? 0} ${t('sessions')} · ${effortReport?.totals?.teacherCount ?? 0} ${t('total_teachers')}`}
             icon={BarChart3}
-            defaultOpen
+            defaultOpen={false}
             testId="effort-report-section"
+            storageKey="summary-effort-report"
           >
             <SchedulingSummaryAnalytics
               effortReport={effortReport}
@@ -492,8 +495,9 @@ const SummaryDashboardPage = () => {
               title={t('instructor_detail')}
               summary={isRTL ? teacherEffort.teacher?.instructorNameAr : teacherEffort.teacher?.instructorName}
               icon={User}
-              defaultOpen
+              defaultOpen={false}
               testId="instructor-detail-section"
+              storageKey="summary-instructor-detail"
             >
               <TeacherEffortExport
                 teacherId={String(activeInstructorId)}
@@ -514,6 +518,7 @@ const SummaryDashboardPage = () => {
                 icon={Palmtree}
                 defaultOpen={false}
                 testId="breaks-holidays-section"
+                storageKey="summary-breaks-holidays"
                 actions={(
                   <button type="button" style={headerButtonStyle} onClick={() => navigate('/scheduling-calendar')} title={t('manage_breaks_and_holidays')} aria-label={t('manage_breaks_and_holidays')}>
                     <CalendarDays size={14} />
@@ -543,6 +548,7 @@ const SummaryDashboardPage = () => {
                 icon={ClipboardList}
                 defaultOpen={false}
                 testId="attendance-analytics-section"
+                storageKey="summary-attendance-analytics"
               >
                 <AttendanceAnalyticsPanel
                   rawData={buildSchedulingRawData(effortReport, dashboardData, isRTL)}
@@ -565,6 +571,7 @@ const SummaryDashboardPage = () => {
               icon={BarChart3}
               defaultOpen={false}
               testId="dashboard-analytics-section"
+              storageKey="summary-drive-analytics"
             >
               <DashboardAnalyticsPanel
                 analyticsData={analyticsHook.data}

@@ -83,14 +83,21 @@ const migrateWidgetConfigs = (widgets) => {
  * useWidgetDashboard
  * Persists widget configs per user in PostgreSQL (user_preferences.settings.dashboards).
  */
-const useWidgetDashboard = (userDbId, dashboardKey, defaultWidgets = []) => {
+const useWidgetDashboard = (userDbId, dashboardKey, defaultWidgets = [], autoSave = true) => {
   const [widgets, setWidgetsState] = useState(defaultWidgets);
   const [pinnedIds, setPinnedIdsState] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const saveTimerRef = useRef(null);
   const skipSaveRef = useRef(false);
   const defaultWidgetsRef = useRef(defaultWidgets);
   const pinnedIdsRef = useRef([]);
+  const snapshotRef = useRef(null);
+  const autoSaveRef = useRef(autoSave);
+
+  useEffect(() => {
+    autoSaveRef.current = autoSave;
+  }, [autoSave]);
 
   useEffect(() => {
     defaultWidgetsRef.current = defaultWidgets;
@@ -148,12 +155,38 @@ const useWidgetDashboard = (userDbId, dashboardKey, defaultWidgets = []) => {
     const resolved = typeof next === 'function' ? next(widgets) : next;
     setWidgetsState(resolved);
     if (!skipSave && !skipSaveRef.current) {
-      debouncedSave(resolved, pinnedIdsRef.current);
+      if (autoSaveRef.current) {
+        debouncedSave(resolved, pinnedIdsRef.current);
+      } else {
+        setHasUnsavedChanges(true);
+      }
     }
   }, [widgets, debouncedSave]);
 
   const setSkipSave = useCallback((skip) => {
     skipSaveRef.current = skip;
+  }, []);
+
+  // ── Snapshot / commit / discard for manual save mode ────────────────────
+  const snapshotWidgets = useCallback(() => {
+    snapshotRef.current = JSON.parse(JSON.stringify(widgets));
+    setHasUnsavedChanges(false);
+  }, [widgets]);
+
+  const commitSave = useCallback(async () => {
+    if (!userDbId || !dashboardKey) return;
+    if (saveTimerRef.current) clearTimeout(saveTimerRef.current);
+    await saveDashboardPreferences(dashboardKey, widgets, pinnedIdsRef.current);
+    setHasUnsavedChanges(false);
+    snapshotRef.current = null;
+  }, [userDbId, dashboardKey, widgets]);
+
+  const discardChanges = useCallback(() => {
+    if (snapshotRef.current) {
+      setWidgetsState(JSON.parse(JSON.stringify(snapshotRef.current)));
+      snapshotRef.current = null;
+    }
+    setHasUnsavedChanges(false);
   }, []);
 
   const setPinnedIds = useCallback((next) => {
@@ -175,7 +208,7 @@ const useWidgetDashboard = (userDbId, dashboardKey, defaultWidgets = []) => {
     info('[useWidgetDashboard] Dashboard reset to system defaults:', { dashboardKey, widgetCount: defaults.length });
   }, [dashboardKey]);
 
-  return { widgets, setWidgets, pinnedIds, setPinnedIds, loading, setSkipSave, resetToDefaults };
+  return { widgets, setWidgets, pinnedIds, setPinnedIds, loading, setSkipSave, resetToDefaults, hasUnsavedChanges, snapshotWidgets, commitSave, discardChanges };
 };
 
 export default useWidgetDashboard;

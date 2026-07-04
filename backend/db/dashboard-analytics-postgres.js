@@ -191,7 +191,11 @@ async function getWorkflowAnalytics({ userId, role, scope = 'all' }) {
       where: docWhere,
       orderBy: { createdAt: 'desc' },
       take: 50,
-      select: { id: true, title: true, status: true, workflowType: true, program: true, subject: true, createdAt: true, submitterId: true },
+      select: {
+        id: true, title: true, status: true, workflowType: true,
+        program: true, subject: true, createdAt: true, submitterId: true,
+        submitter: { select: { id: true, displayName: true, displayNameAr: true, email: true } },
+      },
     }),
     prisma.workflowDocument.findMany({
       where: docWhere,
@@ -248,7 +252,12 @@ async function getWorkflowAnalytics({ userId, role, scope = 'all' }) {
     workflowByType: typeGroups,
     workflowByProgram: programGroups,
     workflowTimeline,
-    recentDocuments: recentDocs,
+    recentDocuments: recentDocs.map(d => ({
+      ...d,
+      submitterName: d.submitter?.displayName || d.submitter?.email || null,
+      submitterNameAr: d.submitter?.displayNameAr || null,
+      submitter: undefined,
+    })),
   };
 }
 

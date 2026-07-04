@@ -77,7 +77,7 @@ const OptimizedChartRenderer = memo(({ widget, size, data, accentColor, rawData,
       case 'bar':
         return (
           <Suspense fallback={<ChartFallback size={size} />}>
-            <BarChart {...chartProps} showValues={false} />
+            <BarChart {...chartProps} showValues={true} />
           </Suspense>
         );
       

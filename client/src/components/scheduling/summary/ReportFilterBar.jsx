@@ -4,6 +4,11 @@ import { useLang } from '@contexts/LangContext';
 import { Select } from '@ui';
 import CollapsibleSection from '@components/scheduling/CollapsibleSection';
 import { getAcademicTermOptions } from '@constants/academicTerms';
+import {
+  getProgramSubtextLines,
+  getSubjectSubtextLines,
+  getClassSubtextLines,
+} from '@utils/academicSelectOptions';
 
 const CURRENT_YEAR = new Date().getFullYear();
 const YEAR_OPTIONS = Array.from({ length: 6 }, (_, i) => ({
@@ -16,6 +21,45 @@ function itemOptions(items, isRTL) {
     value: String(item.id),
     label: isRTL ? (item.nameAr || item.nameEn) : item.nameEn,
   }));
+}
+
+function programOptions(items, isRTL, lang, t, classes, subjects) {
+  return items.map((item) => ({
+    value: String(item.id),
+    label: isRTL ? (item.nameAr || item.nameEn) : item.nameEn,
+    subtext: getProgramSubtextLines(item, lang, t, { classes, subjects }),
+  }));
+}
+
+function subjectOptions(items, isRTL, lang, t, classes) {
+  return items.map((item) => ({
+    value: String(item.id),
+    label: isRTL ? (item.nameAr || item.nameEn) : item.nameEn,
+    subtext: getSubjectSubtextLines(item, lang, t, { classes }),
+  }));
+}
+
+function classOptions(items, isRTL, lang, t) {
+  return items.map((item) => ({
+    value: String(item.id),
+    label: isRTL ? (item.nameAr || item.nameEn) : item.nameEn,
+    subtext: getClassSubtextLines(item, lang, t),
+  }));
+}
+
+function instructorOptions(items, classes, t) {
+  return items.map((i) => {
+    const instructorId = String(i.id || i.dbId || '');
+    const taughtCount = classes.filter((c) =>
+      String(c.instructorId) === instructorId
+    ).length;
+    const classLabel = taughtCount === 1 ? t('class') : t('classes');
+    return {
+      value: String(i.id),
+      label: i.displayName || `${i.firstName || ''} ${i.lastName || ''}`.trim(),
+      subtext: taughtCount > 0 ? `${taughtCount} ${classLabel}` : undefined,
+    };
+  });
 }
 
 export default function ReportFilterBar({
@@ -74,19 +118,19 @@ export default function ReportFilterBar({
           placeholder={t('select_program')}
           value={filters.programId || ''}
           onChange={(e) => set('programId', e.target.value)}
-          options={itemOptions(programs, isRTL)}
+          options={programOptions(programs, isRTL, isRTL ? 'ar' : 'en', t, classes, subjects)}
         />
         <Select
           placeholder={t('select_subject')}
           value={filters.subjectId || ''}
           onChange={(e) => set('subjectId', e.target.value)}
-          options={itemOptions(filteredSubjects, isRTL)}
+          options={subjectOptions(filteredSubjects, isRTL, isRTL ? 'ar' : 'en', t, classes)}
         />
         <Select
           placeholder={t('select_class')}
           value={filters.classId || ''}
           onChange={(e) => set('classId', e.target.value)}
-          options={itemOptions(filteredClasses, isRTL)}
+          options={classOptions(filteredClasses, isRTL, isRTL ? 'ar' : 'en', t)}
         />
       </div>
       <div style={{
@@ -112,10 +156,7 @@ export default function ReportFilterBar({
             placeholder={t('select_instructor')}
             value={filters.instructorId || ''}
             onChange={(e) => set('instructorId', e.target.value)}
-            options={instructors.map((i) => ({
-              value: String(i.id),
-              label: i.displayName || `${i.firstName || ''} ${i.lastName || ''}`.trim(),
-            }))}
+            options={instructorOptions(instructors, classes, t)}
           />
         )}
       </div>

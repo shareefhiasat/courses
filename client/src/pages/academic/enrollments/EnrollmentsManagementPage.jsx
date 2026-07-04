@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useLayoutEffect } from 'react';
 import Joyride from 'react-joyride';
-import TourTooltip from '@ui/TourTooltip/TourTooltip';
-import { scheduleTourStart } from '@utils/tourScheduler';
+import { usePageTour } from '@hooks/usePageTour';
+import { getJoyrideBaseProps, getTourStyles } from '@utils/tourConfig';
 import { useTheme } from '@contexts/ThemeContext';
 import { useLang } from '@contexts/LangContext';
 import { useAuth } from '@contexts/AuthContext';
@@ -32,26 +32,13 @@ const EnrollmentsManagementPage = () => {
   const { deleteModal, deleteEntity, handleDeleteConfirm, hideDeleteModal } = useDeleteModal(t);
 
   // ── Guided Tour ───────────────────────────────────────────────────────────
-  const [runTour, setRunTour] = useState(false);
-  const [tourSteps, setTourSteps] = useState([]);
-  const tourSeenKey = `enrollMgmtTourSeen_${lang}`;
   const buildTourSteps = useCallback(() => [
     { target: '[data-tour="enroll-mgmt-form"]',    content: t('tour.enrollments_add'),     disableBeacon: true, placement: 'bottom' },
     { target: '[data-tour="enroll-mgmt-filters"]', content: t('tour.enrollments_filters'), disableBeacon: true, placement: 'bottom' },
     { target: '[data-tour="enroll-mgmt-grid"]',    content: t('tour.enrollments_grid'),    disableBeacon: true, placement: 'top' },
   ].filter(s => !!document.querySelector(s.target)), [t]);
-  const startTour = useCallback(() => { const steps = buildTourSteps(); if (!steps.length) return; setTourSteps(steps); setRunTour(true); }, [buildTourSteps]);
-  useEffect(() => {
-    window.addEventListener('app:joyride', startTour);
-    window.addEventListener('app:help', startTour);
-    return () => { window.removeEventListener('app:joyride', startTour); window.removeEventListener('app:help', startTour); };
-  }, [startTour]);
-  useEffect(() => scheduleTourStart(tourSeenKey, lang, startTour), [tourSeenKey, lang, startTour]);
-  const handleTourCallback = useCallback((data) => {
-    const { status, action } = data || {};
-    if (status === 'finished' || status === 'skipped' || action === 'close') { setRunTour(false); try { localStorage.setItem(tourSeenKey, 'true'); } catch {} }
-  }, [tourSeenKey]);
-  const TourTooltipComponent = useMemo(() => TourTooltip({ tourSeenKey }), [tourSeenKey]);
+  const { run: runTour, steps: activeTourSteps, callback: handleTourCallback, TourTooltipComponent } =
+    usePageTour('manage-enrollments', 'enrollMgmtTourSeen', buildTourSteps);
   // ─────────────────────────────────────────────────────────────────────────
 
   // Refs for form fields to avoid re-renders on keystroke
@@ -186,6 +173,26 @@ const EnrollmentsManagementPage = () => {
       };
     });
   }, [enrollments, localClasses, localSubjects, localPrograms]);
+
+  // Count how many classes each student is enrolled in
+  const studentClassCounts = useMemo(() => {
+    const counts = {};
+    enrollments.forEach(e => {
+      const uid = e.userId;
+      if (uid) counts[uid] = (counts[uid] || 0) + 1;
+    });
+    return counts;
+  }, [enrollments]);
+
+  // Count how many students each class has
+  const classStudentCounts = useMemo(() => {
+    const counts = {};
+    enrollments.forEach(e => {
+      const cid = e.classId;
+      if (cid) counts[cid] = (counts[cid] || 0) + 1;
+    });
+    return counts;
+  }, [enrollments]);
 
   // Show all users except current user (since roles aren't set up in DB yet)
   const availableUsers = useMemo(() => {
@@ -423,9 +430,13 @@ const EnrollmentsManagementPage = () => {
 
   return (
     <div className="enrollments-management">
-      <Joyride continuous run={runTour && tourSteps.length > 0} steps={tourSteps} callback={handleTourCallback} scrollOffset={100} scrollToFirstStep showSkipButton showProgress tooltipComponent={TourTooltipComponent}
-        locale={{ back: t('tour_back'), close: t('tour_close'), last: t('tour_finish'), next: t('tour_next'), skip: t('tour_skip') }}
-        styles={{ options: { primaryColor: 'var(--color-primary,#800020)', textColor: theme === 'dark' ? '#e5e7eb' : '#111', backgroundColor: theme === 'dark' ? '#1f2937' : '#fff', zIndex: 10000 } }}
+      <Joyride
+        {...getJoyrideBaseProps({ theme, t })}
+        run={runTour}
+        steps={activeTourSteps}
+        callback={handleTourCallback}
+        tooltipComponent={TourTooltipComponent}
+        styles={getTourStyles(theme)}
       />
       <form data-tour="enroll-mgmt-form" onSubmit={handleEnrollmentSubmit} className="dashboard-form">
         <div className="form-row wide-cols">
@@ -593,10 +604,21 @@ const EnrollmentsManagementPage = () => {
             renderCell: (params) => {
               const user = findUserById(params.value);
               if (!user) return params.value || '—';
+              const classCount = studentClassCounts[params.value] || 0;
               return (
                 <div style={{ padding: '8px 0' }}>
-                  <div style={{ fontWeight: '500', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
+                  <div style={{ fontWeight: '500', color: theme === 'dark' ? '#f3f4f6' : '#1f2937', display: 'flex', alignItems: 'center', gap: '6px' }}>
                     {getLocalizedUserName(user, lang)}
+                    <span style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '3px',
+                      padding: '1px 7px', borderRadius: '10px', fontSize: '0.7rem', fontWeight: '600',
+                      background: theme === 'dark' ? 'rgba(59,130,246,0.2)' : '#dbeafe',
+                      color: theme === 'dark' ? '#93c5fd' : '#1d4ed8',
+                      whiteSpace: 'nowrap'
+                    }}>
+                      {getThemedIcon('ui', 'home', 10, theme === 'dark' ? '#93c5fd' : '#1d4ed8')}
+                      {classCount}
+                    </span>
                   </div>
                   <div style={{ fontSize: 'var(--font-size-sm)', color: theme === 'dark' ? '#9ca3af' : '#6b7280', marginTop: '2px' }}>
                     {user.email || '—'}
@@ -632,11 +654,25 @@ const EnrollmentsManagementPage = () => {
             headerName: t('class'), 
             flex: 1,
             minWidth: 150,
-            renderCell: (params) => (
-              <div style={{ padding: '8px 0', fontWeight: '400' }}>
-                {params.value || '—'}
-              </div>
-            )
+            renderCell: (params) => {
+              const classId = params.row?.classId;
+              const studentCount = classStudentCounts[classId] || 0;
+              return (
+                <div style={{ padding: '8px 0', fontWeight: '400', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <span>{params.value || '—'}</span>
+                  <span style={{
+                    display: 'inline-flex', alignItems: 'center', gap: '3px',
+                    padding: '1px 7px', borderRadius: '10px', fontSize: '0.7rem', fontWeight: '600',
+                    background: theme === 'dark' ? 'rgba(16,185,129,0.2)' : '#d1fae5',
+                    color: theme === 'dark' ? '#6ee7b7' : '#059669',
+                    whiteSpace: 'nowrap'
+                  }}>
+                    {getThemedIcon('ui', 'user', 10, theme === 'dark' ? '#6ee7b7' : '#059669')}
+                    {studentCount}
+                  </span>
+                </div>
+              );
+            }
           },
           ...enrollmentAuditColumns,
           {

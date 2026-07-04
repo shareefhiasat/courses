@@ -20,6 +20,12 @@ const toProfileImageUrl = (keycloakId, key) => {
   return `/api/v1/user-images/proxy/${keycloakId}/profile`;
 };
 
+const toImageUrl = (keycloakId, key, type) => {
+  if (!key) return null;
+  if (key.startsWith('http') || key.startsWith('/api/')) return key;
+  return `/api/v1/user-images/proxy/${keycloakId}/${type}`;
+};
+
 
 /**
  * GET /api/v1/users/me
@@ -124,6 +130,9 @@ export const listUsersController = async (req, res) => {
         realName: true,
         email: true,
         profileImageUrl: true,
+        qidImageUrl: true,
+        militaryIdImageUrl: true,
+        additionalImageUrl: true,
         isActive: true,
         studentNumber: true,
         sequence: true,
@@ -175,6 +184,9 @@ export const listUsersController = async (req, res) => {
     const usersWithUrls = filteredUsers.map(u => ({
       ...u,
       profileImageUrl: toProfileImageUrl(u.keycloakId, u.profileImageUrl),
+      qidImageUrl: toImageUrl(u.keycloakId, u.qidImageUrl, 'qid'),
+      militaryIdImageUrl: toImageUrl(u.keycloakId, u.militaryIdImageUrl, 'military'),
+      additionalImageUrl: toImageUrl(u.keycloakId, u.additionalImageUrl, 'additional'),
     }));
 
     res.status(200).json({

@@ -1,4 +1,8 @@
-// Grading standards — official military LMS academic regulations
+/**
+ * Academic grading standards — matches official military LMS regulations.
+ * Keep in sync with backend/utils/formatting/gradingStandards.js
+ */
+
 export const GRADE_TYPE = {
   CALCULATED: 'calculated',
   COMPLEMENTARY: 'complementary',
@@ -51,6 +55,15 @@ export const COMPLEMENTARY_GRADE = {
   descriptionAr: 'مقبول (اختبار تكميلي)',
 };
 
+/** Cumulative GPA standing labels (المعدل العام) */
+export const GPA_STANDINGS = [
+  { min: 3.6, max: 4.0, letter: 'A', description: 'Excellent', descriptionAr: 'ممتاز' },
+  { min: 2.8, max: 3.59, letter: 'B', description: 'Very Good', descriptionAr: 'جيد جداً' },
+  { min: 2.0, max: 2.79, letter: 'C', description: 'Good', descriptionAr: 'جيد' },
+  { min: 1.5, max: 1.99, letter: 'D', description: 'Accepted', descriptionAr: 'مقبول' },
+  { min: 0, max: 1.49, letter: 'F', description: 'Weak', descriptionAr: 'ضعيف' },
+];
+
 export function calculateLetterGrade(totalMarks, isRepeated = false) {
   if (typeof totalMarks === 'string' && MANUAL_GRADES.some((g) => g.letter === totalMarks)) {
     const manualGrade = MANUAL_GRADES.find((g) => g.letter === totalMarks);
@@ -60,7 +73,6 @@ export function calculateLetterGrade(totalMarks, isRepeated = false) {
       points: manualGrade.points ?? 0,
       description: manualGrade.description,
       descriptionAr: manualGrade.descriptionAr,
-      descriptionEn: manualGrade.description,
       isManual: true,
       standard: isRepeated ? GRADING_STANDARDS.REPEATED_ATTEMPT.name : GRADING_STANDARDS.FIRST_ATTEMPT.name,
     };
@@ -76,7 +88,6 @@ export function calculateLetterGrade(totalMarks, isRepeated = false) {
       points: 0,
       description: 'Fail',
       descriptionAr: 'راسب',
-      descriptionEn: 'Fail',
       isManual: false,
       standard: standard.name,
     };
@@ -90,7 +101,6 @@ export function calculateLetterGrade(totalMarks, isRepeated = false) {
         points: grade.points,
         description: grade.description,
         descriptionAr: grade.descriptionAr,
-        descriptionEn: grade.description,
         isManual: false,
         standard: standard.name,
       };
@@ -103,7 +113,6 @@ export function calculateLetterGrade(totalMarks, isRepeated = false) {
     points: 0,
     description: 'Fail',
     descriptionAr: 'راسب',
-    descriptionEn: 'Fail',
     isManual: false,
     standard: standard.name,
   };
@@ -119,7 +128,6 @@ export function resolveComplementaryGrade(examScore) {
       examScore: score,
       description: COMPLEMENTARY_GRADE.description,
       descriptionAr: COMPLEMENTARY_GRADE.descriptionAr,
-      descriptionEn: COMPLEMENTARY_GRADE.description,
       passed: true,
     };
   }
@@ -130,50 +138,156 @@ export function resolveComplementaryGrade(examScore) {
     examScore: score,
     description: 'Fail',
     descriptionAr: 'راسب',
-    descriptionEn: 'Fail',
     passed: false,
   };
 }
 
-export function resolveMarkGrade({ totalMarks, gradeType, isRepeated, complementaryScore }) {
+export function resolveMarkGrade({ totalMarks, letterGrade, gradeType, isRepeated, complementaryScore, lang = 'en' }) {
+  const isAr = lang === 'ar';
+
   if (gradeType === GRADE_TYPE.COMPLEMENTARY) {
     const result = resolveComplementaryGrade(complementaryScore ?? totalMarks);
     return {
-      letter: result.letter,
-      points: result.points,
-      totalMarks: result.totalMarks,
-      gradeRange: result.passed ? `${COMPLEMENTARY_GRADE.passMin}-100` : `0-${COMPLEMENTARY_GRADE.passMin - 1}`,
-      gradeDescriptionEn: result.descriptionEn,
-      gradeDescriptionAr: result.descriptionAr,
-      gradingStandard: 'Complementary Exam',
+      ...result,
+      gradeDescription: isAr ? result.descriptionAr : result.description,
+      gradeType: GRADE_TYPE.COMPLEMENTARY,
     };
   }
 
   if (gradeType && gradeType !== GRADE_TYPE.CALCULATED) {
-    const manualGrade = MANUAL_GRADES.find((g) => g.letter === gradeType);
-    if (manualGrade) {
+    const manual = MANUAL_GRADES.find((g) => g.letter === gradeType);
+    if (manual) {
       return {
-        letter: manualGrade.letter,
-        points: manualGrade.points ?? 0,
+        letter: manual.letter,
+        points: manual.points ?? 0,
         totalMarks: 0,
-        gradeRange: 'Manual',
-        gradeDescriptionEn: manualGrade.description,
-        gradeDescriptionAr: manualGrade.descriptionAr,
-        gradingStandard: 'Manual',
+        gradeDescription: isAr ? manual.descriptionAr : manual.description,
+        gradeType,
+        isManual: true,
       };
     }
   }
 
-  const gradeResult = calculateLetterGrade(totalMarks, isRepeated);
+  const computed = calculateLetterGrade(totalMarks, isRepeated);
+  const letter = letterGrade || computed.letter;
+
   return {
-    letter: gradeResult.letter,
-    points: gradeResult.points,
-    totalMarks,
-    gradeRange: gradeResult.range,
-    gradeDescriptionEn: gradeResult.descriptionEn,
-    gradeDescriptionAr: gradeResult.descriptionAr,
-    gradingStandard: isRepeated ? 'Repeated' : 'First Attempt',
+    letter,
+    points: computed.points ?? getGradePoints(letter),
+    totalMarks: parseFloat(totalMarks) || 0,
+    gradeDescription: isAr ? computed.descriptionAr : computed.description,
+    gradeType: GRADE_TYPE.CALCULATED,
+    isManual: false,
   };
+}
+
+export function getGradePoints(letter) {
+  if (!letter) return 0;
+  for (const standard of Object.values(GRADING_STANDARDS)) {
+    const match = standard.grades.find((g) => g.letter === letter);
+    if (match) return match.points;
+  }
+  const manual = MANUAL_GRADES.find((g) => g.letter === letter);
+  if (manual) return manual.points ?? 0;
+  return 0;
+}
+
+export function getGpaStanding(gpa, lang = 'en') {
+  const value = parseFloat(gpa) || 0;
+  const isAr = lang === 'ar';
+  for (const standing of GPA_STANDINGS) {
+    if (value >= standing.min && value <= standing.max) {
+      return {
+        letter: standing.letter,
+        label: isAr ? standing.descriptionAr : standing.description,
+      };
+    }
+  }
+  return { letter: 'F', label: isAr ? 'ضعيف' : 'Weak' };
+}
+
+export function getGradeDescription(letter, isRepeated, lang = 'en') {
+  const isAr = lang === 'ar';
+  const standard = isRepeated ? GRADING_STANDARDS.REPEATED_ATTEMPT : GRADING_STANDARDS.FIRST_ATTEMPT;
+  const match = standard.grades.find((g) => g.letter === letter);
+  if (match) return isAr ? match.descriptionAr : match.description;
+  const manual = MANUAL_GRADES.find((g) => g.letter === letter);
+  if (manual) return isAr ? manual.descriptionAr : manual.description;
+  return letter || '';
+}
+
+export function getGradeColor(letter) {
+  if (!letter) return '#ef4444';
+  if (letter === 'A' || letter.startsWith('A')) return '#10b981';
+  if (letter.startsWith('B')) return '#3b82f6';
+  if (letter.startsWith('C')) return '#f59e0b';
+  if (letter.startsWith('D')) return '#60a5fa';
+  if (letter === 'WF') return '#6b7280';
+  return '#ef4444';
+}
+
+export function calculateGpaFromMarks(marksRows) {
+  const graded = (marksRows || []).filter((row) => {
+    const gradeType = row.gradeType || GRADE_TYPE.CALCULATED;
+    if (gradeType !== GRADE_TYPE.CALCULATED && gradeType !== GRADE_TYPE.COMPLEMENTARY) {
+      return MANUAL_GRADES.some((g) => g.letter === gradeType && (g.points ?? 0) > 0);
+    }
+    return row.totalMarks != null || gradeType === GRADE_TYPE.COMPLEMENTARY;
+  });
+
+  if (graded.length === 0) return { gpa: 0, totalCredits: 0, totalPoints: 0 };
+
+  let totalPoints = 0;
+  let totalCredits = 0;
+
+  for (const row of graded) {
+    const credits = row.credits || 3;
+    const resolved = resolveMarkGrade({
+      totalMarks: row.totalMarks,
+      letterGrade: row.letterGrade,
+      gradeType: row.gradeType,
+      isRepeated: row.isRepeated,
+      complementaryScore: row.finalExam,
+    });
+    totalPoints += (resolved.points ?? 0) * credits;
+    totalCredits += credits;
+  }
+
+  const gpa = totalCredits > 0 ? totalPoints / totalCredits : 0;
+  return {
+    gpa: parseFloat(gpa.toFixed(2)),
+    totalCredits,
+    totalPoints: parseFloat(totalPoints.toFixed(2)),
+  };
+}
+
+export function groupMarksBySemester(marksRows) {
+  const groups = new Map();
+  for (const row of marksRows || []) {
+    const semester = row.semester || row.term || 'Unknown';
+    const year = row.year || row.academicYear || new Date().getFullYear();
+    const key = `${semester}-${year}`;
+    if (!groups.has(key)) {
+      groups.set(key, { semester, year, courses: [] });
+    }
+    groups.get(key).courses.push(row);
+  }
+
+  return Array.from(groups.values())
+    .map((group) => {
+      const { gpa, totalCredits } = calculateGpaFromMarks(group.courses);
+      return {
+        ...group,
+        gpa,
+        totalCredits,
+        courseCount: group.courses.length,
+        repeatedCount: group.courses.filter((c) => c.isRepeated).length,
+      };
+    })
+    .sort((a, b) => {
+      if (b.year !== a.year) return b.year - a.year;
+      return String(b.semester).localeCompare(String(a.semester));
+    });
 }
 
 export function getAllGradingStandards() {

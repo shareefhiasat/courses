@@ -3,6 +3,7 @@ import Joyride from 'react-joyride';
 import TourTooltip from '@ui/TourTooltip/TourTooltip';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
+import { getJoyrideBaseProps, getTourStyles } from '@utils/tourConfig';
 
 /**
  * Wrapper around react-joyride with consistent styling and locale labels.
@@ -14,34 +15,12 @@ const TourOverlay = ({ run, steps, callback }) => {
 
   return (
     <Joyride
-      continuous
+      {...getJoyrideBaseProps({ theme, t })}
       run={run}
       steps={steps}
-      disableScrolling={false}
-      scrollOffset={100}
-      scrollToFirstStep
-      showSkipButton
-      showProgress
-      spotlightClicks={false}
       tooltipComponent={useMemo(() => TourTooltip({}), [])}
       callback={callback}
-      locale={{
-        back: t('tour_back'),
-        close: t('tour_close'),
-        last: t('tour_finish'),
-        next: t('tour_next'),
-        skip: t('tour_skip'),
-      }}
-      styles={{
-        options: {
-          primaryColor: 'var(--color-primary, #800020)',
-          textColor: theme === 'dark' ? '#e5e7eb' : '#111',
-          backgroundColor: theme === 'dark' ? '#1f2937' : '#fff',
-          overlayColor: 'rgba(0,0,0,0.45)',
-          arrowColor: theme === 'dark' ? '#1f2937' : '#fff',
-          zIndex: 10000,
-        },
-      }}
+      styles={getTourStyles(theme)}
     />
   );
 };

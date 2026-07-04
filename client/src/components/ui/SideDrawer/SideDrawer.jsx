@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useIsMobile } from '@hooks/useIsMobile';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -14,6 +14,7 @@ import { TimerStopwatch } from '@ui';
 import VersionDisplay from '@ui/VersionDisplay/VersionDisplay';
 import { resolveScreenIdFromNavItem } from '@config/navigationRegistry.js';
 import { info, error, warn, debug } from '@services/utils/logger.js';
+import { drawerTlog, drawerTlogSnapshot } from '@utils/drawerTlog';
 import { usePermissions } from '@hooks/usePermissions';
 import { useTypography } from '@contexts/TypographyContext';
 
@@ -35,8 +36,12 @@ const DASHBOARD_HASH_TABS = {
 const CALENDAR_CLASSES_PATH = '/scheduling-calendar?tab=classes';
 const CALENDAR_INSTRUCTOR_AVAIL_PATH = '/scheduling-calendar?tab=availability&scope=instructor';
 const CALENDAR_ROOM_AVAIL_PATH = '/scheduling-calendar?tab=availability&scope=room';
+/** Slower expand/collapse when auto-hide is on (overlay slide + sticky width/margin) */
+const AUTO_HIDE_TRANSITION_S = 0.75;
+const AUTO_HIDE_STRIP_PX = 8;
+const AUTO_HIDE_LEAVE_DELAY_MS = 250;
 
-const SideDrawer = ({ isOpen, onClose }) => {
+const SideDrawer = ({ isOpen, onClose, onOpen }) => {
   const { user, isAdmin, isSuperAdmin, isHR, isInstructor, role, impersonating, stopImpersonation, logout } = useAuth();
   const { t, lang, toggleLang } = useLang();
   const toInitCap = (text) => {
@@ -95,6 +100,116 @@ const SideDrawer = ({ isOpen, onClose }) => {
     }
   });
   const isMobile = useIsMobile();
+  const hideTimerRef = useRef(null);
+
+  const clearHideTimer = useCallback(() => {
+    if (hideTimerRef.current) {
+      clearTimeout(hideTimerRef.current);
+      hideTimerRef.current = null;
+    }
+  }, []);
+
+  /** Single derived layout — avoids conflicting isOpen / sticky / autoHide branches */
+  const drawerLayout = useMemo(() => {
+    const autoHideActive = autoHide && !collapsed && !isMobile;
+    // Keep edge strip mounted when auto-hide is on (even if hamburger "closed")
+    const shouldMount = stickyMode || isOpen || autoHideActive;
+    const isExpanded = collapsed
+      ? true
+      : autoHideActive
+        ? isHovering
+        : (stickyMode || isOpen);
+    const pushLayout = stickyMode && !isMobile;
+    const showHotspot = autoHideActive && !isHovering;
+    const showOverlay = !stickyMode && isOpen && isExpanded && !collapsed;
+    const layoutWidth = pushLayout
+      ? (collapsed ? 80 : (autoHideActive && !isHovering ? AUTO_HIDE_STRIP_PX : drawerWidth))
+      : null;
+    const panelWidth = collapsed
+      ? 80
+      : (pushLayout && autoHideActive && !isHovering ? AUTO_HIDE_STRIP_PX : drawerWidth);
+    const slideOff = !pushLayout && autoHideActive && !isHovering;
+    const motionX = slideOff
+      ? (lang === 'ar' ? drawerWidth - AUTO_HIDE_STRIP_PX : -(drawerWidth - AUTO_HIDE_STRIP_PX))
+      : 0;
+
+    return {
+      autoHideActive,
+      shouldMount,
+      isExpanded,
+      pushLayout,
+      showHotspot,
+      showOverlay,
+      layoutWidth,
+      panelWidth,
+      slideOff,
+      motionX,
+    };
+  }, [stickyMode, isOpen, autoHide, collapsed, isHovering, isMobile, drawerWidth, lang]);
+
+  const expandDrawer = useCallback((source) => {
+    clearHideTimer();
+    drawerTlog('expand', { source, stickyMode, isOpen, autoHide });
+    setIsHovering(true);
+    if (!stickyMode && !isOpen && onOpen) {
+      onOpen();
+    }
+  }, [clearHideTimer, stickyMode, isOpen, onOpen, autoHide]);
+
+  const scheduleCollapse = useCallback((source) => {
+    if (!autoHide || collapsed) return;
+    clearHideTimer();
+    hideTimerRef.current = setTimeout(() => {
+      hideTimerRef.current = null;
+      drawerTlog('collapse', { source, stickyMode, isOpen });
+      setIsHovering(false);
+      if (!stickyMode && isOpen) {
+        onClose();
+      }
+    }, AUTO_HIDE_LEAVE_DELAY_MS);
+  }, [autoHide, collapsed, clearHideTimer, stickyMode, isOpen, onClose]);
+
+  useEffect(() => () => clearHideTimer(), [clearHideTimer]);
+
+  // Resolve impossible combo from older localStorage
+  useEffect(() => {
+    if (stickyMode && autoHide) {
+      drawerTlog('sync:mount-resolve-conflict', { resolution: 'autoHide-on→sticky-off' });
+      setStickyMode(false);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // TEMP: log mount + restored prefs
+  useEffect(() => {
+    drawerTlogSnapshot('mount', {
+      isOpen,
+      stickyMode,
+      autoHide,
+      collapsed,
+      isHovering,
+      drawerWidth,
+      isMobile,
+      drawerLayout,
+      localStorage: {
+        drawer_sticky_mode: localStorage.getItem('drawer_sticky_mode'),
+        drawer_auto_hide: localStorage.getItem('drawer_auto_hide'),
+        drawer_collapsed: localStorage.getItem('drawer_collapsed'),
+        drawer_width: localStorage.getItem('drawer_width'),
+      },
+    });
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Hamburger / parent isOpen ↔ expanded state
+  useEffect(() => {
+    if (collapsed) return;
+    drawerTlog('isOpen-prop-change', { isOpen, stickyMode, autoHide, collapsed });
+    if (isOpen) {
+      clearHideTimer();
+      setIsHovering(true);
+    } else if (autoHide) {
+      setIsHovering(false);
+    }
+  }, [isOpen, stickyMode, autoHide, collapsed, clearHideTimer]);
   const [userAccentColor, setUserAccentColor] = useState(DEFAULT_ACCENT);
   const [navigationConfirmation, setNavigationConfirmation] = useState(null);
   
@@ -134,19 +249,40 @@ const SideDrawer = ({ isOpen, onClose }) => {
   }, [collapsed]);
   useEffect(() => {
     try { localStorage.setItem('drawer_sticky_mode', String(stickyMode)); } catch {}
-    if (stickyMode && !isMobile) {
-      const width = collapsed ? 80 : (autoHide && !isHovering ? 8 : drawerWidth);
-      document.documentElement.style.setProperty('--drawer-width', `${width}px`);
+
+    drawerTlogSnapshot('layout-effect', {
+      ...drawerLayout,
+      isOpen,
+      isHovering,
+      stickyMode,
+      autoHide,
+      collapsed,
+      isMobile,
+      htmlClasses: {
+        drawerStickyOpen: document.documentElement.classList.contains('drawer-sticky-open'),
+        drawerAutoHide: document.documentElement.classList.contains('drawer-auto-hide'),
+      },
+    });
+
+    if (drawerLayout.pushLayout && drawerLayout.layoutWidth != null) {
+      document.documentElement.style.setProperty('--drawer-width', `${drawerLayout.layoutWidth}px`);
       document.documentElement.classList.add('drawer-sticky-open');
+      if (drawerLayout.autoHideActive) {
+        document.documentElement.classList.add('drawer-auto-hide');
+      } else {
+        document.documentElement.classList.remove('drawer-auto-hide');
+      }
     } else {
       document.documentElement.style.removeProperty('--drawer-width');
       document.documentElement.classList.remove('drawer-sticky-open');
+      document.documentElement.classList.remove('drawer-auto-hide');
     }
     return () => {
       document.documentElement.style.removeProperty('--drawer-width');
       document.documentElement.classList.remove('drawer-sticky-open');
+      document.documentElement.classList.remove('drawer-auto-hide');
     };
-  }, [stickyMode, collapsed, drawerWidth, isMobile, autoHide, isHovering]);
+  }, [stickyMode, drawerLayout, autoHide, collapsed]);
   useEffect(() => {
     const handler = (e) => setDensity((e && e.detail && e.detail.density) ? e.detail.density : (document.documentElement.getAttribute('data-density') || 'compact'));
     window.addEventListener('density-change', handler);
@@ -158,7 +294,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
     const handleKeyDown = (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key === 'm') {
         e.preventDefault();
-        // Dispatch custom event for parent to handle toggle
+        drawerTlog('keyboard:dispatch-toggle-drawer', { source: 'SideDrawer keydown' });
         window.dispatchEvent(new CustomEvent('toggle-drawer'));
       }
     };
@@ -785,14 +921,18 @@ const SideDrawer = ({ isOpen, onClose }) => {
   
   return (
     <AnimatePresence>
-      {(isOpen || stickyMode) && (
+      {drawerLayout.shouldMount && (
         <>
-          {isOpen && !stickyMode && !collapsed && !(autoHide && !isHovering) ? (
+          {drawerLayout.showOverlay ? (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            onClick={onClose}
+            onClick={() => {
+              drawerTlog('overlay:click-close', { isOpen, stickyMode, autoHide });
+              if (autoHide && !collapsed) setIsHovering(false);
+              onClose();
+            }}
             style={{
               position: 'fixed',
               top: 0,
@@ -806,9 +946,9 @@ const SideDrawer = ({ isOpen, onClose }) => {
           />) : null}
 
           {/* Auto-hide hover hotspot + restore tab */}
-          {(autoHide && !isHovering && !collapsed) && (
+          {drawerLayout.showHotspot && (
             <div
-              onMouseEnter={() => setIsHovering(true)}
+              onMouseEnter={() => expandDrawer('hotspot-hover')}
               style={{
                 position: 'fixed',
                 top: 0,
@@ -822,7 +962,7 @@ const SideDrawer = ({ isOpen, onClose }) => {
               }}
             >
               <button
-                onClick={() => setIsHovering(true)}
+                onClick={() => expandDrawer('hotspot-click')}
                 title={t('expand')}
                 style={{
                   position: 'absolute',
@@ -849,57 +989,41 @@ const SideDrawer = ({ isOpen, onClose }) => {
           {/* Drawer */}
           <motion.div
             initial={{ x: 0 }}
-            animate={{
-              x: (!stickyMode && autoHide && !isHovering && !collapsed)
-                ? (lang==='ar' ? (drawerWidth - 8) : -(drawerWidth - 8))
-                : 0
-            }}
-            exit={{ x: stickyMode ? 0 : (lang==='ar' ? drawerWidth : -drawerWidth) }}
+            animate={{ x: drawerLayout.motionX }}
+            exit={{ x: drawerLayout.pushLayout ? 0 : (lang==='ar' ? drawerWidth : -drawerWidth) }}
             transition={{
               type: 'tween',
-              duration: (!stickyMode && autoHide && !isHovering && !collapsed) ? 0.5 : 0.3,
+              duration: drawerLayout.autoHideActive ? AUTO_HIDE_TRANSITION_S : 0.3,
               ease: [0.4, 0, 0.2, 1]
             }}
             style={{
               position: 'fixed',
               top: 0,
-              left: lang==='ar' ? 'auto' : (stickyMode ? 0 : (autoHide && !isHovering && !collapsed ? -(drawerWidth - 8) : 0)),
-              right: lang==='ar' ? (stickyMode ? 0 : (autoHide && !isHovering && !collapsed ? -(drawerWidth - 8) : 0)) : 'auto',
+              left: lang==='ar' ? 'auto' : (drawerLayout.pushLayout ? 0 : (drawerLayout.slideOff ? -(drawerWidth - AUTO_HIDE_STRIP_PX) : 0)),
+              right: lang==='ar' ? (drawerLayout.pushLayout ? 0 : (drawerLayout.slideOff ? -(drawerWidth - AUTO_HIDE_STRIP_PX) : 0)) : 'auto',
               bottom: 0,
               height: '100vh',
-              // Width rules:
-              // - Collapsed: fixed 80px (icons only)
-              // - Sticky + auto-hide: shrink to strip width (content margin syncs via --drawer-width)
-              // - Overlay + auto-hide: full width; slide off-screen with x transform
-              // - Normal: drawerWidth
-              width: collapsed
-                ? 80
-                : (stickyMode && autoHide && !isHovering ? 8 : drawerWidth),
+              width: drawerLayout.panelWidth,
               background: theme === 'light' ? '#ffffff' : 'linear-gradient(180deg, #0f172a, #111827)',
               borderRight: lang==='ar' ? 'none' : (theme === 'light' ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.1)'),
               borderLeft: lang==='ar' ? (theme === 'light' ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.1)') : 'none',
               color: theme === 'light' ? '#0f172a' : 'white',
               fontSize: 'var(--font-size-sm)',
-              zIndex: stickyMode ? 1000 : 9999,
+              zIndex: drawerLayout.pushLayout ? 1000 : 9999,
               display: 'flex',
               flexDirection: 'column',
-              boxShadow: stickyMode ? 'none' : '2px 0 10px rgba(0, 0, 0, 0.1)',
+              boxShadow: drawerLayout.pushLayout ? 'none' : '2px 0 10px rgba(0, 0, 0, 0.1)',
               overflow: 'hidden',
-              transition: stickyMode
-                ? 'width 0.3s ease'
+              transition: drawerLayout.pushLayout
+                ? (drawerLayout.autoHideActive ? `width ${AUTO_HIDE_TRANSITION_S}s ease` : 'width 0.3s ease')
                 : 'width 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
-              flexShrink: 0
+              flexShrink: 0,
+              pointerEvents: drawerLayout.isExpanded || collapsed ? 'auto' : 'none',
             }}
             onMouseEnter={() => {
-              if (autoHide && !collapsed) {
-                setIsHovering(true);
-              }
+              if (autoHide && !collapsed) expandDrawer('panel-hover');
             }}
-            onMouseLeave={() => {
-              if (autoHide && !collapsed) {
-                setIsHovering(false);
-              }
-            }}
+            onMouseLeave={() => scheduleCollapse('panel-leave')}
           >
             {/* Magic arrow for collapsed (icons-only) restore */}
             {collapsed && (
@@ -1041,10 +1165,12 @@ const SideDrawer = ({ isOpen, onClose }) => {
                       </button>
                       <button
                         onClick={() => {
-                          setCollapsed(v=>!v);
-                          if (collapsed) {
-                            setAutoHide(false);
-                          }
+                          setCollapsed((v) => {
+                            const next = !v;
+                            drawerTlog('btn:collapse', { from: v, to: next, stickyMode, autoHide });
+                            if (v) setAutoHide(false);
+                            return next;
+                          });
                         }}
                         title={collapsed ? (t('expand')) : (t('collapse'))}
                         data-base-bg={collapsed ? accentBg : neutralBg}
@@ -1063,7 +1189,20 @@ const SideDrawer = ({ isOpen, onClose }) => {
                         {collapsed ? getThemedIcon('ui', 'chevron_right', 14, theme) : getThemedIcon('ui', 'chevron_left', 14, theme)}
                       </button>
                       <button
-                        onClick={() => setAutoHide(v=>!v)}
+                        onClick={() => {
+                          setAutoHide((v) => {
+                            const next = !v;
+                            drawerTlog('btn:autoHide', { from: v, to: next, stickyMode, collapsed });
+                            if (next) {
+                              if (stickyMode) {
+                                drawerTlog('sync:mutual-exclusion', { action: 'autoHide-on→sticky-off' });
+                                setStickyMode(false);
+                              }
+                              expandDrawer('autoHide-enabled');
+                            }
+                            return next;
+                          });
+                        }}
                         title={autoHide ? (t('disable_auto_hide')) : (t('enable_auto_hide'))}
                         data-base-bg={autoHide ? accentBg : neutralBg}
                         data-hover-bg={autoHide ? accentHover : neutralHover}
@@ -1081,7 +1220,20 @@ const SideDrawer = ({ isOpen, onClose }) => {
                         {getThemedIcon('ui', 'eye', 14, theme)}
                       </button>
                       <button
-                        onClick={() => setStickyMode(v => !v)}
+                        onClick={() => {
+                          setStickyMode((v) => {
+                            const next = !v;
+                            drawerTlog('btn:sticky', { from: v, to: next, autoHide, isOpen, collapsed });
+                            if (next && autoHide) {
+                              drawerTlog('sync:mutual-exclusion', { action: 'sticky-on→autoHide-off' });
+                              setAutoHide(false);
+                            }
+                            if (!next) {
+                              drawerTlog('sync:sticky-off', { isOpen, note: 'overlay mode; visibility = isOpen' });
+                            }
+                            return next;
+                          });
+                        }}
                         title={stickyMode ? (t('disable_sticky')) : (t('enable_sticky'))}
                         data-base-bg={stickyMode ? accentBg : neutralBg}
                         data-hover-bg={stickyMode ? accentHover : neutralHover}
@@ -1099,7 +1251,11 @@ const SideDrawer = ({ isOpen, onClose }) => {
                         {getThemedIcon('ui', 'pin', 12, theme)}
                       </button>
                       <button
-                        onClick={onClose}
+                        onClick={() => {
+                          drawerTlog('btn:close', { isOpen, stickyMode, autoHide, collapsed, isHovering });
+                          if (autoHide && !collapsed) setIsHovering(false);
+                          onClose();
+                        }}
                         data-base-bg={neutralBg}
                         data-hover-bg={neutralHover}
                         style={{

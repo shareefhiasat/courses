@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef, useLayoutEffect } from 'react';
 import Joyride from 'react-joyride';
-import TourTooltip from '@ui/TourTooltip/TourTooltip';
+import { usePageTour } from '@hooks/usePageTour';
+import { getJoyrideBaseProps, getTourStyles } from '@utils/tourConfig';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useAuth } from '@contexts/AuthContext';
@@ -12,7 +13,6 @@ import { getThemedIcon } from '@constants';
 import { formatQatarDateTime, formatQatarForInput, parseQatarFromInput, getQatarNow } from '@utils/qatarDate';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import { useLookupTypes } from '@hooks/useLookupTypes.js';
-import { scheduleTourStart } from '@utils/tourScheduler';
 // OLD: import { ACTIVITY_TYPES, getActivityTypeConfig, ACTIVITY_TYPE_OPTIONS, getThemeColor } from '@constants';
 // NOW: Using useLookupTypes hook for all lookup data
 import { getActivityTypeConfig, ACTIVITY_TYPE_OPTIONS, getThemeColor } from '@constants';
@@ -113,8 +113,6 @@ const ActivitiesPage = () => {
   const { deleteModal, deleteActivity, handleDeleteConfirm, hideDeleteModal } = useDeleteModal(t);
 
   // ── Guided Tour ──────────────────────────────────────────────────────────
-  const [runTour, setRunTour] = useState(false);
-  const tourSeenKey = `activitiesTourSeen_${lang}`;
   const tourSteps = useMemo(() => [
     { target: 'body', content: t('tour.activities_filters'), disableBeacon: true, placement: 'center' },
     { target: '[data-tour="activities-form"]', content: t('tour.activities_add'), disableBeacon: true, placement: 'bottom' },
@@ -124,18 +122,8 @@ const ActivitiesPage = () => {
     { target: '[data-tour="activities-grid"]', content: t('tour.activities_delete'), disableBeacon: true, placement: 'top' },
     { target: '[data-tour="activities-grid"]', content: t('tour.activities_export'), disableBeacon: true, placement: 'top' },
   ], [lang, t]);
-  useEffect(() => {
-    const start = () => setRunTour(true);
-    window.addEventListener('app:joyride', start);
-    window.addEventListener('app:help', start);
-    return () => { window.removeEventListener('app:joyride', start); window.removeEventListener('app:help', start); };
-  }, []);
-  useEffect(() => scheduleTourStart(tourSeenKey, lang, () => setRunTour(true)), [tourSeenKey, lang]);
-  const handleTourCallback = useCallback((data) => {
-    const { status, action } = data || {};
-    if (status === 'finished' || status === 'skipped' || action === 'close') { setRunTour(false); try { localStorage.setItem(tourSeenKey, 'true'); } catch {} }
-  }, [tourSeenKey]);
-  const TourTooltipComponent = useMemo(() => TourTooltip({ tourSeenKey }), [tourSeenKey]);
+  const { run: runTour, steps: activeTourSteps, callback: handleTourCallback, TourTooltipComponent } =
+    usePageTour('activities', 'activitiesTourSeen', tourSteps);
   // ──────────────────────────────────────────────────────────────────────────
   const [categories, setCategories] = useState([]);
   const [programs, setPrograms] = useState([]);
@@ -997,9 +985,13 @@ const ActivitiesPage = () => {
 
   return (
     <div className="activities-tab">
-      <Joyride continuous run={runTour} steps={tourSteps} callback={handleTourCallback} scrollOffset={100} scrollToFirstStep showSkipButton showProgress tooltipComponent={TourTooltipComponent}
-        locale={{ back: t('tour_back'), close: t('tour_close'), last: t('tour_finish'), next: t('tour_next'), skip: t('tour_skip') }}
-        styles={{ options: { primaryColor: 'var(--color-primary,#800020)', textColor: theme === 'dark' ? '#e5e7eb' : '#111', backgroundColor: theme === 'dark' ? '#1f2937' : '#fff', zIndex: 10000 } }}
+      <Joyride
+        {...getJoyrideBaseProps({ theme, t })}
+        run={runTour}
+        steps={activeTourSteps}
+        callback={handleTourCallback}
+        tooltipComponent={TourTooltipComponent}
+        styles={getTourStyles(theme)}
       />
       {editingActivity && (
         <div style={{ 

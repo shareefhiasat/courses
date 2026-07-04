@@ -6,34 +6,31 @@ import { useToast } from '@ui';
 import { Card, CardBody, Button, Badge, AdvancedDataGrid, SimpleLoading, EmptyState } from '@ui';
 import { getThemedIcon } from '@constants/iconTypes';
 import CollapsibleSection from '@components/scheduling/CollapsibleSection';
-import { GraduationCap, ClipboardList } from 'lucide-react';
+import { ClipboardList } from 'lucide-react';
 import {
   getAllStudentMarksReport,
   getSubjectMarksDistribution,
   updateStudentMarks,
-  calculateLetterGrade,
   getStudentMarksHistory,
+  GRADE_TYPE,
+  resolveMarkGrade,
+  getGradeColor,
+  calculateGpaFromMarks,
+  groupMarksBySemester,
 } from '@services/business/enrollmentMarksService';
 import MarksHistoryDrawer from '@components/academic/MarksHistoryDrawer';
-import { info, error } from '@services/utils/logger.js';
+import GpaSummaryCard from './GpaSummaryCard';
+import { error } from '@services/utils/logger.js';
 import styles from './MarksTab.module.css';
 
-/**
- * Marks Tab – replicates the dashboard MarksPage UI.
- * Students see a read-only view; staff (HR/admin/instructor) get full editing.
- * Shows semester-grouped GPA summary + AdvancedDataGrid with marks breakdown.
- */
 const MarksTab = React.memo(({
-  marks = [],
-  semesters = [],
-  statsData = {},
   canNavigateToMarksEntry = false,
   studentId,
   classId,
   t,
   lang,
 }) => {
-  const { user, isAdmin, isSuperAdmin, isInstructor, isHR } = useAuth();
+  const { isAdmin, isSuperAdmin, isInstructor, isHR } = useAuth();
   const { t: tFn } = useLang();
   const { theme } = useTheme();
   const toast = useToast();
@@ -49,7 +46,6 @@ const MarksTab = React.memo(({
   const [historyLoading, setHistoryLoading] = useState(false);
   const [selectedHistoryStudent, setSelectedHistoryStudent] = useState(null);
 
-  // Load marks report data filtered by studentId or classId
   const loadMarksReport = useCallback(async () => {
     if (!studentId && !classId) return;
     setMarksReportLoading(true);
@@ -72,7 +68,6 @@ const MarksTab = React.memo(({
     loadMarksReport();
   }, [loadMarksReport]);
 
-  // Load marks distribution for the first subject (for display)
   const firstSubjectId = useMemo(() => {
     if (marksReportData.length > 0) return marksReportData[0].subjectId;
     return null;
@@ -93,38 +88,21 @@ const MarksTab = React.memo(({
     })();
   }, [firstSubjectId]);
 
-  // Group marks report data by semester/year
-  const groupedMarks = useMemo(() => {
-    const groups = new Map();
-    for (const row of marksReportData) {
-      const semester = row.semester || 'Unknown';
-      const year = row.year || row.academicYear || new Date().getFullYear();
-      const key = `${semester}-${year}`;
-      if (!groups.has(key)) {
-        groups.set(key, { semester, year, courses: [], gpa: 0 });
-      }
-      groups.get(key).courses.push(row);
-    }
-    // Calculate GPA per semester
-    for (const group of groups.values()) {
-      const gradedCourses = group.courses.filter(c => c.totalMarks != null);
-      const totalPoints = gradedCourses.reduce((s, c) => {
-        const grade = calculateLetterGrade(c.totalMarks, c.isRepeated);
-        const points = gradeToPoints(grade);
-        return s + points * (c.credits || 3);
-      }, 0);
-      const totalCredits = gradedCourses.reduce((s, c) => s + (c.credits || 3), 0);
-      group.gpa = totalCredits > 0 ? parseFloat((totalPoints / totalCredits).toFixed(2)) : 0;
-      group.courseCount = group.courses.length;
-      group.repeatedCount = group.courses.filter(c => c.isRepeated).length;
-    }
-    return Array.from(groups.values()).sort((a, b) => {
-      if (b.year !== a.year) return b.year - a.year;
-      return b.semester.localeCompare(a.semester);
-    });
-  }, [marksReportData]);
+  const groupedMarks = useMemo(
+    () => groupMarksBySemester(marksReportData),
+    [marksReportData]
+  );
 
-  // Load marks history
+  const cumulativeGpa = useMemo(
+    () => calculateGpaFromMarks(marksReportData).gpa,
+    [marksReportData]
+  );
+
+  const totalRepeated = useMemo(
+    () => groupedMarks.reduce((s, g) => s + (g.repeatedCount || 0), 0),
+    [groupedMarks]
+  );
+
   const loadMarksHistory = useCallback(async (row) => {
     try {
       setHistoryLoading(true);
@@ -141,7 +119,6 @@ const MarksTab = React.memo(({
     }
   }, []);
 
-  // Build columns for AdvancedDataGrid
   const columns = useMemo(() => {
     const makeMarkCell = (field, label, maxDefault) => ({
       field,
@@ -150,6 +127,10 @@ const MarksTab = React.memo(({
       editable: canEdit,
       type: 'number',
       renderCell: (params) => {
+        const row = params.row;
+        if (row.gradeType === GRADE_TYPE.COMPLEMENTARY && field !== 'finalExam') {
+          return <span style={{ opacity: 0.4 }}>—</span>;
+        }
         const value = params.value || 0;
         const max = marksDistribution?.[field] || maxDefault;
         return (
@@ -189,8 +170,26 @@ const MarksTab = React.memo(({
         editable: false,
         renderCell: (params) => {
           const row = params.row;
-          const gradeType = row.gradeType || 'calculated';
-          if (gradeType !== 'calculated') {
+          const gradeType = row.gradeType || GRADE_TYPE.CALCULATED;
+
+          if (gradeType === GRADE_TYPE.COMPLEMENTARY) {
+            const resolved = resolveMarkGrade({
+              gradeType,
+              complementaryScore: row.finalExam,
+              lang,
+            });
+            return (
+              <div style={{
+                padding: '4px 8px', borderRadius: '4px',
+                background: resolved.passed ? '#60a5fa' : '#ef4444',
+                color: 'white', textAlign: 'center', fontWeight: 600, fontSize: '0.75rem',
+              }}>
+                {resolved.passed ? `${resolved.totalMarks}%` : `${row.finalExam}/100`}
+              </div>
+            );
+          }
+
+          if (gradeType !== GRADE_TYPE.CALCULATED) {
             return (
               <div style={{
                 padding: '4px 8px', borderRadius: '4px',
@@ -199,11 +198,12 @@ const MarksTab = React.memo(({
               }}>{gradeType}</div>
             );
           }
+
           const value = params.value || 0;
           return (
             <div style={{
               padding: '4px 8px', borderRadius: '4px',
-              background: value >= 90 ? '#dc2626' : value >= 80 ? '#f59e0b' : value >= 70 ? '#fbbf24' : value >= 60 ? '#60a5fa' : '#ef4444',
+              background: value >= 90 ? '#10b981' : value >= 80 ? '#3b82f6' : value >= 70 ? '#f59e0b' : value >= 60 ? '#60a5fa' : '#ef4444',
               color: 'white', textAlign: 'center', fontWeight: 500,
             }}>{value.toFixed(1)}%</div>
           );
@@ -215,20 +215,63 @@ const MarksTab = React.memo(({
         width: 80,
         editable: false,
         renderCell: (params) => {
-          const grade = params.value || '';
-          let color = '#ef4444';
-          if (grade.startsWith('A')) color = '#10b981';
-          else if (grade.startsWith('B')) color = '#60a5fa';
-          else if (grade.startsWith('C')) color = '#fbbf24';
-          else if (grade.startsWith('D')) color = '#f59e0b';
+          const row = params.row;
+          const resolved = resolveMarkGrade({
+            totalMarks: row.totalMarks,
+            letterGrade: params.value,
+            gradeType: row.gradeType,
+            isRepeated: row.isRepeated,
+            complementaryScore: row.finalExam,
+            lang,
+          });
+          const color = getGradeColor(resolved.letter);
           return (
             <div style={{
               padding: '4px 8px', borderRadius: '4px',
               background: color, color: 'white',
               textAlign: 'center', fontWeight: 600, fontSize: '0.8rem',
-            }}>{grade}</div>
+            }}>{resolved.letter}</div>
           );
         },
+      },
+      {
+        field: 'gradeDescription',
+        headerName: t('grade_description'),
+        width: 130,
+        editable: false,
+        valueGetter: (params) => {
+          const row = params.row;
+          const resolved = resolveMarkGrade({
+            totalMarks: row.totalMarks,
+            letterGrade: row.letterGrade,
+            gradeType: row.gradeType,
+            isRepeated: row.isRepeated,
+            complementaryScore: row.finalExam,
+            lang,
+          });
+          return resolved.gradeDescription;
+        },
+      },
+      {
+        field: 'gradePoints',
+        headerName: t('grade_points'),
+        width: 80,
+        editable: false,
+        valueGetter: (params) => {
+          const row = params.row;
+          const resolved = resolveMarkGrade({
+            totalMarks: row.totalMarks,
+            letterGrade: row.letterGrade,
+            gradeType: row.gradeType,
+            isRepeated: row.isRepeated,
+            complementaryScore: row.finalExam,
+            lang,
+          });
+          return resolved.points ?? row.gradePoints ?? 0;
+        },
+        renderCell: (params) => (
+          <span style={{ fontWeight: 600 }}>{params.value ?? 0}</span>
+        ),
       },
       {
         field: 'isRepeated',
@@ -239,8 +282,27 @@ const MarksTab = React.memo(({
           const isRepeated = Boolean(params.value);
           return (
             <Badge variant={isRepeated ? 'success' : 'secondary'}>
-              {isRepeated ? (t('yes')) : (t('no'))}
+              {isRepeated ? t('yes') : t('no')}
             </Badge>
+          );
+        },
+      },
+      {
+        field: 'gradeType',
+        headerName: t('grade_type'),
+        width: 110,
+        editable: false,
+        renderCell: (params) => {
+          const value = params.value || GRADE_TYPE.CALCULATED;
+          const labels = {
+            [GRADE_TYPE.CALCULATED]: t('calculated'),
+            [GRADE_TYPE.COMPLEMENTARY]: t('complementary_exam'),
+            FB: 'FB', FA: 'FA', WF: 'WF',
+          };
+          return (
+            <span style={{ fontSize: 'var(--font-size-xs)' }}>
+              {labels[value] || value}
+            </span>
           );
         },
       },
@@ -259,32 +321,36 @@ const MarksTab = React.memo(({
             disabled={historyLoading}
             style={{ padding: '4px 8px', fontSize: 'var(--font-size-xs)', minWidth: '60px' }}
           >
-            {historyLoading ? '...' : (t('history'))}
+            {historyLoading ? '...' : t('history')}
           </Button>
         ),
       },
     ];
-  }, [t, canEdit, marksDistribution, historyLoading, loadMarksHistory]);
+  }, [t, lang, canEdit, marksDistribution, historyLoading, loadMarksHistory]);
 
-  // Process row update for staff editing
   const processRowUpdate = useCallback(async (newRow) => {
     try {
       const distribution = marksDistribution || {
         midTermExam: 20, finalExam: 40, homework: 5,
         labsProjectResearch: 10, quizzes: 5, participation: 10, attendance: 10,
       };
-      const validationErrors = [];
-      if (newRow.midTermExam > distribution.midTermExam) validationErrors.push(`Mid-term cannot exceed ${distribution.midTermExam}`);
-      if (newRow.finalExam > distribution.finalExam) validationErrors.push(`Final cannot exceed ${distribution.finalExam}`);
-      if (newRow.homework > distribution.homework) validationErrors.push(`Homework cannot exceed ${distribution.homework}`);
-      if (newRow.labsProjectResearch > distribution.labsProjectResearch) validationErrors.push(`Labs cannot exceed ${distribution.labsProjectResearch}`);
-      if (newRow.quizzes > distribution.quizzes) validationErrors.push(`Quizzes cannot exceed ${distribution.quizzes}`);
-      if (newRow.participation > distribution.participation) validationErrors.push(`Participation cannot exceed ${distribution.participation}`);
-      if (newRow.attendance > distribution.attendance) validationErrors.push(`Attendance cannot exceed ${distribution.attendance}`);
-      if (validationErrors.length > 0) {
-        toast?.error?.(validationErrors.join(', '));
-        throw new Error('Validation failed');
+      const gradeType = newRow.gradeType || GRADE_TYPE.CALCULATED;
+
+      if (gradeType === GRADE_TYPE.CALCULATED) {
+        const validationErrors = [];
+        if (newRow.midTermExam > distribution.midTermExam) validationErrors.push(`Mid-term cannot exceed ${distribution.midTermExam}`);
+        if (newRow.finalExam > distribution.finalExam) validationErrors.push(`Final cannot exceed ${distribution.finalExam}`);
+        if (newRow.homework > distribution.homework) validationErrors.push(`Homework cannot exceed ${distribution.homework}`);
+        if (newRow.labsProjectResearch > distribution.labsProjectResearch) validationErrors.push(`Labs cannot exceed ${distribution.labsProjectResearch}`);
+        if (newRow.quizzes > distribution.quizzes) validationErrors.push(`Quizzes cannot exceed ${distribution.quizzes}`);
+        if (newRow.participation > distribution.participation) validationErrors.push(`Participation cannot exceed ${distribution.participation}`);
+        if (newRow.attendance > distribution.attendance) validationErrors.push(`Attendance cannot exceed ${distribution.attendance}`);
+        if (validationErrors.length > 0) {
+          toast?.error?.(validationErrors.join(', '));
+          throw new Error('Validation failed');
+        }
       }
+
       const marksData = {
         midTermExam: newRow.midTermExam || 0,
         finalExam: newRow.finalExam || 0,
@@ -294,7 +360,7 @@ const MarksTab = React.memo(({
         participation: newRow.participation || 0,
         attendance: newRow.attendance || 0,
         isRepeated: Boolean(newRow.isRepeated),
-        gradeType: newRow.gradeType || 'calculated',
+        gradeType,
       };
       const result = await updateStudentMarks(newRow.studentId, newRow.subjectId, newRow.classId, marksData);
       if (result.success) {
@@ -308,17 +374,6 @@ const MarksTab = React.memo(({
       throw err;
     }
   }, [marksDistribution, toast, t, loadMarksReport]);
-
-  // Overall GPA summary
-  const overallGPA = useMemo(() => {
-    if (groupedMarks.length === 0) return 0;
-    const totalGPA = groupedMarks.reduce((s, g) => s + g.gpa * g.courseCount, 0);
-    const totalCourses = groupedMarks.reduce((s, g) => s + g.courseCount, 0);
-    return totalCourses > 0 ? parseFloat((totalGPA / totalCourses).toFixed(2)) : 0;
-  }, [groupedMarks]);
-
-  const totalRepeated = useMemo(() =>
-    groupedMarks.reduce((s, g) => s + (g.repeatedCount || 0), 0), [groupedMarks]);
 
   if (marksReportLoading && marksReportData.length === 0) {
     return (
@@ -342,50 +397,51 @@ const MarksTab = React.memo(({
 
   return (
     <div className={styles.container}>
-      {/* GPA Summary Card */}
-      <div className={styles.gpaCard}>
-        <div className={styles.gpaIcon}>
-          <GraduationCap size={28} color="white" />
-        </div>
-        <div className={styles.gpaInfo}>
-          <span className={styles.gpaLabel}>{t('gpa')}</span>
-          <span className={styles.gpaValue}>{overallGPA.toFixed(2)}</span>
-        </div>
-        <div className={styles.gpaDivider} />
-        <div className={styles.gpaInfo}>
-          <span className={styles.gpaLabel}>{t('total_courses')}</span>
-          <span className={styles.gpaValue}>{marksReportData.length}</span>
-        </div>
-        <div className={styles.gpaDivider} />
-        <div className={styles.gpaInfo}>
-          <span className={styles.gpaLabel}>{t('repeated')}</span>
-          <span className={styles.gpaValue}>{totalRepeated}</span>
-        </div>
-      </div>
+      <GpaSummaryCard
+        semesterGroups={groupedMarks}
+        cumulativeGpa={cumulativeGpa}
+        totalCourses={marksReportData.length}
+        totalRepeated={totalRepeated}
+        t={t}
+        lang={lang}
+      />
 
-      {/* Marks Distribution Display (staff only) */}
       {canEdit && marksDistribution && (
-        <Card style={{ marginBottom: '1rem' }}>
-          <CardBody>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', fontSize: 'var(--font-size-sm)' }}>
-              <span>{t('mid_term')}: {marksDistribution.midTermExam}%</span>
-              <span>{t('final')}: {marksDistribution.finalExam}%</span>
-              <span>{t('homework')}: {marksDistribution.homework}%</span>
-              <span>{t('labs')}: {marksDistribution.labsProjectResearch}%</span>
-              <span>{t('quizzes')}: {marksDistribution.quizzes}%</span>
-              <span>{t('participation')}: {marksDistribution.participation}%</span>
-              <span>{t('attendance')}: {marksDistribution.attendance}%</span>
-            </div>
-          </CardBody>
-        </Card>
+        <div className={styles.distributionCard}>
+          <div className={styles.distributionHeader}>
+            <span className={styles.distributionTitle}>{t('marks_distribution')}</span>
+            <span className={styles.distributionTotal}>
+              {marksDistribution.midTermExam + marksDistribution.finalExam + marksDistribution.homework +
+               marksDistribution.labsProjectResearch + marksDistribution.quizzes +
+               marksDistribution.participation + marksDistribution.attendance}%
+            </span>
+          </div>
+          <div className={styles.distributionBar}>
+            <div className={styles.distSegment} style={{ width: `${marksDistribution.midTermExam}%`, background: '#6366f1' }} title={`${t('mid_term')} ${marksDistribution.midTermExam}%`} />
+            <div className={styles.distSegment} style={{ width: `${marksDistribution.finalExam}%`, background: '#8b5cf6' }} title={`${t('final')} ${marksDistribution.finalExam}%`} />
+            <div className={styles.distSegment} style={{ width: `${marksDistribution.homework}%`, background: '#ec4899' }} title={`${t('homework')} ${marksDistribution.homework}%`} />
+            <div className={styles.distSegment} style={{ width: `${marksDistribution.labsProjectResearch}%`, background: '#f59e0b' }} title={`${t('labs')} ${marksDistribution.labsProjectResearch}%`} />
+            <div className={styles.distSegment} style={{ width: `${marksDistribution.quizzes}%`, background: '#10b981' }} title={`${t('quizzes')} ${marksDistribution.quizzes}%`} />
+            <div className={styles.distSegment} style={{ width: `${marksDistribution.participation}%`, background: '#3b82f6' }} title={`${t('participation')} ${marksDistribution.participation}%`} />
+            <div className={styles.distSegment} style={{ width: `${marksDistribution.attendance}%`, background: '#64748b' }} title={`${t('attendance')} ${marksDistribution.attendance}%`} />
+          </div>
+          <div className={styles.distributionLegend}>
+            <div className={styles.legendItem}><span className={styles.legendDot} style={{ background: '#6366f1' }} /><span className={styles.legendLabel}>{t('mid_term')}</span><span className={styles.legendValue}>{marksDistribution.midTermExam}%</span></div>
+            <div className={styles.legendItem}><span className={styles.legendDot} style={{ background: '#8b5cf6' }} /><span className={styles.legendLabel}>{t('final')}</span><span className={styles.legendValue}>{marksDistribution.finalExam}%</span></div>
+            <div className={styles.legendItem}><span className={styles.legendDot} style={{ background: '#ec4899' }} /><span className={styles.legendLabel}>{t('homework')}</span><span className={styles.legendValue}>{marksDistribution.homework}%</span></div>
+            <div className={styles.legendItem}><span className={styles.legendDot} style={{ background: '#f59e0b' }} /><span className={styles.legendLabel}>{t('labs')}</span><span className={styles.legendValue}>{marksDistribution.labsProjectResearch}%</span></div>
+            <div className={styles.legendItem}><span className={styles.legendDot} style={{ background: '#10b981' }} /><span className={styles.legendLabel}>{t('quizzes')}</span><span className={styles.legendValue}>{marksDistribution.quizzes}%</span></div>
+            <div className={styles.legendItem}><span className={styles.legendDot} style={{ background: '#3b82f6' }} /><span className={styles.legendLabel}>{t('participation')}</span><span className={styles.legendValue}>{marksDistribution.participation}%</span></div>
+            <div className={styles.legendItem}><span className={styles.legendDot} style={{ background: '#64748b' }} /><span className={styles.legendLabel}>{t('attendance')}</span><span className={styles.legendValue}>{marksDistribution.attendance}%</span></div>
+          </div>
+        </div>
       )}
 
-      {/* Semester-grouped marks grids */}
       {groupedMarks.map((group) => (
         <CollapsibleSection
           key={`${group.semester}-${group.year}`}
           title={`${group.semester} ${group.year}`}
-          summary={`GPA: ${group.gpa.toFixed(2)} · ${group.courseCount} ${tFn('courses') || 'courses'}${group.repeatedCount > 0 ? ` · ${group.repeatedCount} ${tFn('repeated') || 'repeated'}` : ''}`}
+          summary={`${t('semester_gpa')}: ${group.gpa.toFixed(2)} · ${group.courseCount} ${tFn('courses') || 'courses'}${group.repeatedCount > 0 ? ` · ${group.repeatedCount} ${tFn('repeated') || 'repeated'}` : ''}`}
           icon={ClipboardList}
           defaultOpen
           testId={`marks-semester-${group.semester}-${group.year}`}
@@ -400,13 +456,12 @@ const MarksTab = React.memo(({
             exportFileName={`marks-${group.semester}-${group.year}`}
             showExportButton
             exportLabel={t('export')}
-            loadingOverlayMessage={marksReportLoading ? (t('loading_marks')) : undefined}
+            loadingOverlayMessage={marksReportLoading ? t('loading_marks') : undefined}
             processRowUpdate={canEdit ? processRowUpdate : undefined}
           />
         </CollapsibleSection>
       ))}
 
-      {/* Marks History Drawer */}
       <MarksHistoryDrawer
         isOpen={showHistoryDrawer}
         onClose={() => setShowHistoryDrawer(false)}
@@ -417,18 +472,6 @@ const MarksTab = React.memo(({
     </div>
   );
 });
-
-// Helper: Convert letter grade to GPA points
-function gradeToPoints(grade) {
-  const map = {
-    'A+': 4.0, 'A': 4.0, 'A-': 3.7,
-    'B+': 3.3, 'B': 3.0, 'B-': 2.7,
-    'C+': 2.3, 'C': 2.0, 'C-': 1.7,
-    'D+': 1.3, 'D': 1.0, 'D-': 0.7,
-    'F': 0, 'FB': 0, 'FA': 0, 'WF': 0,
-  };
-  return map[grade] ?? 0;
-}
 
 MarksTab.displayName = 'MarksTab';
 export default MarksTab;

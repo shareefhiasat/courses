@@ -138,6 +138,66 @@ const StatsBar = ({
     });
   }
 
+  // Activity type counts (activities mode)
+  if (stats.quiz !== undefined) {
+    statItems.push({
+      icon: 'help',
+      color: '#7c3aed',
+      value: stats.quiz,
+      title: t('quiz')
+    });
+  }
+  if (stats.homework !== undefined) {
+    statItems.push({
+      icon: 'file_text',
+      color: '#2563eb',
+      value: stats.homework,
+      title: t('homework')
+    });
+  }
+  if (stats.training !== undefined) {
+    statItems.push({
+      icon: 'award',
+      color: '#16a34a',
+      value: stats.training,
+      title: t('training')
+    });
+  }
+  if (stats.labProject !== undefined) {
+    statItems.push({
+      icon: 'flask',
+      color: '#0ea5e9',
+      value: stats.labProject,
+      title: t('lab_and_project')
+    });
+  }
+
+  // Resource type counts (resources mode)
+  if (stats.video !== undefined) {
+    statItems.push({
+      icon: 'video',
+      color: '#ef4444',
+      value: stats.video,
+      title: t('video')
+    });
+  }
+  if (stats.link !== undefined) {
+    statItems.push({
+      icon: 'link',
+      color: '#3b82f6',
+      value: stats.link,
+      title: t('link')
+    });
+  }
+  if (stats.document !== undefined) {
+    statItems.push({
+      icon: 'file_text',
+      color: '#10b981',
+      value: stats.document,
+      title: t('document')
+    });
+  }
+
   if (statItems.length === 0) return null;
 
   return (

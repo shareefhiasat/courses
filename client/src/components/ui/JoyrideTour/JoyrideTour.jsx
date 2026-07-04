@@ -4,6 +4,7 @@ import { useTheme } from '@contexts/ThemeContext';
 import { useLang } from '@contexts/LangContext';
 import { MODE_TYPES } from '@utils/sharedTypes';
 import TourTooltip from '@ui/TourTooltip/TourTooltip';
+import { getJoyrideBaseProps, getTourStyles } from '@utils/tourConfig';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 
 const JoyrideTour = ({ 
@@ -19,15 +20,6 @@ const JoyrideTour = ({
   const { t } = useLang();
   const isDark = theme === 'dark';
   const tooltipComponent = useMemo(() => TourTooltip({ tourSeenKey }), [tourSeenKey]);
-
-  // Get primary color from CSS variable
-  const getPrimaryColor = () => {
-    if (typeof window === 'undefined') return '#800020';
-    const root = document.documentElement;
-    return getComputedStyle(root).getPropertyValue('--color-primary').trim() || '#800020';
-  };
-
-  const primaryColor = getPrimaryColor();
 
   // Default steps for HomePage
   const defaultSteps = [
@@ -107,16 +99,7 @@ const JoyrideTour = ({
 
   const tourSteps = steps.length > 0 ? steps : defaultSteps;
 
-  const defaultStyles = {
-    options: {
-      primaryColor: primaryColor,
-      textColor: isDark ? '#fff' : '#000',
-      backgroundColor: isDark ? '#1a1a1a' : '#fff',
-      overlayColor: 'rgba(0, 0, 0, 0.5)',
-      arrowColor: isDark ? '#1a1a1a' : '#fff',
-      zIndex: 10000
-    }
-  };
+  const defaultStyles = getTourStyles(isDark ? 'dark' : 'light');
 
   const handleCallback = (data) => {
     debug('[JoyrideTour] Joyride callback:', data);
@@ -143,14 +126,8 @@ const JoyrideTour = ({
 
   return (
     <Joyride
-      continuous
+      {...getJoyrideBaseProps({ theme: isDark ? 'dark' : 'light', t })}
       run={run}
-      disableScrolling={false}
-      scrollOffset={100}
-      scrollToFirstStep={true}
-      showSkipButton={true}
-      showProgress={true}
-      spotlightClicks={false}
       steps={tourSteps}
       tooltipComponent={tooltipComponent}
       locale={{
