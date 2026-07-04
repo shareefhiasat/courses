@@ -325,6 +325,37 @@ const SummaryDashboardPage = () => {
     return buildSchedulingOverviewCards(overviewStats, t);
   }, [isInstructorDetailView, teacherEffort, overviewStats, t, isRTL]);
 
+  // ─── Analytics panel summaries ─────────────────────────────────────────────
+  const driveSummary = useMemo(() => {
+    if (analyticsHook.loading || !analyticsHook.data?.drive?.overview) return '…';
+    const o = analyticsHook.data.drive.overview;
+    const parts = [];
+    if (o.totalFiles != null) parts.push(`${o.totalFiles} ${t('files') || 'files'}`);
+    if (o.totalFolders != null) parts.push(`${o.totalFolders} ${t('folders') || 'folders'}`);
+    if (o.totalActivities != null) parts.push(`${o.totalActivities} ${t('activities') || 'activities'}`);
+    return parts.join(' · ') || '—';
+  }, [analyticsHook, t]);
+
+  const workflowSummary = useMemo(() => {
+    if (analyticsHook.loading || !analyticsHook.data?.workflow?.overview) return '…';
+    const o = analyticsHook.data.workflow.overview;
+    const parts = [];
+    if (o.totalDocuments != null) parts.push(`${o.totalDocuments} ${t('documents') || 'documents'}`);
+    if (o.approvedCount != null) parts.push(`${o.approvedCount} ${t('approved') || 'approved'}`);
+    if (o.pendingCount != null) parts.push(`${o.pendingCount} ${t('pending') || 'pending'}`);
+    return parts.join(' · ') || '—';
+  }, [analyticsHook, t]);
+
+  const activitySummary = useMemo(() => {
+    if (analyticsHook.loading || !analyticsHook.data?.activity?.overview) return '…';
+    const o = analyticsHook.data.activity.overview;
+    const parts = [];
+    if (o.totalActivities != null) parts.push(`${o.totalActivities} ${t('activities') || 'activities'}`);
+    if (o.totalSubmissions != null) parts.push(`${o.totalSubmissions} ${t('submissions') || 'submissions'}`);
+    if (o.totalResources != null) parts.push(`${o.totalResources} ${t('resources') || 'resources'}`);
+    return parts.join(' · ') || '—';
+  }, [analyticsHook, t]);
+
   const handleTimeRangeChange = (patch) => {
     if (patch.timeRange) setTimeRange(patch.timeRange);
     if (patch.startDate !== undefined) setStartDate(patch.startDate);
@@ -572,41 +603,43 @@ const SummaryDashboardPage = () => {
             </div>
           )}
 
-          {recordsClassId && (
-            <div data-tour="summary-student-records">
-              <CollapsibleSection
-                title={t('student_records')}
-                summary={recordsHook.loading ? '…' : `${(recordsHook.attendance?.length || 0) + (recordsHook.penalties?.length || 0) + (recordsHook.behaviors?.length || 0) + (recordsHook.participations?.length || 0)} ${t('records') || 'records'}`}
-                icon={ClipboardList}
-                defaultOpen={false}
-                testId="summary-student-records-section"
-              >
-                {recordsHook.loading ? (
-                  <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--muted)' }}>
-                    {t('common.loading')}
-                  </div>
-                ) : (
-                  <AttendanceTab
-                    studentId={null}
-                    classId={recordsClassId}
-                    attendance={recordsHook.attendance || []}
-                    participations={recordsHook.participations || []}
-                    penalties={recordsHook.penalties || []}
-                    behaviors={recordsHook.behaviors || []}
-                    students={[]}
-                    onRefresh={recordsHook.reload}
-                    t={t}
-                    lang={lang}
-                  />
-                )}
-              </CollapsibleSection>
-            </div>
-          )}
+          <div data-tour="summary-student-records">
+            <CollapsibleSection
+              title={recordsClassId ? t('class_records') : t('records')}
+              summary={recordsClassId ? (recordsHook.loading ? '…' : `${(recordsHook.attendance?.length || 0) + (recordsHook.penalties?.length || 0) + (recordsHook.behaviors?.length || 0) + (recordsHook.participations?.length || 0)} ${t('records') || 'records'}`) : (t('select_class_to_view') || 'Select a class')}
+              icon={ClipboardList}
+              defaultOpen={false}
+              testId="summary-student-records-section"
+            >
+              {!recordsClassId ? (
+                <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--muted)' }}>
+                  {t('select_class_to_view_records') || 'Select a class to view student records'}
+                </div>
+              ) : recordsHook.loading ? (
+                <div style={{ padding: '1rem', textAlign: 'center', color: 'var(--muted)' }}>
+                  {t('common.loading')}
+                </div>
+              ) : (
+                <AttendanceTab
+                  studentId={null}
+                  classId={recordsClassId}
+                  attendance={recordsHook.attendance || []}
+                  participations={recordsHook.participations || []}
+                  penalties={recordsHook.penalties || []}
+                  behaviors={recordsHook.behaviors || []}
+                  students={[]}
+                  onRefresh={recordsHook.reload}
+                  t={t}
+                  lang={lang}
+                />
+              )}
+            </CollapsibleSection>
+          </div>
 
           <div data-tour="summary-drive-analytics">
             <CollapsibleSection
-              title={t('drive_analytics')}
-              summary={analyticsHook.loading ? '…' : t('ready')}
+              title={t('drive')}
+              summary={driveSummary}
               icon={HardDrive}
               defaultOpen={false}
               testId="summary-drive-analytics-section"
@@ -623,8 +656,8 @@ const SummaryDashboardPage = () => {
               />
             </CollapsibleSection>
             <CollapsibleSection
-              title={t('workflow_analytics')}
-              summary={analyticsHook.loading ? '…' : t('ready')}
+              title={t('workflow')}
+              summary={workflowSummary}
               icon={GitBranch}
               defaultOpen={false}
               testId="summary-workflow-analytics-section"
@@ -641,8 +674,8 @@ const SummaryDashboardPage = () => {
               />
             </CollapsibleSection>
             <CollapsibleSection
-              title={t('activity_analytics')}
-              summary={analyticsHook.loading ? '…' : t('ready')}
+              title={t('activity')}
+              summary={activitySummary}
               icon={Activity}
               defaultOpen={false}
               testId="summary-activity-analytics-section"

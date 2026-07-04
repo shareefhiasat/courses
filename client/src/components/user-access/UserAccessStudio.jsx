@@ -24,7 +24,7 @@ import { createDM } from '@services/business/chatService.js';
 import AvatarWithRoleBadge from '@pages/communications/chat/components/AvatarWithRoleBadge.jsx';
 import RoleBadge from '@pages/communications/chat/components/RoleBadge.jsx';
 import { resolveUserRole, ROLE_STRINGS } from '@utils/userUtils';
-import { scheduleTourStart, registerPageTour, registerTourAvailability, notifyPageTourFinished } from '@utils/tourScheduler';
+import { scheduleTourStart, registerPageTour, registerTourAvailability, notifyPageTourFinished, requestTourStart, releaseTour } from '@utils/tourScheduler';
 import { getIconWithColor, getUserRoleColor } from '@constants/iconTypes';
 import {
   sortSubjectsByCode,
@@ -187,8 +187,10 @@ function UserAccessStudio() {
   const startTour = useCallback(() => {
     const steps = buildTourSteps();
     if (!steps.length) return;
-    setTourSteps(steps);
-    setRunTour(true);
+    requestTourStart('user-access-studio', () => {
+      setTourSteps(steps);
+      setRunTour(true);
+    });
   }, [buildTourSteps]);
 
   useEffect(() => registerPageTour('user-access-studio', startTour, getTourStepCount), [startTour, getTourStepCount]);
@@ -205,6 +207,7 @@ function UserAccessStudio() {
     if (status === 'finished' || status === 'skipped' || action === 'close') {
       setRunTour(false);
       try { localStorage.setItem(tourSeenKey, 'true'); } catch { /* ignore */ }
+      releaseTour('user-access-studio');
       notifyPageTourFinished({ id: 'user-access-studio' });
     }
   }, [tourSeenKey]);

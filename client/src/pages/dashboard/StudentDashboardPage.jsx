@@ -248,6 +248,44 @@ export default function StudentDashboardPage() {
     ...filters.filteredStudents.map(s => ({ value: s.id || s.uid, label: s.displayName || s.email || '' })),
   ], [filters.filteredStudents, lang, t]);
 
+  // ─── Analytics panel summaries (replace 'Ready' with actual stats) ─────────
+  const driveSummary = useMemo(() => {
+    if (analyticsHook.loading || !analyticsHook.data?.drive?.overview) return '…';
+    const o = analyticsHook.data.drive.overview;
+    const parts = [];
+    if (o.totalFiles != null) parts.push(`${o.totalFiles} ${t('files') || 'files'}`);
+    if (o.totalFolders != null) parts.push(`${o.totalFolders} ${t('folders') || 'folders'}`);
+    if (o.totalActivities != null) parts.push(`${o.totalActivities} ${t('activities') || 'activities'}`);
+    return parts.join(' · ') || '—';
+  }, [analyticsHook, t]);
+
+  const workflowSummary = useMemo(() => {
+    if (analyticsHook.loading || !analyticsHook.data?.workflow?.overview) return '…';
+    const o = analyticsHook.data.workflow.overview;
+    const parts = [];
+    if (o.totalDocuments != null) parts.push(`${o.totalDocuments} ${t('documents') || 'documents'}`);
+    if (o.approvedCount != null) parts.push(`${o.approvedCount} ${t('approved') || 'approved'}`);
+    if (o.pendingCount != null) parts.push(`${o.pendingCount} ${t('pending') || 'pending'}`);
+    return parts.join(' · ') || '—';
+  }, [analyticsHook, t]);
+
+  // Context-aware records title
+  const recordsTitle = useMemo(() => {
+    if (filters.selectedStudentId) return t('student_records');
+    if (filters.selectedClassId && filters.selectedClassId !== 'all') return t('class_records');
+    return t('records');
+  }, [filters.selectedStudentId, filters.selectedClassId, t]);
+
+  const activitySummary = useMemo(() => {
+    if (analyticsHook.loading || !analyticsHook.data?.activity?.overview) return '…';
+    const o = analyticsHook.data.activity.overview;
+    const parts = [];
+    if (o.totalActivities != null) parts.push(`${o.totalActivities} ${t('activities') || 'activities'}`);
+    if (o.totalSubmissions != null) parts.push(`${o.totalSubmissions} ${t('submissions') || 'submissions'}`);
+    if (o.totalResources != null) parts.push(`${o.totalResources} ${t('resources') || 'resources'}`);
+    return parts.join(' · ') || '—';
+  }, [analyticsHook, t]);
+
   // ─── Memoized tabs configuration (Performance optimization) ─────────────────────
   const dashTabs = useMemo(() => {
     const tabs = [
@@ -473,7 +511,7 @@ export default function StudentDashboardPage() {
                     />
                   </CollapsibleSection>
                   <CollapsibleSection
-                    title={t('student_records')}
+                    title={recordsTitle}
                     summary={`${dashData.attendance?.length || 0} ${t('records') || 'records'}`}
                     icon={ClipboardList}
                     defaultOpen={false}
@@ -500,8 +538,8 @@ export default function StudentDashboardPage() {
               {activeTab === 'activity' && (
                 <div data-tour="student-drive-analytics">
                   <CollapsibleSection
-                    title={t('drive_analytics')}
-                    summary={analyticsHook.loading ? '…' : t('ready')}
+                    title={t('drive')}
+                    summary={driveSummary}
                     icon={HardDrive}
                     defaultOpen={false}
                     testId="dashboard-drive-analytics-section"
@@ -518,8 +556,8 @@ export default function StudentDashboardPage() {
                     />
                   </CollapsibleSection>
                   <CollapsibleSection
-                    title={t('workflow_analytics')}
-                    summary={analyticsHook.loading ? '…' : t('ready')}
+                    title={t('workflow')}
+                    summary={workflowSummary}
                     icon={GitBranch}
                     defaultOpen={false}
                     testId="dashboard-workflow-analytics-section"
@@ -536,8 +574,8 @@ export default function StudentDashboardPage() {
                     />
                   </CollapsibleSection>
                   <CollapsibleSection
-                    title={t('activity_analytics')}
-                    summary={analyticsHook.loading ? '…' : t('ready')}
+                    title={t('activity')}
+                    summary={activitySummary}
                     icon={Activity}
                     defaultOpen={false}
                     testId="dashboard-activity-analytics-section"

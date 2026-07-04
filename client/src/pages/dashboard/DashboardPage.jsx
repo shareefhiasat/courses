@@ -7,7 +7,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { MODE_TYPES } from '@utils/sharedTypes';
 import { DASHBOARD_TAB_SCREEN_IDS } from '@config/navigationRegistry.js';
 import { usePermissions } from '@hooks/usePermissions';
-import { dispatchPageTourIfRegistered, registerTourAvailability } from '@utils/tourScheduler';
+import { dispatchPageTourIfRegistered, registerTourAvailability, requestTourStart, releaseTour } from '@utils/tourScheduler';
 import { getJoyrideBaseProps, getTourStyles, ribbonTabStep } from '@utils/tourConfig';
 import Joyride from 'react-joyride';
 import TourTooltip from '@ui/TourTooltip/TourTooltip';
@@ -74,18 +74,9 @@ const DashboardPage = () => {
       } catch {
         // ignore
       }
-      // Notify child pages that the dashboard tour is done so they can start theirs
-      window.dispatchEvent(new CustomEvent('dashboard-tour-finished'));
-      window.dispatchEvent(new CustomEvent('tour-availability-changed'));
+      releaseTour('dashboard-shell');
     }
   }, [lang]);
-
-  // Stop shell tour when a nested page tour takes over (help button / capture router)
-  useEffect(() => {
-    const suppress = () => setRunTour(false);
-    window.addEventListener('tour-suppress-shell', suppress);
-    return () => window.removeEventListener('tour-suppress-shell', suppress);
-  }, []);
 
   const TourTooltipComponent = useMemo(() => TourTooltip({ tourSeenKey: `dashboardHelpSeen_${lang}` }), [lang]);
   const navigate = useNavigate();
@@ -403,8 +394,10 @@ const DashboardPage = () => {
   const startTour = useCallback(() => {
     const steps = buildTourSteps();
     if (steps.length === 0) return;
-    setTourSteps(steps);
-    setRunTour(true);
+    requestTourStart('dashboard-shell', () => {
+      setTourSteps(steps);
+      setRunTour(true);
+    });
   }, [buildTourSteps]);
 
   useEffect(() => {

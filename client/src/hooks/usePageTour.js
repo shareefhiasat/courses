@@ -6,6 +6,8 @@ import {
   registerPageTour,
   registerTourAvailability,
   notifyPageTourFinished,
+  requestTourStart,
+  releaseTour,
 } from '@utils/tourScheduler';
 
 /**
@@ -40,9 +42,11 @@ export function usePageTour(id, keyPrefix, stepsOrBuilder, options = {}) {
   const startTour = useCallback(() => {
     const built = resolveSteps();
     if (!built.length) return;
-    setSteps(built);
-    setRun(true);
-  }, [resolveSteps]);
+    requestTourStart(id, () => {
+      setSteps(built);
+      setRun(true);
+    });
+  }, [resolveSteps, id]);
 
   useEffect(() => registerPageTour(id, startTour, getStepCount), [id, startTour, getStepCount]);
 
@@ -69,6 +73,7 @@ export function usePageTour(id, keyPrefix, stepsOrBuilder, options = {}) {
         } catch {
           /* ignore */
         }
+        releaseTour(id);
         notifyPageTourFinished({ id });
       }
     },

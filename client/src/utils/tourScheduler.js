@@ -15,9 +15,70 @@ const pageTourStack = [];
 const tourProviders = new Map();
 let tourRouterInstalled = false;
 
-/** Suppress any in-flight dashboard/shell tour before starting a nested page tour. */
-function suppressShellTours() {
-  window.dispatchEvent(new CustomEvent('tour-suppress-shell'));
+/** Only one Joyride may be active app-wide (prevents stacked overlays). */
+let activeTourId = null;
+const tourWaitQueue = [];
+
+const QUEUE_DRAIN_MS = 450;
+
+export function getActiveTourId() {
+  return activeTourId;
+}
+
+export function isAnyTourActive() {
+  return activeTourId !== null;
+}
+
+function drainTourQueue() {
+  if (activeTourId || tourWaitQueue.length === 0) return;
+  const next = tourWaitQueue.shift();
+  activeTourId = next.id;
+  next.startFn();
+  window.dispatchEvent(new CustomEvent('tour-started', { detail: { id: next.id } }));
+}
+
+/**
+ * Start a tour now, or queue it if another tour is already running.
+ * Ensures tours always play one-after-another — never two overlays at once.
+ */
+export function requestTourStart(id, startFn) {
+  if (activeTourId === id) return;
+
+  if (activeTourId) {
+    const dupIdx = tourWaitQueue.findIndex((e) => e.id === id);
+    if (dupIdx >= 0) tourWaitQueue.splice(dupIdx, 1);
+    tourWaitQueue.push({ id, startFn });
+    return;
+  }
+
+  activeTourId = id;
+  startFn();
+  window.dispatchEvent(new CustomEvent('tour-started', { detail: { id } }));
+}
+
+/** Call when a tour finishes, is skipped, or is closed. */
+export function releaseTour(id) {
+  if (activeTourId !== id) return;
+  activeTourId = null;
+
+  if (id === 'dashboard-shell') {
+    window.dispatchEvent(new CustomEvent('dashboard-tour-finished'));
+  }
+  window.dispatchEvent(new CustomEvent('tour-ended', { detail: { id } }));
+  notifyTourAvailabilityChanged();
+  setTimeout(drainTourQueue, QUEUE_DRAIN_MS);
+}
+
+/** Force-stop a running tour (e.g. shell suppressed by a page tour). */
+export function cancelTour(id) {
+  if (activeTourId === id) {
+    activeTourId = null;
+    window.dispatchEvent(new CustomEvent('tour-ended', { detail: { id, cancelled: true } }));
+    setTimeout(drainTourQueue, QUEUE_DRAIN_MS);
+  }
+  for (let i = tourWaitQueue.length - 1; i >= 0; i -= 1) {
+    if (tourWaitQueue[i].id === id) tourWaitQueue.splice(i, 1);
+  }
 }
 
 /**
@@ -30,7 +91,6 @@ export function installTourEventRouter() {
 
   const route = (e) => {
     if (pageTourStack.length === 0) return;
-    suppressShellTours();
     const top = pageTourStack[pageTourStack.length - 1];
     top.startTour();
     e.stopImmediatePropagation();
@@ -108,46 +168,45 @@ export function registerPageTour(id, startTour, getStepCount) {
 /** Returns true when a nested page tour consumed the event. */
 export function dispatchPageTourIfRegistered() {
   if (pageTourStack.length === 0) return false;
-  suppressShellTours();
   const top = pageTourStack[pageTourStack.length - 1];
   top.startTour();
   return true;
 }
 
 /**
- * Delay child page tour auto-start until the dashboard tour finishes.
- * After the dashboard tour completes, waits ~1s before starting the page tour.
- * If the dashboard tour does not auto-start within a short window (e.g. user landed
- * on a tab with its own tour), the page tour starts anyway.
+ * Delay child page tour auto-start until the dashboard shell tour finishes.
+ * Page tours never auto-start while the dashboard tour is still playing.
  */
 export function scheduleTourStart(tourSeenKey, lang, startTour) {
   try {
-    if (localStorage.getItem(tourSeenKey)) return;
+    if (localStorage.getItem(tourSeenKey)) return undefined;
 
     const dashboardTourKey = `dashboardHelpSeen_${lang}`;
-    if (!localStorage.getItem(dashboardTourKey)) {
-      let started = false;
-      const startOnce = () => {
-        if (started) return;
-        started = true;
-        startTour();
-        window.removeEventListener('dashboard-tour-finished', onDashboardDone);
-        clearTimeout(fallbackTimer);
-      };
+    const dashboardUnseen = !localStorage.getItem(dashboardTourKey);
+
+    if (dashboardUnseen) {
       const onDashboardDone = () => {
-        if (started) return;
-        clearTimeout(fallbackTimer);
-        setTimeout(startOnce, 1000);
+        window.removeEventListener('dashboard-tour-finished', onDashboardDone);
+        setTimeout(startTour, QUEUE_DRAIN_MS);
       };
       window.addEventListener('dashboard-tour-finished', onDashboardDone);
-      const fallbackTimer = setTimeout(startOnce, 1000);
-      return () => {
-        window.removeEventListener('dashboard-tour-finished', onDashboardDone);
-        clearTimeout(fallbackTimer);
-      };
+      return () => window.removeEventListener('dashboard-tour-finished', onDashboardDone);
     }
+
+    if (isAnyTourActive()) {
+      const onTourEnded = () => {
+        if (!isAnyTourActive()) {
+          window.removeEventListener('tour-ended', onTourEnded);
+          setTimeout(startTour, QUEUE_DRAIN_MS);
+        }
+      };
+      window.addEventListener('tour-ended', onTourEnded);
+      return () => window.removeEventListener('tour-ended', onTourEnded);
+    }
+
     startTour();
   } catch {
     startTour();
   }
+  return undefined;
 }

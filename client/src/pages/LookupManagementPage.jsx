@@ -10,7 +10,8 @@
 
 import React, { useState, useRef, useCallback, useEffect, useMemo } from 'react';
 import Joyride from 'react-joyride';
-import TourTooltip from '@ui/TourTooltip/TourTooltip';
+import { usePageTour } from '@hooks/usePageTour';
+import { getJoyrideBaseProps, getTourStyles } from '@utils/tourConfig';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useAuth } from '@contexts/AuthContext';
@@ -726,8 +727,6 @@ const LookupPageWithTour = ({
   formState, setFormState, saving, renderField, handleSubmit, handleCancel,
   items, gridColumns, lookupLoading, deleteModal, hideDeleteModal, handleDeleteConfirm
 }) => {
-  const [runTour, setRunTour] = React.useState(false);
-  const tourSeenKey = `lookupTourSeen_${lookupType}_${lang}`;
   const tourSteps = React.useMemo(() => [
     { target: 'body', content: t('tour.lookup_search'), disableBeacon: true, placement: 'center' },
     { target: '[data-tour="lookup-add-btn"]', content: t('tour.lookup_add'), disableBeacon: true, placement: 'bottom' },
@@ -736,24 +735,18 @@ const LookupPageWithTour = ({
     { target: '[data-tour="lookup-grid"]', content: t('tour.lookup_delete'), disableBeacon: true, placement: 'top' },
     { target: '[data-tour="lookup-grid"]', content: t('tour.lookup_color'), disableBeacon: true, placement: 'top' },
   ], [lookupType, lang, t]);
-  React.useEffect(() => {
-    const start = () => setRunTour(true);
-    window.addEventListener('app:joyride', start);
-    window.addEventListener('app:help', start);
-    return () => { window.removeEventListener('app:joyride', start); window.removeEventListener('app:help', start); };
-  }, []);
-  React.useEffect(() => { try { if (!localStorage.getItem(tourSeenKey)) setRunTour(true); } catch {} }, [tourSeenKey]);
-  const handleTourCb = React.useCallback((data) => {
-    const { status, action } = data || {};
-    if (status === 'finished' || status === 'skipped' || action === 'close') { setRunTour(false); try { localStorage.setItem(tourSeenKey, 'true'); } catch {} }
-  }, [tourSeenKey]);
-  const TourTooltipComponent = useMemo(() => TourTooltip({ tourSeenKey }), [tourSeenKey]);
+  const { run: runTour, steps: activeTourSteps, callback: handleTourCb, TourTooltipComponent } =
+    usePageTour(`lookup-${lookupType}`, `lookupTourSeen_${lookupType}`, tourSteps);
 
   return (
     <div style={{ padding: '1.5rem' }}>
-      <Joyride continuous run={runTour} steps={tourSteps} callback={handleTourCb} scrollOffset={100} scrollToFirstStep showSkipButton showProgress tooltipComponent={TourTooltipComponent}
-        locale={{ back: t('tour_back'), close: t('tour_close'), last: t('tour_finish'), next: t('tour_next'), skip: t('tour_skip') }}
-        styles={{ options: { primaryColor: 'var(--color-primary,#800020)', textColor: theme === 'dark' ? '#e5e7eb' : '#111', backgroundColor: theme === 'dark' ? '#1f2937' : '#fff', zIndex: 10000 } }}
+      <Joyride
+        {...getJoyrideBaseProps({ theme, t })}
+        run={runTour}
+        steps={activeTourSteps}
+        callback={handleTourCb}
+        tooltipComponent={TourTooltipComponent}
+        styles={getTourStyles(theme)}
       />
       {/* Header */}
       <div style={{ 

@@ -41,6 +41,7 @@ const MarksTab = React.memo(({
   const [marksReportData, setMarksReportData] = useState([]);
   const [marksReportLoading, setMarksReportLoading] = useState(false);
   const [marksDistribution, setMarksDistribution] = useState(null);
+  const [semesterDistributions, setSemesterDistributions] = useState({});
   const [showHistoryDrawer, setShowHistoryDrawer] = useState(false);
   const [historyData, setHistoryData] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -92,6 +93,34 @@ const MarksTab = React.memo(({
     () => groupMarksBySemester(marksReportData),
     [marksReportData]
   );
+
+  // Fetch mark distribution for each semester's first subject
+  useEffect(() => {
+    if (groupedMarks.length === 0) return;
+    const semesterKeys = groupedMarks.map(g => `${g.semester}-${g.year}`);
+    const missing = semesterKeys.filter(k => !(k in semesterDistributions));
+    if (missing.length === 0) return;
+    let cancelled = false;
+    (async () => {
+      const entries = {};
+      for (const group of groupedMarks) {
+        const key = `${group.semester}-${group.year}`;
+        if (key in semesterDistributions) continue;
+        const subjId = group.courses[0]?.subjectId;
+        if (!subjId) continue;
+        try {
+          const result = await getSubjectMarksDistribution(subjId);
+          if (result.success) entries[key] = result.data;
+        } catch (err) {
+          error('[MarksTab] Error loading semester distribution:', err);
+        }
+      }
+      if (!cancelled && Object.keys(entries).length > 0) {
+        setSemesterDistributions(prev => ({ ...prev, ...entries }));
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [groupedMarks]);
 
   const cumulativeGpa = useMemo(
     () => calculateGpaFromMarks(marksReportData).gpa,
@@ -406,46 +435,49 @@ const MarksTab = React.memo(({
         lang={lang}
       />
 
-      {canEdit && marksDistribution && (
-        <div className={styles.distributionCard}>
-          <div className={styles.distributionHeader}>
-            <span className={styles.distributionTitle}>{t('marks_distribution')}</span>
-            <span className={styles.distributionTotal}>
-              {marksDistribution.midTermExam + marksDistribution.finalExam + marksDistribution.homework +
-               marksDistribution.labsProjectResearch + marksDistribution.quizzes +
-               marksDistribution.participation + marksDistribution.attendance}%
-            </span>
-          </div>
-          <div className={styles.distributionBar}>
-            <div className={styles.distSegment} style={{ width: `${marksDistribution.midTermExam}%`, background: '#6366f1' }} title={`${t('mid_term')} ${marksDistribution.midTermExam}%`} />
-            <div className={styles.distSegment} style={{ width: `${marksDistribution.finalExam}%`, background: '#8b5cf6' }} title={`${t('final')} ${marksDistribution.finalExam}%`} />
-            <div className={styles.distSegment} style={{ width: `${marksDistribution.homework}%`, background: '#ec4899' }} title={`${t('homework')} ${marksDistribution.homework}%`} />
-            <div className={styles.distSegment} style={{ width: `${marksDistribution.labsProjectResearch}%`, background: '#f59e0b' }} title={`${t('labs')} ${marksDistribution.labsProjectResearch}%`} />
-            <div className={styles.distSegment} style={{ width: `${marksDistribution.quizzes}%`, background: '#10b981' }} title={`${t('quizzes')} ${marksDistribution.quizzes}%`} />
-            <div className={styles.distSegment} style={{ width: `${marksDistribution.participation}%`, background: '#3b82f6' }} title={`${t('participation')} ${marksDistribution.participation}%`} />
-            <div className={styles.distSegment} style={{ width: `${marksDistribution.attendance}%`, background: '#64748b' }} title={`${t('attendance')} ${marksDistribution.attendance}%`} />
-          </div>
-          <div className={styles.distributionLegend}>
-            <div className={styles.legendItem}><span className={styles.legendDot} style={{ background: '#6366f1' }} /><span className={styles.legendLabel}>{t('mid_term')}</span><span className={styles.legendValue}>{marksDistribution.midTermExam}%</span></div>
-            <div className={styles.legendItem}><span className={styles.legendDot} style={{ background: '#8b5cf6' }} /><span className={styles.legendLabel}>{t('final')}</span><span className={styles.legendValue}>{marksDistribution.finalExam}%</span></div>
-            <div className={styles.legendItem}><span className={styles.legendDot} style={{ background: '#ec4899' }} /><span className={styles.legendLabel}>{t('homework')}</span><span className={styles.legendValue}>{marksDistribution.homework}%</span></div>
-            <div className={styles.legendItem}><span className={styles.legendDot} style={{ background: '#f59e0b' }} /><span className={styles.legendLabel}>{t('labs')}</span><span className={styles.legendValue}>{marksDistribution.labsProjectResearch}%</span></div>
-            <div className={styles.legendItem}><span className={styles.legendDot} style={{ background: '#10b981' }} /><span className={styles.legendLabel}>{t('quizzes')}</span><span className={styles.legendValue}>{marksDistribution.quizzes}%</span></div>
-            <div className={styles.legendItem}><span className={styles.legendDot} style={{ background: '#3b82f6' }} /><span className={styles.legendLabel}>{t('participation')}</span><span className={styles.legendValue}>{marksDistribution.participation}%</span></div>
-            <div className={styles.legendItem}><span className={styles.legendDot} style={{ background: '#64748b' }} /><span className={styles.legendLabel}>{t('attendance')}</span><span className={styles.legendValue}>{marksDistribution.attendance}%</span></div>
-          </div>
-        </div>
-      )}
-
       {groupedMarks.map((group) => (
         <CollapsibleSection
           key={`${group.semester}-${group.year}`}
           title={`${group.semester} ${group.year}`}
           summary={`${t('semester_gpa')}: ${group.gpa.toFixed(2)} · ${group.courseCount} ${tFn('courses') || 'courses'}${group.repeatedCount > 0 ? ` · ${group.repeatedCount} ${tFn('repeated') || 'repeated'}` : ''}`}
           icon={ClipboardList}
-          defaultOpen
+          defaultOpen={false}
           testId={`marks-semester-${group.semester}-${group.year}`}
         >
+          {(() => {
+            const semKey = `${group.semester}-${group.year}`;
+            const dist = semesterDistributions[semKey];
+            if (!dist) return null;
+            return (
+              <div className={styles.distributionCard}>
+                <div className={styles.distributionHeader}>
+                  <span className={styles.distributionTotal}>
+                    {dist.midTermExam + dist.finalExam + dist.homework +
+                     dist.labsProjectResearch + dist.quizzes +
+                     dist.participation + dist.attendance}%
+                  </span>
+                </div>
+                <div className={styles.distributionBar}>
+                  <div className={styles.distSegment} style={{ width: `${dist.midTermExam}%`, background: '#6366f1' }} title={`${t('mid_term')} ${dist.midTermExam}%`} />
+                  <div className={styles.distSegment} style={{ width: `${dist.finalExam}%`, background: '#8b5cf6' }} title={`${t('final')} ${dist.finalExam}%`} />
+                  <div className={styles.distSegment} style={{ width: `${dist.homework}%`, background: '#ec4899' }} title={`${t('homework')} ${dist.homework}%`} />
+                  <div className={styles.distSegment} style={{ width: `${dist.labsProjectResearch}%`, background: '#f59e0b' }} title={`${t('labs')} ${dist.labsProjectResearch}%`} />
+                  <div className={styles.distSegment} style={{ width: `${dist.quizzes}%`, background: '#10b981' }} title={`${t('quizzes')} ${dist.quizzes}%`} />
+                  <div className={styles.distSegment} style={{ width: `${dist.participation}%`, background: '#3b82f6' }} title={`${t('participation')} ${dist.participation}%`} />
+                  <div className={styles.distSegment} style={{ width: `${dist.attendance}%`, background: '#64748b' }} title={`${t('attendance')} ${dist.attendance}%`} />
+                </div>
+                <div className={styles.distributionLegend}>
+                  <div className={styles.legendItem}><span className={styles.legendDot} style={{ background: '#6366f1' }} /><span className={styles.legendLabel}>{t('mid_term')}</span><span className={styles.legendValue}>{dist.midTermExam}%</span></div>
+                  <div className={styles.legendItem}><span className={styles.legendDot} style={{ background: '#8b5cf6' }} /><span className={styles.legendLabel}>{t('final')}</span><span className={styles.legendValue}>{dist.finalExam}%</span></div>
+                  <div className={styles.legendItem}><span className={styles.legendDot} style={{ background: '#ec4899' }} /><span className={styles.legendLabel}>{t('homework')}</span><span className={styles.legendValue}>{dist.homework}%</span></div>
+                  <div className={styles.legendItem}><span className={styles.legendDot} style={{ background: '#f59e0b' }} /><span className={styles.legendLabel}>{t('labs')}</span><span className={styles.legendValue}>{dist.labsProjectResearch}%</span></div>
+                  <div className={styles.legendItem}><span className={styles.legendDot} style={{ background: '#10b981' }} /><span className={styles.legendLabel}>{t('quizzes')}</span><span className={styles.legendValue}>{dist.quizzes}%</span></div>
+                  <div className={styles.legendItem}><span className={styles.legendDot} style={{ background: '#3b82f6' }} /><span className={styles.legendLabel}>{t('participation')}</span><span className={styles.legendValue}>{dist.participation}%</span></div>
+                  <div className={styles.legendItem}><span className={styles.legendDot} style={{ background: '#64748b' }} /><span className={styles.legendLabel}>{t('attendance')}</span><span className={styles.legendValue}>{dist.attendance}%</span></div>
+                </div>
+              </div>
+            );
+          })()}
           <AdvancedDataGrid
             key={`marks-grid-${group.semester}-${group.year}-${group.courses.length}`}
             rows={group.courses}

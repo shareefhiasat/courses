@@ -37,7 +37,7 @@ const ClassTab = memo(({
 
   // Memoize title based on context
   const title = useMemo(() => {
-    return lang === 'ar' ? 'تحليلات الفصل' : 'Class Analytics';
+    return lang === 'ar' ? 'الفصل' : 'Class';
   }, [lang]);
 
   // Build summary text for collapsible header
@@ -125,7 +125,7 @@ const ClassTab = memo(({
         title={title}
         summary={summaryText}
         icon={Users}
-        defaultOpen
+        defaultOpen={false}
         testId="class-analytics-section"
       >
         <ClassAnalytics

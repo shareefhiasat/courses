@@ -83,6 +83,13 @@ const OverviewTab = memo(({
     }
   }, []);
 
+  // Context-aware records title
+  const recordsTitle = useMemo(() => {
+    if (selectedStudentId) return t('student_records');
+    if (selectedClassId && selectedClassId !== 'all') return t('class_records');
+    return t('records');
+  }, [selectedStudentId, selectedClassId, t]);
+
   // Performance summary text
   const performanceSummary = useMemo(() => {
     const att = attendance?.length || 0;
@@ -105,6 +112,22 @@ const OverviewTab = memo(({
       )}
 
       <CollapsibleSection
+        title={t('performance')}
+        summary={performanceSummary}
+        icon={BarChart3}
+        defaultOpen={false}
+        testId="performance-analytics-section"
+      >
+        <PerformanceAnalytics
+          dashData={dashData}
+          lookupData={lookupData}
+          isRTL={isRTL}
+          onReload={handleDataRefresh}
+          lastUpdatedAt={lastUpdatedAt}
+        />
+      </CollapsibleSection>
+
+      <CollapsibleSection
         title={title}
         summary={summaryText}
         icon={LayoutDashboard}
@@ -121,23 +144,7 @@ const OverviewTab = memo(({
       </CollapsibleSection>
 
       <CollapsibleSection
-        title={t('performance_analytics')}
-        summary={performanceSummary}
-        icon={BarChart3}
-        defaultOpen={false}
-        testId="performance-analytics-section"
-      >
-        <PerformanceAnalytics
-          dashData={dashData}
-          lookupData={lookupData}
-          isRTL={isRTL}
-          onReload={handleDataRefresh}
-          lastUpdatedAt={lastUpdatedAt}
-        />
-      </CollapsibleSection>
-
-      <CollapsibleSection
-        title={t('student_records')}
+        title={recordsTitle}
         summary={`${attendance?.length || 0} ${tFn('records') || 'records'}`}
         icon={ClipboardList}
         defaultOpen={false}

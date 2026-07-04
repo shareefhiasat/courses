@@ -112,6 +112,12 @@ const ChatPage = memo(() => {
     { target: '[data-tour="chat-emoji-btn"]', content: t('tour.chat_emoji'), disableBeacon: true, placement: 'top' },
     { target: '[data-tour="chat-poll-btn"]', content: t('tour.chat_poll'), disableBeacon: true, placement: 'top' },
     { target: '[data-tour="chat-reaction-btn"]', content: t('tour.chat_reactions'), disableBeacon: true, placement: 'left' },
+    { target: '[data-tour="chat-dm-section"]', content: t('tour.chat_dm_section'), disableBeacon: true, placement: 'right' },
+    { target: '[data-tour="chat-dm-search"]', content: t('tour.chat_dm_search'), disableBeacon: true, placement: 'right' },
+    { target: '[data-tour="chat-dm-favorite"]', content: t('tour.chat_dm_favorite'), disableBeacon: true, placement: 'left' },
+    { target: '[data-tour="chat-dm-archive"]', content: t('tour.chat_dm_archive'), disableBeacon: true, placement: 'left' },
+    { target: '[data-tour="chat-members-btn"]', content: t('tour.chat_members_btn'), disableBeacon: true, placement: 'left' },
+    { target: '[data-tour="chat-sidebar-footer"]', content: t('tour.chat_sidebar_footer'), disableBeacon: true, placement: 'top' },
   ].filter(s => !!document.querySelector(s.target)), [t]);
   const startTour = useCallback(() => {
     const steps = buildTourSteps();
@@ -1680,7 +1686,7 @@ const ChatPage = memo(() => {
           })()}
           
           {/* Direct Messages */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.4rem 0.9rem', borderTop: '1px solid var(--border)' }}>
+          <div data-tour="chat-dm-section" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.4rem 0.9rem', borderTop: '1px solid var(--border)' }}>
             <span style={{ color: 'var(--muted)', fontWeight: 600, fontSize: '0.85rem' }}>{t('chat_direct_messages')}</span>
             <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
               <button
@@ -1692,6 +1698,7 @@ const ChatPage = memo(() => {
               </button>
               {isStaffRole && (
                 <button
+                  data-tour="chat-new-dm"
                   onClick={openNewDMPicker}
                   style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--brand)', fontSize: '1.1rem', padding: '2px 6px', borderRadius: 4 }}
                   title={t('start_new_conversation')}
@@ -1706,6 +1713,7 @@ const ChatPage = memo(() => {
             return dmRooms.length > 3;
           })() && (
             <input
+              data-tour="chat-dm-search"
               type="text"
               autoComplete="off"
               placeholder={t('chat_search_users')}
@@ -1824,10 +1832,12 @@ const ChatPage = memo(() => {
                         {label}
                       </div>
                       <button
+                        data-tour="chat-dm-favorite"
                         onClick={(e) => { e.stopPropagation(); toggleStar(room); }}
                         style={{ background:'transparent', border:'none', cursor:'pointer', color:(room.starBy||[]).includes(user.uid)?'#facc15':'var(--muted)', fontSize:'0.85rem', lineHeight:1, padding:0, display:'flex', alignItems:'center', flexShrink:0 }}
                       >{(room.starBy||[]).includes(user.uid)?'★':'☆'}</button>
                       <button
+                        data-tour="chat-dm-archive"
                         onClick={async (e) => {
                           e.stopPropagation();
                           try {
@@ -1855,7 +1865,7 @@ const ChatPage = memo(() => {
         </div>
         </div>
         {/* Sidebar footer: archived + favorites toggle */}
-        <div style={{ padding:'0.5rem 0.9rem', borderTop:'1px solid var(--border)', display:'flex', alignItems:'center', gap:16 }}>
+        <div data-tour="chat-sidebar-footer" style={{ padding:'0.5rem 0.9rem', borderTop:'1px solid var(--border)', display:'flex', alignItems:'center', gap:16 }}>
           <div style={{ display:'flex', alignItems:'center', gap:8 }}>
             <input id="toggle-archived" type="checkbox" checked={showArchived} onChange={(e)=>setShowArchived(e.target.checked)} />
             <label htmlFor="toggle-archived" style={{ fontSize:'0.85rem', color:'var(--muted)', cursor:'pointer' }}>{t('show_archived')}</label>
@@ -2229,7 +2239,7 @@ const ChatPage = memo(() => {
         {/* Members button - moved to separate row */}
         {classMembers.length > 0 && !selectedClass?.startsWith('dm:') && !selectedClass?.startsWith('group:') && (
           <div style={{ padding: '0.5rem 1.5rem', background: 'var(--panel)', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div onClick={() => setShowMembers(true)} style={{ fontSize: '0.9rem', color: 'var(--muted)', cursor: 'pointer', textDecoration: 'underline', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <div data-tour="chat-members-btn" onClick={() => setShowMembers(true)} style={{ fontSize: '0.9rem', color: 'var(--muted)', cursor: 'pointer', textDecoration: 'underline', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
               {getThemedIcon('ui', 'users', 16, theme)} {classMembers.length} {t('chat_members')}
             </div>
             <button

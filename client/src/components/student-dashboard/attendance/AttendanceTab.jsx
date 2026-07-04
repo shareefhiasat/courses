@@ -10,6 +10,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';
 import { getQatarDateParts, formatForDateInput } from '@utils/date-formatter.js';
 import styles from './AttendanceTab.module.css';
 import { getThemedIcon } from '@constants/iconTypes';
+import { getLocalizedUserName } from '@utils/localizedUserName';
 
 /**
  * Attendance Tab – shows attendance history with inline editing for staff.
@@ -350,10 +351,51 @@ const AttendanceTab = React.memo(({
     };
 
     const allLogs = [
-      ...attendance.map(a => ({ ...a, logType: RECORD_TYPES.ATTENDANCE, rawTime: a.time, time: resolveDate(a), studentName: getStudentInfo(a.studentId) })),
-      ...participations.map(p => ({ ...p, logType: RECORD_TYPES.PARTICIPATION, rawTime: p.time, time: resolveDate(p), studentName: getStudentInfo(p.studentId) })),
-      ...penalties.map(p => ({ ...p, logType: RECORD_TYPES.PENALTY, rawTime: p.time, time: resolveDate(p), studentName: getStudentInfo(p.studentId) })),
-      ...behaviors.map(b => ({ ...b, logType: RECORD_TYPES.BEHAVIOR, rawTime: b.time, time: resolveDate(b), studentName: getStudentInfo(b.studentId) })),
+      ...attendance.map(a => ({
+        ...a,
+        logType: RECORD_TYPES.ATTENDANCE,
+        rawTime: a.time,
+        time: resolveDate(a),
+        studentName: getStudentInfo(a.studentId),
+        label: a.label || (lang === 'ar' ? (a.status?.nameAr || a.status?.nameEn) : (a.status?.nameEn || a.status?.code)) || a.status?.code || 'Attendance',
+        performedBy: a.creator?.id || a.createdBy || a.markedBy || a.performedBy,
+        performedByName: getLocalizedUserName(a.creator, lang, a.markedByName || a.performedByName),
+        creator: a.creator,
+        comment: a.notes || a.reason || a.comment || '',
+      })),
+      ...participations.map(p => ({
+        ...p,
+        logType: RECORD_TYPES.PARTICIPATION,
+        rawTime: p.time,
+        time: resolveDate(p),
+        studentName: getStudentInfo(p.studentId),
+        performedBy: p.creator?.id || p.createdBy || p.performedBy,
+        performedByName: getLocalizedUserName(p.creator, lang, p.performedByName),
+        creator: p.creator,
+        comment: p.description || p.descriptionEn || p.reason || p.comment || '',
+      })),
+      ...penalties.map(p => ({
+        ...p,
+        logType: RECORD_TYPES.PENALTY,
+        rawTime: p.time,
+        time: resolveDate(p),
+        studentName: getStudentInfo(p.studentId),
+        performedBy: p.creator?.id || p.createdBy || p.performedBy,
+        performedByName: getLocalizedUserName(p.creator, lang, p.performedByName),
+        creator: p.creator,
+        comment: p.reason || p.descriptionEn || p.description || p.note || p.comment || '',
+      })),
+      ...behaviors.map(b => ({
+        ...b,
+        logType: RECORD_TYPES.BEHAVIOR,
+        rawTime: b.time,
+        time: resolveDate(b),
+        studentName: getStudentInfo(b.studentId),
+        performedBy: b.creator?.id || b.createdBy || b.performedBy,
+        performedByName: getLocalizedUserName(b.creator, lang, b.performedByName),
+        creator: b.creator,
+        comment: b.description || b.descriptionEn || b.reason || b.comment || '',
+      })),
     ];
 
     info('🔧 AttendanceTab - all logs count:', allLogs.length);
@@ -417,7 +459,7 @@ const AttendanceTab = React.memo(({
     })));
 
     return result;
-  }, [attendance, participations, penalties, behaviors, studentId, students]);
+  }, [attendance, participations, penalties, behaviors, studentId, students, lang]);
 
   const toggleFilter = useCallback((filter) => {
     setActiveFilters(prev => ({ ...prev, [filter]: !prev[filter] }));
@@ -640,6 +682,7 @@ const AttendanceTab = React.memo(({
         studentName={studentName}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
+        canDeleteAttendance={canDeleteRecords}
       />
 
       {/* Delete Confirmation Modal */}

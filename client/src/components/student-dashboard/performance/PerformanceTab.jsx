@@ -59,7 +59,7 @@ const PerformanceTab = memo(({
       </CollapsibleSection>
 
       <CollapsibleSection
-        title={t('attendance_history')}
+        title={t('records')}
         summary={`${attendance?.length || 0} ${tFn('records') || 'records'}`}
         icon={ClipboardList}
         defaultOpen={false}
