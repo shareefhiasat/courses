@@ -5,8 +5,8 @@ import { useTheme } from '@contexts/ThemeContext';
 import CollapsibleSection from '@components/scheduling/CollapsibleSection';
 import styles from './StudentProfilePanel.module.css';
 
-const FieldRow = ({ icon: Icon, label, value }) => {
-  if (!value && value !== 0) return null;
+const FieldRow = ({ icon: Icon, label, value, alwaysShow = false }) => {
+  if (!alwaysShow && !value && value !== 0) return null;
   return (
     <div className={styles.fieldRow}>
       <div className={styles.fieldIcon}>
@@ -131,7 +131,7 @@ const StudentProfilePanel = memo(({ student, t, lang }) => {
           <FieldRow icon={IdCard} label={t('student_number')} value={studentNumber} />
           <FieldRow icon={Hash} label={t('sequence')} value={sequence || ''} />
           <FieldRow icon={Mail} label={t('email')} value={email} />
-          <FieldRow icon={Phone} label={t('phone_number')} value={phoneNumber} />
+          <FieldRow icon={Phone} label={t('phone_number')} value={phoneNumber} alwaysShow />
           <ImageField icon={FileImage} label={t('qid_image')} src={qidImageUrl} alt={`${displayName} QID`} />
           <ImageField icon={FileImage} label={t('military_id_image')} src={militaryIdImageUrl} alt={`${displayName} Military ID`} />
           <ImageField icon={FileImage} label={t('additional_image')} src={additionalImageUrl} alt={`${displayName} Additional`} />

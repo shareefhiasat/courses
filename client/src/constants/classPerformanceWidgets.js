@@ -73,6 +73,7 @@ export const CLASS_ANALYTICS_DEFAULT_WIDGETS = [
   chartWidget('ca_att_status_donut', 'Attendance Status Distribution', 'توزيع حالة الحضور', 'donut', 'attendance', 'status', { x: 6, y: 3, w: 6, h: 5 }),
   chartWidget('ca_att_status_bar', 'Attendance Count by Status', 'عدد الحضور حسب الحالة', 'bar', 'attendance', 'status', { x: 0, y: 8, w: 6, h: 5 }),
   chartWidget('ca_att_timeline_bar', 'Attendance Records per Day', 'سجلات الحضور يومياً', 'bar', 'attendance', 'date', { x: 6, y: 8, w: 6, h: 5 }),
+  chartWidget('ca_att_timeline_line', 'Attendance Timeline', 'الخط الزمني للحضور', 'line', 'attendance', 'date', { x: 6, y: 13, w: 6, h: 5 }),
   chartWidget('ca_att_student_bar', 'Attendance by Student', 'الحضور حسب الطالب', 'bar', 'attendance', 'studentId', { x: 0, y: 13, w: 6, h: 5 }),
   chartWidget('ca_att_records_list', 'Attendance Detail', 'تفاصيل الحضور', 'list', 'attendance', '', { x: 0, y: 18, w: 12, h: 6 }, { listLimit: 100 }),
 
@@ -85,6 +86,7 @@ export const CLASS_ANALYTICS_DEFAULT_WIDGETS = [
   chartWidget('ca_pen_type_pie', 'Penalty Type Distribution', 'توزيع أنواع العقوبات', 'pie', 'penalties', 'penaltyType', { x: 6, y: 3, w: 6, h: 5 }),
   chartWidget('ca_pen_type_bar', 'Penalty Count by Type', 'عدد العقوبات حسب النوع', 'bar', 'penalties', 'penaltyType', { x: 0, y: 8, w: 6, h: 5 }),
   chartWidget('ca_pen_points_bar', 'Penalty Points by Type', 'نقاط العقوبات حسب النوع', 'bar', 'penalties', 'penaltyType', { x: 6, y: 8, w: 6, h: 5 }, { aggregation: 'sum', valueField: 'points' }),
+  chartWidget('ca_pen_timeline_line', 'Penalty Timeline', 'الخط الزمني للعقوبات', 'line', 'penalties', 'date', { x: 6, y: 13, w: 6, h: 5 }),
   chartWidget('ca_pen_student_bar', 'Penalties by Student', 'العقوبات حسب الطالب', 'bar', 'penalties', 'studentId', { x: 0, y: 13, w: 6, h: 5 }),
   chartWidget('ca_pen_records_list', 'Penalty Records', 'سجلات العقوبات', 'list', 'penalties', '', { x: 0, y: 18, w: 12, h: 6 }, { listLimit: 100 }),
 
@@ -97,6 +99,7 @@ export const CLASS_ANALYTICS_DEFAULT_WIDGETS = [
   chartWidget('ca_beh_type_pie', 'Behavior Type Distribution', 'توزيع أنواع السلوك', 'pie', 'behaviors', 'behaviorType', { x: 6, y: 3, w: 6, h: 5 }),
   chartWidget('ca_beh_type_bar', 'Behavior Count by Type', 'عدد السلوكيات حسب النوع', 'bar', 'behaviors', 'behaviorType', { x: 0, y: 8, w: 6, h: 5 }),
   chartWidget('ca_beh_points_bar', 'Behavior Points by Type', 'نقاط السلوك حسب النوع', 'bar', 'behaviors', 'behaviorType', { x: 6, y: 8, w: 6, h: 5 }, { aggregation: 'sum', valueField: 'points' }),
+  chartWidget('ca_beh_timeline_line', 'Behavior Timeline', 'الخط الزمني للسلوك', 'line', 'behaviors', 'date', { x: 6, y: 13, w: 6, h: 5 }),
   chartWidget('ca_beh_student_bar', 'Behaviors by Student', 'السلوكيات حسب الطالب', 'bar', 'behaviors', 'studentId', { x: 0, y: 13, w: 6, h: 5 }),
   chartWidget('ca_beh_records_list', 'Behavior Records', 'سجلات السلوك', 'list', 'behaviors', '', { x: 0, y: 18, w: 12, h: 6 }, { listLimit: 100 }),
 
@@ -109,8 +112,15 @@ export const CLASS_ANALYTICS_DEFAULT_WIDGETS = [
   chartWidget('ca_par_type_pie', 'Participation Type Distribution', 'توزيع أنواع المشاركة', 'pie', 'participations', 'participationType', { x: 6, y: 3, w: 6, h: 5 }),
   chartWidget('ca_par_type_bar', 'Participation Count by Type', 'عدد المشاركات حسب النوع', 'bar', 'participations', 'participationType', { x: 0, y: 8, w: 6, h: 5 }),
   chartWidget('ca_par_points_bar', 'Participation Points by Type', 'نقاط المشاركة حسب النوع', 'bar', 'participations', 'participationType', { x: 6, y: 8, w: 6, h: 5 }, { aggregation: 'sum', valueField: 'points' }),
+  chartWidget('ca_par_timeline_line', 'Participation Timeline', 'الخط الزمني للمشاركة', 'line', 'participations', 'date', { x: 6, y: 13, w: 6, h: 5 }),
   chartWidget('ca_par_student_bar', 'Participations by Student', 'المشاركات حسب الطالب', 'bar', 'participations', 'studentId', { x: 0, y: 13, w: 6, h: 5 }),
   chartWidget('ca_par_records_list', 'Participation Records', 'سجلات المشاركة', 'list', 'participations', '', { x: 0, y: 18, w: 12, h: 6 }, { listLimit: 100 }),
+
+  // ═══ Marks & Grades (4 widgets) ═══
+  chartWidget('ca_grade_dist_pie', 'Grade Distribution', 'توزيع التقديرات', 'pie', 'classGradeDistribution', 'label', { x: 0, y: 0, w: 6, h: 5 }, { valueField: 'value', _category: 'marks' }),
+  chartWidget('ca_grade_dist_donut', 'Grade Distribution', 'توزيع التقديرات', 'donut', 'classGradeDistribution', 'label', { x: 6, y: 0, w: 6, h: 5 }, { valueField: 'value', _category: 'marks' }),
+  chartWidget('ca_grade_dist_bar', 'Grade Count by Letter', 'عدد التقديرات', 'bar', 'classGradeDistribution', 'label', { x: 0, y: 5, w: 6, h: 5 }, { valueField: 'value', _category: 'marks' }),
+  chartWidget('ca_grade_list', 'Student Grades Detail', 'تفاصيل تقديرات الطلاب', 'list', 'enrollments', '', { x: 0, y: 10, w: 12, h: 6 }, { listLimit: 100, _category: 'marks' }),
 ];
 
 export const CLASS_ANALYTICS_MAX_WIDGETS = CLASS_ANALYTICS_DEFAULT_WIDGETS.length;
@@ -122,6 +132,8 @@ const CLASS_SOURCE_FILTER_MAP = {
   penalties: 'penalties',
   behaviors: 'behavior',
   participations: 'participation',
+  classGradeDistribution: 'marks',
+  enrollments: 'marks',
 };
 
 export function inferClassWidgetCategory(widget) {
@@ -136,6 +148,7 @@ export const CLASS_WIDGET_CATEGORIES = [
   { id: 'penalties', label: 'Penalties', labelAr: 'العقوبات', icon: 'alert_triangle' },
   { id: 'behavior', label: 'Behavior', labelAr: 'السلوك', icon: 'shield' },
   { id: 'participation', label: 'Participation', labelAr: 'المشاركة', icon: 'award' },
+  { id: 'marks', label: 'Marks & Grades', labelAr: 'الدرجات والتقديرات', icon: 'graduation_cap' },
 ];
 
 // ── Display title helper ───────────────────────────────────────────────────
@@ -184,6 +197,8 @@ const CLASS_WIDGET_HELP_KEYS = {
   penalties: 'widget_help_penalties',
   behaviors: 'widget_help_behaviors',
   participations: 'widget_help_participations',
+  classGradeDistribution: 'widget_help_class_grades',
+  enrollments: 'widget_help_class_grades',
 };
 
 export function getClassWidgetHelp(widget, t) {
@@ -323,12 +338,23 @@ export function buildClassPerformanceRawData(classMetrics, rawData = {}, lookupD
     gradeFCount: classDistribution['F'] || classDistribution['f'] || 0,
   };
 
+  // Build grade distribution array for chart widgets
+  const classGradeDistribution = [
+    { label: 'A', value: classDistribution['A'] || classDistribution['a'] || 0 },
+    { label: 'B', value: classDistribution['B'] || classDistribution['b'] || 0 },
+    { label: 'C', value: classDistribution['C'] || classDistribution['c'] || 0 },
+    { label: 'D', value: classDistribution['D'] || classDistribution['d'] || 0 },
+    { label: 'F', value: classDistribution['F'] || classDistribution['f'] || 0 },
+  ].filter(g => g.value > 0);
+
   return {
     classOverviewStats,
+    classGradeDistribution,
     attendance: enrichedAttendance,
     penalties: enrichedPenalties,
     behaviors: enrichedBehaviors,
     participations: enrichedParticipations,
+    enrollments: enrollments || [],
     // Include lookup arrays for label resolution
     classes: classes || [],
     subjects: subjects || [],

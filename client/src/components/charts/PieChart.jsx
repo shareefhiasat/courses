@@ -1,7 +1,8 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { useLang } from '@contexts/LangContext';
 import { PIE_LEGEND_TEXT_STYLE, PIE_LEGEND_ITEM_BG } from './chartLabelStyles';
+import ChartExportDialog from './ChartExportDialog';
 
 /**
  * Helper function to get localized name for chart items
@@ -27,9 +28,11 @@ const getLocalizedName = (item, lang) => {
  * @param {Number} size - Chart size
  * @param {Boolean} donut - Donut style
  */
-export default function PieChart({ data = [], size = 300, donut = false, showLabels = true, showLegend = true, accentColor = '#800020', rawData = [], chartType = 'pie', onSliceClick = null }) {
+export default function PieChart({ data = [], size = 300, donut = false, showLabels = true, showLegend = true, accentColor = '#800020', rawData = [], chartType = 'pie', onSliceClick = null, title }) {
   const { t, lang, isRTL } = useLang();
   const [hovered, setHovered] = useState(null);
+  const [showExportDialog, setShowExportDialog] = useState(false);
+  const containerRef = useRef(null);
 
   const activeData = useMemo(
     () => (data || []).filter((item) => (item.value || 0) > 0),
@@ -71,11 +74,11 @@ export default function PieChart({ data = [], size = 300, donut = false, showLab
 
   let radius;
   if (showLegend && chartHeight < 200) {
-    radius = Math.min(chartSize / 2 - 20, chartSize * 0.35);
+    radius = chartSize / 2 - 12;
   } else if (showLegend && chartHeight < 300) {
-    radius = Math.min(chartSize / 2 - 15, chartSize * 0.40);
+    radius = chartSize / 2 - 8;
   } else {
-    radius = Math.min(chartSize / 2 - 5, chartSize * 0.45);
+    radius = chartSize / 2 - 4;
   }
 
   const innerRadius = donut ? radius * 0.6 : 0;
@@ -194,12 +197,12 @@ export default function PieChart({ data = [], size = 300, donut = false, showLab
 
   return (
     <>
-      <div style={{
+      <div ref={containerRef} style={{
         position: 'relative',
         display: 'flex',
         flexDirection: sideLegend ? 'row' : 'column',
         alignItems: 'center',
-        justifyContent: 'center',
+        justifyContent: sideLegend ? 'flex-start' : 'center',
         gap: sideLegend ? 0 : 4,
         width: chartWidth,
         height: chartHeight,
@@ -270,19 +273,17 @@ export default function PieChart({ data = [], size = 300, donut = false, showLab
           )}
         </svg>
 
-        {/* Legend — transparent overlay; does not steal layout space from pie */}
+        {/* Legend */}
         {showLegend && (
           <div style={{
-            position: sideLegend ? 'absolute' : 'relative',
-            insetInlineEnd: sideLegend ? 0 : undefined,
-            top: sideLegend ? '50%' : undefined,
-            transform: sideLegend ? 'translateY(-50%)' : undefined,
+            position: 'relative',
             display: 'flex',
             flexDirection: 'column',
             flexWrap: sideLegend ? 'nowrap' : 'wrap',
             gap: '0.2rem',
             justifyContent: 'center',
             alignItems: sideLegend ? 'flex-start' : 'center',
+            width: sideLegend ? legendWidth : undefined,
             maxWidth: sideLegend ? legendWidth : chartWidth,
             maxHeight: sideLegend ? chartSize : (legendReserve || 64),
             overflow: 'auto',
@@ -321,6 +322,40 @@ export default function PieChart({ data = [], size = 300, donut = false, showLab
           </div>
         )}
       </div>
+      {/* Download button */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', width: chartWidth }}>
+        <button
+          type="button"
+          onClick={() => setShowExportDialog(true)}
+          title={t('chart_download') || 'Download'}
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 24,
+            height: 24,
+            padding: 0,
+            border: `1px solid ${accentColor}`,
+            borderRadius: 5,
+            background: `${accentColor}12`,
+            cursor: 'pointer',
+            flexShrink: 0,
+          }}
+        >
+          <svg width={14} height={14} viewBox="0 0 24 24" fill="none" aria-hidden="true">
+            <path d="M12 3v12M7 10l5 5 5-5" stroke={accentColor} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke={accentColor} strokeWidth="2.2" strokeLinecap="round" />
+          </svg>
+        </button>
+      </div>
+      {showExportDialog && (
+        <ChartExportDialog
+          target={containerRef.current}
+          filename={donut ? 'donut-chart' : 'pie-chart'}
+          title={title}
+          onClose={() => setShowExportDialog(false)}
+        />
+      )}
       {hovered != null && slices[hovered.idx] && createPortal(
         <div
           style={{

@@ -577,6 +577,11 @@ export const processWidgetData = (widget, rawData, globalFilters = {}, compariso
     return [{ label, value: stats[statKey] ?? 0 }];
   }
 
+  if (dataSource === 'classGradeDistribution') {
+    const distData = rawData.classGradeDistribution || [];
+    return distData.map(item => ({ label: item.label, value: item.value }));
+  }
+
   if (dataSource === 'driveOverview') {
     const stats = rawData.driveOverview || {};
     const statKey = widget.statKey || widget.countMetric || 'totalFiles';

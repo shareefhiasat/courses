@@ -57,6 +57,9 @@ const getChartTypeFromDataSource = (dataSource) => {
 const OptimizedChartRenderer = memo(({ widget, size, data, accentColor, rawData, onPointClick, onListColumnsChange, onListConfigChange }) => {
   const { chartType, dataSource, ...widgetProps } = widget;
 
+  // Derive a display title for export purposes
+  const exportTitle = widgetProps.titleEn || widgetProps.titleAr || widgetProps.title || '';
+
   // Memoize chart props to prevent unnecessary re-renders
   const chartProps = useMemo(() => ({
     data,
@@ -68,8 +71,9 @@ const OptimizedChartRenderer = memo(({ widget, size, data, accentColor, rawData,
     onSliceClick: onPointClick,
     onListColumnsChange,
     onListConfigChange,
+    title: exportTitle,
     ...widgetProps
-  }), [data, accentColor, size, rawData, dataSource, onPointClick, onListColumnsChange, onListConfigChange, widget, widgetProps]);
+  }), [data, accentColor, size, rawData, dataSource, onPointClick, onListColumnsChange, onListConfigChange, widget, widgetProps, exportTitle]);
 
   // Memoize the rendered chart to prevent unnecessary re-renders
   const renderedChart = useMemo(() => {

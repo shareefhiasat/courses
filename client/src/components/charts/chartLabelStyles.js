@@ -25,4 +25,6 @@ export const PIE_LEGEND_TEXT_STYLE = {
   fontSize: 'inherit',
 };
 
-export const PIE_LEGEND_ITEM_BG = 'rgba(255, 215, 0, 0.25)';
+export const PIE_LEGEND_ITEM_BG = 'rgba(255, 215, 0, 0.08)';
+
+export const BAR_LABEL_BG = 'rgba(255, 215, 0, 0.08)';

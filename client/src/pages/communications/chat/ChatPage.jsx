@@ -1500,7 +1500,7 @@ const ChatPage = memo(() => {
                       style={{ background:'transparent', border:'none', cursor:'pointer', color:'var(--muted)' }}
                     >{archivedClasses[cls.docId] ? getThemedIcon('ui', 'upload', 16, theme) : getThemedIcon('ui', 'download', 16, theme)}</button>
                   </div>
-                  <div style={{ fontSize: '0.85rem', color: 'var(--muted)' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--muted)', lineHeight: 1.2, marginTop: 2 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 6, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>
                       <span style={{ overflow:'hidden', textOverflow:'ellipsis' }}>{`${getAcademicTermLabel(cls.term, lang)} - ${cls.code}`}</span>
                       {(() => {
@@ -1529,9 +1529,9 @@ const ChatPage = memo(() => {
                       })()}
                     </div>
                     {cls.lastMessage && (
-                      <div style={{ display:'flex', justifyContent:'space-between', gap:8, marginTop:2 }}>
-                        <span style={{ color: 'var(--muted)' }}>{cls.lastMessage}</span>
-                        <span style={{ color: 'var(--muted)', fontSize: '0.8rem' }}>{cls.lastMessageAt ? formatDateTime(cls.lastMessageAt) : ''}</span>
+                      <div style={{ display:'flex', justifyContent:'space-between', gap:8, marginTop:1 }}>
+                        <span style={{ color: 'var(--muted)', fontSize: '0.7rem' }}>{cls.lastMessage}</span>
+                        <span style={{ color: 'var(--muted)', fontSize: '0.7rem' }}>{cls.lastMessageAt ? formatDateTime(cls.lastMessageAt) : ''}</span>
                       </div>
                     )}
                   </div>
@@ -1541,7 +1541,7 @@ const ChatPage = memo(() => {
                       : allUsers.find(u => u.email === cls.ownerEmail);
                     if (!instructor) return null;
                     return (
-                      <div style={{ fontSize: '0.85rem', color: 'var(--text)', marginTop: 4, display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text)', marginTop: 2, display: 'flex', alignItems: 'center', gap: 6, lineHeight: 1.2 }}>
                         {getThemedIcon('ui', 'graduation_cap', 14, theme)}
                         <strong>{instructor.displayName || instructor.email}</strong>
                         <RoleBadge user={instructor} />
@@ -1553,7 +1553,7 @@ const ChatPage = memo(() => {
                         {instructor.docId !== user.uid && (
                           <button
                             onClick={(e) => { e.stopPropagation(); openDMWith(instructor); }}
-                            style={{ padding: '4px 8px', borderRadius: 6, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', cursor: 'pointer', fontSize: 'var(--font-size-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32 }}
+                            style={{ padding: '2px 6px', borderRadius: 4, border: '1px solid var(--border)', background: 'transparent', color: 'var(--text)', cursor: 'pointer', fontSize: 'var(--font-size-md)', display: 'flex', alignItems: 'center', justifyContent: 'center', width: 24, height: 24 }}
                           >
                             {getThemedIcon('ui', 'message_square', 16, theme)}
                           </button>
@@ -1606,48 +1606,26 @@ const ChatPage = memo(() => {
               : groupRooms;
             return (
               <>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.4rem 0.9rem', borderTop: '1px solid var(--border)' }}>
-                  <span style={{ color: 'var(--muted)', fontWeight: 600, fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: 4 }}>
-                    {getThemedIcon('ui', 'users', 14, theme)}
-                    {t('chat_group_chats')}
-                  </span>
-                  {isStaffRole && (
-                    <button
-                      onClick={() => setShowGroupModal(true)}
-                      title={t('chat_create_group')}
-                      style={{
-                        width: 26,
-                        height: 26,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        background: 'linear-gradient(135deg, var(--brand), var(--brand-dark, #6b0a20))',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '50%',
-                        cursor: 'pointer',
-                        padding: 0,
-                        flexShrink: 0,
-                        boxShadow: '0 2px 8px rgba(129, 12, 41, 0.3)',
-                        transition: 'all 0.2s'
-                      }}
-                      onMouseOver={(e) => { e.currentTarget.style.transform = 'scale(1.12)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(129, 12, 41, 0.45)'; }}
-                      onMouseOut={(e) => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(129, 12, 41, 0.3)'; }}
-                    >
-                      {getThemedIcon('ui', 'add', 14, 'white')}
-                    </button>
-                  )}
-                </div>
-                {groupRooms.length > 3 && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 0.9rem', borderTop: '1px solid var(--border)' }}>
+                  {getThemedIcon('ui', 'users', 14, theme)}
                   <input
                     type="text"
                     autoComplete="off"
                     placeholder={t('chat_search_groups')}
                     value={groupSearch}
                     onChange={(e) => setGroupSearch(e.target.value)}
-                    style={{ margin: '0.5rem 1rem', padding: '6px 10px', border: '1px solid #ddd', borderRadius: 6, fontSize: '0.85rem', width: 'calc(100% - 2rem)' }}
+                    style={{ flex: 1, padding: '4px 8px', border: '1px solid var(--border)', borderRadius: 6, fontSize: '0.8rem', minWidth: 0 }}
                   />
-                )}
+                  {isStaffRole && (
+                    <button
+                      onClick={() => setShowGroupModal(true)}
+                      title={t('chat_create_group')}
+                      style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--brand)', fontSize: '1.1rem', padding: '2px 6px', borderRadius: 4, flexShrink: 0 }}
+                    >
+                      +
+                    </button>
+                  )}
+                </div>
                 {filteredGroupRooms.map(room => {
                   const isCreator = room.createdBy === user?.dbId;
                   const participantCount = room.participants?.length || 0;
@@ -1686,32 +1664,8 @@ const ChatPage = memo(() => {
           })()}
           
           {/* Direct Messages */}
-          <div data-tour="chat-dm-section" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0.4rem 0.9rem', borderTop: '1px solid var(--border)' }}>
-            <span style={{ color: 'var(--muted)', fontWeight: 600, fontSize: '0.85rem' }}>{t('chat_direct_messages')}</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-              <button
-                onClick={createSelfDM}
-                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--brand)', fontSize: '1.1rem', padding: '2px 6px', borderRadius: 4 }}
-                title={t('message_yourself')}
-              >
-                {getThemedIcon('ui', 'edit', 16, theme)}
-              </button>
-              {isStaffRole && (
-                <button
-                  data-tour="chat-new-dm"
-                  onClick={openNewDMPicker}
-                  style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--brand)', fontSize: '1.1rem', padding: '2px 6px', borderRadius: 4 }}
-                  title={t('start_new_conversation')}
-                >
-                  +
-                </button>
-              )}
-            </div>
-          </div>
-          {(() => {
-            const dmRooms = (Array.isArray(safeDirectRooms) ? safeDirectRooms : []).filter(r => r.type !== 'group');
-            return dmRooms.length > 3;
-          })() && (
+          <div data-tour="chat-dm-section" style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', padding: '0.4rem 0.9rem', borderTop: '1px solid var(--border)' }}>
+            {getThemedIcon('ui', 'message_square', 14, theme)}
             <input
               data-tour="chat-dm-search"
               type="text"
@@ -1719,9 +1673,26 @@ const ChatPage = memo(() => {
               placeholder={t('chat_search_users')}
               value={dmSearch}
               onChange={(e) => setDmSearch(e.target.value)}
-              style={{ margin: '0.5rem 1rem', padding: '6px 10px', border: '1px solid #ddd', borderRadius: 6, fontSize: '0.85rem', width: 'calc(100% - 2rem)' }}
+              style={{ flex: 1, padding: '4px 8px', border: '1px solid var(--border)', borderRadius: 6, fontSize: '0.8rem', minWidth: 0 }}
             />
-          )}
+            <button
+              onClick={createSelfDM}
+              style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--brand)', fontSize: '1.1rem', padding: '2px 6px', borderRadius: 4, flexShrink: 0 }}
+              title={t('message_yourself')}
+            >
+              {getThemedIcon('ui', 'edit', 16, theme)}
+            </button>
+            {isStaffRole && (
+              <button
+                data-tour="chat-new-dm"
+                onClick={openNewDMPicker}
+                style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--brand)', fontSize: '1.1rem', padding: '2px 6px', borderRadius: 4, flexShrink: 0 }}
+                title={t('start_new_conversation')}
+              >
+                +
+              </button>
+            )}
+          </div>
           {directRooms.length === 0 && (
             <div style={{ padding: '0.4rem 0.6rem', color: 'var(--muted)' }}>{t('chat_no_messages')}</div>
           )}
@@ -1866,13 +1837,22 @@ const ChatPage = memo(() => {
         </div>
         {/* Sidebar footer: archived + favorites toggle */}
         <div data-tour="chat-sidebar-footer" style={{ padding:'0.5rem 0.9rem', borderTop:'1px solid var(--border)', display:'flex', alignItems:'center', gap:16 }}>
-          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-            <input id="toggle-archived" type="checkbox" checked={showArchived} onChange={(e)=>setShowArchived(e.target.checked)} />
-            <label htmlFor="toggle-archived" style={{ fontSize:'0.85rem', color:'var(--muted)', cursor:'pointer' }}>{t('show_archived')}</label>
+          <div
+            data-tour="chat-sidebar-footer"
+            onClick={() => setShowArchived(!showArchived)}
+            style={{ display:'flex', alignItems:'center', gap:4, fontSize:'0.85rem', cursor:'pointer', color: showArchived ? 'var(--brand)' : 'var(--muted)', transition: 'color 0.2s', userSelect: 'none' }}
+            title={t('show_archived')}
+          >
+            {showArchived ? getIconWithColor('ui', 'archive', 14, 'var(--brand)') : getThemedIcon('ui', 'archive', 14, theme)}
+            {t('show_archived')}
           </div>
-          <div style={{ display:'flex', alignItems:'center', gap:8 }}>
-            <input id="toggle-favorites" type="checkbox" checked={showFavoritesOnly} onChange={(e)=>setShowFavoritesOnly(e.target.checked)} />
-            <label htmlFor="toggle-favorites" style={{ fontSize:'0.85rem', color:'var(--muted)', cursor:'pointer' }}>{t('favorites_only')}</label>
+          <div
+            onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+            style={{ display:'flex', alignItems:'center', gap:4, fontSize:'0.85rem', cursor:'pointer', color: showFavoritesOnly ? 'var(--brand)' : 'var(--muted)', transition: 'color 0.2s', userSelect: 'none' }}
+            title={t('favorites_only')}
+          >
+            {showFavoritesOnly ? getIconWithColor('ui', 'star', 14, 'var(--brand)') : getThemedIcon('ui', 'star', 14, theme)}
+            {t('favorites_only')}
           </div>
         </div>
         {/* Toggle Button */}
@@ -1934,8 +1914,8 @@ const ChatPage = memo(() => {
           {/* Left Container (flex: 1) */}
           <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '1rem', minWidth: 0 }}>
             {/* Title */}
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700 }}>
+            <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <h3 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 700, flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {selectedClass === 'global' ? t('global_chat') :
                  (selectedClass?.startsWith('dm:')
                    ? (()=>{ 
@@ -1954,61 +1934,7 @@ const ChatPage = memo(() => {
                      : (getClassDisplayName(classes.find(c => c.docId === selectedClass), lang) || selectedClassName || t('chat'))
                  )}
               </h3>
-              {/* Display name for DM conversations */}
-              {selectedClass?.startsWith('dm:') && (()=>{ 
-                const room = directRooms.find(r=>`dm:${r.id}`===selectedClass); 
-                const isSelfDM = room && room.participantA === room.participantB && room.participantA != null;
-                if (isSelfDM) {
-                  return (
-                    <div style={{ fontSize: '0.9rem', color: 'var(--muted)', marginTop: '0.25rem', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                      {t('message_yourself_hint')}
-                    </div>
-                  );
-                }
-                const otherUser = (room?.userA?.id === user?.dbId || (user?.email && room?.userA?.email === user?.email)) ? room?.userB : room?.userA;
-                const displayName = otherUser ? getChatUserDisplayName(otherUser, lang) : null;
-                const email = otherUser?.email;
-                if (displayName) {
-                  return (
-                    <div style={{ fontSize: '0.9rem', color: 'var(--muted)', marginTop: '0.25rem', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                      {displayName}
-                      {otherUser && <RoleBadge user={otherUser} />}
-                      {email && email !== displayName && (
-                        <span style={{ fontSize: '0.8rem', color: 'var(--muted)', marginLeft: '0.25rem', opacity: 0.7 }}>
-                          ({email})
-                        </span>
-                      )}
-                    </div>
-                  );
-                }
-                return null;
-              })()}
-              {/* DM info button */}
-              {selectedClass?.startsWith('dm:') && (() => {
-                const dmId = parseInt(selectedClass.split(':')[1]);
-                const room = directRooms.find(r => r.id === dmId);
-                if (!room) return null;
-                return (
-                  <div style={{ fontSize: '0.9rem', color: 'var(--muted)', marginTop: '0.25rem', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-                    <button
-                      onClick={() => setShowGroupInfoPanel(true)}
-                      style={{
-                        fontSize: '0.7rem', background: 'transparent', color: 'var(--muted)',
-                        border: '1px solid var(--border)', borderRadius: 6, padding: '2px 8px',
-                        cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3,
-                        transition: 'all 0.2s',
-                      }}
-                      onMouseEnter={(e) => { e.target.style.borderColor = 'var(--brand)'; e.target.style.color = 'var(--brand)'; }}
-                      onMouseLeave={(e) => { e.target.style.borderColor = 'var(--border)'; e.target.style.color = 'var(--muted)'; }}
-                      title={t('chat_group_info')}
-                    >
-                      {getThemedIcon('ui', 'info', 12, theme)}
-                      {t('chat_group_info')}
-                    </button>
-                  </div>
-                );
-              })()}
-              {/* Group info: participant count, admin badge, leave button */}
+              {/* Group info inline beside the name */}
               {selectedClass?.startsWith('group:') && (()=>{
                 const groupId = parseInt(selectedClass.split(':')[1]);
                 const grp = directRooms.find(r => r.id === groupId && r.type === 'group');
@@ -2016,7 +1942,7 @@ const ChatPage = memo(() => {
                 const isCreator = grp.createdBy === user?.dbId;
                 const participantCount = grp.participants?.length || 0;
                 return (
-                  <div style={{ fontSize: '0.9rem', color: 'var(--muted)', marginTop: '0.25rem', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <div style={{ fontSize: '0.9rem', color: 'var(--muted)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', flexShrink: 0 }}>
                     <span
                       onClick={() => setShowParticipantModal(true)}
                       style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', textDecoration: 'underline' }}
@@ -2060,6 +1986,102 @@ const ChatPage = memo(() => {
                   </div>
                 );
               })()}
+              {/* Class info inline beside the name */}
+              {classMembers.length > 0 && !selectedClass?.startsWith('dm:') && !selectedClass?.startsWith('group:') && (
+                <div style={{ fontSize: '0.9rem', color: 'var(--muted)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', flexShrink: 0 }}>
+                  <span
+                    data-tour="chat-members-btn"
+                    onClick={() => setShowMembers(true)}
+                    style={{ cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '0.3rem', textDecoration: 'underline' }}
+                  >
+                    {getThemedIcon('ui', 'users', 14, theme)}
+                    {classMembers.length} {t('chat_members')}
+                  </span>
+                  <button
+                    onClick={async () => {
+                      if (selectedClass === 'global') {
+                        const rid = await chatService.resolveRoomId('global', 'global');
+                        if (rid) {
+                          setClassInfoRoomId(rid);
+                          setShowGroupInfoPanel(true);
+                        }
+                      } else if (selectedClass && selectedClass !== 'global') {
+                        const rid = await chatService.resolveRoomId('class', selectedClass);
+                        if (rid) {
+                          setClassInfoRoomId(rid);
+                          setShowGroupInfoPanel(true);
+                        }
+                      }
+                    }}
+                    style={{
+                      fontSize: '0.7rem', background: 'transparent', color: 'var(--muted)',
+                      border: '1px solid var(--border)', borderRadius: 6, padding: '2px 8px',
+                      cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3,
+                      transition: 'all 0.2s',
+                    }}
+                    onMouseEnter={(e) => { e.target.style.borderColor = 'var(--brand)'; e.target.style.color = 'var(--brand)'; }}
+                    onMouseLeave={(e) => { e.target.style.borderColor = 'var(--border)'; e.target.style.color = 'var(--muted)'; }}
+                    title={t('chat_group_info')}
+                  >
+                    {getThemedIcon('ui', 'info', 12, theme)}
+                    {t('chat_group_info')}
+                  </button>
+                </div>
+              )}
+              {/* Display name for DM conversations */}
+              {selectedClass?.startsWith('dm:') && (()=>{ 
+                const room = directRooms.find(r=>`dm:${r.id}`===selectedClass); 
+                const isSelfDM = room && room.participantA === room.participantB && room.participantA != null;
+                if (isSelfDM) {
+                  return (
+                    <div style={{ fontSize: '0.9rem', color: 'var(--muted)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.5rem', flexShrink: 0 }}>
+                      {t('message_yourself_hint')}
+                    </div>
+                  );
+                }
+                const otherUser = (room?.userA?.id === user?.dbId || (user?.email && room?.userA?.email === user?.email)) ? room?.userB : room?.userA;
+                const displayName = otherUser ? getChatUserDisplayName(otherUser, lang) : null;
+                const email = otherUser?.email;
+                if (displayName) {
+                  return (
+                    <div style={{ fontSize: '0.9rem', color: 'var(--muted)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', flexShrink: 0 }}>
+                      {displayName}
+                      {otherUser && <RoleBadge user={otherUser} />}
+                      {email && email !== displayName && (
+                        <span style={{ fontSize: '0.8rem', color: 'var(--muted)', marginLeft: '0.25rem', opacity: 0.7 }}>
+                          ({email})
+                        </span>
+                      )}
+                    </div>
+                  );
+                }
+                return null;
+              })()}
+              {/* DM info button */}
+              {selectedClass?.startsWith('dm:') && (() => {
+                const dmId = parseInt(selectedClass.split(':')[1]);
+                const room = directRooms.find(r => r.id === dmId);
+                if (!room) return null;
+                return (
+                  <div style={{ fontSize: '0.9rem', color: 'var(--muted)', fontWeight: 500, display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap', flexShrink: 0 }}>
+                    <button
+                      onClick={() => setShowGroupInfoPanel(true)}
+                      style={{
+                        fontSize: '0.7rem', background: 'transparent', color: 'var(--muted)',
+                        border: '1px solid var(--border)', borderRadius: 6, padding: '2px 8px',
+                        cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3,
+                        transition: 'all 0.2s',
+                      }}
+                      onMouseEnter={(e) => { e.target.style.borderColor = 'var(--brand)'; e.target.style.color = 'var(--brand)'; }}
+                      onMouseLeave={(e) => { e.target.style.borderColor = 'var(--border)'; e.target.style.color = 'var(--muted)'; }}
+                      title={t('chat_group_info')}
+                    >
+                      {getThemedIcon('ui', 'info', 12, theme)}
+                      {t('chat_group_info')}
+                    </button>
+                  </div>
+                );
+              })()}
             </div>
             
             {/* Class Badge */}
@@ -2078,7 +2100,7 @@ const ChatPage = memo(() => {
             })()}
             
             {/* Messages Count */}
-            <span style={{ fontSize: '0.9rem', color: 'var(--muted)' }}>
+            <span style={{ fontSize: '0.9rem', color: 'var(--muted)', marginInlineStart: '0.5rem' }}>
               {messages.length} {t('messages')}
             </span>
             
@@ -2235,44 +2257,6 @@ const ChatPage = memo(() => {
             </div>
           );
         })()}
-
-        {/* Members button - moved to separate row */}
-        {classMembers.length > 0 && !selectedClass?.startsWith('dm:') && !selectedClass?.startsWith('group:') && (
-          <div style={{ padding: '0.5rem 1.5rem', background: 'var(--panel)', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div data-tour="chat-members-btn" onClick={() => setShowMembers(true)} style={{ fontSize: '0.9rem', color: 'var(--muted)', cursor: 'pointer', textDecoration: 'underline', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              {getThemedIcon('ui', 'users', 16, theme)} {classMembers.length} {t('chat_members')}
-            </div>
-            <button
-              onClick={async () => {
-                if (selectedClass === 'global') {
-                  const rid = await chatService.resolveRoomId('global', 'global');
-                  if (rid) {
-                    setClassInfoRoomId(rid);
-                    setShowGroupInfoPanel(true);
-                  }
-                } else if (selectedClass && selectedClass !== 'global') {
-                  const rid = await chatService.resolveRoomId('class', selectedClass);
-                  if (rid) {
-                    setClassInfoRoomId(rid);
-                    setShowGroupInfoPanel(true);
-                  }
-                }
-              }}
-              style={{
-                fontSize: '0.7rem', background: 'transparent', color: 'var(--muted)',
-                border: '1px solid var(--border)', borderRadius: 6, padding: '2px 8px',
-                cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: 3,
-                transition: 'all 0.2s',
-              }}
-              onMouseEnter={(e) => { e.target.style.borderColor = 'var(--brand)'; e.target.style.color = 'var(--brand)'; }}
-              onMouseLeave={(e) => { e.target.style.borderColor = 'var(--border)'; e.target.style.color = 'var(--muted)'; }}
-              title={t('chat_group_info')}
-            >
-              {getThemedIcon('ui', 'info', 12, theme)}
-              {t('chat_group_info')}
-            </button>
-          </div>
-        )}
 
         {/* Starred filter banner */}
         {showStarredOnly && (
@@ -2445,6 +2429,7 @@ const ChatPage = memo(() => {
                        className={isHighlighted ? 'flash-pulse' : ''}
                        style={{
                     maxWidth: '60%',
+                    minWidth: 'min(180px, 90vw)',
                     background: isHighlighted ? '#fff3cdCC' : transparentBubbleColor,
                     color: textColor,
                     padding: '0.5rem 0.75rem',
@@ -3015,7 +3000,7 @@ const ChatPage = memo(() => {
                             onClick={()=>{ setEditingMsg({ id: msg.id, content: msg.content||'' }); setMenuOpenId(null); }}
                             onMouseEnter={(e)=>e.target.style.background='rgba(0,0,0,0.05)'}
                             onMouseLeave={(e)=>e.target.style.background='transparent'}
-                            style={{ display:'flex', alignItems:'center', gap:'8px', background:'transparent', border:'none', padding:'8px 12px', width:'100%', textAlign:'start', cursor:'pointer', color:'var(--text)', transition:'background 0.2s' }}
+                            style={{ display:'flex', alignItems:'center', gap:'8px', background:'transparent', border:'none', padding:'8px 12px', width:'100%', textAlign:'start', cursor:'pointer', color:'#000', transition:'background 0.2s' }}
                           >
                             {getThemedIcon('ui', 'edit', 14, theme)}
                             {t('edit')}
@@ -3024,9 +3009,9 @@ const ChatPage = memo(() => {
                         {/* Star button — available to all users in all chat types */}
                         <button
                           onClick={()=>{ setMenuOpenId(null); handleToggleStar(msg); }}
-                          onMouseEnter={(e)=>e.target.style.background='rgba(250,204,21,0.1)'}
+                          onMouseEnter={(e)=>e.target.style.background='rgba(0,0,0,0.05)'}
                           onMouseLeave={(e)=>e.target.style.background='transparent'}
-                          style={{ display:'flex', alignItems:'center', gap:'8px', background:'transparent', border:'none', padding:'8px 12px', width:'100%', textAlign:'start', cursor:'pointer', color:'var(--text)', transition:'background 0.2s', borderBottom:'1px solid var(--border)' }}
+                          style={{ display:'flex', alignItems:'center', gap:'8px', background:'transparent', border:'none', padding:'8px 12px', width:'100%', textAlign:'start', cursor:'pointer', color:'#000', transition:'background 0.2s' }}
                         >
                           {getThemedIcon('ui', 'star', 14, theme)}
                           {(() => {
@@ -3039,9 +3024,9 @@ const ChatPage = memo(() => {
                         {selectedClass?.startsWith('group:') && (
                           <button
                             onClick={()=>{ setMenuOpenId(null); handleTogglePin(msg); }}
-                            onMouseEnter={(e)=>e.target.style.background='rgba(102,126,234,0.1)'}
+                            onMouseEnter={(e)=>e.target.style.background='rgba(0,0,0,0.05)'}
                             onMouseLeave={(e)=>e.target.style.background='transparent'}
-                            style={{ display:'flex', alignItems:'center', gap:'8px', background:'transparent', border:'none', padding:'8px 12px', width:'100%', textAlign:'start', cursor:'pointer', color: msg.pinnedById ? 'var(--brand)' : 'var(--text)', transition:'background 0.2s', borderBottom:'1px solid var(--border)' }}
+                            style={{ display:'flex', alignItems:'center', gap:'8px', background:'transparent', border:'none', padding:'8px 12px', width:'100%', textAlign:'start', cursor:'pointer', color:'#000', transition:'background 0.2s' }}
                           >
                             {getThemedIcon('ui', 'pin', 14, theme)}
                             {msg.pinnedById ? (t('unpin')) : (t('pin'))}
@@ -3087,9 +3072,9 @@ const ChatPage = memo(() => {
                             });
                             setMenuOpenId(null);
                           }}
-                          onMouseEnter={(e)=>e.target.style.background='rgba(102,126,234,0.1)'}
+                          onMouseEnter={(e)=>e.target.style.background='rgba(0,0,0,0.05)'}
                           onMouseLeave={(e)=>e.target.style.background='transparent'}
-                          style={{ display:'flex', alignItems:'center', gap:'8px', background:'transparent', border:'none', padding:'8px 12px', width:'100%', textAlign:'start', cursor:'pointer', color:'var(--brand)', transition:'background 0.2s', borderBottom:'1px solid var(--border)' }}
+                          style={{ display:'flex', alignItems:'center', gap:'8px', background:'transparent', border:'none', padding:'8px 12px', width:'100%', textAlign:'start', cursor:'pointer', color:'#000', transition:'background 0.2s' }}
                         >
                           {getThemedIcon('ui', 'info', 14, theme)}
                           {t('info')}
@@ -3104,9 +3089,9 @@ const ChatPage = memo(() => {
                               toast?.showError(t('failed_to_copy_link'));
                             });
                           }}
-                          onMouseEnter={(e)=>e.target.style.background='rgba(102,126,234,0.1)'}
+                          onMouseEnter={(e)=>e.target.style.background='rgba(0,0,0,0.05)'}
                           onMouseLeave={(e)=>e.target.style.background='transparent'}
-                          style={{ display:'flex', alignItems:'center', gap:'8px', background:'transparent', border:'none', padding:'8px 12px', width:'100%', textAlign:'start', cursor:'pointer', color:'var(--brand)', transition:'background 0.2s', borderBottom:'1px solid var(--border)' }}
+                          style={{ display:'flex', alignItems:'center', gap:'8px', background:'transparent', border:'none', padding:'8px 12px', width:'100%', textAlign:'start', cursor:'pointer', color:'#000', transition:'background 0.2s' }}
                         >
                           {getThemedIcon('ui', 'share', 14, theme)}
                           {t('chat_share_message')}
@@ -3122,9 +3107,9 @@ const ChatPage = memo(() => {
                               toast?.showError(t('failed_to_copy'));
                             });
                           }}
-                          onMouseEnter={(e)=>e.target.style.background='rgba(102,126,234,0.1)'}
+                          onMouseEnter={(e)=>e.target.style.background='rgba(0,0,0,0.05)'}
                           onMouseLeave={(e)=>e.target.style.background='transparent'}
-                          style={{ display:'flex', alignItems:'center', gap:'8px', background:'transparent', border:'none', padding:'8px 12px', width:'100%', textAlign:'start', cursor:'pointer', color:'var(--brand)', transition:'background 0.2s', borderBottom:'1px solid var(--border)' }}
+                          style={{ display:'flex', alignItems:'center', gap:'8px', background:'transparent', border:'none', padding:'8px 12px', width:'100%', textAlign:'start', cursor:'pointer', color:'#000', transition:'background 0.2s' }}
                         >
                           {getThemedIcon('ui', 'copy', 14, theme)}
                           {t('chat_copy_message')}
@@ -3132,9 +3117,9 @@ const ChatPage = memo(() => {
                         {(isOwnMessage || isAdmin) && (
                           <button
                             onClick={()=>{ setMenuOpenId(null); handleDeleteMessage(msg); }}
-                            onMouseEnter={(e)=>e.target.style.background='rgba(220,53,69,0.1)'}
+                            onMouseEnter={(e)=>e.target.style.background='rgba(0,0,0,0.05)'}
                             onMouseLeave={(e)=>e.target.style.background='transparent'}
-                            style={{ display:'flex', alignItems:'center', gap:'8px', background:'transparent', border:'none', padding:'8px 12px', width:'100%', textAlign:'start', cursor:'pointer', color:'#dc3545', transition:'background 0.2s' }}
+                            style={{ display:'flex', alignItems:'center', gap:'8px', background:'transparent', border:'none', padding:'8px 12px', width:'100%', textAlign:'start', cursor:'pointer', color:'#000', transition:'background 0.2s' }}
                           >
                             {getThemedIcon('ui', 'trash2', 14, theme)}
                             {t('delete')}

@@ -377,6 +377,15 @@ const SummaryDashboardPage = () => {
     cursor: 'pointer',
     whiteSpace: 'nowrap',
   };
+  const compactButtonStyle = {
+    ...headerButtonStyle,
+    gap: '0.25rem',
+    padding: '0.25rem 0.5rem',
+    fontSize: 'calc(var(--font-size-sm) * 0.8)',
+    whiteSpace: 'normal',
+    lineHeight: 1.2,
+    maxWidth: '7.5rem',
+  };
 
   const quickActions = (
     <div data-tour="summary-quick-actions" style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem', alignItems: 'center', justifyContent: 'flex-end' }}>
@@ -390,7 +399,7 @@ const SummaryDashboardPage = () => {
           onIntervalChange={setRefreshInterval}
         />
       </div>
-      <button type="button" style={headerButtonStyle} onClick={() => navigate('/scheduling-calendar')} title={t('schedules_view_schedule')} aria-label={t('schedules_view_schedule')}>
+      <button type="button" style={headerButtonStyle} onClick={() => window.open('/scheduling-calendar', '_blank')} title={t('schedules_view_schedule')} aria-label={t('schedules_view_schedule')}>
         <CalendarDays size={16} />
         <span>{t('schedules_view_schedule')}</span>
         <ExternalLink size={13} aria-hidden style={{ opacity: 0.65 }} />
@@ -399,12 +408,12 @@ const SummaryDashboardPage = () => {
         <Coffee size={16} />
         <span>{t('manage_breaks_and_holidays')}</span>
       </button>
-      <button type="button" style={headerButtonStyle} onClick={() => navigate('/instructor-availability')} title={t('manage_instructor_availability')} aria-label={t('manage_instructor_availability')}>
+      <button type="button" style={headerButtonStyle} onClick={() => window.open('/instructor-availability', '_blank')} title={t('manage_instructor_availability')} aria-label={t('manage_instructor_availability')}>
         <User size={16} />
         <span>{t('instructors')}</span>
         <ExternalLink size={13} aria-hidden style={{ opacity: 0.65 }} />
       </button>
-      <button type="button" style={headerButtonStyle} onClick={() => navigate('/classroom-availability')} title={t('manage_room_availability')} aria-label={t('manage_room_availability')}>
+      <button type="button" style={headerButtonStyle} onClick={() => window.open('/classroom-availability', '_blank')} title={t('manage_room_availability')} aria-label={t('manage_room_availability')}>
         <DoorOpen size={16} />
         <span>{t('rooms')}</span>
         <ExternalLink size={13} aria-hidden style={{ opacity: 0.65 }} />

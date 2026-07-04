@@ -1020,16 +1020,22 @@ function ListChart({
     }
   }, [columns, displayItems, t]);
 
+  const listTitle = getWidgetDisplayTitle(widget, t, lang);
+
   const handleExport = useCallback(() => {
     const csv = buildTableExport(columns, displayItems, renderCellValue);
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${(widget.title || 'list_export').replace(/\s+/g, '_')}.csv`;
+    const safeName = (listTitle || widget.titleEn || widget.titleAr || widget.title || 'list_export')
+      .replace(/[\s/\\?%*:|"<>]/g, '_')
+      .replace(/_+/g, '_')
+      .replace(/^_|_$/g, '');
+    a.download = `${safeName}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-  }, [columns, listItems, widget.title]);
+  }, [columns, displayItems, listTitle, widget.titleEn, widget.titleAr, widget.title]);
 
   const headerBtnStyle = {
     background: 'transparent',
@@ -1043,8 +1049,6 @@ function ListChart({
     alignItems: 'center',
     gap: '4px',
   };
-
-  const listTitle = getWidgetDisplayTitle(widget, t, lang);
 
   const workflowStatusColor = (status) => {
     const s = String(status || '').toUpperCase();

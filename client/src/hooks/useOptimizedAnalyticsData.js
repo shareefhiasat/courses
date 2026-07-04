@@ -219,6 +219,9 @@ export const processWidgetDataOptimized = cache((widget, rawData, globalFilters,
   } else {
     // Handle single data source
     switch (dataSource) {
+      case 'classGradeDistribution':
+        processedData = (rawData.classGradeDistribution || []).map(item => ({ label: item.label, value: item.value }));
+        break;
       case 'enrollments':
         processedData = processEnrollmentData(widget, rawData.enrollments || [], globalFilters, rawData);
         break;

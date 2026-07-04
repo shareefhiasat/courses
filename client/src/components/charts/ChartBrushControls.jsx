@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useCallback } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { CHART_LABEL_SHADOW, CHART_LABEL_FILL } from './chartLabelStyles';
+import ChartExportDialog from './ChartExportDialog';
 
 export const CHART_BRUSH_RESERVE = 50;
 const BRUSH_H = 28;
@@ -49,9 +50,58 @@ export default function ChartBrushControls({
   onEndDrag,
   onReset,
   onDownload,
+  exportTarget,
+  exportTitle,
+  exportFilename = 'chart',
 }) {
   const { t } = useLang();
-  if (!needsBrush || !data.length) return null;
+  const [showExportDialog, setShowExportDialog] = useState(false);
+
+  const handleDownload = useCallback(() => {
+    if (exportTarget) {
+      setShowExportDialog(true);
+    } else if (onDownload) {
+      onDownload();
+    }
+  }, [exportTarget, onDownload]);
+
+  // When no brush is needed, still show the download button
+  if (!needsBrush || !data.length) {
+    return (
+      <>
+        <div style={{ width: chartWidth, marginTop: 2, display: 'flex', justifyContent: 'flex-end' }}>
+          <button
+            type="button"
+            onClick={handleDownload}
+            title={t('chart_download') || 'Download'}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 24,
+              height: 24,
+              padding: 0,
+              border: `1px solid ${accentColor}`,
+              borderRadius: 5,
+              background: `${accentColor}12`,
+              cursor: 'pointer',
+              flexShrink: 0,
+            }}
+          >
+            <IconDownload size={14} color={accentColor} />
+          </button>
+        </div>
+        {showExportDialog && exportTarget && (
+          <ChartExportDialog
+            target={exportTarget}
+            filename={exportFilename}
+            title={exportTitle}
+            onClose={() => setShowExportDialog(false)}
+          />
+        )}
+      </>
+    );
+  }
 
   const iconCount = isZoomed ? 2 : 1;
   const iconColW = iconCount * 24 + (iconCount - 1) * 4;
@@ -172,8 +222,8 @@ export default function ChartBrushControls({
           )}
           <button
             type="button"
-            onClick={onDownload}
-            title={t('chart_download_svg')}
+            onClick={handleDownload}
+            title={t('chart_download') || 'Download'}
             style={iconBtn(true)}
           >
             <IconDownload size={14} color={accentColor} />
@@ -208,6 +258,14 @@ export default function ChartBrushControls({
           );
         })}
       </svg>
+      {showExportDialog && exportTarget && (
+        <ChartExportDialog
+          target={exportTarget}
+          filename={exportFilename}
+          title={exportTitle}
+          onClose={() => setShowExportDialog(false)}
+        />
+      )}
     </div>
   );
 }

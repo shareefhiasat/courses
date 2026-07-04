@@ -9,7 +9,7 @@ import { normalizeHexColor, DEFAULT_ACCENT, hexToRgbString } from '@utils/color'
 import { ROLE_STRINGS } from '@utils/userUtils';
 import { getThemedIcon, getUserRoleIcon, getUserRoleColor } from '@constants/iconTypes';
 import { resolveIconSize, ICON_SIZE_VARS } from '@utils/iconSize';
-import { getUserRoleFromObject } from '@utils/userUtils';
+import { resolveUserRole } from '@utils/userUtils';
 import { TimerStopwatch } from '@ui';
 import VersionDisplay from '@ui/VersionDisplay/VersionDisplay';
 import { resolveScreenIdFromNavItem } from '@config/navigationRegistry.js';
@@ -1102,7 +1102,7 @@ const SideDrawer = ({ isOpen, onClose, onOpen }) => {
                     </div>
                     {/* Role badge overlay */}
                     {(() => {
-                      const role = getUserRoleFromObject(user);
+                      const role = resolveUserRole(user);
                       if (!role) return null;
                       const roleIcon = getUserRoleIcon(role);
                       const roleColor = getUserRoleColor(role);

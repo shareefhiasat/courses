@@ -10,7 +10,6 @@ import { getSubjects, getPrograms } from '@services/business/programService';
 import {
   getSubjectMarksDistribution,
   setSubjectMarksDistribution,
-  getStudentMarks,
   updateStudentMarks,
   getAllStudentMarksReport,
   GRADE_TYPE,
@@ -228,6 +227,9 @@ const MarksPage = () => {
 
   // Per-student GPA overview when a class is selected (all subjects in class)
   const [classGpaRows, setClassGpaRows] = useState([]);
+  const [gpaSearch, setGpaSearch] = useState('');
+  const [selectedGpaStudent, setSelectedGpaStudent] = useState(null);
+  const [hoveredTip, setHoveredTip] = useState(null);
   useEffect(() => {
     if (!classFilter) {
       setClassGpaRows([]);
@@ -285,6 +287,7 @@ const MarksPage = () => {
           id: id,
           displayName: enrollment?.user?.displayName || enrollment?.user?.realName || `Student ${id}`,
           email: enrollment?.user?.email || `student${id}@example.com`,
+          profileImageUrl: enrollment?.user?.profileImageUrl || null,
           enrollments: enrollmentStudents.filter(e => e.userId === id)
         };
       });
@@ -319,19 +322,16 @@ const MarksPage = () => {
   const loadStudentMarks = useCallback(async () => {
     if (!selectedSubject) return;
     
-    try {
-      const result = await getStudentMarks(selectedSubject.docId || selectedSubject.id);
-      if (result.success) {
-        setStudentMarks(result.data || {});
-      } else {
-        error('[MarksPage] Error loading student marks:', result.error);
-        toast?.error?.(result.error || t('error_loading_marks'));
-      }
-    } catch (error) {
-      error('[MarksPage] Error loading student marks:', error);
-      toast?.error?.(t('error_loading_marks'));
+    // Build studentMarks map from marksReportData (already fetched via getAllStudentMarksReport)
+    const subjectId = selectedSubject.docId || selectedSubject.id;
+    const marksMap = {};
+    for (const row of marksReportData) {
+      if (String(row.subjectId) !== String(subjectId)) continue;
+      const studentId = row.studentId || row.userId || row.id;
+      if (studentId) marksMap[studentId] = row;
     }
-  }, [selectedSubject, t, toast]);
+    setStudentMarks(marksMap);
+  }, [selectedSubject, marksReportData]);
 
   // Initial load with Global Loading - run only once
   useLayoutEffect(() => {
@@ -817,31 +817,62 @@ const MarksPage = () => {
       {classGpaRows.length > 0 && (
         <Card style={{ marginBottom: '1.5rem' }}>
           <CardBody>
-            <h3 style={{ margin: '0 0 1rem', fontSize: '1rem', fontWeight: 600 }}>
-              {t('student_gpa_overview')}
-            </h3>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', gap: '1rem' }}>
+              <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 600 }}>
+                {t('student_gpa_overview')}
+              </h3>
+              <input
+                type="text"
+                placeholder={t('search_students')}
+                value={gpaSearch}
+                onChange={(e) => setGpaSearch(e.target.value)}
+                style={{ padding: '6px 10px', border: '1px solid var(--border)', borderRadius: 6, fontSize: '0.85rem', width: '200px' }}
+              />
+            </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.75rem' }}>
-              {classGpaRows.map((row) => (
-                <div
-                  key={row.studentId}
-                  style={{
-                    padding: '0.75rem 1rem',
-                    borderRadius: '8px',
-                    border: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`,
-                    background: isDarkMode ? '#111827' : '#f9fafb',
-                  }}
-                >
-                  <div style={{ fontWeight: 600, fontSize: 'var(--font-size-sm)', marginBottom: '0.25rem' }}>
-                    {row.studentName}
+              {classGpaRows
+                .filter(row => !gpaSearch || row.studentName?.toLowerCase().includes(gpaSearch.toLowerCase()))
+                .map((row) => {
+                const studentInfo = students.find(s => String(s.uid) === String(row.studentId));
+                const avatarUrl = studentInfo?.profileImageUrl;
+                const isSelected = String(selectedGpaStudent) === String(row.studentId);
+                return (
+                  <div
+                    key={row.studentId}
+                    onClick={() => setSelectedGpaStudent(isSelected ? null : row.studentId)}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.6rem',
+                      padding: '0.75rem 1rem',
+                      borderRadius: '8px',
+                      border: `2px solid ${isSelected ? 'var(--brand)' : (isDarkMode ? '#374151' : '#e5e7eb')}`,
+                      background: isSelected ? 'var(--brand-alpha, rgba(129,12,41,0.05))' : (isDarkMode ? '#111827' : '#f9fafb'),
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                    }}
+                  >
+                    <div style={{ width: 36, height: 36, borderRadius: '50%', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--border)', fontSize: '0.85rem', fontWeight: 700, color: 'var(--text)' }}>
+                      {avatarUrl ? (
+                        <img src={avatarUrl} alt={row.studentName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.target.style.display = 'none'; }} />
+                      ) : (
+                        row.studentName?.charAt(0)?.toUpperCase() || '?'
+                      )}
+                    </div>
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div style={{ fontWeight: 600, fontSize: 'var(--font-size-sm)', marginBottom: '0.25rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                        {row.studentName}
+                      </div>
+                      <div style={{ fontSize: '1.25rem', fontWeight: 700 }}>
+                        {row.gpa.toFixed(2)}
+                        <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 500, marginInlineStart: '0.5rem', opacity: 0.85 }}>
+                          {row.standing}
+                        </span>
+                      </div>
+                    </div>
                   </div>
-                  <div style={{ fontSize: '1.25rem', fontWeight: 700 }}>
-                    {row.gpa.toFixed(2)}
-                    <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 500, marginInlineStart: '0.5rem', opacity: 0.85 }}>
-                      {row.standing}
-                    </span>
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </CardBody>
         </Card>
@@ -850,40 +881,139 @@ const MarksPage = () => {
       {(() => {
         const dist = marksDistribution;
         const hasData = selectedSubject && dist;
-        const displayVal = (val) => hasData ? `${val}%` : '-';
+        if (!hasData) {
+          return (
+            <Card data-tour="marks-distribution" style={{ marginBottom: '1.5rem' }}>
+              <CardBody>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '0.5rem', color: 'var(--muted)', fontSize: '0.9rem' }}>
+                  {getThemedIcon('ui', 'info', 16, theme)}
+                  {t('select_subject_to_view')}
+                </div>
+              </CardBody>
+            </Card>
+          );
+        }
+        const total = (dist.midTermExam || 0) + (dist.finalExam || 0) + (dist.homework || 0) +
+          (dist.labsProjectResearch || 0) + (dist.quizzes || 0) + (dist.participation || 0) + (dist.attendance || 0);
+        const segments = [
+          { key: 'midTermExam', label: t('mid_term'), color: '#6366f1', weight: dist.midTermExam || 0 },
+          { key: 'finalExam', label: t('final'), color: '#8b5cf6', weight: dist.finalExam || 0 },
+          { key: 'homework', label: t('homework'), color: '#ec4899', weight: dist.homework || 0 },
+          { key: 'labsProjectResearch', label: t('labs_projects_research'), color: '#f59e0b', weight: dist.labsProjectResearch || 0 },
+          { key: 'quizzes', label: t('quizzes'), color: '#10b981', weight: dist.quizzes || 0 },
+          { key: 'participation', label: t('participation'), color: '#3b82f6', weight: dist.participation || 0 },
+          { key: 'attendance', label: t('attendance'), color: '#64748b', weight: dist.attendance || 0 },
+        ].filter(s => s.weight > 0);
+        const studentRow = selectedGpaStudent
+          ? marksReportData.find(r => String(r.studentId) === String(selectedGpaStudent) && String(r.subjectId) === String(selectedSubject.docId || selectedSubject.id))
+          : null;
+        const studentMarks = studentRow ? {
+          midTermExam: studentRow.midTermExam || 0,
+          finalExam: studentRow.finalExam || 0,
+          homework: studentRow.homework || 0,
+          labsProjectResearch: studentRow.labsProjectResearch || 0,
+          quizzes: studentRow.quizzes || 0,
+          participation: studentRow.participation || 0,
+          attendance: studentRow.attendance || 0,
+        } : null;
+        const studentTotal = studentMarks
+          ? studentMarks.midTermExam + studentMarks.finalExam + studentMarks.homework +
+            studentMarks.labsProjectResearch + studentMarks.quizzes +
+            studentMarks.participation + studentMarks.attendance
+          : 0;
+        const studentTotalRounded = Math.round(studentTotal * 1000) / 1000;
         return (
           <Card data-tour="marks-distribution" style={{ marginBottom: '1.5rem' }}>
             <CardBody>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginBottom: '0.5rem' }}>
-                <div className={styles.distributionGrid} style={{ flex: 1, marginRight: '0.5rem' }}>
-                  <div>{t('mid_term')} {displayVal(dist?.midTermExam)}</div>
-                  <div>{t('final')} {displayVal(dist?.finalExam)}</div>
-                  <div>{t('homework')} {displayVal(dist?.homework)}</div>
-                  <div>{t('labs_projects_research')} {displayVal(dist?.labsProjectResearch)}</div>
-                  <div>{t('quizzes')} {displayVal(dist?.quizzes)}</div>
-                  <div>{t('participation')} {displayVal(dist?.participation)}</div>
-                  <div>{t('attendance')} {displayVal(dist?.attendance)}</div>
+              <div className={styles.distributionCard}>
+                <div className={styles.distributionBarRow}>
+                  <div className={styles.distributionBar} style={{ flex: 1 }}>
+                    {segments.map(s => (
+                      <div
+                        key={s.key}
+                        className={styles.distSegment}
+                        style={{ width: `${s.weight}%`, background: s.color }}
+                        onMouseEnter={(e) => setHoveredTip({ text: `${s.label}: ${s.weight}%`, x: e.currentTarget.offsetLeft + e.currentTarget.offsetWidth / 2, y: e.currentTarget.offsetTop })}
+                        onMouseLeave={() => setHoveredTip(null)}
+                      />
+                    ))}
+                  </div>
                 </div>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  disabled={!hasData}
-                  onClick={() => {
-                    setDistributionForm({
-                      midTermExam: dist.midTermExam || 20,
-                      finalExam: dist.finalExam || 40,
-                      homework: dist.homework || 5,
-                      labsProjectResearch: dist.labsProjectResearch || 10,
-                      quizzes: dist.quizzes || 5,
-                      participation: dist.participation || 10,
-                      attendance: dist.attendance || 10,
-                    });
-                    setEditingDistribution(true);
-                  }}
-                  style={{ display: 'flex', alignItems: 'center', padding: '0.25rem 0.5rem' }}
-                >
-                  {getThemedIcon('ui', 'settings', 14, theme)}
-                </Button>
+                {studentMarks && (
+                  <div className={styles.distributionBar}>
+                    {segments.map(s => {
+                      const mark = studentMarks[s.key] || 0;
+                      const fillPct = s.weight > 0 ? Math.min((mark / s.weight) * 100, 100) : 0;
+                      return (
+                        <div
+                          key={s.key}
+                          className={styles.distSegment}
+                          style={{ width: `${s.weight}%`, background: 'var(--border)' }}
+                          onMouseEnter={(e) => setHoveredTip({ text: `${s.label}: ${mark}/${s.weight}`, x: e.currentTarget.offsetLeft + e.currentTarget.offsetWidth / 2, y: e.currentTarget.offsetTop })}
+                          onMouseLeave={() => setHoveredTip(null)}
+                        >
+                          <div style={{ width: `${fillPct}%`, height: '100%', background: s.color, opacity: 0.7, transition: 'width 0.3s ease', pointerEvents: 'none' }} />
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+                {hoveredTip && (
+                  <div style={{
+                    position: 'absolute',
+                    left: `${hoveredTip.x}px`,
+                    top: `${hoveredTip.y - 6}px`,
+                    transform: 'translate(-50%, -100%)',
+                    background: '#1f2937',
+                    color: '#fff',
+                    padding: '4px 10px',
+                    borderRadius: '6px',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    whiteSpace: 'nowrap',
+                    pointerEvents: 'none',
+                    zIndex: 9999,
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                  }}>
+                    {hoveredTip.text}
+                  </div>
+                )}
+                <div className={styles.distributionLegend}>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setDistributionForm({
+                        midTermExam: dist.midTermExam || 20,
+                        finalExam: dist.finalExam || 40,
+                        homework: dist.homework || 5,
+                        labsProjectResearch: dist.labsProjectResearch || 10,
+                        quizzes: dist.quizzes || 5,
+                        participation: dist.participation || 10,
+                        attendance: dist.attendance || 10,
+                      });
+                      setEditingDistribution(true);
+                    }}
+                    style={{ display: 'flex', alignItems: 'center', padding: '0.2rem 0.4rem', flexShrink: 0 }}
+                  >
+                    {getThemedIcon('ui', 'settings', 12, theme)}
+                  </Button>
+                  {segments.map(s => (
+                    <div key={s.key} className={styles.legendItem}>
+                      <span className={styles.legendDot} style={{ background: s.color }} />
+                      <span className={styles.legendLabel}>{s.label}</span>
+                      <span className={styles.legendValue}>
+                        {studentMarks ? `${studentMarks[s.key] || 0}/${s.weight}` : `${s.weight}%`}
+                      </span>
+                    </div>
+                  ))}
+                  <div className={styles.legendItemTotal}>
+                    <span className={styles.legendTotalLabel}>{t('total')}</span>
+                    <span className={styles.legendTotalValue}>
+                      {studentMarks ? `${studentTotalRounded}/${total}` : `${total}%`}
+                    </span>
+                  </div>
+                </div>
               </div>
             </CardBody>
           </Card>
@@ -1116,8 +1246,9 @@ const MarksPage = () => {
           {marksReportLoading && !marksReportData.length ? (
             <SimpleLoading loading type="spinner" size="md" />
           ) : !selectedSubject ? (
-            <div style={{ textAlign: 'center', padding: '2rem' }}>
-              <p>{t('select_subject_to_view')}</p>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem', padding: '2rem', color: 'var(--muted)', fontSize: '0.9rem' }}>
+              {getThemedIcon('ui', 'info', 16, theme)}
+              {t('select_subject_to_view')}
             </div>
           ) : marksReportData.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '2rem' }}>

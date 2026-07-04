@@ -1,7 +1,8 @@
 import React, { memo, useMemo, useCallback } from 'react';
-import { Button, SimpleLoading } from '@ui';
+import { SimpleLoading } from '@ui';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
+import { getThemedIcon, getIconWithColor } from '@constants/iconTypes';
 import useHistorySearch from '@hooks/useHistorySearch';
 import { formatDateTime } from '@utils/date-formatter.js';
 
@@ -30,8 +31,8 @@ const MarksHistoryDrawer = memo(({
   width = 400,
   debounceMs = 300
 }) => {
-  const { t } = useLang();
-  const { isDarkMode } = useTheme();
+  const { t, lang, isRTL } = useLang();
+  const { theme } = useTheme();
   
   // Use custom hook for debounced search
   const {
@@ -56,65 +57,65 @@ const MarksHistoryDrawer = memo(({
   const drawerStyle = useMemo(() => ({
     position: 'fixed',
     top: 0,
-    right: isOpen ? 0 : `-${width}px`,
+    right: isRTL ? 'auto' : (isOpen ? 0 : `-${width}px`),
+    left: isRTL ? (isOpen ? 0 : `-${width}px`) : 'auto',
     width: `${width}px`,
     height: '100vh',
-    background: isDarkMode ? '#1f2937' : '#ffffff',
-    boxShadow: '-2px 0 10px rgba(0,0,0,0.1)',
-    transition: 'right 0.3s ease-in-out',
+    background: 'var(--panel)',
+    boxShadow: isRTL ? '2px 0 10px rgba(0,0,0,0.1)' : '-2px 0 10px rgba(0,0,0,0.1)',
+    transition: 'right 0.3s ease-in-out, left 0.3s ease-in-out',
     zIndex: 1000,
     overflow: 'auto',
     ...styles.drawer
-  }), [isOpen, width, isDarkMode, styles.drawer]);
+  }), [isOpen, width, isRTL, styles.drawer]);
 
   const backdropStyle = useMemo(() => ({
     position: 'fixed',
     top: 0,
-    left: 0,
-    right: `${width}px`,
+    left: isRTL ? `${width}px` : 0,
+    right: isRTL ? 0 : `${width}px`,
     height: '100vh',
-    background: 'rgba(0,0,0,0.1)',
+    background: 'rgba(0,0,0,0.45)',
     zIndex: 999,
     ...styles.backdrop
-  }), [width, styles.backdrop]);
+  }), [width, isRTL, styles.backdrop]);
 
   const headerStyle = useMemo(() => ({
-    padding: '1rem',
-    borderBottom: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`,
+    padding: '1rem 1.25rem',
+    borderBottom: '1px solid var(--border)',
     display: 'flex',
     flexDirection: 'column',
-    gap: '0.75rem',
+    gap: '0.5rem',
     ...styles.header
-  }), [isDarkMode, styles.header]);
+  }), [styles.header]);
 
   const searchInputStyle = useMemo(() => ({
     width: '100%',
-    padding: '0.5rem 2.5rem 0.5rem 0.75rem',
-    border: `1px solid ${isDarkMode ? '#4b5563' : '#d1d5db'}`,
-    borderRadius: '6px',
-    background: isDarkMode ? '#1f2937' : '#ffffff',
-    color: isDarkMode ? '#f3f4f6' : '#111827',
-    fontSize: 'var(--font-size-sm)',
+    padding: '0.5rem 0.75rem',
+    border: '1px solid var(--border)',
+    borderRadius: '8px',
+    background: 'var(--bg)',
+    color: 'var(--text)',
+    fontSize: '0.85rem',
     ...styles.searchInput
-  }), [isDarkMode, styles.searchInput]);
+  }), [styles.searchInput]);
 
   const entryStyle = useMemo(() => ({
     padding: '1rem',
-    border: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`,
+    border: '1px solid var(--border)',
     borderRadius: '8px',
-    background: isDarkMode ? '#1f2937' : '#ffffff',
-    boxShadow: '0 1px 3px rgba(0,0,0,0.1)',
+    background: 'var(--bg)',
     ...styles.entry
-  }), [isDarkMode, styles.entry]);
+  }), [styles.entry]);
 
   const changeBoxStyle = useMemo(() => ({
     marginBottom: '0.75rem',
     padding: '0.75rem',
-    background: isDarkMode ? '#374151' : '#f9fafb',
+    background: 'var(--panel)',
     borderRadius: '6px',
-    border: `1px solid ${isDarkMode ? '#4b5563' : '#e5e7eb'}`,
+    border: '1px solid var(--border)',
     ...styles.changeBox
-  }), [isDarkMode, styles.changeBox]);
+  }), [styles.changeBox]);
 
   // Handle close with escape key
   const handleKeyDown = useCallback((e) => {
@@ -122,6 +123,14 @@ const MarksHistoryDrawer = memo(({
       onClose();
     }
   }, [isOpen, onClose]);
+
+  const toInitCap = useCallback((text) => {
+    if (!text || lang === 'ar') return text;
+    const normalized = text === text.toUpperCase() && /[A-Z]/.test(text)
+      ? text.split(/[_\s]+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ')
+      : text;
+    return normalized.charAt(0).toUpperCase() + normalized.slice(1);
+  }, [lang]);
 
   // Render individual history entry
   const renderHistoryEntry = useCallback((auditEntry, index) => (
@@ -136,26 +145,33 @@ const MarksHistoryDrawer = memo(({
         alignItems: 'center',
         marginBottom: '0.75rem',
         paddingBottom: '0.5rem',
-        borderBottom: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`
+        borderBottom: '1px solid var(--border)'
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <span style={{ 
             fontSize: 'var(--font-size-sm)', 
-            fontWeight: 'bold',
-            color: auditEntry.actionType === 'created' ? '#22c55e' : '#3b82f6'
+            fontWeight: 600,
+            color: auditEntry.actionType === 'created' ? '#22c55e' : '#3b82f6',
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: '0.25rem',
           }}>
-            {auditEntry.actionType === 'created' ? '📝 Created' : '✏️ Updated'}
+            {auditEntry.actionType === 'created' 
+              ? getIconWithColor('ui', 'plus', 14, '#22c55e')
+              : getIconWithColor('ui', 'edit', 14, '#3b82f6')
+            }
+            {auditEntry.actionType === 'created' ? t('history_created') : t('history_updated')}
           </span>
           <span style={{ 
             fontSize: 'var(--font-size-xs)', 
-            color: isDarkMode ? '#9ca3af' : '#6b7280'
+            color: 'var(--muted)'
           }}>
-            by {auditEntry.user ? `${auditEntry.user.firstName} ${auditEntry.user.lastName}` : 'Unknown User'}
+            {t('history_by')} {auditEntry.user ? `${auditEntry.user.firstName} ${auditEntry.user.lastName}` : t('history_unknown_user')}
           </span>
         </div>
         <div style={{ 
           fontSize: 'var(--font-size-xs)', 
-          color: isDarkMode ? '#9ca3af' : '#6b7280',
+          color: 'var(--muted)',
           textAlign: 'right'
         }}>
           {formatDateTime(auditEntry.timestamp, lang)}
@@ -168,34 +184,37 @@ const MarksHistoryDrawer = memo(({
           {auditEntry.changes.map((change, changeIndex) => (
             <div key={changeIndex} style={{ 
               fontSize: '0.7rem', 
-              color: isDarkMode ? '#d1d5db' : '#6b7280', 
+              color: 'var(--muted)', 
               marginBottom: '0.25rem',
               display: 'flex',
               alignItems: 'center',
               gap: '0.5rem'
             }}>
               {change.field === 'initial' ? (
-                <span>📝 {change.fieldName}</span>
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem' }}>
+                  {getIconWithColor('ui', 'plus', 12, '#22c55e')}
+                  {change.fieldName}
+                </span>
               ) : (
                 <>
-                  <span style={{ fontWeight: '500' }}>{change.fieldName}:</span>
+                  <span style={{ fontWeight: 500 }}>{change.fieldName}:</span>
                   <span style={{ 
                     color: '#ef4444', 
                     textDecoration: 'line-through',
                     opacity: 0.7
                   }}>
                     {change.oldValue === null ? 'null' : 
-                     change.field === 'isRepeated' ? (change.oldValue ? 'Yes' : 'No') :
+                     change.field === 'isRepeated' ? (change.oldValue ? t('history_repeated') : t('history_first')) :
                      change.field === 'gradeType' ? change.oldValue : 
                      change.oldValue}
                   </span>
-                  <span style={{ color: '#6b7280' }}>→</span>
+                  <span style={{ color: 'var(--muted)' }}>→</span>
                   <span style={{ 
                     color: '#22c55e',
-                    fontWeight: '500'
+                    fontWeight: 500
                   }}>
                     {change.newValue === null ? 'null' : 
-                     change.field === 'isRepeated' ? (change.newValue ? 'Yes' : 'No') :
+                     change.field === 'isRepeated' ? (change.newValue ? t('history_repeated') : t('history_first')) :
                      change.field === 'gradeType' ? change.newValue : 
                      change.newValue}
                   </span>
@@ -212,20 +231,20 @@ const MarksHistoryDrawer = memo(({
         justifyContent: 'space-between', 
         alignItems: 'center',
         fontSize: 'var(--font-size-sm)',
-        color: isDarkMode ? '#d1d5db' : '#6b7280'
+        color: 'var(--muted)'
       }}>
         <div>
-          <span>Attempt: </span>
+          <span>{t('history_attempt')} </span>
           <span style={{ 
-            fontWeight: 'bold',
+            fontWeight: 600,
             color: auditEntry.recordSnapshot?.isRepeated ? '#ef4444' : '#22c55e'
           }}>
-            {auditEntry.recordSnapshot?.isRepeated ? 'Repeated' : 'First'}
+            {auditEntry.recordSnapshot?.isRepeated ? t('history_repeated') : t('history_first')}
           </span>
         </div>
         <div>
-          <span>Total: </span>
-          <span style={{ fontWeight: 'bold' }}>
+          <span>{t('history_total')} </span>
+          <span style={{ fontWeight: 600, color: 'var(--text)' }}>
             {auditEntry.recordSnapshot?.totalMarks || 0}%
           </span>
         </div>
@@ -236,14 +255,14 @@ const MarksHistoryDrawer = memo(({
             background: getGradeColor(auditEntry.recordSnapshot?.letterGrade),
             color: '#ffffff',
             fontSize: 'var(--font-size-xs)',
-            fontWeight: 'bold'
+            fontWeight: 700
           }}>
             {auditEntry.recordSnapshot?.letterGrade || 'N/A'}
           </span>
         </div>
       </div>
     </div>
-  ), [entryStyle, changeBoxStyle, isDarkMode, getGradeColor]);
+  ), [entryStyle, changeBoxStyle, t, lang, getGradeColor]);
 
   if (!isOpen) return null;
 
@@ -262,7 +281,7 @@ const MarksHistoryDrawer = memo(({
       )}
       
       <div 
-        className={`marks-history-drawer ${isOpen ? 'open' : ''}`}
+        className={`marks-history-drawer ${isOpen ? 'open' : ''} ${isRTL ? 'rtl' : ''}`}
         style={drawerStyle}
         onClick={(e) => e.stopPropagation()}
         role="dialog"
@@ -274,81 +293,86 @@ const MarksHistoryDrawer = memo(({
           <div style={{ 
             display: 'flex', 
             justifyContent: 'space-between', 
-            alignItems: 'center' 
+            alignItems: 'center',
           }}>
-            <h3 id="history-drawer-title" style={{ margin: 0, color: isDarkMode ? '#f3f4f6' : '#111827' }}>
-              {t('marks_history')}
+            <h3 id="history-drawer-title" style={{ margin: 0, color: 'var(--text)', fontSize: '1.1rem', fontWeight: 700 }}>
+              {toInitCap(t('marks_history'))}
             </h3>
-            <Button
-              size="sm"
-              variant="outline-secondary"
+            <button
               onClick={onClose}
-              style={{ padding: '4px 8px' }}
-              aria-label="Close"
+              style={{
+                background: 'none',
+                border: 'none',
+                padding: '0.375rem',
+                cursor: 'pointer',
+                color: 'var(--muted)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderRadius: '6px',
+                transition: 'all 0.2s',
+              }}
+              aria-label={t('close')}
+              onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--bg)'; e.currentTarget.style.color = 'var(--text)'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = 'none'; e.currentTarget.style.color = 'var(--muted)'; }}
             >
-              ×
-            </Button>
+              {getThemedIcon('ui', 'x', 20, theme)}
+            </button>
           </div>
           
           {/* Search Input */}
           <div style={{ position: 'relative' }}>
             <input
               type="text"
-              placeholder="Search history..."
+              placeholder={t('search_history')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               style={searchInputStyle}
-              aria-label="Search history"
+              aria-label={t('search_history')}
             />
-            <span style={{
-              position: 'absolute',
-              right: '0.75rem',
-              top: '50%',
-              transform: 'translateY(-50%)',
-              color: isDarkMode ? '#9ca3af' : '#6b7280',
-              fontSize: 'var(--font-size-sm)',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '0.5rem'
-            }}>
-              {searchTerm && (
-                <button
-                  onClick={clearSearch}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: isDarkMode ? '#9ca3af' : '#6b7280',
-                    cursor: 'pointer',
-                    fontSize: 'var(--font-size-xs)',
-                    padding: '0',
-                    borderRadius: '2px'
-                  }}
-                  title="Clear search"
-                  aria-label="Clear search"
-                >
-                  ✕
-                </button>
-              )}
-              🔍
-            </span>
+            {searchTerm && (
+              <button
+                onClick={clearSearch}
+                style={{
+                  position: 'absolute',
+                  [isRTL ? 'left' : 'right']: '0.5rem',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  background: 'none',
+                  border: 'none',
+                  color: 'var(--muted)',
+                  cursor: 'pointer',
+                  padding: '0.25rem',
+                  borderRadius: '4px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+                title={t('history_clear_search')}
+                aria-label={t('history_clear_search')}
+              >
+                {getThemedIcon('ui', 'x', 14, theme)}
+              </button>
+            )}
           </div>
         </div>
         
         {/* Content */}
-        <div style={{ padding: '1rem' }}>
+        <div style={{ padding: '1rem 1.25rem' }}>
           {/* Selected Student Info */}
           {selectedStudent && (
             <div style={{ 
               marginBottom: '1rem', 
               padding: '0.75rem', 
-              background: isDarkMode ? '#374151' : '#f9fafb', 
-              borderRadius: '6px' 
+              background: 'var(--bg)', 
+              borderRadius: '8px',
+              border: '1px solid var(--border)',
             }}>
-              <div style={{ fontWeight: 'bold', color: isDarkMode ? '#f3f4f6' : '#111827' }}>
+              <div style={{ fontWeight: 600, color: 'var(--text)', fontSize: '0.9rem' }}>
                 {selectedStudent.studentName || selectedStudent.name}
               </div>
-              <div style={{ fontSize: 'var(--font-size-sm)', color: isDarkMode ? '#d1d5db' : '#6b7280' }}>
-                ID: {selectedStudent.studentNumber || selectedStudent.id}
+              <div style={{ fontSize: 'var(--font-size-sm)', color: 'var(--muted)' }}>
+                {t('history_student_id')}: {selectedStudent.studentNumber || selectedStudent.id}
               </div>
             </div>
           )}
@@ -359,11 +383,11 @@ const MarksHistoryDrawer = memo(({
               <SimpleLoading message={t('loading_history')} />
             </div>
           ) : filteredData.length > 0 ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
               {filteredData.map((auditEntry, index) => renderHistoryEntry(auditEntry, index))}
             </div>
           ) : (
-            <div style={{ textAlign: 'center', padding: '2rem', color: isDarkMode ? '#9ca3af' : '#6b7280' }}>
+            <div style={{ textAlign: 'center', padding: '2rem', color: 'var(--muted)' }}>
               {hasSearch ? 
                 (t('no_search_results')) : 
                 (t('no_history_found'))

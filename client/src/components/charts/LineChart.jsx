@@ -12,9 +12,10 @@ const getLocalizedName = (item, lang) => {
   return item.nameEn || item.name || item.title || item.code || item.docId || '';
 };
 
-function LineChart({ data = [], size = { width: 400, height: 300 }, accentColor = '#800020', showArea = true, showPoints = true, showGrid = true }) {
+function LineChart({ data = [], size = { width: 400, height: 300 }, accentColor = '#800020', showArea = true, showPoints = true, showGrid = true, title }) {
   const { t, lang } = useLang();
   const svgRef = useRef(null);
+  const containerRef = useRef(null);
 
   let width;
   let height;
@@ -89,7 +90,7 @@ function LineChart({ data = [], size = { width: 400, height: 300 }, accentColor 
   })();
 
   return (
-    <div style={{ width, height }}>
+    <div ref={containerRef} style={{ width, height }}>
       <svg ref={svgRef} width={width} height={chartHeight} style={{ fontFamily: 'var(--font-family-sans)', display: 'block', overflow: 'hidden' }}>
         <defs>
           <clipPath id="line-plot-clip">
@@ -148,6 +149,9 @@ function LineChart({ data = [], size = { width: 400, height: 300 }, accentColor 
         onEndDrag={endDrag}
         onReset={resetRange}
         onDownload={() => downloadSvg(svgRef.current, 'line-chart.svg')}
+        exportTarget={containerRef.current}
+        exportTitle={title}
+        exportFilename="line-chart"
       />
     </div>
   );

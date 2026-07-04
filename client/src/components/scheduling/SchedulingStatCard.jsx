@@ -6,36 +6,42 @@ export default function SchedulingStatCard({ value, label, Icon, iconColor, icon
     <div style={{
       backgroundColor: theme === 'dark' ? '#1f2937' : '#f9fafb',
       borderRadius: '0.375rem',
-      padding: '0.75rem',
+      padding: '0.5rem',
       border: `1px solid ${theme === 'dark' ? '#374151' : '#e5e7eb'}`,
       display: 'flex',
+      flexDirection: 'column',
       alignItems: 'center',
-      gap: '0.75rem',
+      textAlign: 'center',
+      gap: '0.25rem',
       minWidth: 0,
     }}>
-      <div style={{
-        backgroundColor: iconBg,
-        borderRadius: '0.375rem',
-        padding: '0.5rem',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        flexShrink: 0,
-      }}>
-        <Icon size={16} color={iconColor} />
-      </div>
-      <div style={{ minWidth: 0 }}>
-        <div style={{ fontSize: '1.25rem', fontWeight: 700, lineHeight: 1 }}>{value}</div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', minWidth: 0 }}>
         <div style={{
-          fontSize: '0.7rem',
-          color: muted,
-          marginTop: '0.125rem',
-          overflow: 'hidden',
-          textOverflow: 'ellipsis',
-          whiteSpace: 'nowrap',
+          backgroundColor: iconBg,
+          borderRadius: '0.25rem',
+          padding: '0.25rem',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexShrink: 0,
         }}>
-          {label}
+          <Icon size={13} color={iconColor} />
         </div>
+        <div style={{ fontSize: '0.95rem', fontWeight: 700, lineHeight: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {value}
+        </div>
+      </div>
+      <div style={{
+        fontSize: '0.65rem',
+        color: muted,
+        lineHeight: 1.2,
+        overflow: 'hidden',
+        textOverflow: 'ellipsis',
+        display: '-webkit-box',
+        WebkitLineClamp: 2,
+        WebkitBoxOrient: 'vertical',
+      }}>
+        {label}
       </div>
     </div>
   );

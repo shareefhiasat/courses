@@ -15,6 +15,7 @@ import { useToast, ConfirmModal } from '@ui';
 import { chatService } from '@services/business/chatService';
 import { getThemedIcon, getIconWithColor } from '@constants/iconTypes';
 import { getChatUserDisplayName } from '@utils/userUtils';
+import { formatMimeType } from '@utils/fileUtils';
 import RoleBadge from './RoleBadge';
 import AvatarWithRoleBadge from './AvatarWithRoleBadge';
 
@@ -522,6 +523,22 @@ const MediaTab = ({ items, t, isRTL }) => {
           <div style={{ display: item.fileUrl ? 'none' : 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: '1.5rem' }}>
             📄
           </div>
+          {item.fileType && (
+            <span style={{
+              position: 'absolute',
+              bottom: 4,
+              right: 4,
+              background: 'rgba(0,0,0,0.6)',
+              color: 'white',
+              fontSize: '0.6rem',
+              fontWeight: 700,
+              padding: '1px 5px',
+              borderRadius: 4,
+              pointerEvents: 'none',
+            }}>
+              {formatMimeType(item.fileType)}
+            </span>
+          )}
         </div>
       ))}
     </div>
@@ -537,6 +554,7 @@ const DocumentsTab = ({ items, t, isRTL }) => {
         <div
           key={item.id}
           onClick={() => item.fileUrl && window.open(withAuthToken(item.fileUrl), '_blank')}
+          title={formatMimeType(item.fileType)}
           style={{
             display: 'flex',
             alignItems: 'center',
@@ -566,7 +584,7 @@ const DocumentsTab = ({ items, t, isRTL }) => {
               {item.fileName || 'Unknown file'}
             </div>
             <div style={{ fontSize: '0.7rem', color: 'var(--muted)' }}>
-              {item.fileType || 'file'}
+              {formatMimeType(item.fileType)}
             </div>
           </div>
         </div>

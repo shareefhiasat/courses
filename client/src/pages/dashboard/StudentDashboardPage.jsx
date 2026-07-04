@@ -12,7 +12,7 @@ import { getThemedIcon } from '@constants/iconTypes';
 import { ROLE_STRINGS } from '@constants';
 import ProgramsSelect from '@ui/Select/ProgramsSelect';
 import { info, error, warn, debug } from '@services/utils/logger.js';
-import { getUsers } from '@services/business/userService';
+import { getUsers, getUserById } from '@services/business/userService';
 
 import useStudentDashboardPermissions from '@hooks/useStudentDashboardPermissions';
 import useStudentDashboardFilters from '@hooks/useStudentDashboardFilters';
@@ -141,6 +141,7 @@ export default function StudentDashboardPage() {
 
   // Load all users for UserSelect (like enrollment page pattern)
   const [allUsers, setAllUsers] = useState([]);
+  const [detailedStudent, setDetailedStudent] = useState(null);
   
   useEffect(() => {
     const loadAllUsers = async () => {
@@ -163,7 +164,7 @@ export default function StudentDashboardPage() {
   }, [allUsers, user?.email]);
 
   // ─── Resolve selected student object for profile panel ────────────────────
-  const selectedStudent = useMemo(() => {
+  const selectedStudentBase = useMemo(() => {
     if (permissions.isStaff && filters.selectedStudentId) {
       const matchId = String(filters.selectedStudentId);
       const found = studentUsers.find(s =>
@@ -180,6 +181,34 @@ export default function StudentDashboardPage() {
     // For non-staff or when no student is selected, show own profile
     return userProfile || user || null;
   }, [permissions.isStaff, filters.selectedStudentId, studentUsers, filters.filteredStudents, userProfile, user]);
+
+  // Fetch detailed user data (includes phoneNumber, images, etc.) when a student is selected
+  useEffect(() => {
+    if (!permissions.isStaff || !filters.selectedStudentId) { setDetailedStudent(null); return; }
+    let cancelled = false;
+    const fetchDetail = async () => {
+      try {
+        const id = filters.selectedStudentId;
+        const res = await getUserById(id);
+        if (!cancelled && res.success && res.data) {
+          setDetailedStudent(res.data);
+        }
+      } catch (err) {
+        error('[StudentDashboardPage] Error loading student detail:', err);
+      }
+    };
+    fetchDetail();
+    return () => { cancelled = true; };
+  }, [permissions.isStaff, filters.selectedStudentId]);
+
+  // Merge detailed student data (with phoneNumber etc.) over the base list data
+  const selectedStudent = useMemo(() => {
+    if (!selectedStudentBase) return null;
+    if (detailedStudent) {
+      return { ...selectedStudentBase, ...detailedStudent };
+    }
+    return selectedStudentBase;
+  }, [selectedStudentBase, detailedStudent]);
 
   // ─── Selection prompt state (needed early for debugging) ─────────────────────
   const showSelectionPrompt = permissions.isStaff && !filters.hasSelection;

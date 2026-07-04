@@ -84,12 +84,17 @@ const ParticipantManagementModal = ({ isOpen, onClose, room, currentUserId, onPa
     }
   };
 
-  const handleRemoveParticipant = async (participant) => {
+  const handleRemoveParticipant = (participant) => {
     if (participant.userId === room.createdBy) {
       toast.error(t('chat_cannot_remove_creator'));
       return;
     }
+    setConfirmModal({ isOpen: true, type: 'remove', participant });
+  };
 
+  const handleConfirmRemoveParticipant = async () => {
+    const participant = confirmModal.participant;
+    setConfirmModal({ isOpen: false, type: null, participant: null });
     try {
       setActionLoading(`remove-${participant.userId}`);
       const response = await apiService.delete(`/chat/rooms/${room.id}/participants/${participant.userId}`);
@@ -221,7 +226,7 @@ const ParticipantManagementModal = ({ isOpen, onClose, room, currentUserId, onPa
 
         <div className={styles.content}>
           {/* Role Filter Chips */}
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: '0.75rem' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: '0.25rem' }}>
             {ROLE_CHIPS.map(chip => {
               const isActive = (chip.key === 'all' && !roleFilter) || roleFilter === chip.key;
               const chipColor = chip.color || '#6b7280';
@@ -254,8 +259,7 @@ const ParticipantManagementModal = ({ isOpen, onClose, room, currentUserId, onPa
           </div>
 
           {/* Search Box */}
-          <div className={styles.searchBox} style={{ marginBottom: '0.75rem' }}>
-            <span className={styles.searchIcon}>{getThemedIcon('ui', 'search', 18, theme)}</span>
+          <div className={styles.searchBox} style={{ marginBottom: '0.25rem' }}>
             <input
               type="text"
               autoComplete="off"
@@ -458,24 +462,34 @@ const ParticipantManagementModal = ({ isOpen, onClose, room, currentUserId, onPa
       <ConfirmModal
         isOpen={confirmModal.isOpen}
         onClose={() => setConfirmModal({ isOpen: false, type: null, participant: null })}
-        onConfirm={confirmModal.type === 'assign' ? handleConfirmAssignAdmin : handleConfirmLeaveGroup}
+        onConfirm={
+          confirmModal.type === 'assign' ? handleConfirmAssignAdmin
+          : confirmModal.type === 'remove' ? handleConfirmRemoveParticipant
+          : handleConfirmLeaveGroup
+        }
         title={
           confirmModal.type === 'assign'
             ? (t('chat_assign_admin'))
+            : confirmModal.type === 'remove'
+            ? (t('chat_remove_participant'))
             : (t('chat_leave_group'))
         }
         message={
           confirmModal.type === 'assign'
             ? (t('chat_assign_admin_confirm'))
+            : confirmModal.type === 'remove'
+            ? (t('chat_remove_participant_confirm'))
             : (t('chat_leave_group_confirm'))
         }
         confirmText={
           confirmModal.type === 'assign'
             ? (t('chat_assign_admin'))
+            : confirmModal.type === 'remove'
+            ? (t('chat_remove_participant'))
             : (t('chat_leave_group'))
         }
         cancelText={t('cancel')}
-        variant={confirmModal.type === 'leave' ? 'danger' : 'primary'}
+        variant={confirmModal.type === 'leave' || confirmModal.type === 'remove' ? 'danger' : 'primary'}
         size="small"
       />
     </>

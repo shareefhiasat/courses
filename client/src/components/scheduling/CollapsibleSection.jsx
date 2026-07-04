@@ -86,7 +86,7 @@ export default function CollapsibleSection({
           }}>
             {title}
           </span>
-          {!open && summary && (
+          {summary && (
             <span style={{
               fontSize: 'var(--font-size-xs)',
               color: muted,

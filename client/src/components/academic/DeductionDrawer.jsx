@@ -43,9 +43,9 @@ const DeductionDrawer = memo(({
   type = 'absence',
   weight = 10,
   thresholds = { failureCount: 8, failureGrade: 'FB' },
-  width = 680,
+  width = 400,
 }) => {
-  const { t } = useLang();
+  const { t, lang, isRTL } = useLang();
   const { theme } = useTheme();
   const isDarkMode = theme === 'dark';
 
@@ -58,25 +58,26 @@ const DeductionDrawer = memo(({
   const drawerStyle = useMemo(() => ({
     position: 'fixed',
     top: 0,
-    right: isOpen ? 0 : `-${width}px`,
+    right: isRTL ? 'auto' : (isOpen ? 0 : `-${width}px`),
+    left: isRTL ? (isOpen ? 0 : `-${width}px`) : 'auto',
     width: `${width}px`,
     height: '100vh',
     background: bgColor,
-    boxShadow: '-2px 0 10px rgba(0,0,0,0.1)',
-    transition: 'right 0.3s ease-in-out',
+    boxShadow: isRTL ? '2px 0 10px rgba(0,0,0,0.1)' : '-2px 0 10px rgba(0,0,0,0.1)',
+    transition: 'right 0.3s ease-in-out, left 0.3s ease-in-out',
     zIndex: 1000,
     overflow: 'auto',
-  }), [isOpen, width, bgColor]);
+  }), [isOpen, width, bgColor, isRTL]);
 
   const backdropStyle = useMemo(() => ({
     position: 'fixed',
     top: 0,
-    left: 0,
-    right: `${width}px`,
+    left: isRTL ? `${width}px` : 0,
+    right: isRTL ? 0 : `${width}px`,
     height: '100vh',
-    background: 'rgba(0,0,0,0.1)',
+    background: 'rgba(0,0,0,0.45)',
     zIndex: 999,
-  }), [width]);
+  }), [width, isRTL]);
 
   const summary = data?.summary || data;
   const items = data?.items || data?.rows || [];
@@ -236,11 +237,11 @@ const DeductionDrawer = memo(({
               <div style={{ fontWeight: 600, color: textColor, fontSize: '0.9rem' }}>
                 {student.studentName || student.displayName || student.name || 'Unknown'}
               </div>
-              <div style={{ fontSize: '0.75rem', color: mutedColor, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {student.studentNumber ? `#${student.studentNumber} · ` : ''}
-                {student.programName ? `${student.programName} · ` : ''}
-                {student.subjectName ? `${student.subjectName} · ` : ''}
-                {student.className || ''}
+              <div style={{ fontSize: '0.75rem', color: mutedColor, lineHeight: 1.4 }}>
+                {student.studentNumber && <div>#{student.studentNumber}</div>}
+                {student.programName && <div>{student.programName}</div>}
+                {student.subjectName && <div>{student.subjectName}</div>}
+                {student.className && <div>{student.className}</div>}
               </div>
             </div>
           </div>

@@ -35,6 +35,7 @@
     "db:seed": "pnpm exec tsx prisma/seed-all.ts",
     "db:seed:comprehensive": "node seed-comprehensive-data.js",
     "db:seed:realistic": "node seed-realistic-academic.js",
+    "db:seed:historical": "node backend/scripts/seed-historical-demo-data.js",
     "db:reset:realistic": "node reset-and-seed.js",
     "api": "node backend/server.js",
     "api:dev": "node --watch backend/server.js",

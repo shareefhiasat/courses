@@ -41,11 +41,12 @@ const MarksTab = React.memo(({
   const [marksReportData, setMarksReportData] = useState([]);
   const [marksReportLoading, setMarksReportLoading] = useState(false);
   const [marksDistribution, setMarksDistribution] = useState(null);
-  const [semesterDistributions, setSemesterDistributions] = useState({});
+  const [subjectDistributions, setSubjectDistributions] = useState({});
   const [showHistoryDrawer, setShowHistoryDrawer] = useState(false);
   const [historyData, setHistoryData] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [selectedHistoryStudent, setSelectedHistoryStudent] = useState(null);
+  const [hoveredTip, setHoveredTip] = useState(null);
 
   const loadMarksReport = useCallback(async () => {
     if (!studentId && !classId) return;
@@ -94,29 +95,26 @@ const MarksTab = React.memo(({
     [marksReportData]
   );
 
-  // Fetch mark distribution for each semester's first subject
+  // Fetch mark distribution for ALL subjects across all semesters
   useEffect(() => {
     if (groupedMarks.length === 0) return;
-    const semesterKeys = groupedMarks.map(g => `${g.semester}-${g.year}`);
-    const missing = semesterKeys.filter(k => !(k in semesterDistributions));
+    const allSubjectIds = new Set();
+    groupedMarks.forEach(g => g.courses.forEach(c => { if (c.subjectId) allSubjectIds.add(c.subjectId); }));
+    const missing = [...allSubjectIds].filter(id => !(id in subjectDistributions));
     if (missing.length === 0) return;
     let cancelled = false;
     (async () => {
       const entries = {};
-      for (const group of groupedMarks) {
-        const key = `${group.semester}-${group.year}`;
-        if (key in semesterDistributions) continue;
-        const subjId = group.courses[0]?.subjectId;
-        if (!subjId) continue;
+      for (const subjId of missing) {
         try {
           const result = await getSubjectMarksDistribution(subjId);
-          if (result.success) entries[key] = result.data;
+          if (result.success) entries[subjId] = result.data;
         } catch (err) {
-          error('[MarksTab] Error loading semester distribution:', err);
+          error('[MarksTab] Error loading subject distribution:', err);
         }
       }
       if (!cancelled && Object.keys(entries).length > 0) {
-        setSemesterDistributions(prev => ({ ...prev, ...entries }));
+        setSubjectDistributions(prev => ({ ...prev, ...entries }));
       }
     })();
     return () => { cancelled = true; };
@@ -444,40 +442,96 @@ const MarksTab = React.memo(({
           defaultOpen={false}
           testId={`marks-semester-${group.semester}-${group.year}`}
         >
-          {(() => {
-            const semKey = `${group.semester}-${group.year}`;
-            const dist = semesterDistributions[semKey];
+          {group.courses.map((course) => {
+            const dist = subjectDistributions[course.subjectId];
             if (!dist) return null;
+            const total = dist.midTermExam + dist.finalExam + dist.homework +
+              dist.labsProjectResearch + dist.quizzes +
+              dist.participation + dist.attendance;
+            const studentTotal = (course.midTermExam || 0) + (course.finalExam || 0) +
+              (course.homework || 0) + (course.labsProjectResearch || 0) +
+              (course.quizzes || 0) + (course.participation || 0) + (course.attendance || 0);
+            const studentTotalRounded = Math.round(studentTotal * 1000) / 1000;
+            const segments = [
+              { key: 'midTermExam', label: t('mid_term'), color: '#6366f1', weight: dist.midTermExam, mark: course.midTermExam || 0 },
+              { key: 'finalExam', label: t('final'), color: '#8b5cf6', weight: dist.finalExam, mark: course.finalExam || 0 },
+              { key: 'homework', label: t('homework'), color: '#ec4899', weight: dist.homework, mark: course.homework || 0 },
+              { key: 'labsProjectResearch', label: t('labs'), color: '#f59e0b', weight: dist.labsProjectResearch, mark: course.labsProjectResearch || 0 },
+              { key: 'quizzes', label: t('quizzes'), color: '#10b981', weight: dist.quizzes, mark: course.quizzes || 0 },
+              { key: 'participation', label: t('participation'), color: '#3b82f6', weight: dist.participation, mark: course.participation || 0 },
+              { key: 'attendance', label: t('attendance'), color: '#64748b', weight: dist.attendance, mark: course.attendance || 0 },
+            ].filter(s => s.weight > 0);
             return (
-              <div className={styles.distributionCard}>
+              <div key={course.subjectId} className={styles.distributionCard}>
                 <div className={styles.distributionHeader}>
-                  <span className={styles.distributionTotal}>
-                    {dist.midTermExam + dist.finalExam + dist.homework +
-                     dist.labsProjectResearch + dist.quizzes +
-                     dist.participation + dist.attendance}%
-                  </span>
+                  <span className={styles.distributionTitle}>{course.subjectName}</span>
+                  <span className={styles.distributionTotal}>{total}%</span>
                 </div>
+                {/* Distribution weights bar */}
                 <div className={styles.distributionBar}>
-                  <div className={styles.distSegment} style={{ width: `${dist.midTermExam}%`, background: '#6366f1' }} title={`${t('mid_term')} ${dist.midTermExam}%`} />
-                  <div className={styles.distSegment} style={{ width: `${dist.finalExam}%`, background: '#8b5cf6' }} title={`${t('final')} ${dist.finalExam}%`} />
-                  <div className={styles.distSegment} style={{ width: `${dist.homework}%`, background: '#ec4899' }} title={`${t('homework')} ${dist.homework}%`} />
-                  <div className={styles.distSegment} style={{ width: `${dist.labsProjectResearch}%`, background: '#f59e0b' }} title={`${t('labs')} ${dist.labsProjectResearch}%`} />
-                  <div className={styles.distSegment} style={{ width: `${dist.quizzes}%`, background: '#10b981' }} title={`${t('quizzes')} ${dist.quizzes}%`} />
-                  <div className={styles.distSegment} style={{ width: `${dist.participation}%`, background: '#3b82f6' }} title={`${t('participation')} ${dist.participation}%`} />
-                  <div className={styles.distSegment} style={{ width: `${dist.attendance}%`, background: '#64748b' }} title={`${t('attendance')} ${dist.attendance}%`} />
+                  {segments.map(s => (
+                    <div
+                      key={s.key}
+                      className={styles.distSegment}
+                      style={{ width: `${s.weight}%`, background: s.color }}
+                      onMouseEnter={(e) => setHoveredTip({ text: `${s.label}: ${s.weight}%`, x: e.currentTarget.offsetLeft + e.currentTarget.offsetWidth / 2, y: e.currentTarget.offsetTop })}
+                      onMouseLeave={() => setHoveredTip(null)}
+                    />
+                  ))}
                 </div>
+                {/* Student's actual marks bar */}
+                <div className={styles.distributionBar}>
+                  {segments.map(s => {
+                    const fillPct = s.weight > 0 ? Math.min((s.mark / s.weight) * 100, 100) : 0;
+                    return (
+                      <div
+                        key={s.key}
+                        className={styles.distSegment}
+                        style={{ width: `${s.weight}%`, background: 'var(--border, #e5e7eb)' }}
+                        onMouseEnter={(e) => setHoveredTip({ text: `${s.label}: ${s.mark}/${s.weight}`, x: e.currentTarget.offsetLeft + e.currentTarget.offsetWidth / 2, y: e.currentTarget.offsetTop })}
+                        onMouseLeave={() => setHoveredTip(null)}
+                      >
+                        <div style={{ width: `${fillPct}%`, height: '100%', background: s.color, opacity: 0.7, transition: 'width 0.3s ease', pointerEvents: 'none' }} />
+                      </div>
+                    );
+                  })}
+                </div>
+                {hoveredTip && (
+                  <div style={{
+                    position: 'absolute',
+                    left: `${hoveredTip.x}px`,
+                    top: `${hoveredTip.y - 6}px`,
+                    transform: 'translate(-50%, -100%)',
+                    background: '#1f2937',
+                    color: '#fff',
+                    padding: '4px 10px',
+                    borderRadius: '6px',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    whiteSpace: 'nowrap',
+                    pointerEvents: 'none',
+                    zIndex: 9999,
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
+                  }}>
+                    {hoveredTip.text}
+                  </div>
+                )}
                 <div className={styles.distributionLegend}>
-                  <div className={styles.legendItem}><span className={styles.legendDot} style={{ background: '#6366f1' }} /><span className={styles.legendLabel}>{t('mid_term')}</span><span className={styles.legendValue}>{dist.midTermExam}%</span></div>
-                  <div className={styles.legendItem}><span className={styles.legendDot} style={{ background: '#8b5cf6' }} /><span className={styles.legendLabel}>{t('final')}</span><span className={styles.legendValue}>{dist.finalExam}%</span></div>
-                  <div className={styles.legendItem}><span className={styles.legendDot} style={{ background: '#ec4899' }} /><span className={styles.legendLabel}>{t('homework')}</span><span className={styles.legendValue}>{dist.homework}%</span></div>
-                  <div className={styles.legendItem}><span className={styles.legendDot} style={{ background: '#f59e0b' }} /><span className={styles.legendLabel}>{t('labs')}</span><span className={styles.legendValue}>{dist.labsProjectResearch}%</span></div>
-                  <div className={styles.legendItem}><span className={styles.legendDot} style={{ background: '#10b981' }} /><span className={styles.legendLabel}>{t('quizzes')}</span><span className={styles.legendValue}>{dist.quizzes}%</span></div>
-                  <div className={styles.legendItem}><span className={styles.legendDot} style={{ background: '#3b82f6' }} /><span className={styles.legendLabel}>{t('participation')}</span><span className={styles.legendValue}>{dist.participation}%</span></div>
-                  <div className={styles.legendItem}><span className={styles.legendDot} style={{ background: '#64748b' }} /><span className={styles.legendLabel}>{t('attendance')}</span><span className={styles.legendValue}>{dist.attendance}%</span></div>
+                  {segments.map(s => (
+                    <div key={s.key} className={styles.legendItem}>
+                      <span className={styles.legendDot} style={{ background: s.color }} />
+                      <span className={styles.legendLabel}>{s.label}</span>
+                      <span className={styles.legendValue}>{s.mark}/{s.weight}</span>
+                    </div>
+                  ))}
+                  <div className={styles.legendItemTotal}>
+                    <span className={styles.legendTotalLabel}>{t('total')}</span>
+                    <span className={styles.legendTotalValue}>{studentTotalRounded}/{total}</span>
+                  </div>
                 </div>
               </div>
             );
-          })()}
+          })}
           <AdvancedDataGrid
             key={`marks-grid-${group.semester}-${group.year}-${group.courses.length}`}
             rows={group.courses}

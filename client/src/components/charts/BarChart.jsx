@@ -5,7 +5,7 @@ import { getAcademicTermLabel, isValidAcademicTerm } from '@constants/academicTe
 import { getLocalizedAttendanceLabel } from '@constants/attendanceTypes';
 import ChartBrushControls, { CHART_BRUSH_RESERVE, brushCompactDate } from './ChartBrushControls';
 import { useChartBrush, downsampleChartData, CHART_MAX_POINTS } from './useChartBrush';
-import { CHART_LABEL_SHADOW, CHART_LABEL_FILL } from './chartLabelStyles';
+import { CHART_LABEL_SHADOW, CHART_LABEL_FILL, BAR_LABEL_BG } from './chartLabelStyles';
 
 const getLocalizedName = (item, lang) => {
   if (!item) return '';
@@ -52,10 +52,11 @@ function isTimelineData(items) {
   return sample.some((s) => /^\d{4}-\d{2}-\d{2}/.test(s));
 }
 
-function BarChart({ data = [], size = { width: 400, height: 300 }, horizontal = false, showValues = true, showGrid = true, accentColor = '#800020' }) {
+function BarChart({ data = [], size = { width: 400, height: 300 }, horizontal = false, showValues = true, showGrid = true, accentColor = '#800020', title }) {
   const { t, lang, isRTL } = useLang();
   const [hovered, setHovered] = useState(null);
   const svgRef = useRef(null);
+  const containerRef = useRef(null);
 
   let width;
   let height;
@@ -172,7 +173,7 @@ function BarChart({ data = [], size = { width: 400, height: 300 }, horizontal = 
   );
 
   return (
-    <div style={{ width, height, overflow: 'visible' }}>
+    <div ref={containerRef} style={{ width, height, overflow: 'visible' }}>
       <svg ref={svgRef} width={width} height={chartHeight} style={{ fontFamily: 'var(--font-family-sans)', display: 'block', overflow: 'visible' }} onMouseLeave={hideTooltip}>
         {showGrid && (
           <g>
@@ -219,9 +220,19 @@ function BarChart({ data = [], size = { width: 400, height: 300 }, horizontal = 
               }}
             />
             {showValues && bar.value > 0 && (
-              <text x={bar.x + actualBarWidth / 2} y={bar.y - 5} textAnchor="middle" fontSize={valueFontSize} fontWeight="600" fill={CHART_LABEL_FILL} style={LABEL_SHADOW}>
-                {bar.value}
-              </text>
+              <g>
+                <rect
+                  x={bar.x + actualBarWidth / 2 - valueFontSize * String(bar.value).length * 0.35 - 3}
+                  y={bar.y - 5 - valueFontSize * 0.8}
+                  width={valueFontSize * String(bar.value).length * 0.7 + 6}
+                  height={valueFontSize * 1.1}
+                  rx={3}
+                  fill={BAR_LABEL_BG}
+                />
+                <text x={bar.x + actualBarWidth / 2} y={bar.y - 5} textAnchor="middle" fontSize={valueFontSize} fontWeight="600" fill={CHART_LABEL_FILL} style={LABEL_SHADOW}>
+                  {bar.value}
+                </text>
+              </g>
             )}
           </g>
         ))}
@@ -240,22 +251,34 @@ function BarChart({ data = [], size = { width: 400, height: 300 }, horizontal = 
               const centeredY = bar.y + (bar.barHeight + labelHeight) / 2;
               const labelY = Math.min(axisY - 6, Math.max(bar.y + labelHeight + 4, centeredY));
 
+              const labelTextWidth = labelFontSize * String(displayText).length * 0.6;
               return (
-                <text
-                  key={`lbl-${bar.idx}`}
-                  x={bar.labelX}
-                  y={labelY}
-                  textAnchor="start"
-                  fontSize={labelFontSize}
-                  fontWeight="600"
-                  fontStyle="italic"
-                  fill={CHART_LABEL_FILL}
-                  style={{ ...LABEL_SHADOW, direction: 'ltr', unicodeBidi: 'plaintext' }}
-                  transform={`rotate(-90, ${bar.labelX}, ${labelY})`}
-                >
-                  <title>{bar.primary}</title>
-                  {displayText}
-                </text>
+                <g key={`lbl-${bar.idx}`}>
+                  <rect
+                    x={bar.labelX - 3}
+                    y={labelY - labelFontSize * 0.8}
+                    width={labelTextWidth + 6}
+                    height={labelFontSize * 1.1}
+                    rx={3}
+                    fill={BAR_LABEL_BG}
+                    transform={`rotate(-90, ${bar.labelX}, ${labelY})`}
+                  />
+                  <text
+                    key={`lbl-${bar.idx}`}
+                    x={bar.labelX}
+                    y={labelY}
+                    textAnchor="start"
+                    fontSize={labelFontSize}
+                    fontWeight="600"
+                    fontStyle="italic"
+                    fill={CHART_LABEL_FILL}
+                    style={{ ...LABEL_SHADOW, direction: 'ltr', unicodeBidi: 'plaintext' }}
+                    transform={`rotate(-90, ${bar.labelX}, ${labelY})`}
+                  >
+                    <title>{bar.primary}</title>
+                    {displayText}
+                  </text>
+                </g>
               );
             })}
           </g>
@@ -274,6 +297,9 @@ function BarChart({ data = [], size = { width: 400, height: 300 }, horizontal = 
         onEndDrag={endDrag}
         onReset={resetRange}
         onDownload={() => downloadSvg(svgRef.current, 'bar-chart.svg')}
+        exportTarget={containerRef.current}
+        exportTitle={title}
+        exportFilename="bar-chart"
       />
       {tooltip}
     </div>

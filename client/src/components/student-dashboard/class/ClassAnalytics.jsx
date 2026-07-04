@@ -25,6 +25,7 @@ const CATEGORY_ICONS = {
   penalties: AlertTriangle,
   behavior: Shield,
   participation: Award,
+  marks: GraduationCap,
 };
 
 /**
