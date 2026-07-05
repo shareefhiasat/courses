@@ -7,7 +7,7 @@ import { apiService } from '@services/api/apiService';
 import workflowService from '@services/business/workflowService';
 import { updateWorkflowDocumentStatus, withdrawWorkflowDocument } from '@services/api/workflow-documents-api';
 import { WORKFLOW_STATUS_CONFIG } from '@constants/driveConstants';
-import { getWorkflowDisplayLabel, CATEGORY_BY_VALUE } from '@constants/workflowConfig';
+import { getWorkflowDisplayLabel, CATEGORY_BY_VALUE, ATTENDANCE_SUBTYPE_BY_VALUE } from '@constants/workflowConfig';
 import { ROLE_STRINGS, getWorkflowRole, getUserRoleFromObject } from '@utils/userUtils';
 import { getLocalizedUserName } from '@utils/localizedUserName';
 import { DriveUserAvatar } from '@ui/DriveTimeline';
@@ -17,6 +17,7 @@ import Tabs from '@ui/Tabs/Tabs';
 import { getAllUsers } from '@services/business/userService';
 import { handleFilePreview } from '@utils/fileUtils';
 import { formatQatarDate, formatQatarDateOnly } from '@utils/timezone';
+import { useProgramSubjectMaps, getWorkflowContextParts } from '@hooks/useProgramSubjectMaps';
 
 const formatRelativeTime = (date, lang, t) => {
   if (!date) return '\u2014';
@@ -143,6 +144,7 @@ function getWorkflowTypeStyle(workflow) {
 
 export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwnedByUser = true }) {
   const { t, lang } = useLang();
+  const { programMap, subjectMap } = useProgramSubjectMaps();
   const navigate = useNavigate();
   const [workflows, setWorkflows] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -183,7 +185,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
   }, []);
 
   useEffect(() => {
-    if (actionModal.isOpen && (actionModal.action === 'send_for_review' || actionModal.action === 'send_for_approval' || actionModal.action === 'submit')) {
+    if (actionModal.isOpen && (actionModal.action === 'send_for_review' || actionModal.action === 'send_for_approval')) {
       fetchUsers();
     }
   }, [actionModal.isOpen, actionModal.action, fetchUsers]);
@@ -281,7 +283,11 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
   };
 
   const handleViewWorkflowDetails = useCallback((workflowId) => {
-    window.open(`/workflow-documents/${workflowId}`, '_blank');
+    window.open(`/workflow-documents/${workflowId}`, '_blank', 'noopener,noreferrer');
+  }, []);
+
+  const openWorkflowInbox = useCallback((workflowId) => {
+    window.open(`/workflow/inbox?documentId=${workflowId}`, '_blank', 'noopener,noreferrer');
   }, []);
 
   const handleDeleteWorkflow = useCallback(async () => {
@@ -1006,7 +1012,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                         {getIconWithColor('ui', statusIcon, 20, statusStyle.color)}
                         {(() => { const role = getWorkflowRole(workflow); return role && (
                           <span style={{ display: 'flex', alignItems: 'center' }}>
-                            {(() => { const icon = getUserRoleIcon(role); const color = getUserRoleColor(role); return icon ? React.cloneElement(icon, { color, size: 16 }) : null; })()}
+                            {getIcon('ui', 'users', 16, 'var(--text-muted, #6b7280)')}
                           </span>
                         ); })()}
                       </div>
@@ -1030,10 +1036,27 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                               letterSpacing: '0.025em',
                             }}
                           >
-                            {getWorkflowDisplayLabel(workflow, t)}
+                            {t(`workflow.category.${workflow.workflowCategory || 'GENERAL'}`, workflow.workflowCategory || 'GENERAL')}
                           </span>
+                          {workflow.workflowCategory === 'ATTENDANCE' && workflow.attendanceSubtype && (
+                            <span
+                              style={{
+                                padding: '0.25rem 0.5rem',
+                                borderRadius: '9999px',
+                                fontSize: '0.6875rem',
+                                fontWeight: 600,
+                                background: 'rgba(219, 39, 119, 0.1)',
+                                color: '#db2777',
+                                textTransform: 'uppercase',
+                                whiteSpace: 'nowrap',
+                                letterSpacing: '0.025em',
+                              }}
+                            >
+                              {t(`workflow.attendanceSubtype.${workflow.attendanceSubtype}`, workflow.attendanceSubtype)}
+                            </span>
+                          )}
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: 'var(--font-size-sm)', color: 'var(--text-muted, #6b7280)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: 'var(--font-size-sm)', color: 'var(--text-muted, #6b7280)', flexWrap: 'wrap' }}>
                           <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
                             {workflow.submitter && <DriveUserAvatar user={workflow.submitter} size="xs" showRole lang={lang} />}
                             {getLocalizedUserName(workflow.submitter, lang, '\u2014')}
@@ -1043,10 +1066,62 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                               </span>
                             ); })()}
                           </span>
+                          {/* Context: program · subject · class · date */}
+                          {(() => {
+                            const parts = getWorkflowContextParts(workflow, { programMap, subjectMap, lang });
+                            if (parts.length > 0) {
+                              return (
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                                  {getIcon('ui', 'tag', 14, 'var(--text-muted, #6b7280)')}
+                                  {parts.join(' · ')}
+                                </span>
+                              );
+                            }
+                            return null;
+                          })()}
+                          {(() => {
+                            if (workflow.date) return formatQatarDate(workflow.date, 'dd/MM/yyyy');
+                            if (workflow.dateFrom && workflow.dateTo) return `${formatQatarDate(workflow.dateFrom, 'dd/MM/yyyy')} - ${formatQatarDate(workflow.dateTo, 'dd/MM/yyyy')}`;
+                            if (workflow.dateFrom) return formatQatarDate(workflow.dateFrom, 'dd/MM/yyyy');
+                            return null;
+                          })() && (
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                              {getIcon('ui', 'calendar', 14, 'var(--text-muted, #6b7280)')}
+                              {(() => {
+                                if (workflow.date) return formatQatarDate(workflow.date, 'dd/MM/yyyy');
+                                if (workflow.dateFrom && workflow.dateTo) return `${formatQatarDate(workflow.dateFrom, 'dd/MM/yyyy')} - ${formatQatarDate(workflow.dateTo, 'dd/MM/yyyy')}`;
+                                if (workflow.dateFrom) return formatQatarDate(workflow.dateFrom, 'dd/MM/yyyy');
+                                return null;
+                              })()}
+                            </span>
+                          )}
                           <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
                             {getIcon('ui', 'calendar', 14, 'var(--text-muted, #6b7280)')}
                             {formatRelativeTime(workflow.createdAt, lang, t)}
                           </span>
+                          {/* Assigned to: role or user */}
+                          {(() => {
+                            const role = getWorkflowRole(workflow);
+                            if (workflow.currentAssignee) {
+                              return (
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                                  {getIcon('ui', 'user_check', 14, 'var(--text-muted, #6b7280)')}
+                                  {getLocalizedUserName(workflow.currentAssignee, lang, '\u2014')}
+                                </span>
+                              );
+                            }
+                            if (role) {
+                              return (
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                                  {getIcon('ui', 'users', 14, 'var(--text-muted, #6b7280)')}
+                                  <span style={{ color: 'var(--text-muted, #6b7280)', fontWeight: 500 }}>
+                                    {t(`roles.${role}`, role)}
+                                  </span>
+                                </span>
+                              );
+                            }
+                            return null;
+                          })()}
                           {workflow.targetStudent && (
                             <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
                               {(() => { const icon = getUserRoleIcon('student'); const color = getUserRoleColor('student'); return icon ? React.cloneElement(icon, { color, size: 14 }) : null; })()}
@@ -1101,6 +1176,37 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
+                            openWorkflowInbox(workflow.id);
+                          }}
+                          style={{
+                            color: '#3b82f6',
+                            textDecoration: 'none',
+                            whiteSpace: 'nowrap',
+                            background: 'none',
+                            border: '1px solid var(--border, #e5e7eb)',
+                            cursor: 'pointer',
+                            padding: '0.375rem',
+                            borderRadius: '0.375rem',
+                            transition: 'all 0.15s ease',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                          title={t('workflow.inbox.title', 'Workflow Inbox')}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.borderColor = '#3b82f6';
+                            e.currentTarget.style.color = '#3b82f6';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.borderColor = 'var(--border, #e5e7eb)';
+                            e.currentTarget.style.color = '#3b82f6';
+                          }}
+                        >
+                          {getIcon('ui', 'mail', 16, '#3b82f6')}
+                        </button>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
                             handleViewWorkflowDetails(workflow.id);
                           }}
                           style={{
@@ -1144,6 +1250,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                                 assignedRole: null 
                               });
                             }}
+                            title={t(`workflow.actions.${action}Hint`, t(`workflow.actions.${action}`, action))}
                             style={{
                               color: getActionColor(action),
                               textDecoration: 'none',
@@ -1278,7 +1385,7 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                     {t(`workflow.status.${workflow.status.toLowerCase()}`) || workflow.status}
                     {(() => { const role = getWorkflowRole(workflow); return role && (
                       <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginInlineStart: '0.25rem', paddingInlineStart: '0.375rem', borderInlineStart: `1px solid ${statusStyle.borderColor}` }}>
-                        {(() => { const icon = getUserRoleIcon(role); const color = getUserRoleColor(role); return icon ? React.cloneElement(icon, { color, size: 14 }) : null; })()}
+                        {getIcon('ui', 'users', 14, 'currentColor')}
                       </span>
                     ); })()}
                   </span>
@@ -1298,23 +1405,39 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                       letterSpacing: '0.025em',
                     }}
                   >
-                    {getWorkflowDisplayLabel(workflow, t)}
+                    {t(`workflow.category.${workflow.workflowCategory || 'GENERAL'}`, workflow.workflowCategory || 'GENERAL')}
                   </span>
+                  {workflow.workflowCategory === 'ATTENDANCE' && workflow.attendanceSubtype && (
+                    <span
+                      style={{
+                        padding: '0.375rem 0.625rem',
+                        borderRadius: '0.5rem',
+                        fontSize: 'var(--font-size-sm)',
+                        fontWeight: 600,
+                        background: 'rgba(219, 39, 119, 0.1)',
+                        color: '#db2777',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.025em',
+                      }}
+                    >
+                      {t(`workflow.attendanceSubtype.${workflow.attendanceSubtype}`, workflow.attendanceSubtype)}
+                    </span>
+                  )}
                   {workflow.currentAssignee && (
                     <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-muted, #6b7280)', display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
                       <DriveUserAvatar user={workflow.currentAssignee} size="xs" lang={lang} />
                       {t('drive.assignedTo')}: {getLocalizedUserName(workflow.currentAssignee, lang)}
                       {(() => { const role = getWorkflowRole(workflow); return role && (
                         <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem', marginInlineStart: '0.25rem' }} title={t(`roles.${role}`, role)}>
-                          {(() => { const icon = getUserRoleIcon(role); const color = getUserRoleColor(role); return icon ? React.cloneElement(icon, { color, size: 12 }) : null; })()}
+                          {getIcon('ui', 'users', 12, 'currentColor')}
                         </span>
                       ); })()}
                     </span>
                   )}
                 </div>
 
-                {/* Third row: Initiator + Timestamp + Version */}
-                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: 'var(--font-size-sm)', color: 'var(--text-muted, #6b7280)' }}>
+                {/* Third row: Initiator + Context + Timestamp + Version */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', fontSize: 'var(--font-size-sm)', color: 'var(--text-muted, #6b7280)', flexWrap: 'wrap' }}>
                   <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
                     {workflow.submitter && <DriveUserAvatar user={workflow.submitter} size="xs" showRole lang={lang} />}
                     {getLocalizedUserName(workflow.submitter, lang, '\u2014')}
@@ -1324,10 +1447,55 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                       </span>
                     ); })()}
                   </span>
+                  {/* Context: program · subject · class */}
+                  {(() => {
+                    const parts = getWorkflowContextParts(workflow, { programMap, subjectMap, lang });
+                    if (parts.length > 0) {
+                      return (
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                          {getIcon('ui', 'tag', 14, 'var(--text-muted, #6b7280)')}
+                          {parts.join(' · ')}
+                        </span>
+                      );
+                    }
+                    return null;
+                  })()}
+                  {/* Workflow date */}
+                  {(() => {
+                    if (workflow.date) return formatQatarDate(workflow.date, 'dd/MM/yyyy');
+                    if (workflow.dateFrom && workflow.dateTo) return `${formatQatarDate(workflow.dateFrom, 'dd/MM/yyyy')} - ${formatQatarDate(workflow.dateTo, 'dd/MM/yyyy')}`;
+                    if (workflow.dateFrom) return formatQatarDate(workflow.dateFrom, 'dd/MM/yyyy');
+                    return null;
+                  })() && (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                      {getIcon('ui', 'calendar', 14, 'var(--text-muted, #6b7280)')}
+                      {(() => {
+                        if (workflow.date) return formatQatarDate(workflow.date, 'dd/MM/yyyy');
+                        if (workflow.dateFrom && workflow.dateTo) return `${formatQatarDate(workflow.dateFrom, 'dd/MM/yyyy')} - ${formatQatarDate(workflow.dateTo, 'dd/MM/yyyy')}`;
+                        if (workflow.dateFrom) return formatQatarDate(workflow.dateFrom, 'dd/MM/yyyy');
+                        return null;
+                      })()}
+                    </span>
+                  )}
                   <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
                     {getIcon('ui', 'calendar', 14)}
                     {formatRelativeTime(workflow.createdAt, lang, t)}
                   </span>
+                  {/* Assigned to role (if no currentAssignee shown above) */}
+                  {(() => {
+                    const role = getWorkflowRole(workflow);
+                    if (!workflow.currentAssignee && role) {
+                      return (
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                          {getIcon('ui', 'users', 14, 'var(--text-muted, #6b7280)')}
+                          <span style={{ color: 'var(--text-muted, #6b7280)', fontWeight: 500 }}>
+                            {t(`roles.${role}`, role)}
+                          </span>
+                        </span>
+                      );
+                    }
+                    return null;
+                  })()}
                   {workflow.targetStudent && (
                     <span style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
                       {(() => { const icon = getUserRoleIcon('student'); const color = getUserRoleColor('student'); return icon ? React.cloneElement(icon, { color, size: 14 }) : null; })()}
@@ -1395,6 +1563,34 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
                           onMouseLeave={(e) => e.currentTarget.style.background = 'transparent'}
                         >
                           {getIcon('ui', 'external_link', 16)}
+                        </button>
+                        <button
+                          onClick={() => openWorkflowInbox(workflow.id)}
+                          style={{
+                            color: '#3b82f6',
+                            textDecoration: 'none',
+                            whiteSpace: 'nowrap',
+                            background: 'none',
+                            border: '1px solid var(--border, #e5e7eb)',
+                            cursor: 'pointer',
+                            padding: '0.375rem',
+                            borderRadius: '0.375rem',
+                            transition: 'all 0.15s ease',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                          }}
+                          title={t('workflow.inbox.title', 'Workflow Inbox')}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.borderColor = '#3b82f6';
+                            e.currentTarget.style.color = '#3b82f6';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.borderColor = 'var(--border, #e5e7eb)';
+                            e.currentTarget.style.color = '#3b82f6';
+                          }}
+                        >
+                          {getIcon('ui', 'mail', 16, '#3b82f6')}
                         </button>
                         <button
                           onClick={() => handleViewWorkflowDetails(workflow.id)}
@@ -1563,7 +1759,12 @@ export default function WorkflowTab({ fileId, onRefresh, isActive = true, isOwne
         title={actionModal.action ? t(`workflow.actions.${actionModal.action}`, actionModal.action.replace('_', ' ')) : t('workflow.actionModalTitle')}
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          {(actionModal.action === 'send_for_review' || actionModal.action === 'send_for_approval' || actionModal.action === 'submit') && (
+          {actionModal.action === 'submit' && (
+            <p style={{ margin: 0, fontSize: 'var(--font-size-sm)', color: 'var(--text-muted, #6b7280)', lineHeight: 1.5 }}>
+              {t('workflow.actions.submitDescription')}
+            </p>
+          )}
+          {(actionModal.action === 'send_for_review' || actionModal.action === 'send_for_approval') && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
               <Tabs
                 tabs={[

@@ -1,7 +1,7 @@
 import React from 'react';
 import { useLang } from '@contexts/LangContext';
 import { getUserRoleIcon, getUserRoleColor } from '@constants/iconTypes';
-import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
+import { getAvatarColor, getAvatarInitials, normalizeProfileImageUrl } from '@utils/avatarUtils';
 import { getUserRoleFromObject } from '@utils/userUtils';
 import { getLocalizedUserName } from '@utils/localizedUserName';
 import { DRIVE_TIMELINE } from './constants';
@@ -43,7 +43,7 @@ export default function DriveUserAvatar({
       >
         {user?.profileImageUrl ? (
           <img
-            src={user.profileImageUrl}
+            src={normalizeProfileImageUrl(user.profileImageUrl)}
             alt={displayName}
             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
           />

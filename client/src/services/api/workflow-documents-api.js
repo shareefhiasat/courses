@@ -176,6 +176,15 @@ export const getLinkedWorkflowsByAttendanceIds = async (attendanceIds) => {
   return await apiService.post('/workflow-documents/linked-by-attendance', { attendanceIds });
 };
 
+export const getWorkflowDocumentsByContext = async ({ userId, classId, date }) => {
+  const params = new URLSearchParams({
+    userId: String(userId),
+    classId: String(classId),
+    date: typeof date === 'string' ? date : new Date(date).toISOString(),
+  });
+  return await apiService.get(`/workflow-documents/by-context?${params.toString()}`);
+};
+
 export default {
   createWorkflowDocument,
   createCustomWorkflowDocument,
@@ -193,5 +202,6 @@ export default {
   getAnalyticsData,
   listFileVersions,
   downloadFileVersion,
-  getLinkedWorkflowsByAttendanceIds
+  getLinkedWorkflowsByAttendanceIds,
+  getWorkflowDocumentsByContext,
 };

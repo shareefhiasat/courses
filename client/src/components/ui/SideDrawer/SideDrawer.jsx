@@ -72,9 +72,9 @@ const SideDrawer = ({ isOpen, onClose, onOpen }) => {
   const [drawerWidth, setDrawerWidth] = useState(() => {
     try {
       const parsed = parseInt(localStorage.getItem('drawer_width'), 10);
-      return Math.min(600, Math.max(280, Number.isFinite(parsed) ? parsed : 380));
+      return Math.min(600, Math.max(280, Number.isFinite(parsed) ? parsed : 342));
     } catch {
-      return 380;
+      return 342;
     }
   });
   const [density, setDensity] = useState(() => {

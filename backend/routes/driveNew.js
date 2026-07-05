@@ -380,9 +380,10 @@ router.use('/wopi', wopiRouter);
 
 // ---------------- Files ----------------
 // Tighter rate limit for upload endpoints to prevent upload abuse
+const isDev = process.env.NODE_ENV !== 'production';
 const uploadLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 60,
+  windowMs: isDev ? 60 * 1000 : 15 * 60 * 1000,
+  limit: isDev ? 1000 : 60,
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, error: 'Too many upload requests, please try again later.' },
@@ -407,60 +408,38 @@ router.get('/files/:fileId/preview', getPreview);
 router.get('/files/:fileId/collabora/edit', async (req, res) => {
   try {
     const { fileId } = req.params;
-    const actorUserId = req.user?.keycloakId;
+    const { resolveDriveActor } = await import('../utils/driveActor.js');
+    const actor = await resolveDriveActor(req);
 
-    if (!actorUserId) {
+    if (!actor?.userId) {
       return res.status(401).json({ success: false, error: 'User not authenticated' });
     }
 
-    // Get database user ID from Keycloak ID
-    const user = await prisma.user.findUnique({ 
-      where: { keycloakId: actorUserId },
-      include: { roleAssignments: true }
-    });
-    if (!user) {
-      return res.status(404).json({ success: false, error: 'User not found' });
-    }
-
-    // Get user's application roles
-    const roleIds = user?.roleAssignments?.map(ra => ra.roleId) || [];
-    const roles = await prisma.userRoles.findMany({
-      where: { id: { in: roleIds } },
-      select: { code: true }
-    });
-    const userRoles = roles.map(r => r.code.toLowerCase());
-
-    // Get file
     const file = await prisma.file.findUnique({ where: { id: fileId } });
     if (!file) {
       return res.status(404).json({ success: false, error: 'File not found' });
     }
 
-    // Check edit permission - owners always have edit permission
-    const { canAccessFile } = await import('../services/permissionService.js');
-    const permissionResult = await canAccessFile(fileId, { userId: user.id, roles: userRoles });
-    
-    // Owner always has edit permission
-    const isOwner = file.ownerId === user.id;
-    const hasEditPermission = isOwner || (permissionResult.allowed && permissionResult.permission === 'EDIT');
-    
-    if (!hasEditPermission) {
-      return res.status(403).json({ success: false, error: 'No edit permission' });
-    }
+    const { requireFilePermission } = await import('../services/permissionService.js');
+    await requireFilePermission(fileId, { userId: actor.userId, roles: actor.roles }, 'EDIT');
 
-    // Generate WOPI token with write permission
-    const { generateWopiToken } = await import('../services/wopiService.js');
+    const user = await prisma.user.findUnique({ where: { id: actor.userId } });
     const userInfo = {
-      displayName: user.displayName || 'User',
-      email: user.email || '',
-      id: user.id,
+      displayName: user?.displayName || 'User',
+      email: user?.email || '',
+      id: actor.userId,
     };
-    const wopiToken = generateWopiToken(user.id, fileId, 'write', userInfo);
+
+    const { generateWopiToken } = await import('../services/wopiService.js');
+    const wopiToken = generateWopiToken(actor.userId, fileId, 'write', userInfo);
 
     return res.json({ success: true, payload: { wopiToken } });
   } catch (error) {
+    if (error.status) {
+      return res.status(error.status).json({ success: false, error: error.message });
+    }
     console.error('[Collabora Edit] Error:', error);
-    res.status(500).json({ success: false, error: "Internal server error" });
+    res.status(500).json({ success: false, error: 'Internal server error' });
   }
 });
 router.get('/files/:fileId/download', async (req, res, next) => {

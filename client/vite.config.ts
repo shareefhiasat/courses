@@ -100,6 +100,9 @@ export default defineConfig({
     },
   },
   define: {
-    'import.meta.env.COLLABORA_URL': JSON.stringify(process.env.COLLABORA_URL || 'http://localhost:9980'),
+    'import.meta.env.COLLABORA_URL': JSON.stringify(process.env.COLLABORA_URL || 'https://localhost:9980'),
+    'import.meta.env.VITE_WOPI_BASE_URL': JSON.stringify(
+      process.env.VITE_WOPI_BASE_URL || process.env.WOPI_BASE_URL || 'http://host.docker.internal:8001/api/v1/wopi'
+    ),
   },
 });

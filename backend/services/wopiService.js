@@ -8,8 +8,7 @@ import jwt from 'jsonwebtoken';
 const WOPI_SECRET = process.env.WOPI_SECRET;
 
 if (!WOPI_SECRET) {
-  console.error('FATAL: WOPI_SECRET environment variable is required');
-  process.exit(1);
+  console.warn('[wopiService] WOPI_SECRET environment variable is not set — Collabora/WOPI features will be disabled');
 }
 const _WOPI_SECRET = WOPI_SECRET;
 const TOKEN_EXPIRY = '1h'; // 1 hour
@@ -24,6 +23,9 @@ const TOKEN_EXPIRY = '1h'; // 1 hour
  * @returns {string} JWT access token
  */
 export function generateWopiToken(userId, fileId, permission = 'write', userInfo = {}, fileVersionId = null) {
+  if (!_WOPI_SECRET) {
+    throw new Error('WOPI_SECRET is not configured');
+  }
   const payload = {
     userId,
     fileId,

@@ -8,6 +8,67 @@ import useDataScope from '@hooks/useDataScope';
 import usePersistentState from '@hooks/usePersistentState';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 
+const DEEP_LINK_KEYS = ['studentId', 'programId', 'subjectId', 'classId'];
+
+const readUrlFilter = (key) => {
+  if (typeof window === 'undefined') return null;
+  return new URLSearchParams(window.location.search).get(key);
+};
+
+const readStoredFilter = (storageKey, defaultVal, normalize) => {
+  try {
+    const saved = localStorage.getItem(storageKey);
+    if (saved !== null) {
+      return normalize(JSON.parse(saved), defaultVal);
+    }
+  } catch {}
+  return defaultVal;
+};
+
+/** Normalize cascade filter ids (program/subject/class). Empty → 'all'. */
+export const normalizeCascadeFilterId = (val, emptyAs = 'all') => {
+  if (val === null || val === undefined) return emptyAs;
+  if (typeof val === 'object') {
+    const extracted = val.value ?? val.id ?? val.target?.value;
+    if (extracted === null || extracted === undefined || extracted === '') return emptyAs;
+    return String(extracted);
+  }
+  if (val === '') return emptyAs;
+  return String(val);
+};
+
+/** Normalize student id filter. Empty stays empty. */
+const normalizeStudentFilterId = (val) => {
+  if (val === null || val === undefined || val === '') return '';
+  if (typeof val === 'object') {
+    const extracted = val.value ?? val.id ?? val.target?.value ?? '';
+    return extracted === '' ? '' : String(extracted);
+  }
+  return String(val);
+};
+
+const getInitialFilter = (urlKey, storageKey, defaultVal, normalize) => {
+  const urlVal = readUrlFilter(urlKey);
+  if (urlVal) return normalize(urlVal, defaultVal);
+  return readStoredFilter(storageKey, defaultVal, normalize);
+};
+
+const useDashboardFilterState = (storageKey, urlKey, defaultVal, normalize) => {
+  const [value, setValue] = useState(() => getInitialFilter(urlKey, storageKey, defaultVal, normalize));
+
+  const setPersistentValue = useCallback((next) => {
+    setValue((prev) => {
+      const resolved = normalize(typeof next === 'function' ? next(prev) : next, defaultVal);
+      try {
+        localStorage.setItem(storageKey, JSON.stringify(resolved));
+      } catch {}
+      return resolved;
+    });
+  }, [storageKey, defaultVal, normalize]);
+
+  return [value, setPersistentValue];
+};
+
 /**
  * Manages cascading program → subject → class → student selection for the
  * Student Dashboard. For non-student roles, enforces "selection-first" so
@@ -35,57 +96,61 @@ const useStudentDashboardFilters = ({ isStaff = false } = {}) => {
   const [students, setStudents] = useState([]);
   const [loading, setLoading] = useState(false);
 
-  // Cascade selections (persisted to localStorage)
-  const [selectedProgramId, setSelectedProgramIdRaw] = usePersistentState('sd_filter_program', 'all');
-  const [selectedSubjectId, setSelectedSubjectIdRaw] = usePersistentState('sd_filter_subject', 'all');
-  const [selectedClassId, setSelectedClassIdRaw] = usePersistentState('sd_filter_class', 'all');
-  const [selectedStudentId, setSelectedStudentIdRaw] = usePersistentState('sd_filter_student', '');
+  // Cascade selections (persisted; URL deep-link wins on first load only)
+  const [selectedProgramId, setSelectedProgramIdRaw] = useDashboardFilterState(
+    'sd_filter_program', 'programId', 'all', normalizeCascadeFilterId
+  );
+  const [selectedSubjectId, setSelectedSubjectIdRaw] = useDashboardFilterState(
+    'sd_filter_subject', 'subjectId', 'all', normalizeCascadeFilterId
+  );
+  const [selectedClassId, setSelectedClassIdRaw] = useDashboardFilterState(
+    'sd_filter_class', 'classId', 'all', normalizeCascadeFilterId
+  );
+  const [selectedStudentId, setSelectedStudentIdRaw] = useDashboardFilterState(
+    'sd_filter_student', 'studentId', '', normalizeStudentFilterId
+  );
 
   // Grouping mode (persisted)
   const [grouping, setGrouping] = usePersistentState('sd_filter_grouping', 'class');
 
-  // URL search params override for deep-linking (e.g. from DeductionDrawer)
-  const [searchParams] = useSearchParams();
-  const deepLinkApplied = useRef(false);
+  // Strip deep-link query params after first paint so manual filter changes work normally
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlStripped = useRef(false);
   useEffect(() => {
-    if (deepLinkApplied.current) return;
-    const urlStudentId = searchParams.get('studentId');
-    const urlProgramId = searchParams.get('programId');
-    const urlSubjectId = searchParams.get('subjectId');
-    const urlClassId = searchParams.get('classId');
-    if (urlStudentId || urlProgramId || urlSubjectId || urlClassId) {
-      deepLinkApplied.current = true;
-      if (urlProgramId) setSelectedProgramIdRaw(urlProgramId);
-      if (urlSubjectId) setSelectedSubjectIdRaw(urlSubjectId);
-      if (urlClassId) setSelectedClassIdRaw(urlClassId);
-      if (urlStudentId) setSelectedStudentIdRaw(urlStudentId);
+    if (urlStripped.current) return;
+    const hasDeepLink = DEEP_LINK_KEYS.some((key) => searchParams.get(key));
+    if (!hasDeepLink) {
+      urlStripped.current = true;
+      return;
     }
-  }, [searchParams, setSelectedProgramIdRaw, setSelectedSubjectIdRaw, setSelectedClassIdRaw, setSelectedStudentIdRaw]);
+    urlStripped.current = true;
+    const next = new URLSearchParams(searchParams);
+    DEEP_LINK_KEYS.forEach((key) => next.delete(key));
+    setSearchParams(next, { replace: true });
+  }, [searchParams, setSearchParams]);
 
   // Cascade: selecting program resets downstream
   const setSelectedProgramId = useCallback((id) => {
-    setSelectedProgramIdRaw(id);
+    setSelectedProgramIdRaw(normalizeCascadeFilterId(id, 'all'));
     setSelectedSubjectIdRaw('all');
     setSelectedClassIdRaw('all');
     setSelectedStudentIdRaw('');
-  }, []);
+  }, [setSelectedProgramIdRaw, setSelectedSubjectIdRaw, setSelectedClassIdRaw, setSelectedStudentIdRaw]);
 
-  // Cascade: selecting subject resets class + student
   const setSelectedSubjectId = useCallback((id) => {
-    setSelectedSubjectIdRaw(id);
+    setSelectedSubjectIdRaw(normalizeCascadeFilterId(id, 'all'));
     setSelectedClassIdRaw('all');
     setSelectedStudentIdRaw('');
-  }, []);
+  }, [setSelectedSubjectIdRaw, setSelectedClassIdRaw, setSelectedStudentIdRaw]);
 
-  // Cascade: selecting class resets student
   const setSelectedClassId = useCallback((id) => {
-    setSelectedClassIdRaw(id);
+    setSelectedClassIdRaw(normalizeCascadeFilterId(id, 'all'));
     setSelectedStudentIdRaw('');
-  }, []);
+  }, [setSelectedClassIdRaw, setSelectedStudentIdRaw]);
 
   const setSelectedStudentId = useCallback((id) => {
-    setSelectedStudentIdRaw(id);
-  }, []);
+    setSelectedStudentIdRaw(normalizeStudentFilterId(id));
+  }, [setSelectedStudentIdRaw]);
 
   // Load all reference data on mount
   const loadFilters = useCallback(async () => {
@@ -178,16 +243,14 @@ const useStudentDashboardFilters = ({ isStaff = false } = {}) => {
     if (selectedClassId && selectedClassId !== 'all') {
       const filtered = students.filter(s => {
         if (s.enrollments && Array.isArray(s.enrollments)) {
-          return s.enrollments.some(enrollment => enrollment.classId === selectedClassId);
+          return s.enrollments.some(enrollment => String(enrollment.classId) === String(selectedClassId));
         }
-        return s.classId === selectedClassId || s.enrolledClassIds?.includes(selectedClassId);
+        return String(s.classId) === String(selectedClassId) || s.enrolledClassIds?.includes(selectedClassId);
       });
       info('[StudentDashboardFilters] Filtered students for class', selectedClassId, ':', filtered.length, 'from', students.length);
       return filtered;
     }
     
-    // If subject or program is selected, show all students (HR/Super Admin needs to see all to enroll them)
-    // Only filter by enrollment when a specific class is selected
     if (selectedSubjectId && selectedSubjectId !== 'all') {
       info('[StudentDashboardFilters] Subject selected but no class, showing all students:', students.length);
       return students;
@@ -198,7 +261,6 @@ const useStudentDashboardFilters = ({ isStaff = false } = {}) => {
       return students;
     }
     
-    // No filters selected, return all students
     info('[StudentDashboardFilters] No filters selected, returning all students:', students.length);
     return students;
   }, [students, selectedClassId, selectedSubjectId, selectedProgramId]);

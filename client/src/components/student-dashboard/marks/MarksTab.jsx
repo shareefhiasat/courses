@@ -22,6 +22,7 @@ import {
   getGpaStanding,
 } from '@services/business/enrollmentMarksService';
 import MarksHistoryDrawer from '@components/academic/MarksHistoryDrawer';
+import MarksOfficialExportBar from '@components/academic/MarksOfficialExportBar';
 import GpaSummaryCard from './GpaSummaryCard';
 import { error } from '@services/utils/logger.js';
 import styles from './MarksTab.module.css';
@@ -125,9 +126,36 @@ const MarksTab = React.memo(({
   }, [groupedMarks]);
 
   const cumulativeGpa = useMemo(
-    () => calculateGpaFromMarks(marksReportData).gpa,
+    () => calculateGpaFromMarks(mergeComplementaryRecords(marksReportData)).gpa,
     [marksReportData]
   );
+
+  const exportMetadata = useMemo(() => {
+    const row = marksReportData[0];
+    if (!row) return {};
+    const classRow = classId
+      ? marksReportData.find((r) => String(r.classId) === String(classId))
+      : row;
+    return {
+      programId: row.programId,
+      programName: row.programName,
+      subjectId: classRow?.subjectId,
+      subjectName: classRow?.subjectName,
+      subjectNameAr: classRow?.subjectNameAr,
+      classId: classId || classRow?.classId,
+      className: classRow?.className,
+      year: row.year || '',
+      term: row.term || '',
+      examLabelAr: 'اختبار منتصف الفصل',
+      examLabelEn: 'Mid-term Exam',
+      termLabelAr: row.term,
+    };
+  }, [marksReportData, classId]);
+
+  const classReportRows = useMemo(() => {
+    if (!classId) return [];
+    return marksReportData.filter((row) => String(row.classId) === String(classId) && !row.isRepeated);
+  }, [marksReportData, classId]);
 
   const totalRepeated = useMemo(
     () => groupedMarks.reduce((s, g) => s + (g.repeatedCount || 0), 0),
@@ -159,15 +187,30 @@ const MarksTab = React.memo(({
       type: 'number',
       renderCell: (params) => {
         const row = params.row;
-        if (row.gradeType === GRADE_TYPE.COMPLEMENTARY && field !== 'finalExam') {
-          return <span style={{ opacity: 0.4 }}>—</span>;
+        const gt = row.gradeType || GRADE_TYPE.CALCULATED;
+        if (gt === 'FB' || gt === 'FA' || gt === 'WF') return <span style={{ color: '#9ca3af' }}>—</span>;
+        const isComp = gt === GRADE_TYPE.COMPLEMENTARY;
+        if (isComp && field !== 'finalExam') {
+          const prevValue = row.previousAttempt?.[field] || 0;
+          const max = marksDistribution?.[field] || maxDefault;
+          return (
+            <span style={{ opacity: 0.5 }} title={t('previous_attempt') || 'Previous attempt'}>
+              {prevValue}/{max}
+            </span>
+          );
         }
         const value = params.value || 0;
-        const isComp = (row.gradeType || GRADE_TYPE.CALCULATED) === GRADE_TYPE.COMPLEMENTARY;
-        const max = (isComp && field === 'finalExam') ? 100 : (marksDistribution?.[field] || maxDefault);
+        const max = isComp ? 100 : (marksDistribution?.[field] || maxDefault);
+        const prevFinal = isComp ? row.previousAttempt?.finalExam : null;
+        const prevMax = marksDistribution?.finalExam || maxDefault;
         return (
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-            <span>{value}/{max}</span>
+            <span style={{ fontWeight: isComp ? 600 : 400 }}>{value}/{max}</span>
+            {isComp && prevFinal != null && (
+              <span style={{ fontSize: 'var(--font-size-xs)', color: '#6b7280', opacity: 0.7 }}>
+                {t('previous') || 'Prev'}: {prevFinal}/{prevMax}
+              </span>
+            )}
           </div>
         );
       },
@@ -348,14 +391,14 @@ const MarksTab = React.memo(({
               <span style={{ fontSize: 'var(--font-size-xs)' }}>
                 {labels[value] || value}
               </span>
-              {params.row.complementaryAttempt && (
+              {params.row.previousAttempt && (
                 <span style={{
                   fontSize: 'var(--font-size-xs)',
                   color: '#6b7280',
                   whiteSpace: 'nowrap',
                   lineHeight: 1.2,
                 }}>
-                  {t('complementary_exam_short') || 'Comp'}: {params.row.complementaryAttempt.finalExam}/100 → {params.row.complementaryAttempt.letterGrade}
+                  {t('previous') || 'Prev'}: {params.row.previousAttempt.totalMarks?.toFixed?.(1) || params.row.previousAttempt.totalMarks}% → {params.row.previousAttempt.letterGrade}
                 </span>
               )}
             </div>
@@ -467,6 +510,67 @@ const MarksTab = React.memo(({
         t={t}
         lang={lang}
       />
+
+      {studentId && marksReportData.length > 0 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', marginBottom: '1rem' }}>
+          <MarksOfficialExportBar
+            mode="qualitative"
+            reportRows={marksReportData.filter((row) => !row.isRepeated)}
+            metadata={exportMetadata}
+            lang={lang}
+            t={tFn}
+            studentIds={[studentId]}
+            onSuccess={(msg) => toast?.success?.(msg)}
+            onError={(msg) => toast?.error?.(msg)}
+          />
+          <MarksOfficialExportBar
+            mode="semester"
+            reportRows={marksReportData.filter((row) => !row.isRepeated)}
+            metadata={exportMetadata}
+            lang={lang}
+            t={tFn}
+            studentIds={[studentId]}
+            onSuccess={(msg) => toast?.success?.(msg)}
+            onError={(msg) => toast?.error?.(msg)}
+          />
+          {classId && classReportRows.length > 0 && (
+            <MarksOfficialExportBar
+              mode="class"
+              reportRows={classReportRows}
+              distribution={subjectDistributions[classReportRows[0]?.subjectId] || marksDistribution}
+              metadata={exportMetadata}
+              lang={lang}
+              t={tFn}
+              onSuccess={(msg) => toast?.success?.(msg)}
+              onError={(msg) => toast?.error?.(msg)}
+            />
+          )}
+          {classId && (
+            <>
+              <MarksOfficialExportBar
+                mode="warning-first"
+                classId={classId}
+                studentIds={[studentId]}
+                metadata={exportMetadata}
+                lang={lang}
+                t={tFn}
+                onSuccess={(msg) => toast?.success?.(msg)}
+                onError={(msg) => toast?.error?.(msg)}
+              />
+              <MarksOfficialExportBar
+                mode="warning-final"
+                classId={classId}
+                studentIds={[studentId]}
+                metadata={exportMetadata}
+                lang={lang}
+                t={tFn}
+                onSuccess={(msg) => toast?.success?.(msg)}
+                onError={(msg) => toast?.error?.(msg)}
+              />
+            </>
+          )}
+        </div>
+      )}
 
       {groupedMarks.map((group) => (
         <CollapsibleSection

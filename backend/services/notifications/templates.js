@@ -30,6 +30,10 @@ const RAW_TEMPLATES = {
     en: 'Workflow "{{workflowName}}" has been returned for revision',
     ar: 'تم إرجاع سير العمل "{{workflowName}}" للمراجعة'
   },
+  [EVENTS.WORKFLOW_SENT_FOR_REVIEW]: {
+    en: 'Workflow "{{workflowName}}" has been sent to you for review',
+    ar: 'تم إرسال سير العمل "{{workflowName}}" إليك للمراجعة'
+  },
   [EVENTS.WORKFLOW_RESUBMITTED]: {
     en: 'Workflow "{{workflowName}}" has been resubmitted for review',
     ar: 'تم إعادة تقديم سير العمل "{{workflowName}}" للمراجعة'

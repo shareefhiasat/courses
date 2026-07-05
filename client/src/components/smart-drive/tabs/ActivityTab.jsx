@@ -12,7 +12,7 @@ import {
   DriveUserAvatar,
 } from '@ui/DriveTimeline';
 import { formatQatarDate, formatQatarDateOnly } from '@utils/timezone';
-import axios from 'axios';
+import { apiClient } from '@services/api/apiService.js';
 
 const ACTION_COLORS = {
   UPLOAD: '#16a34a',
@@ -83,7 +83,7 @@ export default function ActivityTab({ fileId }) {
     setLoading(true);
     setError(null);
     try {
-      const response = await axios.get(`/api/v1/drive/files/${fileId}/activities`);
+      const response = await apiClient.get(`/drive/files/${fileId}/activities`);
       if (response.data.success) {
         setActivities(response.data.payload || []);
       } else {

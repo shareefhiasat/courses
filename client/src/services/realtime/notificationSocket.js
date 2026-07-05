@@ -105,12 +105,10 @@ class NotificationSocket {
    * @returns {string} WebSocket URL
    */
   getWebSocketUrl(token) {
-    // Use backend URL from environment variable, fallback to deriving from API URL
-    const apiBaseUrl = import.meta.env.VITE_API_URL || 'http://localhost:8001/api/v1';
-    const backendUrl = apiBaseUrl.replace('/api/v1', '').replace('/api', '');
-    const url = new URL(backendUrl);
-    const protocol = url.protocol === 'https:' ? 'wss:' : 'ws:';
-    const host = url.host;
+    // Use Vite dev server proxy for WebSocket - connect to same host as frontend
+    // This avoids mixed content issues (HTTPS page -> WS backend)
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const host = window.location.host;
     const wsPath = import.meta.env.VITE_NOTIFICATIONS_WS_PATH || '/ws/notifications';
     return `${protocol}//${host}${wsPath}?token=${encodeURIComponent(token)}`;
   }

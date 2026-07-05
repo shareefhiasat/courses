@@ -83,7 +83,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
       backgroundColor: 'var(--background, white)',
       borderRadius: '0.5rem',
       border: '1px solid var(--border, #e5e7eb)',
-      overflow: 'hidden',
+      overflow: 'visible',
       position: 'relative',
       zIndex: 1
     }}>

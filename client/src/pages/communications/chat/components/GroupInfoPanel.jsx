@@ -16,6 +16,7 @@ import { chatService } from '@services/business/chatService';
 import { getThemedIcon, getIconWithColor } from '@constants/iconTypes';
 import { getChatUserDisplayName } from '@utils/userUtils';
 import { formatMimeType } from '@utils/fileUtils';
+import useResizableDrawer from '@hooks/useResizableDrawer';
 import RoleBadge from './RoleBadge';
 import AvatarWithRoleBadge from './AvatarWithRoleBadge';
 
@@ -49,6 +50,13 @@ const GroupInfoPanel = ({ isOpen, onClose, roomId, roomName, isCreator, currentU
   const { t, lang, isRTL } = useLang();
   const { theme } = useTheme();
   const toast = useToast();
+  const { width: drawerWidth, resizeHandleProps } = useResizableDrawer({
+    storageKey: 'chat_info_panel_width',
+    defaultWidth: 480,
+    minWidth: 320,
+    maxWidth: 800,
+    isRTL,
+  });
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('media');
@@ -178,7 +186,7 @@ const GroupInfoPanel = ({ isOpen, onClose, roomId, roomName, isCreator, currentU
           [side]: 0,
           height: '100%',
           width: '100%',
-          maxWidth: 480,
+          maxWidth: drawerWidth,
           background: 'var(--panel)',
           boxShadow: `${shadowSide} rgba(0,0,0,0.2)`,
           display: 'flex',
@@ -448,6 +456,7 @@ const GroupInfoPanel = ({ isOpen, onClose, roomId, roomName, isCreator, currentU
             </div>
           )}
         </div>
+        <div {...resizeHandleProps} />
       </div>
 
       {/* Confirmation Modal */}

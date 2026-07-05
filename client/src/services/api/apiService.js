@@ -402,7 +402,9 @@ export const apiService = {
       const response = await apiClient.post(url, data, config);
       return response.data;
     } catch (error) {
-      console.error('API POST Error:', error);
+      if (error.response?.status !== 409) {
+        console.error('API POST Error:', error);
+      }
       throw error;
     }
   },

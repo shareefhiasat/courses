@@ -320,8 +320,9 @@ export async function listFileShares(fileId, actor, subjectType = null) {
       // User is the one who granted the share
       if (share.grantedById === actor?.userId) return true;
       
-      // User is admin
-      const isAdmin = actor?.roles?.includes('SUPER_ADMIN') || actor?.roles?.includes('ADMIN');
+      // User is admin (Keycloak or application role)
+      const isAdmin = userRoles.includes('super_admin') || userRoles.includes('admin')
+        || actor?.roles?.some((r) => ['super_admin', 'admin', 'super-admin'].includes(String(r).toLowerCase()));
       if (isAdmin) return true;
       
       // For USER shares, check if user is the recipient

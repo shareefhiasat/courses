@@ -20,6 +20,7 @@ import './App.css';
 import './styles/colors.css';
 import './styles/tokens.css';
 import './styles/theme.css';
+import './styles/joyride-modal.css';
 import './utils/userRoleManager';
 // allowlistManager removed - now using Keycloak for user management
 

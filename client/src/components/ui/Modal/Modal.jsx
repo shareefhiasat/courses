@@ -21,6 +21,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';/**
  * @param {boolean} props.showCloseButton - Whether to show close button
  * @param {string} props.className - Additional CSS classes
  * @param {boolean} props.draggable - Whether the modal is draggable
+ * @param {boolean} props.tourActive - Joyride tour running — disables inner scroll so spotlight aligns
  */
 const Modal = ({
   isOpen,
@@ -34,6 +35,7 @@ const Modal = ({
   showCloseButton = true,
   className = '',
   draggable = true,
+  tourActive = false,
   titleStyle = {},
   zIndex,
 }) => {
@@ -133,7 +135,8 @@ const Modal = ({
   const modalClasses = [
     styles.modal,
     styles[size],
-    className
+    tourActive ? styles.tourActive : '',
+    className,
   ].filter(Boolean).join(' ');
 
   const modalStyle = draggable && (position.x !== 0 || position.y !== 0) ? {
@@ -142,8 +145,8 @@ const Modal = ({
   } : {};
 
   return (
-    <div 
-      className={styles.overlay} 
+    <div
+      className={[styles.overlay, tourActive ? styles.overlayTourActive : ''].filter(Boolean).join(' ')}
       onClick={handleOverlayClick}
       style={{ zIndex: zIndex || 9999 }}
     >
@@ -175,7 +178,7 @@ const Modal = ({
           </div>
         )}
 
-        <div className={styles.body}>{children}</div>
+        <div className={[styles.body, tourActive ? styles.bodyTourActive : ''].filter(Boolean).join(' ')} data-modal-body>{children}</div>
 
         {footer && <div className={styles.footer}>{footer}</div>}
       </div>

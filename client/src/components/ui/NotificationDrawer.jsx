@@ -16,6 +16,7 @@ import {
 } from '@constants/notificationTypes.jsx';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
+import useResizableDrawer from '@hooks/useResizableDrawer';
 import { formatDateTime } from '@utils/date';
 import { formatNotificationTime, filterNotifications as filterNotificationsUtil, groupNotificationsByDate, gotoFromNotification as gotoFromNotificationUtil } from '@utils/notificationHelpers';
 import Input from './Input';
@@ -33,8 +34,15 @@ import { getClasses } from '@services/business/classService';
 
 const NotificationDrawer = ({ isOpen, onClose, feed }) => {
   const { user } = useAuth();
-  const { t, lang } = useLang();
+  const { t, lang, isRTL } = useLang();
   const { theme } = useTheme();
+  const { width: drawerWidth, resizeHandleProps } = useResizableDrawer({
+    storageKey: 'notification_drawer_width',
+    defaultWidth: 480,
+    minWidth: 320,
+    maxWidth: 800,
+    isRTL,
+  });
 
   // ── Guided Tour ──────────────────────────────────────────────────────────
   const [runTour, setRunTour] = useState(false);
@@ -100,7 +108,6 @@ const NotificationDrawer = ({ isOpen, onClose, feed }) => {
   const [classes, setClasses] = useState([]);
   const [hoveredCard, setHoveredCard] = useState(null);
   const drawerRef = useRef(null);
-  const { isRTL } = useLang();
   const isDark = theme === 'dark';
 
   useEffect(() => {
@@ -262,7 +269,7 @@ const NotificationDrawer = ({ isOpen, onClose, feed }) => {
           top: 0,
           [isRTL ? 'left' : 'right']: 0,
           height: '100vh',
-          width: 'min(480px, 90vw)',
+          width: drawerWidth,
           background: isDark ? '#1a1a2e' : '#ffffff',
           boxShadow: isRTL ? '2px 0 20px rgba(0,0,0,0.15)' : '-2px 0 20px rgba(0,0,0,0.15)',
           zIndex: 1002,
@@ -763,6 +770,7 @@ const NotificationDrawer = ({ isOpen, onClose, feed }) => {
             ))
           )}
         </div>
+        <div {...resizeHandleProps} />
       </div>
     </>
   );

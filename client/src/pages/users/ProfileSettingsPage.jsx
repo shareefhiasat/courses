@@ -46,6 +46,9 @@ const ProfileSettingsPage = () => {
     firstNameAr: '',
     lastNameAr: '',
     studentNumber: '',
+    rankEn: '',
+    rankAr: '',
+    sequence: '',
     phoneNumber: '',
     messageColor: DEFAULT_ACCENT,
   });
@@ -146,6 +149,9 @@ const ProfileSettingsPage = () => {
             firstNameAr: userProfile.firstNameAr || '',
             lastNameAr: userProfile.lastNameAr || '',
             studentNumber: userProfile.studentNumber || '',
+            rankEn: userProfile.rankEn || '',
+            rankAr: userProfile.rankAr || '',
+            sequence: userProfile.sequence != null ? String(userProfile.sequence) : '',
             phoneNumber: userProfile.phoneNumber || '',
             messageColor: resolvedColor,
           });
@@ -473,6 +479,33 @@ const ProfileSettingsPage = () => {
                 placeholder={t('student_number_placeholder')}
                 maxLength={100}
                 description={t('student_number_readonly')}
+              />
+
+              <Input
+                id="rankEn"
+                type="text"
+                label={t('profile.rankEn', 'Rank (English)')}
+                value={profileData.rankEn}
+                disabled
+                description={t('profile.rankReadonly', 'Managed by administration')}
+              />
+
+              <Input
+                id="rankAr"
+                type="text"
+                label={t('profile.rankAr', 'Rank (Arabic)')}
+                value={profileData.rankAr}
+                disabled
+                description={t('profile.rankReadonly', 'Managed by administration')}
+              />
+
+              <Input
+                id="sequence"
+                type="text"
+                label={t('profile.sequence', 'Order / Sequence')}
+                value={profileData.sequence}
+                disabled
+                description={t('profile.sequenceReadonly', 'Roster order — managed by administration')}
               />
             </div>
           </CardBody>

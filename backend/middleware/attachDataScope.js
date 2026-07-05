@@ -16,7 +16,29 @@ export async function attachDataScope(req, res, next) {
     next();
   } catch (error) {
     console.error('[attachDataScope]', error);
-    next(error);
+    req.dataScope = {
+      unrestricted: false,
+      categoryIds: [],
+      programIds: [],
+      subjectIds: [],
+      classIds: [],
+      source: 'scope_error',
+      visibility: {
+        programs: 'UCA',
+        subjects: 'UCA',
+        classes: 'UCA',
+        instructors: 'ALL',
+        rooms: 'ALL',
+      },
+      explicitGrants: {
+        instructorIds: [],
+        roomIds: [],
+        programIds: [],
+        subjectIds: [],
+        classIds: [],
+      },
+    };
+    next();
   }
 }
 

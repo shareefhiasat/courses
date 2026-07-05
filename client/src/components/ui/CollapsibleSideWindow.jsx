@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { useTheme } from '@contexts/ThemeContext';
 import { useLang } from '@contexts/LangContext';
 import { getThemedIcon } from '@constants/iconTypes';
@@ -14,13 +14,36 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Colla
   studentName = 'Student',
   searchable = false,
   onSearch = null,
-  initialFilters = {}
+  initialFilters = {},
+  storageKey = null,
 }) => {
   const { theme } = useTheme();
   const { t } = useLang();
   
-  const [isMinimized, setIsMinimized] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(() => {
+    if (!storageKey) return false;
+    try { return localStorage.getItem(`${storageKey}_minimized`) === 'true'; } catch { return false; }
+  });
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    if (!storageKey) return false;
+    try { return localStorage.getItem(`${storageKey}_collapsed`) === 'true'; } catch { return false; }
+  });
+
+  const handleToggleCollapse = useCallback(() => {
+    setIsCollapsed(prev => {
+      const next = !prev;
+      if (storageKey) { try { localStorage.setItem(`${storageKey}_collapsed`, String(next)); } catch {} }
+      return next;
+    });
+  }, [storageKey]);
+
+  const handleToggleMinimize = useCallback(() => {
+    setIsMinimized(prev => {
+      const next = !prev;
+      if (storageKey) { try { localStorage.setItem(`${storageKey}_minimized`, String(next)); } catch {} }
+      return next;
+    });
+  }, [storageKey]);
   const [searchQuery, setSearchQuery] = useState('');
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
@@ -109,7 +132,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Colla
     <>
       {/* Minimized Taskbar Item */}
       {isMinimized && (
-        <div className="collapsible-side-window-taskbar-item" onClick={() => setIsMinimized(false)}>
+        <div className="collapsible-side-window-taskbar-item" onClick={handleToggleMinimize}>
           <span className="collapsible-side-window-taskbar-name">{studentName}</span>
           <button
             className="collapsible-side-window-taskbar-close"
@@ -146,7 +169,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Colla
               <PortalTooltip content={isCollapsed ? t('expand') : t('collapse')} position="top">
               <button
                 className="collapsible-side-window-header-button"
-                onClick={() => setIsCollapsed(!isCollapsed)}
+                onClick={handleToggleCollapse}
               >
                 {isCollapsed ? getThemedIcon('ui', 'chevron_down', 18, theme) : getThemedIcon('ui', 'chevron_up', 18, theme)}
               </button>
@@ -154,7 +177,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Colla
               <PortalTooltip content={t('minimize')} position="top">
               <button
                 className="collapsible-side-window-header-button"
-                onClick={() => setIsMinimized(true)}
+                onClick={handleToggleMinimize}
               >
                 {getThemedIcon('ui', 'minimize', 18, theme)}
               </button>

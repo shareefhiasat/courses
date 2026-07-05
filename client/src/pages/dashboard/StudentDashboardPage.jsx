@@ -111,33 +111,32 @@ export default function StudentDashboardPage() {
     [permissions, user?.uid, filters.selectedStudentId]
   );
 
-  const displayName = useMemo(() => {
-    if (permissions.isStaff && filters.selectedStudentId) {
-      const found = filters.filteredStudents.find(s => (s.id || s.uid) === filters.selectedStudentId);
-      return found?.displayName || t('student');
-    }
-    return userProfile?.displayName || user?.displayName || user?.email?.split('@')[0] || t('student');
-  }, [permissions.isStaff, filters.selectedStudentId, filters.filteredStudents, userProfile, user, t]);
+  const scopedClassId = filters.selectedClassId && filters.selectedClassId !== 'all'
+    ? filters.selectedClassId
+    : null;
+  const scopedProgramId = filters.selectedProgramId && filters.selectedProgramId !== 'all'
+    ? filters.selectedProgramId
+    : null;
+  const scopedSubjectId = filters.selectedSubjectId && filters.selectedSubjectId !== 'all'
+    ? filters.selectedSubjectId
+    : null;
 
   // ─── Data hooks with proper conditional loading ────────────────────────────────
   const dashData = useStudentDashboardData(
-    permissions.isStaff && !filters.hasSelection ? null : displayStudentId, 
+    permissions.isStaff && !filters.hasSelection ? null : displayStudentId,
     filters.hasSelection,
-    permissions.isStaff && !filters.selectedStudentId && filters.selectedClassId ? filters.selectedClassId : null,
-    filters.selectedProgramId !== 'all' ? filters.selectedProgramId : null
+    scopedClassId,
+    scopedProgramId,
+    scopedSubjectId
   );
 
   // Class-level metrics for staff when a class is selected
   const classMetrics = useClassLevelMetrics(
-    permissions.isStaff && filters.selectedClassId && filters.selectedClassId !== 'all' 
-      ? filters.selectedClassId 
-      : null,
+    permissions.isStaff && scopedClassId ? scopedClassId : null,
     permissions.isStaff
   );
   const analyticsHook = useDashboardAnalytics(
-    permissions.isStaff && filters.selectedClassId && filters.selectedClassId !== 'all'
-      ? filters.selectedClassId
-      : null
+    permissions.isStaff && scopedClassId ? scopedClassId : null
   );
 
   // Load all users for UserSelect (like enrollment page pattern)
@@ -164,6 +163,19 @@ export default function StudentDashboardPage() {
     return allUsers.filter(u => u.email !== user?.email);
   }, [allUsers, user?.email]);
 
+  const displayName = useMemo(() => {
+    if (permissions.isStaff && filters.selectedStudentId) {
+      const matchId = String(filters.selectedStudentId);
+      const found = studentUsers.find(s =>
+        String(s.docId) === matchId || String(s.id) === matchId || String(s.uid) === matchId
+      ) || filters.filteredStudents.find(s =>
+        String(s.docId) === matchId || String(s.id) === matchId || String(s.uid) === matchId
+      );
+      return found?.displayName || t('student');
+    }
+    return userProfile?.displayName || user?.displayName || user?.email?.split('@')[0] || t('student');
+  }, [permissions.isStaff, filters.selectedStudentId, filters.filteredStudents, studentUsers, userProfile, user, t]);
+
   // ─── Resolve selected student object for profile panel ────────────────────
   const selectedStudentBase = useMemo(() => {
     if (permissions.isStaff && filters.selectedStudentId) {
@@ -183,7 +195,6 @@ export default function StudentDashboardPage() {
     return userProfile || user || null;
   }, [permissions.isStaff, filters.selectedStudentId, studentUsers, filters.filteredStudents, userProfile, user]);
 
-  // Fetch detailed user data (includes phoneNumber, images, etc.) when a student is selected
   useEffect(() => {
     if (!permissions.isStaff || !filters.selectedStudentId) { setDetailedStudent(null); return; }
     let cancelled = false;
@@ -302,9 +313,9 @@ export default function StudentDashboardPage() {
   // Context-aware records title
   const recordsTitle = useMemo(() => {
     if (filters.selectedStudentId) return t('student_records');
-    if (filters.selectedClassId && filters.selectedClassId !== 'all') return t('class_records');
+    if (scopedClassId) return t('class_records');
     return t('records');
-  }, [filters.selectedStudentId, filters.selectedClassId, t]);
+  }, [filters.selectedStudentId, scopedClassId, t]);
 
   const activitySummary = useMemo(() => {
     if (analyticsHook.loading || !analyticsHook.data?.activity?.overview) return '…';
@@ -503,7 +514,7 @@ export default function StudentDashboardPage() {
                   isRTL={lang === 'ar'}
                   lastUpdatedAt={Date.now()}
                   studentId={displayStudentId}
-                  classId={filters.selectedClassId !== 'all' ? filters.selectedClassId : undefined}
+                  classId={scopedClassId}
                   attendance={dashData.attendance}
                   participations={dashData.participations}
                   penalties={dashData.penalties}
@@ -551,7 +562,7 @@ export default function StudentDashboardPage() {
                   >
                     <AttendanceTab
                       studentId={displayStudentId}
-                      classId={filters.selectedClassId !== 'all' ? filters.selectedClassId : undefined}
+                      classId={scopedClassId}
                       attendance={dashData.attendance}
                       participations={dashData.participations}
                       penalties={dashData.penalties}
@@ -636,7 +647,7 @@ export default function StudentDashboardPage() {
                   statsData={dashData.statsData}
                   canNavigateToMarksEntry={permissions.canNavigateToMarksEntry}
                   studentId={displayStudentId}
-                  classId={filters.selectedClassId !== 'all' ? filters.selectedClassId : undefined}
+                  classId={scopedClassId}
                   t={t}
                   lang={lang}
                 />

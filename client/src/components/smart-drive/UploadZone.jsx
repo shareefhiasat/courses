@@ -31,18 +31,32 @@ export default function UploadZone({ bucket, onUpload, onClose }) {
     setIsDragging(false);
   }, []);
 
+  const MAX_FILE_NAME_LENGTH = 200;
+
   const handleDrop = useCallback((e) => {
     e.preventDefault();
     setIsDragging(false);
     
-    const files = Array.from(e.dataTransfer.files);
+    const files = Array.from(e.dataTransfer.files).filter(f => {
+      if (f.name.length > MAX_FILE_NAME_LENGTH) {
+        alert(t('drive.fileNameTooLong', `File name must not exceed ${MAX_FILE_NAME_LENGTH} characters`));
+        return false;
+      }
+      return true;
+    });
     setSelectedFiles(prev => [...prev, ...files]);
-  }, []);
+  }, [t]);
 
   const handleFileSelect = useCallback((e) => {
-    const files = Array.from(e.target.files);
+    const files = Array.from(e.target.files).filter(f => {
+      if (f.name.length > MAX_FILE_NAME_LENGTH) {
+        alert(t('drive.fileNameTooLong', `File name must not exceed ${MAX_FILE_NAME_LENGTH} characters`));
+        return false;
+      }
+      return true;
+    });
     setSelectedFiles(prev => [...prev, ...files]);
-  }, []);
+  }, [t]);
 
   const removeFile = useCallback((index) => {
     setSelectedFiles(prev => prev.filter((_, i) => i !== index));

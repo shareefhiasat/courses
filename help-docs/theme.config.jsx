@@ -13,10 +13,6 @@ export default {
   search: {
     placeholder: 'Search help articles...',
   },
-  i18n: [
-    { locale: 'en', name: 'English', direction: 'ltr' },
-    { locale: 'ar', name: 'العربية', direction: 'rtl' },
-  ],
   useNextSeoProps() {
     return {
       titleTemplate: '%s – Military LMS Help',

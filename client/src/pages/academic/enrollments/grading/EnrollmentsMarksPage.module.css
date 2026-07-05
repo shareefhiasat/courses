@@ -166,7 +166,7 @@
 
 [dir="rtl"] .legendValue {
   margin-inline-start: 0;
-  margin-inline-end: auto;
+  margin-inline-end: 0;
 }
 
 [dir="rtl"] .legendItemTotal {

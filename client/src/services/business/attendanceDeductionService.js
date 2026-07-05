@@ -26,8 +26,16 @@ export async function fetchDeductionHistory({ userId, classId }) {
   return apiService.get(`/marks/deduction-history?${params.toString()}`);
 }
 
+export async function fetchAbsenceWarningCounts({ classId, userId }) {
+  const params = new URLSearchParams();
+  params.append('classId', String(classId));
+  if (userId) params.append('userId', String(userId));
+  return apiService.get(`/marks/absence-warning-counts?${params.toString()}`);
+}
+
 export default {
   fetchAttendanceDeductionSuggestion,
   fetchAbsenceDeductionRules,
   fetchDeductionHistory,
+  fetchAbsenceWarningCounts,
 };

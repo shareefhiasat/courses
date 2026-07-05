@@ -23,10 +23,20 @@ import {
 import { getUsers } from '@services/business/userService';
 import { getEnrollments } from '@services/business/enrollmentService';
 import { getClasses } from '@services/business/classService';
+import ClassInfoBar from '@components/ui/ClassInfoBar';
 import { logActivity, ACTIVITY_LOG_TYPES } from '@services/other/activityLogger.jsx';
 // OLD: import { ACTIVITY_TYPES } from '@constants/activityTypes';
 // NOW: Not used in this component
 import { RECORD_TYPES } from '@utils/sharedTypes';
+
+// Style override for GPA overview section to reduce padding
+const gpaOverviewStyle = (
+  <style>{`
+    .gpa-overview-section .fullContent {
+      padding: 0.5rem !important;
+    }
+  `}</style>
+);
 import { ROLE_STRINGS } from '@utils/userUtils';
 import { Container, Card, CardBody, Button, Input, Badge, EmptyState, useToast, Select, AdvancedDataGrid, SimpleLoading } from '@ui';
 import { GlobalLoadingFallback, useGlobalLoading } from '@/contexts/GlobalLoadingContext';
@@ -34,13 +44,14 @@ import { ProgramsSelect } from '@ui';
 import { useTheme } from '@contexts/ThemeContext';
 import { getStudentMarksHistory } from '@services/business/enrollmentMarksService';
 import { getThemedIcon } from '@constants/iconTypes';
-import { CollapsibleSideWindow } from '@ui';
+import { CollapsibleSideWindow, CollapsibleDashboardSection } from '@ui';
 import usePersistentState from '@hooks/usePersistentState';
 import BehaviorPage from '../../../operations/behavior/BehaviorPage';
 import PenaltiesPage from '../../../operations/penalty/PenaltiesPage';
 import ParticipationPage from '../../../operations/participation/ParticipationPage';
 import MarksHistoryDrawer from '@components/academic/MarksHistoryDrawer';
 import DeductionDrawer from '@components/academic/DeductionDrawer';
+import MarksOfficialExportBar from '@components/academic/MarksOfficialExportBar';
 import { fetchAttendanceDeductionSuggestion, fetchDeductionHistory } from '@services/business/attendanceDeductionService';
 import styles from './EnrollmentsMarksPage.module.css';
 
@@ -94,6 +105,17 @@ const MarksPage = () => {
     attendance: 10
   });
 
+  const [subjectGpaRows, setSubjectGpaRows] = useState([]);
+  const [cumulativeGpaRows, setCumulativeGpaRows] = useState([]);
+  const [gpaGradeFilter, setGpaGradeFilter] = useState(''); // '', 'A', 'B', 'C', 'D', 'F'
+  const [gpaSortOrder, setGpaSortOrder] = useState('desc'); // 'asc' or 'desc'
+  const gradeBadges = ['A', 'B', 'C', 'D', 'F', 'FB', 'FA', 'WF'];
+  const gradeColors = { A: '#10b981', B: '#3b82f6', C: '#f59e0b', D: '#60a5fa', F: '#ef4444', FB: '#ef4444', FA: '#ef4444', WF: '#6b7280' };
+  const gradeArLabels = { A: 'ممتاز', 'B+': 'جيد جداً مرتفع', B: 'جيد جداً', 'C+': 'جيد مرتفع', C: 'جيد', 'D+': 'مقبول مرتفع', D: 'مقبول', F: 'راسب', FB: 'غياب', FA: 'غ نهائي', WF: 'انسحاب' };
+  const gradeLetterLabel = useCallback((letter) => {
+    if (lang === 'ar' && gradeArLabels[letter]) return gradeArLabels[letter];
+    return letter;
+  }, [lang]);
   const [showNotificationNote, setShowNotificationNote] = useState(false);
   const [showHistoryDrawer, setShowHistoryDrawer] = useState(false);
   const [historyData, setHistoryData] = useState([]);
@@ -116,6 +138,7 @@ const MarksPage = () => {
   const [termFilter, setTermFilter] = usePersistentState('marks_filter_term', '');
   const [yearFilter, setYearFilter] = usePersistentState('marks_filter_year', '');
   const [repeatedFilter, setRepeatedFilter] = usePersistentState('marks_filter_repeated', ''); // '', 'true', 'false'
+  const [gradeTypeFilter, setGradeTypeFilter] = usePersistentState('marks_filter_gradeType', '');
   const [refreshCounter, setRefreshCounter] = useState(0);
 
   // Side window state
@@ -209,6 +232,7 @@ const MarksPage = () => {
       if (yearFilter) filters.year = yearFilter;
       if (termFilter) filters.term = termFilter;
       if (repeatedFilter) filters.isRepeated = repeatedFilter;
+      if (gradeTypeFilter) filters.gradeType = gradeTypeFilter;
 
       const result = await getAllStudentMarksReport(filters);
       
@@ -222,7 +246,55 @@ const MarksPage = () => {
     } finally {
       setMarksReportLoading(false);
     }
-  }, [programFilter, subjectFilter, classFilter, yearFilter, termFilter, repeatedFilter]);
+  }, [programFilter, subjectFilter, classFilter, yearFilter, termFilter, repeatedFilter, gradeTypeFilter]);
+
+  const exportMetadata = useMemo(() => {
+    const selectedClassObj = classes.find((c) => String(c.id) === String(classFilter));
+    const selectedSubjectObj = subjects.find((s) => String(s.docId || s.id) === String(subjectFilter));
+    const selectedProgramObj = programs.find((p) => String(p.id) === String(programFilter));
+    const programName = selectedProgramObj
+      ? (lang === 'ar' ? (selectedProgramObj.nameAr || selectedProgramObj.nameEn) : (selectedProgramObj.nameEn || selectedProgramObj.nameAr))
+      : '';
+    const subjectName = selectedSubjectObj
+      ? (lang === 'ar' ? (selectedSubjectObj.nameAr || selectedSubjectObj.nameEn) : (selectedSubjectObj.nameEn || selectedSubjectObj.nameAr))
+      : '';
+    const className = selectedClassObj
+      ? (lang === 'ar' ? (selectedClassObj.nameAr || selectedClassObj.nameEn || selectedClassObj.code) : (selectedClassObj.nameEn || selectedClassObj.nameAr || selectedClassObj.code))
+      : '';
+    return {
+      programId: programFilter,
+      subjectId: subjectFilter,
+      classId: classFilter,
+      programName,
+      programNameAr: selectedProgramObj?.nameAr,
+      subjectName,
+      subjectNameAr: selectedSubjectObj?.nameAr,
+      className,
+      year: yearFilter || selectedClassObj?.year || '',
+      term: termFilter || selectedClassObj?.term || '',
+      examLabelAr: 'اختبار منتصف الفصل',
+      examLabelEn: 'Mid-term Exam',
+      termLabelAr: termFilter,
+    };
+  }, [programs, subjects, classes, programFilter, subjectFilter, classFilter, yearFilter, termFilter, lang]);
+
+  const loadSemesterReportRows = useCallback(async () => {
+    if (!programFilter) return [];
+    const filters = { programId: programFilter };
+    if (yearFilter) filters.year = yearFilter;
+    if (termFilter) filters.term = termFilter;
+    const result = await getAllStudentMarksReport(filters);
+    return result.success ? (result.data || []) : [];
+  }, [programFilter, yearFilter, termFilter]);
+
+  const classReportRows = useMemo(() => {
+    if (!subjectFilter) return [];
+    return marksReportData.filter((row) => {
+      if (classFilter && String(row.classId) !== String(classFilter)) return false;
+      if (String(row.subjectId) !== String(subjectFilter)) return false;
+      return !row.isRepeated;
+    });
+  }, [marksReportData, subjectFilter, classFilter]);
 
   // Load marks report when filters change
   useEffect(() => {
@@ -232,7 +304,7 @@ const MarksPage = () => {
   // Per-student GPA overview when a class is selected (all subjects in class)
   const [classGpaRows, setClassGpaRows] = useState([]);
   const [gpaSearch, setGpaSearch] = useState('');
-  const [selectedGpaStudent, setSelectedGpaStudent] = useState(null);
+  const [selectedGpaStudents, setSelectedGpaStudents] = useState([]);
   const [hoveredTip, setHoveredTip] = useState(null);
   useEffect(() => {
     if (!classFilter) {
@@ -245,8 +317,9 @@ const MarksPage = () => {
       if (termFilter) filters.term = termFilter;
       const result = await getAllStudentMarksReport(filters);
       if (!result.success) return;
+      const mergedData = mergeComplementaryRecords(result.data || []);
       const byStudent = new Map();
-      for (const row of result.data || []) {
+      for (const row of mergedData) {
         const key = row.studentId;
         if (!byStudent.has(key)) {
           byStudent.set(key, { studentId: key, studentName: row.studentName, studentNameAr: row.studentNameAr, marks: [] });
@@ -257,11 +330,67 @@ const MarksPage = () => {
         Array.from(byStudent.values()).map((entry) => {
           const { gpa } = calculateGpaFromMarks(entry.marks);
           const standing = getGpaStanding(gpa, lang);
-          return { ...entry, gpa, standing: standing.label, gpaLetter: standing.letter };
+          return { ...entry, gpa, standing: standing.label, gpaLetter: standing.letter, detailMarks: entry.marks };
         }).sort((a, b) => a.studentName.localeCompare(b.studentName))
       );
     })();
   }, [classFilter, yearFilter, termFilter, lang]);
+
+  // Subject-level GPA: calculated from marksReportData (all classes for the selected subject)
+  useEffect(() => {
+    if (!subjectFilter || marksReportData.length === 0) {
+      setSubjectGpaRows([]);
+      return;
+    }
+    const merged = mergeComplementaryRecords(marksReportData.filter(row => row.subjectId == subjectFilter));
+    const byStudent = new Map();
+    for (const row of merged) {
+      const key = row.studentId;
+      if (!byStudent.has(key)) {
+        byStudent.set(key, { studentId: key, studentName: row.studentName, studentNameAr: row.studentNameAr, marks: [] });
+      }
+      byStudent.get(key).marks.push(row);
+    }
+    setSubjectGpaRows(
+      Array.from(byStudent.values()).map((entry) => {
+        const { gpa } = calculateGpaFromMarks(entry.marks);
+        const standing = getGpaStanding(gpa, lang);
+        return { ...entry, gpa, standing: standing.label, gpaLetter: standing.letter };
+      }).sort((a, b) => a.studentName.localeCompare(b.studentName))
+    );
+  }, [subjectFilter, marksReportData, lang]);
+
+  // Cumulative GPA: fetch all marks for all students in the selected program
+  useEffect(() => {
+    if (!programFilter) {
+      setCumulativeGpaRows([]);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      // Fetch all marks for the program (no subject/class filter) to get true cumulative GPA
+      const result = await getAllStudentMarksReport({ programId: programFilter });
+      if (!result.success || cancelled) return;
+      const merged = mergeComplementaryRecords(result.data || []);
+      const byStudent = new Map();
+      for (const row of merged) {
+        const key = row.studentId;
+        if (!byStudent.has(key)) {
+          byStudent.set(key, { studentId: key, studentName: row.studentName, studentNameAr: row.studentNameAr, marks: [] });
+        }
+        byStudent.get(key).marks.push(row);
+      }
+      if (cancelled) return;
+      setCumulativeGpaRows(
+        Array.from(byStudent.values()).map((entry) => {
+          const { gpa } = calculateGpaFromMarks(entry.marks);
+          const standing = getGpaStanding(gpa, lang);
+          return { ...entry, gpa, standing: standing.label, gpaLetter: standing.letter };
+        }).sort((a, b) => a.studentName.localeCompare(b.studentName))
+      );
+    })();
+    return () => { cancelled = true; };
+  }, [programFilter, lang, refreshCounter]);
 
   const loadData = useCallback(async (isInitial = false) => {
     if (!isInitial) setLoading(true);
@@ -790,6 +919,7 @@ const MarksPage = () => {
 
   return (
     <Container maxWidth="xl" className={styles.page} style={{ padding: '1rem 0' }}>
+      {gpaOverviewStyle}
       <Joyride
         {...getJoyrideBaseProps({ theme, t })}
         run={runTour}
@@ -818,84 +948,250 @@ const MarksPage = () => {
         </CardBody>
       </Card>
 
-      {classGpaRows.length > 0 && (
-        <Card style={{ marginBottom: '1.5rem' }}>
-          <CardBody>
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '1rem', gap: '1rem' }}>
-              <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 600 }}>
-                {t('student_gpa_overview')}
-              </h3>
+      {classFilter && (
+        <div style={{ marginBottom: '1.5rem' }}>
+          <ClassInfoBar
+            classObj={classes.find(c => String(c.id) === String(classFilter))}
+            lang={lang}
+            t={t}
+          />
+        </div>
+      )}
+
+      {(() => {
+        const renderGradeBadges = () => (
+          <div style={{ display: 'flex', gap: '3px', flexWrap: 'nowrap' }}>
+            <button
+              onClick={() => setGpaGradeFilter('')}
+              style={{
+                padding: '2px 6px', borderRadius: '10px', border: '1px solid var(--border)',
+                fontSize: '0.65rem', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
+                background: gpaGradeFilter === '' ? 'var(--brand)' : 'transparent',
+                color: gpaGradeFilter === '' ? '#fff' : 'var(--text)',
+              }}
+            >
+              {t('all') || 'All'}
+            </button>
+            {gradeBadges.map(g => (
+              <button
+                key={g}
+                onClick={() => setGpaGradeFilter(gpaGradeFilter === g ? '' : g)}
+                style={{
+                  padding: '2px 6px', borderRadius: '10px', border: `1px solid ${gradeColors[g]}`,
+                  fontSize: '0.65rem', fontWeight: 700, cursor: 'pointer', whiteSpace: 'nowrap',
+                  background: gpaGradeFilter === g ? gradeColors[g] : 'transparent',
+                  color: gpaGradeFilter === g ? '#fff' : gradeColors[g],
+                }}
+              >
+                {gradeLetterLabel(g)}
+              </button>
+            ))}
+          </div>
+        );
+
+        const attemptLabel = (mark) => {
+          const gt = mark.gradeType || 'calculated';
+          if (gt === 'complementary') return t('complementary_exam') || 'Complementary';
+          if (gt === 'FB') return 'FB';
+          if (gt === 'FA') return 'FA';
+          if (gt === 'WF') return 'WF';
+          if (mark.isRepeated) return t('repeated') || 'Repeated';
+          return t('first_attempt') || 'First Attempt';
+        };
+
+        const failReasonLabel = (mark) => {
+          const gt = mark.gradeType || 'calculated';
+          if (gt === 'FB') return lang === 'ar' ? 'رسوب بسبب الغياب' : 'Fail — absence';
+          if (gt === 'FA') return lang === 'ar' ? 'رسوب — غاب عن النهائي' : 'Fail — absent final';
+          if (gt === 'WF') return lang === 'ar' ? 'انسحاب إجباري' : 'Withdrawn';
+          if (mark.letterGrade === 'F' || gt === 'calculated') return lang === 'ar' ? 'راسب — درجات غير كافية' : 'Fail — insufficient marks';
+          return null;
+        };
+
+        const renderDetailChips = (marks) => {
+          if (!marks || marks.length === 0) return null;
+          return marks.map((m, i) => {
+                const gt = m.gradeType || 'calculated';
+                const isManualGrade = ['FB', 'FA', 'WF'].includes(gt);
+                const letter = isManualGrade ? gt : (m.letterGrade || (gt !== 'calculated' ? gt : '?'));
+                const isFail = letter === 'F' || gt === 'FB' || gt === 'FA' || gt === 'WF';
+                const chipColor = gradeColors[letter] || gradeColors[gt] || (isFail ? '#ef4444' : '#6b7280');
+                return (
+                  <span
+                    key={i}
+                    style={{
+                      display: 'inline-flex', alignItems: 'center', gap: '2px',
+                      padding: '0px 4px', borderRadius: '3px',
+                      fontSize: '0.6rem', fontWeight: 600,
+                      background: `${chipColor}15`, color: chipColor,
+                      border: `1px solid ${chipColor}30`,
+                      flexShrink: 0,
+                    }}
+                    title={attemptLabel(m)}
+                  >
+                    {gradeLetterLabel(letter)}
+                    <span style={{ opacity: 0.7, fontWeight: 400 }}>
+                      {m.term ? t(m.term.replace(/^[0-9]{4}-/, '').toLowerCase()) || m.term.replace(/^[0-9]{4}-/, '') : (m.year ? String(m.year).slice(-2) : '')}
+                    </span>
+                  </span>
+                );
+              });
+        };
+
+        const renderGpaCard = (rows, title, subtitle, accentColor, showDetails) => {
+          if (!rows || rows.length === 0) return null;
+          const filtered = rows.filter(row => {
+            if (gpaSearch && !(row.studentName?.toLowerCase().includes(gpaSearch.toLowerCase()) || row.studentNameAr?.toLowerCase().includes(gpaSearch.toLowerCase()))) return false;
+            if (gpaGradeFilter && row.gpaLetter !== gpaGradeFilter) return false;
+            return true;
+          });
+          if (filtered.length === 0) return null;
+          return (
+            <div style={{
+              border: '1px solid var(--border)', borderRadius: '8px', overflow: 'hidden',
+              background: isDarkMode ? '#111827' : '#fff',
+              minWidth: 0,
+            }}>
+              <div style={{
+                padding: '0.5rem 0.75rem', borderBottom: '1px solid var(--border)',
+                background: `${accentColor}08`,
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '0.5rem',
+              }}>
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 700, color: accentColor }}>{title}</div>
+                  {subtitle && <div style={{ fontSize: '0.7rem', color: 'var(--muted)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{subtitle}</div>}
+                </div>
+                <span style={{
+                  padding: '1px 7px', borderRadius: '10px', fontSize: '0.65rem', fontWeight: 700,
+                  background: accentColor, color: '#fff', flexShrink: 0,
+                }}>
+                  {filtered.length}
+                </span>
+              </div>
+              <div style={{ padding: '0.5rem', display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '320px', overflowY: 'auto' }}>
+                {filtered.map((row) => {
+                  const isSelected = selectedGpaStudents.some(s => String(s) === String(row.studentId));
+                  const isFailed = ['F', 'FB', 'FA', 'WF'].includes(row.gpaLetter);
+                  return (
+                    <div
+                      key={row.studentId}
+                      onClick={() => setSelectedGpaStudents(prev => isSelected ? prev.filter(s => String(s) !== String(row.studentId)) : [...prev, row.studentId])}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: '0.4rem',
+                        padding: '0.4rem 0.5rem', borderRadius: '6px',
+                        border: `1.5px solid ${isSelected ? 'var(--brand)' : 'transparent'}`,
+                        background: isSelected ? 'var(--brand-alpha, rgba(129,12,41,0.05))' : isFailed ? (isDarkMode ? 'rgba(239,68,68,0.08)' : 'rgba(239,68,68,0.05)') : (isDarkMode ? '#1f2937' : '#f9fafb'),
+                        cursor: 'pointer', transition: 'all 0.15s',
+                        minHeight: '42px',
+                      }}
+                    >
+                      <span style={{
+                        display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                        minWidth: '20px', height: '20px', padding: '0 4px', borderRadius: '10px', flexShrink: 0,
+                        fontSize: lang === 'ar' ? '0.55rem' : '0.65rem', fontWeight: 700, color: '#fff',
+                        background: gradeColors[row.gpaLetter] || '#6b7280',
+                      }}>
+                        {gradeLetterLabel(row.gpaLetter)}
+                      </span>
+                      <div style={{ minWidth: 0, flex: 1 }}>
+                        <div style={{
+                          fontSize: '0.75rem', fontWeight: 600, overflow: 'hidden',
+                          textOverflow: 'ellipsis', whiteSpace: 'nowrap', lineHeight: 1.2,
+                          display: 'flex', alignItems: 'center', gap: '4px',
+                        }}>
+                          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{lang === 'ar' ? (row.studentNameAr || row.studentName) : row.studentName}</span>
+                          {showDetails && row.detailMarks && renderDetailChips(row.detailMarks)}
+                        </div>
+                        {showDetails && row.detailMarks && (() => {
+                          const failMark = row.detailMarks.find(m => ['FB', 'FA', 'WF'].includes(m.gradeType) || m.letterGrade === 'F');
+                          if (!failMark) return null;
+                          const reason = failReasonLabel(failMark);
+                          if (!reason) return null;
+                          return (
+                            <div style={{ fontSize: '0.6rem', color: '#ef4444', fontWeight: 500, marginTop: '1px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {reason}
+                            </div>
+                          );
+                        })()}
+                      </div>
+                      <span style={{
+                        fontSize: '0.85rem', fontWeight: 700, flexShrink: 0,
+                        color: gradeColors[row.gpaLetter] || 'var(--text)',
+                      }}>
+                        {row.gpa.toFixed(2)}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          );
+        };
+
+        const selectedClassObj = classes.find(c => String(c.id) === String(classFilter));
+        const selectedSubjectObj = subjects.find(s => String(s.docId || s.id) === String(subjectFilter));
+        const selectedProgramObj = programs.find(p => String(p.id) === String(programFilter));
+        const classLabel = selectedClassObj ? (lang === 'ar' ? (selectedClassObj.nameAr || selectedClassObj.nameEn || selectedClassObj.code) : (selectedClassObj.nameEn || selectedClassObj.nameAr || selectedClassObj.code)) : '';
+        const subjectLabel = selectedSubjectObj ? (lang === 'ar' ? (selectedSubjectObj.nameAr || selectedSubjectObj.nameEn) : (selectedSubjectObj.nameEn || selectedSubjectObj.nameAr)) : '';
+        const programLabel = selectedProgramObj ? (lang === 'ar' ? (selectedProgramObj.nameAr || selectedProgramObj.nameEn) : (selectedProgramObj.nameEn || selectedProgramObj.nameAr)) : '';
+
+        const hasAnyGpa = classGpaRows.length > 0 || subjectGpaRows.length > 0 || cumulativeGpaRows.length > 0;
+        if (!hasAnyGpa) return null;
+
+        return (
+          <CollapsibleDashboardSection
+            title={t('student_gpa_overview')}
+            icon={getThemedIcon('ui', 'bar_chart3', 16, 'primary')}
+            color="#6366f1"
+            sectionId="marks-gpa-overview"
+            defaultMode="minimize"
+            className="gpa-overview-section"
+            headerRight={
               <input
                 type="text"
                 placeholder={t('search_students')}
                 value={gpaSearch}
                 onChange={(e) => setGpaSearch(e.target.value)}
-                style={{ padding: '6px 10px', border: '1px solid var(--border)', borderRadius: 6, fontSize: '0.85rem', width: '200px' }}
+                style={{ padding: '4px 8px', border: '1px solid var(--border)', borderRadius: 6, fontSize: '0.75rem', width: '150px' }}
               />
+            }
+            inlineFilters={renderGradeBadges()}
+          >
+            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'nowrap', width: '100%', minWidth: 0, overflow: 'hidden' }}>
+              <div style={{ flex: '1 1 0', minWidth: 0, overflow: 'hidden' }}>
+              {renderGpaCard(
+                classGpaRows,
+                t('class_gpa') || 'Class GPA',
+                classLabel,
+                '#6366f1',
+                true
+              )}
+              </div>
+              <div style={{ flex: '1 1 0', minWidth: 0, overflow: 'hidden' }}>
+              {renderGpaCard(
+                subjectGpaRows,
+                t('subject_gpa') || 'Subject GPA',
+                subjectLabel,
+                '#f59e0b',
+                false
+              )}
+              </div>
+              <div style={{ flex: '1 1 0', minWidth: 0, overflow: 'hidden' }}>
+              {renderGpaCard(
+                (() => {
+                  const classStudentIds = new Set(classGpaRows.map(r => String(r.studentId)));
+                  return cumulativeGpaRows.filter(r => classStudentIds.has(String(r.studentId)));
+                })(),
+                t('cumulative_gpa') || 'Cumulative GPA',
+                programLabel || (t('all_subjects') || 'All subjects'),
+                '#10b981',
+                false
+              )}
+              </div>
             </div>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '0.75rem' }}>
-              {classGpaRows
-                .filter(row => !gpaSearch || (row.studentName?.toLowerCase().includes(gpaSearch.toLowerCase()) || row.studentNameAr?.toLowerCase().includes(gpaSearch.toLowerCase())))
-                .map((row) => {
-                const studentInfo = students.find(s => String(s.uid) === String(row.studentId));
-                const avatarUrl = studentInfo?.profileImageUrl;
-                const isSelected = String(selectedGpaStudent) === String(row.studentId);
-                return (
-                  <div
-                    key={row.studentId}
-                    onClick={() => setSelectedGpaStudent(isSelected ? null : row.studentId)}
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.6rem',
-                      padding: '0.75rem 1rem',
-                      borderRadius: '8px',
-                      border: `2px solid ${isSelected ? 'var(--brand)' : (isDarkMode ? '#374151' : '#e5e7eb')}`,
-                      background: isSelected ? 'var(--brand-alpha, rgba(129,12,41,0.05))' : (isDarkMode ? '#111827' : '#f9fafb'),
-                      cursor: 'pointer',
-                      transition: 'all 0.2s',
-                    }}
-                  >
-                    <div style={{ width: 36, height: 36, borderRadius: '50%', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--border)', fontSize: '0.85rem', fontWeight: 700, color: 'var(--text)' }}>
-                      {avatarUrl ? (
-                        <img src={avatarUrl} alt={lang === 'ar' ? (row.studentNameAr || row.studentName) : row.studentName} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={(e) => { e.target.style.display = 'none'; }} />
-                      ) : (
-                        (lang === 'ar' ? (row.studentNameAr || row.studentName) : row.studentName)?.charAt(0)?.toUpperCase() || '?'
-                      )}
-                    </div>
-                    <div style={{ minWidth: 0, flex: 1 }}>
-                      <div style={{ fontWeight: 600, fontSize: 'var(--font-size-sm)', marginBottom: '0.25rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                        {lang === 'ar' ? (row.studentNameAr || row.studentName) : row.studentName}
-                      </div>
-                      <div style={{ fontSize: '1.25rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                        {row.gpa.toFixed(2)}
-                        <span style={{
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          width: '22px',
-                          height: '22px',
-                          borderRadius: '50%',
-                          fontSize: '0.7rem',
-                          fontWeight: 700,
-                          color: '#fff',
-                          background: row.gpaLetter === 'A' ? '#10b981' : row.gpaLetter === 'B' ? '#3b82f6' : row.gpaLetter === 'C' ? '#f59e0b' : row.gpaLetter === 'D' ? '#60a5fa' : '#ef4444',
-                          flexShrink: 0,
-                        }}>
-                          {row.gpaLetter}
-                        </span>
-                        <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 500, opacity: 0.85 }}>
-                          {row.standing}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </CardBody>
-        </Card>
-      )}
+          </CollapsibleDashboardSection>
+        );
+      })()}
 
       {(() => {
         const dist = marksDistribution;
@@ -923,17 +1219,18 @@ const MarksPage = () => {
           { key: 'participation', label: t('participation'), color: '#3b82f6', weight: dist.participation || 0 },
           { key: 'attendance', label: t('attendance'), color: '#64748b', weight: dist.attendance || 0 },
         ].filter(s => s.weight > 0);
-        const studentRow = selectedGpaStudent
-          ? marksReportData.find(r => String(r.studentId) === String(selectedGpaStudent) && String(r.subjectId) === String(selectedSubject.docId || selectedSubject.id))
-          : null;
-        const studentMarks = studentRow ? {
-          midTermExam: studentRow.midTermExam || 0,
-          finalExam: studentRow.finalExam || 0,
-          homework: studentRow.homework || 0,
-          labsProjectResearch: studentRow.labsProjectResearch || 0,
-          quizzes: studentRow.quizzes || 0,
-          participation: studentRow.participation || 0,
-          attendance: studentRow.attendance || 0,
+        const selectedGpaStudent = selectedGpaStudents.length > 0 ? selectedGpaStudents[0] : null;
+        const selectedStudentRows = selectedGpaStudents.map(sid =>
+          marksReportData.find(r => String(r.studentId) === String(sid) && String(r.subjectId) === String(selectedSubject.docId || selectedSubject.id))
+        ).filter(Boolean);
+        const studentMarks = selectedStudentRows.length > 0 ? {
+          midTermExam: selectedStudentRows[0].midTermExam || 0,
+          finalExam: selectedStudentRows[0].finalExam || 0,
+          homework: selectedStudentRows[0].homework || 0,
+          labsProjectResearch: selectedStudentRows[0].labsProjectResearch || 0,
+          quizzes: selectedStudentRows[0].quizzes || 0,
+          participation: selectedStudentRows[0].participation || 0,
+          attendance: selectedStudentRows[0].attendance || 0,
         } : null;
         const studentTotal = studentMarks
           ? studentMarks.midTermExam + studentMarks.finalExam + studentMarks.homework +
@@ -945,38 +1242,104 @@ const MarksPage = () => {
           <Card data-tour="marks-distribution" style={{ marginBottom: '1.5rem' }}>
             <CardBody>
               <div className={styles.distributionCard}>
-                <div className={styles.distributionBarRow}>
-                  <div className={styles.distributionBar} style={{ flex: 1 }}>
-                    {segments.map(s => (
-                      <div
-                        key={s.key}
-                        className={styles.distSegment}
-                        style={{ width: `${s.weight}%`, background: s.color }}
-                        onMouseMove={(e) => setHoveredTip({ text: `${s.label}: ${s.weight}%`, x: e.clientX, y: e.clientY })}
-                        onMouseLeave={() => setHoveredTip(null)}
-                      />
-                    ))}
-                  </div>
-                </div>
-                {studentMarks && (
-                  <div className={styles.distributionBar}>
-                    {segments.map(s => {
-                      const mark = studentMarks[s.key] || 0;
-                      const fillPct = s.weight > 0 ? Math.min((mark / s.weight) * 100, 100) : 0;
-                      return (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--muted)', width: '80px', flexShrink: 0 }}>
+                    {t('marks_distribution')}
+                  </span>
+                  <div className={styles.distributionBarRow} style={{ flex: 1 }}>
+                    <div className={styles.distributionBar} style={{ flex: 1 }}>
+                      {segments.map(s => (
                         <div
                           key={s.key}
                           className={styles.distSegment}
-                          style={{ width: `${s.weight}%`, background: 'var(--border)' }}
-                          onMouseMove={(e) => setHoveredTip({ text: `${s.label}: ${mark}/${s.weight}`, x: e.clientX, y: e.clientY })}
+                          style={{ width: `${s.weight}%`, background: s.color }}
+                          onMouseMove={(e) => setHoveredTip({ text: `${s.label}: ${s.weight}%`, x: e.clientX, y: e.clientY })}
                           onMouseLeave={() => setHoveredTip(null)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                  <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--muted)', flexShrink: 0, minWidth: '40px', textAlign: 'right' }}>
+                    {total}
+                  </span>
+                  <span style={{ flexShrink: 0, minWidth: '32px' }} />
+                  <span style={{ flexShrink: 0, minWidth: '32px' }} />
+                </div>
+                {(() => {
+                  const sortedRows = [...selectedStudentRows].map(sRow => {
+                    const sMarks = {
+                      midTermExam: sRow.midTermExam || 0,
+                      finalExam: sRow.finalExam || 0,
+                      homework: sRow.homework || 0,
+                      labsProjectResearch: sRow.labsProjectResearch || 0,
+                      quizzes: sRow.quizzes || 0,
+                      participation: sRow.participation || 0,
+                      attendance: sRow.attendance || 0,
+                    };
+                    const sTotal = sMarks.midTermExam + sMarks.finalExam + sMarks.homework +
+                      sMarks.labsProjectResearch + sMarks.quizzes +
+                      sMarks.participation + sMarks.attendance;
+                    const subjGpa = subjectGpaRows.find(r => String(r.studentId) === String(sRow.studentId));
+                    const cumGpa = cumulativeGpaRows.find(r => String(r.studentId) === String(sRow.studentId));
+                    return { sRow, sMarks, sTotal, subjGpa: subjGpa?.gpa, cumGpa: cumGpa?.gpa };
+                  }).sort((a, b) => gpaSortOrder === 'asc' ? a.sTotal - b.sTotal : b.sTotal - a.sTotal);
+                  return (
+                    <>
+                    {sortedRows.length > 0 && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', marginTop: '6px', marginBottom: '2px' }}>
+                      <span style={{ width: '80px', flexShrink: 0 }}>
+                        <button
+                          onClick={() => setGpaSortOrder(prev => prev === 'asc' ? 'desc' : 'asc')}
+                          style={{ padding: '2px 8px', border: '1px solid var(--border)', borderRadius: '4px', background: 'transparent', color: 'var(--text)', fontSize: '0.65rem', cursor: 'pointer', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '3px' }}
                         >
-                          <div style={{ width: `${fillPct}%`, height: '100%', background: s.color, opacity: 0.7, transition: 'width 0.3s ease', pointerEvents: 'none' }} />
+                          {gpaSortOrder === 'asc' ? '↑' : '↓'} {t('sort') || 'Sort'}
+                        </button>
+                      </span>
+                      <span style={{ flex: 1 }} />
+                      <span style={{ fontSize: '0.6rem', fontWeight: 700, color: 'var(--text)', flexShrink: 0, minWidth: '40px', textAlign: 'right' }}>{t('total')}</span>
+                      <span style={{ fontSize: '0.6rem', fontWeight: 700, color: '#f59e0b', flexShrink: 0, minWidth: '32px', textAlign: 'right' }}>{t('subject_gpa')}</span>
+                      <span style={{ fontSize: '0.6rem', fontWeight: 700, color: '#10b981', flexShrink: 0, minWidth: '32px', textAlign: 'right' }}>{t('cumulative_gpa')}</span>
+                    </div>
+                    )}
+                    {sortedRows.map(({ sRow, sMarks, sTotal, subjGpa, cumGpa }) => {
+                      const sName = lang === 'ar' ? (sRow.studentNameAr || sRow.studentName) : sRow.studentName;
+                      return (
+                        <div key={sRow.studentId} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '4px' }}>
+                          <span style={{ fontSize: '0.7rem', fontWeight: 600, color: 'var(--text)', width: '80px', flexShrink: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={sName}>
+                            {sName}
+                          </span>
+                          <div className={styles.distributionBar} style={{ flex: 1 }}>
+                            {segments.map(s => {
+                              const mark = sMarks[s.key] || 0;
+                              const fillPct = s.weight > 0 ? Math.min((mark / s.weight) * 100, 100) : 0;
+                              return (
+                                <div
+                                  key={s.key}
+                                  className={styles.distSegment}
+                                  style={{ width: `${s.weight}%`, background: 'var(--border)' }}
+                                  onMouseMove={(e) => setHoveredTip({ text: `${sName} — ${s.label}: ${mark}/${s.weight}`, x: e.clientX, y: e.clientY })}
+                                  onMouseLeave={() => setHoveredTip(null)}
+                                >
+                                  <div style={{ width: `${fillPct}%`, height: '100%', background: s.color, opacity: 0.7, transition: 'width 0.3s ease', pointerEvents: 'none' }} />
+                                </div>
+                              );
+                            })}
+                          </div>
+                          <span style={{ fontSize: '0.7rem', fontWeight: 700, color: 'var(--text)', flexShrink: 0, minWidth: '40px', textAlign: 'right' }}>
+                            {Math.round(sTotal * 10) / 10}
+                          </span>
+                          <span style={{ fontSize: '0.65rem', fontWeight: 600, color: '#f59e0b', flexShrink: 0, minWidth: '32px', textAlign: 'right' }} title={t('subject_gpa')}>
+                            {subjGpa != null ? subjGpa.toFixed(2) : '—'}
+                          </span>
+                          <span style={{ fontSize: '0.65rem', fontWeight: 600, color: '#10b981', flexShrink: 0, minWidth: '32px', textAlign: 'right' }} title={t('cumulative_gpa')}>
+                            {cumGpa != null ? cumGpa.toFixed(2) : '—'}
+                          </span>
                         </div>
                       );
                     })}
-                  </div>
-                )}
+                    </>
+                  );
+                })()}
                 {hoveredTip && createPortal(
                   <div style={{
                     position: 'fixed',
@@ -1222,6 +1585,71 @@ const MarksPage = () => {
       <Card data-tour="marks-grid">
         <CardBody>
           <div style={{ marginBottom: '1rem' }}>
+            <div
+              data-tour="marks-export"
+              style={{
+                display: 'flex',
+                flexWrap: 'wrap',
+                gap: '1rem',
+                marginBottom: '0.75rem',
+                padding: '0.75rem',
+                borderRadius: '8px',
+                border: `1px solid ${isDarkMode ? '#374151' : '#e5e7eb'}`,
+                background: isDarkMode ? '#111827' : '#fafafa',
+              }}
+            >
+              <MarksOfficialExportBar
+                mode="semester"
+                loadReportRows={loadSemesterReportRows}
+                metadata={exportMetadata}
+                lang={lang}
+                t={t}
+                disabled={!programFilter}
+                onSuccess={(msg) => toast?.success?.(msg)}
+                onError={(msg) => toast?.error?.(msg)}
+              />
+              <MarksOfficialExportBar
+                mode="qualitative"
+                loadReportRows={loadSemesterReportRows}
+                metadata={exportMetadata}
+                lang={lang}
+                t={t}
+                disabled={!programFilter}
+                onSuccess={(msg) => toast?.success?.(msg)}
+                onError={(msg) => toast?.error?.(msg)}
+              />
+              <MarksOfficialExportBar
+                mode="class"
+                reportRows={classReportRows}
+                distribution={marksDistribution}
+                metadata={exportMetadata}
+                lang={lang}
+                t={t}
+                disabled={!subjectFilter}
+                onSuccess={(msg) => toast?.success?.(msg)}
+                onError={(msg) => toast?.error?.(msg)}
+              />
+              <MarksOfficialExportBar
+                mode="warning-first"
+                classId={classFilter}
+                metadata={exportMetadata}
+                lang={lang}
+                t={t}
+                disabled={!classFilter}
+                onSuccess={(msg) => toast?.success?.(msg)}
+                onError={(msg) => toast?.error?.(msg)}
+              />
+              <MarksOfficialExportBar
+                mode="warning-final"
+                classId={classFilter}
+                metadata={exportMetadata}
+                lang={lang}
+                t={t}
+                disabled={!classFilter}
+                onSuccess={(msg) => toast?.success?.(msg)}
+                onError={(msg) => toast?.error?.(msg)}
+              />
+            </div>
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.5rem' }}>
               
             </div>
@@ -1261,6 +1689,21 @@ const MarksPage = () => {
               ]}
               fullWidth
             />
+            <Select
+              searchable
+              placeholder={t('grade_type')}
+              value={gradeTypeFilter}
+              onChange={(e) => setGradeTypeFilter(e.target.value)}
+              options={[
+                { value: '', label: t('all') },
+                { value: 'calculated', label: t('calculated') },
+                { value: GRADE_TYPE.COMPLEMENTARY, label: t('complementary_exam') },
+                { value: 'FB', label: `FB - ${t('grade_fb')}` },
+                { value: 'FA', label: `FA - ${t('grade_fa')}` },
+                { value: 'WF', label: `WF - ${t('grade_wf')}` },
+              ]}
+              fullWidth
+            />
           </div>
           
           {marksReportLoading && !marksReportData.length ? (
@@ -1278,9 +1721,48 @@ const MarksPage = () => {
                 </p>
               </div>
             ) : (
+              <>
+              {selectedGpaStudents.length > 0 && (
+                <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.4rem', padding: '0.4rem 0.75rem', marginBottom: '0.5rem', background: isDarkMode ? '#1f2937' : '#f0f9ff', border: `1px solid ${isDarkMode ? '#374151' : '#bae6fd'}`, borderRadius: '6px' }}>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text)', fontWeight: 600, flexShrink: 0 }}>
+                    {t('filtered_by_student') || 'Filtered by student'}:
+                  </span>
+                  {selectedGpaStudents.map(sid => {
+                    const studentRow = marksReportData.find(r => String(r.studentId) === String(sid));
+                    const studentName = lang === 'ar'
+                      ? (studentRow?.studentNameAr || studentRow?.studentName || sid)
+                      : (studentRow?.studentName || sid);
+                    const gpaRow = classGpaRows.find(r => String(r.studentId) === String(sid)) ||
+                                   subjectGpaRows.find(r => String(r.studentId) === String(sid)) ||
+                                   cumulativeGpaRows.find(r => String(r.studentId) === String(sid));
+                    const gpaLetter = gpaRow?.gpaLetter || '?';
+                    const chipColor = gradeColors[gpaLetter] || '#6b7280';
+                    return (
+                      <span key={sid} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '2px 8px 2px 4px', borderRadius: '12px', fontSize: '0.7rem', fontWeight: 600, background: `${chipColor}15`, color: chipColor, border: `1px solid ${chipColor}30` }}>
+                        <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: '16px', height: '16px', padding: '0 3px', borderRadius: '8px', fontSize: '0.55rem', fontWeight: 700, color: '#fff', background: chipColor }}>
+                          {gradeLetterLabel(gpaLetter)}
+                        </span>
+                        {studentName}
+                        <span onClick={() => setSelectedGpaStudents(prev => prev.filter(s => String(s) !== String(sid)))} style={{ cursor: 'pointer', opacity: 0.6, fontWeight: 700, marginLeft: '2px' }}>×</span>
+                      </span>
+                    );
+                  })}
+                  <button
+                    onClick={() => setSelectedGpaStudents([])}
+                    style={{ padding: '2px 8px', border: '1px solid var(--border)', borderRadius: '4px', background: 'transparent', color: 'var(--text)', fontSize: '0.7rem', cursor: 'pointer', fontWeight: 600, marginLeft: 'auto' }}
+                  >
+                    {t('clear') || 'Clear'} ×
+                  </button>
+                </div>
+              )}
               <AdvancedDataGrid
-                key={`marks-grid-${subjectFilter}-${refreshCounter}-${marksReportData.length}`}
-                rows={mergeComplementaryRecords(marksReportData.filter(row => row.subjectId == subjectFilter))}
+                key={`marks-grid-${subjectFilter}-${refreshCounter}-${marksReportData.length}-${selectedGpaStudents.join(',')}`}
+                rows={mergeComplementaryRecords(
+                  marksReportData.filter(row =>
+                    row.subjectId == subjectFilter &&
+                    (selectedGpaStudents.length === 0 || selectedGpaStudents.some(s => String(row.studentId) === String(s)))
+                  )
+                )}
                 columns={[
                   {
                     field: 'studentNumber',
@@ -1354,11 +1836,14 @@ const MarksPage = () => {
                       return `${value}/${max}`;
                     },
                     renderCell: (params) => {
+                      const gt = params.row?.gradeType || 'calculated';
+                      if (gt === 'FB' || gt === 'FA' || gt === 'WF') return <div style={{ color: '#9ca3af' }}>—</div>;
                       const value = params.value || 0;
                       const max = marksDistribution?.midTermExam || 20;
+                      const isComp = gt === GRADE_TYPE.COMPLEMENTARY;
                       return (
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                          <span>{value}/{max}</span>
+                          <span style={{ opacity: isComp ? 0.5 : 1 }} title={isComp ? (t('previous_attempt') || 'Previous attempt') : undefined}>{value}/{max}</span>
                         </div>
                       );
                     }
@@ -1383,13 +1868,22 @@ const MarksPage = () => {
                       return `${value}/${max}`;
                     },
                     renderCell: (params) => {
-                      const value = params.value || 0;
                       const row = params.row || {};
-                      const isComp = (row.gradeType || 'calculated') === GRADE_TYPE.COMPLEMENTARY;
+                      const gt = row.gradeType || 'calculated';
+                      if (gt === 'FB' || gt === 'FA' || gt === 'WF') return <div style={{ color: '#9ca3af' }}>—</div>;
+                      const value = params.value || 0;
+                      const isComp = gt === GRADE_TYPE.COMPLEMENTARY;
                       const max = isComp ? 100 : (marksDistribution?.finalExam || 40);
+                      const prevFinal = row.previousAttempt?.finalExam;
+                      const prevMax = marksDistribution?.finalExam || 40;
                       return (
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                          <span>{value}/{max}</span>
+                          <span style={{ fontWeight: isComp ? 600 : 400 }}>{value}/{max}</span>
+                          {isComp && prevFinal != null && (
+                            <span style={{ fontSize: 'var(--font-size-xs)', color: '#6b7280', opacity: 0.7 }}>
+                              {t('previous') || 'Prev'}: {prevFinal}/{prevMax}
+                            </span>
+                          )}
                         </div>
                       );
                     }
@@ -1411,11 +1905,14 @@ const MarksPage = () => {
                       return `${value}/${max}`;
                     },
                     renderCell: (params) => {
+                      const gt = params.row?.gradeType || 'calculated';
+                      if (gt === 'FB' || gt === 'FA' || gt === 'WF') return <div style={{ color: '#9ca3af' }}>—</div>;
                       const value = params.value || 0;
                       const max = marksDistribution?.homework || 5;
+                      const isComp = gt === GRADE_TYPE.COMPLEMENTARY;
                       return (
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                          <span>{value}/{max}</span>
+                          <span style={{ opacity: isComp ? 0.5 : 1 }} title={isComp ? (t('previous_attempt') || 'Previous attempt') : undefined}>{value}/{max}</span>
                         </div>
                       );
                     }
@@ -1437,11 +1934,14 @@ const MarksPage = () => {
                       return `${value}/${max}`;
                     },
                     renderCell: (params) => {
+                      const gt = params.row?.gradeType || 'calculated';
+                      if (gt === 'FB' || gt === 'FA' || gt === 'WF') return <div style={{ color: '#9ca3af' }}>—</div>;
                       const value = params.value || 0;
                       const max = marksDistribution?.labsProjectResearch || 10;
+                      const isComp = gt === GRADE_TYPE.COMPLEMENTARY;
                       return (
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                          <span>{value}/{max}</span>
+                          <span style={{ opacity: isComp ? 0.5 : 1 }} title={isComp ? (t('previous_attempt') || 'Previous attempt') : undefined}>{value}/{max}</span>
                         </div>
                       );
                     }
@@ -1463,11 +1963,14 @@ const MarksPage = () => {
                       return `${value}/${max}`;
                     },
                     renderCell: (params) => {
+                      const gt = params.row?.gradeType || 'calculated';
+                      if (gt === 'FB' || gt === 'FA' || gt === 'WF') return <div style={{ color: '#9ca3af' }}>—</div>;
                       const value = params.value || 0;
                       const max = marksDistribution?.quizzes || 5;
+                      const isComp = gt === GRADE_TYPE.COMPLEMENTARY;
                       return (
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                          <span>{value}/{max}</span>
+                          <span style={{ opacity: isComp ? 0.5 : 1 }} title={isComp ? (t('previous_attempt') || 'Previous attempt') : undefined}>{value}/{max}</span>
                         </div>
                       );
                     }
@@ -1489,11 +1992,14 @@ const MarksPage = () => {
                       return `${value}/${max}`;
                     },
                     renderCell: (params) => {
+                      const gt = params.row?.gradeType || 'calculated';
+                      if (gt === 'FB' || gt === 'FA' || gt === 'WF') return <div style={{ color: '#9ca3af' }}>—</div>;
                       const value = params.value || 0;
                       const max = marksDistribution?.participation || 10;
+                      const isComp = gt === GRADE_TYPE.COMPLEMENTARY;
                       return (
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                          <span>{value}/{max}</span>
+                          <span style={{ opacity: isComp ? 0.5 : 1 }} title={isComp ? (t('previous_attempt') || 'Previous attempt') : undefined}>{value}/{max}</span>
                         </div>
                       );
                     }
@@ -1515,11 +2021,14 @@ const MarksPage = () => {
                       return `${value}/${max}`;
                     },
                     renderCell: (params) => {
+                      const gt = params.row?.gradeType || 'calculated';
+                      if (gt === 'FB' || gt === 'FA' || gt === 'WF') return <div style={{ color: '#9ca3af' }}>—</div>;
                       const value = params.value || 0;
                       const max = marksDistribution?.attendance || 10;
+                      const isComp = gt === GRADE_TYPE.COMPLEMENTARY;
                       return (
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                          <span>{value}/{max}</span>
+                          <span style={{ opacity: isComp ? 0.5 : 1 }} title={isComp ? (t('previous_attempt') || 'Previous attempt') : undefined}>{value}/{max}</span>
                         </div>
                       );
                     }
@@ -1530,13 +2039,27 @@ const MarksPage = () => {
                     width: 120,
                     editable: true,
                     type: 'singleSelect',
-                    valueOptions: [
-                      { value: 'calculated', label: t('calculated') },
-                      { value: GRADE_TYPE.COMPLEMENTARY, label: t('complementary_exam') },
-                      { value: 'FB', label: `FB - ${t('grade_fb')}` },
-                      { value: 'FA', label: `FA - ${t('grade_fa')}` },
-                      { value: 'WF', label: `WF - ${t('grade_wf')}` },
-                    ],
+                    valueOptions: ({ row } = {}) => {
+                      const isFailing = !row || row.letterGrade === 'F' || row.letterGrade === 'FB' || row.letterGrade === 'FA' || row.letterGrade === 'WF' || (row.totalMarks != null && row.totalMarks < 60);
+                      const currentGradeType = row?.gradeType || 'calculated';
+                      const currentLetter = row?.letterGrade;
+                      const isCurrentlyPassing = currentLetter && currentLetter !== 'F' && currentLetter !== 'FB' && currentLetter !== 'FA' && currentLetter !== 'WF';
+
+                      if (isCurrentlyPassing && currentGradeType === 'calculated') {
+                        return [
+                          { value: 'calculated', label: t('calculated') },
+                          { value: 'WF', label: `WF - ${t('grade_wf')}` },
+                        ];
+                      }
+
+                      return [
+                        { value: 'calculated', label: t('calculated') },
+                        { value: GRADE_TYPE.COMPLEMENTARY, label: t('complementary_exam') },
+                        { value: 'FB', label: `FB - ${t('grade_fb')}` },
+                        { value: 'FA', label: `FA - ${t('grade_fa')}` },
+                        { value: 'WF', label: `WF - ${t('grade_wf')}` },
+                      ];
+                    },
                     valueFormatter: (params) => {
                       const value = params?.value || 'calculated';
                       const options = {
@@ -1570,7 +2093,7 @@ const MarksPage = () => {
                           }}>
                             {options[value] || value}
                           </div>
-                          {params.row.complementaryAttempt && (
+                          {params.row.previousAttempt && (
                             <div style={{
                               fontSize: 'var(--font-size-xs)',
                               color: '#6b7280',
@@ -1578,7 +2101,7 @@ const MarksPage = () => {
                               lineHeight: 1.2,
                               whiteSpace: 'nowrap',
                             }}>
-                              {t('complementary_exam_short') || 'Comp'}: {params.row.complementaryAttempt.finalExam}/100 → {params.row.complementaryAttempt.letterGrade}
+                              {t('previous') || 'Prev'}: {params.row.previousAttempt.totalMarks?.toFixed?.(1) || params.row.previousAttempt.totalMarks}% → {params.row.previousAttempt.letterGrade}
                             </div>
                           )}
                         </div>
@@ -1726,14 +2249,55 @@ const MarksPage = () => {
                     editable: false
                   },
                   {
+                    field: 'attemptType',
+                    headerName: t('attempt') || 'Attempt',
+                    width: 110,
+                    editable: false,
+                    valueGetter: (params) => {
+                      const row = params.row || {};
+                      const gradeType = row.gradeType || 'calculated';
+                      if (gradeType === GRADE_TYPE.COMPLEMENTARY) return 'complementary';
+                      if (gradeType === 'FB' || gradeType === 'FA' || gradeType === 'WF') return 'special';
+                      return row.isRepeated ? 'repeated' : 'first';
+                    },
+                    renderCell: (params) => {
+                      const value = params.value;
+                      const styles = {
+                        first: { bg: '#dbeafe', color: '#1e40af', label: t('first_attempt') || 'First Attempt' },
+                        complementary: { bg: '#fef3c7', color: '#92400e', label: t('complementary_exam') || 'Complementary' },
+                        repeated: { bg: '#fce7f3', color: '#9f1239', label: t('repeated') || 'Repeated' },
+                        special: { bg: '#fee2e2', color: '#991b1b', label: t('special_fail') || 'Special Fail' },
+                      };
+                      const s = styles[value] || styles.first;
+                      return (
+                        <div style={{
+                          padding: '3px 8px', borderRadius: '4px',
+                          background: s.bg, color: s.color,
+                          textAlign: 'center', fontSize: 'var(--font-size-xs)', fontWeight: 500,
+                          whiteSpace: 'nowrap',
+                        }}>
+                          {s.label}
+                        </div>
+                      );
+                    }
+                  },
+                  {
                     field: 'isRepeated',
                     headerName: t('repeated'),
                     width: 120,
                     editable: false,
                     valueFormatter: (params) => {
+                      const row = params.row || {};
+                      const gradeType = row.gradeType || 'calculated';
+                      if (gradeType === 'FB' || gradeType === 'FA' || gradeType === 'WF') return '—';
                       return Boolean(params?.value) ? (t('yes')) : (t('no'));
                     },
                     renderCell: (params) => {
+                      const row = params.row || {};
+                      const gradeType = row.gradeType || 'calculated';
+                      if (gradeType === 'FB' || gradeType === 'FA' || gradeType === 'WF') {
+                        return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#9ca3af' }}>—</div>;
+                      }
                       const isRepeated = Boolean(params.value);
                       return (
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
@@ -1907,6 +2471,29 @@ const MarksPage = () => {
                     }
                   },
                   {
+                    field: 'classReport',
+                    headerName: t('marks.export.classSubject', 'Report'),
+                    width: 56,
+                    sortable: false,
+                    filterable: false,
+                    exportable: false,
+                    renderCell: (params) => (
+                      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
+                        <MarksOfficialExportBar
+                          mode="class"
+                          compact
+                          reportRows={[params.row]}
+                          distribution={marksDistribution || params.row.distribution}
+                          metadata={exportMetadata}
+                          lang={lang}
+                          t={t}
+                          onSuccess={(msg) => toast?.success?.(msg)}
+                          onError={(msg) => toast?.error?.(msg)}
+                        />
+                      </div>
+                    ),
+                  },
+                  {
                     field: 'history',
                     headerName: t('history'),
                     width: 80,
@@ -1941,6 +2528,12 @@ const MarksPage = () => {
                     }
                   }
                 ]}
+                getRowHeight={(params) => {
+                  const row = params.row || {};
+                  const isComp = (row.gradeType || 'calculated') === GRADE_TYPE.COMPLEMENTARY;
+                  const hasPrev = !!row.previousAttempt;
+                  return (isComp && hasPrev) ? 52 : 36;
+                }}
                 pageSize={50}
                 pageSizeOptions={[10, 25, 50, 100]}
                 checkboxSelection
@@ -1963,6 +2556,16 @@ const MarksPage = () => {
                     };
                     
                     const gradeType = newRow.gradeType || 'calculated';
+
+                    // Validate grade type change
+                    const currentRow = marksReportData.find(r => r.id === newRow.id);
+                    const currentLetter = currentRow?.letterGrade || newRow.letterGrade;
+                    const isCurrentlyPassing = currentLetter && currentLetter !== 'F' && currentLetter !== 'FB' && currentLetter !== 'FA' && currentLetter !== 'WF';
+                    const failingGrades = [GRADE_TYPE.COMPLEMENTARY, 'FB', 'FA'];
+                    if (isCurrentlyPassing && failingGrades.includes(gradeType)) {
+                      toast?.error?.(t('cannot_change_passing_to_fail') || 'Cannot change a passing student to complementary or failure grade');
+                      throw new Error('Invalid grade type change');
+                    }
 
                     // Validate marks against distribution (only for calculated grades)
                     const validationErrors = [];
@@ -2017,6 +2620,7 @@ const MarksPage = () => {
                   }
                 }}
               />
+              </>
             )}
           </div>
         </CardBody>
@@ -2028,6 +2632,7 @@ const MarksPage = () => {
         title={sideWindowContent}
         student={sideWindowStudent}
         filters={sideWindowFilters}
+        storageKey="marks_side_window"
       />
 
       {/* Marks History Drawer */}
@@ -2051,6 +2656,7 @@ const MarksPage = () => {
         weight={marksDistribution?.attendance || 10}
         thresholds={{ failureCount: 8, failureGrade: 'FB' }}
         programId={programFilter}
+        classId={deductionStudent?.classId || classFilter}
       />
     </Container>
   );

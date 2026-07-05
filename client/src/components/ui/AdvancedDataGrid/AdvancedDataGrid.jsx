@@ -260,12 +260,13 @@ const AdvancedDataGrid = ({
       } else if (typeof col.renderCell === 'function' && col.field !== 'actions' && col.field !== checkboxField) {
         // Auto-generate valueFormatter from renderCell so MUI GridToolbar CSV export works
         wrapped.valueFormatter = (params) => {
+          const np = normalizeParams(params, col.field);
           try {
-            const element = col.renderCell(normalizeParams(params, col.field));
+            const element = col.renderCell(np);
             const text = extractTextFromElement(element);
-            return text || (params.value == null ? '' : String(params.value));
+            return text || (np.value == null ? '' : String(np.value));
           } catch {
-            return params.value == null ? '' : String(params.value);
+            return np.value == null ? '' : String(np.value);
           }
         };
       }

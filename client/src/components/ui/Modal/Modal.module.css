@@ -112,6 +112,27 @@
   color: #212529;
 }
 
+/*
+ * Joyride spotlight math breaks inside fixed overlays with overflow:auto bodies
+ * (react-joyride uses offsetTop instead of getBoundingClientRect). During tours,
+ * drop inner scroll so targets measure with position:fixed spotlight coords.
+ */
+.overlayTourActive {
+  align-items: flex-start;
+  padding-top: 2rem;
+  overflow-y: auto;
+}
+
+.modal.tourActive {
+  animation: none;
+  max-height: none;
+  margin: auto;
+}
+
+.bodyTourActive {
+  overflow: visible !important;
+}
+
 /* Footer */
 .footer {
   display: flex;

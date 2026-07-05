@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useAuth } from '@contexts/AuthContext';
 import { useToast } from '@ui';
 import { useLang } from '@contexts/LangContext';
@@ -13,6 +13,57 @@ import { getSubmissionsByUser } from '@services/business/submissionsService';
 import { getLocalizedActionLabel } from '@utils/sharedTypes';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 
+const isStandupAttendanceStatus = (record) => {
+  const status = record?.status;
+  if (typeof status === 'string' && status.toLowerCase().startsWith('standup_')) return true;
+  if (status?.code && String(status.code).toUpperCase().startsWith('STANDUP_')) return true;
+  return false;
+};
+
+const matchesDataScope = (record, scope = {}) => {
+  const { classId, subjectId, programId } = scope;
+  const recClassId = record.classId ?? record.class?.id;
+  const recSubjectId = record.subjectId ?? record.class?.subjectId;
+  const recProgramId = record.programId ?? record.class?.programId;
+
+  if (classId && classId !== 'all' && recClassId != null && String(recClassId) !== String(classId)) {
+    return false;
+  }
+  if (subjectId && subjectId !== 'all' && recSubjectId != null && String(recSubjectId) !== String(subjectId)) {
+    return false;
+  }
+  if (programId && programId !== 'all' && recProgramId != null && String(recProgramId) !== String(programId)) {
+    return false;
+  }
+  return true;
+};
+
+const applyDataScopeFilter = (records, scope = {}) => {
+  const { classId, subjectId, programId } = scope;
+  if ((!classId || classId === 'all') && (!subjectId || subjectId === 'all') && (!programId || programId === 'all')) {
+    return records;
+  }
+  return (records || []).filter((record) => matchesDataScope(record, scope));
+};
+
+const dedupeRecordsById = (records) => {
+  const seen = new Set();
+  return (records || []).filter((record) => {
+    const key = record.id != null
+      ? String(record.id)
+      : `${record.userId ?? record.studentId}-${record.date}-${record.statusId ?? record.status}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+};
+
+const filterRecordsForStudent = (records, studentId) => {
+  if (!studentId) return records;
+  const uid = String(studentId);
+  return (records || []).filter((record) => String(record.userId ?? record.studentId) === uid);
+};
+
 /**
  * Central data hook for the Student Dashboard.
  * Wraps the raw service calls and provides derived/grouped data.
@@ -23,8 +74,10 @@ import { info, error, warn, debug } from '@services/utils/logger.js';
  * @param {boolean} hasSelection - Whether a valid selection context exists.
  *   When false (staff with no selection), data is not fetched.
  * @param {string|null} classId - The class ID to fetch data for all students when no specific student is selected.
+ * @param {string|null} programId - Optional program filter for scoped student data.
+ * @param {string|null} subjectId - Optional subject filter for scoped student data.
  */
-const useStudentDashboardData = (displayStudentId, hasSelection = true, classId = null, programId = null) => {
+const useStudentDashboardData = (displayStudentId, hasSelection = true, classId = null, programId = null, subjectId = null) => {
   const { user } = useAuth();
   const toast = useToast();
   const { t, lang } = useLang();
@@ -42,14 +95,30 @@ const useStudentDashboardData = (displayStudentId, hasSelection = true, classId 
     submissions: [],
   });
 
+  const loadIdRef = useRef(0);
+
   const effectiveUserId = displayStudentId || user?.uid;
   const isClassMode = !displayStudentId && classId && hasSelection;
+  const dataScope = useMemo(() => ({
+    classId: classId && classId !== 'all' ? classId : null,
+    subjectId: subjectId && subjectId !== 'all' ? subjectId : null,
+    programId: programId && programId !== 'all' ? programId : null,
+  }), [classId, subjectId, programId]);
+
+  const scopeAttendanceParams = useMemo(() => {
+    const params = { limit: 500 };
+    if (dataScope.classId) params.classId = dataScope.classId;
+    if (dataScope.subjectId) params.subjectId = dataScope.subjectId;
+    return params;
+  }, [dataScope.classId, dataScope.subjectId]);
 
   const loadData = useCallback(async () => {
     if ((!effectiveUserId && !isClassMode) || !hasSelection) {
       setLoading(false);
       return;
     }
+
+    const currentLoadId = ++loadIdRef.current;
 
     setLoading(true);
     setError(null);
@@ -99,7 +168,7 @@ const useStudentDashboardData = (displayStudentId, hasSelection = true, classId 
         const promises = studentIds.map(studentId => 
           Promise.allSettled([
             getEnrollments({ userId: studentId }),
-            getAttendanceByStudent(studentId),
+            getAttendanceByStudent(studentId, scopeAttendanceParams),
             getPenalties({ userId: studentId, limit: 100 }),
             getParticipations({ userId: studentId, limit: 100 }),
             getBehaviors({ userId: studentId, limit: 100 }),
@@ -112,7 +181,12 @@ const useStudentDashboardData = (displayStudentId, hasSelection = true, classId 
         const allMarksPromise = getAllStudentMarksReport({ programId });
 
         const [results, marksResult, allMarksResult] = await Promise.all([Promise.all(promises), marksPromise, allMarksPromise]);
-        
+
+        if (currentLoadId !== loadIdRef.current) {
+          info('[StudentDashboardData] Stale class-mode load cancelled after fetch', { currentLoadId, latest: loadIdRef.current });
+          return;
+        }
+
         // Aggregate results from all students
         const aggregatedData = {
           enrollments: [],
@@ -185,7 +259,7 @@ const useStudentDashboardData = (displayStudentId, hasSelection = true, classId 
           submissionsRes,
         ] = await Promise.allSettled([
           getEnrollments({ userId: effectiveUserId }),
-          getAttendanceByStudent(effectiveUserId),
+          getAttendanceByStudent(effectiveUserId, scopeAttendanceParams),
           getPenalties({ userId: effectiveUserId, limit: 100 }),
           getParticipations({ userId: effectiveUserId, limit: 100 }),
           getBehaviors({ userId: effectiveUserId, limit: 100 }),
@@ -194,13 +268,35 @@ const useStudentDashboardData = (displayStudentId, hasSelection = true, classId 
         ]);
       }
 
+      if (currentLoadId !== loadIdRef.current) {
+        info('[StudentDashboardData] Stale single-student load cancelled after fetch', { currentLoadId, latest: loadIdRef.current });
+        return;
+      }
+
       const enrollments = enrollmentsRes.status === 'fulfilled' ? (enrollmentsRes.value?.data || []) : [];
-      const attendance = attendanceRes.status === 'fulfilled' ? (attendanceRes.value?.data || []) : [];
-      const penalties = penaltiesRes.status === 'fulfilled' ? (penaltiesRes.value?.data || []) : [];
-      const participations = participationsRes.status === 'fulfilled' ? (participationsRes.value?.data || []) : [];
-      const behaviors = behaviorsRes.status === 'fulfilled' ? (behaviorsRes.value?.data || []) : [];
+      let attendance = attendanceRes.status === 'fulfilled' ? (attendanceRes.value?.data || []) : [];
+      let penalties = penaltiesRes.status === 'fulfilled' ? (penaltiesRes.value?.data || []) : [];
+      let participations = participationsRes.status === 'fulfilled' ? (participationsRes.value?.data || []) : [];
+      let behaviors = behaviorsRes.status === 'fulfilled' ? (behaviorsRes.value?.data || []) : [];
       const marks = marksRes.status === 'fulfilled' ? (marksRes.value?.data || []) : [];
       const submissions = submissionsRes.status === 'fulfilled' ? (submissionsRes.value?.data || []) : [];
+
+      // Scope to selected class/program/subject, exclude stand-up rows, dedupe bad seed data
+      if (!isClassMode && effectiveUserId) {
+        attendance = filterRecordsForStudent(attendance, effectiveUserId);
+        penalties = filterRecordsForStudent(penalties, effectiveUserId);
+        participations = filterRecordsForStudent(participations, effectiveUserId);
+        behaviors = filterRecordsForStudent(behaviors, effectiveUserId);
+      }
+      attendance = dedupeRecordsById(
+        applyDataScopeFilter(
+          attendance.filter((record) => !isStandupAttendanceStatus(record)),
+          dataScope
+        )
+      );
+      penalties = dedupeRecordsById(applyDataScopeFilter(penalties, dataScope));
+      participations = dedupeRecordsById(applyDataScopeFilter(participations, dataScope));
+      behaviors = dedupeRecordsById(applyDataScopeFilter(behaviors, dataScope));
 
       // Add localized labels to action types
       const participationsWithLabels = participations.map(p => ({
@@ -230,16 +326,22 @@ const useStudentDashboardData = (displayStudentId, hasSelection = true, classId 
         }
       }
 
+      if (currentLoadId !== loadIdRef.current) {
+        info('[StudentDashboardData] Stale load cancelled, skipping state update', { currentLoadId, latest: loadIdRef.current });
+        return;
+      }
+
       setRawData({ enrollments, attendance, penalties: penaltiesWithLabels, participations: participationsWithLabels, behaviors: behaviorsWithLabels, marks, activities, submissions });
       
       // Comprehensive data verification logging
-      const dataScope = isClassMode ? `ALL_STUDENTS_IN_CLASS (${classId})` : `SINGLE_STUDENT (${effectiveUserId})`;
+      const scopeLabel = isClassMode ? `ALL_STUDENTS_IN_CLASS (${classId})` : `SINGLE_STUDENT (${effectiveUserId})`;
       info('🔧 [StudentDashboardData] DATA LOADED - SCOPE VERIFICATION:', {
         effectiveUserId,
         classId,
         isClassMode,
         hasSelection,
-        dataScope,
+        dataScope: scopeLabel,
+        filterScope: dataScope,
         '📊 DATA COUNTS': {
           enrollments: enrollments.length,
           attendance: attendance.length,
@@ -307,13 +409,16 @@ const useStudentDashboardData = (displayStudentId, hasSelection = true, classId 
         }
       });
     } catch (err) {
+      if (currentLoadId !== loadIdRef.current) return;
       error('[StudentDashboardData] Failed to load dashboard data', err);
       setError(err);
       toast?.showError?.(t('failed_to_load_dashboard'));
     } finally {
-      setLoading(false);
+      if (currentLoadId === loadIdRef.current) {
+        setLoading(false);
+      }
     }
-  }, [effectiveUserId, classId, isClassMode, hasSelection, toast, t, lang]);
+  }, [effectiveUserId, classId, isClassMode, hasSelection, toast, t, lang, dataScope, scopeAttendanceParams]);
 
   useEffect(() => {
     loadData();

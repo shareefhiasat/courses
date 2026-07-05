@@ -8,6 +8,7 @@ import { DEFAULT_STORAGE_LIMIT } from '../constants/driveConstants.js';
 import notificationGateway from '../services/notifications/index.js';
 import { EVENTS } from '../services/notifications/constants.js';
 import { buildNotificationNameVars } from '../utils/localizedUserName.js';
+import { resolveDriveActor } from '../utils/driveActor.js';
 
 
 export const downloadFile = async (req, res) => {
@@ -52,6 +53,13 @@ export const initiateUpload = async (req, res) => {
       return res.status(400).json({
         success: false,
         error: 'Missing required fields: name, mimeType, size',
+      });
+    }
+
+    if (name.length > 200) {
+      return res.status(400).json({
+        success: false,
+        error: 'File name must not exceed 200 characters',
       });
     }
 
@@ -843,12 +851,17 @@ export const permanentDeleteFile = async (req, res) => {
  */
 export const getPreview = async (req, res) => {
   try {
-    const actorUserId = req.user?.dbId;
+    const actor = await resolveDriveActor(req);
+    if (!actor?.userId) {
+      return res.status(401).json({ success: false, error: 'User not found in database' });
+    }
     const { fileId } = req.params;
     const { versionId } = req.query;
-    const result = await fileService.getPreviewUrl(fileId, actorUserId, versionId);
+    const result = await fileService.getPreviewUrl(fileId, actor.userId, versionId, actor.roles);
     if (!result.success) {
-      const status = result.error?.code === 'FILE_NOT_FOUND' ? 404 : 403;
+      const status = result.error?.code === 'FILE_NOT_FOUND' ? 404
+        : result.error?.code === 'PREVIEW_FAILED' ? 500
+        : 403;
       return res.status(status).json(result);
     }
     return res.json(result);

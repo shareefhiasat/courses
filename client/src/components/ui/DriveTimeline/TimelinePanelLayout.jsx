@@ -43,7 +43,7 @@ export default function TimelinePanelLayout({
   const { t } = useLang();
   const [timelineCollapsed, setTimelineCollapsed] = useState(false);
   const timelinePanelRef = useRef(null);
-  const [savedLayout, onLayoutChange] = usePanelLayout(panelLayoutKey, { timeline: 35, content: 65 });
+  const [savedLayout, onLayoutChange] = usePanelLayout(panelLayoutKey, { timeline: 30, content: 70 });
 
   const handleToggleTimeline = () => {
     if (timelineCollapsed) {
@@ -65,7 +65,7 @@ export default function TimelinePanelLayout({
         defaultLayout={savedLayout}
         onLayoutChange={onLayoutChange}
       >
-        <Panel id="timeline" panelRef={timelinePanelRef} defaultSize={35} minSize={15} collapsible collapsedSize={0}>
+        <Panel id="timeline" panelRef={timelinePanelRef} defaultSize={30} minSize={15} collapsible collapsedSize={0}>
           <div style={{
             borderRight: '1px solid var(--border, #e5e7eb)',
             paddingInlineEnd: '1rem',

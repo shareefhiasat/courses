@@ -96,7 +96,7 @@ const StudentHistory = React.memo(({
       <div key={dayIndex} style={{
         border: theme === 'dark' ? '1px solid #374151' : '1px solid var(--border, #e5e7eb)',
         borderRadius: '0.375rem',
-        overflow: 'hidden',
+        overflow: 'visible',
         marginBottom: '0.5rem'
       }}>
         <HistoryDayHeader

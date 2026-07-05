@@ -185,6 +185,7 @@ export const getAllStudentMarksReport = async (filters = {}) => {
     if (filters.isRepeated !== undefined && filters.isRepeated !== '') {
       params.append('isRepeated', filters.isRepeated);
     }
+    if (filters.gradeType) params.append('gradeType', filters.gradeType);
     
     const response = await apiService.get(`${API_BASE}/report?${params.toString()}`);
     

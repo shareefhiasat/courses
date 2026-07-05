@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, memo } from 'react';
+import { Workflow } from 'lucide-react';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import { Button, Input, Modal } from '@ui';
 import { useAuth } from '@contexts/AuthContext';
@@ -20,6 +21,8 @@ import { useLang } from '@contexts/LangContext';
 import { useToast } from '@ui';
 import PortalTooltip from '@ui/PortalTooltip';
 import PanelHeader from './PanelHeader';
+import useResizableDrawer from '@hooks/useResizableDrawer';
+import DayWorkflowsDrawer from '@components/academic/DayWorkflowsDrawer';
 
 export default function StudentActionZapPanel({
   student,
@@ -74,6 +77,14 @@ export default function StudentActionZapPanel({
   const { t, lang, isRTL } = useLang();
   const { showSuccess, showError } = useToast();
   const { canDeleteAttendance, canEditAttendance } = useQRPermissions();
+  const { width: drawerWidth, resizeHandleProps } = useResizableDrawer({
+    storageKey: 'student_action_zap_panel_width',
+    defaultWidth: 576,
+    minWidth: 360,
+    maxWidth: 1000,
+    isRTL,
+  });
+  const [dayWorkflowsOpen, setDayWorkflowsOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedActions, setSelectedActions] = useState([]);
   const { isMobile } = useMobileDetect();
@@ -334,8 +345,8 @@ export default function StudentActionZapPanel({
         position: 'fixed',
         top: 0,
         [isRTL ? 'left' : 'right']: 0,
-        width: isMobile ? '100%' : '100%',
-        maxWidth: isMobile ? '100%' : '36rem',
+        width: isMobile ? '100%' : `${drawerWidth}px`,
+        maxWidth: isMobile ? '100%' : '90vw',
         height: '100%',
         background: 'var(--panel, white)',
         boxShadow: isRTL ? '4px 0 24px rgba(0,0,0,0.1)' : '-4px 0 24px rgba(0,0,0,0.1)',
@@ -444,6 +455,13 @@ export default function StudentActionZapPanel({
             isRTL={isRTL}
           />
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginLeft: isRTL ? 0 : 'auto', marginRight: isRTL ? 'auto' : 0 }}>
+            {classId && selectedDate && (
+              <PortalTooltip content={t('workflow.dayDrawer.open', 'View workflows for this day')} position="top">
+                <Button variant="ghost" size="icon" onClick={() => setDayWorkflowsOpen(true)}>
+                  <Workflow size={18} color="#8b5cf6" />
+                </Button>
+              </PortalTooltip>
+            )}
             {/* Notifications toggle hidden
             <PortalTooltip 
             content={sendNotifications ? t('notifications_on') : t('notifications_off')}
@@ -694,10 +712,12 @@ export default function StudentActionZapPanel({
                   onMouseEnter={(e) => {
                     e.currentTarget.style.transform = 'scale(1.02)';
                     e.currentTarget.style.boxShadow = `0 4px 12px ${attendanceType.color}40`;
+                    e.currentTarget.style.background = `linear-gradient(135deg, ${attendanceType.color}15 0%, ${attendanceType.color}25 100%)`;
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.transform = 'scale(1)';
                     e.currentTarget.style.boxShadow = 'none';
+                    e.currentTarget.style.background = `linear-gradient(135deg, ${attendanceType.color}08 0%, ${attendanceType.color}15 100%)`;
                   }}
                 >
                   <div style={{
@@ -1131,7 +1151,16 @@ export default function StudentActionZapPanel({
           </Button>
         </div>
       </Modal>
+      {!isMobile && <div {...resizeHandleProps} />}
     </div>
+    <DayWorkflowsDrawer
+      isOpen={dayWorkflowsOpen}
+      onClose={() => setDayWorkflowsOpen(false)}
+      student={student}
+      classId={classId}
+      date={selectedDate}
+      programId={programId}
+    />
     </>
   );
 }

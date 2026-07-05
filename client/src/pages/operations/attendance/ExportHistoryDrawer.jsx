@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@contexts/AuthContext';
+import { useLang } from '@contexts/LangContext';
+import useResizableDrawer from '@hooks/useResizableDrawer';
 import { formatDateShort, formatTime as fmtTime } from '@utils/date-formatter.js';
 import { getExportHistory, openExportFile } from '@services/db/exportHistoryService.js';
 import { resolveUserRole, getUserRoleFromObject } from '@utils/userUtils';
@@ -12,6 +14,11 @@ const EXPORT_TYPE_COLORS = {
   attendance_daily: '#3b82f6',
   attendance_daily_official: '#8b5cf6',
   official_attendance: '#f59e0b',
+  marks_semester_certificate: '#6366f1',
+  marks_class_subject: '#0ea5e9',
+  marks_qualitative_card: '#14b8a6',
+  marks_warning_first: '#f59e0b',
+  marks_warning_final: '#dc2626',
   behavioral: '#ef4444',
   penalty: '#b45309',
   summary: '#14b8a6',
@@ -30,7 +37,7 @@ const FORMAT_ICONS = {
 };
 
 const EXPORT_TYPE_GROUPS = {
-  official: ['attendance_daily_official', 'official_attendance', 'behavioral', 'penalty'],
+  official: ['attendance_daily_official', 'official_attendance', 'behavioral', 'penalty', 'marks_semester_certificate', 'marks_class_subject', 'marks_qualitative_card', 'marks_warning_first', 'marks_warning_final'],
   standard: ['attendance_daily', 'summary', 'behavioral', 'penalty'],
 };
 
@@ -244,8 +251,16 @@ function ExportEntryRow({
 
 const ExportHistoryDrawer = ({ isOpen, onClose, lang, t, theme }) => {
   const { user, isSuperAdmin } = useAuth();
+  const { isRTL } = useLang();
   const navigate = useNavigate();
   const currentUserId = user?.dbId ?? user?.id;
+  const { width: drawerWidth, resizeHandleProps } = useResizableDrawer({
+    storageKey: 'export_history_drawer_width',
+    defaultWidth: 480,
+    minWidth: 360,
+    maxWidth: 800,
+    isRTL,
+  });
 
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -344,11 +359,11 @@ const ExportHistoryDrawer = ({ isOpen, onClose, lang, t, theme }) => {
         style={{
           position: 'absolute',
           top: 0,
-          right: 0,
+          [isRTL ? 'left' : 'right']: 0,
           height: '100%',
-          width: 480,
+          width: drawerWidth,
           background: 'var(--panel)',
-          boxShadow: '-4px 0 16px rgba(0,0,0,0.15)',
+          boxShadow: isRTL ? '4px 0 16px rgba(0,0,0,0.15)' : '-4px 0 16px rgba(0,0,0,0.15)',
           padding: '1rem',
           pointerEvents: 'auto',
           display: 'flex',
@@ -733,6 +748,7 @@ const ExportHistoryDrawer = ({ isOpen, onClose, lang, t, theme }) => {
             {formatCount('exports_total', history.length, t)}
           </div>
         )}
+        <div {...resizeHandleProps} />
       </div>
     </div>
   );

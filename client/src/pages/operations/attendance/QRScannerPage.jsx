@@ -52,6 +52,8 @@ import { useToast } from '@ui/ToastProvider.jsx';
 import ConfirmModal from '@ui/Modal/ConfirmModal.jsx';
 import { persistAndLogExport, mimeTypeForFormat } from '@services/business/exportDriveService.js';
 import ExportHistoryDrawer from './ExportHistoryDrawer.jsx';
+import DeductionDrawer from '@components/academic/DeductionDrawer';
+import { fetchAttendanceDeductionSuggestion, fetchDeductionHistory } from '@services/business/attendanceDeductionService';
 import { addNotification } from '@services/business/notificationService';
 import { sendStudentNotification } from '@services/business/notificationService';
 // OLD: import { BEHAVIOR_TYPES } from '@constants/behaviorTypes';
@@ -65,6 +67,7 @@ import StudentRoster from '@/components/qr-scanner/StudentRoster';
 import StudentActionStatsPanel from '@/components/qr-scanner/StudentActionStatsPanel';
 import StudentActionZapPanel from '@/components/qr-scanner/StudentActionZapPanel';
 import BulkScanDialog from '@components/ui/BulkScanDialog/BulkScanDialog';
+import ClassInfoBar from '@components/ui/ClassInfoBar';
 import ReportExportModal from '@/components/qr-scanner/ReportExportModal';
 import AttendanceViolationsModal from '@/components/qr-scanner/AttendanceViolationsModal';
 import { BulkScanProvider } from '@/contexts/BulkScanContext';
@@ -524,12 +527,30 @@ const QRScannerPage = () => {
   const [standupRecords, setStandupRecords] = useState([]);
   const [penaltyRecords, setPenaltyRecords] = useState([]);
   const [errorMessage, setErrorMessage] = useState(null);
-  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(() => {
+    try {
+      const saved = localStorage.getItem('qrScanner_showFavoritesOnly');
+      return saved !== null ? JSON.parse(saved) : false;
+    } catch {
+      return false;
+    }
+  });
+
+  // Persist favorites-only preference to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('qrScanner_showFavoritesOnly', JSON.stringify(showFavoritesOnly));
+    } catch (error) {
+      console.error('Failed to save favorites preference:', error);
+    }
+  }, [showFavoritesOnly]);
   const [favoriteBehaviors, setFavoriteBehaviors] = useState([]);
   const [showScanner, setShowScanner] = useState(true); // Show QR scanner by default
   const [sendNotifications, setSendNotifications] = useState(false);
   const { isMobile } = useMobileDetect();
-  const [isScannerMinimized, setIsScannerMinimized] = useState(true); // Minimized by default for wider roster
+  const [isScannerMinimized, setIsScannerMinimized] = useState(() => {
+    try { return localStorage.getItem('qr_scanner_minimized') !== 'false'; } catch { return true; }
+  });
   
   // Report export modal state (unified for both daily and summary)
   const [showDailyReportModal, setShowDailyReportModal] = useState(false);
@@ -541,6 +562,11 @@ const QRScannerPage = () => {
   const [dailyExportFormat, setDailyExportFormat] = useState('csv'); // For daily report
   const [isExporting, setIsExporting] = useState(false);
   const [showExportHistory, setShowExportHistory] = useState(false);
+  const [showDeductionDrawer, setShowDeductionDrawer] = useState(false);
+  const [deductionStudent, setDeductionStudent] = useState(null);
+  const [deductionData, setDeductionData] = useState(null);
+  const [deductionHistory, setDeductionHistory] = useState([]);
+  const [deductionLoading, setDeductionLoading] = useState(false);
   const [selectedSubjectsForReport, setSelectedSubjectsForReport] = useState([]);
   const [selectedProgramsForReport, setSelectedProgramsForReport] = useState([]); // For standup mode
   const [emailRecipients, setEmailRecipients] = useState([]); // For email functionality
@@ -680,8 +706,9 @@ const QRScannerPage = () => {
 
   // Handle QR scanner minimization changes
   const handleScannerMinimizeChange = useCallback((isMinimized) => {
-    info(t('instructor_qr_qr_scanner_minimization_changed'), isMinimized); // Debug
+    info(t('instructor_qr_qr_scanner_minimization_changed'), isMinimized);
     setIsScannerMinimized(isMinimized);
+    try { localStorage.setItem('qr_scanner_minimized', String(isMinimized)); } catch {}
   }, []);
 
   // Redirect to login if session expired (no user)
@@ -1102,7 +1129,7 @@ const QRScannerPage = () => {
           // Filter by programId and subjectId to ensure only attendance for selected program/subject is shown
           if (!programId || programId === 'all') return true;
           if (a.programId && a.programId != programId) return false;
-          if (subjectId && subjectId !== 'all' && a.subjectId && a.subjectId != subjectId) return false;
+          if (selectedSubjectId && selectedSubjectId !== 'all' && a.subjectId && a.subjectId != selectedSubjectId) return false;
           return true;
         });
       }
@@ -1312,7 +1339,25 @@ const QRScannerPage = () => {
           });
           
           // Separate regular and standup attendance for statistics by status prefix
-          const regularAttendanceRecords = studentAttendanceRecords.filter(r => !r.status?.startsWith('standup_'));
+          let regularAttendanceRecords = studentAttendanceRecords.filter(r => !r.status?.startsWith('standup_'));
+
+          // Filter attendance records by selected class/program/subject so stats are scoped correctly
+          if (!shouldLoadByProgram && classId && classId !== 'all') {
+            const classIdNum = Number(classId);
+            regularAttendanceRecords = regularAttendanceRecords.filter(r =>
+              r.classId == classId || r.classId === classIdNum
+            );
+          }
+          if (programId && programId !== 'all') {
+            regularAttendanceRecords = regularAttendanceRecords.filter(r =>
+              !r.programId || r.programId == programId
+            );
+          }
+          if (selectedSubjectId && selectedSubjectId !== 'all') {
+            regularAttendanceRecords = regularAttendanceRecords.filter(r =>
+              !r.subjectId || r.subjectId == selectedSubjectId
+            );
+          }
           // Use the standupAttendance array that's already been populated from standup-specific API calls
           const standupAttendanceRecords = standupAttendance;
 
@@ -1458,6 +1503,12 @@ const QRScannerPage = () => {
           if (todayAttendanceRecord?.id && linkedWorkflowsMap[todayAttendanceRecord.id]) {
             studentObject.linkedWorkflow = linkedWorkflowsMap[todayAttendanceRecord.id];
           }
+          if (todayAttendanceRecord?.excuseApprovedAt) {
+            studentObject.excuseApprovedAt = todayAttendanceRecord.excuseApprovedAt;
+          }
+          if (todayAttendanceRecord?.id) {
+            studentObject.todayAttendanceId = todayAttendanceRecord.id;
+          }
 
           // Log 2: Log data object in StudentRoster after totals are calculated
           console.log('🔍 [LOG 2] QRScannerPage - Student object with calculated totals:', {
@@ -1508,7 +1559,7 @@ const QRScannerPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [attendanceMode, lang]);
+  }, [attendanceMode, lang, selectedSubjectId]);
 
   // Keep ref in sync so callbacks defined before loadStudents can use it
   useEffect(() => { loadStudentsRef.current = loadStudents; }, [loadStudents]);
@@ -1862,6 +1913,34 @@ const QRScannerPage = () => {
   const handleStudentSelect = useCallback((student) => {
     setSelectedStudent(student); // Use old panel for viewing student details
   }, []);
+
+  const loadDeductionData = useCallback(async (student) => {
+    try {
+      setDeductionLoading(true);
+      const studentId = student.studentId || student.id || student.userId;
+      const classId = student.classId || selectedClassId;
+      const [deductionRes, historyRes] = await Promise.all([
+        fetchAttendanceDeductionSuggestion({ userId: studentId, classId }),
+        fetchDeductionHistory({ userId: studentId, classId }),
+      ]);
+      setDeductionData(deductionRes?.data || deductionRes);
+      setDeductionHistory(historyRes?.data || historyRes || []);
+      setDeductionStudent({
+        ...student,
+        studentId,
+        classId,
+        programName: student.programName,
+        subjectName: student.subjectName,
+        className: student.className,
+      });
+      setShowDeductionDrawer(true);
+    } catch (err) {
+      console.error('[QRScannerPage] Error loading deduction data:', err);
+      showError(t('failed_to_load_deduction_data') || 'Failed to load deduction data');
+    } finally {
+      setDeductionLoading(false);
+    }
+  }, [selectedClassId, showError, t]);
 
   // Sync selectedStudent/selectedStudentForAction with updated students array
   // so panels receive fresh data after attendance/behavior changes
@@ -5179,58 +5258,36 @@ const QRScannerPage = () => {
           {attendanceMode === ATTENDANCE_TYPE_CATEGORY.REGULAR &&
             selectedClassId &&
             selectedClassId !== 'all' && (
-              <div
+              <ClassInfoBar
                 data-tour="qr-class-instructor"
-                style={{
-                  flex: '1 1 100%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.5rem',
-                  padding: '0.5rem 0.75rem',
-                  borderRadius: '0.5rem',
-                  border: '1px solid var(--border, #e5e7eb)',
-                  background: 'var(--background-secondary, #f9fafb)',
-                  fontSize: 'var(--font-size-sm)',
-                  minHeight: '40px',
-                }}
+                classObj={classes.find(c => String(c.id) === String(selectedClassId))}
+                lang={lang}
+                t={t}
+                instructorInfo={{ name: classInstructorInfo?.name, loading: classInstructorLoading }}
               >
-                <span style={{ fontWeight: 600, color: 'var(--text-muted, #6b7280)' }}>
-                  {t('class_instructor')}:
-                </span>
-                {classInstructorLoading ? (
-                  <span style={{ color: 'var(--text-muted, #6b7280)' }}>{t('loading')}</span>
-                ) : classInstructorInfo?.name ? (
-                  <>
-                    <span style={{ fontWeight: 600 }}>{classInstructorInfo.name}</span>
-                    {canMessageClassInstructor && (
-                      <button
-                        type="button"
-                        onClick={handleMessageClassInstructor}
-                        title={t('message_instructor')}
-                        style={{
-                          marginInlineStart: '0.25rem',
-                          padding: '0.25rem 0.5rem',
-                          border: '1px solid var(--border, #e5e7eb)',
-                          borderRadius: '0.375rem',
-                          background: 'var(--panel, #fff)',
-                          cursor: 'pointer',
-                          display: 'inline-flex',
-                          alignItems: 'center',
-                          gap: '0.25rem',
-                          fontSize: 'var(--font-size-xs)',
-                        }}
-                      >
-                        {getThemedIcon('ui', 'message_square', 14, theme)}
-                        <span>{t('message_instructor')}</span>
-                      </button>
-                    )}
-                  </>
-                ) : (
-                  <span style={{ color: 'var(--color-warning, #d97706)', fontWeight: 500 }}>
-                    {t('no_instructor_for_class')}
-                  </span>
+                {classInstructorInfo?.name && canMessageClassInstructor && (
+                  <button
+                    type="button"
+                    onClick={handleMessageClassInstructor}
+                    title={t('message_instructor')}
+                    style={{
+                      marginInlineStart: '0.25rem',
+                      padding: '0.25rem 0.5rem',
+                      border: '1px solid var(--border, #e5e7eb)',
+                      borderRadius: '0.375rem',
+                      background: 'var(--panel, #fff)',
+                      cursor: 'pointer',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.25rem',
+                      fontSize: 'var(--font-size-xs)',
+                    }}
+                  >
+                    {getThemedIcon('ui', 'message_square', 14, theme)}
+                    <span>{t('message_instructor')}</span>
+                  </button>
                 )}
-              </div>
+              </ClassInfoBar>
             )}
         </div>
 
@@ -5748,6 +5805,7 @@ const QRScannerPage = () => {
               onFilter={handleFilter}
               onRefresh={handleRefresh}
               onStudentAction={handleStudentAction}
+              onDeductionClick={loadDeductionData}
               searchQuery={searchQuery}
               onSearchChange={setSearchQuery}
               sortField={sortField}
@@ -5764,7 +5822,6 @@ const QRScannerPage = () => {
               attendanceMode={attendanceMode}
               highlightEnabled={highlightEnabled}
               onHighlightToggle={setHighlightEnabled}
-              autoExpand={isScannerMinimized}
               showSuccess={showSuccess}
               showError={showError}
             />
@@ -5791,6 +5848,8 @@ const QRScannerPage = () => {
                 favoriteBehaviors={favoriteBehaviors}
                 programId={selectedProgramId}
                 subjectId={selectedSubjectId}
+                classId={selectedClassId}
+                selectedDate={selectedDate}
                 onToggleFavorite={(behaviorId) => {
                   setFavoriteBehaviors(prev => 
                     prev.includes(behaviorId) 
@@ -6347,6 +6406,18 @@ const QRScannerPage = () => {
         lang={lang}
         t={t}
         theme={theme}
+      />
+
+      <DeductionDrawer
+        isOpen={showDeductionDrawer}
+        onClose={() => setShowDeductionDrawer(false)}
+        student={deductionStudent}
+        data={deductionData}
+        history={deductionHistory}
+        loading={deductionLoading}
+        type="absence"
+        weight={10}
+        programId={selectedProgramId}
       />
     </div>
   );

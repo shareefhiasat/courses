@@ -1,5 +1,5 @@
 import prisma from '../db/prismaClient.js';
-import { suggestAttendanceMarkComponent, listDeductionRules, getDeductionHistory } from '../services/attendanceDeductionService.js';
+import { suggestAttendanceMarkComponent, listDeductionRules, getDeductionHistory, getClassAbsenceWarningCounts } from '../services/attendanceDeductionService.js';
 import { calculateLetterGrade, MANUAL_GRADES, GRADE_TYPE, resolveMarkGrade, resolveComplementaryGrade } from '../utils/formatting/gradingStandards.js';
 import notificationGateway from '../services/notifications/index.js';
 import { EVENTS } from '../services/notifications/constants.js';
@@ -200,7 +200,10 @@ const getStudentMarks = async (req, res) => {
             lastNameAr: true,
             displayNameAr: true,
             displayName: true,
-            studentNumber: true
+            studentNumber: true,
+            rankEn: true,
+            rankAr: true,
+            sequence: true
           }
         },
         subject: {
@@ -893,6 +896,29 @@ const getStudentDeductionHistory = async (req, res) => {
   }
 };
 
+const getAbsenceWarningCounts = async (req, res) => {
+  try {
+    const { classId, userId } = req.query;
+    if (!classId) {
+      return res.status(400).json({ success: false, error: 'classId is required' });
+    }
+
+    const result = await getClassAbsenceWarningCounts({
+      classId: parseInt(classId, 10),
+      ...(userId && { userId: parseInt(userId, 10) }),
+    });
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    res.json({ success: true, data: result.data });
+  } catch (error) {
+    console.error('Error getting absence warning counts:', error);
+    res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+};
+
 export {
   getMarksDistribution,
   setMarksDistribution,
@@ -904,6 +930,7 @@ export {
   getAttendanceDeductionSuggestion,
   getAbsenceDeductionRules,
   getStudentDeductionHistory,
+  getAbsenceWarningCounts,
 };
 
 /**
@@ -912,7 +939,7 @@ export {
  */
 const getAllStudentMarksReport = async (req, res) => {
   try {
-    const { programId, subjectId, classId, year, term, isRepeated, userId, studentId } = req.query;
+    const { programId, subjectId, classId, year, term, isRepeated, gradeType, userId, studentId } = req.query;
     const filterUserId = userId || studentId;
     
     console.log('🔍 [MARKS DEBUG] getAllStudentMarksReport called with filters:', {
@@ -967,7 +994,10 @@ const getAllStudentMarksReport = async (req, res) => {
             lastName: true,
             firstNameAr: true,
             lastNameAr: true,
-            studentNumber: true
+            studentNumber: true,
+            rankEn: true,
+            rankAr: true,
+            sequence: true
           }
         },
         class: {
@@ -985,7 +1015,8 @@ const getAllStudentMarksReport = async (req, res) => {
                 id: true,
                 code: true,
                 nameEn: true,
-                nameAr: true
+                nameAr: true,
+                credits: true,
               }
             }
           }
@@ -1025,6 +1056,9 @@ const getAllStudentMarksReport = async (req, res) => {
         classId: { in: classIds },
         ...(isRepeated !== undefined && isRepeated !== '' && {
           isRepeated: isRepeated === 'true'
+        }),
+        ...(gradeType && gradeType !== '' && {
+          gradeType
         })
       }
     });
@@ -1148,6 +1182,9 @@ const getAllStudentMarksReport = async (req, res) => {
           id: firstAttemptKey,
           studentId: enrollment.userId,
           studentNumber: enrollment.user.studentNumber || '',
+          rankEn: enrollment.user.rankEn || '',
+          rankAr: enrollment.user.rankAr || '',
+          sequence: enrollment.user.sequence ?? null,
           studentName: studentNames.studentName,
           studentNameAr: studentNames.studentNameAr,
           studentEmail: enrollment.user.email,
@@ -1156,6 +1193,7 @@ const getAllStudentMarksReport = async (req, res) => {
             enrollment.class.program?.code,
           subjectId: enrollment.subjectId,
           subjectCode: enrollment.class.subject.code,
+          credits: enrollment.class.subject.credits || 3,
           subjectName: enrollment.class.subject.nameEn || enrollment.class.subject.nameAr,
           classId: enrollment.classId,
           className: enrollment.class.nameEn || enrollment.class.nameAr,
@@ -1169,6 +1207,15 @@ const getAllStudentMarksReport = async (req, res) => {
           quizzes: studentMarks.quizzes || 0,
           participation: studentMarks.participation || 0,
           attendance: studentMarks.attendance || 0,
+          distribution: {
+            midTermExam: distribution.midTermExam,
+            finalExam: distribution.finalExam,
+            homework: distribution.homework,
+            labsProjectResearch: distribution.labsProjectResearch,
+            quizzes: distribution.quizzes,
+            participation: distribution.participation,
+            attendance: distribution.attendance,
+          },
           totalMarks: displayTotalMarks,
           letterGrade: letterGrade,
           gradePoints: gradePoints,
@@ -1248,6 +1295,9 @@ const getAllStudentMarksReport = async (req, res) => {
           id: repeatedAttemptKey,
           studentId: enrollment.userId,
           studentNumber: enrollment.user.studentNumber || '',
+          rankEn: enrollment.user.rankEn || '',
+          rankAr: enrollment.user.rankAr || '',
+          sequence: enrollment.user.sequence ?? null,
           studentName: studentNames.studentName,
           studentNameAr: studentNames.studentNameAr,
           studentEmail: enrollment.user.email,
@@ -1256,6 +1306,7 @@ const getAllStudentMarksReport = async (req, res) => {
             enrollment.class.program?.code,
           subjectId: enrollment.subjectId,
           subjectCode: enrollment.class.subject.code,
+          credits: enrollment.class.subject.credits || 3,
           subjectName: enrollment.class.subject.nameEn || enrollment.class.subject.nameAr,
           classId: enrollment.classId,
           className: enrollment.class.nameEn || enrollment.class.nameAr,
@@ -1269,6 +1320,15 @@ const getAllStudentMarksReport = async (req, res) => {
           quizzes: studentMarks.quizzes || 0,
           participation: studentMarks.participation || 0,
           attendance: studentMarks.attendance || 0,
+          distribution: {
+            midTermExam: distribution.midTermExam,
+            finalExam: distribution.finalExam,
+            homework: distribution.homework,
+            labsProjectResearch: distribution.labsProjectResearch,
+            quizzes: distribution.quizzes,
+            participation: distribution.participation,
+            attendance: distribution.attendance,
+          },
           totalMarks: displayTotalMarks,
           letterGrade: letterGrade,
           gradePoints: gradePoints,

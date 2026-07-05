@@ -26,7 +26,8 @@ import {
   downloadFileVersionController,
   createCustomWorkflowDocumentController,
   deleteWorkflowDocumentController,
-  getLinkedWorkflowsController
+  getLinkedWorkflowsController,
+  getWorkflowsByContextController,
 } from '../controllers/workflowDocuments.js';
 import { screenOps } from '../middleware/requirePermission.js';
 
@@ -245,6 +246,15 @@ router.get('/', wfOps.view, getWorkflowDocumentsController);
  *         description: Internal server error
  */
 router.post('/linked-by-attendance', getLinkedWorkflowsController);
+
+/**
+ * @swagger
+ * /api/v1/workflow-documents/by-context:
+ *   get:
+ *     summary: Get workflows for a student on a specific class day
+ *     tags: [Workflow Documents]
+ */
+router.get('/by-context', wfOps.view, getWorkflowsByContextController);
 
 /**
  * @swagger

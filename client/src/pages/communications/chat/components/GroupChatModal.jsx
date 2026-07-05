@@ -4,9 +4,10 @@
  * Modal for creating new group chats (staff only)
  */
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import Joyride from 'react-joyride';
-import TourTooltip from '@ui/TourTooltip/TourTooltip';
+import { getModalJoyrideProps, modalTourStep } from '@utils/tourConfig';
+import { useModalTour } from '@hooks/useModalTour';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { useToast } from '@ui';
@@ -23,29 +24,26 @@ const GroupChatModal = ({ isOpen, onClose, onGroupCreated }) => {
   const toast = useToast();
 
   // ── Guided Tour ──────────────────────────────────────────────────────────
-  const [runTour, setRunTour] = useState(false);
-  const [tourSteps, setTourSteps] = useState([]);
   const tourSeenKey = `groupChatTourSeen_${lang}`;
   const buildTourSteps = useCallback(() => [
-    { target: '[data-tour="group-name"]', content: t('tour.group_chat_name'), disableBeacon: true, placement: 'bottom' },
-    { target: '[data-tour="group-role-filter"]', content: t('tour.group_chat_role_filter'), disableBeacon: true, placement: 'bottom' },
-    { target: '[data-tour="group-user-search"]', content: t('tour.group_chat_search'), disableBeacon: true, placement: 'bottom' },
-    { target: '[data-tour="group-user-list"]', content: t('tour.group_chat_user_list'), disableBeacon: true, placement: 'top' },
-    { target: '[data-tour="group-create-btn"]', content: t('tour.group_chat_create'), disableBeacon: true, placement: 'top' },
-  ].filter(s => !!document.querySelector(s.target)), [t]);
-  const startTour = useCallback(() => { const steps = buildTourSteps(); if (!steps.length) return; setTourSteps(steps); setRunTour(true); }, [buildTourSteps]);
-  useEffect(() => {
-    if (!isOpen) return;
-    window.addEventListener('app:joyride', startTour);
-    window.addEventListener('app:help', startTour);
-    return () => { window.removeEventListener('app:joyride', startTour); window.removeEventListener('app:help', startTour); };
-  }, [startTour, isOpen]);
-  useEffect(() => { if (!isOpen) return; try { if (!localStorage.getItem(tourSeenKey)) startTour(); } catch {} }, [tourSeenKey, startTour, isOpen]);
-  const handleTourCallback = useCallback((data) => {
-    const { status, action } = data || {};
-    if (status === 'finished' || status === 'skipped' || action === 'close') { setRunTour(false); try { localStorage.setItem(tourSeenKey, 'true'); } catch {} }
-  }, [tourSeenKey]);
-  const TourTooltipComponent = useMemo(() => TourTooltip({ tourSeenKey }), [tourSeenKey]);
+    modalTourStep('[data-tour="group-name"]', t('tour.group_chat_name')),
+    modalTourStep('[data-tour="group-role-filter"]', t('tour.group_chat_role_filter')),
+    modalTourStep('[data-tour="group-user-search"]', t('tour.group_chat_search')),
+    modalTourStep('[data-tour="group-user-list"]', t('tour.group_chat_user_list'), { placement: 'top' }),
+    modalTourStep('[data-tour="group-create-btn"]', t('tour.group_chat_create'), { placement: 'top' }),
+  ], [t]);
+  const {
+    run: runTour,
+    stepIndex,
+    steps: tourSteps,
+    callback: handleTourCallback,
+    TourTooltipComponent,
+  } = useModalTour({
+    id: 'group-chat-modal',
+    tourSeenKey,
+    buildSteps: buildTourSteps,
+    enabled: isOpen,
+  });
   // ──────────────────────────────────────────────────────────────────────────
 
   const [groupName, setGroupName] = useState('');
@@ -157,9 +155,13 @@ const GroupChatModal = ({ isOpen, onClose, onGroupCreated }) => {
         className={`${styles.drawer} ${isRTL ? styles.rtl : ''}`}
         onClick={(e) => e.stopPropagation()}
       >
-      <Joyride continuous run={runTour && tourSteps.length > 0} steps={tourSteps} callback={handleTourCallback} scrollOffset={100} scrollToFirstStep showSkipButton showProgress tooltipComponent={TourTooltipComponent}
-        locale={{ back: t('tour_back'), close: t('tour_close'), last: t('tour_finish'), next: t('tour_next'), skip: t('tour_skip') }}
-        styles={{ options: { primaryColor: 'var(--color-primary,#800020)', textColor: theme === 'dark' ? '#e5e7eb' : '#111', backgroundColor: theme === 'dark' ? '#1f2937' : '#fff', zIndex: 10000 } }}
+      <Joyride
+        {...getModalJoyrideProps({ theme, t })}
+        run={runTour}
+        stepIndex={stepIndex}
+        steps={tourSteps}
+        callback={handleTourCallback}
+        tooltipComponent={TourTooltipComponent}
       />
         <div className={styles.header}>
           <div className={styles.headerTitle}>

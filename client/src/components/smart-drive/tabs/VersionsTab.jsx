@@ -13,7 +13,7 @@ import {
   DriveActionButton,
 } from '@ui/DriveTimeline';
 import { formatQatarDate, formatQatarDateOnly } from '@utils/timezone';
-import axios from 'axios';
+import { apiClient } from '@services/api/apiService.js';
 
 export default function VersionsTab({ fileId, useWorkflowEndpoint = false }) {
   const { t, lang } = useLang();
@@ -30,10 +30,10 @@ export default function VersionsTab({ fileId, useWorkflowEndpoint = false }) {
     setError(null);
     try {
       const endpoint = useWorkflowEndpoint
-        ? `/api/v1/workflow-documents/${fileId}/versions`
-        : `/api/v1/drive/files/${fileId}/versions`;
+        ? `/workflow-documents/${fileId}/versions`
+        : `/drive/files/${fileId}/versions`;
 
-      const response = await axios.get(endpoint);
+      const response = await apiClient.get(endpoint);
       if (response.data.success) {
         const data = response.data.data;
         if (useWorkflowEndpoint && data && data.versions) {
@@ -43,7 +43,7 @@ export default function VersionsTab({ fileId, useWorkflowEndpoint = false }) {
           setVersions(response.data.payload || data || []);
           if (!useWorkflowEndpoint) {
             try {
-              const fileResponse = await axios.get(`/api/v1/drive/files/${fileId}`);
+              const fileResponse = await apiClient.get(`/drive/files/${fileId}`);
               if (fileResponse.data.success) {
                 setFileInfo(fileResponse.data.payload);
               }

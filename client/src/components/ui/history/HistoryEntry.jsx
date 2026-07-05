@@ -90,6 +90,7 @@ export const HistoryEntry = ({
       style={{
         display: 'flex',
         alignItems: isMobile ? 'flex-start' : 'center',
+        flexWrap: 'nowrap',
         gap: isMobile ? '0.35rem' : '0.65rem',
         padding: isMobile ? '0.4rem 0.5rem' : '0.5rem 0.75rem',
         fontSize: isMobile ? '0.75rem' : '0.8125rem',
@@ -99,6 +100,7 @@ export const HistoryEntry = ({
         boxShadow: palette.shadow,
         marginBottom: isMobile ? '0.25rem' : '0.35rem',
         width: '100%',
+        minWidth: 0,
         transition: 'border 0.2s ease, transform 0.2s ease'
       }}
     >
@@ -157,9 +159,15 @@ export const HistoryEntry = ({
         color: palette.primary,
         fontWeight: 600,
         fontSize: isMobile ? '0.72rem' : '0.82rem',
-        flex: 1
+        flex: '1 1 0%',
+        minWidth: 0,
+        whiteSpace: 'nowrap',
+        overflow: 'hidden',
+        textOverflow: 'ellipsis'
       }}>
-        {log.label}
+        {typeof log.label === 'object' && log.label !== null
+          ? (lang === 'ar' ? log.label.nameAr : log.label.nameEn) || log.label.code || log.label.name || ''
+          : log.label}
         {studentName && (
           <span style={{
             color: palette.muted,
@@ -219,14 +227,18 @@ export const HistoryEntry = ({
         }
 
         return displayComment && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', flexShrink: 1, minWidth: 0, overflow: 'hidden' }}>
             <span style={{
               color: palette.muted,
               fontSize: isMobile ? '0.68rem' : '0.75rem',
               background: palette.bubble,
               border: `1px solid ${palette.bubbleBorder}`,
               padding: '0.15rem 0.45rem',
-              borderRadius: '0.5rem'
+              borderRadius: '0.5rem',
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              maxWidth: '200px'
             }}>
               {displayComment}
             </span>
@@ -261,6 +273,7 @@ export const HistoryEntry = ({
       
       {log.points !== undefined && type !== RECORD_TYPES.ATTENDANCE && (
         <span style={{
+          flexShrink: 0,
           padding: isMobile ? '0.1rem 0.35rem' : '0.15rem 0.45rem',
           background: log.points > 0
             ? (theme === 'dark' ? 'rgba(37,99,235,0.18)' : 'var(--color-info-light, #eff6ff)')
@@ -278,6 +291,7 @@ export const HistoryEntry = ({
 
       {log.severity && (
         <span style={{
+          flexShrink: 0,
           padding: isMobile ? '0.1rem 0.35rem' : '0.15rem 0.45rem',
           background: theme === 'dark' ? 'rgba(239,68,68,0.18)' : 'var(--color-danger-light, #fef2f2)',
           color: theme === 'dark' ? '#fca5a5' : 'var(--color-danger-dark, #b91c1c)',
@@ -295,6 +309,7 @@ export const HistoryEntry = ({
           display: isMobile ? 'none' : 'flex',
           alignItems: 'center',
           gap: '0.35rem',
+          flexShrink: 0,
           [isRTL ? 'marginRight' : 'marginLeft']: 'auto',
           padding: '0.15rem 0.75rem',
           background: theme === 'dark' ? 'rgba(37,99,235,0.16)' : 'var(--color-info-light, #f0f9ff)',

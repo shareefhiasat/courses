@@ -11,6 +11,7 @@ import notificationGateway from '../services/notifications/index.js';
 import { EVENTS } from '../services/notifications/constants.js';
 import { SHARE_SUBJECT_TYPES } from '../constants/driveConstants.js';
 import { buildNotificationNameVars } from '../utils/localizedUserName.js';
+import { resolveDriveActor } from '../utils/driveActor.js';
 
 export async function createFileShare(req, res) {
   const { fileId, folderId, subjectType, subjectId, permission, expiresAt } = req.body;
@@ -88,15 +89,31 @@ export async function createFileShare(req, res) {
 }
 
 export async function listFileShares(req, res) {
-  const { fileId } = req.params;
-  const { subjectType } = req.query;
-  const actor = { userId: req.user?.dbId, roles: req.user?.roles || [] };
-  
-  console.log('[fileShareController] listFileShares called:', { fileId, subjectType, userId: actor.userId, roles: actor.roles });
-  
-  const result = await fileShareService.listFileShares(fileId, actor, subjectType);
-  if (!result.success) return res.status(400).json(result);
-  return res.json(result);
+  try {
+    const { fileId } = req.params;
+    const { subjectType } = req.query;
+    const actor = await resolveDriveActor(req);
+    if (!actor?.userId) {
+      return res.status(401).json({
+        success: false,
+        error: { code: 'NO_ACTOR', message: 'Authenticated actor required' },
+        timestamp: Date.now(),
+      });
+    }
+
+    console.log('[fileShareController] listFileShares called:', { fileId, subjectType, userId: actor.userId, roles: actor.roles });
+
+    const result = await fileShareService.listFileShares(fileId, actor, subjectType);
+    if (!result.success) return res.status(400).json(result);
+    return res.json(result);
+  } catch (error) {
+    console.error('[fileShareController.listFileShares]', error);
+    return res.status(500).json({
+      success: false,
+      error: { code: 'LIST_SHARES_FAILED', message: error.message },
+      timestamp: Date.now(),
+    });
+  }
 }
 
 export async function revokeFileShare(req, res) {

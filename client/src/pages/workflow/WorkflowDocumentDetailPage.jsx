@@ -25,14 +25,16 @@ import { SimpleLoading, EmptyState, Modal, Textarea, Input } from '@ui';
 import { approveWorkflowDocument, rejectWorkflowDocument, returnWorkflowDocument, resubmitWorkflowDocument, uploadSignedDocument, withdrawWorkflowDocument, updateWorkflowDocumentStatus } from '@services/api/workflow-documents-api.js';
 import WorkflowDiagram from '@components/workflow/WorkflowDiagram.jsx';
 import WorkflowHistory from '@components/workflow/WorkflowHistory.jsx';
+import WorkflowContextBar from '@components/workflow/WorkflowContextBar.jsx';
+import { useProgramSubjectMaps } from '@hooks/useProgramSubjectMaps';
 import CollapsibleSection from '@components/scheduling/CollapsibleSection.jsx';
 import VersionsTab from '@components/smart-drive/tabs/VersionsTab.jsx';
 import WorkflowCommentsTab from '@components/workflow/WorkflowCommentsTab.jsx';
 import { getThemedIcon, getUserRoleIcon, getUserRoleColor } from '@constants/iconTypes';
-import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
+import { getAvatarColor, getAvatarInitials, normalizeProfileImageUrl } from '@utils/avatarUtils';
 import { getUserRoleFromObject } from '@utils/userUtils';
 import { getStatusVariant, WORKFLOW_STATUS } from '@constants/workflowStatusTypes';
-import { Workflow as WorkflowIcon, Paperclip, MessageSquare, Clock, CheckCircle, Circle, AlertCircle } from 'lucide-react';
+import { Workflow as WorkflowIcon, Paperclip, MessageSquare, Clock, CheckCircle, Circle, AlertCircle, FileText, Send, AlertTriangle, XCircle, Star, Users, Shield, GraduationCap } from 'lucide-react';
 import { getWorkflowDocument } from '@services/api/workflow-documents-api.js';
 
 const WorkflowDocumentDetailPage = () => {
@@ -50,9 +52,9 @@ const WorkflowDocumentDetailPage = () => {
     { target: 'body', content: t('tour.workflow_doc_intro'), disableBeacon: true, placement: 'center' },
     { target: '[data-tour="doc-title"]', content: t('tour.workflow_doc_title'), disableBeacon: true, placement: 'bottom' },
     { target: '[data-tour="doc-diagram"]', content: t('tour.workflow_doc_diagram'), disableBeacon: true, placement: 'right' },
-    { target: '[data-tour="doc-legend"]', content: (
+    { target: '[data-tour="doc-diagram-legend"]', content: (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <p style={{ margin: 0, marginBottom: 4 }}>{t('tour.workflow_doc_legend')}</p>
+          <p style={{ margin: 0, marginBottom: 4 }}>{t('tour.workflow_doc_diagram_colors')}</p>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <CheckCircle size={18} style={{ color: '#10b981', flexShrink: 0 }} />
             <span style={{ color: '#10b981', fontWeight: 600 }}>{t('workflow.legend.completed', 'Completed')}</span>
@@ -64,6 +66,56 @@ const WorkflowDocumentDetailPage = () => {
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <AlertCircle size={18} style={{ color: '#6b7280', flexShrink: 0 }} />
             <span style={{ color: '#6b7280', fontWeight: 600 }}>{t('workflow.legend.pending', 'Pending')}</span>
+          </div>
+        </div>
+      ), disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="doc-diagram-roles"]', content: (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <p style={{ margin: 0, marginBottom: 4 }}>{t('tour.workflow_doc_diagram_roles')}</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Star size={16} style={{ color: '#f59e0b', flexShrink: 0 }} />
+            <span style={{ color: '#f59e0b', fontWeight: 600 }}>{t('owner', 'Owner')}</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Users size={16} style={{ color: '#8b5cf6', flexShrink: 0 }} />
+            <span style={{ color: '#8b5cf6', fontWeight: 600 }}>{t('roles.hr', 'HR')}</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Shield size={16} style={{ color: '#4f46e5', flexShrink: 0 }} />
+            <span style={{ color: '#4f46e5', fontWeight: 600 }}>{t('roles.admin', 'Admin')}</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <GraduationCap size={16} style={{ color: '#0ea5e9', flexShrink: 0 }} />
+            <span style={{ color: '#0ea5e9', fontWeight: 600 }}>{t('roles.instructor', 'Instructor')}</span>
+          </div>
+        </div>
+      ), disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="doc-legend"]', content: (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <p style={{ margin: 0, marginBottom: 4 }}>{t('tour.workflow_doc_legend_detail')}</p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <FileText size={16} style={{ color: '#6b7280', flexShrink: 0 }} />
+            <span style={{ color: '#6b7280', fontWeight: 600 }}>{t('workflow.status.draft', 'Draft')}</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Send size={16} style={{ color: '#3b82f6', flexShrink: 0 }} />
+            <span style={{ color: '#3b82f6', fontWeight: 600 }}>{t('workflow.status.submitted', 'Submitted')}</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <AlertTriangle size={16} style={{ color: '#8b5cf6', flexShrink: 0 }} />
+            <span style={{ color: '#8b5cf6', fontWeight: 600 }}>{t('workflow.status.underReview', 'HR Review')}</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <AlertTriangle size={16} style={{ color: '#8b5cf6', flexShrink: 0 }} />
+            <span style={{ color: '#8b5cf6', fontWeight: 600 }}>{t('workflow.status.underAdminReview', 'Admin Review')}</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <CheckCircle size={16} style={{ color: '#10b981', flexShrink: 0 }} />
+            <span style={{ color: '#10b981', fontWeight: 600 }}>{t('workflow.status.completed', 'Completed')}</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <XCircle size={16} style={{ color: '#ef4444', flexShrink: 0 }} />
+            <span style={{ color: '#ef4444', fontWeight: 600 }}>{t('workflow.status.rejected', 'Rejected')}</span>
           </div>
         </div>
       ), disableBeacon: true, placement: 'bottom' },
@@ -94,6 +146,7 @@ const WorkflowDocumentDetailPage = () => {
   }
 
   const { user } = auth;
+  const { programMap, subjectMap } = useProgramSubjectMaps();
 
   const [document, setDocument] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -108,7 +161,12 @@ const WorkflowDocumentDetailPage = () => {
   const commentInputRef = useRef(null);
   const [savedLayout, onLayoutChange] = usePanelLayout('wf-detail-panels', { attachments: 40, comments: 40, history: 20 });
 
-
+  useEffect(() => {
+    if (actionModal && commentInputRef.current) {
+      const timer = setTimeout(() => commentInputRef.current?.focus(), 100);
+      return () => clearTimeout(timer);
+    }
+  }, [actionModal]);
 
   // Fetch document details (silent=true skips loading state for refreshes after actions)
   const fetchDocument = useCallback(async (silent = false) => {
@@ -232,6 +290,17 @@ const WorkflowDocumentDetailPage = () => {
     return document.status === WORKFLOW_STATUS.SUBMITTED || document.status === WORKFLOW_STATUS.UNDER_REVIEW;
   };
 
+  // Show notification info toast after successful actions
+  const showNotificationInfo = (notificationsSent) => {
+    if (!notificationsSent || notificationsSent.length === 0) return;
+    const parts = notificationsSent.map(n => `${n.target}: ${n.count}`);
+    const total = notificationsSent.reduce((sum, n) => sum + n.count, 0);
+    toast.info(
+      t('workflow.document.notificationsSent', 'Notifications sent to {{total}} recipient(s)', { total }) +
+      ' (' + parts.join(', ') + ')'
+    );
+  };
+
   // Handle approve action
   const handleApprove = async () => {
     setActionLoading(true);
@@ -240,6 +309,7 @@ const WorkflowDocumentDetailPage = () => {
       const result = await approveWorkflowDocument(documentId, { comment: commentValue });
       if (result.success) {
         toast.success(t('workflow.document.approved', 'Document approved successfully'));
+        showNotificationInfo(result.notificationsSent);
         await refreshDocument();
         setActionModal(null);
         setComment('');
@@ -267,6 +337,7 @@ const WorkflowDocumentDetailPage = () => {
       console.log('[REJECT ACTION] API response', result);
       if (result.success) {
         toast.success(t('workflow.document.rejected', 'Document rejected successfully'));
+        showNotificationInfo(result.notificationsSent);
         console.log('[REJECT ACTION] Reject successful, new status:', result.data?.status);
         await refreshDocument();
         setActionModal(null);
@@ -295,14 +366,19 @@ const WorkflowDocumentDetailPage = () => {
       console.log('[RETURN ACTION] API response', result);
       if (result.success) {
         toast.success(t('workflow.document.returned', 'Document returned successfully'));
+        showNotificationInfo(result.notificationsSent);
         console.log('[RETURN ACTION] Return successful, new status:', result.data?.status);
         await refreshDocument();
         setActionModal(null);
         setComment('');
       } else {
+        console.error('[RETURN ACTION] Failed:', result);
+        toast.error(result.error || t('workflow.document.returnError', 'Failed to return document'));
       }
     } catch (err) {
-      toast.error(t('workflow.document.returnError', 'Failed to return document'));
+      console.error('[RETURN ACTION] Error:', err);
+      const backendError = err?.response?.data?.error || err?.message;
+      toast.error(backendError || t('workflow.document.returnError', 'Failed to return document'));
     } finally {
       setActionLoading(false);
     }
@@ -542,6 +618,7 @@ const WorkflowDocumentDetailPage = () => {
       const result = await withdrawWorkflowDocument(documentId, { comment: commentValue });
       if (result.success) {
         toast.success(t('workflow.document.withdrawn', 'Document withdrawn successfully'));
+        showNotificationInfo(result.notificationsSent);
         await refreshDocument();
         setActionModal(null);
         setComment('');
@@ -602,9 +679,15 @@ const WorkflowDocumentDetailPage = () => {
       />
       <div className="w-full space-y-8" style={{ maxWidth: '1400px' }}>
 
-      {/* Document Title and Description - compact */}
-      <Card data-tour="doc-title" className="shadow-sm">
-        <CardContent className="p-3">
+      {/* Document context + title */}
+      <div data-tour="doc-title" className="space-y-3">
+        <WorkflowContextBar
+          document={document}
+          programMap={programMap}
+          subjectMap={subjectMap}
+        />
+      <Card className="shadow-sm" padding="sm">
+        <CardContent>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flexWrap: 'wrap' }}>
             {/* Owner avatar with role badge */}
             {document.submitter && (
@@ -633,7 +716,7 @@ const WorkflowDocumentDetailPage = () => {
                 }}>
                   {document.submitter.profileImageUrl ? (
                     <img
-                      src={document.submitter.profileImageUrl}
+                      src={normalizeProfileImageUrl(document.submitter.profileImageUrl)}
                       alt={(() => {
                         const s = document.submitter;
                         if (lang === 'ar' && s.displayNameAr) return s.displayNameAr;
@@ -680,16 +763,6 @@ const WorkflowDocumentDetailPage = () => {
               </div>
             )}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.125rem', flex: 1, minWidth: 0 }}>
-              <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.75rem', flexWrap: 'wrap' }}>
-                <h2 style={{ fontSize: 'var(--font-size-lg)', fontWeight: 700, color: 'var(--text, #111827)', margin: 0 }}>
-                  {document?.title || '-'}
-                </h2>
-                {document?.description && (
-                  <span style={{ fontSize: 'var(--font-size-sm)', color: 'var(--text-muted, #6b7280)', margin: 0 }}>
-                    {document.description}
-                  </span>
-                )}
-              </div>
               {document.submitter && (
                 <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted, #6b7280)' }}>
                   {(() => {
@@ -700,24 +773,11 @@ const WorkflowDocumentDetailPage = () => {
                   })()}
                 </span>
               )}
-              {document.targetStudent && (
-                <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted, #6b7280)', display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
-                  <span style={{ color: 'var(--text-muted, #6b7280)' }}>·</span>
-                  {React.cloneElement(getUserRoleIcon('student'), { color: getUserRoleColor('student'), size: 12 })}
-                  <span style={{ color: getUserRoleColor('student') }}>
-                    {(() => {
-                      const s = document.targetStudent;
-                      if (lang === 'ar' && s.displayNameAr) return s.displayNameAr;
-                      if (s.firstName && s.lastName) return `${s.firstName} ${s.lastName}`;
-                      return s.displayName || s.firstName || s.email || '';
-                    })()}
-                  </span>
-                </span>
-              )}
             </div>
           </div>
         </CardContent>
       </Card>
+      </div>
 
       {/* Top row: Workflow Progress (full width) */}
       <div data-tour="doc-diagram" style={{ marginTop: '0.5rem' }}>
@@ -768,9 +828,9 @@ const WorkflowDocumentDetailPage = () => {
           }
         >
           {/* Status Legend */}
-          <div data-tour="doc-legend" style={{ marginBottom: '1rem' }}>
+          <div data-tour="doc-legend" style={{ marginBottom: '6px' }}>
             <div className="flex items-center gap-4 flex-wrap">
-              <span style={{ fontSize: 'var(--font-size-xs)', fontWeight: 600, color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', letterSpacing: '0.025em' }}>
+              <span className="text-sm font-medium" style={{ color: 'var(--text-secondary, #6b7280)' }}>
                 {t('workflow.statuses', 'Statuses')}:
               </span>
               {[
@@ -926,6 +986,7 @@ const WorkflowDocumentDetailPage = () => {
               workflowId={documentId} 
               selectedStage={selectedStage}
               onStageFilterChange={setSelectedStage}
+              refreshKey={document?.updatedAt}
             />
             </div>
           </CollapsibleSection>
@@ -1044,6 +1105,20 @@ const WorkflowDocumentDetailPage = () => {
                   : t('workflow.document.requiredComment', 'Add required comment...')
               }
               autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !actionLoading) {
+                  e.preventDefault();
+                  if (actionModal === 'approve') handleApprove();
+                  else if (actionModal === 'reject') handleReject();
+                  else if (actionModal === 'return') handleReturn();
+                  else if (actionModal === 'submit') handleSubmit();
+                  else if (actionModal === 'sendToNext') handleSendToNext();
+                  else if (actionModal === 'resubmit') handleResubmit();
+                  else if (actionModal === 'reupload') handleReupload();
+                  else if (actionModal === 'upload-signed') handleUploadSigned();
+                  else if (actionModal === 'withdraw') handleWithdraw();
+                }
+              }}
             />
             <div className="flex justify-end gap-2">
               <Button

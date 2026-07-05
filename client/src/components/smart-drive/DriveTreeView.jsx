@@ -69,14 +69,15 @@ export default function DriveTreeView({ folders, onFolderSelect, currentFolderId
           style={{
             display: 'flex',
             alignItems: 'center',
-            padding: '0.5rem 0.75rem',
-            paddingLeft: `${0.75 + level * 1.25}rem`,
+            padding: '0.375rem 0.625rem',
+            paddingInlineStart: `${0.625 + level * 1.25}rem`,
             cursor: 'pointer',
             background: isSelected ? 'var(--color-primary-tint, #eff6ff)' : 'transparent',
             borderRadius: '0.375rem',
-            margin: '0.125rem 0.5rem',
+            margin: '0.125rem 0',
             transition: 'all 0.15s ease',
-            borderLeft: isSelected ? '3px solid var(--color-primary, #3b82f6)' : '3px solid transparent',
+            border: '1px solid transparent',
+            borderInlineStart: isSelected ? '3px solid var(--color-primary, #3b82f6)' : '3px solid transparent',
           }}
           onMouseEnter={(e) => {
             if (!isSelected) {
@@ -89,37 +90,30 @@ export default function DriveTreeView({ folders, onFolderSelect, currentFolderId
             }
           }}
         >
-          {/* Chevron icon */}
-          <div
-            style={{
-              width: 16,
-              height: 16,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginRight: '0.5rem',
-              color: 'var(--text-muted, #6b7280)',
-            }}
-            onClick={(e) => {
-              e.stopPropagation();
-              if (hasChildren) {
+          {/* Chevron icon — only render if folder has children */}
+          {hasChildren && (
+            <div
+              style={{
+                width: 16,
+                height: 16,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginInlineEnd: '0.375rem',
+                color: 'var(--text-muted, #6b7280)',
+                flexShrink: 0,
+              }}
+              onClick={(e) => {
+                e.stopPropagation();
                 toggleFolder(folder.id);
-              }
-            }}
-          >
-            {hasChildren ? (
-              isExpanded ? (
-                <ChevronDown size={14} />
-              ) : (
-                <ChevronRight size={14} />
-              )
-            ) : (
-              <div style={{ width: 14 }} />
-            )}
-          </div>
+              }}
+            >
+              {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+            </div>
+          )}
 
           {/* Folder icon */}
-          <div style={{ marginRight: '0.5rem', color: isSelected ? 'var(--color-primary, #3b82f6)' : 'var(--text-muted, #6b7280)' }}>
+          <div style={{ marginInlineEnd: '0.5rem', color: isSelected ? 'var(--color-primary, #3b82f6)' : 'var(--text-muted, #6b7280)', flexShrink: 0 }}>
             {folder.color
               ? getColoredFolderIcon(16, folder.color)
               : getThemedIcon('ui', 'folder', 16, isSelected ? 'primary' : 'muted')}
@@ -141,8 +135,8 @@ export default function DriveTreeView({ folders, onFolderSelect, currentFolderId
             {getLocalizedFolderName(folder, lang)}
           </span>
 
-          {/* File count and size badges */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem', marginLeft: '0.5rem' }}>
+          {/* File count badge — size hidden to save space in narrow sidebar */}
+          <div style={{ display: 'flex', alignItems: 'center', marginInlineStart: '0.375rem', flexShrink: 0 }}>
             {folder.fileCount > 0 && (
               <span
                 style={{
@@ -157,17 +151,6 @@ export default function DriveTreeView({ folders, onFolderSelect, currentFolderId
                 }}
               >
                 {folder.fileCount}
-              </span>
-            )}
-            {folder.totalSize > 0 && (
-              <span
-                style={{
-                  fontSize: '0.7rem',
-                  fontWeight: 400,
-                  color: 'var(--text-muted, #9ca3af)',
-                }}
-              >
-                {fmt(folder.totalSize)}
               </span>
             )}
           </div>
@@ -201,9 +184,9 @@ export default function DriveTreeView({ folders, onFolderSelect, currentFolderId
         <button
           onClick={collapseAll}
           style={{
-            width: 'calc(100% - 1rem)',
-            padding: '0.5rem 0.75rem',
-            margin: '0.5rem 0.5rem 0',
+            width: '100%',
+            padding: '0.375rem 0.625rem',
+            margin: '0.375rem 0 0',
             background: 'var(--background-secondary, #f3f4f6)',
             border: '1px solid var(--border, #e5e7eb)',
             borderRadius: '0.5rem',

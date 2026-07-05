@@ -1,9 +1,22 @@
-import React, { memo, useMemo, useCallback } from 'react';
-import { ExternalLink } from 'lucide-react';
+import React, { memo, useMemo, useCallback, useState, useEffect } from 'react';
+import { ExternalLink, Workflow } from 'lucide-react';
 import { Button, SimpleLoading } from '@ui';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
-import { formatDateTime, formatDateShort, getQatarDateParts } from '@utils/date-formatter.js';
+import useResizableDrawer from '@hooks/useResizableDrawer';
+import { formatDateTime, formatDateShort, getQatarDateParts, formatDate } from '@utils/date-formatter.js';
+import { getWorkflowDocumentsByContext } from '@services/api/workflow-documents-api';
+import DayWorkflowsDrawer from './DayWorkflowsDrawer';
+
+const WORKFLOW_ACTIVE = '#8b5cf6';
+const WORKFLOW_INACTIVE = '#9ca3af';
+
+function toDateKey(date) {
+  if (!date) return '';
+  const d = new Date(date);
+  if (Number.isNaN(d.getTime())) return String(date).slice(0, 10);
+  return d.toISOString().slice(0, 10);
+}
 
 const STATUS_LABELS = {
   ATTENDANCE_ABSENT: 'Absent (No Excuse)',
@@ -44,12 +57,122 @@ const DeductionDrawer = memo(({
   type = 'absence',
   weight = 10,
   thresholds = { failureCount: 8, failureGrade: 'FB' },
-  width = 400,
+  width: widthProp = 400,
   programId = '',
+  classId: classIdProp = null,
 }) => {
   const { t, lang, isRTL } = useLang();
   const { theme } = useTheme();
   const isDarkMode = theme === 'dark';
+  const { width: drawerWidth, resizeHandleProps } = useResizableDrawer({
+    storageKey: 'deduction_drawer_width',
+    defaultWidth: widthProp,
+    minWidth: 320,
+    maxWidth: 800,
+    isRTL,
+  });
+
+  const [historyFilter, setHistoryFilter] = useState('all'); // 'all', 'recorded', 'approved', 'amended', 'no-workflow'
+  const [dayWorkflowContext, setDayWorkflowContext] = useState(null);
+  const [datesWithWorkflows, setDatesWithWorkflows] = useState(() => new Set());
+
+  const resolvedClassId = classIdProp || student?.classId || null;
+  const resolvedUserId = student?.studentId || student?.userId || student?.id;
+
+  useEffect(() => {
+    if (!isOpen || !resolvedUserId || !resolvedClassId) {
+      setDatesWithWorkflows(new Set());
+      return;
+    }
+
+    const summaryItems = data?.items || data?.summary?.items || [];
+    const dates = [...new Set([
+      ...summaryItems.map((item) => item.date),
+      ...history.map((entry) => entry.attendanceDate),
+    ].filter(Boolean).map(toDateKey))];
+
+    if (dates.length === 0) {
+      setDatesWithWorkflows(new Set());
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      const active = new Set();
+      await Promise.all(dates.map(async (date) => {
+        try {
+          const result = await getWorkflowDocumentsByContext({
+            userId: resolvedUserId,
+            classId: resolvedClassId,
+            date,
+          });
+          const rows = result?.data || result?.payload || [];
+          if (result?.success !== false && rows.length > 0) {
+            active.add(date);
+          }
+        } catch (err) {
+          console.warn('[DeductionDrawer] workflow lookup failed', err);
+        }
+      }));
+      if (!cancelled) setDatesWithWorkflows(active);
+    })();
+
+    return () => { cancelled = true; };
+  }, [isOpen, resolvedUserId, resolvedClassId, data, history]);
+
+  const renderDayWorkflowButton = useCallback((date) => {
+    if (!date) return null;
+    const key = toDateKey(date);
+    const hasWorkflows = datesWithWorkflows.has(key);
+    return (
+      <button
+        type="button"
+        onClick={() => hasWorkflows && setDayWorkflowContext({ date })}
+        disabled={!hasWorkflows}
+        title={hasWorkflows
+          ? (t('workflow.dayDrawer.open', 'View workflows for this day'))
+          : (t('workflow.dayDrawer.none', 'No workflows for this day'))}
+        style={{
+          background: 'transparent',
+          border: 'none',
+          cursor: hasWorkflows ? 'pointer' : 'not-allowed',
+          padding: '1px',
+          display: 'flex',
+          alignItems: 'center',
+          color: hasWorkflows ? WORKFLOW_ACTIVE : WORKFLOW_INACTIVE,
+          borderRadius: '3px',
+          flexShrink: 0,
+          opacity: hasWorkflows ? 1 : 0.55,
+        }}
+      >
+        <Workflow size={12} />
+      </button>
+    );
+  }, [datesWithWorkflows, t]);
+
+  const filteredHistory = useMemo(() => {
+    if (historyFilter === 'all') return history;
+    if (historyFilter === 'no-workflow') return history.filter(e => !e.workflowDocumentId);
+    return history.filter(e => e.eventType === historyFilter);
+  }, [history, historyFilter]);
+
+  const filterButtons = useMemo(() => {
+    const total = history.length;
+    const counts = {
+      all: total,
+      recorded: history.filter(e => e.eventType === 'attendance_recorded').length,
+      approved: history.filter(e => e.eventType === 'excuse_approved' || e.eventType === 'amended_to_excused').length,
+      amended: history.filter(e => e.eventType === 'amended').length,
+      'no-workflow': history.filter(e => !e.workflowDocumentId).length,
+    };
+    return [
+      { key: 'all', label: 'All', count: counts.all },
+      { key: 'attendance_recorded', label: 'Recorded', count: counts.recorded },
+      { key: 'excuse_approved', label: 'Approved', count: counts.approved },
+      { key: 'amended', label: 'Amended', count: counts.amended },
+      { key: 'no-workflow', label: 'No Workflow', count: counts['no-workflow'] },
+    ].filter(b => b.key === 'all' || (b.count > 0 && b.count < total));
+  }, [history]);
 
   const bgColor = isDarkMode ? '#1f2937' : '#ffffff';
   const borderColor = isDarkMode ? '#374151' : '#e5e7eb';
@@ -60,26 +183,26 @@ const DeductionDrawer = memo(({
   const drawerStyle = useMemo(() => ({
     position: 'fixed',
     top: 0,
-    right: isRTL ? 'auto' : (isOpen ? 0 : `-${width}px`),
-    left: isRTL ? (isOpen ? 0 : `-${width}px`) : 'auto',
-    width: `${width}px`,
+    right: isRTL ? 'auto' : (isOpen ? 0 : `-${drawerWidth}px`),
+    left: isRTL ? (isOpen ? 0 : `-${drawerWidth}px`) : 'auto',
+    width: `${drawerWidth}px`,
     height: '100vh',
     background: bgColor,
     boxShadow: isRTL ? '2px 0 10px rgba(0,0,0,0.1)' : '-2px 0 10px rgba(0,0,0,0.1)',
     transition: 'right 0.3s ease-in-out, left 0.3s ease-in-out',
     zIndex: 1000,
     overflow: 'auto',
-  }), [isOpen, width, bgColor, isRTL]);
+  }), [isOpen, drawerWidth, bgColor, isRTL]);
 
   const backdropStyle = useMemo(() => ({
     position: 'fixed',
     top: 0,
-    left: isRTL ? `${width}px` : 0,
-    right: isRTL ? 0 : `${width}px`,
+    left: isRTL ? `${drawerWidth}px` : 0,
+    right: isRTL ? 0 : `${drawerWidth}px`,
     height: '100vh',
     background: 'rgba(0,0,0,0.45)',
     zIndex: 999,
-  }), [width, isRTL]);
+  }), [drawerWidth, isRTL]);
 
   const summary = data?.summary || data;
   const items = data?.items || data?.rows || [];
@@ -117,52 +240,74 @@ const DeductionDrawer = memo(({
   const renderHistoryEntry = useCallback((entry, index) => {
     const isReduction = entry.eventType === 'excuse_approved' || entry.eventType === 'amended_to_excused';
     const isInitial = entry.eventType === 'attendance_recorded';
+    const delta = entry.deductionChange ? entry.deductionChange.new - entry.deductionChange.old : 0;
+    const isDeductionIncrease = delta > 0;
 
     return (
       <div key={`${entry.id}-${index}`} style={{
-        padding: '0.75rem',
-        marginBottom: '0.5rem',
+        padding: '0.5rem 0.625rem',
+        marginBottom: '0.375rem',
         border: `1px solid ${borderColor}`,
-        borderRadius: '8px',
+        borderRadius: '6px',
         background: cardBg,
       }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.25rem' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.15rem' }}>
           <span style={{
-            fontSize: '0.75rem',
+            fontSize: '0.7rem',
             fontWeight: 600,
             color: isReduction ? '#22c55e' : isInitial ? '#3b82f6' : '#f59e0b',
           }}>
-            {isReduction ? '↓ Reduction' : isInitial ? '◆ Initial' : '✎ Amendment'}
+            {isReduction ? '↓ Excuse Approved' : isInitial ? '● Recorded' : '✎ Amended'}
           </span>
-          <span style={{ fontSize: '0.7rem', color: mutedColor }}>
-            {formatDateTime(entry.timestamp, lang)}
+          <span style={{ fontSize: '0.65rem', color: mutedColor }}>
+            {formatDate(entry.timestamp, lang)}
           </span>
         </div>
-        <div style={{ fontSize: '0.8rem', color: textColor, marginBottom: '0.25rem' }}>
+        <div style={{ fontSize: '0.75rem', color: textColor, marginBottom: '0.15rem' }}>
           {entry.description}
         </div>
         {entry.deductionChange !== undefined && (
-          <div style={{ fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <span style={{ color: '#ef4444', textDecoration: 'line-through' }}>
-              {formatDeduction(entry.deductionChange.old)}
+          <div style={{ fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+            <span style={{ color: mutedColor }}>
+              Deduction: {formatDeduction(entry.deductionChange.old)} → {formatDeduction(entry.deductionChange.new)}
             </span>
-            <span style={{ color: mutedColor }}>→</span>
-            <span style={{ color: '#22c55e', fontWeight: 600 }}>
-              {formatDeduction(entry.deductionChange.new)}
-            </span>
-            <span style={{ color: mutedColor, fontSize: '0.7rem' }}>
-              (Δ {formatDeduction(entry.deductionChange.new - entry.deductionChange.old)})
+            <span style={{
+              color: isDeductionIncrease ? '#ef4444' : '#22c55e',
+              fontWeight: 600,
+              fontSize: '0.65rem',
+            }}>
+              ({isDeductionIncrease ? '-' : '+'}{formatDeduction(Math.abs(delta))})
             </span>
           </div>
         )}
-        {entry.actorName && (
-          <div style={{ fontSize: '0.7rem', color: mutedColor, marginTop: '0.25rem' }}>
-            by {entry.actorName}
-          </div>
-        )}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.15rem' }}>
+          {entry.actorName && (
+            <span style={{ fontSize: '0.65rem', color: mutedColor }}>
+              by {entry.actorName}
+            </span>
+          )}
+          {entry.workflowDocumentId && (
+            <button
+              onClick={() => window.open(`/workflow-documents/${entry.workflowDocumentId}`, '_blank')}
+              title={t('view_workflow') || 'View workflow'}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                cursor: 'pointer',
+                padding: '1px',
+                display: 'flex',
+                alignItems: 'center',
+                color: mutedColor,
+              }}
+            >
+              <ExternalLink size={12} />
+            </button>
+          )}
+          {entry.attendanceDate && renderDayWorkflowButton(entry.attendanceDate)}
+        </div>
       </div>
     );
-  }, [borderColor, cardBg, textColor, mutedColor]);
+  }, [borderColor, cardBg, textColor, mutedColor, lang, t, renderDayWorkflowButton]);
 
   if (!isOpen) return null;
 
@@ -370,33 +515,26 @@ const DeductionDrawer = memo(({
                       <div key={item.attendanceId || idx} style={{
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '1rem',
-                        padding: '0.875rem',
+                        gap: '0.625rem',
+                        padding: '0.375rem 0.5rem',
                         border: `1px solid ${borderColor}`,
-                        borderRadius: '10px',
+                        borderRadius: '6px',
                         background: isDarkMode ? '#1f2937' : '#fff',
                       }}>
                         {/* Date */}
                         <div style={{
                           flexShrink: 0,
-                          width: '72px',
-                          textAlign: 'center',
-                          padding: '0.375rem',
-                          borderRadius: '8px',
-                          background: cardBg,
+                          fontSize: '0.7rem',
+                          color: mutedColor,
+                          minWidth: '70px',
                         }}>
-                          <div style={{ fontSize: '0.75rem', color: mutedColor }}>
-                            {formatDateShort(item.date, lang)}
-                          </div>
-                          <div style={{ fontSize: '1.25rem', fontWeight: 700, color: textColor }}>
-                            {getQatarDateParts(item.date)?.day || ''}
-                          </div>
+                          {formatDate(item.date, lang)}
                         </div>
 
                         {/* Status + Excused */}
-                        <div style={{ flex: 1, minWidth: 0 }}>
-                          <div style={{
-                            fontSize: '0.9rem',
+                        <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                          <span style={{
+                            fontSize: '0.8rem',
                             fontWeight: 600,
                             color: textColor,
                             overflow: 'hidden',
@@ -404,28 +542,52 @@ const DeductionDrawer = memo(({
                             whiteSpace: 'nowrap',
                           }}>
                             {label}
-                          </div>
+                          </span>
                           {excused && (
-                            <div style={{
-                              fontSize: '0.7rem',
-                              color: '#22c55e',
-                              fontWeight: 600,
-                            }}>
-                              ✓ {t('excused_via_workflow')}
-                            </div>
+                            <span
+                              title={t('workflow.excuseApprovedBadge', 'Excuse approved — 0.25 deduction')}
+                              style={{
+                                fontSize: '0.65rem',
+                                color: '#22c55e',
+                                fontWeight: 600,
+                                flexShrink: 0,
+                              }}
+                            >
+                              0.25
+                            </span>
+                          )}
+                        {renderDayWorkflowButton(item.date)}
+                        {item.workflowDocumentId && (
+                            <button
+                              onClick={() => window.open(`/workflow-documents/${item.workflowDocumentId}`, '_blank')}
+                              title={t('view_workflow') || 'View workflow'}
+                              style={{
+                                background: 'transparent',
+                                border: 'none',
+                                cursor: 'pointer',
+                                padding: '1px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                color: mutedColor,
+                                borderRadius: '3px',
+                                flexShrink: 0,
+                              }}
+                            >
+                              <ExternalLink size={12} />
+                            </button>
                           )}
                         </div>
 
                         {/* Deduction amount */}
                         <div style={{
                           flexShrink: 0,
-                          padding: '0.375rem 0.875rem',
-                          borderRadius: '8px',
+                          padding: '0.2rem 0.5rem',
+                          borderRadius: '4px',
                           background: color,
                           color: '#fff',
-                          fontSize: '0.9rem',
+                          fontSize: '0.75rem',
                           fontWeight: 700,
-                          minWidth: '56px',
+                          minWidth: '44px',
                           textAlign: 'center',
                         }}>
                           -{formatDeduction(item.deduction)}
@@ -445,14 +607,46 @@ const DeductionDrawer = memo(({
                   fontWeight: 700,
                   textTransform: 'uppercase',
                   color: mutedColor,
-                  marginBottom: '0.75rem',
+                  marginBottom: '0.5rem',
                   letterSpacing: '0.05em',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '0.5rem',
                 }}>
-                  {t('deduction_history')} ({history.length})
+                  <span>{t('deduction_history')} ({filteredHistory.length})</span>
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  {history.map((entry, idx) => renderHistoryEntry(entry, idx))}
+                <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginBottom: '0.625rem' }}>
+                  {filterButtons.map(btn => (
+                    <button
+                      key={btn.key}
+                      onClick={() => setHistoryFilter(btn.key)}
+                      style={{
+                        padding: '2px 8px', borderRadius: '10px', border: `1px solid ${historyFilter === btn.key ? 'var(--brand)' : borderColor}`,
+                        fontSize: '0.65rem', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
+                        background: historyFilter === btn.key ? 'var(--brand)' : 'transparent',
+                        color: historyFilter === btn.key ? '#fff' : mutedColor,
+                        display: 'inline-flex', alignItems: 'center', gap: '3px',
+                      }}
+                    >
+                      {btn.label}
+                      <span style={{
+                        fontSize: '0.55rem', opacity: 0.8,
+                        background: historyFilter === btn.key ? 'rgba(255,255,255,0.2)' : cardBg,
+                        padding: '0 4px', borderRadius: '8px',
+                      }}>{btn.count}</span>
+                    </button>
+                  ))}
                 </div>
+                {filteredHistory.length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+                    {filteredHistory.map((entry, idx) => renderHistoryEntry(entry, idx))}
+                  </div>
+                ) : (
+                  <div style={{ textAlign: 'center', padding: '1rem', color: mutedColor, fontSize: '0.75rem' }}>
+                    No entries match this filter
+                  </div>
+                )}
               </div>
             )}
 
@@ -463,7 +657,17 @@ const DeductionDrawer = memo(({
             )}
           </div>
         )}
+        <div {...resizeHandleProps} />
       </div>
+
+      <DayWorkflowsDrawer
+        isOpen={Boolean(dayWorkflowContext)}
+        onClose={() => setDayWorkflowContext(null)}
+        student={student}
+        classId={resolvedClassId}
+        date={dayWorkflowContext?.date}
+        programId={programId}
+      />
     </>
   );
 });

@@ -42,7 +42,8 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
   setSendingEmails,
   sendStudentSummaryEmail,
   lang = 'en',
-  historyLoading = {}
+  historyLoading = {},
+  theme = 'light'
 }) => {
   const isMobile = useIsMobile();
   const navigate = useNavigate();
@@ -550,6 +551,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Stude
             lang={lang}
             historyLoading={historyLoading}
             canDeleteAttendance={canDeleteAttendance}
+            theme={theme}
           />
         </div>
       )}

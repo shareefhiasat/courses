@@ -617,10 +617,10 @@ export default function SmartDrivePage() {
         setSelectedFileForWorkflow(null);
         refreshFiles();
 
-        // Navigate to workflow document detail page
         const docId = result.data?.document?.id;
-        console.log('🟣 [SmartDrivePage] Navigating to:', `/workflow-documents/${docId}`);
-        navigate(`/workflow-documents/${docId}`);
+        if (docId) {
+          window.open(`/workflow-documents/${docId}`, '_blank', 'noopener,noreferrer');
+        }
       } else {
         console.error('❌ [SmartDrivePage] Workflow creation failed', {
           error: result.error,

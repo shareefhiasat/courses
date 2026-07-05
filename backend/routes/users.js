@@ -196,9 +196,10 @@ router.put('/:id', userOps.update, validateParams({
   id: { type: 'string', required: true },
 }), updateUserController);
 // Tighter rate limit for sensitive account operations
+const isDev = process.env.NODE_ENV !== 'production';
 const sensitiveLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  limit: 20,
+  windowMs: isDev ? 60 * 1000 : 15 * 60 * 1000,
+  limit: isDev ? 1000 : 20,
   standardHeaders: true,
   legacyHeaders: false,
   message: { success: false, error: 'Too many requests on this endpoint, please try again later.' },

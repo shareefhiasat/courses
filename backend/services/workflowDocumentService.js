@@ -1080,13 +1080,15 @@ export async function listFileVersions(fileId) {
             uploadedBy: {
               select: {
                 id: true,
+                keycloakId: true,
                 firstName: true,
-            lastName: true,
-            firstNameAr: true,
-            lastNameAr: true,
-            displayNameAr: true,
-            displayName: true,
-                email: true
+                lastName: true,
+                firstNameAr: true,
+                lastNameAr: true,
+                displayNameAr: true,
+                displayName: true,
+                email: true,
+                profileImageUrl: true
               }
             }
           }
@@ -1110,13 +1112,15 @@ export async function listFileVersions(fileId) {
                   uploadedBy: {
                     select: {
                       id: true,
+                      keycloakId: true,
                       firstName: true,
-            lastName: true,
-            firstNameAr: true,
-            lastNameAr: true,
-            displayNameAr: true,
-            displayName: true,
-                      email: true
+                      lastName: true,
+                      firstNameAr: true,
+                      lastNameAr: true,
+                      displayNameAr: true,
+                      displayName: true,
+                      email: true,
+                      profileImageUrl: true
                     }
                   }
                 }
@@ -1238,7 +1242,14 @@ export async function createCustomWorkflowDocument(data) {
       date,
       specificUserIds,
       targetStudentId,
+      targetStudentIds = [],
     } = data;
+
+    const resolvedTargetStudentIds = (targetStudentIds?.length
+      ? targetStudentIds
+      : (targetStudentId ? [targetStudentId] : [])
+    ).map(Number).filter(Boolean);
+    const primaryTargetStudentId = resolvedTargetStudentIds[0] || null;
 
     const taxonomy = buildTaxonomyFields({
       workflowType,
@@ -1255,7 +1266,7 @@ export async function createCustomWorkflowDocument(data) {
       date,
       dateFrom,
       dateTo,
-      targetStudentId,
+      targetStudentId: primaryTargetStudentId,
     });
     if (dedupCheck.isDuplicate) {
       return {
@@ -1375,11 +1386,16 @@ export async function createCustomWorkflowDocument(data) {
       date: attendanceDate,
       dateFrom,
       dateTo,
-      metadata: workflowMetadata,
+      metadata: {
+        ...(workflowMetadata || {}),
+        shareTargetMode: specificUserIds?.length ? 'users' : 'role',
+        specificUserIds: specificUserIds?.length ? specificUserIds.map(Number) : [],
+        targetStudentIds: resolvedTargetStudentIds,
+      },
       attendanceIds,
       classId: classId ? Number(classId) : null,
       instructorId: resolvedInstructorId,
-      targetStudentId: targetStudentId ? Number(targetStudentId) : null,
+      targetStudentId: primaryTargetStudentId,
       program: resolvedProgram,
       subject: resolvedSubject,
       createdBy,
@@ -1477,6 +1493,124 @@ export async function deleteWorkflowDocument(id) {
  * @param {number[]} attendanceIds - Array of attendance record IDs
  * @returns {Promise<{success: boolean, data?: Object}>}
  */
+function parseDayRange(dateInput) {
+  const day = new Date(dateInput);
+  const dayStart = new Date(day);
+  dayStart.setHours(0, 0, 0, 0);
+  const dayEnd = new Date(day);
+  dayEnd.setHours(23, 59, 59, 999);
+  return { dayStart, dayEnd };
+}
+
+/**
+ * Enrich workflow documents with share-target users from metadata.
+ */
+export async function enrichWorkflowDocuments(documents = []) {
+  if (!documents.length) return documents;
+
+  const allUserIds = new Set();
+  for (const doc of documents) {
+    const meta = doc.metadata && typeof doc.metadata === 'object' ? doc.metadata : {};
+    if (meta.shareTargetMode === 'users' && Array.isArray(meta.specificUserIds)) {
+      meta.specificUserIds.forEach((id) => allUserIds.add(Number(id)));
+    }
+  }
+
+  let usersById = {};
+  if (allUserIds.size > 0) {
+    const users = await prisma.user.findMany({
+      where: { id: { in: [...allUserIds] } },
+      select: {
+        id: true,
+        displayName: true,
+        displayNameAr: true,
+        firstName: true,
+        lastName: true,
+        firstNameAr: true,
+        lastNameAr: true,
+        email: true,
+        profileImageUrl: true,
+        roleAssignments: { include: { role: true } },
+      },
+    });
+    usersById = Object.fromEntries(users.map((u) => [u.id, u]));
+  }
+
+  return documents.map((doc) => {
+    const meta = doc.metadata && typeof doc.metadata === 'object' ? doc.metadata : {};
+    if (meta.shareTargetMode !== 'users' || !Array.isArray(meta.specificUserIds)) {
+      return doc;
+    }
+    const shareTargetUsers = meta.specificUserIds
+      .map((id) => usersById[Number(id)])
+      .filter(Boolean);
+    return { ...doc, shareTargetUsers };
+  });
+}
+
+/**
+ * Workflows related to a student on a specific class day (daily, excuse, linked attendance).
+ */
+export async function getWorkflowsByStudentDay({ userId, classId, date }) {
+  try {
+    if (!userId || !classId || !date) {
+      return { success: false, error: 'userId, classId, and date are required' };
+    }
+
+    const { dayStart, dayEnd } = parseDayRange(date);
+    const parsedUserId = Number(userId);
+    const parsedClassId = Number(classId);
+
+    const attendances = await prisma.attendance.findMany({
+      where: {
+        userId: parsedUserId,
+        classId: parsedClassId,
+        date: { gte: dayStart, lte: dayEnd },
+      },
+      select: { id: true },
+    });
+    const attendanceIds = attendances.map((a) => a.id);
+
+    const orClauses = [
+      {
+        classId: parsedClassId,
+        date: { gte: dayStart, lte: dayEnd },
+      },
+      {
+        classId: parsedClassId,
+        targetStudentId: parsedUserId,
+        OR: [
+          { date: { gte: dayStart, lte: dayEnd } },
+          { dateFrom: { lte: dayEnd }, dateTo: { gte: dayStart } },
+        ],
+      },
+    ];
+
+    if (attendanceIds.length > 0) {
+      orClauses.push({
+        linkedAttendances: { some: { attendanceId: { in: attendanceIds } } },
+      });
+    }
+
+    const documents = await prisma.workflowDocument.findMany({
+      where: { OR: orClauses },
+      include: {
+        submitter: true,
+        currentAssignee: true,
+        class: true,
+        targetStudent: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const enriched = await enrichWorkflowDocuments(documents);
+    return { success: true, data: enriched };
+  } catch (error) {
+    console.error('[getWorkflowsByStudentDay] Error:', error);
+    return { success: false, error: 'Internal server error' };
+  }
+}
+
 export async function getLinkedWorkflowsByAttendanceIds(attendanceIds) {
   try {
     if (!attendanceIds || attendanceIds.length === 0) {
@@ -1605,6 +1739,8 @@ export default {
   createCustomWorkflowDocument,
   deleteWorkflowDocument,
   getLinkedWorkflowsByAttendanceIds,
+  getWorkflowsByStudentDay,
+  enrichWorkflowDocuments,
   checkAttendanceWorkflowLock,
   checkStudentCategoryWorkflowLock
 };

@@ -1,0 +1,18 @@
+/**
+ * Joyride inside modals — spotlight must sit above modal panels (z-index 10000).
+ * The focus ring is the undimmed cutout; primary border reinforces the target on white backgrounds.
+ */
+
+.react-joyride__spotlight {
+  border-radius: 8px !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-primary, #800020) 45%, transparent) !important;
+}
+
+.react-joyride__overlay {
+  mix-blend-mode: normal;
+}
+
+/* Keep spotlight targets visible when scrolled inside modal bodies */
+[data-tour] {
+  scroll-margin: 12px;
+}

@@ -37,7 +37,7 @@ export async function listVersions(fileId, actorUserId, actorRoles = []) {
     if (!file || file.isDeleted) return err('FILE_NOT_FOUND', 'File not found');
 
     // Skip auth check for public links (actorUserId is null)
-    if (actorUserId !== null) {
+    if (actorUserId != null) {
       // Owner or someone with a share sees versions.
       const owns = file.ownerId === actorUserId;
       if (!owns) {
@@ -186,7 +186,7 @@ export async function getVersionPreviewUrl(versionId, actorUserId) {
     if (!version) return err('VERSION_NOT_FOUND', 'Version not found');
 
     if (version.file.ownerId !== actorUserId) {
-      const share = await prisma.fileShareV2.findFirst({
+      const share = await prisma.fileShare.findFirst({
         where: {
           fileId: version.fileId,
           OR: [{ subjectType: 'USER', subjectUserId: actorUserId }],

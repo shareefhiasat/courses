@@ -42,8 +42,9 @@ const StudentRoster = React.memo(function StudentRoster({
   onDownload,
   onFilter,
   onRefresh,
-  autoExpand = false, // New prop for auto-expansion
+  autoExpand = false, // Kept for backwards compatibility but no longer used
   onStudentAction = () => {},
+  onDeductionClick = null,
   searchQuery,
   onSearchChange,
   sortField,
@@ -101,7 +102,23 @@ const StudentRoster = React.memo(function StudentRoster({
     behavior: true,
     penalties: true
   });
-  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(() => {
+    try {
+      const saved = localStorage.getItem('qr_roster_showFavoritesOnly');
+      return saved !== null ? JSON.parse(saved) : false;
+    } catch {
+      return false;
+    }
+  });
+
+  // Persist favorites-only preference to localStorage
+  useEffect(() => {
+    try {
+      localStorage.setItem('qr_roster_showFavoritesOnly', JSON.stringify(showFavoritesOnly));
+    } catch (error) {
+      console.error('Failed to save roster favorites preference:', error);
+    }
+  }, [showFavoritesOnly]);
   const [favoriteStudents, setFavoriteStudents] = useState([]);
   const [sendingEmails, setSendingEmails] = useState({}); // Track sending state per student
   const [todayAttendanceOverrides, setTodayAttendanceOverrides] = useState({});
@@ -148,17 +165,26 @@ const StudentRoster = React.memo(function StudentRoster({
       const attendanceRecords = attendanceResponse.success
           ? attendanceResponse.data : [];
 
-      // Get standup attendance records
-      const standupAttendanceResponse = await import('@services/business/standupAttendanceService.js').then(
-        service => service.getStandupAttendanceByUser(studentId)
-      );
-      const standupAttendanceRecords = standupAttendanceResponse.success
-          ? standupAttendanceResponse.data : [];
+      const isStandupStatus = (record) => {
+        const code = getStatusCodeFromRecord(record) || '';
+        return String(code).toUpperCase().startsWith('STANDUP_');
+      };
 
-      // Merge regular and standup attendance records (only if user has canSeeStandupMode permission)
-      const allAttendanceRecords = canSeeStandupMode 
-        ? [...attendanceRecords, ...standupAttendanceRecords]
-        : attendanceRecords;
+      const isStandupMode = effectiveAttendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP;
+
+      let allAttendanceRecords = isStandupMode
+        ? attendanceRecords.filter(isStandupStatus)
+        : attendanceRecords.filter((record) => !isStandupStatus(record));
+
+      // In stand-up mode, also include records from the stand-up attendance table
+      if (isStandupMode && canSeeStandupMode) {
+        const standupAttendanceResponse = await import('@services/business/standupAttendanceService.js').then(
+          service => service.getStandupAttendanceByUser(studentId)
+        );
+        const standupAttendanceRecords = standupAttendanceResponse.success
+            ? standupAttendanceResponse.data : [];
+        allAttendanceRecords = [...allAttendanceRecords, ...standupAttendanceRecords];
+      }
 
       const [penaltiesResponse, participationsResponse, behaviorsResponse] = await Promise.all([
         getPenalties({ userId: studentId, limit: 1000 }),
@@ -169,7 +195,9 @@ const StudentRoster = React.memo(function StudentRoster({
       debug('🔧 fetchStudentHistory called getPenalties with studentId:', studentId);
 
       const studentPenalties = penaltiesResponse.success ? penaltiesResponse.data : [];
-      const studentParticipations = (participationsResponse.success ? participationsResponse.data : []).filter(p => (p.studentId ?? p.userId) === studentId);
+      const studentParticipations = (participationsResponse.success ? participationsResponse.data : [])
+        .filter(p => (p.studentId ?? p.userId) === studentId)
+        .filter(p => Number(p.points) > 0);
       const studentBehaviors = (behaviorsResponse.success ? behaviorsResponse.data : []).filter(b => (b.studentId ?? b.userId) === studentId);
 
       // Combine and format logs
@@ -231,7 +259,6 @@ const StudentRoster = React.memo(function StudentRoster({
             label: label,
             points: points,
             comment: p.description || '',
-            severity: 'low',
             color: '#dbeafe',
             // Add user information - use creator from database first
             performedBy: p.creator?.id || p.performedBy,
@@ -322,7 +349,7 @@ const StudentRoster = React.memo(function StudentRoster({
       setHistoryLoading(prev => ({ ...prev, [studentId]: false }));
       console.log('🔍 StudentRoster - historyLoading set to FALSE for student:', studentId);
     }
-  }, [lang, t, toYmd, lookupData]);
+  }, [lang, t, toYmd, lookupData, effectiveAttendanceMode, canSeeStandupMode]);
 
   const handleDeleteAttendance = async (studentId, logId) => {
     setDeleteType(RECORD_TYPES.ATTENDANCE);
@@ -383,21 +410,6 @@ const StudentRoster = React.memo(function StudentRoster({
       setDeleteLogId('');
     }
   };
-
-  // Auto-expand all students when autoExpand prop changes
-  useEffect(() => {
-    if (autoExpand && students.length > 0) {
-      const allStudentIds = new Set(students.map(s => s.id));
-      setExpandedRows(allStudentIds);
-      
-      // Fetch history for all students
-      students.forEach(student => {
-        if (!studentHistory[student.id]) {
-          fetchStudentHistory(student.id);
-        }
-      });
-    }
-  }, [autoExpand, students, fetchStudentHistory, studentHistory]);
 
   // Listen for real-time activity updates
   useEffect(() => {
@@ -630,6 +642,20 @@ const StudentRoster = React.memo(function StudentRoster({
       return newExpanded;
     });
   }, [studentHistory, fetchStudentHistory]);
+
+  const expandAllRows = useCallback(() => {
+    const allStudentIds = new Set(students.map(s => s.id));
+    setExpandedRows(allStudentIds);
+    students.forEach(student => {
+      if (!studentHistory[student.id]) {
+        fetchStudentHistory(student.id);
+      }
+    });
+  }, [students, studentHistory, fetchStudentHistory]);
+
+  const collapseAllRows = useCallback(() => {
+    setExpandedRows(new Set());
+  }, []);
 
   // QR Code utilities
   const { openQRCodeInNewTab } = QRCodeDisplay({});
@@ -1185,6 +1211,55 @@ const StudentRoster = React.memo(function StudentRoster({
               style={{ [isRTL ? 'paddingRight' : 'paddingLeft']: '2.5rem', width: '100%' }}
             />
           </div>
+          {/* Expand/Collapse all buttons */}
+          {attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && (
+            <div style={{ display: 'flex', gap: '0.25rem' }}>
+              <PortalTooltip content={t('expand_all')} position="top">
+                <button
+                  onClick={expandAllRows}
+                  style={{
+                    padding: '0.5rem',
+                    background: 'transparent',
+                    color: 'var(--text-muted, #6b7280)',
+                    border: '1px solid var(--border, #e5e7eb)',
+                    borderRadius: '0.375rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="6 9 12 15 18 9"></polyline>
+                    <polyline points="6 4 12 10 18 4"></polyline>
+                  </svg>
+                </button>
+              </PortalTooltip>
+              <PortalTooltip content={t('collapse_all')} position="top">
+                <button
+                  onClick={collapseAllRows}
+                  style={{
+                    padding: '0.5rem',
+                    background: 'transparent',
+                    color: 'var(--text-muted, #6b7280)',
+                    border: '1px solid var(--border, #e5e7eb)',
+                    borderRadius: '0.375rem',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    transition: 'all 0.2s'
+                  }}
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="18 15 12 9 6 15"></polyline>
+                    <polyline points="18 20 12 14 6 20"></polyline>
+                  </svg>
+                </button>
+              </PortalTooltip>
+            </div>
+          )}
           {/* Compact highlight toggle */}
           <div data-tour="roster-highlight-toggle">
           <PortalTooltip content={highlightEnabled ? t('highlight_attention_rows') : (t('highlight_disabled'))} position="top">
@@ -1310,6 +1385,7 @@ const StudentRoster = React.memo(function StudentRoster({
                   sendStudentSummaryEmail={sendStudentSummaryEmail}
                   lang={lang}
                   historyLoading={historyLoading}
+                  theme={theme}
                 />
               ))}
           </div>
@@ -1649,6 +1725,7 @@ const StudentRoster = React.memo(function StudentRoster({
                     toggleRowExpansion={toggleRowExpansion}
                     onStudentAction={onStudentAction}
                     onStudentSelect={onStudentSelect}
+                    onDeductionClick={onDeductionClick}
                     onQuickAttendance={canUseQuickAttendance ? handleQuickAttendance : null}
                     programId={selectedProgramId}
                     studentHistory={studentHistory}

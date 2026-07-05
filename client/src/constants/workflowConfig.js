@@ -65,8 +65,9 @@ export const ATTENDANCE_SUBTYPE_OPTIONS = [
     labelKey: 'workflow.attendanceSubtype.EXCUSE',
     defaultApprovalFlow: 'HR_ONLY',
     requiresAttendance: true,
-    requiresDates: true,
+    requiresSingleDate: true,
     requiresClassContext: true,
+    requiresTargetStudent: true,
     contextKey: 'workflow.dialog.excuseContextHelp',
   },
   {

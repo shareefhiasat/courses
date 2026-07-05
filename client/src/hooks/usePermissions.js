@@ -1,7 +1,6 @@
-import { useMemo, useEffect, useState } from 'react';
+import { useMemo } from 'react';
 import { useAuth } from '@contexts/AuthContext';
 import { resolveScreenIdFromNavItem } from '@config/navigationRegistry.js';
-import { getAuthToken } from '@utils/authHelpers';
 import { hasPermissionWithDeps } from '@constants/permissionDependencies.js';
 
 const ROLE_HIERARCHY = ['student', 'instructor', 'hr', 'admin', 'super_admin'];
@@ -12,9 +11,18 @@ function roleHasPermission(operation, roleCode) {
 }
 
 export const usePermissions = () => {
-  const { isSuperAdmin, isHR, isAdmin, isInstructor, isStudent } = useAuth();
-  const [permissionsData, setPermissionsData] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const {
+    isSuperAdmin,
+    isHR,
+    isAdmin,
+    isInstructor,
+    isStudent,
+    permissions: permissionsData,
+    permissionsLoading,
+    loading: authLoading,
+    initialized,
+    refetchPermissions,
+  } = useAuth();
 
   const roleCodes = useMemo(() => {
     const roles = [];
@@ -40,31 +48,9 @@ export const usePermissions = () => {
     return highestRole;
   }, [roleCodes]);
 
-  useEffect(() => {
-    const fetchPermissions = async () => {
-      if (roleCodes.length === 0) {
-        return;
-      }
-
-      try {
-        const token = getAuthToken();
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://localhost:8001/api/v1'}/permissions`, {
-          headers: { Authorization: token ? `Bearer ${token}` : '' },
-        });
-
-        if (response.ok) {
-          const data = await response.json();
-          setPermissionsData(data.data);
-        }
-      } catch (error) {
-        console.error('[usePermissions] Error fetching permissions:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchPermissions();
-  }, [roleCodes]);
+  const loading = authLoading
+    || permissionsLoading
+    || (initialized && roleCodes.length > 0 && !permissionsData);
 
   // Union: allowed if ANY of the user's roles grants the operation
   const permissions = useMemo(() => {
@@ -89,6 +75,7 @@ export const usePermissions = () => {
     allRoles: roleCodes,
     ...permissions,
     hasPermission: (permissionName) => hasPermissionWithDeps(permissions, permissionName),
+    refetchPermissions,
     canAccessScreen: (target) => {
       if (isSuperAdmin || roleCodes.includes('super_admin')) return true;
 

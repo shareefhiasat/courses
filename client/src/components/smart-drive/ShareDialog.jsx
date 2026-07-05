@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import Joyride from 'react-joyride';
-import TourTooltip from '@ui/TourTooltip/TourTooltip';
+import { getModalJoyrideProps, modalTourStep } from '@utils/tourConfig';
+import { useModalTour } from '@hooks/useModalTour';
 import { usePermissions } from '@hooks/usePermissions';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
@@ -33,107 +34,60 @@ export default function ShareDialog({ file, onShare, onGenerateLink, onClose }) 
   const canPublicLink = isSuperAdmin || hasPermission('drive.public-link');
 
   // ── Guided Tour ──────────────────────────────────────────────────────────
-  const [runTour, setRunTour] = useState(false);
-  const [tourSteps, setTourSteps] = useState([]);
   const tourSeenKey = `shareDialogTourSeen_${lang}`;
 
   const buildTourSteps = useCallback(() => {
     const steps = [
-      { target: '[data-tour="share-file-name"]', content: t('tour.share_file_name'), disableBeacon: true, placement: 'bottom' },
-      { target: '[data-tour="share-tabs"]', content: t('tour.share_tabs'), disableBeacon: true, placement: 'bottom' },
+      modalTourStep('[data-tour="share-file-name"]', t('tour.share_file_name')),
+      modalTourStep('[data-tour="share-tabs"]', t('tour.share_tabs')),
     ];
 
     if (canShare) {
       steps.push(
-        { target: '[data-tour="share-people-user-select"]', content: t('tour.share_people_user_select'), disableBeacon: true, placement: 'bottom', tab: 'people' },
-        { target: '[data-tour="share-people-permission"]', content: t('tour.share_people_permission'), disableBeacon: true, placement: 'bottom', tab: 'people' },
-        { target: '[data-tour="share-people-expiry"]', content: t('tour.share_people_expiry'), disableBeacon: true, placement: 'bottom', tab: 'people' },
-        { target: '[data-tour="share-people-button"]', content: t('tour.share_people_button'), disableBeacon: true, placement: 'top', tab: 'people' },
-        { target: '[data-tour="share-shares-list"]', content: t('tour.share_shares_list'), disableBeacon: true, placement: 'top', tab: 'people' },
-        { target: '[data-tour="share-roles-select"]', content: t('tour.share_roles_select'), disableBeacon: true, placement: 'bottom', tab: 'roles' },
-        { target: '[data-tour="share-roles-permission"]', content: t('tour.share_roles_permission'), disableBeacon: true, placement: 'bottom', tab: 'roles' },
-        { target: '[data-tour="share-roles-expiry"]', content: t('tour.share_roles_expiry'), disableBeacon: true, placement: 'bottom', tab: 'roles' },
-        { target: '[data-tour="share-roles-button"]', content: t('tour.share_roles_button'), disableBeacon: true, placement: 'top', tab: 'roles' },
-        { target: '[data-tour="share-shares-list"]', content: t('tour.share_shares_list'), disableBeacon: true, placement: 'top', tab: 'roles' },
+        modalTourStep('[data-tour="share-people-user-select"]', t('tour.share_people_user_select'), { tab: 'people' }),
+        modalTourStep('[data-tour="share-people-permission"]', t('tour.share_people_permission'), { tab: 'people' }),
+        modalTourStep('[data-tour="share-people-expiry"]', t('tour.share_people_expiry'), { tab: 'people' }),
+        modalTourStep('[data-tour="share-people-button"]', t('tour.share_people_button'), { tab: 'people', placement: 'top' }),
+        modalTourStep('[data-tour="share-shares-list"]', t('tour.share_shares_list'), { tab: 'people', placement: 'top' }),
+        modalTourStep('[data-tour="share-roles-select"]', t('tour.share_roles_select'), { tab: 'roles' }),
+        modalTourStep('[data-tour="share-roles-permission"]', t('tour.share_roles_permission'), { tab: 'roles' }),
+        modalTourStep('[data-tour="share-roles-expiry"]', t('tour.share_roles_expiry'), { tab: 'roles' }),
+        modalTourStep('[data-tour="share-roles-button"]', t('tour.share_roles_button'), { tab: 'roles', placement: 'top' }),
+        modalTourStep('[data-tour="share-shares-list"]', t('tour.share_shares_list'), { tab: 'roles', placement: 'top' }),
       );
     } else {
-      steps.push(
-        { target: '[data-tour="share-tabs"]', content: t('tour.share_people_hidden'), disableBeacon: true, placement: 'bottom' },
-      );
+      steps.push(modalTourStep('[data-tour="share-tabs"]', t('tour.share_people_hidden')));
     }
 
     if (canPublicLink) {
       steps.push(
-        { target: '[data-tour="share-public-expiry"]', content: t('tour.share_public_expiry'), disableBeacon: true, placement: 'bottom', tab: 'public' },
-        { target: '[data-tour="share-public-generate"]', content: t('tour.share_public_generate'), disableBeacon: true, placement: 'top', tab: 'public' },
-        { target: '[data-tour="share-public-link"]', content: t('tour.share_public_link'), disableBeacon: true, placement: 'top', tab: 'public' },
+        modalTourStep('[data-tour="share-public-expiry"]', t('tour.share_public_expiry'), { tab: 'public' }),
+        modalTourStep('[data-tour="share-public-generate"]', t('tour.share_public_generate'), { tab: 'public', placement: 'top' }),
+        modalTourStep('[data-tour="share-public-link"]', t('tour.share_public_link'), { tab: 'public', placement: 'top' }),
       );
     } else {
-      steps.push(
-        { target: '[data-tour="share-tabs"]', content: t('tour.share_public_hidden'), disableBeacon: true, placement: 'bottom' },
-      );
+      steps.push(modalTourStep('[data-tour="share-tabs"]', t('tour.share_public_hidden')));
     }
 
     return steps;
   }, [t, canShare, canPublicLink]);
 
-  const startTour = useCallback(() => {
-    const steps = buildTourSteps();
-    if (steps.length === 0) return;
-    setTourSteps(steps);
-    setRunTour(true);
-  }, [buildTourSteps]);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      try {
-        if (!localStorage.getItem(tourSeenKey)) startTour();
-      } catch {}
-    }, 400);
-    return () => clearTimeout(timer);
-  }, [tourSeenKey, startTour]);
-
-  useEffect(() => {
-    const handler = () => startTour();
-    window.addEventListener('app:joyride', handler);
-    window.addEventListener('app:help', handler);
-    return () => {
-      window.removeEventListener('app:joyride', handler);
-      window.removeEventListener('app:help', handler);
-    };
-  }, [startTour]);
-
-  const handleTourCallback = useCallback((data) => {
-    const { status, action, index, step, lifecycle } = data || {};
-
-    // Pre-switch tab for the upcoming step when navigating forward
-    if (action === 'next') {
-      const nextStep = tourSteps[index + 1];
-      if (nextStep?.tab) {
-        setShareType(nextStep.tab);
-      }
-    }
-
-    // Pre-switch tab when navigating backward
-    if (action === 'prev') {
-      const prevStep = tourSteps[index - 1];
-      if (prevStep?.tab) {
-        setShareType(prevStep.tab);
-      }
-    }
-
-    // Switch tab when tour starts on a tab step
-    if (action === 'start' && step?.tab) {
-      setShareType(step.tab);
-    }
-
-    if (status === 'finished' || status === 'skipped' || action === 'close') {
-      setRunTour(false);
-      try { localStorage.setItem(tourSeenKey, 'true'); } catch {}
-    }
-  }, [tourSteps, tourSeenKey]);
-
-  const TourTooltipComponent = useMemo(() => TourTooltip({ tourSeenKey }), [tourSeenKey]);
+  const {
+    run: runTour,
+    stepIndex,
+    steps: tourSteps,
+    startTour,
+    callback: handleTourCallback,
+    TourTooltipComponent,
+    tourActive,
+  } = useModalTour({
+    id: 'share-dialog',
+    tourSeenKey,
+    buildSteps: buildTourSteps,
+    onStepPrepare: (step) => {
+      if (step?.tab) setShareType(step.tab);
+    },
+  });
   // ─────────────────────────────────────────────────────────────────────────
 
   const handleShareWithUser = async () => {
@@ -221,7 +175,8 @@ export default function ShareDialog({ file, onShare, onGenerateLink, onClose }) 
       title={t('drive.shareFile')}
       size="large"
       zIndex={10001}
-      draggable={false}
+      tourActive={tourActive}
+      draggable={!tourActive}
       aria-describedby="share-dialog-description"
     >
       <div className="space-y-6">
@@ -463,30 +418,12 @@ export default function ShareDialog({ file, onShare, onGenerateLink, onClose }) 
       </div>
     </Modal>
       <Joyride
-        continuous
-        run={runTour && tourSteps.length > 0}
+        {...getModalJoyrideProps({ theme, t })}
+        run={runTour}
+        stepIndex={stepIndex}
         steps={tourSteps}
         callback={handleTourCallback}
-        scrollOffset={100}
-        scrollToFirstStep
-        showSkipButton
-        showProgress
         tooltipComponent={TourTooltipComponent}
-        locale={{
-          back: t('tour_back'),
-          close: t('tour_close'),
-          last: t('tour_finish'),
-          next: t('tour_next'),
-          skip: t('tour_skip'),
-        }}
-        styles={{
-          options: {
-            primaryColor: 'var(--color-primary, #800020)',
-            textColor: theme === 'dark' ? '#e5e7eb' : '#111',
-            backgroundColor: theme === 'dark' ? '#1f2937' : '#fff',
-            zIndex: 10002,
-          },
-        }}
       />
     </>
   );

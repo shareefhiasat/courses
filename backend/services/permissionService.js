@@ -17,10 +17,19 @@
 
 import prisma from '../db/prismaClient.js';
 import { getAncestorIds } from './folderService.js';
+import { hasRole, normalizeRoles } from '../utils/roleUtils.js';
+import { LMS_ROLES as ROLES } from './keycloakAdminService.js';
 
 
 const RANK = { VIEW: 1, DOWNLOAD: 2, COMMENT: 3, EDIT: 4 };
-const SUPER_ADMIN_ROLE = 'super_admin';
+
+function actorIsSuperAdmin(roles = []) {
+  return hasRole(roles, ROLES.SUPER_ADMIN);
+}
+
+function normalizeActorRoles(roles = []) {
+  return normalizeRoles(roles).map((r) => String(r).toLowerCase());
+}
 
 const ok = (permission) => ({ allowed: true, permission });
 const deny = (reason = 'no_matching_share') => ({ allowed: false, reason });
@@ -53,8 +62,11 @@ export async function canAccessFile(fileId, actor) {
     },
   });
   if (!file || file.isDeleted) return deny('file_not_found');
-  if (file.ownerId === actor.userId) return ok('EDIT');
-  if ((actor.roles || []).includes(SUPER_ADMIN_ROLE)) return ok('EDIT');
+  const actorUserId = Number(actor.userId);
+  if (Number.isNaN(actorUserId)) return deny('no_actor');
+
+  if (file.ownerId === actorUserId) return ok('EDIT');
+  if (actorIsSuperAdmin(actor.roles)) return ok('EDIT');
 
   // Check if user is a workflow participant via WorkflowDocument (simple workflow system)
   const workflowDoc = await prisma.workflowDocument.findFirst({
@@ -66,8 +78,8 @@ export async function canAccessFile(fileId, actor) {
   });
 
   if (workflowDoc) {
-    const isSubmitter = workflowDoc.submitterId === actor.userId;
-    const isAssignee = workflowDoc.currentAssigneeId === actor.userId;
+    const isSubmitter = workflowDoc.submitterId === actorUserId;
+    const isAssignee = workflowDoc.currentAssigneeId === actorUserId;
 
     if (isSubmitter || isAssignee) {
       return ok('COMMENT');
@@ -92,16 +104,16 @@ export async function canAccessFile(fileId, actor) {
   });
 
   if (workflowInstance) {
-    const isInitiator = workflowInstance.initiatedById === actor.userId;
-    const isDirectAssignee = workflowInstance.assignedUserId === actor.userId;
-    const actorRolesUpper = (actor.roles || []).map(r => r.toUpperCase());
+    const isInitiator = workflowInstance.initiatedById === actorUserId;
+    const isDirectAssignee = workflowInstance.assignedUserId === actorUserId;
+    const actorRolesUpper = normalizeActorRoles(actor.roles).map((r) => r.toUpperCase());
     const instanceRoleUpper = workflowInstance.assignedRole?.toUpperCase();
     const isRoleAssignee = instanceRoleUpper && actorRolesUpper.includes(instanceRoleUpper);
-    const isStepAssignee = workflowInstance.steps.some(step => step.assignedUserId === actor.userId);
+    const isStepAssignee = workflowInstance.steps.some(step => step.assignedUserId === actorUserId);
     const isStepRoleAssignee = workflowInstance.steps.some(step =>
       (step.assignedRoles || []).some(r => actorRolesUpper.includes(r?.toUpperCase()))
     );
-    const isActor = workflowInstance.steps.some(step => step.actedById === actor.userId);
+    const isActor = workflowInstance.steps.some(step => step.actedById === actorUserId);
 
     if (isInitiator || isDirectAssignee || isRoleAssignee || isStepAssignee || isStepRoleAssignee || isActor) {
       return ok('COMMENT'); // Workflow participants get COMMENT access (includes VIEW + DOWNLOAD + COMMENT)
@@ -115,10 +127,10 @@ export async function canAccessFile(fileId, actor) {
     where: {
       fileId,
       OR: [
-        { subjectType: 'USER', subjectUserId: actor.userId },
+        { subjectType: 'USER', subjectUserId: actorUserId },
         {
           subjectType: 'ROLE',
-          subjectRole: { in: actor.roles || [] },
+          subjectRole: { in: normalizeActorRoles(actor.roles) },
         },
       ],
       AND: [
@@ -138,8 +150,8 @@ export async function canAccessFile(fileId, actor) {
         where: {
           folderId: { in: ancestors },
           OR: [
-            { subjectType: 'USER', subjectUserId: actor.userId },
-            { subjectType: 'ROLE', subjectRole: { in: actor.roles || [] } },
+            { subjectType: 'USER', subjectUserId: actorUserId },
+            { subjectType: 'ROLE', subjectRole: { in: normalizeActorRoles(actor.roles) } },
           ],
           AND: [{ OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] }],
         },
@@ -163,18 +175,21 @@ export async function canAccessFolder(folderId, actor) {
     select: { id: true, ownerId: true, isDeleted: true },
   });
   if (!folder || folder.isDeleted) return deny('folder_not_found');
-  if (folder.ownerId === actor.userId) return ok('EDIT');
-  if ((actor.roles || []).includes(SUPER_ADMIN_ROLE)) return ok('EDIT');
+  const actorUserId = Number(actor.userId);
+  if (Number.isNaN(actorUserId)) return deny('no_actor');
+
+  if (folder.ownerId === actorUserId) return ok('EDIT');
+  if (actorIsSuperAdmin(actor.roles)) return ok('EDIT');
 
   const now = new Date();
   const ancestors = await getAncestorIds(folderId);
   const scope = [folderId, ...ancestors.filter((a) => a !== folderId)];
-  const rows = await prisma.fileShareV2.findMany({
+  const rows = await prisma.fileShare.findMany({
     where: {
       folderId: { in: scope },
       OR: [
-        { subjectType: 'USER', subjectUserId: actor.userId },
-        { subjectType: 'ROLE', subjectRole: { in: actor.roles || [] } },
+        { subjectType: 'USER', subjectUserId: actorUserId },
+        { subjectType: 'ROLE', subjectRole: { in: normalizeActorRoles(actor.roles) } },
       ],
       AND: [{ OR: [{ expiresAt: null }, { expiresAt: { gt: now } }] }],
     },

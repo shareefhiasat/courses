@@ -809,22 +809,29 @@ export async function permanentDeleteFile(fileId, actorUserId) {
  * @param {number} actorUserId - User ID
  * @param {string} fileVersionId - Optional specific file version ID for workflow snapshots
  */
-export async function getPreviewUrl(fileId, actorUserId, fileVersionId = null) {
+export async function getPreviewUrl(fileId, actorUserId, fileVersionId = null, actorRoles = []) {
   console.log('[fileService.getPreviewUrl] Request:', { fileId, actorUserId, fileVersionId });
   try {
+    const userId = Number(actorUserId);
+    if (Number.isNaN(userId)) {
+      return err('ACCESS_DENIED', 'Invalid user');
+    }
+
     // Permission gate: require at least VIEW access before generating any preview URL / WOPI token.
-    if (actorUserId) {
-      const { canAccessFile } = await import('./permissionService.js');
-      // Resolve the actor's roles from the DB for the permission check.
-      const actorRecord = await prisma.user.findUnique({
-        where: { id: actorUserId },
-        include: { roleAssignments: { include: { role: true } } },
-      });
-      const actorRoles = actorRecord?.roleAssignments?.map(ra => ra.role?.code?.toLowerCase()).filter(Boolean) || [];
-      const access = await canAccessFile(fileId, { userId: actorUserId, roles: actorRoles });
-      if (!access.allowed) {
-        return err('ACCESS_DENIED', 'No permission to preview this file');
-      }
+    const { canAccessFile } = await import('./permissionService.js');
+    // Resolve the actor's roles from the DB for the permission check.
+    const actorRecord = await prisma.user.findUnique({
+      where: { id: userId },
+      include: { roleAssignments: { include: { role: true } } },
+    });
+    const dbRoles = actorRecord?.roleAssignments?.map(ra => ra.role?.code?.toLowerCase()).filter(Boolean) || [];
+    const mergedRoles = [...new Set([
+      ...dbRoles,
+      ...(actorRoles || []).map((r) => String(r).toLowerCase()),
+    ])];
+    const access = await canAccessFile(fileId, { userId, roles: mergedRoles });
+    if (!access.allowed) {
+      return err('ACCESS_DENIED', 'No permission to preview this file');
     }
 
     const file = await prisma.file.findUnique({ where: { id: fileId } });
@@ -891,20 +898,20 @@ export async function getPreviewUrl(fileId, actorUserId, fileVersionId = null) {
       const { generateWopiToken } = await import('./wopiService.js');
 
       // Get user info for WOPI context
-      const user = await prisma.user.findUnique({ where: { id: actorUserId } });
+      const user = await prisma.user.findUnique({ where: { id: userId } });
       const userInfo = {
         displayName: user?.displayName || 'User',
         email: user?.email || '',
-        id: user?.id || actorUserId,
+        id: user?.id || userId,
       };
 
       // If fileVersionId is provided, use read-only permission to preserve snapshot
       // Default to read-only (view mode) for preview, user can explicitly edit if needed
       const permission = 'read';
-      const wopiToken = generateWopiToken(actorUserId, fileId, permission, userInfo, fileVersionId);
+      const wopiToken = generateWopiToken(userId, fileId, permission, userInfo, fileVersionId);
 
       await prisma.fileActivity.create({
-        data: { fileId, userId: actorUserId, action: 'preview' },
+        data: { fileId, userId, action: 'preview' },
       });
 
       return ok({ mode: 'collabora', wopiToken });
@@ -917,7 +924,7 @@ export async function getPreviewUrl(fileId, actorUserId, fileVersionId = null) {
     const url = `/api/v1/drive/files/${fileId}/download${fileVersionId ? `?versionId=${fileVersionId}` : ''}`;
 
     await prisma.fileActivity.create({
-      data: { fileId, userId: actorUserId, action: 'preview' },
+      data: { fileId, userId, action: 'preview' },
     });
     return ok({ mode: 'inline', url, mimeType: file.mimeType });
   } catch (error) {

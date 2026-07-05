@@ -1,7 +1,7 @@
 import React from 'react';
 import { useLang } from '@contexts/LangContext';
 import { getThemedIcon, getUserRoleIcon, getUserRoleColor } from '@constants/iconTypes';
-import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
+import { getAvatarColor, getAvatarInitials, normalizeProfileImageUrl } from '@utils/avatarUtils';
 import { getUserRoleFromObject } from '@utils/userUtils';
 import { formatQatarDate } from '@utils/timezone';
 
@@ -90,7 +90,7 @@ function WorkflowHistory({ statusHistory }) {
                 >
                   {history.actor?.profileImageUrl ? (
                     <img
-                      src={history.actor.profileImageUrl}
+                      src={normalizeProfileImageUrl(history.actor.profileImageUrl)}
                       alt={getActorName(history.actor)}
                       style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                     />

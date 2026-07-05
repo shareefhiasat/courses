@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, memo, useLayoutEffect, useCallback } from 'react';
 import Joyride from 'react-joyride';
-import TourTooltip from '@ui/TourTooltip/TourTooltip';
+import { usePageTour } from '@hooks/usePageTour';
+import { getJoyrideBaseProps, getTourStyles } from '@utils/tourConfig';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
@@ -98,44 +99,26 @@ const ChatPage = memo(() => {
   const { theme } = useTheme();
 
   // ── Guided Tour ──────────────────────────────────────────────────────────
-  const [runTour, setRunTour] = useState(false);
-  const [tourSteps, setTourSteps] = useState([]);
-  const tourSeenKey = `chatTourSeen_${lang}`;
   const buildTourSteps = useCallback(() => [
-    { target: '[data-tour="chat-sidebar"]', content: t('tour.chat_sidebar'), disableBeacon: true, placement: 'right' },
-    { target: '[data-tour="chat-room-list"]', content: t('tour.chat_room_list'), disableBeacon: true, placement: 'right' },
-    { target: '[data-tour="chat-search"]', content: t('tour.chat_search'), disableBeacon: true, placement: 'right' },
-    { target: '[data-tour="chat-members"]', content: t('tour.chat_members'), disableBeacon: true, placement: 'left' },
-    { target: '[data-tour="chat-input"]', content: t('tour.chat_input'), disableBeacon: true, placement: 'top' },
-    { target: '[data-tour="chat-file-attach"]', content: t('tour.chat_file_attach'), disableBeacon: true, placement: 'top' },
-    { target: '[data-tour="chat-voice"]', content: t('tour.chat_voice'), disableBeacon: true, placement: 'top' },
-    { target: '[data-tour="chat-emoji-btn"]', content: t('tour.chat_emoji'), disableBeacon: true, placement: 'top' },
-    { target: '[data-tour="chat-poll-btn"]', content: t('tour.chat_poll'), disableBeacon: true, placement: 'top' },
-    { target: '[data-tour="chat-reaction-btn"]', content: t('tour.chat_reactions'), disableBeacon: true, placement: 'left' },
-    { target: '[data-tour="chat-dm-section"]', content: t('tour.chat_dm_section'), disableBeacon: true, placement: 'right' },
-    { target: '[data-tour="chat-dm-search"]', content: t('tour.chat_dm_search'), disableBeacon: true, placement: 'right' },
-    { target: '[data-tour="chat-dm-favorite"]', content: t('tour.chat_dm_favorite'), disableBeacon: true, placement: 'left' },
-    { target: '[data-tour="chat-dm-archive"]', content: t('tour.chat_dm_archive'), disableBeacon: true, placement: 'left' },
-    { target: '[data-tour="chat-members-btn"]', content: t('tour.chat_members_btn'), disableBeacon: true, placement: 'left' },
-    { target: '[data-tour="chat-sidebar-footer"]', content: t('tour.chat_sidebar_footer'), disableBeacon: true, placement: 'top' },
-  ].filter(s => !!document.querySelector(s.target)), [t]);
-  const startTour = useCallback(() => {
-    const steps = buildTourSteps();
-    if (steps.length === 0) return;
-    setTourSteps(steps);
-    setRunTour(true);
-  }, [buildTourSteps]);
-  useEffect(() => {
-    window.addEventListener('app:joyride', startTour);
-    window.addEventListener('app:help', startTour);
-    return () => { window.removeEventListener('app:joyride', startTour); window.removeEventListener('app:help', startTour); };
-  }, [startTour]);
-  useEffect(() => { try { if (!localStorage.getItem(tourSeenKey)) startTour(); } catch {} }, [tourSeenKey, startTour]);
-  const handleTourCallback = useCallback((data) => {
-    const { status, action } = data || {};
-    if (status === 'finished' || status === 'skipped' || action === 'close') { setRunTour(false); try { localStorage.setItem(tourSeenKey, 'true'); } catch {} }
-  }, [tourSeenKey]);
-  const TourTooltipComponent = useMemo(() => TourTooltip({ tourSeenKey }), [tourSeenKey]);
+    { target: '[data-tour="chat-sidebar"]', content: t('tour.chat_sidebar'), disableBeacon: true, placement: 'right', spotlightPadding: 8 },
+    { target: '[data-tour="chat-room-list"]', content: t('tour.chat_room_list'), disableBeacon: true, placement: 'right', spotlightPadding: 8 },
+    { target: '[data-tour="chat-members-btn"]', content: t('tour.chat_members_btn'), disableBeacon: true, placement: 'bottom', spotlightPadding: 6 },
+    { target: '[data-tour="chat-search"]', content: t('tour.chat_search'), disableBeacon: true, placement: 'bottom', spotlightPadding: 6 },
+    { target: '[data-tour="chat-input"]', content: t('tour.chat_input'), disableBeacon: true, placement: 'top', spotlightPadding: 6 },
+    { target: '[data-tour="chat-file-attach"]', content: t('tour.chat_file_attach'), disableBeacon: true, placement: 'top', spotlightPadding: 6 },
+    { target: '[data-tour="chat-voice"]', content: t('tour.chat_voice'), disableBeacon: true, placement: 'top', spotlightPadding: 6 },
+    { target: '[data-tour="chat-emoji-btn"]', content: t('tour.chat_emoji'), disableBeacon: true, placement: 'top', spotlightPadding: 6 },
+    { target: '[data-tour="chat-poll-btn"]', content: t('tour.chat_poll'), disableBeacon: true, placement: 'top', spotlightPadding: 6 },
+    { target: '[data-tour="chat-reaction-btn"]', content: t('tour.chat_reactions'), disableBeacon: true, placement: 'left', spotlightPadding: 6 },
+    { target: '[data-tour="chat-dm-section"]', content: t('tour.chat_dm_section'), disableBeacon: true, placement: 'right', spotlightPadding: 8 },
+    { target: '[data-tour="chat-dm-search"]', content: t('tour.chat_dm_search'), disableBeacon: true, placement: 'right', spotlightPadding: 6 },
+    { target: '[data-tour="chat-dm-favorite"]', content: t('tour.chat_dm_favorite'), disableBeacon: true, placement: 'left', spotlightPadding: 6 },
+    { target: '[data-tour="chat-dm-archive"]', content: t('tour.chat_dm_archive'), disableBeacon: true, placement: 'left', spotlightPadding: 6 },
+    { target: '[data-tour="chat-members"]', content: t('tour.chat_members'), disableBeacon: true, placement: 'left', spotlightPadding: 8 },
+    { target: '[data-tour="chat-sidebar-footer"]', content: t('tour.chat_sidebar_footer'), disableBeacon: true, placement: 'top', spotlightPadding: 6 },
+  ].filter((s) => !!document.querySelector(s.target)), [t]);
+  const { run: runTour, steps: tourSteps, callback: handleTourCallback, TourTooltipComponent } =
+    usePageTour('chat', 'chatTourSeen', buildTourSteps);
   // ──────────────────────────────────────────────────────────────────────────
   const toast = useToast();
   const { startLoading } = useGlobalLoading();
@@ -1342,9 +1325,13 @@ const ChatPage = memo(() => {
 
   return (
     <>
-    <Joyride continuous run={runTour} steps={tourSteps} callback={handleTourCallback} scrollOffset={100} scrollToFirstStep showSkipButton showProgress tooltipComponent={TourTooltipComponent}
-      locale={{ back: t('tour_back'), close: t('tour_close'), last: t('tour_finish'), next: t('tour_next'), skip: t('tour_skip') }}
-      styles={{ options: { primaryColor: 'var(--color-primary,#800020)', textColor: theme === 'dark' ? '#e5e7eb' : '#111', backgroundColor: theme === 'dark' ? '#1f2937' : '#fff', zIndex: 10000 } }}
+    <Joyride
+      {...getJoyrideBaseProps({ theme, t })}
+      run={runTour}
+      steps={tourSteps}
+      callback={handleTourCallback}
+      tooltipComponent={TourTooltipComponent}
+      styles={getTourStyles(theme)}
     />
     <div className="chat-page" data-theme={theme}>
       {/* Sidebar */}

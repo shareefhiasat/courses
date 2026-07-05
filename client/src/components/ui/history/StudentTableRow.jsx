@@ -13,6 +13,7 @@ import { RECORD_TYPES } from '@utils/sharedTypes.js';
 import StudentInfoCell from './StudentInfoCell';
 import AttendanceStatusCell from './AttendanceStatusCell';
 import QuickAttendanceButtons from './QuickAttendanceButtons';
+import { TrendingDown } from 'lucide-react';
 import StudentStatsRow from './StudentStatsRow';
 import { CheckSmallIcon, ClockSmallIcon, XSmallIcon, HeartIcon, CircleIcon } from '@utils/icons.jsx';
 
@@ -26,6 +27,7 @@ const StudentTableRow = ({
   toggleRowExpansion,
   onStudentAction,
   onStudentSelect,
+  onDeductionClick = null,
   onQuickAttendance, // New prop for quick attendance
   programId,
   studentHistory,
@@ -534,6 +536,20 @@ const StudentTableRow = ({
                 </Button>
               </PortalTooltip>
             )}
+            {attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && onDeductionClick && (
+              <PortalTooltip content={t('absence_deductions', 'Absence deductions')} position="top">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDeductionClick(student);
+                  }}
+                >
+                  <TrendingDown size={16} style={{ color: '#dc2626' }} />
+                </Button>
+              </PortalTooltip>
+            )}
             <PortalTooltip content={t('open_qr_code')} position="top">
               <Button 
                 variant="ghost" 
@@ -583,7 +599,8 @@ const StudentTableRow = ({
       {/* Expanded History Row */}
       {isExpanded && attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && (
         <tr style={{ background: 'var(--background-secondary, #f9fafb)', borderBottom: '1px solid var(--border, #e5e7eb)' }}>
-          <td colSpan="7" style={{ padding: '0.5rem 1rem' }}>
+          <td colSpan="7" style={{ padding: '0.5rem 1rem', overflow: 'visible' }}>
+            <div style={{ minWidth: '132%' }}>
             <StudentRosterHistory 
               student={student}
               studentHistory={studentHistory}
@@ -603,7 +620,9 @@ const StudentTableRow = ({
               lang={lang}
               historyLoading={historyLoading}
               canDeleteAttendance={canDeleteAttendance}
+              theme={theme}
             />
+            </div>
           </td>
         </tr>
       )}

@@ -230,8 +230,8 @@ const WorkflowDiagram = ({ status, workflowType = 'GENERAL_HR', document, curren
   const [nodes, setNodes] = useState([]);
   const [canvasHeight, setCanvasHeight] = useState(() => {
     const saved = localStorage.getItem('wf-diagram-canvas-height');
-    const parsed = saved ? parseInt(saved, 10) : 500;
-    return Number.isNaN(parsed) ? 500 : parsed;
+    const parsed = saved ? parseInt(saved, 10) : 425;
+    return Number.isNaN(parsed) ? 425 : parsed;
   });
   const canvasResizeStartY = useRef(0);
   const canvasResizeStartHeight = useRef(0);
@@ -579,20 +579,20 @@ const WorkflowDiagram = ({ status, workflowType = 'GENERAL_HR', document, curren
   // Dagre layout function for auto-arranging nodes
   const getLayoutedElements = (nodes, edges, direction = 'LR') => {
     const isRTL = lang === 'ar';
-    let nodeWidth = 162;
-    let nodeHeight = 110;
+    let nodeWidth = 178;
+    let nodeHeight = 121;
     let ranksep = 160;
     let nodesep = 100;
 
     // Adjust based on layout mode
     if (layoutMode === 'compact') {
-      nodeWidth = 135;
-      nodeHeight = 95;
+      nodeWidth = 149;
+      nodeHeight = 105;
       ranksep = 80;
       nodesep = 50;
     } else if (layoutMode === 'hierarchical') {
-      nodeWidth = 180;
-      nodeHeight = 130;
+      nodeWidth = 198;
+      nodeHeight = 143;
       ranksep = 200;
       nodesep = 120;
     }
@@ -631,8 +631,8 @@ const WorkflowDiagram = ({ status, workflowType = 'GENERAL_HR', document, curren
 
   // Generate nodes
   const initialNodes = useMemo(() => {
-    const nodeWidth = 162;
-    const nodeHeight = 100;
+    const nodeWidth = 178;
+    const nodeHeight = 110;
 
     const generatedNodes = workflowStages.map((stage, index) => {
 
@@ -645,7 +645,11 @@ const WorkflowDiagram = ({ status, workflowType = 'GENERAL_HR', document, curren
       const isSubmittedCompleted = stage.status === 'SUBMITTED' && 
         (status === 'UNDER_HR_REVIEW' || status === 'UNDER_ADMIN_REVIEW' || status === 'APPROVED' || status === 'REJECTED');
 
-      if (isSubmittedCompleted || index < currentStageIndex) {
+      // Terminal states (APPROVED/REJECTED) should be styled as completed, not current
+      const isTerminalCompleted = (stage.status === 'APPROVED' && status === 'APPROVED') ||
+                                   (stage.status === 'REJECTED' && status === 'REJECTED');
+
+      if (isSubmittedCompleted || isTerminalCompleted || index < currentStageIndex) {
         // Completed
         backgroundColor = '#d1fae5';
         borderColor = '#10b981';
@@ -727,15 +731,17 @@ const WorkflowDiagram = ({ status, workflowType = 'GENERAL_HR', document, curren
                     {getThemedIcon('ui', statusIcon.icon, 16, statusIcon.color)}
                     <span className="font-bold text-xs" style={{ color: borderColor, whiteSpace: 'nowrap' }}>{stage.label[lang]}</span>
                   </div>
+              </div>
+              <div className="flex flex-col gap-0.5 mt-auto" style={{ textAlign: lang === 'ar' ? 'right' : 'left', alignItems: lang === 'ar' ? 'flex-end' : 'flex-start' }}>
+                <div className="flex items-center gap-1" style={{ flexDirection: lang === 'ar' ? 'row-reverse' : 'row' }}>
+                  <div className="text-xs font-semibold" style={{ color: '#111827' }}>
+                    {actorName}
+                  </div>
                   {duration && (
-                    <span className="text-xs font-medium px-1 py-0.5 rounded self-start" style={{ background: '#e0f2fe', color: '#0369a1', whiteSpace: 'nowrap' }}>
+                    <span className="text-xs font-medium px-1 py-0.5 rounded" style={{ background: '#e0f2fe', color: '#0369a1', whiteSpace: 'nowrap' }}>
                       {duration}
                     </span>
                   )}
-              </div>
-              <div className="flex flex-col gap-0.5 mt-auto" style={{ textAlign: lang === 'ar' ? 'right' : 'left', alignItems: lang === 'ar' ? 'flex-end' : 'flex-start' }}>
-                <div className="text-xs font-semibold" style={{ color: '#111827' }}>
-                  {actorName}
                 </div>
                 <div className="text-xs" style={{ color: '#6b7280' }}>
                   {entryDate}
@@ -764,8 +770,8 @@ const WorkflowDiagram = ({ status, workflowType = 'GENERAL_HR', document, curren
           historyEntries,
           stage,
           stageId: stage.id,
-          isCurrent: index === currentStageIndex,
-          isCompleted: index < currentStageIndex
+          isCurrent: index === currentStageIndex && !isTerminalCompleted,
+          isCompleted: isTerminalCompleted || index < currentStageIndex
         },
         style: {
           backgroundColor,
@@ -782,12 +788,12 @@ const WorkflowDiagram = ({ status, workflowType = 'GENERAL_HR', document, curren
           fontSize: 'var(--font-size-sm)',
           fontWeight: 600,
           cursor: 'pointer',
-          boxShadow: index === currentStageIndex ? '0 0 0 4px rgba(59, 130, 246, 0.2), 0 4px 12px rgba(0,0,0,0.15)' : '0 2px 8px rgba(0,0,0,0.1)',
-          animation: index === currentStageIndex ? 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' : 'none',
-          borderStyle: index === currentStageIndex ? 'dashed' : 'solid',
+          boxShadow: index === currentStageIndex && !isTerminalCompleted ? '0 0 0 4px rgba(59, 130, 246, 0.2), 0 4px 12px rgba(0,0,0,0.15)' : '0 2px 8px rgba(0,0,0,0.1)',
+          animation: index === currentStageIndex && !isTerminalCompleted ? 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' : 'none',
+          borderStyle: index === currentStageIndex && !isTerminalCompleted ? 'dashed' : 'solid',
           transition: 'all 0.3s ease'
         },
-        className: index === currentStageIndex ? 'workflow-current-stage' : ''
+        className: index === currentStageIndex && !isTerminalCompleted ? 'workflow-current-stage' : ''
       };
     });
 
@@ -928,6 +934,9 @@ const WorkflowDiagram = ({ status, workflowType = 'GENERAL_HR', document, curren
       <div className="flex items-center justify-between mb-4 px-4" style={{ paddingBottom: '0.75rem', borderBottom: '1px solid var(--border, #e5e7eb)' }}>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
+            <span className="text-sm font-medium" style={{ color: 'var(--text-secondary, #6b7280)' }}>
+              {t('workflow.progress', 'Progress')}:
+            </span>
             <div className="text-sm font-medium" style={{ color: 'var(--text-secondary, #6b7280)' }}>
               {progressPercentage}%
             </div>
@@ -936,7 +945,7 @@ const WorkflowDiagram = ({ status, workflowType = 'GENERAL_HR', document, curren
             </div>
           </div>
           {/* Legend */}
-          <div className="flex items-center gap-6 text-sm">
+          <div data-tour="doc-diagram-legend" className="flex items-center gap-6 text-sm">
             <div className="flex items-center gap-2">
               <div style={{ width: 16, height: 16, background: '#10b981', borderRadius: 4 }} />
               <span style={{ color: '#10b981', fontWeight: 500 }}>{t('workflow.legend.completed', 'Completed')}</span>
@@ -950,21 +959,26 @@ const WorkflowDiagram = ({ status, workflowType = 'GENERAL_HR', document, curren
               <span style={{ color: '#6b7280', fontWeight: 500 }}>{t('workflow.legend.pending', 'Pending')}</span>
             </div>
             <div style={{ width: 1, height: 16, background: '#e5e7eb' }}></div>
-            <div className="flex items-center gap-2">
-              {getRoleIcon('Owner')}
-              <span style={{ color: 'var(--text-secondary, #6b7280)' }}>{t('owner', 'Owner')}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              {getRoleIcon('HR')}
-              <span style={{ color: 'var(--text-secondary, #6b7280)' }}>{t('roles.hr', 'HR')}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              {getRoleIcon('Admin')}
-              <span style={{ color: 'var(--text-secondary, #6b7280)' }}>{t('roles.admin', 'Admin')}</span>
-            </div>
-            <div className="flex items-center gap-2">
-              {getRoleIcon('Instructor')}
-              <span style={{ color: 'var(--text-secondary, #6b7280)' }}>{t('roles.instructor', 'Instructor')}</span>
+            <span className="text-sm font-medium" style={{ color: 'var(--text-secondary, #6b7280)' }}>
+              {t('workflow.roles', 'Roles')}:
+            </span>
+            <div data-tour="doc-diagram-roles" className="flex items-center gap-6 text-sm">
+              <div className="flex items-center gap-2">
+                {getRoleIcon('Owner')}
+                <span style={{ color: 'var(--text-secondary, #6b7280)' }}>{t('owner', 'Owner')}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                {getRoleIcon('HR')}
+                <span style={{ color: 'var(--text-secondary, #6b7280)' }}>{t('roles.hr', 'HR')}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                {getRoleIcon('Admin')}
+                <span style={{ color: 'var(--text-secondary, #6b7280)' }}>{t('roles.admin', 'Admin')}</span>
+              </div>
+              <div className="flex items-center gap-2">
+                {getRoleIcon('Instructor')}
+                <span style={{ color: 'var(--text-secondary, #6b7280)' }}>{t('roles.instructor', 'Instructor')}</span>
+              </div>
             </div>
           </div>
         </div>
@@ -1150,8 +1164,10 @@ const WorkflowDiagram = ({ status, workflowType = 'GENERAL_HR', document, curren
               const entryDate = historyEntry?.createdAt ? formatQatarDate(historyEntry.createdAt, 'dd/MM/yyyy HH:mm') : '-';
               const duration = calculateDuration(historyEntry, nextEntry);
               const comment = historyEntry?.reason || '';
-              const isCompleted = index < currentStageIndex;
-              const isCurrent = index === currentStageIndex;
+              const isTerminalCompleted = (stage.status === 'APPROVED' && status === 'APPROVED') ||
+                                         (stage.status === 'REJECTED' && status === 'REJECTED');
+              const isCompleted = isTerminalCompleted || index < currentStageIndex;
+              const isCurrent = index === currentStageIndex && !isTerminalCompleted;
               
               return (
                 <div key={stage.id} className="relative mb-4" style={{ [lang === 'ar' ? 'paddingRight' : 'paddingLeft']: '2rem' }}>
@@ -1167,7 +1183,7 @@ const WorkflowDiagram = ({ status, workflowType = 'GENERAL_HR', document, curren
                     background: isCompleted ? '#10b981' : (isCurrent ? '#3b82f6' : '#d1d5db'),
                     border: '2px solid white',
                     boxShadow: isCurrent ? '0 0 0 4px rgba(59, 130, 246, 0.2)' : 'none',
-                    animation: isCurrent ? 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' : 'none'
+                    animation: isCurrent ? 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' : 'none',
                   }} />
                   
                   {/* Timeline content */}
@@ -1206,7 +1222,7 @@ const WorkflowDiagram = ({ status, workflowType = 'GENERAL_HR', document, curren
                         </>
                       )}
                       {duration && isCompleted && (
-                        <span className="text-xs font-medium px-2 py-0.5 rounded" style={{ background: '#e0f2fe', color: '#0369a1' }}>
+                        <span className="text-xs font-medium px-2 py-0.5 rounded" style={{ background: '#e0f2fe', color: '#0369a1', marginLeft: 'auto' }}>
                           {duration}
                         </span>
                       )}

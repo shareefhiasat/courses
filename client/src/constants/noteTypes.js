@@ -74,6 +74,13 @@ export const getLocalizedNoteText = (noteType, t) => {
     [QUICK_NOTE_TYPES.QUICK_ATTENDANCE_LEAVE]: t('note_quick_excused_leave'),
     [QUICK_NOTE_TYPES.QUICK_ATTENDANCE_HUMAN_CASE]: t('note_quick_human_case'),
 
+    // Legacy shorthand constants (older seed data / notes)
+    QUICK_PRESENT: t('note_quick_present'),
+    QUICK_LATE: t('note_quick_late'),
+    QUICK_ABSENT: t('note_quick_absent_no_excuse'),
+    QUICK_LEAVE: t('note_quick_excused_leave'),
+    QUICK_HUMAN_CASE: t('note_quick_human_case'),
+
     // Manual notes
     [MANUAL_NOTE_TYPES.MANUAL_ATTENDANCE_LATE]: t('note_manual_late'),
     [MANUAL_NOTE_TYPES.MANUAL_ATTENDANCE_PRESENT]: t('note_manual_present'),

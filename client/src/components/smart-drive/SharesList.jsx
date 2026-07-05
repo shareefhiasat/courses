@@ -16,7 +16,7 @@ import {
   DriveIconBadge,
 } from '@ui/DriveTimeline';
 import { formatQatarDate, formatQatarDateOnly } from '@utils/timezone';
-import axios from 'axios';
+import { apiClient } from '@services/api/apiService.js';
 
 export default function SharesList({ fileId, onRevoke, refreshKey, readOnly = false, subjectTypeFilter = null }) {
   const { t, lang } = useLang();
@@ -31,11 +31,11 @@ export default function SharesList({ fileId, onRevoke, refreshKey, readOnly = fa
     setLoading(true);
     setError(null);
     try {
-      let url = `/api/v1/drive/files/${fileId}/shares`;
+      let url = `/drive/files/${fileId}/shares`;
       if (subjectTypeFilter) {
         url += `?subjectType=${subjectTypeFilter}`;
       }
-      const response = await axios.get(url);
+      const response = await apiClient.get(url);
       if (response.data.success) {
         setShares(response.data.data || []);
       } else {
@@ -79,7 +79,7 @@ export default function SharesList({ fileId, onRevoke, refreshKey, readOnly = fa
 
   const handleRevoke = async (shareId) => {
     try {
-      const response = await axios.delete(`/api/v1/drive/shares/${shareId}`);
+      const response = await apiClient.delete(`/drive/shares/${shareId}`);
       if (response.data.success) {
         setShares(prev => prev.filter(s => s.id !== shareId));
         onRevoke?.(shareId);

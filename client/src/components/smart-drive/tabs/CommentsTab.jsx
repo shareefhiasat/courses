@@ -16,7 +16,7 @@ import {
   DriveActionButton,
 } from '@ui/DriveTimeline';
 import { formatQatarDate, formatQatarDateOnly } from '@utils/timezone';
-import axios from 'axios';
+import { apiClient } from '@services/api/apiService.js';
 
 export default function CommentsTab({ fileId, isOwnedByUser = true }) {
   const { t, lang } = useLang();
@@ -35,7 +35,7 @@ export default function CommentsTab({ fileId, isOwnedByUser = true }) {
     setLoading(true);
     setError(null);
     try {
-      const response = await axios.get(`/api/v1/drive/files/${fileId}/comments`);
+      const response = await apiClient.get(`/drive/files/${fileId}/comments`);
       if (response.data.success) {
         setComments(response.data.payload || []);
       } else {
@@ -58,7 +58,7 @@ export default function CommentsTab({ fileId, isOwnedByUser = true }) {
     if (!newComment.trim() || submitting) return;
     setSubmitting(true);
     try {
-      const response = await axios.post(`/api/v1/drive/files/${fileId}/comments`, {
+      const response = await apiClient.post(`/drive/files/${fileId}/comments`, {
         content: newComment.trim(),
       });
       if (response.data.success) {
@@ -75,7 +75,7 @@ export default function CommentsTab({ fileId, isOwnedByUser = true }) {
   const confirmDeleteComment = async () => {
     if (!deleteConfirm) return;
     try {
-      const response = await axios.delete(`/api/v1/drive/files/${fileId}/comments/${deleteConfirm}`);
+      const response = await apiClient.delete(`/drive/files/${fileId}/comments/${deleteConfirm}`);
       if (response.data.success) {
         setComments(prev => prev.filter(c => c.id !== deleteConfirm));
       }

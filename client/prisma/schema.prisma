@@ -538,6 +538,8 @@ model User {
   realName                       String?
   studentNumber                  String?
   sequence                       Int?
+  rankEn                         String?
+  rankAr                         String?
   isActive                       Boolean                   @default(true)
   createdBy                      Int?
   updatedBy                      Int?

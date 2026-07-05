@@ -269,6 +269,16 @@ export const createParticipation = async (participationData, user = null) => {
       };
     }
 
+    // Validate points - participation must have points > 0
+    const parsedPoints = points ? parseInt(points) : 0;
+    if (parsedPoints <= 0) {
+      return {
+        success: false,
+        error: 'Participation points must be greater than 0',
+        code: 'VALIDATION_ERROR'
+      };
+    }
+
     const participation = await prisma.participation.create({
       data: {
         userId: parseInt(userId),
@@ -276,7 +286,7 @@ export const createParticipation = async (participationData, user = null) => {
         programId: programId ? parseInt(programId) : null,
         subjectId: subjectId ? parseInt(subjectId) : null,
         typeId: parseInt(typeId),
-        points: points ? parseInt(points) : 0,
+        points: parsedPoints,
         descriptionEn: descriptionEn || null,
         descriptionAr: descriptionAr || null,
         comment: comment || null,
@@ -385,6 +395,15 @@ export const updateParticipation = async (id, updateData, user = null) => {
       comment,
       isActive
     } = updateData;
+
+    // Validate points if being updated - must be greater than 0
+    if (points !== undefined && parseInt(points) <= 0) {
+      return {
+        success: false,
+        error: 'Participation points must be greater than 0',
+        code: 'VALIDATION_ERROR'
+      };
+    }
 
     const participation = await prisma.participation.update({
       where: { id: participationId },

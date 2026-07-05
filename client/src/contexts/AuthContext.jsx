@@ -46,8 +46,10 @@ export const AuthProvider = ({ children }) => {
   const [isSuperAdmin, setIsSuperAdmin] = useState(false);
   const [role, setRole] = useState(null);
 
-  // Permissions state (moved from usePermissions hook)
+  // Permissions state (single source of truth for usePermissions hook)
   const [permissions, setPermissions] = useState(null);
+  const [permissionsLoading, setPermissionsLoading] = useState(false);
+  const permissionsFetchPromiseRef = useRef(null);
 
   // Session extension modal state
   const [showSessionModal, setShowSessionModal] = useState(false);
@@ -108,36 +110,73 @@ export const AuthProvider = ({ children }) => {
   }, []);
 
   /**
-   * Fetch permissions with debouncing (only once per session)
+   * Fetch permissions once per session (deduped + retries when backend is starting).
    */
-  const fetchPermissions = useCallback(async () => {
-    // Check if permissions already loaded in this session
-    const cachedPermissions = localStorage.getItem('permissions');
-    if (cachedPermissions) {
+  const fetchPermissions = useCallback(async ({ force = false } = {}) => {
+    if (!force) {
+      const cachedPermissions = localStorage.getItem('permissions');
+      if (cachedPermissions) {
+        try {
+          setPermissions(JSON.parse(cachedPermissions));
+          return;
+        } catch {
+          localStorage.removeItem('permissions');
+        }
+      }
+    }
+
+    if (permissionsFetchPromiseRef.current) {
+      return permissionsFetchPromiseRef.current;
+    }
+
+    const token = localStorage.getItem('keycloak_token');
+    if (!token) return;
+
+    const apiBase = import.meta.env.VITE_API_URL || 'https://localhost:8001/api/v1';
+    const maxAttempts = 5;
+    const retryDelayMs = 1500;
+
+    const fetchTask = (async () => {
+      setPermissionsLoading(true);
       try {
-        setPermissions(JSON.parse(cachedPermissions));
-        return;
-      } catch (e) {
-        // Invalid cache, fetch fresh
+        for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+          try {
+            const response = await fetch(`${apiBase}/permissions`, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+
+            if (response.ok) {
+              const data = await response.json();
+              setPermissions(data.data);
+              localStorage.setItem('permissions', JSON.stringify(data.data));
+              return;
+            }
+
+            if (response.status >= 500 && attempt < maxAttempts) {
+              await new Promise((resolve) => setTimeout(resolve, retryDelayMs * attempt));
+              continue;
+            }
+
+            console.warn('[AuthContext] Permissions fetch failed:', response.status);
+            return;
+          } catch (err) {
+            const isNetworkError = err instanceof TypeError;
+            if (isNetworkError && attempt < maxAttempts) {
+              await new Promise((resolve) => setTimeout(resolve, retryDelayMs * attempt));
+              continue;
+            }
+            console.error('[AuthContext] Failed to fetch permissions:', err);
+            return;
+          }
+        }
+      } finally {
+        setPermissionsLoading(false);
+        permissionsFetchPromiseRef.current = null;
       }
-    }
+    })();
 
-    try {
-      const token = localStorage.getItem('keycloak_token');
-      if (!token) return;
-
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'https://localhost:8001/api/v1'}/permissions`, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        setPermissions(data.data);
-        localStorage.setItem('permissions', JSON.stringify(data.data));
-      }
-    } catch (error) {
-      console.error('[AuthContext] Failed to fetch permissions:', error);
-    }
+    permissionsFetchPromiseRef.current = fetchTask;
+    return fetchTask;
   }, []);
 
   // Schedule warning 5 minutes before token expiry (with debouncing)
@@ -597,6 +636,8 @@ export const AuthProvider = ({ children }) => {
 
       // Clear permissions state
       setPermissions(null);
+      setPermissionsLoading(false);
+      permissionsFetchPromiseRef.current = null;
       localStorage.clear();
       sessionStorage.clear();
       // Clear cookie
@@ -876,6 +917,8 @@ export const AuthProvider = ({ children }) => {
     refreshToken: keycloak.refreshToken,
     initialized,
     permissions,
+    permissionsLoading,
+    refetchPermissions: () => fetchPermissions({ force: true }),
     updateUserProfileImage
   };
 

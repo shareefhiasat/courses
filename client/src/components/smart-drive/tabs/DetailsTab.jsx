@@ -7,10 +7,14 @@ import { formatQatarDate } from '@utils/timezone';
 import { getLocalizedUserName } from '@utils/localizedUserName';
 import { getUserRoleFromObject } from '@utils/userUtils';
 import { getAvatarColor, getAvatarInitials } from '@utils/avatarUtils';
-import axios from 'axios';
+import { getWorkflowDisplayLabel } from '@constants/workflowConfig';
+import { getWorkflowRole } from '@utils/userUtils';
+import { apiClient } from '@services/api/apiService.js';
+import { useProgramSubjectMaps, getWorkflowContextParts } from '@hooks/useProgramSubjectMaps';
 
 export default function DetailsTab({ file }) {
   const { t, lang } = useLang();
+  const { programMap, subjectMap } = useProgramSubjectMaps();
   const [workflowCounts, setWorkflowCounts] = useState(null);
   const [workflows, setWorkflows] = useState(null);
   const [shareCounts, setShareCounts] = useState(null);
@@ -22,7 +26,7 @@ export default function DetailsTab({ file }) {
     const fetchAdditionalDetails = async () => {
       // Fetch workflow documents for this file
       try {
-        const workflowRes = await axios.get(`/api/v1/workflow-documents?fileId=${file.id}`);
+        const workflowRes = await apiClient.get(`/workflow-documents?fileId=${file.id}`);
         if (workflowRes.data.success) {
           const workflows = workflowRes.data.data || [];
           const counts = {
@@ -46,7 +50,7 @@ export default function DetailsTab({ file }) {
 
       // Fetch shares for this file
       try {
-        const shareRes = await axios.get(`/api/v1/drive/files/${file.id}/shares`);
+        const shareRes = await apiClient.get(`/drive/files/${file.id}/shares`);
         if (shareRes.data.success) {
           const shares = shareRes.data.data || shareRes.data.payload || [];
           const counts = {
@@ -62,7 +66,7 @@ export default function DetailsTab({ file }) {
 
       // Fetch comments for this file
       try {
-        const commentRes = await axios.get(`/api/v1/drive/files/${file.id}/comments`);
+        const commentRes = await apiClient.get(`/drive/files/${file.id}/comments`);
         if (commentRes.data.success) {
           setCommentCount((commentRes.data.payload || []).length);
         }
@@ -72,7 +76,7 @@ export default function DetailsTab({ file }) {
 
       // Fetch activity for this file
       try {
-        const activityRes = await axios.get(`/api/v1/drive/files/${file.id}/activities`);
+        const activityRes = await apiClient.get(`/drive/files/${file.id}/activities`);
         if (activityRes.data.success) {
           setActivityCount((activityRes.data.payload || []).length);
         }
@@ -83,7 +87,7 @@ export default function DetailsTab({ file }) {
 
       // Fetch versions for this file
       try {
-        const versionRes = await axios.get(`/api/v1/drive/files/${file.id}/versions`);
+        const versionRes = await apiClient.get(`/drive/files/${file.id}/versions`);
         if (versionRes.data.success) {
           setVersionCount((versionRes.data.payload || []).length);
         }
@@ -295,9 +299,9 @@ export default function DetailsTab({ file }) {
               <p style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted, #6b7280)', margin: 0, marginBottom: '0.125rem' }}>
                 {label}
               </p>
-              <p style={{ fontSize: 'var(--font-size-sm)', fontWeight: 500, color: 'var(--text, #111827)', margin: 0, wordBreak: 'break-all' }}>
+              <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 500, color: 'var(--text, #111827)', margin: 0, wordBreak: 'break-all' }}>
                 {value}
-              </p>
+              </div>
             </div>
           </div>
         ))}
@@ -318,6 +322,98 @@ export default function DetailsTab({ file }) {
           <p style={{ fontSize: 'var(--font-size-xs)', fontFamily: 'ui-monospace, monospace', color: 'var(--text, #111827)', margin: 0, wordBreak: 'break-all' }}>
             {file.checksumSha256}
           </p>
+        </div>
+      )}
+
+      {/* Workflow details list */}
+      {workflows && workflows.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+          <p style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, color: 'var(--text, #111827)', margin: 0 }}>
+            {t('drive.workflows')}
+          </p>
+          {workflows.map((wf) => {
+            const config = WORKFLOW_STATUS_CONFIG[wf.status?.toLowerCase()];
+            const statusColor = config?.color || '#6b7280';
+            const statusBg = config?.bg || 'rgba(107, 114, 128, 0.1)';
+            const role = getWorkflowRole(wf);
+            const contextParts = getWorkflowContextParts(wf, { programMap, subjectMap, lang });
+            let dateStr = null;
+            if (wf.date) dateStr = formatQatarDate(wf.date, 'dd/MM/yyyy');
+            else if (wf.dateFrom && wf.dateTo) dateStr = `${formatQatarDate(wf.dateFrom, 'dd/MM/yyyy')} - ${formatQatarDate(wf.dateTo, 'dd/MM/yyyy')}`;
+            else if (wf.dateFrom) dateStr = formatQatarDate(wf.dateFrom, 'dd/MM/yyyy');
+
+            return (
+              <div
+                key={wf.id}
+                role="button"
+                tabIndex={0}
+                onClick={() => window.open(`/workflow/inbox?documentId=${wf.id}`, '_blank', 'noopener,noreferrer')}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    window.open(`/workflow/inbox?documentId=${wf.id}`, '_blank', 'noopener,noreferrer');
+                  }
+                }}
+                style={{
+                  padding: '0.5rem 0.625rem',
+                  background: 'var(--panel, white)',
+                  borderRadius: '0.5rem',
+                  border: '1px solid var(--border, #e5e7eb)',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: '0.25rem',
+                  cursor: 'pointer',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
+                  <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600, color: 'var(--text, #111827)' }}>
+                    {wf.title || getWorkflowDisplayLabel(wf, t)}
+                  </span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: '0.25rem', fontSize: 'var(--font-size-xs)', background: statusBg, borderRadius: '0.375rem', padding: '0.125rem 0.375rem', color: statusColor, fontWeight: 600 }}>
+                    {t(`workflow.status.${(wf.status || '').toLowerCase()}`, wf.status)}
+                  </span>
+                  {wf.workflowCategory && (
+                    <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--text-muted, #6b7280)', textTransform: 'uppercase', fontWeight: 600 }}>
+                      {t(`workflow.category.${wf.workflowCategory}`, wf.workflowCategory)}
+                    </span>
+                  )}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', fontSize: 'var(--font-size-xs)', color: 'var(--text-muted, #6b7280)', flexWrap: 'wrap' }}>
+                  {contextParts.length > 0 && (
+                    <span>{contextParts.join(' · ')}</span>
+                  )}
+                  {dateStr && (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                      {getThemedIcon('ui', 'calendar', 12, 'var(--text-muted, #6b7280)')}
+                      {dateStr}
+                    </span>
+                  )}
+                  {/* Assigned to */}
+                  {wf.currentAssignee ? (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                      {getThemedIcon('ui', 'user_check', 12, 'var(--text-muted, #6b7280)')}
+                      {getLocalizedUserName(wf.currentAssignee, lang, '\u2014')}
+                    </span>
+                  ) : role ? (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                      {getThemedIcon('ui', 'users', 12, 'var(--text-muted, #6b7280)')}
+                      <span style={{ color: 'var(--text-muted, #6b7280)', fontWeight: 500 }}>
+                        {t(`roles.${role}`, role)}
+                      </span>
+                    </span>
+                  ) : null}
+                  {/* Target student */}
+                  {wf.targetStudent && (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                      {(() => { const icon = getUserRoleIcon('student'); const color = getUserRoleColor('student'); return icon ? React.cloneElement(icon, { color, size: 12 }) : null; })()}
+                      <span style={{ color: getUserRoleColor('student'), fontWeight: 500 }}>
+                        {getLocalizedUserName(wf.targetStudent, lang, '-')}
+                      </span>
+                    </span>
+                  )}
+                </div>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

@@ -316,14 +316,25 @@ export function mergeComplementaryRecords(rows) {
 
     if (calculated && complementary) {
       result.push({
-        ...calculated,
-        complementaryAttempt: {
-          finalExam: complementary.finalExam,
-          totalMarks: complementary.totalMarks,
-          letterGrade: complementary.letterGrade,
-          gradePoints: complementary.gradePoints,
-          isRepeated: complementary.isRepeated,
-          gradeType: complementary.gradeType,
+        ...complementary,
+        midTermExam: calculated.midTermExam,
+        homework: calculated.homework,
+        labsProjectResearch: calculated.labsProjectResearch,
+        quizzes: calculated.quizzes,
+        participation: calculated.participation,
+        attendance: calculated.attendance,
+        previousAttempt: {
+          midTermExam: calculated.midTermExam,
+          finalExam: calculated.finalExam,
+          homework: calculated.homework,
+          labsProjectResearch: calculated.labsProjectResearch,
+          quizzes: calculated.quizzes,
+          participation: calculated.participation,
+          attendance: calculated.attendance,
+          totalMarks: calculated.totalMarks,
+          letterGrade: calculated.letterGrade,
+          gradePoints: calculated.gradePoints,
+          gradeType: calculated.gradeType,
         },
       });
     } else {

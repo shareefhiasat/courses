@@ -5,6 +5,12 @@ import { info, error, warn, debug } from '@services/utils/logger.js';
  * Extracted for DRY principle and reusability
  */
 
+export const normalizeProfileImageUrl = (url) => {
+  if (!url) return url;
+  if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('/')) return url;
+  return `/${url}`;
+};
+
 export const getAvatarColor = (name) => {
   const colors = [
     { bg: '#e9d5ff', color: '#6b21a8' },

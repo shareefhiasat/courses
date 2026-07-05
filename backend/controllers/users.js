@@ -136,6 +136,8 @@ export const listUsersController = async (req, res) => {
         isActive: true,
         studentNumber: true,
         sequence: true,
+        rankEn: true,
+        rankAr: true,
         createdAt: true,
         updatedAt: true,
         createdBy: true,
@@ -225,6 +227,8 @@ export const getUserByIdController = async (req, res) => {
         keycloakId: true,
         studentNumber: true,
         sequence: true,
+        rankEn: true,
+        rankAr: true,
         roleAssignments: {
           select: {
             role: {

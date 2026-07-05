@@ -32,7 +32,7 @@ function getAuthorDisplayName(author, lang, t) {
   return t('drive.unknownUser', 'Unknown');
 }
 
-export default function WorkflowCommentsTab({ workflowId, selectedStage, onStageFilterChange }) {
+export default function WorkflowCommentsTab({ workflowId, selectedStage, onStageFilterChange, refreshKey }) {
   const { t, lang } = useLang();
   const { user } = useAuth();
   const [comments, setComments] = useState([]);
@@ -65,7 +65,7 @@ export default function WorkflowCommentsTab({ workflowId, selectedStage, onStage
 
   useEffect(() => {
     fetchComments();
-  }, [fetchComments]);
+  }, [fetchComments, refreshKey]);
 
   const triggerNotification = useCallback((comment, type = 'comment') => {
     if ('Notification' in window && Notification.permission === 'granted') {

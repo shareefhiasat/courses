@@ -524,12 +524,20 @@ const AttendancePage = () => {
       
       const today = formatForDateInput(new Date());
       
+      // Resolve program and subject names from IDs
+      const programId = selectedClass.programId || programFilter;
+      const subjectId = selectedClass.subjectId || subjectFilter;
+      const programObj = programs.find(p => String(p.id || p.docId) === String(programId));
+      const subjectObj = subjects.find(s => String(s.id || s.docId) === String(subjectId));
+      const programName = programObj ? (lang === 'ar' ? (programObj.nameAr || programObj.nameEn || programObj.name) : (programObj.nameEn || programObj.nameAr || programObj.name)) : (programFilter || '');
+      const subjectName = subjectObj ? (lang === 'ar' ? (subjectObj.nameAr || subjectObj.nameEn || subjectObj.name) : (subjectObj.nameEn || subjectObj.nameAr || subjectObj.name)) : (subjectFilter || '');
+
       const submitResult = await submitAttendanceReport(attendanceData, {
         classId: selectedClass.id || selectedClass.docId,
         className: selectedClass.name || selectedClass.className,
         date: today,
-        program: selectedClass.program || programFilter,
-        subject: selectedClass.subject || subjectFilter,
+        program: programName,
+        subject: subjectName,
         instructorId: user.id,
         comments: submitComments
       });

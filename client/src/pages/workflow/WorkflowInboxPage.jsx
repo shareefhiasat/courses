@@ -8,7 +8,7 @@
 import React, { useMemo, useCallback, useEffect, useState } from 'react';
 import Joyride from 'react-joyride';
 import TourTooltip from '@ui/TourTooltip/TourTooltip';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { format } from "date-fns";
 import { getSlaInfo } from '@utils/sla.js';
 import { getStatusVariant as getActionVariant, getStatusColorClasses, getWorkflowStatusIcon } from '@constants/workflowStatusTypes';
@@ -22,15 +22,19 @@ import { useAuditGridColumns } from '@hooks/useAuditGridColumns.js';
 import { Button, useToast, GridQuickFilterChips } from '@ui';
 import { Card, CardContent, CardHeader, CardTitle, Badge, Input, SimpleLoading, EmptyState, AdvancedDataGrid } from '@ui';
 import { getCategoryFilterChips, getWorkflowDisplayLabel, WORKFLOW_CATEGORY_OPTIONS, CATEGORY_BY_VALUE } from '@constants/workflowConfig';
+import WorkflowContextBar from '@components/workflow/WorkflowContextBar';
 import { useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { AlertCircle, Trash2 } from 'lucide-react';
 import { deleteWorkflowDocument } from '@services/business/workflowService';
+import { useProgramSubjectMaps } from '@hooks/useProgramSubjectMaps';
 import { useAuth } from '@contexts/AuthContext';
 
 const WorkflowInboxPage = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { t, lang } = useLang();
   const { theme } = useTheme();
+  const [selectedDocument, setSelectedDocument] = useState(null);
 
   // ── Guided Tour ──────────────────────────────────────────────────────────
   const [runTour, setRunTour] = useState(false);
@@ -56,6 +60,9 @@ const WorkflowInboxPage = () => {
     if (status === 'finished' || status === 'skipped' || action === 'close') { setRunTour(false); try { localStorage.setItem(tourSeenKey, 'true'); } catch {} }
   }, [tourSeenKey]);
   const TourTooltipComponent = useMemo(() => TourTooltip({ tourSeenKey }), [tourSeenKey]);
+  // ── Program/Subject name lookups ─────────────────────────────────────────
+  const { programMap, subjectMap } = useProgramSubjectMaps();
+
   // ──────────────────────────────────────────────────────────────────────────
   const { triggerNotification } = useNotifications();
   const toast = useToast();
@@ -139,6 +146,22 @@ const WorkflowInboxPage = () => {
     refresh
   } = useWorkflowInbox({}, triggerNotification);
 
+  const documentIdFilter = searchParams.get('documentId');
+
+  useEffect(() => {
+    if (!documentIdFilter || documents.length === 0) return;
+    const match = documents.find((d) => String(d.id) === String(documentIdFilter));
+    if (match) setSelectedDocument(match);
+  }, [documentIdFilter, documents]);
+
+  const displayDocuments = useMemo(() => {
+    if (!documentIdFilter) return documents;
+    return documents.filter((d) => String(d.id) === String(documentIdFilter));
+  }, [documents, documentIdFilter]);
+
+  const handleRowClick = useCallback((params) => {
+    setSelectedDocument(params.row);
+  }, []);
 
   // Status badge variants - using centralized status constants
   const getStatusVariant = (status) => {
@@ -212,7 +235,8 @@ const WorkflowInboxPage = () => {
     {
       field: 'workflowCategory',
       headerName: t('workflow.inbox.category', 'Category'),
-      width: 180,
+      flex: 1,
+      minWidth: 120,
       renderCell: (params) => {
         const category = params.row.workflowCategory || 'GENERAL';
         const catConfig = CATEGORY_BY_VALUE[category];
@@ -235,8 +259,9 @@ const WorkflowInboxPage = () => {
     },
     {
       field: 'targetStudent',
-      headerName: t('workflow.inbox.targetStudent', 'Target Student'),
-      width: 150,
+      headerName: t('workflow.inbox.targetStudent'),
+      flex: 1,
+      minWidth: 100,
       renderCell: (params) => {
         const student = params.row.targetStudent;
         if (!student) return <span className="text-sm text-gray-400">—</span>;
@@ -252,9 +277,63 @@ const WorkflowInboxPage = () => {
       }
     },
     {
+      field: 'program',
+      headerName: t('workflow.inbox.program', 'Program'),
+      flex: 0.8,
+      minWidth: 100,
+      renderCell: (params) => {
+        const code = params.row.program;
+        if (!code) return <span className="text-sm text-gray-400">—</span>;
+        const prog = programMap[code];
+        const name = prog ? (lang === 'ar' ? (prog.nameAr || prog.nameEn) : prog.nameEn) : code;
+        return <span className="text-sm" style={{ color: theme === 'dark' ? '#d1d5db' : '#374151', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</span>;
+      }
+    },
+    {
+      field: 'subject',
+      headerName: t('workflow.inbox.subject', 'Subject'),
+      flex: 0.8,
+      minWidth: 100,
+      renderCell: (params) => {
+        const code = params.row.subject;
+        if (!code) return <span className="text-sm text-gray-400">—</span>;
+        const subj = subjectMap[code];
+        const name = subj ? (lang === 'ar' ? (subj.nameAr || subj.nameEn) : subj.nameEn) : code;
+        return <span className="text-sm" style={{ color: theme === 'dark' ? '#d1d5db' : '#374151', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</span>;
+      }
+    },
+    {
+      field: 'class',
+      headerName: t('workflow.inbox.class', 'Class'),
+      flex: 0.8,
+      minWidth: 100,
+      renderCell: (params) => {
+        const cls = params.row.class;
+        if (!cls) return <span className="text-sm text-gray-400">—</span>;
+        const name = lang === 'ar' ? (cls.nameAr || cls.nameEn || cls.code) : (cls.nameEn || cls.nameAr || cls.code);
+        return <span className="text-sm" style={{ color: theme === 'dark' ? '#d1d5db' : '#374151', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</span>;
+      }
+    },
+    {
+      field: 'workflowDate',
+      headerName: t('workflow.inbox.date', 'Date'),
+      flex: 0.8,
+      minWidth: 110,
+      renderCell: (params) => {
+        const row = params.row;
+        let dateStr = null;
+        if (row.date) dateStr = format(new Date(row.date), 'dd/MM/yyyy');
+        else if (row.dateFrom && row.dateTo) dateStr = `${format(new Date(row.dateFrom), 'dd/MM/yyyy')} - ${format(new Date(row.dateTo), 'dd/MM/yyyy')}`;
+        else if (row.dateFrom) dateStr = format(new Date(row.dateFrom), 'dd/MM/yyyy');
+        if (!dateStr) return <span className="text-sm text-gray-400">—</span>;
+        return <span className="text-sm" style={{ color: theme === 'dark' ? '#d1d5db' : '#374151', whiteSpace: 'nowrap' }}>{dateStr}</span>;
+      }
+    },
+    {
       field: 'title',
       headerName: t('workflow.inbox.workflowTitle', 'Workflow Title'),
-      width: 200,
+      flex: 1,
+      minWidth: 120,
       renderCell: (params) => {
         return (
           <div className="font-medium text-gray-900">
@@ -266,7 +345,8 @@ const WorkflowInboxPage = () => {
     {
       field: 'originalFileName',
       headerName: t('workflow.inbox.document', 'Document'),
-      width: 250,
+      flex: 1,
+      minWidth: 120,
       renderCell: (params) => {
         const mimeType = params.row.file?.mimeType;
         const icon = getThemedIcon('ui', getFileIconName(mimeType), 14, theme);
@@ -287,7 +367,8 @@ const WorkflowInboxPage = () => {
     {
       field: 'description',
       headerName: t('workflow.inbox.description', 'Description'),
-      width: 200,
+      flex: 1,
+      minWidth: 100,
       renderCell: (params) => {
         return (
           <div className="text-sm text-black truncate" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
@@ -299,7 +380,8 @@ const WorkflowInboxPage = () => {
     {
       field: 'status',
       headerName: t('workflow.inbox.status', 'Status'),
-      width: 120,
+      flex: 1,
+      minWidth: 100,
       renderCell: (params) => {
         const statusUpper = params.value?.toUpperCase();
         let iconColor = '#6b7280';
@@ -353,7 +435,8 @@ const WorkflowInboxPage = () => {
     {
       field: 'nextStatus',
       headerName: t('workflow.inbox.nextStatus', 'Next Status'),
-      width: 150,
+      flex: 1,
+      minWidth: 100,
       renderCell: (params) => {
         const currentStatus = params.row.status?.toUpperCase();
         let nextStatus = '-';
@@ -415,7 +498,8 @@ const WorkflowInboxPage = () => {
     {
       field: 'submitter',
       headerName: t('workflow.inbox.from', 'From'),
-      width: 150,
+      flex: 1,
+      minWidth: 100,
       renderCell: (params) => {
         const submitter = params.row.submitter;
         
@@ -472,7 +556,8 @@ const WorkflowInboxPage = () => {
     {
       field: 'currentAssignee',
       headerName: t('workflow.inbox.assignedTo', 'Assigned To'),
-      width: 180,
+      flex: 1,
+      minWidth: 100,
       renderCell: (params) => {
         const assignee = params.row.currentAssignee;
         
@@ -490,8 +575,21 @@ const WorkflowInboxPage = () => {
           row: params.row
         });
         
-        // If no assignee, show role based on workflow type
+        // If no assignee, show role or shared users from metadata
         if (!assignee) {
+          const shareUsers = params.row.shareTargetUsers || [];
+          if (shareUsers.length > 0) {
+            const names = shareUsers.map((u) => getLocalizedUserName(u, lang, t('workflow.inbox.unknown', 'Unknown'))).join(', ');
+            return (
+              <div className="flex items-center gap-2">
+                {getThemedIcon('ui', 'users', 16, theme)}
+                <span className="text-sm" style={{ color: theme === 'dark' ? '#d1d5db' : '#374151' }}>
+                  {names}
+                </span>
+              </div>
+            );
+          }
+
           const category = params.row.workflowCategory || 'GENERAL';
           const subtype = params.row.attendanceSubtype;
           let roleLabel = t('workflow.inbox.unassigned', 'Unassigned');
@@ -576,7 +674,8 @@ const WorkflowInboxPage = () => {
     {
       field: 'sla',
       headerName: t('workflow.inbox.sla', 'SLA'),
-      width: 100,
+      flex: 1,
+      minWidth: 80,
       renderCell: (params) => {
         const submittedAt = params.row.submittedAt || params.row.createdAt;
         const slaInfo = getSlaInfo(submittedAt);
@@ -597,7 +696,8 @@ const WorkflowInboxPage = () => {
     {
       field: 'actions',
       headerName: t('workflow.inbox.actions', 'Actions'),
-      width: 150,
+      flex: 1,
+      minWidth: 80,
       renderCell: (params) => (
         <div className="flex items-center gap-2">
           <Button
@@ -622,7 +722,7 @@ const WorkflowInboxPage = () => {
         </div>
       )
     }
-  ], [t, navigate, receivedColumn]); // eslint-disable-line react-hooks/exhaustive-deps
+  ], [t, navigate, receivedColumn, programMap, subjectMap, lang, theme]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Handle page change
   const handlePageChange = (newPage) => {
@@ -775,17 +875,27 @@ const WorkflowInboxPage = () => {
         </Card>
       )}
 
+      {/* Selected workflow header */}
+      {selectedDocument && (
+        <WorkflowContextBar
+          document={selectedDocument}
+          programMap={programMap}
+          subjectMap={subjectMap}
+        />
+      )}
+
       {/* Data Grid */}
-      {documents.length > 0 ? (
+      {displayDocuments.length > 0 ? (
         <Card data-tour="workflow-grid" className="shadow-sm border-gray-200">
           <CardContent className="p-0">
             <AdvancedDataGrid
-              rows={documents}
+              rows={displayDocuments}
               columns={columns}
               pagination={pagination}
               onPageChange={handlePageChange}
               loading={loading}
               getRowId={(row) => row.id}
+              onRowClick={handleRowClick}
               className="border-none"
               pageSizeOptions={[10, 25, 50, 100]}
               pageSize={50}

@@ -4,6 +4,7 @@ import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { Button, Input } from '@ui';
 import { formatQatarDate } from '@utils/timezone';
+import useResizableDrawer from '@hooks/useResizableDrawer';
 import WorkflowBadge from './WorkflowBadge';
 
 const DEFAULT_TASK_NAME = 'Workflow Approval';
@@ -11,6 +12,13 @@ const DEFAULT_TASK_NAME = 'Workflow Approval';
 export default function InboxDrawer({ isOpen, onClose, tasks, onApprove, onReject }) {
   const { t, isRTL } = useLang();
   const { theme } = useTheme();
+  const { width: drawerWidth, resizeHandleProps } = useResizableDrawer({
+    storageKey: 'inbox_drawer_width',
+    defaultWidth: 384,
+    minWidth: 320,
+    maxWidth: 800,
+    isRTL,
+  });
   const [selectedTask, setSelectedTask] = useState(null);
   const [comment, setComment] = useState('');
   const [actionLoading, setActionLoading] = useState(false);
@@ -50,7 +58,8 @@ export default function InboxDrawer({ isOpen, onClose, tasks, onApprove, onRejec
       />
 
       <div
-        className={`fixed top-0 ${isRTL ? 'left-0' : 'right-0'} h-full w-96 bg-white dark:bg-gray-900 shadow-2xl z-50 flex flex-col transition-transform`}
+        className={`fixed top-0 ${isRTL ? 'left-0' : 'right-0'} h-full bg-white dark:bg-gray-900 shadow-2xl z-50 flex flex-col transition-transform`}
+        style={{ width: drawerWidth }}
       >
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-lg font-bold text-gray-900 dark:text-white">
@@ -156,6 +165,7 @@ export default function InboxDrawer({ isOpen, onClose, tasks, onApprove, onRejec
             ))
           )}
         </div>
+        <div {...resizeHandleProps} />
       </div>
     </>
   );

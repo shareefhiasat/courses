@@ -1,11 +1,13 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react';
 import Joyride from 'react-joyride';
-import TourTooltip from '@ui/TourTooltip/TourTooltip';
+import { getModalJoyrideProps, modalTabStep, modalTourStep } from '@utils/tourConfig';
+import { useModalTour } from '@hooks/useModalTour';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { getIconWithColor } from '@constants/iconTypes';
 import { getIcon } from '@constants/iconTypes';
 import { getAuthToken } from '@utils/authHelpers';
+import { buildCollaboraIframeUrl, parseApiResponse } from '@utils/collaboraUtils';
 import Modal from '@ui/Modal/Modal';
 import Button from '@ui/Button/Button';
 import Tabs from '@ui/Tabs/Tabs';
@@ -98,7 +100,7 @@ export default function FileDetailsModal({ file, onClose, onDownload, onShare, o
       const response = await fetch(`/api/v1/drive/files/${currentFile.id}/preview`, {
         headers: { Authorization: token ? `Bearer ${token}` : '' },
       });
-      const data = await response.json();
+      const data = await parseApiResponse(response);
       
       if (data.success) {
         setPreviewUrl(data.payload.url);
@@ -132,7 +134,7 @@ export default function FileDetailsModal({ file, onClose, onDownload, onShare, o
       const response = await fetch(`/api/v1/drive/files/${currentFile.id}/collabora/edit`, {
         headers: { Authorization: token ? `Bearer ${token}` : '' },
       });
-      const data = await response.json();
+      const data = await parseApiResponse(response);
       
       if (data.success) {
         setEditWopiToken(data.payload.wopiToken);
@@ -197,87 +199,53 @@ export default function FileDetailsModal({ file, onClose, onDownload, onShare, o
   const isOwnedByUser = file.canDelete === true;
 
   // ── Guided Tour ──────────────────────────────────────────────────────────
-  const [runTour, setRunTour] = useState(false);
-  const [tourSteps, setTourSteps] = useState([]);
   const tourSeenKey = `fileDetailsTourSeen_${lang}`;
 
   const buildTourSteps = useCallback(() => {
     const steps = [
-      { target: '[data-tour="details-modal-tabs"]', content: t('tour.details_modal_tabs'), disableBeacon: true, placement: 'bottom' },
+      modalTabStep('[data-tour="details-modal-tablist"]', t('tour.details_modal_tabs')),
     ];
 
     if (isPreviewable) {
-      steps.push({ target: '[data-tour="details-tab-preview"]', content: t('tour.details_modal_preview'), disableBeacon: true, placement: 'bottom', tab: 'preview' });
+      steps.push(modalTabStep('[data-tour="details-tab-preview"]', t('tour.details_modal_preview'), 'preview'));
     }
     if (canShowEditTab) {
-      steps.push({ target: '[data-tour="details-tab-edit"]', content: t('tour.details_modal_edit'), disableBeacon: true, placement: 'bottom', tab: 'edit' });
+      steps.push(modalTabStep('[data-tour="details-tab-edit"]', t('tour.details_modal_edit'), 'edit'));
     }
 
     steps.push(
-      { target: '[data-tour="details-tab-details"]', content: t('tour.details_modal_details'), disableBeacon: true, placement: 'bottom', tab: 'details' },
-      { target: '[data-tour="details-tab-versions"]', content: t('tour.details_modal_versions'), disableBeacon: true, placement: 'bottom', tab: 'versions' },
-      { target: '[data-tour="details-tab-activity"]', content: t('tour.details_modal_activity'), disableBeacon: true, placement: 'bottom', tab: 'activity' },
-      { target: '[data-tour="details-tab-workflow"]', content: t('tour.details_modal_workflow'), disableBeacon: true, placement: 'bottom', tab: 'workflow' },
-      { target: '[data-tour="details-tab-comments"]', content: t('tour.details_modal_comments'), disableBeacon: true, placement: 'bottom', tab: 'comments' },
+      modalTabStep('[data-tour="details-tab-details"]', t('tour.details_modal_details'), 'details'),
+      modalTabStep('[data-tour="details-tab-versions"]', t('tour.details_modal_versions'), 'versions'),
+      modalTabStep('[data-tour="details-tab-activity"]', t('tour.details_modal_activity'), 'activity'),
+      modalTabStep('[data-tour="details-tab-workflow"]', t('tour.details_modal_workflow'), 'workflow'),
+      modalTabStep('[data-tour="details-tab-comments"]', t('tour.details_modal_comments'), 'comments'),
     );
 
     if (isOwnedByUser) {
-      steps.push({ target: '[data-tour="details-tab-share"]', content: t('tour.details_modal_share'), disableBeacon: true, placement: 'bottom', tab: 'share' });
+      steps.push(modalTabStep('[data-tour="details-tab-share"]', t('tour.details_modal_share'), 'share'));
     }
 
-    if (document.querySelector('[data-tour="details-modal-download"]')) {
-      steps.push({ target: '[data-tour="details-modal-download"]', content: t('tour.details_modal_download'), disableBeacon: true, placement: 'top' });
-    }
+    steps.push(modalTourStep('[data-tour="details-modal-download"]', t('tour.details_modal_download'), { placement: 'top' }));
 
-    return steps.filter(s => !!document.querySelector(s.target));
+    return steps;
   }, [t, isPreviewable, canShowEditTab, isOwnedByUser]);
 
-  const startTour = useCallback(() => {
-    const steps = buildTourSteps();
-    if (steps.length === 0) return;
-    setTourSteps(steps);
-    setRunTour(true);
-  }, [buildTourSteps]);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      try {
-        if (!localStorage.getItem(tourSeenKey)) startTour();
-      } catch {}
-    }, 400);
-    return () => clearTimeout(timer);
-  }, [tourSeenKey, startTour]);
-
-  useEffect(() => {
-    const handler = () => startTour();
-    window.addEventListener('app:joyride', handler);
-    window.addEventListener('app:help', handler);
-    return () => {
-      window.removeEventListener('app:joyride', handler);
-      window.removeEventListener('app:help', handler);
-    };
-  }, [startTour]);
-
-  const handleTourCallback = useCallback((data) => {
-    const { status, action, index, step, lifecycle } = data || {};
-    if (action === 'next') {
-      const nextStep = tourSteps[index + 1];
-      if (nextStep?.tab) setActiveTab(nextStep.tab);
-    }
-    if (action === 'prev') {
-      const prevStep = tourSteps[index - 1];
-      if (prevStep?.tab) setActiveTab(prevStep.tab);
-    }
-    if (action === 'start' && step?.tab) {
-      setActiveTab(step.tab);
-    }
-    if (status === 'finished' || status === 'skipped' || action === 'close') {
-      setRunTour(false);
-      try { localStorage.setItem(tourSeenKey, 'true'); } catch {}
-    }
-  }, [tourSteps, tourSeenKey]);
-
-  const TourTooltipComponent = useMemo(() => TourTooltip({ tourSeenKey }), [tourSeenKey]);
+  const {
+    run: runTour,
+    stepIndex,
+    steps: tourSteps,
+    startTour,
+    callback: handleTourCallback,
+    TourTooltipComponent,
+    tourActive,
+  } = useModalTour({
+    id: 'file-details-modal',
+    tourSeenKey,
+    buildSteps: buildTourSteps,
+    onStepPrepare: (step) => {
+      if (step?.tab) setActiveTab(step.tab);
+    },
+  });
   // ─────────────────────────────────────────────────────────────────────────
 
   const tabs = [
@@ -307,6 +275,8 @@ export default function FileDetailsModal({ file, onClose, onDownload, onShare, o
     <Modal
       isOpen={true}
       onClose={onClose}
+      tourActive={tourActive}
+      draggable={!tourActive}
       title={
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           {getIcon('drive', fileType)}
@@ -319,14 +289,16 @@ export default function FileDetailsModal({ file, onClose, onDownload, onShare, o
       footer={footer}
       titleStyle={{ fontSize: '1.25rem', fontWeight: '600' }}
     >
-      <div data-tour="details-modal-tabs" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '2rem', marginBottom: '1rem' }}>
-        <Tabs
-          tabs={tabs}
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          variant="default"
-          size="md"
-        />
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '2rem', marginBottom: '1rem' }}>
+        <div data-tour="details-modal-tablist" style={{ flex: 1, minWidth: 0 }}>
+          <Tabs
+            tabs={tabs}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            variant="default"
+            size="md"
+          />
+        </div>
         <button
           data-tour="details-modal-help"
           onClick={startTour}
@@ -367,7 +339,7 @@ export default function FileDetailsModal({ file, onClose, onDownload, onShare, o
                 <Button
                   variant="secondary"
                   onClick={async () => {
-                    const collaboraUrl = `${import.meta.env.COLLABORA_URL || 'https://localhost:9980'}/browser/4610258811/cool.html?WOPISrc=${encodeURIComponent('http://host.docker.internal:8001/api/v1/wopi/files/' + file.id)}&access_token=${wopiToken}`;
+                    const collaboraUrl = buildCollaboraIframeUrl(currentFile.id, wopiToken);
                     window.open(collaboraUrl, '_blank', 'noopener,noreferrer');
                     // Log activity
                     try {
@@ -520,7 +492,7 @@ export default function FileDetailsModal({ file, onClose, onDownload, onShare, o
               <div ref={previewContainerRef} style={{ width: '100%' }}>
                 <iframe
                   ref={iframeRef}
-                  src={`${import.meta.env.COLLABORA_URL || 'https://localhost:9980'}/browser/4610258811/cool.html?WOPISrc=${encodeURIComponent('http://host.docker.internal:8001/api/v1/wopi/files/' + file.id)}&access_token=${wopiToken}`}
+                  src={buildCollaboraIframeUrl(currentFile.id, wopiToken)}
                   style={{ width: '100%', height: '600px', border: 'none' }}
                   title={file.name}
                 />
@@ -561,7 +533,7 @@ export default function FileDetailsModal({ file, onClose, onDownload, onShare, o
               <div ref={previewContainerRef} style={{ width: '100%' }}>
                 <iframe
                   ref={iframeRef}
-                  src={`${import.meta.env.COLLABORA_URL || 'https://localhost:9980'}/browser/4610258811/cool.html?WOPISrc=${encodeURIComponent('http://host.docker.internal:8001/api/v1/wopi/files/' + file.id)}&access_token=${editWopiToken}`}
+                  src={buildCollaboraIframeUrl(currentFile.id, editWopiToken)}
                   style={{ width: '100%', height: '600px', border: 'none' }}
                   title={file.name}
                 />
@@ -586,30 +558,12 @@ export default function FileDetailsModal({ file, onClose, onDownload, onShare, o
       </div>
     </Modal>
       <Joyride
-        continuous
-        run={runTour && tourSteps.length > 0}
+        {...getModalJoyrideProps({ theme, t })}
+        run={runTour}
+        stepIndex={stepIndex}
         steps={tourSteps}
         callback={handleTourCallback}
-        scrollOffset={100}
-        scrollToFirstStep
-        showSkipButton
-        showProgress
         tooltipComponent={TourTooltipComponent}
-        locale={{
-          back: t('tour_back'),
-          close: t('tour_close'),
-          last: t('tour_finish'),
-          next: t('tour_next'),
-          skip: t('tour_skip'),
-        }}
-        styles={{
-          options: {
-            primaryColor: 'var(--color-primary, #800020)',
-            textColor: theme === 'dark' ? '#e5e7eb' : '#111',
-            backgroundColor: theme === 'dark' ? '#1f2937' : '#fff',
-            zIndex: 10002,
-          },
-        }}
       />
     </>
   );

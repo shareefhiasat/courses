@@ -9,6 +9,7 @@ import { useGlobalLoading } from '@/contexts/GlobalLoadingContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import { getLocalizedUserName } from '@utils/localizedUserName.js';
+import { formatDateShort } from '@utils/date-formatter.js';
 import { useAuditGridColumns } from '@hooks/useAuditGridColumns.js';
 import { addClass, updateClass, deleteClass, getClasses } from '@services/business/classService';
 import { getPrograms, getSubjects } from '@services/business/programService';
@@ -744,12 +745,12 @@ const handleCancelEdit = useCallback(() => {
       valueGetter: (params) => {
         const val = params.value || params.row?.startDate;
         if (!val) return null;
-        return new Date(val).toLocaleDateString();
+        return formatDateShort(val, lang);
       },
       renderCell: (params) => {
         const val = params.row?.startDate;
         if (!val) return '—';
-        return new Date(val).toLocaleDateString();
+        return formatDateShort(val, lang);
       }
     },
     {
@@ -759,7 +760,7 @@ const handleCancelEdit = useCallback(() => {
       valueGetter: (params) => {
         const val = params.value || params.row?.endDate;
         if (!val) return null;
-        return new Date(val).toLocaleDateString();
+        return formatDateShort(val, lang);
       },
       renderCell: (params) => {
         const val = params.row?.endDate;
@@ -767,7 +768,7 @@ const handleCancelEdit = useCallback(() => {
         const isEnded = new Date(val) < new Date();
         return (
           <span style={{ color: isEnded ? 'var(--color-danger, #dc2626)' : undefined }}>
-            {new Date(val).toLocaleDateString()}
+            {formatDateShort(val, lang)}
           </span>
         );
       }

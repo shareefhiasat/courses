@@ -136,7 +136,7 @@ The reporter is enabled in `playwright.config.js` with `dryRun: false`.
 - Searches Linear for an existing issue with that test case ID
 - If found: adds a comment with the latest failure details
 - If not found: creates a new issue in team `SHA` with labels `qa` and `bug`
-- Includes: error message, stack trace, screenshot path, Allure report link
+- Includes: error mespwdsage, stack trace, screenshot path, Allure report link
 - Writes a summary file to `test-results/reports/linear-failures.json`
 
 ### Configuration

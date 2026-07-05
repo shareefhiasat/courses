@@ -343,11 +343,13 @@ const AttendanceTab = React.memo(({
     };
 
     // Create a student name mapping from the students roster
-    const getStudentInfo = (studentId) => {
-      if (!studentId) return null;
-      // Look up student in the roster
-      const student = students.find(s => (s.id || s.uid) === studentId);
-      return student || { displayName: `Student ${studentId?.slice(0, 8)}...` };
+    const getStudentInfo = (recordStudentId) => {
+      if (!recordStudentId) return null;
+      const sid = String(recordStudentId);
+      const student = students.find(s =>
+        String(s.id || s.uid || s.userId || s.docId) === sid
+      );
+      return student || { displayName: `Student ${sid.slice(0, 8)}...` };
     };
 
     const allLogs = [
@@ -356,7 +358,7 @@ const AttendanceTab = React.memo(({
         logType: RECORD_TYPES.ATTENDANCE,
         rawTime: a.time,
         time: resolveDate(a),
-        studentName: getStudentInfo(a.studentId),
+        studentName: getStudentInfo(a.studentId ?? a.userId),
         label: a.label || (lang === 'ar' ? (a.status?.nameAr || a.status?.nameEn) : (a.status?.nameEn || a.status?.code)) || a.status?.code || 'Attendance',
         performedBy: a.creator?.id || a.createdBy || a.markedBy || a.performedBy,
         performedByName: getLocalizedUserName(a.creator, lang, a.markedByName || a.performedByName),
@@ -368,7 +370,7 @@ const AttendanceTab = React.memo(({
         logType: RECORD_TYPES.PARTICIPATION,
         rawTime: p.time,
         time: resolveDate(p),
-        studentName: getStudentInfo(p.studentId),
+        studentName: getStudentInfo(p.studentId ?? p.userId),
         performedBy: p.creator?.id || p.createdBy || p.performedBy,
         performedByName: getLocalizedUserName(p.creator, lang, p.performedByName),
         creator: p.creator,
@@ -379,7 +381,7 @@ const AttendanceTab = React.memo(({
         logType: RECORD_TYPES.PENALTY,
         rawTime: p.time,
         time: resolveDate(p),
-        studentName: getStudentInfo(p.studentId),
+        studentName: getStudentInfo(p.studentId ?? p.userId),
         performedBy: p.creator?.id || p.createdBy || p.performedBy,
         performedByName: getLocalizedUserName(p.creator, lang, p.performedByName),
         creator: p.creator,
@@ -390,7 +392,7 @@ const AttendanceTab = React.memo(({
         logType: RECORD_TYPES.BEHAVIOR,
         rawTime: b.time,
         time: resolveDate(b),
-        studentName: getStudentInfo(b.studentId),
+        studentName: getStudentInfo(b.studentId ?? b.userId),
         performedBy: b.creator?.id || b.createdBy || b.performedBy,
         performedByName: getLocalizedUserName(b.creator, lang, b.performedByName),
         creator: b.creator,
@@ -679,7 +681,7 @@ const AttendanceTab = React.memo(({
         }}
         toggleFilter={toggleFilter}
         lang={lang}
-        studentName={studentName}
+        studentName={studentId ? studentName : undefined}
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         canDeleteAttendance={canDeleteRecords}

@@ -111,18 +111,18 @@ function writeMetaRow(ws, row, leftLabel, leftValue, rightLabel, rightValue, opt
 
 function writeBilingualHeaderBlock(ws, headerStartRow, colCount = 8) {
   const endRow = headerStartRow + HEADER_BLOCK_ROWS - 1;
-  const lastCol = String.fromCharCode(64 + colCount); // H for 8, F for 6
+  const lastCol = String.fromCharCode(64 + Math.min(colCount, 26));
 
-  const enEndCol = colCount === 8 ? 'C' : 'B';
-  const logoStart = colCount === 8 ? 'D' : 'C';
-  const logoEnd = colCount === 8 ? 'E' : 'D';
-  const arStart = colCount === 8 ? 'F' : 'E';
+  const enEndCol = colCount >= 12 ? 'D' : colCount === 8 ? 'C' : 'B';
+  const logoStart = colCount >= 12 ? 'E' : colCount === 8 ? 'D' : 'C';
+  const logoEnd = colCount >= 12 ? 'F' : colCount === 8 ? 'E' : 'D';
+  const arStart = colCount >= 12 ? 'G' : colCount === 8 ? 'F' : 'E';
   const arEnd = lastCol;
 
   const enCell = ws.getCell(`A${headerStartRow}`);
   enCell.value = `${OFFICIAL_HEADER.ministryEn}\n${OFFICIAL_HEADER.corpsEn}`;
   enCell.font = { size: 10 };
-  enCell.alignment = { horizontal: 'left', vertical: 'middle', wrapText: true };
+  enCell.alignment = { horizontal: 'left', vertical: 'middle', wrapText: false };
   ws.mergeCells(`A${headerStartRow}:${enEndCol}${endRow}`);
 
   ws.mergeCells(`${logoStart}${headerStartRow}:${logoEnd}${endRow}`);
@@ -148,9 +148,11 @@ async function tryAddLogo(workbook, worksheet, headerStartRow, colCount = 8) {
     const imageId = workbook.addImage({ buffer: buf, extension: 'png' });
 
     const logoCol =
-      colCount === 8
-        ? 3.35 // center of D–E
-        : 2.35; // center of C–D
+      colCount >= 12
+        ? 4.35
+        : colCount === 8
+          ? 3.35
+          : 2.35;
 
     worksheet.addImage(imageId, {
       tl: { col: logoCol, row: headerStartRow + 0.35 },
@@ -437,3 +439,275 @@ export async function exportAttendanceOfficialExcel(data) {
     type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
   });
 }
+
+function writeMarksHeader(ws, data, colCount, rowStart = 1) {
+  const headerEnd = writeBilingualHeaderBlock(ws, rowStart, colCount);
+  return headerEnd + 1;
+}
+
+export async function exportSemesterCertificateExcel(data) {
+  const isAr = data.isAr;
+  const colCount = 4 + (data.subjects?.length || 0) + 1;
+  const workbook = new ExcelJS.Workbook();
+  const ws = workbook.addWorksheet('Semester Certificate', { views: [{ rightToLeft: isAr }] });
+  setupA4Worksheet(ws, isAr);
+  ws.pageSetup.orientation = 'landscape';
+
+  let row = 1;
+  ws.getCell(`A${row}`).value = `${isAr ? 'الرقم التسلسلي' : 'Serial'}: ${data.serial}`;
+  row += 1;
+  row = writeMarksHeader(ws, data, Math.min(colCount, 12), row) + 1;
+
+  const titleCell = ws.getCell(`A${row}`);
+  titleCell.value = `${data.subtitle}\n${data.title}`;
+  titleCell.font = { bold: true, size: 13 };
+  titleCell.alignment = { horizontal: 'center', wrapText: true };
+  ws.mergeCells(row, 1, row, Math.min(colCount, 12));
+  row += 2;
+
+  const headers = [
+    isAr ? 'م' : '#',
+    isAr ? 'الرقم' : 'ID',
+    isAr ? 'الرتبة' : 'Rank',
+    isAr ? 'الاسم' : 'Name',
+    ...(data.subjects || []).map((s) => s.name),
+    isAr ? 'المعدل الفصلي' : 'GPA',
+  ];
+  const hRow = ws.getRow(row);
+  headers.forEach((h, i) => {
+    const cell = hRow.getCell(i + 1);
+    cell.value = h;
+    cell.font = { bold: true };
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFB0C4DE' } };
+    applyThinBorders(cell);
+  });
+  row += 1;
+
+  (data.rows || []).forEach((student) => {
+    const dr = ws.getRow(row);
+    let col = 1;
+    dr.getCell(col++).value = student.serial;
+    dr.getCell(col++).value = student.studentNumber;
+    dr.getCell(col++).value = student.rank;
+    dr.getCell(col++).value = student.studentName;
+    (data.subjects || []).forEach((s) => {
+      const m = student.subjectMarks?.[s.id];
+      const cell = dr.getCell(col++);
+      if (m) {
+        cell.value = `${m.totalMarks}${m.letterGrade ? ` (${m.letterGrade})` : ''}`;
+        if (m.failed) cell.font = { color: { argb: 'FFDC2626' }, bold: true };
+      }
+      applyThinBorders(cell);
+    });
+    const gpaCell = dr.getCell(col++);
+    gpaCell.value = student.semesterGpa;
+    gpaCell.font = { bold: true };
+    for (let c = 1; c < col; c++) applyThinBorders(dr.getCell(c));
+    row += 1;
+  });
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  return new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+}
+
+export async function exportClassSubjectMarksExcel(data) {
+  const isAr = data.isAr;
+  const d = data.distribution || {};
+  const LIGHT_TINT = 'FFFFFAF5';
+  const workbook = new ExcelJS.Workbook();
+  const ws = workbook.addWorksheet(isAr ? 'كشف درجات المادة' : 'Class Marks', { views: [{ rightToLeft: isAr }] });
+  setupA4Worksheet(ws, isAr);
+  ws.pageSetup.orientation = 'landscape';
+
+  let row = 1;
+  ws.getCell(isAr ? `L${row}` : `A${row}`).value = `${isAr ? 'الرقم التسلسلي' : 'Serial'}: ${data.serial}`;
+  row += 1;
+
+  const headerEnd = writeBilingualHeaderBlock(ws, row, 12);
+  await tryAddLogo(workbook, ws, row, 12);
+  row = headerEnd + 1;
+
+  ws.getCell(`A${row}`).value = `${isAr ? 'البرنامج' : 'Program'}: ${data.meta?.program}`;
+  row += 1;
+  ws.getCell(`A${row}`).value = `${isAr ? 'المادة' : 'Subject'}: ${data.meta?.subject}`;
+  row += 2;
+
+  const continuousWeight =
+    (d.homework || 0) + (d.participation || 0) + (d.quizzes || 0) +
+    (d.labsProjectResearch || 0) + (d.attendance || 0) + (d.midTermExam || 0);
+
+  const headers = [
+    isAr ? 'م' : '#',
+    isAr ? 'اسم الطالب' : 'Student',
+    isAr ? 'السنة' : 'Year',
+    isAr ? 'الفصل' : 'Term',
+    `${isAr ? 'واجبات' : 'HW'} (${d.homework}%)`,
+    `${isAr ? 'مشاركة' : 'Part.'} (${d.participation}%)`,
+    `${isAr ? 'قصيرة' : 'Quiz'} (${d.quizzes}%)`,
+    `${isAr ? 'بحث' : 'Research'} (${d.labsProjectResearch}%)`,
+    `${isAr ? 'حضور' : 'Att.'} (${d.attendance}%)`,
+    `${isAr ? 'فصلي' : 'Mid'} (${d.midTermExam}%)`,
+    `${isAr ? 'مجموع' : 'Sub'} (${continuousWeight}%)`,
+    `${isAr ? 'نهائي' : 'Final'} (${d.finalExam}%)`,
+    isAr ? 'المجموع الكلي' : 'Total',
+  ];
+
+  const hRow = ws.getRow(row);
+  headers.forEach((h, i) => {
+    const cell = hRow.getCell(i + 1);
+    cell.value = h;
+    cell.font = { bold: true };
+    cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFFFF' } };
+    cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+    applyThinBorders(cell);
+  });
+  hRow.height = 28;
+  row += 1;
+
+  (data.rows || []).forEach((student) => {
+    const dr = ws.getRow(row);
+    const values = [
+      student.serial,
+      student.studentName,
+      student.year,
+      student.term,
+      student.homework,
+      student.participation,
+      student.quizzes,
+      student.labsProjectResearch,
+      student.attendance,
+      student.midTermExam,
+      student.continuousTotal,
+      student.finalExam,
+      student.grandTotal,
+    ];
+    values.forEach((v, i) => {
+      const cell = dr.getCell(i + 1);
+      cell.value = v;
+      cell.alignment = { horizontal: i === 1 ? (isAr ? 'right' : 'left') : 'center', vertical: 'middle' };
+      if (i === 10 || i === 12) {
+        cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: LIGHT_TINT } };
+      }
+      if (i === 12 && student.failed) {
+        cell.font = { color: { argb: 'FFDC2626' }, bold: true };
+      }
+      applyThinBorders(cell);
+    });
+    dr.height = 18;
+    row += 1;
+  });
+
+  row += 1;
+  ws.getCell(`A${row}`).value = `${isAr ? 'الرقم التسلسلي' : 'Serial'}: ${data.serial}`;
+  row += 1;
+  ws.getCell(`A${row}`).value = `${isAr ? 'تاريخ الإصدار' : 'Generated'}: ${formatDateTime(new Date(), isAr ? 'ar' : 'en')}`;
+
+  const colWidths = [5, 28, 10, 10, 11, 11, 11, 12, 11, 11, 12, 11, 12];
+  colWidths.forEach((w, i) => {
+    ws.getColumn(i + 1).width = w;
+  });
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  return new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+}
+
+export async function exportQualitativeCardExcel(data) {
+  const isAr = data.isAr;
+  const workbook = new ExcelJS.Workbook();
+
+  for (let sIdx = 0; sIdx < data.students.length; sIdx += 1) {
+    const student = data.students[sIdx];
+    const sheetName = `${student.studentNumber || student.studentId}`.slice(0, 31);
+    const ws = workbook.addWorksheet(sheetName || `Student${sIdx + 1}`, { views: [{ rightToLeft: isAr }] });
+    setupA4Worksheet(ws, isAr);
+    let row = 1;
+    const headerStart = row;
+    row = writeBilingualHeaderBlock(ws, row, 8) + 1;
+    await tryAddLogo(workbook, ws, headerStart, 8);
+    ws.getCell(`A${row}`).value = data.title;
+    ws.getCell(`A${row}`).font = { bold: true, size: 14 };
+    ws.mergeCells(`A${row}:H${row}`);
+    row += 2;
+    ws.getCell(`A${row}`).value = `${isAr ? 'الاسم' : 'Name'}: ${student.studentName}`;
+    row += 1;
+    ws.getCell(`A${row}`).value = `${isAr ? 'الرقم' : 'ID'}: ${student.studentNumber}`;
+    row += 1;
+    ws.getCell(`A${row}`).value = `${isAr ? 'التخصص' : 'Major'}: ${student.programName}`;
+    row += 2;
+
+    student.semesters.forEach((sem) => {
+      ws.getCell(`A${row}`).value = sem.label;
+      ws.getCell(`A${row}`).font = { bold: true, color: { argb: 'FFFFFFFF' } };
+      ws.getCell(`A${row}`).fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF1E3A5F' } };
+      ws.mergeCells(`A${row}:F${row}`);
+      row += 1;
+      const hdr = isAr
+        ? ['رمز المقرر', 'اسم المقرر', 'الساعات', 'التقدير', 'النقاط', 'الساعات المكتسبة']
+        : ['Code', 'Course', 'Credits', 'Grade', 'Points', 'Hours'];
+      hdr.forEach((h, i) => {
+        const c = ws.getRow(row).getCell(i + 1);
+        c.value = h;
+        c.font = { bold: true };
+        applyThinBorders(c);
+      });
+      row += 1;
+      sem.courses.forEach((c) => {
+        [c.code, c.name, c.credits, c.letterGrade, c.pointsEarned, c.hoursEarned].forEach((v, i) => {
+          const cell = ws.getRow(row).getCell(i + 1);
+          cell.value = v;
+          cell.alignment = { vertical: 'middle', horizontal: i === 1 ? (isAr ? 'right' : 'left') : 'center' };
+          applyThinBorders(cell);
+        });
+        row += 1;
+      });
+      ws.getCell(`A${row}`).value = `${isAr ? 'المعدل الفصلي' : 'Semester GPA'}: ${sem.semesterGpa?.toFixed?.(2)}`;
+      ws.getCell(`D${row}`).value = `${isAr ? 'المعدل العام' : 'Cumulative GPA'}: ${sem.cumulativeGpa?.toFixed?.(2)}`;
+      row += 2;
+    });
+
+    ws.columns = [{ width: 12 }, { width: 32 }, { width: 10 }, { width: 10 }, { width: 12 }, { width: 14 }];
+  }
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  return new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+}
+
+export async function exportAttendanceWarningExcel(data) {
+  const isAr = data.isAr;
+  const workbook = new ExcelJS.Workbook();
+
+  data.pages.forEach((page, idx) => {
+    const ws = workbook.addWorksheet(`${page.studentNumber || idx + 1}`.slice(0, 31), { views: [{ rightToLeft: isAr }] });
+    setupA4Worksheet(ws, isAr);
+    let row = 1;
+    ws.getCell(`A${row}`).value = page.title;
+    ws.getCell(`A${row}`).font = { bold: true, size: 16, color: { argb: 'FFB91C1C' } };
+    ws.mergeCells(`A${row}:F${row}`);
+    row += 2;
+    [
+      [isAr ? 'الرقم' : 'Number', page.studentNumber],
+      [isAr ? 'الرتبة' : 'Rank', page.rank],
+      [isAr ? 'الإسم' : 'Name', page.studentName],
+      [isAr ? 'الدورة' : 'Program', page.programName],
+      [isAr ? 'المادة' : 'Subject', page.subjectName],
+    ].forEach(([label, value]) => {
+      ws.getCell(`A${row}`).value = { richText: [{ text: `${label}: `, font: { bold: true, color: { argb: 'FFB91C1C' } } }, { text: String(value) }] };
+      ws.mergeCells(`A${row}:F${row}`);
+      row += 1;
+    });
+    row += 1;
+    ws.getCell(`A${row}`).value = page.body;
+    ws.getCell(`A${row}`).alignment = { wrapText: true, vertical: 'top' };
+    ws.mergeCells(`A${row}:F${row + 4}`);
+    row += 6;
+    ws.getCell(`A${row}`).value = page.signerTitle;
+    ws.getCell(`A${row}`).font = { bold: true };
+    row += 1;
+    ws.getCell(`A${row}`).value = `(${page.signerName})`;
+    ws.columns = [{ width: 18 }, { width: 18 }, { width: 18 }, { width: 18 }, { width: 18 }, { width: 18 }];
+  });
+
+  const buffer = await workbook.xlsx.writeBuffer();
+  return new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+}
+

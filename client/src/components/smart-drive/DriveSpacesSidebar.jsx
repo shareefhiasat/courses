@@ -52,10 +52,10 @@ export default function DriveSpacesSidebar({
     background: 'var(--panel, white)',
     border: '1px solid var(--border, #e5e7eb)',
     borderRadius: '0.75rem',
-    padding: isMinimized ? '0.5rem' : '1rem',
+    padding: isMinimized ? '0.375rem' : '0.625rem',
     display: 'flex',
     flexDirection: 'column',
-    gap: '0.75rem',
+    gap: '0.5rem',
   };
 
   const spaceButton = (space) => {
@@ -69,7 +69,7 @@ export default function DriveSpacesSidebar({
           display: 'flex',
           alignItems: 'center',
           gap: '0.75rem',
-          padding: isMinimized ? '0.5rem' : '0.625rem 0.75rem',
+          padding: isMinimized ? '0.4375rem' : '0.5rem 0.625rem',
           background: active ? 'var(--color-primary-tint, #eff6ff)' : 'transparent',
           color: active ? 'var(--color-primary, #2563eb)' : 'var(--text-secondary, #374151)',
           border: 'none',
@@ -146,7 +146,7 @@ export default function DriveSpacesSidebar({
             {t('drive.spaces')}
           </div>
         )}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>{spaces.map(spaceButton)}</div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.125rem' }}>{spaces.map(spaceButton)}</div>
       </div>
 
       {/* Folders / Tree View */}
@@ -180,7 +180,7 @@ export default function DriveSpacesSidebar({
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.5rem',
-                    padding: '0.5rem 0.75rem',
+                    padding: '0.4375rem 0.625rem',
                     background: 'transparent',
                     border: 'none',
                     borderRadius: '0.5rem',

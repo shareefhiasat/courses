@@ -4,6 +4,7 @@ import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon, getIconWithColor } from '@constants/iconTypes';
 import useHistorySearch from '@hooks/useHistorySearch';
+import useResizableDrawer from '@hooks/useResizableDrawer';
 import { formatDateTime } from '@utils/date-formatter.js';
 
 /**
@@ -28,11 +29,18 @@ const MarksHistoryDrawer = memo(({
   selectedStudent = null,
   customFields = null,
   styles = {},
-  width = 400,
+  width: widthProp = 400,
   debounceMs = 300
 }) => {
   const { t, lang, isRTL } = useLang();
   const { theme } = useTheme();
+  const { width: drawerWidth, resizeHandleProps } = useResizableDrawer({
+    storageKey: 'marks_history_drawer_width',
+    defaultWidth: widthProp,
+    minWidth: 320,
+    maxWidth: 800,
+    isRTL,
+  });
   
   // Use custom hook for debounced search
   const {
@@ -57,9 +65,9 @@ const MarksHistoryDrawer = memo(({
   const drawerStyle = useMemo(() => ({
     position: 'fixed',
     top: 0,
-    right: isRTL ? 'auto' : (isOpen ? 0 : `-${width}px`),
-    left: isRTL ? (isOpen ? 0 : `-${width}px`) : 'auto',
-    width: `${width}px`,
+    right: isRTL ? 'auto' : (isOpen ? 0 : `-${drawerWidth}px`),
+    left: isRTL ? (isOpen ? 0 : `-${drawerWidth}px`) : 'auto',
+    width: `${drawerWidth}px`,
     height: '100vh',
     background: 'var(--panel)',
     boxShadow: isRTL ? '2px 0 10px rgba(0,0,0,0.1)' : '-2px 0 10px rgba(0,0,0,0.1)',
@@ -67,18 +75,18 @@ const MarksHistoryDrawer = memo(({
     zIndex: 1000,
     overflow: 'auto',
     ...styles.drawer
-  }), [isOpen, width, isRTL, styles.drawer]);
+  }), [isOpen, drawerWidth, isRTL, styles.drawer]);
 
   const backdropStyle = useMemo(() => ({
     position: 'fixed',
     top: 0,
-    left: isRTL ? `${width}px` : 0,
-    right: isRTL ? 0 : `${width}px`,
+    left: isRTL ? `${drawerWidth}px` : 0,
+    right: isRTL ? 0 : `${drawerWidth}px`,
     height: '100vh',
     background: 'rgba(0,0,0,0.45)',
     zIndex: 999,
     ...styles.backdrop
-  }), [width, isRTL, styles.backdrop]);
+  }), [drawerWidth, isRTL, styles.backdrop]);
 
   const headerStyle = useMemo(() => ({
     padding: '1rem 1.25rem',
@@ -395,6 +403,7 @@ const MarksHistoryDrawer = memo(({
             </div>
           )}
         </div>
+        <div {...resizeHandleProps} />
       </div>
     </>
   );

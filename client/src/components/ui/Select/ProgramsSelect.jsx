@@ -16,6 +16,14 @@ import {
   getSubjectSubtextLines,
 } from '@utils/academicSelectOptions.js';
 
+const extractSelectValue = (e) => {
+  if (e == null) return '';
+  if (typeof e === 'string' || typeof e === 'number') return String(e);
+  if (e.value !== undefined && e.value !== null) return String(e.value);
+  if (e.target?.value !== undefined && e.target?.value !== null) return String(e.target.value);
+  return '';
+};
+
 const ProgramsSelect = ({
   programs = [],
   subjects = [],
@@ -172,12 +180,9 @@ const ProgramsSelect = ({
         <Select
           label={showLabels ? (t('program')) : ''}
           options={programOptions}
-          value={selectedProgram || ''}  // Use the raw selectedProgram value
+          value={normalizedSelectedProgram || ''}
           onChange={(e) => {
-            // Extract value properly - handle both event objects and direct values
-            const value = e?.value !== undefined ? e.value : (e?.target?.value || e || '');
-            
-            // Pass the value directly (not as an event object)
+            const value = extractSelectValue(e);
             onProgramChange?.(value);
             
             // Reset subject, class, term, and year when program changes
@@ -200,10 +205,7 @@ const ProgramsSelect = ({
             options={subjectOptions}
             value={String(normalizedSelectedSubject || '')}
             onChange={(e) => {
-              // Extract value properly - handle both event objects and direct values
-              const value = e?.target?.value !== undefined ? e.target.value : (e?.value || e || '');
-              
-              // Pass the value directly (not as an event object)
+              const value = extractSelectValue(e);
               onSubjectChange?.(value);
               // Reset class, term, and year when subject changes
               onClassChange?.('');
@@ -223,10 +225,7 @@ const ProgramsSelect = ({
             options={classOptions}
             value={String(selectedClass || '')}
             onChange={(e) => {
-              // Extract value properly - handle both event objects and direct values
-              const value = e?.target?.value !== undefined ? e.target.value : (e?.value || e || '');
-              
-              // Pass the value directly (not as an event object)
+              const value = extractSelectValue(e);
               onClassChange?.(value);
             }}
             placeholder={normalizedSelectedSubject ? (t('select_class')) : (t('all_classes'))}

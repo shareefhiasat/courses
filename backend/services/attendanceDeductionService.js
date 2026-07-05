@@ -76,19 +76,30 @@ export async function calculateStudentAbsenceDeductions({
 
   const attendances = await prisma.attendance.findMany({
     where,
-    include: { status: true },
+    include: {
+      status: true,
+      workflowLinks: {
+        include: {
+          workflowDocument: { select: { id: true, status: true, title: true } },
+        },
+      },
+    },
     orderBy: { date: 'asc' },
   });
 
   const deducting = attendances
     .map((row) => {
       const deduction = resolveDeductionForAttendance(row, rules);
+      const workflowDoc = row.workflowLinks?.[0]?.workflowDocument;
       return {
         attendanceId: row.id,
         date: row.date,
         statusCode: row.status?.code,
         excusedViaWorkflow: Boolean(row.excuseApprovedAt),
         deduction,
+        workflowDocumentId: workflowDoc?.id || null,
+        workflowStatus: workflowDoc?.status || null,
+        workflowTitle: workflowDoc?.title || null,
       };
     })
     .filter((row) => row.deduction > 0);
@@ -153,6 +164,7 @@ export async function getDeductionHistory({ userId, classId }) {
     where: { userId, ...(classId && { classId }) },
     include: {
       status: true,
+      creator: { select: { id: true, displayName: true, realName: true, firstName: true, lastName: true } },
       amendments: {
         include: {
           fromStatus: true,
@@ -160,6 +172,11 @@ export async function getDeductionHistory({ userId, classId }) {
           amendedByUser: { select: { id: true, displayName: true, realName: true } },
         },
         orderBy: { amendedAt: 'asc' },
+      },
+      workflowLinks: {
+        include: {
+          workflowDocument: { select: { id: true, title: true, status: true } },
+        },
       },
     },
     orderBy: { date: 'asc' },
@@ -172,15 +189,19 @@ export async function getDeductionHistory({ userId, classId }) {
     const currentDeduction = resolveDeductionForAttendance(att, rules);
 
     if (currentDeduction > 0 || att.amendments.length > 0) {
+      const workflowDoc = att.workflowLinks?.[0]?.workflowDocument;
       events.push({
         id: `att-${att.id}`,
         eventType: 'attendance_recorded',
         timestamp: att.createdAt,
         description: `Attendance recorded: ${att.status?.nameEn || statusCode || 'Unknown'} on ${new Date(att.date).toLocaleDateString()}`,
         deductionChange: { old: 0, new: currentDeduction },
-        actorName: null,
+        actorName: att.creator?.displayName || att.creator?.realName || [att.creator?.firstName, att.creator?.lastName].filter(Boolean).join(' ') || null,
         attendanceId: att.id,
         attendanceDate: att.date,
+        workflowDocumentId: workflowDoc?.id || null,
+        workflowTitle: workflowDoc?.title || null,
+        workflowStatus: workflowDoc?.status || null,
       });
     }
 
@@ -205,6 +226,7 @@ export async function getDeductionHistory({ userId, classId }) {
     if (att.excuseApprovedAt) {
       const excusedDeduction = rules.find((r) => r.isExcused)?.deduction ?? DEFAULT_RULES.ATTENDANCE_LEAVE;
       const originalDeduction = DEFAULT_RULES[statusCode] ?? 0.5;
+      const workflowDoc = att.workflowLinks?.[0]?.workflowDocument;
 
       events.push({
         id: `excuse-${att.id}`,
@@ -215,6 +237,10 @@ export async function getDeductionHistory({ userId, classId }) {
         actorName: null,
         attendanceId: att.id,
         attendanceDate: att.date,
+        workflowDocumentId: workflowDoc?.id || null,
+        workflowTitle: workflowDoc?.title || null,
+        workflowStatus: workflowDoc?.status || null,
+        excusedViaWorkflow: true,
       });
     }
   }
@@ -232,6 +258,103 @@ export function getFailureThresholds() {
   };
 }
 
+/** Status codes counted as absence for official warnings (all non-present). */
+const WARNING_ABSENCE_STATUS_CODES = new Set([
+  'ATTENDANCE_ABSENT',
+  'ATTENDANCE_LEAVE',
+  'ATTENDANCE_LATE',
+  'ATTENDANCE_HUMAN_CASE',
+]);
+
+const UNEXCUSED_ABSENCE_CODES = new Set(['ATTENDANCE_ABSENT']);
+
+/**
+ * Count absences per enrolled student in a class for warning reports.
+ */
+export async function getClassAbsenceWarningCounts({ classId, userId }) {
+  if (!classId) {
+    return { success: false, error: 'classId is required' };
+  }
+
+  const enrollments = await prisma.enrollment.findMany({
+    where: {
+      classId: Number(classId),
+      status: { code: 'ENROLLED' },
+      ...(userId && { userId: Number(userId) }),
+    },
+    include: {
+      user: {
+        select: {
+          id: true,
+          displayName: true,
+          displayNameAr: true,
+          studentNumber: true,
+          rankEn: true,
+          rankAr: true,
+          sequence: true,
+        },
+      },
+      class: {
+        include: {
+          program: { select: { nameEn: true, nameAr: true } },
+          subject: { select: { nameEn: true, nameAr: true, code: true } },
+        },
+      },
+    },
+  });
+
+  const studentIds = enrollments.map((e) => e.userId);
+  if (studentIds.length === 0) {
+    return { success: true, data: [] };
+  }
+
+  const attendances = await prisma.attendance.findMany({
+    where: {
+      classId: Number(classId),
+      userId: { in: studentIds },
+    },
+    include: { status: true },
+  });
+
+  const countsByUser = new Map();
+  studentIds.forEach((id) => {
+    countsByUser.set(id, { totalAbsences: 0, unexcusedAbsences: 0 });
+  });
+
+  attendances.forEach((row) => {
+    const code = row.status?.code;
+    if (!code || !WARNING_ABSENCE_STATUS_CODES.has(code)) return;
+    const entry = countsByUser.get(row.userId);
+    if (!entry) return;
+    entry.totalAbsences += 1;
+    if (UNEXCUSED_ABSENCE_CODES.has(code)) {
+      entry.unexcusedAbsences += 1;
+    }
+  });
+
+  const data = enrollments.map((enrollment) => {
+    const counts = countsByUser.get(enrollment.userId) || { totalAbsences: 0, unexcusedAbsences: 0 };
+    return {
+      studentId: enrollment.userId,
+      studentNumber: enrollment.user.studentNumber || '',
+      studentName: enrollment.user.displayName || '',
+      studentNameAr: enrollment.user.displayNameAr || '',
+      rankEn: enrollment.user.rankEn || '',
+      rankAr: enrollment.user.rankAr || '',
+      sequence: enrollment.user.sequence,
+      programName: enrollment.class?.program?.nameEn || '',
+      programNameAr: enrollment.class?.program?.nameAr || '',
+      subjectName: enrollment.class?.subject?.nameEn || '',
+      subjectNameAr: enrollment.class?.subject?.nameAr || '',
+      subjectCode: enrollment.class?.subject?.code || '',
+      classId: enrollment.classId,
+      ...counts,
+    };
+  });
+
+  return { success: true, data };
+}
+
 export default {
   calculateStudentAbsenceDeductions,
   suggestAttendanceMarkComponent,
@@ -239,4 +362,5 @@ export default {
   upsertDeductionRule,
   getDeductionHistory,
   getFailureThresholds,
+  getClassAbsenceWarningCounts,
 };
