@@ -43,6 +43,8 @@ const SchedulingExportDialog = ({
         const sources = await loadWeeklyScheduleSources({
           classId: metadata.classId,
           programId: metadata.programId,
+          year: metadata.year,
+          term: metadata.term,
         });
         const reportData = prepareWeeklyScheduleData({
           metadata: baseMeta,
@@ -51,6 +53,7 @@ const SchedulingExportDialog = ({
           sessions: sources.sessions,
           breakSessions: sources.breakSessions,
           instructorAvailability: sources.instructorAvailability,
+          timeSlots: sources.timeSlots,
         });
         const filename = `${reportData.serial}_weekly_schedule_${sanitize(metadata.programName || metadata.className || 'schedule')}`;
         const blob = await exportWeeklyScheduleReport(reportData, { format: exportFormat, filename });

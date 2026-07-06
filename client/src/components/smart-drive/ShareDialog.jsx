@@ -18,7 +18,7 @@ import SharesList from './SharesList';
 export default function ShareDialog({ file, onShare, onGenerateLink, onClose }) {
   const { t, lang } = useLang();
   const { theme } = useTheme();
-  const { hasPermission, roleCode } = usePermissions();
+  const { hasPermission, roleCode, allRoles } = usePermissions();
   const [shareType, setShareType] = useState('people');
   const [selectedUserIds, setSelectedUserIds] = useState([]);
   const [selectedRoles, setSelectedRoles] = useState([]);
@@ -30,8 +30,9 @@ export default function ShareDialog({ file, onShare, onGenerateLink, onClose }) 
   const [sharesListKey, setSharesListKey] = useState(0);
 
   const isSuperAdmin = roleCode === ROLE_STRINGS.SUPER_ADMIN;
-  const canShare = isSuperAdmin || hasPermission('drive.share');
-  const canPublicLink = isSuperAdmin || hasPermission('drive.public-link');
+  const isPrivilegedRole = allRoles?.some(r => ['instructor', 'hr', 'admin', 'super_admin'].includes(r));
+  const canShare = isSuperAdmin || isPrivilegedRole || hasPermission('drive.share');
+  const canPublicLink = isSuperAdmin || isPrivilegedRole || hasPermission('drive.public-link');
 
   // ── Guided Tour ──────────────────────────────────────────────────────────
   const tourSeenKey = `shareDialogTourSeen_${lang}`;

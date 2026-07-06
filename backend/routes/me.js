@@ -11,9 +11,63 @@ import prisma from '../db/prismaClient.js';
 
 const router = Router();
 
-async function enrichScopeDetails(scope) {
+async function enrichScopeDetails(scope, userId) {
+  const classSelect = {
+    id: true,
+    code: true,
+    nameEn: true,
+    nameAr: true,
+    programId: true,
+    subjectId: true,
+    term: true,
+    year: true,
+    instructorId: true,
+    instructor: { select: { displayName: true, displayNameAr: true } },
+    subject: { select: { id: true, code: true, nameEn: true, nameAr: true } },
+    program: { select: { id: true, code: true, nameEn: true, nameAr: true } },
+  };
+
   if (scope.unrestricted) {
-    return { ...scope, unlimited: true, programs: [], subjects: [], classes: [] };
+    const [programs, subjects, classes] = await Promise.all([
+      prisma.program.findMany({
+        where: { isActive: true },
+        select: { id: true, code: true, nameEn: true, nameAr: true },
+        orderBy: { nameEn: 'asc' },
+      }),
+      prisma.subject.findMany({
+        where: { isActive: true },
+        select: { id: true, code: true, nameEn: true, nameAr: true, programId: true },
+        orderBy: { code: 'asc' },
+      }),
+      prisma.class.findMany({
+        where: { isActive: true },
+        select: classSelect,
+        orderBy: { code: 'asc' },
+      }),
+    ]);
+
+    const instructorClassIds = userId
+      ? classes.filter((c) => c.instructorId === userId).map((c) => c.id)
+      : [];
+    const instructorSubjectIds = userId
+      ? [...new Set(classes.filter((c) => c.instructorId === userId).map((c) => c.subjectId).filter(Boolean))]
+      : [];
+
+    return {
+      ...scope,
+      unlimited: true,
+      programs,
+      subjects: subjects.map((s) => ({
+        ...s,
+        isInstructor: instructorSubjectIds.includes(s.id),
+      })),
+      classes: classes.map((c) => ({
+        ...c,
+        isInstructor: userId ? c.instructorId === userId : false,
+      })),
+      instructorClassIds,
+      instructorSubjectIds,
+    };
   }
 
   const programIds = (scope.programIds || []).map(Number).filter(Boolean);
@@ -38,30 +92,41 @@ async function enrichScopeDetails(scope) {
     classIds.length
       ? prisma.class.findMany({
           where: { id: { in: classIds }, isActive: true },
-          select: {
-            id: true,
-            code: true,
-            nameEn: true,
-            nameAr: true,
-            programId: true,
-            subjectId: true,
-            term: true,
-            year: true,
-            instructor: { select: { displayName: true, displayNameAr: true } },
-          },
+          select: classSelect,
           orderBy: { code: 'asc' },
         })
       : [],
   ]);
 
-  return { ...scope, unlimited: false, programs, subjects, classes };
+  const instructorClassIds = userId
+    ? classes.filter((c) => c.instructorId === userId).map((c) => c.id)
+    : [];
+  const instructorSubjectIds = userId
+    ? [...new Set(classes.filter((c) => c.instructorId === userId).map((c) => c.subjectId).filter(Boolean))]
+    : [];
+
+  return {
+    ...scope,
+    unlimited: false,
+    programs,
+    subjects: subjects.map((s) => ({
+      ...s,
+      isInstructor: instructorSubjectIds.includes(s.id),
+    })),
+    classes: classes.map((c) => ({
+      ...c,
+      isInstructor: userId ? c.instructorId === userId : false,
+    })),
+    instructorClassIds,
+    instructorSubjectIds,
+  };
 }
 
 router.get('/data-scope', requireAuth, async (req, res) => {
   try {
     const scope = await getEffectiveDataScope(req.user.dbId, req.user.roles || []);
     if (req.query.details === '1') {
-      const enriched = await enrichScopeDetails(scope);
+      const enriched = await enrichScopeDetails(scope, req.user.dbId);
       return res.json({ success: true, data: enriched });
     }
     res.json({ success: true, data: scope });

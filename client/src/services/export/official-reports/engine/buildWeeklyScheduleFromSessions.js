@@ -1,4 +1,4 @@
-import { QATAR_TIMEZONE } from '@utils/date-formatter.js';
+import { QATAR_TIMEZONE, formatTime24 } from '@utils/date-formatter.js';
 import {
   getLocalizedSubjectName,
   getLocalizedInstructorName,
@@ -8,19 +8,93 @@ import {
 
 const WORK_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu'];
 
-const SLOT_WINDOWS = [
+const DEFAULT_SLOT_WINDOWS = [
   { key: 'lecture1', min: 7 * 60, max: 8 * 60 },
   { key: 'break1', min: 8 * 60, max: 8 * 60 + 30, isBreak: true },
   { key: 'lecture2', min: 8 * 60 + 30, max: 9 * 60 + 30 },
-  { key: 'break2', min: 9 * 60 + 30, max: 9 * 60 + 50, isBreak: true },
-  { key: 'lecture3', min: 9 * 60 + 50, max: 10 * 60 + 50 },
-  { key: 'officeHour', min: 10 * 60 + 30, max: 12 * 60 },
+  { key: 'break2', min: 9 * 60 + 30, max: 10 * 60 },
+  { key: 'lecture3', min: 10 * 60, max: 11 * 60 },
+  { key: 'officeHour', min: 11 * 60, max: 12 * 60 },
 ];
 
 const DEFAULT_BREAKS = {
   break1: '8:00 – 8:30',
-  break2: '9:30 – 9:50',
+  break2: '9:30 – 10:00',
 };
+
+function slotKeyFromTimeSlot(ts, lectureCount, breakCount) {
+  if (ts.isBreak) {
+    if (ts.breakType === 'OfficeHours' || (ts.labelEn || '').toLowerCase().includes('office')) {
+      return 'officeHour';
+    }
+    return breakCount === 0 ? 'break1' : 'break2';
+  }
+  if ((ts.labelEn || '').toLowerCase().includes('office')) return 'officeHour';
+  const keys = ['lecture1', 'lecture2', 'lecture3'];
+  return keys[lectureCount] || `lecture${lectureCount + 1}`;
+}
+
+/** Build slot windows from program time slots (falls back to defaults). */
+export function buildSlotWindowsFromTimeSlots(timeSlots = []) {
+  if (!timeSlots.length) return { windows: DEFAULT_SLOT_WINDOWS, breaks: { ...DEFAULT_BREAKS } };
+
+  const windows = [];
+  const breaks = { ...DEFAULT_BREAKS };
+  let lectureCount = 0;
+  let breakCount = 0;
+
+  timeSlots.forEach((ts) => {
+    const startMin = parseHmToMinutes(ts.startTime);
+    const endMin = parseHmToMinutes(ts.endTime);
+    if (startMin == null) return;
+
+    const key = slotKeyFromTimeSlot(ts, lectureCount, breakCount);
+    if (ts.isBreak) {
+      if (key === 'officeHour') {
+        // office-hour row marked as break in time slots
+      } else {
+        breakCount += 1;
+      }
+    } else if (key.startsWith('lecture')) {
+      lectureCount += 1;
+    }
+
+    windows.push({
+      key,
+      min: startMin,
+      max: endMin ?? startMin + (ts.durationMinutes || 60),
+      isBreak: !!ts.isBreak,
+    });
+
+    if (ts.isBreak && ts.startTime && ts.endTime) {
+      breaks[key] = `${ts.startTime} – ${ts.endTime}`;
+    }
+  });
+
+  if (!windows.length) return { windows: DEFAULT_SLOT_WINDOWS, breaks: { ...DEFAULT_BREAKS } };
+  return { windows, breaks };
+}
+
+export function buildColumnDefsFromTimeSlots(timeSlots = [], lang = 'en') {
+  if (!timeSlots.length) return null;
+  const isAr = lang === 'ar';
+  let lectureCount = 0;
+  let breakCount = 0;
+
+  return timeSlots.map((ts) => {
+    const key = slotKeyFromTimeSlot(ts, lectureCount, breakCount);
+    if (ts.isBreak) {
+      if (key !== 'officeHour') breakCount += 1;
+    } else if (key.startsWith('lecture')) {
+      lectureCount += 1;
+    }
+    return {
+      key,
+      label: isAr ? (ts.labelAr || ts.labelEn) : (ts.labelEn || ts.labelAr),
+      isBreak: !!ts.isBreak,
+    };
+  });
+}
 
 function qatarParts(dateValue) {
   const d = dateValue instanceof Date ? dateValue : new Date(dateValue);
@@ -38,18 +112,8 @@ function qatarParts(dateValue) {
   return { weekday, minutes: hour * 60 + minute };
 }
 
-function formatTime24(dateValue, lang) {
-  const d = dateValue instanceof Date ? dateValue : new Date(dateValue);
-  return d.toLocaleTimeString(lang === 'ar' ? 'ar-QA-u-ca-gregory' : 'en-US', {
-    timeZone: QATAR_TIMEZONE,
-    hour: 'numeric',
-    minute: '2-digit',
-    hour12: false,
-  });
-}
-
 function formatTimeRange(start, end, lang) {
-  return `${formatTime24(start, lang)} – ${formatTime24(end, lang)}`;
+  return `${formatTime24(start, lang, QATAR_TIMEZONE)} – ${formatTime24(end, lang, QATAR_TIMEZONE)}`;
 }
 
 function parseHmToMinutes(hm) {
@@ -59,12 +123,13 @@ function parseHmToMinutes(hm) {
   return h * 60 + m;
 }
 
-function resolveSlotKey(startMinutes) {
-  const match = SLOT_WINDOWS.find((w) => startMinutes >= w.min && startMinutes < w.max);
+function resolveSlotKey(startMinutes, slotWindows) {
+  const windows = slotWindows || DEFAULT_SLOT_WINDOWS;
+  const match = windows.find((w) => startMinutes >= w.min && startMinutes < w.max);
   if (match) return match.key;
-  const lectures = SLOT_WINDOWS.filter((w) => !w.isBreak && w.key !== 'officeHour');
+  const lectures = windows.filter((w) => !w.isBreak && w.key !== 'officeHour');
   let nearest = lectures[0];
-  let best = Math.abs(startMinutes - nearest.min);
+  let best = nearest ? Math.abs(startMinutes - nearest.min) : Infinity;
   lectures.forEach((w) => {
     const dist = Math.abs(startMinutes - w.min);
     if (dist < best) {
@@ -72,11 +137,12 @@ function resolveSlotKey(startMinutes) {
       nearest = w;
     }
   });
-  return nearest.key;
+  return nearest?.key || 'lecture1';
 }
 
-function emptySlots() {
-  return Object.fromEntries(SLOT_WINDOWS.map((w) => [w.key, null]));
+function emptySlots(slotWindows) {
+  const windows = slotWindows || DEFAULT_SLOT_WINDOWS;
+  return Object.fromEntries(windows.map((w) => [w.key, null]));
 }
 
 function sessionToSlot(session, lang) {
@@ -100,8 +166,8 @@ function weeklySessionKey(session) {
   return `${weekday}-${minutes}`;
 }
 
-function buildSessionsByDay(sessions, lang) {
-  const byDay = Object.fromEntries(WORK_DAYS.map((d) => [d, emptySlots()]));
+function buildSessionsByDay(sessions, lang, slotWindows) {
+  const byDay = Object.fromEntries(WORK_DAYS.map((d) => [d, emptySlots(slotWindows)]));
   const seen = new Set();
 
   const active = (sessions || []).filter(
@@ -117,21 +183,25 @@ function buildSessionsByDay(sessions, lang) {
       if (seen.has(`${weekday}-${uniq}`)) return;
       seen.add(`${weekday}-${uniq}`);
 
-      const slotKey = resolveSlotKey(minutes);
+      const slotKey = resolveSlotKey(minutes, slotWindows);
       if (slotKey === 'officeHour') {
         byDay[weekday][slotKey] = {
           ...sessionToSlot(session, lang),
           isOfficeHour: true,
         };
-      } else if (!SLOT_WINDOWS.find((w) => w.key === slotKey)?.isBreak) {
-        byDay[weekday][slotKey] = sessionToSlot(session, lang);
+      } else {
+        const slotDef = (slotWindows || DEFAULT_SLOT_WINDOWS).find((w) => w.key === slotKey);
+        if (!slotDef?.isBreak) {
+          byDay[weekday][slotKey] = sessionToSlot(session, lang);
+        }
       }
     });
 
   return byDay;
 }
 
-function applyBreakSessions(byDay, breakSessions) {
+function applyBreakSessions(byDay, breakSessions, breakTimes) {
+  const defaults = breakTimes || DEFAULT_BREAKS;
   const seenBreaks = new Set();
 
   (breakSessions || []).forEach((bs) => {
@@ -143,14 +213,16 @@ function applyBreakSessions(byDay, breakSessions) {
     if (!WORK_DAYS.includes(weekday)) return;
 
     let startMinutes = null;
-    let timeStr = DEFAULT_BREAKS.break1;
+    let timeStr = defaults.break1;
 
     if (bs.timeSlot?.startTime && bs.timeSlot?.endTime) {
       startMinutes = parseHmToMinutes(bs.timeSlot.startTime);
       timeStr = `${bs.timeSlot.startTime} – ${bs.timeSlot.endTime}`;
     }
 
-    const slotKey = startMinutes != null ? resolveSlotKey(startMinutes) : 'break1';
+    const slotKey = startMinutes != null
+      ? resolveSlotKey(startMinutes, null)
+      : 'break1';
     if (!slotKey.startsWith('break')) return;
 
     const dedupeKey = `${weekday}-${slotKey}`;
@@ -163,14 +235,17 @@ function applyBreakSessions(byDay, breakSessions) {
   WORK_DAYS.forEach((day) => {
     ['break1', 'break2'].forEach((bk) => {
       if (!byDay[day][bk]) {
-        byDay[day][bk] = { time: DEFAULT_BREAKS[bk], isBreak: true };
+        byDay[day][bk] = { time: defaults[bk] || DEFAULT_BREAKS[bk], isBreak: true };
       }
     });
   });
 }
 
-function applyOfficeHoursFromAvailability(byDay, availabilityRecords, lang, defaultRoom) {
+function applyOfficeHoursFromAvailability(byDay, availabilityRecords, lang, defaultRoom, slotWindows) {
   const officeLabel = lang === 'ar' ? 'ساعات مكتبية' : 'Office Hours';
+  const officeWindow = (slotWindows || DEFAULT_SLOT_WINDOWS).find((w) => w.key === 'officeHour');
+  const officeMin = officeWindow?.min ?? 11 * 60;
+  const officeMax = officeWindow?.max ?? 12 * 60;
 
   (availabilityRecords || []).forEach((record) => {
     if (record.isActive === false) return;
@@ -181,7 +256,7 @@ function applyOfficeHoursFromAvailability(byDay, availabilityRecords, lang, defa
       const startMin = parseHmToMinutes(slot.startTime);
       const endMin = parseHmToMinutes(slot.endTime);
       if (startMin == null || endMin == null) return;
-      if (startMin < 10 * 60 + 30 || startMin >= 12 * 60) return;
+      if (startMin < officeMin - 30 || startMin >= officeMax) return;
 
       days.forEach((dayCode) => {
         if (!WORK_DAYS.includes(dayCode)) return;
@@ -198,12 +273,14 @@ function applyOfficeHoursFromAvailability(byDay, availabilityRecords, lang, defa
   });
 }
 
-function finalizeDaySlots(slots) {
+function finalizeDaySlots(slots, slotWindows, breakTimes) {
+  const windows = slotWindows || DEFAULT_SLOT_WINDOWS;
+  const defaults = breakTimes || DEFAULT_BREAKS;
   const result = { ...slots };
-  SLOT_WINDOWS.forEach(({ key, isBreak }) => {
+  windows.forEach(({ key, isBreak }) => {
     if (isBreak && result[key]) return;
     if (isBreak) {
-      result[key] = { time: DEFAULT_BREAKS[key], isBreak: true };
+      result[key] = { time: defaults[key] || DEFAULT_BREAKS[key], isBreak: true };
     } else if (!result[key]) {
       result[key] = null;
     }
@@ -226,18 +303,21 @@ export function buildWeeklyScheduleFromSessions({
   lang = 'ar',
   dayLabels = {},
   defaultRoom = '',
-}) {
-  const byDay = buildSessionsByDay(sessions, lang);
-  applyBreakSessions(byDay, breakSessions);
-  applyOfficeHoursFromAvailability(byDay, instructorAvailability, lang, defaultRoom);
+  timeSlots = [],
+} = {}) {
+  const { windows: slotWindows, breaks: breakTimes } = buildSlotWindowsFromTimeSlots(timeSlots);
+
+  const byDay = buildSessionsByDay(sessions, lang, slotWindows);
+  applyBreakSessions(byDay, breakSessions, breakTimes);
+  applyOfficeHoursFromAvailability(byDay, instructorAvailability, lang, defaultRoom, slotWindows);
 
   const days = WORK_DAYS.map((code) => ({
     dayCode: code,
     dayLabel: dayLabels[code] || code,
-    slots: finalizeDaySlots(byDay[code]),
+    slots: finalizeDaySlots(byDay[code], slotWindows, breakTimes),
   }));
 
   return days;
 }
 
-export { WORK_DAYS, SLOT_WINDOWS };
+export { WORK_DAYS, DEFAULT_SLOT_WINDOWS as SLOT_WINDOWS };

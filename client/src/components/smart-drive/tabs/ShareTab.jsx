@@ -31,7 +31,7 @@ const SHARE_TYPES = {
 
 export default function ShareTab({ fileId, onShare, onGenerateLink }) {
   const { t } = useLang();
-  const { hasPermission, roleCode } = usePermissions();
+  const { hasPermission, roleCode, allRoles } = usePermissions();
   const [shareType, setShareType] = useState(SHARE_TYPES.PEOPLE);
   const [selectedUserIds, setSelectedUserIds] = useState([]);
   const [selectedRoles, setSelectedRoles] = useState([]);
@@ -45,8 +45,9 @@ export default function ShareTab({ fileId, onShare, onGenerateLink }) {
   const [loadingLinks, setLoadingLinks] = useState(false);
 
   const isSuperAdmin = roleCode === ROLE_STRINGS.SUPER_ADMIN;
-  const canShare = isSuperAdmin || hasPermission('drive.share');
-  const canPublicLink = isSuperAdmin || hasPermission('drive.public-link');
+  const isPrivilegedRole = allRoles?.some(r => ['instructor', 'hr', 'admin', 'super_admin'].includes(r));
+  const canShare = isSuperAdmin || isPrivilegedRole || hasPermission('drive.share');
+  const canPublicLink = isSuperAdmin || isPrivilegedRole || hasPermission('drive.public-link');
 
   const getHighestPermission = (permissions) => {
     const hierarchy = [PERMISSIONS.VIEW, PERMISSIONS.DOWNLOAD, PERMISSIONS.COMMENT, PERMISSIONS.EDIT];

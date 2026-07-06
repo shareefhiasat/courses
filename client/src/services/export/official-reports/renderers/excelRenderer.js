@@ -916,12 +916,12 @@ export async function exportAttendanceWarningExcel(data) {
 }
 
 function fillScheduleCell(cell, value, options = {}) {
-  const { bold = false, fillArgb, fontSize = 10, wrap = false, rotation = 0 } = options;
+  const { bold = false, fillArgb, fontSize = 10, wrap = false, rotation = 0, vertical = 'middle' } = options;
   cell.value = value ?? '';
   cell.font = { size: fontSize, bold };
   cell.alignment = {
     horizontal: 'center',
-    vertical: 'middle',
+    vertical,
     wrapText: wrap,
     textRotation: rotation,
   };
@@ -1012,7 +1012,7 @@ export async function exportWeeklyScheduleExcel(data) {
       fillScheduleCell(
         dr.getCell(2),
         data.rowLabels?.[rowType] || rowType,
-        { bold: true, fillArgb: 'FFF3F6FA', fontSize: 9 }
+        { bold: true, fillArgb: 'FFF3F6FA', fontSize: 9, vertical: 'bottom' }
       );
 
       data.columns.forEach((col, idx) => {
@@ -1040,8 +1040,9 @@ export async function exportWeeklyScheduleExcel(data) {
           {
             bold: rowType === 'subject',
             fillArgb: rowType === 'subject' ? 'FFF5E6E8' : undefined,
-            fontSize: 9,
+            fontSize: rowType === 'instructor' ? 9.5 : 9,
             wrap: rowType === 'subject',
+            vertical: 'bottom',
           }
         );
       });

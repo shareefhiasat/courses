@@ -703,6 +703,9 @@
   font-size: 8.5px;
   font-weight: 600;
   letter-spacing: 0;
+  direction: ltr;
+  unicode-bidi: isolate;
+  font-variant-numeric: lining-nums tabular-nums;
 }
 
 .scheduleCellInner {
@@ -751,32 +754,56 @@
   background: #f3f6fa;
   font-weight: 700;
   font-size: 10px;
+  vertical-align: bottom;
 }
 
-.scheduleRowLabelCell .scheduleCellInner {
+.scheduleRowLabelCell .scheduleCellInner,
+.scheduleRowLabelInner {
   font-size: 10px;
-  padding: 2px 2px;
+  padding: 2px 4px 8px;
+  align-items: flex-end;
+  justify-content: center;
+  min-height: 22px;
+}
+
+.scheduleRowLabelTime {
+  vertical-align: bottom;
+}
+
+.scheduleLtrDigits {
+  font-variant-numeric: lining-nums tabular-nums;
+  unicode-bidi: isolate;
 }
 
 .scheduleDataCell {
   font-size: 10px;
+  vertical-align: bottom;
+}
+
+/* All lecture data rows — subject, time, instructor, room */
+.scheduleDataCell .scheduleCellInner {
+  font-size: 10px;
+  padding: 2px 4px 8px;
+  align-items: flex-end;
+  justify-content: center;
+  min-height: 22px;
 }
 
 .scheduleSubjectCell .scheduleCellInner {
   background: #f5e6e8;
   font-weight: 600;
-  font-size: 10px;
-  min-height: 16px;
 }
 
 .scheduleTimeCell .scheduleCellInner {
   font-weight: 600;
-  font-size: 10px;
+}
+
+.scheduleInstructorCell .scheduleCellInner {
+  font-size: 9.5px;
 }
 
 .scheduleRoomCell .scheduleCellInner {
   font-size: 10px;
-  min-height: 18px;
 }
 
 .scheduleBreakCell {

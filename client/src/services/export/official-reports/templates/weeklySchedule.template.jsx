@@ -1,11 +1,15 @@
 import React from 'react';
 import { OFFICIAL_HEADER } from '../shared/officialHeader.js';
 import { buildWatermarkLines } from '../engine/watermark.js';
+import { formatDateTime } from '@utils/date-formatter.js';
 import styles from './officialReport.module.css';
 
-function CellContent({ children, className }) {
+function CellContent({ children, className, ltr }) {
   return (
-    <div className={`${styles.scheduleCellInner} ${className || ''}`}>
+    <div
+      className={`${styles.scheduleCellInner} ${ltr ? styles.scheduleLtrDigits : ''} ${className || ''}`}
+      {...(ltr ? { dir: 'ltr' } : {})}
+    >
       {children}
     </div>
   );
@@ -26,7 +30,7 @@ function SlotCell({ slot, rowType, isBreak }) {
     if (rowType !== 'subject') return null;
     return (
       <td className={styles.scheduleBreakCell} rowSpan={4}>
-        <CellContent>
+        <CellContent ltr>
           <VerticalText compact className={styles.scheduleBreakVertical}>{slot?.time || '—'}</VerticalText>
         </CellContent>
       </td>
@@ -51,12 +55,13 @@ function SlotCell({ slot, rowType, isBreak }) {
     styles.scheduleDataCell,
     rowType === 'subject' ? styles.scheduleSubjectCell : '',
     rowType === 'time' ? styles.scheduleTimeCell : '',
+    rowType === 'instructor' ? styles.scheduleInstructorCell : '',
     rowType === 'room' ? styles.scheduleRoomCell : '',
   ].filter(Boolean).join(' ');
 
   return (
     <td className={cellClass}>
-      <CellContent>{value || (rowType === 'instructor' ? '' : '—')}</CellContent>
+      <CellContent ltr={rowType === 'time'}>{value || (rowType === 'instructor' ? '' : '—')}</CellContent>
     </td>
   );
 }
@@ -79,8 +84,8 @@ function DayBlock({ day, columns, rowLabels }) {
               <VerticalText>{day.dayLabel}</VerticalText>
             </td>
           )}
-          <td className={styles.scheduleRowLabelCell}>
-            <CellContent>{rowLabelMap[rowType]}</CellContent>
+          <td className={`${styles.scheduleRowLabelCell} ${rowType === 'time' ? styles.scheduleRowLabelTime : ''}`}>
+            <CellContent className={styles.scheduleRowLabelInner}>{rowLabelMap[rowType]}</CellContent>
           </td>
           {columns.map((col) => (
             <SlotCell
@@ -101,14 +106,7 @@ export function WeeklyScheduleTemplate({ data, showWatermark = true }) {
   const isAr = lang === 'ar';
   const wm = buildWatermarkLines(data.watermarkUser);
 
-  const genDateTime = new Date().toLocaleDateString(isAr ? 'ar-SA' : 'en-US', {
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  });
+  const genDateTime = formatDateTime(new Date(), lang);
 
   const metaLine = [batch, year && term ? `${year} / ${term}` : year || term]
     .filter(Boolean)

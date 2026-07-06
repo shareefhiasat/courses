@@ -19,11 +19,15 @@ export const getScheduledSessions = async (params = {}) => {
       startDate,
       endDate,
       status,
-      isActive = true
+      isActive: isActiveParam,
     } = params;
 
+    const isActive = isActiveParam === undefined
+      ? true
+      : isActiveParam === true || isActiveParam === 'true';
+
     const where = {
-      ...(isActive !== undefined && { isActive }),
+      ...(isActiveParam !== undefined && { isActive }),
       ...(classId && { classId: parseInt(classId) }),
       ...(instructorId && { instructorId: parseInt(instructorId) }),
       ...(classroomId && { classroomId: parseInt(classroomId) }),

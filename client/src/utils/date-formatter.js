@@ -88,6 +88,17 @@ export function formatTime(date, lang = 'en', timezone) {
 }
 
 /**
+ * Format time as 24-hour HH:mm (Latin numerals)
+ * @param {Date|string|number|null|undefined} date
+ * @param {'en'|'ar'} [lang='en']
+ * @param {string} [timezone]
+ * @returns {string} e.g. "08:30"
+ */
+export function formatTime24(date, lang = 'en', timezone) {
+  return formatDateCore(date, 'HH:mm', lang, timezone);
+}
+
+/**
  * Format time with seconds as hh:mm:ss a
  * @param {Date|string|number|null|undefined} date
  * @param {'en'|'ar'} [lang='en']
@@ -268,6 +279,7 @@ export function getQatarDateParts(dateValue) {
 export default {
   formatDate,
   formatTime,
+  formatTime24,
   formatTimeWithSeconds,
   formatDateTime,
   formatDateTimeWithSeconds,

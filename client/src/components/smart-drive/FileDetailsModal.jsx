@@ -17,6 +17,7 @@ import CommentsTab from './tabs/CommentsTab';
 import ActivityTab from './tabs/ActivityTab';
 import WorkflowTab from './tabs/WorkflowTab';
 import ShareTab from './tabs/ShareTab';
+import { usePermissions } from '@hooks/usePermissions';
 
 export default function FileDetailsModal({ file, onClose, onDownload, onShare, onGenerateLink, onStar, onTrash, onRefresh, initialTab = 'details', userCanEdit = false }) {
   const { t, lang } = useLang();
@@ -198,6 +199,9 @@ export default function FileDetailsModal({ file, onClose, onDownload, onShare, o
   // canDelete===false means the file is shared with the user but not owned by them.
   const isOwnedByUser = file.canDelete === true;
 
+  const { allRoles } = usePermissions();
+  const canShareTab = isOwnedByUser || allRoles.some(r => ['instructor', 'hr', 'admin', 'super_admin'].includes(r));
+
   // ── Guided Tour ──────────────────────────────────────────────────────────
   const tourSeenKey = `fileDetailsTourSeen_${lang}`;
 
@@ -231,14 +235,14 @@ export default function FileDetailsModal({ file, onClose, onDownload, onShare, o
       modalTabStep('[data-tour="details-tab-comments"]', t('tour.details_modal_comments'), 'comments'),
     );
 
-    if (isOwnedByUser) {
+    if (canShareTab) {
       steps.push(modalTabStep('[data-tour="details-tab-share"]', t('tour.details_modal_share'), 'share'));
     }
 
     steps.push(modalTourStep('[data-tour="details-modal-download"]', t('tour.details_modal_download'), { placement: 'top' }));
 
     return steps;
-  }, [t, isPreviewable, canShowEditTab, isOwnedByUser]);
+  }, [t, isPreviewable, canShowEditTab, canShareTab]);
 
   const {
     run: runTour,
@@ -266,8 +270,7 @@ export default function FileDetailsModal({ file, onClose, onDownload, onShare, o
     { value: 'activity', label: t('drive.activity'), icon: getIcon('ui', 'activity'), 'data-tour': 'details-tab-activity' },
     { value: 'workflow', label: t('drive.workflow'), icon: getIcon('ui', 'workflow', 16, '#8b5cf6'), 'data-tour': 'details-tab-workflow' },
     { value: 'comments', label: t('drive.comments'), icon: getIcon('ui', 'message'), 'data-tour': 'details-tab-comments' },
-    // Only show share tab if user owns the file
-    ...(isOwnedByUser ? [{ value: 'share', label: t('drive.share'), icon: getIcon('ui', 'share'), 'data-tour': 'details-tab-share' }] : []),
+    ...(canShareTab ? [{ value: 'share', label: t('drive.share'), icon: getIcon('ui', 'share'), 'data-tour': 'details-tab-share' }] : []),
   ];
 
   const footer = (
