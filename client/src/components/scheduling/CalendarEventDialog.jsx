@@ -9,6 +9,7 @@ const BREAK_TYPES = [
   { value: 'TeaBreak', labelEn: 'Tea Break', labelAr: 'استراحة شاي' },
   { value: 'PrayerBreak', labelEn: 'Prayer Break', labelAr: 'استراحة صلاة' },
   { value: 'LunchBreak', labelEn: 'Lunch Break', labelAr: 'استراحة غداء' },
+  { value: 'OfficeHours', labelEn: 'Office Hours', labelAr: 'ساعات مكتبية' },
   { value: 'Other', labelEn: 'Other', labelAr: 'أخرى' },
 ];
 

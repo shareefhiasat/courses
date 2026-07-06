@@ -229,14 +229,16 @@ const DashboardPage = () => {
   // Show loading while auth is initializing to prevent useAuth errors
   // Note: Removed early return to avoid hooks order issues
   // ===== PHASE 1: Core Dashboard Tabs =====
+  const staffDashboard = isSuperAdmin || isAdmin || isInstructor || isHR;
+
   const ribbonCategories = useMemo(() => {
     const filterRibbonItems = (items) => {
       if (isSuperAdmin) return items;
       return items.filter((item) => {
-        // Programs tab is super_admin only
-        if (item.key === 'programs') return false;
+        // Programs tab is super_admin only (HR/admin see scoped programs via API)
+        if (item.key === 'programs') return isSuperAdmin;
         // Users tab is admin/HR only (not instructor/student)
-        if (item.key === 'users' && !isAdmin && !isHR) return false;
+        if (item.key === 'users' && !isAdmin && !isHR && !isSuperAdmin) return false;
         const screenId = DASHBOARD_TAB_SCREEN_IDS[item.key] || item.key;
         return canAccessScreen(screenId);
       });
@@ -547,28 +549,28 @@ const DashboardPage = () => {
           {activeTab === 'programs' && isSuperAdmin && (
             <ProgramsManagementPage />
           )}
-          {activeTab === 'subjects' && (isSuperAdmin || isAdmin || isInstructor) && (
+          {activeTab === 'subjects' && staffDashboard && (
             <SubjectsManagementPage />
           )}
-          {activeTab === 'classes' && (isSuperAdmin || isAdmin || isInstructor) && (
+          {activeTab === 'classes' && staffDashboard && (
             <ClassesPage />
           )}
-          {activeTab === 'marks' && (isSuperAdmin || isAdmin || isInstructor) && (
+          {activeTab === 'marks' && staffDashboard && (
             <MarksPage />
           )}
-          {activeTab === 'manage-enrollments' && (isSuperAdmin || isAdmin || isInstructor) && (
+          {activeTab === 'manage-enrollments' && staffDashboard && (
             <EnrollmentsManagementPage />
           )}
-          {activeTab === 'penalty' && (isSuperAdmin || isAdmin || isInstructor) && (
+          {activeTab === 'penalty' && staffDashboard && (
             <PenaltiesPage />
           )}
-          {activeTab === 'participation' && (isSuperAdmin || isAdmin || isInstructor) && (
+          {activeTab === 'participation' && staffDashboard && (
             <ParticipationPage />
           )}
-          {activeTab === 'behavior' && (isSuperAdmin || isAdmin || isInstructor) && (
+          {activeTab === 'behavior' && staffDashboard && (
             <BehaviorPage />
           )}
-          {activeTab === 'scheduled-reports' && (isSuperAdmin || isAdmin) && (
+          {activeTab === 'scheduled-reports' && (isSuperAdmin || isAdmin || isHR) && (
             <ScheduledReportsPage />
           )}
           {activeTab === 'logging' && (

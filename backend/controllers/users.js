@@ -14,6 +14,8 @@ import {
   isUserInRequesterScope,
   attachEnrolledClasses,
 } from '../utils/userAccess.js';
+import { permissionsService } from '../services/permissions.js';
+import { getEffectiveRoles } from '../utils/roleUtils.js';
 
 /**
  * Convert a stored MinIO image key (e.g. "Users/123/images/profile.jpg")
@@ -486,36 +488,62 @@ export const updateUserController = async (req, res) => {
     }
 
     const targetUserId = existingUser.id;
+    const isSelfProfileUpdate =
+      req.userUpdateAccess === 'self' ||
+      (currentUserId != null && targetUserId === currentUserId);
+
+    let rolesToApply = roles;
+    let userUpdateData = {
+      displayName,
+      displayNameAr,
+      realName,
+      firstName,
+      lastName,
+      firstNameAr,
+      lastNameAr,
+      email,
+      isActive,
+      studentNumber,
+      sequence: sequence ? parseInt(sequence, 10) : null,
+      updatedBy: currentUserId,
+    };
+
+    if (isSelfProfileUpdate) {
+      const adminCanManageUsers = await permissionsService.checkPermissionForRoles(
+        getEffectiveRoles(currentUser.roles || []),
+        'users.canUpdate',
+      );
+      if (!adminCanManageUsers) {
+        rolesToApply = undefined;
+        userUpdateData = {
+          displayName,
+          displayNameAr,
+          realName,
+          firstName,
+          lastName,
+          firstNameAr,
+          lastNameAr,
+          updatedBy: currentUserId,
+        };
+      }
+    }
     
     // Update user in PostgreSQL
     const user = await prisma.user.update({
       where: { id: targetUserId },
-      data: {
-        displayName,
-        displayNameAr,
-        realName,
-        firstName,
-        lastName,
-        firstNameAr,
-        lastNameAr,
-        email,
-        isActive,
-        studentNumber,
-        sequence: sequence ? parseInt(sequence, 10) : null,
-        updatedBy: currentUserId
-      }
+      data: userUpdateData,
     });
     
     
     // Handle multi-role assignments
-    if (roles && Array.isArray(roles)) {
+    if (rolesToApply && Array.isArray(rolesToApply)) {
       // Delete existing role assignments
       await prisma.userRoleAssignment.deleteMany({
         where: { userId: targetUserId }
       });
       
       // Create new role assignments
-      for (const roleCode of roles) {
+      for (const roleCode of rolesToApply) {
         // Find role by code
         const role = await prisma.userRoles.findFirst({
           where: { 
@@ -538,10 +566,10 @@ export const updateUserController = async (req, res) => {
     }
     
     // Sync roles to Keycloak if user has Keycloak ID
-    if (existingUser.keycloakId && roles && roles.length > 0) {
+    if (existingUser.keycloakId && rolesToApply && rolesToApply.length > 0) {
       const keycloakResult = await setUserRoles({
         keycloakUserId: existingUser.keycloakId,
-        roles: roles
+        roles: rolesToApply,
       });
       
       if (!keycloakResult.success) {

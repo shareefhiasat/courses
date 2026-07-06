@@ -16,7 +16,7 @@ import {
   getClassesBySubjectController,
   getClassesByInstructorController
 } from '../controllers/classes.js';
-import { screenOps } from '../middleware/requirePermission.js';
+import { screenOps, scopedAcademicRead } from '../middleware/requirePermission.js';
 
 const router = Router();
 const ops = screenOps('classes');
@@ -183,7 +183,7 @@ const ops = screenOps('classes');
  *                   type: integer
  *                   example: 2
  */
-router.get('/', ops.view, getAllClassesController);
+router.get('/', scopedAcademicRead, getAllClassesController);
 
 /**
  * @swagger
@@ -215,7 +215,7 @@ router.get('/', ops.view, getAllClassesController);
  *       404:
  *         description: Class not found
  */
-router.get('/:id', ops.view, getClassByIdController);
+router.get('/:id', scopedAcademicRead, getClassByIdController);
 
 /**
  * @swagger
@@ -452,7 +452,7 @@ router.delete('/:id', ops.delete, deleteClassController);
  *                   type: integer
  *                   example: 1
  */
-router.get('/program/:programId', ops.view, getClassesByProgramController);
+router.get('/program/:programId', scopedAcademicRead, getClassesByProgramController);
 
 /**
  * @swagger
@@ -518,7 +518,7 @@ router.get('/program/:programId', ops.view, getClassesByProgramController);
  *                   type: integer
  *                   example: 1
  */
-router.get('/subject/:subjectId', ops.view, getClassesBySubjectController);
+router.get('/subject/:subjectId', scopedAcademicRead, getClassesBySubjectController);
 
 /**
  * @swagger
@@ -584,6 +584,6 @@ router.get('/subject/:subjectId', ops.view, getClassesBySubjectController);
  *                   type: integer
  *                   example: 1
  */
-router.get('/instructor/:instructorId', ops.view, getClassesByInstructorController);
+router.get('/instructor/:instructorId', scopedAcademicRead, getClassesByInstructorController);
 
 export default router;

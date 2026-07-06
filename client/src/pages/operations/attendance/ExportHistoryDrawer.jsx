@@ -7,8 +7,9 @@ import useResizableDrawer from '@hooks/useResizableDrawer';
 import { formatDateShort, formatTime as fmtTime } from '@utils/date-formatter.js';
 import { getExportHistory, openExportFile } from '@services/db/exportHistoryService.js';
 import { resolveUserRole, getUserRoleFromObject } from '@utils/userUtils';
-import { getUserRoleColor, getUserRoleIcon } from '@constants/iconTypes';
+import { getUserRoleColor, getUserRoleIcon, getThemedIcon } from '@constants/iconTypes';
 import RoleBadge from '@pages/communications/chat/components/RoleBadge.jsx';
+import { buildSmartDriveHighlightUrl } from '@utils/exportSuccessUrls';
 import { FileText, Table, FileType2 } from 'lucide-react';
 
 const EXPORT_TYPE_COLORS = {
@@ -93,6 +94,7 @@ function ExportEntryRow({
   entry,
   lang,
   t,
+  theme,
   isSuperAdmin,
   currentUserId,
   indent = 40,
@@ -119,6 +121,15 @@ function ExportEntryRow({
     } finally {
       setOpening(false);
     }
+  };
+
+  const handleOpenInDrive = () => {
+    if (!hasFile) return;
+    const url = buildSmartDriveHighlightUrl(entry.fileId, {
+      folder: 'Exported',
+      filename: entry.filename,
+    });
+    window.open(url, '_blank', 'noopener,noreferrer');
   };
 
   return (
@@ -243,6 +254,26 @@ function ExportEntryRow({
             }}
           >
             ↓
+          </button>
+          <button
+            type="button"
+            onClick={handleOpenInDrive}
+            title={t('open_in_smart_drive')}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 4,
+              background: 'transparent',
+              border: '1px solid var(--border)',
+              borderRadius: 6,
+              padding: '4px 8px',
+              fontSize: 'var(--font-size-xs)',
+              cursor: 'pointer',
+              color: 'var(--color-primary, #2563eb)',
+            }}
+          >
+            {getThemedIcon('ui', 'external_link', 14, 'currentColor')}
+            Drive
           </button>
         </div>
       )}
@@ -376,23 +407,28 @@ const ExportHistoryDrawer = ({ isOpen, onClose, lang, t, theme }) => {
             {t('export_history')}
           </h3>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            {!isSuperAdmin && (
-              <button
-                type="button"
-                onClick={() => navigate('/smart-drive?folder=Exported')}
-                style={{
-                  background: 'transparent',
-                  border: '1px solid var(--border)',
-                  borderRadius: 6,
-                  padding: '4px 10px',
-                  fontSize: 'var(--font-size-xs)',
-                  cursor: 'pointer',
-                  color: 'var(--color-primary, #2563eb)',
-                }}
-              >
-                {t('open_exported_folder')}
-              </button>
-            )}
+            <button
+              type="button"
+              onClick={() => {
+                const url = buildSmartDriveHighlightUrl(null, { folder: 'Exported' });
+                window.open(url, '_blank', 'noopener,noreferrer');
+              }}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 6,
+                background: 'transparent',
+                border: '1px solid var(--border)',
+                borderRadius: 6,
+                padding: '4px 10px',
+                fontSize: 'var(--font-size-xs)',
+                cursor: 'pointer',
+                color: 'var(--color-primary, #2563eb)',
+              }}
+            >
+              {getThemedIcon('ui', 'external_link', 14, 'currentColor')}
+              {t('open_exported_folder')}
+            </button>
             <button
               onClick={onClose}
               style={{
@@ -723,6 +759,7 @@ const ExportHistoryDrawer = ({ isOpen, onClose, lang, t, theme }) => {
                           entry={entry}
                           lang={lang}
                           t={t}
+                          theme={theme}
                           isSuperAdmin={isSuperAdmin}
                           currentUserId={currentUserId}
                           indent={group.flat ? 0 : 40}

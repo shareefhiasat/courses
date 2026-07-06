@@ -13,6 +13,9 @@ import { ConfirmModal } from '@ui';
 import { ROLES } from '@constants/permissionConfig';
 import { useLang } from '@contexts/LangContext';
 
+// Permissions cache version — bump this when permission defaults change so clients refetch.
+const PERMISSIONS_CACHE_VERSION = 2;
+
 // Session configuration from environment variables
 const SESSION_CONFIG = {
   WARNING_TIME_MINUTES: parseInt(import.meta.env.VITE_SESSION_WARNING_MINUTES || '5'),
@@ -117,11 +120,15 @@ export const AuthProvider = ({ children }) => {
       const cachedPermissions = localStorage.getItem('permissions');
       if (cachedPermissions) {
         try {
-          setPermissions(JSON.parse(cachedPermissions));
-          return;
+          const parsed = JSON.parse(cachedPermissions);
+          if (parsed?.version === PERMISSIONS_CACHE_VERSION && Array.isArray(parsed?.data)) {
+            setPermissions(parsed.data);
+            return;
+          }
         } catch {
-          localStorage.removeItem('permissions');
+          /* invalid cache */
         }
+        localStorage.removeItem('permissions');
       }
     }
 
@@ -148,7 +155,10 @@ export const AuthProvider = ({ children }) => {
             if (response.ok) {
               const data = await response.json();
               setPermissions(data.data);
-              localStorage.setItem('permissions', JSON.stringify(data.data));
+              localStorage.setItem('permissions', JSON.stringify({
+                version: PERMISSIONS_CACHE_VERSION,
+                data: data.data,
+              }));
               return;
             }
 

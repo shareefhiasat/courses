@@ -4,7 +4,7 @@ import { Modal, Button, Select, Input } from '@ui';
 import schedulingSummaryService from '@services/business/schedulingSummaryService';
 import { formatForDateInput } from '@utils/date-formatter.js';
 
-const BREAK_TYPES = ['TeaBreak', 'PrayerBreak', 'LunchBreak', 'Other'];
+const BREAK_TYPES = ['TeaBreak', 'PrayerBreak', 'LunchBreak', 'OfficeHours', 'Other'];
 
 export default function BreakSessionModal({
   open,

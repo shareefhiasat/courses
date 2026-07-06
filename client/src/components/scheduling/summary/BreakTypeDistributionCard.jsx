@@ -3,7 +3,7 @@ import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { Card, CardBody } from '@ui';
 
-const COLORS = { TeaBreak: '#f59e0b', PrayerBreak: '#8b5cf6', LunchBreak: '#10b981', Other: '#6b7280' };
+const COLORS = { TeaBreak: '#f59e0b', PrayerBreak: '#8b5cf6', LunchBreak: '#10b981', OfficeHours: '#3b82f6', Other: '#6b7280' };
 
 export default function BreakTypeDistributionCard({ distribution = [] }) {
   const { t } = useLang();

@@ -18,7 +18,7 @@ import {
   getEnrollmentsByProgramController,
 } from "../controllers/enrollments.js";
 import { requireAuth } from "../middleware/keycloakAuth.js";
-import { screenOps } from "../middleware/requirePermission.js";
+import { screenOps, enrollmentRead } from "../middleware/requirePermission.js";
 
 const router = Router();
 const enrollOps = screenOps('enrollments');
@@ -121,7 +121,7 @@ const manageOps = screenOps('manage-enrollments');
  *                   type: integer
  *                   example: 10
  */
-router.get("/", requireAuth, enrollOps.view, getAllEnrollmentsController);
+router.get("/", requireAuth, enrollmentRead, getAllEnrollmentsController);
 
 /**
  * @swagger
@@ -152,7 +152,7 @@ router.get("/", requireAuth, enrollOps.view, getAllEnrollmentsController);
  *                   items:
  *                     type: object
  */
-router.get("/students-by-class", requireAuth, enrollOps.view, getStudentsByClassController);
+router.get("/students-by-class", requireAuth, enrollmentRead, getStudentsByClassController);
 
 /**
  * @swagger
@@ -183,7 +183,7 @@ router.get("/students-by-class", requireAuth, enrollOps.view, getStudentsByClass
  *       404:
  *         description: Enrollment not found
  */
-router.get("/:id", enrollOps.view, getEnrollmentByIdController);
+router.get("/:id", enrollmentRead, getEnrollmentByIdController);
 
 /**
  * @swagger
@@ -340,7 +340,7 @@ router.delete("/:id", manageOps.delete, deleteEnrollmentController);
  *                   items:
  *                     $ref: '#/components/schemas/Enrollment'
  */
-router.get("/student/:studentId", enrollOps.view, getEnrollmentsByStudentController);
+router.get("/student/:studentId", enrollmentRead, getEnrollmentsByStudentController);
 
 /**
  * @swagger
@@ -371,7 +371,7 @@ router.get("/student/:studentId", enrollOps.view, getEnrollmentsByStudentControl
  *                   items:
  *                     $ref: '#/components/schemas/Enrollment'
  */
-router.get("/class/:classId", enrollOps.view, getEnrollmentsByClassController);
+router.get("/class/:classId", enrollmentRead, getEnrollmentsByClassController);
 
 /**
  * @swagger
@@ -402,6 +402,6 @@ router.get("/class/:classId", enrollOps.view, getEnrollmentsByClassController);
  *                   items:
  *                     $ref: '#/components/schemas/Enrollment'
  */
-router.get("/program/:programId", requireAuth, enrollOps.view, getEnrollmentsByProgramController);
+router.get("/program/:programId", requireAuth, enrollmentRead, getEnrollmentsByProgramController);
 
 export default router;

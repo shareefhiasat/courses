@@ -35,7 +35,7 @@ export async function fetchClassStatsMap(classList, options = {}) {
     announcementsRes,
     resourcesRes
   ] = await Promise.all([
-    getEnrollments().catch(() => ({ success: false, data: [] })),
+    getEnrollments({ limit: 10000, page: 1 }).catch(() => ({ success: false, data: [] })),
     getPenalties().catch(() => ({ success: false, data: [] })),
     getBehaviors().catch(() => ({ success: false, data: [] })),
     getAllQuizzes().catch(() => ({ success: false, data: [] })),

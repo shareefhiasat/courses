@@ -78,8 +78,8 @@ const DayWorkflowsDrawer = memo(({
 
   const { drawerStyle, backdropStyle } = useDrawerStyles({
     isOpen, drawerWidth, isRTL, bgColor,
-    extraDrawerStyle: { zIndex: 1001 },
-    extraBackdropStyle: { zIndex: 1000 },
+    extraDrawerStyle: { zIndex: 10001 },
+    extraBackdropStyle: { zIndex: 10000 },
   });
 
   const openInbox = useCallback((workflowId) => {

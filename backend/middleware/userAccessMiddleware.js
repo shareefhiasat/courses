@@ -72,4 +72,33 @@ export async function allowUserDetailAccess(req, res, next) {
   }
 }
 
-export default { allowUserListAccess, allowUserDetailAccess };
+/** Profile self-update or users.canUpdate for admin/HR. */
+export async function allowUserUpdateAccess(req, res, next) {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ success: false, error: 'Authentication required' });
+    }
+
+    const roles = getEffectiveRoles(req.user.roles || []);
+    if (isSuperAdmin(roles)) {
+      return next();
+    }
+
+    const allowed = await permissionsService.checkPermissionForRoles(roles, 'users.canUpdate');
+    if (allowed) {
+      return next();
+    }
+
+    if (isSelfUserParam(req.user, req.params.id)) {
+      req.userUpdateAccess = 'self';
+      return next();
+    }
+
+    return res.status(403).json({ success: false, error: 'Insufficient permissions' });
+  } catch (err) {
+    console.error('[allowUserUpdateAccess]', err);
+    return res.status(500).json({ success: false, error: 'Permission check failed' });
+  }
+}
+
+export default { allowUserListAccess, allowUserDetailAccess, allowUserUpdateAccess };

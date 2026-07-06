@@ -14,7 +14,7 @@ import styles from './LoginPage.module.css';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 
 const LoginPage = () => {
-  const { user, loading, logout, isAdmin, isHR, isSuperAdmin } = useAuth();
+  const { user, loading, logout, isAdmin, isHR, isSuperAdmin, isInstructor } = useAuth();
   const { theme } = useTheme();
   const { t } = useLang();
   const [logoutReason, setLogoutReason] = useState(null);
@@ -42,18 +42,22 @@ const LoginPage = () => {
       }
     }
     
-    // Role-based redirect: admin/super-admin go to SummaryDashboard, HR goes to workflow inbox
-    if (isSuperAdmin || isAdmin) {
+    // Role-based redirect
+    if (isSuperAdmin) {
+      return <Navigate to="/summary-dashboard" replace />;
+    }
+
+    if (isAdmin || isInstructor) {
+      return <Navigate to="/qr-scanner" replace />;
+    }
+
+    if (isHR) {
       return <Navigate to="/summary-dashboard" replace />;
     }
     
-    if (isHR) {
-      return <Navigate to="/workflow/inbox" replace />;
-    }
-    
-    // Fallback to default redirect
+    // Student and fallback
     return <Navigate to="/" replace />;
-  }, [location, isAdmin, isHR, isSuperAdmin]);
+  }, [location, isAdmin, isHR, isSuperAdmin, isInstructor]);
 
   // Check for logout reason on component mount
   useEffect(() => {

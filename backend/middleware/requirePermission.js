@@ -134,4 +134,28 @@ export const qrScannerOps = {
   export: requireAnyPermission('qr-scanner.canUseQRScanner', 'attendance.canView'),
 };
 
+/** Read programs/subjects/classes for attendance, scheduling, or academic screens. */
+export const scopedAcademicRead = requireAnyPermission(
+  'programs.canView',
+  'subjects.canView',
+  'classes.canView',
+  'scheduling-calendar.canView',
+  'classes-availability.canView',
+  'summary-dashboard.canView',
+  'qr-scanner.canMarkAttendance',
+  'qr-scanner.canUseQRScanner',
+  'qr-scanner.canManualInput',
+  'attendance.canView',
+);
+
+/** Read enrollments for attendance workflow without enrollments screen access. */
+export const enrollmentRead = requireAnyPermission(
+  'enrollments.canView',
+  'manage-enrollments.canView',
+  'qr-scanner.canMarkAttendance',
+  'qr-scanner.canManualInput',
+  'qr-scanner.canUseQRScanner',
+  'attendance.canView',
+);
+
 export default requirePermission;

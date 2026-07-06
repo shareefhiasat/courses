@@ -84,7 +84,7 @@ const cleanClassDisplayName = (name) => {
 };
 
 const MarksPage = () => {
-  const { user, isAdmin, isSuperAdmin, isInstructor, loading: authLoading } = useAuth();
+  const { user, isAdmin, isSuperAdmin, isInstructor, isHR, loading: authLoading } = useAuth();
   const { lang, t } = useLang();
   const { theme, isDarkMode } = useTheme();
   const toast = useToast();
@@ -530,7 +530,7 @@ const MarksPage = () => {
         getPrograms(),
         getSubjects(),
         getClasses(),
-        getEnrollments()
+        getEnrollments({ limit: 10000, page: 1 })
       ]);
       
       if (programsRes.success) setPrograms(programsRes.data || []);
@@ -982,7 +982,7 @@ const MarksPage = () => {
   ], [t, marksDistribution, theme, enrollments, programFilter, students, subjectFilter]);
 
   if (authLoading) return <GlobalLoadingFallback />;
-  if (!isAdmin && !isSuperAdmin && !isInstructor) return <Navigate to="/" replace />;
+  if (!isAdmin && !isSuperAdmin && !isInstructor && !isHR) return <Navigate to="/" replace />;
 
   const renderSideWindowContent = () => {
     if (!sideWindowContent || !sideWindowStudent) return null;

@@ -16,36 +16,54 @@ const INSTRUCTOR_QR_OPS = new Set([
   'canManualInput',
   'canUseQRScanner',
   'canEditAttendance',
-  'canSeeStandupMode',
   'canSeeQuickButtons',
   'canUseStatsPanel',
   'canUseZapPanel',
   'canExport',
   'canExportSummary',
+  'canBulkScan',
+]);
+
+const INSTRUCTOR_ALLOWED_SCREENS = new Set([
+  'qr-scanner', 'attendance', 'scheduling-calendar', 'summary-dashboard',
+  'classes-availability', 'instructor-availability-view', 'room-availability-view',
+  'profile', 'chat', 'notifications', 'drive', 'workflow',
+]);
+
+const INSTRUCTOR_VIEW_ONLY_SCREENS = new Set([
+  'scheduling-calendar', 'classes-availability', 'instructor-availability-view', 'room-availability-view',
+  'summary-dashboard',
+]);
+
+const ADMIN_VIEW_ONLY_SCREENS = new Set([
+  'classes-availability', 'instructor-availability-view', 'room-availability-view',
+]);
+
+const ADMIN_ALLOWED_SCREENS = new Set([
+  'summary-dashboard', 'qr-scanner', 'scheduling-calendar',
+  'drive', 'student-profile', 'profile', 'chat', 'notifications',
+  'classes-availability', 'instructor-availability-view', 'room-availability-view',
 ]);
 
 const DEFAULT_ROLE_PRESETS = {
   super_admin: () => true,
   hr: (screen, opType) => {
-    if (['permission-matrix', 'user-category-access'].includes(screen.screenId)) return false;
-    if (screen.category === 'settings') return opType === 'canView';
-    return ['canView', 'canCreate', 'canUpdate', 'canExport'].includes(opType);
+    if (['permission-matrix'].includes(screen.screenId)) return false;
+    return ['canView', 'canCreate', 'canUpdate', 'canExport', 'canDelete'].includes(opType);
   },
   admin: (screen, opType) => {
-    if (['permission-matrix', 'user-category-access'].includes(screen.screenId)) return false;
+    if (['permission-matrix', 'user-category-access', 'users'].includes(screen.screenId)) return false;
+    if (!ADMIN_ALLOWED_SCREENS.has(screen.screenId)) return false;
+    if (ADMIN_VIEW_ONLY_SCREENS.has(screen.screenId)) return opType === 'canView';
     if (screen.category === 'settings') return opType === 'canView';
     return ['canView', 'canCreate', 'canUpdate', 'canExport'].includes(opType);
   },
   instructor: (screen, opType) => {
-    const allowed = new Set([
-      'home', 'dashboard', 'activities', 'resources', 'quizzes', 'attendance', 'qr-scanner',
-      'penalty', 'participation', 'behavior', 'enrollments', 'manage-enrollments', 'programs',
-      'subjects', 'classes', 'marks-entry', 'quiz-results', 'homework-results', 'training-results',
-      'lab-results', 'summary-dashboard', 'scheduling-calendar', 'classes-availability',
-      'instructor-availability-view', 'room-availability-view', 'student-profile', 'profile',
-      'drive', 'chat', 'notifications', 'my-attendance', 'timer', 'workflow',
-    ]);
-    if (!allowed.has(screen.screenId)) return false;
+    if (!INSTRUCTOR_ALLOWED_SCREENS.has(screen.screenId)) return false;
+    if (INSTRUCTOR_VIEW_ONLY_SCREENS.has(screen.screenId)) return opType === 'canView';
+    if (['drive', 'workflow', 'profile'].includes(screen.screenId)) {
+      return ['canView', 'canCreate', 'canUpdate'].includes(opType);
+    }
     return ['canView', 'canCreate', 'canUpdate'].includes(opType);
   },
   student: (screen, opType) => {

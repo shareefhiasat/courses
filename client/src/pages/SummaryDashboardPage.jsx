@@ -162,25 +162,22 @@ const SummaryDashboardPage = () => {
   const loadPrograms = useCallback(async () => {
     if (!dbUserId) return;
     try {
-      let programs = [];
-      if (scope.unrestricted || isSuperAdmin || isAdmin || isHR) {
-        const result = await getAllPrograms();
-        if (result?.success) programs = result.data || [];
-      } else {
-        const result = await getAllPrograms();
-        if (result?.success) {
-          programs = result.data || [];
-          if (scope.programIds?.length) {
-            const allowed = new Set(scope.programIds.map(Number));
-            programs = programs.filter((p) => allowed.has(Number(p.id)));
-          }
+      const result = await getAllPrograms();
+      if (!result?.success) return;
+      let programs = result.data || [];
+      if (!scope.unrestricted && !isSuperAdmin && !isHR) {
+        if (scope.programIds?.length) {
+          const allowed = new Set(scope.programIds.map(Number));
+          programs = programs.filter((p) => allowed.has(Number(p.id)));
+        } else {
+          programs = [];
         }
       }
       setAccessiblePrograms(programs);
     } catch (err) {
       console.error('Error loading programs:', err);
     }
-  }, [dbUserId, scope.unrestricted, scope.programIds, isSuperAdmin, isAdmin, isHR]);
+  }, [dbUserId, scope.unrestricted, scope.programIds, isSuperAdmin, isHR]);
 
   const loadLookupData = useCallback(async () => {
     try {

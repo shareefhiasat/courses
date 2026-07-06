@@ -43,38 +43,54 @@ export function getSubjectOptionLabel(subject, lang = 'en') {
 }
 
 export function getClassOptionLabel(cls, lang = 'en') {
-  let className =
+  const rawName =
     lang === 'ar'
       ? cls.nameAr || cls.nameEn || cls.name || cls.titleAr || cls.title || 'Unnamed Class'
       : cls.nameEn || cls.name || cls.nameAr || cls.title || cls.titleAr || 'Unnamed Class';
 
-  // If there's a code, parse it to extract term and year for both languages
-  if (cls.code) {
-    const codeParts = cls.code.split('-');
-    if (codeParts.length >= 3) {
-      const year = codeParts[1];
-      const termCode = codeParts[2]?.toLowerCase();
-      
-      // Get localized term label
-      const termConfig = Object.values(ACADEMIC_TERMS).find(t => t.value === termCode);
-      const termLabel = termConfig ? (lang === 'ar' ? termConfig.label.ar : termConfig.label.en) : termCode;
-      
-      // Remove any existing term/year pattern from the name to avoid duplication
-      // Split by " - " and filter out parts that contain the year (regardless of format)
-      const parts = className.split(' - ');
-      const cleanParts = parts.filter(part => {
-        // Keep parts that don't contain the specific year from the code
-        return !part.includes(year);
-      });
-      className = cleanParts.join(' - ').trim();
-      
-      // Build label with localized term and year (no code in parentheses)
-      return `${className} - ${termLabel} ${year}`;
-    }
+  if (!cls.code) {
+    return rawName;
   }
 
-  // Fallback: if code doesn't match expected format, show it in parentheses
-  return className + (cls.code ? ` (${cls.code})` : '');
+  const codeParts = cls.code.split('-');
+  if (codeParts.length < 3) {
+    return rawName + (cls.code ? ` (${cls.code})` : '');
+  }
+
+  const year = codeParts[1];
+  const termCode = codeParts[2]?.toLowerCase();
+  const termConfig = Object.values(ACADEMIC_TERMS).find((t) => t.value === termCode);
+  const termLabel = termConfig
+    ? lang === 'ar'
+      ? termConfig.label.ar
+      : termConfig.label.en
+    : termCode;
+
+  // Strip only trailing term/year suffix segments — never drop the whole name because year appears in it
+  let className = rawName;
+  const segments = className.split(/\s[-—]\s/);
+  if (segments.length > 1) {
+    const lastSeg = segments[segments.length - 1];
+    const looksLikeTermYearSuffix =
+      lastSeg.includes(year) ||
+      (termCode && lastSeg.toLowerCase().includes(termCode)) ||
+      (termLabel && lastSeg.toLowerCase().includes(String(termLabel).toLowerCase()));
+    if (looksLikeTermYearSuffix) {
+      className = segments.slice(0, -1).join(' - ').trim();
+    }
+  } else {
+    const embeddedSuffix = new RegExp(
+      `[\\s—\\-]+(${termLabel}|${termCode})\\s+${year}[^\\-—]*$`,
+      'i'
+    );
+    className = className.replace(embeddedSuffix, '').trim() || rawName;
+  }
+
+  if (!className) {
+    className = rawName || codeParts[0] || 'Unnamed Class';
+  }
+
+  return `${className} - ${termLabel} ${year}`;
 }
 
 function formatDateShort(dateStr, lang = 'en') {

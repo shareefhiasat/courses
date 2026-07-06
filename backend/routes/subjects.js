@@ -14,7 +14,7 @@ import {
   deleteSubjectController,
   getSubjectsByProgramController
 } from '../controllers/subjects.js';
-import { screenOps } from '../middleware/requirePermission.js';
+import { screenOps, scopedAcademicRead } from '../middleware/requirePermission.js';
 
 const router = Router();
 const ops = screenOps('subjects');
@@ -156,7 +156,7 @@ const ops = screenOps('subjects');
  *                   type: integer
  *                   example: 2
  */
-router.get('/', ops.view, getAllSubjectsController);
+router.get('/', scopedAcademicRead, getAllSubjectsController);
 
 /**
  * @swagger
@@ -276,7 +276,7 @@ router.get('/requirement-types', (req, res) => {
  *       404:
  *         description: Subject not found
  */
-router.get('/:id', ops.view, getSubjectByIdController);
+router.get('/:id', scopedAcademicRead, getSubjectByIdController);
 
 /**
  * @swagger
@@ -506,6 +506,6 @@ router.delete('/:id', ops.delete, deleteSubjectController);
  *                   type: integer
  *                   example: 1
  */
-router.get('/program/:programId', ops.view, getSubjectsByProgramController);
+router.get('/program/:programId', scopedAcademicRead, getSubjectsByProgramController);
 
 export default router;

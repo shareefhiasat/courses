@@ -69,14 +69,14 @@ async function loadVisibilityContext(userId) {
 export async function getEffectiveDataScope(userId, roles = []) {
   const normalized = normalizeRoles(roles);
 
-  if (hasRole(normalized, ROLES.SUPER_ADMIN)) {
+  if (hasRole(normalized, ROLES.SUPER_ADMIN) || hasRole(normalized, ROLES.HR)) {
     return {
       unrestricted: true,
       categoryIds: [],
       programIds: [],
       subjectIds: [],
       classIds: [],
-      source: 'super_admin',
+      source: hasRole(normalized, ROLES.SUPER_ADMIN) ? 'super_admin' : 'hr',
       visibility: {
         programs: 'ALL',
         subjects: 'ALL',

@@ -18,6 +18,7 @@ import { adjustColor, hexToRgbString, normalizeHexColor, DEFAULT_ACCENT } from '
 import Select from '../Select/Select';
 import DraggableClock from '../DraggableClock/DraggableClock';
 import PortalTooltip from '../PortalTooltip/PortalTooltip';
+import MyDataScopeDrawer from '../MyDataScopeDrawer/MyDataScopeDrawer';
 
 import { info, error, warn, debug } from '@services/utils/logger.js';const ACCENT_FALLBACK = DEFAULT_ACCENT;
 
@@ -28,6 +29,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
   const location = useLocation();
   const [showDropdown, setShowDropdown] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [showAccessDrawer, setShowAccessDrawer] = useState(false);
   const [displayName, setDisplayName] = useState(() => user?.displayName || '');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [realName, setRealName] = useState('');
@@ -328,6 +330,28 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                   }}
                 >
                   {lang === 'en' ? getThemedIcon('ui', 'globe', 16, theme === 'light' ? 'var(--text-primary)' : '#fff') : getThemedIcon('ui', 'globe2', 16, theme === 'light' ? 'var(--text-primary)' : '#fff')}
+                </button>
+                </PortalTooltip>
+
+                <PortalTooltip content={t('my_data_access')} position="bottom">
+                <button
+                  className="nav-icon-btn nav-help"
+                  onClick={() => setShowAccessDrawer(true)}
+                  aria-label={t('my_data_access')}
+                  style={{
+                    border: theme === 'light' ? '1px solid var(--border)' : '1px solid rgba(255,255,255,0.2)',
+                    background: theme === 'light' ? 'var(--panel)' : 'rgba(0,0,0,0.3)',
+                    borderRadius: '50%',
+                    width: '32px',
+                    height: '32px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    cursor: 'pointer',
+                    color: theme === 'light' ? 'var(--text-primary)' : '#fff'
+                  }}
+                >
+                  {getThemedIcon('ui', 'shield', 16, theme === 'light' ? 'var(--text-primary)' : '#fff')}
                 </button>
                 </PortalTooltip>
 
@@ -863,6 +887,8 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
         </button>
         </PortalTooltip>
       )}
+
+      <MyDataScopeDrawer isOpen={showAccessDrawer} onClose={() => setShowAccessDrawer(false)} />
     </>
   );
 };

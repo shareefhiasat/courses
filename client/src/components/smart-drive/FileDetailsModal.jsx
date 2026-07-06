@@ -207,7 +207,17 @@ export default function FileDetailsModal({ file, onClose, onDownload, onShare, o
     ];
 
     if (isPreviewable) {
-      steps.push(modalTabStep('[data-tour="details-tab-preview"]', t('tour.details_modal_preview'), 'preview'));
+      steps.push({
+        ...modalTabStep('[data-tour="details-tab-preview"]', t('tour.details_modal_preview'), 'preview'),
+        placement: 'bottom',
+        disableFlip: true,
+        offset: 32,
+        spotlightPadding: 4,
+        floaterProps: {
+          disableFlip: true,
+          styles: { floater: { transform: 'translateY(24px)' } },
+        },
+      });
     }
     if (canShowEditTab) {
       steps.push(modalTabStep('[data-tour="details-tab-edit"]', t('tour.details_modal_edit'), 'edit'));

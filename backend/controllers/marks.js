@@ -933,6 +933,123 @@ export {
   getAbsenceWarningCounts,
 };
 
+const DEFAULT_MARKS_DISTRIBUTION = {
+  midTermExam: 20,
+  finalExam: 40,
+  homework: 5,
+  labsProjectResearch: 10,
+  quizzes: 5,
+  participation: 10,
+  attendance: 10,
+};
+
+function buildMarksReportRow(enrollment, distributionMap, studentMarks, isRepeated) {
+  const distribution = distributionMap[enrollment.subjectId] || DEFAULT_MARKS_DISTRIBUTION;
+  const marks = studentMarks || {};
+  const studentNames = buildLocalizedNameFields(enrollment.user, 'Unknown Student');
+  const rowKey = `${enrollment.userId}-${enrollment.subjectId}-${enrollment.classId}-${isRepeated}`;
+
+  const totalMarks = studentMarks
+    ? ((marks.midTermExam || 0) / distribution.midTermExam * distribution.midTermExam)
+      + ((marks.finalExam || 0) / distribution.finalExam * distribution.finalExam)
+      + ((marks.homework || 0) / distribution.homework * distribution.homework)
+      + ((marks.labsProjectResearch || 0) / distribution.labsProjectResearch * distribution.labsProjectResearch)
+      + ((marks.quizzes || 0) / distribution.quizzes * distribution.quizzes)
+      + ((marks.participation || 0) / distribution.participation * distribution.participation)
+      + ((marks.attendance || 0) / distribution.attendance * distribution.attendance)
+    : 0;
+
+  const gradeType = marks.gradeType || 'calculated';
+  let letterGrade = null;
+  let gradeRange = null;
+  let gradeDescriptionEn = null;
+  let gradeDescriptionAr = null;
+  let gradingStandard = null;
+  let gradePoints = null;
+  let displayTotalMarks = totalMarks;
+
+  if (studentMarks) {
+    let resolved;
+    if (gradeType === GRADE_TYPE.COMPLEMENTARY) {
+      resolved = resolveMarkGrade({
+        gradeType,
+        letterGrade: marks.letterGrade,
+        isRepeated: marks.isRepeated || false,
+        complementaryScore: marks.finalExam || 0,
+      });
+    } else if (gradeType !== 'calculated') {
+      resolved = resolveMarkGrade({ gradeType, isRepeated: marks.isRepeated || false });
+    } else {
+      resolved = resolveMarkGrade({
+        totalMarks,
+        letterGrade: marks.letterGrade,
+        gradeType,
+        isRepeated: marks.isRepeated || false,
+      });
+    }
+    letterGrade = resolved.letter;
+    gradeRange = resolved.gradeRange;
+    gradeDescriptionEn = resolved.gradeDescriptionEn;
+    gradeDescriptionAr = resolved.gradeDescriptionAr;
+    gradingStandard = resolved.gradingStandard;
+    gradePoints = resolved.points;
+    displayTotalMarks = resolved.totalMarks ?? totalMarks;
+  }
+
+  return {
+    id: rowKey,
+    studentId: enrollment.userId,
+    studentNumber: enrollment.user.studentNumber || '',
+    rankEn: enrollment.user.rankEn || '',
+    rankAr: enrollment.user.rankAr || '',
+    sequence: enrollment.user.sequence ?? null,
+    studentName: studentNames.studentName,
+    studentNameAr: studentNames.studentNameAr,
+    studentEmail: enrollment.user.email,
+    programId: enrollment.class.programId,
+    programName: enrollment.class.program?.nameEn || enrollment.class.program?.nameAr
+      || enrollment.class.program?.code,
+    programNameAr: enrollment.class.program?.nameAr || enrollment.class.program?.nameEn
+      || enrollment.class.program?.code,
+    subjectId: enrollment.subjectId,
+    subjectCode: enrollment.class.subject.code,
+    credits: enrollment.class.subject.credits || 3,
+    subjectName: enrollment.class.subject.nameEn || enrollment.class.subject.nameAr,
+    subjectNameAr: enrollment.class.subject.nameAr || enrollment.class.subject.nameEn,
+    classId: enrollment.classId,
+    className: enrollment.class.nameEn || enrollment.class.nameAr,
+    classNameAr: enrollment.class.nameAr || enrollment.class.nameEn,
+    classCode: enrollment.class.code,
+    year: enrollment.class.year,
+    term: enrollment.class.term,
+    midTermExam: marks.midTermExam || 0,
+    finalExam: marks.finalExam || 0,
+    homework: marks.homework || 0,
+    labsProjectResearch: marks.labsProjectResearch || 0,
+    quizzes: marks.quizzes || 0,
+    participation: marks.participation || 0,
+    attendance: marks.attendance || 0,
+    distribution: {
+      midTermExam: distribution.midTermExam,
+      finalExam: distribution.finalExam,
+      homework: distribution.homework,
+      labsProjectResearch: distribution.labsProjectResearch,
+      quizzes: distribution.quizzes,
+      participation: distribution.participation,
+      attendance: distribution.attendance,
+    },
+    totalMarks: displayTotalMarks,
+    letterGrade,
+    gradePoints,
+    gradeRange,
+    gradeDescriptionEn,
+    gradeDescriptionAr,
+    isRepeated: isRepeated || false,
+    gradingStandard,
+    gradeType,
+  };
+}
+
 /**
  * GET /api/v1/marks/report
  * Get all student marks with complete information for the marks grid
@@ -1095,262 +1212,18 @@ const getAllStudentMarksReport = async (req, res) => {
     // Build the report data
     const reportData = [];
     scopedEnrollments.forEach(enrollment => {
-      console.log('🔍 [MARKS DEBUG] Processing enrollment:', {
-        userId: enrollment.userId,
-        subjectId: enrollment.subjectId,
-        classId: enrollment.classId
-      });
-      
-      // Get both first attempt and repeated marks for this enrollment
       const firstAttemptKey = `${enrollment.userId}-${enrollment.subjectId}-${enrollment.classId}-false`;
       const repeatedAttemptKey = `${enrollment.userId}-${enrollment.subjectId}-${enrollment.classId}-true`;
-      
       const firstAttemptMarks = marksMap[firstAttemptKey];
       const repeatedAttemptMarks = marksMap[repeatedAttemptKey];
-      
-      console.log('🔍 [MARKS DEBUG] Marks for enrollment:', {
-        firstAttemptKey,
-        hasFirstAttempt: !!firstAttemptMarks,
-        repeatedAttemptKey,
-        hasRepeatedAttempt: !!repeatedAttemptMarks
-      });
-      
-      // Add first attempt record if exists
-      if (firstAttemptMarks) {
-        const studentMarks = firstAttemptMarks;
-        const distribution = distributionMap[enrollment.subjectId] || {
-          midTermExam: 20,
-          finalExam: 40,
-          homework: 5,
-          labsProjectResearch: 10,
-          quizzes: 5,
-          participation: 10,
-          attendance: 10
-        };
-        
-        const totalMarks = 
-          ((studentMarks.midTermExam || 0) / distribution.midTermExam * distribution.midTermExam) +
-          ((studentMarks.finalExam || 0) / distribution.finalExam * distribution.finalExam) +
-          ((studentMarks.homework || 0) / distribution.homework * distribution.homework) +
-          ((studentMarks.labsProjectResearch || 0) / distribution.labsProjectResearch * distribution.labsProjectResearch) +
-          ((studentMarks.quizzes || 0) / distribution.quizzes * distribution.quizzes) +
-          ((studentMarks.participation || 0) / distribution.participation * distribution.participation) +
-          ((studentMarks.attendance || 0) / distribution.attendance * distribution.attendance);
-        
-        const gradeType = studentMarks.gradeType || 'calculated';
-        let letterGrade, gradeRange, gradeDescriptionEn, gradeDescriptionAr, gradingStandard, gradePoints, displayTotalMarks;
+      const wantFirstAttempt = isRepeated === undefined || isRepeated === '' || isRepeated === 'false';
+      const wantRepeated = isRepeated === undefined || isRepeated === '' || isRepeated === 'true';
 
-        if (gradeType === GRADE_TYPE.COMPLEMENTARY) {
-          const resolved = resolveMarkGrade({
-            gradeType,
-            letterGrade: studentMarks.letterGrade,
-            isRepeated: studentMarks.isRepeated || false,
-            complementaryScore: studentMarks.finalExam || 0,
-          });
-          letterGrade = resolved.letter;
-          gradeRange = resolved.gradeRange;
-          gradeDescriptionEn = resolved.gradeDescriptionEn;
-          gradeDescriptionAr = resolved.gradeDescriptionAr;
-          gradingStandard = resolved.gradingStandard;
-          gradePoints = resolved.points;
-          displayTotalMarks = resolved.totalMarks;
-        } else if (gradeType !== 'calculated') {
-          const resolved = resolveMarkGrade({ gradeType, isRepeated: studentMarks.isRepeated || false });
-          letterGrade = resolved.letter;
-          gradeRange = resolved.gradeRange;
-          gradeDescriptionEn = resolved.gradeDescriptionEn;
-          gradeDescriptionAr = resolved.gradeDescriptionAr;
-          gradingStandard = resolved.gradingStandard;
-          gradePoints = resolved.points;
-          displayTotalMarks = resolved.totalMarks;
-        } else {
-          const resolved = resolveMarkGrade({
-            totalMarks,
-            letterGrade: studentMarks.letterGrade,
-            gradeType,
-            isRepeated: studentMarks.isRepeated || false,
-          });
-          letterGrade = resolved.letter;
-          gradeRange = resolved.gradeRange;
-          gradeDescriptionEn = resolved.gradeDescriptionEn;
-          gradeDescriptionAr = resolved.gradeDescriptionAr;
-          gradingStandard = resolved.gradingStandard;
-          gradePoints = resolved.points;
-          displayTotalMarks = totalMarks;
-        }
-        
-        const studentNames = buildLocalizedNameFields(enrollment.user, 'Unknown Student');
-        reportData.push({
-          id: firstAttemptKey,
-          studentId: enrollment.userId,
-          studentNumber: enrollment.user.studentNumber || '',
-          rankEn: enrollment.user.rankEn || '',
-          rankAr: enrollment.user.rankAr || '',
-          sequence: enrollment.user.sequence ?? null,
-          studentName: studentNames.studentName,
-          studentNameAr: studentNames.studentNameAr,
-          studentEmail: enrollment.user.email,
-          programId: enrollment.class.programId,
-          programName: enrollment.class.program?.nameEn || enrollment.class.program?.nameAr || 
-            enrollment.class.program?.code,
-          programNameAr: enrollment.class.program?.nameAr || enrollment.class.program?.nameEn || 
-            enrollment.class.program?.code,
-          subjectId: enrollment.subjectId,
-          subjectCode: enrollment.class.subject.code,
-          credits: enrollment.class.subject.credits || 3,
-          subjectName: enrollment.class.subject.nameEn || enrollment.class.subject.nameAr,
-          subjectNameAr: enrollment.class.subject.nameAr || enrollment.class.subject.nameEn,
-          classId: enrollment.classId,
-          className: enrollment.class.nameEn || enrollment.class.nameAr,
-          classNameAr: enrollment.class.nameAr || enrollment.class.nameEn,
-          classCode: enrollment.class.code,
-          year: enrollment.class.year,
-          term: enrollment.class.term,
-          midTermExam: studentMarks.midTermExam || 0,
-          finalExam: studentMarks.finalExam || 0,
-          homework: studentMarks.homework || 0,
-          labsProjectResearch: studentMarks.labsProjectResearch || 0,
-          quizzes: studentMarks.quizzes || 0,
-          participation: studentMarks.participation || 0,
-          attendance: studentMarks.attendance || 0,
-          distribution: {
-            midTermExam: distribution.midTermExam,
-            finalExam: distribution.finalExam,
-            homework: distribution.homework,
-            labsProjectResearch: distribution.labsProjectResearch,
-            quizzes: distribution.quizzes,
-            participation: distribution.participation,
-            attendance: distribution.attendance,
-          },
-          totalMarks: displayTotalMarks,
-          letterGrade: letterGrade,
-          gradePoints: gradePoints,
-          gradeRange: gradeRange,
-          gradeDescriptionEn: gradeDescriptionEn,
-          gradeDescriptionAr: gradeDescriptionAr,
-          isRepeated: studentMarks.isRepeated || false,
-          gradingStandard: gradingStandard,
-          gradeType: gradeType
-        });
+      if (wantFirstAttempt) {
+        reportData.push(buildMarksReportRow(enrollment, distributionMap, firstAttemptMarks || null, false));
       }
-      
-      // Add repeated attempt record if exists
-      if (repeatedAttemptMarks) {
-        const studentMarks = repeatedAttemptMarks;
-        const distribution = distributionMap[enrollment.subjectId] || {
-          midTermExam: 20,
-          finalExam: 40,
-          homework: 5,
-          labsProjectResearch: 10,
-          quizzes: 5,
-          participation: 10,
-          attendance: 10
-        };
-        
-        const totalMarks = 
-          ((studentMarks.midTermExam || 0) / distribution.midTermExam * distribution.midTermExam) +
-          ((studentMarks.finalExam || 0) / distribution.finalExam * distribution.finalExam) +
-          ((studentMarks.homework || 0) / distribution.homework * distribution.homework) +
-          ((studentMarks.labsProjectResearch || 0) / distribution.labsProjectResearch * distribution.labsProjectResearch) +
-          ((studentMarks.quizzes || 0) / distribution.quizzes * distribution.quizzes) +
-          ((studentMarks.participation || 0) / distribution.participation * distribution.participation) +
-          ((studentMarks.attendance || 0) / distribution.attendance * distribution.attendance);
-        
-        const gradeType = studentMarks.gradeType || 'calculated';
-        let letterGrade, gradeRange, gradeDescriptionEn, gradeDescriptionAr, gradingStandard, gradePoints, displayTotalMarks;
-
-        if (gradeType === GRADE_TYPE.COMPLEMENTARY) {
-          const resolved = resolveMarkGrade({
-            gradeType,
-            letterGrade: studentMarks.letterGrade,
-            isRepeated: studentMarks.isRepeated || false,
-            complementaryScore: studentMarks.finalExam || 0,
-          });
-          letterGrade = resolved.letter;
-          gradeRange = resolved.gradeRange;
-          gradeDescriptionEn = resolved.gradeDescriptionEn;
-          gradeDescriptionAr = resolved.gradeDescriptionAr;
-          gradingStandard = resolved.gradingStandard;
-          gradePoints = resolved.points;
-          displayTotalMarks = resolved.totalMarks;
-        } else if (gradeType !== 'calculated') {
-          const resolved = resolveMarkGrade({ gradeType, isRepeated: studentMarks.isRepeated || false });
-          letterGrade = resolved.letter;
-          gradeRange = resolved.gradeRange;
-          gradeDescriptionEn = resolved.gradeDescriptionEn;
-          gradeDescriptionAr = resolved.gradeDescriptionAr;
-          gradingStandard = resolved.gradingStandard;
-          gradePoints = resolved.points;
-          displayTotalMarks = resolved.totalMarks;
-        } else {
-          const resolved = resolveMarkGrade({
-            totalMarks,
-            letterGrade: studentMarks.letterGrade,
-            gradeType,
-            isRepeated: studentMarks.isRepeated || false,
-          });
-          letterGrade = resolved.letter;
-          gradeRange = resolved.gradeRange;
-          gradeDescriptionEn = resolved.gradeDescriptionEn;
-          gradeDescriptionAr = resolved.gradeDescriptionAr;
-          gradingStandard = resolved.gradingStandard;
-          gradePoints = resolved.points;
-          displayTotalMarks = totalMarks;
-        }
-        
-        const studentNames = buildLocalizedNameFields(enrollment.user, 'Unknown Student');
-        reportData.push({
-          id: repeatedAttemptKey,
-          studentId: enrollment.userId,
-          studentNumber: enrollment.user.studentNumber || '',
-          rankEn: enrollment.user.rankEn || '',
-          rankAr: enrollment.user.rankAr || '',
-          sequence: enrollment.user.sequence ?? null,
-          studentName: studentNames.studentName,
-          studentNameAr: studentNames.studentNameAr,
-          studentEmail: enrollment.user.email,
-          programId: enrollment.class.programId,
-          programName: enrollment.class.program?.nameEn || enrollment.class.program?.nameAr || 
-            enrollment.class.program?.code,
-          programNameAr: enrollment.class.program?.nameAr || enrollment.class.program?.nameEn || 
-            enrollment.class.program?.code,
-          subjectId: enrollment.subjectId,
-          subjectCode: enrollment.class.subject.code,
-          credits: enrollment.class.subject.credits || 3,
-          subjectName: enrollment.class.subject.nameEn || enrollment.class.subject.nameAr,
-          subjectNameAr: enrollment.class.subject.nameAr || enrollment.class.subject.nameEn,
-          classId: enrollment.classId,
-          className: enrollment.class.nameEn || enrollment.class.nameAr,
-          classNameAr: enrollment.class.nameAr || enrollment.class.nameEn,
-          classCode: enrollment.class.code,
-          year: enrollment.class.year,
-          term: enrollment.class.term,
-          midTermExam: studentMarks.midTermExam || 0,
-          finalExam: studentMarks.finalExam || 0,
-          homework: studentMarks.homework || 0,
-          labsProjectResearch: studentMarks.labsProjectResearch || 0,
-          quizzes: studentMarks.quizzes || 0,
-          participation: studentMarks.participation || 0,
-          attendance: studentMarks.attendance || 0,
-          distribution: {
-            midTermExam: distribution.midTermExam,
-            finalExam: distribution.finalExam,
-            homework: distribution.homework,
-            labsProjectResearch: distribution.labsProjectResearch,
-            quizzes: distribution.quizzes,
-            participation: distribution.participation,
-            attendance: distribution.attendance,
-          },
-          totalMarks: displayTotalMarks,
-          letterGrade: letterGrade,
-          gradePoints: gradePoints,
-          gradeRange: gradeRange,
-          gradeDescriptionEn: gradeDescriptionEn,
-          gradeDescriptionAr: gradeDescriptionAr,
-          isRepeated: studentMarks.isRepeated || false,
-          gradingStandard: gradingStandard,
-          gradeType: gradeType
-        });
+      if (repeatedAttemptMarks && wantRepeated) {
+        reportData.push(buildMarksReportRow(enrollment, distributionMap, repeatedAttemptMarks, true));
       }
     });
     

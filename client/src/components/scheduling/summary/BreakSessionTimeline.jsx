@@ -3,7 +3,7 @@ import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { Card, CardBody } from '@ui';
 
-const BREAK_ICONS = { TeaBreak: '☕', PrayerBreak: '🕌', LunchBreak: '🍽️', Other: '⏸️' };
+const BREAK_ICONS = { TeaBreak: '☕', PrayerBreak: '🕌', LunchBreak: '🍽️', OfficeHours: '🕐', Other: '⏸️' };
 
 export default function BreakSessionTimeline({ breaks = [] }) {
   const { t, isRTL } = useLang();

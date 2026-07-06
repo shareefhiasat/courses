@@ -213,7 +213,9 @@ const QRScannerPage = () => {
     return formatForDateInput(qatarNow); // Format as yyyy-MM-dd
   });
   const [attendanceMode, setAttendanceMode] = useState(() => {
-    // Restore saved attendance mode from localStorage
+    // Regular admin defaults to standup mode (only mode they can see)
+    if (isAdmin && !isSuperAdmin) return ATTENDANCE_TYPE_CATEGORY.STANDUP;
+    // Restore saved attendance mode from localStorage for others
     try {
       const saved = localStorage.getItem('qrScanner_attendanceMode');
       if (saved === ATTENDANCE_TYPE_CATEGORY.STANDUP || saved === ATTENDANCE_TYPE_CATEGORY.REGULAR) return saved;
@@ -5123,36 +5125,38 @@ const QRScannerPage = () => {
                 border: '1px solid var(--border, #e5e7eb)',
                 flex: '0 0 auto'
               }}>
-                <button
-                  onClick={() => {
-                    info('🔍 [DEBUG] Regular mode clicked', {
-                      currentMode: attendanceMode,
-                      newMode: ATTENDANCE_TYPE_CATEGORY.REGULAR,
-                      constants: ATTENDANCE_TYPE_CATEGORY
-                    });
-                    setAttendanceMode(ATTENDANCE_TYPE_CATEGORY.REGULAR);
-                  }}
-                  style={{
-                    padding: '0.5rem 0.75rem',
-                    background: attendanceMode === ATTENDANCE_TYPE_CATEGORY.REGULAR ? 'var(--color-primary, #3b82f6)' : 'transparent',
-                    color: attendanceMode === ATTENDANCE_TYPE_CATEGORY.REGULAR ? 'white' : 'var(--text-muted, #6b7280)',
-                    border: 'none',
-                    borderRadius: '0.375rem',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '0.375rem',
-                    fontSize: 'var(--font-size-xs)',
-                    fontWeight: 600
-                  }}
-                  data-tooltip={t('attendance_mode')}
-                  data-tooltip-pos="bottom"
-                >
-                  {getThemedIcon('ui', 'check_circle', 14, attendanceMode === ATTENDANCE_TYPE_CATEGORY.REGULAR ? 'white' : theme)}
-                  <span>{t('attendance_mode')}</span>
-                </button>
+                {!(isAdmin && !isSuperAdmin) && (
+                  <button
+                    onClick={() => {
+                      info('🔍 [DEBUG] Regular mode clicked', {
+                        currentMode: attendanceMode,
+                        newMode: ATTENDANCE_TYPE_CATEGORY.REGULAR,
+                        constants: ATTENDANCE_TYPE_CATEGORY
+                      });
+                      setAttendanceMode(ATTENDANCE_TYPE_CATEGORY.REGULAR);
+                    }}
+                    style={{
+                      padding: '0.5rem 0.75rem',
+                      background: attendanceMode === ATTENDANCE_TYPE_CATEGORY.REGULAR ? 'var(--color-primary, #3b82f6)' : 'transparent',
+                      color: attendanceMode === ATTENDANCE_TYPE_CATEGORY.REGULAR ? 'white' : 'var(--text-muted, #6b7280)',
+                      border: 'none',
+                      borderRadius: '0.375rem',
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '0.375rem',
+                      fontSize: 'var(--font-size-xs)',
+                      fontWeight: 600
+                    }}
+                    data-tooltip={t('attendance_mode')}
+                    data-tooltip-pos="bottom"
+                  >
+                    {getThemedIcon('ui', 'check_circle', 14, attendanceMode === ATTENDANCE_TYPE_CATEGORY.REGULAR ? 'white' : theme)}
+                    <span>{t('attendance_mode')}</span>
+                  </button>
+                )}
                 {canSeeStandupMode && (
                   <button
                     onClick={() => {

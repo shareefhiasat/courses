@@ -22,7 +22,7 @@ import {
 } from '../controllers/users.js';
 import { requireSuperAdmin } from '../middleware/keycloakAuth.js';
 import { screenOps } from '../middleware/requirePermission.js';
-import { allowUserListAccess, allowUserDetailAccess } from '../middleware/userAccessMiddleware.js';
+import { allowUserListAccess, allowUserDetailAccess, allowUserUpdateAccess } from '../middleware/userAccessMiddleware.js';
 import { validateBody, validateParams } from '../middleware/validateInput.js';
 
 const router = Router();
@@ -193,7 +193,7 @@ router.post('/', userOps.create, validateBody({
   studentNumber: { type: 'string', required: false, maxLength: 50 },
   sequence: { type: 'number', required: false, min: 1 },
 }), createUserController);
-router.put('/:id', userOps.update, validateParams({
+router.put('/:id', allowUserUpdateAccess, validateParams({
   id: { type: 'string', required: true },
 }), updateUserController);
 // Tighter rate limit for sensitive account operations

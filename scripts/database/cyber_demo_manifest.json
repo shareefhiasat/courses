@@ -1,0 +1,163 @@
+{
+  "seededAt": "2026-07-06T05:01:26.649Z",
+  "dryRun": false,
+  "users": [
+    {
+      "id": 108,
+      "email": "cy.hr1@example.com",
+      "role": "HR"
+    },
+    {
+      "id": 109,
+      "email": "cy.admin1@example.com",
+      "role": "ADMIN"
+    },
+    {
+      "id": 110,
+      "email": "cy.instructor1@example.com",
+      "role": "INSTRUCTOR"
+    },
+    {
+      "id": 111,
+      "email": "cy.instructor2@example.com",
+      "role": "INSTRUCTOR"
+    },
+    {
+      "id": 112,
+      "email": "cy.instructor3@example.com",
+      "role": "INSTRUCTOR"
+    },
+    {
+      "id": 113,
+      "email": "cy.instructor4@example.com",
+      "role": "INSTRUCTOR"
+    },
+    {
+      "id": 114,
+      "email": "cy.student1@example.com",
+      "role": "STUDENT"
+    },
+    {
+      "id": 115,
+      "email": "cy.student2@example.com",
+      "role": "STUDENT"
+    },
+    {
+      "id": 116,
+      "email": "cy.student3@example.com",
+      "role": "STUDENT"
+    },
+    {
+      "id": 117,
+      "email": "cy.student4@example.com",
+      "role": "STUDENT"
+    },
+    {
+      "id": 118,
+      "email": "cy.student5@example.com",
+      "role": "STUDENT"
+    },
+    {
+      "id": 119,
+      "email": "cy.student6@example.com",
+      "role": "STUDENT"
+    },
+    {
+      "id": 120,
+      "email": "cy.student7@example.com",
+      "role": "STUDENT"
+    },
+    {
+      "id": 121,
+      "email": "cy.student8@example.com",
+      "role": "STUDENT"
+    },
+    {
+      "id": 122,
+      "email": "cy.student9@example.com",
+      "role": "STUDENT"
+    },
+    {
+      "id": 123,
+      "email": "cy.student10@example.com",
+      "role": "STUDENT"
+    },
+    {
+      "id": 124,
+      "email": "cy.student11@example.com",
+      "role": "STUDENT"
+    },
+    {
+      "id": 125,
+      "email": "cy.student12@example.com",
+      "role": "STUDENT"
+    },
+    {
+      "id": 126,
+      "email": "cy.student13@example.com",
+      "role": "STUDENT"
+    },
+    {
+      "id": 127,
+      "email": "cy.student14@example.com",
+      "role": "STUDENT"
+    },
+    {
+      "id": 128,
+      "email": "cy.student15@example.com",
+      "role": "STUDENT"
+    },
+    {
+      "id": 129,
+      "email": "cy.student16@example.com",
+      "role": "STUDENT"
+    },
+    {
+      "id": 130,
+      "email": "cy.student17@example.com",
+      "role": "STUDENT"
+    },
+    {
+      "id": 131,
+      "email": "cy.student18@example.com",
+      "role": "STUDENT"
+    },
+    {
+      "id": 132,
+      "email": "cy.student19@example.com",
+      "role": "STUDENT"
+    },
+    {
+      "id": 133,
+      "email": "cy.student20@example.com",
+      "role": "STUDENT"
+    }
+  ],
+  "programId": 5,
+  "categoryId": 16,
+  "subjectIds": [
+    14,
+    15,
+    16,
+    17,
+    18
+  ],
+  "classIds": [
+    60,
+    61,
+    62,
+    63,
+    64
+  ],
+  "enrollmentIds": [],
+  "sessionIds": [],
+  "ucaIds": [
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11
+  ]
+}

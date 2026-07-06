@@ -269,7 +269,7 @@ const INSTRUCTOR_SELECT_WIDTH = { minWidth: '360px', width: '360px', flex: '0 1 
 const ROOM_SELECT_WIDTH = { minWidth: '420px', width: '420px', flex: '0 0 420px', maxWidth: '100%' };
 
 const SchedulingCalendarPage = () => {
-  const { user, isAdmin, isHR, isSuperAdmin } = useAuth();
+  const { user, isAdmin, isHR, isSuperAdmin, isInstructor } = useAuth();
   const { t, lang, isRTL } = useLang();
   const { theme } = useTheme();
   const toast = useToast();
@@ -498,7 +498,8 @@ const SchedulingCalendarPage = () => {
     event: null,
   });
 
-  const hasPermission = isAdmin || isHR || isSuperAdmin;
+  const canEditCalendar = isHR || isSuperAdmin;
+  const canViewCalendar = canEditCalendar || isAdmin || isInstructor;
 
   useEffect(() => {
     currentDateRef.current = currentDate;
@@ -559,8 +560,8 @@ const SchedulingCalendarPage = () => {
         getAllSubjects(),
         getAllClassrooms(),
         getAllUsers({ limit: 1000 }),
-        scheduledSessionService.getAllScheduledSessions({ limit: 1000 }),
-        getEnrollments(),
+        scheduledSessionService.getAllScheduledSessions({ limit: 5000 }),
+        getEnrollments({ limit: 10000, page: 1 }),
         getAllInstructorAvailabilities({ isActive: true, limit: 500 }),
         getAllClassroomAvailabilities({ isActive: true, limit: 500 }),
         schedulingSummaryService.getBreakSessions({ start: calendarFromStr, end: calendarToStr, limit: 5000 }),
@@ -1522,6 +1523,7 @@ const SchedulingCalendarPage = () => {
 
   // Handle calendar drag-to-create (select time range) - open unified dialog
   const onBeforeCreateEvent = useCallback((eventData) => {
+    if (!canEditCalendar) return false;
     const start = eventData?.start || eventData?.startDateTime;
     const end = eventData?.end || eventData?.endDateTime;
     if (start && end) {
@@ -1538,10 +1540,11 @@ const SchedulingCalendarPage = () => {
       });
     }
     return false; // Prevent default creation; we'll create via dialog
-  }, []);
+  }, [canEditCalendar]);
 
   // Handle event update (drag/resize) with conflict preview
   const onBeforeUpdateEvent = useCallback(async (updateData) => {
+    if (!canEditCalendar) return false;
     console.log('═══════════════════════════════════════════════════════');
     console.log('[DRAG/RESIZE] onBeforeUpdateEvent CALLED');
     console.log('[DRAG/RESIZE] Timestamp:', new Date().toISOString());
@@ -1741,7 +1744,7 @@ const SchedulingCalendarPage = () => {
     }
 
     return false;
-  }, [user, toast, t, getVisibleSessionCalendarDate, restoreSessionCalendarDate, calendarDateRange, timeSlots, breakSessions, setCalendarLayoutKey]);
+  }, [user, toast, t, getVisibleSessionCalendarDate, restoreSessionCalendarDate, calendarDateRange, timeSlots, breakSessions, setCalendarLayoutKey, canEditCalendar]);
 
   const closeCreateModal = useCallback(() => {
     setShowCreateModal(false);
@@ -2608,6 +2611,8 @@ const SchedulingCalendarPage = () => {
           breakIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; flex-shrink: 0;"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"></path><path d="M7 2v20"></path><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"></path></svg>`;
         } else if (breakType === 'PrayerBreak') {
           breakIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; flex-shrink: 0;"><path d="M12 2v20"></path><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>`;
+        } else if (breakType === 'OfficeHours') {
+          breakIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; flex-shrink: 0;"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>`;
         } else {
           breakIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right: 4px; flex-shrink: 0;"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>`;
         }
@@ -2759,7 +2764,7 @@ const SchedulingCalendarPage = () => {
     color: theme === 'dark' ? '#f3f4f6' : '#1f2937'
   };
 
-  if (!hasPermission) {
+  if (!canViewCalendar) {
     return (
       <div style={{ padding: '2rem', textAlign: 'center' }}>
         <div style={{ fontSize: 'var(--font-size-lg)', fontWeight: '500', color: theme === 'dark' ? '#f3f4f6' : '#1f2937' }}>
@@ -4599,7 +4604,7 @@ const SchedulingCalendarPage = () => {
         <SchedulingCalendarPopup
           session={popupSession}
           onClose={() => setPopupSession(null)}
-          onEdit={(session) => {
+          onEdit={canEditCalendar ? (session) => {
             setPopupSession(null);
             setEditingSessionId(session.id);
             setModalClassItem(session.class);
@@ -4610,21 +4615,21 @@ const SchedulingCalendarPage = () => {
             setModalInstructorId(session.instructorId);
             setModalClassroomId(session.classroomId);
             setShowCreateModal(true);
-          }}
-          onDelete={(session) => {
+          } : undefined}
+          onDelete={canEditCalendar ? (session) => {
             setPopupSession(null);
             setSessionToDelete(session);
             setShowDeleteModal(true);
             setDeletionReason('');
             setRequiresReason(false);
-          }}
-          onChangeStatus={(session) => {
+          } : undefined}
+          onChangeStatus={canEditCalendar ? (session) => {
             setPopupSession(null);
             setSessionToChangeStatus(session);
             setShowStatusModal(true);
             setNewStatus('');
             setStatusChangeReason('');
-          }}
+          } : undefined}
         />
       )}
 

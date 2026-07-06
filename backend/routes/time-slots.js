@@ -155,7 +155,7 @@ router.get('/:id', getTimeSlotByIdController);
  *                 type: boolean
  *               breakType:
  *                 type: string
- *                 enum: [TeaBreak, PrayerBreak, LunchBreak]
+ *                 enum: [TeaBreak, PrayerBreak, LunchBreak, OfficeHours, Other]
  *               sortOrder:
  *                 type: integer
  *     responses:
