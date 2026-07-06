@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
@@ -349,7 +350,7 @@ const ExportHistoryDrawer = ({ isOpen, onClose, lang, t, theme }) => {
     })),
   ];
 
-  return (
+  return createPortal(
     <div
       style={{ position: 'fixed', inset: 0, zIndex: 2000 }}
       onClick={onClose}
@@ -750,7 +751,8 @@ const ExportHistoryDrawer = ({ isOpen, onClose, lang, t, theme }) => {
         )}
         <div {...resizeHandleProps} />
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

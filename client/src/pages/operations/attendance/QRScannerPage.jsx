@@ -51,6 +51,7 @@ import {
 import { useToast } from '@ui/ToastProvider.jsx';
 import ConfirmModal from '@ui/Modal/ConfirmModal.jsx';
 import { persistAndLogExport, mimeTypeForFormat } from '@services/business/exportDriveService.js';
+import { extractExportFileId, extractExportFolderId } from '@utils/exportSuccessUrls';
 import ExportHistoryDrawer from './ExportHistoryDrawer.jsx';
 import DeductionDrawer from '@components/academic/DeductionDrawer';
 import { fetchAttendanceDeductionSuggestion, fetchDeductionHistory } from '@services/business/attendanceDeductionService';
@@ -556,6 +557,8 @@ const QRScannerPage = () => {
   const [showDailyReportModal, setShowDailyReportModal] = useState(false);
   const [showDailyOfficialModal, setShowDailyOfficialModal] = useState(false);
   const [dailyOfficialExportFormat, setDailyOfficialExportFormat] = useState(EXPORT_FORMAT.PDF);
+  const [dailyOfficialExportSuccess, setDailyOfficialExportSuccess] = useState(null);
+  const [attendanceOfficialExportSuccess, setAttendanceOfficialExportSuccess] = useState(null);
   const [showSemesterReportConfirm, setShowSemesterReportConfirm] = useState(false);
   const [showNoAttendanceModal, setShowNoAttendanceModal] = useState(false);
   const [exportFormat, setExportFormat] = useState('csv'); // 'csv', 'email'
@@ -1925,13 +1928,21 @@ const QRScannerPage = () => {
       ]);
       setDeductionData(deductionRes?.data || deductionRes);
       setDeductionHistory(historyRes?.data || historyRes || []);
+      const currentClass = classes.find(c => c.id == classId);
+      const currentProgram = programs.find(p => p.id == selectedProgramId);
+      const currentSubject = subjects.find(s => s.id == selectedSubjectId);
       setDeductionStudent({
         ...student,
         studentId,
         classId,
-        programName: student.programName,
-        subjectName: student.subjectName,
-        className: student.className,
+        programName: currentProgram?.nameEn || currentProgram?.name || student.programName,
+        programNameAr: currentProgram?.nameAr || currentProgram?.nameEn,
+        subjectName: currentSubject?.nameEn || currentSubject?.name || student.subjectName,
+        subjectNameAr: currentSubject?.nameAr || currentSubject?.nameEn,
+        className: currentClass?.nameEn || currentClass?.name || currentClass?.code || student.className,
+        classNameAr: currentClass?.nameAr || currentClass?.nameEn || currentClass?.name,
+        term: currentClass?.term || '',
+        year: currentClass?.year || '',
       });
       setShowDeductionDrawer(true);
     } catch (err) {
@@ -1940,7 +1951,7 @@ const QRScannerPage = () => {
     } finally {
       setDeductionLoading(false);
     }
-  }, [selectedClassId, showError, t]);
+  }, [selectedClassId, selectedProgramId, selectedSubjectId, classes, programs, subjects, showError, t]);
 
   // Sync selectedStudent/selectedStudentForAction with updated students array
   // so panels receive fresh data after attendance/behavior changes
@@ -3136,9 +3147,8 @@ const QRScannerPage = () => {
         filename,
       });
 
-      showSuccess(t('report_exported_successfully'));
-
-      persistAndLogExport({
+      const blobUrl = URL.createObjectURL(blob);
+      const persisted = await persistAndLogExport({
         blob,
         filename,
         mimeType: mimeTypeForFormat(dailyOfficialExportFormat),
@@ -3148,8 +3158,14 @@ const QRScannerPage = () => {
         subjectId: selectedSubjectId,
         programId: selectedProgramId,
         reportDate: formattedDate,
-        onSaved: () => showSuccess(t('export_saved_to_drive')),
-      }).catch((e) => console.warn('Failed to log export history:', e));
+      });
+      setDailyOfficialExportSuccess({
+        filename: persisted?.filename || filename,
+        fileId: extractExportFileId(persisted),
+        folderId: extractExportFolderId(persisted),
+        blobUrl,
+        format: dailyOfficialExportFormat,
+      });
     } catch (err) {
       console.error('Daily official export failed:', err);
       showError((t('export_failed')) + err.message);
@@ -3368,7 +3384,8 @@ const QRScannerPage = () => {
           filename: officialFilename,
         });
 
-        persistAndLogExport({
+        const blobUrl = URL.createObjectURL(blob);
+        const persisted = await persistAndLogExport({
           blob,
           filename: officialFilename,
           mimeType: mimeTypeForFormat(format),
@@ -3376,8 +3393,14 @@ const QRScannerPage = () => {
           format,
           programId: selectedProgramId,
           reportDate: `${dateFrom}_${dateTo}`,
-          onSaved: () => showSuccess(t('export_saved_to_drive')),
-        }).catch((e) => console.warn('Failed to log export history:', e));
+        });
+        setAttendanceOfficialExportSuccess({
+          filename: persisted?.filename || officialFilename,
+          fileId: extractExportFileId(persisted),
+          folderId: extractExportFolderId(persisted),
+          blobUrl,
+          format,
+        });
       } else {
         const excelBlob = await exportAttendanceViolationsReport(filteredData, { lang, t });
         const url = URL.createObjectURL(excelBlob);
@@ -3410,6 +3433,10 @@ const QRScannerPage = () => {
           reportDate: `${dateFrom}_${dateTo}`,
           onSaved: () => showSuccess(t('export_saved_to_drive')),
         }).catch((e) => console.warn('Failed to log export history:', e));
+      }
+
+      if (mode === 'official') {
+        return;
       }
 
       showSuccess(
@@ -6148,7 +6175,13 @@ const QRScannerPage = () => {
         {/* Daily Official Export Modal */}
         <ReportExportModal
           isOpen={showDailyOfficialModal}
-          onClose={() => setShowDailyOfficialModal(false)}
+          onClose={() => {
+            if (dailyOfficialExportSuccess?.blobUrl) {
+              URL.revokeObjectURL(dailyOfficialExportSuccess.blobUrl);
+            }
+            setDailyOfficialExportSuccess(null);
+            setShowDailyOfficialModal(false);
+          }}
           reportType={REPORT_TYPE_IDS.DAILY_OFFICIAL}
           exportFormat={dailyExportFormat}
           setExportFormat={setDailyExportFormat}
@@ -6176,12 +6209,19 @@ const QRScannerPage = () => {
           showError={showError}
           officialExportFormat={dailyOfficialExportFormat}
           setOfficialExportFormat={setDailyOfficialExportFormat}
+          successResult={dailyOfficialExportSuccess}
         />
 
         {/* Attendance Violations Export Modal */}
         <AttendanceViolationsModal
           isOpen={showAttendanceViolationsModal}
-          onClose={() => setShowAttendanceViolationsModal(false)}
+          onClose={() => {
+            if (attendanceOfficialExportSuccess?.blobUrl) {
+              URL.revokeObjectURL(attendanceOfficialExportSuccess.blobUrl);
+            }
+            setAttendanceOfficialExportSuccess(null);
+            setShowAttendanceViolationsModal(false);
+          }}
           subjects={subjects}
           selectedSubjects={selectedSubjectsForViolations}
           setSelectedSubjects={setSelectedSubjectsForViolations}
@@ -6199,6 +6239,7 @@ const QRScannerPage = () => {
           t={t}
           lang={lang}
           theme={theme}
+          successResult={violationsModalMode === 'official' ? attendanceOfficialExportSuccess : null}
         />
 
         {/* No Attendance Warning Modal */}

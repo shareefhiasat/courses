@@ -573,12 +573,65 @@ export const getUserInitials = (user) => {
   return name.substring(0, 2).toUpperCase();
 };
 
+export const getCurrentUserProfile = async () => {
+  try {
+    const response = await fetch(`${API_BASE}/v1/users/me`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('keycloak_token')}`
+      }
+    });
+
+    const result = await response.json();
+    if (!response.ok) {
+      throw new Error(result.error || 'Failed to retrieve current user');
+    }
+
+    return {
+      success: true,
+      data: result.data,
+    };
+  } catch (err) {
+    error(`${serviceName}:getCurrentUserProfile:error`, { error: err.message });
+    return {
+      success: false,
+      error: err.message || 'Failed to retrieve current user',
+      data: null,
+    };
+  }
+};
+
 export const getUserProfile = async (userIdOrUser) => {
   try {
     const userId = typeof userIdOrUser === 'object'
       ? (userIdOrUser?.dbId || userIdOrUser?.uid || userIdOrUser?.id)
       : userIdOrUser;
     info(`${serviceName}:getUserProfile`, { userId });
+
+    const token = localStorage.getItem('keycloak_token');
+    let parsedTokenUserId = null;
+    if (token) {
+      try {
+        const payload = JSON.parse(atob(token.split('.')[1]));
+        parsedTokenUserId = payload?.sub || null;
+      } catch {
+        parsedTokenUserId = null;
+      }
+    }
+
+    const isSelf = typeof userIdOrUser === 'object'
+      && (
+        (userIdOrUser?.uid && parsedTokenUserId && userIdOrUser.uid === parsedTokenUserId)
+        || (userIdOrUser?.dbId && userId && String(userIdOrUser.dbId) === String(userId))
+      );
+
+    if (isSelf || (parsedTokenUserId && userId && String(userId) === String(parsedTokenUserId))) {
+      const me = await getCurrentUserProfile();
+      if (me.success && me.data) {
+        return me.data;
+      }
+    }
 
     const result = await getUserById(userId);
     if (result.success && result.data) {

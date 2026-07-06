@@ -183,25 +183,29 @@ export async function listChildren(keycloakUser, { parentId = null, includeDelet
  */
 export async function getFolderWithBreadcrumb(folderId, actorUserId) {
   try {
-    console.log('[folderService.getFolderWithBreadcrumb] folderId:', folderId, 'actorUserId:', actorUserId);
     const folder = await prisma.folder.findUnique({ where: { id: folderId } });
-    console.log('[folderService.getFolderWithBreadcrumb] folder:', folder);
     if (!folder || folder.isDeleted) return err('FOLDER_NOT_FOUND', 'Folder not found');
 
     const chainRows = await prisma.$queryRaw`
       WITH RECURSIVE chain AS (
-        SELECT id, name, "parentId", path, 0 AS depth FROM folders WHERE id = ${folderId}
+        SELECT id, name, "nameAr", "parentId", path, 0 AS depth, ARRAY[id] AS visited
+        FROM folders WHERE id = ${folderId}
         UNION ALL
-        SELECT f.id, f.name, f."parentId", f.path, c.depth + 1
+        SELECT f.id, f.name, f."nameAr", f."parentId", f.path, c.depth + 1, c.visited || f.id
         FROM folders f
         JOIN chain c ON f.id = c."parentId"
+        WHERE NOT f.id = ANY(c.visited) AND c.depth < 50
       )
       SELECT id, name, "nameAr", "parentId", path FROM chain ORDER BY depth DESC
     `;
-    console.log('[folderService.getFolderWithBreadcrumb] chainRows:', chainRows);
-    const result = ok({ folder, breadcrumb: chainRows });
-    console.log('[folderService.getFolderWithBreadcrumb] returning:', result);
-    return result;
+    const breadcrumb = chainRows.map((row) => ({
+      id: String(row.id),
+      name: row.name,
+      nameAr: row.nameAr ?? null,
+      parentId: row.parentId != null ? String(row.parentId) : null,
+      path: row.path,
+    }));
+    return ok({ folder, breadcrumb });
   } catch (error) {
     console.error('[folderService.getFolderWithBreadcrumb]', error);
     return err('GET_FOLDER_FAILED', error.message);

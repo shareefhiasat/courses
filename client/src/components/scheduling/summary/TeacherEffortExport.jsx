@@ -6,6 +6,7 @@ import { Button } from '@ui';
 import { formatDate } from '@utils/date-formatter.js';
 import { FileDown, FileSpreadsheet } from 'lucide-react';
 import { getAuthToken } from '@utils/authHelpers';
+import { MIME_TYPES } from '@constants/exportConfig.js';
 
 export default function TeacherEffortExport({ teacherId, params, effort, canExport }) {
   const { t, isRTL } = useLang();
@@ -78,7 +79,7 @@ export default function TeacherEffortExport({ teacherId, params, effort, canExpo
 
       const buffer = await wb.xlsx.writeBuffer();
       downloadBlob(
-        new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
+        new Blob([buffer], { type: MIME_TYPES.EXCEL }),
         `teacher-effort-${teacherId}.xlsx`,
       );
     }

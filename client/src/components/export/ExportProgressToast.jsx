@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { useLang } from '@contexts/LangContext';
 
 /**
- * Bottom-right export progress indicator (matches QR scanner pattern).
+ * Bottom-center export progress indicator (matches QR scanner pattern).
  */
 export default function ExportProgressToast({ visible = false, message }) {
   const { t } = useLang();
@@ -15,10 +15,11 @@ export default function ExportProgressToast({ visible = false, message }) {
     <div
       style={{
         position: 'fixed',
-        bottom: '1.5rem',
-        right: '1.5rem',
+        bottom: '2rem',
+        left: '50%',
+        transform: 'translateX(-50%)',
         background: 'var(--surface, #fff)',
-        padding: '1rem 1.5rem',
+        padding: '1rem 2rem',
         borderRadius: '12px',
         boxShadow: '0 4px 20px rgba(0, 0, 0, 0.15)',
         display: 'flex',

@@ -1,8 +1,10 @@
 import {
   calculateGpaFromMarks,
   getGradePoints,
+  getLocalizedTermDisplay,
   groupMarksBySemester,
   mergeComplementaryRecords,
+  resolveMarkGrade,
 } from '@constants/gradingStandards';
 import { getLocalizedUserName } from '@utils/localizedUserName.js';
 import { buildSerialNumber } from './serialNumber.js';
@@ -17,32 +19,51 @@ function courseName(row, lang) {
   return row.subjectName || row.subjectNameAr || row.subjectCode || '';
 }
 
+function extractYearFromTerm(term) {
+  if (!term) return '';
+  const termStr = String(term);
+  if (termStr.includes('-')) {
+    const yearPart = termStr.split('-')[0];
+    if (!Number.isNaN(Number(yearPart))) return yearPart;
+  }
+  return '';
+}
+
 function semesterLabel(group, lang) {
   const term = group.semester || group.term || '';
-  const year = group.year || '';
-  if (lang === 'ar') return `فصل ${term} ${year}`.trim();
-  return `${term} ${year}`.trim();
+  const year = group.year || extractYearFromTerm(term) || '';
+  const termDisplay = getLocalizedTermDisplay(term, lang);
+  if (lang === 'ar') return `فصل ${termDisplay} ${year}`.trim();
+  return `${termDisplay} ${year}`.trim();
 }
 
 function buildSemesterBlock(courses, lang) {
   const gradedCourses = courses.map((row) => {
     const credits = row.credits || DEFAULT_CREDITS;
-    const points = getGradePoints(row.letterGrade) ?? row.gradePoints ?? 0;
-    const earnedHours = row.letterGrade === 'F' || row.letterGrade === 'FB' || row.letterGrade === 'FA'
-      ? 0
-      : credits;
+    const resolved = resolveMarkGrade({
+      totalMarks: row.totalMarks,
+      letterGrade: row.letterGrade,
+      gradeType: row.gradeType,
+      isRepeated: row.isRepeated,
+      complementaryScore: row.finalExam,
+      lang,
+    });
+    const points = resolved.points ?? getGradePoints(resolved.letter) ?? 0;
+    const letter = resolved.letter || row.letterGrade || '—';
+    const earnedHours = ['F', 'FB', 'FA'].includes(letter) ? 0 : credits;
     return {
       code: row.subjectCode || '',
       name: courseName(row, lang),
       credits,
-      letterGrade: row.letterGrade || '—',
-      pointsEarned: parseFloat((points * credits).toFixed(1)),
+      letterGrade: letter,
+      pointsEarned: parseFloat((points * credits).toFixed(2)),
       hoursEarned: earnedHours,
     };
   });
 
   const { gpa, totalCredits } = calculateGpaFromMarks(courses);
   const earnedHours = gradedCourses.reduce((s, c) => s + c.hoursEarned, 0);
+  const semesterPointsEarned = gradedCourses.reduce((s, c) => s + c.pointsEarned, 0);
 
   return {
     courses: gradedCourses,
@@ -50,12 +71,12 @@ function buildSemesterBlock(courses, lang) {
     gpaHours: totalCredits,
     earnedHours,
     semesterGpa: gpa,
+    semesterPointsEarned: parseFloat(semesterPointsEarned.toFixed(2)),
   };
 }
 
 /**
  * Build qualitative card (البطاقة النوعية) — GPA transcript grouped by student & semester.
- * PDF: 2 semesters per page per student; each student starts on a new page group.
  */
 export function prepareQualitativeCardData({
   reportRows = [],
@@ -67,7 +88,8 @@ export function prepareQualitativeCardData({
   const serial = buildSerialNumber(metadata.programId, { prefix: 'QC' });
   const isAr = lang === 'ar';
 
-  let filtered = (reportRows || []).filter((row) => includeRepeated || !row.isRepeated);
+  const mergedAll = mergeComplementaryRecords(reportRows || []);
+  let filtered = mergedAll.filter((row) => includeRepeated || !row.isRepeated);
   if (studentIds?.length) {
     const idSet = new Set(studentIds.map(String));
     filtered = filtered.filter((row) => idSet.has(String(row.studentId)));
@@ -99,18 +121,19 @@ export function prepareQualitativeCardData({
       return String(a.studentName).localeCompare(String(b.studentName), isAr ? 'ar' : 'en');
     })
     .map((student) => {
-      const merged = mergeComplementaryRecords(student.rows);
-      const semesterGroups = groupMarksBySemester(merged);
+      const semesterGroups = groupMarksBySemester(student.rows);
 
       let cumulativeCredits = 0;
       let cumulativeEarned = 0;
       let cumulativePoints = 0;
+      let cumulativePointsEarned = 0;
 
       const semesters = semesterGroups.map((group) => {
         const block = buildSemesterBlock(group.courses, lang);
         cumulativeCredits += block.gpaHours;
         cumulativeEarned += block.earnedHours;
         cumulativePoints += block.semesterGpa * block.gpaHours;
+        cumulativePointsEarned += block.semesterPointsEarned;
         const cumulativeGpa = cumulativeCredits > 0
           ? parseFloat((cumulativePoints / cumulativeCredits).toFixed(2))
           : 0;
@@ -121,6 +144,7 @@ export function prepareQualitativeCardData({
           ...block,
           cumulativeGpaHours: cumulativeCredits,
           cumulativeEarnedHours: cumulativeEarned,
+          cumulativePointsEarned: parseFloat(cumulativePointsEarned.toFixed(2)),
           cumulativeGpa,
         };
       });

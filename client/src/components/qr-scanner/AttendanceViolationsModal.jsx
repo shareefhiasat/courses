@@ -3,6 +3,7 @@ import Modal from '@components/ui/Modal';
 import DatePicker from '@components/ui/DatePicker/DatePicker';
 import { EXPORT_FORMAT } from '@services/export/official-reports/index.jsx';
 import OfficialExportFormatPicker from './OfficialExportFormatPicker.jsx';
+import ExportSuccessPanel from '@components/export/ExportSuccessPanel.jsx';
 
 const AttendanceViolationsModal = ({
   isOpen,
@@ -24,6 +25,7 @@ const AttendanceViolationsModal = ({
   t,
   lang,
   theme = 'currentColor',
+  successResult = null,
 }) => {
   const isOfficial = mode === 'official';
 
@@ -63,7 +65,9 @@ const AttendanceViolationsModal = ({
       format: isOfficial ? exportFormat : EXPORT_FORMAT.EXCEL,
       mode,
     });
-    onClose();
+    if (!isOfficial) {
+      onClose();
+    }
   };
 
   const modalTitle = isOfficial
@@ -73,87 +77,155 @@ const AttendanceViolationsModal = ({
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={modalTitle} size="large" showCloseButton>
       <div style={{ padding: '1.5rem 0' }}>
-        <div style={{ marginBottom: '1.5rem' }}>
-          <h3
-            style={{
-              fontSize: 'var(--font-size-md)',
-              fontWeight: 600,
-              marginBottom: '0.75rem',
-              color: 'var(--text-primary, #1f2937)',
-            }}
-          >
-            {t('date_range')}
-          </h3>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: '1fr 1fr',
-              gap: '1rem',
-            }}
-          >
-            <label style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-              <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 500 }}>{t('date_from')}</span>
+        {successResult ? (
+          <>
+            <ExportSuccessPanel successResult={successResult} t={t} theme={theme} />
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '0.5rem' }}>
+              <button
+                type="button"
+                onClick={onClose}
+                style={{
+                  padding: '0.75rem 1.5rem',
+                  background: 'transparent',
+                  border: '1px solid var(--border, #e5e7eb)',
+                  borderRadius: '0.5rem',
+                  cursor: 'pointer',
+                  color: 'var(--text-primary, #1f2937)',
+                }}
+              >
+                {t('cancel')}
+              </button>
+            </div>
+          </>
+        ) : (
+        <>
+        {/* Row 1: Date Range + Export Format */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '2rem' }}>
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '0.75rem' }}>
+            <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 500, color: 'var(--text-primary, #1f2937)', paddingTop: '0.65rem', flexShrink: 0 }}>
+              {t('date_range', 'Date Range')}:
+            </span>
+            <div style={{ flex: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <DatePicker
                 value={dateFrom || ''}
                 onChange={setDateFrom}
                 theme={theme}
                 fullWidth
               />
-            </label>
-            <label style={{ display: 'flex', flexDirection: 'column', gap: '0.35rem' }}>
-              <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 500 }}>{t('date_to')}</span>
               <DatePicker
                 value={dateTo || ''}
                 onChange={setDateTo}
                 theme={theme}
                 fullWidth
               />
-            </label>
+            </div>
           </div>
           {dateFrom && dateTo && dateFrom > dateTo && (
-            <p style={{ marginTop: '0.5rem', fontSize: 'var(--font-size-sm)', color: 'var(--color-danger, #dc2626)' }}>
+            <p style={{ marginTop: '-1rem', marginBottom: '1rem', fontSize: 'var(--font-size-sm)', color: 'var(--color-danger, #dc2626)' }}>
               {t('date_range_invalid')}
             </p>
           )}
+
+          {isOfficial && setExportFormat && (
+            <OfficialExportFormatPicker
+              exportFormat={exportFormat}
+              setExportFormat={setExportFormat}
+              t={t}
+              theme={theme}
+              showLabel={false}
+            />
+          )}
         </div>
 
-        {isOfficial && setExportFormat && (
-          <OfficialExportFormatPicker
-            exportFormat={exportFormat}
-            setExportFormat={setExportFormat}
-            t={t}
-            theme={theme}
-          />
-        )}
+        {/* Row 2: Subjects + Violations side-by-side */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginBottom: '2rem' }}>
+          <div>
+            <h3
+              style={{
+                fontSize: 'var(--font-size-md)',
+                fontWeight: 600,
+                marginBottom: '1rem',
+                color: 'var(--text-primary, #1f2937)',
+              }}
+            >
+              {t('select_subjects_for_report').charAt(0).toUpperCase() + t('select_subjects_for_report').slice(1)}
+            </h3>
+            <div
+              style={{
+                maxHeight: '200px',
+                overflowY: 'auto',
+                border: '1px solid var(--border, #e5e7eb)',
+                borderRadius: '0.5rem',
+                padding: '0.5rem',
+              }}
+            >
+              {subjects.length === 0 ? (
+                <p style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>
+                  {t('no_subjects_available')}
+                </p>
+              ) : (
+                subjects.map((subject) => (
+                  <label
+                    key={subject.id}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.625rem',
+                      padding: '0.75rem',
+                      fontSize: '0.95rem',
+                      cursor: 'pointer',
+                      borderRadius: '0.375rem',
+                      background: selectedSubjects.includes(subject.id)
+                        ? 'var(--background-secondary, #f3f4f6)'
+                        : 'transparent',
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={selectedSubjects.includes(subject.id)}
+                      onChange={() => toggleSubject(subject.id)}
+                      style={{ width: '1.125rem', height: '1.125rem', cursor: 'pointer', margin: 0 }}
+                    />
+                    <span style={{ color: 'var(--text-primary, #1f2937)', fontSize: '0.95rem' }}>
+                      {lang === 'ar'
+                        ? subject.nameAr || subject.nameEn || subject.name || subject.code
+                        : subject.nameEn || subject.name || subject.code}
+                    </span>
+                  </label>
+                ))
+              )}
+            </div>
+          </div>
 
-        <div style={{ marginBottom: '2rem' }}>
-          <h3
-            style={{
-              fontSize: 'var(--font-size-md)',
-              fontWeight: 600,
-              marginBottom: '1rem',
-              color: 'var(--text-primary, #1f2937)',
-            }}
-          >
-            {t('select_subjects_for_report')}
-          </h3>
-          <div
-            style={{
-              maxHeight: '200px',
-              overflowY: 'auto',
-              border: '1px solid var(--border, #e5e7eb)',
-              borderRadius: '0.5rem',
-              padding: '0.5rem',
-            }}
-          >
-            {subjects.length === 0 ? (
-              <p style={{ padding: '1rem', textAlign: 'center', color: 'var(--text-muted, #6b7280)' }}>
-                {t('no_subjects_available')}
-              </p>
-            ) : (
-              subjects.map((subject) => (
+          <div>
+            <h3
+              style={{
+                fontSize: 'var(--font-size-md)',
+                fontWeight: 600,
+                marginBottom: '1rem',
+                color: 'var(--text-primary, #1f2937)',
+              }}
+            >
+              {t('select_violation_types').charAt(0).toUpperCase() + t('select_violation_types').slice(1)}
+            </h3>
+            <div
+              style={{
+                maxHeight: '200px',
+                overflowY: 'auto',
+                border: '1px solid var(--border, #e5e7eb)',
+                borderRadius: '0.5rem',
+                padding: '0.5rem',
+              }}
+            >
+              {[
+                { key: 'absentNoExcuse', label: t('absent_no_excuse') },
+                { key: 'absentWithExcuse', label: t('absent_with_excuse') },
+                { key: 'excusedLeave', label: t('excused_leave') },
+                { key: 'late', label: t('late') },
+                { key: 'humanCase', label: t('human_case') },
+              ].map(({ key, label }) => (
                 <label
-                  key={subject.id}
+                  key={key}
                   style={{
                     display: 'flex',
                     alignItems: 'center',
@@ -162,77 +234,21 @@ const AttendanceViolationsModal = ({
                     fontSize: '0.95rem',
                     cursor: 'pointer',
                     borderRadius: '0.375rem',
-                    background: selectedSubjects.includes(subject.id)
+                    background: selectedViolationTypes[key]
                       ? 'var(--background-secondary, #f3f4f6)'
                       : 'transparent',
                   }}
                 >
                   <input
                     type="checkbox"
-                    checked={selectedSubjects.includes(subject.id)}
-                    onChange={() => toggleSubject(subject.id)}
+                    checked={selectedViolationTypes[key]}
+                    onChange={() => toggleViolationType(key)}
                     style={{ width: '1.125rem', height: '1.125rem', cursor: 'pointer', margin: 0 }}
                   />
-                  <span style={{ color: 'var(--text-primary, #1f2937)', fontSize: '0.95rem' }}>
-                    {lang === 'ar'
-                      ? subject.nameAr || subject.nameEn || subject.name || subject.code
-                      : subject.nameEn || subject.name || subject.code}
-                  </span>
+                  <span style={{ color: 'var(--text-primary, #1f2937)', fontSize: '0.95rem' }}>{label}</span>
                 </label>
-              ))
-            )}
-          </div>
-        </div>
-
-        <div style={{ marginBottom: '2rem' }}>
-          <h3
-            style={{
-              fontSize: 'var(--font-size-md)',
-              fontWeight: 600,
-              marginBottom: '1rem',
-              color: 'var(--text-primary, #1f2937)',
-            }}
-          >
-            {t('select_violation_types')}
-          </h3>
-          <div
-            style={{
-              border: '1px solid var(--border, #e5e7eb)',
-              borderRadius: '0.5rem',
-              padding: '0.5rem',
-            }}
-          >
-            {[
-              { key: 'absentNoExcuse', label: t('absent_no_excuse') },
-              { key: 'absentWithExcuse', label: t('absent_with_excuse') },
-              { key: 'excusedLeave', label: t('excused_leave') },
-              { key: 'late', label: t('late') },
-              { key: 'humanCase', label: t('human_case') },
-            ].map(({ key, label }) => (
-              <label
-                key={key}
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.625rem',
-                  padding: '0.75rem',
-                  fontSize: '0.95rem',
-                  cursor: 'pointer',
-                  borderRadius: '0.375rem',
-                  background: selectedViolationTypes[key]
-                    ? 'var(--background-secondary, #f3f4f6)'
-                    : 'transparent',
-                }}
-              >
-                <input
-                  type="checkbox"
-                  checked={selectedViolationTypes[key]}
-                  onChange={() => toggleViolationType(key)}
-                  style={{ width: '1.125rem', height: '1.125rem', cursor: 'pointer', margin: 0 }}
-                />
-                <span style={{ color: 'var(--text-primary, #1f2937)', fontSize: '0.95rem' }}>{label}</span>
-              </label>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
 
@@ -255,6 +271,7 @@ const AttendanceViolationsModal = ({
               border: '1px solid var(--border, #e5e7eb)',
               borderRadius: '0.5rem',
               cursor: isExporting ? 'not-allowed' : 'pointer',
+              color: 'var(--text-primary, #1f2937)',
             }}
           >
             {t('cancel')}
@@ -282,6 +299,8 @@ const AttendanceViolationsModal = ({
                 : t('export_excel')}
           </button>
         </div>
+        </>
+        )}
       </div>
     </Modal>
   );

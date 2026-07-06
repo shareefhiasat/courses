@@ -4,6 +4,7 @@
  */
 
 import { formatDate } from './date-formatter';
+import { ACADEMIC_TERMS, getAcademicTermLabel } from '@constants/academicTerms';
 
 export function sortSubjectsByCode(subjects = []) {
   return [...subjects].sort((a, b) =>
@@ -42,10 +43,37 @@ export function getSubjectOptionLabel(subject, lang = 'en') {
 }
 
 export function getClassOptionLabel(cls, lang = 'en') {
-  const className =
+  let className =
     lang === 'ar'
       ? cls.nameAr || cls.nameEn || cls.name || cls.titleAr || cls.title || 'Unnamed Class'
       : cls.nameEn || cls.name || cls.nameAr || cls.title || cls.titleAr || 'Unnamed Class';
+
+  // If there's a code, parse it to extract term and year for both languages
+  if (cls.code) {
+    const codeParts = cls.code.split('-');
+    if (codeParts.length >= 3) {
+      const year = codeParts[1];
+      const termCode = codeParts[2]?.toLowerCase();
+      
+      // Get localized term label
+      const termConfig = Object.values(ACADEMIC_TERMS).find(t => t.value === termCode);
+      const termLabel = termConfig ? (lang === 'ar' ? termConfig.label.ar : termConfig.label.en) : termCode;
+      
+      // Remove any existing term/year pattern from the name to avoid duplication
+      // Split by " - " and filter out parts that contain the year (regardless of format)
+      const parts = className.split(' - ');
+      const cleanParts = parts.filter(part => {
+        // Keep parts that don't contain the specific year from the code
+        return !part.includes(year);
+      });
+      className = cleanParts.join(' - ').trim();
+      
+      // Build label with localized term and year (no code in parentheses)
+      return `${className} - ${termLabel} ${year}`;
+    }
+  }
+
+  // Fallback: if code doesn't match expected format, show it in parentheses
   return className + (cls.code ? ` (${cls.code})` : '');
 }
 

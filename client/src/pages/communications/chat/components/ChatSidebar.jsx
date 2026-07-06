@@ -354,7 +354,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const ChatS
                     overflow:'hidden', 
                     textOverflow:'ellipsis' 
                   }}>
-                    {`${cls.term} - ${cls.code}`}
+                    {[cls.term, cls.code].filter(Boolean).join(' - ')}
                   </div>
                   {cls.lastMessage && (
                     <div style={{ 

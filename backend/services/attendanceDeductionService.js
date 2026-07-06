@@ -78,6 +78,7 @@ export async function calculateStudentAbsenceDeductions({
     where,
     include: {
       status: true,
+      creator: { select: { id: true, displayName: true, realName: true, firstName: true, lastName: true } },
       workflowLinks: {
         include: {
           workflowDocument: { select: { id: true, status: true, title: true } },
@@ -97,6 +98,7 @@ export async function calculateStudentAbsenceDeductions({
         statusCode: row.status?.code,
         excusedViaWorkflow: Boolean(row.excuseApprovedAt),
         deduction,
+        recordedBy: row.creator?.displayName || row.creator?.realName || [row.creator?.firstName, row.creator?.lastName].filter(Boolean).join(' ') || null,
         workflowDocumentId: workflowDoc?.id || null,
         workflowStatus: workflowDoc?.status || null,
         workflowTitle: workflowDoc?.title || null,
@@ -318,22 +320,54 @@ export async function getClassAbsenceWarningCounts({ classId, userId }) {
 
   const countsByUser = new Map();
   studentIds.forEach((id) => {
-    countsByUser.set(id, { totalAbsences: 0, unexcusedAbsences: 0 });
+    countsByUser.set(id, {
+      totalAbsences: 0,
+      unexcusedAbsences: 0,
+      excusedAbsences: 0,
+      lateCount: 0,
+      humanCaseCount: 0,
+      presentCount: 0,
+    });
   });
 
   attendances.forEach((row) => {
     const code = row.status?.code;
-    if (!code || !WARNING_ABSENCE_STATUS_CODES.has(code)) return;
     const entry = countsByUser.get(row.userId);
     if (!entry) return;
-    entry.totalAbsences += 1;
-    if (UNEXCUSED_ABSENCE_CODES.has(code)) {
-      entry.unexcusedAbsences += 1;
+    switch (code) {
+      case 'ATTENDANCE_PRESENT':
+        entry.presentCount += 1;
+        break;
+      case 'ATTENDANCE_ABSENT':
+        entry.unexcusedAbsences += 1;
+        entry.totalAbsences += 1;
+        break;
+      case 'ATTENDANCE_LEAVE':
+        entry.excusedAbsences += 1;
+        entry.totalAbsences += 1;
+        break;
+      case 'ATTENDANCE_LATE':
+        entry.lateCount += 1;
+        entry.totalAbsences += 1;
+        break;
+      case 'ATTENDANCE_HUMAN_CASE':
+        entry.humanCaseCount += 1;
+        entry.totalAbsences += 1;
+        break;
+      default:
+        break;
     }
   });
 
   const data = enrollments.map((enrollment) => {
-    const counts = countsByUser.get(enrollment.userId) || { totalAbsences: 0, unexcusedAbsences: 0 };
+    const counts = countsByUser.get(enrollment.userId) || {
+      totalAbsences: 0,
+      unexcusedAbsences: 0,
+      excusedAbsences: 0,
+      lateCount: 0,
+      humanCaseCount: 0,
+      presentCount: 0,
+    };
     return {
       studentId: enrollment.userId,
       studentNumber: enrollment.user.studentNumber || '',

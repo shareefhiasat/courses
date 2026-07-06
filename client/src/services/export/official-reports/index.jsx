@@ -5,6 +5,7 @@ import { SemesterCertificateTemplate } from './templates/semesterCertificate.tem
 import { ClassSubjectMarksTemplate } from './templates/classSubjectMarks.template.jsx';
 import { QualitativeCardTemplate } from './templates/qualitativeCard.template.jsx';
 import { AttendanceWarningTemplate } from './templates/attendanceWarning.template.jsx';
+import { WeeklyScheduleTemplate } from './templates/weeklySchedule.template.jsx';
 import { renderOfficialPdf, downloadBlob } from './renderers/pdfRenderer.js';
 import {
   exportDailyOfficialExcel,
@@ -13,12 +14,11 @@ import {
   exportClassSubjectMarksExcel,
   exportQualitativeCardExcel,
   exportAttendanceWarningExcel,
+  exportWeeklyScheduleExcel,
 } from './renderers/excelRenderer.js';
+import { EXPORT_FORMAT } from '@constants/exportConfig.js';
 
-export const EXPORT_FORMAT = {
-  PDF: 'pdf',
-  EXCEL: 'excel',
-};
+export { EXPORT_FORMAT };
 
 export async function exportDailyOfficialReport(data, { format = EXPORT_FORMAT.PDF, filename } = {}) {
   const baseName = filename || `daily_official_${data.serial}`;
@@ -98,6 +98,19 @@ export async function exportAttendanceWarningReport(data, { format = EXPORT_FORM
   );
 }
 
+export async function exportWeeklyScheduleReport(data, { format = EXPORT_FORMAT.PDF, filename } = {}) {
+  const baseName = filename || `weekly_schedule_${data.serial}`;
+  if (format === EXPORT_FORMAT.EXCEL) {
+    const blob = await exportWeeklyScheduleExcel(data);
+    downloadBlob(blob, `${baseName}.xlsx`);
+    return blob;
+  }
+  return renderOfficialPdf(
+    <WeeklyScheduleTemplate data={data} showWatermark />,
+    { filename: `${baseName}.pdf`, download: true, serial: data.serial, lang: data.lang }
+  );
+}
+
 export { prepareDailyOfficialData } from './engine/prepareDailyOfficialData.js';
 export { prepareAttendanceOfficialData } from './engine/prepareAttendanceOfficialData.js';
 export { prepareSemesterCertificateData } from './engine/prepareSemesterCertificateData.js';
@@ -108,4 +121,5 @@ export {
   resolveWarningType,
   WARNING_TYPE,
 } from './engine/prepareAttendanceWarningData.js';
+export { prepareWeeklyScheduleData } from './engine/prepareWeeklyScheduleData.js';
 export { buildDailyOfficialSerial, buildViolationsOfficialSerial } from './engine/serialNumber.js';

@@ -8,6 +8,33 @@ export const GRADE_TYPE = {
   COMPLEMENTARY: 'complementary',
 };
 
+// Manual grade codes (FB/FA/WF) used across the app
+export const MANUAL_GRADE_CODES = ['FB', 'FA', 'WF'];
+
+// Localization key lookup tables for grade type / attempt / fail reason labels.
+// Components pass these keys to `t()` so labels stay in one place.
+export const GRADE_TYPE_LABEL_KEYS = {
+  [GRADE_TYPE.CALCULATED]: 'calculated',
+  [GRADE_TYPE.COMPLEMENTARY]: 'complementary_exam',
+  FB: 'grade_fb',
+  FA: 'grade_fa',
+  WF: 'grade_wf',
+};
+
+export const ATTEMPT_LABEL_KEYS = {
+  first: 'first_attempt',
+  repeated: 'repeated',
+  complementary: 'complementary_exam',
+  special: 'special_fail',
+};
+
+export const FAIL_REASON_LABEL_KEYS = {
+  FB: 'fail_reason_absence',
+  FA: 'fail_reason_absent_final',
+  WF: 'fail_reason_withdrawn',
+  F: 'fail_reason_insufficient_marks',
+};
+
 export const GRADING_STANDARDS = {
   FIRST_ATTEMPT: {
     name: 'First Attempt',
@@ -56,6 +83,61 @@ export const COMPLEMENTARY_GRADE = {
 };
 
 /** Cumulative GPA standing labels (المعدل العام) */
+export const isManualGradeType = (gradeType) => MANUAL_GRADE_CODES.includes(gradeType);
+
+export const getGradeTypeLabelKey = (gradeType) => {
+  const key = GRADE_TYPE_LABEL_KEYS[gradeType || GRADE_TYPE.CALCULATED];
+  return key || gradeType;
+};
+
+export const getAttemptLabelKey = ({ gradeType, isRepeated } = {}) => {
+  const gt = gradeType || GRADE_TYPE.CALCULATED;
+  if (gt === GRADE_TYPE.COMPLEMENTARY) return ATTEMPT_LABEL_KEYS.complementary;
+  if (isManualGradeType(gt)) return ATTEMPT_LABEL_KEYS.special;
+  if (isRepeated) return ATTEMPT_LABEL_KEYS.repeated;
+  return ATTEMPT_LABEL_KEYS.first;
+};
+
+export const getFailReasonLabelKey = ({ gradeType, letterGrade } = {}) => {
+  const gt = gradeType || GRADE_TYPE.CALCULATED;
+  if (isManualGradeType(gt)) return FAIL_REASON_LABEL_KEYS[gt];
+  if (letterGrade === 'F') return FAIL_REASON_LABEL_KEYS.F;
+  return null;
+};
+
+/**
+ * Extract the readable term name from combined term formats.
+ * Handles "2024-FALL" -> "FALL" and "Fall 2025" -> "Fall".
+ * Returns the original term if it is already just a name.
+ */
+export const formatTermDisplay = (term) => {
+  if (!term) return '';
+  const termStr = String(term);
+  // "2024-FALL"
+  if (termStr.includes('-')) {
+    const parts = termStr.split('-');
+    const termPart = parts.find((p) => Number.isNaN(Number(p))) || parts[parts.length - 1];
+    return termPart || termStr;
+  }
+  // "Fall 2025"
+  if (termStr.includes(' ')) {
+    const parts = termStr.split(' ');
+    const termPart = parts.find((p) => Number.isNaN(Number(p))) || parts[0];
+    return termPart || termStr;
+  }
+  return termStr;
+};
+
+const TERM_LABELS = {
+  en: { fall: 'Fall', spring: 'Spring', summer: 'Summer', winter: 'Winter' },
+  ar: { fall: 'خريف', spring: 'ربيع', summer: 'صيف', winter: 'شتاء' },
+};
+
+export const getLocalizedTermDisplay = (term, lang = 'en') => {
+  const key = formatTermDisplay(term).toLowerCase();
+  return TERM_LABELS[lang]?.[key] || formatTermDisplay(term);
+};
+
 export const GPA_STANDINGS = [
   { min: 3.6, max: 4.0, letter: 'A', description: 'Excellent', descriptionAr: 'ممتاز' },
   { min: 2.8, max: 3.59, letter: 'B', description: 'Very Good', descriptionAr: 'جيد جداً' },
@@ -143,13 +225,14 @@ export function resolveComplementaryGrade(examScore) {
 }
 
 export function resolveMarkGrade({ totalMarks, letterGrade, gradeType, isRepeated, complementaryScore, lang = 'en' }) {
-  const isAr = lang === 'ar';
-
   if (gradeType === GRADE_TYPE.COMPLEMENTARY) {
     const result = resolveComplementaryGrade(complementaryScore ?? totalMarks);
+    const letter = letterGrade || result.letter;
     return {
       ...result,
-      gradeDescription: isAr ? result.descriptionAr : result.description,
+      letter,
+      points: getGradePoints(letter) ?? result.points,
+      gradeDescription: getGradeDescription(letter, false, lang),
       gradeType: GRADE_TYPE.COMPLEMENTARY,
     };
   }
@@ -161,7 +244,7 @@ export function resolveMarkGrade({ totalMarks, letterGrade, gradeType, isRepeate
         letter: manual.letter,
         points: manual.points ?? 0,
         totalMarks: 0,
-        gradeDescription: isAr ? manual.descriptionAr : manual.description,
+        gradeDescription: getGradeDescription(manual.letter, isRepeated, lang),
         gradeType,
         isManual: true,
       };
@@ -173,9 +256,9 @@ export function resolveMarkGrade({ totalMarks, letterGrade, gradeType, isRepeate
 
   return {
     letter,
-    points: computed.points ?? getGradePoints(letter),
+    points: getGradePoints(letter) ?? computed.points,
     totalMarks: parseFloat(totalMarks) || 0,
-    gradeDescription: isAr ? computed.descriptionAr : computed.description,
+    gradeDescription: getGradeDescription(letter, isRepeated, lang),
     gradeType: GRADE_TYPE.CALCULATED,
     isManual: false,
   };
@@ -290,9 +373,91 @@ export function groupMarksBySemester(marksRows) {
     });
 }
 
+export function sumMarkComponents(row) {
+  if (!row) return null;
+  const keys = ['midTermExam', 'finalExam', 'homework', 'labsProjectResearch', 'quizzes', 'participation', 'attendance'];
+  const sum = keys.reduce((acc, k) => acc + (parseFloat(row[k]) || 0), 0);
+  return sum > 0 ? Math.round(sum * 100) / 100 : null;
+}
+
+export function getOriginalMark(row) {
+  if (!row) return null;
+  const prev = row.previousAttempt;
+  if (prev) {
+    const tm = prev.totalMarks;
+    if (tm != null && tm !== '' && !Number.isNaN(Number(tm))) {
+      return Number(tm);
+    }
+    const fromComponents = sumMarkComponents(prev);
+    if (fromComponents != null) return fromComponents;
+  }
+  if ((row.gradeType || GRADE_TYPE.CALCULATED) !== GRADE_TYPE.COMPLEMENTARY) {
+    const tm = row.totalMarks;
+    if (tm != null && tm !== '' && !Number.isNaN(Number(tm))) {
+      return Number(tm);
+    }
+    return sumMarkComponents(row);
+  }
+  return null;
+}
+
+function findFirstAttemptPartner(row, allRows, consumed) {
+  return allRows.find((r) => {
+    const rowKey = r.id ?? `${r.studentId}-${r.subjectId}-${r.classId}-${r.isRepeated}`;
+    if (consumed.has(rowKey)) return false;
+    return (
+      String(r.studentId) === String(row.studentId) &&
+      String(r.subjectId) === String(row.subjectId) &&
+      !r.isRepeated &&
+      (r.gradeType || GRADE_TYPE.CALCULATED) === GRADE_TYPE.CALCULATED
+    );
+  });
+}
+
+function findComplementaryPartner(row, allRows, consumed) {
+  return allRows.find((r) => {
+    const rowKey = r.id ?? `${r.studentId}-${r.subjectId}-${r.classId}-${r.isRepeated}`;
+    if (consumed.has(rowKey)) return false;
+    return (
+      String(r.studentId) === String(row.studentId) &&
+      String(r.subjectId) === String(row.subjectId) &&
+      r.gradeType === GRADE_TYPE.COMPLEMENTARY
+    );
+  });
+}
+
+function buildMergedComplementaryRow(calculated, complementary) {
+  return {
+    ...complementary,
+    isRepeated: false,
+    midTermExam: calculated.midTermExam,
+    homework: calculated.homework,
+    labsProjectResearch: calculated.labsProjectResearch,
+    quizzes: calculated.quizzes,
+    participation: calculated.participation,
+    attendance: calculated.attendance,
+    previousAttempt: {
+      midTermExam: calculated.midTermExam,
+      finalExam: calculated.finalExam,
+      homework: calculated.homework,
+      labsProjectResearch: calculated.labsProjectResearch,
+      quizzes: calculated.quizzes,
+      participation: calculated.participation,
+      attendance: calculated.attendance,
+      totalMarks: calculated.totalMarks ?? sumMarkComponents(calculated),
+      letterGrade: calculated.letterGrade,
+      gradePoints: calculated.gradePoints,
+      gradeType: calculated.gradeType,
+    },
+  };
+}
+
 export function mergeComplementaryRecords(rows) {
+  const allRows = rows || [];
   const groups = new Map();
-  for (const row of rows || []) {
+  const consumed = new Set();
+
+  for (const row of allRows) {
     const key = `${row.studentId}-${row.subjectId}-${row.classId}`;
     if (!groups.has(key)) {
       groups.set(key, []);
@@ -302,43 +467,50 @@ export function mergeComplementaryRecords(rows) {
 
   const result = [];
   for (const [, groupRows] of groups) {
-    if (groupRows.length === 1) {
-      result.push(groupRows[0]);
+    let calculated = groupRows.find(
+      (r) => (r.gradeType || GRADE_TYPE.CALCULATED) === GRADE_TYPE.CALCULATED && !r.isRepeated
+    );
+    let complementary = groupRows.find((r) => r.gradeType === GRADE_TYPE.COMPLEMENTARY);
+
+    if (complementary && !calculated) {
+      calculated = findFirstAttemptPartner(complementary, allRows, consumed);
+    }
+    if (calculated && !complementary) {
+      complementary = findComplementaryPartner(calculated, allRows, consumed);
+    }
+
+    if (calculated && complementary) {
+      const merged = buildMergedComplementaryRow(calculated, complementary);
+      result.push(merged);
+      consumed.add(calculated.id ?? `${calculated.studentId}-${calculated.subjectId}-${calculated.classId}-${calculated.isRepeated}`);
+      consumed.add(complementary.id ?? `${complementary.studentId}-${complementary.subjectId}-${complementary.classId}-${complementary.isRepeated}`);
       continue;
     }
 
-    const calculated = groupRows.find(
-      (r) => (r.gradeType || GRADE_TYPE.CALCULATED) === GRADE_TYPE.CALCULATED
-    );
-    const complementary = groupRows.find(
-      (r) => r.gradeType === GRADE_TYPE.COMPLEMENTARY
-    );
+    const hasComplementary = groupRows.some((r) => r.gradeType === GRADE_TYPE.COMPLEMENTARY);
+    for (const r of groupRows) {
+      const rowKey = r.id ?? `${r.studentId}-${r.subjectId}-${r.classId}-${r.isRepeated}`;
+      if (consumed.has(rowKey)) continue;
 
-    if (calculated && complementary) {
-      result.push({
-        ...complementary,
-        midTermExam: calculated.midTermExam,
-        homework: calculated.homework,
-        labsProjectResearch: calculated.labsProjectResearch,
-        quizzes: calculated.quizzes,
-        participation: calculated.participation,
-        attendance: calculated.attendance,
-        previousAttempt: {
-          midTermExam: calculated.midTermExam,
-          finalExam: calculated.finalExam,
-          homework: calculated.homework,
-          labsProjectResearch: calculated.labsProjectResearch,
-          quizzes: calculated.quizzes,
-          participation: calculated.participation,
-          attendance: calculated.attendance,
-          totalMarks: calculated.totalMarks,
-          letterGrade: calculated.letterGrade,
-          gradePoints: calculated.gradePoints,
-          gradeType: calculated.gradeType,
-        },
-      });
-    } else {
-      for (const r of groupRows) result.push(r);
+      if (r.gradeType === GRADE_TYPE.COMPLEMENTARY) {
+        const partner = findFirstAttemptPartner(r, allRows, consumed);
+        if (partner) {
+          const merged = buildMergedComplementaryRow(partner, r);
+          result.push(merged);
+          consumed.add(rowKey);
+          consumed.add(partner.id ?? `${partner.studentId}-${partner.subjectId}-${partner.classId}-${partner.isRepeated}`);
+          continue;
+        }
+        result.push({ ...r, isRepeated: false });
+      } else if (
+        hasComplementary
+        && !r.isRepeated
+        && (r.gradeType || GRADE_TYPE.CALCULATED) === GRADE_TYPE.CALCULATED
+      ) {
+        continue;
+      } else {
+        result.push(r);
+      }
     }
   }
   return result;

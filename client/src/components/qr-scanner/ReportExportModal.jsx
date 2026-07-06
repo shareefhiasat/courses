@@ -5,6 +5,7 @@ import { REPORT_TYPE_IDS, RECIPIENT_ROLES } from '@constants/reportConstants';
 import { EXPORT_FORMAT } from '@services/export/official-reports/index.jsx';
 import { ATTENDANCE_TYPE_CATEGORY } from '@constants/attendanceTypes';
 import OfficialExportFormatPicker from './OfficialExportFormatPicker.jsx';
+import ExportSuccessPanel from '@components/export/ExportSuccessPanel.jsx';
 
 
 import { info, error, warn, debug } from '@services/utils/logger.js';const ReportExportModal = ({
@@ -37,6 +38,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Repor
   setSelectedProgramsForReport, // For standup mode: select programs instead of subjects
   officialExportFormat,
   setOfficialExportFormat,
+  successResult = null,
 }) => {
   useEffect(() => {
     if (isOpen && availableUsers.students?.length > 20) {
@@ -77,13 +79,32 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Repor
     }}>
       <Card style={{ maxWidth: '600px', margin: '1rem', width: '100%', maxHeight: '90vh', overflow: 'auto' }}>
         <CardBody>
-          {/* Report Type Header */}
+          {successResult ? (
+            <>
+              <ExportSuccessPanel successResult={successResult} t={t} theme={theme} />
+              <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <Button variant="outline" onClick={onClose} disabled={isExporting}>
+                  {t('cancel')}
+                </Button>
+              </div>
+            </>
+          ) : (
+          <>
+          {isDailyOfficial && setOfficialExportFormat && (
+            <OfficialExportFormatPicker
+              exportFormat={officialExportFormat}
+              setExportFormat={setOfficialExportFormat}
+              t={t}
+              theme={theme}
+              showLabel={false}
+            />
+          )}
+
+          {!isDailyOfficial && (
           <div style={{
             background: isSummaryReport
               ? 'linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%)'
-              : isDailyOfficial
-                ? 'linear-gradient(135deg, #0d9488 0%, #0f766e 100%)'
-                : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+              : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
             color: 'white',
             padding: '1rem 1.5rem',
             borderRadius: '0.5rem',
@@ -97,21 +118,11 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Repor
             }}>
               {isSummaryReport ? (
                 (t('summary_report'))
-              ) : isDailyOfficial ? (
-                (t('daily_official'))
               ) : (
                 (t('daily_report'))
               )}
             </h2>
           </div>
-
-          {isDailyOfficial && setOfficialExportFormat && (
-            <OfficialExportFormatPicker
-              exportFormat={officialExportFormat}
-              setExportFormat={setOfficialExportFormat}
-              t={t}
-              theme={theme}
-            />
           )}
 
           
@@ -151,6 +162,8 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const Repor
             officialExportFormat={officialExportFormat}
             showError={showError}
           />
+          </>
+          )}
         </CardBody>
       </Card>
     </div>
@@ -766,6 +779,11 @@ const ActionButtons = ({
             }
           }
           
+          if (isDailyOfficial) {
+            onExport();
+            return;
+          }
+
           onClose();
           onExport();
         }}

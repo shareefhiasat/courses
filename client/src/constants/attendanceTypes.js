@@ -240,7 +240,7 @@ export const getLocalizedAttendanceLabel = (status, lang = 'en') => {
       [ATTENDANCE_STATUS.PRESENT]: 'حاضر',
       [ATTENDANCE_STATUS.ABSENT_NO_EXCUSE]: 'غائب',
       [ATTENDANCE_STATUS.LATE]: 'متأخر',
-      [ATTENDANCE_STATUS.EXCUSED_LEAVE]: 'إجازة مرضية',
+      [ATTENDANCE_STATUS.EXCUSED_LEAVE]: 'استئذان',
       [ATTENDANCE_STATUS.HUMAN_CASE]: 'حالة إنسانية',
       // Standup types (matching database codes)
       [ATTENDANCE_STATUS.STANDUP_PRESENT]: 'حاضر',

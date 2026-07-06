@@ -1,6 +1,7 @@
 import ExcelJS from 'exceljs';
 import { ATTENDANCE_STATUS } from '@constants/attendanceTypes';
 import { formatDateShort, formatForDateInput } from '@utils/date-formatter.js';
+import { MIME_TYPES } from '@constants/exportConfig.js';
 
 /**
  * Excel Export Service
@@ -62,7 +63,7 @@ export const exportToExcel = async (data, headers, options = {}) => {
   const buffer = await workbook.xlsx.writeBuffer();
   
   return new Blob([buffer], { 
-    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+    type: MIME_TYPES.EXCEL
   });
 };
 
@@ -540,7 +541,7 @@ export const exportSummaryReport = async (data, programSubjects, options = {}) =
   const buffer = await workbook.xlsx.writeBuffer();
 
   return new Blob([buffer], {
-    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    type: MIME_TYPES.EXCEL
   });
 };
 
@@ -771,7 +772,7 @@ export const exportAttendanceViolationsReport = async (data, options = {}) => {
   const buffer = await workbook.xlsx.writeBuffer();
   
   return new Blob([buffer], { 
-    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+    type: MIME_TYPES.EXCEL
   });
 };
 

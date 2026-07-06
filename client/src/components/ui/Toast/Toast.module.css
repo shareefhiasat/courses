@@ -1,8 +1,9 @@
 /* Toast Container */
 .toastContainer {
   position: fixed;
-  top: 1.5rem;
-  right: 1.5rem;
+  bottom: 2rem;
+  left: 50%;
+  transform: translateX(-50%);
   z-index: 9999;
   display: flex;
   flex-direction: column;
@@ -128,22 +129,22 @@
 /* Animations */
 @keyframes slideIn {
   from {
-    transform: translateX(100%) scale(0.95);
+    transform: translateY(100%) scale(0.95);
     opacity: 0;
   }
   to {
-    transform: translateX(0) scale(1);
+    transform: translateY(0) scale(1);
     opacity: 1;
   }
 }
 
 @keyframes slideOut {
   from {
-    transform: translateX(0) scale(1);
+    transform: translateY(0) scale(1);
     opacity: 1;
   }
   to {
-    transform: translateX(100%) scale(0.95);
+    transform: translateY(100%) scale(0.95);
     opacity: 0;
   }
 }
@@ -155,10 +156,11 @@
 /* Mobile Responsive */
 @media (max-width: 768px) {
   .toastContainer {
-    top: 1rem;
-    right: 1rem;
-    left: 1rem;
-    max-width: none;
+    bottom: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    right: auto;
+    max-width: calc(100% - 2rem);
   }
 
   .toast {

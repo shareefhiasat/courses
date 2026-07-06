@@ -1,4 +1,5 @@
 import React, { memo, useMemo, useCallback } from 'react';
+import { createPortal } from 'react-dom';
 import { SimpleLoading } from '@ui';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
@@ -6,6 +7,8 @@ import { getThemedIcon, getIconWithColor } from '@constants/iconTypes';
 import useHistorySearch from '@hooks/useHistorySearch';
 import useResizableDrawer from '@hooks/useResizableDrawer';
 import { formatDateTime } from '@utils/date-formatter.js';
+import { getGradeColor } from '@constants/gradingStandards';
+import useDrawerStyles from '@hooks/useDrawerStyles.js';
 
 /**
  * Reusable Marks History Drawer Component
@@ -51,42 +54,13 @@ const MarksHistoryDrawer = memo(({
     hasSearch
   } = useHistorySearch(historyData, debounceMs);
 
-  // Helper function to get grade color
-  const getGradeColor = useCallback((grade) => {
-    if (!grade) return '#6b7280';
-    if (grade === 'A+' || grade === 'A' || grade === 'A-') return '#10b981';
-    if (grade.startsWith('B')) return '#3b82f6';
-    if (grade.startsWith('C')) return '#f59e0b';
-    if (grade.startsWith('D')) return '#ef4444';
-    return '#6b7280';
-  }, []);
-
   // Memoized style objects for performance
-  const drawerStyle = useMemo(() => ({
-    position: 'fixed',
-    top: 0,
-    right: isRTL ? 'auto' : (isOpen ? 0 : `-${drawerWidth}px`),
-    left: isRTL ? (isOpen ? 0 : `-${drawerWidth}px`) : 'auto',
-    width: `${drawerWidth}px`,
-    height: '100vh',
-    background: 'var(--panel)',
-    boxShadow: isRTL ? '2px 0 10px rgba(0,0,0,0.1)' : '-2px 0 10px rgba(0,0,0,0.1)',
-    transition: 'right 0.3s ease-in-out, left 0.3s ease-in-out',
-    zIndex: 1000,
-    overflow: 'auto',
-    ...styles.drawer
-  }), [isOpen, drawerWidth, isRTL, styles.drawer]);
-
-  const backdropStyle = useMemo(() => ({
-    position: 'fixed',
-    top: 0,
-    left: isRTL ? `${drawerWidth}px` : 0,
-    right: isRTL ? 0 : `${drawerWidth}px`,
-    height: '100vh',
-    background: 'rgba(0,0,0,0.45)',
-    zIndex: 999,
-    ...styles.backdrop
-  }), [drawerWidth, isRTL, styles.backdrop]);
+  const { drawerStyle, backdropStyle } = useDrawerStyles({
+    isOpen, drawerWidth, isRTL,
+    bgColor: 'var(--panel)',
+    extraDrawerStyle: styles.drawer,
+    extraBackdropStyle: styles.backdrop,
+  });
 
   const headerStyle = useMemo(() => ({
     padding: '1rem 1.25rem',
@@ -274,7 +248,7 @@ const MarksHistoryDrawer = memo(({
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <>
       {/* Backdrop for auto-collapse */}
       {isOpen && (
@@ -405,7 +379,8 @@ const MarksHistoryDrawer = memo(({
         </div>
         <div {...resizeHandleProps} />
       </div>
-    </>
+    </>,
+    document.body
   );
 });
 

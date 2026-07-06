@@ -1,3 +1,5 @@
+import { MIME_TO_LABEL } from '@constants/exportConfig.js';
+
 /**
  * File Utility Functions
  * Centralized file type detection, preview, and formatting logic
@@ -40,30 +42,6 @@ export const shortenFileName = (name, maxBase = 20) => {
   return `${truncated}.${shortExt}`;
 };
 
-const MIME_TYPE_LABELS = {
-  'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'PowerPoint',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'Word',
-  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'Excel',
-  'application/pdf': 'PDF',
-  'image/jpeg': 'JPEG',
-  'image/png': 'PNG',
-  'image/gif': 'GIF',
-  'image/webp': 'WebP',
-  'image/svg+xml': 'SVG',
-  'video/mp4': 'MP4',
-  'video/webm': 'WebM',
-  'video/quicktime': 'MOV',
-  'audio/mpeg': 'MP3',
-  'audio/wav': 'WAV',
-  'text/plain': 'Text',
-  'text/html': 'HTML',
-  'text/css': 'CSS',
-  'text/javascript': 'JavaScript',
-  'application/zip': 'ZIP',
-  'application/json': 'JSON',
-  'application/xml': 'XML',
-};
-
 /**
  * Format a MIME type into a human-readable label (e.g., 'application/pdf' → 'PDF')
  * @param {string} mimeType - MIME type string
@@ -71,7 +49,7 @@ const MIME_TYPE_LABELS = {
  */
 export const formatMimeType = (mimeType) => {
   if (!mimeType) return '\u2014';
-  return MIME_TYPE_LABELS[mimeType] || mimeType;
+  return MIME_TO_LABEL[mimeType] || mimeType;
 };
 
 /**

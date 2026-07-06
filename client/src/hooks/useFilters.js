@@ -7,6 +7,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { getQatarDateParts } from '@utils/date-formatter.js';
+import { MIME_TYPES } from '@constants/exportConfig.js';
 
 export function useFilters() {
   const navigate = useNavigate();
@@ -43,6 +44,14 @@ export function useFilters() {
     if (status) {
       status.split(',').forEach(value => {
         parsedFilters.push({ type: 'status', value });
+      });
+    }
+
+    // Parse report type filters
+    const reportType = params.get('reportType');
+    if (reportType) {
+      reportType.split(',').forEach(value => {
+        parsedFilters.push({ type: 'reportType', value });
       });
     }
 
@@ -126,12 +135,12 @@ export function useFilters() {
         case 'type': {
           const map = {
             image: 'image/',
-            spreadsheet: 'application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-            presentation: 'application/vnd.ms-powerpoint,application/vnd.openxmlformats-officedocument.presentationml.presentation',
-            document: 'application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf',
+            spreadsheet: `${MIME_TYPES.EXCEL_LEGACY},${MIME_TYPES.EXCEL}`,
+            presentation: `${MIME_TYPES.POWERPOINT_LEGACY},${MIME_TYPES.POWERPOINT}`,
+            document: `${MIME_TYPES.WORD_LEGACY},${MIME_TYPES.WORD},${MIME_TYPES.PDF}`,
             video: 'video/',
             audio: 'audio/',
-            archive: 'application/zip,application/x-rar,application/gzip,application/x-7z,application/x-tar,application/x-tgz',
+            archive: `${MIME_TYPES.ZIP},application/x-rar,application/gzip,application/x-7z,application/x-tar,application/x-tgz`,
             'has-workflow': 'HAS_WORKFLOW',
           };
           if (map[filter.value]) {
@@ -162,6 +171,13 @@ export function useFilters() {
           if (filter.value === 'starred') params.starredOnly = 'true';
           else if (filter.value === 'trash') params.deletedOnly = 'true';
           else if (filter.value === 'recent') { params.sortField = 'updatedAt'; params.sortOrder = 'desc'; }
+          break;
+        case 'reportType':
+          if (filter.value) {
+            params.reportType = params.reportType
+              ? `${params.reportType},${filter.value}`
+              : filter.value;
+          }
           break;
       }
     });

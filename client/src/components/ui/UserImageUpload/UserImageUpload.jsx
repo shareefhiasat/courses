@@ -8,6 +8,7 @@ import React, { useState, useCallback, useRef } from 'react';
 import { Upload, X, CheckCircle, AlertCircle, Trash2, User, CreditCard, Shield, ImagePlus } from 'lucide-react';
 import { useLang } from '@contexts/LangContext';
 import { Button, Progress } from '@ui';
+import { IMAGE_UPLOAD_MIME_TYPES } from '@constants/exportConfig.js';
 import { uploadUserImage, deleteUserImage } from '@services/business/userImageService';
 import styles from './UserImageUpload.module.css';
 
@@ -53,7 +54,7 @@ const UserImageUpload = ({
       return;
     }
 
-    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+    const validTypes = IMAGE_UPLOAD_MIME_TYPES;
     if (!validTypes.includes(file.type)) {
       setUploadError(t('user_images.invalid_file_type'));
       return;
@@ -149,7 +150,7 @@ const UserImageUpload = ({
       <input
         ref={fileInputRef}
         type="file"
-        accept="image/jpeg,image/jpg,image/png,application/pdf"
+        accept={IMAGE_UPLOAD_MIME_TYPES.join(',')}
         onChange={handleFileSelect}
         className="hidden"
         disabled={!editable || uploading}

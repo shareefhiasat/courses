@@ -1,4 +1,13 @@
-import { GRADING_STANDARDS, calculateGpaFromMarks } from '@constants/gradingStandards';
+import {
+  GRADING_STANDARDS,
+  GRADE_TYPE,
+  calculateGpaFromMarks,
+  getLocalizedTermDisplay,
+  mergeComplementaryRecords,
+  resolveMarkGrade,
+  getOriginalMark,
+  calculateLetterGrade,
+} from '@constants/gradingStandards';
 import { getLocalizedUserName } from '@utils/localizedUserName.js';
 import { buildSerialNumber } from './serialNumber.js';
 import { OFFICIAL_HEADER } from '../shared/officialHeader.js';
@@ -6,9 +15,36 @@ import { formatOfficialReportDate } from '../shared/officialDateFormat.js';
 
 const FAIL_THRESHOLD = 60;
 
+const round2 = (value) => {
+  const num = parseFloat(value);
+  return Number.isNaN(num) ? value : Number(num.toFixed(2));
+};
+
 function subjectLabel(row, lang) {
   if (lang === 'ar') return row.subjectNameAr || row.subjectName || row.subjectCode || '';
   return row.subjectName || row.subjectNameAr || row.subjectCode || '';
+}
+
+function extractYearFromTerm(term) {
+  if (!term) return '';
+  const termStr = String(term);
+  if (termStr.includes('-')) {
+    const yearPart = termStr.split('-')[0];
+    if (!Number.isNaN(Number(yearPart))) return yearPart;
+  }
+  if (termStr.includes(' ')) {
+    const yearPart = termStr.split(' ').find((p) => !Number.isNaN(Number(p)));
+    if (yearPart) return yearPart;
+  }
+  return '';
+}
+
+function buildCertificatePeriodLabel(term, year, lang) {
+  const termDisplay = getLocalizedTermDisplay(term, lang);
+  const embeddedYear = extractYearFromTerm(term);
+  const displayYear = year || embeddedYear || '';
+  if (termDisplay && displayYear) return `${termDisplay} ${displayYear}`;
+  return termDisplay || displayYear || '';
 }
 
 /**
@@ -18,12 +54,18 @@ export function prepareSemesterCertificateData({
   reportRows = [],
   metadata = {},
   lang = 'ar',
+  studentIds = null,
   includeRepeated = false,
 }) {
   const serial = buildSerialNumber(metadata.programId, { prefix: 'SC' });
   const isAr = lang === 'ar';
 
-  const filteredRows = (reportRows || []).filter((row) => includeRepeated || !row.isRepeated);
+  const mergedRows = mergeComplementaryRecords(reportRows || []);
+  let filteredRows = mergedRows.filter((row) => includeRepeated || !row.isRepeated);
+  if (studentIds?.length) {
+    const idSet = new Set(studentIds.map(String));
+    filteredRows = filteredRows.filter((row) => idSet.has(String(row.studentId)));
+  }
 
   const subjectMap = new Map();
   filteredRows.forEach((row) => {
@@ -59,12 +101,38 @@ export function prepareSemesterCertificateData({
       });
     }
     const entry = studentMap.get(key);
-    const marks = parseFloat(row.totalMarks);
-    entry.subjectMarks[row.subjectId] = {
+    const resolved = resolveMarkGrade({
       totalMarks: row.totalMarks,
       letterGrade: row.letterGrade,
-      gradeDescription: isAr ? row.gradeDescriptionAr : row.gradeDescriptionEn,
-      failed: !Number.isNaN(marks) && marks < FAIL_THRESHOLD,
+      gradeType: row.gradeType,
+      isRepeated: row.isRepeated,
+      complementaryScore: row.finalExam,
+      lang,
+    });
+    const displayMarks = round2(resolved.totalMarks ?? row.totalMarks);
+    const marks = parseFloat(displayMarks);
+    const isComplementary = row.gradeType === GRADE_TYPE.COMPLEMENTARY;
+    const originalMark = getOriginalMark(row);
+    entry.subjectMarks[row.subjectId] = {
+      totalMarks: displayMarks,
+      letterGrade: resolved.letter || row.letterGrade,
+      gradeDescription: resolved.gradeDescription || (isAr ? row.gradeDescriptionAr : row.gradeDescriptionEn),
+      failed: isComplementary ? !resolved.passed : (!Number.isNaN(marks) && marks < FAIL_THRESHOLD),
+      gradeType: row.gradeType,
+      complementaryScore: isComplementary ? round2(row.finalExam) : null,
+      originalMark: originalMark != null ? round2(originalMark) : null,
+      previousAttempt: row.previousAttempt
+        ? {
+            totalMarks: round2(row.previousAttempt.totalMarks ?? originalMark),
+            letterGrade: row.previousAttempt.letterGrade,
+            finalExam: row.previousAttempt.finalExam,
+          }
+        : (originalMark != null && isComplementary
+          ? {
+              totalMarks: round2(originalMark),
+              letterGrade: calculateLetterGrade(originalMark).letter,
+            }
+          : null),
     };
     entry.marksRows.push(row);
   });
@@ -85,7 +153,7 @@ export function prepareSemesterCertificateData({
         studentName: student.studentName,
         rank: student.rank,
         subjectMarks: student.subjectMarks,
-        semesterGpa: gpa,
+        semesterGpa: round2(gpa),
       };
     });
 
@@ -93,9 +161,11 @@ export function prepareSemesterCertificateData({
     ? (metadata.programNameAr || metadata.programName || '')
     : (metadata.programName || metadata.programNameAr || '');
 
-  const title = isAr
-    ? `نتائج ${metadata.examLabelAr || 'اختبار منتصف الفصل'} — ${metadata.termLabelAr || metadata.term || ''} (${metadata.year || ''})`
-    : `${metadata.examLabelEn || 'Mid-term Exam Results'} — ${metadata.term || ''} (${metadata.year || ''})`;
+  const periodLabel = buildCertificatePeriodLabel(metadata.term, metadata.year, lang);
+  const examLabel = isAr
+    ? (metadata.examLabelAr || 'شهادة الفصل')
+    : (metadata.examLabelEn || 'Semester Certificate');
+  const title = periodLabel ? `${examLabel} — ${periodLabel}` : examLabel;
 
   return {
     serial,

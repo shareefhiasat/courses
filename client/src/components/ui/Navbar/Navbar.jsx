@@ -3,7 +3,7 @@ import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@contexts/AuthContext';
 import NotificationBell from '../NotificationBell/NotificationBell';
 import { useLang } from '@contexts/LangContext';
-import { getUsers, updateUser, getUserById } from '@services/business/userService';
+import { getUsers, updateUser, getUserProfile } from '@services/business/userService';
 import { getLocalizedUserName } from '@utils/localizedUserName';
 import { getAllUserImages } from '@services/business/userImageService';
 import './Navbar.css';
@@ -151,8 +151,8 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
   const getUserProfile = useCallback(async (u) => {
     if (!u) return null;
     try {
-      const result = await getUserById(u.uid);
-      if (result.success) return result.data;
+      const result = await getUserProfile(u);
+      if (result) return result;
       return null;
     } catch (error) {
       error('Error getting user profile:', error);

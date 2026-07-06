@@ -18,6 +18,7 @@ import {
   resolveRelatedColumn
 } from '@utils/listChartResolvers';
 import { getWidgetDisplayTitle } from '@constants/schedulingSummaryWidgets';
+import { MIME_TO_EXT as CENTRAL_MIME_TO_EXT } from '@constants/exportConfig.js';
 
 /**
  * Helper function to get localized name for agenda items
@@ -793,40 +794,7 @@ function ListChart({
         const mime = item.mimeType || item.type;
         if (!mime) return '—';
         const MIME_TO_EXT = {
-          'application/pdf': 'PDF',
-          'image/png': 'PNG',
-          'image/jpeg': 'JPG',
-          'image/jpg': 'JPG',
-          'image/gif': 'GIF',
-          'image/webp': 'WEBP',
-          'image/svg+xml': 'SVG',
-          'image/bmp': 'BMP',
-          'image/tiff': 'TIFF',
-          'video/mp4': 'MP4',
-          'video/webm': 'WEBM',
-          'video/avi': 'AVI',
-          'video/mov': 'MOV',
-          'video/quicktime': 'MOV',
-          'audio/mpeg': 'MP3',
-          'audio/mp3': 'MP3',
-          'audio/wav': 'WAV',
-          'audio/ogg': 'OGG',
-          'application/msword': 'DOC',
-          'application/vnd.openxmlformats-officedocument.wordprocessingml.document': 'DOCX',
-          'application/vnd.ms-excel': 'XLS',
-          'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': 'XLSX',
-          'application/vnd.ms-powerpoint': 'PPT',
-          'application/vnd.openxmlformats-officedocument.presentationml.presentation': 'PPTX',
-          'application/zip': 'ZIP',
-          'application/x-zip-compressed': 'ZIP',
-          'application/x-rar-compressed': 'RAR',
-          'application/x-7z-compressed': '7Z',
-          'application/json': 'JSON',
-          'application/xml': 'XML',
-          'text/xml': 'XML',
-          'text/plain': 'TXT',
-          'text/csv': 'CSV',
-          'text/html': 'HTML',
+          ...CENTRAL_MIME_TO_EXT,
           'text/css': 'CSS',
           'text/javascript': 'JS',
           'application/javascript': 'JS',

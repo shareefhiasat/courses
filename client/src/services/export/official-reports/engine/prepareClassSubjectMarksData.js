@@ -1,4 +1,5 @@
 import { getLocalizedUserName } from '@utils/localizedUserName.js';
+import { getLocalizedTermDisplay } from '@constants/gradingStandards';
 import { buildSerialNumber } from './serialNumber.js';
 import { OFFICIAL_HEADER } from '../shared/officialHeader.js';
 import { formatOfficialReportDate } from '../shared/officialDateFormat.js';
@@ -68,7 +69,7 @@ export function prepareClassSubjectMarksData({
         studentNumber: row.studentNumber || '',
         studentName: getLocalizedUserName(user, lang, row.studentName || ''),
         year: row.year || '',
-        term: row.term || '',
+        term: getLocalizedTermDisplay(row.term, lang) || row.term || '',
         isRepeated: row.isRepeated || false,
         homework: roundMarks(row.homework ?? 0),
         participation: roundMarks(row.participation ?? 0),

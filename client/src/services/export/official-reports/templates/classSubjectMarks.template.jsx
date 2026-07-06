@@ -17,6 +17,8 @@ function MarkCell({ value, failed, highlight, align = 'center' }) {
   return <td style={style}>{display}</td>;
 }
 
+const ROWS_PER_PAGE = 15;
+
 export function ClassSubjectMarksTemplate({ data, showWatermark = true }) {
   const { rows, lang, serial, title, distribution, meta } = data;
   const isAr = lang === 'ar';
@@ -36,95 +38,109 @@ export function ClassSubjectMarksTemplate({ data, showWatermark = true }) {
     (d.homework || 0) + (d.participation || 0) + (d.quizzes || 0) +
     (d.labsProjectResearch || 0) + (d.attendance || 0) + (d.midTermExam || 0);
 
+  const pageChunks = [];
+  for (let i = 0; i < rows.length; i += ROWS_PER_PAGE) {
+    pageChunks.push(rows.slice(i, i + ROWS_PER_PAGE));
+  }
+  if (pageChunks.length === 0) pageChunks.push([]);
+  const totalPages = pageChunks.length;
+
   return (
-    <div
-      data-official-page
-      data-page-orientation="landscape"
-      className={`${styles.officialPage} ${styles.officialPageLandscape} ${isAr ? styles.officialPageRtl : ''} ${styles.arabicShapedText}`}
-      lang={isAr ? 'ar' : 'en'}
-    >
-      {showWatermark && (wm.en || wm.ar || wm.uuid) && (
-        <div className={styles.officialWatermark} aria-hidden>
-          {wm.en && <div>{wm.en}</div>}
-          {wm.ar && wm.ar !== wm.en && <div>{wm.ar}</div>}
-          {wm.uuid && <div style={{ fontSize: '7px', opacity: 0.5, marginTop: '12px' }}>{wm.uuid}</div>}
-        </div>
-      )}
-      <div className={styles.officialContent}>
-        <div className={styles.serialLine}>
-          {isAr ? 'الرقم التسلسلي' : 'Serial'}: {serial}
-        </div>
-
-        <div className={`${styles.violationsTopRow} ${styles.bilingualHeaderBand}`}>
-          <div className={`${styles.violationsTopEn} ${styles.arabicShapedText}`}>
-            {OFFICIAL_HEADER.ministryEn}
-            <br />
-            {OFFICIAL_HEADER.corpsEn}
-          </div>
-          <img src={OFFICIAL_HEADER.logoUrl} alt="" className={styles.dailyLogo} />
-          <div className={`${styles.violationsTopAr} ${styles.arabicShapedText}`}>
-            {OFFICIAL_HEADER.ministryAr}
-            <br />
-            {OFFICIAL_HEADER.corpsAr}
-          </div>
-        </div>
-
-        <div style={{ textAlign: 'center', margin: '8px 0 10px' }}>
-          <div style={{ color: '#b91c1c', fontWeight: 700, fontSize: 13 }}>
-            {isAr ? 'البرنامج' : 'Program'}: {meta?.program}
-          </div>
-          <div style={{ fontWeight: 700, fontSize: 14, marginTop: 4 }}>
-            {isAr ? 'المادة' : 'Subject'}: {meta?.subject}
-          </div>
-          {meta?.className && (
-            <div style={{ fontSize: 10, color: '#555', marginTop: 2 }}>{meta.className}</div>
+    <>
+      {pageChunks.map((pageRows, pageIndex) => (
+        <div
+          key={`csm-page-${pageIndex}`}
+          data-official-page
+          data-page-orientation="landscape"
+          className={`${styles.officialPage} ${styles.officialPageLandscape} ${isAr ? styles.officialPageRtl : ''} ${styles.arabicShapedText}`}
+          lang={isAr ? 'ar' : 'en'}
+        >
+          {showWatermark && (wm.en || wm.ar || wm.uuid) && (
+            <div className={styles.officialWatermark} aria-hidden>
+              {wm.en && <div>{wm.en}</div>}
+              {wm.ar && wm.ar !== wm.en && <div>{wm.ar}</div>}
+              {wm.uuid && <div style={{ fontSize: '7px', opacity: 0.5, marginTop: '12px' }}>{wm.uuid}</div>}
+            </div>
           )}
-        </div>
+          <div className={styles.officialContent}>
+            <div className={styles.serialLine}>
+              {isAr ? 'الرقم التسلسلي' : 'Serial'}: {serial}
+              {' · '}
+              {isAr ? 'صفحة' : 'Page'} {pageIndex + 1} / {totalPages}
+            </div>
 
-        <table className={`${styles.officialTable} ${styles.marksTableVAlign} ${styles.marksTableNoHeaderGray}`} style={{ fontSize: 8, width: '100%' }}>
-          <thead>
-            <tr>
-              <th>{isAr ? 'م' : '#'}</th>
-              <th className={styles.nameCell}>{isAr ? 'اسم الطالب' : 'Student'}</th>
-              <th>{isAr ? 'السنة' : 'Year'}</th>
-              <th>{isAr ? 'الفصل' : 'Term'}</th>
-              {columns.map((c) => (
-                <th key={c.key}>
-                  {isAr ? `${c.labelAr} (${c.weight}%)` : `${c.labelEn} (${c.weight}%)`}
-                </th>
-              ))}
-              <th style={{ background: HIGHLIGHT_BG }}>
-                {isAr ? `المجموع (${continuousWeight}%)` : `Subtotal (${continuousWeight}%)`}
-              </th>
-              <th>{isAr ? `النهائي (${d.finalExam}%)` : `Final (${d.finalExam}%)`}</th>
-              <th style={{ background: HIGHLIGHT_BG }}>
-                {isAr ? 'المجموع الكلي (100%)' : 'Total (100%)'}
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row) => (
-              <tr key={row.rowKey || `${row.studentId}-${row.year}-${row.term}`}>
-                <td style={{ verticalAlign: 'middle', textAlign: 'center' }}>{row.serial}</td>
-                <td className={styles.nameCell} style={{ verticalAlign: 'middle' }}>{row.studentName}</td>
-                <MarkCell value={row.year} align="center" />
-                <MarkCell value={row.term} align="center" />
-                {columns.map((c) => (
-                  <MarkCell key={c.key} value={formatMark(row[c.key])} align="center" />
+            <div className={`${styles.violationsTopRow} ${styles.bilingualHeaderBand}`}>
+              <div className={`${styles.violationsTopEn} ${styles.arabicShapedText}`}>
+                {OFFICIAL_HEADER.ministryEn}
+                <br />
+                {OFFICIAL_HEADER.corpsEn}
+              </div>
+              <img src={OFFICIAL_HEADER.logoUrl} alt="" className={styles.dailyLogo} />
+              <div className={`${styles.violationsTopAr} ${styles.arabicShapedText}`}>
+                {OFFICIAL_HEADER.ministryAr}
+                <br />
+                {OFFICIAL_HEADER.corpsAr}
+              </div>
+            </div>
+
+            <div style={{ textAlign: 'center', margin: '8px 0 10px' }}>
+              <div style={{ color: '#b91c1c', fontWeight: 700, fontSize: 13 }}>
+                {isAr ? 'البرنامج' : 'Program'}: {meta?.program}
+              </div>
+              <div style={{ fontWeight: 700, fontSize: 14, marginTop: 4 }}>
+                {isAr ? 'المادة' : 'Subject'}: {meta?.subject}
+              </div>
+              {meta?.className && (
+                <div style={{ fontSize: 10, color: '#555', marginTop: 2 }}>{meta.className}</div>
+              )}
+            </div>
+
+            <table className={`${styles.officialTable} ${styles.marksTableVAlign} ${styles.marksTableNoHeaderGray}`} style={{ fontSize: 9, width: '100%' }}>
+              <thead>
+                <tr>
+                  <th>{isAr ? 'م' : '#'}</th>
+                  <th className={styles.nameCell}>{isAr ? 'اسم الطالب' : 'Student'}</th>
+                  <th>{isAr ? 'السنة' : 'Year'}</th>
+                  <th>{isAr ? 'الفصل' : 'Term'}</th>
+                  {columns.map((c) => (
+                    <th key={c.key}>
+                      {isAr ? `${c.labelAr} (${c.weight}%)` : `${c.labelEn} (${c.weight}%)`}
+                    </th>
+                  ))}
+                  <th style={{ background: HIGHLIGHT_BG }}>
+                    {isAr ? `المجموع (${continuousWeight}%)` : `Subtotal (${continuousWeight}%)`}
+                  </th>
+                  <th>{isAr ? `النهائي (${d.finalExam}%)` : `Final (${d.finalExam}%)`}</th>
+                  <th style={{ background: HIGHLIGHT_BG }}>
+                    {isAr ? 'المجموع الكلي (100%)' : 'Total (100%)'}
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {pageRows.map((row) => (
+                  <tr key={row.rowKey || `${row.studentId}-${row.year}-${row.term}`}>
+                    <td style={{ verticalAlign: 'middle', textAlign: 'center', fontSize: '10px' }}>{row.serial}</td>
+                    <td className={styles.nameCell} style={{ verticalAlign: 'middle', fontSize: '10px', fontWeight: 600 }}>{row.studentName}</td>
+                    <MarkCell value={row.year} align="center" />
+                    <MarkCell value={row.term} align="center" />
+                    {columns.map((c) => (
+                      <MarkCell key={c.key} value={formatMark(row[c.key])} align="center" />
+                    ))}
+                    <MarkCell value={formatMark(row.continuousTotal)} highlight align="center" />
+                    <MarkCell value={formatMark(row.finalExam)} align="center" />
+                    <MarkCell
+                      value={formatMark(row.grandTotal)}
+                      failed={row.failed}
+                      highlight
+                      align="center"
+                    />
+                  </tr>
                 ))}
-                <MarkCell value={formatMark(row.continuousTotal)} highlight align="center" />
-                <MarkCell value={formatMark(row.finalExam)} align="center" />
-                <MarkCell
-                  value={formatMark(row.grandTotal)}
-                  failed={row.failed}
-                  highlight
-                  align="center"
-                />
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      ))}
+    </>
   );
 }

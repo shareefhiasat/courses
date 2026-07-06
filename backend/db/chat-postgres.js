@@ -100,10 +100,12 @@ export const getOrCreateRoom = async ({ type, classId, participantA, participant
 export const getUserRooms = async (userId, roles = [], enrolledClassIds = []) => {
   try {
     const isStudent = roles.some(r => r?.toLowerCase().includes('student'));
-    const isStaff = roles.some(r => {
+    const isInstructor = roles.some(r => r?.toLowerCase() === 'instructor');
+    const isFullStaff = roles.some(r => {
       const lc = r?.toLowerCase();
-      return lc === 'instructor' || lc === 'hr' || lc === 'admin' || lc === 'super_admin' || lc === 'superadmin';
+      return lc === 'hr' || lc === 'admin' || lc === 'super_admin' || lc === 'superadmin';
     });
+    const isStaff = isFullStaff || isInstructor;
 
     const rooms = [];
 
@@ -131,48 +133,16 @@ export const getUserRooms = async (userId, roles = [], enrolledClassIds = []) =>
       rooms.push(globalRoom);
     }
 
-    // Class chats (enrolled classes for students, all classes for staff)
-    if (isStaff) {
-      // Staff can see all class chat rooms
-      // First, auto-create chat rooms for any classes that don't have one yet
-      const allClasses = await prisma.class.findMany({
-        select: { id: true }
-      });
-      const allClassIds = allClasses.map(c => c.id);
-      const existingClassRooms = await prisma.chatRoom.findMany({
-        where: { type: 'class' },
-        select: { classId: true }
-      });
-      const existingClassIds = new Set(existingClassRooms.map(r => r.classId));
-      const missingClassIds = allClassIds.filter(id => !existingClassIds.has(id));
-      if (missingClassIds.length > 0) {
-        await prisma.chatRoom.createMany({
-          data: missingClassIds.map(classId => ({ type: 'class', classId }))
-        });
-      }
+    // Class chats (enrolled classes for students, taught classes for instructors, all for admin/HR)
+    const loadClassRooms = async (classIds) => {
+      if (!classIds.length) return;
 
-      // Now fetch all class rooms
-      const classRooms = await prisma.chatRoom.findMany({
-        where: { type: 'class' },
-        include: {
-          class: {
-            select: { id: true, nameEn: true, nameAr: true, code: true, term: true, _count: { select: { enrollments: true } } }
-          },
-          _count: {
-            select: { messages: { where: { isDeleted: false } } }
-          }
-        }
-      });
-      rooms.push(...classRooms);
-    } else if (enrolledClassIds.length > 0) {
-      // Students see only their enrolled classes
-      // Auto-create chat rooms for enrolled classes that don't have one
       const existingClassRooms = await prisma.chatRoom.findMany({
-        where: { type: 'class', classId: { in: enrolledClassIds } },
+        where: { type: 'class', classId: { in: classIds } },
         select: { classId: true }
       });
       const existingClassIds = new Set(existingClassRooms.map(r => r.classId));
-      const missingClassIds = enrolledClassIds.filter(id => !existingClassIds.has(id));
+      const missingClassIds = classIds.filter(id => !existingClassIds.has(id));
       if (missingClassIds.length > 0) {
         await prisma.chatRoom.createMany({
           data: missingClassIds.map(classId => ({ type: 'class', classId }))
@@ -182,7 +152,7 @@ export const getUserRooms = async (userId, roles = [], enrolledClassIds = []) =>
       const classRooms = await prisma.chatRoom.findMany({
         where: {
           type: 'class',
-          classId: { in: enrolledClassIds }
+          classId: { in: classIds }
         },
         include: {
           class: {
@@ -194,6 +164,26 @@ export const getUserRooms = async (userId, roles = [], enrolledClassIds = []) =>
         }
       });
       rooms.push(...classRooms);
+    };
+
+    if (isFullStaff) {
+      const allClasses = await prisma.class.findMany({
+        select: { id: true }
+      });
+      await loadClassRooms(allClasses.map(c => c.id));
+    } else if (isInstructor) {
+      const taughtClasses = await prisma.class.findMany({
+        where: { instructorId: userId },
+        select: { id: true }
+      });
+      const classIds = [...new Set([
+        ...taughtClasses.map(c => c.id),
+        ...enrolledClassIds,
+      ])];
+      await loadClassRooms(classIds);
+    } else if (enrolledClassIds.length > 0) {
+      // Students see only their enrolled classes
+      await loadClassRooms(enrolledClassIds);
     }
 
     // DM rooms (where user is participant)

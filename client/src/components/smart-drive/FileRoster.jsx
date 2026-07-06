@@ -41,6 +41,7 @@ export default function FileRoster({
   currentUserEmail = null,
   onEmptyTrash,
   filterStarred = false,
+  highlightFileId = null,
 }) {
   const { t, isRTL, lang } = useLang();
   const { theme } = useTheme();
@@ -811,9 +812,12 @@ paddingInlineEnd: '0.5rem',
           {filteredFiles.map((file) => {
             const selected = selectedIds.has(file.id);
             const hovered = hoveredId === file.id;
+            const isHighlighted = highlightFileId && String(file.id) === String(highlightFileId);
             return (
               <div
                 key={file.id}
+                data-file-id={file.id}
+                data-tour={isHighlighted ? 'drive-export-highlight' : undefined}
                 onMouseEnter={() => setHoveredId(file.id)}
                 onMouseLeave={() => setHoveredId(null)}
                 onClick={(e) => {
@@ -828,13 +832,20 @@ paddingInlineEnd: '0.5rem',
                 }}
                   style={{
                     ...rowBase,
-                    background: selected
+                    background: isHighlighted
+                      ? 'rgba(245, 158, 11, 0.22)'
+                      : selected
                       ? 'var(--color-primary-tint, #eff6ff)'
                       : hovered
                       ? 'var(--background-secondary, #f9fafb)'
                       : 'transparent',
                     transition: 'all 0.15s ease',
-                    borderLeft: hovered ? '3px solid var(--color-primary, #3b82f6)' : '3px solid transparent',
+                    borderLeft: isHighlighted
+                      ? '3px solid #f59e0b'
+                      : hovered
+                      ? '3px solid var(--color-primary, #3b82f6)'
+                      : '3px solid transparent',
+                    boxShadow: isHighlighted ? 'inset 0 0 0 1px #f59e0b' : undefined,
                     cursor: openMenuId !== null || openFolderMenuId !== null ? 'default' : 'pointer',
                     position: 'relative',
                   }}
@@ -1187,9 +1198,12 @@ paddingInlineEnd: '0.5rem',
 
           {filteredFiles.map((file) => {
             const selected = selectedIds.has(file.id);
+            const isHighlighted = highlightFileId && String(file.id) === String(highlightFileId);
             return (
               <div
                 key={file.id}
+                data-file-id={file.id}
+                data-tour={isHighlighted ? 'drive-export-highlight' : undefined}
                 onClick={(e) => {
                   if (openMenuId === null && openFolderMenuId === null) {
                     // Don't open file if clicking on checkbox or its wrapper
@@ -1202,13 +1216,17 @@ paddingInlineEnd: '0.5rem',
                 }}
                 style={{
                   position: 'relative',
-                  background: 'var(--panel, white)',
-                  border: `1px solid ${selected ? 'var(--color-primary, #3b82f6)' : 'var(--border, #e5e7eb)'}`,
+                  background: isHighlighted ? 'rgba(245, 158, 11, 0.15)' : 'var(--panel, white)',
+                  border: `2px solid ${isHighlighted ? '#f59e0b' : selected ? 'var(--color-primary, #3b82f6)' : 'var(--border, #e5e7eb)'}`,
                   borderRadius: '0.75rem',
                   padding: '0.75rem',
                   cursor: openMenuId !== null || openFolderMenuId !== null ? 'default' : 'pointer',
                   transition: 'all 0.15s ease',
-                  boxShadow: selected ? '0 0 0 2px var(--color-primary, #3b82f6)' : 'none',
+                  boxShadow: isHighlighted
+                    ? '0 0 0 3px rgba(245, 158, 11, 0.35)'
+                    : selected
+                    ? '0 0 0 2px var(--color-primary, #3b82f6)'
+                    : 'none',
                 }}
                 onMouseEnter={(e) => {
                   if (!selected) e.currentTarget.style.borderColor = 'var(--color-primary, #3b82f6)';

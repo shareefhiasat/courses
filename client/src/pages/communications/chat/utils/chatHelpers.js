@@ -5,6 +5,7 @@
 
 import { formatDate } from '@utils/date-formatter.js';
 import { formatFileSize } from '@utils/fileUtils';
+import { CHAT_ATTACHMENT_MIME_TYPES } from '@constants/exportConfig.js';
 import { 
   CHAT_TYPES, 
   MESSAGE_TYPES, 
@@ -164,19 +165,7 @@ export const getUserVoiceLimits = (userRole) => {
  * Check if file type is allowed for upload
  */
 export const isFileTypeAllowed = (file) => {
-  const allowedTypes = [
-    'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
-    'video/mp4', 'video/webm', 'video/ogg', 'video/quicktime',
-    'audio/mpeg', 'audio/wav', 'audio/ogg', 'audio/webm',
-    'application/pdf', 
-    'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'application/vnd.ms-excel', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    'application/vnd.ms-powerpoint', 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-    'text/plain',
-    'application/zip', 'application/x-rar-compressed'
-  ];
-  
-  return allowedTypes.includes(file.type);
+  return CHAT_ATTACHMENT_MIME_TYPES.includes(file.type);
 };
 
 /**

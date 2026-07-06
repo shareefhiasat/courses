@@ -1,4 +1,5 @@
 import { info, error, warn, debug } from '@services/utils/logger.js';
+import { MIME_TYPES } from '@constants/exportConfig.js';
 
 /**
  * Chat Limitations Configuration
@@ -13,11 +14,11 @@ export const CHAT_LIMITATIONS = {
     maxFileSize: 5 * 1024 * 1024, // 5MB
     maxVoiceRecordingTime: 5 * 60, // 5 minutes in seconds
     allowedFileTypes: [
-      'image/jpeg',
-      'image/png', 
-      'image/gif',
-      'application/pdf',
-      'text/plain'
+      MIME_TYPES.JPEG,
+      MIME_TYPES.PNG,
+      MIME_TYPES.GIF,
+      MIME_TYPES.PDF,
+      MIME_TYPES.TEXT
     ]
   },
   
@@ -26,17 +27,17 @@ export const CHAT_LIMITATIONS = {
     maxFileSize: 25 * 1024 * 1024, // 25MB
     maxVoiceRecordingTime: 25 * 60, // 25 minutes in seconds
     allowedFileTypes: [
-      'image/jpeg',
-      'image/png',
-      'image/gif', 
-      'application/pdf',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'application/vnd.ms-excel',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'application/vnd.ms-powerpoint',
-      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-      'text/plain',
+      MIME_TYPES.JPEG,
+      MIME_TYPES.PNG,
+      MIME_TYPES.GIF,
+      MIME_TYPES.PDF,
+      MIME_TYPES.WORD_LEGACY,
+      MIME_TYPES.WORD,
+      MIME_TYPES.EXCEL_LEGACY,
+      MIME_TYPES.EXCEL,
+      MIME_TYPES.POWERPOINT_LEGACY,
+      MIME_TYPES.POWERPOINT,
+      MIME_TYPES.TEXT,
       'video/mp4',
       'video/avi',
       'video/mov',
@@ -51,25 +52,25 @@ export const CHAT_LIMITATIONS = {
     maxFileSize: 25 * 1024 * 1024, // 25MB
     maxVoiceRecordingTime: 25 * 60, // 25 minutes in seconds
     allowedFileTypes: [
-      'image/jpeg',
-      'image/png',
-      'image/gif',
-      'application/pdf',
-      'application/msword', 
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'application/vnd.ms-excel',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'application/vnd.ms-powerpoint',
-      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-      'text/plain',
+      MIME_TYPES.JPEG,
+      MIME_TYPES.PNG,
+      MIME_TYPES.GIF,
+      MIME_TYPES.PDF,
+      MIME_TYPES.WORD_LEGACY,
+      MIME_TYPES.WORD,
+      MIME_TYPES.EXCEL_LEGACY,
+      MIME_TYPES.EXCEL,
+      MIME_TYPES.POWERPOINT_LEGACY,
+      MIME_TYPES.POWERPOINT,
+      MIME_TYPES.TEXT,
       'video/mp4',
       'video/avi',
       'video/mov',
       'audio/mp3',
       'audio/wav',
       'audio/mpeg',
-      'application/zip',
-      'application/x-rar-compressed'
+      MIME_TYPES.ZIP,
+      MIME_TYPES.RAR
     ]
   },
   
@@ -79,19 +80,19 @@ export const CHAT_LIMITATIONS = {
     maxVoiceRecordingTime: 25 * 60, // 25 minutes in seconds
     allowedFileTypes: [
       // All common file types
-      'image/jpeg',
-      'image/png',
-      'image/gif',
-      'image/webp',
-      'application/pdf',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'application/vnd.ms-excel',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'application/vnd.ms-powerpoint',
-      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-      'text/plain',
-      'text/csv',
+      MIME_TYPES.JPEG,
+      MIME_TYPES.PNG,
+      MIME_TYPES.GIF,
+      MIME_TYPES.WEBP,
+      MIME_TYPES.PDF,
+      MIME_TYPES.WORD_LEGACY,
+      MIME_TYPES.WORD,
+      MIME_TYPES.EXCEL_LEGACY,
+      MIME_TYPES.EXCEL,
+      MIME_TYPES.POWERPOINT_LEGACY,
+      MIME_TYPES.POWERPOINT,
+      MIME_TYPES.TEXT,
+      MIME_TYPES.CSV,
       'video/mp4',
       'video/avi',
       'video/mov',
@@ -100,10 +101,10 @@ export const CHAT_LIMITATIONS = {
       'audio/mp3',
       'audio/wav',
       'audio/mpeg',
-      'audio/ogg',
-      'application/zip',
-      'application/x-rar-compressed',
-      'application/x-7z-compressed',
+      MIME_TYPES.OGG,
+      MIME_TYPES.ZIP,
+      MIME_TYPES.RAR,
+      MIME_TYPES.SEVEN_Z,
       'application/x-tar',
       'application/x-gzip'
     ]
@@ -114,24 +115,24 @@ export const CHAT_LIMITATIONS = {
     maxFileSize: 25 * 1024 * 1024, // 25MB
     maxVoiceRecordingTime: 25 * 60, // 25 minutes in seconds
     allowedFileTypes: [
-      'image/jpeg',
-      'image/png',
-      'image/gif',
-      'application/pdf',
-      'application/msword',
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      'application/vnd.ms-excel',
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-      'application/vnd.ms-powerpoint',
-      'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-      'text/plain',
+      MIME_TYPES.JPEG,
+      MIME_TYPES.PNG,
+      MIME_TYPES.GIF,
+      MIME_TYPES.PDF,
+      MIME_TYPES.WORD_LEGACY,
+      MIME_TYPES.WORD,
+      MIME_TYPES.EXCEL_LEGACY,
+      MIME_TYPES.EXCEL,
+      MIME_TYPES.POWERPOINT_LEGACY,
+      MIME_TYPES.POWERPOINT,
+      MIME_TYPES.TEXT,
       'video/mp4',
       'video/avi',
       'video/mov',
       'audio/mp3',
       'audio/wav',
       'audio/mpeg',
-      'application/zip'
+      MIME_TYPES.ZIP
     ]
   }
 };

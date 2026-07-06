@@ -14,19 +14,9 @@ const EXPORTED_FOLDER_COLOR = '#8b5cf6';
 const LEGACY_EXPORTED_NAMES = ['Exported'];
 const LEGACY_EXPORTED_NAMES_AR = ['مصدّر'];
 
-export const MIME = {
-  PDF: 'application/pdf',
-  EXCEL: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  CSV: 'text/csv',
-};
+export { MIME_TYPES as MIME, mimeTypeForFormat } from '@constants/exportConfig.js';
 
 let cachedExportedFolderId = null;
-
-export function mimeTypeForFormat(format) {
-  if (format === 'pdf') return MIME.PDF;
-  if (format === 'csv') return MIME.CSV;
-  return MIME.EXCEL;
-}
 
 function ensureExtension(filename, format) {
   const ext = format === 'pdf' ? '.pdf' : format === 'csv' ? '.csv' : '.xlsx';
@@ -140,6 +130,7 @@ export async function uploadExportToDrive(blob, { filename, mimeType }) {
 
 /**
  * Upload export to Smart Drive (best-effort) and log export history.
+ * Always returns uploaded fileId/folderId even when history logging fails.
  */
 export async function persistAndLogExport({
   blob,
@@ -153,24 +144,39 @@ export async function persistAndLogExport({
   const resolvedMime = mimeType || mimeTypeForFormat(format || logFields.format);
 
   let fileId;
+  let folderId;
   try {
     const uploaded = await uploadExportToDrive(blob, {
       filename: fullFilename,
       mimeType: resolvedMime,
     });
     fileId = uploaded.fileId;
+    folderId = uploaded.folderId;
     if (onSaved) onSaved();
   } catch (err) {
     console.warn('[exportDriveService] Smart Drive upload failed:', err);
   }
 
-  return logExportHistory({
-    ...logFields,
-    format: format || logFields.format,
+  let logResult = { success: false };
+  try {
+    logResult = await logExportHistory({
+      ...logFields,
+      format: format || logFields.format,
+      filename: fullFilename,
+      fileId: fileId || undefined,
+      mimeType: fileId ? resolvedMime : undefined,
+    });
+  } catch (err) {
+    console.warn('[exportDriveService] Export history log failed:', err);
+  }
+
+  return {
+    ...logResult,
+    fileId: fileId || logResult?.data?.fileId || null,
+    folderId: folderId || null,
     filename: fullFilename,
-    fileId: fileId || undefined,
-    mimeType: fileId ? resolvedMime : undefined,
-  });
+    success: Boolean(fileId) || logResult?.success === true,
+  };
 }
 
 export function resetExportedFolderCache() {

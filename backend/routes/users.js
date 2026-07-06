@@ -22,6 +22,7 @@ import {
 } from '../controllers/users.js';
 import { requireSuperAdmin } from '../middleware/keycloakAuth.js';
 import { screenOps } from '../middleware/requirePermission.js';
+import { allowUserListAccess, allowUserDetailAccess } from '../middleware/userAccessMiddleware.js';
 import { validateBody, validateParams } from '../middleware/validateInput.js';
 
 const router = Router();
@@ -182,9 +183,9 @@ router.get('/subjects', getSubjectsController);
 const userOps = screenOps('users');
 
 // Admin user management routes (Keycloak-based)
-router.get('/', userOps.view, listUsersController);
+router.get('/', allowUserListAccess, listUsersController);
 router.get('/me', getCurrentUserController);
-router.get('/:id', userOps.view, getUserByIdController);
+router.get('/:id', allowUserDetailAccess, getUserByIdController);
 router.post('/', userOps.create, validateBody({
   email: { type: 'string', required: true, format: 'email', maxLength: 255 },
   displayName: { type: 'string', required: true, maxLength: 200 },

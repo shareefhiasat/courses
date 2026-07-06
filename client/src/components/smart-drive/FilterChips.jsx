@@ -12,6 +12,17 @@ const FILTER_TYPE_KEY_MAP = {
   'has-workflow': 'drive.filter.type.hasWorkflow',
 };
 
+const REPORT_TYPE_KEY_MAP = {
+  'marks_semester_certificate': 'drive.filter.report.semesterCertificate',
+  'marks_qualitative_card': 'drive.filter.report.qualitativeCard',
+  'marks_class_subject': 'drive.filter.report.classSubject',
+  'marks_warning_first': 'drive.filter.report.firstWarning',
+  'marks_warning_final': 'drive.filter.report.finalWarning',
+  'weekly_class_schedule': 'drive.filter.report.weeklySchedule',
+  'attendance_daily_official': 'drive.filter.report.dailyOfficial',
+  'official_attendance': 'drive.filter.report.attendanceOfficial',
+};
+
 export default function FilterChips({ activeFilters, onRemoveFilter, onClearAll }) {
   const { t } = useLang();
 
@@ -21,6 +32,7 @@ export default function FilterChips({ activeFilters, onRemoveFilter, onClearAll 
       case 'date': return 'calendar';
       case 'owner': return 'user';
       case 'status': return 'star';
+      case 'reportType': return 'file_text';
       default: return 'file_text';
     }
   };
@@ -37,6 +49,8 @@ export default function FilterChips({ activeFilters, onRemoveFilter, onClearAll 
         return value === 'me' ? t('drive.filter.owner.me') : t('drive.filter.owner.shared');
       case 'status':
         return t(`drive.filter.status.${value}`);
+      case 'reportType':
+        return t(REPORT_TYPE_KEY_MAP[value] || `drive.filter.report.${value}`);
       default:
         return value;
     }

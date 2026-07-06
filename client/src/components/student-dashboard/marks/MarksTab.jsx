@@ -20,6 +20,8 @@ import {
   groupMarksBySemester,
   mergeComplementaryRecords,
   getGpaStanding,
+  isManualGradeType,
+  getGradeTypeLabelKey,
 } from '@services/business/enrollmentMarksService';
 import MarksHistoryDrawer from '@components/academic/MarksHistoryDrawer';
 import MarksOfficialExportBar from '@components/academic/MarksOfficialExportBar';
@@ -146,8 +148,8 @@ const MarksTab = React.memo(({
       className: classRow?.className,
       year: row.year || '',
       term: row.term || '',
-      examLabelAr: 'اختبار منتصف الفصل',
-      examLabelEn: 'Mid-term Exam',
+      examLabelAr: 'شهادة الفصل',
+      examLabelEn: 'Semester Certificate',
       termLabelAr: row.term,
     };
   }, [marksReportData, classId]);
@@ -188,13 +190,13 @@ const MarksTab = React.memo(({
       renderCell: (params) => {
         const row = params.row;
         const gt = row.gradeType || GRADE_TYPE.CALCULATED;
-        if (gt === 'FB' || gt === 'FA' || gt === 'WF') return <span style={{ color: '#9ca3af' }}>—</span>;
+        if (isManualGradeType(gt)) return <span style={{ color: '#9ca3af' }}>—</span>;
         const isComp = gt === GRADE_TYPE.COMPLEMENTARY;
         if (isComp && field !== 'finalExam') {
           const prevValue = row.previousAttempt?.[field] || 0;
           const max = marksDistribution?.[field] || maxDefault;
           return (
-            <span style={{ opacity: 0.5 }} title={t('previous_attempt') || 'Previous attempt'}>
+            <span style={{ opacity: 0.5 }} title={t('previous_attempt')}>
               {prevValue}/{max}
             </span>
           );
@@ -242,6 +244,10 @@ const MarksTab = React.memo(({
         headerName: t('term') || t('semester') || 'Term',
         width: 90,
         editable: false,
+        valueFormatter: (params) => {
+          const formatted = formatTermDisplay(params.value);
+          return t(formatted.toLowerCase()) || formatted;
+        },
       },
       makeMarkCell('midTermExam', 'mid_term', 20),
       makeMarkCell('finalExam', 'final', 40),
@@ -322,24 +328,6 @@ const MarksTab = React.memo(({
         },
       },
       {
-        field: 'gradeDescription',
-        headerName: t('grade_description'),
-        width: 130,
-        editable: false,
-        valueGetter: (params) => {
-          const row = params.row;
-          const resolved = resolveMarkGrade({
-            totalMarks: row.totalMarks,
-            letterGrade: row.letterGrade,
-            gradeType: row.gradeType,
-            isRepeated: row.isRepeated,
-            complementaryScore: row.finalExam,
-            lang,
-          });
-          return resolved.gradeDescription;
-        },
-      },
-      {
         field: 'gradePoints',
         headerName: t('grade_points'),
         width: 80,
@@ -381,15 +369,11 @@ const MarksTab = React.memo(({
         editable: false,
         renderCell: (params) => {
           const value = params.value || GRADE_TYPE.CALCULATED;
-          const labels = {
-            [GRADE_TYPE.CALCULATED]: t('calculated'),
-            [GRADE_TYPE.COMPLEMENTARY]: t('complementary_exam'),
-            FB: 'FB', FA: 'FA', WF: 'WF',
-          };
+          const isManual = isManualGradeType(value);
           return (
             <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
               <span style={{ fontSize: 'var(--font-size-xs)' }}>
-                {labels[value] || value}
+                {isManual ? `${value} - ${t(getGradeTypeLabelKey(value))}` : t(getGradeTypeLabelKey(value))}
               </span>
               {params.row.previousAttempt && (
                 <span style={{
@@ -398,7 +382,7 @@ const MarksTab = React.memo(({
                   whiteSpace: 'nowrap',
                   lineHeight: 1.2,
                 }}>
-                  {t('previous') || 'Prev'}: {params.row.previousAttempt.totalMarks?.toFixed?.(1) || params.row.previousAttempt.totalMarks}% → {params.row.previousAttempt.letterGrade}
+                  {t('previous')}: {params.row.previousAttempt.totalMarks?.toFixed?.(1) || params.row.previousAttempt.totalMarks}% → {params.row.previousAttempt.letterGrade}
                 </span>
               )}
             </div>

@@ -7,7 +7,20 @@
 
 import prisma from './prismaClient.js';
 
-const ALLOWED_EXPORT_TYPES = ['attendance_daily', 'attendance_daily_official', 'official_attendance', 'behavioral', 'penalty', 'summary'];
+const ALLOWED_EXPORT_TYPES = [
+  'attendance_daily',
+  'attendance_daily_official',
+  'official_attendance',
+  'behavioral',
+  'penalty',
+  'summary',
+  'marks_semester_certificate',
+  'marks_class_subject',
+  'marks_qualitative_card',
+  'marks_warning_first',
+  'marks_warning_final',
+  'weekly_class_schedule',
+];
 const ALLOWED_FORMATS = ['pdf', 'excel', 'csv'];
 const MAX_LIMIT = 200;
 const MAX_FILENAME_LENGTH = 255;

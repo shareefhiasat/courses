@@ -252,6 +252,7 @@
 .marksTableVAlign th,
 .marksTableVAlign td {
   vertical-align: middle;
+  padding: 6px 6px 9px;
 }
 
 .officialPageLandscape {
@@ -259,10 +260,65 @@
   min-height: 794px;
 }
 
-.serialLine {
-  font-size: 9px;
+.officialPageLandscapeCert {
+  width: 1123px;
+  height: 794px;
+  min-height: 794px;
+  padding: 24px 32px 10px;
+  box-sizing: border-box;
+}
+
+.officialPageLandscapeCert .officialContentFlex {
+  min-height: 100%;
+  height: 100%;
+}
+
+.certificateBottomBlock {
+  margin-top: auto;
+  width: 100%;
+  flex-shrink: 0;
+}
+
+.officialPageFooter {
+  margin-top: 4px;
+  padding-top: 5px;
+  font-size: 8px;
   color: #555;
-  margin-bottom: 6px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid #ccc;
+  flex-shrink: 0;
+}
+
+.officialPageRtl .officialPageFooter {
+  flex-direction: row-reverse;
+}
+
+.semesterCertTable {
+  font-size: 11px;
+}
+
+.semesterCertTable th {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 6px;
+  vertical-align: middle;
+}
+
+.semesterCertTable td {
+  font-size: 11px;
+  padding: 5px 6px;
+  vertical-align: middle;
+}
+
+.certificateFooterRow {
+  margin-top: 0;
+  padding-top: 14px;
+  padding-bottom: 0;
+  display: flex;
+  gap: 16px;
+  align-items: flex-end;
 }
 
 .officialTable .nameCell {
@@ -290,6 +346,156 @@
   display: flex;
   flex-direction: column;
   min-height: calc(1123px - 56px);
+}
+
+.serialLine {
+  font-size: 9px;
+  color: #555;
+  margin-bottom: 6px;
+}
+
+.gradeLookupTable {
+  font-size: 9px;
+  width: auto;
+  flex: 0 0 auto;
+}
+
+.gradeLookupTable th,
+.gradeLookupTable td {
+  padding: 6px 5px;
+  vertical-align: middle;
+}
+
+.gradeLookupTable td:first-child {
+  text-align: start;
+}
+
+.certificateSignatures {
+  flex: 1;
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 10px;
+}
+
+.certificateSignatureBlock {
+  text-align: center;
+  flex: 1;
+}
+
+.warningBody {
+  color: #b91c1c;
+  text-decoration: underline;
+  text-decoration-thickness: 1.5px;
+  background: #fef08a;
+  padding: 16px 18px;
+  font-size: 13px;
+  line-height: 1.9;
+  text-align: center;
+  margin: 24px 0 24px;
+  border-radius: 2px;
+}
+
+.warningReceipt {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-top: 24px;
+  margin-bottom: 8px;
+  font-size: 11px;
+  color: #333;
+}
+
+.warningReceipt > div {
+  flex: 1;
+}
+
+.officialPageRtl .warningReceipt {
+  text-align: right;
+}
+
+/* Qualitative card (landscape transcript) */
+.qualitativeStudentInfo {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 4px 20px;
+  font-size: 12px;
+  margin-bottom: 10px;
+  padding: 8px 10px;
+  background: #fff;
+}
+
+.qualitativeSemesterBlock {
+  margin-bottom: 12px;
+}
+
+.qualitativeSemesterTitle {
+  background: #1e3a5f;
+  color: #fff;
+  padding: 6px 10px;
+  font-weight: 700;
+  font-size: 14px;
+  text-align: center;
+  border: none;
+}
+
+.qualitativeCourseTable {
+  font-size: 11px;
+  width: 100%;
+  table-layout: fixed;
+  border-top: none;
+}
+
+.qualitativeTableHead th {
+  background: #e8eef5;
+  font-weight: 700;
+  font-size: 12px;
+  padding: 5px 6px;
+}
+
+.qualitativeCourseTable td {
+  font-size: 11px;
+  padding: 5px 6px;
+}
+
+.qualitativeFooterTable tr td {
+  border: 1px solid #000;
+}
+
+.qualitativeFooterTable tr:first-child td {
+  border-top: 2px solid #000;
+}
+
+.qualitativeFooterLabelCell {
+  text-align: start;
+  font-weight: 600;
+  background: #fff;
+  padding: 4px 6px;
+  vertical-align: middle;
+  line-height: 1.25;
+  font-size: 10px;
+}
+
+.officialPageRtl .qualitativeFooterLabelCell {
+  text-align: right;
+}
+
+.qualitativeFooterValueCell {
+  text-align: center;
+  font-weight: 700;
+  background: #fff;
+  padding: 4px 6px;
+  vertical-align: middle;
+  font-size: 11px;
+}
+
+.qualitativeFooterValueHighlight {
+  text-align: center;
+  font-weight: 700;
+  background: #e8eef5;
+  padding: 4px 6px;
+  vertical-align: middle;
+  font-size: 11px;
 }
 
 .officerSignatureBlock {
@@ -351,4 +557,240 @@
 
 .markCell {
   font-weight: 700;
+}
+
+/* Weekly class schedule (landscape) */
+.officialPageLandscapeSchedule {
+  padding: 14px 24px 8px;
+  overflow: hidden;
+}
+
+.officialPageLandscapeSchedule .officialContentFlex {
+  gap: 0;
+}
+
+.scheduleHeaderBand {
+  margin-bottom: 4px;
+  gap: 6px;
+}
+
+.scheduleHeaderEn,
+.scheduleHeaderAr {
+  font-size: 9px;
+  line-height: 1.35;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.scheduleHeaderBand .dailyLogo {
+  width: 48px;
+  height: 48px;
+}
+
+.scheduleTitleBar {
+  text-align: center;
+  margin: 2px 0 6px;
+}
+
+.scheduleTitleMain {
+  font-weight: 700;
+  font-size: 14px;
+  line-height: 1.2;
+}
+
+.scheduleTitleSubRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 2px;
+}
+
+.scheduleTitleSub {
+  font-weight: 700;
+  font-size: 12px;
+}
+
+.scheduleTitleSep {
+  color: #666;
+  font-weight: 400;
+}
+
+.scheduleTitleMeta {
+  font-size: 12px;
+  color: #444;
+  font-weight: 600;
+}
+
+.scheduleTableWrap {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.officialPageLandscapeSchedule .certificateBottomBlock {
+  margin-top: auto;
+  padding-top: 4px;
+}
+
+.weeklyScheduleTable {
+  font-size: 10px;
+  width: 100%;
+  table-layout: fixed;
+}
+
+.weeklyScheduleTable th,
+.weeklyScheduleTable td {
+  border: 1px solid #111;
+  padding: 0;
+  text-align: center;
+  vertical-align: middle;
+  line-height: 1.2;
+}
+
+.scheduleColDay {
+  width: 2.8%;
+}
+
+.scheduleColLabel {
+  width: 8%;
+}
+
+.scheduleColLecture {
+  width: 19.5%;
+}
+
+.scheduleColBreak {
+  width: 3.2%;
+}
+
+.scheduleColOffice {
+  width: 14%;
+}
+
+.scheduleVerticalTextWrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-height: 64px;
+}
+
+.scheduleVerticalText {
+  display: inline-block;
+  transform: rotate(-90deg);
+  transform-origin: center center;
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.2px;
+}
+
+.scheduleBreakVerticalWrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  min-height: 64px;
+}
+
+.scheduleBreakVertical {
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
+
+.scheduleCellInner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 20px;
+  padding: 2px 3px;
+  text-align: center;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.scheduleCornerCell {
+  background: #d9e2f0;
+  font-weight: 700;
+  font-size: 11px;
+}
+
+.scheduleHeaderRow {
+  height: 52px;
+}
+
+.scheduleLectureHeader {
+  background: #d9e2f0;
+  font-weight: 700;
+  font-size: 11px;
+  padding: 3px 2px;
+}
+
+.scheduleBreakHeader {
+  background: #eef2f7;
+  font-weight: 700;
+  font-size: 9px;
+  padding: 2px 1px;
+}
+
+.scheduleDayCell {
+  background: #d9e2f0;
+  font-weight: 700;
+  padding: 2px 0;
+  vertical-align: middle;
+}
+
+.scheduleRowLabelCell {
+  background: #f3f6fa;
+  font-weight: 700;
+  font-size: 10px;
+}
+
+.scheduleRowLabelCell .scheduleCellInner {
+  font-size: 10px;
+  padding: 2px 2px;
+}
+
+.scheduleDataCell {
+  font-size: 10px;
+}
+
+.scheduleSubjectCell .scheduleCellInner {
+  background: #f5e6e8;
+  font-weight: 600;
+  font-size: 10px;
+  min-height: 16px;
+}
+
+.scheduleTimeCell .scheduleCellInner {
+  font-weight: 600;
+  font-size: 10px;
+}
+
+.scheduleRoomCell .scheduleCellInner {
+  font-size: 10px;
+  min-height: 18px;
+}
+
+.scheduleBreakCell {
+  background: #f8fafc;
+  vertical-align: middle;
+  padding: 0;
+}
+
+.scheduleBreakCell .scheduleCellInner {
+  padding: 1px 0;
+  min-height: 0;
+}
+
+.scheduleDayRow td {
+  height: 24px;
+  max-height: 28px;
 }

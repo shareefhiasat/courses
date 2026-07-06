@@ -322,6 +322,7 @@ export async function listFiles(keycloakUser, {
   ownedOnly = false,
   sharedOnly = false,
   hasWorkflow = false,
+  reportType = null,
 } = {}) {
   try {
     const userId = await getDatabaseUserId(keycloakUser);
@@ -397,6 +398,14 @@ export async function listFiles(keycloakUser, {
     if (modifiedAfter) where.updatedAt = { gte: new Date(modifiedAfter) };
     if (search) where.name = { contains: search, mode: 'insensitive' };
     if (starredOnly) where.isStarred = true;
+    if (reportType) {
+      const reportTypes = reportType.split(',').map(t => t.trim()).filter(Boolean);
+      where.exportHistories = {
+        some: {
+          exportType: reportTypes.length > 1 ? { in: reportTypes } : reportTypes[0],
+        },
+      };
+    }
 
     const [files, total] = await Promise.all([
       prisma.file.findMany({

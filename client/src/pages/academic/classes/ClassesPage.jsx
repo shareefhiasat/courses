@@ -11,6 +11,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';
 import { getLocalizedUserName } from '@utils/localizedUserName.js';
 import { formatDateShort } from '@utils/date-formatter.js';
 import { useAuditGridColumns } from '@hooks/useAuditGridColumns.js';
+import { formatTermDisplay } from '@constants/gradingStandards.js';
 import { addClass, updateClass, deleteClass, getClasses } from '@services/business/classService';
 import { getPrograms, getSubjects } from '@services/business/programService';
 import { getAllClassrooms } from '@services/business/classroomService';
@@ -33,6 +34,47 @@ import {
 } from '@ui';
 import { DeleteModal, useDeleteModal } from '@ui';
 import { ProgramsSelect } from '@ui';
+
+function extractYearFromTerm(term) {
+  if (!term) return null;
+  const termStr = String(term);
+  if (termStr.includes('-')) {
+    const yearPart = termStr.split('-').find((p) => !Number.isNaN(Number(p)));
+    return yearPart || null;
+  }
+  if (termStr.includes(' ')) {
+    const yearPart = termStr.split(' ').find((p) => !Number.isNaN(Number(p)));
+    return yearPart || null;
+  }
+  return Number.isNaN(Number(termStr)) ? null : termStr;
+}
+
+function cleanClassDisplayName(name, term) {
+  if (!name || !term) return name || '—';
+  let cleaned = String(name);
+  const termStr = String(term);
+  // Remove the full combined term (e.g. 2025-SPRING) from the name
+  cleaned = cleaned.replace(termStr, '');
+  // Remove the numeric year part if it appears on its own
+  const yearPart = extractYearFromTerm(termStr);
+  if (yearPart) {
+    cleaned = cleaned.replace(new RegExp(`\\b${yearPart}\\b`, 'g'), '');
+  }
+  // Remove the term name part if it appears on its own (e.g. just SPRING)
+  const termName = formatTermDisplay(termStr);
+  if (termName && termName !== termStr) {
+    cleaned = cleaned.replace(new RegExp(`\\b${termName}\\b`, 'gi'), '');
+  }
+  // Clean up leftover dashes/spaces
+  cleaned = cleaned
+    .replace(/\s+/g, ' ')
+    .replace(/\s+-\s+/g, ' - ')
+    .replace(/-\s+-/g, '-')
+    .replace(/\s+-$/, '')
+    .replace(/^-\s+/, '')
+    .trim();
+  return cleaned || '—';
+}
 
 const ClassesPage = () => {
   const { t, lang } = useLang();
@@ -88,6 +130,7 @@ const ClassesPage = () => {
   
   // UI state
   const [loading, setLoading] = useState(false);
+  const [gridRefreshKey, setGridRefreshKey] = useState(0);
   const { startLoading } = useGlobalLoading();
 
   const toast = useMemo(() => ({
@@ -407,6 +450,7 @@ const ClassesPage = () => {
           });
         } catch (e) { warn('Failed to log activity:', e); }
         await loadData();
+        setGridRefreshKey(prev => prev + 1);
         setEditingClass(null);
         setClassForm({ id: '', nameEn: '', nameAr: '', code: '', term: '', year: '', startDate: '', endDate: '', locationEn: '', locationAr: '', descriptionEn: '', descriptionAr: '', ownerEmail: '', instructorId: '', substituteInstructorId: '', classroomId: '', subjectId: '', programId: '', classId: '', maxCapacity: '' });
         // Clear refs
@@ -533,6 +577,7 @@ const ClassesPage = () => {
           } catch (e) { warn('Failed to log activity:', e); }
           toast?.showSuccess(result.message || t('classes_deleted_successfully'));
           await loadData();
+          setGridRefreshKey(prev => prev + 1);
         } else if (result.code === 'HAS_DEPENDENCIES' && result.dependencies) {
           // Rollback and show force-delete confirmation
           setClasses(prev => [...prev, classItem]);
@@ -544,6 +589,7 @@ const ClassesPage = () => {
               if (forceResult.success) {
                 toast?.showSuccess(forceResult.message || 'Class deactivated successfully');
                 await loadData();
+                setGridRefreshKey(prev => prev + 1);
               } else {
                 setClasses(prev => [...prev, classItem]);
                 toast?.showError(forceResult.error || 'Failed to deactivate class');
@@ -584,15 +630,27 @@ const handleCancelEdit = useCallback(() => {
   const auditColumns = useAuditGridColumns({ users });
 
   const gridColumns = useMemo(() => [
-    { field: 'nameEn', headerName: t('name'), flex: 1, minWidth: 180 },
+    { 
+      field: 'nameEn', 
+      headerName: t('name'), 
+      flex: 1, 
+      minWidth: 180,
+      renderCell: (params) => {
+        const row = params.row || {};
+        const name = params.value || row.nameEn || '—';
+        return cleanClassDisplayName(name, row.term);
+      }
+    },
     { 
       field: 'nameAr', 
       headerName: t('name_arabic'), 
       flex: 1, 
       minWidth: 180,
       renderCell: (params) => {
-        const nameAr = params.value || params.row?.nameAr;
-        return nameAr ? <span dir="rtl">{nameAr}</span> : '—';
+        const row = params.row || {};
+        const nameAr = params.value || row.nameAr;
+        if (!nameAr) return '—';
+        return <span dir="rtl">{cleanClassDisplayName(nameAr, row.term)}</span>;
       }
     },
     { 
@@ -680,9 +738,7 @@ const handleCancelEdit = useCallback(() => {
       valueGetter: (params) => {
         const term = params.value || params.row?.term;
         if (!term) return null;
-        // Extract term part (Fall, Spring, etc.) from "Fall 2025"
-        const termParts = term.split(' ');
-        return termParts[0] || term;
+        return formatTermDisplay(term);
       },
       renderCell: (params) => {
         const term = params.value || params.row?.term;
@@ -691,13 +747,12 @@ const handleCancelEdit = useCallback(() => {
             {getThemedIcon('ui', 'calendar', 16, theme)} —
           </span>
         );
-        // Extract term part (Fall, Spring, etc.) from "Fall 2025"
-        const termParts = term.split(' ');
-        const termName = termParts[0] || term;
+        const termName = formatTermDisplay(term);
+        const termKey = termName.toLowerCase();
         return (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
             {getThemedIcon('ui', 'calendar', 16, theme)}
-            {termName}
+            {t(termKey) || termName}
           </span>
         );
       }
@@ -709,12 +764,8 @@ const handleCancelEdit = useCallback(() => {
       valueGetter: (params) => {
         // Check for separate year field first
         if (params.row?.year) return params.row.year;
-        
         // Fallback to combined term field for backward compatibility
-        const term = params.row?.term;
-        if (!term) return null;
-        const termParts = term.split(' ');
-        return termParts[1] || null;
+        return extractYearFromTerm(params.row?.term);
       },
       renderCell: (params) => {
         // Check for separate year field first
@@ -725,15 +776,10 @@ const handleCancelEdit = useCallback(() => {
             </span>
           );
         }
-        
-        // Fallback to combined term field for backward compatibility
-        const term = params.row?.term;
-        if (!term) return '—';
-        const termParts = term.split(' ');
-        const year = termParts[1] || '—';
+        const year = extractYearFromTerm(params.row?.term);
         return (
           <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-            {year}
+            {year || '—'}
           </span>
         );
       }
@@ -1267,7 +1313,7 @@ const handleCancelEdit = useCallback(() => {
       <div data-tour="classes-grid" style={{ marginTop: '1rem' }}>
         <AdvancedDataGrid
           gridId="classes"
-          key={classes.map(c => `${c.id || c.docId}-${c.updatedAt || ''}`).join('|')} // Force re-render when class data changes
+          key={`classes-grid-${gridRefreshKey}`} // Force re-render after edits/deletes
           rows={filteredClasses}
           getRowId={(row) => row.docId || row.id}
           columns={gridColumns}

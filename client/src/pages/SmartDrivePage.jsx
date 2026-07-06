@@ -33,6 +33,133 @@ import useKeyboardShortcuts from '@hooks/useKeyboardShortcuts';
 import { isDriveFolder, isDriveFile, getRenamedFileName } from '@utils/driveUtils';
 import { getLocalizedFolderName } from '@utils/localizedFolderName';
 
+const EXPORTED_FOLDER_ALIASES = ['Exported Files', 'Exported', 'الملفات المستخرجة', 'مصدّر'];
+
+function normalizeBreadcrumbCrumb(crumb) {
+  if (!crumb?.id) return null;
+  return {
+    ...crumb,
+    id: String(crumb.id),
+    parentId: crumb.parentId != null ? String(crumb.parentId) : null,
+  };
+}
+
+function buildBreadcrumbTrail(nodes, targetId) {
+  const trail = [];
+  const walk = (list, target, path) => {
+    for (const node of list) {
+      const nextPath = [...path, node];
+      if (String(node.id) === String(target)) {
+        trail.push(...nextPath);
+        return true;
+      }
+      if (node.children?.length && walk(node.children, target, nextPath)) {
+        return true;
+      }
+    }
+    return false;
+  };
+  walk(nodes, targetId, []);
+  return trail.map(normalizeBreadcrumbCrumb).filter(Boolean);
+}
+
+function resolveBreadcrumbs({ apiPayload, folderTree, currentFolderId }) {
+  let crumbs = (apiPayload?.breadcrumb || [])
+    .map(normalizeBreadcrumbCrumb)
+    .filter(Boolean);
+
+  if (crumbs.length === 0 && apiPayload?.folder) {
+    const single = normalizeBreadcrumbCrumb(apiPayload.folder);
+    if (single) crumbs = [single];
+  }
+
+  if (crumbs.length === 0 && folderTree?.length && currentFolderId) {
+    crumbs = buildBreadcrumbTrail(folderTree, currentFolderId);
+  }
+
+  return crumbs;
+}
+
+function findExportedFolderId(nodes) {
+  if (!nodes?.length) return null;
+  for (const node of nodes) {
+    if (
+      !node.parentId &&
+      (EXPORTED_FOLDER_ALIASES.includes(node.name) || EXPORTED_FOLDER_ALIASES.includes(node.nameAr))
+    ) {
+      return node.id;
+    }
+    if (node.children?.length) {
+      const child = findExportedFolderId(node.children);
+      if (child) return child;
+    }
+  }
+  return null;
+}
+
+function findFolderByName(nodes, name) {
+  if (!nodes?.length || !name) return null;
+  for (const node of nodes) {
+    if (node.name === name || node.nameAr === name) return node.id;
+    if (EXPORTED_FOLDER_ALIASES.includes(name) &&
+      (EXPORTED_FOLDER_ALIASES.includes(node.name) || EXPORTED_FOLDER_ALIASES.includes(node.nameAr))) {
+      return node.id;
+    }
+    if (node.children?.length) {
+      const found = findFolderByName(node.children, name);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+const EXPORT_DEEPLINK_SESSION_KEY = 'smart_drive_export_deeplink';
+
+function captureExportDeepLinkFromUrl() {
+  if (typeof window === 'undefined') return null;
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const highlightFileId = params.get('highlightFileId');
+    const highlightFilename = params.get('highlightFilename');
+    const folderId = params.get('folderId');
+    const folderName = params.get('folder');
+    if (!highlightFileId && !highlightFilename && !folderId && !folderName) return null;
+    const link = {
+      folderId,
+      folderName,
+      highlightFileId,
+      highlightFilename,
+      exportTour: params.get('exportTour') === '1',
+    };
+    sessionStorage.setItem(EXPORT_DEEPLINK_SESSION_KEY, JSON.stringify(link));
+    return link;
+  } catch {
+    return null;
+  }
+}
+
+function readStoredExportDeepLink() {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = sessionStorage.getItem(EXPORT_DEEPLINK_SESSION_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
+
+function clearStoredExportDeepLink() {
+  try {
+    sessionStorage.removeItem(EXPORT_DEEPLINK_SESSION_KEY);
+  } catch {
+    /* ignore */
+  }
+}
+
+function resolveInitialExportDeepLink() {
+  return captureExportDeepLinkFromUrl() || readStoredExportDeepLink();
+}
+
 const FOLDER_COLORS = [
   { value: null, label: 'Default' },
   { value: '#3b82f6', label: 'Blue' },
@@ -51,6 +178,13 @@ export default function SmartDrivePage() {
   const { user, isSuperAdmin } = useAuth();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const initialExportDeepLink = useMemo(() => resolveInitialExportDeepLink(), []);
+
+  useEffect(() => {
+    if (initialExportDeepLink) {
+      console.log('[ExportTour] initial deep link on mount', initialExportDeepLink);
+    }
+  }, [initialExportDeepLink]);
 
   // Debug current user
   console.log('[SmartDrivePage] Current user:', {
@@ -63,7 +197,31 @@ export default function SmartDrivePage() {
   // ── Guided Tour ──────────────────────────────────────────────────────────
   const [runTour, setRunTour] = useState(false);
   const [tourSteps, setTourSteps] = useState([]);
+  const exportHighlightTourRef = useRef(false);
+  const exportDeepLinkRef = useRef(null);
+  const forceExportTourRef = useRef(Boolean(initialExportDeepLink?.exportTour));
+  const pendingExportTourRef = useRef(Boolean(initialExportDeepLink?.exportTour));
+  const exportTourAttemptRef = useRef(false);
+  const highlightHandledRef = useRef(false);
+  const highlightRetryCountRef = useRef(0);
+  const skipAutoPageTourRef = useRef(
+    (() => {
+      try {
+        const params = new URLSearchParams(window.location.search);
+        if (params.get('exportTour') === '1'
+          || Boolean(params.get('highlightFileId'))
+          || Boolean(params.get('highlightFilename'))) {
+          return true;
+        }
+        return Boolean(readStoredExportDeepLink());
+      } catch {
+        return false;
+      }
+    })()
+  );
   const tourSeenKey = `smartDriveTourSeen_${lang}`;
+  const exportHighlightTourSeenKey = `drive_export_highlight_tour_${lang}`;
+  const [isExportHighlightTour, setIsExportHighlightTour] = useState(false);
   const buildTourSteps = useCallback(() => [
     { target: '[data-tour="drive-sidebar"]',   content: t('tour.drive_sidebar'),        disableBeacon: true, placement: 'right' },
     { target: '[data-tour="drive-search"]',    content: t('tour.drive_search'),         disableBeacon: true, placement: 'bottom' },
@@ -75,21 +233,81 @@ export default function SmartDrivePage() {
     { target: '[data-tour="file-context-menu"]',content: t('tour.drive_context_menu'),  disableBeacon: true, placement: 'left' },
     { target: '[data-tour="drive-inbox"]',     content: t('tour.drive_inbox'),          disableBeacon: true, placement: 'bottom' },
   ].filter(s => !!document.querySelector(s.target)), [t]);
-  const startTour = useCallback(() => { const steps = buildTourSteps(); if (!steps.length) return; setTourSteps(steps); setRunTour(true); }, [buildTourSteps]);
+  const startTour = useCallback(() => {
+    const steps = buildTourSteps();
+    if (!steps.length) return;
+    setTourSteps(steps);
+    exportHighlightTourRef.current = false;
+    setIsExportHighlightTour(false);
+    setRunTour(true);
+  }, [buildTourSteps]);
+  const startExportHighlightTour = useCallback((fileId, { force = false, attempt = 0 } = {}) => {
+    const MAX_DOM_RETRIES = 25;
+    if (!force && attempt === 0) {
+      try {
+        if (localStorage.getItem(exportHighlightTourSeenKey) === 'true') {
+          console.log('[ExportTour] skipped — dont-show-again is set for', exportHighlightTourSeenKey);
+          return;
+        }
+      } catch {
+        /* ignore */
+      }
+    }
+    const target = `[data-file-id="${fileId}"]`;
+    const el = document.querySelector(target);
+    if (!el) {
+      if (attempt < MAX_DOM_RETRIES) {
+        if (attempt === 0 || attempt % 5 === 0) {
+          console.log('[ExportTour] waiting for DOM', target, 'attempt', attempt + 1);
+        }
+        setTimeout(() => startExportHighlightTour(fileId, { force, attempt: attempt + 1 }), 200);
+      } else {
+        console.warn('[ExportTour] DOM target not found after retries', target);
+      }
+      return;
+    }
+    console.log('[ExportTour] launching joyride on', target);
+    setRunTour(false);
+    setTourSteps([{
+      target,
+      content: t('tour.drive_export_click_file'),
+      disableBeacon: true,
+      placement: 'bottom',
+    }]);
+    exportHighlightTourRef.current = true;
+    setIsExportHighlightTour(true);
+    window.setTimeout(() => setRunTour(true), 50);
+  }, [t, exportHighlightTourSeenKey]);
   useEffect(() => {
     window.addEventListener('app:joyride', startTour);
     window.addEventListener('app:help', startTour);
     return () => { window.removeEventListener('app:joyride', startTour); window.removeEventListener('app:help', startTour); };
   }, [startTour]);
-  useEffect(() => { try { if (!localStorage.getItem(tourSeenKey)) startTour(); } catch {} }, [tourSeenKey, startTour]);
+  useEffect(() => {
+    try {
+      if (skipAutoPageTourRef.current) return;
+      if (!localStorage.getItem(tourSeenKey)) startTour();
+    } catch {
+      /* ignore */
+    }
+  }, [tourSeenKey, startTour]);
   const handleTourCallback = useCallback((data) => {
     const { status, action } = data || {};
-    if (status === 'finished' || status === 'skipped' || action === 'close') { setRunTour(false); try { localStorage.setItem(tourSeenKey, 'true'); } catch {} }
+    if (status === 'finished' || status === 'skipped' || action === 'close') {
+      setRunTour(false);
+      if (exportHighlightTourRef.current) {
+        exportHighlightTourRef.current = false;
+        setIsExportHighlightTour(false);
+      } else {
+        try { localStorage.setItem(tourSeenKey, 'true'); } catch { /* ignore */ }
+      }
+    }
   }, [tourSeenKey]);
-  const TourTooltipComponent = useMemo(() => TourTooltip({ tourSeenKey }), [tourSeenKey]);
+  const activeTourSeenKey = isExportHighlightTour ? exportHighlightTourSeenKey : tourSeenKey;
+  const TourTooltipComponent = useMemo(() => TourTooltip({ tourSeenKey: activeTourSeenKey }), [activeTourSeenKey]);
   // ─────────────────────────────────────────────────────────────────────────
   const [activeSpace, setActiveSpace] = useState('my-drive');
-  const [currentFolderId, setCurrentFolderId] = useState(null);
+  const [currentFolderId, setCurrentFolderId] = useState(() => initialExportDeepLink?.folderId || null);
   const [breadcrumbs, setBreadcrumbs] = useState([]);
   const [folderTree, setFolderTree] = useState([]);
   const [selectedIds, setSelectedIds] = useState(new Set());
@@ -101,6 +319,9 @@ export default function SmartDrivePage() {
   const [inboxOpen, setInboxOpen] = useState(false);
   const [detailsModalFile, setDetailsModalFile] = useState(null);
   const [detailsModalInitialTab, setDetailsModalInitialTab] = useState(null);
+  const [highlightFileId, setHighlightFileId] = useState(() => initialExportDeepLink?.highlightFileId || null);
+  const [highlightFilename, setHighlightFilename] = useState(() => initialExportDeepLink?.highlightFilename || null);
+  const [pendingExportTour, setPendingExportTour] = useState(() => Boolean(initialExportDeepLink?.exportTour));
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [createFolderModalOpen, setCreateFolderModalOpen] = useState(false);
   const [renameTarget, setRenameTarget] = useState(null);
@@ -187,14 +408,79 @@ export default function SmartDrivePage() {
     loadFolderTree();
   }, [activeSpace, fetchFolderTree]);
 
-  // Deep-link: /smart-drive?folderId=... or ?folder=Exported
+  // Deep-link: /smart-drive?folderId=... | ?folder=Exported | ?fileId=... | ?highlightFileId=...
   useEffect(() => {
     const folderIdParam = searchParams.get('folderId');
     const folderNameParam = searchParams.get('folder');
-    if (!folderIdParam && !folderNameParam) return;
+    const fileIdParam = searchParams.get('fileId');
+    const highlightFileIdParam = searchParams.get('highlightFileId');
+    const highlightFilenameParam = searchParams.get('highlightFilename');
+    const exportTourParam = searchParams.get('exportTour');
+    const hasUrlDeepLink = folderIdParam || folderNameParam || fileIdParam
+      || highlightFileIdParam || highlightFilenameParam;
+
+    if (!hasUrlDeepLink) return;
 
     if (activeSpace !== 'my-drive') {
       setActiveSpace('my-drive');
+    }
+
+    if (highlightFileIdParam || highlightFilenameParam) {
+      highlightHandledRef.current = false;
+      highlightRetryCountRef.current = 0;
+      exportTourAttemptRef.current = false;
+      const link = {
+        folderId: folderIdParam,
+        folderName: folderNameParam || 'Exported',
+        highlightFileId: highlightFileIdParam,
+        highlightFilename: highlightFilenameParam,
+        exportTour: exportTourParam === '1',
+      };
+      exportDeepLinkRef.current = link;
+      try {
+        sessionStorage.setItem(EXPORT_DEEPLINK_SESSION_KEY, JSON.stringify(link));
+      } catch {
+        /* ignore */
+      }
+      if (highlightFileIdParam) setHighlightFileId(highlightFileIdParam);
+      if (highlightFilenameParam) setHighlightFilename(highlightFilenameParam);
+      if (exportTourParam === '1') {
+        pendingExportTourRef.current = true;
+        forceExportTourRef.current = true;
+        setPendingExportTour(true);
+        skipAutoPageTourRef.current = true;
+        console.log('[ExportTour] deep-link queued export tour');
+      }
+      if (folderIdParam) {
+        setCurrentFolderId(folderIdParam);
+      } else if (folderTree.length > 0) {
+        const id = findFolderByName(folderTree, folderNameParam || 'Exported') || findExportedFolderId(folderTree);
+        if (id) setCurrentFolderId(id);
+      }
+      setSearchParams({}, { replace: true });
+      return;
+    }
+
+    if (fileIdParam) {
+      const openFileFromDeepLink = async () => {
+        try {
+          const data = await apiService.get(`/drive/files/${fileIdParam}`);
+          if (data.success && data.payload) {
+            setDetailsModalFile(data.payload);
+            setDetailsModalInitialTab('preview');
+          } else {
+            setDetailsModalFile({ id: fileIdParam });
+            setDetailsModalInitialTab('preview');
+          }
+        } catch (err) {
+          console.error('[SmartDrivePage] fileId deep-link failed', err);
+          setDetailsModalFile({ id: fileIdParam });
+          setDetailsModalInitialTab('preview');
+        }
+        setSearchParams({}, { replace: true });
+      };
+      openFileFromDeepLink();
+      return;
     }
 
     if (folderIdParam) {
@@ -204,23 +490,117 @@ export default function SmartDrivePage() {
     }
 
     if (folderNameParam && folderTree.length > 0) {
-      const findByName = (nodes, name) => {
-        for (const node of nodes) {
-          if (node.name === name || node.nameAr === name) return node.id;
-          if (node.children?.length) {
-            const found = findByName(node.children, name);
-            if (found) return found;
-          }
-        }
-        return null;
-      };
-      const id = findByName(folderTree, folderNameParam);
+      const id = findFolderByName(folderTree, folderNameParam);
       if (id) {
         setCurrentFolderId(id);
         setSearchParams({}, { replace: true });
       }
     }
   }, [searchParams, folderTree, activeSpace, setSearchParams]);
+
+  // Apply pending export deep-link folder once folder tree is available
+  useEffect(() => {
+    const pending = exportDeepLinkRef.current;
+    if (!pending || currentFolderId || folderTree.length === 0) return;
+
+    const id = pending.folderId
+      || findFolderByName(folderTree, pending.folderName)
+      || findExportedFolderId(folderTree);
+    if (id) {
+      setCurrentFolderId(id);
+    }
+  }, [folderTree, currentFolderId]);
+
+  const MAX_HIGHLIGHT_RETRIES = 10;
+
+  useEffect(() => {
+    if (highlightHandledRef.current) return;
+    if (!highlightFileId && !highlightFilename) return;
+    if (!currentFolderId) {
+      console.log('[ExportTour] waiting for folder', { highlightFileId, highlightFilename });
+      return;
+    }
+    if (filesLoading) {
+      console.log('[ExportTour] waiting for files to load');
+      return;
+    }
+
+    let resolvedHighlightId = highlightFileId;
+    if (!resolvedHighlightId && highlightFilename && allFiles.length > 0) {
+      const normalizedTarget = highlightFilename.toLowerCase();
+      const match = allFiles.find((f) => {
+        const name = (f.name || '').toLowerCase();
+        return name === normalizedTarget || name.includes(normalizedTarget) || normalizedTarget.includes(name);
+      });
+      if (match?.id) {
+        resolvedHighlightId = match.id;
+      }
+    }
+
+    if (!resolvedHighlightId) {
+      if (highlightRetryCountRef.current < MAX_HIGHLIGHT_RETRIES) {
+        highlightRetryCountRef.current += 1;
+        console.log('[ExportTour] file id not resolved, retry', highlightRetryCountRef.current);
+        const retry = setTimeout(() => refreshFiles(), 800);
+        return () => clearTimeout(retry);
+      }
+      console.warn('[ExportTour] gave up — could not resolve highlighted file');
+      return;
+    }
+
+    if (resolvedHighlightId !== highlightFileId) {
+      setHighlightFileId(resolvedHighlightId);
+      return;
+    }
+
+    const fileInList = allFiles.some((f) => String(f.id) === String(resolvedHighlightId));
+    if (!fileInList) {
+      if (highlightRetryCountRef.current < MAX_HIGHLIGHT_RETRIES) {
+        highlightRetryCountRef.current += 1;
+        console.log('[ExportTour] file not in folder yet, retry', highlightRetryCountRef.current, {
+          folderId: currentFolderId,
+          fileCount: allFiles.length,
+          resolvedHighlightId,
+        });
+        const retry = setTimeout(() => refreshFiles(), 800);
+        return () => clearTimeout(retry);
+      }
+      console.warn('[ExportTour] gave up — file not listed in folder', resolvedHighlightId);
+      return;
+    }
+
+    const el = document.querySelector(`[data-file-id="${resolvedHighlightId}"]`);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+    const wantsTour = pendingExportTourRef.current || pendingExportTour || forceExportTourRef.current;
+    console.log('[ExportTour] file ready', {
+      resolvedHighlightId,
+      wantsTour,
+      pendingExportTour,
+      exportTourAttempted: exportTourAttemptRef.current,
+    });
+
+    if (wantsTour && !exportTourAttemptRef.current) {
+      exportTourAttemptRef.current = true;
+      startExportHighlightTour(resolvedHighlightId, { force: forceExportTourRef.current });
+      pendingExportTourRef.current = false;
+      forceExportTourRef.current = false;
+      setPendingExportTour(false);
+    }
+
+    highlightHandledRef.current = true;
+    exportDeepLinkRef.current = null;
+    clearStoredExportDeepLink();
+  }, [
+    highlightFileId,
+    highlightFilename,
+    currentFolderId,
+    allFiles,
+    filesLoading,
+    pendingExportTour,
+    startExportHighlightTour,
+    refreshFiles,
+  ]);
 
   useEffect(() => {
     let mounted = true;
@@ -231,13 +611,17 @@ export default function SmartDrivePage() {
         return;
       }
 
-      console.log('[Breadcrumb Debug] Loading breadcrumbs for folder:', currentFolderId);
+      apiService.clearCacheEntry(`/drive/folders/${currentFolderId}`);
       const result = await getFolderDetails(currentFolderId);
-      console.log('[Breadcrumb Debug] API result:', result);
-      console.log('[Breadcrumb Debug] result.payload:', result.payload);
-      console.log('[Breadcrumb Debug] result.payload?.breadcrumb:', result.payload?.breadcrumb);
-      if (mounted && result.success) {
-        setBreadcrumbs(result.payload?.breadcrumb || []);
+      if (mounted) {
+        const crumbs = result.success
+          ? resolveBreadcrumbs({
+              apiPayload: result.payload,
+              folderTree,
+              currentFolderId,
+            })
+          : buildBreadcrumbTrail(folderTree, currentFolderId);
+        setBreadcrumbs(crumbs);
       }
     };
 
@@ -246,7 +630,7 @@ export default function SmartDrivePage() {
     return () => {
       mounted = false;
     };
-  }, [currentFolderId, getFolderDetails]);
+  }, [currentFolderId, folderTree, getFolderDetails]);
 
   useEffect(() => {
     let timeoutId;
@@ -321,6 +705,12 @@ export default function SmartDrivePage() {
     return result;
   }, [activeSpace, folders, filters]);
 
+  const isExportedFilesFolder = useMemo(() => {
+    if (!currentFolderId || !folderTree?.length) return false;
+    const exportedId = findExportedFolderId(folderTree);
+    return Boolean(exportedId && String(exportedId) === String(currentFolderId));
+  }, [currentFolderId, folderTree]);
+
   const refreshDriveUI = useCallback(async ({ reloadTree = true, reloadBreadcrumbs = true } = {}) => {
     apiService.clearCache();
     const filterParams = toAPIParams();
@@ -335,14 +725,21 @@ export default function SmartDrivePage() {
     }
 
     if (reloadBreadcrumbs && currentFolderId) {
+      apiService.clearCacheEntry(`/drive/folders/${currentFolderId}`);
       const result = await getFolderDetails(currentFolderId);
-      if (result.success) {
-        setBreadcrumbs(result.payload?.breadcrumb || []);
-      }
+      const crumbs = result.success
+        ? resolveBreadcrumbs({
+            apiPayload: result.payload,
+            folderTree,
+            currentFolderId,
+          })
+        : buildBreadcrumbTrail(folderTree, currentFolderId);
+      setBreadcrumbs(crumbs);
     }
   }, [
     activeSpace,
     currentFolderId,
+    folderTree,
     fetchFiles,
     fetchFolders,
     fetchFolderTree,
@@ -572,6 +969,11 @@ export default function SmartDrivePage() {
   };
 
   const handleFileOpen = async (file) => {
+    setHighlightFileId(null);
+    setHighlightFilename(null);
+    highlightHandledRef.current = true;
+    exportDeepLinkRef.current = null;
+    setDetailsModalInitialTab('preview');
     // Fetch fresh file data to get latest version info
     try {
       const data = await apiService.get(`/drive/files/${file.id}`);
@@ -733,47 +1135,65 @@ export default function SmartDrivePage() {
     return () => document.removeEventListener('mousedown', handler);
   }, [openFilterChip]);
 
-  const quickFilterCategories = [
-    {
-      key: 'type', label: t('drive.type'), icon: 'file_text',
-      options: [
-        { value: 'image', label: t('drive.filter.type.images'), icon: 'image' },
-        { value: 'spreadsheet', label: t('drive.filter.type.spreadsheets'), icon: 'table' },
-        { value: 'presentation', label: t('drive.filter.type.presentations'), icon: 'presentation' },
-        { value: 'document', label: t('drive.filter.type.documents'), icon: 'file_text' },
-        { value: 'video', label: t('drive.filter.type.videos'), icon: 'video' },
-        { value: 'audio', label: t('drive.filter.type.audio'), icon: 'music' },
-        { value: 'archive', label: t('drive.filter.type.archives'), icon: 'archive' },
-        { value: 'has-workflow', label: t('drive.filter.type.hasWorkflow'), icon: 'workflow', color: '#8b5cf6' },
-      ],
-    },
-    {
-      key: 'people', label: t('drive.people'), icon: 'users',
-      options: [
-        { value: 'me', label: t('drive.filter.owner.me'), icon: 'user' },
-        { value: 'shared', label: t('drive.filter.owner.shared'), icon: 'users' },
-      ],
-    },
-    {
-      key: 'modified', label: t('drive.modified'), icon: 'clock',
-      options: [
-        { value: 'today', label: t('drive.filter.date.today'), icon: 'clock' },
-        { value: 'week', label: t('drive.filter.date.week'), icon: 'calendar' },
-        { value: 'month', label: t('drive.filter.date.month'), icon: 'calendar' },
-        { value: 'year', label: t('drive.filter.date.year'), icon: 'calendar' },
-      ],
-    },
-    {
-      key: 'status', label: t('drive.status'), icon: 'star',
-      options: [
-        { value: 'starred', label: t('drive.filter.status.starred'), icon: 'star' },
-        { value: 'recent', label: t('drive.filter.status.recent'), icon: 'clock' },
-        { value: 'trash', label: t('drive.filter.status.trash'), icon: 'trash' },
-      ],
-    },
-  ];
+  const quickFilterCategories = useMemo(() => {
+    const categories = [
+      {
+        key: 'type', label: t('drive.type'), icon: 'file_text',
+        options: [
+          { value: 'image', label: t('drive.filter.type.images'), icon: 'image' },
+          { value: 'spreadsheet', label: t('drive.filter.type.spreadsheets'), icon: 'table' },
+          { value: 'presentation', label: t('drive.filter.type.presentations'), icon: 'presentation' },
+          { value: 'document', label: t('drive.filter.type.documents'), icon: 'file_text' },
+          { value: 'video', label: t('drive.filter.type.videos'), icon: 'video' },
+          { value: 'audio', label: t('drive.filter.type.audio'), icon: 'music' },
+          { value: 'archive', label: t('drive.filter.type.archives'), icon: 'archive' },
+          { value: 'has-workflow', label: t('drive.filter.type.hasWorkflow'), icon: 'workflow', color: '#8b5cf6' },
+        ],
+      },
+      {
+        key: 'people', label: t('drive.people'), icon: 'users',
+        options: [
+          { value: 'me', label: t('drive.filter.owner.me'), icon: 'user' },
+          { value: 'shared', label: t('drive.filter.owner.shared'), icon: 'users' },
+        ],
+      },
+      {
+        key: 'modified', label: t('drive.modified'), icon: 'clock',
+        options: [
+          { value: 'today', label: t('drive.filter.date.today'), icon: 'clock' },
+          { value: 'week', label: t('drive.filter.date.week'), icon: 'calendar' },
+          { value: 'month', label: t('drive.filter.date.month'), icon: 'calendar' },
+          { value: 'year', label: t('drive.filter.date.year'), icon: 'calendar' },
+        ],
+      },
+      {
+        key: 'status', label: t('drive.status'), icon: 'star',
+        options: [
+          { value: 'starred', label: t('drive.filter.status.starred'), icon: 'star' },
+          { value: 'recent', label: t('drive.filter.status.recent'), icon: 'clock' },
+          { value: 'trash', label: t('drive.filter.status.trash'), icon: 'trash' },
+        ],
+      },
+    ];
+    if (isExportedFilesFolder) {
+      categories.push({
+        key: 'reportType', label: t('drive.filter.reportType'), icon: 'file_text',
+        options: [
+          { value: 'marks_semester_certificate', label: t('drive.filter.report.semesterCertificate'), icon: 'award' },
+          { value: 'marks_qualitative_card', label: t('drive.filter.report.qualitativeCard'), icon: 'clipboard' },
+          { value: 'marks_class_subject', label: t('drive.filter.report.classSubject'), icon: 'table' },
+          { value: 'marks_warning_first', label: t('drive.filter.report.firstWarning'), icon: 'alert_triangle' },
+          { value: 'marks_warning_final', label: t('drive.filter.report.finalWarning'), icon: 'x_circle' },
+          { value: 'weekly_class_schedule', label: t('drive.filter.report.weeklySchedule'), icon: 'calendar' },
+          { value: 'attendance_daily_official', label: t('drive.filter.report.dailyOfficial'), icon: 'file_text' },
+          { value: 'official_attendance', label: t('drive.filter.report.attendanceOfficial'), icon: 'shield' },
+        ],
+      });
+    }
+    return categories;
+  }, [isExportedFilesFolder, t]);
 
-  const filterTypeToKey = { type: 'type', people: 'owner', modified: 'date', status: 'status' };
+  const filterTypeToKey = { type: 'type', people: 'owner', modified: 'date', status: 'status', reportType: 'reportType' };
 
   // Keyboard shortcuts
   useKeyboardShortcuts({
@@ -1097,10 +1517,8 @@ export default function SmartDrivePage() {
                   {getThemedIcon('ui', 'folder', 16, currentFolderId ? 'primary' : theme)}
                   <span>{t('drive.myDrive')}</span>
                 </button>
-                {console.log('[Breadcrumb Debug] currentFolderId:', currentFolderId, 'breadcrumbs:', breadcrumbs, 'breadcrumbs.length:', breadcrumbs.length)}
-                {breadcrumbs.map((crumb, idx) => (
+                {breadcrumbs.map((crumb) => (
                   <React.Fragment key={crumb.id}>
-                    {console.log('[Breadcrumb Debug] Rendering crumb:', crumb, 'idx:', idx)}
                     <span style={{ color: 'var(--text-muted, #9ca3af)', fontSize: 'var(--font-size-sm)', flexShrink: 0 }}>
                       {getThemedIcon('ui', 'chevron_right', 14, 'muted')}
                     </span>
@@ -1265,7 +1683,7 @@ export default function SmartDrivePage() {
                 )}
               </div>
             ))}
-            <FilterMenu onAddFilter={addFilter} />
+            <FilterMenu onAddFilter={addFilter} showReportType={isExportedFilesFolder} />
             <FilterChips
               activeFilters={filters}
               onRemoveFilter={removeFilter}
@@ -1322,6 +1740,7 @@ export default function SmartDrivePage() {
               files={visibleFiles}
               folders={visibleFolders}
               selectedIds={selectedIds}
+              highlightFileId={highlightFileId}
               onToggleSelect={handleToggleSelect}
               onSelectAll={handleSelectAll}
               onClearSelection={handleClearSelection}

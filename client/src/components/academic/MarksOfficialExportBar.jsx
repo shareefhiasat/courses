@@ -1,7 +1,9 @@
 import React, { useCallback, useState } from 'react';
-import { FileSpreadsheet, FileText } from 'lucide-react';
 import { Button } from '@ui';
 import { useAuth } from '@contexts/AuthContext';
+import { useTheme } from '@contexts/ThemeContext';
+import { getThemedIcon } from '@constants/iconTypes';
+import { OFFICIAL_REPORT_BUTTONS } from '@components/export/officialReportButtons.js';
 import ExportProgressToast from '@components/export/ExportProgressToast';
 import {
   EXPORT_FORMAT,
@@ -18,8 +20,7 @@ import {
 } from '@services/export/official-reports/index.jsx';
 import { persistAndLogExport, mimeTypeForFormat } from '@services/business/exportDriveService.js';
 import { fetchAbsenceWarningCounts } from '@services/business/attendanceDeductionService';
-
-const WORKFLOW_PURPLE = '#8b5cf6';
+import { WORKFLOW_UI_COLORS } from '@constants/workflowConfig';
 
 const MODE_LABELS = {
   semester: { en: 'Semester certificate', ar: 'شهادة الفصل' },
@@ -56,12 +57,15 @@ export default function MarksOfficialExportBar({
   onError,
 }) {
   const { user } = useAuth();
+  const { theme } = useTheme();
   const [format, setFormat] = useState(EXPORT_FORMAT.PDF);
   const [exporting, setExporting] = useState(false);
+  const buttonConfig = OFFICIAL_REPORT_BUTTONS.find((b) => b.mode === mode);
 
   const sanitize = (str) => (str ? String(str).replace(/[^a-zA-Z0-9\u0600-\u06FF]/g, '_') : '');
   const isAr = lang === 'ar';
-  const label = isAr ? MODE_LABELS[mode]?.ar : MODE_LABELS[mode]?.en;
+  const label = isAr ? buttonConfig?.labelAr : buttonConfig?.labelEn ||
+    (isAr ? MODE_LABELS[mode]?.ar : MODE_LABELS[mode]?.en);
 
   const handleExport = useCallback(async () => {
     setExporting(true);
@@ -191,14 +195,14 @@ export default function MarksOfficialExportBar({
             background: 'transparent',
             border: 'none',
             cursor: disabled || !canExport ? 'not-allowed' : 'pointer',
-            padding: 4,
+            padding: 2,
             display: 'inline-flex',
             alignItems: 'center',
-            color: WORKFLOW_PURPLE,
+            color: buttonConfig?.color || WORKFLOW_UI_COLORS.ACTIVE,
             opacity: disabled || !canExport ? 0.4 : 1,
           }}
         >
-          {format === EXPORT_FORMAT.EXCEL ? <FileSpreadsheet size={14} /> : <FileText size={14} />}
+          {buttonConfig?.icon ? getThemedIcon('ui', buttonConfig.icon, 12, theme) : getThemedIcon('ui', 'file_text', 12, theme)}
         </button>
       </>
     );
@@ -223,7 +227,7 @@ export default function MarksOfficialExportBar({
                 fontSize: '0.75rem',
                 border: 'none',
                 cursor: 'pointer',
-                background: format === f ? WORKFLOW_PURPLE : 'transparent',
+                background: format === f ? WORKFLOW_UI_COLORS.ACTIVE : 'transparent',
                 color: format === f ? '#fff' : 'inherit',
                 fontWeight: format === f ? 600 : 400,
               }}
@@ -237,7 +241,7 @@ export default function MarksOfficialExportBar({
           variant="primary"
           onClick={handleExport}
           disabled={disabled || exporting || !canExport}
-          style={{ background: WORKFLOW_PURPLE, borderColor: WORKFLOW_PURPLE }}
+          style={{ background: WORKFLOW_UI_COLORS.ACTIVE, borderColor: WORKFLOW_UI_COLORS.ACTIVE }}
         >
           {exporting ? '...' : t('export', 'Export')}
         </Button>

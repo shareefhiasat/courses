@@ -122,16 +122,29 @@
   margin-block-start: 0.25rem;
 }
 
-[dir="rtl"] .profileHeader {
+.rtl .profileHeader {
   flex-direction: row-reverse;
 }
 
-[dir="rtl"] .fieldRow {
-  flex-direction: row-reverse;
-}
-
-[dir="rtl"] .fieldContent {
+.rtl .headerInfo {
   align-items: flex-end;
+  text-align: right;
+}
+
+.rtl .fieldRow,
+.fieldRowRtl {
+  flex-direction: row-reverse;
+}
+
+.rtl .fieldContent,
+.fieldRowRtl .fieldContent {
+  align-items: flex-end;
+  text-align: right;
+}
+
+.rtl .fieldLabel {
+  text-transform: none;
+  letter-spacing: 0;
 }
 
 @media (max-width: 767px) {

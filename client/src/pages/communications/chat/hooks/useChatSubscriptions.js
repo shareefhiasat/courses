@@ -91,11 +91,13 @@ export const useChatSubscriptions = (user, isAdmin, isHR, isInstructor, isSuperA
       try {
         let ids = new Set();
 
-        if (isSuperAdmin || isHR || isAdmin || isInstructor) {
+        if (isSuperAdmin || isHR || isAdmin) {
           const classesResult = await getClasses();
           if (classesResult.success) {
             (classesResult.data || []).forEach((cls) => ids.add(cls.docId || cls.id));
           }
+        } else if (isInstructor) {
+          // Use scoped chat rooms from API — do not prefetch all classes
         } else {
           const enrollmentsResult = await getEnrollments();
           const allEnr = enrollmentsResult.success ? (enrollmentsResult.data || []) : [];

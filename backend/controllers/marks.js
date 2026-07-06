@@ -1143,6 +1143,7 @@ const getAllStudentMarksReport = async (req, res) => {
         if (gradeType === GRADE_TYPE.COMPLEMENTARY) {
           const resolved = resolveMarkGrade({
             gradeType,
+            letterGrade: studentMarks.letterGrade,
             isRepeated: studentMarks.isRepeated || false,
             complementaryScore: studentMarks.finalExam || 0,
           });
@@ -1165,6 +1166,7 @@ const getAllStudentMarksReport = async (req, res) => {
         } else {
           const resolved = resolveMarkGrade({
             totalMarks,
+            letterGrade: studentMarks.letterGrade,
             gradeType,
             isRepeated: studentMarks.isRepeated || false,
           });
@@ -1191,12 +1193,16 @@ const getAllStudentMarksReport = async (req, res) => {
           programId: enrollment.class.programId,
           programName: enrollment.class.program?.nameEn || enrollment.class.program?.nameAr || 
             enrollment.class.program?.code,
+          programNameAr: enrollment.class.program?.nameAr || enrollment.class.program?.nameEn || 
+            enrollment.class.program?.code,
           subjectId: enrollment.subjectId,
           subjectCode: enrollment.class.subject.code,
           credits: enrollment.class.subject.credits || 3,
           subjectName: enrollment.class.subject.nameEn || enrollment.class.subject.nameAr,
+          subjectNameAr: enrollment.class.subject.nameAr || enrollment.class.subject.nameEn,
           classId: enrollment.classId,
           className: enrollment.class.nameEn || enrollment.class.nameAr,
+          classNameAr: enrollment.class.nameAr || enrollment.class.nameEn,
           classCode: enrollment.class.code,
           year: enrollment.class.year,
           term: enrollment.class.term,
@@ -1256,6 +1262,7 @@ const getAllStudentMarksReport = async (req, res) => {
         if (gradeType === GRADE_TYPE.COMPLEMENTARY) {
           const resolved = resolveMarkGrade({
             gradeType,
+            letterGrade: studentMarks.letterGrade,
             isRepeated: studentMarks.isRepeated || false,
             complementaryScore: studentMarks.finalExam || 0,
           });
@@ -1278,6 +1285,7 @@ const getAllStudentMarksReport = async (req, res) => {
         } else {
           const resolved = resolveMarkGrade({
             totalMarks,
+            letterGrade: studentMarks.letterGrade,
             gradeType,
             isRepeated: studentMarks.isRepeated || false,
           });
@@ -1304,12 +1312,16 @@ const getAllStudentMarksReport = async (req, res) => {
           programId: enrollment.class.programId,
           programName: enrollment.class.program?.nameEn || enrollment.class.program?.nameAr || 
             enrollment.class.program?.code,
+          programNameAr: enrollment.class.program?.nameAr || enrollment.class.program?.nameEn || 
+            enrollment.class.program?.code,
           subjectId: enrollment.subjectId,
           subjectCode: enrollment.class.subject.code,
           credits: enrollment.class.subject.credits || 3,
           subjectName: enrollment.class.subject.nameEn || enrollment.class.subject.nameAr,
+          subjectNameAr: enrollment.class.subject.nameAr || enrollment.class.subject.nameEn,
           classId: enrollment.classId,
           className: enrollment.class.nameEn || enrollment.class.nameAr,
+          classNameAr: enrollment.class.nameAr || enrollment.class.nameEn,
           classCode: enrollment.class.code,
           year: enrollment.class.year,
           term: enrollment.class.term,

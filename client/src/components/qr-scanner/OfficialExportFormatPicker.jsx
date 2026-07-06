@@ -11,6 +11,7 @@ export default function OfficialExportFormatPicker({
   setExportFormat,
   t,
   theme,
+  showLabel = true,
 }) {
   const options = [
     {
@@ -27,9 +28,11 @@ export default function OfficialExportFormatPicker({
 
   return (
     <div style={{ marginBottom: '1.5rem' }}>
-      <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>
-        {t('export_format')}
-      </label>
+      {showLabel && (
+        <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: 500 }}>
+          {t('export_format')}
+        </label>
+      )}
       <div
         dir="ltr"
         style={{

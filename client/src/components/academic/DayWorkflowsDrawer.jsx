@@ -1,4 +1,5 @@
 import React, { memo, useCallback, useEffect, useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { ExternalLink } from 'lucide-react';
 import { SimpleLoading } from '@ui';
 import { useLang } from '@contexts/LangContext';
@@ -6,6 +7,8 @@ import { useTheme } from '@contexts/ThemeContext';
 import useResizableDrawer from '@hooks/useResizableDrawer';
 import { formatDate } from '@utils/date-formatter.js';
 import { getWorkflowDisplayLabel } from '@constants/workflowConfig';
+import useDrawerTheme from '@hooks/useDrawerTheme.js';
+import useDrawerStyles from '@hooks/useDrawerStyles.js';
 import { getWorkflowDocumentsByContext } from '@services/api/workflow-documents-api';
 import { WORKFLOW_STATUS_CONFIG } from '@constants/driveConstants';
 
@@ -66,40 +69,18 @@ const DayWorkflowsDrawer = memo(({
     if (isOpen) loadWorkflows();
   }, [isOpen, loadWorkflows]);
 
-  const bgColor = isDarkMode ? '#1f2937' : '#ffffff';
-  const borderColor = isDarkMode ? '#374151' : '#e5e7eb';
-  const textColor = isDarkMode ? '#f3f4f6' : '#111827';
-  const mutedColor = isDarkMode ? '#9ca3af' : '#6b7280';
-  const cardBg = isDarkMode ? '#374151' : '#f9fafb';
+  const { bgColor, borderColor, textColor, mutedColor, cardBg } = useDrawerTheme();
 
   const dateLabel = useMemo(() => {
     if (!date) return '—';
     return formatDate(date, lang);
   }, [date, lang]);
 
-  const drawerStyle = useMemo(() => ({
-    position: 'fixed',
-    top: 0,
-    right: isRTL ? 'auto' : (isOpen ? 0 : `-${drawerWidth}px`),
-    left: isRTL ? (isOpen ? 0 : `-${drawerWidth}px`) : 'auto',
-    width: `${drawerWidth}px`,
-    height: '100vh',
-    background: bgColor,
-    boxShadow: isRTL ? '2px 0 10px rgba(0,0,0,0.1)' : '-2px 0 10px rgba(0,0,0,0.1)',
-    transition: 'right 0.3s ease-in-out, left 0.3s ease-in-out',
-    zIndex: 1001,
-    overflow: 'auto',
-  }), [isOpen, drawerWidth, bgColor, isRTL]);
-
-  const backdropStyle = useMemo(() => ({
-    position: 'fixed',
-    top: 0,
-    left: isRTL ? `${drawerWidth}px` : 0,
-    right: isRTL ? 0 : `${drawerWidth}px`,
-    height: '100vh',
-    background: 'rgba(0,0,0,0.45)',
-    zIndex: 1000,
-  }), [drawerWidth, isRTL]);
+  const { drawerStyle, backdropStyle } = useDrawerStyles({
+    isOpen, drawerWidth, isRTL, bgColor,
+    extraDrawerStyle: { zIndex: 1001 },
+    extraBackdropStyle: { zIndex: 1000 },
+  });
 
   const openInbox = useCallback((workflowId) => {
     window.open(`/workflow/inbox?documentId=${workflowId}`, '_blank', 'noopener,noreferrer');
@@ -107,7 +88,7 @@ const DayWorkflowsDrawer = memo(({
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <>
       <div style={backdropStyle} onClick={onClose} role="button" tabIndex={0} aria-label="Close drawer" />
       <div style={drawerStyle} onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
@@ -221,7 +202,8 @@ const DayWorkflowsDrawer = memo(({
         </div>
         <div {...resizeHandleProps} />
       </div>
-    </>
+    </>,
+    document.body
   );
 });
 

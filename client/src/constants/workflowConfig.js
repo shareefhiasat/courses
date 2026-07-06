@@ -2,6 +2,11 @@
  * Workflow taxonomy config: category, attendance subtype, and approval flow metadata.
  */
 
+export const WORKFLOW_UI_COLORS = {
+  ACTIVE: '#8b5cf6',
+  INACTIVE: '#9ca3af',
+};
+
 export const APPROVAL_FLOW_OPTIONS = [
   {
     value: 'HR_ONLY',

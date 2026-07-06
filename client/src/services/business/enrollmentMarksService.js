@@ -10,6 +10,16 @@ import { info, error as logError } from '../utils/logger.js';
 import {
   GRADING_STANDARDS,
   GRADE_TYPE,
+  MANUAL_GRADE_CODES,
+  GRADE_TYPE_LABEL_KEYS,
+  ATTEMPT_LABEL_KEYS,
+  FAIL_REASON_LABEL_KEYS,
+  isManualGradeType,
+  getGradeTypeLabelKey,
+  getAttemptLabelKey,
+  getFailReasonLabelKey,
+  formatTermDisplay,
+  getLocalizedTermDisplay,
   calculateLetterGrade,
   resolveMarkGrade,
   resolveComplementaryGrade,
@@ -20,6 +30,8 @@ import {
   calculateGpaFromMarks,
   groupMarksBySemester,
   mergeComplementaryRecords,
+  getOriginalMark,
+  sumMarkComponents,
   getAllGradingStandards,
   getManualGrades,
   MANUAL_GRADES,
@@ -35,6 +47,16 @@ const API_BASE = '/marks';
 export {
   GRADING_STANDARDS,
   GRADE_TYPE,
+  MANUAL_GRADE_CODES,
+  GRADE_TYPE_LABEL_KEYS,
+  ATTEMPT_LABEL_KEYS,
+  FAIL_REASON_LABEL_KEYS,
+  isManualGradeType,
+  getGradeTypeLabelKey,
+  getAttemptLabelKey,
+  getFailReasonLabelKey,
+  formatTermDisplay,
+  getLocalizedTermDisplay,
   calculateLetterGrade,
   resolveMarkGrade,
   resolveComplementaryGrade,
@@ -45,6 +67,8 @@ export {
   calculateGpaFromMarks,
   groupMarksBySemester,
   mergeComplementaryRecords,
+  getOriginalMark,
+  sumMarkComponents,
   getAllGradingStandards,
   getManualGrades,
   MANUAL_GRADES,
@@ -201,6 +225,26 @@ export const getAllStudentMarksReport = async (filters = {}) => {
       data: [],
       total: 0,
       error: error.message || 'Failed to get student marks report'
+    };
+  }
+};
+
+// Get absence warning counts for a class (or specific student)
+export const getAbsenceWarningCounts = async (classId, userId) => {
+  try {
+    info(serviceName, 'getAbsenceWarningCounts', { classId, userId });
+    
+    const params = new URLSearchParams();
+    if (classId) params.append('classId', classId);
+    if (userId) params.append('userId', userId);
+    
+    const response = await apiService.get(`${API_BASE}/absence-warning-counts?${params.toString()}`);
+    return response;
+  } catch (err) {
+    logError(`${serviceName}:getAbsenceWarningCounts:error`, { error: err.message, classId, userId });
+    return {
+      success: false,
+      error: err.message || 'Failed to get absence warning counts'
     };
   }
 };

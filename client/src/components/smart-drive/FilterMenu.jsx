@@ -13,11 +13,22 @@ const FILTER_TYPE_KEY_MAP = {
   'has-workflow': 'drive.filter.type.hasWorkflow',
 };
 
+const REPORT_TYPE_OPTIONS = [
+  { value: 'marks_semester_certificate', labelKey: 'drive.filter.report.semesterCertificate', icon: 'award' },
+  { value: 'marks_qualitative_card', labelKey: 'drive.filter.report.qualitativeCard', icon: 'clipboard' },
+  { value: 'marks_class_subject', labelKey: 'drive.filter.report.classSubject', icon: 'table' },
+  { value: 'marks_warning_first', labelKey: 'drive.filter.report.firstWarning', icon: 'alert_triangle' },
+  { value: 'marks_warning_final', labelKey: 'drive.filter.report.finalWarning', icon: 'x_circle' },
+  { value: 'weekly_class_schedule', labelKey: 'drive.filter.report.weeklySchedule', icon: 'calendar' },
+  { value: 'attendance_daily_official', labelKey: 'drive.filter.report.dailyOfficial', icon: 'file_text' },
+  { value: 'official_attendance', labelKey: 'drive.filter.report.attendanceOfficial', icon: 'shield' },
+];
+
 /**
  * FilterMenu - Dropdown menu for adding filters
  * Categories: File Type, Date Range, Owner, Status
  */
-export default function FilterMenu({ onAddFilter }) {
+export default function FilterMenu({ onAddFilter, showReportType = false }) {
   const { t, isRTL } = useLang();
   const [isOpen, setIsOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState(null);
@@ -87,6 +98,16 @@ export default function FilterMenu({ onAddFilter }) {
         { value: 'trash', label: t('drive.filter.status.trash'), icon: 'trash2' },
       ],
     },
+    ...(showReportType ? [{
+      id: 'reportType',
+      label: t('drive.filter.reportType'),
+      icon: 'file_text',
+      options: REPORT_TYPE_OPTIONS.map(opt => ({
+        value: opt.value,
+        label: t(opt.labelKey),
+        icon: opt.icon,
+      })),
+    }] : []),
   ];
 
   const handleAddFilter = (type, value) => {

@@ -135,16 +135,28 @@ export function resolveComplementaryGrade(examScore) {
   };
 }
 
-export function resolveMarkGrade({ totalMarks, gradeType, isRepeated, complementaryScore }) {
+export function getGradeDescription(letter, isRepeated = false, lang = 'en') {
+  const isAr = lang === 'ar';
+  const standard = isRepeated ? GRADING_STANDARDS.REPEATED_ATTEMPT : GRADING_STANDARDS.FIRST_ATTEMPT;
+  const match = standard.grades.find((g) => g.letter === letter);
+  if (match) return isAr ? match.descriptionAr : match.description;
+  const manual = MANUAL_GRADES.find((g) => g.letter === letter);
+  if (manual) return isAr ? manual.descriptionAr : manual.description;
+  return letter || '';
+}
+
+export function resolveMarkGrade({ totalMarks, letterGrade, gradeType, isRepeated, complementaryScore, lang = 'en' }) {
   if (gradeType === GRADE_TYPE.COMPLEMENTARY) {
     const result = resolveComplementaryGrade(complementaryScore ?? totalMarks);
+    const letter = letterGrade || result.letter;
+    const description = getGradeDescription(letter, false, lang);
     return {
-      letter: result.letter,
-      points: result.points,
+      letter,
+      points: getGradePoints(letter) ?? result.points,
       totalMarks: result.totalMarks,
       gradeRange: result.passed ? `${COMPLEMENTARY_GRADE.passMin}-100` : `0-${COMPLEMENTARY_GRADE.passMin - 1}`,
-      gradeDescriptionEn: result.descriptionEn,
-      gradeDescriptionAr: result.descriptionAr,
+      gradeDescriptionEn: description,
+      gradeDescriptionAr: getGradeDescription(letter, false, 'ar'),
       gradingStandard: 'Complementary Exam',
     };
   }
@@ -157,23 +169,37 @@ export function resolveMarkGrade({ totalMarks, gradeType, isRepeated, complement
         points: manualGrade.points ?? 0,
         totalMarks: 0,
         gradeRange: 'Manual',
-        gradeDescriptionEn: manualGrade.description,
-        gradeDescriptionAr: manualGrade.descriptionAr,
+        gradeDescriptionEn: getGradeDescription(manualGrade.letter, isRepeated, 'en'),
+        gradeDescriptionAr: getGradeDescription(manualGrade.letter, isRepeated, 'ar'),
         gradingStandard: 'Manual',
       };
     }
   }
 
   const gradeResult = calculateLetterGrade(totalMarks, isRepeated);
+  const letter = letterGrade || gradeResult.letter;
+  const description = getGradeDescription(letter, isRepeated, lang);
+
   return {
-    letter: gradeResult.letter,
-    points: gradeResult.points,
+    letter,
+    points: getGradePoints(letter) ?? gradeResult.points,
     totalMarks,
     gradeRange: gradeResult.range,
-    gradeDescriptionEn: gradeResult.descriptionEn,
-    gradeDescriptionAr: gradeResult.descriptionAr,
+    gradeDescriptionEn: lang === 'ar' ? getGradeDescription(letter, isRepeated, 'en') : description,
+    gradeDescriptionAr: getGradeDescription(letter, isRepeated, 'ar'),
     gradingStandard: isRepeated ? 'Repeated' : 'First Attempt',
   };
+}
+
+function getGradePoints(letter) {
+  if (!letter) return 0;
+  for (const standard of Object.values(GRADING_STANDARDS)) {
+    const match = standard.grades.find((g) => g.letter === letter);
+    if (match) return match.points;
+  }
+  const manual = MANUAL_GRADES.find((g) => g.letter === letter);
+  if (manual) return manual.points ?? 0;
+  return 0;
 }
 
 export function getAllGradingStandards() {

@@ -1,4 +1,5 @@
 import { info, error, warn, debug } from '@services/utils/logger.js';
+import { DRIVE_UPLOAD_MIME_TYPES } from '@constants/exportConfig.js';
 
 /**
  * Shared Configuration & Types
@@ -339,17 +340,7 @@ export const FILE_UPLOAD_CONFIG = {
     'mp3', 'wav', 'ogg', 'm4a', // Audio
     'zip', 'rar', '7z', 'tar', 'gz' // Archives
   ],
-  ALLOWED_FILE_TYPES: [
-    'image/jpeg',
-    'image/png',
-    'image/gif',
-    'application/pdf',
-    'application/msword',
-    'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-    'application/vnd.ms-excel',
-    'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    'text/plain'
-  ],
+  ALLOWED_FILE_TYPES: DRIVE_UPLOAD_MIME_TYPES,
   MAX_FILES_PER_UPLOAD: 5
 };
 

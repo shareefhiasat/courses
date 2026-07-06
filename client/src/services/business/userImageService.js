@@ -6,13 +6,14 @@
  */
 
 import { apiService } from '../api/apiService';
+import { IMAGE_UPLOAD_MIME_TYPES } from '@constants/exportConfig.js';
 
 const serviceName = 'userImageService';
 
 // Valid image types
 const VALID_IMAGE_TYPES = ['profile', 'qid', 'military', 'additional'];
 const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
-const VALID_FILE_MIME_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'application/pdf'];
+const VALID_FILE_MIME_TYPES = IMAGE_UPLOAD_MIME_TYPES;
 
 /**
  * Validate file before upload

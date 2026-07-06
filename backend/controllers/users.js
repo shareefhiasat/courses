@@ -8,6 +8,12 @@
 import prisma from '../db/prismaClient.js';
 import { getDatabaseUserId, findUserByParam } from '../utils/database/userResolver.js';
 import { validateUserRemoval } from '../services/availabilityGuardService.js';
+import { getRequestScope } from '../utils/scopeAccess.js';
+import {
+  getScopedUserIds,
+  isUserInRequesterScope,
+  attachEnrolledClasses,
+} from '../utils/userAccess.js';
 
 /**
  * Convert a stored MinIO image key (e.g. "Users/123/images/profile.jpg")
@@ -101,6 +107,15 @@ export const listUsersController = async (req, res) => {
 
     let where = { isActive: true, email: { not: { equals: 'admin@keycloak.local' } } };
 
+    if (req.userListAccess === 'scoped') {
+      const scope = await getRequestScope(req);
+      const scopedUserIds = await getScopedUserIds(scope, req.user?.dbId);
+      if (!scopedUserIds.length) {
+        return res.status(200).json({ success: true, data: [], total: 0 });
+      }
+      where.id = { in: scopedUserIds };
+    }
+
     // Build search conditions
     const searchConditions = search ? [
       { displayName: { contains: search, mode: 'insensitive' } },
@@ -183,13 +198,18 @@ export const listUsersController = async (req, res) => {
     }
 
     // Convert MinIO image keys to proxy URLs for frontend use
-    const usersWithUrls = filteredUsers.map(u => ({
+    let usersWithUrls = filteredUsers.map(u => ({
       ...u,
       profileImageUrl: toProfileImageUrl(u.keycloakId, u.profileImageUrl),
       qidImageUrl: toImageUrl(u.keycloakId, u.qidImageUrl, 'qid'),
       militaryIdImageUrl: toImageUrl(u.keycloakId, u.militaryIdImageUrl, 'military'),
       additionalImageUrl: toImageUrl(u.keycloakId, u.additionalImageUrl, 'additional'),
     }));
+
+    if (req.userListAccess === 'scoped') {
+      const scope = await getRequestScope(req);
+      usersWithUrls = await attachEnrolledClasses(usersWithUrls, scope.classIds);
+    }
 
     res.status(200).json({
       success: true,
@@ -212,6 +232,17 @@ export const listUsersController = async (req, res) => {
 export const getUserByIdController = async (req, res) => {
   try {
     const { id } = req.params;
+
+    if (req.userListAccess === 'scoped') {
+      const target = await findUserByParam(id, { id: true });
+      if (!target) {
+        return res.status(404).json({ success: false, error: 'User not found' });
+      }
+      const inScope = await isUserInRequesterScope(req, target.id);
+      if (!inScope) {
+        return res.status(403).json({ success: false, error: 'Insufficient permissions' });
+      }
+    }
 
     const user = await findUserByParam(id, {
         id: true,
@@ -250,9 +281,20 @@ export const getUserByIdController = async (req, res) => {
       });
     }
 
+    let data = {
+      ...user,
+      profileImageUrl: toProfileImageUrl(user.keycloakId, user.profileImageUrl),
+    };
+
+    if (req.userListAccess === 'scoped' || req.userListAccess === 'self') {
+      const scope = await getRequestScope(req);
+      const [withEnrollments] = await attachEnrolledClasses([data], scope.classIds);
+      data = withEnrollments;
+    }
+
     res.status(200).json({
       success: true,
-      data: user
+      data
     });
   } catch (error) {
     console.error('Error in getUserByIdController:', error);

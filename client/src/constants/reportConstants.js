@@ -1,4 +1,5 @@
 import { info, error, warn, debug } from '@services/utils/logger.js';
+import { MIME_TYPES } from '@constants/exportConfig.js';
 
 /**
  * Report Constants
@@ -68,11 +69,11 @@ export const STORAGE_CONSTANTS = {
   
   // Content Types
   CONTENT_TYPES: {
-    CSV: 'text/csv',
-    PDF: 'application/pdf',
-    EXCEL: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-    JSON: 'application/json',
-    TEXT: 'text/plain',
+    CSV: MIME_TYPES.CSV,
+    PDF: MIME_TYPES.PDF,
+    EXCEL: MIME_TYPES.EXCEL,
+    JSON: MIME_TYPES.JSON,
+    TEXT: MIME_TYPES.TEXT,
     IMAGE: 'image/*'
   }
 };

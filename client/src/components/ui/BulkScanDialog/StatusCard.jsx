@@ -6,7 +6,7 @@
 
 import React from 'react';
 import { getThemedIcon } from '@constants/iconTypes';
-import { getAttendanceColor, ATTENDANCE_DISPLAY_NAMES } from '@constants/attendanceTypes';
+import { getAttendanceColor, getAttendanceIcon, ATTENDANCE_DISPLAY_NAMES } from '@constants/attendanceTypes';
 import styles from './BulkScanDialog.module.css';
 
 const StatusCard = ({
@@ -20,20 +20,9 @@ const StatusCard = ({
   theme,
   lang
 }) => {
-  // Status icon mapping
-  const statusIconMap = {
-    ATTENDANCE_PRESENT: { icon: 'check_circle', color: '#22c55e' },
-    ATTENDANCE_LATE: { icon: 'clock', color: '#eab308' },
-    ATTENDANCE_ABSENT: { icon: 'x_circle', color: '#ef4444' },
-    ATTENDANCE_LEAVE: { icon: 'heart', color: '#ec4899' },
-    ATTENDANCE_HUMAN_CASE: { icon: 'heart', color: '#8b5cf6' },
-    STANDUP_PRESENT: { icon: 'check_circle', color: '#10b981' },
-    STANDUP_ABSENT: { icon: 'x', color: '#dc2626' },
-    STANDUP_CLINIC: { icon: 'heart', color: '#ec4899' },
-    STANDUP_LATE: { icon: 'clock', color: '#f59e0b' }
-  };
-
-  const iconConfig = statusIconMap[id] || { icon: 'circle', color: '#6b7280' };
+  const statusColor = getAttendanceColor(id);
+  const iconName = getAttendanceIcon(id);
+  const iconConfig = { icon: iconName, color: statusColor };
 
   return (
     <button

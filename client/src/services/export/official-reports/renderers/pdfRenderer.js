@@ -77,12 +77,6 @@ export async function renderOfficialPdf(element, options = {}) {
     throw new Error('No official report pages rendered for PDF export');
   }
 
-  const isAr = lang === 'ar';
-  const genDateTime = formatDateTime(new Date(), isAr ? 'ar' : 'en');
-  const serialLabel = isAr ? 'الرقم التسلسلي' : 'Serial';
-  const genLabel = isAr ? 'تاريخ الإصدار' : 'Generated';
-  const pageLabel = isAr ? 'صفحة' : 'Page';
-
   const firstDims = pageDimensions(pageElements[0]);
   const pdf = new jsPDF({
     orientation: firstDims.width > firstDims.height ? 'landscape' : 'portrait',
@@ -124,23 +118,6 @@ export async function renderOfficialPdf(element, options = {}) {
     }
 
     pdf.addImage(imgData, 'JPEG', 0, 0, dims.width, dims.height);
-
-    const footerY = dims.height - 6;
-    const margin = 10;
-    pdf.setFontSize(8);
-    pdf.setTextColor(85, 85, 85);
-
-    if (isAr) {
-      pdf.text(`${serialLabel}: ${serial}`, dims.width - margin, footerY, { align: 'right' });
-      pdf.text(`${genLabel}: ${genDateTime}`, dims.width / 2, footerY, { align: 'center' });
-      pdf.setFontSize(10);
-      pdf.text(`${pageLabel} ${i + 1} / ${totalPages}`, margin, footerY, { align: 'left' });
-    } else {
-      pdf.text(`${serialLabel}: ${serial}`, margin, footerY);
-      pdf.text(`${genLabel}: ${genDateTime}`, dims.width / 2, footerY, { align: 'center' });
-      pdf.setFontSize(10);
-      pdf.text(`${pageLabel} ${i + 1} / ${totalPages}`, dims.width - margin, footerY, { align: 'right' });
-    }
   }
 
   root.unmount();

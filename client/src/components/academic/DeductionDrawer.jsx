@@ -1,15 +1,33 @@
 import React, { memo, useMemo, useCallback, useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import { ExternalLink, Workflow } from 'lucide-react';
 import { Button, SimpleLoading } from '@ui';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import useResizableDrawer from '@hooks/useResizableDrawer';
 import { formatDateTime, formatDateShort, getQatarDateParts, formatDate } from '@utils/date-formatter.js';
+import { getLocalizedUserName } from '@utils/localizedUserName.js';
+import { getAttendanceColor, getLocalizedAttendanceLabel, ATTENDANCE_STATUS } from '@constants/attendanceTypes';
+import { ACADEMIC_TERMS, getAcademicTermLabel } from '@constants/academicTerms';
+import { WORKFLOW_UI_COLORS } from '@constants/workflowConfig';
+import { getProgressColor } from '@utils/progressColors.js';
+import useDrawerTheme from '@hooks/useDrawerTheme.js';
+import useDrawerStyles from '@hooks/useDrawerStyles.js';
+import { CheckSmallIcon, ClockSmallIcon, XSmallIcon, HeartIcon } from '@utils/icons.jsx';
 import { getWorkflowDocumentsByContext } from '@services/api/workflow-documents-api';
 import DayWorkflowsDrawer from './DayWorkflowsDrawer';
 
-const WORKFLOW_ACTIVE = '#8b5cf6';
-const WORKFLOW_INACTIVE = '#9ca3af';
+const STATUS_ICON_MAP = {
+  [ATTENDANCE_STATUS.PRESENT]: CheckSmallIcon,
+  [ATTENDANCE_STATUS.ABSENT_NO_EXCUSE]: XSmallIcon,
+  [ATTENDANCE_STATUS.LATE]: ClockSmallIcon,
+  [ATTENDANCE_STATUS.EXCUSED_LEAVE]: HeartIcon,
+  [ATTENDANCE_STATUS.HUMAN_CASE]: HeartIcon,
+  [ATTENDANCE_STATUS.STANDUP_PRESENT]: CheckSmallIcon,
+  [ATTENDANCE_STATUS.STANDUP_LATE]: ClockSmallIcon,
+  [ATTENDANCE_STATUS.STANDUP_ABSENT]: XSmallIcon,
+  [ATTENDANCE_STATUS.STANDUP_CLINIC]: HeartIcon,
+};
 
 function toDateKey(date) {
   if (!date) return '';
@@ -18,30 +36,7 @@ function toDateKey(date) {
   return d.toISOString().slice(0, 10);
 }
 
-const STATUS_LABELS = {
-  ATTENDANCE_ABSENT: 'Absent (No Excuse)',
-  ATTENDANCE_LEAVE: 'Excused Leave',
-  ATTENDANCE_LATE: 'Late',
-  ATTENDANCE_HUMAN_CASE: 'Human Case',
-  ATTENDANCE_PRESENT: 'Present',
-};
 
-const STATUS_COLORS = {
-  ATTENDANCE_ABSENT: '#ef4444',
-  ATTENDANCE_LEAVE: '#3b82f6',
-  ATTENDANCE_LATE: '#f59e0b',
-  ATTENDANCE_HUMAN_CASE: '#a855f7',
-  ATTENDANCE_PRESENT: '#22c55e',
-};
-
-function getProgressColor(value, max) {
-  if (!max) return '#6b7280';
-  const pct = value / max;
-  if (pct >= 1) return '#dc2626';
-  if (pct >= 0.75) return '#ef4444';
-  if (pct >= 0.5) return '#f59e0b';
-  return '#22c55e';
-}
 
 function formatDeduction(val) {
   return Number(val).toFixed(2);
@@ -73,11 +68,39 @@ const DeductionDrawer = memo(({
   });
 
   const [historyFilter, setHistoryFilter] = useState('all'); // 'all', 'recorded', 'approved', 'amended', 'no-workflow'
+  const [itemFilter, setItemFilter] = useState('all');
   const [dayWorkflowContext, setDayWorkflowContext] = useState(null);
   const [datesWithWorkflows, setDatesWithWorkflows] = useState(() => new Set());
 
   const resolvedClassId = classIdProp || student?.classId || null;
   const resolvedUserId = student?.studentId || student?.userId || student?.id;
+
+  const localizedClassName = useMemo(() => {
+    if (!student?.className) return '';
+    if (lang !== 'ar') return student.className;
+    
+    // Parse compound term format (e.g., "2024-FALL" -> { baseTerm: "fall", year: "2024" })
+    let baseTerm = student.term;
+    let termYear = student.year || '';
+    const termMatch = student.term?.match(/^(\d{4})-([a-zA-Z]+)$/);
+    if (termMatch) {
+      baseTerm = termMatch[2].toLowerCase();
+      termYear = termMatch[1]; // Use year from term if available
+    }
+    
+    // Get Arabic term label directly from ACADEMIC_TERMS to avoid compound format handling
+    const termConfig = Object.values(ACADEMIC_TERMS).find(t => t.value === baseTerm);
+    const termLabel = termConfig ? termConfig.label.ar : '';
+    const termYearStr = [termLabel, termYear].filter(Boolean).join(' ');
+    
+    // In Arabic mode, use subjectNameAr + termYear instead of trying to clean up classNameAr
+    // This avoids the complex filtering logic and duplication issues
+    const subject = student.subjectNameAr || student.subjectName || '';
+    if (subject || termYearStr) {
+      return [subject, termYearStr].filter(Boolean).join(' - ');
+    }
+    return student.className;
+  }, [student, lang]);
 
   useEffect(() => {
     if (!isOpen || !resolvedUserId || !resolvedClassId) {
@@ -139,7 +162,7 @@ const DeductionDrawer = memo(({
           padding: '1px',
           display: 'flex',
           alignItems: 'center',
-          color: hasWorkflows ? WORKFLOW_ACTIVE : WORKFLOW_INACTIVE,
+          color: hasWorkflows ? WORKFLOW_UI_COLORS.ACTIVE : WORKFLOW_UI_COLORS.INACTIVE,
           borderRadius: '3px',
           flexShrink: 0,
           opacity: hasWorkflows ? 1 : 0.55,
@@ -166,43 +189,16 @@ const DeductionDrawer = memo(({
       'no-workflow': history.filter(e => !e.workflowDocumentId).length,
     };
     return [
-      { key: 'all', label: 'All', count: counts.all },
-      { key: 'attendance_recorded', label: 'Recorded', count: counts.recorded },
-      { key: 'excuse_approved', label: 'Approved', count: counts.approved },
-      { key: 'amended', label: 'Amended', count: counts.amended },
-      { key: 'no-workflow', label: 'No Workflow', count: counts['no-workflow'] },
+      { key: 'all', label: t('all', 'All'), count: counts.all },
+      { key: 'attendance_recorded', label: t('recorded', 'Recorded'), count: counts.recorded },
+      { key: 'excuse_approved', label: t('approved', 'Approved'), count: counts.approved },
+      { key: 'amended', label: t('amended', 'Amended'), count: counts.amended },
+      { key: 'no-workflow', label: t('no_workflow', 'No Workflow'), count: counts['no-workflow'] },
     ].filter(b => b.key === 'all' || (b.count > 0 && b.count < total));
-  }, [history]);
+  }, [history, t]);
 
-  const bgColor = isDarkMode ? '#1f2937' : '#ffffff';
-  const borderColor = isDarkMode ? '#374151' : '#e5e7eb';
-  const textColor = isDarkMode ? '#f3f4f6' : '#111827';
-  const mutedColor = isDarkMode ? '#9ca3af' : '#6b7280';
-  const cardBg = isDarkMode ? '#374151' : '#f9fafb';
-
-  const drawerStyle = useMemo(() => ({
-    position: 'fixed',
-    top: 0,
-    right: isRTL ? 'auto' : (isOpen ? 0 : `-${drawerWidth}px`),
-    left: isRTL ? (isOpen ? 0 : `-${drawerWidth}px`) : 'auto',
-    width: `${drawerWidth}px`,
-    height: '100vh',
-    background: bgColor,
-    boxShadow: isRTL ? '2px 0 10px rgba(0,0,0,0.1)' : '-2px 0 10px rgba(0,0,0,0.1)',
-    transition: 'right 0.3s ease-in-out, left 0.3s ease-in-out',
-    zIndex: 1000,
-    overflow: 'auto',
-  }), [isOpen, drawerWidth, bgColor, isRTL]);
-
-  const backdropStyle = useMemo(() => ({
-    position: 'fixed',
-    top: 0,
-    left: isRTL ? `${drawerWidth}px` : 0,
-    right: isRTL ? 0 : `${drawerWidth}px`,
-    height: '100vh',
-    background: 'rgba(0,0,0,0.45)',
-    zIndex: 999,
-  }), [drawerWidth, isRTL]);
+  const { bgColor, borderColor, textColor, mutedColor, cardBg } = useDrawerTheme();
+  const { drawerStyle, backdropStyle } = useDrawerStyles({ isOpen, drawerWidth, isRTL, bgColor });
 
   const summary = data?.summary || data;
   const items = data?.items || data?.rows || [];
@@ -257,7 +253,7 @@ const DeductionDrawer = memo(({
             fontWeight: 600,
             color: isReduction ? '#22c55e' : isInitial ? '#3b82f6' : '#f59e0b',
           }}>
-            {isReduction ? '↓ Excuse Approved' : isInitial ? '● Recorded' : '✎ Amended'}
+            {isReduction ? `↓ ${t('excuse_approved', 'Excuse Approved')}` : isInitial ? `● ${t('recorded', 'Recorded')}` : `✎ ${t('amended', 'Amended')}`}
           </span>
           <span style={{ fontSize: '0.65rem', color: mutedColor }}>
             {formatDate(entry.timestamp, lang)}
@@ -269,7 +265,7 @@ const DeductionDrawer = memo(({
         {entry.deductionChange !== undefined && (
           <div style={{ fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
             <span style={{ color: mutedColor }}>
-              Deduction: {formatDeduction(entry.deductionChange.old)} → {formatDeduction(entry.deductionChange.new)}
+              {t('deduction', 'Deduction')}: {formatDeduction(entry.deductionChange.old)} → {formatDeduction(entry.deductionChange.new)}
             </span>
             <span style={{
               color: isDeductionIncrease ? '#ef4444' : '#22c55e',
@@ -281,11 +277,7 @@ const DeductionDrawer = memo(({
           </div>
         )}
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginTop: '0.15rem' }}>
-          {entry.actorName && (
-            <span style={{ fontSize: '0.65rem', color: mutedColor }}>
-              by {entry.actorName}
-            </span>
-          )}
+          {entry.attendanceDate && renderDayWorkflowButton(entry.attendanceDate)}
           {entry.workflowDocumentId && (
             <button
               onClick={() => window.open(`/workflow-documents/${entry.workflowDocumentId}`, '_blank')}
@@ -303,7 +295,11 @@ const DeductionDrawer = memo(({
               <ExternalLink size={12} />
             </button>
           )}
-          {entry.attendanceDate && renderDayWorkflowButton(entry.attendanceDate)}
+          {entry.actorName && (
+            <span style={{ fontSize: '0.65rem', color: mutedColor }}>
+              {t('by', 'by')} {entry.actorName}
+            </span>
+          )}
         </div>
       </div>
     );
@@ -311,7 +307,7 @@ const DeductionDrawer = memo(({
 
   if (!isOpen) return null;
 
-  return (
+  return createPortal(
     <>
       {isOpen && (
         <div
@@ -373,7 +369,7 @@ const DeductionDrawer = memo(({
               color: isDarkMode ? '#e5e7eb' : '#4b5563',
               overflow: 'hidden',
             }}>
-              {(student.studentName || student.displayName || student.name || '?')
+              {(getLocalizedUserName(student, lang, student.studentName || student.displayName || student.name || '?'))
                 .split(' ')
                 .map(w => w[0])
                 .slice(0, 2)
@@ -383,7 +379,7 @@ const DeductionDrawer = memo(({
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <div style={{ fontWeight: 600, color: textColor, fontSize: '0.9rem' }}>
-                  {student.studentName || student.displayName || student.name || 'Unknown'}
+                  {getLocalizedUserName(student, lang, student.studentName || student.displayName || student.name || 'Unknown')}
                 </div>
                 {student.studentId && (
                   <button
@@ -414,9 +410,10 @@ const DeductionDrawer = memo(({
               </div>
               <div style={{ fontSize: '0.75rem', color: mutedColor, lineHeight: 1.4 }}>
                 {student.studentNumber && <div>#{student.studentNumber}</div>}
-                {student.programName && <div>{student.programName}</div>}
-                {student.subjectName && <div>{student.subjectName}</div>}
-                {student.className && <div>{student.className}</div>}
+                {student.programName && <div>{lang === 'ar' ? (student.programNameAr || student.programName) : student.programName}</div>}
+                {student.subjectName && (!student.className || !student.className.includes(student.subjectName)) && <div>{lang === 'ar' ? (student.subjectNameAr || student.subjectName) : student.subjectName}</div>}
+                {student.className && <div>{localizedClassName}</div>}
+                {student.term && lang === 'en' && (!student.className || !student.className.toLowerCase().includes(student.term.toLowerCase())) && <div>{student.term}{student.year ? ` ${student.year}` : ''}</div>}
               </div>
             </div>
           </div>
@@ -442,23 +439,23 @@ const DeductionDrawer = memo(({
             }}>
               {/* Big numbers: deduction + remaining score */}
               <div style={{ display: 'flex', gap: '1rem', marginBottom: '1rem' }}>
-                <div style={{ flex: 1, textAlign: 'center', padding: '0.75rem', borderRadius: '8px', background: isDarkMode ? '#1f2937' : '#fff', border: `1px solid ${borderColor}` }}>
-                  <div style={{ fontSize: '0.7rem', color: mutedColor, textTransform: 'uppercase', fontWeight: 600, marginBottom: '0.25rem' }}>
+                <div style={{ flex: 1, textAlign: 'center', padding: '0.5rem', borderRadius: '8px', background: isDarkMode ? '#1f2937' : '#fff', border: `1px solid ${borderColor}` }}>
+                  <div style={{ fontSize: '0.65rem', color: mutedColor, textTransform: 'uppercase', fontWeight: 600, marginBottom: '0.15rem' }}>
                     {t('deducted')}
                   </div>
-                  <div style={{ fontSize: '1.75rem', fontWeight: 800, color: getProgressColor(totalDeduction, weight) }}>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 800, color: '#ef4444' }}>
                     -{formatDeduction(totalDeduction)}
                   </div>
-                  <div style={{ fontSize: '0.7rem', color: mutedColor }}>out of {weight}</div>
+                  <div style={{ fontSize: '0.65rem', color: mutedColor }}>{t('out_of', 'out of')} {weight}</div>
                 </div>
-                <div style={{ flex: 1, textAlign: 'center', padding: '0.75rem', borderRadius: '8px', background: isDarkMode ? '#1f2937' : '#fff', border: `1px solid ${borderColor}` }}>
-                  <div style={{ fontSize: '0.7rem', color: mutedColor, textTransform: 'uppercase', fontWeight: 600, marginBottom: '0.25rem' }}>
+                <div style={{ flex: 1, textAlign: 'center', padding: '0.5rem', borderRadius: '8px', background: isDarkMode ? '#1f2937' : '#fff', border: `1px solid ${borderColor}` }}>
+                  <div style={{ fontSize: '0.65rem', color: mutedColor, textTransform: 'uppercase', fontWeight: 600, marginBottom: '0.15rem' }}>
                     {t('remaining_score')}
                   </div>
-                  <div style={{ fontSize: '1.75rem', fontWeight: 800, color: suggestedScore > 0 ? '#22c55e' : '#ef4444' }}>
+                  <div style={{ fontSize: '1.25rem', fontWeight: 800, color: suggestedScore > 0 ? '#22c55e' : '#ef4444' }}>
                     {formatDeduction(suggestedScore)}
                   </div>
-                  <div style={{ fontSize: '0.7rem', color: mutedColor }}>out of {weight}</div>
+                  <div style={{ fontSize: '0.65rem', color: mutedColor }}>{t('out_of', 'out of')} {weight}</div>
                 </div>
               </div>
 
@@ -469,8 +466,8 @@ const DeductionDrawer = memo(({
               {/* Failure Warning */}
               {failureGrade && (
                 <div style={{
-                  marginTop: '0.75rem',
-                  padding: '0.75rem',
+                  marginTop: '0.5rem',
+                  padding: '0.5rem',
                   borderRadius: '8px',
                   background: 'rgba(220, 38, 38, 0.1)',
                   border: '1px solid rgba(220, 38, 38, 0.3)',
@@ -504,11 +501,54 @@ const DeductionDrawer = memo(({
                 }}>
                   {t('itemized_deductions')} ({items.length})
                 </div>
+                <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginBottom: '0.625rem' }}>
+                  {[
+                    { key: 'all', label: t('all', 'All'), count: items.length, color: null, icon: null },
+                    ...Object.entries(
+                      items.reduce((acc, item) => {
+                        const code = item.statusCode || item.status?.code || '';
+                        if (code) acc[code] = (acc[code] || 0) + 1;
+                        return acc;
+                      }, {})
+                    ).map(([code, count]) => ({
+                      key: code,
+                      label: getLocalizedAttendanceLabel(code, lang),
+                      count,
+                      color: getAttendanceColor(code),
+                      icon: STATUS_ICON_MAP[code] || null,
+                    })),
+                  ].map(btn => (
+                    <button
+                      key={btn.key}
+                      onClick={() => setItemFilter(btn.key)}
+                      style={{
+                        padding: '2px 8px', borderRadius: '10px',
+                        border: `1px solid ${itemFilter === btn.key ? (btn.color || 'var(--brand)') : borderColor}`,
+                        fontSize: '0.65rem', fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap',
+                        background: itemFilter === btn.key ? (btn.color || 'var(--brand)') : 'transparent',
+                        color: itemFilter === btn.key ? '#fff' : mutedColor,
+                        display: 'inline-flex', alignItems: 'center', gap: '3px',
+                      }}
+                    >
+                      {btn.icon && <btn.icon style={{ width: '10px', height: '10px' }} />}
+                      {btn.label}
+                      <span style={{
+                        fontSize: '0.55rem', opacity: 0.8,
+                        background: itemFilter === btn.key ? 'rgba(255,255,255,0.2)' : cardBg,
+                        padding: '0 4px', borderRadius: '8px',
+                      }}>{btn.count}</span>
+                    </button>
+                  ))}
+                </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-                  {items.map((item, idx) => {
+                  {items.filter(item => {
+                    if (itemFilter === 'all') return true;
+                    const code = item.statusCode || item.status?.code || '';
+                    return code === itemFilter;
+                  }).map((item, idx) => {
                     const statusCode = item.statusCode || item.status?.code || '';
-                    const color = STATUS_COLORS[statusCode] || '#6b7280';
-                    const label = STATUS_LABELS[statusCode] || statusCode || 'Unknown';
+                    const color = getAttendanceColor(statusCode);
+                    const label = getLocalizedAttendanceLabel(statusCode, lang);
                     const excused = item.excusedViaWorkflow || !!item.excuseApprovedAt;
 
                     return (
@@ -521,18 +561,24 @@ const DeductionDrawer = memo(({
                         borderRadius: '6px',
                         background: isDarkMode ? '#1f2937' : '#fff',
                       }}>
-                        {/* Date */}
+                        {/* Date + Recorded By */}
                         <div style={{
                           flexShrink: 0,
                           fontSize: '0.7rem',
                           color: mutedColor,
                           minWidth: '70px',
                         }}>
-                          {formatDate(item.date, lang)}
+                          <div>{formatDate(item.date, lang)}</div>
+                          {item.recordedBy && (
+                            <div style={{ fontSize: '0.6rem', color: mutedColor, opacity: 0.8, marginTop: '1px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                              {item.recordedBy}
+                            </div>
+                          )}
                         </div>
 
                         {/* Status + Excused */}
                         <div style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                          {(() => { const Icon = STATUS_ICON_MAP[statusCode]; return Icon ? <Icon style={{ width: '12px', height: '12px', color, flexShrink: 0 }} /> : null; })()}
                           <span style={{
                             fontSize: '0.8rem',
                             fontWeight: 600,
@@ -644,7 +690,7 @@ const DeductionDrawer = memo(({
                   </div>
                 ) : (
                   <div style={{ textAlign: 'center', padding: '1rem', color: mutedColor, fontSize: '0.75rem' }}>
-                    No entries match this filter
+                    {t('no_entries_match_filter', 'No entries match this filter')}
                   </div>
                 )}
               </div>
@@ -668,7 +714,8 @@ const DeductionDrawer = memo(({
         date={dayWorkflowContext?.date}
         programId={programId}
       />
-    </>
+    </>,
+    document.body
   );
 });
 

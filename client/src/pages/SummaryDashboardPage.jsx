@@ -29,7 +29,6 @@ import {
 import { getAllUsers, getUserRoles } from '@services/business/userService';
 import { getAllSubjects } from '@services/business/subjectService';
 import { getAllClasses } from '@services/business/classService';
-import { getAccessibleProgramsForUser } from '@services/business/userCategoryAccessService';
 import { getAllPrograms } from '@services/business/programService';
 import {
   buildSchedulingOverviewCards,
@@ -69,6 +68,7 @@ const SummaryDashboardPage = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { canAccessScreen, hasPermission, loading: permissionsLoading } = usePermissions();
+  const canViewAdvancedAnalytics = hasPermission('advanced-analytics.canView');
   const { scope, filterItems } = useDataScope();
 
   const prefilterInstructor = searchParams.get('instructorId');
@@ -98,7 +98,7 @@ const SummaryDashboardPage = () => {
   const [endDate, setEndDate] = usePersistentState('summary_end_date', '');
   const [refreshInterval, setRefreshInterval] = usePersistentState('summary_refresh_interval', 30000);
   const [lastUpdatedAt, setLastUpdatedAt] = useState(Date.now());
-  const analyticsHook = useDashboardAnalytics();
+  const analyticsHook = useDashboardAnalytics(null, { enabled: canViewAdvancedAnalytics });
   const recordsClassId = reportFilters.classId || null;
   const recordsHook = useStudentDashboardData(null, Boolean(recordsClassId), recordsClassId, reportFilters.programId || null);
 
@@ -167,11 +167,13 @@ const SummaryDashboardPage = () => {
         const result = await getAllPrograms();
         if (result?.success) programs = result.data || [];
       } else {
-        const result = await getAccessibleProgramsForUser(dbUserId);
-        if (result.success) programs = result.data || [];
-        if (scope.programIds?.length) {
-          const allowed = new Set(scope.programIds.map(Number));
-          programs = programs.filter((p) => allowed.has(Number(p.id)));
+        const result = await getAllPrograms();
+        if (result?.success) {
+          programs = result.data || [];
+          if (scope.programIds?.length) {
+            const allowed = new Set(scope.programIds.map(Number));
+            programs = programs.filter((p) => allowed.has(Number(p.id)));
+          }
         }
       }
       setAccessiblePrograms(programs);
@@ -652,6 +654,7 @@ const SummaryDashboardPage = () => {
             </CollapsibleSection>
           </div>
 
+          {canViewAdvancedAnalytics && (
           <div data-tour="summary-drive-analytics">
             <CollapsibleSection
               title={t('drive')}
@@ -711,6 +714,7 @@ const SummaryDashboardPage = () => {
               />
             </CollapsibleSection>
           </div>
+          )}
 
         </>
       )}

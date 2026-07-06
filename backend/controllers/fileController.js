@@ -122,12 +122,12 @@ export const completeUpload = async (req, res) => {
 
         if (file && file.folderId) {
           // Get all users who have access to this folder
-          const folderShares = await prisma.folderShare.findMany({
-            where: { folderId: file.folderId },
-            select: { sharedWithId: true }
+          const folderShares = await prisma.fileShare.findMany({
+            where: { folderId: file.folderId, subjectType: 'USER' },
+            select: { subjectUserId: true }
           });
 
-          const recipientIds = folderShares.map(s => s.sharedWithId).filter(id => id !== req.user?.dbId);
+          const recipientIds = folderShares.map(s => s.subjectUserId).filter(id => id !== req.user?.dbId);
 
           if (recipientIds.length > 0) {
             const uploader = await prisma.user.findUnique({
@@ -223,6 +223,7 @@ export const listFiles = async (req, res) => {
       ownedOnly = false,
       sharedOnly = false,
       hasWorkflow = false,
+      reportType = null,
     } = req.query;
 
     const result = await fileService.listFiles(req.user, {
@@ -243,6 +244,7 @@ export const listFiles = async (req, res) => {
       ownedOnly: ownedOnly === 'true',
       sharedOnly: sharedOnly === 'true',
       hasWorkflow: hasWorkflow === 'true',
+      reportType,
     });
 
     if (!result.success) {

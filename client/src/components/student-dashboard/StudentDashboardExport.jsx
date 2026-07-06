@@ -3,6 +3,7 @@ import { jsPDF } from 'jspdf';
 import ExcelJS from 'exceljs';
 import { useLang } from '@contexts/LangContext';
 import { FileDown, FileSpreadsheet } from 'lucide-react';
+import { MIME_TYPES } from '@constants/exportConfig.js';
 
 function downloadBlob(blob, filename) {
   const url = URL.createObjectURL(blob);
@@ -132,7 +133,7 @@ export default function StudentDashboardExport({ dashData, lookupData, isRTL }) 
 
     const buffer = await wb.xlsx.writeBuffer();
     downloadBlob(
-      new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }),
+      new Blob([buffer], { type: MIME_TYPES.EXCEL }),
       `student-dashboard-${Date.now()}.xlsx`,
     );
   }, [dashData, hasData]);

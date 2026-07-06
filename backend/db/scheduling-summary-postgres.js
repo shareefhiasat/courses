@@ -235,7 +235,9 @@ async function computeWidgetAnalytics(params) {
   const instructorAvailabilityWhere = { isActive: true };
   if (_scope && !_scope.unrestricted && scopeClassIds !== null) {
     const instructorIds = await resolveInstructorIdsInScope(_scope, scopeClassIds);
-    if (!instructorIds.length) {
+    if (instructorIds === null) {
+      // visibility.instructors === 'ALL' — no instructor filter
+    } else if (!instructorIds.length) {
       instructorAvailabilityWhere.instructorUserId = -1;
     } else {
       instructorAvailabilityWhere.instructorUserId = { in: instructorIds };

@@ -16,6 +16,7 @@ import {
 import { apiService } from '../api/apiService.js';
 import { exportToExcel } from '../export/excelExportService.js';
 import { info, error as logError } from '../utils/logger.js';
+import { MIME_TYPES } from '@constants/exportConfig.js';
 
 /**
  * Submit attendance report for HR review
@@ -85,7 +86,7 @@ async function generateAttendanceExcelReport(attendanceData, metadata) {
     return {
       data: base64Data,
       fileName: `attendance_${date.replace(/-/g, '')}.xlsx`,
-      fileType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      fileType: MIME_TYPES.EXCEL
     };
   } catch (error) {
     console.error('Error generating Excel report:', error);

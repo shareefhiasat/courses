@@ -42,6 +42,7 @@ import SchedulingAvailabilityTimeline from '../components/SchedulingAvailability
 import SchedulingClassesView from '../components/SchedulingClassesView.jsx';
 import CalendarEventDialog from '../components/scheduling/CalendarEventDialog.jsx';
 import SessionEventDialog from '../components/scheduling/SessionEventDialog.jsx';
+import SchedulingExportDialog from '../components/scheduling/SchedulingExportDialog.jsx';
 import {
   BookOpen, Users, DoorOpen, Calendar as CalendarIcon,
   ChevronLeft, ChevronRight, Maximize2, Minimize2,
@@ -49,7 +50,7 @@ import {
   ChevronUp, ChevronDown, List, Grid, Filter, ArrowUp, ArrowDown,
   CheckCircle2, XCircle, PanelLeftClose, PanelLeft, CalendarOff,
   CalendarDays, LayoutList, LayoutGrid, GraduationCap, LayoutDashboard,
-  Coffee, Umbrella, Utensils, MoreHorizontal
+  Coffee, Umbrella, Utensils, MoreHorizontal, Download
 } from 'lucide-react';
 import { getAllClasses } from '@services/business/classService.js';
 import { getAllPrograms } from '@services/business/programService.js';
@@ -419,6 +420,7 @@ const SchedulingCalendarPage = () => {
   // Search and drill-down state
   const [searchQuery, setSearchQuery] = useState('');
   const [sessionClassFilter, setSessionClassFilter] = useState(() => searchParams.get('classId') || null);
+  const [showScheduleExportDialog, setShowScheduleExportDialog] = useState(false);
   const [expandedItems, setExpandedItems] = useState(new Set());
   
   // Workload view state
@@ -2531,6 +2533,32 @@ const SchedulingCalendarPage = () => {
     return getLocalizedClassName(match, lang) || null;
   }, [sessionClassFilter, classes, lang]);
 
+  const scheduleExportMetadata = useMemo(() => {
+    const cls = sessionClassFilter
+      ? classes.find((c) => String(c.id || c.docId) === String(sessionClassFilter))
+      : classes[0];
+    const program = cls
+      ? programs.find((p) => String(p.id) === String(cls.programId))
+      : programs.find((p) => /information technology|تقنية المعلومات/i.test(`${p.nameEn || ''} ${p.nameAr || ''}`))
+        || programs[0];
+    const programName = program
+      ? (lang === 'ar' ? (program.nameAr || program.nameEn) : (program.nameEn || program.nameAr))
+      : '';
+    const className = cls
+      ? (lang === 'ar' ? (cls.nameAr || cls.nameEn || cls.code) : (cls.nameEn || cls.nameAr || cls.code))
+      : '';
+    return {
+      programId: program?.id,
+      classId: cls?.id || cls?.docId,
+      programName,
+      programNameAr: program?.nameAr,
+      className,
+      classNameAr: cls?.nameAr,
+      year: cls?.year,
+      term: cls?.term,
+    };
+  }, [sessionClassFilter, classes, programs, lang]);
+
   const calendarDayNames = useMemo(
     () => getCalendarDayNames(t, hideWeekends),
     [t, hideWeekends]
@@ -3408,6 +3436,30 @@ const SchedulingCalendarPage = () => {
                 <AvailabilityTimelineLegend t={t} theme={theme} />
               </div>
             )}
+
+            <button
+              type="button"
+              onClick={() => setShowScheduleExportDialog(true)}
+              title={t('weekly_schedule', 'Weekly Schedule')}
+              style={{
+                marginInlineStart: isAvailTimeline ? undefined : 'auto',
+                background: 'linear-gradient(135deg, #800020 0%, #5c0017 100%)',
+                border: 'none',
+                borderRadius: '6px',
+                padding: '6px 10px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '0.35rem',
+                color: '#fff',
+                fontSize: 'var(--font-size-sm)',
+                fontWeight: 600,
+                flexShrink: 0,
+              }}
+            >
+              <Download size={16} />
+              {t('export', 'Export')}
+            </button>
           </div>
 
           {/* Classes panel — below toolbar, above calendar (sessions tab) */}
@@ -5016,6 +5068,16 @@ const SchedulingCalendarPage = () => {
           </div>
         </div>
       )}
+      <SchedulingExportDialog
+        isOpen={showScheduleExportDialog}
+        onClose={() => setShowScheduleExportDialog(false)}
+        metadata={scheduleExportMetadata}
+        lang={lang}
+        t={t}
+        theme={theme}
+        onSuccess={(msg) => toast?.success?.(msg)}
+        onError={(msg) => toast?.error?.(msg)}
+      />
     </div>
   );
 };
