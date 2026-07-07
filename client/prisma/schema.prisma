@@ -157,6 +157,7 @@ enum ApprovalFlow {
   HR_THEN_ADMIN
   ADMIN_THEN_HR
   INSTRUCTOR_THEN_HR
+  INSTRUCTOR_THEN_ADMIN_THEN_HR
 }
 
 enum WorkflowCategory {
@@ -219,6 +220,8 @@ model AttendanceStatusTypes {
   standupAttendances StandupAttendance[]
   amendmentsFrom     AttendanceAmendment[] @relation("AttendanceAmendmentFromStatus")
   amendmentsTo       AttendanceAmendment[] @relation("AttendanceAmendmentToStatus")
+  changeLogsFrom     AttendanceChangeLog[] @relation("AttendanceChangeLogFromStatus")
+  changeLogsTo       AttendanceChangeLog[] @relation("AttendanceChangeLogToStatus")
 
   @@map("attendance_status_types")
 }
@@ -362,6 +365,7 @@ model AcademicTerms {
   updatedAt   DateTime @updatedAt
   creator     User?    @relation("AcademicTermsCreator", fields: [createdBy], references: [id])
   updater     User?    @relation("AcademicTermsUpdater", fields: [updatedBy], references: [id])
+  classes     Class[]  @relation("ClassAcademicTerm")
 
   @@map("academic_terms")
 }
@@ -683,6 +687,7 @@ model User {
   workflowStatusHistoryActed     WorkflowStatusHistory[]   @relation("WorkflowStatusHistoryActor")
   permissionDenialAudits        PermissionDenialAudit[]   @relation("PermissionDenialAuditUser")
   attendanceAmendments          AttendanceAmendment[]   @relation("AttendanceAmendmentAmender")
+  attendanceChangeLogs          AttendanceChangeLog[]   @relation("AttendanceChangeLogChanger")
   fileFavorites                  UserFilePreference[]
   notifications                  Notification[]             @relation("UserNotifications")
   notificationsCreated           Notification[]             @relation("NotificationCreator")
@@ -722,6 +727,8 @@ model User {
   classGrants                    UserClassGrant[]           @relation("UserClassGrantOwner")
   createdDataScopeProfiles       UserDataScopeProfile[]     @relation("UserDataScopeProfileCreator")
   updatedDataScopeProfiles       UserDataScopeProfile[]     @relation("UserDataScopeProfileUpdater")
+  createdWorkflowTypeConfigs     WorkflowTypeConfig[]       @relation("WorkflowTypeConfigCreator")
+  updatedWorkflowTypeConfigs     WorkflowTypeConfig[]       @relation("WorkflowTypeConfigUpdater")
 
   @@map("users")
 }
@@ -828,8 +835,9 @@ model Class {
   locationAr     String?
   locationEn     String?
   ownerEmail     String?
-  term           String?
-  year           String?
+  term           String?         // Legacy free-text; prefer academicTermId
+  year           String?         // Legacy free-text; prefer academicTermId
+  academicTermId Int?
   startDate      DateTime?       // Optional: custom start date for the class
   endDate        DateTime?       // Optional: custom end date for the class
   schedule       Json?           // Kept for audit (read-only after migration)
@@ -843,6 +851,7 @@ model Class {
   classroom      Classroom?      @relation("ClassDefaultClassroom", fields: [classroomId], references: [id])
   program        Program         @relation(fields: [programId], references: [id])
   subject        Subject         @relation(fields: [subjectId], references: [id])
+  academicTerm   AcademicTerms?  @relation("ClassAcademicTerm", fields: [academicTermId], references: [id])
   updater        User?           @relation("ClassUpdater", fields: [updatedBy], references: [id])
   userCategoryAccesses UserCategoryAccess[] @relation("UserCategoryAccessClass")
   instructorAvailabilities InstructorAvailability[] @relation("InstructorAvailabilityClass")
@@ -863,6 +872,7 @@ model Class {
   @@index([programId])
   @@index([subjectId])
   @@index([instructorId])
+  @@index([academicTermId])
   @@map("classes")
 }
 
@@ -914,6 +924,7 @@ model Attendance {
   user      User                  @relation(fields: [userId], references: [id])
   amendments AttendanceAmendment[]
   workflowLinks WorkflowDocumentAttendance[]
+  changeLogs AttendanceChangeLog[]
   excuseApprovedAt DateTime?
 
   @@unique([userId, classId, date])
@@ -922,6 +933,26 @@ model Attendance {
   @@index([date])
   @@index([subjectId])
   @@map("attendances")
+}
+
+model AttendanceChangeLog {
+  id            Int      @id @default(autoincrement())
+  attendanceId  Int
+  fromStatusId  Int?
+  toStatusId    Int?
+  changedBy     Int?
+  changedAt     DateTime @default(now())
+  reason        String?
+  source        String   @default("manual")
+
+  attendance    Attendance @relation(fields: [attendanceId], references: [id], onDelete: Cascade)
+  fromStatus    AttendanceStatusTypes? @relation("AttendanceChangeLogFromStatus", fields: [fromStatusId], references: [id])
+  toStatus      AttendanceStatusTypes? @relation("AttendanceChangeLogToStatus", fields: [toStatusId], references: [id])
+  changedByUser User?     @relation("AttendanceChangeLogChanger", fields: [changedBy], references: [id])
+
+  @@index([attendanceId])
+  @@index([changedAt])
+  @@map("attendance_change_logs")
 }
 
 model AttendanceAmendment {
@@ -2452,6 +2483,7 @@ model ScheduledSession {
   classroomId         Int?     // Classroom for this session (nullable - can override class default)
   startDateTime       DateTime // Full date and time when session starts
   endDateTime         DateTime // Full date and time when session ends
+  sessionType         String   @default("lecture") // lecture, office_hours
   status              String   @default("scheduled") // scheduled, in_progress, completed, cancelled
   notes               String?  // Additional notes for this session
   
@@ -2501,6 +2533,7 @@ model ScheduledSession {
   @@index([deletedAt])
   @@index([status])
   @@index([recurrenceSeriesId])
+  @@index([sessionType])
   @@map("scheduled_sessions")
 }
 
@@ -2751,4 +2784,32 @@ model ExportHistory {
   @@index([createdAt])
   @@index([fileId])
   @@map("export_history")
+}
+
+// ============================================================================
+// Workflow Type Configuration (Story 6-4)
+// ============================================================================
+
+model WorkflowTypeConfig {
+  id              Int       @id @default(autoincrement())
+  name            String    @unique
+  nameAr          String?
+  description     String?
+  approvalFlow    ApprovalFlow @default(HR_ONLY)
+  workflowCategory WorkflowCategory @default(GENERAL)
+  requiresFile    Boolean   @default(false)
+  isActive        Boolean   @default(true)
+  approvalSteps   Json?
+  allowedRoles    String[]
+  createdBy       Int?
+  updatedBy       Int?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  creator         User?     @relation("WorkflowTypeConfigCreator", fields: [createdBy], references: [id], onDelete: SetNull)
+  updater         User?     @relation("WorkflowTypeConfigUpdater", fields: [updatedBy], references: [id], onDelete: SetNull)
+
+  @@index([isActive])
+  @@index([approvalFlow])
+  @@map("workflow_type_configs")
 }

@@ -923,6 +923,8 @@ const SideDrawer = ({ isOpen, onClose, onOpen }) => {
       label: nl('main', 'Main'),
       icon: getThemedIcon('ui', 'home', 18, theme),
       children: [
+        { id: 'welcome-instructor', path: '/welcome', screenId: 'welcome', icon: getThemedIcon('ui', 'home', 18, theme), label: nl('welcome', 'Welcome') },
+        { id: 'attendance-workspace-instructor', path: '/attendance-workspace', screenId: 'attendance', icon: getThemedIcon('ui', 'calendar', 18, theme), label: nl('take_attendance', 'Take Attendance') },
         { id: 'summary-dashboard-instructor', path: '/summary-dashboard', screenId: 'summary-dashboard', icon: getThemedIcon('ui', 'layout_dashboard', 18, theme), label: nl('summary_dashboard', 'Summary Dashboard') },
         { id: 'daily-attendance-instructor', path: '/qr-scanner', screenId: 'qr-scanner', icon: getThemedIcon('ui', 'qr_code', 18, theme), label: nl('daily_attendance', 'Daily Attendance') },
       ],

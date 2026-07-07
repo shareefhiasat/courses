@@ -71,6 +71,7 @@ export function prepareWeeklyScheduleData({
   instructorAvailability = [],
   timeSlots = [],
   t = null,
+  attachSessionMeta = false,
 } = {}) {
   const isAr = lang === 'ar';
   const serial = buildSerialNumber(metadata.programId || metadata.classId, { prefix: 'WS' });
@@ -89,6 +90,7 @@ export function prepareWeeklyScheduleData({
     dayLabels,
     defaultRoom: room,
     timeSlots,
+    attachSessionMeta,
   });
 
   const days = hasScheduleContent(dynamicDays)

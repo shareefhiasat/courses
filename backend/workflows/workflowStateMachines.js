@@ -207,6 +207,48 @@ export const instructorThenHRMachine = createMachine({
   }
 });
 
+// INSTRUCTOR_THEN_ADMIN_THEN_HR Workflow: Instructor → Admin Review → HR Review → Approved
+export const instructorThenAdminThenHRMachine = createMachine({
+  id: 'instructorThenAdminThenHR',
+  initial: 'DRAFT',
+  states: {
+    DRAFT: {
+      on: {
+        SUBMIT: { target: 'SUBMITTED' }
+      }
+    },
+    SUBMITTED: {
+      on: {
+        APPROVE: { target: 'UNDER_ADMIN_REVIEW' },
+        REJECT: { target: 'REJECTED' },
+        RETURN: { target: 'DRAFT' }
+      }
+    },
+    UNDER_ADMIN_REVIEW: {
+      on: {
+        APPROVE: { target: 'UNDER_HR_REVIEW' },
+        REJECT: { target: 'REJECTED' },
+        RETURN: { target: 'SUBMITTED' }
+      }
+    },
+    UNDER_HR_REVIEW: {
+      on: {
+        APPROVE: { target: 'APPROVED' },
+        REJECT: { target: 'REJECTED' },
+        RETURN: { target: 'UNDER_ADMIN_REVIEW' }
+      }
+    },
+    APPROVED: {
+      type: 'final'
+    },
+    REJECTED: {
+      on: {
+        RESUBMIT: { target: 'SUBMITTED' }
+      }
+    }
+  }
+});
+
 /**
  * Resolve machine key from approvalFlow or legacy workflowType.
  */
@@ -216,7 +258,7 @@ export function resolveMachineKey(approvalFlowOrLegacyType) {
     GENERAL_ADMIN: 'ADMIN_ONLY',
     GENERAL_MIXED_HR_ADMIN: 'HR_THEN_ADMIN',
     GENERAL_MIXED_ADMIN_HR: 'ADMIN_THEN_HR',
-    ATTENDANCE_DAILY: 'INSTRUCTOR_THEN_HR',
+    ATTENDANCE_DAILY: 'INSTRUCTOR_THEN_ADMIN_THEN_HR',
     ATTENDANCE_WEEKLY: 'HR_THEN_ADMIN',
   };
 
@@ -234,11 +276,12 @@ export const getWorkflowMachine = (approvalFlowOrLegacyType) => {
     HR_THEN_ADMIN: generalMixedHRAdminMachine,
     ADMIN_THEN_HR: generalMixedAdminHRMachine,
     INSTRUCTOR_THEN_HR: instructorThenHRMachine,
+    INSTRUCTOR_THEN_ADMIN_THEN_HR: instructorThenAdminThenHRMachine,
     GENERAL_HR: generalHRMachine,
     GENERAL_ADMIN: generalAdminMachine,
     GENERAL_MIXED_HR_ADMIN: generalMixedHRAdminMachine,
     GENERAL_MIXED_ADMIN_HR: generalMixedAdminHRMachine,
-    ATTENDANCE_DAILY: instructorThenHRMachine,
+    ATTENDANCE_DAILY: instructorThenAdminThenHRMachine,
     ATTENDANCE_WEEKLY: generalMixedHRAdminMachine,
   };
 

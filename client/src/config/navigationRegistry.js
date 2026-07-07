@@ -83,6 +83,8 @@ export function resolveMatrixScreenId(screenId) {
 const PATH_ALIASES = {
   '': 'home',
   home: 'home',
+  welcome: 'welcome',
+  'attendance-workspace': 'attendance',
   'smart-drive': 'drive',
   timer: 'timer',
   'my-enrollments': 'enrollments',
@@ -159,6 +161,7 @@ export function resolveScreenIdFromNavItem(target = {}) {
 /** Legacy + menu screens (every SideDrawer / dashboard tab entry) */
 export const BASE_PERMISSION_SCREEN_DEFINITIONS = [
   { screenId: 'home', nameEn: 'Home', nameAr: 'الرئيسية', category: 'general', operations: ['view'] },
+  { screenId: 'welcome', nameEn: 'Welcome', nameAr: 'الترحيب', category: 'general', operations: ['view'] },
   { screenId: 'dashboard', nameEn: 'Dashboard', nameAr: 'لوحة التحكم', category: 'admin', operations: ['view'] },
   { screenId: 'categories', nameEn: 'Categories', nameAr: 'الفئات', category: 'academic', operations: ['view', 'create', 'update', 'delete'] },
   { screenId: 'student-dashboard', nameEn: 'Student Dashboard', nameAr: 'لوحة الطالب', category: 'student', operations: ['view'] },

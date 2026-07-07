@@ -1,5 +1,5 @@
 import React, { Suspense, lazy, useCallback, useEffect, useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { KeycloakProvider } from './providers/KeycloakProvider';
 import { AuthProvider, useAuth } from '@contexts/AuthContext';
 import { LangProvider } from '@contexts/LangContext';
@@ -35,6 +35,7 @@ import SilentCheckSso from './components/auth/SilentCheckSso.jsx';
 
 // Lazy-loaded pages — each becomes its own JS chunk
 const HomePage = lazy(() => import('./pages/HomePage'));
+const WelcomePage = lazy(() => import('./pages/WelcomePage'));
 const LoginPage = lazy(() => import('./pages/system/LoginPage'));
 const UnauthorizedPage = lazy(() => import('./pages/system/UnauthorizedPage'));
 const ChatPage = lazy(() => import('./pages/communications/chat/ChatPage'));
@@ -42,6 +43,7 @@ const ActivityDetailPage = lazy(() => import('./pages/academic/activities/Activi
 const NotificationsPage = lazy(() => import('./pages/communications/notifications/NotificationsPage'));
 const ProfileSettingsPage = lazy(() => import('./pages/users/ProfileSettingsPage'));
 const AttendancePage = lazy(() => import('./pages/operations/attendance/AttendancePage'));
+const AttendanceWorkspacePage = lazy(() => import('./pages/AttendanceWorkspacePage'));
 const StudentAttendancePage = lazy(() => import('./pages/operations/attendance/StudentAttendancePage'));
 const HRAttendancePage = lazy(() => import('./pages/operations/attendance/HRAttendancePage'));
 const PenaltiesPage = lazy(() => import('./pages/operations/penalty/PenaltiesPage'));
@@ -77,6 +79,7 @@ const WorkflowDetailPage = lazy(() => import('./pages/workflow/WorkflowDetailPag
 const WorkflowDocumentDetailPage = lazy(() => import('./pages/workflow/WorkflowDocumentDetailPage'));
 const CalendarCompliancePage = lazy(() => import('./pages/workflow/CalendarCompliancePage'));
 const WorkflowAnalyticsPage = lazy(() => import('./pages/workflow/WorkflowAnalyticsPage'));
+const WorkflowConfigPage = lazy(() => import('./pages/workflow/WorkflowConfigPage'));
 const SmartDrivePage = lazy(() => import('./pages/SmartDrivePage'));
 
 const lazyProtectedRoutes = [
@@ -94,9 +97,12 @@ const lazyProtectedRoutes = [
   { path: '/workflow/:documentId', screenId: 'workflow', screenName: 'Workflow Detail', Component: WorkflowDetailPage },
   { path: '/workflow/compliance', screenId: 'workflow', screenName: 'Calendar Compliance', Component: CalendarCompliancePage },
   { path: '/workflow/analytics', screenId: 'workflow', screenName: 'Workflow Analytics', Component: WorkflowAnalyticsPage },
+  { path: '/workflow/config', screenId: 'workflow', screenName: 'Workflow Configuration', Component: WorkflowConfigPage },
 ];
 
 const protectedRoutes = [
+  { path: '/welcome', screenId: 'welcome', screenName: 'Welcome', Component: WelcomePage },
+  { path: '/attendance-workspace', screenId: 'attendance', screenName: 'Attendance Workspace', Component: AttendanceWorkspacePage },
   { path: '/', screenId: 'home', screenName: 'Home', Component: HomePage },
   { path: '/student-profile', screenId: 'studentProfile', screenName: 'Student Profile', Component: StudentProfilePage },
   { path: '/activity/:activityId', screenId: 'activities', screenName: 'Activity Details', Component: ActivityDetailPage },
@@ -155,9 +161,22 @@ function PageTracker() {
 }
 
 const AppContent = () => {
-  const { user } = useAuth();
+  const { user, isStudent } = useAuth();
+  const navigate = useNavigate();
+  const location = useLocation();
   const [isSideDrawerOpen, setIsSideDrawerOpen] = useState(false);
   const [isSideDrawerCollapsed, setIsSideDrawerCollapsed] = useState(false);
+
+  // Redirect non-student users to /welcome when they land on / for the first time
+  useEffect(() => {
+    if (user && !isStudent && location.pathname === '/') {
+      const hasVisitedWelcome = sessionStorage.getItem('welcome_visited');
+      if (!hasVisitedWelcome) {
+        sessionStorage.setItem('welcome_visited', '1');
+        navigate('/welcome', { replace: true });
+      }
+    }
+  }, [user, isStudent, location.pathname, navigate]);
   
   // useRealTimeUpdates(); // Temporarily disabled to fix notification spam
   

@@ -25,7 +25,7 @@ const INSTRUCTOR_QR_OPS = new Set([
 ]);
 
 const INSTRUCTOR_ALLOWED_SCREENS = new Set([
-  'qr-scanner', 'attendance', 'scheduling-calendar', 'summary-dashboard',
+  'welcome', 'qr-scanner', 'attendance', 'scheduling-calendar', 'summary-dashboard',
   'classes-availability', 'instructor-availability-view', 'room-availability-view',
   'profile', 'chat', 'notifications', 'drive', 'workflow',
 ]);
@@ -40,8 +40,8 @@ const ADMIN_VIEW_ONLY_SCREENS = new Set([
 ]);
 
 const ADMIN_ALLOWED_SCREENS = new Set([
-  'summary-dashboard', 'qr-scanner', 'scheduling-calendar',
-  'drive', 'student-profile', 'profile', 'chat', 'notifications',
+  'welcome', 'summary-dashboard', 'qr-scanner', 'scheduling-calendar', 'attendance',
+  'drive', 'student-profile', 'profile', 'chat', 'notifications', 'workflow',
   'classes-availability', 'instructor-availability-view', 'room-availability-view',
 ]);
 

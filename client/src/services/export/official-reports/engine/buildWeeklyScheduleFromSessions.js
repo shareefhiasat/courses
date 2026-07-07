@@ -77,6 +77,14 @@ export function buildSlotWindowsFromTimeSlots(timeSlots = []) {
 
 export function buildColumnDefsFromTimeSlots(timeSlots = [], lang = 'en') {
   if (!timeSlots.length) return null;
+
+  const hasLectureColumn = timeSlots.some((ts) => {
+    if (ts.isBreak) return false;
+    const label = (ts.labelEn || ts.labelAr || '').toLowerCase();
+    return !label.includes('office');
+  });
+  if (!hasLectureColumn) return null;
+
   const isAr = lang === 'ar';
   let lectureCount = 0;
   let breakCount = 0;
@@ -145,19 +153,30 @@ function emptySlots(slotWindows) {
   return Object.fromEntries(windows.map((w) => [w.key, null]));
 }
 
-function sessionToSlot(session, lang) {
+function sessionToSlot(session, lang, attachSessionMeta = false) {
   const subject = session.class?.subject;
   const room = getLocalizedClassroomName(session.classroom, lang)
     || session.class?.locationEn
     || session.class?.locationAr
     || '';
-  return {
+  const base = {
     subjectName: getLocalizedSubjectName(subject, lang) || session.class?.code || '—',
     time: formatTimeRange(session.startDateTime, session.endDateTime, lang),
     instructor: getLocalizedInstructorName(session.instructor, lang, ''),
     room,
     isBreak: false,
-    isOfficeHour: false,
+    isOfficeHour: session.sessionType === 'office_hours',
+  };
+  if (!attachSessionMeta) return base;
+  const resolvedInstructorId = session.instructorId ?? session.class?.instructorId ?? null;
+  return {
+    ...base,
+    sessionId: session.id,
+    classId: session.classId,
+    instructorId: resolvedInstructorId,
+    sessionType: session.sessionType || 'lecture',
+    class: session.class,
+    session,
   };
 }
 
@@ -166,7 +185,7 @@ function weeklySessionKey(session) {
   return `${weekday}-${minutes}`;
 }
 
-function buildSessionsByDay(sessions, lang, slotWindows) {
+function buildSessionsByDay(sessions, lang, slotWindows, attachSessionMeta = false) {
   const byDay = Object.fromEntries(WORK_DAYS.map((d) => [d, emptySlots(slotWindows)]));
   const seen = new Set();
 
@@ -183,16 +202,18 @@ function buildSessionsByDay(sessions, lang, slotWindows) {
       if (seen.has(`${weekday}-${uniq}`)) return;
       seen.add(`${weekday}-${uniq}`);
 
-      const slotKey = resolveSlotKey(minutes, slotWindows);
+      const slotKey = session.sessionType === 'office_hours'
+        ? 'officeHour'
+        : resolveSlotKey(minutes, slotWindows);
       if (slotKey === 'officeHour') {
         byDay[weekday][slotKey] = {
-          ...sessionToSlot(session, lang),
+          ...sessionToSlot(session, lang, attachSessionMeta),
           isOfficeHour: true,
         };
       } else {
         const slotDef = (slotWindows || DEFAULT_SLOT_WINDOWS).find((w) => w.key === slotKey);
         if (!slotDef?.isBreak) {
-          byDay[weekday][slotKey] = sessionToSlot(session, lang);
+          byDay[weekday][slotKey] = sessionToSlot(session, lang, attachSessionMeta);
         }
       }
     });
@@ -304,10 +325,11 @@ export function buildWeeklyScheduleFromSessions({
   dayLabels = {},
   defaultRoom = '',
   timeSlots = [],
+  attachSessionMeta = false,
 } = {}) {
   const { windows: slotWindows, breaks: breakTimes } = buildSlotWindowsFromTimeSlots(timeSlots);
 
-  const byDay = buildSessionsByDay(sessions, lang, slotWindows);
+  const byDay = buildSessionsByDay(sessions, lang, slotWindows, attachSessionMeta);
   applyBreakSessions(byDay, breakSessions, breakTimes);
   applyOfficeHoursFromAvailability(byDay, instructorAvailability, lang, defaultRoom, slotWindows);
 

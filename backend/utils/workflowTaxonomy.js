@@ -7,7 +7,7 @@ const WORKFLOW_TYPE_TO_TAXONOMY = {
   ATTENDANCE_DAILY: {
     workflowCategory: 'ATTENDANCE',
     attendanceSubtype: 'DAILY',
-    approvalFlow: 'INSTRUCTOR_THEN_HR',
+    approvalFlow: 'INSTRUCTOR_THEN_ADMIN_THEN_HR',
   },
   ATTENDANCE_WEEKLY: {
     workflowCategory: 'ATTENDANCE',
@@ -42,11 +42,12 @@ const APPROVAL_FLOW_TO_LEGACY_TYPE = {
   HR_THEN_ADMIN: 'GENERAL_MIXED_HR_ADMIN',
   ADMIN_THEN_HR: 'GENERAL_MIXED_ADMIN_HR',
   INSTRUCTOR_THEN_HR: 'GENERAL_HR',
+  INSTRUCTOR_THEN_ADMIN_THEN_HR: 'ATTENDANCE_DAILY',
 };
 
 const CATEGORY_DEFAULTS = {
   ATTENDANCE: {
-    DAILY: { approvalFlow: 'INSTRUCTOR_THEN_HR', workflowType: 'ATTENDANCE_DAILY' },
+    DAILY: { approvalFlow: 'INSTRUCTOR_THEN_ADMIN_THEN_HR', workflowType: 'ATTENDANCE_DAILY' },
     WEEKLY_SUMMARY: { approvalFlow: 'HR_THEN_ADMIN', workflowType: 'ATTENDANCE_WEEKLY' },
     EXCUSE: { approvalFlow: 'HR_ONLY', workflowType: 'GENERAL_HR' },
     WARNING: { approvalFlow: 'HR_ONLY', workflowType: 'GENERAL_HR' },
@@ -173,7 +174,8 @@ export function isHrAccessibleWorkflow(document) {
     flow === 'HR_ONLY' ||
     flow === 'HR_THEN_ADMIN' ||
     flow === 'ADMIN_THEN_HR' ||
-    flow === 'INSTRUCTOR_THEN_HR'
+    flow === 'INSTRUCTOR_THEN_HR' ||
+    flow === 'INSTRUCTOR_THEN_ADMIN_THEN_HR'
   );
 }
 
@@ -183,9 +185,11 @@ export function isAdminAccessibleWorkflow(document) {
   const flow = resolveApprovalFlow(document);
   return (
     (category === 'ATTENDANCE' && subtype === 'WEEKLY_SUMMARY') ||
+    (category === 'ATTENDANCE' && subtype === 'DAILY') ||
     flow === 'ADMIN_ONLY' ||
     flow === 'HR_THEN_ADMIN' ||
     flow === 'ADMIN_THEN_HR' ||
+    flow === 'INSTRUCTOR_THEN_ADMIN_THEN_HR' ||
     category === 'DISCONTINUATION'
   );
 }

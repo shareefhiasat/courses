@@ -7,6 +7,7 @@ const serviceName = 'configService';
 export const SCREEN_ACCESS = {
   // Super Admin screens
   [ROLE_STRINGS.SUPER_ADMIN]: [
+    'welcome',
     'dashboard',
     'users',
     'programs',
@@ -25,6 +26,7 @@ export const SCREEN_ACCESS = {
   
   // Admin screens
   [ROLE_STRINGS.ADMIN]: [
+    'welcome',
     'dashboard',
     'users',
     'programs',
@@ -41,6 +43,7 @@ export const SCREEN_ACCESS = {
   
   // HR screens
   [ROLE_STRINGS.HR]: [
+    'welcome',
     'dashboard',
     'users',
     'programs',
@@ -53,6 +56,7 @@ export const SCREEN_ACCESS = {
   
   // Instructor screens
   [ROLE_STRINGS.INSTRUCTOR]: [
+    'welcome',
     'dashboard',
     'classes',
     'attendance',

@@ -24,7 +24,7 @@ import { info, error, warn, debug } from '@services/utils/logger.js';const ACCEN
 
 const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
   const authContext = useAuth();
-  const { user, isAdmin, isSuperAdmin, isInstructor, isHR, logout, impersonating, stopImpersonation } = authContext || {};
+  const { user, isAdmin, isSuperAdmin, isInstructor, isHR, isStudent, logout, impersonating, stopImpersonation } = authContext || {};
   const navigate = useNavigate();
   const location = useLocation();
   const [showDropdown, setShowDropdown] = useState(false);
@@ -58,13 +58,25 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
   const menuRef = useRef(null);
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
 
+  const [wizardNav, setWizardNav] = useState(null);
+
+  useEffect(() => {
+    const onWizardNav = (e) => setWizardNav(e.detail || null);
+    window.addEventListener('welcome-wizard-nav', onWizardNav);
+    return () => window.removeEventListener('welcome-wizard-nav', onWizardNav);
+  }, []);
+
+  useEffect(() => {
+    if (location.pathname !== '/welcome') {
+      setWizardNav(null);
+    }
+  }, [location.pathname]);
+
   useEffect(() => {
     const onResize = () => setIsMobile(window.innerWidth < 768);
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
   }, []);
-
-  // theme is managed by ThemeProvider
 
   // Allow other components (e.g., SideDrawer) to open the profile modal
   useEffect(() => {
@@ -241,7 +253,9 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
             display: 'flex',
             alignItems: 'center',
             gap: '0.5rem',
-            marginLeft: '0.5rem'
+            marginLeft: '0.5rem',
+            minWidth: 0,
+            flex: wizardNav ? 1 : undefined,
           }}>
             <div style={{ 
               width: 40, 
@@ -251,10 +265,36 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              border: '1px solid rgba(255,255,255,0.3)'
+              border: '1px solid rgba(255,255,255,0.3)',
+              flexShrink: 0,
             }}>
               <img src="/qaf_logo_transparent.png" alt="QAF" style={{ width: 36, height: 36, objectFit: 'cover', borderRadius: '50%' }} />
             </div>
+            {wizardNav?.programName && (
+              <div style={{ minWidth: 0, lineHeight: 1.25 }}>
+                <div style={{
+                  fontSize: '0.95rem',
+                  fontWeight: 700,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}>
+                  {wizardNav.programName}
+                </div>
+                {wizardNav.termLabel && (
+                  <div style={{
+                    fontSize: '0.75rem',
+                    fontWeight: 500,
+                    opacity: 0.88,
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}>
+                    {wizardNav.termLabel}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
 
           {/* DraggableClock - Always visible, positioned at top center by default */}
@@ -309,6 +349,34 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                 alignItems: 'center',
                 gap: '0.35rem'
               }}>
+                {!isStudent && (
+                  <PortalTooltip content={t('welcome')} position="bottom">
+                    <button
+                      type="button"
+                      className="nav-icon-btn"
+                      onClick={() => navigate('/welcome')}
+                      aria-label={t('welcome')}
+                      data-testid="navbar-welcome-btn"
+                      style={{
+                        border: theme === 'light' ? '1px solid var(--border)' : '1px solid rgba(255,255,255,0.2)',
+                        background: location.pathname === '/welcome'
+                          ? 'var(--color-primary, #3b82f6)'
+                          : (theme === 'light' ? 'var(--panel)' : 'rgba(0,0,0,0.3)'),
+                        borderRadius: '50%',
+                        width: '32px',
+                        height: '32px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        color: location.pathname === '/welcome' ? '#fff' : (theme === 'light' ? 'var(--text-primary)' : '#fff'),
+                      }}
+                    >
+                      {getThemedIcon('ui', 'home', 16, 'currentColor')}
+                    </button>
+                  </PortalTooltip>
+                )}
+
                 {isSuperAdmin && <NotificationBell />}
 
                 <PortalTooltip content={lang === 'en' ? 'العربية' : 'English'} position="bottom">

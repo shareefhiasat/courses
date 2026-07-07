@@ -157,25 +157,31 @@ export function WeeklyScheduleTemplate({ data, showWatermark = true }) {
         <div className={styles.scheduleTableWrap}>
         <table className={`${styles.officialTable} ${styles.weeklyScheduleTable}`}>
           <colgroup>
-            <col style={{ width: '2.8%' }} />
-            <col style={{ width: '8%' }} />
-            <col style={{ width: '19.5%' }} />
-            <col style={{ width: '3.2%' }} />
-            <col style={{ width: '19.5%' }} />
-            <col style={{ width: '3.2%' }} />
-            <col style={{ width: '19.5%' }} />
-            <col style={{ width: '14%' }} />
+            <col style={{ width: '3%' }} />
+            <col style={{ width: '7%' }} />
+            <col style={{ width: '25.2%' }} />
+            <col style={{ width: '3.5%' }} />
+            <col style={{ width: '25.2%' }} />
+            <col style={{ width: '3.5%' }} />
+            <col style={{ width: '25.2%' }} />
+            <col style={{ width: '4%' }} />
           </colgroup>
           <thead>
             <tr className={styles.scheduleHeaderRow}>
-              <th className={styles.scheduleCornerCell}>{isAr ? 'اليوم' : 'Day'}</th>
+              <th className={styles.scheduleCornerCell}>
+                <VerticalText>{isAr ? 'اليوم' : 'Day'}</VerticalText>
+              </th>
               <th className={styles.scheduleCornerCell} />
               {columns.map((col) => (
                 <th
                   key={col.key}
                   className={col.isBreak ? styles.scheduleBreakHeader : styles.scheduleLectureHeader}
                 >
-                  {col.label}
+                  {col.isBreak ? (
+                    <VerticalText compact className={styles.scheduleBreakVertical}>{col.label}</VerticalText>
+                  ) : (
+                    col.label
+                  )}
                 </th>
               ))}
             </tr>

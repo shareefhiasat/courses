@@ -429,6 +429,10 @@ import auditExportRoutes from "./routes/audit-export.js";
 import attendanceAmendmentRoutes from "./routes/attendance-amendment.js";
 import chatRoutes from "./routes/chat.js";
 import exportHistoryRoutes from "./routes/exportHistory.js";
+import welcomeRoutes from "./routes/welcome.js";
+import attendanceWorkspaceRoutes from "./routes/attendance-workspace.js";
+import attendanceLogRoutes from "./routes/attendance-log.js";
+import workflowTypeConfigRoutes from "./routes/workflow-type-configs.js";
 
 // Mount routes with versioning
 app.use(`/api/${API_VERSION}/programs`, programRoutes);
@@ -485,6 +489,9 @@ app.use(`/api/${API_VERSION}/quizzes`, quizRoutes);
 // Workflow document routes
 app.use(`/api/${API_VERSION}/workflow-documents`, workflowDocumentRoutes);
 
+// Workflow type config routes
+app.use(`/api/${API_VERSION}/workflow-type-configs`, workflowTypeConfigRoutes);
+
 // Weekly summary routes
 app.use(`/api/${API_VERSION}/weekly-summary`, weeklySummaryRoutes);
 
@@ -496,6 +503,15 @@ app.use(`/api/${API_VERSION}/attendance-amendment`, attendanceAmendmentRoutes);
 
 // Export history routes
 app.use(`/api/${API_VERSION}/export-history`, exportHistoryRoutes);
+
+// Welcome preferences routes
+app.use(`/api/${API_VERSION}/welcome`, welcomeRoutes);
+
+// Attendance workspace routes
+app.use(`/api/${API_VERSION}/attendance-workspace`, attendanceWorkspaceRoutes);
+
+// Attendance log routes
+app.use(`/api/${API_VERSION}/attendance`, attendanceLogRoutes);
 
 // ==================== ERROR HANDLING ====================
 

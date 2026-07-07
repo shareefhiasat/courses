@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Drawer, Button, SimpleLoading } from '@ui';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
@@ -123,12 +124,14 @@ export default function MyDataScopeDrawer({ isOpen, onClose }) {
   const { user, isSuperAdmin, isAdmin, isInstructor, isHR } = useAuth();
   const { t, lang } = useLang();
   const { theme } = useTheme();
+  const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
   const [details, setDetails] = useState(null);
   const [error, setError] = useState('');
   const [searchText, setSearchText] = useState('');
   const [yearFilter, setYearFilter] = useState('');
   const [termFilter, setTermFilter] = useState('');
+  const [ownershipFilter, setOwnershipFilter] = useState('all');
 
   const [showAttendanceModal, setShowAttendanceModal] = useState(false);
   const [attendanceContext, setAttendanceContext] = useState(null);
@@ -148,14 +151,6 @@ export default function MyDataScopeDrawer({ isOpen, onClose }) {
 
   const canDailyWithDate = isInstructor || isAdmin || isSuperAdmin;
   const canAttendanceOfficial = isHR || isSuperAdmin;
-
-  const roleLabel = useMemo(() => {
-    if (isSuperAdmin) return t('role_label_super_admin');
-    if (isHR) return t('role_label_hr');
-    if (isAdmin) return t('role_label_admin');
-    if (isInstructor) return t('role_label_instructor');
-    return t('role_label_student');
-  }, [isSuperAdmin, isHR, isAdmin, isInstructor, t]);
 
   const loadDetails = useCallback(async () => {
     if (!user) return;
@@ -202,6 +197,11 @@ export default function MyDataScopeDrawer({ isOpen, onClose }) {
 
   const filteredClasses = useMemo(() => {
     let items = details?.classes || [];
+    if (ownershipFilter === 'mine') {
+      items = items.filter((c) => c.isInstructor);
+    } else if (ownershipFilter === 'others') {
+      items = items.filter((c) => !c.isInstructor);
+    }
     if (yearFilter) items = items.filter((c) => String(c.year) === String(yearFilter));
     if (termFilter) {
       items = items.filter((c) => String(c.term || '').toLowerCase() === termFilter.toLowerCase());
@@ -221,7 +221,7 @@ export default function MyDataScopeDrawer({ isOpen, onClose }) {
       });
     }
     return items;
-  }, [details, yearFilter, termFilter, searchText, lang, programMap, subjectMap]);
+  }, [details, ownershipFilter, yearFilter, termFilter, searchText, lang, programMap, subjectMap]);
 
   const filteredSubjects = useMemo(() => {
     let items = details?.subjects || [];
@@ -300,6 +300,19 @@ export default function MyDataScopeDrawer({ isOpen, onClose }) {
     }
   }, [attendanceContext, lang, user, t]);
 
+  const goToAttendanceWorkspace = useCallback((cls) => {
+    if (!cls?.programId) return;
+    const params = new URLSearchParams({ programId: String(cls.programId) });
+    if (cls.academicTermId) {
+      params.set('academicTermId', String(cls.academicTermId));
+    } else if (cls.year && cls.term) {
+      params.set('year', String(cls.year));
+      params.set('term', String(cls.term));
+    }
+    onClose();
+    navigate(`/attendance-workspace?${params}`);
+  }, [navigate, onClose]);
+
   const muted = theme === 'dark' ? '#9ca3af' : '#6b7280';
   const border = theme === 'dark' ? '#374151' : '#e5e7eb';
   const panelBg = theme === 'dark' ? '#111827' : '#f9fafb';
@@ -342,12 +355,6 @@ export default function MyDataScopeDrawer({ isOpen, onClose }) {
         resizable
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '0.25rem 0' }}>
-          <div style={{ padding: '0.75rem 1rem', borderRadius: 8, background: panelBg, border: `1px solid ${border}` }}>
-            <div style={{ fontSize: '0.75rem', color: muted, marginBottom: 4 }}>{t('signed_in_as')}</div>
-            <div style={{ fontWeight: 600 }}>{user?.displayName || user?.email || '—'}</div>
-            <div style={{ fontSize: '0.85rem', color: muted, marginTop: 4 }}>{roleLabel}</div>
-          </div>
-
           {!loading && details && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               <input
@@ -358,6 +365,15 @@ export default function MyDataScopeDrawer({ isOpen, onClose }) {
                 style={{ ...selectStyle, width: '100%' }}
               />
               <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
+                <select
+                  value={ownershipFilter}
+                  onChange={(e) => setOwnershipFilter(e.target.value)}
+                  style={{ ...selectStyle, flex: 1, minWidth: 120 }}
+                >
+                  <option value="all">{t('my_access_filter_all_classes')}</option>
+                  <option value="mine">{t('my_access_filter_my_classes')}</option>
+                  <option value="others">{t('my_access_filter_other_classes')}</option>
+                </select>
                 <select
                   value={yearFilter}
                   onChange={(e) => setYearFilter(e.target.value)}
@@ -441,15 +457,28 @@ export default function MyDataScopeDrawer({ isOpen, onClose }) {
                       return (
                         <li
                           key={cls.id}
+                          role="button"
+                          tabIndex={0}
+                          onClick={() => goToAttendanceWorkspace(cls)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              goToAttendanceWorkspace(cls);
+                            }
+                          }}
                           style={{
                             padding: '0.6rem 0.85rem',
                             borderTop: `1px solid ${border}`,
                             fontSize: '0.85rem',
+                            cursor: 'pointer',
                           }}
                         >
                           <div style={{ fontWeight: 500, display: 'flex', alignItems: 'center', flexWrap: 'wrap' }}>
                             {getClassOptionLabel(cls, lang)}
                             {instructorBadge(!!cls.isInstructor)}
+                          </div>
+                          <div style={{ fontSize: '0.72rem', color: muted, marginTop: 4 }}>
+                            {t('my_access_open_workspace')}
                           </div>
                           {subject && (
                             <div style={{ color: muted, fontSize: '0.78rem', marginTop: 2 }}>
@@ -468,20 +497,22 @@ export default function MyDataScopeDrawer({ isOpen, onClose }) {
                                 : cls.instructor.displayName}
                             </div>
                           )}
-                          <ClassExportActions
-                            cls={cls}
-                            program={group.program}
-                            subject={subject}
-                            lang={lang}
-                            t={t}
-                            user={user}
-                            theme={theme}
-                            canDailyWithDate={canDailyWithDate}
-                            canAttendanceOfficial={canAttendanceOfficial}
-                            onAttendanceOfficial={openAttendanceOfficial}
-                            border={border}
-                            muted={muted}
-                          />
+                          <div onClick={(e) => e.stopPropagation()} onKeyDown={(e) => e.stopPropagation()}>
+                            <ClassExportActions
+                              cls={cls}
+                              program={group.program}
+                              subject={subject}
+                              lang={lang}
+                              t={t}
+                              user={user}
+                              theme={theme}
+                              canDailyWithDate={canDailyWithDate}
+                              canAttendanceOfficial={canAttendanceOfficial}
+                              onAttendanceOfficial={openAttendanceOfficial}
+                              border={border}
+                              muted={muted}
+                            />
+                          </div>
                         </li>
                       );
                     })}
