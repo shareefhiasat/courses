@@ -1,0 +1,215 @@
+@import '@szhsin/react-menu/dist/index.css';
+
+:global(.classActionMenuRoot) {
+  --menu-bg: #ffffff;
+  --menu-border: #e2e8f0;
+  --menu-text: #1e293b;
+  --menu-muted: #64748b;
+  --menu-hover: #f1f5f9;
+  --menu-accent: var(--color-primary, #3b82f6);
+  --menu-shadow: 0 16px 40px rgba(15, 23, 42, 0.18);
+}
+
+:global([data-theme='dark']) :global(.classActionMenuRoot) {
+  --menu-bg: #1e293b;
+  --menu-border: #334155;
+  --menu-text: #f1f5f9;
+  --menu-muted: #94a3b8;
+  --menu-hover: #334155;
+  --menu-accent: #60a5fa;
+  --menu-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+}
+
+:global(.classActionMenuRoot.szh-menu) {
+  background: var(--menu-bg) !important;
+  opacity: 1;
+  border: 1px solid var(--menu-border);
+  border-radius: 12px;
+  box-shadow: var(--menu-shadow);
+  color: var(--menu-text);
+  min-width: 260px;
+  width: max-content;
+  padding: 6px;
+  font-size: 13px;
+}
+
+:global(.classActionMenuRoot.szh-menu),
+:global(.classActionMenuRoot .szh-menu) {
+  white-space: nowrap;
+}
+
+:global(.classActionMenuRoot .szh-menu__item) {
+  border-radius: 8px;
+  padding: 8px 10px;
+  color: var(--menu-text);
+  white-space: nowrap;
+}
+
+:global(.classActionMenuRoot .szh-menu__item--hover) {
+  background: var(--menu-hover);
+  color: var(--menu-text);
+}
+
+:global(.classActionMenuRoot .szh-menu__submenu) > :global(.szh-menu__item::after) {
+  color: var(--menu-muted);
+}
+
+:global(.classActionMenuRoot .szh-menu__divider) {
+  background-color: var(--menu-border);
+  margin: 4px 8px;
+}
+
+:global(.classActionMenuRoot .szh-menu__header) {
+  color: var(--menu-muted);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 6px 10px 4px;
+}
+
+/* Opening animation */
+:global(.classActionMenuRoot.szh-menu--state-opening) {
+  animation: classMenuIn 0.16s ease-out;
+}
+
+:global(.classActionMenuRoot.szh-menu--state-closing) {
+  animation: classMenuOut 0.12s ease-in;
+}
+
+@keyframes classMenuIn {
+  from {
+    opacity: 0;
+    transform: scale(0.94) translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+@keyframes classMenuOut {
+  from {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.96) translateY(-2px);
+  }
+}
+
+.menuItemContent {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+}
+
+.menuItemLabel {
+  flex: 1;
+  line-height: 1.3;
+}
+
+.menuItemHint {
+  font-size: 11px;
+  color: var(--menu-muted);
+}
+
+.filterInput {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 4px 0 6px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--menu-border);
+  background: var(--menu-bg);
+  color: var(--menu-text);
+  font-size: 12px;
+  outline: none;
+}
+
+.filterInput:focus {
+  border-color: var(--menu-accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--menu-accent) 20%, transparent);
+}
+
+.filterWrap {
+  padding: 2px 4px 4px;
+}
+
+.classTitle {
+  padding: 4px 10px 8px;
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--menu-text);
+  border-bottom: 1px solid var(--menu-border);
+  margin-bottom: 4px;
+}
+
+.classSubtitle {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--menu-muted);
+  margin-top: 2px;
+}
+
+.exportGroupIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.exportGroupSchedule {
+  background: rgba(59, 130, 246, 0.12);
+  color: #3b82f6;
+}
+
+.exportGroupDaily {
+  background: rgba(13, 148, 136, 0.12);
+  color: #0d9488;
+}
+
+.exportGroupTemplate {
+  background: rgba(100, 116, 139, 0.12);
+  color: #64748b;
+}
+
+.menuContainerDark .exportGroupSchedule {
+  background: rgba(96, 165, 250, 0.15);
+  color: #93c5fd;
+}
+
+.menuContainerDark .exportGroupDaily {
+  background: rgba(45, 212, 191, 0.15);
+  color: #5eead4;
+}
+
+.menuContainerDark .exportGroupTemplate {
+  background: rgba(148, 163, 184, 0.15);
+  color: #cbd5e1;
+}
+
+.scanAttendance {
+  color: #16a34a;
+}
+
+.scanStandup {
+  color: #8b5cf6;
+}
+
+.inboxIcon {
+  color: #2563eb;
+}
+
+.outboxIcon {
+  color: #f59e0b;
+}
+
+.historyIcon {
+  color: #6366f1;
+}

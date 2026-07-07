@@ -75,7 +75,7 @@ const getSlaLabel = (submittedAt, lang) => {
   return `${hoursLeft}h left`;
 };
 
-const InboxOutboxDrawer = ({ isOpen, onClose }) => {
+const InboxOutboxDrawer = ({ isOpen, onClose, classId = null, initialTab = TABS.INBOX }) => {
   const { user, isInstructor, isAdmin, isSuperAdmin, isHR } = useAuth();
   const { t, lang, isRTL } = useLang();
   const { theme } = useTheme();
@@ -89,7 +89,7 @@ const InboxOutboxDrawer = ({ isOpen, onClose }) => {
     isRTL,
   });
 
-  const [activeTab, setActiveTab] = useState(TABS.INBOX);
+  const [activeTab, setActiveTab] = useState(initialTab);
   const [inboxDocs, setInboxDocs] = useState([]);
   const [outboxDocs, setOutboxDocs] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -104,6 +104,22 @@ const InboxOutboxDrawer = ({ isOpen, onClose }) => {
     if (isAdmin || isSuperAdmin) return 'admin';
     return 'instructor';
   }, [isHR, isAdmin, isSuperAdmin]);
+
+  useEffect(() => {
+    if (isOpen) {
+      setActiveTab(initialTab);
+    }
+  }, [isOpen, initialTab]);
+
+  const filterByClass = useCallback((docs) => {
+    if (!classId) return docs;
+    return (docs || []).filter((doc) => (
+      Number(doc.classId) === Number(classId) || Number(doc.class?.id) === Number(classId)
+    ));
+  }, [classId]);
+
+  const visibleInboxDocs = useMemo(() => filterByClass(inboxDocs), [filterByClass, inboxDocs]);
+  const visibleOutboxDocs = useMemo(() => filterByClass(outboxDocs), [filterByClass, outboxDocs]);
 
   const fetchInbox = useCallback(async () => {
     setLoading(true);
@@ -473,7 +489,7 @@ const InboxOutboxDrawer = ({ isOpen, onClose }) => {
       );
     }
 
-    const docs = activeTab === TABS.INBOX ? inboxDocs : outboxDocs;
+    const docs = activeTab === TABS.INBOX ? visibleInboxDocs : visibleOutboxDocs;
 
     if (!docs || docs.length === 0) {
       return (
@@ -497,7 +513,7 @@ const InboxOutboxDrawer = ({ isOpen, onClose }) => {
 
   if (!isOpen) return null;
 
-  const inboxCount = inboxDocs.length;
+  const inboxCount = visibleInboxDocs.length;
 
   return (
     <>

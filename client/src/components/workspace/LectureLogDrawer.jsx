@@ -11,7 +11,7 @@ const TABS = {
   RECORD_HISTORY: 'record_history',
 };
 
-const LectureLogDrawer = ({ isOpen, onClose, classInfo, date }) => {
+const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }) => {
   const { t, lang, isRTL } = useLang();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
@@ -372,38 +372,28 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date }) => {
     ? classInfo.nameAr
     : classInfo?.nameEn || classInfo?.code || '';
 
-  return (
-    <>
-      <div
-        onClick={onClose}
-        style={{
-          position: 'fixed',
-          inset: 0,
-          background: 'rgba(0,0,0,0.3)',
-          zIndex: 999,
-          backdropFilter: 'blur(2px)',
-        }}
-      />
-      <div
-        onClick={(e) => e.stopPropagation()}
-        style={{
-          position: 'fixed',
-          top: 0,
-          [isRTL ? 'left' : 'right']: 0,
-          height: '100vh',
-          width: drawerWidth,
-          background: isDark ? '#1a1a2e' : '#ffffff',
-          boxShadow: isRTL ? '2px 0 20px rgba(0,0,0,0.15)' : '-2px 0 20px rgba(0,0,0,0.15)',
-          zIndex: 1002,
-          display: 'flex',
-          flexDirection: 'column',
-          dir: isRTL ? 'rtl' : 'ltr',
-        }}
-      >
-        <div {...resizeHandleProps} />
+  const panel = (
+    <div
+      onClick={(e) => e.stopPropagation()}
+      style={{
+        position: embedded ? 'relative' : 'fixed',
+        top: embedded ? undefined : 0,
+        [isRTL ? 'left' : 'right']: embedded ? undefined : 0,
+        height: embedded ? '100%' : '100vh',
+        width: embedded ? '100%' : drawerWidth,
+        background: isDark ? '#1a1a2e' : '#ffffff',
+        boxShadow: embedded ? 'none' : (isRTL ? '2px 0 20px rgba(0,0,0,0.15)' : '-2px 0 20px rgba(0,0,0,0.15)'),
+        zIndex: embedded ? 'auto' : 1002,
+        display: 'flex',
+        flexDirection: 'column',
+        dir: isRTL ? 'rtl' : 'ltr',
+      }}
+    >
+      {!embedded && <div {...resizeHandleProps} />}
 
-        {/* Header */}
-        <div style={{
+      {/* Header */}
+      {!embedded && (
+      <div style={{
           padding: '16px 20px 0',
           borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : '#e5e7eb'}`,
           background: isDark ? '#0f0f1e' : '#f9fafb',
@@ -478,6 +468,24 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date }) => {
             </button>
           </div>
         </div>
+      )}
+
+      {embedded && (
+        <div style={{ display: 'flex', gap: '4px', padding: '8px 12px', borderBottom: `1px solid ${isDark ? 'rgba(255,255,255,0.08)' : '#e5e7eb'}` }}>
+          <button
+            style={activeTab === TABS.LECTURE_LOG ? activeTabStyle : tabBtnStyle}
+            onClick={() => handleTabChange(TABS.LECTURE_LOG)}
+          >
+            {t('log_drawer_tab_lecture') || 'Lecture Log'}
+          </button>
+          <button
+            style={activeTab === TABS.RECORD_HISTORY ? activeTabStyle : tabBtnStyle}
+            onClick={() => handleTabChange(TABS.RECORD_HISTORY)}
+          >
+            {t('log_drawer_tab_record') || 'Record History'}
+          </button>
+        </div>
+      )}
 
         {/* Content */}
         <div style={{
@@ -511,7 +519,24 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date }) => {
             </motion.div>
           </AnimatePresence>
         </div>
-      </div>
+    </div>
+  );
+
+  if (embedded) return panel;
+
+  return (
+    <>
+      <div
+        onClick={onClose}
+        style={{
+          position: 'fixed',
+          inset: 0,
+          background: 'rgba(0,0,0,0.3)',
+          zIndex: 999,
+          backdropFilter: 'blur(2px)',
+        }}
+      />
+      {panel}
     </>
   );
 };

@@ -16,10 +16,20 @@ function CellContent({ children, className, ltr }) {
 }
 
 function VerticalText({ children, className, compact }) {
+  let content = children;
+  if (compact && typeof children === 'string' && children.trim().includes(' ')) {
+    const words = children.trim().split(/\s+/);
+    content = words.map((word, i) => (
+      <React.Fragment key={i}>
+        {i > 0 && <br />}
+        {word}
+      </React.Fragment>
+    ));
+  }
   return (
     <div className={compact ? styles.scheduleBreakVerticalWrap : styles.scheduleVerticalTextWrap}>
       <span className={`${styles.scheduleVerticalText} ${className || ''}`}>
-        {children}
+        {content}
       </span>
     </div>
   );
@@ -159,12 +169,12 @@ export function WeeklyScheduleTemplate({ data, showWatermark = true }) {
           <colgroup>
             <col style={{ width: '3%' }} />
             <col style={{ width: '7%' }} />
-            <col style={{ width: '25.2%' }} />
-            <col style={{ width: '3.5%' }} />
-            <col style={{ width: '25.2%' }} />
-            <col style={{ width: '3.5%' }} />
-            <col style={{ width: '25.2%' }} />
-            <col style={{ width: '4%' }} />
+            <col style={{ width: '24%' }} />
+            <col style={{ width: '6%' }} />
+            <col style={{ width: '24%' }} />
+            <col style={{ width: '6%' }} />
+            <col style={{ width: '24%' }} />
+            <col style={{ width: '6%' }} />
           </colgroup>
           <thead>
             <tr className={styles.scheduleHeaderRow}>
@@ -178,7 +188,7 @@ export function WeeklyScheduleTemplate({ data, showWatermark = true }) {
                   className={col.isBreak ? styles.scheduleBreakHeader : styles.scheduleLectureHeader}
                 >
                   {col.isBreak ? (
-                    <VerticalText compact className={styles.scheduleBreakVertical}>{col.label}</VerticalText>
+                    <VerticalText compact className={styles.scheduleBreakHeaderLabel}>{col.label}</VerticalText>
                   ) : (
                     col.label
                   )}

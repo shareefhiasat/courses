@@ -1,0 +1,12 @@
+.fabWrapper {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+.fabWrapper :global(.MuiSpeedDial-root) {
+  position: static !important;
+}
+
+.nestedFab :global(.MuiFab-root) {
+  color: inherit;
+}

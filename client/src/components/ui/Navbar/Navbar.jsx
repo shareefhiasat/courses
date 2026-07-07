@@ -271,7 +271,27 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
               <img src="/qaf_logo_transparent.png" alt="QAF" style={{ width: 36, height: 36, objectFit: 'cover', borderRadius: '50%' }} />
             </div>
             {wizardNav?.programName && (
-              <div style={{ minWidth: 0, lineHeight: 1.25 }}>
+              <button
+                id="welcome-navbar-title"
+                type="button"
+                onClick={() => {
+                  window.dispatchEvent(new CustomEvent('welcome-reset-selection'));
+                  navigate('/welcome', { replace: true });
+                }}
+                title={t('change_program_term') || 'Change program / term'}
+                style={{
+                  minWidth: 0,
+                  lineHeight: 1.25,
+                  background: 'transparent',
+                  border: 'none',
+                  padding: 0,
+                  margin: 0,
+                  color: 'inherit',
+                  textAlign: 'inherit',
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                }}
+              >
                 <div style={{
                   fontSize: '0.95rem',
                   fontWeight: 700,
@@ -293,19 +313,34 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                     {wizardNav.termLabel}
                   </div>
                 )}
-              </div>
+                <div style={{
+                  fontSize: '0.7rem',
+                  fontWeight: 400,
+                  opacity: 0.75,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}>
+                  {new Date().toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US', {
+                    weekday: 'short',
+                    year: 'numeric',
+                    month: 'short',
+                    day: 'numeric'
+                  })}
+                </div>
+              </button>
             )}
           </div>
 
-          {/* DraggableClock - Always visible, positioned at top center by default */}
-          <DraggableClock 
+          {/* DraggableClock - Hidden from navbar */}
+          {/* <DraggableClock 
             initialPosition={{ 
               x: typeof window !== 'undefined' ? (window.innerWidth / 2) - 75 : 400, // Center horizontally (75px is half of min-width)
               y: 80 // Top position, below navbar
             }} 
             showSeconds={true}
             className="navbar-clock"
-          />
+          /> */}
 
           {/* Impersonation Banner */}
           {impersonating && (

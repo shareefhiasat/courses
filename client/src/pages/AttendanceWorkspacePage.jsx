@@ -6,7 +6,8 @@ import { useTheme } from '@contexts/ThemeContext';
 import ProgramTermSelector from '@components/workspace/ProgramTermSelector';
 import YearTermSelector from '@components/workspace/YearTermSelector';
 import OfficialWeeklyScheduleGrid from '@components/workspace/OfficialWeeklyScheduleGrid';
-import ClassActionModal from '@components/workspace/ClassActionModal';
+import ClassActionMenu from '@components/workspace/ClassActionMenu';
+import ClassHistoryDrawer from '@components/workspace/ClassHistoryDrawer';
 import InboxOutboxDrawer from '@components/workspace/InboxOutboxDrawer';
 import WorkspaceActionFab from '@components/workspace/WorkspaceActionFab';
 import { getScheduleStatus, getAllPrograms, getProgramTerms } from '@services/business/attendanceWorkspaceService';
@@ -19,7 +20,7 @@ import { getThemedIcon } from '@constants/iconTypes';
 const STEPS = { PROGRAM: 'program', TERM: 'term', SCHEDULE: 'schedule' };
 
 const AttendanceWorkspacePage = () => {
-  const { user, isInstructor } = useAuth();
+  const { user, isInstructor, isAdmin, isSuperAdmin, isHR } = useAuth();
   const { t, lang } = useLang();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
@@ -32,8 +33,12 @@ const AttendanceWorkspacePage = () => {
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [selectedSession, setSelectedSession] = useState(null);
+  const [menuAnchor, setMenuAnchor] = useState(null);
   const [selectedDate, setSelectedDate] = useState(() => new Date());
   const [inboxOutboxOpen, setInboxOutboxOpen] = useState(false);
+  const [inboxClassId, setInboxClassId] = useState(null);
+  const [inboxInitialTab, setInboxInitialTab] = useState('inbox');
+  const [historyState, setHistoryState] = useState({ open: false, classInfo: null, date: null });
   const [deepLinkHandled, setDeepLinkHandled] = useState(false);
 
   const instructorId = user?.dbId;
@@ -152,9 +157,36 @@ const AttendanceWorkspacePage = () => {
     loadSchedule();
   }, [step, selection?.program, selection?.academicTerm, selectedDate, lang]);
 
-  const handleCellClick = useCallback((slot) => {
-    if (!slot?.session) return;
-    setSelectedSession(slot.session);
+  const handleCellClick = useCallback((slot, anchor) => {
+    const session = slot?.session || (slot?.class ? {
+      id: slot.sessionId,
+      classId: slot.classId,
+      class: slot.class,
+      sessionType: slot.sessionType || 'lecture',
+    } : null);
+    if (!session) return;
+    setSelectedSession(session);
+    setMenuAnchor(anchor);
+  }, []);
+
+  const handleCloseClassMenu = useCallback(() => {
+    setSelectedSession(null);
+    setMenuAnchor(null);
+  }, []);
+
+  const handleOpenInbox = useCallback((tab, classId) => {
+    setInboxInitialTab(tab);
+    setInboxClassId(classId ?? null);
+    setInboxOutboxOpen(true);
+  }, []);
+
+  const handleOpenHistory = useCallback((classInfo, date) => {
+    setHistoryState({ open: true, classInfo, date });
+  }, []);
+
+  const handleCloseInbox = useCallback(() => {
+    setInboxOutboxOpen(false);
+    setInboxClassId(null);
   }, []);
 
   const handlePrintSchedule = useCallback(async () => {
@@ -198,6 +230,8 @@ const AttendanceWorkspacePage = () => {
   const pageBg = isDark
     ? 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)'
     : 'linear-gradient(135deg, #f0f4ff 0%, #e0e7ff 100%)';
+
+  const canInteractAll = isAdmin || isSuperAdmin || isHR;
 
   const fabActions = step === STEPS.SCHEDULE ? [
   {
@@ -318,6 +352,7 @@ const AttendanceWorkspacePage = () => {
             scheduleData={scheduleData}
             statusMap={statusMap}
             instructorId={isInstructor ? instructorId : null}
+            interactiveAll={canInteractAll}
             selectedDate={selectedDate}
             onCellClick={handleCellClick}
           />
@@ -330,18 +365,29 @@ const AttendanceWorkspacePage = () => {
 
       <WorkspaceActionFab actions={fabActions} />
 
-      {selectedSession && (
-        <ClassActionModal
-          session={selectedSession}
-          status={statusMap[selectedSession.class?.id]}
-          selectedDate={selectedDate}
-          onClose={() => setSelectedSession(null)}
-        />
-      )}
+      <ClassActionMenu
+        session={selectedSession}
+        anchorPoint={menuAnchor}
+        isOpen={Boolean(selectedSession && menuAnchor)}
+        onClose={handleCloseClassMenu}
+        selectedDate={selectedDate}
+        program={selection?.program}
+        onOpenInbox={handleOpenInbox}
+        onOpenHistory={handleOpenHistory}
+      />
+
+      <ClassHistoryDrawer
+        isOpen={historyState.open}
+        onClose={() => setHistoryState({ open: false, classInfo: null, date: null })}
+        classInfo={historyState.classInfo}
+        date={historyState.date || selectedDate}
+      />
 
       <InboxOutboxDrawer
         isOpen={inboxOutboxOpen}
-        onClose={() => setInboxOutboxOpen(false)}
+        onClose={handleCloseInbox}
+        classId={inboxClassId}
+        initialTab={inboxInitialTab}
       />
     </div>
   );

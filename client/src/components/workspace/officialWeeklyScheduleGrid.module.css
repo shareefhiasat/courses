@@ -26,6 +26,254 @@
   margin: 0 !important;
 }
 
+.titleBarCompact {
+  padding: 8px 12px !important;
+}
+
+.titleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: nowrap;
+}
+
+.titleTextGroup {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.titleMainCompact {
+  font-size: 15px !important;
+  font-weight: 700 !important;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.titleMetaInline {
+  font-size: 12px;
+  color: #64748b;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.statusLegend {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 11px;
+  color: #64748b;
+  flex-wrap: wrap;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.legendDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: 1.5px solid #fff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12);
+}
+
+.legendDot_taken {
+  background: #22c55e;
+}
+
+.legendDot_submitted {
+  background: #3b82f6;
+}
+
+.legendDot_not_taken {
+  background: #f97316;
+}
+
+.legendLine {
+  width: 20px;
+  height: 0;
+  border-top: 1.5px dashed rgba(14, 165, 233, 0.6);
+  position: relative;
+}
+
+.legendLine::before {
+  content: '';
+  position: absolute;
+  left: -3px;
+  top: -4px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: rgb(14, 165, 233);
+}
+
+.legendDot_inProgress {
+  background: #3b82f6;
+  animation: legendPulse 1.8s ease-in-out infinite;
+}
+
+.legendDot_selected {
+  background: #8b5cf6;
+  animation: selectedRing 2.2s ease-in-out infinite;
+}
+
+@keyframes legendPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5); }
+  50% { box-shadow: 0 0 0 4px rgba(59, 130, 246, 0); }
+}
+
+.statusLegendBottom {
+  padding: 8px 12px;
+  border-top: 1px solid var(--border, #e2e8f0);
+  justify-content: center;
+}
+
+.wrapDark .statusLegendBottom {
+  border-top-color: #334155;
+}
+
+.wrapDark .statusLegend {
+  color: #94a3b8;
+}
+
+.wrapDark .titleMetaInline {
+  color: #94a3b8;
+}
+
+.inlineDateInput {
+  flex-shrink: 0;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--border, #e2e8f0);
+  background: #fff;
+  color: #1e293b;
+  font-size: 12px;
+}
+
+.wrapDark .inlineDateInput {
+  background: #1e293b;
+  border-color: #334155;
+  color: #f1f5f9;
+}
+
+.wrapCompact {
+  border-radius: 8px;
+}
+
+.wrapFill {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.tableFill {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.subjectCellInner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+/* Balanced edge layout: icon tray stays at the cell start (left in LTR,
+   right in RTL), text remains centered, and the matching end spacer keeps
+   the text visually centered even when class names vary in length. */
+.scheduleDataCell .scheduleCellInner.subjectCellInner,
+.scheduleDataCell .scheduleCellInner.subjectCellInnerWithTray {
+  padding: 2px 0 4px;
+  align-items: center;
+  gap: 0;
+}
+
+.scheduleDataCell .scheduleCellInner.subjectCellInnerWithTray {
+  justify-content: flex-start;
+}
+
+.cellIconTray {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  flex-shrink: 0;
+  gap: 2px;
+}
+
+.subjectCellText {
+  flex: 1;
+  text-align: center;
+  padding: 0 4px;
+}
+
+.cellEndSpacer {
+  width: 22px;
+  flex-shrink: 0;
+}
+
+.instructorIcon {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgb(14, 165, 233);
+  color: rgb(255, 255, 255);
+  border-radius: 50%;
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+.instructorIconTooltip {
+  position: absolute;
+  top: 18px;
+  inset-inline-start: 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: #0ea5e9;
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(2px);
+  padding: 3px 9px;
+  border-radius: 6px;
+  border: 1px solid rgba(14, 165, 233, 0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+  z-index: 10;
+  transform-origin: top center;
+}
+
+.instructorIcon:hover .instructorIconTooltip,
+.instructorIcon:focus-visible .instructorIconTooltip {
+  opacity: 1;
+  visibility: visible;
+  animation: tooltipPulse 2s ease-in-out infinite;
+}
+
+.wrapDark .instructorIconTooltip {
+  background: rgba(15, 23, 42, 0.82);
+  color: #bae6fd;
+  border-color: rgba(14, 165, 233, 0.45);
+}
+
+.breakCellInner {
+  opacity: 0.85;
+}
+
 .tableScroll {
   overflow-x: auto;
 }
@@ -38,7 +286,46 @@
 }
 
 .mineCell {
-  box-shadow: inset 0 0 0 2px var(--color-primary, #3b82f6) !important;
+  border: 2px solid rgb(14, 165, 233);
+}
+
+.subjectCellBorderNeutral {
+  border: 2px solid transparent;
+}
+
+.inProgressCell {
+  animation: inProgressPulse 2s ease-in-out infinite;
+}
+
+@keyframes inProgressPulse {
+  0%, 100% {
+    box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.45);
+    background-color: rgba(59, 130, 246, 0.04);
+  }
+  50% {
+    box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.15);
+    background-color: rgba(59, 130, 246, 0.12);
+  }
+}
+
+.selectedCell {
+  position: relative;
+}
+
+.selectedCell::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border: 2px solid #8b5cf6;
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15);
+  pointer-events: none;
+  z-index: 1;
+  animation: selectedRing 2.2s ease-in-out infinite;
+}
+
+@keyframes selectedRing {
+  0%, 100% { box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.15); }
+  50% { box-shadow: 0 0 0 6px rgba(139, 92, 246, 0.06); }
 }
 
 .dimmedCell {
@@ -46,7 +333,8 @@
   filter: grayscale(0.2);
 }
 
-.clickableCell {
+.clickableCell,
+.clickableCell .cellButton {
   cursor: pointer;
 }
 
@@ -60,17 +348,91 @@
   cursor: pointer;
 }
 
+.cellButton:focus {
+  outline: none;
+}
+
+.cellButton:focus-visible {
+  outline: 2px solid #8b5cf6;
+  outline-offset: -2px;
+}
+
 .cellButton:hover {
   background: rgba(59, 130, 246, 0.06);
 }
 
 .statusDot {
   position: absolute;
-  top: 4px;
-  inset-inline-end: 4px;
-  width: 8px;
-  height: 8px;
+  top: 3px;
+  inset-inline-end: 3px;
+  width: 10px;
+  height: 10px;
   border-radius: 50%;
+  background: var(--dot-color, #94a3b8);
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12);
+  z-index: 2;
+}
+
+.statusDot_not_taken {
+  animation: statusPulse 2s ease-in-out infinite;
+}
+
+.statusDot_taken {
+  box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.35);
+}
+
+.statusDot_submitted {
+  box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.35);
+}
+
+.statusDotTooltip {
+  position: absolute;
+  top: 16px;
+  inset-inline-end: 0;
+  font-size: 11px;
+  font-weight: 600;
+  color: #800020;
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(2px);
+  padding: 3px 9px;
+  border-radius: 6px;
+  border: 1px solid rgba(128, 0, 32, 0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  white-space: nowrap;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+  z-index: 10;
+  transform-origin: top center;
+}
+
+.statusDot:hover .statusDotTooltip,
+.statusDot:focus-visible .statusDotTooltip {
+  opacity: 1;
+  visibility: visible;
+  animation: tooltipPulse 2s ease-in-out infinite;
+}
+
+@keyframes statusPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.15); opacity: 0.85; }
+}
+
+@keyframes tooltipPulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.08); opacity: 0.92; }
+}
+
+.wrapDark .statusDot {
+  border-color: #1e293b;
+}
+
+.wrapDark .statusDotTooltip {
+  background: rgba(15, 23, 42, 0.82);
+  color: #fecaca;
+  border-color: rgba(248, 113, 113, 0.45);
 }
 
 .todayRow td {
@@ -79,8 +441,8 @@
 
 /* Interactive grid header polish */
 .wrap :global(.scheduleLectureHeader) {
-  font-size: 14px !important;
-  min-height: 72px;
+  font-size: 12px !important;
+  min-height: 44px;
   vertical-align: middle;
 }
 
@@ -110,48 +472,120 @@
   position: relative;
 }
 
-.timeLine {
+.timeLineOverlay {
   position: absolute;
-  left: 10%;
-  right: 2%;
-  height: 0;
-  border-top: 2px dashed #3b82f6;
   pointer-events: none;
-  z-index: 5;
+  z-index: 6;
+  transform: translateY(-50%);
 }
 
-.timeLine::before {
+.timeLineDash {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 0;
+  border-top: 1.5px dashed rgba(14, 165, 233, 0.4);
+}
+
+.timeLineDot {
+  position: absolute;
+  top: -4px;
+  width: 8px;
+  height: 8px;
+  margin-left: -4px;
+  border-radius: 50%;
+  background: rgb(14, 165, 233);
+  box-shadow: 0 0 6px rgba(14, 165, 233, 0.45);
+  z-index: 2;
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.timeLineDot::after {
   content: '';
   position: absolute;
-  left: -6px;
-  top: -5px;
-  width: 10px;
-  height: 10px;
+  top: -10px;
+  left: -10px;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
-  background: #3b82f6;
 }
 
-.timeLineLabel {
+.timeLineTooltip {
   position: absolute;
-  right: 0;
-  top: -18px;
-  font-size: 10px;
-  font-weight: 600;
-  color: #3b82f6;
-  background: rgba(255, 255, 255, 0.92);
-  padding: 1px 6px;
-  border-radius: 4px;
+  bottom: 24px;
+  transform: translateX(-50%);
+  font-size: 11px;
+  font-weight: 700;
+  color: #800020;
+  background: rgba(255, 255, 255, 0.25);
+  backdrop-filter: blur(2px);
+  padding: 3px 9px;
+  border-radius: 6px;
+  border: 1px solid rgba(128, 0, 32, 0.2);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  white-space: nowrap;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+  transform-origin: top center;
 }
 
-.wrapDark .timeLineLabel {
-  background: rgba(15, 23, 42, 0.92);
-  color: #60a5fa;
+.timeLineDot:hover + .timeLineTooltip,
+.timeLineDot:focus-visible + .timeLineTooltip {
+  opacity: 1;
+  animation: tooltipPulse 2s ease-in-out infinite;
 }
 
-.wrapDark .timeLine {
-  border-top-color: #60a5fa;
+.timeLineTooltipArrow {
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid #ffffff;
+  filter: drop-shadow(0 2px 1px rgba(0, 0, 0, 0.08));
 }
 
-.wrapDark .timeLine::before {
-  background: #60a5fa;
+.horizontalLectureHeader {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.2;
+  white-space: normal;
+  text-align: center;
+  padding: 4px 2px;
+}
+
+.wrapDark .timeLineTooltip {
+  background: rgba(15, 23, 42, 0.82);
+  color: #fecaca;
+  border-color: rgba(248, 113, 113, 0.45);
+}
+
+.wrapDark .timeLineTooltipArrow {
+  border-top-color: rgba(15, 23, 42, 0.82);
+}
+
+.wrapDark .timeLineDash {
+  border-top-color: rgba(248, 113, 113, 0.9);
+  box-shadow: 0 0 12px rgba(248, 113, 113, 0.3);
+}
+
+.wrapDark .timeLineDot {
+  background: rgba(248, 113, 113, 0.95);
+  box-shadow: 0 0 6px rgba(248, 113, 113, 0.55);
+}
+
+.wrapDark .selectedCell::after {
+  border-color: #a78bfa;
+  box-shadow: 0 0 0 3px rgba(167, 139, 250, 0.2);
+}
+
+.wrapDark .legendDot_selected {
+  background: #a78bfa;
 }

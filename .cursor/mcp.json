@@ -32,6 +32,10 @@
     "semgrep": {
       "command": "uvx",
       "args": ["semgrep-mcp"]
+    },
+    "mobbin": {
+      "command": "npx",
+      "args": ["-y", "mobbin-mcp"]
     }
   }
 }

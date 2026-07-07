@@ -100,6 +100,59 @@ export async function exportWeeklyScheduleForScope({
   return { filename, dataSource: reportData.dataSource };
 }
 
+export async function exportWeeklyScheduleForProgram({
+  program,
+  academicTerm,
+  year,
+  term,
+  lang,
+  t,
+  user,
+  format = EXPORT_FORMAT.PDF,
+}) {
+  const programName = program
+    ? (lang === 'ar' ? program.nameAr || program.nameEn : program.nameEn || program.nameAr)
+    : '';
+
+  const sources = await loadWeeklyScheduleSources({
+    programId: program?.id,
+    year,
+    term,
+    academicTermId: academicTerm?.id,
+    academicTermCode: academicTerm?.code,
+  });
+
+  const reportData = prepareWeeklyScheduleData({
+    metadata: {
+      programId: program?.id,
+      programName,
+      year,
+      term,
+      batch: programName,
+      watermarkUser: user,
+    },
+    lang,
+    t,
+    sessions: sources.sessions,
+    breakSessions: sources.breakSessions,
+    instructorAvailability: sources.instructorAvailability,
+    timeSlots: sources.timeSlots,
+  });
+
+  const filename = `${reportData.serial}_weekly_schedule_${sanitize(programName)}`;
+  const blob = await exportWeeklyScheduleReport(reportData, { format, filename });
+  await persistAndLogExport({
+    blob,
+    filename,
+    mimeType: mimeTypeForFormat(format),
+    format,
+    exportType: 'weekly_class_schedule',
+    programId: program?.id,
+  }).catch(() => {});
+  triggerDownload(blob, `${filename}.${format === EXPORT_FORMAT.EXCEL ? 'xlsx' : 'pdf'}`);
+  return { filename, dataSource: reportData.dataSource };
+}
+
 export async function exportDailyOfficialTemplate({
   cls,
   program,

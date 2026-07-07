@@ -281,7 +281,7 @@ function ExportEntryRow({
   );
 }
 
-const ExportHistoryDrawer = ({ isOpen, onClose, lang, t, theme }) => {
+const ExportHistoryDrawer = ({ isOpen, onClose, lang, t, theme, classId = null, embedded = false }) => {
   const { user, isSuperAdmin } = useAuth();
   const { isRTL } = useLang();
   const navigate = useNavigate();
@@ -331,17 +331,21 @@ const ExportHistoryDrawer = ({ isOpen, onClose, lang, t, theme }) => {
   }, [isOpen, fetchHistory]);
 
   const groupedData = useMemo(() => {
+    const scopedHistory = classId
+      ? history.filter((record) => Number(record.classId) === Number(classId))
+      : history;
+
     if (!isSuperAdmin) {
       return [{
         user: null,
         userName: null,
-        entries: [...history].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)),
+        entries: [...scopedHistory].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)),
         flat: true,
       }];
     }
 
     const byUser = new Map();
-    history.forEach((record) => {
+    scopedHistory.forEach((record) => {
       const userId = record.user?.id || record.userId;
       const userName = record.user?.displayName || record.user?.email || `User ${userId}`;
 
@@ -362,9 +366,13 @@ const ExportHistoryDrawer = ({ isOpen, onClose, lang, t, theme }) => {
       const bLast = b.entries[0]?.createdAt || '';
       return new Date(bLast) - new Date(aLast);
     });
-  }, [history, isSuperAdmin]);
+  }, [history, isSuperAdmin, classId]);
 
   if (!isOpen) return null;
+
+  const visibleCount = classId
+    ? history.filter((record) => Number(record.classId) === Number(classId)).length
+    : history.length;
 
   const groupChips = [
     { key: 'official', label: t('export_group_official'), color: '#8b5cf6', types: EXPORT_TYPE_GROUPS.official },
@@ -381,27 +389,28 @@ const ExportHistoryDrawer = ({ isOpen, onClose, lang, t, theme }) => {
     })),
   ];
 
-  return createPortal(
+  const panel = (
     <div
-      style={{ position: 'fixed', inset: 0, zIndex: 2000 }}
-      onClick={onClose}
+      style={embedded ? { position: 'relative', height: '100%' } : { position: 'fixed', inset: 0, zIndex: 2000 }}
+      onClick={embedded ? undefined : onClose}
     >
       <div
         onClick={(e) => e.stopPropagation()}
         style={{
-          position: 'absolute',
-          top: 0,
-          [isRTL ? 'left' : 'right']: 0,
-          height: '100%',
-          width: drawerWidth,
+          position: embedded ? 'relative' : 'absolute',
+          top: embedded ? undefined : 0,
+          [isRTL ? 'left' : 'right']: embedded ? undefined : 0,
+          height: embedded ? '100%' : '100%',
+          width: embedded ? '100%' : drawerWidth,
           background: 'var(--panel)',
-          boxShadow: isRTL ? '4px 0 16px rgba(0,0,0,0.15)' : '-4px 0 16px rgba(0,0,0,0.15)',
+          boxShadow: embedded ? 'none' : (isRTL ? '4px 0 16px rgba(0,0,0,0.15)' : '-4px 0 16px rgba(0,0,0,0.15)'),
           padding: '1rem',
           pointerEvents: 'auto',
           display: 'flex',
           flexDirection: 'column',
         }}
       >
+        {!embedded && (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           <h3 style={{ margin: 0, fontSize: '1.1rem', fontWeight: 700, color: 'var(--text)' }}>
             {t('export_history')}
@@ -445,6 +454,7 @@ const ExportHistoryDrawer = ({ isOpen, onClose, lang, t, theme }) => {
             </button>
           </div>
         </div>
+        )}
 
         <div style={{ marginBottom: 10 }}>
           <input
@@ -773,7 +783,7 @@ const ExportHistoryDrawer = ({ isOpen, onClose, lang, t, theme }) => {
           )}
         </div>
 
-        {!loading && history.length > 0 && (
+        {!loading && visibleCount > 0 && (
           <div
             style={{
               padding: '8px 0',
@@ -783,14 +793,16 @@ const ExportHistoryDrawer = ({ isOpen, onClose, lang, t, theme }) => {
               color: 'var(--muted)',
             }}
           >
-            {formatCount('exports_total', history.length, t)}
+            {formatCount('exports_total', visibleCount, t)}
           </div>
         )}
-        <div {...resizeHandleProps} />
+        {!embedded && <div {...resizeHandleProps} />}
       </div>
-    </div>,
-    document.body
+    </div>
   );
+
+  if (embedded) return panel;
+  return createPortal(panel, document.body);
 };
 
 export default ExportHistoryDrawer;

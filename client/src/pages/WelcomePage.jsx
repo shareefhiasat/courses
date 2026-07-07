@@ -5,81 +5,57 @@ import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { ROLE_STRINGS } from '@utils/userUtils';
 import WelcomeHeader from '@components/welcome/WelcomeHeader';
-import ActionCard from '@components/welcome/ActionCard';
 import ProgramTermSelector from '@components/workspace/ProgramTermSelector';
 import YearTermSelector from '@components/workspace/YearTermSelector';
 import OfficialWeeklyScheduleGrid from '@components/workspace/OfficialWeeklyScheduleGrid';
-import ClassActionModal from '@components/workspace/ClassActionModal';
+import ClassHistoryDrawer from '@components/workspace/ClassHistoryDrawer';
+import InboxOutboxDrawer from '@components/workspace/InboxOutboxDrawer';
+import ScheduleContextMenu from '@components/workspace/ScheduleContextMenu';
+import ScheduleSpeedDial from '@components/workspace/ScheduleSpeedDial';
+import {
+  Tabs, Tab, Box, Paper, Snackbar, Alert, LinearProgress,
+  Button,
+} from '@mui/material';
+import Joyride from 'react-joyride';
 import { getScheduleStatus } from '@services/business/attendanceWorkspaceService';
 import { loadWeeklyScheduleSources } from '@services/business/weeklyScheduleExportService';
 import { prepareWeeklyScheduleData } from '@services/export/official-reports/engine/prepareWeeklyScheduleData';
 import { academicTermToYearTerm } from '@utils/academicTermUtils';
+import useQRPermissions from '@hooks/useQRPermissions';
+import { getThemedIcon } from '@constants/iconTypes';
 
-const STEPS = { PROGRAM: 'program', TERM: 'term', SCHEDULE: 'schedule' };
-const STEP_ORDER = [STEPS.PROGRAM, STEPS.TERM, STEPS.SCHEDULE];
-const WIZARD_STORAGE_KEY = 'welcome_wizard_selection';
-
-const ROLE_CARDS = {
-  [ROLE_STRINGS.INSTRUCTOR]: [
-    {
-      iconKey: 'take_attendance',
-      title: 'Take Attendance',
-      titleAr: 'تسجيل الحضور',
-      desc: "Choose your program and open today's schedule",
-      descAr: 'اختر برنامجك وافتح جدول اليوم',
-      isPrimary: true,
-    },
-  ],
-  [ROLE_STRINGS.ADMIN]: [
-    {
-      iconKey: 'review_daily',
-      title: 'Review Daily Attendance',
-      titleAr: 'مراجعة الحضور اليومي',
-      desc: 'Review and correct submitted attendance',
-      descAr: 'مراجعة وتصحيح الحضور المرسل',
-      isPrimary: true,
-    },
-  ],
-  [ROLE_STRINGS.HR]: [
-    {
-      iconKey: 'audit_attendance',
-      title: 'Audit Attendance',
-      titleAr: 'تدقيق الحضور',
-      desc: 'Review approved attendance records',
-      descAr: 'مراجعة سجلات الحضور المعتمدة',
-      isPrimary: true,
-    },
-  ],
-  [ROLE_STRINGS.SUPER_ADMIN]: [
-    {
-      iconKey: 'review_daily',
-      title: 'Review Daily Attendance',
-      titleAr: 'مراجعة الحضور اليومي',
-      desc: 'Review and correct submitted attendance',
-      descAr: 'مراجعة وتصحيح الحضور المرسل',
-      isPrimary: true,
-    },
-  ],
-};
+const WELCOME_SELECTION_KEY = 'welcome_selection';
 
 const WelcomePage = () => {
-  const { user, role, isInstructor, isAdmin, isHR, isSuperAdmin, isStudent, dbId } = useAuth();
+  const { user, role, isInstructor, isAdmin, isHR, isSuperAdmin, isStudent } = useAuth();
   const { t, lang } = useLang();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const wizardStep = searchParams.get('step');
-
   const [selection, setSelection] = useState(null);
   const [scheduleData, setScheduleData] = useState(null);
   const [statusMap, setStatusMap] = useState({});
   const [loading, setLoading] = useState(false);
   const [selectedSession, setSelectedSession] = useState(null);
+  const [menuAnchorEl, setMenuAnchorEl] = useState(null);
   const [selectedDate, setSelectedDate] = useState(() => new Date());
+  const [selectedSlot, setSelectedSlot] = useState(null);
+  const [inboxOutboxOpen, setInboxOutboxOpen] = useState(false);
+  const [inboxClassId, setInboxClassId] = useState(null);
+  const [inboxInitialTab, setInboxInitialTab] = useState('inbox');
+  const [historyState, setHistoryState] = useState({ open: false, classInfo: null, date: null });
 
-  const instructorId = dbId;
+  const instructorId = user?.dbId;
+  const canInteractAll = isAdmin || isSuperAdmin || isHR;
+  const { canExport } = useQRPermissions();
+  const [exportingKey, setExportingKey] = useState(null);
+  const [activeTab, setActiveTab] = useState(0);
+  const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info', progress: null });
+  const [runJoyride, setRunJoyride] = useState(false);
+
+  const showSchedule = useMemo(() => Boolean(selection?.program && selection?.academicTerm), [selection]);
 
   const effectiveRole = useMemo(() => {
     if (isSuperAdmin) return ROLE_STRINGS.SUPER_ADMIN;
@@ -90,44 +66,36 @@ const WelcomePage = () => {
     return role;
   }, [isSuperAdmin, isAdmin, isHR, isInstructor, isStudent, role]);
 
-  const cards = ROLE_CARDS[effectiveRole] || [];
-
   useEffect(() => {
     if (isStudent) {
       navigate('/', { replace: true });
     }
   }, [isStudent, navigate]);
 
-  // Restore selection from sessionStorage on mount (refresh persistence)
+  // Restore selection from sessionStorage on mount
   useEffect(() => {
-    if (wizardStep) {
-      try {
-        const saved = sessionStorage.getItem(WIZARD_STORAGE_KEY);
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          setSelection(parsed);
-        }
-      } catch {
-        // ignore parse errors
+    try {
+      const saved = sessionStorage.getItem(WELCOME_SELECTION_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        setSelection(parsed);
       }
+    } catch {
+      // ignore parse errors
     }
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []);
 
   const persistSelection = useCallback((next) => {
     setSelection(next);
     try {
-      sessionStorage.setItem(WIZARD_STORAGE_KEY, JSON.stringify(next));
+      sessionStorage.setItem(WELCOME_SELECTION_KEY, JSON.stringify(next));
     } catch {
       // ignore
     }
   }, []);
 
-  const openWizard = useCallback(() => {
-    setSearchParams({ step: STEPS.PROGRAM });
-  }, [setSearchParams]);
-
-  const closeWizard = useCallback(() => {
-    sessionStorage.removeItem(WIZARD_STORAGE_KEY);
+  const handleResetSelection = useCallback(() => {
+    sessionStorage.removeItem(WELCOME_SELECTION_KEY);
     setSelection(null);
     setScheduleData(null);
     setStatusMap({});
@@ -137,61 +105,61 @@ const WelcomePage = () => {
   const handleProgramSelect = useCallback((payload) => {
     const next = { program: payload.program };
     persistSelection(next);
-    setSearchParams({ step: STEPS.TERM, programId: String(payload.program.id) });
+    setSearchParams({ programId: String(payload.program.id) });
   }, [setSearchParams, persistSelection]);
 
   const handleTermSelect = useCallback((payload) => {
     const next = { program: payload.program, academicTerm: payload.academicTerm };
     persistSelection(next);
     setSearchParams({
-      step: STEPS.SCHEDULE,
       programId: String(payload.program.id),
       termId: String(payload.academicTerm.id),
     });
   }, [setSearchParams, persistSelection]);
 
   const handleBackToProgram = useCallback(() => {
-    setSelection((prev) => {
-      const next = prev ? { ...prev, academicTerm: null } : prev;
-      try { sessionStorage.setItem(WIZARD_STORAGE_KEY, JSON.stringify(next)); } catch {}
-      return next;
-    });
+    const next = selection ? { ...selection, academicTerm: null } : null;
+    persistSelection(next);
     setScheduleData(null);
     setStatusMap({});
-    setSearchParams({ step: STEPS.PROGRAM });
-  }, [setSearchParams]);
+    if (next?.program?.id) {
+      setSearchParams({ programId: String(next.program.id) });
+    } else {
+      setSearchParams({});
+    }
+  }, [selection, setSearchParams, persistSelection]);
 
   const handleBackToTerm = useCallback(() => {
     setScheduleData(null);
     setStatusMap({});
-    setSearchParams({ step: STEPS.TERM, programId: String(selection?.program?.id || '') });
-  }, [setSearchParams, selection]);
-
-  const navigateToWizardStep = useCallback((targetStep) => {
-    const currentIdx = STEP_ORDER.indexOf(wizardStep);
-    const targetIdx = STEP_ORDER.indexOf(targetStep);
-    if (targetIdx > currentIdx) return;
-    if (targetStep === STEPS.PROGRAM) {
-      handleBackToProgram();
-    } else if (targetStep === STEPS.TERM && selection?.program) {
-      handleBackToTerm();
+    if (selection?.program?.id) {
+      setSearchParams({ programId: String(selection.program.id) });
+    } else {
+      setSearchParams({});
     }
-  }, [wizardStep, selection, handleBackToProgram, handleBackToTerm]);
+  }, [selection, setSearchParams]);
 
-  const canNavigateToStep = useCallback((stepKey) => {
-    const currentIdx = STEP_ORDER.indexOf(wizardStep);
-    const targetIdx = STEP_ORDER.indexOf(stepKey);
-    if (targetIdx > currentIdx) return false;
-    if (stepKey === STEPS.TERM && !selection?.program) return false;
-    if (stepKey === STEPS.SCHEDULE && !selection?.academicTerm) return false;
-    return true;
-  }, [wizardStep, selection]);
+  // Listen for navbar request to change selection
+  useEffect(() => {
+    const onReset = () => handleResetSelection();
+    window.addEventListener('welcome-reset-selection', onReset);
+    return () => window.removeEventListener('welcome-reset-selection', onReset);
+  }, [handleResetSelection]);
+
+  // Start Joyride once when the schedule is first shown
+  useEffect(() => {
+    if (!showSchedule) return;
+    try {
+      const seen = localStorage.getItem('welcome_tour_seen');
+      if (seen) return;
+      const timer = setTimeout(() => setRunJoyride(true), 600);
+      return () => clearTimeout(timer);
+    } catch {
+      // ignore
+    }
+  }, [showSchedule]);
 
   useEffect(() => {
-    if (!wizardStep || wizardStep === STEPS.PROGRAM) {
-      window.dispatchEvent(new CustomEvent('welcome-wizard-nav', { detail: null }));
-      return undefined;
-    }
     const programName = selection?.program
       ? (lang === 'ar' && selection.program.nameAr ? selection.program.nameAr : selection.program.nameEn)
       : null;
@@ -199,16 +167,16 @@ const WelcomePage = () => {
       ? (lang === 'ar' && selection.academicTerm.nameAr ? selection.academicTerm.nameAr : selection.academicTerm.nameEn)
       : null;
     window.dispatchEvent(new CustomEvent('welcome-wizard-nav', {
-      detail: { programName, termLabel, step: wizardStep },
+      detail: { programName, termLabel },
     }));
     return () => {
       window.dispatchEvent(new CustomEvent('welcome-wizard-nav', { detail: null }));
     };
-  }, [wizardStep, selection, lang]);
+  }, [selection, lang]);
 
-  // Load schedule data when step is SCHEDULE
+  // Load schedule data when program and term are selected
   useEffect(() => {
-    if (wizardStep !== STEPS.SCHEDULE || !selection?.program?.id || !selection?.academicTerm?.id) return;
+    if (!selection?.program?.id || !selection?.academicTerm?.id) return;
 
     const loadSchedule = async () => {
       setLoading(true);
@@ -251,11 +219,188 @@ const WelcomePage = () => {
     };
 
     loadSchedule();
-  }, [wizardStep, selection?.program, selection?.academicTerm, selectedDate, lang]);
+  }, [selection?.program, selection?.academicTerm, selectedDate, lang]);
 
-  const handleCellClick = useCallback((slot) => {
-    if (!slot?.session) return;
-    setSelectedSession(slot.session);
+  const handleCellClick = useCallback((slot, anchor, openMenu = true) => {
+    const session = slot?.session || (slot?.class ? {
+      id: slot.sessionId,
+      classId: slot.classId,
+      class: slot.class,
+      sessionType: slot.sessionType || 'lecture',
+    } : null);
+    if (!session) return;
+    setSelectedSession(session);
+    setSelectedSlot({
+      classId: session.classId,
+      dayCode: slot?.dayCode,
+      colKey: slot?.colKey,
+    });
+    if (openMenu && anchor && typeof anchor.x === 'number') {
+      const virtualEl = document.createElement('div');
+      virtualEl.style.position = 'fixed';
+      virtualEl.style.left = `${anchor.x}px`;
+      virtualEl.style.top = `${anchor.y}px`;
+      virtualEl.style.width = '0';
+      virtualEl.style.height = '0';
+      document.body.appendChild(virtualEl);
+      setMenuAnchorEl(virtualEl);
+    }
+  }, []);
+
+  // Allow double-clicking another schedule cell to open its menu even when a menu is already open.
+  // The MUI menu backdrop consumes the first click, so the cell's own onDoubleClick may not fire.
+  useEffect(() => {
+    if (!showSchedule) return undefined;
+    const onDblClick = (e) => {
+      const button = e.target.closest?.('[data-testid^="schedule-cell-"]');
+      if (!button) return;
+      const raw = button.getAttribute('data-slot');
+      if (!raw) return;
+      try {
+        const slot = JSON.parse(raw);
+        if (!slot) return;
+        e.preventDefault();
+        e.stopPropagation();
+        handleCellClick(slot, { x: e.clientX, y: e.clientY }, true);
+      } catch {
+        // ignore parse errors
+      }
+    };
+    document.addEventListener('dblclick', onDblClick, true);
+    return () => document.removeEventListener('dblclick', onDblClick, true);
+  }, [showSchedule, handleCellClick]);
+
+  const handleCloseClassMenu = useCallback(() => {
+    setMenuAnchorEl((prev) => {
+      if (prev && prev.parentNode) prev.parentNode.removeChild(prev);
+      return null;
+    });
+  }, []);
+
+  const handleClearSelection = useCallback(() => {
+    setSelectedSession(null);
+    setSelectedSlot(null);
+  }, []);
+
+  const handleOpenInbox = useCallback((tab, classId) => {
+    setInboxInitialTab(tab);
+    setInboxClassId(classId ?? null);
+    setInboxOutboxOpen(true);
+  }, []);
+
+  const handleOpenHistory = useCallback((classInfo, date) => {
+    setHistoryState({ open: true, classInfo, date });
+  }, []);
+
+  const handleExportWeeklySchedule = useCallback(async (format) => {
+    if (!selection?.program || !selection?.academicTerm) {
+      setSnackbar({
+        open: true,
+        message: `${t('weekly_schedule')} ${format === EXPORT_FORMAT.PDF ? t('export_pdf') : t('export_excel')} — select program and term first`,
+        severity: 'warning',
+        progress: null,
+      });
+      return;
+    }
+    const key = `weekly-${format}`;
+    setExportingKey(key);
+    setSnackbar({
+      open: true,
+      message: `${t('weekly_schedule')} ${format === EXPORT_FORMAT.PDF ? t('export_pdf') : t('export_excel')} — ${t('exporting')}…`,
+      severity: 'info',
+      progress: 0,
+    });
+    try {
+      const { year, term } = academicTermToYearTerm(selection.academicTerm);
+      await exportWeeklyScheduleForProgram({
+        program: selection.program,
+        academicTerm: selection.academicTerm,
+        year,
+        term,
+        lang,
+        t,
+        user,
+        format,
+      });
+      setSnackbar({
+        open: true,
+        message: `${t('weekly_schedule')} ${format === EXPORT_FORMAT.PDF ? t('export_pdf') : t('export_excel')} — ${t('export_success')}`,
+        severity: 'success',
+        progress: null,
+      });
+    } catch (err) {
+      console.error('[WelcomePage] weekly schedule export failed:', err);
+      setSnackbar({
+        open: true,
+        message: `${t('weekly_schedule')} ${format === EXPORT_FORMAT.PDF ? t('export_pdf') : t('export_excel')} — ${t('export_failed')}`,
+        severity: 'error',
+        progress: null,
+      });
+    } finally {
+      setExportingKey(null);
+    }
+  }, [selection?.program, selection?.academicTerm, lang, t, user]);
+
+  const fabActions = useMemo(() => {
+    const actions = [
+      {
+        id: 'weekly-schedule',
+        name: t('weekly_schedule'),
+        icon: getThemedIcon('ui', 'file_signature', 20, 'currentColor'),
+        children: [
+          {
+            id: 'weekly-pdf',
+            name: t('export_pdf'),
+            icon: getThemedIcon('ui', 'file_signature', 16, 'currentColor'),
+            disabled: exportingKey === 'weekly-pdf',
+            onClick: () => handleExportWeeklySchedule(EXPORT_FORMAT.PDF),
+          },
+          {
+            id: 'weekly-excel',
+            name: t('export_excel'),
+            icon: getThemedIcon('ui', 'file_text', 16, 'currentColor'),
+            disabled: exportingKey === 'weekly-excel',
+            onClick: () => handleExportWeeklySchedule(EXPORT_FORMAT.EXCEL),
+          },
+        ],
+      },
+      {
+        id: 'attendance-official',
+        name: t('official_attendance') || 'Attendance Official',
+        icon: getThemedIcon('ui', 'file_signature', 20, 'currentColor'),
+        onClick: () => navigate('/qr-scanner'),
+      },
+      {
+        id: 'marks-reports',
+        name: t('marks_reports') || 'Marks Reports',
+        icon: getThemedIcon('ui', 'download', 20, 'currentColor'),
+        children: [
+          { id: 'semester_certificate', name: t('semester_certificate') || 'Semester Certificate', icon: getThemedIcon('ui', 'file_signature', 16, 'currentColor'), onClick: () => navigate('/marks-entry') },
+          { id: 'qualitative_card', name: t('qualitative_card') || 'Qualitative Card', icon: getThemedIcon('ui', 'file_signature', 16, 'currentColor'), onClick: () => navigate('/marks-entry') },
+          { id: 'class_subject_report', name: t('class_subject') || 'Class Subject Report', icon: getThemedIcon('ui', 'file_signature', 16, 'currentColor'), onClick: () => navigate('/marks-entry') },
+          { id: 'first_warning', name: t('first_warning') || 'First Warning', icon: getThemedIcon('ui', 'file_signature', 16, 'currentColor'), onClick: () => navigate('/marks-entry') },
+          { id: 'final_warning', name: t('final_warning') || 'Final Warning', icon: getThemedIcon('ui', 'file_signature', 16, 'currentColor'), onClick: () => navigate('/marks-entry') },
+        ],
+      },
+    ];
+
+    return actions;
+  }, [exportingKey, handleExportWeeklySchedule, navigate, t]);
+
+  const handleCloseInbox = useCallback(() => {
+    setInboxOutboxOpen(false);
+    setInboxClassId(null);
+  }, []);
+
+  const handleFabAction = useCallback((action) => {
+    if (!action.id.startsWith('weekly-')) {
+      setSnackbar({
+        open: true,
+        message: `${action.name} — action triggered`,
+        severity: 'info',
+        progress: null,
+      });
+    }
   }, []);
 
   if (isStudent) return null;
@@ -264,209 +409,202 @@ const WelcomePage = () => {
     ? 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)'
     : 'linear-gradient(135deg, #f0f4ff 0%, #e0e7ff 100%)';
 
-  const dateInputValue = selectedDate.toISOString().split('T')[0];
+  const joyrideSteps = useMemo(() => [
+    {
+      target: '#welcome-navbar-title',
+      content: t('tour_change_program_term') || 'Click here any time to change the program or term.',
+      disableBeacon: true,
+    },
+    {
+      target: '[data-testid="official-weekly-schedule-grid"]',
+      content: t('tour_schedule_grid') || 'Click or double-click a class cell to open actions.',
+      disableBeacon: true,
+    },
+  ], [t]);
 
   return (
     <div
       className="welcome-page"
       style={{
-        minHeight: '100vh',
+        minHeight: showSchedule ? 'calc(100vh - 64px)' : '100vh',
+        height: showSchedule ? 'calc(100vh - 64px)' : 'auto',
         background: pageBg,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        padding: '0 16px 48px',
+        padding: showSchedule ? '0 8px 8px' : '0 16px 48px',
         dir: lang === 'ar' ? 'rtl' : 'ltr',
+        boxSizing: 'border-box',
       }}
     >
-      {!wizardStep && <WelcomeHeader user={user} role={effectiveRole} />}
-
-      {/* Action cards — shown when wizard not open */}
-      {!wizardStep && cards.length > 0 && (
-        <div
-          className="welcome-cards-grid"
-          style={{
-            display: 'flex',
-            gap: '16px',
-            flexWrap: 'wrap',
-            justifyContent: 'center',
-            maxWidth: '420px',
-            width: '100%',
+      {showSchedule && (
+        <Joyride
+          steps={joyrideSteps}
+          run={runJoyride}
+          continuous
+          showSkipButton
+          showProgress
+          callback={(data) => {
+            if (data.status === 'finished' || data.status === 'skipped') {
+              setRunJoyride(false);
+              try { localStorage.setItem('welcome_tour_seen', '1'); } catch {}
+            }
           }}
-        >
-          {cards.map((card) => (
-            <ActionCard
-              key={card.iconKey}
-              card={{ ...card, onClick: openWizard }}
-              isPrimary={card.isPrimary}
-            />
-          ))}
-        </div>
+          styles={{
+            options: {
+              zIndex: 10000,
+              arrowColor: isDark ? '#1e293b' : '#fff',
+              backgroundColor: isDark ? '#1e293b' : '#fff',
+              textColor: isDark ? '#f1f5f9' : '#0f172a',
+              overlayColor: 'rgba(0, 0, 0, 0.5)',
+            },
+          }}
+        />
       )}
 
-      {/* Wizard section — expands below */}
-      {wizardStep && (
-        <div
-          className="wizard-section"
-          style={{
-            width: '100%',
-            maxWidth: '1100px',
-            marginTop: wizardStep ? '0' : '8px',
-            animation: 'fadeInDown 0.3s ease',
-          }}
-        >
-          {/* Wizard header bar */}
+      {!selection?.program && <WelcomeHeader user={user} role={effectiveRole} />}
+
+      {/* Selection flow */}
+      <div
+        className="selection-section"
+        style={{
+          width: '100%',
+          maxWidth: '1200px',
+          marginTop: 0,
+          flex: selection?.program && selection?.academicTerm ? 1 : undefined,
+          display: 'flex',
+          flexDirection: 'column',
+          minHeight: 0,
+          animation: 'fadeInDown 0.3s ease',
+        }}
+      >
+        {!selection?.program && (
+          <ProgramTermSelector onSelect={handleProgramSelect} />
+        )}
+
+        {selection?.program && !selection?.academicTerm && (
+          <YearTermSelector
+            program={selection.program}
+            onSelect={handleTermSelect}
+            onBack={handleBackToProgram}
+            showBack={false}
+          />
+        )}
+
+        {selection?.program && selection?.academicTerm && (
           <div
             style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              marginBottom: '16px',
-              padding: '10px 16px',
-              borderRadius: '12px',
-              background: isDark ? '#1e293b' : '#ffffff',
+              background: isDark ? '#0f172a' : '#f8fafc',
+              borderRadius: '8px',
+              padding: '8px',
               border: `1px solid ${isDark ? '#334155' : '#e2e8f0'}`,
+              flex: 1,
+              display: 'flex',
+              flexDirection: 'column',
+              minHeight: 0,
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', flexWrap: 'wrap', justifyContent: 'center' }}>
-              {[
-                { key: STEPS.PROGRAM, label: t('workspace_select_program') },
-                { key: STEPS.TERM, label: t('workspace_select_term') },
-                { key: STEPS.SCHEDULE, label: t('workspace_take_attendance') },
-              ].map((s, i) => {
-                const isActive = wizardStep === s.key;
-                const isDone = STEP_ORDER.indexOf(wizardStep) > i;
-                const clickable = canNavigateToStep(s.key);
-                return (
-                  <React.Fragment key={s.key}>
-                    {i > 0 && (
-                      <span style={{ color: isDark ? '#475569' : '#cbd5e1' }}>→</span>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => clickable && navigateToWizardStep(s.key)}
-                      disabled={!clickable}
-                      style={{
-                        border: 'none',
-                        background: 'transparent',
-                        padding: '4px 6px',
-                        borderRadius: '6px',
-                        fontWeight: isActive || isDone ? 700 : 400,
-                        color: isActive
-                          ? 'var(--color-primary, #3b82f6)'
-                          : isDone
-                            ? (isDark ? '#4ade80' : '#22c55e')
-                            : (isDark ? '#64748b' : '#94a3b8'),
-                        cursor: clickable ? 'pointer' : 'default',
-                        fontSize: 'inherit',
-                        fontFamily: 'inherit',
-                      }}
-                    >
-                      {s.label}
-                    </button>
-                  </React.Fragment>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Step content */}
-          {wizardStep === STEPS.PROGRAM && (
-            <ProgramTermSelector onSelect={handleProgramSelect} />
-          )}
-
-          {wizardStep === STEPS.TERM && selection?.program && (
-            <YearTermSelector
-              program={selection.program}
-              onSelect={handleTermSelect}
-              onBack={handleBackToProgram}
-              showBack={false}
-            />
-          )}
-
-          {wizardStep === STEPS.SCHEDULE && selection?.program && selection?.academicTerm && (
-            <div
-              style={{
-                background: isDark ? '#0f172a' : '#f8fafc',
-                borderRadius: '12px',
-                padding: '24px 16px',
-                border: `1px solid ${isDark ? '#334155' : '#e2e8f0'}`,
-              }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'flex-end',
-                  marginBottom: '16px',
-                  flexWrap: 'wrap',
-                }}
+            <Box sx={{ borderBottom: 1, borderColor: 'divider', flexShrink: 0, mb: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Tabs
+                value={activeTab}
+                onChange={(_, v) => setActiveTab(v)}
+                variant="standard"
+                sx={{ minHeight: 40, '& .MuiTab-root': { minHeight: 40, textTransform: 'none' } }}
               >
-                <label
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    fontSize: '13px',
-                    color: isDark ? '#94a3b8' : '#64748b',
-                  }}
-                >
-                  {t('workspace_date')}
-                  <input
-                    type="date"
-                    value={dateInputValue}
-                    onChange={(e) => setSelectedDate(new Date(`${e.target.value}T12:00:00`))}
-                    data-testid="workspace-date-picker"
+                <Tab label={t('welcome_tab_schedule') || 'Schedule'} />
+                <Tab label={t('welcome_tab_overview') || 'Overview'} />
+              </Tabs>
+              <Button
+                size="small"
+                onClick={handleResetSelection}
+                sx={{ textTransform: 'none', fontWeight: 600 }}
+              >
+                {t('change') || 'Change'}
+              </Button>
+            </Box>
+
+            {activeTab === 0 && (
+              <>
+                {loading ? (
+                  <div
                     style={{
-                      padding: '8px 10px',
-                      borderRadius: '8px',
-                      border: `1px solid ${isDark ? '#334155' : '#e2e8f0'}`,
-                      background: isDark ? '#1e293b' : '#ffffff',
-                      color: isDark ? '#f1f5f9' : '#1e293b',
-                      fontSize: '13px',
+                      display: 'flex',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                      flex: 1,
+                      color: isDark ? '#94a3b8' : '#64748b',
                     }}
-                  />
-                </label>
-              </div>
+                  >
+                    {t('loading') || 'Loading...'}
+                  </div>
+                ) : (
+                  <div style={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+                    <OfficialWeeklyScheduleGrid
+                      scheduleData={scheduleData}
+                      statusMap={statusMap}
+                      instructorId={isInstructor ? instructorId : null}
+                      interactiveAll={canInteractAll}
+                      selectedDate={selectedDate}
+                      selectedSlot={selectedSlot}
+                      onCellClick={handleCellClick}
+                      onDateChange={setSelectedDate}
+                      compact
+                      fillHeight
+                    />
+                    {selectedSlot && !menuAnchorEl && selectedSession && (
+                      <ScheduleSpeedDial
+                        session={selectedSession}
+                        selectedDate={selectedDate}
+                        program={selection?.program}
+                        onClose={handleClearSelection}
+                        onOpenInbox={handleOpenInbox}
+                        onOpenHistory={handleOpenHistory}
+                      />
+                    )}
+                  </div>
+                )}
 
-              {loading ? (
-                <div
+                <p
                   style={{
-                    display: 'flex',
-                    justifyContent: 'center',
-                    padding: '64px',
-                    color: isDark ? '#94a3b8' : '#64748b',
+                    fontSize: '11px',
+                    color: isDark ? '#64748b' : '#94a3b8',
+                    marginTop: '8px',
+                    textAlign: 'center',
+                    flexShrink: 0,
                   }}
                 >
-                  {t('loading')}
-                </div>
-              ) : (
-                <OfficialWeeklyScheduleGrid
-                  scheduleData={scheduleData}
-                  statusMap={statusMap}
-                  instructorId={isInstructor ? instructorId : null}
-                  selectedDate={selectedDate}
-                  onCellClick={handleCellClick}
-                />
-              )}
+                  {isInstructor ? t('workspace_schedule_hint') : t('workspace_schedule_hint_admin')}
+                </p>
+              </>
+            )}
 
-              <p
-                style={{
-                  fontSize: '12px',
-                  color: isDark ? '#64748b' : '#94a3b8',
-                  marginTop: '16px',
-                  textAlign: 'center',
-                }}
-              >
-                {isInstructor ? t('workspace_schedule_hint') : t('workspace_schedule_hint_admin')}
-              </p>
-            </div>
-          )}
-        </div>
-      )}
+            {activeTab === 1 && (
+              <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', p: 3 }}>
+                <Paper
+                  elevation={0}
+                  sx={{
+                    p: 4,
+                    textAlign: 'center',
+                    maxWidth: 480,
+                    bgcolor: 'transparent',
+                  }}
+                >
+                  <div style={{ fontSize: 48, marginBottom: 16, opacity: 0.3 }}>📊</div>
+                  <div style={{ fontWeight: 600, fontSize: 18, marginBottom: 8 }}>
+                    {t('welcome_dummy_title') || 'Overview'}
+                  </div>
+                  <div style={{ color: isDark ? '#94a3b8' : '#64748b', fontSize: 14 }}>
+                    {t('welcome_dummy_description') || 'This tab will show an overview dashboard. Content coming soon.'}
+                  </div>
+                </Paper>
+              </Box>
+            )}
+          </div>
+        )}
+      </div>
 
-      {/* Footer link — only when wizard not open */}
-      {!wizardStep && (
+      {/* Footer link — only when no selection */}
+      {!selection?.program && (
         <button
           type="button"
           onClick={() => navigate('/', { replace: true })}
@@ -484,14 +622,55 @@ const WelcomePage = () => {
         </button>
       )}
 
-      {selectedSession && (
-        <ClassActionModal
-          session={selectedSession}
-          status={statusMap[selectedSession.class?.id]}
-          selectedDate={selectedDate}
-          onClose={() => setSelectedSession(null)}
-        />
-      )}
+      <ScheduleContextMenu
+        session={selectedSession}
+        anchorEl={menuAnchorEl}
+        open={Boolean(selectedSession && menuAnchorEl)}
+        onClose={handleCloseClassMenu}
+        selectedDate={selectedDate}
+        program={selection?.program}
+        onOpenInbox={handleOpenInbox}
+        onOpenHistory={handleOpenHistory}
+      />
+
+      <ClassHistoryDrawer
+        isOpen={historyState.open}
+        onClose={() => setHistoryState({ open: false, classInfo: null, date: null })}
+        classInfo={historyState.classInfo}
+        date={historyState.date || selectedDate}
+      />
+
+      <InboxOutboxDrawer
+        isOpen={inboxOutboxOpen}
+        onClose={handleCloseInbox}
+        classId={inboxClassId}
+        initialTab={inboxInitialTab}
+      />
+
+      <Snackbar
+        open={snackbar.open}
+        autoHideDuration={snackbar.progress !== null ? null : 4000}
+        onClose={(_, reason) => {
+          if (reason === 'clickaway') return;
+          setSnackbar((s) => ({ ...s, open: false }));
+        }}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert
+          severity={snackbar.severity}
+          variant="filled"
+          onClose={() => setSnackbar((s) => ({ ...s, open: false }))}
+          sx={{ width: 320, overflow: 'hidden' }}
+        >
+          {snackbar.message}
+          {snackbar.progress !== null && (
+            <LinearProgress
+              color={snackbar.severity}
+              sx={{ mt: 1, borderRadius: 1 }}
+            />
+          )}
+        </Alert>
+      </Snackbar>
 
       <style>{`
         @keyframes fadeInDown {

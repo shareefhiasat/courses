@@ -132,7 +132,7 @@ const DraggableClock = ({
         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
           <span className="clock-time">{formatTime(currentTime)}</span>
         </div>
-        <div className="clock-controls">
+        <div className="clock-controls" style={{ display: 'none' }}>
           <PortalTooltip content={isPinned ? t('unpin_from_navbar') : t('pin_to_navbar')} position="top">
           <button
             className="control-btn"

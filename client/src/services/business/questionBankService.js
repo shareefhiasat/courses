@@ -1,0 +1,10 @@
+export const getQuestions = async () => ({ success: true, data: [] });
+export const getAllQuestions = async () => ({ success: true, data: [] });
+export const createQuestion = async () => ({ success: true, data: {} });
+export const updateQuestion = async () => ({ success: true, data: {} });
+export const deleteQuestion = async () => ({ success: true });
+export const duplicateQuestion = async () => ({ success: true, data: {} });
+export const searchQuestions = async () => ({ success: true, data: [] });
+export const getAllTags = async () => ({ success: true, data: [] });
+export const bulkImportQuestions = async () => ({ success: true, data: [] });
+export default { getQuestions, getAllQuestions, createQuestion, updateQuestion, deleteQuestion, duplicateQuestion, searchQuestions, getAllTags, bulkImportQuestions };

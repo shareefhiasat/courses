@@ -6,15 +6,29 @@
  */
 
 import React, { useMemo } from 'react';
-import { Calendar as BigCalendar, momentLocalizer } from 'react-big-calendar';
-import moment from 'moment';
+import { Calendar as BigCalendar } from 'react-big-calendar';
+import { dateFnsLocalizer } from 'react-big-calendar';
+import { format, parse, startOfWeek, getDay } from 'date-fns';
+import enUS from 'date-fns/locale/en-US';
+import arSA from 'date-fns/locale/ar-SA';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import { useTheme } from '@contexts/ThemeContext';
 import { useLang } from '@contexts/LangContext';
 
 import { info, error, warn, debug } from '@services/utils/logger.js';import './Calendar.css';
 
-const localizer = momentLocalizer(moment);
+const locales = {
+  'en': enUS,
+  'ar': arSA,
+};
+
+const localizer = dateFnsLocalizer({
+  format,
+  parse,
+  startOfWeek,
+  getDay,
+  locales,
+});
 
 const Calendar = ({
   events = [],
@@ -29,7 +43,7 @@ const Calendar = ({
   ...props
 }) => {
   const { theme } = useTheme();
-  const { lang } = useLang();
+  const { lang, t } = useLang();
 
   const defaultEventStyleGetter = useMemo(() => {
     return (event) => {
