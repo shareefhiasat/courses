@@ -73,6 +73,7 @@ export const LEGACY_ROUTE_SCREEN_ALIASES = {
   permissionMatrix: 'permission-matrix',
   emailTemplates: 'email-templates',
   notificationLogs: 'notification-logs',
+  operations: 'attendance',
 };
 
 export function resolveMatrixScreenId(screenId) {

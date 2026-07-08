@@ -237,6 +237,12 @@ export const ROUTE_CONFIG = {
       requireAuth: true,
       screenId: 'attendance',
       screenName: 'QR Scanner'
+    },
+    operationsBoard: {
+      path: '/operations/board',
+      requireAuth: true,
+      screenId: 'operations',
+      screenName: 'Operations Board'
     }
   },
 

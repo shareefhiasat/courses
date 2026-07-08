@@ -28,6 +28,7 @@ export default defineConfig({
       '@constants': path.resolve(__dirname, './src/constants'),
       '@types': path.resolve(__dirname, './src/types'),
       '@components': path.resolve(__dirname, './src/components'),
+      '@kibo': path.resolve(__dirname, './src/components/kibo'),
       '@api': path.resolve(__dirname, './src/services/api/index.js'),
       '@logger': path.resolve(__dirname, './src/services/utils/logger.js'),
       '@config': path.resolve(__dirname, './src/config'),
@@ -59,6 +60,10 @@ export default defineConfig({
           if (id.includes('node_modules/@sentry')) return 'vendor-monitoring';
           // Calendar / grid layout
           if (id.includes('node_modules/react-big-calendar') || id.includes('node_modules/react-grid-layout')) return 'vendor-layout';
+          // DnD kit (Kibo UI Kanban)
+          if (id.includes('node_modules/@dnd-kit/')) return 'vendor-dnd';
+          // Radix UI primitives (shadcn/ui / Kibo UI)
+          if (id.includes('node_modules/@radix-ui/')) return 'vendor-radix';
           // Lucide icons
           if (id.includes('node_modules/lucide-react')) return 'vendor-icons';
           // CSV / data processing

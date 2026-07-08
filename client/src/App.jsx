@@ -81,6 +81,7 @@ const CalendarCompliancePage = lazy(() => import('./pages/workflow/CalendarCompl
 const WorkflowAnalyticsPage = lazy(() => import('./pages/workflow/WorkflowAnalyticsPage'));
 const WorkflowConfigPage = lazy(() => import('./pages/workflow/WorkflowConfigPage'));
 const SmartDrivePage = lazy(() => import('./pages/SmartDrivePage'));
+const OperationsBoardPage = lazy(() => import('./pages/operations/OperationsBoardPage'));
 
 const lazyProtectedRoutes = [
   { path: '/dashboard', screenId: 'dashboard', screenName: 'Dashboard', Component: DashboardPage },
@@ -98,6 +99,7 @@ const lazyProtectedRoutes = [
   { path: '/workflow/compliance', screenId: 'workflow', screenName: 'Calendar Compliance', Component: CalendarCompliancePage },
   { path: '/workflow/analytics', screenId: 'workflow', screenName: 'Workflow Analytics', Component: WorkflowAnalyticsPage },
   { path: '/workflow/config', screenId: 'workflow', screenName: 'Workflow Configuration', Component: WorkflowConfigPage },
+  { path: '/operations/board', screenId: 'operations', screenName: 'Operations Board', Component: OperationsBoardPage },
 ];
 
 const protectedRoutes = [
