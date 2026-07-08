@@ -18,7 +18,15 @@ import { adjustColor, hexToRgbString, normalizeHexColor, DEFAULT_ACCENT } from '
 import Select from '../Select/Select';
 import DraggableClock from '../DraggableClock/DraggableClock';
 import PortalTooltip from '../PortalTooltip/PortalTooltip';
+import ColoredTooltip from '../mui/ColoredTooltip';
 import MyDataScopeDrawer from '../MyDataScopeDrawer/MyDataScopeDrawer';
+import Slider from '@mui/material/Slider';
+import Box from '@mui/material/Box';
+import {
+  SCHEDULE_FONT_SCALE_MIN,
+  SCHEDULE_FONT_SCALE_MAX,
+  SCHEDULE_FONT_SCALE_STEP,
+} from '@constants/scheduleFontScale';
 
 import { info, error, warn, debug } from '@services/utils/logger.js';const ACCENT_FALLBACK = DEFAULT_ACCENT;
 
@@ -59,6 +67,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
   const [isMobile, setIsMobile] = useState(() => window.innerWidth < 768);
 
   const [wizardNav, setWizardNav] = useState(null);
+  const [scheduleFontControl, setScheduleFontControl] = useState(null);
 
   useEffect(() => {
     const onWizardNav = (e) => setWizardNav(e.detail || null);
@@ -67,8 +76,15 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
   }, []);
 
   useEffect(() => {
+    const onScheduleFont = (e) => setScheduleFontControl(e.detail || null);
+    window.addEventListener('welcome-schedule-font', onScheduleFont);
+    return () => window.removeEventListener('welcome-schedule-font', onScheduleFont);
+  }, []);
+
+  useEffect(() => {
     if (location.pathname !== '/welcome') {
       setWizardNav(null);
+      setScheduleFontControl(null);
     }
   }, [location.pathname]);
 
@@ -271,64 +287,76 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
               <img src="/qaf_logo_transparent.png" alt="QAF" style={{ width: 36, height: 36, objectFit: 'cover', borderRadius: '50%' }} />
             </div>
             {wizardNav?.programName && (
-              <button
-                id="welcome-navbar-title"
-                type="button"
-                onClick={() => {
-                  window.dispatchEvent(new CustomEvent('welcome-reset-selection'));
-                  navigate('/welcome', { replace: true });
-                }}
+              <ColoredTooltip
                 title={t('change_program_term') || 'Change program / term'}
-                style={{
-                  minWidth: 0,
-                  lineHeight: 1.25,
-                  background: 'transparent',
-                  border: 'none',
-                  padding: 0,
-                  margin: 0,
-                  color: 'inherit',
-                  textAlign: 'inherit',
-                  cursor: 'pointer',
-                  fontFamily: 'inherit',
-                }}
+                color="#D4AF37"
+                placement="bottom"
               >
-                <div style={{
-                  fontSize: '0.95rem',
-                  fontWeight: 700,
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                }}>
-                  {wizardNav.programName}
-                </div>
-                {wizardNav.termLabel && (
+                <button
+                  id="welcome-navbar-title"
+                  type="button"
+                  onClick={() => {
+                    window.dispatchEvent(new CustomEvent('welcome-open-context-switcher'));
+                  }}
+                  style={{
+                    minWidth: 0,
+                    lineHeight: 1.25,
+                    background: 'transparent',
+                    border: 'none',
+                    padding: 0,
+                    margin: 0,
+                    color: 'inherit',
+                    textAlign: 'inherit',
+                    cursor: 'pointer',
+                    fontFamily: 'inherit',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 6,
+                  }}
+                >
+                <span style={{ minWidth: 0 }}>
                   <div style={{
-                    fontSize: '0.75rem',
-                    fontWeight: 500,
-                    opacity: 0.88,
+                    fontSize: '0.95rem',
+                    fontWeight: 700,
                     whiteSpace: 'nowrap',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                   }}>
-                    {wizardNav.termLabel}
+                    {wizardNav.programName}
                   </div>
-                )}
-                <div style={{
-                  fontSize: '0.7rem',
-                  fontWeight: 400,
-                  opacity: 0.75,
-                  whiteSpace: 'nowrap',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                }}>
-                  {new Date().toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US', {
-                    weekday: 'short',
-                    year: 'numeric',
-                    month: 'short',
-                    day: 'numeric'
-                  })}
-                </div>
+                  {wizardNav.termLabel && (
+                    <div style={{
+                      fontSize: '0.75rem',
+                      fontWeight: 500,
+                      opacity: 0.88,
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}>
+                      {wizardNav.termLabel}
+                    </div>
+                  )}
+                  <div style={{
+                    fontSize: '0.7rem',
+                    fontWeight: 400,
+                    opacity: 0.75,
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}>
+                    {new Date().toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US', {
+                      weekday: 'short',
+                      year: 'numeric',
+                      month: 'short',
+                      day: 'numeric'
+                    })}
+                  </div>
+                </span>
+                <span style={{ opacity: 0.85, flexShrink: 0, display: 'flex' }} aria-hidden>
+                  {getThemedIcon('ui', 'chevron_down', 16, 'currentColor')}
+                </span>
               </button>
+              </ColoredTooltip>
             )}
           </div>
 
@@ -410,6 +438,57 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                       {getThemedIcon('ui', 'home', 16, 'currentColor')}
                     </button>
                   </PortalTooltip>
+                )}
+
+                {scheduleFontControl && (
+                  <Box
+                    data-testid="schedule-font-slider-wrap"
+                    sx={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: 0.5,
+                      ml: 0.25,
+                      px: 0.75,
+                      py: 0.25,
+                      borderRadius: 2,
+                      bgcolor: 'rgba(0,0,0,0.2)',
+                      border: '1px solid rgba(212, 175, 55, 0.35)',
+                      fontSize: '12px',
+                      lineHeight: 1,
+                    }}
+                  >
+                    <Slider
+                      size="small"
+                      value={scheduleFontControl.scale}
+                      onChange={(_, value) => {
+                        window.dispatchEvent(new CustomEvent('welcome-schedule-font-change', { detail: value }));
+                      }}
+                      min={scheduleFontControl.min ?? SCHEDULE_FONT_SCALE_MIN}
+                      max={scheduleFontControl.max ?? SCHEDULE_FONT_SCALE_MAX}
+                      step={scheduleFontControl.step ?? SCHEDULE_FONT_SCALE_STEP}
+                      aria-label={t('schedule_font_size') || 'Schedule font size'}
+                      data-testid="schedule-font-slider"
+                      sx={{
+                        width: 96,
+                        color: '#D4AF37',
+                        '& .MuiSlider-thumb': { width: 12, height: 12 },
+                        '& .MuiSlider-rail': { opacity: 0.35 },
+                      }}
+                    />
+                    <span
+                      data-testid="schedule-font-size-label"
+                      style={{
+                        fontSize: 11,
+                        fontWeight: 600,
+                        color: '#D4AF37',
+                        minWidth: 34,
+                        textAlign: 'center',
+                        fontVariantNumeric: 'tabular-nums',
+                      }}
+                    >
+                      {scheduleFontControl.scale}%
+                    </span>
+                  </Box>
                 )}
 
                 {isSuperAdmin && <NotificationBell />}

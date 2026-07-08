@@ -33,6 +33,8 @@ import {
   getLinkedWorkflowsByAttendanceIds,
   getWorkflowsByStudentDay,
   enrichWorkflowDocuments,
+  getBoardWorkflowDocuments,
+  ensureDailyWorkflows,
 } from '../services/workflowDocumentService.js';
 import { emit } from '../services/notifications/index.js';
 import { EVENTS } from '../services/notifications/constants.js';
@@ -1520,7 +1522,8 @@ export const createCustomWorkflowDocumentController = async (req, res) => {
       return res.status(409).json({
         success: false,
         error: result.error,
-        existingWorkflow: result.existingDocument
+        existingWorkflow: result.existingDocument,
+        existingDraft: result.existingDraft || null,
       });
     } else {
       return res.status(400).json({
@@ -1661,6 +1664,75 @@ export const getLinkedWorkflowsController = async (req, res) => {
   }
 };
 
+/**
+ * GET /api/v1/workflow-documents/board
+ * Operations board workflow list with filters
+ */
+export const getBoardWorkflowDocumentsController = async (req, res) => {
+  try {
+    const { date, classId, programId, subjectId, status, workflowType, workflowCategory, attendanceSubtype, search, limit, offset } = req.query;
+    const result = await getBoardWorkflowDocuments({
+      date,
+      classId,
+      programId,
+      subjectId,
+      status,
+      workflowType,
+      workflowCategory: workflowCategory || 'ATTENDANCE',
+      attendanceSubtype: attendanceSubtype || 'DAILY',
+      search,
+      limit,
+      offset,
+    });
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    let data = result.data || [];
+    const scope = await getRequestScope(req);
+    if (!scope.unrestricted) {
+      data = filterRecordsByScope(data, scope, {
+        classField: 'classId',
+      });
+    }
+
+    return res.status(200).json({ success: true, data, total: data.length });
+  } catch (error) {
+    console.error('Error in getBoardWorkflowDocumentsController:', error);
+    return res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+};
+
+/**
+ * POST /api/v1/workflow-documents/ensure-daily
+ * Auto-create DRAFT daily attendance workflows for scheduled classes
+ */
+export const ensureDailyWorkflowsController = async (req, res) => {
+  try {
+    const { date, classIds } = req.body;
+    const { user } = req;
+
+    if (!date) {
+      return res.status(400).json({ success: false, error: 'date is required' });
+    }
+
+    const result = await ensureDailyWorkflows({
+      date,
+      classIds: classIds || [],
+      actorId: user?.dbId || null,
+    });
+
+    if (result.success) {
+      return res.status(200).json(result);
+    }
+    return res.status(400).json(result);
+  } catch (error) {
+    console.error('Error in ensureDailyWorkflowsController:', error);
+    return res.status(500).json({ success: false, error: 'Internal server error' });
+  }
+};
+
 export default {
   createWorkflowDocumentController,
   getWorkflowDocumentController,
@@ -1681,4 +1753,6 @@ export default {
   deleteWorkflowDocumentController,
   getLinkedWorkflowsController,
   getWorkflowsByContextController,
+  getBoardWorkflowDocumentsController,
+  ensureDailyWorkflowsController,
 };

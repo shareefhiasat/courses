@@ -10,9 +10,11 @@ import {
   exportDailyOfficialTemplate,
   exportDailyOfficialForDate,
 } from '@services/business/accessScopeExportService.js';
+import { FileText, FileSpreadsheet } from 'lucide-react';
 import { ATTENDANCE_TYPE_CATEGORY } from '@constants/attendanceTypes';
 import useQRPermissions from '@hooks/useQRPermissions';
 import AppMenu from '@components/ui/mui/AppMenu.jsx';
+import InitiateWorkflowDialog from '@components/workspace/InitiateWorkflowDialog.jsx';
 
 function ScheduleContextMenu({
   session,
@@ -21,14 +23,17 @@ function ScheduleContextMenu({
   onClose,
   selectedDate,
   program,
+  academicTerm,
   onOpenInbox,
   onOpenHistory,
+  onOpenOperations,
 }) {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { t, lang } = useLang();
   const { canExport, canSeeStandupMode } = useQRPermissions();
   const [exporting, setExporting] = useState(null);
+  const [workflowDialogOpen, setWorkflowDialogOpen] = useState(false);
 
   const cls = session?.class;
   const subject = cls?.subject;
@@ -62,6 +67,25 @@ function ScheduleContextMenu({
     onClose();
   }, [cls, dateStr, navigate, onClose]);
 
+  const handleOpenOperations = useCallback(() => {
+    if (!cls) return;
+    onOpenOperations?.({
+      lane: 'attendance',
+      classId: cls.id,
+      date: dateStr,
+    });
+    onClose();
+  }, [cls, dateStr, onOpenOperations, onClose]);
+
+  const handleInitiateWorkflow = useCallback(() => {
+    setWorkflowDialogOpen(true);
+    onClose();
+  }, [onClose]);
+
+  const handleCloseWorkflowDialog = useCallback(() => {
+    setWorkflowDialogOpen(false);
+  }, []);
+
   const handleInbox = useCallback((tab) => {
     onOpenInbox?.(tab, cls?.id);
     onClose();
@@ -80,22 +104,20 @@ function ScheduleContextMenu({
         id: 'export-weekly',
         label: t('weekly_schedule'),
         icon: getThemedIcon('ui', 'file_signature', 18, 'currentColor'),
-        children: [
+        trailingActions: [
           {
-            id: 'export-weekly-pdf',
-            label: t('export_pdf'),
-            icon: getThemedIcon('ui', 'file_signature', 18, 'currentColor'),
-            disabled: exporting === 'export-weekly-pdf',
+            title: t('export_pdf') || 'PDF',
+            icon: <FileText size={16} style={{ color: '#e53935' }} />,
+            tooltipColor: '#e53935',
             onClick: () => runExport('export-weekly-pdf', () =>
-              exportWeeklyScheduleForScope({ cls, program, subject, lang, t, user, format: EXPORT_FORMAT.PDF })),
+              exportWeeklyScheduleForScope({ cls, program, subject, academicTerm, lang, t, user, format: EXPORT_FORMAT.PDF })),
           },
           {
-            id: 'export-weekly-excel',
-            label: t('export_excel'),
-            icon: getThemedIcon('ui', 'file_text', 18, 'currentColor'),
-            disabled: exporting === 'export-weekly-excel',
+            title: t('export_excel') || 'Excel',
+            icon: <FileSpreadsheet size={16} style={{ color: '#43a047' }} />,
+            tooltipColor: '#43a047',
             onClick: () => runExport('export-weekly-excel', () =>
-              exportWeeklyScheduleForScope({ cls, program, subject, lang, t, user, format: EXPORT_FORMAT.EXCEL })),
+              exportWeeklyScheduleForScope({ cls, program, subject, academicTerm, lang, t, user, format: EXPORT_FORMAT.EXCEL })),
           },
         ],
       });
@@ -103,46 +125,48 @@ function ScheduleContextMenu({
         id: 'export-daily',
         label: t('daily_official'),
         icon: getThemedIcon('ui', 'file_signature', 18, 'currentColor'),
-        hint: dateStr,
-        children: [
+        trailingActions: [
           {
-            id: 'export-daily-pdf',
-            label: t('export_pdf'),
-            icon: getThemedIcon('ui', 'file_signature', 18, 'currentColor'),
-            disabled: exporting === 'export-daily-pdf',
+            title: t('export_pdf') || 'PDF',
+            icon: <FileText size={16} style={{ color: '#e53935' }} />,
+            tooltipColor: '#e53935',
             onClick: () => runExport('export-daily-pdf', () =>
               exportDailyOfficialForDate({ cls, program, subject, lang, user, date: dateStr, format: EXPORT_FORMAT.PDF })),
           },
           {
-            id: 'export-daily-excel',
-            label: t('export_excel'),
-            icon: getThemedIcon('ui', 'file_text', 18, 'currentColor'),
-            disabled: exporting === 'export-daily-excel',
+            title: t('export_excel') || 'Excel',
+            icon: <FileSpreadsheet size={16} style={{ color: '#43a047' }} />,
+            tooltipColor: '#43a047',
             onClick: () => runExport('export-daily-excel', () =>
               exportDailyOfficialForDate({ cls, program, subject, lang, user, date: dateStr, format: EXPORT_FORMAT.EXCEL })),
           },
         ],
       });
       items.push({
-        id: 'export-template',
-        label: t('daily_official_template'),
+        id: 'export-templates',
+        label: t('templates') || 'Templates',
         icon: getThemedIcon('ui', 'file_text', 18, 'currentColor'),
         children: [
           {
-            id: 'export-template-pdf',
-            label: t('export_pdf'),
-            icon: getThemedIcon('ui', 'file_signature', 18, 'currentColor'),
-            disabled: exporting === 'export-template-pdf',
-            onClick: () => runExport('export-template-pdf', () =>
-              exportDailyOfficialTemplate({ cls, program, subject, lang, user, format: EXPORT_FORMAT.PDF })),
-          },
-          {
-            id: 'export-template-excel',
-            label: t('export_excel'),
+            id: 'template-daily',
+            label: t('daily_template') || 'Daily',
             icon: getThemedIcon('ui', 'file_text', 18, 'currentColor'),
-            disabled: exporting === 'export-template-excel',
-            onClick: () => runExport('export-template-excel', () =>
-              exportDailyOfficialTemplate({ cls, program, subject, lang, user, format: EXPORT_FORMAT.EXCEL })),
+            trailingActions: [
+              {
+                title: t('export_pdf') || 'PDF',
+                icon: <FileText size={16} style={{ color: '#e53935' }} />,
+                tooltipColor: '#e53935',
+                onClick: () => runExport('export-template-pdf', () =>
+                  exportDailyOfficialTemplate({ cls, program, subject, lang, user, format: EXPORT_FORMAT.PDF })),
+              },
+              {
+                title: t('export_excel') || 'Excel',
+                icon: <FileSpreadsheet size={16} style={{ color: '#43a047' }} />,
+                tooltipColor: '#43a047',
+                onClick: () => runExport('export-template-excel', () =>
+                  exportDailyOfficialTemplate({ cls, program, subject, lang, user, format: EXPORT_FORMAT.EXCEL })),
+              },
+            ],
           },
         ],
       });
@@ -156,9 +180,15 @@ function ScheduleContextMenu({
       children: [
         {
           id: 'scan-attendance',
-          label: t('workspace_take_attendance'),
+          label: t('take_attendance_qr_short') || 'QR Scanner',
           icon: getThemedIcon('ui', 'check_circle', 18, 'currentColor'),
           onClick: () => handleScan(ATTENDANCE_TYPE_CATEGORY.REGULAR),
+        },
+        {
+          id: 'operations-attendance',
+          label: t('take_attendance_operations_short') || 'Operations Board',
+          icon: getThemedIcon('ui', 'layout_grid', 18, 'currentColor'),
+          onClick: handleOpenOperations,
         },
         ...(canSeeStandupMode ? [{
           id: 'scan-standup',
@@ -166,6 +196,13 @@ function ScheduleContextMenu({
           icon: getThemedIcon('ui', 'users', 18, 'currentColor'),
           onClick: () => handleScan(ATTENDANCE_TYPE_CATEGORY.STANDUP),
         }] : []),
+        { divider: true },
+        {
+          id: 'initiate-workflow',
+          label: t('initiate_workflow') || 'Initiate Workflow',
+          icon: getThemedIcon('ui', 'file_signature', 18, 'currentColor'),
+          onClick: handleInitiateWorkflow,
+        },
       ],
     });
 
@@ -175,17 +212,17 @@ function ScheduleContextMenu({
       id: 'messages',
       label: t('inbox_tab'),
       icon: getThemedIcon('ui', 'mailbox', 18, 'currentColor'),
-      children: [
+      trailingActions: [
         {
-          id: 'open-inbox',
-          label: t('inbox_tab'),
-          icon: getThemedIcon('ui', 'mailbox', 18, 'currentColor'),
+          title: t('inbox_tab') || 'Inbox',
+          icon: getThemedIcon('ui', 'mailbox', 16, 'currentColor'),
+          tooltipColor: '#8b5cf6',
           onClick: () => handleInbox('inbox'),
         },
         {
-          id: 'open-outbox',
-          label: t('outbox_tab'),
-          icon: getThemedIcon('ui', 'send', 18, 'currentColor'),
+          title: t('outbox_tab') || 'Outbox',
+          icon: getThemedIcon('ui', 'send', 16, 'currentColor'),
+          tooltipColor: '#0ea5e9',
           onClick: () => handleInbox('outbox'),
         },
       ],
@@ -193,25 +230,46 @@ function ScheduleContextMenu({
 
     items.push({
       id: 'open-history',
-      label: t('workspace_class_history'),
+      label: t('history') || 'History',
       icon: getThemedIcon('ui', 'history', 18, 'currentColor'),
-      onClick: handleHistory,
+      trailingActions: [
+        {
+          title: t('workspace_class_history') || 'Class History',
+          icon: getThemedIcon('ui', 'history', 16, 'currentColor'),
+          tooltipColor: '#f59e0b',
+          onClick: handleHistory,
+        },
+      ],
     });
 
     return items;
-  }, [canExport, cls, program, subject, lang, t, user, dateStr, exporting, runExport, handleScan, handleInbox, handleHistory, canSeeStandupMode]);
+  }, [canExport, cls, program, subject, academicTerm, lang, t, user, dateStr, exporting, runExport, handleScan, handleOpenOperations, handleInitiateWorkflow, handleInbox, handleHistory, canSeeStandupMode]);
 
   return (
-    <AppMenu
-      open={open}
-      anchorEl={anchorEl}
-      onClose={onClose}
-      actions={actions}
-      t={t}
-      isRTL={lang === 'ar'}
-      anchorOrigin={{ vertical: 'top', horizontal: lang === 'ar' ? 'left' : 'right' }}
-      transformOrigin={{ vertical: 'top', horizontal: lang === 'ar' ? 'right' : 'left' }}
-    />
+    <>
+      <AppMenu
+        open={open}
+        anchorEl={anchorEl}
+        onClose={onClose}
+        actions={actions}
+        t={t}
+        isRTL={lang === 'ar'}
+        anchorOrigin={{ vertical: 'top', horizontal: lang === 'ar' ? 'left' : 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: lang === 'ar' ? 'right' : 'left' }}
+      />
+      <InitiateWorkflowDialog
+        open={workflowDialogOpen}
+        onClose={handleCloseWorkflowDialog}
+        cls={cls}
+        program={program}
+        subject={subject}
+        selectedDate={dateStr}
+        lang={lang}
+        t={t}
+        user={user}
+        onGoToOperations={handleOpenOperations}
+      />
+    </>
   );
 }
 

@@ -6,9 +6,8 @@
 import { readFileSync, existsSync } from 'fs';
 import { resolve } from 'path';
 
-// Load .env file
-const envPath = resolve(process.cwd(), '.env');
-if (existsSync(envPath)) {
+function loadEnvFile(envPath) {
+  if (!existsSync(envPath)) return;
   for (const line of readFileSync(envPath, 'utf-8').split('\n')) {
     const trimmed = line.trim();
     if (!trimmed || trimmed.startsWith('#')) continue;
@@ -19,6 +18,11 @@ if (existsSync(envPath)) {
     if (!process.env[key]) process.env[key] = val;
   }
 }
+
+// Load .env from repo root and client/ (Playwright is run from client/)
+const cwd = process.cwd();
+loadEnvFile(resolve(cwd, '.env'));
+loadEnvFile(resolve(cwd, '..', '.env'));
 
 export default async function globalSetup() {
   // Ensure allure-results directory has environment + categories

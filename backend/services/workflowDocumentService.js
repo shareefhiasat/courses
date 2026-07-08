@@ -181,6 +181,7 @@ async function shareWorkflowFile({ fileId, submitterId, approvalFlow, specificUs
  */
 const IN_PROGRESS_STATUSES = [
   'DRAFT',
+  'TAKEN',
   'SUBMITTED',
   'UNDER_REVIEW',
   'UNDER_HR_REVIEW',
@@ -191,7 +192,7 @@ const IN_PROGRESS_STATUSES = [
 /**
  * Check whether an in-progress workflow already exists for the same scope.
  * Dedup rules:
- *   ATTENDANCE/DAILY          → classId + date
+ *   ATTENDANCE/DAILY          → classId + date (special: DRAFT allowed, only block on non-DRAFT in-progress)
  *   ATTENDANCE/WEEKLY_SUMMARY → classId + dateFrom + dateTo
  *   ATTENDANCE/EXCUSE         → classId + targetStudentId + dateFrom + dateTo
  *   ATTENDANCE/WARNING        → classId + targetStudentId
@@ -200,7 +201,7 @@ const IN_PROGRESS_STATUSES = [
  *   DISCONTINUATION           → classId + targetStudentId
  *   GENERAL                   → exempt (no dedup)
  *
- * @returns {Promise<{isDuplicate: boolean, existingDocument?: object}>}
+ * @returns {Promise<{isDuplicate: boolean, existingDocument?: object, existingDraft?: object}>}
  */
 export async function checkDuplicateWorkflow({
   workflowCategory,
@@ -213,6 +214,37 @@ export async function checkDuplicateWorkflow({
 }) {
   if (workflowCategory === 'GENERAL') {
     return { isDuplicate: false };
+  }
+
+  // For ATTENDANCE/DAILY, only one DRAFT is allowed at a time.
+  // If a DRAFT exists → block with existingDraft (user must reject it first).
+  // If a non-DRAFT in-progress exists → hard block with existingDocument.
+  if (workflowCategory === 'ATTENDANCE' && attendanceSubtype === 'DAILY') {
+    const where = {
+      workflowCategory: 'ATTENDANCE',
+      attendanceSubtype: 'DAILY',
+      status: { in: IN_PROGRESS_STATUSES },
+    };
+    if (classId) where.classId = Number(classId);
+    if (date) where.date = new Date(date);
+
+    const existing = await prisma.workflowDocument.findFirst({
+      where,
+      include: {
+        file: true,
+        submitter: true,
+        class: true,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    if (!existing) return { isDuplicate: false };
+
+    if (existing.status === 'DRAFT') {
+      return { isDuplicate: true, existingDraft: existing };
+    }
+
+    return { isDuplicate: true, existingDocument: existing };
   }
 
   const where = {
@@ -229,11 +261,7 @@ export async function checkDuplicateWorkflow({
       where.attendanceSubtype = attendanceSubtype;
     }
 
-    if (attendanceSubtype === 'DAILY') {
-      if (date) {
-        where.date = new Date(date);
-      }
-    } else if (attendanceSubtype === 'WEEKLY_SUMMARY') {
+    if (attendanceSubtype === 'WEEKLY_SUMMARY') {
       if (dateFrom) where.dateFrom = new Date(dateFrom);
       if (dateTo) where.dateTo = new Date(dateTo);
     } else if (attendanceSubtype === 'EXCUSE') {
@@ -326,8 +354,11 @@ export async function createWorkflowDocumentWithUpload(data) {
       return {
         success: false,
         code: 409,
-        error: 'An in-progress workflow already exists for this scope',
+        error: dedupCheck.existingDraft
+          ? 'A draft workflow already exists for this class and date. Reject it first to create a new one.'
+          : 'An in-progress workflow already exists for this scope',
         existingDocument: dedupCheck.existingDocument,
+        existingDraft: dedupCheck.existingDraft,
       };
     }
 
@@ -1272,8 +1303,11 @@ export async function createCustomWorkflowDocument(data) {
       return {
         success: false,
         code: 409,
-        error: 'An in-progress workflow already exists for this scope',
+        error: dedupCheck.existingDraft
+          ? 'A draft workflow already exists for this class and date. Reject it first to create a new one.'
+          : 'An in-progress workflow already exists for this scope',
         existingDocument: dedupCheck.existingDocument,
+        existingDraft: dedupCheck.existingDraft,
       };
     }
 
@@ -1719,6 +1753,199 @@ export async function checkStudentCategoryWorkflowLock(targetStudentId, workflow
   }
 }
 
+function startOfDay(dateInput) {
+  const d = new Date(dateInput);
+  d.setHours(0, 0, 0, 0);
+  return d;
+}
+
+function startOfNextDay(dateInput) {
+  const d = startOfDay(dateInput);
+  d.setDate(d.getDate() + 1);
+  return d;
+}
+
+/**
+ * Get workflow documents for operations board with filters.
+ */
+export async function getBoardWorkflowDocuments(filters = {}) {
+  try {
+    const {
+      date,
+      classId,
+      programId,
+      subjectId,
+      status,
+      workflowType,
+      workflowCategory,
+      attendanceSubtype,
+      search,
+      limit = 200,
+      offset = 0,
+    } = filters;
+
+    const where = {
+      ...(workflowCategory && { workflowCategory }),
+      ...(attendanceSubtype && { attendanceSubtype }),
+      ...(workflowType && { workflowType }),
+      ...(status && { status }),
+      ...(classId && { classId: parseInt(classId, 10) }),
+    };
+
+    if (date) {
+      where.date = {
+        gte: startOfDay(date),
+        lt: startOfNextDay(date),
+      };
+    }
+
+    if (programId || subjectId) {
+      where.class = {
+        ...(programId && { programId: parseInt(programId, 10) }),
+        ...(subjectId && { subjectId: parseInt(subjectId, 10) }),
+      };
+    }
+
+    if (search) {
+      where.OR = [
+        { title: { contains: search, mode: 'insensitive' } },
+        { description: { contains: search, mode: 'insensitive' } },
+      ];
+    }
+
+    const documents = await prisma.workflowDocument.findMany({
+      where,
+      include: {
+        submitter: true,
+        currentAssignee: true,
+        file: true,
+        class: {
+          include: {
+            program: { select: { id: true, code: true, nameEn: true, nameAr: true } },
+            subject: { select: { id: true, code: true, nameEn: true, nameAr: true } },
+          },
+        },
+        statusHistory: {
+          orderBy: { createdAt: 'desc' },
+          take: 5,
+          include: { actor: { select: { id: true, displayName: true, firstName: true, lastName: true } } },
+        },
+        comments: {
+          orderBy: { createdAt: 'desc' },
+          take: 5,
+          include: { author: { select: { id: true, displayName: true, firstName: true, lastName: true } } },
+        },
+      },
+      orderBy: [{ date: 'desc' }, { createdAt: 'desc' }],
+      skip: parseInt(offset, 10),
+      take: parseInt(limit, 10),
+    });
+
+    const enriched = await enrichWorkflowDocuments(documents);
+    return { success: true, data: enriched, total: enriched.length };
+  } catch (error) {
+    console.error('[getBoardWorkflowDocuments] Error:', error);
+    return { success: false, error: 'Internal server error', data: [] };
+  }
+}
+
+/**
+ * Auto-create DRAFT daily attendance workflows for scheduled classes on a date.
+ */
+export async function ensureDailyWorkflows({ date, classIds = [], actorId = null }) {
+  try {
+    if (!date) {
+      return { success: false, error: 'date is required' };
+    }
+
+    const dayStart = startOfDay(date);
+    const dayEnd = startOfNextDay(date);
+
+    let targetClassIds = classIds.map((id) => parseInt(id, 10)).filter(Boolean);
+
+    if (targetClassIds.length === 0) {
+      const sessions = await prisma.scheduledSession.findMany({
+        where: {
+          isActive: true,
+          deletedAt: null,
+          status: { not: 'cancelled' },
+          startDateTime: { gte: dayStart, lt: dayEnd },
+        },
+        select: { classId: true },
+        distinct: ['classId'],
+      });
+      targetClassIds = sessions.map((s) => s.classId).filter(Boolean);
+    }
+
+    const created = [];
+    const skipped = [];
+
+    for (const cid of targetClassIds) {
+      const dup = await checkDuplicateWorkflow({
+        workflowCategory: 'ATTENDANCE',
+        attendanceSubtype: 'DAILY',
+        classId: cid,
+        date: dayStart,
+      });
+
+      if (dup.isDuplicate) {
+        skipped.push({ classId: cid, existingId: dup.existingDocument?.id || dup.existingDraft?.id });
+        continue;
+      }
+
+      const cls = await prisma.class.findUnique({
+        where: { id: cid },
+        include: {
+          program: { select: { code: true } },
+          subject: { select: { code: true } },
+        },
+      });
+
+      if (!cls || !cls.instructorId) {
+        skipped.push({ classId: cid, reason: 'no_class_or_instructor' });
+        continue;
+      }
+
+      const title = `Daily Attendance — ${cls.code || cls.nameEn} — ${dayStart.toISOString().slice(0, 10)}`;
+      const docResult = await createWorkflowDocument({
+        workflowType: 'ATTENDANCE_DAILY',
+        workflowCategory: 'ATTENDANCE',
+        attendanceSubtype: 'DAILY',
+        title,
+        description: 'Auto-created daily attendance workflow',
+        status: 'DRAFT',
+        submitterId: cls.instructorId,
+        currentAssigneeId: cls.instructorId,
+        classId: cid,
+        instructorId: cls.instructorId,
+        date: dayStart,
+        program: cls.program?.code || null,
+        subject: cls.subject?.code || null,
+        createdBy: actorId || cls.instructorId,
+        updatedBy: actorId || cls.instructorId,
+      });
+
+      if (docResult.success) {
+        await createWorkflowStatusHistory({
+          workflowDocumentId: docResult.data.id,
+          fromStatus: null,
+          toStatus: 'DRAFT',
+          actorId: actorId || cls.instructorId,
+          reason: 'Auto-created for scheduled class',
+        });
+        created.push(docResult.data);
+      } else {
+        skipped.push({ classId: cid, reason: docResult.error });
+      }
+    }
+
+    return { success: true, data: { created, skipped, date: dayStart.toISOString() } };
+  } catch (error) {
+    console.error('[ensureDailyWorkflows] Error:', error);
+    return { success: false, error: 'Internal server error' };
+  }
+}
+
 export default {
   createWorkflowDocumentWithUpload,
   getWorkflowDocument,
@@ -1742,5 +1969,7 @@ export default {
   getWorkflowsByStudentDay,
   enrichWorkflowDocuments,
   checkAttendanceWorkflowLock,
-  checkStudentCategoryWorkflowLock
+  checkStudentCategoryWorkflowLock,
+  getBoardWorkflowDocuments,
+  ensureDailyWorkflows,
 };

@@ -1,11 +1,16 @@
 /* Interactive weekly schedule — supplements officialReport.module.css */
 
 .wrap {
+  --schedule-font-base: 11px;
+  --schedule-font-scale: 1;
+  --schedule-font-size: calc(var(--schedule-font-base) * var(--schedule-font-scale));
+  font-size: var(--schedule-font-size);
   border-radius: 12px;
   border: 1px solid var(--border, #e2e8f0);
   background: #fff;
   overflow: hidden;
   box-shadow: 0 4px 24px rgba(15, 23, 42, 0.06);
+  transition: box-shadow 0.2s ease;
 }
 
 .wrapDark {
@@ -47,7 +52,7 @@
 }
 
 .titleMainCompact {
-  font-size: 15px !important;
+  font-size: 1.15em !important;
   font-weight: 700 !important;
   white-space: nowrap;
   overflow: hidden;
@@ -55,7 +60,7 @@
 }
 
 .titleMetaInline {
-  font-size: 12px;
+  font-size: 0.92em;
   color: #64748b;
   white-space: nowrap;
   flex-shrink: 0;
@@ -64,10 +69,27 @@
 .statusLegend {
   display: flex;
   align-items: center;
-  gap: 12px;
-  font-size: 11px;
+  gap: 0.65em;
+  font-size: 0.85em;
   color: #64748b;
   flex-wrap: wrap;
+}
+
+.fontSliderWrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+  margin-inline-start: 4px;
+}
+
+.fontSliderLabel {
+  font-size: 0.85em;
+  color: inherit;
+  min-width: 2.8em;
+  text-align: center;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
 }
 
 .legendItem {
@@ -96,6 +118,10 @@
   background: #f97316;
 }
 
+.legendDot_draft {
+  background: #f59e0b;
+}
+
 .legendLine {
   width: 20px;
   height: 0;
@@ -115,7 +141,7 @@
 }
 
 .legendDot_inProgress {
-  background: #3b82f6;
+  background: #1d4ed8;
   animation: legendPulse 1.8s ease-in-out infinite;
 }
 
@@ -125,8 +151,8 @@
 }
 
 @keyframes legendPulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5); }
-  50% { box-shadow: 0 0 0 4px rgba(59, 130, 246, 0); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(29, 78, 216, 0.65); }
+  50% { box-shadow: 0 0 0 4px rgba(29, 78, 216, 0); }
 }
 
 .statusLegendBottom {
@@ -149,12 +175,12 @@
 
 .inlineDateInput {
   flex-shrink: 0;
-  padding: 6px 10px;
+  padding: 0.35em 0.6em;
   border-radius: 8px;
   border: 1px solid var(--border, #e2e8f0);
   background: #fff;
   color: #1e293b;
-  font-size: 12px;
+  font-size: 0.92em;
 }
 
 .wrapDark .inlineDateInput {
@@ -174,10 +200,53 @@
   min-height: 0;
 }
 
+.wrapFillWidth {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.wrapFillWidth :global(.officialTable) th,
+.wrapFillWidth :global(.officialTable) td {
+  padding: 0.32em 0.42em !important;
+}
+
+.wrapFillWidth :global(.scheduleRowLabelCell),
+.wrapFillWidth :global(.scheduleRowLabelCell) :global(.scheduleCellInner),
+.wrapFillWidth :global(.scheduleRowLabelInner) {
+  padding: 0.2em 0.45em !important;
+}
+
+.wrapFillWidth :global(.scheduleSubjectCell) :global(.scheduleCellInner) {
+  padding: 0.35em 0.45em !important;
+}
+
+.expandedTable th,
+.expandedTable td {
+  padding: 0.32em 0.42em !important;
+}
+
+.wrapFillWidth .tableScroll {
+  overflow: auto;
+  min-height: 0;
+  flex: 1;
+}
+
+.wrapFillWidth :global(.statusLegend) {
+  font-size: inherit;
+  flex-shrink: 0;
+}
+
+.wrapFillWidth :global(.legendItem) {
+  font-size: inherit;
+}
+
 .tableFill {
   flex: 1;
   min-height: 0;
   overflow: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .subjectCellInner {
@@ -206,7 +275,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
+  width: 1.57em;
   flex-shrink: 0;
   gap: 2px;
 }
@@ -218,7 +287,7 @@
 }
 
 .cellEndSpacer {
-  width: 22px;
+  width: 1.57em;
   flex-shrink: 0;
 }
 
@@ -227,51 +296,22 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgb(14, 165, 233);
+  background: rgb(3, 105, 161);
   color: rgb(255, 255, 255);
   border-radius: 50%;
-  width: 16px;
-  height: 16px;
+  width: 1.14em;
+  height: 1.14em;
   flex-shrink: 0;
-}
-
-.instructorIconTooltip {
-  position: absolute;
-  top: 18px;
-  inset-inline-start: 0;
-  font-size: 11px;
-  font-weight: 600;
-  color: #0ea5e9;
-  background: rgba(255, 255, 255, 0.25);
-  backdrop-filter: blur(2px);
-  padding: 3px 9px;
-  border-radius: 6px;
-  border: 1px solid rgba(14, 165, 233, 0.2);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
-  white-space: nowrap;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.2s ease;
-  pointer-events: none;
-  z-index: 10;
-  transform-origin: top center;
-}
-
-.instructorIcon:hover .instructorIconTooltip,
-.instructorIcon:focus-visible .instructorIconTooltip {
-  opacity: 1;
-  visibility: visible;
-  animation: tooltipPulse 2s ease-in-out infinite;
-}
-
-.wrapDark .instructorIconTooltip {
-  background: rgba(15, 23, 42, 0.82);
-  color: #bae6fd;
-  border-color: rgba(14, 165, 233, 0.45);
+  cursor: default;
 }
 
 .breakCellInner {
   opacity: 0.85;
+}
+
+.breakCellInner :global(.scheduleVerticalText),
+.breakCellInner :global(.scheduleBreakVertical) {
+  white-space: nowrap;
 }
 
 .tableScroll {
@@ -286,7 +326,17 @@
 }
 
 .mineCell {
-  border: 2px solid rgb(14, 165, 233);
+  border: 2px solid rgb(3, 105, 161);
+  animation: mineCellPulse 2.5s ease-in-out infinite;
+}
+
+@keyframes mineCellPulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(3, 105, 161, 0.65);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgba(3, 105, 161, 0.18);
+  }
 }
 
 .subjectCellBorderNeutral {
@@ -299,12 +349,12 @@
 
 @keyframes inProgressPulse {
   0%, 100% {
-    box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.45);
-    background-color: rgba(59, 130, 246, 0.04);
+    box-shadow: inset 0 0 0 2px rgba(29, 78, 216, 0.75);
+    background-color: rgba(29, 78, 216, 0.08);
   }
   50% {
-    box-shadow: inset 0 0 0 2px rgba(59, 130, 246, 0.15);
-    background-color: rgba(59, 130, 246, 0.12);
+    box-shadow: inset 0 0 0 2px rgba(29, 78, 216, 0.35);
+    background-color: rgba(29, 78, 216, 0.16);
   }
 }
 
@@ -361,21 +411,33 @@
   background: rgba(59, 130, 246, 0.06);
 }
 
-.statusDot {
+.statusDotWrap {
   position: absolute;
   top: 3px;
   inset-inline-end: 3px;
+  z-index: 2;
+  display: inline-flex;
+  cursor: default;
+}
+
+.statusDot {
+  position: relative;
+  top: auto;
+  inset-inline-end: auto;
   width: 10px;
   height: 10px;
   border-radius: 50%;
   background: var(--dot-color, #94a3b8);
   border: 2px solid #fff;
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12);
-  z-index: 2;
 }
 
 .statusDot_not_taken {
   animation: statusPulse 2s ease-in-out infinite;
+}
+
+.statusDot_draft {
+  box-shadow: 0 0 0 1px rgba(245, 158, 11, 0.35);
 }
 
 .statusDot_taken {
@@ -387,32 +449,7 @@
 }
 
 .statusDotTooltip {
-  position: absolute;
-  top: 16px;
-  inset-inline-end: 0;
-  font-size: 11px;
-  font-weight: 600;
-  color: #800020;
-  background: rgba(255, 255, 255, 0.25);
-  backdrop-filter: blur(2px);
-  padding: 3px 9px;
-  border-radius: 6px;
-  border: 1px solid rgba(128, 0, 32, 0.2);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
-  white-space: nowrap;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.2s ease;
-  pointer-events: none;
-  z-index: 10;
-  transform-origin: top center;
-}
-
-.statusDot:hover .statusDotTooltip,
-.statusDot:focus-visible .statusDotTooltip {
-  opacity: 1;
-  visibility: visible;
-  animation: tooltipPulse 2s ease-in-out infinite;
+  display: none;
 }
 
 @keyframes statusPulse {
@@ -429,39 +466,104 @@
   border-color: #1e293b;
 }
 
-.wrapDark .statusDotTooltip {
-  background: rgba(15, 23, 42, 0.82);
-  color: #fecaca;
-  border-color: rgba(248, 113, 113, 0.45);
+.narrowColHeader {
+  white-space: nowrap !important;
+  padding: 0.12em 0.1em !important;
+  overflow: hidden;
+}
+
+.narrowColHeader :global(.scheduleVerticalText),
+.narrowColHeader :global(.scheduleBreakVertical) {
+  white-space: nowrap;
+  letter-spacing: 0;
+}
+
+.lectureColHeader {
+  padding: 0.15em 0.2em !important;
+}
+
+.horizontalLectureHeader {
+  display: block;
+  font-size: inherit !important;
+  font-weight: 700;
+  line-height: 1.15;
+  white-space: normal;
+  text-align: center;
+  padding: 0.15em 0.1em;
+  word-break: break-word;
+}
+
+.narrowColHeader .horizontalLectureHeader {
+  white-space: nowrap;
+  word-break: keep-all;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: 0.92em !important;
+  padding: 0.08em 0.05em;
+}
+
+.scalableTable :global(.scheduleBreakCell) :global(.scheduleCellInner),
+.scalableTable :global(.scheduleBreakHeader) {
+  padding: 0.08em 0.05em !important;
 }
 
 .todayRow td {
   background: rgba(34, 197, 94, 0.12) !important;
 }
 
-/* Interactive grid header polish */
-.wrap :global(.scheduleLectureHeader) {
-  font-size: 12px !important;
-  min-height: 44px;
+.wrapFillWidth :global(.statusLegend) {
+  font-size: 0.85em;
+}
+
+/* ── Scalable table typography ─────────────────────────────────────────────
+   Scale via --schedule-font-scale on .wrap; table uses em so padding tracks
+   text without layout jumps. */
+.scalableTable {
+  font-size: 1em !important;
+  width: 100% !important;
+  table-layout: fixed !important;
+}
+
+.scalableTable :global(thead) :global(tr) {
+  height: auto !important;
+  min-height: 0 !important;
+}
+
+.scalableTable :global(tbody) :global(tr) :global(td) {
+  height: auto !important;
+  max-height: none !important;
+  min-height: 0 !important;
+}
+
+.scalableTable :global(th),
+.scalableTable :global(td) {
+  font-size: 1em !important;
+  padding: 0.28em 0.4em !important;
+  line-height: 1.2;
   vertical-align: middle;
 }
 
-.wrap :global(.scheduleBreakHeader) {
-  font-size: 14px !important;
+.scalableTable :global(th) :global(*:not(svg):not(path)),
+.scalableTable :global(td) :global(*:not(svg):not(path)) {
+  font-size: inherit !important;
 }
 
-.wrap :global(.scheduleCornerCell) {
-  font-size: 13px !important;
+.scalableTable :global(button) {
+  font: inherit !important;
 }
 
-.wrap :global(.scheduleVerticalText) {
-  font-size: 13px;
-  font-weight: 700;
-  white-space: nowrap;
+.scalableTable :global(.scheduleCellInner) {
+  min-height: 0 !important;
+  padding: 0.1em 0.2em 0.15em !important;
+  line-height: 1.2;
 }
 
-.wrap :global(.scheduleBreakVertical) {
-  font-size: 12px;
+.outsideHoursChip {
+  flex-shrink: 0;
+}
+
+.legendExpandBtn {
+  flex-shrink: 0;
 }
 
 .tableWithTimeline {
@@ -517,24 +619,26 @@
   bottom: 24px;
   transform: translateX(-50%);
   font-size: 11px;
-  font-weight: 700;
-  color: #800020;
-  background: rgba(255, 255, 255, 0.25);
-  backdrop-filter: blur(2px);
+  font-weight: 600;
+  color: #8b5cf6;
+  background: rgba(255, 255, 255, 0.96);
   padding: 3px 9px;
   border-radius: 6px;
-  border: 1px solid rgba(128, 0, 32, 0.2);
+  border: 1px solid rgba(139, 92, 246, 0.3);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
   white-space: nowrap;
   opacity: 0;
+  visibility: hidden;
   transition: opacity 0.2s ease;
   pointer-events: none;
+  z-index: 10;
   transform-origin: top center;
 }
 
 .timeLineDot:hover + .timeLineTooltip,
 .timeLineDot:focus-visible + .timeLineTooltip {
   opacity: 1;
+  visibility: visible;
   animation: tooltipPulse 2s ease-in-out infinite;
 }
 
@@ -551,20 +655,10 @@
   filter: drop-shadow(0 2px 1px rgba(0, 0, 0, 0.08));
 }
 
-.horizontalLectureHeader {
-  display: block;
-  font-size: 12px;
-  font-weight: 700;
-  line-height: 1.2;
-  white-space: normal;
-  text-align: center;
-  padding: 4px 2px;
-}
-
 .wrapDark .timeLineTooltip {
-  background: rgba(15, 23, 42, 0.82);
-  color: #fecaca;
-  border-color: rgba(248, 113, 113, 0.45);
+  background: rgba(15, 23, 42, 0.95);
+  color: #c4b5fd;
+  border-color: rgba(167, 139, 250, 0.45);
 }
 
 .wrapDark .timeLineTooltipArrow {

@@ -73,7 +73,6 @@ export const LEGACY_ROUTE_SCREEN_ALIASES = {
   permissionMatrix: 'permission-matrix',
   emailTemplates: 'email-templates',
   notificationLogs: 'notification-logs',
-  operations: 'attendance',
 };
 
 export function resolveMatrixScreenId(screenId) {
@@ -108,6 +107,7 @@ const PATH_ALIASES = {
   attendance: 'attendance',
   workflow: 'workflow',
   'workflow/inbox': 'workflow',
+  'operations/board': 'operations',
 };
 
 /**
@@ -176,6 +176,7 @@ export const BASE_PERMISSION_SCREEN_DEFINITIONS = [
   { screenId: 'penalty', nameEn: 'Penalty', nameAr: 'العقوبات', category: 'operations', operations: ['view', 'create', 'update', 'delete'] },
   { screenId: 'participation', nameEn: 'Participation', nameAr: 'المشاركة', category: 'operations', operations: ['view', 'create', 'update', 'delete'] },
   { screenId: 'behavior', nameEn: 'Behavior', nameAr: 'السلوك', category: 'operations', operations: ['view', 'create', 'update', 'delete'] },
+  { screenId: 'operations', nameEn: 'Operations Board', nameAr: 'لوحة العمليات', category: 'operations', operations: ['view', 'create', 'update'] },
   { screenId: 'enrollments', nameEn: 'Enrollments', nameAr: 'التسجيلات', category: 'academic', operations: ['view'] },
   { screenId: 'manage-enrollments', nameEn: 'Manage Enrollments', nameAr: 'إدارة التسجيلات', category: 'academic', operations: ['view', 'create', 'update', 'delete'] },
   { screenId: 'programs', nameEn: 'Programs', nameAr: 'البرامج', category: 'academic', operations: ['view', 'create', 'update', 'delete'] },

@@ -28,6 +28,8 @@ import {
   deleteWorkflowDocumentController,
   getLinkedWorkflowsController,
   getWorkflowsByContextController,
+  getBoardWorkflowDocumentsController,
+  ensureDailyWorkflowsController,
 } from '../controllers/workflowDocuments.js';
 import { screenOps } from '../middleware/requirePermission.js';
 
@@ -214,6 +216,9 @@ router.post('/', wfOps.create, createWorkflowDocumentController);
  *         description: Internal server error
  */
 router.get('/', wfOps.view, getWorkflowDocumentsController);
+
+router.get('/board', wfOps.view, getBoardWorkflowDocumentsController);
+router.post('/ensure-daily', wfOps.create, ensureDailyWorkflowsController);
 
 /**
  * @swagger

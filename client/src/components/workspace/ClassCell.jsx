@@ -1,15 +1,21 @@
 import React from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
+import {
+  SCHEDULE_WORKFLOW_COLORS,
+  resolveScheduleWorkflowKey,
+} from '@constants/workspaceStatusColors';
+import gridStyles from '@components/workspace/officialWeeklyScheduleGrid.module.css';
 
-const STATUS_COLORS = {
-  taken: { bg: '#22c55e', label: 'Attendance Taken' },
-  submitted: { bg: '#3b82f6', label: 'Daily Official Submitted' },
-  not_taken: { bg: '#94a3b8', label: 'Not Taken' },
+const STATUS_LABELS = {
+  not_taken: 'Not Taken',
+  draft: 'Draft',
+  taken: 'Attendance Taken',
+  submitted: 'Daily Official Submitted',
 };
 
 const ClassCell = ({ session, status, onClick }) => {
-  const { lang } = useLang();
+  const { lang, t } = useLang();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
 
@@ -30,13 +36,11 @@ const ClassCell = ({ session, status, onClick }) => {
   const subject = cls?.subject;
   const classroom = session.classroom;
 
-  const statusKey = status?.workflowStatus === 'SUBMITTED' || status?.workflowStatus === 'UNDER_ADMIN_REVIEW' || status?.workflowStatus === 'UNDER_HR_REVIEW'
-    ? 'submitted'
-    : status?.hasAttendance
-      ? 'taken'
-      : 'not_taken';
-
-  const statusColor = STATUS_COLORS[statusKey];
+  const statusKey = resolveScheduleWorkflowKey(status);
+  const statusColor = {
+    bg: SCHEDULE_WORKFLOW_COLORS[statusKey],
+    label: t(`workspace_status_${statusKey}`) || STATUS_LABELS[statusKey] || statusKey,
+  };
 
   return (
     <button
@@ -64,19 +68,19 @@ const ClassCell = ({ session, status, onClick }) => {
         e.currentTarget.style.borderColor = isDark ? '#334155' : '#e2e8f0';
       }}
     >
-      <div
+      <span
+        className={`${gridStyles.statusDot} ${gridStyles[`statusDot_${statusKey}`] || ''}`}
         style={{
+          '--dot-color': statusColor.bg,
           position: 'absolute',
           top: '6px',
           right: '6px',
-          width: '8px',
-          height: '8px',
-          borderRadius: '50%',
-          background: statusColor.bg,
           flexShrink: 0,
         }}
-        title={statusColor.label}
-      />
+        aria-label={statusColor.label}
+      >
+        <span className={gridStyles.statusDotTooltip}>{statusColor.label}</span>
+      </span>
 
       <div style={{ fontSize: '13px', fontWeight: 600, color: isDark ? '#f1f5f9' : '#1e293b', lineHeight: 1.2 }}>
         {lang === 'ar' && cls?.nameAr ? cls.nameAr : cls?.nameEn || cls?.code}

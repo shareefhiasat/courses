@@ -1,10 +1,11 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { ROLE_STRINGS } from '@utils/userUtils';
 import WelcomeHeader from '@components/welcome/WelcomeHeader';
+import WelcomeContextSwitcher from '@components/welcome/WelcomeContextSwitcher';
 import ProgramTermSelector from '@components/workspace/ProgramTermSelector';
 import YearTermSelector from '@components/workspace/YearTermSelector';
 import OfficialWeeklyScheduleGrid from '@components/workspace/OfficialWeeklyScheduleGrid';
@@ -14,15 +15,26 @@ import ScheduleContextMenu from '@components/workspace/ScheduleContextMenu';
 import ScheduleSpeedDial from '@components/workspace/ScheduleSpeedDial';
 import {
   Tabs, Tab, Box, Paper, Snackbar, Alert, LinearProgress,
-  Button,
+  CircularProgress,
 } from '@mui/material';
 import Joyride from 'react-joyride';
-import { getScheduleStatus } from '@services/business/attendanceWorkspaceService';
+import { getScheduleStatus, getInstructorPrograms, getAllPrograms, getProgramTerms } from '@services/business/attendanceWorkspaceService';
 import { loadWeeklyScheduleSources } from '@services/business/weeklyScheduleExportService';
 import { prepareWeeklyScheduleData } from '@services/export/official-reports/engine/prepareWeeklyScheduleData';
 import { academicTermToYearTerm } from '@utils/academicTermUtils';
 import useQRPermissions from '@hooks/useQRPermissions';
+import { usePermissions } from '@hooks/usePermissions';
 import { getThemedIcon } from '@constants/iconTypes';
+import {
+  SCHEDULE_FONT_SCALE_DEFAULT,
+  SCHEDULE_FONT_SCALE_MIN,
+  SCHEDULE_FONT_SCALE_MAX,
+  SCHEDULE_FONT_SCALE_STEP,
+  clampScheduleFontScale,
+} from '@constants/scheduleFontScale';
+import '../pages/operations/OperationsBoardPage.css';
+
+const OperationsBoardPage = lazy(() => import('./operations/OperationsBoardPage.jsx'));
 
 const WELCOME_SELECTION_KEY = 'welcome_selection';
 
@@ -50,12 +62,111 @@ const WelcomePage = () => {
   const instructorId = user?.dbId;
   const canInteractAll = isAdmin || isSuperAdmin || isHR;
   const { canExport } = useQRPermissions();
+  const { canAccessScreen } = usePermissions();
+  const showOperationsTab = canAccessScreen('operations') || canExport || isAdmin || isHR;
   const [exportingKey, setExportingKey] = useState(null);
-  const [activeTab, setActiveTab] = useState(0);
+  const [cohortClassIds, setCohortClassIds] = useState([]);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info', progress: null });
   const [runJoyride, setRunJoyride] = useState(false);
+  const [contextSwitcherOpen, setContextSwitcherOpen] = useState(false);
+
+  const visibleTabs = useMemo(() => {
+    const tabs = ['schedule', 'overview'];
+    if (showOperationsTab) tabs.push('operations');
+    return tabs;
+  }, [showOperationsTab]);
+
+  const tabParam = searchParams.get('tab') || 'schedule';
+  const activeTab = Math.max(0, visibleTabs.indexOf(visibleTabs.includes(tabParam) ? tabParam : 'schedule'));
+  const boardExpanded = searchParams.get('expanded') === '1';
+  const scheduleExpanded = searchParams.get('scheduleExpanded') === '1';
 
   const showSchedule = useMemo(() => Boolean(selection?.program && selection?.academicTerm), [selection]);
+
+  const welcomeBoardContext = useMemo(() => {
+    if (!selection?.program?.id || !selection?.academicTerm?.id) return null;
+    return {
+      programId: selection.program.id,
+      termId: selection.academicTerm.id,
+      date: selectedDate,
+      classIds: cohortClassIds,
+    };
+  }, [selection, selectedDate, cohortClassIds]);
+
+  const handleTabChange = useCallback((_, value) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set('tab', visibleTabs[value] || 'schedule');
+      if (visibleTabs[value] !== 'operations') next.delete('expanded');
+      return next;
+    });
+  }, [setSearchParams, visibleTabs]);
+
+  const handleToggleBoardExpand = useCallback(() => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set('tab', 'operations');
+      if (next.get('expanded') === '1') next.delete('expanded');
+      else next.set('expanded', '1');
+      return next;
+    });
+  }, [setSearchParams]);
+
+  const handleToggleScheduleExpand = useCallback(() => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set('tab', 'schedule');
+      if (next.get('scheduleExpanded') === '1') next.delete('scheduleExpanded');
+      else next.set('scheduleExpanded', '1');
+      return next;
+    });
+  }, [setSearchParams]);
+
+  const [scheduleFontScale, setScheduleFontScale] = useState(SCHEDULE_FONT_SCALE_DEFAULT);
+
+  const handleScheduleFontScaleChange = useCallback((value) => {
+    setScheduleFontScale(clampScheduleFontScale(value));
+  }, []);
+
+  useEffect(() => {
+    const showFontSlider = showSchedule && tabParam === 'schedule';
+    window.dispatchEvent(new CustomEvent('welcome-schedule-font', {
+      detail: showFontSlider
+        ? {
+          scale: scheduleFontScale,
+          min: SCHEDULE_FONT_SCALE_MIN,
+          max: SCHEDULE_FONT_SCALE_MAX,
+          step: SCHEDULE_FONT_SCALE_STEP,
+        }
+        : null,
+    }));
+    return () => {
+      window.dispatchEvent(new CustomEvent('welcome-schedule-font', { detail: null }));
+    };
+  }, [showSchedule, tabParam, scheduleFontScale]);
+
+  useEffect(() => {
+    const onFontChange = (e) => {
+      if (e.detail != null) handleScheduleFontScaleChange(e.detail);
+    };
+    window.addEventListener('welcome-schedule-font-change', onFontChange);
+    return () => window.removeEventListener('welcome-schedule-font-change', onFontChange);
+  }, [handleScheduleFontScaleChange]);
+
+  const openOperationsTab = useCallback((extraParams = {}) => {
+    setSearchParams((prev) => {
+      const next = new URLSearchParams(prev);
+      next.set('tab', 'operations');
+      Object.entries(extraParams).forEach(([key, value]) => {
+        if (value != null && value !== '') next.set(key, String(value));
+      });
+      return next;
+    });
+  }, [setSearchParams]);
+
+  const handleOpenOperations = useCallback((extraParams = {}) => {
+    openOperationsTab(extraParams);
+  }, [openOperationsTab]);
 
   const effectiveRole = useMemo(() => {
     if (isSuperAdmin) return ROLE_STRINGS.SUPER_ADMIN;
@@ -72,17 +183,30 @@ const WelcomePage = () => {
     }
   }, [isStudent, navigate]);
 
-  // Restore selection from sessionStorage on mount
+  // Auto-select first program + latest active term on mount
   useEffect(() => {
-    try {
-      const saved = sessionStorage.getItem(WELCOME_SELECTION_KEY);
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        setSelection(parsed);
+    const autoSelect = async () => {
+      // If we already have a selection with both program and term, keep it
+      if (selection?.program && selection?.academicTerm) return;
+      try {
+        const progResult = isInstructor ? await getInstructorPrograms() : await getAllPrograms();
+        if (!progResult.success || !progResult.data?.length) return;
+        const firstProgram = progResult.data[0];
+        const termResult = await getProgramTerms(firstProgram.id, { all: isAdmin || isSuperAdmin });
+        if (!termResult.success || !termResult.data?.length) {
+          persistSelection({ program: firstProgram });
+          setSearchParams({ programId: String(firstProgram.id) });
+          return;
+        }
+        const activeTerm = termResult.data.find((t) => t.isActive) || termResult.data[0];
+        persistSelection({ program: firstProgram, academicTerm: activeTerm });
+        setSearchParams({ programId: String(firstProgram.id), termId: String(activeTerm.id) });
+      } catch {
+        // ignore — fall back to wizard
       }
-    } catch {
-      // ignore parse errors
-    }
+    };
+    autoSelect();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const persistSelection = useCallback((next) => {
@@ -105,16 +229,24 @@ const WelcomePage = () => {
   const handleProgramSelect = useCallback((payload) => {
     const next = { program: payload.program };
     persistSelection(next);
-    setSearchParams({ programId: String(payload.program.id) });
+    setSearchParams((prev) => {
+      const params = new URLSearchParams(prev);
+      params.set('programId', String(payload.program.id));
+      params.delete('termId');
+      return params;
+    });
   }, [setSearchParams, persistSelection]);
 
   const handleTermSelect = useCallback((payload) => {
     const next = { program: payload.program, academicTerm: payload.academicTerm };
     persistSelection(next);
-    setSearchParams({
-      programId: String(payload.program.id),
-      termId: String(payload.academicTerm.id),
+    setSearchParams((prev) => {
+      const params = new URLSearchParams(prev);
+      params.set('programId', String(payload.program.id));
+      params.set('termId', String(payload.academicTerm.id));
+      return params;
     });
+    setContextSwitcherOpen(false);
   }, [setSearchParams, persistSelection]);
 
   const handleBackToProgram = useCallback(() => {
@@ -142,8 +274,13 @@ const WelcomePage = () => {
   // Listen for navbar request to change selection
   useEffect(() => {
     const onReset = () => handleResetSelection();
+    const onOpenSwitcher = () => setContextSwitcherOpen(true);
     window.addEventListener('welcome-reset-selection', onReset);
-    return () => window.removeEventListener('welcome-reset-selection', onReset);
+    window.addEventListener('welcome-open-context-switcher', onOpenSwitcher);
+    return () => {
+      window.removeEventListener('welcome-reset-selection', onReset);
+      window.removeEventListener('welcome-open-context-switcher', onOpenSwitcher);
+    };
   }, [handleResetSelection]);
 
   // Start Joyride once when the schedule is first shown
@@ -207,6 +344,7 @@ const WelcomePage = () => {
       setScheduleData(prepared);
 
       const classIds = (sources.cohortClasses || []).map((c) => c.id).filter(Boolean);
+      setCohortClassIds(classIds);
       if (classIds.length > 0) {
         const statusResult = await getScheduleStatus(classIds, selectedDate);
         if (statusResult.success) {
@@ -214,6 +352,7 @@ const WelcomePage = () => {
         }
       } else {
         setStatusMap({});
+        setCohortClassIds([]);
       }
       setLoading(false);
     };
@@ -365,6 +504,12 @@ const WelcomePage = () => {
         ],
       },
       {
+        id: 'operations-board',
+        name: t('operations_board_title') || 'Operations Board',
+        icon: getThemedIcon('ui', 'layout_grid', 20, 'currentColor'),
+        onClick: () => openOperationsTab({ lane: 'status', view: 'kanban' }),
+      },
+      {
         id: 'attendance-official',
         name: t('official_attendance') || 'Attendance Official',
         icon: getThemedIcon('ui', 'file_signature', 20, 'currentColor'),
@@ -385,7 +530,7 @@ const WelcomePage = () => {
     ];
 
     return actions;
-  }, [exportingKey, handleExportWeeklySchedule, navigate, t]);
+  }, [exportingKey, handleExportWeeklySchedule, openOperationsTab, t]);
 
   const handleCloseInbox = useCallback(() => {
     setInboxOutboxOpen(false);
@@ -424,7 +569,7 @@ const WelcomePage = () => {
 
   return (
     <div
-      className="welcome-page"
+      className={`welcome-page${scheduleExpanded ? ' welcome-page--schedule-expanded' : ''}`}
       style={{
         minHeight: showSchedule ? 'calc(100vh - 64px)' : '100vh',
         height: showSchedule ? 'calc(100vh - 64px)' : 'auto',
@@ -432,9 +577,10 @@ const WelcomePage = () => {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        padding: showSchedule ? '0 8px 8px' : '0 16px 48px',
+        padding: showSchedule && !scheduleExpanded ? '0 8px 8px' : scheduleExpanded ? 0 : '0 16px 48px',
         dir: lang === 'ar' ? 'rtl' : 'ltr',
         boxSizing: 'border-box',
+        ...(scheduleExpanded ? { '--welcome-schedule-expanded-bg': isDark ? '#0f172a' : '#f8fafc' } : {}),
       }}
     >
       {showSchedule && (
@@ -493,38 +639,35 @@ const WelcomePage = () => {
 
         {selection?.program && selection?.academicTerm && (
           <div
+            className={scheduleExpanded ? 'schedule-panel-expanded' : ''}
             style={{
-              background: isDark ? '#0f172a' : '#f8fafc',
-              borderRadius: '8px',
-              padding: '8px',
-              border: `1px solid ${isDark ? '#334155' : '#e2e8f0'}`,
+              background: scheduleExpanded ? 'transparent' : (isDark ? '#0f172a' : '#f8fafc'),
+              borderRadius: scheduleExpanded ? 0 : '8px',
+              padding: scheduleExpanded ? 0 : '8px',
+              border: scheduleExpanded ? 'none' : `1px solid ${isDark ? '#334155' : '#e2e8f0'}`,
               flex: 1,
               display: 'flex',
               flexDirection: 'column',
               minHeight: 0,
             }}
           >
-            <Box sx={{ borderBottom: 1, borderColor: 'divider', flexShrink: 0, mb: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Box sx={{ borderBottom: 1, borderColor: 'divider', flexShrink: 0, mb: 1 }}>
               <Tabs
                 value={activeTab}
-                onChange={(_, v) => setActiveTab(v)}
+                onChange={handleTabChange}
                 variant="standard"
                 sx={{ minHeight: 40, '& .MuiTab-root': { minHeight: 40, textTransform: 'none' } }}
               >
                 <Tab label={t('welcome_tab_schedule') || 'Schedule'} />
                 <Tab label={t('welcome_tab_overview') || 'Overview'} />
+                {showOperationsTab && (
+                  <Tab label={t('welcome_tab_operations') || 'Operations'} />
+                )}
               </Tabs>
-              <Button
-                size="small"
-                onClick={handleResetSelection}
-                sx={{ textTransform: 'none', fontWeight: 600 }}
-              >
-                {t('change') || 'Change'}
-              </Button>
             </Box>
 
-            {activeTab === 0 && (
-              <>
+            {tabParam === 'schedule' && (
+              <div className={scheduleExpanded ? 'schedule-expanded-overlay' : ''} style={scheduleExpanded ? undefined : { flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
                 {loading ? (
                   <div
                     style={{
@@ -550,12 +693,17 @@ const WelcomePage = () => {
                       onDateChange={setSelectedDate}
                       compact
                       fillHeight
+                      fillWidth={scheduleExpanded}
+                      fontScale={scheduleFontScale}
+                      expanded={scheduleExpanded}
+                      onToggleExpand={handleToggleScheduleExpand}
                     />
                     {selectedSlot && !menuAnchorEl && selectedSession && (
                       <ScheduleSpeedDial
                         session={selectedSession}
                         selectedDate={selectedDate}
                         program={selection?.program}
+                        academicTerm={selection?.academicTerm}
                         onClose={handleClearSelection}
                         onOpenInbox={handleOpenInbox}
                         onOpenHistory={handleOpenHistory}
@@ -564,6 +712,7 @@ const WelcomePage = () => {
                   </div>
                 )}
 
+                {!scheduleExpanded && (
                 <p
                   style={{
                     fontSize: '11px',
@@ -575,10 +724,11 @@ const WelcomePage = () => {
                 >
                   {isInstructor ? t('workspace_schedule_hint') : t('workspace_schedule_hint_admin')}
                 </p>
-              </>
+                )}
+              </div>
             )}
 
-            {activeTab === 1 && (
+            {tabParam === 'overview' && (
               <Box sx={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', p: 3 }}>
                 <Paper
                   elevation={0}
@@ -598,6 +748,25 @@ const WelcomePage = () => {
                   </div>
                 </Paper>
               </Box>
+            )}
+
+            {tabParam === 'operations' && showOperationsTab && (
+              <div className="welcome-operations-panel" data-testid="operations-board-shell">
+                <Suspense
+                  fallback={(
+                    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1, py: 6 }}>
+                      <CircularProgress size={28} />
+                    </Box>
+                  )}
+                >
+                  <OperationsBoardPage
+                    embedded
+                    expanded={boardExpanded}
+                    onToggleExpand={handleToggleBoardExpand}
+                    welcomeContext={welcomeBoardContext}
+                  />
+                </Suspense>
+              </div>
             )}
           </div>
         )}
@@ -629,8 +798,10 @@ const WelcomePage = () => {
         onClose={handleCloseClassMenu}
         selectedDate={selectedDate}
         program={selection?.program}
+        academicTerm={selection?.academicTerm}
         onOpenInbox={handleOpenInbox}
         onOpenHistory={handleOpenHistory}
+        onOpenOperations={handleOpenOperations}
       />
 
       <ClassHistoryDrawer
@@ -645,6 +816,13 @@ const WelcomePage = () => {
         onClose={handleCloseInbox}
         classId={inboxClassId}
         initialTab={inboxInitialTab}
+      />
+
+      <WelcomeContextSwitcher
+        open={contextSwitcherOpen}
+        onClose={() => setContextSwitcherOpen(false)}
+        selection={selection}
+        onSelectTerm={handleTermSelect}
       />
 
       <Snackbar

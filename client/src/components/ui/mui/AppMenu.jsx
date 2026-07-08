@@ -7,6 +7,35 @@ import Divider from '@mui/material/Divider';
 import Collapse from '@mui/material/Collapse';
 import Box from '@mui/material/Box';
 import { ChevronDown, ChevronUp } from 'lucide-react';
+import ColoredTooltip from './ColoredTooltip';
+
+function TrailingActionButton({ action, onClose }) {
+  const color = action.tooltipColor || action.color || '#64748b';
+  return (
+    <ColoredTooltip title={action.title || ''} color={color} placement="top">
+      <Box
+        onClick={(e) => {
+          e.stopPropagation();
+          action.onClick?.();
+          onClose?.();
+        }}
+        sx={{
+          cursor: 'pointer',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: 28,
+          height: 28,
+          borderRadius: 1,
+          opacity: 0.75,
+          '&:hover': { bgcolor: 'action.selected', opacity: 1 },
+        }}
+      >
+        {action.icon}
+      </Box>
+    </ColoredTooltip>
+  );
+}
 
 function AppMenuItem({
   action,
@@ -57,6 +86,13 @@ function AppMenuItem({
           secondary={action.hint}
           secondaryTypographyProps={{ variant: 'caption', sx: { color: 'text.secondary' } }}
         />
+        {action.trailingActions && action.trailingActions.length > 0 && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 1 }}>
+            {action.trailingActions.map((ta, taIdx) => (
+              <TrailingActionButton key={taIdx} action={ta} onClose={onClose} />
+            ))}
+          </Box>
+        )}
         {hasChildren && (
           isExpanded
             ? <ChevronUp size={16} style={{ opacity: 0.6 }} />
@@ -105,6 +141,13 @@ function AppMenuItem({
                     secondary={child.hint}
                     secondaryTypographyProps={{ variant: 'caption', sx: { color: 'text.secondary' } }}
                   />
+                  {child.trailingActions && child.trailingActions.length > 0 && (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, ml: 1 }}>
+                      {child.trailingActions.map((ta, taIdx) => (
+                        <TrailingActionButton key={taIdx} action={ta} onClose={onClose} />
+                      ))}
+                    </Box>
+                  )}
                 </MenuItem>
               );
             })}

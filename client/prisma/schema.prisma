@@ -133,6 +133,7 @@ enum WorkflowStatus {
 
 enum WorkflowDocumentStatus {
   DRAFT
+  TAKEN
   SUBMITTED
   UNDER_REVIEW
   UNDER_HR_REVIEW

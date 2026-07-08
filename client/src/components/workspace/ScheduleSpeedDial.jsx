@@ -18,6 +18,7 @@ function ScheduleSpeedDial({
   session,
   selectedDate,
   program,
+  academicTerm,
   onClose,
   onOpenInbox,
   onOpenHistory,
@@ -81,7 +82,7 @@ function ScheduleSpeedDial({
         icon: getThemedIcon('ui', 'file_signature', 18, 'currentColor'),
         disabled: exporting === 'export-weekly-pdf',
         onClick: () => runExport('export-weekly-pdf', () =>
-          exportWeeklyScheduleForScope({ cls, program, subject, lang, t, user, format: EXPORT_FORMAT.PDF })),
+          exportWeeklyScheduleForScope({ cls, program, subject, academicTerm, lang, t, user, format: EXPORT_FORMAT.PDF })),
       });
       items.push({
         id: 'export-weekly-excel',
@@ -89,7 +90,7 @@ function ScheduleSpeedDial({
         icon: getThemedIcon('ui', 'file_text', 18, 'currentColor'),
         disabled: exporting === 'export-weekly-excel',
         onClick: () => runExport('export-weekly-excel', () =>
-          exportWeeklyScheduleForScope({ cls, program, subject, lang, t, user, format: EXPORT_FORMAT.EXCEL })),
+          exportWeeklyScheduleForScope({ cls, program, subject, academicTerm, lang, t, user, format: EXPORT_FORMAT.EXCEL })),
       });
       items.push({
         id: 'export-daily-pdf',
@@ -147,7 +148,7 @@ function ScheduleSpeedDial({
     });
 
     return items;
-  }, [canExport, cls, program, subject, lang, t, user, dateStr, exporting, runExport, handleScan, handleInbox, handleHistory, canSeeStandupMode]);
+  }, [canExport, cls, program, subject, academicTerm, lang, t, user, dateStr, exporting, runExport, handleScan, handleInbox, handleHistory, canSeeStandupMode]);
 
   if (!session) return null;
 

@@ -64,6 +64,7 @@ export async function exportWeeklyScheduleForScope({
   cls,
   program,
   subject,
+  academicTerm,
   lang,
   t,
   user,
@@ -72,9 +73,11 @@ export async function exportWeeklyScheduleForScope({
   const meta = buildClassMetadata(cls, program, subject, lang);
   const sources = await loadWeeklyScheduleSources({
     classId: cls.id,
-    programId: cls.programId,
+    programId: cls.programId || program?.id,
     year: cls.year,
     term: cls.term,
+    academicTermId: academicTerm?.id ?? cls.academicTermId,
+    academicTermCode: academicTerm?.code,
   });
   const reportData = prepareWeeklyScheduleData({
     metadata: { ...meta, watermarkUser: user },
@@ -187,6 +190,7 @@ export async function exportDailyOfficialForDate({
   user,
   date,
   format = EXPORT_FORMAT.PDF,
+  skipDownload = false,
 }) {
   const meta = buildClassMetadata(cls, program, subject, lang);
   const formattedDate = formatQatarDateOnly(date);
@@ -237,7 +241,7 @@ export async function exportDailyOfficialForDate({
 
   const filename = `${reportData.serial}_daily_official_${sanitize(meta.className)}_${formattedDate}`;
   const blob = await exportDailyOfficialReport(reportData, { format, filename });
-  await persistAndLogExport({
+  const driveResult = await persistAndLogExport({
     blob,
     filename,
     mimeType: mimeTypeForFormat(format),
@@ -247,9 +251,11 @@ export async function exportDailyOfficialForDate({
     subjectId: meta.subjectId,
     programId: meta.programId,
     reportDate: formattedDate,
-  }).catch(() => {});
-  triggerDownload(blob, `${filename}.${format === EXPORT_FORMAT.EXCEL ? 'xlsx' : 'pdf'}`);
-  return { filename };
+  }).catch(() => null);
+  if (!skipDownload) {
+    triggerDownload(blob, `${filename}.${format === EXPORT_FORMAT.EXCEL ? 'xlsx' : 'pdf'}`);
+  }
+  return { filename, blob, fileId: driveResult?.fileId || null };
 }
 
 export async function exportAttendanceOfficialForScope({

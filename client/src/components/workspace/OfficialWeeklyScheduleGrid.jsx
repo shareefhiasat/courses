@@ -1,11 +1,43 @@
-import React, { useState, useEffect, useRef, useLayoutEffect } from 'react';
+import React, { useState, useEffect, useRef, useLayoutEffect, useMemo } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
+import { Chip, IconButton, Box } from '@mui/material';
+import { Maximize2, Minimize2 } from 'lucide-react';
+import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import styles from '@services/export/official-reports/templates/officialReport.module.css';
+import {
+  SCHEDULE_FONT_SCALE_DEFAULT,
+} from '@constants/scheduleFontScale';
 import gridStyles from './officialWeeklyScheduleGrid.module.css';
+import {
+  SCHEDULE_WORKFLOW_COLORS,
+  resolveScheduleWorkflowKey,
+} from '@constants/workspaceStatusColors';
 
-const DEFAULT_DAY_START = 7 * 60 + 30; // 07:30
+const DEFAULT_DAY_START = 7 * 60; // 07:00
 const DEFAULT_DAY_END = 17 * 60 + 30; // 17:30
+const DAY_COL_PCT = 3;
+const LABEL_COL_PCT = 7;
+const DATA_COL_BUDGET = 100 - DAY_COL_PCT - LABEL_COL_PCT;
+const BREAK_COL_PCT = 4.5;
+const OFFICE_COL_PCT = 7;
+const PURPLE_TOOLTIP = '#8b5cf6';
+
+function isOfficeHourColumn(col) {
+  return col.key === 'officeHour' || col.isOfficeHour;
+}
+
+function resolveDataColumnWidth(col, columns) {
+  const breakCount = columns.filter((c) => c.isBreak).length;
+  const hasOffice = columns.some((c) => isOfficeHourColumn(c));
+  const lectureCount = columns.length - breakCount - (hasOffice ? 1 : 0);
+  const fixedUsed = (breakCount * BREAK_COL_PCT) + (hasOffice ? OFFICE_COL_PCT : 0);
+  const lectureWidth = lectureCount > 0 ? (DATA_COL_BUDGET - fixedUsed) / lectureCount : 0;
+
+  if (col.isBreak) return BREAK_COL_PCT;
+  if (isOfficeHourColumn(col)) return OFFICE_COL_PCT;
+  return lectureWidth;
+}
 
 function parseTimeToMinutes(value) {
   if (!value) return null;
@@ -15,8 +47,6 @@ function parseTimeToMinutes(value) {
 }
 
 function resolveProgramHours(scheduleData) {
-  let start = DEFAULT_DAY_START;
-  let end = DEFAULT_DAY_END;
   const times = [];
 
   (scheduleData?.days || []).forEach((day) => {
@@ -31,10 +61,9 @@ function resolveProgramHours(scheduleData) {
   });
 
   if (times.length) {
-    start = Math.min(start, ...times);
-    end = Math.max(end, ...times);
+    return { start: Math.min(...times), end: Math.max(...times) };
   }
-  return { start, end };
+  return { start: DEFAULT_DAY_START, end: DEFAULT_DAY_END };
 }
 
 function ScheduleTimeLineOverlay({
@@ -45,12 +74,15 @@ function ScheduleTimeLineOverlay({
   visible,
   columns,
   days,
+  t,
+  onOutsideHoursChange,
 }) {
   const [lineTop, setLineTop] = useState(null);
   const [rowLeft, setRowLeft] = useState(null);
   const [rowWidth, setRowWidth] = useState(null);
   const [dotOffset, setDotOffset] = useState(0);
   const [now, setNow] = useState(() => new Date());
+  const [isOutsideHours, setIsOutsideHours] = useState(false);
 
   useEffect(() => {
     if (!visible) return undefined;
@@ -77,12 +109,15 @@ function ScheduleTimeLineOverlay({
       }
 
       const nowMin = now.getHours() * 60 + now.getMinutes();
-      if (nowMin < dayStartMin || nowMin > dayEndMin) {
+      // Show the line from 60 min before schedule start to 60 min after end
+      if (nowMin < dayStartMin - 60 || nowMin > dayEndMin + 60) {
         setLineTop(null);
         setRowLeft(null);
         setRowWidth(null);
+        setIsOutsideHours(true);
         return;
       }
+      setIsOutsideHours(false);
 
       // Find the current day's data
       const currentDay = days?.find(d => d.dayCode === todayCode);
@@ -93,7 +128,8 @@ function ScheduleTimeLineOverlay({
         return;
       }
 
-      const timePct = (nowMin - dayStartMin) / (dayEndMin - dayStartMin);
+      const rawPct = (nowMin - dayStartMin) / (dayEndMin - dayStartMin);
+      const timePct = Math.max(0, Math.min(1, rawPct));
 
       // Find which column the current time falls into based on slot time ranges,
       // and how far through that slot we are (for horizontal positioning within the cell)
@@ -124,10 +160,13 @@ function ScheduleTimeLineOverlay({
       
       const wrapRect = wrap.getBoundingClientRect();
       const tbodyRect = tbody.getBoundingClientRect();
-      const top = tbodyRect.top - wrapRect.top + tbodyRect.height * timePct;
       
       // Get the first row of the tbody to measure the full row's data-cell span and the target column
       const firstRow = tbody.querySelector('tr');
+      // Position vertically at center of first row (Subject row)
+      const top = firstRow
+        ? (firstRow.getBoundingClientRect().top - wrapRect.top + firstRow.getBoundingClientRect().height / 2)
+        : (tbodyRect.top - wrapRect.top + tbodyRect.height / 2);
       if (firstRow) {
         const cells = firstRow.querySelectorAll('td');
         // Skip day label cell (first) and row label cell (second)
@@ -145,6 +184,8 @@ function ScheduleTimeLineOverlay({
             const offsetWithinRow = (cellRect.left - firstCellRect.left) + cellRect.width * clampedWithinSlotPct;
             setDotOffset(offsetWithinRow);
           } else {
+            // When not in a slot, use linear time-to-pixel mapping across the row
+            // The row spans from dayStartMin to dayEndMin (actual schedule bounds)
             setDotOffset(rowWidthPx * timePct);
           }
         }
@@ -163,7 +204,15 @@ function ScheduleTimeLineOverlay({
     };
   }, [visible, todayCode, dayStartMin, dayEndMin, now, tableRef, columns, days]);
 
-  if (!visible || lineTop == null || rowLeft == null || rowWidth == null) return null;
+  useEffect(() => {
+    onOutsideHoursChange?.(visible && isOutsideHours);
+  }, [visible, isOutsideHours, onOutsideHoursChange]);
+
+  if (!visible) return null;
+
+  if (isOutsideHours) return null;
+
+  if (lineTop == null || rowLeft == null || rowWidth == null) return null;
 
   const label = `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
 
@@ -190,23 +239,26 @@ function ScheduleTimeLineOverlay({
 
 function StatusDot({ status, t }) {
   if (!status) return null;
-  const isSubmitted = ['SUBMITTED', 'UNDER_ADMIN_REVIEW', 'UNDER_HR_REVIEW', 'APPROVED', 'ADMIN_APPROVED'].includes(status.workflowStatus);
-  const key = isSubmitted ? 'submitted' : status.hasAttendance ? 'taken' : 'not_taken';
-  const colors = { taken: '#22c55e', submitted: '#3b82f6', not_taken: '#f97316' };
+  const key = resolveScheduleWorkflowKey(status);
+  const colors = SCHEDULE_WORKFLOW_COLORS;
   const labels = {
+    not_taken: t('workspace_status_not_taken'),
+    draft: t('workspace_status_draft') || 'Draft',
     taken: t('workspace_status_taken'),
     submitted: t('workspace_status_submitted'),
-    not_taken: t('workspace_status_not_taken'),
   };
+  const dotColor = colors[key];
 
   return (
-    <span
-      className={`${gridStyles.statusDot} ${gridStyles[`statusDot_${key}`]}`}
-      style={{ '--dot-color': colors[key] }}
-      aria-label={labels[key]}
-    >
-      <span className={gridStyles.statusDotTooltip}>{labels[key]}</span>
-    </span>
+    <ColoredTooltip title={labels[key]} color={PURPLE_TOOLTIP} placement="bottom">
+      <span className={gridStyles.statusDotWrap}>
+        <span
+          className={`${gridStyles.statusDot} ${gridStyles[`statusDot_${key}`]}`}
+          style={{ '--dot-color': dotColor }}
+          aria-label={labels[key]}
+        />
+      </span>
+    </ColoredTooltip>
   );
 }
 
@@ -223,8 +275,11 @@ function CellContent({ children, className, ltr }) {
 
 function VerticalText({ children, compact }) {
   let content = children;
-  if (compact && typeof children === 'string' && children.trim().includes(' ')) {
-    const words = children.trim().split(/\s+/);
+  const text = typeof children === 'string' ? children.trim() : '';
+  const shouldSplitWords = compact && text.includes(' ') && !/\d{1,2}:\d{2}/.test(text);
+
+  if (shouldSplitWords) {
+    const words = text.split(/\s+/);
     content = words.map((word, i) => (
       <React.Fragment key={i}>
         {i > 0 && <br />}
@@ -232,6 +287,7 @@ function VerticalText({ children, compact }) {
       </React.Fragment>
     ));
   }
+
   return (
     <div className={compact ? styles.scheduleBreakVerticalWrap : styles.scheduleVerticalTextWrap}>
       <span className={`${styles.scheduleVerticalText} ${compact ? styles.scheduleBreakVertical : ''}`}>
@@ -316,14 +372,15 @@ function InteractiveSlotCell({
       {rowType === 'subject' && <StatusDot status={status} t={t} />}
       {rowType === 'subject' && isMine && (
         <span className={gridStyles.cellIconTray} aria-hidden="true">
-          <span className={gridStyles.instructorIcon} aria-label={t('workspace_my_class')}>
-            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z"></path>
-              <path d="M22 10v6"></path>
-              <path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"></path>
-            </svg>
-            <span className={gridStyles.instructorIconTooltip}>{t('workspace_my_class')}</span>
-          </span>
+          <ColoredTooltip title={t('workspace_my_class')} color={PURPLE_TOOLTIP} placement="bottom">
+            <span className={gridStyles.instructorIcon} aria-label={t('workspace_my_class')}>
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z"></path>
+                <path d="M22 10v6"></path>
+                <path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"></path>
+              </svg>
+            </span>
+          </ColoredTooltip>
         </span>
       )}
       <span className={rowType === 'subject' && isMine ? gridStyles.subjectCellText : undefined}>
@@ -470,12 +527,17 @@ const OfficialWeeklyScheduleGrid = ({
   onDateChange,
   compact = false,
   fillHeight = false,
+  fillWidth = false,
+  fontScale = SCHEDULE_FONT_SCALE_DEFAULT,
+  expanded = false,
+  onToggleExpand = null,
 }) => {
   const { lang, t } = useLang();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const tableRef = useRef(null);
   const wrapRef = useRef(null);
+  const [outsideHours, setOutsideHours] = useState(false);
 
   useEffect(() => {
     if (!onCellClick) return;
@@ -507,6 +569,11 @@ const OfficialWeeklyScheduleGrid = ({
     return () => document.removeEventListener('contextmenu', handleContextMenu, true);
   }, [onCellClick, scheduleData]);
 
+  const columnWidths = useMemo(
+    () => (scheduleData?.columns || []).map((col) => resolveDataColumnWidth(col, scheduleData.columns)),
+    [scheduleData?.columns],
+  );
+
   if (!scheduleData?.days?.length) {
     return (
       <div className={`${gridStyles.wrap} ${isDark ? gridStyles.wrapDark : ''}`}>
@@ -528,7 +595,8 @@ const OfficialWeeklyScheduleGrid = ({
   return (
     <div
       ref={wrapRef}
-      className={`${gridStyles.wrap} ${isDark ? gridStyles.wrapDark : ''} ${compact ? gridStyles.wrapCompact : ''} ${fillHeight ? gridStyles.wrapFill : ''}`}
+      className={`${gridStyles.wrap} ${isDark ? gridStyles.wrapDark : ''} ${compact ? gridStyles.wrapCompact : ''} ${fillHeight ? gridStyles.wrapFill : ''} ${fillWidth ? gridStyles.wrapFillWidth : ''}`}
+      style={{ '--schedule-font-scale': String(fontScale / 100) }}
       dir={isAr ? 'rtl' : 'ltr'}
       data-testid="official-weekly-schedule-grid"
     >
@@ -564,13 +632,18 @@ const OfficialWeeklyScheduleGrid = ({
           visible={isTodaySelected}
           columns={columns}
           days={days}
+          t={t}
+          onOutsideHoursChange={setOutsideHours}
         />
-        <table ref={tableRef} className={`${styles.officialTable} ${styles.weeklyScheduleTable}`}>
+        <table
+          ref={tableRef}
+          className={`${styles.officialTable} ${styles.weeklyScheduleTable} ${gridStyles.scalableTable} ${fillWidth ? gridStyles.expandedTable : ''}`}
+        >
           <colgroup>
-            <col style={{ width: '3%' }} />
-            <col style={{ width: '7%' }} />
-            {columns.map((col) => (
-              <col key={col.key} style={{ width: col.isBreak ? '6%' : '24%' }} />
+            <col style={{ width: `${DAY_COL_PCT}%` }} />
+            <col style={{ width: `${LABEL_COL_PCT}%` }} />
+            {columns.map((col, idx) => (
+              <col key={col.key} style={{ width: `${columnWidths[idx]}%` }} />
             ))}
           </colgroup>
           <thead>
@@ -582,7 +655,10 @@ const OfficialWeeklyScheduleGrid = ({
               {columns.map((col) => (
                 <th
                   key={col.key}
-                  className={col.isBreak ? styles.scheduleBreakHeader : styles.scheduleLectureHeader}
+                  className={[
+                    col.isBreak ? styles.scheduleBreakHeader : styles.scheduleLectureHeader,
+                    col.isBreak || isOfficeHourColumn(col) ? gridStyles.narrowColHeader : gridStyles.lectureColHeader,
+                  ].filter(Boolean).join(' ')}
                 >
                   {col.isBreak ? (
                     <VerticalText compact className={styles.scheduleBreakHeaderLabel}>{col.label}</VerticalText>
@@ -614,16 +690,20 @@ const OfficialWeeklyScheduleGrid = ({
 
       <div className={`${gridStyles.statusLegend} ${gridStyles.statusLegendBottom}`}>
         <div className={gridStyles.legendItem}>
+          <span className={`${gridStyles.legendDot} ${gridStyles.legendDot_not_taken}`} />
+          <span>{t('workspace_status_not_taken')}</span>
+        </div>
+        <div className={gridStyles.legendItem}>
+          <span className={`${gridStyles.legendDot} ${gridStyles.legendDot_draft}`} />
+          <span>{t('workspace_status_draft') || 'Draft'}</span>
+        </div>
+        <div className={gridStyles.legendItem}>
           <span className={`${gridStyles.legendDot} ${gridStyles.legendDot_taken}`} />
           <span>{t('workspace_status_taken')}</span>
         </div>
         <div className={gridStyles.legendItem}>
           <span className={`${gridStyles.legendDot} ${gridStyles.legendDot_submitted}`} />
           <span>{t('workspace_status_submitted')}</span>
-        </div>
-        <div className={gridStyles.legendItem}>
-          <span className={`${gridStyles.legendDot} ${gridStyles.legendDot_not_taken}`} />
-          <span>{t('workspace_status_not_taken')}</span>
         </div>
         <div className={gridStyles.legendItem}>
           <span className={gridStyles.legendLine} />
@@ -637,6 +717,47 @@ const OfficialWeeklyScheduleGrid = ({
           <span className={`${gridStyles.legendDot} ${gridStyles.legendDot_selected}`} />
           <span>{t('workspace_selected_class')}</span>
         </div>
+        {outsideHours && (
+          <Chip
+            size="small"
+            label={t('schedule_outside_hours') || 'Outside working hours'}
+            className={gridStyles.outsideHoursChip}
+            sx={{
+              height: '1.55em',
+              fontSize: '0.85em',
+              fontWeight: 600,
+              bgcolor: isDark ? 'rgba(239, 68, 68, 0.15)' : 'rgba(239, 68, 68, 0.08)',
+              color: isDark ? '#fca5a5' : '#dc2626',
+              border: `1px solid ${isDark ? 'rgba(239, 68, 68, 0.35)' : 'rgba(239, 68, 68, 0.25)'}`,
+              '& .MuiChip-label': {
+                fontSize: 'inherit',
+                px: '0.45em',
+              },
+            }}
+          />
+        )}
+        {onToggleExpand && (
+          <IconButton
+            size="small"
+            onClick={onToggleExpand}
+            className={gridStyles.legendExpandBtn}
+            data-testid="schedule-expand-btn"
+            aria-label={expanded ? (t('schedule_collapse') || 'Collapse schedule') : (t('schedule_expand') || 'Expand schedule')}
+            sx={{
+              width: 24,
+              height: 24,
+              ml: 0.5,
+              border: `1px solid ${isDark ? '#334155' : '#e2e8f0'}`,
+              bgcolor: isDark ? 'rgba(30,41,59,0.6)' : 'rgba(255,255,255,0.8)',
+              color: isDark ? '#94a3b8' : '#64748b',
+              '&:hover': {
+                bgcolor: isDark ? 'rgba(51,65,85,0.8)' : 'rgba(241,245,249,1)',
+              },
+            }}
+          >
+            {expanded ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
+          </IconButton>
+        )}
       </div>
     </div>
   );

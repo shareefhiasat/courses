@@ -53,7 +53,7 @@ export default function WorkflowBoard({
       onDragEnd={handleDragEnd}
     >
       {(column) => (
-        <KanbanBoard id={column.id} key={column.id}>
+        <KanbanBoard id={column.id} key={column.id} data-testid={`operations-board-column-${column.id}`}>
           <KanbanHeader>
             <div className="flex items-center gap-2">
               <div
@@ -85,6 +85,16 @@ export default function WorkflowBoard({
                     <p className="m-0 flex-1 font-medium text-sm">
                       {item.name}
                     </p>
+                    {item.className && (
+                      <p className="m-0 text-xs text-muted-foreground">
+                        {t('operations_board_card_class') || 'Class'}: {item.className}
+                      </p>
+                    )}
+                    {item.date && (
+                      <p className="m-0 text-xs text-muted-foreground">
+                        {t('operations_board_card_date') || 'Date'}: {dateFormatter.format(new Date(item.date))}
+                      </p>
+                    )}
                     {item.workflowType && (
                       <p className="m-0 text-xs text-muted-foreground">
                         {item.workflowType}

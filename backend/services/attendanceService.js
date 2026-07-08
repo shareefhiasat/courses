@@ -11,6 +11,7 @@ import { EVENTS } from './notifications/constants.js';
 import { buildLocalizedNameFields, buildNotificationNameVars } from '../utils/localizedUserName.js';
 import { USER_NAME_SELECT_WITH_ID } from '../utils/userNameFields.js';
 import { checkAttendanceWorkflowLock } from './workflowDocumentService.js';
+import { createChangeLog } from '../db/attendance-log-postgres.js';
 
 
 /**
@@ -308,6 +309,17 @@ export const createAttendance = async (attendanceData, user = null) => {
           }
         }
       });
+
+      if (existingAttendance.statusId !== statusId) {
+        await createChangeLog({
+          attendanceId: existingAttendance.id,
+          fromStatusId: existingAttendance.statusId,
+          toStatusId: statusId,
+          changedBy: updatedBy,
+          reason: notes || null,
+          source: 'manual',
+        });
+      }
       
       // Emit notification for attendance update
       try {
@@ -566,6 +578,18 @@ export const updateAttendance = async (id, updateData, user = null) => {
         }
       }
     });
+
+    if (data.statusId && data.statusId !== existingAttendance.statusId) {
+      const changedBy = await getDatabaseUserId(user);
+      await createChangeLog({
+        attendanceId: parseInt(id),
+        fromStatusId: existingAttendance.statusId,
+        toStatusId: data.statusId,
+        changedBy,
+        reason: notes || null,
+        source: 'manual',
+      });
+    }
     
     return {
       success: true,

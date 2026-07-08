@@ -8,6 +8,7 @@
 import cron from 'node-cron';
 import { runAttendanceThresholdCheck } from '../scripts/attendanceThresholdCheck.js';
 import { runSlaMonitor } from '../scripts/slaMonitor.js';
+import { ensureDailyWorkflows } from '../services/workflowDocumentService.js';
 
 const jobs = [];
 
@@ -49,6 +50,23 @@ export function initCronJobs() {
   });
 
   jobs.push({ name: 'slaMonitor', job: slaJob });
+
+  // Ensure daily attendance workflows — weekday mornings at 6 AM Riyadh
+  const ensureDailyJob = cron.schedule('0 6 * * 1-5', async () => {
+    console.log('[CronScheduler] Ensuring daily attendance workflows...');
+    try {
+      const today = new Date();
+      await ensureDailyWorkflows({ date: today.toISOString().slice(0, 10), classIds: [] });
+      console.log('[CronScheduler] Daily workflow ensure completed');
+    } catch (error) {
+      console.error('[CronScheduler] Error ensuring daily workflows:', error);
+    }
+  }, {
+    scheduled: true,
+    timezone: 'Asia/Riyadh',
+  });
+
+  jobs.push({ name: 'ensureDailyWorkflows', job: ensureDailyJob });
 
   console.log(`[CronScheduler] ${jobs.length} jobs initialized successfully`);
 }

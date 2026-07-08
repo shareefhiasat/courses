@@ -7,6 +7,16 @@ import {
   KanbanCard,
 } from '@/components/kibo-ui/kanban';
 import { Avatar, AvatarFallback } from '@/components/kibo/ui/avatar';
+import { Status, StatusIndicator, StatusLabel } from '@/components/kibo-ui/status';
+
+const ATTENDANCE_STATUS_CLASS = {
+  PRESENT: 'online',
+  LATE: 'degraded',
+  ABSENT: 'offline',
+  EXCUSED: 'maintenance',
+  HUMAN_CASE: 'degraded',
+  NOT_TAKEN: 'offline',
+};
 
 const dateFormatter = new Intl.DateTimeFormat('en-US', {
   month: 'short',
@@ -50,7 +60,7 @@ export default function AttendanceBoard({
       onDragEnd={handleDragEnd}
     >
       {(column) => (
-        <KanbanBoard id={column.id} key={column.id}>
+        <KanbanBoard id={column.id} key={column.id} data-testid={`operations-board-column-${column.id}`}>
           <KanbanHeader>
             <div className="flex items-center gap-2">
               <div
@@ -79,14 +89,11 @@ export default function AttendanceBoard({
                   }}
                 >
                   <div className="flex flex-col gap-1">
-                    <p className="m-0 flex-1 font-medium text-sm">
-                      {item.name}
-                    </p>
-                    {item.className && (
-                      <p className="m-0 text-xs text-muted-foreground">
-                        {item.className}
-                      </p>
-                    )}
+                    <p className="m-0 flex-1 font-medium text-sm">{item.name}</p>
+                    <Status status={ATTENDANCE_STATUS_CLASS[item.column] || 'offline'} className="w-fit">
+                      <StatusIndicator />
+                      <StatusLabel>{t(`operations_board_lane_${item.column.toLowerCase()}`) || item.column}</StatusLabel>
+                    </Status>
                   </div>
                   <Avatar className="h-5 w-5 shrink-0">
                     <AvatarFallback className="text-[10px]">
