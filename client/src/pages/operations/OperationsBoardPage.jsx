@@ -227,13 +227,6 @@ export default function OperationsBoardPage({
     setDrawerOpen(true);
   }, [lane, updateParams]);
 
-  const handleBackToWorkflow = useCallback(() => {
-    updateParams((next) => {
-      next.set('lane', LANES.STATUS);
-      next.delete('workflowId');
-    });
-  }, [updateParams]);
-
   const handleMarkTaken = useCallback(async (card) => {
     const result = await markWorkflowAsTaken(card.rawId);
     if (result.success) loadData();
@@ -291,7 +284,13 @@ export default function OperationsBoardPage({
         </div>
       </header>
 
-      <BoardFilterBar filters={filters} onFilterChange={setFilters} lane={lane} />
+      <BoardFilterBar
+        filters={filters}
+        onFilterChange={setFilters}
+        lane={lane}
+        boardData={displayData}
+        columns={columns}
+      />
 
       {error && (
         <Card className="border-destructive/50 bg-destructive/10">
@@ -317,7 +316,7 @@ export default function OperationsBoardPage({
             onDragEnd={handleDragEnd}
           />
         ) : view === VIEWS.TABLE ? (
-          <BoardTableView data={displayData} columns={columns} onCardClick={handleCardClick} t={t} />
+          <BoardTableView data={displayData} columns={columns} onCardClick={handleCardClick} t={t} lang={lang} />
         ) : lane === LANES.ATTENDANCE ? (
           <AttendanceBoard
             data={displayData}
@@ -348,8 +347,6 @@ export default function OperationsBoardPage({
         embedded={embedded}
         expanded={expanded}
         onToggleExpand={onToggleExpand}
-        showBack={lane === LANES.ATTENDANCE}
-        onBack={handleBackToWorkflow}
       />
 
       <BoardDetailDrawer

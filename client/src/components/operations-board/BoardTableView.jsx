@@ -9,8 +9,13 @@ import {
 } from '@/components/kibo/ui/table';
 import { Badge } from '@/components/kibo/ui/badge';
 import BoardStudentAvatar from './BoardStudentAvatar.jsx';
+import {
+  formatBoardDate,
+  resolveBoardClassName,
+  resolveBoardStudentName,
+} from './operationsBoardDisplayUtils.js';
 
-export default function BoardTableView({ data, columns, onCardClick, t }) {
+export default function BoardTableView({ data, columns, onCardClick, t, lang = 'en' }) {
   const columnMap = Object.fromEntries(columns.map((c) => [c.id, c]));
 
   return (
@@ -22,19 +27,22 @@ export default function BoardTableView({ data, columns, onCardClick, t }) {
             <TableHead>{t('operations_board_table_name')}</TableHead>
             <TableHead>{t('operations_board_status')}</TableHead>
             <TableHead>{t('operations_board_class')}</TableHead>
+            <TableHead>{t('operations_board_card_date')}</TableHead>
             <TableHead>{t('operations_board_card_assignee')}</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {data.length === 0 ? (
             <TableRow>
-              <TableCell colSpan={5} className="py-10 text-center text-sm text-muted-foreground">
+              <TableCell colSpan={6} className="py-10 text-center text-sm text-muted-foreground">
                 {t('operations_board_empty_table')}
               </TableCell>
             </TableRow>
           ) : (
             data.map((item) => {
               const col = columnMap[item.column];
+              const studentName = resolveBoardStudentName(item, lang);
+              const className = resolveBoardClassName(item, lang);
               return (
                 <TableRow
                   key={item.id}
@@ -44,12 +52,12 @@ export default function BoardTableView({ data, columns, onCardClick, t }) {
                 >
                   <TableCell>
                     <BoardStudentAvatar
-                      name={item.name}
+                      name={studentName}
                       profileImageUrl={item.profileImageUrl}
                       size="sm"
                     />
                   </TableCell>
-                  <TableCell className="font-medium">{item.name}</TableCell>
+                  <TableCell className="font-medium">{studentName}</TableCell>
                   <TableCell>
                     <Badge
                       variant="outline"
@@ -58,7 +66,8 @@ export default function BoardTableView({ data, columns, onCardClick, t }) {
                       {col ? t(col.i18nKey) || col.name : item.column}
                     </Badge>
                   </TableCell>
-                  <TableCell>{item.className || '—'}</TableCell>
+                  <TableCell>{className || '—'}</TableCell>
+                  <TableCell>{item.date ? formatBoardDate(item.date, lang) : '—'}</TableCell>
                   <TableCell>{item.assignee || t('operations_board_card_no_assignee')}</TableCell>
                 </TableRow>
               );

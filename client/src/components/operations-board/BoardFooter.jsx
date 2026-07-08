@@ -1,25 +1,9 @@
 import React from 'react';
-import { useTheme } from '@mui/material/styles';
-import {
-  Box,
-  Chip,
-  Divider,
-  IconButton,
-  Stack,
-  ToggleButton,
-  ToggleButtonGroup,
-  Tooltip,
-  Typography,
-} from '@mui/material';
-import {
-  KanbanSquare,
-  List,
-  Table2,
-  Maximize2,
-  Minimize2,
-  ArrowLeft,
-} from 'lucide-react';
+import { IconButton, ToggleButton, ToggleButtonGroup, Tooltip } from '@mui/material';
+import { KanbanSquare, List, Table2, Maximize2, Minimize2 } from 'lucide-react';
 import { useLang } from '@contexts/LangContext';
+import { useTheme } from '@contexts/ThemeContext';
+import gridStyles from '@components/workspace/officialWeeklyScheduleGrid.module.css';
 
 const VIEW_ICONS = {
   kanban: KanbanSquare,
@@ -34,11 +18,10 @@ export default function BoardFooter({
   embedded = false,
   expanded = false,
   onToggleExpand,
-  showBack = false,
-  onBack,
 }) {
-  const { t, isRTL } = useLang();
-  const theme = useTheme();
+  const { t } = useLang();
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
 
   const viewOptions = [
     { key: 'kanban', label: t('operations_board_view_board'), icon: VIEW_ICONS.kanban },
@@ -47,138 +30,85 @@ export default function BoardFooter({
   ];
 
   return (
-    <Box
-      component="footer"
-      className="operations-board-footer"
+    <footer
+      className={`${gridStyles.statusLegend} ${gridStyles.statusLegendBottom} operations-board-footer`}
       data-testid="operations-board-footer"
-      sx={{
-        mt: 'auto',
-        pt: 1.5,
-        borderTop: 1,
-        borderColor: 'divider',
-        bgcolor: theme.palette.mode === 'dark' ? 'rgba(15,23,42,0.6)' : 'rgba(248,250,252,0.9)',
-        borderRadius: '0 0 calc(var(--radius) - 2px) calc(var(--radius) - 2px)',
-        px: { xs: 1, sm: 1.5 },
-        py: 1.25,
+      style={{
+        marginTop: 'auto',
+        justifyContent: 'space-between',
+        gap: '0.75rem',
       }}
     >
-      <Stack
-        direction={{ xs: 'column', md: 'row' }}
-        spacing={1.5}
-        alignItems={{ xs: 'stretch', md: 'center' }}
-        justifyContent="space-between"
-      >
-        <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography
-            variant="caption"
-            color="text.secondary"
-            sx={{ display: 'block', mb: 0.75, fontWeight: 600, letterSpacing: 0.3 }}
-          >
-            {t('operations_board_legend')}
-          </Typography>
-          <Stack direction="row" flexWrap="wrap" gap={0.75} useFlexGap>
-            {columns.map((col) => (
-              <Chip
-                key={col.id}
-                size="small"
-                variant="outlined"
-                label={t(col.i18nKey) || col.name}
-                icon={(
-                  <Box
-                    component="span"
-                    sx={{
-                      width: 8,
-                      height: 8,
-                      borderRadius: '50%',
-                      bgcolor: col.color,
-                      ml: isRTL ? 0 : 0.5,
-                      mr: isRTL ? 0.5 : 0,
-                    }}
-                  />
-                )}
-                sx={{
-                  borderColor: `${col.color}55`,
-                  '& .MuiChip-icon': { ml: 0.5, mr: -0.25 },
-                }}
-                data-testid={`operations-board-legend-${col.id}`}
-              />
-            ))}
-          </Stack>
-        </Box>
+      <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.65em', flex: 1 }}>
+        {columns.map((col) => (
+          <div key={col.id} className={gridStyles.legendItem} data-testid={`operations-board-legend-${col.id}`}>
+            <span
+              className={gridStyles.legendDot}
+              style={{ background: col.color }}
+            />
+            <span>{t(col.i18nKey) || col.name}</span>
+          </div>
+        ))}
+      </div>
 
-        <Divider
-          orientation="vertical"
-          flexItem
-          sx={{ display: { xs: 'none', md: 'block' }, mx: 0.5 }}
-        />
-
-        <Stack
-          direction="row"
-          spacing={1}
-          alignItems="center"
-          justifyContent={{ xs: 'space-between', md: 'flex-end' }}
-          sx={{ flexShrink: 0 }}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+        <ToggleButtonGroup
+          exclusive
+          size="small"
+          value={view}
+          onChange={(_, next) => next && onViewChange(next)}
+          aria-label={t('operations_board_view_mode')}
+          sx={{
+            '& .MuiToggleButton-root': {
+              textTransform: 'none',
+              gap: 0.5,
+              px: 1,
+              py: 0.35,
+              fontSize: '0.78rem',
+              borderColor: isDark ? '#334155' : '#e2e8f0',
+              color: isDark ? '#94a3b8' : '#64748b',
+            },
+            '& .MuiToggleButton-root.Mui-selected': {
+              bgcolor: isDark ? 'rgba(51,65,85,0.9)' : '#1e293b',
+              color: '#f8fafc',
+            },
+          }}
         >
-          {showBack && (
-            <Tooltip title={t('operations_board_back_workflow')}>
-              <IconButton
-                size="small"
-                onClick={onBack}
-                data-testid="operations-board-back"
-                sx={{ border: 1, borderColor: 'divider' }}
-              >
-                <ArrowLeft size={16} />
-              </IconButton>
-            </Tooltip>
-          )}
+          {viewOptions.map((opt) => {
+            const Icon = opt.icon;
+            return (
+              <ToggleButton key={opt.key} value={opt.key} data-testid={`operations-board-view-${opt.key}`}>
+                <Icon size={14} />
+                <span className="hidden sm:inline">{opt.label}</span>
+              </ToggleButton>
+            );
+          })}
+        </ToggleButtonGroup>
 
-          <ToggleButtonGroup
-            exclusive
-            size="small"
-            value={view}
-            onChange={(_, next) => next && onViewChange(next)}
-            aria-label={t('operations_board_view_mode')}
-            sx={{
-              '& .MuiToggleButton-root': {
-                textTransform: 'none',
-                gap: 0.75,
-                px: 1.25,
-                py: 0.5,
-                fontSize: '0.8125rem',
-              },
-            }}
-          >
-            {viewOptions.map((opt) => {
-              const Icon = opt.icon;
-              return (
-                <ToggleButton
-                  key={opt.key}
-                  value={opt.key}
-                  data-testid={`operations-board-view-${opt.key}`}
-                >
-                  <Icon size={15} />
-                  <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>
-                    {opt.label}
-                  </Box>
-                </ToggleButton>
-              );
-            })}
-          </ToggleButtonGroup>
-
-          {embedded && onToggleExpand && (
-            <Tooltip title={expanded ? t('operations_board_collapse') : t('operations_board_expand')}>
-              <IconButton
-                size="small"
-                onClick={onToggleExpand}
-                data-testid="operations-board-expand"
-                sx={{ border: 1, borderColor: 'divider' }}
-              >
-                {expanded ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
-              </IconButton>
-            </Tooltip>
-          )}
-        </Stack>
-      </Stack>
-    </Box>
+        {embedded && onToggleExpand && (
+          <Tooltip title={expanded ? t('operations_board_collapse') : t('operations_board_expand')}>
+            <IconButton
+              size="small"
+              onClick={onToggleExpand}
+              className={gridStyles.legendExpandBtn}
+              data-testid="operations-board-expand"
+              aria-label={expanded ? t('operations_board_collapse') : t('operations_board_expand')}
+              sx={{
+                width: 24,
+                height: 24,
+                border: `1px solid ${isDark ? '#334155' : '#e2e8f0'}`,
+                bgcolor: isDark ? 'rgba(30,41,59,0.6)' : 'rgba(255,255,255,0.8)',
+                color: isDark ? '#94a3b8' : '#64748b',
+                '&:hover': {
+                  bgcolor: isDark ? 'rgba(51,65,85,0.8)' : 'rgba(241,245,249,1)',
+                },
+              }}
+            >
+              {expanded ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
+            </IconButton>
+          </Tooltip>
+        )}
+      </div>
+    </footer>
   );
 }

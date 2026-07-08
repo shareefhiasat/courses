@@ -8,9 +8,14 @@ import {
 } from '@/components/kibo-ui/list';
 import { useLang } from '@contexts/LangContext';
 import BoardStudentAvatar from './BoardStudentAvatar.jsx';
+import {
+  formatBoardDate,
+  resolveBoardClassName,
+  resolveBoardStudentName,
+} from './operationsBoardDisplayUtils.js';
 
 export default function BoardListView({ data, columns, onCardClick, onDragEnd }) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const [features, setFeatures] = useState(data);
 
   React.useEffect(() => {
@@ -47,35 +52,46 @@ export default function BoardListView({ data, columns, onCardClick, onDragEnd })
           <ListItems>
             {features
               .filter((item) => item.column === column.id)
-              .map((item, index) => (
-                <ListItem
-                  id={item.id}
-                  index={index}
-                  key={item.id}
-                  name={item.name}
-                  parent={column.id}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onCardClick?.(item);
-                  }}
-                >
-                  <BoardStudentAvatar
-                    name={item.name}
-                    profileImageUrl={item.profileImageUrl}
-                    size="sm"
-                  />
-                  <div className="m-0 flex min-w-0 flex-1 flex-col gap-0.5">
-                    <p className="m-0 truncate font-medium text-sm">{item.name}</p>
-                    {item.className && (
-                      <p className="m-0 truncate text-xs text-muted-foreground">{item.className}</p>
-                    )}
-                  </div>
-                  <div
-                    className="h-2 w-2 shrink-0 rounded-full"
-                    style={{ backgroundColor: column.color }}
-                  />
-                </ListItem>
-              ))}
+              .map((item, index) => {
+                const studentName = resolveBoardStudentName(item, lang);
+                const className = resolveBoardClassName(item, lang);
+                return (
+                  <ListItem
+                    id={item.id}
+                    index={index}
+                    key={item.id}
+                    name={studentName}
+                    parent={column.id}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onCardClick?.(item);
+                    }}
+                  >
+                    <BoardStudentAvatar
+                      name={studentName}
+                      profileImageUrl={item.profileImageUrl}
+                      size="sm"
+                    />
+                    <div className="m-0 flex min-w-0 flex-1 flex-col gap-0.5">
+                      <p className="m-0 truncate font-medium text-sm">{studentName}</p>
+                      {className && (
+                        <p className="m-0 truncate text-xs text-muted-foreground">
+                          {t('operations_board_label_class')}: {className}
+                        </p>
+                      )}
+                      {item.date && (
+                        <p className="m-0 text-[11px] text-muted-foreground">
+                          {formatBoardDate(item.date, lang)}
+                        </p>
+                      )}
+                    </div>
+                    <div
+                      className="h-2 w-2 shrink-0 rounded-full"
+                      style={{ backgroundColor: column.color }}
+                    />
+                  </ListItem>
+                );
+              })}
           </ListItems>
         </ListGroup>
       ))}

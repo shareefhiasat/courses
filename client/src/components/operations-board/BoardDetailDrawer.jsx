@@ -22,6 +22,11 @@ import {
 import { useLang } from '@contexts/LangContext';
 import { useNavigate } from 'react-router-dom';
 import BoardStudentAvatar from './BoardStudentAvatar.jsx';
+import {
+  formatBoardDate,
+  resolveBoardClassName,
+  resolveBoardStudentName,
+} from './operationsBoardDisplayUtils.js';
 
 export default function BoardDetailDrawer({ open, onOpenChange, card, lane, onRefresh }) {
   const { t, lang } = useLang();
@@ -124,6 +129,9 @@ export default function BoardDetailDrawer({ open, onOpenChange, card, lane, onRe
     ? t(statusColumn.i18nKey) || statusColumn.name
     : card.column;
 
+  const studentName = resolveBoardStudentName(card, lang);
+  const className = resolveBoardClassName(card, lang);
+
   const activityEntries = [
     ...history.map((h) => ({
       type: 'status',
@@ -155,14 +163,14 @@ export default function BoardDetailDrawer({ open, onOpenChange, card, lane, onRe
           <div className="flex items-start gap-3">
             {card.type === 'attendance' && (
               <BoardStudentAvatar
-                name={card.name}
+                name={studentName}
                 profileImageUrl={card.profileImageUrl}
                 size="lg"
               />
             )}
             <div className="min-w-0 flex-1">
               <DialogTitle className="flex flex-wrap items-center gap-2 text-lg">
-                <span className="truncate">{card.name}</span>
+                <span className="truncate">{studentName}</span>
                 <Badge
                   variant="outline"
                   style={statusColumn ? { borderColor: statusColumn.color, color: statusColumn.color } : undefined}
@@ -172,8 +180,8 @@ export default function BoardDetailDrawer({ open, onOpenChange, card, lane, onRe
               </DialogTitle>
               <DialogDescription className="mt-1">
                 {card.type === 'workflow' ? t('operations_board_workflow') : t('operations_board_attendance')}
-                {card.className ? ` · ${card.className}` : ''}
-                {card.date ? ` · ${new Date(card.date).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US')}` : ''}
+                {className ? ` · ${className}` : ''}
+                {card.date ? ` · ${formatBoardDate(card.date, lang)}` : ''}
               </DialogDescription>
             </div>
           </div>

@@ -358,15 +358,55 @@
 }
 
 .operations-board-embedded.operations-board-expanded {
-  position: fixed;
-  inset: var(--navbar-height, 60px) 0 0 0;
-  z-index: 1200;
-  height: auto;
+  height: 100%;
+  min-height: 0;
   max-height: none;
   border-radius: 0;
   border: none;
-  padding: 1.25rem 1.5rem;
-  box-shadow: 0 -4px 24px rgb(0 0 0 / 0.08);
+  padding: 0.75rem 1rem 0.5rem;
+  box-shadow: none;
+}
+
+.operations-expanded-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1300;
+  padding: 0 6px 6px;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+  background: var(--welcome-operations-expanded-bg, #f8fafc);
+}
+
+[data-theme='dark'] .operations-expanded-overlay,
+.welcome-page--operations-expanded[style*='#0f172a'] .operations-expanded-overlay {
+  background: #0f172a;
+}
+
+.welcome-page--operations-expanded {
+  padding: 0 !important;
+  height: 100vh !important;
+  min-height: 0 !important;
+}
+
+.welcome-page--operations-expanded .selection-section {
+  max-width: none !important;
+  flex: 1;
+  min-height: 0;
+}
+
+.operations-panel-expanded {
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  flex: 1 !important;
+  min-height: 0 !important;
 }
 
 .welcome-operations-panel {

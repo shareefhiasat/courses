@@ -107,7 +107,10 @@ const WelcomePage = () => {
       const next = new URLSearchParams(prev);
       next.set('tab', 'operations');
       if (next.get('expanded') === '1') next.delete('expanded');
-      else next.set('expanded', '1');
+      else {
+        next.set('expanded', '1');
+        next.delete('scheduleExpanded');
+      }
       return next;
     });
   }, [setSearchParams]);
@@ -117,7 +120,10 @@ const WelcomePage = () => {
       const next = new URLSearchParams(prev);
       next.set('tab', 'schedule');
       if (next.get('scheduleExpanded') === '1') next.delete('scheduleExpanded');
-      else next.set('scheduleExpanded', '1');
+      else {
+        next.set('scheduleExpanded', '1');
+        next.delete('expanded');
+      }
       return next;
     });
   }, [setSearchParams]);
@@ -570,7 +576,7 @@ const WelcomePage = () => {
 
   return (
     <div
-      className={`welcome-page${scheduleExpanded ? ' welcome-page--schedule-expanded' : ''}`}
+      className={`welcome-page${scheduleExpanded ? ' welcome-page--schedule-expanded' : ''}${boardExpanded && tabParam === 'operations' ? ' welcome-page--operations-expanded' : ''}`}
       style={{
         minHeight: showSchedule ? 'calc(100vh - 64px)' : '100vh',
         height: showSchedule ? 'calc(100vh - 64px)' : 'auto',
@@ -578,10 +584,15 @@ const WelcomePage = () => {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        padding: showSchedule && !scheduleExpanded ? '0 8px 8px' : scheduleExpanded ? 0 : '0 16px 48px',
+        padding: showSchedule && !scheduleExpanded && !(boardExpanded && tabParam === 'operations')
+          ? '0 8px 8px'
+          : (scheduleExpanded || (boardExpanded && tabParam === 'operations'))
+            ? 0
+            : '0 16px 48px',
         dir: lang === 'ar' ? 'rtl' : 'ltr',
         boxSizing: 'border-box',
         ...(scheduleExpanded ? { '--welcome-schedule-expanded-bg': isDark ? '#0f172a' : '#f8fafc' } : {}),
+        ...(boardExpanded && tabParam === 'operations' ? { '--welcome-operations-expanded-bg': isDark ? '#0f172a' : '#f8fafc' } : {}),
       }}
     >
       {showSchedule && (
@@ -640,12 +651,20 @@ const WelcomePage = () => {
 
         {selection?.program && selection?.academicTerm && (
           <div
-            className={scheduleExpanded ? 'schedule-panel-expanded' : ''}
+            className={
+              scheduleExpanded
+                ? 'schedule-panel-expanded'
+                : (boardExpanded && tabParam === 'operations' ? 'operations-panel-expanded' : '')
+            }
             style={{
-              background: scheduleExpanded ? 'transparent' : (isDark ? '#0f172a' : '#f8fafc'),
-              borderRadius: scheduleExpanded ? 0 : '8px',
-              padding: scheduleExpanded ? 0 : '8px',
-              border: scheduleExpanded ? 'none' : `1px solid ${isDark ? '#334155' : '#e2e8f0'}`,
+              background: (scheduleExpanded || (boardExpanded && tabParam === 'operations'))
+                ? 'transparent'
+                : (isDark ? '#0f172a' : '#f8fafc'),
+              borderRadius: (scheduleExpanded || (boardExpanded && tabParam === 'operations')) ? 0 : '8px',
+              padding: (scheduleExpanded || (boardExpanded && tabParam === 'operations')) ? 0 : '8px',
+              border: (scheduleExpanded || (boardExpanded && tabParam === 'operations'))
+                ? 'none'
+                : `1px solid ${isDark ? '#334155' : '#e2e8f0'}`,
               flex: 1,
               display: 'flex',
               flexDirection: 'column',
@@ -752,21 +771,26 @@ const WelcomePage = () => {
             )}
 
             {tabParam === 'operations' && showOperationsTab && (
-              <div className="welcome-operations-panel" data-testid="operations-board-shell">
-                <Suspense
-                  fallback={(
-                    <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1, py: 6 }}>
-                      <CircularProgress size={28} />
-                    </Box>
-                  )}
-                >
-                  <OperationsBoardPage
-                    embedded
-                    expanded={boardExpanded}
-                    onToggleExpand={handleToggleBoardExpand}
-                    welcomeContext={welcomeBoardContext}
-                  />
-                </Suspense>
+              <div
+                className={boardExpanded ? 'operations-expanded-overlay' : ''}
+                style={boardExpanded ? undefined : { flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}
+              >
+                <div className="welcome-operations-panel" data-testid="operations-board-shell">
+                  <Suspense
+                    fallback={(
+                      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1, py: 6 }}>
+                        <CircularProgress size={28} />
+                      </Box>
+                    )}
+                  >
+                    <OperationsBoardPage
+                      embedded
+                      expanded={boardExpanded}
+                      onToggleExpand={handleToggleBoardExpand}
+                      welcomeContext={welcomeBoardContext}
+                    />
+                  </Suspense>
+                </div>
               </div>
             )}
           </div>

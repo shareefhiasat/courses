@@ -1,22 +1,18 @@
 import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { useTheme } from '@mui/material/styles';
-import { Box, Chip, Stack, Typography } from '@mui/material';
+import { Box, Chip, Stack, Tab, Tabs, Typography } from '@mui/material';
 import { Button } from '@/components/kibo/ui/button';
 import { Input } from '@/components/kibo/ui/input';
 import { Label } from '@/components/kibo/ui/label';
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '@/components/kibo/ui/select';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/kibo/ui/popover';
-import {
-  MiniCalendar,
-  MiniCalendarNavigation,
-  MiniCalendarDays,
-  MiniCalendarDay,
-} from '@/components/kibo-ui/mini-calendar';
 import { Search, Plus, SlidersHorizontal } from 'lucide-react';
 import { useLang } from '@contexts/LangContext';
 import { getAllPrograms, getProgramTerms } from '@services/business/attendanceWorkspaceService.js';
 import { getClassesByProgram } from '@services/business/classService.js';
 import { WORKFLOW_COLUMNS } from '@services/business/operationsBoardService.js';
+import BoardDateCalendar from './BoardDateCalendar.jsx';
+import { formatBoardDate } from './operationsBoardDisplayUtils.js';
 
 const FILTER_KEYS = {
   status: 'operations_board_status',
@@ -40,9 +36,16 @@ function localizedName(entity, lang) {
   return entity.nameEn || entity.nameAr || entity.code || entity.name || '';
 }
 
-export default function BoardFilterBar({ filters, onFilterChange, lane }) {
+export default function BoardFilterBar({
+  filters,
+  onFilterChange,
+  lane,
+  boardData = [],
+  columns = [],
+}) {
   const { t, lang, isRTL } = useLang();
   const theme = useTheme();
+  const [panelTab, setPanelTab] = useState('filters');
   const [filterOpen, setFilterOpen] = useState(false);
   const [programs, setPrograms] = useState([]);
   const [terms, setTerms] = useState([]);
@@ -142,178 +145,201 @@ export default function BoardFilterBar({ filters, onFilterChange, lane }) {
         borderColor: 'divider',
         bgcolor: theme.palette.mode === 'dark' ? 'rgba(15,23,42,0.85)' : 'rgba(255,255,255,0.95)',
         backdropFilter: 'blur(8px)',
-        p: 1.5,
+        overflow: 'hidden',
       }}
     >
-      <Stack spacing={1.25}>
-        <Stack
-          direction={{ xs: 'column', lg: 'row' }}
-          spacing={1.25}
-          alignItems={{ xs: 'stretch', lg: 'center' }}
-        >
-          <MiniCalendar
-            value={selectedDate}
-            onValueChange={handleDateSelect}
-            days={5}
-            data-testid="operations-board-mini-calendar"
+      <Tabs
+        value={panelTab}
+        onChange={(_, value) => setPanelTab(value)}
+        variant="fullWidth"
+        sx={{
+          minHeight: 40,
+          borderBottom: 1,
+          borderColor: 'divider',
+          '& .MuiTab-root': { minHeight: 40, textTransform: 'none', fontSize: '0.875rem' },
+        }}
+      >
+        <Tab
+          value="filters"
+          label={t('operations_board_tab_filters')}
+          data-testid="operations-board-tab-filters"
+        />
+        <Tab
+          value="calendar"
+          label={`${t('operations_board_tab_calendar')} · ${formatBoardDate(selectedDate, lang)}`}
+          data-testid="operations-board-tab-calendar"
+        />
+      </Tabs>
+
+      {panelTab === 'filters' && (
+        <Stack spacing={1.25} sx={{ p: 1.5 }}>
+          <Stack
+            direction={{ xs: 'column', lg: 'row' }}
+            spacing={1.25}
+            alignItems={{ xs: 'stretch', lg: 'center' }}
           >
-            <MiniCalendarNavigation direction="prev" />
-            <MiniCalendarDays>
-              {(date) => <MiniCalendarDay date={date} key={date.toISOString()} />}
-            </MiniCalendarDays>
-            <MiniCalendarNavigation direction="next" />
-          </MiniCalendar>
+            <Box sx={{ position: 'relative', flex: 1, minWidth: { xs: '100%', lg: 200 } }}>
+              <Search
+                size={16}
+                style={{
+                  position: 'absolute',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  [isRTL ? 'right' : 'left']: 12,
+                  color: theme.palette.text.secondary,
+                  pointerEvents: 'none',
+                }}
+              />
+              <Input
+                type="text"
+                placeholder={t('operations_board_search')}
+                value={filters.search || ''}
+                onChange={(e) => handleFilterUpdate('search', e.target.value)}
+                className={isRTL ? 'pr-9' : 'pl-9'}
+                data-testid="operations-board-search"
+              />
+            </Box>
 
-          <Box sx={{ position: 'relative', flex: 1, minWidth: { xs: '100%', lg: 200 }, maxWidth: { lg: 360 } }}>
-            <Search
-              size={16}
-              style={{
-                position: 'absolute',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                [isRTL ? 'right' : 'left']: 12,
-                color: theme.palette.text.secondary,
-                pointerEvents: 'none',
-              }}
-            />
-            <Input
-              type="text"
-              placeholder={t('operations_board_search')}
-              value={filters.search || ''}
-              onChange={(e) => handleFilterUpdate('search', e.target.value)}
-              className={isRTL ? 'pr-9' : 'pl-9'}
-              data-testid="operations-board-search"
-            />
-          </Box>
-
-          <Stack direction="row" spacing={1} alignItems="center" flexShrink={0}>
-            <Popover open={filterOpen} onOpenChange={setFilterOpen}>
-              <PopoverTrigger asChild>
-                <Button variant="outline" size="sm" className="gap-2" data-testid="operations-board-add-filter">
-                  <SlidersHorizontal className="h-4 w-4" />
-                  {t('operations_board_filters')}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-80" align={isRTL ? 'start' : 'end'}>
-                <div className="flex flex-col gap-3">
-                  <Label className="text-xs">{t('operations_board_filter_field')}</Label>
-                  <Select
-                    value={pendingFilter.key}
-                    onValueChange={(v) => setPendingFilter((p) => ({ ...p, key: v, value: '' }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="classId">{t('operations_board_class')}</SelectItem>
-                      <SelectItem value="programId">{t('operations_board_program')}</SelectItem>
-                      <SelectItem value="termId">{t('operations_board_term')}</SelectItem>
-                      {lane === 'status' && (
-                        <>
-                          <SelectItem value="status">{t('operations_board_status')}</SelectItem>
-                          <SelectItem value="workflowType">{t('operations_board_filter_type')}</SelectItem>
-                        </>
-                      )}
-                    </SelectContent>
-                  </Select>
-
-                  {pendingFilter.key === 'programId' && (
-                    <Select value={pendingFilter.value} onValueChange={(v) => setPendingFilter((p) => ({ ...p, value: v }))}>
-                      <SelectTrigger><SelectValue placeholder={t('operations_board_program')} /></SelectTrigger>
-                      <SelectContent>
-                        {programs.map((p) => (
-                          <SelectItem key={p.id} value={String(p.id)}>
-                            {localizedName(p, lang)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-
-                  {pendingFilter.key === 'termId' && (
-                    <Select value={pendingFilter.value} onValueChange={(v) => setPendingFilter((p) => ({ ...p, value: v }))}>
-                      <SelectTrigger><SelectValue placeholder={t('operations_board_term')} /></SelectTrigger>
-                      <SelectContent>
-                        {terms.map((term) => (
-                          <SelectItem key={term.id} value={String(term.id)}>
-                            {localizedName(term, lang)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-
-                  {pendingFilter.key === 'classId' && (
-                    <Select value={pendingFilter.value} onValueChange={(v) => setPendingFilter((p) => ({ ...p, value: v }))}>
-                      <SelectTrigger><SelectValue placeholder={t('operations_board_select_class')} /></SelectTrigger>
-                      <SelectContent>
-                        {classes.map((cls) => (
-                          <SelectItem key={cls.id} value={String(cls.id)}>
-                            {localizedName(cls, lang)}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-
-                  {pendingFilter.key === 'status' && (
-                    <Select value={pendingFilter.value} onValueChange={(v) => setPendingFilter((p) => ({ ...p, value: v }))}>
-                      <SelectTrigger><SelectValue placeholder={t('operations_board_status')} /></SelectTrigger>
-                      <SelectContent>
-                        {WORKFLOW_COLUMNS.map((col) => (
-                          <SelectItem key={col.id} value={col.id}>{t(col.i18nKey) || col.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-
-                  {!['programId', 'termId', 'status', 'classId'].includes(pendingFilter.key) && (
-                    <Input
-                      value={pendingFilter.value}
-                      onChange={(e) => setPendingFilter((p) => ({ ...p, value: e.target.value }))}
-                      placeholder={t(FILTER_KEYS[pendingFilter.key] || pendingFilter.key)}
-                    />
-                  )}
-
-                  <Button size="sm" onClick={handleAddFilter} className="gap-2">
-                    <Plus className="h-4 w-4" />
-                    {t('operations_board_apply_filter')}
+            <Stack direction="row" spacing={1} alignItems="center" flexShrink={0}>
+              <Popover open={filterOpen} onOpenChange={setFilterOpen}>
+                <PopoverTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-2" data-testid="operations-board-add-filter">
+                    <SlidersHorizontal className="h-4 w-4" />
+                    {t('operations_board_filters')}
                   </Button>
-                </div>
-              </PopoverContent>
-            </Popover>
+                </PopoverTrigger>
+                <PopoverContent className="w-80" align={isRTL ? 'start' : 'end'}>
+                  <div className="flex flex-col gap-3">
+                    <Label className="text-xs">{t('operations_board_filter_field')}</Label>
+                    <Select
+                      value={pendingFilter.key}
+                      onValueChange={(v) => setPendingFilter((p) => ({ ...p, key: v, value: '' }))}
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="classId">{t('operations_board_class')}</SelectItem>
+                        <SelectItem value="programId">{t('operations_board_program')}</SelectItem>
+                        <SelectItem value="termId">{t('operations_board_term')}</SelectItem>
+                        {lane === 'status' && (
+                          <>
+                            <SelectItem value="status">{t('operations_board_status')}</SelectItem>
+                            <SelectItem value="workflowType">{t('operations_board_filter_type')}</SelectItem>
+                          </>
+                        )}
+                      </SelectContent>
+                    </Select>
 
-            {removableEntries.length > 0 && (
-              <Button variant="ghost" size="sm" onClick={handleClearAll} data-testid="operations-board-clear-filters">
-                {t('operations_board_clear_filters')}
-              </Button>
-            )}
+                    {pendingFilter.key === 'programId' && (
+                      <Select value={pendingFilter.value} onValueChange={(v) => setPendingFilter((p) => ({ ...p, value: v }))}>
+                        <SelectTrigger><SelectValue placeholder={t('operations_board_program')} /></SelectTrigger>
+                        <SelectContent>
+                          {programs.map((p) => (
+                            <SelectItem key={p.id} value={String(p.id)}>
+                              {localizedName(p, lang)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+
+                    {pendingFilter.key === 'termId' && (
+                      <Select value={pendingFilter.value} onValueChange={(v) => setPendingFilter((p) => ({ ...p, value: v }))}>
+                        <SelectTrigger><SelectValue placeholder={t('operations_board_term')} /></SelectTrigger>
+                        <SelectContent>
+                          {terms.map((term) => (
+                            <SelectItem key={term.id} value={String(term.id)}>
+                              {localizedName(term, lang)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+
+                    {pendingFilter.key === 'classId' && (
+                      <Select value={pendingFilter.value} onValueChange={(v) => setPendingFilter((p) => ({ ...p, value: v }))}>
+                        <SelectTrigger><SelectValue placeholder={t('operations_board_select_class')} /></SelectTrigger>
+                        <SelectContent>
+                          {classes.map((cls) => (
+                            <SelectItem key={cls.id} value={String(cls.id)}>
+                              {localizedName(cls, lang)}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+
+                    {pendingFilter.key === 'status' && (
+                      <Select value={pendingFilter.value} onValueChange={(v) => setPendingFilter((p) => ({ ...p, value: v }))}>
+                        <SelectTrigger><SelectValue placeholder={t('operations_board_status')} /></SelectTrigger>
+                        <SelectContent>
+                          {WORKFLOW_COLUMNS.map((col) => (
+                            <SelectItem key={col.id} value={col.id}>{t(col.i18nKey) || col.name}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    )}
+
+                    {!['programId', 'termId', 'status', 'classId'].includes(pendingFilter.key) && (
+                      <Input
+                        value={pendingFilter.value}
+                        onChange={(e) => setPendingFilter((p) => ({ ...p, value: e.target.value }))}
+                        placeholder={t(FILTER_KEYS[pendingFilter.key] || pendingFilter.key)}
+                      />
+                    )}
+
+                    <Button size="sm" onClick={handleAddFilter} className="gap-2">
+                      <Plus className="h-4 w-4" />
+                      {t('operations_board_apply_filter')}
+                    </Button>
+                  </div>
+                </PopoverContent>
+              </Popover>
+
+              {removableEntries.length > 0 && (
+                <Button variant="ghost" size="sm" onClick={handleClearAll} data-testid="operations-board-clear-filters">
+                  {t('operations_board_clear_filters')}
+                </Button>
+              )}
+            </Stack>
           </Stack>
+
+          {activeEntries.length > 0 && (
+            <Stack direction="row" flexWrap="wrap" gap={0.75} useFlexGap alignItems="center">
+              <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>
+                {t('operations_board_active_filters')}:
+              </Typography>
+              {activeEntries.map(([key, value]) => {
+                const canRemove = !HIDDEN_FILTER_KEYS.has(key)
+                  && (lane === 'status' || !['programId', 'termId'].includes(key));
+                return (
+                  <Chip
+                    key={key}
+                    size="small"
+                    label={`${t(FILTER_KEYS[key] || key)}: ${resolveFilterLabel(key, value)}`}
+                    onDelete={canRemove ? () => handleFilterUpdate(key, null) : undefined}
+                    variant="outlined"
+                    data-testid={`operations-board-pill-${key}`}
+                    sx={{ maxWidth: 280 }}
+                  />
+                );
+              })}
+            </Stack>
+          )}
         </Stack>
+      )}
 
-        {activeEntries.length > 0 && (
-          <Stack direction="row" flexWrap="wrap" gap={0.75} useFlexGap alignItems="center">
-            <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 500 }}>
-              {t('operations_board_active_filters')}:
-            </Typography>
-            {activeEntries.map(([key, value]) => {
-              const canRemove = !HIDDEN_FILTER_KEYS.has(key)
-                && (lane === 'status' || !['programId', 'termId'].includes(key));
-              return (
-                <Chip
-                  key={key}
-                  size="small"
-                  label={`${t(FILTER_KEYS[key] || key)}: ${resolveFilterLabel(key, value)}`}
-                  onDelete={canRemove ? () => handleFilterUpdate(key, null) : undefined}
-                  variant="outlined"
-                  data-testid={`operations-board-pill-${key}`}
-                  sx={{ maxWidth: 280 }}
-                />
-              );
-            })}
-          </Stack>
-        )}
-      </Stack>
+      {panelTab === 'calendar' && (
+        <Box sx={{ p: 1.5 }}>
+          <BoardDateCalendar
+            selectedDate={selectedDate}
+            onDateSelect={handleDateSelect}
+            boardData={boardData}
+            columns={columns}
+          />
+        </Box>
+      )}
     </Box>
   );
 }

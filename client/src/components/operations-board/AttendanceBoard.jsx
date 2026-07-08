@@ -8,6 +8,11 @@ import {
 } from '@/components/kibo-ui/kanban';
 import { Status, StatusIndicator, StatusLabel } from '@/components/kibo-ui/status';
 import BoardStudentAvatar from './BoardStudentAvatar.jsx';
+import {
+  formatBoardDate,
+  resolveBoardClassName,
+  resolveBoardStudentName,
+} from './operationsBoardDisplayUtils.js';
 
 const ATTENDANCE_STATUS_CLASS = {
   PRESENT: 'online',
@@ -27,12 +32,6 @@ export default function AttendanceBoard({
   t,
   lang = 'en',
 }) {
-  const dateFormatter = new Intl.DateTimeFormat(lang === 'ar' ? 'ar-SA' : 'en-US', {
-    month: 'short',
-    day: 'numeric',
-    year: 'numeric',
-  });
-
   const handleDragEnd = useCallback(
     (event) => {
       const { active, over } = event;
@@ -75,43 +74,55 @@ export default function AttendanceBoard({
             </div>
           </KanbanHeader>
           <KanbanCards id={column.id}>
-            {(item) => (
-              <KanbanCard
-                column={column.id}
-                id={item.id}
-                key={item.id}
-                name={item.name}
-              >
-                <div
-                  className="flex items-start gap-3"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onCardClick(item);
-                  }}
+            {(item) => {
+              const studentName = resolveBoardStudentName(item, lang);
+              const className = resolveBoardClassName(item, lang);
+              return (
+                <KanbanCard
+                  column={column.id}
+                  id={item.id}
+                  key={item.id}
+                  name={studentName}
                 >
-                  <BoardStudentAvatar
-                    name={item.name}
-                    profileImageUrl={item.profileImageUrl}
-                    size="md"
-                  />
-                  <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-                    <p className="m-0 truncate font-medium text-sm leading-tight">{item.name}</p>
-                    {item.className && (
-                      <p className="m-0 truncate text-xs text-muted-foreground">{item.className}</p>
-                    )}
-                    <Status status={ATTENDANCE_STATUS_CLASS[item.column] || 'offline'} className="w-fit">
-                      <StatusIndicator />
-                      <StatusLabel>{t(`operations_board_lane_${item.column.toLowerCase()}`) || item.column}</StatusLabel>
-                    </Status>
-                    {item.date && (
-                      <p className="m-0 text-xs text-muted-foreground">
-                        {dateFormatter.format(new Date(item.date))}
+                  <div
+                    className="flex items-start gap-3"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onCardClick(item);
+                    }}
+                  >
+                    <BoardStudentAvatar
+                      name={studentName}
+                      profileImageUrl={item.profileImageUrl}
+                      size="md"
+                    />
+                    <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                      <p className="m-0 text-[10px] uppercase tracking-wide text-muted-foreground">
+                        {t('operations_board_label_name')}
                       </p>
-                    )}
+                      <p className="m-0 truncate font-medium text-sm leading-tight">{studentName}</p>
+                      {className && (
+                        <>
+                          <p className="m-0 text-[10px] uppercase tracking-wide text-muted-foreground">
+                            {t('operations_board_label_class')}
+                          </p>
+                          <p className="m-0 truncate text-xs text-muted-foreground">{className}</p>
+                        </>
+                      )}
+                      <Status status={ATTENDANCE_STATUS_CLASS[item.column] || 'offline'} className="w-fit">
+                        <StatusIndicator />
+                        <StatusLabel>{t(`operations_board_lane_${item.column.toLowerCase()}`) || item.column}</StatusLabel>
+                      </Status>
+                      {item.date && (
+                        <p className="m-0 text-xs text-muted-foreground">
+                          {formatBoardDate(item.date, lang)}
+                        </p>
+                      )}
+                    </div>
                   </div>
-                </div>
-              </KanbanCard>
-            )}
+                </KanbanCard>
+              );
+            }}
           </KanbanCards>
         </KanbanBoard>
       )}

@@ -14,6 +14,7 @@ import {
   ATTENDANCE_BOARD_COLORS,
 } from '../../constants/workspaceStatusColors.js';
 import { info, error as logError } from '../utils/logger.js';
+import { getLocalizedUserName } from '@utils/localizedUserName.js';
 
 const SERVICE_NAME = 'OperationsBoardService';
 
@@ -208,24 +209,30 @@ export const fetchAttendanceBoardData = async (filters = {}) => {
       const user = enrollment.user || enrollment.User || {};
       const rec = attendanceByUserId.get(user.id || enrollment.userId);
       const statusStr = rec ? normalizeAttendanceStatus(rec) : 'NOT_TAKEN';
-      const studentName =
-        user.displayName ||
-        [user.firstName, user.lastName].filter(Boolean).join(' ') ||
-        `Student #${user.id || enrollment.userId}`;
+      const fallbackName = `Student #${user.id || enrollment.userId}`;
+      const studentNameEn = getLocalizedUserName(user, 'en', fallbackName);
+      const studentNameAr = getLocalizedUserName(user, 'ar', studentNameEn);
+      const classNameEn = enrollment.class?.nameEn || enrollment.class?.code || '';
+      const classNameAr = enrollment.class?.nameAr || classNameEn;
 
       return {
         id: rec ? `att-${rec.id}` : `student-${user.id || enrollment.userId}`,
         column: statusStr,
         type: 'attendance',
-        title: studentName,
-        name: studentName,
+        title: studentNameEn,
+        name: studentNameEn,
+        nameEn: studentNameEn,
+        nameAr: studentNameAr,
         rawId: rec?.id || null,
         userId: user.id || enrollment.userId,
         profileImageUrl: user.profileImageUrl || null,
+        user,
         status: statusStr,
         date: dateStr,
         classId: parseInt(classId, 10),
-        className: enrollment.class?.nameEn || enrollment.class?.nameAr,
+        className: classNameEn,
+        classNameEn,
+        classNameAr,
         programName: enrollment.program?.nameEn,
         subjectName: enrollment.subject?.nameEn,
         notes: rec?.notes || null,
