@@ -33,6 +33,7 @@ function ScheduleSpeedDial({
 
   const cls = session?.class;
   const subject = cls?.subject;
+  const slotInstructor = session?.instructor;
   const dateStr = selectedDate
     ? selectedDate.toISOString().split('T')[0]
     : new Date().toISOString().split('T')[0];
@@ -98,7 +99,7 @@ function ScheduleSpeedDial({
         icon: getThemedIcon('ui', 'file_signature', 18, 'currentColor'),
         disabled: exporting === 'export-daily-pdf',
         onClick: () => runExport('export-daily-pdf', () =>
-          exportDailyOfficialForDate({ cls, program, subject, lang, user, date: dateStr, format: EXPORT_FORMAT.PDF })),
+          exportDailyOfficialForDate({ cls, program, subject, academicTerm, lang, user, date: dateStr, instructorName: slotInstructor, format: EXPORT_FORMAT.PDF })),
       });
       items.push({
         id: 'export-daily-excel',
@@ -106,7 +107,7 @@ function ScheduleSpeedDial({
         icon: getThemedIcon('ui', 'file_text', 18, 'currentColor'),
         disabled: exporting === 'export-daily-excel',
         onClick: () => runExport('export-daily-excel', () =>
-          exportDailyOfficialForDate({ cls, program, subject, lang, user, date: dateStr, format: EXPORT_FORMAT.EXCEL })),
+          exportDailyOfficialForDate({ cls, program, subject, academicTerm, lang, user, date: dateStr, instructorName: slotInstructor, format: EXPORT_FORMAT.EXCEL })),
       });
       items.push({
         id: 'export-template-pdf',
@@ -114,7 +115,7 @@ function ScheduleSpeedDial({
         icon: getThemedIcon('ui', 'file_signature', 18, 'currentColor'),
         disabled: exporting === 'export-template-pdf',
         onClick: () => runExport('export-template-pdf', () =>
-          exportDailyOfficialTemplate({ cls, program, subject, lang, user, format: EXPORT_FORMAT.PDF })),
+          exportDailyOfficialTemplate({ cls, program, subject, academicTerm, lang, user, instructorName: slotInstructor, format: EXPORT_FORMAT.PDF })),
       });
     }
 
@@ -148,7 +149,7 @@ function ScheduleSpeedDial({
     });
 
     return items;
-  }, [canExport, cls, program, subject, academicTerm, lang, t, user, dateStr, exporting, runExport, handleScan, handleInbox, handleHistory, canSeeStandupMode]);
+  }, [canExport, cls, program, subject, academicTerm, slotInstructor, lang, t, user, dateStr, exporting, runExport, handleScan, handleInbox, handleHistory, canSeeStandupMode]);
 
   if (!session) return null;
 

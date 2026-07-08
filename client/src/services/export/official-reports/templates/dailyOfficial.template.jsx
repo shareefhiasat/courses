@@ -1,6 +1,7 @@
 import React from 'react';
 import { OFFICIAL_HEADER } from '../shared/officialHeader.js';
 import { buildWatermarkLines } from '../engine/watermark.js';
+import { getLocalizedUserName } from '@utils/localizedUserName.js';
 import styles from './officialReport.module.css';
 
 const STATUS_LABELS = {
@@ -44,6 +45,12 @@ const META_LABELS = {
   },
 };
 
+function displayMetaValue(value, lang) {
+  if (value == null || value === '') return null;
+  if (typeof value === 'object') return getLocalizedUserName(value, lang, '—');
+  return String(value);
+}
+
 function MetaItem({ label, value, align = 'start', mirrored = false }) {
   const alignClass =
     align === 'end' ? styles.metaItemEnd : align === 'center' ? styles.metaItemCenter : styles.metaItemStart;
@@ -85,8 +92,8 @@ export function DailyOfficialTemplate({ data, showWatermark = true }) {
       { label: meta.subject, value: header.subject },
     ],
     [
-      { label: meta.class, value: header.className },
-      { label: meta.instructor, value: header.instructor || '—' },
+      { label: meta.class, value: displayMetaValue(header.className, lang) || '—' },
+      { label: meta.instructor, value: displayMetaValue(header.instructor, lang) || '—' },
     ],
   ];
 
@@ -113,7 +120,7 @@ export function DailyOfficialTemplate({ data, showWatermark = true }) {
           {wm.uuid && <div style={{ fontSize: '7px', opacity: 0.5, marginTop: '12px' }}>{wm.uuid}</div>}
         </div>
       )}
-      <div className={styles.officialContent}>
+      <div className={styles.officialContentFlex}>
         <div className={styles.serialLine}>
           {isAr ? 'الرقم التسلسلي' : 'Serial'}: {serial}
         </div>
@@ -158,6 +165,7 @@ export function DailyOfficialTemplate({ data, showWatermark = true }) {
           ))}
         </div>
 
+        <div className={styles.dailyOfficialTableWrap}>
         <table className={styles.officialTable}>
           <thead>
             <tr>
@@ -186,6 +194,7 @@ export function DailyOfficialTemplate({ data, showWatermark = true }) {
             ))}
           </tbody>
         </table>
+        </div>
       </div>
     </div>
   );

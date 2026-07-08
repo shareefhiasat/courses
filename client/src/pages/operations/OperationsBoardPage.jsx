@@ -1,12 +1,10 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useLang } from '@contexts/LangContext';
 import { error as logError } from '@services/utils/logger.js';
-import { Button } from '@/components/kibo/ui/button';
 import { Card, CardContent } from '@/components/kibo/ui/card';
-import { Separator } from '@/components/kibo/ui/separator';
 import { ScrollArea } from '@/components/kibo/ui/scroll-area';
-import { ArrowLeft, KanbanSquare, List, Table2, Maximize2, Minimize2 } from 'lucide-react';
+import { KanbanSquare } from 'lucide-react';
 import { Banner, BannerTitle } from '@/components/kibo-ui/banner';
 import './OperationsBoardPage.css';
 import {
@@ -24,6 +22,7 @@ import BoardListView from '@components/operations-board/BoardListView.jsx';
 import BoardTableView from '@components/operations-board/BoardTableView.jsx';
 import BoardFilterBar from '@components/operations-board/BoardFilterBar.jsx';
 import BoardDetailDrawer from '@components/operations-board/BoardDetailDrawer.jsx';
+import BoardFooter from '@components/operations-board/BoardFooter.jsx';
 
 const VIEWS = { KANBAN: 'kanban', LIST: 'list', TABLE: 'table' };
 const LANES = { STATUS: 'status', ATTENDANCE: 'attendance' };
@@ -36,6 +35,17 @@ function toIsoDate(value) {
   if (!value) return todayIso();
   if (typeof value === 'string') return value.slice(0, 10);
   return new Date(value).toISOString().slice(0, 10);
+}
+
+function filterBoardData(data, search) {
+  if (!search?.trim()) return data;
+  const q = search.trim().toLowerCase();
+  return data.filter((item) =>
+    item.name?.toLowerCase().includes(q)
+    || item.className?.toLowerCase().includes(q)
+    || item.assignee?.toLowerCase().includes(q)
+    || item.workflowType?.toLowerCase().includes(q)
+  );
 }
 
 /**
@@ -231,7 +241,27 @@ export default function OperationsBoardPage({
   }, [loadData, t]);
 
   const columns = lane === LANES.ATTENDANCE ? ATTENDANCE_COLUMNS : WORKFLOW_COLUMNS;
-  const activeFilterCount = Object.keys(filters).filter((k) => !['date', 'classIds'].includes(k) && filters[k]).length;
+  const activeFilterCount = Object.keys(filters).filter(
+    (k) => !['date', 'classIds', 'workflowId'].includes(k) && filters[k]
+  ).length;
+
+  const displayData = useMemo(
+    () => filterBoardData(data, filters.search),
+    [data, filters.search]
+  );
+
+  const subtitle = useMemo(() => {
+    const laneLabel = lane === LANES.ATTENDANCE
+      ? t('operations_board_attendance')
+      : t('operations_board_workflow');
+    const countLabel = displayData.length === 1
+      ? t('operations_board_item_count_one')
+      : t('operations_board_item_count', { count: displayData.length });
+    const filterLabel = activeFilterCount > 0
+      ? t('operations_board_filters_count', { count: activeFilterCount })
+      : null;
+    return [laneLabel, countLabel, filterLabel].filter(Boolean).join(' · ');
+  }, [lane, displayData.length, activeFilterCount, t]);
 
   const pageClassName = [
     'operations-board-page',
@@ -251,70 +281,15 @@ export default function OperationsBoardPage({
         </Banner>
       )}
 
-      <div className="flex items-center justify-between gap-2 flex-wrap">
-        <div className="flex items-center gap-3 min-w-0">
-          {lane === LANES.ATTENDANCE && (
-            <Button variant="ghost" size="sm" onClick={handleBackToWorkflow} data-testid="operations-board-back">
-              <ArrowLeft className="h-4 w-4" />
-            </Button>
-          )}
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-            <KanbanSquare className="h-5 w-5 text-primary" />
-          </div>
-          <div className="min-w-0">
-            <h1 className="text-2xl font-semibold text-foreground">{t('operations_board_title')}</h1>
-            <p className="text-sm text-muted-foreground">
-              {lane === LANES.ATTENDANCE ? t('operations_board_attendance') : t('operations_board_workflow')}
-              {' · '}
-              {data.length} {data.length === 1 ? 'item' : 'items'}
-              {activeFilterCount > 0 && ` · ${activeFilterCount} filter${activeFilterCount > 1 ? 's' : ''}`}
-            </p>
-          </div>
+      <header className="operations-board-header flex items-center gap-3 min-w-0">
+        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+          <KanbanSquare className="h-5 w-5 text-primary" />
         </div>
-
-        <div className="flex items-center gap-2 flex-wrap">
-          {[
-            { key: VIEWS.KANBAN, icon: KanbanSquare, label: t('operations_board_workflow') },
-            { key: VIEWS.LIST, icon: List, label: t('operations_board_list') },
-            { key: VIEWS.TABLE, icon: Table2, label: t('operations_board_table') || 'Table' },
-          ].map((btn) => (
-            <Button
-              key={btn.key}
-              variant={view === btn.key ? 'default' : 'outline'}
-              size="sm"
-              onClick={() => setView(btn.key)}
-              className="gap-2"
-              data-testid={`operations-board-view-${btn.key}`}
-            >
-              <btn.icon className="h-4 w-4" />
-              {btn.label}
-            </Button>
-          ))}
-          {embedded && onToggleExpand && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={onToggleExpand}
-              className="gap-2"
-              data-testid="operations-board-expand"
-            >
-              {expanded ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-            </Button>
-          )}
-          {!embedded && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => navigate('/welcome?tab=operations')}
-              data-testid="operations-board-exit"
-            >
-              {t('operations_board_exit') || 'Exit'}
-            </Button>
-          )}
+        <div className="min-w-0">
+          <h1 className="text-2xl font-semibold text-foreground">{t('operations_board_title')}</h1>
+          <p className="text-sm text-muted-foreground">{subtitle}</p>
         </div>
-      </div>
-
-      <Separator />
+      </header>
 
       <BoardFilterBar filters={filters} onFilterChange={setFilters} lane={lane} />
 
@@ -326,30 +301,36 @@ export default function OperationsBoardPage({
         </Card>
       )}
 
-      <ScrollArea className="flex-1 min-h-0">
+      <ScrollArea className="operations-board-content flex-1 min-h-0">
         {loading ? (
-          <div className="flex h-full items-center justify-center" data-testid="operations-board-loading">
+          <div className="flex h-full min-h-[240px] items-center justify-center" data-testid="operations-board-loading">
             <div className="flex flex-col items-center gap-2 text-muted-foreground">
               <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
               <p className="text-sm">{t('operations_board_loading')}</p>
             </div>
           </div>
         ) : view === VIEWS.LIST ? (
-          <BoardListView data={data} columns={columns} onCardClick={handleCardClick} />
+          <BoardListView
+            data={displayData}
+            columns={columns}
+            onCardClick={handleCardClick}
+            onDragEnd={handleDragEnd}
+          />
         ) : view === VIEWS.TABLE ? (
-          <BoardTableView data={data} columns={columns} onCardClick={handleCardClick} t={t} />
+          <BoardTableView data={displayData} columns={columns} onCardClick={handleCardClick} t={t} />
         ) : lane === LANES.ATTENDANCE ? (
           <AttendanceBoard
-            data={data}
+            data={displayData}
             columns={ATTENDANCE_COLUMNS}
             onDataChange={handleDataChange}
             onDragEnd={handleDragEnd}
             onCardClick={handleCardClick}
             t={t}
+            lang={lang}
           />
         ) : (
           <WorkflowBoard
-            data={data}
+            data={displayData}
             columns={WORKFLOW_COLUMNS}
             onDataChange={handleDataChange}
             onDragEnd={handleDragEnd}
@@ -359,6 +340,17 @@ export default function OperationsBoardPage({
           />
         )}
       </ScrollArea>
+
+      <BoardFooter
+        columns={columns}
+        view={view}
+        onViewChange={setView}
+        embedded={embedded}
+        expanded={expanded}
+        onToggleExpand={onToggleExpand}
+        showBack={lane === LANES.ATTENDANCE}
+        onBack={handleBackToWorkflow}
+      />
 
       <BoardDetailDrawer
         open={drawerOpen}

@@ -1,3 +1,5 @@
+import { getAcademicTermLabel } from '@constants/academicTerms';
+
 /**
  * Map academic_terms row to year/term strings used on Class records and export loaders.
  */
@@ -20,4 +22,53 @@ export function academicTermToYearTerm(academicTerm) {
   }
 
   return { year, term, termCode };
+}
+
+function splitCompoundTerm(raw) {
+  if (!raw) return { year: null, termPart: null };
+  const str = String(raw).trim();
+  const match = str.match(/^(\d{4})-([a-zA-Z]+)$/);
+  if (match) return { year: match[1], termPart: match[2] };
+  return { year: null, termPart: str };
+}
+
+/**
+ * Year/term labels for report headers — uses academic_terms Arabic/English names when available.
+ */
+export function resolveLocalizedYearTerm({ academicTerm, year, term, lang = 'en' }) {
+  const isAr = lang === 'ar';
+  let resolvedYear = year ? String(year).trim() : '';
+  let resolvedTerm = term ? String(term).trim() : '';
+
+  if (academicTerm) {
+    const parsed = academicTermToYearTerm(academicTerm);
+    if (!resolvedYear && parsed.year) resolvedYear = parsed.year;
+
+    if (isAr) {
+      const arName = academicTerm.nameAr?.trim();
+      if (arName) {
+        resolvedTerm = resolvedYear
+          ? arName.replace(resolvedYear, '').replace(/^\s*[-/]\s*/, '').trim() || arName
+          : arName;
+      } else {
+        resolvedTerm = getAcademicTermLabel(parsed.termCode || resolvedTerm, 'ar') || parsed.term || resolvedTerm;
+      }
+    } else {
+      resolvedTerm = academicTerm.nameEn?.trim()
+        || getAcademicTermLabel(parsed.termCode || resolvedTerm, 'en')
+        || resolvedTerm;
+    }
+  } else if (resolvedTerm) {
+    const { year: embeddedYear, termPart } = splitCompoundTerm(resolvedTerm);
+    if (!resolvedYear && embeddedYear) resolvedYear = embeddedYear;
+    const termKey = termPart || resolvedTerm;
+    const localized = getAcademicTermLabel(termKey, isAr ? 'ar' : 'en');
+    if (localized && localized !== termKey) {
+      resolvedTerm = embeddedYear && isAr
+        ? localized.replace(`${embeddedYear}-`, '').trim()
+        : localized;
+    }
+  }
+
+  return { year: resolvedYear, term: resolvedTerm };
 }

@@ -37,6 +37,7 @@ function ScheduleContextMenu({
 
   const cls = session?.class;
   const subject = cls?.subject;
+  const slotInstructor = session?.instructor || cls?.instructorName;
   const dateStr = selectedDate
     ? selectedDate.toISOString().split('T')[0]
     : new Date().toISOString().split('T')[0];
@@ -131,14 +132,14 @@ function ScheduleContextMenu({
             icon: <FileText size={16} style={{ color: '#e53935' }} />,
             tooltipColor: '#e53935',
             onClick: () => runExport('export-daily-pdf', () =>
-              exportDailyOfficialForDate({ cls, program, subject, lang, user, date: dateStr, format: EXPORT_FORMAT.PDF })),
+              exportDailyOfficialForDate({ cls, program, subject, academicTerm, lang, user, date: dateStr, instructorName: slotInstructor, format: EXPORT_FORMAT.PDF })),
           },
           {
             title: t('export_excel') || 'Excel',
             icon: <FileSpreadsheet size={16} style={{ color: '#43a047' }} />,
             tooltipColor: '#43a047',
             onClick: () => runExport('export-daily-excel', () =>
-              exportDailyOfficialForDate({ cls, program, subject, lang, user, date: dateStr, format: EXPORT_FORMAT.EXCEL })),
+              exportDailyOfficialForDate({ cls, program, subject, academicTerm, lang, user, date: dateStr, instructorName: slotInstructor, format: EXPORT_FORMAT.EXCEL })),
           },
         ],
       });
@@ -157,14 +158,14 @@ function ScheduleContextMenu({
                 icon: <FileText size={16} style={{ color: '#e53935' }} />,
                 tooltipColor: '#e53935',
                 onClick: () => runExport('export-template-pdf', () =>
-                  exportDailyOfficialTemplate({ cls, program, subject, lang, user, format: EXPORT_FORMAT.PDF })),
+                  exportDailyOfficialTemplate({ cls, program, subject, academicTerm, lang, user, instructorName: slotInstructor, format: EXPORT_FORMAT.PDF })),
               },
               {
                 title: t('export_excel') || 'Excel',
                 icon: <FileSpreadsheet size={16} style={{ color: '#43a047' }} />,
                 tooltipColor: '#43a047',
                 onClick: () => runExport('export-template-excel', () =>
-                  exportDailyOfficialTemplate({ cls, program, subject, lang, user, format: EXPORT_FORMAT.EXCEL })),
+                  exportDailyOfficialTemplate({ cls, program, subject, academicTerm, lang, user, instructorName: slotInstructor, format: EXPORT_FORMAT.EXCEL })),
               },
             ],
           },
@@ -243,7 +244,7 @@ function ScheduleContextMenu({
     });
 
     return items;
-  }, [canExport, cls, program, subject, academicTerm, lang, t, user, dateStr, exporting, runExport, handleScan, handleOpenOperations, handleInitiateWorkflow, handleInbox, handleHistory, canSeeStandupMode]);
+  }, [canExport, cls, program, subject, academicTerm, slotInstructor, lang, t, user, dateStr, exporting, runExport, handleScan, handleOpenOperations, handleInitiateWorkflow, handleInbox, handleHistory, canSeeStandupMode]);
 
   return (
     <>

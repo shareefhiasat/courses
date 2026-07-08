@@ -4,6 +4,7 @@ import { useTheme } from '@contexts/ThemeContext';
 import { Chip, IconButton, Box } from '@mui/material';
 import { Maximize2, Minimize2 } from 'lucide-react';
 import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
+import { getUserRoleColor, getUserRoleIcon } from '@constants/iconTypes';
 import styles from '@services/export/official-reports/templates/officialReport.module.css';
 import {
   SCHEDULE_FONT_SCALE_DEFAULT,
@@ -27,16 +28,37 @@ function isOfficeHourColumn(col) {
   return col.key === 'officeHour' || col.isOfficeHour;
 }
 
-function resolveDataColumnWidth(col, columns) {
+function resolveDataColumnWidth(col, columns, options = {}) {
+  const { breakPct = BREAK_COL_PCT, officePct = OFFICE_COL_PCT } = options;
   const breakCount = columns.filter((c) => c.isBreak).length;
   const hasOffice = columns.some((c) => isOfficeHourColumn(c));
   const lectureCount = columns.length - breakCount - (hasOffice ? 1 : 0);
-  const fixedUsed = (breakCount * BREAK_COL_PCT) + (hasOffice ? OFFICE_COL_PCT : 0);
+  const fixedUsed = (breakCount * breakPct) + (hasOffice ? officePct : 0);
   const lectureWidth = lectureCount > 0 ? (DATA_COL_BUDGET - fixedUsed) / lectureCount : 0;
 
-  if (col.isBreak) return BREAK_COL_PCT;
-  if (isOfficeHourColumn(col)) return OFFICE_COL_PCT;
+  if (col.isBreak) return breakPct;
+  if (isOfficeHourColumn(col)) return officePct;
   return lectureWidth;
+}
+
+function measureNarrowColumnWidths(columns, days) {
+  const breakKeys = columns.filter((c) => c.isBreak).map((c) => c.key);
+  let maxBreakLen = 0;
+  (days || []).forEach((day) => {
+    breakKeys.forEach((key) => {
+      const time = day.slots?.[key]?.time || '';
+      maxBreakLen = Math.max(maxBreakLen, String(time).replace(/\s/g, '').length);
+    });
+  });
+  const breakPct = Math.min(6.5, Math.max(4, 3.2 + maxBreakLen * 0.2));
+
+  const officeCol = columns.find((c) => isOfficeHourColumn(c));
+  const officeLabelLen = officeCol?.label ? String(officeCol.label).length : 0;
+  const officePct = officeCol
+    ? Math.min(9, Math.max(6.5, 5.5 + officeLabelLen * 0.12))
+    : OFFICE_COL_PCT;
+
+  return { breakPct, officePct };
 }
 
 function parseTimeToMinutes(value) {
@@ -250,7 +272,7 @@ function StatusDot({ status, t }) {
   const dotColor = colors[key];
 
   return (
-    <ColoredTooltip title={labels[key]} color={PURPLE_TOOLTIP} placement="bottom">
+    <ColoredTooltip title={labels[key]} color={dotColor} placement="bottom">
       <span className={gridStyles.statusDotWrap}>
         <span
           className={`${gridStyles.statusDot} ${gridStyles[`statusDot_${key}`]}`}
@@ -373,12 +395,12 @@ function InteractiveSlotCell({
       {rowType === 'subject' && isMine && (
         <span className={gridStyles.cellIconTray} aria-hidden="true">
           <ColoredTooltip title={t('workspace_my_class')} color={PURPLE_TOOLTIP} placement="bottom">
-            <span className={gridStyles.instructorIcon} aria-label={t('workspace_my_class')}>
-              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21.42 10.922a1 1 0 0 0-.019-1.838L12.83 5.18a2 2 0 0 0-1.66 0L2.6 9.08a1 1 0 0 0 0 1.832l8.57 3.908a2 2 0 0 0 1.66 0z"></path>
-                <path d="M22 10v6"></path>
-                <path d="M6 12.5V16a6 3 0 0 0 12 0v-3.5"></path>
-              </svg>
+            <span
+              className={gridStyles.instructorIcon}
+              style={{ background: getUserRoleColor('instructor') }}
+              aria-label={t('workspace_my_class')}
+            >
+              {React.cloneElement(getUserRoleIcon('instructor'), { size: 10, color: '#fff', strokeWidth: 2 })}
             </span>
           </ColoredTooltip>
         </span>
@@ -452,7 +474,9 @@ function DayBlock({
         >
           {rowIndex === 0 && (
             <td className={styles.scheduleDayCell} rowSpan={4}>
-              <VerticalText>{day.dayLabel}</VerticalText>
+              <div className={gridStyles.verticalCellInner}>
+                <VerticalText>{day.dayLabel}</VerticalText>
+              </div>
             </td>
           )}
           <td className={`${styles.scheduleRowLabelCell} ${rowType === 'time' ? styles.scheduleRowLabelTime : ''}`}>
@@ -569,10 +593,11 @@ const OfficialWeeklyScheduleGrid = ({
     return () => document.removeEventListener('contextmenu', handleContextMenu, true);
   }, [onCellClick, scheduleData]);
 
-  const columnWidths = useMemo(
-    () => (scheduleData?.columns || []).map((col) => resolveDataColumnWidth(col, scheduleData.columns)),
-    [scheduleData?.columns],
-  );
+  const columnWidths = useMemo(() => {
+    const cols = scheduleData?.columns || [];
+    const narrow = measureNarrowColumnWidths(cols, scheduleData?.days);
+    return cols.map((col) => resolveDataColumnWidth(col, cols, narrow));
+  }, [scheduleData?.columns, scheduleData?.days]);
 
   if (!scheduleData?.days?.length) {
     return (
@@ -649,7 +674,9 @@ const OfficialWeeklyScheduleGrid = ({
           <thead>
             <tr className={styles.scheduleHeaderRow}>
               <th className={styles.scheduleCornerCell}>
-                <VerticalText>{isAr ? 'اليوم' : 'Day'}</VerticalText>
+                <div className={gridStyles.verticalCellInner}>
+                  <VerticalText>{isAr ? 'اليوم' : 'Day'}</VerticalText>
+                </div>
               </th>
               <th className={styles.scheduleCornerCell} />
               {columns.map((col) => (
@@ -661,7 +688,9 @@ const OfficialWeeklyScheduleGrid = ({
                   ].filter(Boolean).join(' ')}
                 >
                   {col.isBreak ? (
-                    <VerticalText compact className={styles.scheduleBreakHeaderLabel}>{col.label}</VerticalText>
+                    <div className={gridStyles.verticalCellInner}>
+                      <VerticalText compact className={styles.scheduleBreakHeaderLabel}>{col.label}</VerticalText>
+                    </div>
                   ) : (
                     <span className={gridStyles.horizontalLectureHeader}>{col.label}</span>
                   )}

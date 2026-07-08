@@ -12,8 +12,10 @@ import { loadWeeklyScheduleSources } from '@services/business/weeklyScheduleExpo
 import { getAttendanceByClass } from '@services/business/attendanceService.js';
 import { getAttendanceRecords } from '@services/business/attendanceService.js';
 import { getStudentsByClass } from '@services/business/enrollmentService.js';
+import { getClassById } from '@services/business/classService.js';
 import { formatQatarDateOnly } from '@utils/qatarDate.js';
 import { getLocalizedUserName } from '@utils/localizedUserName.js';
+import { academicTermToYearTerm, resolveLocalizedYearTerm } from '@utils/academicTermUtils.js';
 import { ATTENDANCE_STATUS } from '@constants/attendanceTypes';
 import { getStatusCodeFromRecord } from '@constants/attendanceTypes';
 
@@ -30,7 +32,17 @@ function triggerDownload(blob, filename) {
   URL.revokeObjectURL(url);
 }
 
-function buildClassMetadata(cls, program, subject, lang) {
+function resolveInstructorLabel(value, cls, lang) {
+  if (typeof value === 'string' && value.trim()) return value.trim();
+  if (value && typeof value === 'object') {
+    const localized = getLocalizedUserName(value, lang, '');
+    if (localized) return localized;
+  }
+  if (cls?.instructor) return getLocalizedUserName(cls.instructor, lang, '');
+  return '';
+}
+
+function buildClassMetadata(cls, program, subject, lang, extras = {}) {
   const programName = program
     ? (lang === 'ar' ? program.nameAr || program.nameEn : program.nameEn || program.nameAr)
     : '';
@@ -40,11 +52,17 @@ function buildClassMetadata(cls, program, subject, lang) {
   const className = lang === 'ar'
     ? cls.nameAr || cls.nameEn || cls.code
     : cls.nameEn || cls.nameAr || cls.code;
-  const instructorName = cls.instructor
-    ? (lang === 'ar'
-      ? cls.instructor.displayNameAr || cls.instructor.displayName
-      : cls.instructor.displayName)
-    : '';
+  const instructorName = resolveInstructorLabel(
+    extras.instructorName ?? extras.slotInstructor,
+    cls,
+    lang,
+  );
+  const { year, term } = resolveLocalizedYearTerm({
+    academicTerm: extras.academicTerm,
+    year: cls.year,
+    term: cls.term,
+    lang,
+  });
 
   return {
     programId: cls.programId,
@@ -53,11 +71,29 @@ function buildClassMetadata(cls, program, subject, lang) {
     programName,
     subjectName,
     className,
-    year: cls.year || '',
-    term: cls.term || '',
+    year,
+    term,
     instructorName,
     batch: className,
   };
+}
+
+async function resolveClassForExport(cls, extras = {}) {
+  if (!cls?.id) return cls;
+  const hasInstructorObject = cls.instructor?.displayName || cls.instructor?.displayNameAr;
+  const hasInstructorString = typeof extras.instructorName === 'string' && extras.instructorName.trim();
+  if (hasInstructorObject || hasInstructorString) {
+    return cls;
+  }
+  try {
+    const result = await getClassById(cls.id);
+    if (result?.success && result.data) {
+      return { ...cls, ...result.data, subject: cls.subject || result.data.subject };
+    }
+  } catch {
+    // fall back to provided class payload
+  }
+  return cls;
 }
 
 export async function exportWeeklyScheduleForScope({
@@ -70,17 +106,24 @@ export async function exportWeeklyScheduleForScope({
   user,
   format = EXPORT_FORMAT.PDF,
 }) {
-  const meta = buildClassMetadata(cls, program, subject, lang);
+  const resolvedClass = await resolveClassForExport(cls);
+  const { year: termYear, term: termCode } = academicTerm
+    ? academicTermToYearTerm(academicTerm)
+    : { year: '', term: '' };
+  const meta = buildClassMetadata(resolvedClass, program, subject, lang, { academicTerm });
   const sources = await loadWeeklyScheduleSources({
     classId: cls.id,
     programId: cls.programId || program?.id,
-    year: cls.year,
-    term: cls.term,
+    year: resolvedClass.year || termYear,
+    term: resolvedClass.term || termCode,
     academicTermId: academicTerm?.id ?? cls.academicTermId,
     academicTermCode: academicTerm?.code,
   });
   const reportData = prepareWeeklyScheduleData({
-    metadata: { ...meta, watermarkUser: user },
+    metadata: {
+      ...meta,
+      watermarkUser: user,
+    },
     lang,
     t,
     sessions: sources.sessions,
@@ -117,10 +160,20 @@ export async function exportWeeklyScheduleForProgram({
     ? (lang === 'ar' ? program.nameAr || program.nameEn : program.nameEn || program.nameAr)
     : '';
 
+  const { year: termYear, term: termCode } = academicTerm
+    ? academicTermToYearTerm(academicTerm)
+    : { year: year || '', term: term || '' };
+  const localized = resolveLocalizedYearTerm({
+    academicTerm,
+    year: year || termYear,
+    term: term || termCode,
+    lang,
+  });
+
   const sources = await loadWeeklyScheduleSources({
     programId: program?.id,
-    year,
-    term,
+    year: year || termYear,
+    term: term || termCode,
     academicTermId: academicTerm?.id,
     academicTermCode: academicTerm?.code,
   });
@@ -129,8 +182,8 @@ export async function exportWeeklyScheduleForProgram({
     metadata: {
       programId: program?.id,
       programName,
-      year,
-      term,
+      year: localized.year,
+      term: localized.term,
       batch: programName,
       watermarkUser: user,
     },
@@ -160,16 +213,20 @@ export async function exportDailyOfficialTemplate({
   cls,
   program,
   subject,
+  academicTerm,
   lang,
   user,
   format = EXPORT_FORMAT.PDF,
+  instructorName,
 }) {
-  const meta = buildClassMetadata(cls, program, subject, lang);
+  const resolvedClass = await resolveClassForExport(cls, { instructorName });
+  const meta = buildClassMetadata(resolvedClass, program, subject, lang, { instructorName, academicTerm });
   const reportData = prepareDailyOfficialData({
     roster: [],
     attendanceByUserId: {},
     lang,
     isStandup: false,
+    isTemplate: true,
     metadata: {
       date: '—',
       ...meta,
@@ -186,13 +243,16 @@ export async function exportDailyOfficialForDate({
   cls,
   program,
   subject,
+  academicTerm,
   lang,
   user,
   date,
   format = EXPORT_FORMAT.PDF,
   skipDownload = false,
+  instructorName,
 }) {
-  const meta = buildClassMetadata(cls, program, subject, lang);
+  const resolvedClass = await resolveClassForExport(cls, { instructorName });
+  const meta = buildClassMetadata(resolvedClass, program, subject, lang, { instructorName, academicTerm });
   const formattedDate = formatQatarDateOnly(date);
 
   const [attendanceRes, studentsRes] = await Promise.all([
@@ -214,12 +274,15 @@ export async function exportDailyOfficialForDate({
 
   const enrollments = studentsRes.success ? studentsRes.data : [];
   const roster = enrollments.length > 0
-    ? enrollments.map((e) => ({
-        id: e.userId ?? e.user?.id ?? e.studentId,
-        studentNumber: e.user?.studentNumber || e.studentNumber,
-        displayName: e.user?.displayName || e.user?.name,
-        sequence: e.sequence ?? e.studentOrder,
-      }))
+    ? enrollments.map((e) => {
+        const studentUser = e.user || e;
+        return {
+          id: e.userId ?? studentUser.id ?? e.studentId,
+          user: studentUser,
+          studentNumber: studentUser.studentNumber || e.studentNumber,
+          sequence: e.sequence ?? e.studentOrder,
+        };
+      })
     : attendanceData.map((r) => ({
         id: r.studentId ?? r.userId,
         studentNumber: r.studentNumber,
@@ -239,7 +302,7 @@ export async function exportDailyOfficialForDate({
     },
   });
 
-  const filename = `${reportData.serial}_daily_official_${sanitize(meta.className)}_${formattedDate}`;
+  const filename = `${reportData.serial}_daily_official_${sanitize(meta.className)}`;
   const blob = await exportDailyOfficialReport(reportData, { format, filename });
   const driveResult = await persistAndLogExport({
     blob,

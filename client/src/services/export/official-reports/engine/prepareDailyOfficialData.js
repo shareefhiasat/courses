@@ -31,6 +31,19 @@ function formatReportDate(dateStr) {
   return formatOfficialReportDate(dateStr);
 }
 
+function normalizeInstructorName(raw, lang) {
+  if (typeof raw === 'string') return raw.trim();
+  if (raw && typeof raw === 'object') return getLocalizedUserName(raw, lang, '');
+  return '';
+}
+
+function resolveStudentUser(student) {
+  return student?.user || student;
+}
+
+/** Minimum body rows so blank daily official templates fill an A4 page for printing. */
+export const DAILY_OFFICIAL_TEMPLATE_MIN_ROWS = 36;
+
 /**
  * Build normalized payload for Daily Official report templates/renderers.
  */
@@ -40,6 +53,8 @@ export function prepareDailyOfficialData({
   metadata = {},
   lang = 'ar',
   isStandup = false,
+  isTemplate = false,
+  minTemplateRows = DAILY_OFFICIAL_TEMPLATE_MIN_ROWS,
 }) {
   const scopeId = isStandup ? metadata.programId : metadata.classId;
   const serial = buildDailyOfficialSerial(scopeId, isStandup);
@@ -53,17 +68,24 @@ export function prepareDailyOfficialData({
       if (seqA != null && seqB != null) return seqA - seqB;
       if (seqA != null) return -1;
       if (seqB != null) return 1;
-      const nameA = getLocalizedUserName(a, lang, a.displayName || a.name || '');
-      const nameB = getLocalizedUserName(b, lang, b.displayName || b.name || '');
+      const userA = resolveStudentUser(a);
+      const userB = resolveStudentUser(b);
+      const nameA = getLocalizedUserName(userA, lang, a.displayName || a.name || '');
+      const nameB = getLocalizedUserName(userB, lang, b.displayName || b.name || '');
       return nameA.localeCompare(nameB, lang === 'ar' ? 'ar' : 'en');
     })
     .map((student, index) => {
-      const userId = String(student.id ?? student.userId ?? student.studentId);
+      const studentUser = resolveStudentUser(student);
+      const userId = String(student.id ?? student.userId ?? student.studentId ?? studentUser?.id);
       const att = attendanceByUserId[userId] || {};
       const statusCode = att.status?.code || att.status || student.attendance || student.standupStatus;
       const marks = mapStatus(statusCode);
-      const name = getLocalizedUserName(student, lang, student.displayName || student.name || '');
-      const studentNumber = student.studentNumber || student.uid || '';
+      const name = getLocalizedUserName(
+        studentUser,
+        lang,
+        student.displayName || studentUser?.displayName || student.name || '',
+      );
+      const studentNumber = student.studentNumber || studentUser?.studentNumber || student.uid || '';
 
     return {
       serial: index + 1,
@@ -74,10 +96,30 @@ export function prepareDailyOfficialData({
     };
   });
 
+  let finalRows = rows;
+  if (isTemplate) {
+    const padCount = Math.max(0, minTemplateRows - rows.length);
+    finalRows = [
+      ...rows,
+      ...Array.from({ length: padCount }, (_, i) => ({
+        serial: rows.length + i + 1,
+        studentNumber: '',
+        studentName: '',
+        notes: '',
+        present: false,
+        absent: false,
+        humanCase: false,
+        late: false,
+        isPlaceholder: true,
+      })),
+    ];
+  }
+
   return {
     serial,
     title: lang === 'ar' ? 'كشف الحضور اليومي الرسمي' : 'Official Daily Attendance Report',
     isStandup,
+    isTemplate,
     lang,
     statusKeys: OFFICIAL_STATUS_KEYS,
     header: {
@@ -88,9 +130,9 @@ export function prepareDailyOfficialData({
       className: metadata.className || '',
       year: metadata.year || '',
       term: metadata.term || '',
-      instructor: metadata.instructorName || '',
+      instructor: normalizeInstructorName(metadata.instructorName, lang),
     },
-    rows,
+    rows: finalRows,
     watermarkUser: metadata.watermarkUser,
   };
 }

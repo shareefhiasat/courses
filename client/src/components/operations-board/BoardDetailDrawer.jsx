@@ -8,30 +8,31 @@ import {
 } from '@/components/kibo/ui/dialog';
 import { Button } from '@/components/kibo/ui/button';
 import { Badge } from '@/components/kibo/ui/badge';
-import { Separator } from '@/components/kibo/ui/separator';
 import { ScrollArea } from '@/components/kibo/ui/scroll-area';
-import { Avatar, AvatarFallback } from '@/components/kibo/ui/avatar';
+import { Input } from '@/components/kibo/ui/input';
+import { Box, Tab, Tabs, TextField } from '@mui/material';
 import {
   fetchWorkflowHistory,
   fetchAttendanceHistory,
   addWorkflowBoardComment,
   moveAttendanceCard,
   markWorkflowAsTaken,
+  ATTENDANCE_COLUMNS,
 } from '@services/business/operationsBoardService.js';
 import { useLang } from '@contexts/LangContext';
 import { useNavigate } from 'react-router-dom';
-
-const TABS = { ACTIVITY: 'activity', NOTES: 'notes', COMMENTS: 'comments' };
+import BoardStudentAvatar from './BoardStudentAvatar.jsx';
 
 export default function BoardDetailDrawer({ open, onOpenChange, card, lane, onRefresh }) {
-  const { t } = useLang();
+  const { t, lang } = useLang();
   const navigate = useNavigate();
-  const [tab, setTab] = useState(TABS.ACTIVITY);
+  const [tab, setTab] = useState('activity');
   const [history, setHistory] = useState([]);
   const [comments, setComments] = useState([]);
   const [newComment, setNewComment] = useState('');
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
+  const [savingStatus, setSavingStatus] = useState(null);
 
   const loadDetail = useCallback(async () => {
     if (!card) return;
@@ -64,7 +65,7 @@ export default function BoardDetailDrawer({ open, onOpenChange, card, lane, onRe
 
   useEffect(() => {
     if (open && card) {
-      setTab(TABS.ACTIVITY);
+      setTab('activity');
       loadDetail();
     }
   }, [open, card, loadDetail]);
@@ -93,95 +94,175 @@ export default function BoardDetailDrawer({ open, onOpenChange, card, lane, onRe
     }
   };
 
+  const handleAttendanceStatus = async (statusId) => {
+    if (!card || card.type !== 'attendance') return;
+    setSavingStatus(statusId);
+    try {
+      const result = await moveAttendanceCard(
+        card.rawId,
+        statusId,
+        notes || null,
+        !card.rawId ? {
+          userId: card.userId,
+          classId: card.classId,
+          date: card.date,
+        } : null
+      );
+      if (result.success) {
+        onRefresh?.();
+        onOpenChange(false);
+      }
+    } finally {
+      setSavingStatus(null);
+    }
+  };
+
   if (!card) return null;
+
+  const statusColumn = (lane === 'attendance' ? ATTENDANCE_COLUMNS : []).find((c) => c.id === card.column);
+  const statusLabel = statusColumn
+    ? t(statusColumn.i18nKey) || statusColumn.name
+    : card.column;
 
   const activityEntries = [
     ...history.map((h) => ({
       type: 'status',
-      actor: h.actor?.displayName || h.changedByUser?.displayName || 'System',
+      actor: h.actor?.displayName || h.changedByUser?.displayName || t('operations_board_system_actor'),
       from: h.fromStatus || h.fromStatus?.nameEn || h.oldStatus,
       to: h.toStatus || h.toStatus?.nameEn || h.newStatus,
       at: h.createdAt || h.changedAt,
       reason: h.reason || h.comment,
+      profileImageUrl: h.actor?.profileImageUrl || h.changedByUser?.profileImageUrl,
     })),
     ...comments.map((c) => ({
       type: 'comment',
-      actor: c.author?.displayName || c.authorName || 'User',
+      actor: c.author?.displayName || c.authorName || t('operations_board_unknown_user'),
       text: c.comment || c.text,
       at: c.createdAt,
+      profileImageUrl: c.author?.profileImageUrl,
     })),
   ].sort((a, b) => new Date(b.at || 0) - new Date(a.at || 0));
 
+  const dateFormatter = new Intl.DateTimeFormat(lang === 'ar' ? 'ar-SA' : 'en-US', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  });
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl" data-testid="operations-board-drawer">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <span>{card.name}</span>
-            <Badge variant="secondary">{card.column}</Badge>
-          </DialogTitle>
-          <DialogDescription>
-            {card.type === 'workflow' ? t('operations_board_workflow') : t('operations_board_attendance')}
-          </DialogDescription>
+      <DialogContent className="max-w-2xl gap-0 p-0" data-testid="operations-board-drawer">
+        <DialogHeader className="space-y-3 border-b border-border px-6 py-4">
+          <div className="flex items-start gap-3">
+            {card.type === 'attendance' && (
+              <BoardStudentAvatar
+                name={card.name}
+                profileImageUrl={card.profileImageUrl}
+                size="lg"
+              />
+            )}
+            <div className="min-w-0 flex-1">
+              <DialogTitle className="flex flex-wrap items-center gap-2 text-lg">
+                <span className="truncate">{card.name}</span>
+                <Badge
+                  variant="outline"
+                  style={statusColumn ? { borderColor: statusColumn.color, color: statusColumn.color } : undefined}
+                >
+                  {statusLabel}
+                </Badge>
+              </DialogTitle>
+              <DialogDescription className="mt-1">
+                {card.type === 'workflow' ? t('operations_board_workflow') : t('operations_board_attendance')}
+                {card.className ? ` · ${card.className}` : ''}
+                {card.date ? ` · ${new Date(card.date).toLocaleDateString(lang === 'ar' ? 'ar-SA' : 'en-US')}` : ''}
+              </DialogDescription>
+            </div>
+          </div>
+
+          {card.type === 'attendance' && (
+            <div className="flex flex-wrap gap-2" data-testid="operations-board-attendance-actions">
+              {ATTENDANCE_COLUMNS.filter((col) => col.id !== 'NOT_TAKEN').map((col) => (
+                <Button
+                  key={col.id}
+                  size="sm"
+                  variant={card.column === col.id ? 'default' : 'outline'}
+                  disabled={savingStatus != null}
+                  onClick={() => handleAttendanceStatus(col.id)}
+                  className="gap-2"
+                  data-testid={`operations-board-set-status-${col.id}`}
+                >
+                  <span
+                    className="h-2 w-2 rounded-full"
+                    style={{ backgroundColor: col.color }}
+                  />
+                  {t(col.i18nKey) || col.name}
+                </Button>
+              ))}
+            </div>
+          )}
+
+          {card.type === 'workflow' && card.status === 'DRAFT' && (
+            <Button size="sm" onClick={handleMarkTaken} data-testid="operations-board-mark-taken">
+              {t('operations_board_mark_taken')}
+            </Button>
+          )}
+
+          {card.type === 'workflow' && card.fileId && (
+            <div className="flex items-center gap-2 rounded-md border border-border bg-muted/30 p-2">
+              <span className="text-xs font-medium">{t('operations_board_attached_file')}:</span>
+              <Button
+                variant="link"
+                size="sm"
+                className="h-auto p-0 text-xs"
+                onClick={() => navigate(`/smart-drive?fileId=${card.fileId}`)}
+              >
+                {card.fileName || t('operations_board_view_file')}
+              </Button>
+            </div>
+          )}
         </DialogHeader>
 
-        <div className="flex gap-2 border-b border-border pb-2">
-          {[TABS.ACTIVITY, TABS.NOTES, ...(card.type === 'workflow' ? [TABS.COMMENTS] : [])].map((tabKey) => (
-            <Button
-              key={tabKey}
-              variant={tab === tabKey ? 'default' : 'ghost'}
-              size="sm"
-              onClick={() => setTab(tabKey)}
-              data-testid={`operations-board-drawer-tab-${tabKey}`}
-            >
-              {t(`operations_board_tab_${tabKey}`) || tabKey}
-            </Button>
-          ))}
-        </div>
+        <Box sx={{ px: 3, py: 2 }}>
+          <Tabs
+            value={tab}
+            onChange={(_, value) => setTab(value)}
+            variant="fullWidth"
+            sx={{ mb: 2, borderBottom: 1, borderColor: 'divider' }}
+          >
+            <Tab value="activity" label={t('operations_board_tab_activity')} data-testid="operations-board-drawer-tab-activity" />
+            <Tab value="notes" label={t('operations_board_tab_notes')} data-testid="operations-board-drawer-tab-notes" />
+            {card.type === 'workflow' && (
+              <Tab value="comments" label={t('operations_board_tab_comments')} data-testid="operations-board-drawer-tab-comments" />
+            )}
+          </Tabs>
 
-        {card.type === 'workflow' && card.status === 'DRAFT' && (
-          <Button size="sm" onClick={handleMarkTaken} data-testid="operations-board-mark-taken">
-            {t('operations_board_mark_taken') || 'Mark attendance as taken'}
-          </Button>
-        )}
-
-        {card.type === 'workflow' && card.fileId && (
-          <div className="flex items-center gap-2 rounded-md border border-border bg-muted/30 p-2">
-            <span className="text-xs font-medium">{t('operations_board_attached_file') || 'Attached File'}:</span>
-            <Button
-              variant="link"
-              size="sm"
-              className="h-auto p-0 text-xs"
-              onClick={() => navigate(`/smart-drive?fileId=${card.fileId}`)}
-            >
-              {card.fileName || t('operations_board_view_file') || 'View File'}
-            </Button>
-          </div>
-        )}
-
-        <ScrollArea className="max-h-[50vh]">
-          <div className="flex flex-col gap-4 p-1">
-            {tab === TABS.ACTIVITY && (
+          {tab === 'activity' && (
+            <ScrollArea className="max-h-[45vh] pr-2">
               <div data-testid="operations-board-activity-feed">
                 {loading ? (
-                  <p className="text-xs text-muted-foreground">{t('operations_board_loading')}</p>
+                  <p className="text-sm text-muted-foreground">{t('operations_board_loading')}</p>
                 ) : activityEntries.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">{t('operations_board_no_activity') || 'No activity yet'}</p>
+                  <p className="text-sm text-muted-foreground">{t('operations_board_no_activity')}</p>
                 ) : (
                   activityEntries.map((entry, idx) => (
                     <div key={idx} className="mb-3 flex gap-3">
-                      <Avatar className="h-8 w-8">
-                        <AvatarFallback className="text-xs">{entry.actor?.slice(0, 2).toUpperCase()}</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1 rounded-md border border-border bg-muted/30 p-2 text-xs">
-                        <div className="flex items-center justify-between">
+                      <BoardStudentAvatar
+                        name={entry.actor}
+                        profileImageUrl={entry.profileImageUrl}
+                        size="md"
+                      />
+                      <div className="flex-1 rounded-lg border border-border bg-muted/20 p-3 text-sm">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
                           <span className="font-medium">{entry.actor}</span>
                           {entry.at && (
-                            <span className="text-muted-foreground">{new Date(entry.at).toLocaleString()}</span>
+                            <span className="text-xs text-muted-foreground">
+                              {dateFormatter.format(new Date(entry.at))}
+                            </span>
                           )}
                         </div>
                         {entry.type === 'status' && (
-                          <p className="mt-1">{entry.from || '—'} → {entry.to || '—'}</p>
+                          <p className="mt-1 text-muted-foreground">
+                            {entry.from || '—'} → {entry.to || '—'}
+                          </p>
                         )}
                         {entry.text && <p className="mt-1">{entry.text}</p>}
                         {entry.reason && <p className="mt-1 text-muted-foreground">{entry.reason}</p>}
@@ -190,51 +271,53 @@ export default function BoardDetailDrawer({ open, onOpenChange, card, lane, onRe
                   ))
                 )}
               </div>
-            )}
+            </ScrollArea>
+          )}
 
-            {tab === TABS.NOTES && (
-              <div>
-                <textarea
-                  className="min-h-[120px] w-full rounded-md border border-input bg-background p-3 text-sm"
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  placeholder={t('operations_board_card_notes')}
-                  data-testid="operations-board-notes-input"
+          {tab === 'notes' && (
+            <div>
+              <TextField
+                multiline
+                minRows={5}
+                fullWidth
+                value={notes}
+                onChange={(e) => setNotes(e.target.value)}
+                placeholder={t('operations_board_card_notes')}
+                inputProps={{ 'data-testid': 'operations-board-notes-input' }}
+              />
+              {card.type === 'attendance' && card.rawId && (
+                <Button size="sm" className="mt-3" onClick={handleSaveNotes}>
+                  {t('operations_board_note_save')}
+                </Button>
+              )}
+            </div>
+          )}
+
+          {tab === 'comments' && card.type === 'workflow' && (
+            <div>
+              <div className="mb-3 flex flex-col gap-2">
+                {comments.map((c, idx) => (
+                  <div key={idx} className="rounded-lg border border-border bg-muted/20 p-3 text-sm">
+                    <p>{c.comment || c.text}</p>
+                    <span className="text-xs text-muted-foreground">
+                      — {c.author?.displayName || c.authorName}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <Input
+                  value={newComment}
+                  onChange={(e) => setNewComment(e.target.value)}
+                  placeholder={t('operations_board_card_add_comment')}
+                  data-testid="operations-board-comment-input"
+                  onKeyDown={(e) => { if (e.key === 'Enter') handleAddComment(); }}
                 />
-                {card.type === 'attendance' && card.rawId && (
-                  <Button size="sm" className="mt-2" onClick={handleSaveNotes}>
-                    {t('operations_board_note_save')}
-                  </Button>
-                )}
+                <Button size="sm" onClick={handleAddComment}>{t('operations_board_note_save')}</Button>
               </div>
-            )}
-
-            {tab === TABS.COMMENTS && card.type === 'workflow' && (
-              <div>
-                <div className="mb-3 flex flex-col gap-2">
-                  {comments.map((c, idx) => (
-                    <div key={idx} className="rounded-md border border-border bg-muted/30 p-2 text-xs">
-                      <p>{c.comment || c.text}</p>
-                      <span className="text-muted-foreground">— {c.author?.displayName || c.authorName}</span>
-                    </div>
-                  ))}
-                </div>
-                <div className="flex gap-2">
-                  <input
-                    type="text"
-                    value={newComment}
-                    onChange={(e) => setNewComment(e.target.value)}
-                    placeholder={t('operations_board_card_add_comment')}
-                    className="flex-1 rounded-md border border-input bg-background px-3 py-2 text-sm"
-                    data-testid="operations-board-comment-input"
-                    onKeyDown={(e) => { if (e.key === 'Enter') handleAddComment(); }}
-                  />
-                  <Button size="sm" onClick={handleAddComment}>{t('operations_board_note_save')}</Button>
-                </div>
-              </div>
-            )}
-          </div>
-        </ScrollArea>
+            </div>
+          )}
+        </Box>
       </DialogContent>
     </Dialog>
   );

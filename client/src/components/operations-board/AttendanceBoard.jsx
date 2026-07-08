@@ -6,8 +6,8 @@ import {
   KanbanCards,
   KanbanCard,
 } from '@/components/kibo-ui/kanban';
-import { Avatar, AvatarFallback } from '@/components/kibo/ui/avatar';
 import { Status, StatusIndicator, StatusLabel } from '@/components/kibo-ui/status';
+import BoardStudentAvatar from './BoardStudentAvatar.jsx';
 
 const ATTENDANCE_STATUS_CLASS = {
   PRESENT: 'online',
@@ -18,12 +18,6 @@ const ATTENDANCE_STATUS_CLASS = {
   NOT_TAKEN: 'offline',
 };
 
-const dateFormatter = new Intl.DateTimeFormat('en-US', {
-  month: 'short',
-  day: 'numeric',
-  year: 'numeric',
-});
-
 export default function AttendanceBoard({
   data,
   columns,
@@ -31,7 +25,14 @@ export default function AttendanceBoard({
   onDragEnd,
   onCardClick,
   t,
+  lang = 'en',
 }) {
+  const dateFormatter = new Intl.DateTimeFormat(lang === 'ar' ? 'ar-SA' : 'en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  });
+
   const handleDragEnd = useCallback(
     (event) => {
       const { active, over } = event;
@@ -64,11 +65,11 @@ export default function AttendanceBoard({
           <KanbanHeader>
             <div className="flex items-center gap-2">
               <div
-                className="h-2 w-2 rounded-full"
+                className="h-2.5 w-2.5 rounded-full ring-2 ring-background"
                 style={{ backgroundColor: column.color }}
               />
-              <span>{t(column.i18nKey) || column.name}</span>
-              <span className="ml-auto rounded-full bg-muted px-2 py-0.5 text-xs text-muted-foreground">
+              <span className="font-medium text-sm">{t(column.i18nKey) || column.name}</span>
+              <span className="ml-auto rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
                 {data.filter((d) => d.column === column.id).length}
               </span>
             </div>
@@ -82,30 +83,33 @@ export default function AttendanceBoard({
                 name={item.name}
               >
                 <div
-                  className="flex items-start justify-between gap-2"
+                  className="flex items-start gap-3"
                   onClick={(e) => {
                     e.stopPropagation();
                     onCardClick(item);
                   }}
                 >
-                  <div className="flex flex-col gap-1">
-                    <p className="m-0 flex-1 font-medium text-sm">{item.name}</p>
+                  <BoardStudentAvatar
+                    name={item.name}
+                    profileImageUrl={item.profileImageUrl}
+                    size="md"
+                  />
+                  <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                    <p className="m-0 truncate font-medium text-sm leading-tight">{item.name}</p>
+                    {item.className && (
+                      <p className="m-0 truncate text-xs text-muted-foreground">{item.className}</p>
+                    )}
                     <Status status={ATTENDANCE_STATUS_CLASS[item.column] || 'offline'} className="w-fit">
                       <StatusIndicator />
                       <StatusLabel>{t(`operations_board_lane_${item.column.toLowerCase()}`) || item.column}</StatusLabel>
                     </Status>
+                    {item.date && (
+                      <p className="m-0 text-xs text-muted-foreground">
+                        {dateFormatter.format(new Date(item.date))}
+                      </p>
+                    )}
                   </div>
-                  <Avatar className="h-5 w-5 shrink-0">
-                    <AvatarFallback className="text-[10px]">
-                      {item.name?.slice(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
                 </div>
-                {item.date && (
-                  <p className="m-0 text-xs text-muted-foreground">
-                    {dateFormatter.format(new Date(item.date))}
-                  </p>
-                )}
               </KanbanCard>
             )}
           </KanbanCards>

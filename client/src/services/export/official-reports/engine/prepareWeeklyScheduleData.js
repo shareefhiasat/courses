@@ -116,5 +116,6 @@ export function prepareWeeklyScheduleData({
     days,
     dataSource: hasScheduleContent(dynamicDays) ? 'database' : 'empty',
     meta: metadata,
+    watermarkUser: metadata.watermarkUser,
   };
 }

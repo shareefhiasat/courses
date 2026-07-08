@@ -17,8 +17,11 @@ function CellContent({ children, className, ltr }) {
 
 function VerticalText({ children, className, compact }) {
   let content = children;
-  if (compact && typeof children === 'string' && children.trim().includes(' ')) {
-    const words = children.trim().split(/\s+/);
+  const text = typeof children === 'string' ? children.trim() : '';
+  const shouldSplitWords = compact && text.includes(' ') && !/\d{1,2}:\d{2}/.test(text);
+
+  if (shouldSplitWords) {
+    const words = text.split(/\s+/);
     content = words.map((word, i) => (
       <React.Fragment key={i}>
         {i > 0 && <br />}
@@ -26,6 +29,7 @@ function VerticalText({ children, className, compact }) {
       </React.Fragment>
     ));
   }
+
   return (
     <div className={compact ? styles.scheduleBreakVerticalWrap : styles.scheduleVerticalTextWrap}>
       <span className={`${styles.scheduleVerticalText} ${className || ''}`}>
@@ -35,12 +39,52 @@ function VerticalText({ children, className, compact }) {
   );
 }
 
+const DAY_COL_PCT = 3;
+const LABEL_COL_PCT = 7;
+const DATA_COL_BUDGET = 100 - DAY_COL_PCT - LABEL_COL_PCT;
+
+function isOfficeHourColumn(col) {
+  return col.key === 'officeHour' || col.isOfficeHour;
+}
+
+function measureNarrowColumnWidths(columns, days) {
+  const breakKeys = columns.filter((c) => c.isBreak).map((c) => c.key);
+  let maxBreakLen = 0;
+  (days || []).forEach((day) => {
+    breakKeys.forEach((key) => {
+      const time = day.slots?.[key]?.time || '';
+      maxBreakLen = Math.max(maxBreakLen, String(time).replace(/\s/g, '').length);
+    });
+  });
+  const breakPct = Math.min(6.5, Math.max(4, 3.2 + maxBreakLen * 0.2));
+
+  const officeCol = columns.find((c) => isOfficeHourColumn(c));
+  const officeLabelLen = officeCol?.label ? String(officeCol.label).length : 0;
+  const officePct = officeCol
+    ? Math.min(9, Math.max(6.5, 5.5 + officeLabelLen * 0.12))
+    : 7;
+
+  return { breakPct, officePct };
+}
+
+function resolveDataColumnWidth(col, columns, narrow) {
+  const breakCount = columns.filter((c) => c.isBreak).length;
+  const hasOffice = columns.some((c) => isOfficeHourColumn(c));
+  const lectureCount = columns.length - breakCount - (hasOffice ? 1 : 0);
+  const fixedUsed = (breakCount * narrow.breakPct) + (hasOffice ? narrow.officePct : 0);
+  const lectureWidth = lectureCount > 0 ? (DATA_COL_BUDGET - fixedUsed) / lectureCount : 0;
+
+  if (col.isBreak) return narrow.breakPct;
+  if (isOfficeHourColumn(col)) return narrow.officePct;
+  return lectureWidth;
+}
+
 function SlotCell({ slot, rowType, isBreak }) {
   if (isBreak) {
     if (rowType !== 'subject') return null;
     return (
       <td className={styles.scheduleBreakCell} rowSpan={4}>
-        <CellContent ltr>
+        <CellContent ltr className={styles.scheduleNarrowCellInner}>
           <VerticalText compact className={styles.scheduleBreakVertical}>{slot?.time || '—'}</VerticalText>
         </CellContent>
       </td>
@@ -91,7 +135,9 @@ function DayBlock({ day, columns, rowLabels }) {
         <tr key={`${day.dayLabel}-${rowType}`} className={styles.scheduleDayRow}>
           {rowIndex === 0 && (
             <td className={styles.scheduleDayCell} rowSpan={4}>
-              <VerticalText>{day.dayLabel}</VerticalText>
+              <div className={styles.scheduleVerticalInset}>
+                <VerticalText>{day.dayLabel}</VerticalText>
+              </div>
             </td>
           )}
           <td className={`${styles.scheduleRowLabelCell} ${rowType === 'time' ? styles.scheduleRowLabelTime : ''}`}>
@@ -118,9 +164,11 @@ export function WeeklyScheduleTemplate({ data, showWatermark = true }) {
 
   const genDateTime = formatDateTime(new Date(), lang);
 
-  const metaLine = [batch, year && term ? `${year} / ${term}` : year || term]
-    .filter(Boolean)
-    .join(' — ');
+  const yearTermLabel = year && term ? `${year} / ${term}` : year || term || '';
+  const titleParts = [subtitle, yearTermLabel, batch && batch !== subtitle ? batch : null].filter(Boolean);
+  const titleLine = titleParts.join(' | ');
+  const narrowWidths = measureNarrowColumnWidths(columns || [], days || []);
+  const dataColWidths = (columns || []).map((col) => resolveDataColumnWidth(col, columns, narrowWidths));
 
   return (
     <div
@@ -154,43 +202,43 @@ export function WeeklyScheduleTemplate({ data, showWatermark = true }) {
         <div className={styles.scheduleTitleBar}>
           <div className={styles.scheduleTitleMain}>{title}</div>
           <div className={styles.scheduleTitleSubRow}>
-            <span className={styles.scheduleTitleSub}>{subtitle}</span>
-            {metaLine && (
-              <>
-                <span className={styles.scheduleTitleSep}>|</span>
-                <span className={styles.scheduleTitleMeta}>{metaLine}</span>
-              </>
-            )}
+            <span className={styles.scheduleTitleSub}>{titleLine}</span>
           </div>
         </div>
 
         <div className={styles.scheduleTableWrap}>
         <table className={`${styles.officialTable} ${styles.weeklyScheduleTable}`}>
           <colgroup>
-            <col style={{ width: '3%' }} />
-            <col style={{ width: '7%' }} />
-            <col style={{ width: '24%' }} />
-            <col style={{ width: '6%' }} />
-            <col style={{ width: '24%' }} />
-            <col style={{ width: '6%' }} />
-            <col style={{ width: '24%' }} />
-            <col style={{ width: '6%' }} />
+            <col style={{ width: `${DAY_COL_PCT}%` }} />
+            <col style={{ width: `${LABEL_COL_PCT}%` }} />
+            {dataColWidths.map((width, idx) => (
+              <col key={columns[idx]?.key || idx} style={{ width: `${width}%` }} />
+            ))}
           </colgroup>
           <thead>
             <tr className={styles.scheduleHeaderRow}>
               <th className={styles.scheduleCornerCell}>
-                <VerticalText>{isAr ? 'اليوم' : 'Day'}</VerticalText>
+                <div className={styles.scheduleVerticalInset}>
+                  <VerticalText>{isAr ? 'اليوم' : 'Day'}</VerticalText>
+                </div>
               </th>
               <th className={styles.scheduleCornerCell} />
               {columns.map((col) => (
                 <th
                   key={col.key}
-                  className={col.isBreak ? styles.scheduleBreakHeader : styles.scheduleLectureHeader}
+                  className={[
+                    col.isBreak ? styles.scheduleBreakHeader : styles.scheduleLectureHeader,
+                    col.isBreak || isOfficeHourColumn(col) ? styles.scheduleNarrowHeader : '',
+                  ].filter(Boolean).join(' ')}
                 >
                   {col.isBreak ? (
-                    <VerticalText compact className={styles.scheduleBreakHeaderLabel}>{col.label}</VerticalText>
+                    <div className={styles.scheduleVerticalInset}>
+                      <VerticalText compact className={styles.scheduleBreakHeaderLabel}>{col.label}</VerticalText>
+                    </div>
                   ) : (
-                    col.label
+                    <span className={isOfficeHourColumn(col) ? styles.scheduleOfficeHeaderLabel : undefined}>
+                      {col.label}
+                    </span>
                   )}
                 </th>
               ))}

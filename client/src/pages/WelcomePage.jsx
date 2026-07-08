@@ -366,6 +366,7 @@ const WelcomePage = () => {
       classId: slot.classId,
       class: slot.class,
       sessionType: slot.sessionType || 'lecture',
+      instructor: slot.instructor,
     } : null);
     if (!session) return;
     setSelectedSession(session);

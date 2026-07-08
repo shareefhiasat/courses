@@ -1,7 +1,14 @@
 import ExcelJS from 'exceljs';
 import { OFFICIAL_HEADER } from '../shared/officialHeader.js';
 import { formatDateTime } from '@utils/date-formatter.js';
+import { getLocalizedUserName } from '@utils/localizedUserName.js';
 import { MIME_TYPES } from '@constants/exportConfig.js';
+
+function metaDisplayValue(value, lang) {
+  if (typeof value === 'string') return value || '—';
+  if (value && typeof value === 'object') return getLocalizedUserName(value, lang, '—') || '—';
+  return '—';
+}
 
 const STATUS_LABELS = {
   ar: { present: 'متواجد', absent: 'غائب', humanCase: 'حالة إنسانية', late: 'متأخر' },
@@ -215,7 +222,7 @@ export async function exportDailyOfficialExcel(data) {
   row += 1;
   writeMetaRow(ws, row, metaLabels.program, data.header.program, metaLabels.subject, data.header.subject || '—', metaOpts);
   row += 1;
-  writeMetaRow(ws, row, metaLabels.class, data.header.className || '—', metaLabels.instructor, data.header.instructor || '—', metaOpts);
+  writeMetaRow(ws, row, metaLabels.class, data.header.className || '—', metaLabels.instructor, metaDisplayValue(data.header.instructor, lang), metaOpts);
   row += 1;
   if (yearTerm) {
     writeMetaRow(ws, row, metaLabels.yearTerm, yearTerm, null, null, metaOpts);
@@ -235,10 +242,11 @@ export async function exportDailyOfficialExcel(data) {
     const cell = headerRow.getCell(i + 1);
     cell.value = h;
     cell.font = { bold: true };
-    cell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+    cell.alignment = { horizontal: 'center', vertical: 'top', wrapText: true };
     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFE8E8E8' } };
     applyThinBorders(cell);
   });
+  headerRow.height = 28;
   row += 1;
 
   data.rows.forEach((r) => {
@@ -260,6 +268,9 @@ export async function exportDailyOfficialExcel(data) {
       };
       applyThinBorders(cell);
     });
+    if (data.isTemplate) {
+      dataRow.height = 20;
+    }
     row += 1;
   });
 
@@ -916,7 +927,15 @@ export async function exportAttendanceWarningExcel(data) {
 }
 
 function fillScheduleCell(cell, value, options = {}) {
-  const { bold = false, fillArgb, fontSize = 10, wrap = false, rotation = 0, vertical = 'middle' } = options;
+  const {
+    bold = false,
+    fillArgb,
+    fontSize = 10,
+    wrap = false,
+    rotation = 0,
+    vertical = 'middle',
+    indent = 0,
+  } = options;
   cell.value = value ?? '';
   cell.font = { size: fontSize, bold };
   cell.alignment = {
@@ -924,6 +943,7 @@ function fillScheduleCell(cell, value, options = {}) {
     vertical,
     wrapText: wrap,
     textRotation: rotation,
+    indent,
   };
   if (fillArgb) {
     cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: fillArgb } };
@@ -932,9 +952,9 @@ function fillScheduleCell(cell, value, options = {}) {
 }
 
 function scheduleMetaLine(data) {
-  const batch = data.batch || '';
-  const termLine = [data.year, data.term].filter(Boolean).join(' / ');
-  return [batch, termLine].filter(Boolean).join(' — ');
+  const yearTermLabel = data.year && data.term ? `${data.year} / ${data.term}` : data.year || data.term || '';
+  const batch = data.batch && data.batch !== data.subtitle ? data.batch : '';
+  return [yearTermLabel, batch].filter(Boolean).join(' | ');
 }
 
 export async function exportWeeklyScheduleExcel(data) {
@@ -973,7 +993,7 @@ export async function exportWeeklyScheduleExcel(data) {
 
   const meta = scheduleMetaLine(data);
   const subCell = ws.getCell(`A${row}`);
-  subCell.value = meta ? `${data.subtitle}  |  ${meta}` : data.subtitle;
+  subCell.value = meta ? `${data.subtitle} | ${meta}` : data.subtitle;
   subCell.font = { bold: true, size: 11 };
   subCell.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
   ws.mergeCells(row, 1, row, colCount);
@@ -982,7 +1002,13 @@ export async function exportWeeklyScheduleExcel(data) {
 
   const headerRow = ws.getRow(row);
   headerRow.height = 52;
-  fillScheduleCell(headerRow.getCell(1), isAr ? 'اليوم' : 'Day', { bold: true, fillArgb: 'FFD9E2F0', fontSize: 10 });
+  fillScheduleCell(headerRow.getCell(1), isAr ? 'اليوم' : 'Day', {
+    bold: true,
+    fillArgb: 'FFD9E2F0',
+    fontSize: 10,
+    rotation: 90,
+    indent: 0,
+  });
   fillScheduleCell(headerRow.getCell(2), '', { bold: true, fillArgb: 'FFD9E2F0', fontSize: 10 });
   data.columns.forEach((col, idx) => {
     fillScheduleCell(
@@ -1003,7 +1029,12 @@ export async function exportWeeklyScheduleExcel(data) {
         const dayCell = dr.getCell(1);
         dayCell.value = day.dayLabel;
         dayCell.font = { bold: true, size: 10 };
-        dayCell.alignment = { horizontal: 'center', vertical: 'middle', textRotation: 90 };
+        dayCell.alignment = {
+          horizontal: 'center',
+          vertical: 'middle',
+          textRotation: 90,
+          indent: 0,
+        };
         dayCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFD9E2F0' } };
         applyThinBorders(dayCell);
         ws.mergeCells(row, 1, row + 3, 1);
@@ -1042,7 +1073,7 @@ export async function exportWeeklyScheduleExcel(data) {
             fillArgb: rowType === 'subject' ? 'FFF5E6E8' : undefined,
             fontSize: rowType === 'instructor' ? 9.5 : 9,
             wrap: rowType === 'subject',
-            vertical: 'bottom',
+            vertical: 'middle',
           }
         );
       });

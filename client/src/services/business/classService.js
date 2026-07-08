@@ -136,7 +136,7 @@ export const getClassesByProgram = async (programId, params = {}) => {
     }
     
     // For now, use getAllClasses with filter
-    const result = await classBusinessService.getAllClasses({ ...params, programId });
+    const result = await getAllClassesBusiness({ ...params, programId });
     return result;
   } catch (err) {
     console.error(`${serviceName}:getClassesByProgram:error`, { error: err.message, programId, params });
@@ -178,7 +178,7 @@ export const getActiveClasses = async (params = {}) => {
     info(`${serviceName}:getActiveClasses`, { params });
     
     // Use getAllClasses with active filter
-    const result = await classBusinessService.getAllClasses({ ...params, isActive: true });
+    const result = await getAllClassesBusiness({ ...params, isActive: true });
     return result;
   } catch (err) {
     console.error(`${serviceName}:getActiveClasses:error`, { error: err.message, params });

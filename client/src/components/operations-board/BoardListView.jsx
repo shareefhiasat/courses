@@ -6,10 +6,10 @@ import {
   ListItem,
   ListItems,
 } from '@/components/kibo-ui/list';
-import { Avatar, AvatarFallback } from '@/components/kibo/ui/avatar';
 import { useLang } from '@contexts/LangContext';
+import BoardStudentAvatar from './BoardStudentAvatar.jsx';
 
-export default function BoardListView({ data, columns, onCardClick }) {
+export default function BoardListView({ data, columns, onCardClick, onDragEnd }) {
   const { t } = useLang();
   const [features, setFeatures] = useState(data);
 
@@ -25,23 +25,25 @@ export default function BoardListView({ data, columns, onCardClick }) {
       const col = columns.find((c) => c.id === over.id || c.name === over.id);
       if (!col) return;
 
+      const activeItem = features.find((item) => item.id === active.id);
+      if (!activeItem || activeItem.column === col.id) return;
+
       setFeatures((prev) =>
-        prev.map((item) => {
-          if (item.id === active.id) {
-            return { ...item, column: col.id };
-          }
-          return item;
-        })
+        prev.map((item) => (item.id === active.id ? { ...item, column: col.id } : item))
       );
+      onDragEnd?.(active.id, activeItem.column, col.id);
     },
-    [columns]
+    [columns, features, onDragEnd]
   );
 
   return (
     <ListProvider onDragEnd={handleDragEnd}>
       {columns.map((column) => (
         <ListGroup id={column.id} key={column.id}>
-          <ListHeader color={column.color} name={`${t(column.i18nKey) || column.name} (${features.filter((f) => f.column === column.id).length})`} />
+          <ListHeader
+            color={column.color}
+            name={`${t(column.i18nKey) || column.name} (${features.filter((f) => f.column === column.id).length})`}
+          />
           <ListItems>
             {features
               .filter((item) => item.column === column.id)
@@ -57,20 +59,21 @@ export default function BoardListView({ data, columns, onCardClick }) {
                     onCardClick?.(item);
                   }}
                 >
+                  <BoardStudentAvatar
+                    name={item.name}
+                    profileImageUrl={item.profileImageUrl}
+                    size="sm"
+                  />
+                  <div className="m-0 flex min-w-0 flex-1 flex-col gap-0.5">
+                    <p className="m-0 truncate font-medium text-sm">{item.name}</p>
+                    {item.className && (
+                      <p className="m-0 truncate text-xs text-muted-foreground">{item.className}</p>
+                    )}
+                  </div>
                   <div
                     className="h-2 w-2 shrink-0 rounded-full"
                     style={{ backgroundColor: column.color }}
                   />
-                  <p className="m-0 flex-1 font-medium text-sm">
-                    {item.name}
-                  </p>
-                  {item.assignee && (
-                    <Avatar className="h-5 w-5 shrink-0">
-                      <AvatarFallback className="text-[10px]">
-                        {item.assignee.slice(0, 2).toUpperCase()}
-                      </AvatarFallback>
-                    </Avatar>
-                  )}
                 </ListItem>
               ))}
           </ListItems>

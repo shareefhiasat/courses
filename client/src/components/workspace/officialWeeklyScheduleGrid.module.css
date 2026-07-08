@@ -296,22 +296,33 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgb(3, 105, 161);
   color: rgb(255, 255, 255);
   border-radius: 50%;
   width: 1.14em;
   height: 1.14em;
   flex-shrink: 0;
   cursor: default;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.75);
 }
 
 .breakCellInner {
   opacity: 0.85;
+  padding: 0.35em 0.28em !important;
+  box-sizing: border-box;
+}
+
+.breakCellInner :global(.scheduleVerticalTextWrap),
+.verticalCellInner :global(.scheduleVerticalTextWrap) {
+  padding: 0.35em 0.28em;
+  box-sizing: border-box;
 }
 
 .breakCellInner :global(.scheduleVerticalText),
-.breakCellInner :global(.scheduleBreakVertical) {
+.breakCellInner :global(.scheduleBreakVertical),
+.verticalCellInner :global(.scheduleVerticalText) {
   white-space: nowrap;
+  transform: rotate(-90deg);
+  transform-origin: center center;
 }
 
 .tableScroll {
@@ -468,8 +479,9 @@
 
 .narrowColHeader {
   white-space: nowrap !important;
-  padding: 0.12em 0.1em !important;
+  padding: 0.28em 0.22em !important;
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 .narrowColHeader :global(.scheduleVerticalText),
@@ -499,12 +511,13 @@
   overflow: hidden;
   text-overflow: ellipsis;
   font-size: 0.92em !important;
-  padding: 0.08em 0.05em;
+  padding: 0.18em 0.14em;
 }
 
 .scalableTable :global(.scheduleBreakCell) :global(.scheduleCellInner),
 .scalableTable :global(.scheduleBreakHeader) {
-  padding: 0.08em 0.05em !important;
+  padding: 0.22em 0.18em !important;
+  box-sizing: border-box;
 }
 
 .todayRow td {
