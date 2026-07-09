@@ -9,7 +9,6 @@ import {
 import { useLang } from '@contexts/LangContext';
 import BoardStudentAvatar from './BoardStudentAvatar.jsx';
 import {
-  formatBoardDate,
   resolveBoardClassName,
   resolveBoardStudentName,
 } from './operationsBoardDisplayUtils.js';
@@ -17,6 +16,7 @@ import {
 export default function BoardListView({ data, columns, onCardClick, onDragEnd }) {
   const { t, lang } = useLang();
   const [features, setFeatures] = useState(data);
+  const dragOriginRef = React.useRef(null);
 
   React.useEffect(() => {
     setFeatures(data);
@@ -27,22 +27,30 @@ export default function BoardListView({ data, columns, onCardClick, onDragEnd })
       const { active, over } = event;
       if (!over) return;
 
+      const fromColumn = dragOriginRef.current;
+      dragOriginRef.current = null;
+
       const col = columns.find((c) => c.id === over.id || c.name === over.id);
       if (!col) return;
 
-      const activeItem = features.find((item) => item.id === active.id);
-      if (!activeItem || activeItem.column === col.id) return;
+      const activeItem = data.find((item) => item.id === active.id);
+      if (!activeItem || !fromColumn || fromColumn === col.id) return;
 
       setFeatures((prev) =>
         prev.map((item) => (item.id === active.id ? { ...item, column: col.id } : item))
       );
-      onDragEnd?.(active.id, activeItem.column, col.id);
+      onDragEnd?.(active.id, fromColumn, col.id);
     },
-    [columns, features, onDragEnd]
+    [columns, data, onDragEnd]
   );
 
+  const handleDragStart = useCallback((event) => {
+    const item = data.find((d) => d.id === event.active?.id);
+    dragOriginRef.current = item?.column || null;
+  }, [data]);
+
   return (
-    <ListProvider onDragEnd={handleDragEnd}>
+    <ListProvider onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       {columns.map((column) => (
         <ListGroup id={column.id} key={column.id}>
           <ListHeader
@@ -75,14 +83,7 @@ export default function BoardListView({ data, columns, onCardClick, onDragEnd })
                     <div className="m-0 flex min-w-0 flex-1 flex-col gap-0.5">
                       <p className="m-0 truncate font-medium text-sm">{studentName}</p>
                       {className && (
-                        <p className="m-0 truncate text-xs text-muted-foreground">
-                          {t('operations_board_label_class')}: {className}
-                        </p>
-                      )}
-                      {item.date && (
-                        <p className="m-0 text-[11px] text-muted-foreground">
-                          {formatBoardDate(item.date, lang)}
-                        </p>
+                        <p className="m-0 truncate text-xs text-muted-foreground">{className}</p>
                       )}
                     </div>
                     <div

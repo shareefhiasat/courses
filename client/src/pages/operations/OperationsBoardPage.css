@@ -62,6 +62,31 @@
   min-height: 0;
 }
 
+.operations-attendance-kanban {
+  min-height: 0;
+}
+
+.operations-attendance-kanban > div {
+  grid-auto-columns: minmax(200px, 1fr) !important;
+}
+
+.operations-board-page .operations-attendance-card {
+  max-width: 100%;
+}
+
+.operations-board-page .operations-attendance-card > div {
+  max-width: 100%;
+}
+
+.operations-board-page [class*="min-h-40"] {
+  min-width: 0;
+}
+
+.operations-board-page [class*="min-h-40"] [class*="cursor-grab"] {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
 .operations-board-footer .MuiToggleButton-root.Mui-selected {
   background-color: hsl(var(--primary)) !important;
   color: hsl(var(--primary-foreground)) !important;

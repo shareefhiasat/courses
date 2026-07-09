@@ -18,6 +18,7 @@ export default function BoardFooter({
   embedded = false,
   expanded = false,
   onToggleExpand,
+  showLegend = true,
 }) {
   const { t } = useLang();
   const { theme } = useTheme();
@@ -40,7 +41,7 @@ export default function BoardFooter({
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.65em', flex: 1 }}>
-        {columns.map((col) => (
+        {showLegend && columns.map((col) => (
           <div key={col.id} className={gridStyles.legendItem} data-testid={`operations-board-legend-${col.id}`}>
             <span
               className={gridStyles.legendDot}

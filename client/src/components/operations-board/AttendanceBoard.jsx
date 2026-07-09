@@ -1,4 +1,10 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  pointerWithin,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
 import {
   KanbanProvider,
   KanbanBoard,
@@ -9,10 +15,10 @@ import {
 import { Status, StatusIndicator, StatusLabel } from '@/components/kibo-ui/status';
 import BoardStudentAvatar from './BoardStudentAvatar.jsx';
 import {
-  formatBoardDate,
   resolveBoardClassName,
   resolveBoardStudentName,
 } from './operationsBoardDisplayUtils.js';
+import { canMoveAttendanceToColumn } from './attendanceBoardRules.js';
 
 const ATTENDANCE_STATUS_CLASS = {
   PRESENT: 'online',
@@ -23,41 +29,89 @@ const ATTENDANCE_STATUS_CLASS = {
   NOT_TAKEN: 'offline',
 };
 
+function resolveDropColumn(over, columns, data) {
+  if (!over) return null;
+  const overItem = data.find((item) => item.id === over.id);
+  if (overItem) return overItem.column;
+  return columns.find((col) => col.id === over.id)?.id || null;
+}
+
 export default function AttendanceBoard({
   data,
   columns,
-  onDataChange,
   onDragEnd,
   onCardClick,
+  onDragRejected,
   t,
   lang = 'en',
+  roleContext = {},
 }) {
-  const handleDragEnd = useCallback(
-    (event) => {
-      const { active, over } = event;
-      if (!over || !active) return;
+  const [boardData, setBoardData] = useState(data);
+  const dragOriginRef = useRef(null);
+  const draggingRef = useRef(false);
 
-      const activeItem = data.find((d) => d.id === active.id);
-      if (!activeItem) return;
+  useEffect(() => {
+    if (!draggingRef.current) {
+      setBoardData(data);
+    }
+  }, [data]);
 
-      const overColumn =
-        columns.find((col) => col.id === over.id)?.id ||
-        data.find((d) => d.id === over.id)?.column ||
-        activeItem.column;
-
-      if (activeItem.column !== overColumn) {
-        onDragEnd(active.id, activeItem.column, overColumn);
-      }
-    },
-    [data, columns, onDragEnd]
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 6 } })
   );
+
+  const handleDragStart = useCallback((event) => {
+    draggingRef.current = true;
+    const item = boardData.find((d) => d.id === event.active.id);
+    dragOriginRef.current = item?.column || null;
+  }, [boardData]);
+
+  const handleDragEnd = useCallback((event) => {
+    draggingRef.current = false;
+    const fromColumn = dragOriginRef.current;
+    dragOriginRef.current = null;
+
+    const { active, over } = event;
+    if (!over || !active) {
+      setBoardData(data);
+      return;
+    }
+
+    const toColumn = resolveDropColumn(over, columns, boardData);
+    if (!fromColumn || !toColumn || fromColumn === toColumn) {
+      setBoardData(data);
+      return;
+    }
+
+    if (!canMoveAttendanceToColumn(toColumn, roleContext)) {
+      onDragRejected?.(toColumn);
+      setBoardData(data);
+      return;
+    }
+
+    setBoardData((prev) =>
+      prev.map((item) => (item.id === active.id ? { ...item, column: toColumn } : item))
+    );
+    onDragEnd?.(active.id, fromColumn, toColumn);
+  }, [boardData, columns, data, onDragEnd, onDragRejected, roleContext]);
+
+  const handleDragCancel = useCallback(() => {
+    draggingRef.current = false;
+    dragOriginRef.current = null;
+    setBoardData(data);
+  }, [data]);
 
   return (
     <KanbanProvider
       columns={columns}
-      data={data}
-      onDataChange={onDataChange}
+      data={boardData}
+      onDataChange={setBoardData}
+      onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
+      onDragCancel={handleDragCancel}
+      sensors={sensors}
+      collisionDetection={pointerWithin}
+      className="operations-attendance-kanban"
     >
       {(column) => (
         <KanbanBoard id={column.id} key={column.id} data-testid={`operations-board-column-${column.id}`}>
@@ -69,7 +123,7 @@ export default function AttendanceBoard({
               />
               <span className="font-medium text-sm">{t(column.i18nKey) || column.name}</span>
               <span className="ml-auto rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                {data.filter((d) => d.column === column.id).length}
+                {boardData.filter((d) => d.column === column.id).length}
               </span>
             </div>
           </KanbanHeader>
@@ -83,9 +137,10 @@ export default function AttendanceBoard({
                   id={item.id}
                   key={item.id}
                   name={studentName}
+                  className="operations-attendance-card"
                 >
                   <div
-                    className="flex items-start gap-3"
+                    className="flex items-center gap-2.5"
                     onClick={(e) => {
                       e.stopPropagation();
                       onCardClick(item);
@@ -96,28 +151,15 @@ export default function AttendanceBoard({
                       profileImageUrl={item.profileImageUrl}
                       size="md"
                     />
-                    <div className="flex min-w-0 flex-1 flex-col gap-1.5">
-                      <p className="m-0 text-[10px] uppercase tracking-wide text-muted-foreground">
-                        {t('operations_board_label_name')}
-                      </p>
-                      <p className="m-0 truncate font-medium text-sm leading-tight">{studentName}</p>
+                    <div className="min-w-0 flex-1">
+                      <p className="m-0 truncate text-sm font-medium leading-tight">{studentName}</p>
                       {className && (
-                        <>
-                          <p className="m-0 text-[10px] uppercase tracking-wide text-muted-foreground">
-                            {t('operations_board_label_class')}
-                          </p>
-                          <p className="m-0 truncate text-xs text-muted-foreground">{className}</p>
-                        </>
+                        <p className="m-0 truncate text-xs text-muted-foreground">{className}</p>
                       )}
-                      <Status status={ATTENDANCE_STATUS_CLASS[item.column] || 'offline'} className="w-fit">
+                      <Status status={ATTENDANCE_STATUS_CLASS[item.column] || 'offline'} className="mt-1 w-fit">
                         <StatusIndicator />
                         <StatusLabel>{t(`operations_board_lane_${item.column.toLowerCase()}`) || item.column}</StatusLabel>
                       </Status>
-                      {item.date && (
-                        <p className="m-0 text-xs text-muted-foreground">
-                          {formatBoardDate(item.date, lang)}
-                        </p>
-                      )}
                     </div>
                   </div>
                 </KanbanCard>

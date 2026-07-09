@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
+import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { error as logError } from '@services/utils/logger.js';
 import { Card, CardContent } from '@/components/kibo/ui/card';
 import { ScrollArea } from '@/components/kibo/ui/scroll-area';
-import { KanbanSquare } from 'lucide-react';
 import { Banner, BannerTitle } from '@/components/kibo-ui/banner';
 import './OperationsBoardPage.css';
 import {
@@ -21,8 +21,9 @@ import AttendanceBoard from '@components/operations-board/AttendanceBoard.jsx';
 import BoardListView from '@components/operations-board/BoardListView.jsx';
 import BoardTableView from '@components/operations-board/BoardTableView.jsx';
 import BoardFilterBar from '@components/operations-board/BoardFilterBar.jsx';
-import BoardDetailDrawer from '@components/operations-board/BoardDetailDrawer.jsx';
+import BoardStudentDrawer from '@components/operations-board/BoardStudentDrawer.jsx';
 import BoardFooter from '@components/operations-board/BoardFooter.jsx';
+import { getAttendanceColumnsForRole, canMoveAttendanceToColumn } from '@components/operations-board/attendanceBoardRules.js';
 
 const VIEWS = { KANBAN: 'kanban', LIST: 'list', TABLE: 'table' };
 const LANES = { STATUS: 'status', ATTENDANCE: 'attendance' };
@@ -37,24 +38,19 @@ function toIsoDate(value) {
   return new Date(value).toISOString().slice(0, 10);
 }
 
-function filterBoardData(data, search) {
+function filterBoardData(data, search, lang) {
   if (!search?.trim()) return data;
   const q = search.trim().toLowerCase();
-  return data.filter((item) =>
-    item.name?.toLowerCase().includes(q)
-    || item.className?.toLowerCase().includes(q)
-    || item.assignee?.toLowerCase().includes(q)
-    || item.workflowType?.toLowerCase().includes(q)
-  );
+  return data.filter((item) => {
+    const names = [item.name, item.nameEn, item.nameAr, item.className, item.classNameEn, item.classNameAr]
+      .filter(Boolean)
+      .map((v) => String(v).toLowerCase());
+    return names.some((v) => v.includes(q))
+      || item.assignee?.toLowerCase().includes(q)
+      || item.workflowType?.toLowerCase().includes(q);
+  });
 }
 
-/**
- * @param {object} props
- * @param {boolean} [props.embedded] - Render inside welcome tab (keeps app navbar)
- * @param {boolean} [props.expanded] - Full viewport below navbar
- * @param {() => void} [props.onToggleExpand]
- * @param {{ programId?: number, termId?: number, date?: Date|string, classIds?: number[] }} [props.welcomeContext]
- */
 export default function OperationsBoardPage({
   embedded = false,
   expanded = false,
@@ -62,8 +58,12 @@ export default function OperationsBoardPage({
   welcomeContext = null,
 }) {
   const { t, lang } = useLang();
-  const navigate = useNavigate();
+  const { isInstructor, isAdmin, isHR, isSuperAdmin } = useAuth();
   const [searchParams, setSearchParams] = useSearchParams();
+
+  const roleContext = useMemo(() => ({
+    isInstructor, isAdmin, isHR, isSuperAdmin,
+  }), [isInstructor, isAdmin, isHR, isSuperAdmin]);
 
   const lane = searchParams.get('lane') || (searchParams.get('mode') === 'attendance' ? LANES.ATTENDANCE : LANES.STATUS);
   const view = searchParams.get('view') || VIEWS.KANBAN;
@@ -75,13 +75,12 @@ export default function OperationsBoardPage({
   const [selectedCard, setSelectedCard] = useState(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [bannerMessage, setBannerMessage] = useState(null);
+  const [panelTab, setPanelTab] = useState('board');
 
   const updateParams = useCallback((updater) => {
     setSearchParams((prev) => {
       const next = new URLSearchParams(prev);
-      if (embedded) {
-        next.set('tab', 'operations');
-      }
+      if (embedded) next.set('tab', 'operations');
       updater(next);
       return next;
     });
@@ -99,7 +98,7 @@ export default function OperationsBoardPage({
       if (welcomeContext.date && !next.get('date')) {
         next.set('date', toIsoDate(welcomeContext.date));
       }
-      if (!next.get('lane')) next.set('lane', LANES.STATUS);
+      if (!next.get('lane')) next.set('lane', LANES.ATTENDANCE);
       if (!next.get('view')) next.set('view', VIEWS.KANBAN);
     });
   }, [welcomeContext, updateParams]);
@@ -108,9 +107,7 @@ export default function OperationsBoardPage({
     if (!welcomeContext?.date) return;
     const syncedDate = toIsoDate(welcomeContext.date);
     updateParams((next) => {
-      if (next.get('date') !== syncedDate) {
-        next.set('date', syncedDate);
-      }
+      if (next.get('date') !== syncedDate) next.set('date', syncedDate);
     });
   }, [welcomeContext?.date, updateParams]);
 
@@ -121,11 +118,8 @@ export default function OperationsBoardPage({
     if (searchParams.get('classId')) f.classId = searchParams.get('classId');
     if (searchParams.get('programId')) f.programId = searchParams.get('programId');
     else if (welcomeContext?.programId) f.programId = String(welcomeContext.programId);
-    if (searchParams.get('subjectId')) f.subjectId = searchParams.get('subjectId');
     if (searchParams.get('termId')) f.termId = searchParams.get('termId');
     else if (welcomeContext?.termId) f.termId = String(welcomeContext.termId);
-    if (searchParams.get('status')) f.status = searchParams.get('status');
-    if (searchParams.get('workflowType')) f.workflowType = searchParams.get('workflowType');
     if (searchParams.get('search')) f.search = searchParams.get('search');
     if (workflowId) f.workflowId = workflowId;
     if (welcomeContext?.classIds?.length) {
@@ -136,13 +130,28 @@ export default function OperationsBoardPage({
 
   const setFilters = useCallback((newFilters) => {
     updateParams((next) => {
-      const keys = ['date', 'classId', 'programId', 'subjectId', 'termId', 'status', 'workflowType', 'search'];
-      keys.forEach((k) => {
-        if (newFilters[k]) next.set(k, newFilters[k]);
-        else next.delete(k);
-      });
+      if (newFilters.date) next.set('date', newFilters.date);
+      else next.delete('date');
+      if (newFilters.search) next.set('search', newFilters.search);
+      else next.delete('search');
+      if (newFilters.classId) next.set('classId', String(newFilters.classId));
+      else if (Object.prototype.hasOwnProperty.call(newFilters, 'classId')) next.delete('classId');
     });
   }, [updateParams]);
+
+  const handleClassSessionClick = useCallback(({ classId, date }) => {
+    setFilters({
+      date: toIsoDate(date),
+      classId,
+      search: filters.search,
+    });
+    if (lane !== LANES.ATTENDANCE) {
+      updateParams((next) => {
+        next.set('lane', LANES.ATTENDANCE);
+        next.delete('workflowId');
+      });
+    }
+  }, [setFilters, filters.search, lane, updateParams]);
 
   const setView = useCallback((newView) => {
     updateParams((next) => {
@@ -162,11 +171,9 @@ export default function OperationsBoardPage({
       }
       if (result.success) {
         setData(result.data);
-        if (lane === LANES.STATUS && result.data.length === 0) {
-          setBannerMessage(t('operations_board_no_workflows_banner'));
-        } else {
-          setBannerMessage(null);
-        }
+        setBannerMessage(lane === LANES.STATUS && result.data.length === 0
+          ? t('operations_board_no_workflows_banner')
+          : null);
       } else {
         setError(result.error || t('operations_board_error'));
       }
@@ -182,13 +189,15 @@ export default function OperationsBoardPage({
     loadData();
   }, [loadData]);
 
-  const handleDataChange = useCallback((newData) => {
-    setData(newData);
-  }, []);
-
   const handleDragEnd = useCallback(async (activeId, fromColumn, toColumn) => {
     const item = data.find((d) => d.id === activeId);
     if (!item || fromColumn === toColumn) return;
+
+    if (item.type === 'attendance' && !canMoveAttendanceToColumn(toColumn, roleContext)) {
+      setError(t('operations_board_drag_invalid'));
+      loadData();
+      return;
+    }
 
     if (item.type === 'workflow') {
       const result = await moveWorkflowCard(item.rawId, fromColumn, toColumn);
@@ -205,13 +214,13 @@ export default function OperationsBoardPage({
         date: item.date,
       });
       if (!result.success) {
-        setError(t('operations_board_drag_error'));
+        setError(result.error || t('operations_board_drag_error'));
         loadData();
       } else {
-        loadData();
+        await loadData();
       }
     }
-  }, [data, t, loadData]);
+  }, [data, t, loadData, roleContext]);
 
   const handleCardClick = useCallback((card) => {
     if (card.type === 'workflow' && lane === LANES.STATUS) {
@@ -233,28 +242,16 @@ export default function OperationsBoardPage({
     else setError(t('operations_board_drag_error'));
   }, [loadData, t]);
 
-  const columns = lane === LANES.ATTENDANCE ? ATTENDANCE_COLUMNS : WORKFLOW_COLUMNS;
-  const activeFilterCount = Object.keys(filters).filter(
-    (k) => !['date', 'classIds', 'workflowId'].includes(k) && filters[k]
-  ).length;
+  const attendanceColumns = useMemo(
+    () => getAttendanceColumnsForRole(roleContext),
+    [roleContext]
+  );
+  const columns = lane === LANES.ATTENDANCE ? attendanceColumns : WORKFLOW_COLUMNS;
 
   const displayData = useMemo(
-    () => filterBoardData(data, filters.search),
-    [data, filters.search]
+    () => filterBoardData(data, filters.search, lang),
+    [data, filters.search, lang]
   );
-
-  const subtitle = useMemo(() => {
-    const laneLabel = lane === LANES.ATTENDANCE
-      ? t('operations_board_attendance')
-      : t('operations_board_workflow');
-    const countLabel = displayData.length === 1
-      ? t('operations_board_item_count_one')
-      : t('operations_board_item_count', { count: displayData.length });
-    const filterLabel = activeFilterCount > 0
-      ? t('operations_board_filters_count', { count: activeFilterCount })
-      : null;
-    return [laneLabel, countLabel, filterLabel].filter(Boolean).join(' · ');
-  }, [lane, displayData.length, activeFilterCount, t]);
 
   const pageClassName = [
     'operations-board-page',
@@ -274,32 +271,24 @@ export default function OperationsBoardPage({
         </Banner>
       )}
 
-      <header className="operations-board-header flex items-center gap-3 min-w-0">
-        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10">
-          <KanbanSquare className="h-5 w-5 text-primary" />
-        </div>
-        <div className="min-w-0">
-          <h1 className="text-2xl font-semibold text-foreground">{t('operations_board_title')}</h1>
-          <p className="text-sm text-muted-foreground">{subtitle}</p>
-        </div>
-      </header>
-
       <BoardFilterBar
         filters={filters}
         onFilterChange={setFilters}
-        lane={lane}
-        boardData={displayData}
-        columns={columns}
+        welcomeContext={welcomeContext}
+        panelTab={panelTab}
+        onPanelTabChange={setPanelTab}
+        onClassSessionClick={handleClassSessionClick}
       />
 
       {error && (
         <Card className="border-destructive/50 bg-destructive/10">
-          <CardContent className="p-4">
+          <CardContent className="p-3">
             <p className="text-sm text-destructive">{error}</p>
           </CardContent>
         </Card>
       )}
 
+      {panelTab !== 'calendar' && (
       <ScrollArea className="operations-board-content flex-1 min-h-0">
         {loading ? (
           <div className="flex h-full min-h-[240px] items-center justify-center" data-testid="operations-board-loading">
@@ -320,18 +309,19 @@ export default function OperationsBoardPage({
         ) : lane === LANES.ATTENDANCE ? (
           <AttendanceBoard
             data={displayData}
-            columns={ATTENDANCE_COLUMNS}
-            onDataChange={handleDataChange}
+            columns={attendanceColumns}
             onDragEnd={handleDragEnd}
             onCardClick={handleCardClick}
+            onDragRejected={() => setError(t('operations_board_drag_invalid'))}
             t={t}
             lang={lang}
+            roleContext={roleContext}
           />
         ) : (
           <WorkflowBoard
             data={displayData}
             columns={WORKFLOW_COLUMNS}
-            onDataChange={handleDataChange}
+            onDataChange={setData}
             onDragEnd={handleDragEnd}
             onCardClick={handleCardClick}
             onMarkTaken={handleMarkTaken}
@@ -339,6 +329,7 @@ export default function OperationsBoardPage({
           />
         )}
       </ScrollArea>
+      )}
 
       <BoardFooter
         columns={columns}
@@ -347,14 +338,16 @@ export default function OperationsBoardPage({
         embedded={embedded}
         expanded={expanded}
         onToggleExpand={onToggleExpand}
+        showLegend={panelTab === 'board'}
       />
 
-      <BoardDetailDrawer
+      <BoardStudentDrawer
         open={drawerOpen}
-        onOpenChange={setDrawerOpen}
+        onClose={() => setDrawerOpen(false)}
         card={selectedCard}
         lane={lane}
         onRefresh={loadData}
+        roleContext={roleContext}
       />
     </div>
   );

@@ -76,12 +76,14 @@ export const ListItem = ({
 export const ListProvider = ({
   children,
   onDragEnd,
+  onDragStart,
   className
 }) => (
   <DndContext
     collisionDetection={rectIntersection}
     modifiers={[restrictToVerticalAxis]}
-    onDragEnd={onDragEnd}>
+    onDragEnd={onDragEnd}
+    onDragStart={onDragStart}>
     <div className={cn("flex size-full flex-col", className)}>{children}</div>
   </DndContext>
 );

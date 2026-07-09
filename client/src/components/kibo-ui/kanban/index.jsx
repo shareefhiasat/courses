@@ -138,16 +138,24 @@ export const KanbanProvider = (
     onDragStart,
     onDragEnd,
     onDragOver,
+    onDragCancel,
     className,
     columns,
     data,
     onDataChange,
+    sensors: customSensors,
+    collisionDetection,
     ...props
   }
 ) => {
   const [activeCardId, setActiveCardId] = useState(null);
 
-  const sensors = useSensors(useSensor(MouseSensor), useSensor(TouchSensor), useSensor(KeyboardSensor));
+  const defaultSensors = useSensors(
+    useSensor(MouseSensor, { activationConstraint: { distance: 6 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 120, tolerance: 6 } }),
+    useSensor(KeyboardSensor)
+  );
+  const sensors = customSensors ?? defaultSensors;
 
   const handleDragStart = (event) => {
     const card = data.find((item) => item.id === event.active.id);
@@ -237,14 +245,20 @@ export const KanbanProvider = (
     },
   };
 
+  const handleDragCancel = (event) => {
+    setActiveCardId(null);
+    onDragCancel?.(event);
+  };
+
   return (
     <KanbanContext.Provider value={{ columns, data, activeCardId }}>
       <DndContext
         accessibility={{ announcements }}
-        collisionDetection={closestCenter}
+        collisionDetection={collisionDetection ?? closestCenter}
         onDragEnd={handleDragEnd}
         onDragOver={handleDragOver}
         onDragStart={handleDragStart}
+        onDragCancel={handleDragCancel}
         sensors={sensors}
         {...props}>
         <div
@@ -252,7 +266,7 @@ export const KanbanProvider = (
           {columns.map((column) => children(column))}
         </div>
         {typeof window !== "undefined" &&
-          createPortal(<DragOverlay>
+          createPortal(<DragOverlay style={{ zIndex: 1400 }}>
             <t.Out />
           </DragOverlay>, document.body)}
       </DndContext>
