@@ -449,6 +449,9 @@ app.use(`/api/${API_VERSION}/behaviors`, behaviorRoutes);
 app.use(`/api/${API_VERSION}/penalties`, penaltyRoutes);
 app.use(`/api/${API_VERSION}/participations`, participationRoutes);
 app.use(`/api/${API_VERSION}/marks`, marksRoutes);
+// Attendance log routes must be mounted BEFORE generic attendance routes so
+// /lecture-log and /record-history are not captured by /:id
+app.use(`/api/${API_VERSION}/attendance`, attendanceLogRoutes);
 app.use(`/api/${API_VERSION}/attendance`, attendanceRoutes);
 app.use(`/api/${API_VERSION}/standup-attendance`, standupAttendanceRoutes);
 app.use(`/api/${API_VERSION}/lookup`, lookupRoutes);
@@ -509,9 +512,6 @@ app.use(`/api/${API_VERSION}/welcome`, welcomeRoutes);
 
 // Attendance workspace routes
 app.use(`/api/${API_VERSION}/attendance-workspace`, attendanceWorkspaceRoutes);
-
-// Attendance log routes
-app.use(`/api/${API_VERSION}/attendance`, attendanceLogRoutes);
 
 // ==================== ERROR HANDLING ====================
 

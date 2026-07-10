@@ -12,6 +12,7 @@ import { buildLocalizedNameFields, buildNotificationNameVars } from '../utils/lo
 import { USER_NAME_SELECT_WITH_ID } from '../utils/userNameFields.js';
 import { checkAttendanceWorkflowLock } from './workflowDocumentService.js';
 import { createChangeLog } from '../db/attendance-log-postgres.js';
+import { ATTENDANCE_STATUS_CODES } from '../constants/attendanceConstants.js';
 
 
 /**
@@ -324,10 +325,10 @@ export const createAttendance = async (attendanceData, user = null) => {
       // Emit notification for attendance update
       try {
         const statusEventMap = {
-          'present': EVENTS.ATTENDANCE_MARKED_PRESENT,
-          'absent': EVENTS.ATTENDANCE_MARKED_ABSENT,
-          'late': EVENTS.ATTENDANCE_MARKED_LATE,
-          'excused': EVENTS.ATTENDANCE_MARKED_EXCUSED
+          [ATTENDANCE_STATUS_CODES.PRESENT]: EVENTS.ATTENDANCE_MARKED_PRESENT,
+          [ATTENDANCE_STATUS_CODES.ABSENT]: EVENTS.ATTENDANCE_MARKED_ABSENT,
+          [ATTENDANCE_STATUS_CODES.LATE]: EVENTS.ATTENDANCE_MARKED_LATE,
+          [ATTENDANCE_STATUS_CODES.LEAVE]: EVENTS.ATTENDANCE_MARKED_EXCUSED
         };
         
         const eventType = statusEventMap[status] || EVENTS.ATTENDANCE_MARKED;
@@ -358,6 +359,17 @@ export const createAttendance = async (attendanceData, user = null) => {
         console.error('[Attendance Service] Failed to emit notification:', notificationError);
       }
       
+      if (global.chatWSBroadcast) {
+        global.chatWSBroadcast('board:attendance_updated', {
+          attendanceId: updatedAttendance.id,
+          userId: updatedAttendance.userId,
+          classId: updatedAttendance.classId,
+          date: updatedAttendance.date,
+          status: { code: updatedAttendance.status.code, nameEn: updatedAttendance.status.nameEn, nameAr: updatedAttendance.status.nameAr },
+          notes: updatedAttendance.notes,
+        });
+      }
+
       return {
         success: true,
         data: updatedAttendance,
@@ -448,7 +460,18 @@ export const createAttendance = async (attendanceData, user = null) => {
     } catch (notificationError) {
       console.error('[Attendance Service] Failed to emit notification:', notificationError);
     }
-    
+
+    if (global.chatWSBroadcast) {
+      global.chatWSBroadcast('board:attendance_updated', {
+        attendanceId: newAttendance.id,
+        userId: newAttendance.userId,
+        classId: newAttendance.classId,
+        date: newAttendance.date,
+        status: { code: newAttendance.status.code, nameEn: newAttendance.status.nameEn, nameAr: newAttendance.status.nameAr },
+        notes: newAttendance.notes,
+      });
+    }
+
     return {
       success: true,
       data: newAttendance,
@@ -480,20 +503,6 @@ export const updateAttendance = async (id, updateData, user = null) => {
         error: 'Attendance record not found',
         data: null
       };
-    }
-
-    // Check if attendance record is linked to an in-progress workflow
-    const isHrOrAdmin = user?.roles?.includes('hr') || user?.roles?.includes('admin');
-    if (!isHrOrAdmin) {
-      const lockCheck = await checkAttendanceWorkflowLock(parseInt(id));
-      if (lockCheck.blocked) {
-        return {
-          success: false,
-          error: `Cannot modify attendance record linked to in-progress workflow #${lockCheck.workflow.id} (${lockCheck.workflow.title}). Please approve or reject the workflow first.`,
-          code: 409,
-          workflow: lockCheck.workflow
-        };
-      }
     }
 
     // Prepare update data
@@ -590,7 +599,18 @@ export const updateAttendance = async (id, updateData, user = null) => {
         source: 'manual',
       });
     }
-    
+
+    if (global.chatWSBroadcast) {
+      global.chatWSBroadcast('board:attendance_updated', {
+        attendanceId: updatedAttendance.id,
+        userId: updatedAttendance.userId,
+        classId: updatedAttendance.classId,
+        date: updatedAttendance.date,
+        status: { code: updatedAttendance.status.code, nameEn: updatedAttendance.status.nameEn, nameAr: updatedAttendance.status.nameAr },
+        notes: updatedAttendance.notes,
+      });
+    }
+
     return {
       success: true,
       data: updatedAttendance,
@@ -621,24 +641,31 @@ export const deleteAttendance = async (id, user = null) => {
       };
     }
 
-    // Check if attendance record is linked to an in-progress workflow
-    const isHrOrAdmin = user?.roles?.includes('hr') || user?.roles?.includes('admin');
-    if (!isHrOrAdmin) {
-      const lockCheck = await checkAttendanceWorkflowLock(parseInt(id));
-      if (lockCheck.blocked) {
-        return {
-          success: false,
-          error: `Cannot delete attendance record linked to in-progress workflow #${lockCheck.workflow.id} (${lockCheck.workflow.title}). Please approve or reject the workflow first.`,
-          code: 409,
-          workflow: lockCheck.workflow
-        };
-      }
-    }
+    const changedBy = await getDatabaseUserId(user);
+    await createChangeLog({
+      attendanceId: parseInt(id),
+      fromStatusId: existingAttendance.statusId,
+      toStatusId: null,
+      changedBy,
+      reason: 'Attendance deleted (reverted to NOT_TAKEN)',
+      source: 'manual',
+    });
 
     await prisma.attendance.delete({
       where: { id: parseInt(id) }
     });
-    
+
+    if (global.chatWSBroadcast) {
+      global.chatWSBroadcast('board:attendance_updated', {
+        attendanceId: parseInt(id),
+        userId: existingAttendance.userId,
+        classId: existingAttendance.classId,
+        date: existingAttendance.date,
+        status: { code: 'NOT_TAKEN', nameEn: 'Not Taken', nameAr: 'لم يسجل' },
+        notes: null,
+      });
+    }
+
     return {
       success: true,
       data: { id: parseInt(id) },
@@ -692,17 +719,17 @@ export const getClassAttendanceStats = async (classId, date) => {
     
     attendances.forEach(attendance => {
       switch (attendance.status.code) {
-        case 'ATTENDANCE_PRESENT':
+        case ATTENDANCE_STATUS_CODES.PRESENT:
           stats.present++;
           break;
-        case 'ATTENDANCE_ABSENT':
+        case ATTENDANCE_STATUS_CODES.ABSENT:
           stats.absent++;
           break;
-        case 'ATTENDANCE_LATE':
+        case ATTENDANCE_STATUS_CODES.LATE:
           stats.late++;
           break;
-        case 'ATTENDANCE_LEAVE':
-        case 'ATTENDANCE_HUMAN_CASE':
+        case ATTENDANCE_STATUS_CODES.LEAVE:
+        case ATTENDANCE_STATUS_CODES.HUMAN_CASE:
           stats.excused++;
           break;
       }

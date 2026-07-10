@@ -47,12 +47,8 @@ const LoginPage = () => {
       return <Navigate to="/summary-dashboard" replace />;
     }
 
-    if (isAdmin || isInstructor) {
-      return <Navigate to="/qr-scanner" replace />;
-    }
-
-    if (isHR) {
-      return <Navigate to="/summary-dashboard" replace />;
+    if (isAdmin || isInstructor || isHR) {
+      return <Navigate to="/welcome" replace />;
     }
     
     // Student and fallback

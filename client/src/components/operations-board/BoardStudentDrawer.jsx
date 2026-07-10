@@ -147,8 +147,8 @@ export default function BoardStudentDrawer({
     ...history.map((h) => ({
       type: 'status',
       actor: h.actor?.displayName || h.changedByUser?.displayName || h.changedBy || t('operations_board_system_actor'),
-      from: h.fromStatus || h.oldStatus,
-      to: h.toStatus || h.newStatus,
+      from: typeof h.fromStatus === 'object' ? (h.fromStatus?.code || h.fromStatus?.nameEn) : h.fromStatus || h.oldStatus,
+      to: typeof h.toStatus === 'object' ? (h.toStatus?.code || h.toStatus?.nameEn) : h.toStatus || h.newStatus,
       at: h.createdAt || h.changedAt,
       reason: h.reason || h.comment || h.notes,
     })),
@@ -161,8 +161,8 @@ export default function BoardStudentDrawer({
     ...attendanceLog.map((log) => ({
       type: 'log',
       actor: log.changedByName || log.actorName || t('operations_board_system_actor'),
-      from: log.fromStatus,
-      to: log.toStatus,
+      from: typeof log.fromStatus === 'object' ? (log.fromStatus?.code || log.fromStatus?.nameEn) : log.fromStatus,
+      to: typeof log.toStatus === 'object' ? (log.toStatus?.code || log.toStatus?.nameEn) : log.toStatus,
       at: log.changedAt || log.createdAt,
       reason: log.notes || log.reason,
     })),
@@ -228,6 +228,7 @@ export default function BoardStudentDrawer({
 
         <Tabs value={tab} onChange={(_, value) => setTab(value)} variant="fullWidth">
           <Tab value="activity" label={t('operations_board_tab_activity')} data-testid="operations-board-drawer-tab-activity" />
+          <Tab value="profile" label={t('operations_board_tab_profile') || 'Profile'} data-testid="operations-board-drawer-tab-profile" />
           <Tab value="notes" label={t('operations_board_tab_notes')} data-testid="operations-board-drawer-tab-notes" />
           {card.type === 'workflow' && (
             <Tab value="comments" label={t('operations_board_tab_comments')} data-testid="operations-board-drawer-tab-comments" />
@@ -259,6 +260,38 @@ export default function BoardStudentDrawer({
                 </div>
               ))
             )}
+          </Box>
+        )}
+
+        {tab === 'profile' && (
+          <Box sx={{ flex: 1, overflow: 'auto' }} data-testid="operations-board-profile">
+            {(() => {
+              const u = card.user || {};
+              const profileRows = [
+                { label: t('operations_board_profile_name') || 'Name', value: studentName },
+                { label: t('operations_board_profile_name_ar') || 'Name (Arabic)', value: [u.firstNameAr, u.lastNameAr].filter(Boolean).join(' ') || null },
+                { label: t('operations_board_profile_student_number') || 'Student Number', value: u.studentNumber || card.studentNumber || null },
+                { label: t('operations_board_profile_email') || 'Email', value: u.email || null },
+                { label: t('operations_board_profile_rank') || 'Rank', value: (lang === 'ar' ? u.rankAr : u.rankEn) || null },
+                { label: t('operations_board_profile_display_name') || 'Display Name', value: (lang === 'ar' ? u.displayNameAr : u.displayName) || null },
+                { label: t('operations_board_profile_sequence') || 'Sequence', value: u.sequence != null ? String(u.sequence) : (card.sequence != null ? String(card.sequence) : null) },
+              ];
+              return (
+                <div className="flex flex-col gap-3">
+                  {profileRows.map((row, idx) => (
+                    row.value ? (
+                      <div key={idx} className="flex flex-col gap-0.5 border-b border-border pb-2">
+                        <span className="text-xs text-muted-foreground">{row.label}</span>
+                        <span className="text-sm font-medium">{row.value}</span>
+                      </div>
+                    ) : null
+                  ))}
+                  {profileRows.every((r) => !r.value) && (
+                    <p className="text-sm text-muted-foreground">{t('operations_board_no_profile') || 'No profile information available.'}</p>
+                  )}
+                </div>
+              );
+            })()}
           </Box>
         )}
 

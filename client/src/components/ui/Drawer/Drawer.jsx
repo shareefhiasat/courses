@@ -23,6 +23,7 @@ const Drawer = ({
   closeOnOverlay = true,
   className = '',
   resizable = false,
+  hideCloseButton = false,
 }) => {
   const { isRTL } = useLang();
   const isHorizontal = position === 'right' || position === 'left';
@@ -75,6 +76,7 @@ const Drawer = ({
       <div className={drawerClasses} style={resizable && isHorizontal ? { width: drawerWidth } : undefined}>
         <div className={styles.header}>
           {title && <h2 className={styles.title}>{title}</h2>}
+          {!hideCloseButton && (
           <button
             className={styles.closeButton}
             onClick={onClose}
@@ -82,6 +84,7 @@ const Drawer = ({
           >
             {getThemedIcon('ui', 'close', 24)}
           </button>
+          )}
         </div>
 
         <div className={styles.body}>

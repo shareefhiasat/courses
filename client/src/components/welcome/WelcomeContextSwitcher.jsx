@@ -115,46 +115,22 @@ export default function WelcomeContextSwitcher({
         paper: {
           sx: {
             top: 'var(--navbar-height, 60px)',
-            left: { xs: 0, md: '50%' },
+            left: { xs: 0, md: '64px' },
             right: { xs: 0, md: 'auto' },
-            transform: { md: 'translateX(-50%)' },
-            width: { xs: '100%', md: 'min(720px, calc(100vw - 32px))' },
-            maxHeight: 'min(70vh, 520px)',
+            transform: 'none',
+            width: { xs: '100%', md: 'min(600px, calc(100vw - 96px))' },
+            maxHeight: 'min(60vh, 400px)',
             borderBottomLeftRadius: 12,
             borderBottomRightRadius: 12,
             boxShadow: '0 12px 40px rgba(0,0,0,0.18)',
           },
         },
         backdrop: {
-          sx: { top: 'var(--navbar-height, 60px)' },
+          sx: {},
         },
       }}
     >
-      <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 280 }}>
-        <Box
-          sx={{
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            px: 2,
-            py: 1.5,
-            borderBottom: 1,
-            borderColor: 'divider',
-          }}
-        >
-          <Box>
-            <Typography variant="subtitle1" fontWeight={700}>
-              {t('welcome_switch_context_title') || 'Switch program & term'}
-            </Typography>
-            <Typography variant="caption" color="text.secondary">
-              {t('welcome_switch_context_hint') || 'Stay on your current tab — only the context changes.'}
-            </Typography>
-          </Box>
-          <IconButton onClick={onClose} size="small" aria-label={t('close') || 'Close'}>
-            {getThemedIcon('ui', 'x', 18, 'currentColor')}
-          </IconButton>
-        </Box>
-
+      <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 200 }}>
         <Box sx={{ display: 'flex', flex: 1, minHeight: 0, overflow: 'hidden' }}>
           {showPrograms && (
             <Box
@@ -167,15 +143,12 @@ export default function WelcomeContextSwitcher({
                 minHeight: 0,
               }}
             >
-              <Typography variant="overline" sx={{ px: 2, pt: 1.5, color: 'text.secondary' }}>
-                {t('workspace_select_program')}
-              </Typography>
               {programsLoading ? (
-                <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-                  <CircularProgress size={24} />
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+                  <CircularProgress size={20} />
                 </Box>
               ) : (
-                <List dense sx={{ overflowY: 'auto', flex: 1, py: 0 }}>
+                <List dense sx={{ overflowY: 'auto', flex: 1, py: 0.5 }}>
                   {programs.map((program) => {
                     const selected = program.id === activeProgramId;
                     const isCurrent = selection?.program?.id === program.id;
@@ -185,14 +158,16 @@ export default function WelcomeContextSwitcher({
                         selected={selected}
                         onClick={() => handleProgramPick(program)}
                         data-testid={`context-program-${program.id}`}
+                        sx={{ py: 0.5 }}
                       >
                         <ListItemText
                           primary={labelFor(program, lang)}
                           secondary={program.code}
-                          primaryTypographyProps={{ fontWeight: selected ? 700 : 500 }}
+                          primaryTypographyProps={{ fontWeight: selected ? 700 : 500, fontSize: '0.85rem' }}
+                          secondaryTypographyProps={{ fontSize: '0.75rem' }}
                         />
                         {isCurrent && (
-                          <Chip size="small" label={t('current') || 'Current'} color="primary" variant="outlined" />
+                          <Chip size="small" label={t('current') || 'Current'} color="primary" variant="outlined" sx={{ fontSize: '0.7rem', height: 20 }} />
                         )}
                       </ListItemButton>
                     );
@@ -205,35 +180,30 @@ export default function WelcomeContextSwitcher({
           {showTerms && (
             <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
               {isMobile && (
-                <Box sx={{ px: 2, pt: 1 }}>
+                <Box sx={{ px: 1.5, pt: 0.5 }}>
                   <IconButton
                     size="small"
                     onClick={() => setMobileStep('program')}
-                    sx={{ mb: 0.5 }}
+                    sx={{ mb: 0.25 }}
                     aria-label={t('workspace_back')}
                   >
-                    {getThemedIcon('ui', 'arrow_left', 18, 'currentColor')}
+                    {getThemedIcon('ui', 'arrow_left', 16, 'currentColor')}
                   </IconButton>
-                  <Typography variant="body2" color="text.secondary">
+                  <Typography variant="caption" color="text.secondary" fontSize="0.8rem">
                     {labelFor(activeProgram, lang)}
                   </Typography>
                 </Box>
               )}
-              {!isMobile && (
-                <Typography variant="overline" sx={{ px: 2, pt: 1.5, color: 'text.secondary' }}>
-                  {t('workspace_select_term')}
-                </Typography>
-              )}
               {!activeProgramId ? (
-                <Box sx={{ p: 3, color: 'text.secondary', fontSize: 14 }}>
+                <Box sx={{ p: 2, color: 'text.secondary', fontSize: 13 }}>
                   {t('welcome_switch_pick_program') || 'Select a program to see terms.'}
                 </Box>
               ) : termsLoading ? (
-                <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-                  <CircularProgress size={24} />
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+                  <CircularProgress size={20} />
                 </Box>
               ) : (
-                <List dense sx={{ overflowY: 'auto', flex: 1, py: 0 }}>
+                <List dense sx={{ overflowY: 'auto', flex: 1, py: 0.5 }}>
                   {terms.map((term) => {
                     const isCurrent =
                       selection?.program?.id === activeProgramId
@@ -246,6 +216,7 @@ export default function WelcomeContextSwitcher({
                         sx={{
                           borderLeft: isCurrent ? '3px solid' : '3px solid transparent',
                           borderColor: isCurrent ? 'primary.main' : 'transparent',
+                          py: 0.5,
                         }}
                       >
                         <ListItemText
@@ -255,16 +226,17 @@ export default function WelcomeContextSwitcher({
                               .filter(Boolean)
                               .join(' · ')
                           }
-                          primaryTypographyProps={{ fontWeight: isCurrent ? 700 : 500 }}
+                          primaryTypographyProps={{ fontWeight: isCurrent ? 700 : 500, fontSize: '0.85rem' }}
+                          secondaryTypographyProps={{ fontSize: '0.75rem' }}
                         />
                         {isCurrent && (
-                          <Chip size="small" label={t('current') || 'Current'} color="primary" />
+                          <Chip size="small" label={t('current') || 'Current'} color="primary" sx={{ fontSize: '0.7rem', height: 20 }} />
                         )}
                       </ListItemButton>
                     );
                   })}
                   {terms.length === 0 && (
-                    <Box sx={{ p: 2, color: 'text.secondary', fontSize: 14 }}>
+                    <Box sx={{ p: 1.5, color: 'text.secondary', fontSize: 13 }}>
                       {t('workspace_no_terms')}
                     </Box>
                   )}
@@ -277,8 +249,8 @@ export default function WelcomeContextSwitcher({
         {selection?.program && selection?.academicTerm && (
           <>
             <Divider />
-            <Box sx={{ px: 2, py: 1, bgcolor: 'action.hover' }}>
-              <Typography variant="caption" color="text.secondary">
+            <Box sx={{ px: 1.5, py: 0.75, bgcolor: 'action.hover' }}>
+              <Typography variant="caption" color="text.secondary" fontSize="0.75rem">
                 {t('welcome_switch_current') || 'Current:'}{' '}
                 <strong>
                   {labelFor(selection.program, lang)}

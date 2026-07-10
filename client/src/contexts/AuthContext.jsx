@@ -66,11 +66,6 @@ export const AuthProvider = ({ children }) => {
 
   // Debug wrapper for setLastRefreshTime
   const debugSetLastRefreshTime = useCallback((value) => {
-    info('🔧 [DIALOG DEBUG] setLastRefreshTime called:', {
-      oldValue: lastRefreshTime ? new Date(lastRefreshTime).toISOString() : null,
-      newValue: value ? new Date(value).toISOString() : null,
-      stackTrace: new Error().stack?.split('\n')[2]?.trim()
-    });
     
     // Save to localStorage for persistence across page refreshes
     if (value) {
@@ -106,8 +101,7 @@ export const AuthProvider = ({ children }) => {
   // Debounced session debug to prevent spam
   const debugSession = useCallback((message, data = {}) => {
     const now = Date.now();
-    if (now - lastSessionDebugRef.current > 30000) { // Only log every 30 seconds
-      console.log(`🔍 [SESSION DEBUG] ${message}`, data);
+    if (now - lastSessionDebugRef.current > 300000) { // Only log every 5 minutes
       lastSessionDebugRef.current = now;
     }
   }, []);
@@ -208,7 +202,6 @@ export const AuthProvider = ({ children }) => {
 
     if (!keycloak.tokenParsed?.exp) {
       debugSession('No token expiry found - cannot schedule warning');
-      warn('⚠️ [DIALOG DEBUG] No token expiry found');
       return;
     }
 
@@ -273,8 +266,6 @@ export const AuthProvider = ({ children }) => {
       const timeSinceLastActivity = Date.now() - lastActivityTimeRef.current;
 
       if (timeSinceLastActivity > idleThreshold) {
-        // console.log(`⚠️ [SESSION DEBUG] User is idle (inactive for ${Math.floor(timeSinceLastActivity / 1000)}s), showing warning immediately`);
-        warn(`⚠️ [DIALOG DEBUG] Token expiring in ${timeRemainingSec}s, showing warning immediately`);
         setShowSessionModal(true);
       } else {
         // console.log(`⚠️ [SESSION DEBUG] User is active (last activity ${Math.floor(timeSinceLastActivity / 1000)}s ago), skipping warning (will auto-refresh)`);
@@ -349,11 +340,9 @@ export const AuthProvider = ({ children }) => {
         // console.log('⏰ [IDLE DEBUG] Scheduling idle warning for', Math.floor(timeUntilIdleWarning / 1000), 'seconds');
       }
       idleWarningTimerRef.current = setTimeout(() => {
-        console.log('⚠️ [IDLE DEBUG] Idle timeout reached - Showing idle warning');
         setShowSessionModal(true);
       }, timeUntilIdleWarning);
     } else if (timeUntilIdleWarning <= 0 && !showSessionModal) {
-      console.log('⚠️ [IDLE DEBUG] User already idle - Showing idle warning immediately');
       setShowSessionModal(true);
     }
   }, [lastActivityTimeRef, showSessionModal, SESSION_CONFIG.WARNING_TIME_MINUTES]);
@@ -407,8 +396,8 @@ export const AuthProvider = ({ children }) => {
               // Reschedule warning with new token
               scheduleSessionWarning();
             }
-          } catch (error) {
-            console.error('❌ [AUTO-REFRESH] Auto-refresh failed:', error);
+          } catch {
+            // Auto-refresh failed - will retry on next activity
           }
         }
       }

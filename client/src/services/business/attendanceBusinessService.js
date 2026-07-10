@@ -12,6 +12,7 @@
 import { dbService } from '../other/dbService.js';
 import { info, error, warn, debug } from '../utils/logger.js';
 import { formatForDateInput } from '@utils/date-formatter.js';
+import { ATTENDANCE_STATUS } from '@constants/attendanceTypes';
 
 const serviceName = 'attendanceBusinessService';
 
@@ -85,7 +86,6 @@ export const createAttendance = async (attendanceData, user = null) => {
       };
     }
     
-    // Validate status values
     const validStatuses = ['present', 'absent', 'late', 'excused'];
     if (!validStatuses.includes(attendanceData.status)) {
       return {
@@ -159,15 +159,12 @@ export const updateAttendance = async (id, updateData, user = null) => {
       };
     }
     
-    // Business rules for status changes
     if (updateData.status === 'present') {
-      // Auto-set check-in time if not provided
       if (!updateData.checkInTime) {
         updateData.checkInTime = new Date();
       }
     }
     
-    // Validate status if provided
     if (updateData.status) {
       const validStatuses = ['present', 'absent', 'late', 'excused'];
       if (!validStatuses.includes(updateData.status)) {
@@ -357,12 +354,12 @@ export const getAttendanceClassStats = async (classId, filters = {}) => {
       
       const stats = {
         total: attendances.length,
-        present: attendances.filter(a => a.status === 'present').length,
-        absent: attendances.filter(a => a.status === 'absent').length,
-        late: attendances.filter(a => a.status === 'late').length,
-        excused: attendances.filter(a => a.status === 'excused').length,
+        present: attendances.filter(a => a.status === ATTENDANCE_STATUS.PRESENT).length,
+        absent: attendances.filter(a => a.status === ATTENDANCE_STATUS.ABSENT_NO_EXCUSE).length,
+        late: attendances.filter(a => a.status === ATTENDANCE_STATUS.LATE).length,
+        excused: attendances.filter(a => a.status === ATTENDANCE_STATUS.EXCUSED_LEAVE).length,
         attendanceRate: attendances.length > 0 
-          ? (attendances.filter(a => a.status === 'present' || a.status === 'late').length / attendances.length) * 100 
+          ? (attendances.filter(a => a.status === ATTENDANCE_STATUS.PRESENT || a.status === ATTENDANCE_STATUS.LATE).length / attendances.length) * 100 
           : 0,
         uniqueStudents: [...new Set(attendances.map(a => a.userId))].length,
         uniqueDates: [...new Set(attendances.map(a => a.date))].length

@@ -335,6 +335,15 @@ export const updateWorkflowDocumentStatusController = async (req, res) => {
     const result = await updateStatus(parseInt(id), status, user.dbId, reason);
 
     if (result.success) {
+      if (global.chatWSBroadcast) {
+        global.chatWSBroadcast('board:workflow_updated', {
+          documentId: result.data.id,
+          status: result.data.status,
+          classId: result.data.classId,
+          date: result.data.date,
+          title: result.data.title,
+        });
+      }
       res.status(200).json({
         success: true,
         data: result.data
@@ -548,6 +557,15 @@ export const approveWorkflowDocumentController = async (req, res) => {
     const result = await updateStatus(parseInt(id), nextStatus, user.dbId, comment);
 
     if (result.success) {
+      if (global.chatWSBroadcast) {
+        global.chatWSBroadcast('board:workflow_updated', {
+          documentId: result.data.id,
+          status: result.data.status,
+          classId: result.data.classId,
+          date: result.data.date,
+          title: result.data.title,
+        });
+      }
       // Emit notification to submitter
       try {
         const approver = await prisma.user.findUnique({
@@ -711,6 +729,15 @@ export const rejectWorkflowDocumentController = async (req, res) => {
     const result = await updateStatus(parseInt(id), nextStatus, user.dbId, comment);
 
     if (result.success) {
+      if (global.chatWSBroadcast) {
+        global.chatWSBroadcast('board:workflow_updated', {
+          documentId: result.data.id,
+          status: result.data.status,
+          classId: result.data.classId,
+          date: result.data.date,
+          title: result.data.title,
+        });
+      }
       const notifyResults = [];
       // Emit notification to submitter
       try {
@@ -857,6 +884,15 @@ export const returnWorkflowDocumentController = async (req, res) => {
     const result = await updateStatus(parseInt(id), previousStatus, user.dbId, comment);
 
     if (result.success) {
+      if (global.chatWSBroadcast) {
+        global.chatWSBroadcast('board:workflow_updated', {
+          documentId: result.data.id,
+          status: result.data.status,
+          classId: result.data.classId,
+          date: result.data.date,
+          title: result.data.title,
+        });
+      }
       // Emit notification to submitter
       try {
         const returner = await prisma.user.findUnique({
@@ -958,6 +994,15 @@ export const resubmitWorkflowDocumentController = async (req, res) => {
     });
 
     if (result.success) {
+      if (global.chatWSBroadcast) {
+        global.chatWSBroadcast('board:workflow_updated', {
+          documentId: result.data.id,
+          status: result.data.status,
+          classId: result.data.classId,
+          date: result.data.date,
+          title: result.data.title,
+        });
+      }
       // Emit notification to HR users
       try {
         const submitter = await prisma.user.findUnique({

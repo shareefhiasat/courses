@@ -36,11 +36,14 @@ export const KanbanBoard = ({
     id,
   });
 
+  const isOpsLane = className?.includes?.('operations-board-lane');
+
   return (
     <div
       className={cn(
-        "flex size-full min-h-40 flex-col divide-y overflow-hidden rounded-md border bg-secondary text-xs shadow-sm ring-2 transition-all",
-        isOver ? "ring-primary" : "ring-transparent",
+        "flex size-full min-h-40 flex-col divide-y rounded-md border bg-transparent text-xs shadow-sm ring-2 transition-all",
+        isOpsLane ? "overflow-visible" : "overflow-hidden",
+        isOver ? "ring-purple-500 shadow-[0_0_12px_rgba(139,92,246,0.5)]" : "ring-transparent",
         className
       )}
       ref={setNodeRef}>
@@ -79,8 +82,8 @@ export const KanbanCard = (
       <div style={style} {...listeners} {...attributes} ref={setNodeRef}>
         <Card
           className={cn(
-            "cursor-grab gap-4 rounded-md p-3 shadow-sm",
-            isDragging && "pointer-events-none cursor-grabbing opacity-30",
+            "cursor-grab gap-4 rounded-md p-3 shadow-sm hover:shadow-[0_0_15px_rgba(139,92,246,0.4)] hover:border-purple-400/60 transition-shadow transition-[box-shadow,border-color]",
+            isDragging && "pointer-events-none cursor-grabbing opacity-30 ring-2 ring-purple-500/40",
             className
           )}>
           {children ?? <p className="m-0 font-medium text-sm">{name}</p>}
@@ -90,7 +93,7 @@ export const KanbanCard = (
         <t.In>
           <Card
             className={cn(
-              "cursor-grab gap-4 rounded-md p-3 shadow-sm ring-2 ring-primary",
+              "cursor-grab gap-4 rounded-md p-3 shadow-sm ring-2 ring-purple-500 shadow-[0_0_18px_rgba(139,92,246,0.55)] animate-pulse",
               isDragging && "cursor-grabbing",
               className
             )}>
@@ -116,7 +119,7 @@ export const KanbanCards = (
   return (
     <ScrollArea className="overflow-hidden">
       <SortableContext items={items}>
-        <div className={cn("flex flex-grow flex-col gap-2 p-2", className)} {...props}>
+        <div className={cn("flex flex-grow flex-col gap-1.5 p-2", className)} {...props}>
           {filteredData.map(children)}
         </div>
       </SortableContext>
@@ -186,14 +189,20 @@ export const KanbanProvider = (
       columns[0]?.id;
 
     if (activeColumn !== overColumn) {
-      let newData = [...data];
+      const newData = data.map((item) =>
+        item.id === active.id ? { ...item, column: overColumn } : item
+      );
       const activeIndex = newData.findIndex((item) => item.id === active.id);
       const overIndex = newData.findIndex((item) => item.id === over.id);
+      const reordered = arrayMove(newData, activeIndex, overIndex);
 
-      newData[activeIndex].column = overColumn;
-      newData = arrayMove(newData, activeIndex, overIndex);
-
-      onDataChange?.(newData);
+      onDataChange?.(reordered);
+    } else if (overItem && active.id !== over.id) {
+      // Same-column reorder: preserve user's freestyle ordering
+      const activeIndex = data.findIndex((item) => item.id === active.id);
+      const overIndex = data.findIndex((item) => item.id === over.id);
+      const reordered = arrayMove(data, activeIndex, overIndex);
+      onDataChange?.(reordered);
     }
 
     onDragOver?.(event);
@@ -210,14 +219,14 @@ export const KanbanProvider = (
       return;
     }
 
-    let newData = [...data];
-
-    const oldIndex = newData.findIndex((item) => item.id === active.id);
-    const newIndex = newData.findIndex((item) => item.id === over.id);
-
-    newData = arrayMove(newData, oldIndex, newIndex);
-
-    onDataChange?.(newData);
+    // Only do default data manipulation if no custom onDragEnd handler
+    if (!onDragEnd) {
+      let newData = [...data];
+      const oldIndex = newData.findIndex((item) => item.id === active.id);
+      const newIndex = newData.findIndex((item) => item.id === over.id);
+      newData = arrayMove(newData, oldIndex, newIndex);
+      onDataChange?.(newData);
+    }
   };
 
   const announcements = {
@@ -262,7 +271,7 @@ export const KanbanProvider = (
         sensors={sensors}
         {...props}>
         <div
-          className={cn("grid size-full auto-cols-fr grid-flow-col gap-4", className)}>
+          className={cn("grid size-full auto-cols-fr grid-flow-col gap-3", className)}>
           {columns.map((column) => children(column))}
         </div>
         {typeof window !== "undefined" &&

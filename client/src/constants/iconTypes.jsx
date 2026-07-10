@@ -16,7 +16,7 @@ import {
   // Academic Icons
   BookOpen, GraduationCap, Award, FileText, Database, Trophy, Gamepad2, Calculator,
   // Communication Icons
-  MessageSquare, MessageCircle, Bell, BellOff, Send, Phone, Mailbox, Megaphone, MailOpen, MousePointerClick, CornerDownLeft, Flag, ListFilter, Share,
+  MessageSquare, MessageCircle, Bell, BellOff, Send, Phone, Mailbox, Megaphone, MailOpen, MousePointerClick, CornerDownLeft, Flag, ListFilter, Share, Inbox,
   // Navigation Icons
   Home, Search, Filter, ChevronDown, ChevronUp, ChevronsUp, ChevronsUpDown, Link, Video, List, ExternalLink, Maximize, Square,
   // Time Icons
@@ -307,6 +307,7 @@ export const ICON_TYPES = {
     grip_vertical: <GripVertical size={16} />,
     zap: <Zap size={16} />,
     list: <List size={16} />,
+    inbox: <Inbox size={16} />,
     hash: <Hash size={16} />,
     document: <FileText size={16} />,
     bed: <Home size={16} />,

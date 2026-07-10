@@ -66,12 +66,13 @@ export async function initiateAttendanceWorkflow({
       const status = err.response?.status;
       const data = err.response?.data;
       if (status === 409) {
+        const existing = data?.existingDraft || data?.existingWorkflow || null;
         return {
           success: false,
           code: 409,
           error: data?.error || 'A workflow already exists for this scope',
-          existingDraft: data?.existingDraft || null,
-          existingDocument: data?.existingWorkflow || null,
+          existingDraft: existing,
+          existingDocument: existing,
         };
       }
       throw err;

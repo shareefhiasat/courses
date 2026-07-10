@@ -20,10 +20,8 @@ export const StatusIndicator = ({
     <span
       className={cn(
         "absolute inline-flex h-full w-full animate-ping rounded-full opacity-75",
-        "group-[.online]:bg-emerald-500",
         "group-[.offline]:bg-red-500",
-        "group-[.maintenance]:bg-blue-500",
-        "group-[.degraded]:bg-amber-500"
+        "group-[.pending]:bg-orange-500",
       )} />
     <span
       className={cn(
@@ -31,7 +29,8 @@ export const StatusIndicator = ({
         "group-[.online]:bg-emerald-500",
         "group-[.offline]:bg-red-500",
         "group-[.maintenance]:bg-blue-500",
-        "group-[.degraded]:bg-amber-500"
+        "group-[.degraded]:bg-amber-500",
+        "group-[.pending]:bg-orange-500"
       )} />
   </span>
 );
@@ -41,13 +40,21 @@ export const StatusLabel = ({
   children,
   ...props
 }) => (
-  <span className={cn("text-muted-foreground", className)} {...props}>
+  <span
+    className={cn(
+      "text-muted-foreground",
+      "group-[.pending]:text-orange-600 dark:group-[.pending]:text-orange-400",
+      className
+    )}
+    {...props}
+  >
     {children ?? (
       <>
         <span className="hidden group-[.online]:block">Online</span>
         <span className="hidden group-[.offline]:block">Offline</span>
         <span className="hidden group-[.maintenance]:block">Maintenance</span>
         <span className="hidden group-[.degraded]:block">Degraded</span>
+        <span className="hidden group-[.pending]:block">Pending</span>
       </>
     )}
   </span>

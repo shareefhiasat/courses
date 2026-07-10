@@ -906,6 +906,10 @@
   max-height: none;
 }
 
+.weeklyScheduleTable tbody:nth-of-type(n+2) tr:first-child td {
+  border-top: 2px solid #000;
+}
+
 .officialPageRtl .scheduleDataCell .scheduleCellInner {
   padding: 5px 5px 8px;
   line-height: 1.45;

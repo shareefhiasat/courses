@@ -60,6 +60,9 @@ export function extractWeeklyClassSessions(scheduleDays = []) {
         classId: slot.classId,
         subjectName: slot.subjectName || '—',
         sessionType: slot.sessionType || 'lecture',
+        instructor: slot.instructor || '',
+        room: slot.room || '',
+        classData: slot.class || null,
       });
     }
   }
@@ -112,6 +115,9 @@ export function buildClassCalendarEvents({
           subjectName: session.subjectName,
           slotKey: session.slotKey,
           sessionType: session.sessionType,
+          instructor: session.instructor || '',
+          room: session.room || '',
+          classData: session.classData || null,
         },
       });
     }

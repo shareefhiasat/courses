@@ -12,6 +12,7 @@
 import { info, error, warn, debug } from '../utils/logger.js';
 import attendanceDbService from '../db/attendanceDbService-postgres.js';
 import { formatForDateInput } from '@utils/date-formatter.js';
+import { ATTENDANCE_STATUS } from '@constants/attendanceTypes';
 
 const serviceName = 'attendanceService';
 
@@ -97,18 +98,18 @@ const createAttendance = async (attendanceData, user = null) => {
     // Map status strings to status codes (database uses codes, not IDs)
     let statusCode;
     const statusMap = {
-      'present': 'ATTENDANCE_PRESENT',
-      'late': 'ATTENDANCE_LATE',
-      'absent': 'ATTENDANCE_ABSENT',
-      'absent_no_excuse': 'ATTENDANCE_ABSENT',
-      'absent_with_excuse': 'ATTENDANCE_LEAVE',
-      'excused_leave': 'ATTENDANCE_LEAVE',
-      'human_case': 'ATTENDANCE_HUMAN_CASE',
-      'standup_present': 'STANDUP_PRESENT',
-      'standup_late': 'STANDUP_LATE',
-      'standup_absent': 'STANDUP_ABSENT',
-      'standup_excused': 'STANDUP_CLINIC',
-      'sick_leave': 'ATTENDANCE_LEAVE'
+      'present': ATTENDANCE_STATUS.PRESENT,
+      'late': ATTENDANCE_STATUS.LATE,
+      'absent': ATTENDANCE_STATUS.ABSENT_NO_EXCUSE,
+      'absent_no_excuse': ATTENDANCE_STATUS.ABSENT_NO_EXCUSE,
+      'absent_with_excuse': ATTENDANCE_STATUS.EXCUSED_LEAVE,
+      'excused_leave': ATTENDANCE_STATUS.EXCUSED_LEAVE,
+      'human_case': ATTENDANCE_STATUS.HUMAN_CASE,
+      'standup_present': ATTENDANCE_STATUS.STANDUP_PRESENT,
+      'standup_late': ATTENDANCE_STATUS.STANDUP_LATE,
+      'standup_absent': ATTENDANCE_STATUS.STANDUP_ABSENT,
+      'standup_excused': ATTENDANCE_STATUS.STANDUP_CLINIC,
+      'sick_leave': ATTENDANCE_STATUS.EXCUSED_LEAVE
     };
     
     statusCode = statusMap[attendanceData.status] || statusMap['present'];

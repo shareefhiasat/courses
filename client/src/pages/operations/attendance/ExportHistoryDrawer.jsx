@@ -204,6 +204,44 @@ function ExportEntryRow({
           <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--muted)' }}>
             {formatTime(entry.createdAt, lang)}
           </span>
+          {entry.user && (
+            <span
+              style={{
+                fontSize: 'var(--font-size-xs)',
+                color: 'var(--muted)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+              }}
+              title={entry.user?.displayName || entry.user?.email}
+            >
+              {entry.user?.profileImageUrl ? (
+                <img
+                  src={entry.user.profileImageUrl}
+                  alt=""
+                  style={{ width: 14, height: 14, borderRadius: '50%', objectFit: 'cover' }}
+                />
+              ) : (
+                <span
+                  style={{
+                    width: 14,
+                    height: 14,
+                    borderRadius: '50%',
+                    background: getUserRoleColor(resolveUserRole(entry.user)),
+                    color: '#fff',
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: 8,
+                    fontWeight: 700,
+                  }}
+                >
+                  {getInitials(entry.user?.displayName || entry.user?.email)}
+                </span>
+              )}
+              {entry.user?.displayName || entry.user?.email}
+            </span>
+          )}
           {entry.reportDate && (
             <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--muted)' }}>
               | {entry.reportDate}
@@ -230,13 +268,16 @@ function ExportEntryRow({
               background: 'transparent',
               border: '1px solid var(--border)',
               borderRadius: 6,
-              padding: '4px 8px',
-              fontSize: 'var(--font-size-xs)',
+              width: 28,
+              height: 28,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
               cursor: opening ? 'wait' : 'pointer',
               color: 'var(--text)',
             }}
           >
-            {t('export_view_file')}
+            {getThemedIcon('ui', 'eye', 15, 'currentColor')}
           </button>
           <button
             type="button"
@@ -247,8 +288,11 @@ function ExportEntryRow({
               background: 'transparent',
               border: '1px solid var(--border)',
               borderRadius: 6,
-              padding: '4px 8px',
-              fontSize: 'var(--font-size-xs)',
+              width: 28,
+              height: 28,
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
               cursor: opening ? 'wait' : 'pointer',
               color: 'var(--text)',
             }}
@@ -262,18 +306,17 @@ function ExportEntryRow({
             style={{
               display: 'inline-flex',
               alignItems: 'center',
-              gap: 4,
+              justifyContent: 'center',
+              width: 28,
+              height: 28,
               background: 'transparent',
               border: '1px solid var(--border)',
               borderRadius: 6,
-              padding: '4px 8px',
-              fontSize: 'var(--font-size-xs)',
               cursor: 'pointer',
               color: 'var(--color-primary, #2563eb)',
             }}
           >
-            {getThemedIcon('ui', 'external_link', 14, 'currentColor')}
-            Drive
+            {getThemedIcon('ui', 'external_link', 15, 'currentColor')}
           </button>
         </div>
       )}

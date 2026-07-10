@@ -15,7 +15,7 @@ export async function filterQuizzesByScope(req, quizzes = []) {
   const quizIds = quizzes.map((q) => q.id);
   const activities = await prisma.activity.findMany({
     where: { quizId: { in: quizIds } },
-    select: { quizId: true, classId: true, subjectId: true, programId: true, categoryId: true },
+    select: { quizId: true, classId: true },
   });
 
   const allowedQuizIds = new Set();

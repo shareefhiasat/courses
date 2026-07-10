@@ -110,7 +110,7 @@ export function prepareWeeklyScheduleData({
     rowLabels: {
       subject: isAr ? 'المادة' : 'Subject',
       time: isAr ? 'الزمن' : 'Time',
-      instructor: isAr ? 'الأستاذ' : 'Instructor',
+      instructor: isAr ? 'الأستاذ' : 'Teacher',
       room: isAr ? 'القاعة' : 'Room',
     },
     days,

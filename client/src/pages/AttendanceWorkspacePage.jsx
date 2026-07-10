@@ -358,9 +358,6 @@ const AttendanceWorkspacePage = () => {
           />
         )}
 
-        <p style={{ fontSize: '12px', color: isDark ? '#64748b' : '#94a3b8', marginTop: '16px', textAlign: 'center' }}>
-          {isInstructor ? t('workspace_schedule_hint') : t('workspace_schedule_hint_admin')}
-        </p>
       </div>
 
       <WorkspaceActionFab actions={fabActions} />

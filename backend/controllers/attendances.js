@@ -6,6 +6,8 @@
  */
 
 import { attendanceService } from '../services/attendanceService.js';
+import prisma from '../db/prismaClient.js';
+import { ATTENDANCE_STATUS_CODES } from '../constants/attendanceConstants.js';
 import {
   getRequestScope,
   filterRecordsByScope,
@@ -262,18 +264,49 @@ export const getClassAttendanceStats = async (req, res) => {
     const access = await assertClassInScope(req, classId);
     if (!access.ok) return scopeForbidden(res);
 
-    const stats = {
-      total: 0,
-      present: 0,
-      absent: 0,
-      late: 0,
-      excused: 0,
-      percentage: 0,
+    const records = await prisma.attendance.findMany({
+      where: { classId: parseInt(classId, 10) },
+      select: {
+        userId: true,
+        status: { select: { code: true } },
+      },
+    });
+
+    const studentStats = {};
+    const classTotals = { present: 0, late: 0, absent: 0, excused: 0, total: 0 };
+
+    const STATUS_MAP = {
+      [ATTENDANCE_STATUS_CODES.PRESENT]: 'present',
+      [ATTENDANCE_STATUS_CODES.LATE]: 'late',
+      [ATTENDANCE_STATUS_CODES.ABSENT]: 'absent',
+      [ATTENDANCE_STATUS_CODES.LEAVE]: 'excused',
+      [ATTENDANCE_STATUS_CODES.HUMAN_CASE]: 'excused',
     };
+
+    for (const rec of records) {
+      const uid = String(rec.userId);
+      if (!studentStats[uid]) {
+        studentStats[uid] = { present: 0, late: 0, absent: 0, excused: 0, total: 0 };
+      }
+      const category = STATUS_MAP[rec.status?.code];
+      if (category) {
+        studentStats[uid][category]++;
+        classTotals[category]++;
+        studentStats[uid].total++;
+        classTotals.total++;
+      }
+    }
+
+    const percentage = classTotals.total > 0
+      ? Math.round((classTotals.present / classTotals.total) * 100)
+      : 0;
 
     res.json({
       success: true,
-      data: stats,
+      data: {
+        classTotals: { ...classTotals, percentage },
+        students: studentStats,
+      },
       message: 'Class attendance statistics retrieved successfully',
     });
   } catch (error) {

@@ -2442,6 +2442,7 @@ const QRScannerPage = () => {
 
   // Export Daily Report function
   const exportDailyReport = useCallback(async () => {
+    if (isExporting) return;
     // Validate based on attendance mode
     if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
       if (!selectedProgramId || selectedProgramId === 'all') {
@@ -3033,9 +3034,10 @@ const QRScannerPage = () => {
       // Reset loading state
       setIsExporting(false);
     }
-  }, [selectedClassId, selectedDate, selectedProgramId, selectedSubjectId, programs, subjects, classes, lang, t, dailyExportFormat, dailyEmailRecipients, user, availableUsers, showError, showSuccess, attendanceMode]);
+  }, [selectedClassId, selectedDate, selectedProgramId, selectedSubjectId, programs, subjects, classes, lang, t, dailyExportFormat, dailyEmailRecipients, user, availableUsers, showError, showSuccess, attendanceMode, isExporting]);
 
   const exportDailyOfficial = useCallback(async () => {
+    if (isExporting) return;
     const isStandup = attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP;
     if (isStandup) {
       if (!selectedProgramId || selectedProgramId === 'all') {
@@ -3189,6 +3191,7 @@ const QRScannerPage = () => {
     showSuccess,
     classes,
     availableUsers,
+    isExporting,
   ]);
 
   

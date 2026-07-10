@@ -76,6 +76,12 @@ class ChatSocket {
             case 'chat:poll_vote':
               this.emit('poll_vote', message.data);
               break;
+            case 'board:attendance_updated':
+              this.emit('board:attendance_updated', message.data);
+              break;
+            case 'board:workflow_updated':
+              this.emit('board:workflow_updated', message.data);
+              break;
             case 'pong':
               // Keepalive response
               break;
@@ -87,28 +93,23 @@ class ChatSocket {
         }
       };
 
-      this.ws.onerror = (err) => {
-        error('[chatSocket] WebSocket error:', err);
-        this.emit('error', err);
+      this.ws.onerror = () => {
+        this.emit('error', new Error('WebSocket connection failed'));
       };
 
-      this.ws.onclose = (event) => {
-        info('[chatSocket] Disconnected:', event.code, event.reason);
+      this.ws.onclose = () => {
         this.connected = false;
         this.connecting = false;
         this.emit('disconnected');
 
-        // Attempt to reconnect
+        // Attempt to reconnect with capped backoff
         if (this.reconnectAttempts < this.maxReconnectAttempts) {
-          const delay = this.reconnectDelay * Math.pow(2, this.reconnectAttempts);
-          info(`[chatSocket] Reconnecting in ${delay}ms (attempt ${this.reconnectAttempts + 1}/${this.maxReconnectAttempts})`);
+          const delay = Math.min(this.reconnectDelay * Math.pow(2, this.reconnectAttempts), 30000);
           
           setTimeout(() => {
             this.reconnectAttempts++;
             this.connect(this.token);
           }, delay);
-        } else {
-          error('[chatSocket] Max reconnect attempts reached');
         }
       };
 
@@ -120,7 +121,6 @@ class ChatSocket {
       }, 30000); // Every 30 seconds
 
     } catch (err) {
-      error('[chatSocket] Connection error:', err);
       this.connecting = false;
       this.emit('error', err);
     }

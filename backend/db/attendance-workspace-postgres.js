@@ -400,7 +400,20 @@ export const getScheduleStatus = async ({ classIds, date }) => {
           id: true,
           classId: true,
           statusId: true,
+          createdAt: true,
+          createdBy: true,
           status: { select: { code: true, nameEn: true } },
+          creator: {
+            select: {
+              displayName: true,
+              displayNameAr: true,
+              firstName: true,
+              lastName: true,
+              firstNameAr: true,
+              lastNameAr: true,
+              email: true,
+            },
+          },
         },
       }),
       prisma.workflowDocument.findMany({
@@ -414,6 +427,28 @@ export const getScheduleStatus = async ({ classIds, date }) => {
           id: true,
           classId: true,
           status: true,
+          updatedAt: true,
+          statusHistory: {
+            orderBy: { createdAt: 'desc' },
+            select: {
+              id: true,
+              fromStatus: true,
+              toStatus: true,
+              createdAt: true,
+              actor: {
+                select: {
+                  id: true,
+                  displayName: true,
+                  displayNameAr: true,
+                  firstName: true,
+                  lastName: true,
+                  firstNameAr: true,
+                  lastNameAr: true,
+                  email: true,
+                },
+              },
+            },
+          },
         },
       }),
     ]);
@@ -421,6 +456,19 @@ export const getScheduleStatus = async ({ classIds, date }) => {
     const presentCodes = new Set(['PRESENT', 'P', 'LATE', 'L']);
     const lateCodes = new Set(['LATE', 'L']);
     const absentCodes = new Set(['ABSENT', 'A', 'ABSENT_EXCUSED', 'ABSENT_UNEXCUSED']);
+
+    const resolveUserName = (user) => {
+      if (!user) return { actorNameEn: null, actorNameAr: null };
+      return {
+        actorNameEn: user.displayName
+          || [user.firstName, user.lastName].filter(Boolean).join(' ')
+          || user.email
+          || null,
+        actorNameAr: user.displayNameAr
+          || [user.firstNameAr, user.lastNameAr].filter(Boolean).join(' ')
+          || null,
+      };
+    };
 
     const statusMap = {};
     for (const id of ids) {
@@ -438,6 +486,29 @@ export const getScheduleStatus = async ({ classIds, date }) => {
         else if (absentCodes.has(code)) absentCount += 1;
       }
 
+      let statusHistory = (classWorkflow?.statusHistory || []).map((entry) => {
+        const names = resolveUserName(entry.actor);
+        return {
+          fromStatus: entry.fromStatus,
+          toStatus: entry.toStatus,
+          createdAt: entry.createdAt,
+          ...names,
+        };
+      });
+
+      if (statusHistory.length === 0 && classAttendances.length > 0) {
+        const firstTaken = [...classAttendances].sort(
+          (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
+        )[0];
+        const names = resolveUserName(firstTaken?.creator);
+        statusHistory = [{
+          fromStatus: null,
+          toStatus: 'TAKEN',
+          createdAt: firstTaken.createdAt,
+          ...names,
+        }];
+      }
+
       statusMap[id] = {
         hasAttendance: classAttendances.length > 0,
         attendanceCount: classAttendances.length,
@@ -446,6 +517,7 @@ export const getScheduleStatus = async ({ classIds, date }) => {
         absentCount,
         workflowStatus: classWorkflow?.status || null,
         workflowDocumentId: classWorkflow?.id || null,
+        statusHistory,
       };
     }
 

@@ -1020,18 +1020,7 @@ const ChatPage = memo(() => {
     fetchUsers();
   }, []);
   
-  // Initialize chat WebSocket connection on mount
-  useEffect(() => {
-    const token = localStorage.getItem('keycloak_token');
-    if (token) {
-      chatService.initializeChatService(token);
-    }
-    // Don't disconnect on cleanup - React strict mode double-invokes effects
-    // The socket has its own reconnection logic
-    return () => {
-      // Only disconnect if page is truly unmounting (not strict mode re-mount)
-    };
-  }, []);
+  // WebSocket connection is now initialized at app level in App.jsx
   
   // Load/Reload messages when destination changes, ensuring previous listener is cleaned up
   useEffect(() => {

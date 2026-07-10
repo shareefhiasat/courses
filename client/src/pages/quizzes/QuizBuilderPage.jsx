@@ -844,24 +844,20 @@ export default function QuizBuilderPage() {
                     onDragStart={(e) => {
                       e.dataTransfer.effectAllowed = 'move';
                       e.dataTransfer.setData('text/plain', index.toString());
-                      e.currentTarget.style.opacity = '0.5';
-                    }}
-                    onDragEnd={(e) => {
-                      e.currentTarget.style.opacity = '1';
                     }}
                     onDragOver={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
                       e.dataTransfer.dropEffect = 'move';
-                      e.currentTarget.style.borderTop = '3px solid var(--color-primary, #800020)';
+                      e.currentTarget.style.boxShadow = '0 0 15px rgba(139, 92, 246, 0.5), 0 0 30px rgba(168, 85, 247, 0.3), inset 0 0 0 3px rgba(139, 92, 246, 0.3)';
                     }}
                     onDragLeave={(e) => {
-                      e.currentTarget.style.borderTop = '';
+                      e.currentTarget.style.boxShadow = '';
                     }}
                     onDrop={(e) => {
                       e.preventDefault();
                       e.stopPropagation();
-                      e.currentTarget.style.borderTop = '';
+                      e.currentTarget.style.boxShadow = '';
                       const draggedIndex = parseInt(e.dataTransfer.getData('text/plain'), 10);
                       const targetIndex = index;
                       if (draggedIndex !== targetIndex && !isNaN(draggedIndex)) {

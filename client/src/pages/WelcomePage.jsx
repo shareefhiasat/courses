@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
+import Joyride from 'react-joyride';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
@@ -17,7 +18,7 @@ import {
   Tabs, Tab, Box, Paper, Snackbar, Alert, LinearProgress,
   CircularProgress,
 } from '@mui/material';
-import Joyride from 'react-joyride';
+import DatePicker from '@components/ui/DatePicker/DatePicker';
 import { getScheduleStatus, getInstructorPrograms, getAllPrograms, getProgramTerms } from '@services/business/attendanceWorkspaceService';
 import { loadWeeklyScheduleSources } from '@services/business/weeklyScheduleExportService';
 import { prepareWeeklyScheduleData } from '@services/export/official-reports/engine/prepareWeeklyScheduleData';
@@ -57,7 +58,7 @@ const WelcomePage = () => {
   const [inboxOutboxOpen, setInboxOutboxOpen] = useState(false);
   const [inboxClassId, setInboxClassId] = useState(null);
   const [inboxInitialTab, setInboxInitialTab] = useState('inbox');
-  const [historyState, setHistoryState] = useState({ open: false, classInfo: null, date: null });
+  const [historyState, setHistoryState] = useState({ open: false, classInfo: null, date: null, initialTab: null });
 
   const instructorId = user?.dbId;
   const canInteractAll = isAdmin || isSuperAdmin || isHR;
@@ -69,6 +70,7 @@ const WelcomePage = () => {
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info', progress: null });
   const [runJoyride, setRunJoyride] = useState(false);
   const [contextSwitcherOpen, setContextSwitcherOpen] = useState(false);
+  const [autoSelecting, setAutoSelecting] = useState(false);
 
   const visibleTabs = useMemo(() => {
     const tabs = ['schedule', 'overview'];
@@ -128,14 +130,21 @@ const WelcomePage = () => {
     });
   }, [setSearchParams]);
 
-  const [scheduleFontScale, setScheduleFontScale] = useState(SCHEDULE_FONT_SCALE_DEFAULT);
+  const [scheduleFontScale, setScheduleFontScale] = useState(() => {
+    try {
+      const saved = localStorage.getItem('scheduleFontScale');
+      return saved ? clampScheduleFontScale(parseInt(saved, 10)) : SCHEDULE_FONT_SCALE_DEFAULT;
+    } catch { return SCHEDULE_FONT_SCALE_DEFAULT; }
+  });
 
   const handleScheduleFontScaleChange = useCallback((value) => {
-    setScheduleFontScale(clampScheduleFontScale(value));
+    const clamped = clampScheduleFontScale(value);
+    setScheduleFontScale(clamped);
+    try { localStorage.setItem('scheduleFontScale', String(clamped)); } catch {}
   }, []);
 
   useEffect(() => {
-    const showFontSlider = showSchedule && tabParam === 'schedule';
+    const showFontSlider = (showSchedule && tabParam === 'schedule') || tabParam === 'operations';
     window.dispatchEvent(new CustomEvent('welcome-schedule-font', {
       detail: showFontSlider
         ? {
@@ -194,14 +203,16 @@ const WelcomePage = () => {
     const autoSelect = async () => {
       // If we already have a selection with both program and term, keep it
       if (selection?.program && selection?.academicTerm) return;
+      setAutoSelecting(true);
       try {
         const progResult = isInstructor ? await getInstructorPrograms() : await getAllPrograms();
-        if (!progResult.success || !progResult.data?.length) return;
+        if (!progResult.success || !progResult.data?.length) { setAutoSelecting(false); return; }
         const firstProgram = progResult.data[0];
         const termResult = await getProgramTerms(firstProgram.id, { all: isAdmin || isSuperAdmin });
         if (!termResult.success || !termResult.data?.length) {
           persistSelection({ program: firstProgram });
           setSearchParams({ programId: String(firstProgram.id) });
+          setAutoSelecting(false);
           return;
         }
         const activeTerm = termResult.data.find((t) => t.isActive) || termResult.data[0];
@@ -209,6 +220,8 @@ const WelcomePage = () => {
         setSearchParams({ programId: String(firstProgram.id), termId: String(activeTerm.id) });
       } catch {
         // ignore — fall back to wizard
+      } finally {
+        setAutoSelecting(false);
       }
     };
     autoSelect();
@@ -310,12 +323,12 @@ const WelcomePage = () => {
       ? (lang === 'ar' && selection.academicTerm.nameAr ? selection.academicTerm.nameAr : selection.academicTerm.nameEn)
       : null;
     window.dispatchEvent(new CustomEvent('welcome-wizard-nav', {
-      detail: { programName, termLabel },
+      detail: { programName, termLabel, workingDate: selectedDate },
     }));
     return () => {
       window.dispatchEvent(new CustomEvent('welcome-wizard-nav', { detail: null }));
     };
-  }, [selection, lang]);
+  }, [selection, lang, selectedDate]);
 
   // Load schedule data when program and term are selected
   useEffect(() => {
@@ -434,8 +447,8 @@ const WelcomePage = () => {
     setInboxOutboxOpen(true);
   }, []);
 
-  const handleOpenHistory = useCallback((classInfo, date) => {
-    setHistoryState({ open: true, classInfo, date });
+  const handleOpenHistory = useCallback((classInfo, date, initialTab = null) => {
+    setHistoryState({ open: true, classInfo, date, initialTab });
   }, []);
 
   const handleExportWeeklySchedule = useCallback(async (format) => {
@@ -583,9 +596,9 @@ const WelcomePage = () => {
         background: pageBg,
         display: 'flex',
         flexDirection: 'column',
-        alignItems: 'center',
+        alignItems: showSchedule ? 'stretch' : 'center',
         padding: showSchedule && !scheduleExpanded && !(boardExpanded && tabParam === 'operations')
-          ? '0 8px 8px'
+          ? '0 4px 4px'
           : (scheduleExpanded || (boardExpanded && tabParam === 'operations'))
             ? 0
             : '0 16px 48px',
@@ -601,7 +614,15 @@ const WelcomePage = () => {
           run={runJoyride}
           continuous
           showSkipButton
+          showBackButton
           showProgress
+          locale={{
+            back: t('tour_back') || 'Back',
+            close: t('tour_close') || 'Close',
+            last: t('tour_done') || 'Done',
+            next: t('tour_next') || 'Next',
+            skip: t('tour_skip') || 'Skip',
+          }}
           callback={(data) => {
             if (data.status === 'finished' || data.status === 'skipped') {
               setRunJoyride(false);
@@ -615,19 +636,32 @@ const WelcomePage = () => {
               backgroundColor: isDark ? '#1e293b' : '#fff',
               textColor: isDark ? '#f1f5f9' : '#0f172a',
               overlayColor: 'rgba(0, 0, 0, 0.5)',
+              primaryColor: '#8b5cf6',
+            },
+            buttonBack: {
+              color: isDark ? '#94a3b8' : '#64748b',
+            },
+            buttonSkip: {
+              color: isDark ? '#94a3b8' : '#64748b',
+            },
+            buttonNext: {
+              backgroundColor: '#8b5cf6',
+            },
+            buttonClose: {
+              color: isDark ? '#94a3b8' : '#64748b',
             },
           }}
         />
       )}
 
-      {!selection?.program && <WelcomeHeader user={user} role={effectiveRole} />}
+      {!selection?.program && !autoSelecting && <WelcomeHeader user={user} role={effectiveRole} />}
 
       {/* Selection flow */}
       <div
         className="selection-section"
         style={{
           width: '100%',
-          maxWidth: '1200px',
+          maxWidth: showSchedule ? 'none' : '1200px',
           marginTop: 0,
           flex: selection?.program && selection?.academicTerm ? 1 : undefined,
           display: 'flex',
@@ -636,7 +670,13 @@ const WelcomePage = () => {
           animation: 'fadeInDown 0.3s ease',
         }}
       >
-        {!selection?.program && (
+        {autoSelecting && !selection?.program && (
+          <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', flex: 1, py: 8 }}>
+            <CircularProgress size={32} />
+          </Box>
+        )}
+
+        {!autoSelecting && !selection?.program && (
           <ProgramTermSelector onSelect={handleProgramSelect} />
         )}
 
@@ -669,14 +709,25 @@ const WelcomePage = () => {
               display: 'flex',
               flexDirection: 'column',
               minHeight: 0,
+              width: '100%',
             }}
           >
-            <Box sx={{ borderBottom: 1, borderColor: 'divider', flexShrink: 0, mb: 1 }}>
+            <Box sx={{ borderBottom: 1, borderColor: 'divider', flexShrink: 0, mb: 1, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
               <Tabs
                 value={activeTab}
                 onChange={handleTabChange}
                 variant="standard"
-                sx={{ minHeight: 40, '& .MuiTab-root': { minHeight: 40, textTransform: 'none' } }}
+                sx={{
+                  flex: 1,
+                  minHeight: 40,
+                  '& .MuiTab-root': { minHeight: 40, textTransform: 'none' },
+                  '& .MuiTab-root:focus, & .MuiTab-root:focus-visible': {
+                    outline: 'none',
+                    boxShadow: 'none',
+                  },
+                  '& .MuiTab-root.Mui-selected': { color: '#3b82f6' },
+                  '& .MuiTabs-indicator': { backgroundColor: '#3b82f6' },
+                }}
               >
                 <Tab label={t('welcome_tab_schedule') || 'Schedule'} />
                 <Tab label={t('welcome_tab_overview') || 'Overview'} />
@@ -684,6 +735,21 @@ const WelcomePage = () => {
                   <Tab label={t('welcome_tab_operations') || 'Operations'} />
                 )}
               </Tabs>
+              {showSchedule && (
+                <DatePicker
+                  value={selectedDate.toISOString().slice(0, 10)}
+                  onChange={(value) => {
+                    const iso = typeof value === 'string' ? value : value?.toISOString?.()?.slice(0, 10);
+                    if (iso) setSelectedDate(new Date(`${iso}T12:00:00`));
+                  }}
+                  theme={isDark ? 'dark' : 'light'}
+                  showIcon
+                  compact
+                  className="welcome-working-date-picker"
+                  data-testid="welcome-working-date"
+                  style={{ width: 118, flexShrink: 0 }}
+                />
+              )}
             </Box>
 
             {tabParam === 'schedule' && (
@@ -713,7 +779,7 @@ const WelcomePage = () => {
                       onDateChange={setSelectedDate}
                       compact
                       fillHeight
-                      fillWidth={scheduleExpanded}
+                      fillWidth
                       fontScale={scheduleFontScale}
                       expanded={scheduleExpanded}
                       onToggleExpand={handleToggleScheduleExpand}
@@ -732,19 +798,6 @@ const WelcomePage = () => {
                   </div>
                 )}
 
-                {!scheduleExpanded && (
-                <p
-                  style={{
-                    fontSize: '11px',
-                    color: isDark ? '#64748b' : '#94a3b8',
-                    marginTop: '8px',
-                    textAlign: 'center',
-                    flexShrink: 0,
-                  }}
-                >
-                  {isInstructor ? t('workspace_schedule_hint') : t('workspace_schedule_hint_admin')}
-                </p>
-                )}
               </div>
             )}
 
@@ -788,6 +841,9 @@ const WelcomePage = () => {
                       expanded={boardExpanded}
                       onToggleExpand={handleToggleBoardExpand}
                       welcomeContext={welcomeBoardContext}
+                      fontScale={scheduleFontScale}
+                      onOpenHistory={handleOpenHistory}
+                      onDateChange={setSelectedDate}
                     />
                   </Suspense>
                 </div>
@@ -798,7 +854,7 @@ const WelcomePage = () => {
       </div>
 
       {/* Footer link — only when no selection */}
-      {!selection?.program && (
+      {!selection?.program && !autoSelecting && (
         <button
           type="button"
           onClick={() => navigate('/', { replace: true })}
@@ -831,9 +887,10 @@ const WelcomePage = () => {
 
       <ClassHistoryDrawer
         isOpen={historyState.open}
-        onClose={() => setHistoryState({ open: false, classInfo: null, date: null })}
+        onClose={() => setHistoryState({ open: false, classInfo: null, date: null, initialTab: null })}
         classInfo={historyState.classInfo}
         date={historyState.date || selectedDate}
+        initialTab={historyState.initialTab}
       />
 
       <InboxOutboxDrawer
@@ -876,6 +933,13 @@ const WelcomePage = () => {
       </Snackbar>
 
       <style>{`
+        .welcome-working-date-picker input {
+          color: #2563eb !important;
+          border-color: rgba(59, 130, 246, 0.45) !important;
+        }
+        .welcome-working-date-picker svg {
+          color: #3b82f6 !important;
+        }
         @keyframes fadeInDown {
           from { opacity: 0; transform: translateY(-12px); }
           to { opacity: 1; transform: translateY(0); }

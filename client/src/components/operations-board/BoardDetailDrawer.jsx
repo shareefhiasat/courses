@@ -8,6 +8,7 @@ import {
 } from '@/components/kibo/ui/dialog';
 import { Button } from '@/components/kibo/ui/button';
 import { Badge } from '@/components/kibo/ui/badge';
+import { Status, StatusIndicator, StatusLabel } from '@/components/kibo-ui/status';
 import { ScrollArea } from '@/components/kibo/ui/scroll-area';
 import { Input } from '@/components/kibo/ui/input';
 import { Box, Tab, Tabs, TextField } from '@mui/material';
@@ -27,6 +28,43 @@ import {
   resolveBoardClassName,
   resolveBoardStudentName,
 } from './operationsBoardDisplayUtils.js';
+import { formatDateTime } from '@utils/date-formatter.js';
+import { ATTENDANCE_BOARD_COLORS } from '@constants/workspaceStatusColors.js';
+
+const ATTENDANCE_STATUS_CLASS = {
+  PRESENT: 'online',
+  LATE: 'degraded',
+  ABSENT: 'offline',
+  EXCUSED: 'maintenance',
+  HUMAN_CASE: 'degraded',
+  NOT_TAKEN: 'pending',
+};
+
+const STATUS_COLOR_MAP = {
+  'PRESENT': ATTENDANCE_BOARD_COLORS.PRESENT,
+  'ATTENDANCE_PRESENT': ATTENDANCE_BOARD_COLORS.PRESENT,
+  'LATE': ATTENDANCE_BOARD_COLORS.LATE,
+  'ATTENDANCE_LATE': ATTENDANCE_BOARD_COLORS.LATE,
+  'ABSENT': ATTENDANCE_BOARD_COLORS.ABSENT,
+  'ATTENDANCE_ABSENT': ATTENDANCE_BOARD_COLORS.ABSENT,
+  'EXCUSED': ATTENDANCE_BOARD_COLORS.EXCUSED,
+  'ATTENDANCE_LEAVE': ATTENDANCE_BOARD_COLORS.EXCUSED,
+  'HUMAN_CASE': ATTENDANCE_BOARD_COLORS.HUMAN_CASE,
+  'ATTENDANCE_HUMAN_CASE': ATTENDANCE_BOARD_COLORS.HUMAN_CASE,
+  'NOT_TAKEN': ATTENDANCE_BOARD_COLORS.NOT_TAKEN,
+};
+
+function statusColor(value) {
+  if (!value) return null;
+  const key = typeof value === 'object' ? (value.code || value.nameEn || '') : String(value);
+  return STATUS_COLOR_MAP[String(key).toUpperCase().trim()] || null;
+}
+
+function shortStatus(value) {
+  if (!value) return '—';
+  if (typeof value === 'object') return value.nameEn || value.code || '—';
+  return String(value).replace(/^ATTENDANCE_/, '');
+}
 
 export default function BoardDetailDrawer({ open, onOpenChange, card, lane, onRefresh }) {
   const { t, lang } = useLang();
@@ -133,28 +171,34 @@ export default function BoardDetailDrawer({ open, onOpenChange, card, lane, onRe
   const className = resolveBoardClassName(card, lang);
 
   const activityEntries = [
-    ...history.map((h) => ({
-      type: 'status',
-      actor: h.actor?.displayName || h.changedByUser?.displayName || t('operations_board_system_actor'),
-      from: h.fromStatus || h.fromStatus?.nameEn || h.oldStatus,
-      to: h.toStatus || h.toStatus?.nameEn || h.newStatus,
-      at: h.createdAt || h.changedAt,
-      reason: h.reason || h.comment,
-      profileImageUrl: h.actor?.profileImageUrl || h.changedByUser?.profileImageUrl,
-    })),
+    ...history.map((h) => {
+      const fromRaw = h.fromStatus || h.fromStatus?.nameEn || h.oldStatus;
+      const toRaw = h.toStatus || h.toStatus?.nameEn || h.newStatus;
+      const actorName = h.actor?.displayName || h.changedByUser?.displayName;
+      return {
+        type: 'status',
+        actor: actorName || t('operations_board_system_actor'),
+        isSystem: !actorName,
+        from: shortStatus(fromRaw),
+        to: shortStatus(toRaw),
+        fromColor: statusColor(fromRaw),
+        toColor: statusColor(toRaw),
+        at: h.createdAt || h.changedAt,
+        reason: h.reason || h.comment,
+        profileImageUrl: h.actor?.profileImageUrl || h.changedByUser?.profileImageUrl,
+      };
+    }),
     ...comments.map((c) => ({
       type: 'comment',
       actor: c.author?.displayName || c.authorName || t('operations_board_unknown_user'),
+      isSystem: false,
       text: c.comment || c.text,
       at: c.createdAt,
       profileImageUrl: c.author?.profileImageUrl,
     })),
   ].sort((a, b) => new Date(b.at || 0) - new Date(a.at || 0));
 
-  const dateFormatter = new Intl.DateTimeFormat(lang === 'ar' ? 'ar-SA' : 'en-US', {
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  });
+  // Prefer formatDateTime for consistent DD/MM/YYYY, hh:mm a formatting
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -174,9 +218,24 @@ export default function BoardDetailDrawer({ open, onOpenChange, card, lane, onRe
                 <Badge
                   variant="outline"
                   style={statusColumn ? { borderColor: statusColumn.color, color: statusColumn.color } : undefined}
+                  className="sm:hidden"
                 >
                   {statusLabel}
                 </Badge>
+                {card.type === 'attendance' && statusColumn ? (
+                  <Status status={ATTENDANCE_STATUS_CLASS[card.column] || 'offline'} className="w-fit">
+                    <StatusIndicator />
+                    <StatusLabel>{statusLabel}</StatusLabel>
+                  </Status>
+                ) : (
+                  <Badge
+                    variant="outline"
+                    style={statusColumn ? { borderColor: statusColumn.color, color: statusColumn.color } : undefined}
+                    className="hidden sm:inline-flex"
+                  >
+                    {statusLabel}
+                  </Badge>
+                )}
               </DialogTitle>
               <DialogDescription className="mt-1">
                 {card.type === 'workflow' ? t('operations_board_workflow') : t('operations_board_attendance')}
@@ -258,22 +317,26 @@ export default function BoardDetailDrawer({ open, onOpenChange, card, lane, onRe
                         profileImageUrl={entry.profileImageUrl}
                         size="md"
                       />
-                      <div className="flex-1 rounded-lg border border-border bg-muted/20 p-3 text-sm">
-                        <div className="flex flex-wrap items-center justify-between gap-2">
-                          <span className="font-medium">{entry.actor}</span>
+                      <div className="flex-1 rounded-lg border border-border bg-muted/20 p-2.5 text-sm">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {entry.type === 'status' && (
+                            <span className="inline-flex items-center gap-1 shrink-0">
+                              <span style={{ color: entry.fromColor || undefined, fontWeight: 600 }}>{entry.from || '—'}</span>
+                              <span className="text-muted-foreground">→</span>
+                              <span style={{ color: entry.toColor || undefined, fontWeight: 600 }}>{entry.to || '—'}</span>
+                            </span>
+                          )}
+                          <span className="font-medium" style={entry.isSystem ? { color: 'var(--text-muted, #64748b)' } : undefined}>
+                            {entry.actor}
+                          </span>
                           {entry.at && (
-                            <span className="text-xs text-muted-foreground">
-                              {dateFormatter.format(new Date(entry.at))}
+                            <span className="text-xs text-muted-foreground ml-auto">
+                              {formatDateTime(entry.at, lang)}
                             </span>
                           )}
                         </div>
-                        {entry.type === 'status' && (
-                          <p className="mt-1 text-muted-foreground">
-                            {entry.from || '—'} → {entry.to || '—'}
-                          </p>
-                        )}
                         {entry.text && <p className="mt-1">{entry.text}</p>}
-                        {entry.reason && <p className="mt-1 text-muted-foreground">{entry.reason}</p>}
+                        {entry.reason && <p className="mt-0.5 text-xs text-muted-foreground">{entry.reason}</p>}
                       </div>
                     </div>
                   ))
@@ -297,6 +360,32 @@ export default function BoardDetailDrawer({ open, onOpenChange, card, lane, onRe
                 <Button size="sm" className="mt-3" onClick={handleSaveNotes}>
                   {t('operations_board_note_save')}
                 </Button>
+              )}
+              {card.type === 'attendance' && history.length > 0 && (
+                <div className="mt-4" data-testid="operations-board-notes-history">
+                  <p className="text-xs font-medium text-muted-foreground mb-2">
+                    {t('operations_board_notes_history') || 'Notes History'}
+                  </p>
+                  <div className="flex flex-col gap-2">
+                    {history
+                      .filter((h) => h.notes || h.reason || h.comment)
+                      .map((h, idx) => (
+                        <div key={idx} className="rounded-lg border border-border bg-muted/20 p-3 text-sm">
+                          <div className="flex justify-between gap-2 mb-1">
+                            <span className="text-xs text-muted-foreground">
+                              {h.actor?.displayName || h.changedByUser?.displayName || t('operations_board_system_actor')}
+                            </span>
+                            {(h.createdAt || h.changedAt) && (
+                              <span className="text-xs text-muted-foreground">
+                                {formatDateTime(h.createdAt || h.changedAt, lang)}
+                              </span>
+                            )}
+                          </div>
+                          <p>{h.notes || h.reason || h.comment}</p>
+                        </div>
+                      ))}
+                  </div>
+                </div>
               )}
             </div>
           )}

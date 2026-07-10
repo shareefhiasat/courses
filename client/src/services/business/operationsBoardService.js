@@ -22,8 +22,8 @@ export const WORKFLOW_COLUMNS = [
   { id: 'DRAFT', name: 'Draft', i18nKey: 'operations_board_lane_draft', color: WORKFLOW_STATUS_COLORS.DRAFT },
   { id: 'TAKEN', name: 'Taken', i18nKey: 'operations_board_lane_taken', color: WORKFLOW_STATUS_COLORS.TAKEN },
   { id: 'SUBMITTED', name: 'Submitted', i18nKey: 'operations_board_lane_submitted', color: WORKFLOW_STATUS_COLORS.SUBMITTED },
-  { id: 'UNDER_ADMIN_REVIEW', name: 'In Admin Review', i18nKey: 'operations_board_lane_admin_review', color: WORKFLOW_STATUS_COLORS.UNDER_ADMIN_REVIEW },
-  { id: 'UNDER_HR_REVIEW', name: 'In HR Review', i18nKey: 'operations_board_lane_hr_review', color: WORKFLOW_STATUS_COLORS.UNDER_HR_REVIEW },
+  { id: 'UNDER_ADMIN_REVIEW', name: 'Admin', i18nKey: 'operations_board_lane_admin_review', color: WORKFLOW_STATUS_COLORS.UNDER_ADMIN_REVIEW },
+  { id: 'UNDER_HR_REVIEW', name: 'HR', i18nKey: 'operations_board_lane_hr_review', color: WORKFLOW_STATUS_COLORS.UNDER_HR_REVIEW },
   { id: 'APPROVED', name: 'Approved', i18nKey: 'operations_board_lane_approved', color: WORKFLOW_STATUS_COLORS.APPROVED },
   { id: 'REJECTED', name: 'Rejected', i18nKey: 'operations_board_lane_rejected', color: WORKFLOW_STATUS_COLORS.REJECTED },
 ];
@@ -227,6 +227,8 @@ export const fetchAttendanceBoardData = async (filters = {}) => {
         userId: user.id || enrollment.userId,
         profileImageUrl: user.profileImageUrl || null,
         user,
+        sequence: user.sequence ?? null,
+        studentNumber: user.studentNumber || null,
         status: statusStr,
         date: dateStr,
         classId: parseInt(classId, 10),
@@ -238,6 +240,16 @@ export const fetchAttendanceBoardData = async (filters = {}) => {
         notes: rec?.notes || null,
         raw: rec || { userId: user.id || enrollment.userId, classId, date: dateStr },
       };
+    });
+
+    boardData.sort((a, b) => {
+      const aSeq = a.sequence != null ? a.sequence : Infinity;
+      const bSeq = b.sequence != null ? b.sequence : Infinity;
+      if (aSeq !== bSeq) return aSeq - bSeq;
+      const aName = (a.name || '').trim().toLowerCase();
+      const bName = (b.name || '').trim().toLowerCase();
+      if (aName === bName) return 0;
+      return aName > bName ? 1 : -1;
     });
 
     return { success: true, data: boardData };
@@ -279,6 +291,16 @@ export const markWorkflowAsTaken = async (documentId, reason = null) => {
 export const moveAttendanceCard = async (attendanceId, newStatus, notes = null, createPayload = null) => {
   try {
     info(`${SERVICE_NAME}:moveAttendanceCard`, { attendanceId, newStatus });
+
+    if (newStatus === 'NOT_TAKEN') {
+      if (!attendanceId) return { success: true, data: null };
+      const result = await apiService.delete(`/attendance/${attendanceId}`);
+      if (result.success) {
+        apiService.clearCacheByPrefix('/attendance');
+      }
+      return result;
+    }
+
     const dbCode = boardLaneToDbCode(newStatus);
 
     if (!attendanceId && createPayload) {
@@ -287,6 +309,9 @@ export const moveAttendanceCard = async (attendanceId, newStatus, notes = null, 
         status: dbCode,
         notes,
       });
+      if (result.success) {
+        apiService.clearCacheByPrefix('/attendance');
+      }
       return result;
     }
 
@@ -294,6 +319,9 @@ export const moveAttendanceCard = async (attendanceId, newStatus, notes = null, 
       status: dbCode,
       notes,
     });
+    if (result.success) {
+      apiService.clearCacheByPrefix('/attendance');
+    }
     return result;
   } catch (err) {
     logError(`${SERVICE_NAME}:moveAttendanceCard:error`, { error: err.message });
@@ -337,5 +365,29 @@ export const fetchAttendanceHistory = async (attendanceId) => {
   } catch (err) {
     logError(`${SERVICE_NAME}:fetchAttendanceHistory:error`, { error: err.message });
     return { success: false, data: [], error: err.message };
+  }
+};
+
+export const updateAttendanceNotes = async (attendanceId, notes) => {
+  try {
+    info(`${SERVICE_NAME}:updateAttendanceNotes`, { attendanceId });
+    const result = await apiService.put(`/attendance/${attendanceId}`, { notes });
+    if (result.success) {
+      apiService.clearCacheByPrefix('/attendance');
+    }
+    return result;
+  } catch (err) {
+    logError(`${SERVICE_NAME}:updateAttendanceNotes:error`, { error: err.message });
+    return { success: false, error: err.message };
+  }
+};
+
+export const fetchAttendanceStats = async (classId) => {
+  try {
+    const result = await apiService.get(`/attendance/stats?classId=${classId}`);
+    return result;
+  } catch (err) {
+    logError(`${SERVICE_NAME}:fetchAttendanceStats:error`, { error: err.message });
+    return { success: false, data: null, error: err.message };
   }
 };

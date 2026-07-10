@@ -87,6 +87,20 @@ function ScheduleContextMenu({
     setWorkflowDialogOpen(false);
   }, []);
 
+  const handleGoToOperationsFromWorkflow = useCallback((existingWorkflow) => {
+    const params = {
+      lane: 'status',
+      classId: cls?.id,
+      date: dateStr,
+      _t: String(Date.now()),
+    };
+    if (existingWorkflow?.id) {
+      params.workflowId = String(existingWorkflow.id);
+    }
+    onOpenOperations?.(params);
+    setWorkflowDialogOpen(false);
+  }, [cls, dateStr, onOpenOperations]);
+
   const handleInbox = useCallback((tab) => {
     onOpenInbox?.(tab, cls?.id);
     onClose();
@@ -176,18 +190,18 @@ function ScheduleContextMenu({
 
     items.push({
       id: 'attendance',
-      label: t('workspace_take_attendance'),
+      label: t('workspace_menu_attendance') || 'Attendance',
       icon: getThemedIcon('ui', 'check_circle', 18, 'currentColor'),
       children: [
         {
           id: 'scan-attendance',
-          label: t('take_attendance_qr_short') || 'QR Scanner',
-          icon: getThemedIcon('ui', 'check_circle', 18, 'currentColor'),
+          label: t('workspace_menu_attendance_manual') || 'Manual',
+          icon: getThemedIcon('ui', 'qr_code', 18, 'currentColor'),
           onClick: () => handleScan(ATTENDANCE_TYPE_CATEGORY.REGULAR),
         },
         {
           id: 'operations-attendance',
-          label: t('take_attendance_operations_short') || 'Operations Board',
+          label: t('workspace_menu_attendance_board') || 'Board',
           icon: getThemedIcon('ui', 'layout_grid', 18, 'currentColor'),
           onClick: handleOpenOperations,
         },
@@ -197,10 +211,17 @@ function ScheduleContextMenu({
           icon: getThemedIcon('ui', 'users', 18, 'currentColor'),
           onClick: () => handleScan(ATTENDANCE_TYPE_CATEGORY.STANDUP),
         }] : []),
-        { divider: true },
+      ],
+    });
+
+    items.push({
+      id: 'workflow',
+      label: t('workspace_menu_workflow') || 'Workflow',
+      icon: getThemedIcon('ui', 'file_signature', 18, 'currentColor'),
+      children: [
         {
           id: 'initiate-workflow',
-          label: t('initiate_workflow') || 'Initiate Workflow',
+          label: t('workspace_menu_workflow_initiate') || 'Initiate',
           icon: getThemedIcon('ui', 'file_signature', 18, 'currentColor'),
           onClick: handleInitiateWorkflow,
         },
@@ -268,7 +289,7 @@ function ScheduleContextMenu({
         lang={lang}
         t={t}
         user={user}
-        onGoToOperations={handleOpenOperations}
+        onGoToOperations={handleGoToOperationsFromWorkflow}
       />
     </>
   );

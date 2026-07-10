@@ -46,7 +46,7 @@ export async function assertClassInScope(req, classId) {
 
   const cls = await prisma.class.findUnique({
     where: { id: cid },
-    select: { id: true, programId: true, subjectId: true, categoryId: true },
+    select: { id: true, programId: true, subjectId: true },
   });
   if (!cls) return { ok: false, scope, reason: 'class_not_found' };
   if (isRecordInScope(scope, cls)) return { ok: true, scope };

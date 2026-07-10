@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useCallback, useEffect, useState } from 'react';
+import React, { Suspense, lazy, useCallback, useEffect, useRef, useState } from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import { KeycloakProvider } from './providers/KeycloakProvider';
 import { AuthProvider, useAuth } from '@contexts/AuthContext';
@@ -33,6 +33,7 @@ import StudentQuickActionModal from '@ui/StudentQuickActionModal.jsx';
 import StudentQRCodeDisplay from '@ui/StudentQRCodeDisplay/StudentQRCodeDisplay';
 import SilentCheckSso from './components/auth/SilentCheckSso.jsx';
 import OperationsBoardShell from './layouts/OperationsBoardShell.jsx';
+import chatSocket from '@services/realtime/chatSocket.js';
 
 // Lazy-loaded pages — each becomes its own JS chunk
 const HomePage = lazy(() => import('./pages/HomePage'));
@@ -180,6 +181,19 @@ const AppContent = () => {
   }, [user, isStudent, location.pathname, navigate]);
   
   // useRealTimeUpdates(); // Temporarily disabled to fix notification spam
+
+  const prevTokenRef = useRef(null);
+  useEffect(() => {
+    const token = user?.token || null;
+    if (token && token !== prevTokenRef.current) {
+      chatSocket.disconnect();
+      chatSocket.connect(token);
+      prevTokenRef.current = token;
+    } else if (!token && prevTokenRef.current) {
+      chatSocket.disconnect();
+      prevTokenRef.current = null;
+    }
+  }, [user?.token]);
   
   const toggleSideDrawer = useCallback(() => {
     drawerTlog('app:hamburger-click', { isSideDrawerCollapsed, isSideDrawerOpen });

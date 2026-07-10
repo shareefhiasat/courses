@@ -70,6 +70,7 @@ const DatePicker = ({
   className = '',
   theme = 'light',
   showIcon = true,
+  compact = false,
 }) => {
   const [focused, setFocused] = useState(false);
   const [textValue, setTextValue] = useState(value || '');
@@ -142,6 +143,7 @@ const DatePicker = ({
     styles.wrapper,
     useTextInput && styles.dateInputLtr,
     fullWidth && styles.fullWidth,
+    compact && styles.compact,
     className,
   ].filter(Boolean).join(' ');
 

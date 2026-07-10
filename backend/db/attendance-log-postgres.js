@@ -9,7 +9,7 @@ export const getLectureLog = async ({ classId, date }) => {
     const dayStart = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
     const dayEnd = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate() + 1);
 
-    const [workflowDocs, attendances] = await Promise.all([
+    const [workflowDocs, attendances, attendanceChanges] = await Promise.all([
       prisma.workflowDocument.findMany({
         where: {
           classId: parseInt(classId),
@@ -37,6 +37,21 @@ export const getLectureLog = async ({ classId, date }) => {
         },
         orderBy: { createdAt: 'asc' },
       }),
+      prisma.attendanceChangeLog.findMany({
+        where: {
+          attendance: {
+            classId: parseInt(classId),
+            date: { gte: dayStart, lt: dayEnd },
+          },
+        },
+        include: {
+          attendance: { select: { userId: true } },
+          fromStatus: { select: { id: true, code: true, nameEn: true, nameAr: true } },
+          toStatus: { select: { id: true, code: true, nameEn: true, nameAr: true } },
+          changedByUser: { select: { id: true, displayName: true, firstName: true, lastName: true } },
+        },
+        orderBy: { changedAt: 'asc' },
+      }),
     ]);
 
     const logEntries = [];
@@ -49,6 +64,21 @@ export const getLectureLog = async ({ classId, date }) => {
         status: att.status?.nameEn || 'Unknown',
         statusAr: att.status?.nameAr || att.status?.nameEn || 'Unknown',
         details: `Attendance marked for ${att.userId}`,
+      });
+    }
+
+    for (const change of attendanceChanges) {
+      logEntries.push({
+        type: 'attendance_status_change',
+        timestamp: change.changedAt,
+        actor: change.changedByUser?.displayName || 'System',
+        userId: change.attendance?.userId,
+        fromStatus: change.fromStatus?.nameEn || 'Unknown',
+        fromStatusAr: change.fromStatus?.nameAr || change.fromStatus?.nameEn || 'Unknown',
+        toStatus: change.toStatus?.nameEn || 'Unknown',
+        toStatusAr: change.toStatus?.nameAr || change.toStatus?.nameEn || 'Unknown',
+        reason: change.reason,
+        source: change.source,
       });
     }
 

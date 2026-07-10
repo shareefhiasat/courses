@@ -197,3 +197,26 @@
 .wrapper[data-theme="dark"] .input:disabled {
   background: var(--input-disabled-bg, #2a2a2a);
 }
+
+/* Compact inline variant (welcome tab bar) */
+.compact .input {
+  min-height: 30px;
+  padding: 0.2rem 1.75rem 0.2rem 0.5rem;
+  font-size: 0.8125rem;
+  line-height: 1.2;
+  border-radius: 6px;
+}
+
+.compact.dateInputLtr .input {
+  padding: 0.2rem 1.75rem 0.2rem 0.5rem;
+}
+
+.compact .iconWrapper {
+  width: 22px;
+  height: 22px;
+  right: 0.35rem;
+}
+
+.compact.dateInputLtr .iconWrapper {
+  right: 0.35rem;
+}

@@ -91,7 +91,9 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
     fontSize: '14px',
     fontWeight: 600,
     transition: 'all 0.2s ease',
-    borderBottom: '3px solid transparent',
+    borderBottomWidth: '3px',
+    borderBottomStyle: 'solid',
+    borderBottomColor: 'transparent',
     color: isDark ? '#94a3b8' : '#64748b',
   }), [isDark]);
 
@@ -102,11 +104,11 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
   }), [tabBtnStyle]);
 
   const cardStyle = useMemo(() => ({
-    padding: '12px 16px',
-    borderRadius: '10px',
+    padding: '8px 12px',
+    borderRadius: '8px',
     border: `1px solid ${isDark ? 'rgba(255,255,255,0.06)' : '#e5e7eb'}`,
     background: isDark ? 'rgba(255,255,255,0.02)' : '#fafafa',
-    marginBottom: '8px',
+    marginBottom: '6px',
   }), [isDark]);
 
   const labelStyle = useMemo(() => ({
@@ -147,9 +149,17 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
       <div style={{ padding: '12px' }}>
         {lectureLog.map((entry, idx) => {
           const isWorkflow = entry.type === 'workflow_status_change';
+          const isAttendanceChange = entry.type === 'attendance_status_change';
           const iconColor = isWorkflow
             ? (entry.toStatus === 'APPROVED' ? '#16a34a' : entry.toStatus === 'REJECTED' ? '#dc2626' : 'var(--color-primary, #800020)')
-            : '#2563eb';
+            : isAttendanceChange
+              ? '#f59e0b'
+              : '#2563eb';
+          const titleKey = isWorkflow
+            ? (lang === 'ar' ? 'تغيير حالة العمل' : 'Workflow Status Change')
+            : isAttendanceChange
+              ? (lang === 'ar' ? 'تغيير حالة الحضور' : 'Attendance Status Change')
+              : (lang === 'ar' ? 'تسجيل حضور' : 'Attendance Marked');
 
           return (
             <motion.div
@@ -159,30 +169,27 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
               transition={{ duration: 0.2, delay: idx * 0.03 }}
               style={cardStyle}
             >
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
                 <div style={{
                   flexShrink: 0,
-                  width: '32px',
-                  height: '32px',
+                  width: '28px',
+                  height: '28px',
                   borderRadius: '50%',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   background: isDark ? 'rgba(255,255,255,0.05)' : '#f3f4f6',
-                  fontSize: '14px',
                 }}>
-                  {isWorkflow ? '🔄' : '📝'}
+                  {getThemedIcon('ui', isWorkflow ? 'refresh' : isAttendanceChange ? 'edit' : 'clipboard_list', 14, theme)}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
                     <span style={{
-                      fontSize: '13px',
+                      fontSize: '12px',
                       fontWeight: 600,
                       color: iconColor,
                     }}>
-                      {isWorkflow
-                        ? (lang === 'ar' ? 'تغيير حالة العمل' : 'Workflow Status Change')
-                        : (lang === 'ar' ? 'تسجيل حضور' : 'Attendance Marked')}
+                      {titleKey}
                     </span>
                     <span style={{
                       fontSize: '11px',
@@ -191,32 +198,32 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
                       {formatTimestamp(entry.timestamp)}
                     </span>
                   </div>
-                  <div style={{ fontSize: '13px', color: isDark ? '#cbd5e1' : '#475569', marginBottom: '4px' }}>
+                  <div style={{ fontSize: '12px', color: isDark ? '#cbd5e1' : '#475569', marginBottom: '2px' }}>
                     <span style={labelStyle}>{t('log_drawer_actor') || 'Actor'}: </span>
                     <span style={valueStyle}>{entry.actor}</span>
                   </div>
-                  {isWorkflow ? (
+                  {(isWorkflow || isAttendanceChange) ? (
                     <>
-                      <div style={{ fontSize: '13px', color: isDark ? '#cbd5e1' : '#475569', marginBottom: '2px' }}>
+                      <div style={{ fontSize: '12px', color: isDark ? '#cbd5e1' : '#475569', marginBottom: '2px' }}>
                         <span style={labelStyle}>{t('log_drawer_from') || 'From'}: </span>
-                        <span style={valueStyle}>{entry.fromStatus || '—'}</span>
+                        <span style={valueStyle}>{(lang === 'ar' ? entry.fromStatusAr : entry.fromStatus) || '—'}</span>
                         <span style={{ margin: '0 6px', color: isDark ? '#6b7280' : '#9ca3af' }}>→</span>
                         <span style={labelStyle}>{t('log_drawer_to') || 'To'}: </span>
-                        <span style={{ ...valueStyle, color: iconColor, fontWeight: 600 }}>{entry.toStatus || '—'}</span>
+                        <span style={{ ...valueStyle, color: iconColor, fontWeight: 600 }}>{(lang === 'ar' ? entry.toStatusAr : entry.toStatus) || '—'}</span>
                       </div>
-                      {entry.comment && (
-                        <div style={{ fontSize: '12px', color: isDark ? '#94a3b8' : '#64748b', marginTop: '4px', fontStyle: 'italic' }}>
-                          "{entry.comment}"
+                      {entry.reason && (
+                        <div style={{ fontSize: '11px', color: isDark ? '#94a3b8' : '#64748b', marginTop: '2px', fontStyle: 'italic' }}>
+                          "{entry.reason}"
                         </div>
                       )}
                       {entry.documentTitle && (
-                        <div style={{ fontSize: '11px', color: isDark ? '#6b7280' : '#9ca3af', marginTop: '4px' }}>
+                        <div style={{ fontSize: '11px', color: isDark ? '#6b7280' : '#9ca3af', marginTop: '2px' }}>
                           {t('log_drawer_document') || 'Document'}: {entry.documentTitle}
                         </div>
                       )}
                     </>
                   ) : (
-                    <div style={{ fontSize: '13px', color: isDark ? '#cbd5e1' : '#475569' }}>
+                    <div style={{ fontSize: '12px', color: isDark ? '#cbd5e1' : '#475569' }}>
                       <span style={labelStyle}>{t('log_drawer_status') || 'Status'}: </span>
                       <span style={valueStyle}>
                         {lang === 'ar' ? entry.statusAr : entry.status}
@@ -294,16 +301,15 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
                 <div style={{
                   flexShrink: 0,
-                  width: '28px',
-                  height: '28px',
+                  width: '24px',
+                  height: '24px',
                   borderRadius: '50%',
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
                   background: isDark ? 'rgba(255,255,255,0.05)' : '#f3f4f6',
-                  fontSize: '12px',
                 }}>
-                  ✏️
+                  {getThemedIcon('ui', 'edit', 12, theme)}
                 </div>
                 <div style={{ flex: 1 }}>
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>

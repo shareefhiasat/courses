@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
+import useResizableDrawer from '@hooks/useResizableDrawer';
 import ExportHistoryDrawer from '@pages/operations/attendance/ExportHistoryDrawer';
 import LectureLogDrawer from '@components/workspace/LectureLogDrawer';
 
@@ -10,11 +11,18 @@ const TABS = {
   LECTURE: 'lecture',
 };
 
-const ClassHistoryDrawer = ({ isOpen, onClose, classInfo, date }) => {
-  const { t, lang } = useLang();
+const ClassHistoryDrawer = ({ isOpen, onClose, classInfo, date, initialTab = null }) => {
+  const { t, lang, isRTL } = useLang();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
-  const [activeTab, setActiveTab] = useState(TABS.EXPORT);
+  const [activeTab, setActiveTab] = useState(initialTab || TABS.EXPORT);
+  const { width: drawerWidth, resizeHandleProps } = useResizableDrawer({
+    storageKey: 'class_history_drawer_width',
+    defaultWidth: 520,
+    minWidth: 360,
+    maxWidth: 900,
+    isRTL,
+  });
 
   const classLabel = classInfo
     ? (lang === 'ar' && classInfo.nameAr ? classInfo.nameAr : classInfo.nameEn || classInfo.code)
@@ -39,7 +47,8 @@ const ClassHistoryDrawer = ({ isOpen, onClose, classInfo, date }) => {
           position: 'fixed',
           top: 0,
           insetInlineEnd: 0,
-          width: 'min(520px, 100vw)',
+          width: `${drawerWidth}px`,
+          maxWidth: '100vw',
           height: '100vh',
           background: isDark ? '#0f172a' : '#ffffff',
           borderInlineStart: `1px solid ${isDark ? '#334155' : '#e2e8f0'}`,
@@ -50,6 +59,7 @@ const ClassHistoryDrawer = ({ isOpen, onClose, classInfo, date }) => {
         }}
         data-testid="class-history-drawer"
       >
+        <div {...resizeHandleProps} />
         <div
           style={{
             padding: '16px 20px',

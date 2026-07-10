@@ -3,6 +3,7 @@ import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@contexts/AuthContext';
 import NotificationBell from '../NotificationBell/NotificationBell';
 import { useLang } from '@contexts/LangContext';
+import { formatDate } from '@utils/date-formatter.js';
 import { getUsers, updateUser, getUserProfile } from '@services/business/userService';
 import { getLocalizedUserName } from '@utils/localizedUserName';
 import { getAllUserImages } from '@services/business/userImageService';
@@ -235,7 +236,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
   return (
     <>
       <nav className="navbar" style={{ 
-        padding: '0.35rem 0',
+        padding: '0.1rem 0',
         display: isNavbarCollapsed ? 'none' : 'block'
       }}>
         <div className="navbar-container">
@@ -262,20 +263,20 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
           </PortalTooltip>
 
           {/* Brand */}
-          <div className="navbar-brand" style={{ 
-            fontWeight: 700, 
-            fontSize: '1.1rem', 
+          <div className="navbar-brand" style={{
+            fontWeight: 700,
+            fontSize: '1rem',
             color: 'white',
             display: 'flex',
             alignItems: 'center',
-            gap: '0.5rem',
-            marginLeft: '0.5rem',
+            gap: '0.35rem',
+            marginLeft: '0.35rem',
             minWidth: 0,
-            flex: wizardNav ? 1 : undefined,
+            flex: 1,
           }}>
             <div style={{ 
-              width: 40, 
-              height: 40, 
+              width: 34, 
+              height: 34, 
               borderRadius: '50%', 
               background: 'white',
               display: 'flex',
@@ -284,7 +285,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
               border: '1px solid rgba(255,255,255,0.3)',
               flexShrink: 0,
             }}>
-              <img src="/qaf_logo_transparent.png" alt="QAF" style={{ width: 36, height: 36, objectFit: 'cover', borderRadius: '50%' }} />
+              <img src="/qaf_logo_transparent.png" alt="QAF" style={{ width: 30, height: 30, objectFit: 'cover', borderRadius: '50%' }} />
             </div>
             {wizardNav?.programName && (
               <ColoredTooltip
@@ -314,46 +315,41 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                     gap: 6,
                   }}
                 >
-                <span style={{ minWidth: 0 }}>
+                <span style={{ opacity: 0.85, flexShrink: 0, display: 'flex' }} aria-hidden>
+                  {getThemedIcon('ui', 'chevron_down', 16, 'currentColor')}
+                </span>
+                <span style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: '1px' }}>
                   <div style={{
-                    fontSize: '0.95rem',
+                    fontSize: '0.88rem',
                     fontWeight: 700,
+                    lineHeight: 1.2,
                     whiteSpace: 'nowrap',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                   }}>
                     {wizardNav.programName}
                   </div>
-                  {wizardNav.termLabel && (
-                    <div style={{
-                      fontSize: '0.75rem',
-                      fontWeight: 500,
-                      opacity: 0.88,
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                    }}>
-                      {wizardNav.termLabel}
-                    </div>
-                  )}
                   <div style={{
-                    fontSize: '0.7rem',
-                    fontWeight: 400,
-                    opacity: 0.75,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontSize: '0.68rem',
+                    fontWeight: 500,
+                    opacity: 0.9,
                     whiteSpace: 'nowrap',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
                   }}>
-                    {new Date().toLocaleDateString(lang === 'ar' ? 'ar-EG' : 'en-US', {
-                      weekday: 'short',
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric'
-                    })}
+                    {wizardNav.termLabel && <span>{wizardNav.termLabel}</span>}
+                    {wizardNav.termLabel && (
+                      <span style={{ opacity: 0.6 }}>·</span>
+                    )}
+                    <span>
+                      {wizardNav.workingDate
+                        ? formatDate(wizardNav.workingDate, lang)
+                        : formatDate(new Date(), lang)}
+                    </span>
                   </div>
-                </span>
-                <span style={{ opacity: 0.85, flexShrink: 0, display: 'flex' }} aria-hidden>
-                  {getThemedIcon('ui', 'chevron_down', 16, 'currentColor')}
                 </span>
               </button>
               </ColoredTooltip>
@@ -412,34 +408,6 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                 alignItems: 'center',
                 gap: '0.35rem'
               }}>
-                {!isStudent && (
-                  <PortalTooltip content={t('welcome')} position="bottom">
-                    <button
-                      type="button"
-                      className="nav-icon-btn"
-                      onClick={() => navigate('/welcome')}
-                      aria-label={t('welcome')}
-                      data-testid="navbar-welcome-btn"
-                      style={{
-                        border: theme === 'light' ? '1px solid var(--border)' : '1px solid rgba(255,255,255,0.2)',
-                        background: location.pathname === '/welcome'
-                          ? 'var(--color-primary, #3b82f6)'
-                          : (theme === 'light' ? 'var(--panel)' : 'rgba(0,0,0,0.3)'),
-                        borderRadius: '50%',
-                        width: '32px',
-                        height: '32px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        cursor: 'pointer',
-                        color: location.pathname === '/welcome' ? '#fff' : (theme === 'light' ? 'var(--text-primary)' : '#fff'),
-                      }}
-                    >
-                      {getThemedIcon('ui', 'home', 16, 'currentColor')}
-                    </button>
-                  </PortalTooltip>
-                )}
-
                 {scheduleFontControl && (
                   <Box
                     data-testid="schedule-font-slider-wrap"
@@ -491,7 +459,35 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                   </Box>
                 )}
 
-                {isSuperAdmin && <NotificationBell />}
+                {!isStudent && (
+                  <PortalTooltip content={t('welcome')} position="bottom">
+                    <button
+                      type="button"
+                      className="nav-icon-btn"
+                      onClick={() => navigate('/welcome')}
+                      aria-label={t('welcome')}
+                      data-testid="navbar-welcome-btn"
+                      style={{
+                        border: theme === 'light' ? '1px solid var(--border)' : '1px solid rgba(255,255,255,0.2)',
+                        background: location.pathname === '/welcome'
+                          ? 'var(--color-primary, #3b82f6)'
+                          : (theme === 'light' ? 'var(--panel)' : 'rgba(0,0,0,0.3)'),
+                        borderRadius: '50%',
+                        width: '28px',
+                        height: '28px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        color: location.pathname === '/welcome' ? '#fff' : (theme === 'light' ? 'var(--text-primary)' : '#fff'),
+                      }}
+                    >
+                      {getThemedIcon('ui', 'home', 16, 'currentColor')}
+                    </button>
+                  </PortalTooltip>
+                )}
+
+                <NotificationBell />
 
                 <PortalTooltip content={lang === 'en' ? 'العربية' : 'English'} position="bottom">
                 <button
@@ -502,8 +498,8 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                     border: theme === 'light' ? '1px solid var(--border)' : '1px solid rgba(255,255,255,0.2)',
                     background: theme === 'light' ? 'var(--panel)' : 'rgba(0,0,0,0.3)',
                     borderRadius: '50%',
-                    width: '32px',
-                    height: '32px',
+                    width: '28px',
+                    height: '28px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -511,7 +507,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                     color: theme === 'light' ? 'var(--text-primary)' : '#fff'
                   }}
                 >
-                  {lang === 'en' ? getThemedIcon('ui', 'globe', 16, theme === 'light' ? 'var(--text-primary)' : '#fff') : getThemedIcon('ui', 'globe2', 16, theme === 'light' ? 'var(--text-primary)' : '#fff')}
+                  {lang === 'en' ? getThemedIcon('ui', 'globe', 15, theme === 'light' ? 'var(--text-primary)' : '#fff') : getThemedIcon('ui', 'globe2', 15, theme === 'light' ? 'var(--text-primary)' : '#fff')}
                 </button>
                 </PortalTooltip>
 
@@ -524,8 +520,8 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                     border: theme === 'light' ? '1px solid var(--border)' : '1px solid rgba(255,255,255,0.2)',
                     background: theme === 'light' ? 'var(--panel)' : 'rgba(0,0,0,0.3)',
                     borderRadius: '50%',
-                    width: '32px',
-                    height: '32px',
+                    width: '28px',
+                    height: '28px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -533,7 +529,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                     color: theme === 'light' ? 'var(--text-primary)' : '#fff'
                   }}
                 >
-                  {getThemedIcon('ui', 'shield', 16, theme === 'light' ? 'var(--text-primary)' : '#fff')}
+                  {getThemedIcon('ui', 'shield', 15, theme === 'light' ? 'var(--text-primary)' : '#fff')}
                 </button>
                 </PortalTooltip>
 
@@ -554,8 +550,8 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                     border: theme === 'light' ? '1px solid var(--border)' : '1px solid rgba(255,255,255,0.2)',
                     background: theme === 'light' ? 'var(--panel)' : 'rgba(0,0,0,0.3)',
                     borderRadius: '50%',
-                    width: '32px',
-                    height: '32px',
+                    width: '28px',
+                    height: '28px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -563,7 +559,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                     color: theme === 'light' ? 'var(--text-primary)' : '#fff'
                   }}
                 >
-                  {getThemedIcon('ui', 'help_circle', 16, theme === 'light' ? 'var(--text-primary)' : '#fff')}
+                  {getThemedIcon('ui', 'help_circle', 15, theme === 'light' ? 'var(--text-primary)' : '#fff')}
                   {tourBadgeCount > 0 && (
                     <span style={{
                       position: 'absolute', top: -4, insetInlineEnd: -4,
@@ -587,8 +583,8 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                     border: theme === 'light' ? '1px solid var(--border)' : '1px solid rgba(255,255,255,0.2)',
                     background: theme === 'light' ? 'var(--panel)' : 'rgba(0,0,0,0.3)',
                     borderRadius: '50%',
-                    width: '32px',
-                    height: '32px',
+                    width: '28px',
+                    height: '28px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -596,7 +592,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                     color: theme === 'light' ? 'var(--text-primary)' : '#fff'
                   }}
                 >
-                  {getThemedIcon('ui', 'info', 18, theme === 'light' ? 'var(--text-primary)' : '#fff')}
+                  {getThemedIcon('ui', 'info', 16, theme === 'light' ? 'var(--text-primary)' : '#fff')}
                 </button>
                 </PortalTooltip>
 
@@ -608,8 +604,8 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                     border: theme === 'light' ? '1px solid var(--border)' : '1px solid rgba(255,255,255,0.2)',
                     background: theme === 'light' ? 'var(--panel)' : 'rgba(0,0,0,0.3)',
                     borderRadius: '50%',
-                    width: '32px',
-                    height: '32px',
+                    width: '28px',
+                    height: '28px',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -617,7 +613,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                     color: theme === 'light' ? 'var(--text-primary)' : '#fff'
                   }}
                 >
-                  {theme==='light'?getThemedIcon('ui', 'moon', 16, 'var(--text-primary)'):getThemedIcon('ui', 'sun', 16, '#fff')}
+                  {theme==='light'?getThemedIcon('ui', 'moon', 15, 'var(--text-primary)'):getThemedIcon('ui', 'sun', 15, '#fff')}
                 </button>
                 </PortalTooltip>
                 {/* Temporarily hidden - Minified filter toggle button
@@ -657,8 +653,8 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                 <div
                   onClick={() => setShowDropdown(v=>!v)}
                   style={{
-                    width: '40px',
-                    height: '40px',
+                    width: '34px',
+                    height: '34px',
                     borderRadius: '50%',
                     background: primaryColor && primaryColor !== ACCENT_FALLBACK
                       ? `linear-gradient(135deg, ${primaryColor}, ${adjustColor(primaryColor, 10)})`
@@ -666,7 +662,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    fontSize: '1.25rem',
+                    fontSize: '1.1rem',
                     fontWeight: 700,
                     color: primaryColor && primaryColor !== ACCENT_FALLBACK ? '#fff' : '#2E3B4E',
                     cursor: 'pointer',
@@ -752,7 +748,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                   )}
                 </div>
                 {showDropdown && (
-                  <div className="dropdown-menu" style={{ [lang === 'ar' ? 'left' : 'right']: 0, top: 48, zIndex: 9999 }}>
+                  <div className="dropdown-menu" style={{ [lang === 'ar' ? 'left' : 'right']: 0, top: 42, zIndex: 9999 }}>
                     <div className="dropdown-item user-info" style={{ padding: '10px 12px' }}>
                       <div className="user-name" style={{ fontWeight: 600, marginBottom: 4, fontSize: 'var(--font-size-md)' }}>
                         {getLocalizedUserName(
@@ -841,7 +837,7 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                 </>
               )}
 
-              {isSuperAdmin && <NotificationBell />}
+              <NotificationBell />
               
               <PortalTooltip content={lang==='en'?'العربية':'English'} position="bottom">
               <button onClick={toggleLang} className="icon-btn">

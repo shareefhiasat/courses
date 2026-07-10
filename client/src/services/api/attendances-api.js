@@ -6,6 +6,7 @@
  */
 
 import attendanceDbService from '../db/attendanceDbService-postgres.cjs';
+import { ATTENDANCE_STATUS } from '@constants/attendanceTypes';
 
 // Real attendances endpoints using database
 export const attendances = {
@@ -97,12 +98,12 @@ export const attendances = {
         const attendances = result.data;
         const stats = {
           total: attendances.length,
-          present: attendances.filter(a => a.status === 'present').length,
-          absent: attendances.filter(a => a.status === 'absent').length,
-          late: attendances.filter(a => a.status === 'late').length,
-          excused: attendances.filter(a => a.status === 'excused').length,
+          present: attendances.filter(a => a.status === ATTENDANCE_STATUS.PRESENT).length,
+          absent: attendances.filter(a => a.status === ATTENDANCE_STATUS.ABSENT_NO_EXCUSE).length,
+          late: attendances.filter(a => a.status === ATTENDANCE_STATUS.LATE).length,
+          excused: attendances.filter(a => a.status === ATTENDANCE_STATUS.EXCUSED_LEAVE).length,
           attendanceRate: attendances.length > 0 
-            ? (attendances.filter(a => a.status === 'present' || a.status === 'late').length / attendances.length) * 100 
+            ? (attendances.filter(a => a.status === ATTENDANCE_STATUS.PRESENT || a.status === ATTENDANCE_STATUS.LATE).length / attendances.length) * 100 
             : 0,
           uniqueStudents: [...new Set(attendances.map(a => a.userId))].length,
           uniqueDates: [...new Set(attendances.map(a => a.date))].length

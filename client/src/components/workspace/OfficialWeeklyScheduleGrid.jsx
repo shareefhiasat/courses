@@ -4,6 +4,7 @@ import { useTheme } from '@contexts/ThemeContext';
 import { Chip, IconButton, Box } from '@mui/material';
 import { Maximize2, Minimize2 } from 'lucide-react';
 import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
+import ScheduleStatusHistoryTooltip from './ScheduleStatusHistoryTooltip.jsx';
 import { getUserRoleColor, getUserRoleIcon } from '@constants/iconTypes';
 import styles from '@services/export/official-reports/templates/officialReport.module.css';
 import {
@@ -259,7 +260,7 @@ function ScheduleTimeLineOverlay({
   );
 }
 
-function StatusDot({ status, t }) {
+function StatusDot({ status, t, lang, selectedDate }) {
   if (!status) return null;
   const key = resolveScheduleWorkflowKey(status);
   const colors = SCHEDULE_WORKFLOW_COLORS;
@@ -272,7 +273,7 @@ function StatusDot({ status, t }) {
   const dotColor = colors[key];
 
   return (
-    <ColoredTooltip title={labels[key]} color={dotColor} placement="bottom">
+    <ScheduleStatusHistoryTooltip status={status} lang={lang} fallbackDate={selectedDate}>
       <span className={gridStyles.statusDotWrap}>
         <span
           className={`${gridStyles.statusDot} ${gridStyles[`statusDot_${key}`]}`}
@@ -280,7 +281,7 @@ function StatusDot({ status, t }) {
           aria-label={labels[key]}
         />
       </span>
-    </ColoredTooltip>
+    </ScheduleStatusHistoryTooltip>
   );
 }
 
@@ -343,7 +344,9 @@ function InteractiveSlotCell({
   isSelected,
   status,
   t,
+  lang,
   onClick,
+  selectedDate,
 }) {
   if (isBreak) {
     if (rowType !== 'subject') return null;
@@ -391,7 +394,7 @@ function InteractiveSlotCell({
 
   const content = (
     <CellContent ltr={rowType === 'time'} className={rowType === 'subject' ? subjectInnerClass : ''}>
-      {rowType === 'subject' && <StatusDot status={status} t={t} />}
+      {rowType === 'subject' && <StatusDot status={status} t={t} lang={lang} selectedDate={selectedDate} />}
       {rowType === 'subject' && isMine && (
         <span className={gridStyles.cellIconTray} aria-hidden="true">
           <ColoredTooltip title={t('workspace_my_class')} color={PURPLE_TOOLTIP} placement="bottom">
@@ -456,6 +459,7 @@ function DayBlock({
   lang,
   t,
   onCellClick,
+  selectedDate,
 }) {
   const rowTypes = ['subject', 'time', 'instructor', 'room'];
   const rowLabelMap = {
@@ -530,7 +534,9 @@ function DayBlock({
                 colKey={col.key}
                 status={status}
                 t={t}
+                lang={lang}
                 onClick={onCellClick}
+                selectedDate={selectedDate}
               />
             );
           })}
@@ -712,6 +718,7 @@ const OfficialWeeklyScheduleGrid = ({
               lang={lang}
               t={t}
               onCellClick={onCellClick}
+              selectedDate={selectedDate}
             />
           ))}
         </table>
@@ -720,31 +727,31 @@ const OfficialWeeklyScheduleGrid = ({
       <div className={`${gridStyles.statusLegend} ${gridStyles.statusLegendBottom}`}>
         <div className={gridStyles.legendItem}>
           <span className={`${gridStyles.legendDot} ${gridStyles.legendDot_not_taken}`} />
-          <span>{t('workspace_status_not_taken')}</span>
+          <span className={gridStyles.legendLabel} style={{ color: '#f97316' }}>{t('workspace_status_not_taken')}</span>
         </div>
         <div className={gridStyles.legendItem}>
           <span className={`${gridStyles.legendDot} ${gridStyles.legendDot_draft}`} />
-          <span>{t('workspace_status_draft') || 'Draft'}</span>
+          <span className={gridStyles.legendLabel} style={{ color: '#f59e0b' }}>{t('workspace_status_draft') || 'Draft'}</span>
         </div>
         <div className={gridStyles.legendItem}>
           <span className={`${gridStyles.legendDot} ${gridStyles.legendDot_taken}`} />
-          <span>{t('workspace_status_taken')}</span>
+          <span className={gridStyles.legendLabel} style={{ color: '#22c55e' }}>{t('workspace_status_taken')}</span>
         </div>
         <div className={gridStyles.legendItem}>
           <span className={`${gridStyles.legendDot} ${gridStyles.legendDot_submitted}`} />
-          <span>{t('workspace_status_submitted')}</span>
+          <span className={gridStyles.legendLabel} style={{ color: '#3b82f6' }}>{t('workspace_status_submitted')}</span>
         </div>
         <div className={gridStyles.legendItem}>
           <span className={gridStyles.legendLine} />
-          <span>{t('workspace_current_time')}</span>
+          <span className={gridStyles.legendLabel} style={{ color: '#0ea5e9' }}>{t('workspace_current_time')}</span>
         </div>
         <div className={gridStyles.legendItem}>
           <span className={`${gridStyles.legendDot} ${gridStyles.legendDot_inProgress}`} />
-          <span>{t('workspace_lecture_in_progress')}</span>
+          <span className={gridStyles.legendLabel} style={{ color: '#1d4ed8' }}>{t('workspace_lecture_in_progress')}</span>
         </div>
         <div className={gridStyles.legendItem}>
           <span className={`${gridStyles.legendDot} ${gridStyles.legendDot_selected}`} />
-          <span>{t('workspace_selected_class')}</span>
+          <span className={gridStyles.legendLabel} style={{ color: '#8b5cf6' }}>{t('workspace_selected_class')}</span>
         </div>
         {outsideHours && (
           <Chip
@@ -766,26 +773,32 @@ const OfficialWeeklyScheduleGrid = ({
           />
         )}
         {onToggleExpand && (
-          <IconButton
-            size="small"
-            onClick={onToggleExpand}
-            className={gridStyles.legendExpandBtn}
-            data-testid="schedule-expand-btn"
-            aria-label={expanded ? (t('schedule_collapse') || 'Collapse schedule') : (t('schedule_expand') || 'Expand schedule')}
-            sx={{
-              width: 24,
-              height: 24,
-              ml: 0.5,
-              border: `1px solid ${isDark ? '#334155' : '#e2e8f0'}`,
-              bgcolor: isDark ? 'rgba(30,41,59,0.6)' : 'rgba(255,255,255,0.8)',
-              color: isDark ? '#94a3b8' : '#64748b',
-              '&:hover': {
-                bgcolor: isDark ? 'rgba(51,65,85,0.8)' : 'rgba(241,245,249,1)',
-              },
-            }}
+          <ColoredTooltip
+            title={expanded ? (t('schedule_collapse') || 'Collapse schedule') : (t('schedule_expand') || 'Expand schedule')}
+            color={PURPLE_TOOLTIP}
+            placement="top"
           >
-            {expanded ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
-          </IconButton>
+            <IconButton
+              size="small"
+              onClick={onToggleExpand}
+              className={gridStyles.legendExpandBtn}
+              data-testid="schedule-expand-btn"
+              aria-label={expanded ? (t('schedule_collapse') || 'Collapse schedule') : (t('schedule_expand') || 'Expand schedule')}
+              sx={{
+                width: 24,
+                height: 24,
+                ml: 0.5,
+                borderRadius: 0,
+                bgcolor: isDark ? 'rgba(30,41,59,0.6)' : 'rgba(255,255,255,0.8)',
+                color: isDark ? '#94a3b8' : '#64748b',
+                '&:hover': {
+                  bgcolor: isDark ? 'rgba(51,65,85,0.8)' : 'rgba(241,245,249,1)',
+                },
+              }}
+            >
+              {expanded ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
+            </IconButton>
+          </ColoredTooltip>
         )}
       </div>
     </div>
