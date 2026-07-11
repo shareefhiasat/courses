@@ -8,9 +8,9 @@ import { User, Calendar } from 'lucide-react';
 const STATUS_COLORS = {
   DRAFT: 'bg-gray-500/15 text-gray-700 dark:text-gray-300 border-gray-500/30',
   SUBMITTED: 'bg-blue-500/15 text-blue-700 dark:text-blue-300 border-blue-500/30',
-  UNDER_HR_REVIEW: 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30',
+  UNDER_HR_REVIEW: 'bg-rose-500/15 text-rose-700 dark:text-rose-300 border-rose-500/30',
   UNDER_ADMIN_REVIEW: 'bg-amber-500/15 text-amber-700 dark:text-amber-300 border-amber-500/30',
-  APPROVED: 'bg-green-500/15 text-green-700 dark:text-green-300 border-green-500/30',
+  APPROVED: 'bg-green-700/15 text-green-800 dark:text-green-300 border-green-700/30',
   REJECTED: 'bg-red-500/15 text-red-700 dark:text-red-300 border-red-500/30',
   NOT_TAKEN: 'bg-orange-500/15 text-orange-600 dark:text-orange-400 border-orange-500/30',
   PRESENT: 'bg-green-500/15 text-green-700 dark:text-green-300 border-green-500/30',

@@ -1,0 +1,165 @@
+import React, { useState, useRef, useEffect } from 'react';
+import { PanelLeftClose, PanelLeftOpen, ArrowRightLeft } from 'lucide-react';
+import { KanbanHeader } from '@/components/kibo-ui/kanban';
+import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
+import gridStyles from '@components/workspace/officialWeeklyScheduleGrid.module.css';
+
+/**
+ * Shared swim-lane header for attendance + workflow boards.
+ * Expanded: color dot + title + count + collapse control.
+ * Collapsed: color circle + count only (click expands).
+ */
+export default function BoardLaneHeader({
+  column,
+  count,
+  collapsed = false,
+  onToggleCollapse,
+  t,
+  pulse = false,
+  onBulkMove,
+  columns = [],
+  canMoveTo,
+}) {
+  const [bulkMenuOpen, setBulkMenuOpen] = useState(false);
+  const bulkMenuRef = useRef(null);
+
+  useEffect(() => {
+    if (!bulkMenuOpen) return;
+    const handler = (e) => {
+      if (bulkMenuRef.current && !bulkMenuRef.current.contains(e.target)) {
+        setBulkMenuOpen(false);
+      }
+    };
+    document.addEventListener('pointerdown', handler);
+    return () => document.removeEventListener('pointerdown', handler);
+  }, [bulkMenuOpen]);
+
+  const moveTargets = columns.filter((c) => {
+    if (c.id === column.id) return false;
+    if (canMoveTo && !canMoveTo(column.id, c.id)) return false;
+    return true;
+  });
+  const title = t(column.i18nKey) || column.name;
+  const collapseLabel = collapsed
+    ? (t('operations_board_expand_lane') || 'Expand lane')
+    : (t('operations_board_collapse_lane') || 'Collapse lane');
+
+  if (collapsed) {
+    return (
+      <KanbanHeader className="operations-board-lane-header operations-board-lane-header-collapsed">
+        <ColoredTooltip title={collapseLabel} color={column.color} placement="top">
+          <button
+            type="button"
+            className="operations-board-lane-collapse-toggle"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onToggleCollapse?.(column.id);
+            }}
+            aria-label={collapseLabel}
+            data-testid={`operations-board-lane-expand-${column.id}`}
+          >
+            <span
+              className={`operations-board-lane-collapsed-dot ${pulse ? gridStyles.legendDotPulse : ''}`}
+              style={{ backgroundColor: column.color, '--dot-color': column.color }}
+              aria-hidden
+            />
+            <span className="operations-board-lane-collapsed-count" style={{ color: column.color }}>
+              {count}
+            </span>
+            <PanelLeftOpen size={14} className="operations-board-lane-collapse-icon" aria-hidden />
+          </button>
+        </ColoredTooltip>
+      </KanbanHeader>
+    );
+  }
+
+  return (
+    <KanbanHeader className="operations-board-lane-header">
+      <div
+        className="grid items-center gap-1"
+        style={{ gridTemplateColumns: '22px 1fr 22px' }}
+      >
+        <div className="flex items-center justify-center" style={{ minWidth: 0 }}>
+          {onBulkMove && moveTargets.length > 0 && (
+            <div ref={bulkMenuRef} className="relative">
+              <ColoredTooltip title={t('operations_board_bulk_move') || 'Move all to…'} color={column.color} placement="top">
+                <button
+                  type="button"
+                  className="operations-board-lane-bulk-btn"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    setBulkMenuOpen((v) => !v);
+                  }}
+                  aria-label={t('operations_board_bulk_move') || 'Move all to…'}
+                  data-testid={`operations-board-lane-bulk-${column.id}`}
+                >
+                  <ArrowRightLeft size={14} />
+                </button>
+              </ColoredTooltip>
+              {bulkMenuOpen && (
+                <div className="operations-board-bulk-menu" data-testid={`operations-board-bulk-menu-${column.id}`}>
+                  {moveTargets.map((target) => (
+                    <button
+                      key={target.id}
+                      type="button"
+                      className="operations-board-bulk-menu-item"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setBulkMenuOpen(false);
+                        onBulkMove(column.id, target.id);
+                      }}
+                      data-testid={`operations-board-bulk-move-${column.id}-to-${target.id}`}
+                    >
+                      <span className="h-2 w-2 rounded-full" style={{ backgroundColor: target.color }} />
+                      {t(target.i18nKey) || target.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        <div className="flex items-center justify-center gap-1.5 min-w-0 overflow-hidden">
+          <div
+            className={`h-3 w-3 shrink-0 rounded-full ring-2 ring-background ${pulse ? gridStyles.legendDotPulse : ''}`}
+            style={{ backgroundColor: column.color, '--dot-color': column.color }}
+          />
+          <span
+            className="text-center font-semibold text-base truncate min-w-0"
+            style={{ color: column.color }}
+          >
+            {title}
+          </span>
+          <span
+            className="text-xs font-semibold tabular-nums shrink-0"
+            style={{ color: column.color }}
+          >
+            {count}
+          </span>
+        </div>
+
+        <div className="flex items-center justify-center" style={{ minWidth: 0 }}>
+          <ColoredTooltip title={collapseLabel} color={column.color} placement="top">
+            <button
+              type="button"
+              className="operations-board-lane-collapse-btn"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                onToggleCollapse?.(column.id);
+              }}
+              aria-label={collapseLabel}
+              data-testid={`operations-board-lane-collapse-${column.id}`}
+            >
+              <PanelLeftClose size={14} />
+            </button>
+          </ColoredTooltip>
+        </div>
+      </div>
+    </KanbanHeader>
+  );
+}

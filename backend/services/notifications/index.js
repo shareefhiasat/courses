@@ -97,7 +97,7 @@ export const emit = async (event, payload, actor, recipientCriteria) => {
         
         try {
           // For in-app channel, capture the notificationId
-          const notificationData = { event, category, priority, metadata: payload, createdById: actor?.id };
+          const notificationData = { event, category, priority, metadata: payload, createdById: actor?.dbId ?? null };
           if (notificationId) {
             notificationData.notificationId = notificationId;
           }

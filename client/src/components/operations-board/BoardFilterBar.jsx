@@ -1,7 +1,7 @@
 import React, { useCallback } from 'react';
 import { useTheme } from '@mui/material/styles';
 import { Box, Tab, Tabs, ToggleButton, ToggleButtonGroup, IconButton } from '@mui/material';
-import { ArrowUpDown, ArrowDownAZ, Columns3 } from 'lucide-react';
+import { ArrowUpDown, ArrowDownAZ, Columns3, Calendar, KanbanSquare, Workflow, Users } from 'lucide-react';
 import { Input } from '@/components/kibo/ui/input';
 import { useLang } from '@contexts/LangContext';
 import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
@@ -71,38 +71,111 @@ export default function BoardFilterBar({
           <Tabs
             value={lane}
             onChange={(_, value) => onLaneChange?.(value)}
+            data-tour="operations-board-lane-tabs"
             sx={{
               minHeight: 30,
-              '& .MuiTab-root': { minHeight: 30, textTransform: 'none', fontSize: '0.8125rem', py: 0.25, fontWeight: 600 },
+              '& .MuiTabs-indicator': { display: 'none' },
+              '& .MuiTabs-flexContainer': { gap: '2px' },
+              '& .MuiTab-root': {
+                minHeight: 30,
+                textTransform: 'none',
+                fontSize: '0.8125rem',
+                py: 0.25,
+                px: 1.25,
+                borderRadius: '999px',
+                fontWeight: 500,
+                color: 'text.secondary',
+                transition: 'all 0.15s',
+                '&.Mui-selected': {
+                  bgcolor: 'primary.main',
+                  color: '#fff !important',
+                  fontWeight: 600,
+                },
+                '&.Mui-selected.MuiTab-textColorPrimary': {
+                  color: '#fff !important',
+                },
+                '&.Mui-selected.MuiTab-textColorInherit': {
+                  color: '#fff !important',
+                },
+                '&.Mui-selected .MuiTab-icon': {
+                  color: '#fff !important',
+                },
+                '&:hover:not(.Mui-selected)': {
+                  bgcolor: 'action.hover',
+                },
+              },
             }}
             data-testid="operations-board-lane-tabs"
           >
             <Tab
               value="attendance"
+              icon={<Users size={14} />}
+              iconPosition="start"
               label={t('operations_board_tab_attendance') || 'Attendance'}
               title={t('operations_board_tab_attendance') || 'Attendance'}
               data-testid="operations-board-tab-attendance"
             />
             <Tab
               value="status"
+              icon={<Workflow size={14} />}
+              iconPosition="start"
               label={t('operations_board_tab_workflow') || 'Workflow'}
               title={t('operations_board_tab_workflow') || 'Workflow'}
               data-testid="operations-board-tab-workflow"
             />
           </Tabs>
         )}
-        {lane === 'attendance' && (
+        {onLaneChange && (
           <Tabs
             value={panelTab}
             onChange={(_, value) => onPanelTabChange?.(value)}
+            data-tour="operations-board-panel-tabs"
             sx={{
-              minHeight: 30,
-              '& .MuiTab-root': { minHeight: 30, textTransform: 'none', fontSize: '0.8125rem', py: 0.25 },
+              minHeight: 28,
+              '& .MuiTabs-indicator': { display: 'none' },
+              '& .MuiTabs-flexContainer': { gap: '2px' },
+              '& .MuiTab-root': {
+                minHeight: 28,
+                textTransform: 'none',
+                fontSize: '0.75rem',
+                py: 0.25,
+                px: 1.25,
+                borderRadius: '999px',
+                fontWeight: 500,
+                color: 'text.secondary',
+                transition: 'all 0.15s',
+                '&.Mui-selected': {
+                  bgcolor: 'primary.main',
+                  color: '#fff !important',
+                  fontWeight: 600,
+                },
+                '&.Mui-selected.MuiTab-textColorPrimary': {
+                  color: '#fff !important',
+                },
+                '&.Mui-selected.MuiTab-textColorInherit': {
+                  color: '#fff !important',
+                },
+                '&.Mui-selected .MuiTab-icon': {
+                  color: '#fff !important',
+                },
+                '&:hover:not(.Mui-selected)': {
+                  bgcolor: 'action.hover',
+                },
+              },
             }}
           >
-            <Tab value="board" label={t('operations_board_tab_board')} title={t('operations_board_tab_board')} data-testid="operations-board-tab-board" />
+            <Tab
+              value="board"
+              icon={<KanbanSquare size={14} />}
+              iconPosition="start"
+              label={t('operations_board_tab_board')}
+              title={t('operations_board_tab_board')}
+              data-testid="operations-board-tab-board"
+            />
             <Tab
               value="calendar"
+              icon={<Calendar size={14} />}
+              iconPosition="start"
               label={t('operations_board_tab_calendar')}
               title={t('operations_board_tab_calendar')}
               data-testid="operations-board-tab-calendar"
@@ -113,6 +186,7 @@ export default function BoardFilterBar({
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1, justifyContent: 'flex-end' }}>
           {panelTab === 'board' && (
             <Box
+              data-tour="operations-board-search"
               sx={{
                 position: 'relative',
                 flex: 1,
@@ -145,6 +219,7 @@ export default function BoardFilterBar({
                 size="small"
                 onClick={onResetLaneWidths}
                 data-testid="operations-board-reset-lanes"
+                data-tour="operations-board-reset-lanes"
                 sx={{ width: 32, height: 32, flexShrink: 0 }}
               >
                 <Columns3 size={16} />
@@ -159,6 +234,7 @@ export default function BoardFilterBar({
               onChange={(_, value) => value && onSortChange(value)}
               sx={{ flexShrink: 0, height: 32 }}
               data-testid="operations-board-sort"
+              data-tour="operations-board-sort"
             >
               <ColoredTooltip
                 title={t('operations_board_sort_system') || 'System Default'}
@@ -184,7 +260,7 @@ export default function BoardFilterBar({
       </Box>
 
       {panelTab === 'calendar' && (
-        <Box sx={{ p: 1 }}>
+        <Box sx={{ p: 1 }} data-tour="operations-board-calendar">
           <BoardScheduleCalendar
             selectedDate={selectedDate}
             onDateSelect={handleDateSelect}

@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import Joyride from 'react-joyride';
+import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
@@ -39,6 +40,12 @@ const OperationsBoardPage = lazy(() => import('./operations/OperationsBoardPage.
 
 const WELCOME_SELECTION_KEY = 'welcome_selection';
 
+function toIsoDate(value) {
+  if (!value) return new Date().toISOString().slice(0, 10);
+  if (typeof value === 'string') return value.slice(0, 10);
+  return new Date(value).toISOString().slice(0, 10);
+}
+
 const WelcomePage = () => {
   const { user, role, isInstructor, isAdmin, isHR, isSuperAdmin, isStudent } = useAuth();
   const { t, lang } = useLang();
@@ -71,6 +78,7 @@ const WelcomePage = () => {
   const [runJoyride, setRunJoyride] = useState(false);
   const [contextSwitcherOpen, setContextSwitcherOpen] = useState(false);
   const [autoSelecting, setAutoSelecting] = useState(false);
+  const [noPrograms, setNoPrograms] = useState(false);
 
   const visibleTabs = useMemo(() => {
     const tabs = ['schedule', 'overview'];
@@ -206,7 +214,7 @@ const WelcomePage = () => {
       setAutoSelecting(true);
       try {
         const progResult = isInstructor ? await getInstructorPrograms() : await getAllPrograms();
-        if (!progResult.success || !progResult.data?.length) { setAutoSelecting(false); return; }
+        if (!progResult.success || !progResult.data?.length) { setNoPrograms(true); setAutoSelecting(false); return; }
         const firstProgram = progResult.data[0];
         const termResult = await getProgramTerms(firstProgram.id, { all: isAdmin || isSuperAdmin });
         if (!termResult.success || !termResult.data?.length) {
@@ -322,13 +330,26 @@ const WelcomePage = () => {
     const termLabel = selection?.academicTerm
       ? (lang === 'ar' && selection.academicTerm.nameAr ? selection.academicTerm.nameAr : selection.academicTerm.nameEn)
       : null;
+    const classId = searchParams.get('classId') || null;
+    let className = null;
+    if (classId && scheduleData) {
+      for (const day of scheduleData.days || []) {
+        for (const slot of Object.values(day.slots || {})) {
+          if (slot && slot.classId && String(slot.classId) === String(classId)) {
+            className = lang === 'ar' ? (slot.class?.nameAr || slot.subjectName) : (slot.class?.nameEn || slot.subjectName);
+            break;
+          }
+        }
+        if (className) break;
+      }
+    }
     window.dispatchEvent(new CustomEvent('welcome-wizard-nav', {
-      detail: { programName, termLabel, workingDate: selectedDate },
+      detail: { programName, termLabel, workingDate: selectedDate, tab: tabParam, classId, className },
     }));
     return () => {
       window.dispatchEvent(new CustomEvent('welcome-wizard-nav', { detail: null }));
     };
-  }, [selection, lang, selectedDate]);
+  }, [selection, lang, selectedDate, tabParam, searchParams, scheduleData]);
 
   // Load schedule data when program and term are selected
   useEffect(() => {
@@ -394,6 +415,14 @@ const WelcomePage = () => {
       dayCode: slot?.dayCode,
       colKey: slot?.colKey,
     });
+    if (session.classId) {
+      setSearchParams((prev) => {
+        const next = new URLSearchParams(prev);
+        next.set('classId', String(session.classId));
+        next.set('date', toIsoDate(selectedDate));
+        return next;
+      });
+    }
     if (openMenu && anchor && typeof anchor.x === 'number') {
       const virtualEl = document.createElement('div');
       virtualEl.style.position = 'fixed';
@@ -404,7 +433,7 @@ const WelcomePage = () => {
       document.body.appendChild(virtualEl);
       setMenuAnchorEl(virtualEl);
     }
-  }, []);
+  }, [setSearchParams, selectedDate]);
 
   // Allow double-clicking another schedule cell to open its menu even when a menu is already open.
   // The MUI menu backdrop consumes the first click, so the cell's own onDoubleClick may not fire.
@@ -654,7 +683,7 @@ const WelcomePage = () => {
         />
       )}
 
-      {!selection?.program && !autoSelecting && <WelcomeHeader user={user} role={effectiveRole} />}
+      {!selection?.program && !autoSelecting && !noPrograms && <WelcomeHeader user={user} role={effectiveRole} />}
 
       {/* Selection flow */}
       <div
@@ -676,8 +705,35 @@ const WelcomePage = () => {
           </Box>
         )}
 
-        {!autoSelecting && !selection?.program && (
+        {!autoSelecting && !selection?.program && !noPrograms && (
           <ProgramTermSelector onSelect={handleProgramSelect} />
+        )}
+
+        {!autoSelecting && !selection?.program && noPrograms && (
+          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, py: 8, gap: 2 }}>
+            <Box sx={{ fontSize: '18px', fontWeight: 600, color: isDark ? '#f1f5f9' : '#1e293b', textAlign: 'center' }}>
+              {t('workspace_no_classes_assigned')}
+            </Box>
+            <Box sx={{ fontSize: '14px', color: isDark ? '#94a3b8' : '#64748b', textAlign: 'center', maxWidth: '400px' }}>
+              {t('workspace_no_classes_assigned_hint')}
+            </Box>
+            <button
+              type="button"
+              onClick={() => navigate('/', { replace: true })}
+              style={{
+                marginTop: '16px',
+                padding: '8px 20px',
+                borderRadius: '8px',
+                border: `1px solid ${isDark ? '#334155' : '#e2e8f0'}`,
+                background: 'transparent',
+                color: isDark ? '#94a3b8' : '#64748b',
+                cursor: 'pointer',
+                fontSize: '14px',
+              }}
+            >
+              {t('welcome_go_home')}
+            </button>
+          </Box>
         )}
 
         {selection?.program && !selection?.academicTerm && (
@@ -735,20 +791,176 @@ const WelcomePage = () => {
                   <Tab label={t('welcome_tab_operations') || 'Operations'} />
                 )}
               </Tabs>
-              {showSchedule && (
-                <DatePicker
-                  value={selectedDate.toISOString().slice(0, 10)}
-                  onChange={(value) => {
-                    const iso = typeof value === 'string' ? value : value?.toISOString?.()?.slice(0, 10);
-                    if (iso) setSelectedDate(new Date(`${iso}T12:00:00`));
-                  }}
-                  theme={isDark ? 'dark' : 'light'}
-                  showIcon
-                  compact
-                  className="welcome-working-date-picker"
-                  data-testid="welcome-working-date"
-                  style={{ width: 118, flexShrink: 0 }}
-                />
+              {(() => {
+                const classId = searchParams.get('classId');
+                let className = null;
+                if (classId && scheduleData) {
+                  for (const day of scheduleData.days || []) {
+                    for (const slot of Object.values(day.slots || {})) {
+                      if (slot && slot.classId && String(slot.classId) === String(classId)) {
+                        className = lang === 'ar' ? (slot.class?.nameAr || slot.subjectName) : (slot.class?.nameEn || slot.subjectName);
+                        break;
+                      }
+                    }
+                    if (className) break;
+                  }
+                }
+                if (!className) return null;
+                return (
+                  <div style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '2px 10px',
+                    borderRadius: '12px',
+                    background: isDark ? 'rgba(59,130,246,0.15)' : 'rgba(59,130,246,0.1)',
+                    border: `1px solid ${isDark ? 'rgba(59,130,246,0.3)' : 'rgba(59,130,246,0.2)'}`,
+                    fontSize: '0.72rem',
+                    fontWeight: 600,
+                    color: '#3b82f6',
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0,
+                  }}>
+                    <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#3b82f6' }} />
+                    {className}
+                  </div>
+                );
+              })()}
+              {showSchedule && tabParam === 'schedule' && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                  <button
+                    onClick={() => {
+                      const prev = new Date(selectedDate);
+                      prev.setDate(prev.getDate() - 7);
+                      setSelectedDate(prev);
+                    }}
+                    aria-label={t('calendar_previous') || 'Previous week'}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      cursor: 'pointer',
+                      padding: '4px',
+                      borderRadius: '6px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: isDark ? '#94a3b8' : '#64748b',
+                    }}
+                    data-testid="welcome-week-prev"
+                  >
+                    {lang === 'ar' ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+                  </button>
+                  {(() => {
+                    const ws = new Date(selectedDate);
+                    ws.setDate(ws.getDate() - ws.getDay());
+                    const we = new Date(ws);
+                    we.setDate(we.getDate() + 4);
+                    const fmt = (x) => `${String(x.getDate()).padStart(2, '0')}/${String(x.getMonth() + 1).padStart(2, '0')}`;
+                    const jan1 = new Date(ws.getFullYear(), 0, 1);
+                    const dayOfYear = Math.floor((ws - jan1) / 86400000) + 1;
+                    const weekNum = Math.ceil(dayOfYear / 7);
+                    return (
+                      <span style={{
+                        fontSize: '0.72rem',
+                        fontWeight: 600,
+                        color: isDark ? '#e2e8f0' : '#1e293b',
+                        whiteSpace: 'nowrap',
+                        padding: '0 6px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '4px',
+                      }}>
+                        <span style={{ display: 'inline-block', width: 38, textAlign: 'right' }}>W{weekNum}</span>
+                        <span style={{ display: 'inline-block', width: 38, textAlign: 'center' }}>{fmt(ws)}</span>
+                        <span style={{ opacity: 0.5 }}>-</span>
+                        <span style={{ display: 'inline-block', width: 38, textAlign: 'center' }}>{fmt(we)}</span>
+                      </span>
+                    );
+                  })()}
+                  <button
+                    onClick={() => {
+                      const next = new Date(selectedDate);
+                      next.setDate(next.getDate() + 7);
+                      setSelectedDate(next);
+                    }}
+                    aria-label={t('calendar_next') || 'Next week'}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      cursor: 'pointer',
+                      padding: '4px',
+                      borderRadius: '6px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: isDark ? '#94a3b8' : '#64748b',
+                    }}
+                    data-testid="welcome-week-next"
+                  >
+                    {lang === 'ar' ? <ChevronLeft size={18} /> : <ChevronRight size={18} />}
+                  </button>
+                </div>
+              )}
+              {showSchedule && tabParam === 'operations' && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '2px', flexShrink: 0, justifyContent: 'center' }}>
+                  <button
+                    onClick={() => {
+                      const prev = new Date(selectedDate);
+                      prev.setDate(prev.getDate() - 1);
+                      setSelectedDate(prev);
+                    }}
+                    aria-label={t('calendar_previous') || 'Previous day'}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      cursor: 'pointer',
+                      padding: '2px',
+                      borderRadius: '6px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: isDark ? '#94a3b8' : '#64748b',
+                    }}
+                    data-testid="welcome-day-prev"
+                  >
+                    {lang === 'ar' ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
+                  </button>
+                  <DatePicker
+                    value={selectedDate.toISOString().slice(0, 10)}
+                    onChange={(value) => {
+                      const iso = typeof value === 'string' ? value : value?.toISOString?.()?.slice(0, 10);
+                      if (iso) setSelectedDate(new Date(`${iso}T12:00:00`));
+                    }}
+                    theme={isDark ? 'dark' : 'light'}
+                    showIcon
+                    compact
+                    className="welcome-working-date-picker"
+                    data-testid="welcome-working-date"
+                    style={{ width: 100 }}
+                  />
+                  <button
+                    onClick={() => {
+                      const next = new Date(selectedDate);
+                      next.setDate(next.getDate() + 1);
+                      setSelectedDate(next);
+                    }}
+                    aria-label={t('calendar_next') || 'Next day'}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      cursor: 'pointer',
+                      padding: '2px',
+                      borderRadius: '6px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: isDark ? '#94a3b8' : '#64748b',
+                    }}
+                    data-testid="welcome-day-next"
+                  >
+                    {lang === 'ar' ? <ChevronLeft size={16} /> : <ChevronRight size={16} />}
+                  </button>
+                </div>
               )}
             </Box>
 
@@ -853,8 +1065,8 @@ const WelcomePage = () => {
         )}
       </div>
 
-      {/* Footer link — only when no selection */}
-      {!selection?.program && !autoSelecting && (
+      {/* Footer link — only when no selection and not showing noPrograms message */}
+      {!selection?.program && !autoSelecting && !noPrograms && (
         <button
           type="button"
           onClick={() => navigate('/', { replace: true })}
@@ -937,8 +1149,11 @@ const WelcomePage = () => {
           color: #2563eb !important;
           border-color: rgba(59, 130, 246, 0.45) !important;
         }
-        .welcome-working-date-picker svg {
+        .welcome-working-date-picker svg,
+        .welcome-working-date-picker svg *,
+        .welcome-working-date-picker .icon {
           color: #3b82f6 !important;
+          stroke: #3b82f6 !important;
         }
         @keyframes fadeInDown {
           from { opacity: 0; transform: translateY(-12px); }

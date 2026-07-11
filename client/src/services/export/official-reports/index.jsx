@@ -20,16 +20,16 @@ import { EXPORT_FORMAT } from '@constants/exportConfig.js';
 
 export { EXPORT_FORMAT };
 
-export async function exportDailyOfficialReport(data, { format = EXPORT_FORMAT.PDF, filename } = {}) {
+export async function exportDailyOfficialReport(data, { format = EXPORT_FORMAT.PDF, filename, download = true } = {}) {
   const baseName = filename || `daily_official_${data.serial}`;
   if (format === EXPORT_FORMAT.EXCEL) {
     const blob = await exportDailyOfficialExcel(data);
-    downloadBlob(blob, `${baseName}.xlsx`);
+    if (download) downloadBlob(blob, `${baseName}.xlsx`);
     return blob;
   }
   return renderOfficialPdf(
     <DailyOfficialTemplate data={data} showWatermark />,
-    { filename: `${baseName}.pdf`, download: true, serial: data.serial, lang: data.lang }
+    { filename: `${baseName}.pdf`, download, serial: data.serial, lang: data.lang }
   );
 }
 

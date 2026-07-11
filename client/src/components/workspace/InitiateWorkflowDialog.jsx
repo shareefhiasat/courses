@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import {
   Dialog,
   DialogTitle,
@@ -10,7 +10,8 @@ import {
   Box,
   Typography,
 } from '@mui/material';
-import { initiateAttendanceWorkflow } from '@services/business/workflowInitiationService.js';
+import { AlertCircle, FileText } from 'lucide-react';
+import { initiateAttendanceWorkflow, findExistingAttendanceWorkflow } from '@services/business/workflowInitiationService.js';
 
 export default function InitiateWorkflowDialog({
   open,
@@ -23,6 +24,7 @@ export default function InitiateWorkflowDialog({
   t,
   user,
   onGoToOperations,
+  knownExisting = null,
 }) {
   const [loading, setLoading] = useState(false);
   const [phase, setPhase] = useState('');
@@ -30,13 +32,36 @@ export default function InitiateWorkflowDialog({
   const [errorSeverity, setErrorSeverity] = useState('warning');
   const [success, setSuccess] = useState(false);
   const [existingWorkflow, setExistingWorkflow] = useState(null);
+  const [precheckExisting, setPrecheckExisting] = useState(knownExisting);
 
   const className = cls
     ? (lang === 'ar' ? cls.nameAr || cls.nameEn || cls.code : cls.nameEn || cls.nameAr || cls.code)
     : '';
 
+  useEffect(() => {
+    if (!open) return undefined;
+    setError(null);
+    setErrorSeverity('warning');
+    setSuccess(false);
+    setPhase('');
+    setExistingWorkflow(null);
+    setPrecheckExisting(knownExisting);
+    if (knownExisting || !cls?.id || !selectedDate) return undefined;
+    let cancelled = false;
+    findExistingAttendanceWorkflow(cls.id, selectedDate).then((result) => {
+      if (!cancelled && result.success) setPrecheckExisting(result.data);
+    });
+    return () => { cancelled = true; };
+  }, [open, knownExisting, cls?.id, selectedDate]);
+
   const handleConfirm = useCallback(async () => {
     if (!cls?.id || !selectedDate) return;
+    if (precheckExisting) {
+      setErrorSeverity('warning');
+      setError(t('initiate_workflow_in_progress') || 'A workflow already exists for this class and date.');
+      setExistingWorkflow(precheckExisting);
+      return;
+    }
     setLoading(true);
     setError(null);
     setErrorSeverity('warning');
@@ -74,7 +99,7 @@ export default function InitiateWorkflowDialog({
     } finally {
       setLoading(false);
     }
-  }, [cls, program, subject, selectedDate, lang, user, t]);
+  }, [cls, program, subject, selectedDate, lang, user, t, precheckExisting]);
 
   const handleClose = useCallback(() => {
     if (loading) return;
@@ -86,8 +111,13 @@ export default function InitiateWorkflowDialog({
     onClose();
   }, [loading, onClose]);
 
+  const goToExisting = useCallback((wf) => {
+    handleClose();
+    onGoToOperations?.(wf);
+  }, [handleClose, onGoToOperations]);
+
   return (
-    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
+    <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth data-testid="initiate-workflow-dialog">
       <DialogTitle>
         {t('initiate_workflow_title') || 'Initiate Workflow'}
       </DialogTitle>
@@ -101,18 +131,52 @@ export default function InitiateWorkflowDialog({
             <Typography variant="body2" color="text.secondary">
               {t('initiate_workflow_description') || 'A PDF attendance report will be attached to a new draft workflow.'}
             </Typography>
+            {(className || selectedDate) && (
+              <Typography variant="body2">
+                {className && <><strong>{t('initiate_workflow_class') || 'Class'}:</strong> {className}{' '}</>}
+                {selectedDate && <><strong>{t('initiate_workflow_date') || 'Date'}:</strong> {selectedDate}</>}
+              </Typography>
+            )}
+            {precheckExisting && !error && (
+              <Alert
+                severity="warning"
+                icon={<AlertCircle size={20} />}
+                data-testid="initiate-workflow-existing-hint"
+              >
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                  <span>{t('initiate_workflow_existing_hint') || 'A workflow already exists for this class and date.'}</span>
+                  <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap' }}>
+                    <Button
+                      size="small"
+                      variant="outlined"
+                      onClick={() => goToExisting(precheckExisting)}
+                      data-testid="initiate-workflow-goto-existing-precheck"
+                    >
+                      {t('initiate_workflow_go_operations') || 'Go to Operations'}
+                    </Button>
+                    {precheckExisting.fileId && (
+                      <Button
+                        size="small"
+                        variant="text"
+                        startIcon={<FileText size={14} />}
+                        onClick={() => goToExisting(precheckExisting)}
+                      >
+                        {t('operations_board_preview_pdf') || 'Preview PDF'}
+                      </Button>
+                    )}
+                  </Box>
+                </Box>
+              </Alert>
+            )}
             {error && (
               <Alert severity={errorSeverity}>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                   <span>{error}</span>
-                  {existingWorkflow && (
+                  {(existingWorkflow || precheckExisting) && (
                     <Button
                       size="small"
                       variant="outlined"
-                      onClick={() => {
-                        handleClose();
-                        onGoToOperations?.(existingWorkflow);
-                      }}
+                      onClick={() => goToExisting(existingWorkflow || precheckExisting)}
                       sx={{ alignSelf: 'flex-start', mt: 0.5 }}
                       data-testid="initiate-workflow-goto-existing"
                     >
@@ -138,10 +202,7 @@ export default function InitiateWorkflowDialog({
               {t('close') || 'Close'}
             </Button>
             <Button
-              onClick={() => {
-                handleClose();
-                onGoToOperations?.(existingWorkflow || null);
-              }}
+              onClick={() => goToExisting(existingWorkflow || null)}
               variant="contained"
               size="small"
               data-testid="initiate-workflow-go-operations"
@@ -156,7 +217,7 @@ export default function InitiateWorkflowDialog({
             </Button>
             <Button
               onClick={handleConfirm}
-              disabled={loading || !cls?.id}
+              disabled={loading || !cls?.id || Boolean(precheckExisting)}
               variant="contained"
               size="small"
               data-testid="initiate-workflow-confirm"

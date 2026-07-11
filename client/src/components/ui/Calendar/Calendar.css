@@ -281,3 +281,29 @@
 .calendar-wrapper[dir="rtl"] .rbc-btn-group {
   flex-direction: row-reverse;
 }
+
+/* Agenda Empty State */
+.rbc-agenda-view .rbc-agenda-content table tbody tr:first-child td.rbc-agenda-empty-cell,
+.rbc-agenda-view .rbc-agenda-content table tbody:empty::before {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1rem;
+  color: #94a3b8;
+  font-size: 0.875rem;
+}
+
+.rbc-agenda-view .rbc-agenda-content {
+  min-height: 200px;
+}
+
+.rbc-agenda-view:has(.rbc-agenda-content table tbody:empty) .rbc-agenda-content::after {
+  content: attr(data-empty-message);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1rem;
+  color: #94a3b8;
+  font-size: 0.875rem;
+  font-weight: 500;
+}

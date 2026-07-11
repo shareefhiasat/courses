@@ -3,6 +3,7 @@ import {
   exportDailyOfficialForDate,
 } from '@services/business/accessScopeExportService.js';
 import { createCustomWorkflowDocument } from '@services/api/workflow-documents-api.js';
+import { apiService } from '@services/api/apiService.js';
 
 /**
  * Initiate a draft attendance workflow for a class + date.
@@ -15,6 +16,41 @@ import { createCustomWorkflowDocument } from '@services/api/workflow-documents-a
  * @param {{ cls: object, program: object, subject: object, date: string, lang: string, user: object }} params
  * @returns {Promise<{ success: boolean, code?: number, error?: string, data?: object }>}
  */
+/**
+ * Look up an in-progress attendance workflow for class + date (before initiating).
+ */
+export async function findExistingAttendanceWorkflow(classId, date) {
+  if (!classId || !date) return { success: true, data: null };
+  try {
+    const params = new URLSearchParams({
+      classId: String(classId),
+      date: String(date).slice(0, 10),
+      workflowCategory: 'ATTENDANCE',
+      attendanceSubtype: 'DAILY',
+    });
+    const result = await apiService.get(`/workflow-documents/board?${params.toString()}`);
+    if (!result.success) return { success: false, data: null, error: result.error };
+    const docs = result.data || [];
+    const inProgress = docs.find((d) =>
+      !['APPROVED', 'REJECTED'].includes(String(d.status || '').toUpperCase()),
+    );
+    if (!inProgress) return { success: true, data: null };
+    return {
+      success: true,
+      data: {
+        id: inProgress.id,
+        status: inProgress.status,
+        fileId: inProgress.file?.id || inProgress.fileId || null,
+        fileName: inProgress.file?.name || null,
+        title: inProgress.title,
+      },
+    };
+  } catch (err) {
+    console.error('[workflowInitiationService] findExistingAttendanceWorkflow error:', err);
+    return { success: false, data: null, error: err.message };
+  }
+}
+
 export async function initiateAttendanceWorkflow({
   cls,
   program,
@@ -59,6 +95,7 @@ export async function initiateAttendanceWorkflow({
       attachFile: true,
       fileId,
       classId: cls.id,
+      date,
       dateFrom: date,
       program: program?.code || String(cls.programId || ''),
       subject: subject?.code || String(cls.subjectId || ''),

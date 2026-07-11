@@ -134,7 +134,7 @@
   }
   50% {
     opacity: 0.6;
-    box-shadow: 0 0 6px 2px rgba(249, 115, 22, 0.4);
+    box-shadow: 0 0 6px 2px color-mix(in srgb, var(--dot-color, #94a3b8) 40%, transparent);
   }
 }
 

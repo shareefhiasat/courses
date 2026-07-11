@@ -1,8 +1,7 @@
-import React, { useMemo, useState, useCallback } from 'react';
+import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
-import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import { EXPORT_FORMAT } from '@services/export/official-reports/index.jsx';
 import {
@@ -10,11 +9,14 @@ import {
   exportDailyOfficialTemplate,
   exportDailyOfficialForDate,
 } from '@services/business/accessScopeExportService.js';
-import { FileText, FileSpreadsheet } from 'lucide-react';
+import { FileText, FileSpreadsheet, AlertCircle } from 'lucide-react';
+import { Dialog, DialogTitle, DialogContent, DialogActions, Button as MuiButton } from '@mui/material';
 import { ATTENDANCE_TYPE_CATEGORY } from '@constants/attendanceTypes';
 import useQRPermissions from '@hooks/useQRPermissions';
 import AppMenu from '@components/ui/mui/AppMenu.jsx';
 import InitiateWorkflowDialog from '@components/workspace/InitiateWorkflowDialog.jsx';
+import WorkflowPdfPreviewPanel from '@components/operations-board/WorkflowPdfPreviewPanel.jsx';
+import { findExistingAttendanceWorkflow } from '@services/business/workflowInitiationService.js';
 
 function ScheduleContextMenu({
   session,
@@ -34,6 +36,8 @@ function ScheduleContextMenu({
   const { canExport, canSeeStandupMode } = useQRPermissions();
   const [exporting, setExporting] = useState(null);
   const [workflowDialogOpen, setWorkflowDialogOpen] = useState(false);
+  const [existingWorkflow, setExistingWorkflow] = useState(null);
+  const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
 
   const cls = session?.class;
   const subject = cls?.subject;
@@ -41,6 +45,18 @@ function ScheduleContextMenu({
   const dateStr = selectedDate
     ? selectedDate.toISOString().split('T')[0]
     : new Date().toISOString().split('T')[0];
+
+  useEffect(() => {
+    if (!open || !cls?.id || !dateStr) {
+      setExistingWorkflow(null);
+      return undefined;
+    }
+    let cancelled = false;
+    findExistingAttendanceWorkflow(cls.id, dateStr).then((result) => {
+      if (!cancelled) setExistingWorkflow(result.success ? result.data : null);
+    });
+    return () => { cancelled = true; };
+  }, [open, cls?.id, dateStr]);
 
   const runExport = useCallback(async (key, fn) => {
     setExporting(key);
@@ -80,6 +96,11 @@ function ScheduleContextMenu({
 
   const handleInitiateWorkflow = useCallback(() => {
     setWorkflowDialogOpen(true);
+    onClose();
+  }, [onClose]);
+
+  const handlePreviewPdf = useCallback(() => {
+    setPdfPreviewOpen(true);
     onClose();
   }, [onClose]);
 
@@ -221,10 +242,26 @@ function ScheduleContextMenu({
       children: [
         {
           id: 'initiate-workflow',
-          label: t('workspace_menu_workflow_initiate') || 'Initiate',
-          icon: getThemedIcon('ui', 'file_signature', 18, 'currentColor'),
+          label: existingWorkflow
+            ? `${t('workspace_menu_workflow_initiate') || 'Initiate'} — ${t('workspace_menu_workflow_exists') || 'exists'}`
+            : (t('workspace_menu_workflow_initiate') || 'Initiate'),
+          icon: existingWorkflow
+            ? <AlertCircle size={18} color="#f59e0b" />
+            : getThemedIcon('ui', 'file_signature', 18, 'currentColor'),
           onClick: handleInitiateWorkflow,
+          trailingActions: existingWorkflow ? [{
+            title: t('initiate_workflow_go_operations') || 'Go to existing',
+            icon: getThemedIcon('ui', 'external_link', 16, 'currentColor') || <FileText size={16} />,
+            tooltipColor: '#f59e0b',
+            onClick: () => handleGoToOperationsFromWorkflow(existingWorkflow),
+          }] : undefined,
         },
+        ...(existingWorkflow?.fileId ? [{
+          id: 'preview-workflow-pdf',
+          label: t('workspace_menu_workflow_preview_pdf') || 'Preview PDF',
+          icon: <FileText size={18} color="#3b82f6" />,
+          onClick: handlePreviewPdf,
+        }] : []),
       ],
     });
 
@@ -265,7 +302,7 @@ function ScheduleContextMenu({
     });
 
     return items;
-  }, [canExport, cls, program, subject, academicTerm, slotInstructor, lang, t, user, dateStr, exporting, runExport, handleScan, handleOpenOperations, handleInitiateWorkflow, handleInbox, handleHistory, canSeeStandupMode]);
+  }, [canExport, cls, program, subject, academicTerm, slotInstructor, lang, t, user, dateStr, exporting, runExport, handleScan, handleOpenOperations, handleInitiateWorkflow, handleInbox, handleHistory, canSeeStandupMode, existingWorkflow, handlePreviewPdf, handleGoToOperationsFromWorkflow]);
 
   return (
     <>
@@ -290,7 +327,42 @@ function ScheduleContextMenu({
         t={t}
         user={user}
         onGoToOperations={handleGoToOperationsFromWorkflow}
+        knownExisting={existingWorkflow}
       />
+      <Dialog
+        open={pdfPreviewOpen}
+        onClose={() => setPdfPreviewOpen(false)}
+        maxWidth="md"
+        fullWidth
+        data-testid="schedule-workflow-pdf-preview-dialog"
+      >
+        <DialogTitle>{t('operations_board_preview_pdf') || 'Preview PDF'}</DialogTitle>
+        <DialogContent>
+          <WorkflowPdfPreviewPanel
+            fileId={existingWorkflow?.fileId}
+            fileName={existingWorkflow?.fileName || existingWorkflow?.title}
+            open={pdfPreviewOpen}
+            onClose={() => setPdfPreviewOpen(false)}
+            t={t}
+          />
+        </DialogContent>
+        <DialogActions>
+          <MuiButton onClick={() => setPdfPreviewOpen(false)}>
+            {t('close') || 'Close'}
+          </MuiButton>
+          {existingWorkflow && (
+            <MuiButton
+              variant="contained"
+              onClick={() => {
+                setPdfPreviewOpen(false);
+                handleGoToOperationsFromWorkflow(existingWorkflow);
+              }}
+            >
+              {t('initiate_workflow_go_operations') || 'Go to Operations'}
+            </MuiButton>
+          )}
+        </DialogActions>
+      </Dialog>
     </>
   );
 }

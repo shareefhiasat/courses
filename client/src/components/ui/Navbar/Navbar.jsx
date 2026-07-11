@@ -318,14 +318,12 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                 <span style={{ opacity: 0.85, flexShrink: 0, display: 'flex' }} aria-hidden>
                   {getThemedIcon('ui', 'chevron_down', 16, 'currentColor')}
                 </span>
-                <span style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: '1px' }}>
+                <span style={{ display: 'flex', flexDirection: 'column', gap: '1px' }}>
                   <div style={{
                     fontSize: '0.88rem',
                     fontWeight: 700,
                     lineHeight: 1.2,
                     whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
                   }}>
                     {wizardNav.programName}
                   </div>
@@ -337,18 +335,55 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                     fontWeight: 500,
                     opacity: 0.9,
                     whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
                   }}>
                     {wizardNav.termLabel && <span>{wizardNav.termLabel}</span>}
                     {wizardNav.termLabel && (
                       <span style={{ opacity: 0.6 }}>·</span>
                     )}
-                    <span>
-                      {wizardNav.workingDate
-                        ? formatDate(wizardNav.workingDate, lang)
-                        : formatDate(new Date(), lang)}
+                    <span style={wizardNav.tab !== 'schedule' ? {
+                      padding: '1px 6px',
+                      borderRadius: '6px',
+                      background: 'rgba(59,130,246,0.1)',
+                      boxShadow: '0 0 0 1px rgba(59,130,246,0.2)',
+                    } : undefined}>
+                      {(() => {
+                        const d = wizardNav.workingDate ? new Date(wizardNav.workingDate) : new Date();
+                        if (wizardNav.tab === 'schedule') {
+                          const ws = new Date(d);
+                          ws.setDate(ws.getDate() - ws.getDay());
+                          const we = new Date(ws);
+                          we.setDate(we.getDate() + 4);
+                          const fmt = (x) => `${String(x.getDate()).padStart(2, '0')}/${String(x.getMonth() + 1).padStart(2, '0')}`;
+                          const jan1 = new Date(ws.getFullYear(), 0, 1);
+                          const dayOfYear = Math.floor((ws - jan1) / 86400000) + 1;
+                          const weekNum = Math.ceil(dayOfYear / 7);
+                          return `W${weekNum} ${fmt(ws)} - ${fmt(we)}`;
+                        }
+                        return formatDate(d, lang);
+                      })()}
                     </span>
+                    {wizardNav.className && (
+                      <>
+                        <span style={{ opacity: 0.6 }}>·</span>
+                        <div style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                          padding: '2px 8px',
+                          borderRadius: '10px',
+                          background: 'rgba(255, 255, 255, 0.85)',
+                          border: '1px solid rgba(226, 232, 240, 0.8)',
+                          fontSize: '0.65rem',
+                          fontWeight: 600,
+                          color: '#3b82f6',
+                          whiteSpace: 'nowrap',
+                          boxShadow: '0 1px 3px rgba(0, 0, 0, 0.06)',
+                        }}>
+                          <span style={{ width: 5, height: 5, borderRadius: '50%', backgroundColor: '#3b82f6', flexShrink: 0 }} />
+                          <span>{wizardNav.className}</span>
+                        </div>
+                      </>
+                    )}
                   </div>
                 </span>
               </button>

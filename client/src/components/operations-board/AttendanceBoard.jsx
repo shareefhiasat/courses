@@ -8,12 +8,12 @@ import {
 import {
   KanbanProvider,
   KanbanBoard,
-  KanbanHeader,
   KanbanCards,
   KanbanCard,
 } from '@/components/kibo-ui/kanban';
 import { Star } from 'lucide-react';
 import BoardStudentAvatar from './BoardStudentAvatar.jsx';
+import BoardLaneHeader from './BoardLaneHeader.jsx';
 import {
   resolveBoardStudentName,
 } from './operationsBoardDisplayUtils.js';
@@ -31,7 +31,7 @@ function BoardStatusDot({ column }) {
   return (
     <span
       className={`inline-block h-2 w-2 shrink-0 rounded-full ${column === 'NOT_TAKEN' ? gridStyles.legendDotPulse : ''}`}
-      style={{ backgroundColor: color }}
+      style={{ backgroundColor: color, '--dot-color': color }}
       aria-hidden
     />
   );
@@ -110,6 +110,9 @@ export default function AttendanceBoard({
   sortBy = 'system',
   onLaneResize,
   onLaneWidthsReset,
+  collapsedLanes = new Set(),
+  onToggleLaneCollapse,
+  onBulkMove,
 }) {
   const [boardData, setBoardData] = useState(() => {
     const classId = data[0]?.classId;
@@ -237,9 +240,17 @@ export default function AttendanceBoard({
       collisionDetection={pointerWithin}
       className="operations-board-kanban operations-attendance-kanban"
     >
-      {(column) => (
-        <KanbanBoard id={column.id} key={column.id} data-testid={`operations-board-column-${column.id}`} className="operations-board-lane">
-          {onLaneResize && (
+      {(column) => {
+        const collapsed = collapsedLanes.has(column.id);
+        const laneCount = boardData.filter((d) => d.column === column.id).length;
+        return (
+        <KanbanBoard
+          id={column.id}
+          key={column.id}
+          data-testid={`operations-board-column-${column.id}`}
+          className={`operations-board-lane${collapsed ? ' operations-board-lane-collapsed' : ''}`}
+        >
+          {!collapsed && onLaneResize && (
             <div
               className="operations-board-lane-resize-handle"
               role="separator"
@@ -258,26 +269,45 @@ export default function AttendanceBoard({
               data-testid={`operations-board-lane-resize-${column.id}`}
             />
           )}
-          <KanbanHeader className="operations-board-lane-header">
-            <div className="relative flex items-center justify-center gap-2">
-              <div
-                className={`h-3 w-3 rounded-full ring-2 ring-background ${column.id === 'NOT_TAKEN' ? gridStyles.legendDotPulse : ''}`}
-                style={{ backgroundColor: column.color }}
-              />
-              <span
-                className="text-center font-semibold text-base"
-                style={{ color: column.color }}
-              >
-                {t(column.i18nKey) || column.name}
-              </span>
-              <span className="absolute end-1 top-1/2 -translate-y-1/2 text-xs font-semibold" style={{ color: column.color }}>
-                {boardData.filter((d) => d.column === column.id).length}
-              </span>
-            </div>
-          </KanbanHeader>
-          <KanbanCards id={column.id}>
+          <BoardLaneHeader
+            column={column}
+            count={laneCount}
+            collapsed={collapsed}
+            onToggleCollapse={onToggleLaneCollapse}
+            t={t}
+            pulse={column.id === 'NOT_TAKEN'}
+            onBulkMove={onBulkMove}
+            columns={columns}
+            canMoveTo={(from, to) => canMoveAttendanceToColumn(to, roleContext)}
+          />
+          <KanbanCards id={column.id} className={collapsed ? 'operations-board-lane-cards-collapsed' : undefined}>
             {(item) => {
               const studentName = resolveBoardStudentName(item, lang);
+              if (collapsed) {
+                return (
+                  <KanbanCard
+                    column={column.id}
+                    id={item.id}
+                    key={item.id}
+                    name={studentName}
+                    className="operations-attendance-card operations-board-card-collapsed"
+                  >
+                    <div
+                      className="flex justify-center"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onCardClick(item);
+                      }}
+                    >
+                      <BoardStudentAvatar
+                        name={studentName}
+                        profileImageUrl={item.profileImageUrl}
+                        size="sm"
+                      />
+                    </div>
+                  </KanbanCard>
+                );
+              }
               return (
                 <KanbanCard
                   column={column.id}
@@ -345,7 +375,8 @@ export default function AttendanceBoard({
             }}
           </KanbanCards>
         </KanbanBoard>
-      )}
+        );
+      }}
     </KanbanProvider>
   );
 }

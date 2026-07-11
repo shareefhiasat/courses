@@ -74,12 +74,20 @@ function normalizeAttendanceStatus(value) {
 
 export function deriveAction(fromStatus, toStatus) {
   if (toStatus === 'REJECTED') return 'REJECT';
-  if (toStatus === 'DRAFT') return 'RETURN';
+  if (toStatus === 'SUBMITTED' && fromStatus === 'UNDER_ADMIN_REVIEW') return 'RETURN';
+  if (toStatus === 'UNDER_ADMIN_REVIEW' && fromStatus === 'UNDER_HR_REVIEW') return 'RETURN';
+  if (toStatus === 'DRAFT' && (fromStatus === 'TAKEN' || fromStatus === 'SUBMITTED')) return 'RETURN';
   if (toStatus === 'TAKEN' && fromStatus === 'DRAFT') return 'MARK_TAKEN';
   if (toStatus === 'SUBMITTED' && fromStatus === 'TAKEN') return 'SUBMIT';
   if (toStatus === 'SUBMITTED' && fromStatus === 'DRAFT') return 'SUBMIT';
   if (toStatus === 'SUBMITTED' && fromStatus === 'REJECTED') return 'RESUBMIT';
-  if (toStatus === 'UNDER_HR_REVIEW' || toStatus === 'UNDER_ADMIN_REVIEW' || toStatus === 'APPROVED') return 'APPROVE';
+  if (
+    (toStatus === 'UNDER_ADMIN_REVIEW' && fromStatus === 'SUBMITTED')
+    || (toStatus === 'UNDER_HR_REVIEW' && fromStatus === 'UNDER_ADMIN_REVIEW')
+    || (toStatus === 'APPROVED' && fromStatus === 'UNDER_HR_REVIEW')
+  ) {
+    return 'APPROVE';
+  }
   return null;
 }
 
@@ -142,6 +150,38 @@ export const fetchWorkflowBoardData = async (filters = {}) => {
       raw: doc,
     }));
 
+    const uniqueClassDates = new Map();
+    for (const doc of documents) {
+      if (doc.classId && doc.date) {
+        const dateStr = typeof doc.date === 'string' ? doc.date.slice(0, 10) : new Date(doc.date).toISOString().slice(0, 10);
+        const key = `${doc.classId}_${dateStr}`;
+        if (!uniqueClassDates.has(key)) {
+          uniqueClassDates.set(key, { classId: doc.classId, date: dateStr });
+        }
+      }
+    }
+
+    const attendanceSummaryMap = new Map();
+    await Promise.all(
+      Array.from(uniqueClassDates.values()).map(async ({ classId, date }) => {
+        try {
+          const attResult = await apiService.get(`/attendance?classId=${classId}&date=${date}`);
+          const records = attResult.data?.attendances || attResult.data || [];
+          const counts = { present: 0, late: 0, absent: 0, excused: 0, humanCase: 0, notTaken: 0 };
+          for (const rec of records) {
+            const lane = normalizeAttendanceStatus(rec);
+            if (lane === 'PRESENT') counts.present++;
+            else if (lane === 'LATE') counts.late++;
+            else if (lane === 'ABSENT') counts.absent++;
+            else if (lane === 'EXCUSED') counts.excused++;
+            else if (lane === 'HUMAN_CASE') counts.humanCase++;
+            else counts.notTaken++;
+          }
+          attendanceSummaryMap.set(`${classId}_${date}`, counts);
+        } catch {}
+      })
+    );
+
     let filtered = boardData;
     if (filters.search) {
       const q = filters.search.toLowerCase();
@@ -153,6 +193,16 @@ export const fetchWorkflowBoardData = async (filters = {}) => {
           d.subjectName?.toLowerCase().includes(q)
       );
     }
+
+    filtered = filtered.map((item) => {
+      if (item.classId && item.date) {
+        const dateStr = typeof item.date === 'string' ? item.date.slice(0, 10) : new Date(item.date).toISOString().slice(0, 10);
+        const key = `${item.classId}_${dateStr}`;
+        const summary = attendanceSummaryMap.get(key);
+        if (summary) item.attendanceSummary = summary;
+      }
+      return item;
+    });
 
     return { success: true, data: filtered };
   } catch (err) {

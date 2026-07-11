@@ -11,16 +11,23 @@ import {
   fetchAttendanceHistory,
   addWorkflowBoardComment,
   ATTENDANCE_COLUMNS,
+  WORKFLOW_COLUMNS,
 } from '@services/business/operationsBoardService.js';
 import { getRecordHistory } from '@services/business/attendanceLogService.js';
+import { getParticipationsByClassAndDate } from '@services/business/participationService.js';
 import { useLang } from '@contexts/LangContext';
 import BoardStudentAvatar from './BoardStudentAvatar.jsx';
 import {
   formatBoardDate,
   resolveBoardClassName,
   resolveBoardStudentName,
+  parseWorkflowCardName,
 } from './operationsBoardDisplayUtils.js';
 import { getAllowedAttendanceActions } from './attendanceBoardRules.js';
+import WorkflowPdfPreviewPanel from './WorkflowPdfPreviewPanel.jsx';
+import { FileText, X, Check, Clock, MinusCircle, Save, Eye, EyeOff } from 'lucide-react';
+import { formatDateTime } from '@utils/date-formatter.js';
+import { ATTENDANCE_BOARD_COLORS } from '@constants/workspaceStatusColors.js';
 
 export default function BoardStudentDrawer({
   open,
@@ -39,6 +46,8 @@ export default function BoardStudentDrawer({
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(false);
   const [savingStatus, setSavingStatus] = useState(null);
+  const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
+  const [participationList, setParticipationList] = useState([]);
 
   const loadDetail = useCallback(async () => {
     if (!card) return;
@@ -64,6 +73,18 @@ export default function BoardStudentDrawer({
           setAttendanceLog([]);
         }
         setComments([]);
+        if (card.classId && card.date) {
+          try {
+            const partResult = await getParticipationsByClassAndDate(card.classId, card.date);
+            if (partResult.success && partResult.data) {
+              setParticipationList(partResult.data.filter((p) => String(p.userId) === String(card.userId)));
+            } else {
+              setParticipationList([]);
+            }
+          } catch { setParticipationList([]); }
+        } else {
+          setParticipationList([]);
+        }
       }
     } catch (err) {
       console.error('BoardStudentDrawer:loadDetail:error', err);
@@ -75,6 +96,7 @@ export default function BoardStudentDrawer({
   useEffect(() => {
     if (open && card) {
       setTab('activity');
+      setPdfPreviewOpen(false);
       loadDetail();
     }
   }, [open, card, loadDetail]);
@@ -139,7 +161,14 @@ export default function BoardStudentDrawer({
 
   const studentName = resolveBoardStudentName(card, lang);
   const className = resolveBoardClassName(card, lang);
-  const statusColumn = (lane === 'attendance' ? ATTENDANCE_COLUMNS : []).find((c) => c.id === card.column);
+  const workflowNameParts = card.type === 'workflow' ? parseWorkflowCardName(card.name) : [];
+  const workflowTitle = workflowNameParts[0] || studentName;
+  const workflowClassName = workflowNameParts[1] || className;
+  const displayTitle = card.type === 'workflow' ? workflowTitle : studentName;
+  const displayClassName = card.type === 'workflow' ? workflowClassName : className;
+
+  const statusColumns = card.type === 'attendance' ? ATTENDANCE_COLUMNS : WORKFLOW_COLUMNS;
+  const statusColumn = statusColumns.find((c) => c.id === card.column);
   const statusLabel = statusColumn ? t(statusColumn.i18nKey) || statusColumn.name : card.column;
   const allowedActions = card.type === 'attendance' ? getAllowedAttendanceActions(roleContext) : [];
 
@@ -175,48 +204,128 @@ export default function BoardStudentDrawer({
       position={lang === 'ar' ? 'left' : 'right'}
       size="lg"
       resizable
-      title={studentName}
+      hideCloseButton
+      title={null}
       data-testid="operations-board-drawer"
     >
-      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, height: '100%' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
-          {card.type === 'attendance' && (
-            <BoardStudentAvatar name={studentName} profileImageUrl={card.profileImageUrl} size="lg" />
+      <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+        {/* Header: avatar / doc icon + title + meta + close */}
+        <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.5, mb: 2, pb: 1.5, borderBottom: '1px solid', borderColor: 'divider' }}>
+          {card.type === 'attendance' ? (
+            <BoardStudentAvatar name={studentName} profileImageUrl={card.profileImageUrl} size="md" />
+          ) : (
+            <span
+              className="inline-flex items-center justify-center rounded-full shrink-0"
+              style={{
+                width: 40,
+                height: 40,
+                backgroundColor: statusColumn ? `${statusColumn.color}14` : 'hsl(var(--muted))',
+                color: statusColumn?.color || 'currentColor',
+              }}
+            >
+              <FileText size={18} />
+            </span>
           )}
-          <Box sx={{ minWidth: 0 }}>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, alignItems: 'center' }}>
-              <Badge
-                variant="outline"
-                style={statusColumn ? { borderColor: statusColumn.color, color: statusColumn.color } : undefined}
-              >
-                {statusLabel}
-              </Badge>
-              {className && (
-                <span className="text-sm text-muted-foreground">{className}</span>
+          <Box sx={{ minWidth: 0, flex: 1, pt: 0.25 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+              <span className="text-base font-semibold truncate">{displayTitle}</span>
+              {statusColumn && (
+                <Badge
+                  variant="outline"
+                  style={{
+                    borderColor: statusColumn.color,
+                    color: statusColumn.color,
+                    backgroundColor: `${statusColumn.color}14`,
+                    fontSize: '0.7rem',
+                    textTransform: 'none',
+                  }}
+                >
+                  {statusLabel}
+                </Badge>
+              )}
+            </Box>
+            <Box sx={{ display: 'flex', gap: 1.5, mt: 0.5, flexWrap: 'wrap', alignItems: 'center' }}>
+              {displayClassName && (
+                <span className="text-xs text-muted-foreground truncate">{displayClassName}</span>
               )}
               {card.date && (
-                <span className="text-sm text-muted-foreground">{formatBoardDate(card.date, lang)}</span>
+                <>
+                  {displayClassName && <span className="text-xs text-muted-foreground/50">•</span>}
+                  <span className="text-xs text-muted-foreground">{formatBoardDate(card.date, lang)}</span>
+                </>
               )}
             </Box>
           </Box>
+          <button
+            onClick={onClose}
+            aria-label="Close"
+            className="inline-flex items-center justify-center rounded-md p-1.5 text-muted-foreground hover:bg-muted hover:text-foreground"
+            style={{ background: 'transparent', border: 'none', cursor: 'pointer', flexShrink: 0, marginTop: 2 }}
+          >
+            <X size={18} />
+          </button>
         </Box>
 
+        {/* Status buttons for attendance */}
         {card.type === 'attendance' && (
-          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-            {allowedActions.map((col) => (
-              <Button
-                key={col.id}
-                size="sm"
-                variant={card.column === col.id ? 'default' : 'outline'}
-                disabled={savingStatus != null}
-                onClick={() => handleAttendanceStatus(col.id)}
-                className="gap-2"
-                data-testid={`operations-board-set-status-${col.id}`}
-              >
-                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: col.color }} />
-                {t(col.i18nKey) || col.name}
-              </Button>
-            ))}
+          <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mb: 1 }}>
+            {allowedActions.map((col) => {
+              const isNotTaken = col.id === 'NOT_TAKEN';
+              const isSelected = card.column === col.id;
+              const iconMap = {
+                PRESENT: <Check size={14} />,
+                LATE: <Clock size={14} />,
+                ABSENT: <MinusCircle size={14} />,
+                EXCUSED: <FileText size={14} />,
+                NOT_TAKEN: <MinusCircle size={14} />,
+              };
+              if (isNotTaken) {
+                return (
+                  <button
+                    key={col.id}
+                    disabled={savingStatus != null}
+                    onClick={() => handleAttendanceStatus(col.id)}
+                    data-testid={`operations-board-set-status-${col.id}`}
+                    className="operations-board-drawer-status-chip"
+                    style={{
+                      '--chip-color': col.color,
+                      padding: '0.4rem 0.5rem',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                    title={t(col.i18nKey) || col.name}
+                  >
+                    {iconMap[col.id] || <MinusCircle size={14} />}
+                  </button>
+                );
+              }
+              return (
+                <button
+                  key={col.id}
+                  disabled={savingStatus != null}
+                  onClick={() => handleAttendanceStatus(col.id)}
+                  data-testid={`operations-board-set-status-${col.id}`}
+                  className={`operations-board-drawer-status-chip${isSelected ? ' selected' : ''}`}
+                  style={{ '--chip-color': col.color }}
+                >
+                  <span className="operations-board-drawer-status-chip-dot" style={{ backgroundColor: col.color }} />
+                  {iconMap[col.id]}
+                  {t(col.i18nKey) || col.name}
+                </button>
+              );
+            })}
+            <button
+              size="sm"
+              onClick={handleSaveNotes}
+              disabled={savingStatus != null}
+              className="operations-board-drawer-status-chip"
+              style={{ '--chip-color': '#3b82f6', marginLeft: 'auto' }}
+              data-testid="operations-board-save-notes-btn"
+            >
+              <Save size={14} />
+              {t('operations_board_note_save') || 'Save'}
+            </button>
           </Box>
         )}
 
@@ -226,10 +335,46 @@ export default function BoardStudentDrawer({
           </Button>
         )}
 
-        <Tabs value={tab} onChange={(_, value) => setTab(value)} variant="fullWidth">
+        {card.type === 'workflow' && card.fileId && (
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 2 }}>
+            <Button
+              size="sm"
+              variant="outline"
+              className="w-fit h-8 gap-2 px-3"
+              onClick={() => setPdfPreviewOpen((v) => !v)}
+              data-testid="operations-board-preview-pdf-toggle"
+            >
+              <FileText size={16} />
+              {pdfPreviewOpen ? (
+                <>
+                  <EyeOff size={16} />
+                  {t('operations_board_hide_preview') || 'Hide preview'}
+                </>
+              ) : (
+                <>
+                  <Eye size={16} />
+                  {t('operations_board_preview_pdf') || 'Preview PDF'}
+                </>
+              )}
+            </Button>
+            <WorkflowPdfPreviewPanel
+              fileId={card.fileId}
+              fileName={card.fileName}
+              open={pdfPreviewOpen}
+              onClose={() => setPdfPreviewOpen(false)}
+              t={t}
+              compact
+            />
+          </Box>
+        )}
+
+        <Tabs value={tab} onChange={(_, value) => setTab(value)} variant="fullWidth" sx={{ flexShrink: 0 }}>
           <Tab value="activity" label={t('operations_board_tab_activity')} data-testid="operations-board-drawer-tab-activity" />
           <Tab value="profile" label={t('operations_board_tab_profile') || 'Profile'} data-testid="operations-board-drawer-tab-profile" />
           <Tab value="notes" label={t('operations_board_tab_notes')} data-testid="operations-board-drawer-tab-notes" />
+          {card.type === 'attendance' && (
+            <Tab value="participation" label={t('operations_board_participation') || 'Participation'} data-testid="operations-board-drawer-tab-participation" />
+          )}
           {card.type === 'workflow' && (
             <Tab value="comments" label={t('operations_board_tab_comments')} data-testid="operations-board-drawer-tab-comments" />
           )}
@@ -242,23 +387,37 @@ export default function BoardStudentDrawer({
             ) : activityEntries.length === 0 ? (
               <p className="text-sm text-muted-foreground">{t('operations_board_no_activity')}</p>
             ) : (
-              activityEntries.map((entry, idx) => (
-                <div key={idx} className="mb-3 rounded-lg border border-border bg-muted/20 p-3 text-sm">
-                  <div className="flex justify-between gap-2">
-                    <span className="font-medium">{entry.actor}</span>
-                    {entry.at && (
-                      <span className="text-xs text-muted-foreground">
-                        {formatBoardDate(entry.at, lang)}
-                      </span>
+              <div className="flex flex-col">
+                {activityEntries.map((entry, idx) => (
+                  <div
+                    key={idx}
+                    className="py-3 text-sm"
+                    style={{
+                      borderBottom: idx < activityEntries.length - 1 ? '1px solid hsl(var(--border))' : 'none',
+                    }}
+                  >
+                    <div className="flex justify-between gap-2 mb-1">
+                      <span className="font-medium text-foreground">{entry.actor}</span>
+                      {entry.at && (
+                        <span className="text-xs text-muted-foreground shrink-0">
+                          {formatDateTime(entry.at, lang)}
+                        </span>
+                      )}
+                    </div>
+                    {entry.type === 'status' && (
+                      <p className="text-muted-foreground">
+                        <span className="inline-flex items-center gap-1.5">
+                          <span className="font-medium text-foreground/80">{entry.from || '—'}</span>
+                          <span className="text-xs">→</span>
+                          <span className="font-medium text-foreground/80">{entry.to || '—'}</span>
+                        </span>
+                      </p>
                     )}
+                    {entry.text && <p className="mt-1 text-foreground">{entry.text}</p>}
+                    {entry.reason && <p className="mt-1 text-muted-foreground">{entry.reason}</p>}
                   </div>
-                  {entry.type === 'status' && (
-                    <p className="mt-1 text-muted-foreground">{entry.from || '—'} → {entry.to || '—'}</p>
-                  )}
-                  {entry.text && <p className="mt-1">{entry.text}</p>}
-                  {entry.reason && <p className="mt-1 text-muted-foreground">{entry.reason}</p>}
-                </div>
-              ))
+                ))}
+              </div>
             )}
           </Box>
         )}
@@ -272,17 +431,18 @@ export default function BoardStudentDrawer({
                 { label: t('operations_board_profile_name_ar') || 'Name (Arabic)', value: [u.firstNameAr, u.lastNameAr].filter(Boolean).join(' ') || null },
                 { label: t('operations_board_profile_student_number') || 'Student Number', value: u.studentNumber || card.studentNumber || null },
                 { label: t('operations_board_profile_email') || 'Email', value: u.email || null },
+                { label: t('operations_board_profile_phone') || 'Phone', value: u.phone || u.phoneNumber || u.mobile || null },
                 { label: t('operations_board_profile_rank') || 'Rank', value: (lang === 'ar' ? u.rankAr : u.rankEn) || null },
                 { label: t('operations_board_profile_display_name') || 'Display Name', value: (lang === 'ar' ? u.displayNameAr : u.displayName) || null },
                 { label: t('operations_board_profile_sequence') || 'Sequence', value: u.sequence != null ? String(u.sequence) : (card.sequence != null ? String(card.sequence) : null) },
               ];
               return (
-                <div className="flex flex-col gap-3">
+                <div className="grid grid-cols-1 gap-4">
                   {profileRows.map((row, idx) => (
                     row.value ? (
-                      <div key={idx} className="flex flex-col gap-0.5 border-b border-border pb-2">
+                      <div key={idx} className="flex flex-col gap-0.5">
                         <span className="text-xs text-muted-foreground">{row.label}</span>
-                        <span className="text-sm font-medium">{row.value}</span>
+                        <span className="text-sm font-medium text-foreground">{row.value}</span>
                       </div>
                     ) : null
                   ))}
@@ -296,7 +456,7 @@ export default function BoardStudentDrawer({
         )}
 
         {tab === 'notes' && (
-          <Box>
+          <Box sx={{ flex: 1, overflow: 'auto' }} data-testid="operations-board-notes-panel">
             <textarea
               className="min-h-[140px] w-full rounded-md border border-input bg-background p-3 text-sm"
               value={notes}
@@ -305,20 +465,102 @@ export default function BoardStudentDrawer({
               data-testid="operations-board-notes-input"
             />
             <Button size="sm" className="mt-2" onClick={handleSaveNotes}>
-              {t('operations_board_note_save')}
+              {t('operations_board_note_save') || 'Save'}
             </Button>
+            {(() => {
+              const notesHistory = history.filter((h) => h.notes || h.comment);
+              return notesHistory.length > 0 ? (
+                <Box sx={{ mt: 2 }}>
+                  <p className="text-xs font-semibold text-muted-foreground uppercase mb-2 tracking-wide">
+                    {t('operations_board_notes_history') || 'Notes History'}
+                  </p>
+                  {notesHistory.map((h, idx) => (
+                    <div
+                      key={idx}
+                      className="py-2 text-sm"
+                      style={{
+                        borderBottom: idx < notesHistory.length - 1 ? '1px solid hsl(var(--border))' : 'none',
+                      }}
+                    >
+                      <p className="text-foreground">{h.notes || h.comment}</p>
+                      <span className="text-xs text-muted-foreground">
+                        {formatDateTime(h.createdAt || h.changedAt, lang)}
+                      </span>
+                    </div>
+                  ))}
+                </Box>
+              ) : null;
+            })()}
+          </Box>
+        )}
+
+        {tab === 'participation' && card.type === 'attendance' && (
+          <Box sx={{ flex: 1, overflow: 'auto' }} data-testid="operations-board-participation-panel">
+            {participationList.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                {t('operations_board_no_participation') || 'No participation records for this student.'}
+              </p>
+            ) : (
+              <div className="flex flex-col">
+                {participationList.map((p, idx) => (
+                  <div
+                    key={idx}
+                    className="py-3 text-sm"
+                    style={{
+                      borderBottom: idx < participationList.length - 1 ? '1px solid hsl(var(--border))' : 'none',
+                    }}
+                  >
+                    <div className="flex justify-between items-center mb-1">
+                      <span className="font-medium text-foreground">
+                        {p.participationTypeName || p.typeName || (lang === 'ar' ? 'مشاركة' : 'Participation')}
+                      </span>
+                      {p.points != null && (
+                        <Badge variant="outline" style={{ borderColor: '#3b82f6', color: '#3b82f6', fontSize: '0.7rem' }}>
+                          {p.points} {t('operations_board_points') || 'pts'}
+                        </Badge>
+                      )}
+                    </div>
+                    {p.notes && <p className="text-muted-foreground text-xs">{p.notes}</p>}
+                    {p.createdAt && (
+                      <span className="text-xs text-muted-foreground block">
+                        {formatDateTime(p.createdAt, lang)}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </Box>
         )}
 
         {tab === 'comments' && card.type === 'workflow' && (
-          <Box>
-            <div className="mb-3 flex flex-col gap-2">
-              {comments.map((c, idx) => (
-                <div key={idx} className="rounded-lg border border-border bg-muted/20 p-3 text-sm">
-                  <p>{c.comment || c.text}</p>
+          <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+            <Box sx={{ flex: 1, overflow: 'auto', mb: 2 }}>
+              {comments.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  {t('operations_board_no_comments') || 'No comments yet.'}
+                </p>
+              ) : (
+                <div className="flex flex-col">
+                  {comments.map((c, idx) => (
+                    <div
+                      key={idx}
+                      className="py-3 text-sm"
+                      style={{
+                        borderBottom: idx < comments.length - 1 ? '1px solid hsl(var(--border))' : 'none',
+                      }}
+                    >
+                      <p className="text-foreground">{c.comment || c.text}</p>
+                      {c.createdAt && (
+                        <span className="text-xs text-muted-foreground block mt-1">
+                          {formatDateTime(c.createdAt, lang)}
+                        </span>
+                      )}
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              )}
+            </Box>
             <div className="flex gap-2">
               <Input
                 value={newComment}
@@ -327,7 +569,7 @@ export default function BoardStudentDrawer({
                 data-testid="operations-board-comment-input"
                 onKeyDown={(e) => { if (e.key === 'Enter') handleAddComment(); }}
               />
-              <Button size="sm" onClick={handleAddComment}>{t('operations_board_note_save')}</Button>
+              <Button size="sm" onClick={handleAddComment}>{t('operations_board_note_save') || 'Save'}</Button>
             </div>
           </Box>
         )}

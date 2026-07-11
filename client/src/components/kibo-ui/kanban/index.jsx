@@ -57,7 +57,8 @@ export const KanbanCard = (
     id,
     name,
     children,
-    className
+    className,
+    dragColor
   }
 ) => {
   const {
@@ -77,15 +78,28 @@ export const KanbanCard = (
     transform: CSS.Transform.toString(transform),
   };
 
+  const ringColor = dragColor || '#a855f7';
+  const glowColor = dragColor || 'rgba(139,92,246,0.4)';
+
+  const dragStyle = isDragging ? {
+    '--tw-ring-color': `${ringColor}66`,
+  } : undefined;
+
+  const overlayStyle = {
+    '--tw-ring-color': ringColor,
+    boxShadow: `0 0 18px ${glowColor}`,
+  };
+
   return (
     <>
       <div style={style} {...listeners} {...attributes} ref={setNodeRef}>
         <Card
           className={cn(
-            "cursor-grab gap-4 rounded-md p-3 shadow-sm hover:shadow-[0_0_15px_rgba(139,92,246,0.4)] hover:border-purple-400/60 transition-shadow transition-[box-shadow,border-color]",
-            isDragging && "pointer-events-none cursor-grabbing opacity-30 ring-2 ring-purple-500/40",
+            "cursor-grab gap-4 rounded-md p-3 shadow-sm transition-shadow transition-[box-shadow,border-color]",
+            isDragging && "pointer-events-none cursor-grabbing opacity-30 ring-2",
             className
-          )}>
+          )}
+          style={dragStyle}>
           {children ?? <p className="m-0 font-medium text-sm">{name}</p>}
         </Card>
       </div>
@@ -93,10 +107,11 @@ export const KanbanCard = (
         <t.In>
           <Card
             className={cn(
-              "cursor-grab gap-4 rounded-md p-3 shadow-sm ring-2 ring-purple-500 shadow-[0_0_18px_rgba(139,92,246,0.55)] animate-pulse",
+              "cursor-grab gap-4 rounded-md p-3 shadow-sm ring-2 animate-pulse",
               isDragging && "cursor-grabbing",
               className
-            )}>
+            )}
+            style={overlayStyle}>
             {children ?? <p className="m-0 font-medium text-sm">{name}</p>}
           </Card>
         </t.In>

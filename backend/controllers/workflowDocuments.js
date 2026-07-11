@@ -332,6 +332,12 @@ export const updateWorkflowDocumentStatusController = async (req, res) => {
       });
     }
 
+    const existing = await getWorkflowDocument(parseInt(id));
+    if (!existing.success) {
+      return res.status(404).json({ success: false, error: 'Document not found' });
+    }
+    const previousStatus = existing.data.status;
+
     const result = await updateStatus(parseInt(id), status, user.dbId, reason);
 
     if (result.success) {
@@ -344,6 +350,71 @@ export const updateWorkflowDocumentStatusController = async (req, res) => {
           title: result.data.title,
         });
       }
+
+      // Notify on board status transitions that skip approve/return endpoints
+      try {
+        const actor = await prisma.user.findUnique({
+          where: { id: user.dbId },
+          select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true }
+        });
+        const cls = result.data.classId ? await prisma.class.findUnique({
+          where: { id: result.data.classId },
+          select: { id: true, nameEn: true, nameAr: true, code: true }
+        }) : null;
+        const basePayload = {
+          ...buildNotificationNameVars(actor, 'Unknown User'),
+          workflowName: result.data.title,
+          documentId: result.data.id,
+          senderName: actor?.displayName || 'Unknown',
+          senderId: user?.dbId || null,
+          className: cls?.nameEn || null,
+          classNameAr: cls?.nameAr || cls?.nameEn || null,
+          previousStatus,
+          newStatus: status,
+        };
+
+        if (status === 'SUBMITTED' && ['DRAFT', 'TAKEN'].includes(previousStatus)) {
+          // Instructor submitted — notify Admins and HR that a draft is ready for review pipeline
+          await emit(EVENTS.WORKFLOW_SUBMITTED, {
+            ...basePayload,
+            recipientType: 'role',
+            recipientRole: LMS_ROLES.ADMIN,
+          }, user, { role: LMS_ROLES.ADMIN });
+          await emit(EVENTS.WORKFLOW_SUBMITTED, {
+            ...basePayload,
+            recipientType: 'role',
+            recipientRole: LMS_ROLES.HR,
+          }, user, { role: LMS_ROLES.HR });
+        } else if (status === 'UNDER_ADMIN_REVIEW' && previousStatus === 'SUBMITTED') {
+          await emit(EVENTS.WORKFLOW_SENT_FOR_REVIEW, {
+            ...basePayload,
+            recipientType: 'role',
+            recipientRole: LMS_ROLES.ADMIN,
+          }, user, { role: LMS_ROLES.ADMIN });
+        } else if (status === 'UNDER_HR_REVIEW') {
+          await emit(EVENTS.WORKFLOW_SENT_FOR_REVIEW, {
+            ...basePayload,
+            recipientType: 'role',
+            recipientRole: LMS_ROLES.HR,
+          }, user, { role: LMS_ROLES.HR });
+        } else if (status === 'SUBMITTED' && previousStatus === 'UNDER_ADMIN_REVIEW' && result.data.submitterId) {
+          await emit(EVENTS.WORKFLOW_RETURNED, {
+            ...basePayload,
+            feedback: reason || '',
+            recipientType: 'user',
+            recipientUserId: result.data.submitterId,
+          }, user, { userId: result.data.submitterId });
+          await emit(EVENTS.WORKFLOW_RETURNED, {
+            ...basePayload,
+            feedback: reason || '',
+            recipientType: 'role',
+            recipientRole: LMS_ROLES.ADMIN,
+          }, user, { role: LMS_ROLES.ADMIN });
+        }
+      } catch (notificationError) {
+        console.error('Failed to emit status-change notification:', notificationError);
+      }
+
       res.status(200).json({
         success: true,
         data: result.data
@@ -480,22 +551,6 @@ export const approveWorkflowDocumentController = async (req, res) => {
     const { user } = req;
     const { comment } = req.body;
 
-    // Validate HR, Admin, or Super Admin role
-    const isSuperAdmin = user.roles && user.roles.includes(LMS_ROLES.SUPER_ADMIN);
-    if (!user || !user.roles || (!user.roles.includes(LMS_ROLES.HR) && !user.roles.includes(LMS_ROLES.ADMIN) && !isSuperAdmin)) {
-      await logPermissionDenial({
-        userId: user?.id,
-        action: 'workflowAction',
-        resource: `workflow-documents/${id}`,
-        reason: 'HR, Admin, or Super Admin role required',
-        userRole: user?.roles?.join(',') || 'none'
-      });
-      return res.status(403).json({
-        success: false,
-        error: 'Access denied. HR, Admin, or Super Admin role required.'
-      });
-    }
-
     // Get current document to determine workflow type and status
     const document = await prisma.workflowDocument.findUnique({
       where: { id: parseInt(id) },
@@ -506,6 +561,7 @@ export const approveWorkflowDocumentController = async (req, res) => {
         attendanceSubtype: true,
         status: true,
         updatedBy: true,
+        submitterId: true,
       }
     });
 
@@ -513,6 +569,29 @@ export const approveWorkflowDocumentController = async (req, res) => {
       return res.status(404).json({
         success: false,
         error: 'Document not found'
+      });
+    }
+
+    const isSuperAdmin = user.roles && user.roles.includes(LMS_ROLES.SUPER_ADMIN);
+    const isHR = user.roles && user.roles.includes(LMS_ROLES.HR);
+    const isAdmin = user.roles && user.roles.includes(LMS_ROLES.ADMIN);
+    const isInstructor = user.roles && user.roles.includes(LMS_ROLES.INSTRUCTOR);
+    // Instructor may send SUBMITTED → Admin (first approve step). Admin/HR/SuperAdmin for later stages.
+    const instructorCanSendToAdmin = isInstructor && document.status === 'SUBMITTED';
+    const adminCanAdvance = isAdmin && ['SUBMITTED', 'UNDER_ADMIN_REVIEW'].includes(document.status);
+    const hrCanAdvance = isHR && document.status === 'UNDER_HR_REVIEW';
+
+    if (!user || !user.roles || (!isSuperAdmin && !instructorCanSendToAdmin && !adminCanAdvance && !hrCanAdvance)) {
+      await logPermissionDenial({
+        userId: user?.id,
+        action: 'workflowAction',
+        resource: `workflow-documents/${id}`,
+        reason: 'Insufficient role for this approval stage',
+        userRole: user?.roles?.join(',') || 'none'
+      });
+      return res.status(403).json({
+        success: false,
+        error: 'Access denied. You do not have permission to approve at this stage.'
       });
     }
 
@@ -526,7 +605,8 @@ export const approveWorkflowDocumentController = async (req, res) => {
 
     // Prevent duplicate approval by the same user on the same status
     // Super Admin can override this to simulate all workflow steps
-    if (!isSuperAdmin && document.updatedBy === user.dbId && document.status !== 'SUBMITTED') {
+    // Admin can advance through multiple stages (SUBMITTED → UNDER_ADMIN_REVIEW → UNDER_HR_REVIEW)
+    if (!isSuperAdmin && !adminCanAdvance && document.updatedBy === user.dbId && document.status !== 'SUBMITTED') {
       return res.status(400).json({
         success: false,
         error: 'You have already approved this document at this stage.'
@@ -567,6 +647,7 @@ export const approveWorkflowDocumentController = async (req, res) => {
         });
       }
       // Emit notification to submitter
+      const notifyResults = [];
       try {
         const approver = await prisma.user.findUnique({
           where: { id: user.dbId },
@@ -576,8 +657,6 @@ export const approveWorkflowDocumentController = async (req, res) => {
           where: { id: result.data.classId },
           select: { id: true, nameEn: true, nameAr: true, code: true }
         }) : null;
-
-        const notifyResults = [];
 
         const submitterResult = await emit(EVENTS.WORKFLOW_APPROVED, {
           ...buildNotificationNameVars(approver, 'Unknown User'),
@@ -621,7 +700,7 @@ export const approveWorkflowDocumentController = async (req, res) => {
           }, user, { role: LMS_ROLES.ADMIN });
           if (adminResult?.success) notifyResults.push({ target: 'Admin', count: adminResult.results.length });
         } else if (nextStatus === 'APPROVED') {
-          // Notify all HR users as watchers when final approval is reached
+          // Notify all parties: HR + Admin watchers (submitter already notified above)
           const hrWatchResult = await emit(EVENTS.WORKFLOW_APPROVED, {
             ...buildNotificationNameVars(approver, 'Unknown User'),
             workflowName: result.data.title,
@@ -635,6 +714,20 @@ export const approveWorkflowDocumentController = async (req, res) => {
             recipientRole: LMS_ROLES.HR,
           }, user, { role: LMS_ROLES.HR });
           if (hrWatchResult?.success) notifyResults.push({ target: 'HR (Watchers)', count: hrWatchResult.results.length });
+
+          const adminWatchResult = await emit(EVENTS.WORKFLOW_APPROVED, {
+            ...buildNotificationNameVars(approver, 'Unknown User'),
+            workflowName: result.data.title,
+            documentId: result.data.id,
+            approverName: approver?.displayName || 'Unknown',
+            senderName: approver?.displayName || 'Unknown',
+            senderId: user?.dbId || null,
+            className: cls?.nameEn || null,
+            classNameAr: cls?.nameAr || cls?.nameEn || null,
+            recipientType: 'role',
+            recipientRole: LMS_ROLES.ADMIN,
+          }, user, { role: LMS_ROLES.ADMIN });
+          if (adminWatchResult?.success) notifyResults.push({ target: 'Admin (Watchers)', count: adminWatchResult.results.length });
         }
       } catch (notificationError) {
         console.error('Failed to emit notification:', notificationError);
@@ -780,6 +873,21 @@ export const rejectWorkflowDocumentController = async (req, res) => {
           recipientRole: LMS_ROLES.HR,
         }, user, { role: LMS_ROLES.HR });
         if (hrResult?.success) notifyResults.push({ target: 'HR (Watchers)', count: hrResult.results.length });
+
+        const adminResult = await emit(EVENTS.WORKFLOW_REJECTED, {
+          ...buildNotificationNameVars(rejecter, 'Unknown User'),
+          workflowName: result.data.title,
+          documentId: result.data.id,
+          feedback: comment,
+          rejecterName: rejecter?.displayName || 'Unknown',
+          senderName: rejecter?.displayName || 'Unknown',
+          senderId: user?.dbId || null,
+          className: cls?.nameEn || null,
+          classNameAr: cls?.nameAr || cls?.nameEn || null,
+          recipientType: 'role',
+          recipientRole: LMS_ROLES.ADMIN,
+        }, user, { role: LMS_ROLES.ADMIN });
+        if (adminResult?.success) notifyResults.push({ target: 'Admin (Watchers)', count: adminResult.results.length });
       } catch (notificationError) {
         console.error('Failed to emit notification:', notificationError);
       }
@@ -894,6 +1002,7 @@ export const returnWorkflowDocumentController = async (req, res) => {
         });
       }
       // Emit notification to submitter
+      const notifyResults = [];
       try {
         const returner = await prisma.user.findUnique({
           where: { id: user.dbId },
@@ -903,8 +1012,6 @@ export const returnWorkflowDocumentController = async (req, res) => {
           where: { id: result.data.classId },
           select: { id: true, nameEn: true, nameAr: true, code: true }
         }) : null;
-
-        const notifyResults = [];
 
         const submitterResult = await emit(EVENTS.WORKFLOW_RETURNED, {
           ...buildNotificationNameVars(returner, 'Unknown User'),
@@ -923,23 +1030,43 @@ export const returnWorkflowDocumentController = async (req, res) => {
         }, user, { userId: result.data.submitterId });
         if (submitterResult?.success) notifyResults.push({ target: 'Submitter', count: submitterResult.results.length });
 
-        // Notify all HR users as watchers
-        const hrResult = await emit(EVENTS.WORKFLOW_RETURNED, {
-          ...buildNotificationNameVars(returner, 'Unknown User'),
-          workflowName: result.data.title,
-          documentId: result.data.id,
-          feedback: comment,
-          previousStatus: currentStatus,
-          newStatus: previousStatus,
-          returnerName: returner?.displayName || 'Unknown',
-          senderName: returner?.displayName || 'Unknown',
-          senderId: user?.dbId || null,
-          className: cls?.nameEn || null,
-          classNameAr: cls?.nameAr || cls?.nameEn || null,
-          recipientType: 'role',
-          recipientRole: LMS_ROLES.HR,
-        }, user, { role: LMS_ROLES.HR });
-        if (hrResult?.success) notifyResults.push({ target: 'HR (Watchers)', count: hrResult.results.length });
+        // Stage-aware role notifications
+        if (previousStatus === 'SUBMITTED' || previousStatus === 'UNDER_ADMIN_REVIEW') {
+          const adminResult = await emit(EVENTS.WORKFLOW_RETURNED, {
+            ...buildNotificationNameVars(returner, 'Unknown User'),
+            workflowName: result.data.title,
+            documentId: result.data.id,
+            feedback: comment,
+            previousStatus: currentStatus,
+            newStatus: previousStatus,
+            returnerName: returner?.displayName || 'Unknown',
+            senderName: returner?.displayName || 'Unknown',
+            senderId: user?.dbId || null,
+            className: cls?.nameEn || null,
+            classNameAr: cls?.nameAr || cls?.nameEn || null,
+            recipientType: 'role',
+            recipientRole: LMS_ROLES.ADMIN,
+          }, user, { role: LMS_ROLES.ADMIN });
+          if (adminResult?.success) notifyResults.push({ target: 'Admin', count: adminResult.results.length });
+        }
+        if (previousStatus === 'UNDER_HR_REVIEW' || currentStatus === 'UNDER_HR_REVIEW') {
+          const hrResult = await emit(EVENTS.WORKFLOW_RETURNED, {
+            ...buildNotificationNameVars(returner, 'Unknown User'),
+            workflowName: result.data.title,
+            documentId: result.data.id,
+            feedback: comment,
+            previousStatus: currentStatus,
+            newStatus: previousStatus,
+            returnerName: returner?.displayName || 'Unknown',
+            senderName: returner?.displayName || 'Unknown',
+            senderId: user?.dbId || null,
+            className: cls?.nameEn || null,
+            classNameAr: cls?.nameAr || cls?.nameEn || null,
+            recipientType: 'role',
+            recipientRole: LMS_ROLES.HR,
+          }, user, { role: LMS_ROLES.HR });
+          if (hrResult?.success) notifyResults.push({ target: 'HR', count: hrResult.results.length });
+        }
       } catch (notificationError) {
         console.error('Failed to emit notification:', notificationError);
       }
@@ -1406,6 +1533,7 @@ export const createCustomWorkflowDocumentController = async (req, res) => {
       sourcePath,
       fileName,
       fileId,
+      date,
       dateFrom,
       dateTo,
       metadata,
@@ -1512,6 +1640,7 @@ export const createCustomWorkflowDocumentController = async (req, res) => {
       sourcePath,
       fileName,
       fileId,
+      date: date || dateFrom,
       dateFrom,
       dateTo,
       metadata,
@@ -1737,8 +1866,15 @@ export const getBoardWorkflowDocumentsController = async (req, res) => {
     let data = result.data || [];
     const scope = await getRequestScope(req);
     if (!scope.unrestricted) {
+      data = data.map((d) => ({
+        ...d,
+        programId: d.class?.programId ?? d.programId,
+        subjectId: d.class?.subjectId ?? d.subjectId,
+      }));
       data = filterRecordsByScope(data, scope, {
         classField: 'classId',
+        programField: 'programId',
+        subjectField: 'subjectId',
       });
     }
 

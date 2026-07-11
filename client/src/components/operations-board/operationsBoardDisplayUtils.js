@@ -27,3 +27,9 @@ export function summarizeBoardByColumn(data = []) {
   }
   return summary;
 }
+
+export function parseWorkflowCardName(name) {
+  if (!name) return [];
+  const parts = name.split(/\s+-\s+/);
+  return parts.map((p) => p.trim()).filter(Boolean);
+}

@@ -67,11 +67,11 @@ export const byUserIds = async (userIds) => {
  */
 export const byRole = async (roleCode) => {
   try {
-    // Find the role by code
-    const role = await prisma.userRoles.findUnique({
-      where: { code: roleCode }
+    // Find the role by code (case-insensitive to handle 'admin' vs 'ADMIN')
+    const role = await prisma.userRoles.findFirst({
+      where: { code: { equals: roleCode, mode: 'insensitive' } }
     });
-    
+
     if (!role) {
       log.warn('Role not found', { roleCode });
       return [];

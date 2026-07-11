@@ -479,7 +479,25 @@ function DayBlock({
           {rowIndex === 0 && (
             <td className={styles.scheduleDayCell} rowSpan={4}>
               <div className={gridStyles.verticalCellInner}>
-                <VerticalText>{day.dayLabel}</VerticalText>
+                <VerticalText>
+                  {day.dayLabel}
+                  {(() => {
+                    if (!selectedDate) return null;
+                    const anchor = selectedDate instanceof Date ? selectedDate : new Date(selectedDate);
+                    const weekStart = new Date(anchor);
+                    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+                    const dayIndex = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu'].indexOf(day.dayCode);
+                    if (dayIndex < 0) return null;
+                    const dayDate = new Date(weekStart);
+                    dayDate.setDate(dayDate.getDate() + dayIndex);
+                    const dateStr = `${String(dayDate.getDate()).padStart(2, '0')}/${String(dayDate.getMonth() + 1).padStart(2, '0')}`;
+                    return (
+                      <span className={styles.scheduleDayDate} key="date">
+                        {` ${dateStr}`}
+                      </span>
+                    );
+                  })()}
+                </VerticalText>
               </div>
             </td>
           )}

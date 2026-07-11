@@ -5,6 +5,8 @@ import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import useResizableDrawer from '@hooks/useResizableDrawer';
 import { getLectureLog, getRecordHistory } from '@services/business/attendanceLogService';
+import { formatDateTime } from '@utils/date-formatter.js';
+import { ATTENDANCE_BOARD_COLORS } from '@constants/workspaceStatusColors.js';
 
 const TABS = {
   LECTURE_LOG: 'lecture_log',
@@ -74,13 +76,7 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
 
   const formatTimestamp = useCallback((ts) => {
     if (!ts) return '';
-    const d = new Date(ts);
-    return d.toLocaleString(lang === 'ar' ? 'ar' : 'en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      month: 'short',
-      day: 'numeric',
-    });
+    return formatDateTime(ts, lang);
   }, [lang]);
 
   const tabBtnStyle = useMemo(() => ({
@@ -150,11 +146,15 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
         {lectureLog.map((entry, idx) => {
           const isWorkflow = entry.type === 'workflow_status_change';
           const isAttendanceChange = entry.type === 'attendance_status_change';
+          const isAttendanceMarked = !isWorkflow && !isAttendanceChange;
+          const statusRaw = isAttendanceMarked ? (lang === 'ar' ? entry.statusAr : entry.status) : (lang === 'ar' ? entry.toStatusAr : entry.toStatus);
+          const statusUpper = (isAttendanceMarked ? entry.status : entry.toStatus) || '';
+          const statusColor = ATTENDANCE_BOARD_COLORS[statusUpper] || (isWorkflow ? (entry.toStatus === 'APPROVED' ? '#16a34a' : entry.toStatus === 'REJECTED' ? '#dc2626' : 'var(--color-primary, #800020)') : '#2563eb');
           const iconColor = isWorkflow
             ? (entry.toStatus === 'APPROVED' ? '#16a34a' : entry.toStatus === 'REJECTED' ? '#dc2626' : 'var(--color-primary, #800020)')
             : isAttendanceChange
               ? '#f59e0b'
-              : '#2563eb';
+              : statusColor;
           const titleKey = isWorkflow
             ? (lang === 'ar' ? 'تغيير حالة العمل' : 'Workflow Status Change')
             : isAttendanceChange
@@ -180,7 +180,16 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
                   justifyContent: 'center',
                   background: isDark ? 'rgba(255,255,255,0.05)' : '#f3f4f6',
                 }}>
-                  {getThemedIcon('ui', isWorkflow ? 'refresh' : isAttendanceChange ? 'edit' : 'clipboard_list', 14, theme)}
+                  {isAttendanceMarked ? (
+                    <span style={{
+                      display: 'inline-block',
+                      width: '10px',
+                      height: '10px',
+                      borderRadius: '50%',
+                      backgroundColor: statusColor,
+                      flexShrink: 0,
+                    }} />
+                  ) : getThemedIcon('ui', isWorkflow ? 'refresh' : 'edit', 14, theme)}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
@@ -198,11 +207,27 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
                       {formatTimestamp(entry.timestamp)}
                     </span>
                   </div>
-                  <div style={{ fontSize: '12px', color: isDark ? '#cbd5e1' : '#475569', marginBottom: '2px' }}>
-                    <span style={labelStyle}>{t('log_drawer_actor') || 'Actor'}: </span>
-                    <span style={valueStyle}>{entry.actor}</span>
-                  </div>
-                  {(isWorkflow || isAttendanceChange) ? (
+                  {isAttendanceMarked ? (
+                    <>
+                      <div style={{ fontSize: '12px', color: isDark ? '#cbd5e1' : '#475569', marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span style={{
+                          display: 'inline-block',
+                          width: '8px',
+                          height: '8px',
+                          borderRadius: '50%',
+                          backgroundColor: statusColor,
+                          flexShrink: 0,
+                        }} />
+                        <span style={{ fontWeight: 600, color: statusColor }}>{statusRaw || '—'}</span>
+                        <span style={{ color: isDark ? '#94a3b8' : '#64748b', fontSize: '11px' }}>· {entry.actor}</span>
+                      </div>
+                      {entry.reason && (
+                        <div style={{ fontSize: '11px', color: isDark ? '#94a3b8' : '#64748b', marginTop: '2px', fontStyle: 'italic' }}>
+                          "{entry.reason}"
+                        </div>
+                      )}
+                    </>
+                  ) : (isWorkflow || isAttendanceChange) ? (
                     <>
                       <div style={{ fontSize: '12px', color: isDark ? '#cbd5e1' : '#475569', marginBottom: '2px' }}>
                         <span style={labelStyle}>{t('log_drawer_from') || 'From'}: </span>
@@ -210,6 +235,9 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
                         <span style={{ margin: '0 6px', color: isDark ? '#6b7280' : '#9ca3af' }}>→</span>
                         <span style={labelStyle}>{t('log_drawer_to') || 'To'}: </span>
                         <span style={{ ...valueStyle, color: iconColor, fontWeight: 600 }}>{(lang === 'ar' ? entry.toStatusAr : entry.toStatus) || '—'}</span>
+                      </div>
+                      <div style={{ fontSize: '12px', color: isDark ? '#cbd5e1' : '#475569', marginBottom: '2px' }}>
+                        <span style={valueStyle}>{entry.actor}</span>
                       </div>
                       {entry.reason && (
                         <div style={{ fontSize: '11px', color: isDark ? '#94a3b8' : '#64748b', marginTop: '2px', fontStyle: 'italic' }}>
@@ -222,14 +250,7 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
                         </div>
                       )}
                     </>
-                  ) : (
-                    <div style={{ fontSize: '12px', color: isDark ? '#cbd5e1' : '#475569' }}>
-                      <span style={labelStyle}>{t('log_drawer_status') || 'Status'}: </span>
-                      <span style={valueStyle}>
-                        {lang === 'ar' ? entry.statusAr : entry.status}
-                      </span>
-                    </div>
-                  )}
+                  ) : null}
                 </div>
               </div>
             </motion.div>

@@ -11,8 +11,8 @@ import { EVENTS, CATEGORIES, PRIORITIES, getCategoryFromEvent, getPriorityFromEv
 const RAW_TEMPLATES = {
   // Workflow events
   [EVENTS.WORKFLOW_SUBMITTED]: {
-    en: 'New attendance document submitted for review: {{title}}',
-    ar: 'تم تقديم وثيقة حضور جديدة للمراجعة: {{title}}'
+    en: 'New attendance document submitted for review: {{workflowName}}',
+    ar: 'تم تقديم وثيقة حضور جديدة للمراجعة: {{workflowName}}'
   },
   [EVENTS.WORKFLOW_ASSIGNED]: {
     en: 'You have been assigned to a workflow: {{workflowName}}',
@@ -493,6 +493,117 @@ export const renderTemplate = (template, variables = {}) => {
 };
 
 /**
+ * Build a frontend navigation link from the event type and payload.
+ * Returns a relative URL path that the frontend can navigate to.
+ */
+const WORKFLOW_EVENTS = new Set([
+  EVENTS.WORKFLOW_SUBMITTED, EVENTS.WORKFLOW_ASSIGNED, EVENTS.WORKFLOW_APPROVED,
+  EVENTS.WORKFLOW_REJECTED, EVENTS.WORKFLOW_RETURNED, EVENTS.WORKFLOW_SENT_FOR_REVIEW,
+  EVENTS.WORKFLOW_RESUBMITTED, EVENTS.WORKFLOW_COMPLETED, EVENTS.WORKFLOW_SLA_WARNING,
+  EVENTS.WORKFLOW_SLA_OVERDUE, EVENTS.WORKFLOW_WITHDRAWN, EVENTS.WORKFLOW_COMMENT_ADDED,
+  EVENTS.WORKFLOW_AMENDED,
+]);
+
+const DRIVE_EVENTS = new Set([
+  EVENTS.DRIVE_FILE_SHARED, EVENTS.DRIVE_FOLDER_SHARED, EVENTS.DRIVE_PERMISSION_REVOKED,
+  EVENTS.DRIVE_FILE_UPLOADED, EVENTS.DRIVE_FOLDER_CREATED, EVENTS.DRIVE_FILE_DELETED,
+  EVENTS.DRIVE_FOLDER_DELETED, EVENTS.DRIVE_FOLDER_RESTORED, EVENTS.DRIVE_COMMENT_ADDED,
+  EVENTS.DRIVE_COMMENT_UPDATED, EVENTS.DRIVE_COMMENT_DELETED, EVENTS.DRIVE_PUBLIC_LINK_CREATED,
+  EVENTS.DRIVE_PUBLIC_LINK_REVOKED,
+]);
+
+const ANNOUNCEMENT_EVENTS = new Set([
+  EVENTS.ANNOUNCEMENT_POSTED, EVENTS.ANNOUNCEMENT_UPDATED, EVENTS.ANNOUNCEMENT_DELETED,
+]);
+
+const CHAT_EVENTS = new Set([
+  EVENTS.CHAT_MESSAGE_RECEIVED, EVENTS.CHAT_DM_RECEIVED, EVENTS.CHAT_MENTION, EVENTS.CHAT_ROOM_CREATED,
+]);
+
+export const buildNotificationLink = (event, payload = {}) => {
+  if (WORKFLOW_EVENTS.has(event)) {
+    const docId = payload.documentId || payload.workflowId || payload.id;
+    if (docId) return `/operations/board?workflowId=${docId}`;
+    return '/operations/board';
+  }
+  if (DRIVE_EVENTS.has(event)) {
+    const fileId = payload.fileId || payload.id;
+    const folderId = payload.folderId;
+    if (fileId) return `/smart-drive?fileId=${fileId}`;
+    if (folderId) return `/smart-drive?folderId=${folderId}`;
+    return '/smart-drive';
+  }
+  if (ANNOUNCEMENT_EVENTS.has(event)) {
+    const id = payload.announcementId || payload.id;
+    if (id) return `/announcements/${id}`;
+    return '/announcements';
+  }
+  if (CHAT_EVENTS.has(event)) {
+    const roomId = payload.roomId;
+    if (roomId) return `/chat?dest=${encodeURIComponent('dm:' + roomId)}`;
+    return '/chat';
+  }
+  if (event === EVENTS.QR_CODE_SENT || event === EVENTS.QR_CODE_GENERATED) {
+    return '/qr-scanner';
+  }
+  if (event === EVENTS.ATTENDANCE_MARKED || event === EVENTS.ATTENDANCE_MARKED_PRESENT ||
+      event === EVENTS.ATTENDANCE_MARKED_ABSENT || event === EVENTS.ATTENDANCE_MARKED_LATE ||
+      event === EVENTS.ATTENDANCE_MARKED_EXCUSED || event === EVENTS.ATTENDANCE_THRESHOLD_WARNING ||
+      event === EVENTS.ATTENDANCE_PATTERN_DETECTED) {
+    return '/operations/board';
+  }
+  if (event === EVENTS.STANDUP_ATTENDANCE_MARKED || event === EVENTS.STANDUP_ATTENDANCE_UPDATED) {
+    return '/qr-scanner';
+  }
+  if (event === EVENTS.FILE_SHARED || event === EVENTS.FILE_UPLOADED) {
+    const fileId = payload.fileId || payload.id;
+    if (fileId) return `/smart-drive?fileId=${fileId}`;
+    return '/smart-drive';
+  }
+  if (event === EVENTS.RESOURCE_ADDED || event === EVENTS.RESOURCE_UPDATED || event === EVENTS.RESOURCE_SHARED) {
+    return '/?mode=resources';
+  }
+  if (event === EVENTS.RESOURCE_DELETED) {
+    return '/?mode=resources';
+  }
+  if (event === EVENTS.ENROLLMENT_CONFIRMED || event === EVENTS.ENROLLMENT_PENDING ||
+      event === EVENTS.ENROLLMENT_APPROVED || event === EVENTS.ENROLLMENT_REJECTED ||
+      event === EVENTS.ENROLLMENT_DROPPED || event === EVENTS.ENROLLMENT_COMPLETED) {
+    return '/dashboard#enrollments';
+  }
+  if (event === EVENTS.GRADE_POSTED || event === EVENTS.GRADE_UPDATED || event === EVENTS.GRADE_CALCULATED ||
+      event === EVENTS.GRADE_FINAL || event === EVENTS.MARKS_UPDATED || event === EVENTS.REPEATED_ATTEMPT_GRADED) {
+    return '/dashboard#marks';
+  }
+  if (event === EVENTS.QUIZ_AVAILABLE || event === EVENTS.QUIZ_STARTED || event === EVENTS.QUIZ_SUBMITTED || event === EVENTS.QUIZ_GRADED) {
+    return '/quizzes';
+  }
+  if (event === EVENTS.ASSIGNMENT_CREATED || event === EVENTS.ASSIGNMENT_DUE || event === EVENTS.ASSIGNMENT_DUE_SOON ||
+      event === EVENTS.ASSIGNMENT_SUBMITTED || event === EVENTS.ASSIGNMENT_GRADED || event === EVENTS.ASSIGNMENT_OVERDUE) {
+    return '/?mode=activities&activityType=homework';
+  }
+  if (event === EVENTS.ACTIVITY_ASSIGNED || event === EVENTS.ACTIVITY_COMPLETED || event === EVENTS.ACTIVITY_GRADED || event === EVENTS.ACTIVITY_FEEDBACK) {
+    return '/?mode=activities';
+  }
+  if (event === EVENTS.BEHAVIOR_RECORDED || event === EVENTS.BEHAVIOR_POSITIVE_RECORDED ||
+      event === EVENTS.BEHAVIOR_NEGATIVE_RECORDED || event === EVENTS.BEHAVIOR_UPDATED || event === EVENTS.BEHAVIOR_DELETED) {
+    return '/dashboard#behavior';
+  }
+  if (event === EVENTS.PARTICIPATION_RECORDED || event === EVENTS.PARTICIPATION_UPDATED || event === EVENTS.PARTICIPATION_DELETED ||
+      event === EVENTS.PARTICIPATION_EXPLAINED_LESSON || event === EVENTS.PARTICIPATION_GAVE_PROJECT ||
+      event === EVENTS.PARTICIPATION_GAVE_PAPER || event === EVENTS.PARTICIPATION_GAVE_RESEARCH ||
+      event === EVENTS.PARTICIPATION_ACTIVE_DISCUSSION || event === EVENTS.PARTICIPATION_ANSWERED_QUESTION ||
+      event === EVENTS.PARTICIPATION_HELPED_CLASSMATE || event === EVENTS.PARTICIPATION_EXCELLENT) {
+    return '/dashboard#participation';
+  }
+  if (event === EVENTS.PENALTY_ASSIGNED || event === EVENTS.PENALTY_ASSIGNED_LATE || event === EVENTS.PENALTY_ASSIGNED_ABSENT ||
+      event === EVENTS.PENALTY_ASSIGNED_MISCONDUCT || event === EVENTS.PENALTY_UPDATED || event === EVENTS.PENALTY_DELETED || event === EVENTS.PENALTY_WAIVED) {
+    return '/dashboard#penalty';
+  }
+  return null;
+};
+
+/**
  * Create template object for registry registration
  * @param {string} event - Event key
  * @returns {object} Template object with render function
@@ -522,7 +633,7 @@ export const createTemplate = (event) => {
         titleAr: raw.ar ? renderTemplate(raw.ar, arVars) : event,
         bodyEn,
         bodyAr,
-        link: null,
+        link: buildNotificationLink(event, payload),
         groupKey: event
       };
     },

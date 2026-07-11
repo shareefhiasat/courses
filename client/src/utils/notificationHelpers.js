@@ -268,8 +268,9 @@ export const gotoFromNotification = async (n, navigate, onMarkAsRead) => {
       navigate('/student-dashboard');
       break;
     case NOTIFICATION_TYPES.WORKFLOW:
-      if (data.workflowId) navigate(`/workflows/${data.workflowId}`);
-      else navigate('/workflows');
+      { const wfId = data.workflowId || data.documentId;
+        if (wfId) navigate(`/operations/board?workflowId=${wfId}`);
+        else navigate('/operations/board'); }
       break;
     case NOTIFICATION_TYPES.BEHAVIOR:
     case NOTIFICATION_TYPES.PARTICIPATION:

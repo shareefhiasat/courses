@@ -39,15 +39,15 @@ export default function BoardFooter({
       style={{
         marginTop: 'auto',
         justifyContent: 'space-between',
-        gap: '0.5rem',
+        gap: '0.75rem',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '0.5em', flex: 1 }}>
+      <div className="legend-items-row" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '1.25rem', flex: 1 }} data-tour="operations-board-legend">
         {showLegend && columns.map((col) => (
           <div key={col.id} className={gridStyles.legendItem} data-testid={`operations-board-legend-${col.id}`}>
             <span
               className={`${gridStyles.legendDot} ${col.id === 'NOT_TAKEN' ? gridStyles.legendDotPulse : ''}`}
-              style={{ background: col.color }}
+              style={{ background: col.color, '--dot-color': col.color }}
             />
             <span className={gridStyles.legendLabel} style={{ color: col.color }}>{t(col.i18nKey) || col.name}</span>
           </div>
@@ -71,6 +71,7 @@ export default function BoardFooter({
           value={view}
           onChange={(_, next) => next && onViewChange(next)}
           aria-label={t('operations_board_view_mode')}
+          data-tour="operations-board-view-mode"
           sx={{
             minHeight: 30,
             '& .MuiTab-root': {

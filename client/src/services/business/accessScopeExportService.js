@@ -303,7 +303,7 @@ export async function exportDailyOfficialForDate({
   });
 
   const filename = `${reportData.serial}_daily_official_${sanitize(meta.className)}`;
-  const blob = await exportDailyOfficialReport(reportData, { format, filename });
+  const blob = await exportDailyOfficialReport(reportData, { format, filename, download: !skipDownload });
   const driveResult = await persistAndLogExport({
     blob,
     filename,
@@ -315,9 +315,6 @@ export async function exportDailyOfficialForDate({
     programId: meta.programId,
     reportDate: formattedDate,
   }).catch(() => null);
-  if (!skipDownload) {
-    triggerDownload(blob, `${filename}.${format === EXPORT_FORMAT.EXCEL ? 'xlsx' : 'pdf'}`);
-  }
   return { filename, blob, fileId: driveResult?.fileId || null };
 }
 

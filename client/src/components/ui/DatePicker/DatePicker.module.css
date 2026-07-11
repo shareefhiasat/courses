@@ -205,10 +205,12 @@
   font-size: 0.8125rem;
   line-height: 1.2;
   border-radius: 6px;
+  text-align: center;
 }
 
 .compact.dateInputLtr .input {
   padding: 0.2rem 1.75rem 0.2rem 0.5rem;
+  text-align: center;
 }
 
 .compact .iconWrapper {

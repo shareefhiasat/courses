@@ -812,6 +812,12 @@
   text-align: center;
 }
 
+.scheduleDayDate {
+  color: #3b82f6;
+  font-size: 0.8em;
+  font-weight: 700;
+}
+
 .scheduleDayCell .scheduleVerticalTextWrap,
 .scheduleCornerCell .scheduleVerticalTextWrap,
 .scheduleVerticalInset .scheduleVerticalTextWrap {

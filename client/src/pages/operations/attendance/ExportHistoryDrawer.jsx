@@ -4,7 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import useResizableDrawer from '@hooks/useResizableDrawer';
-import { formatDateShort, formatTime as fmtTime } from '@utils/date-formatter.js';
+import { formatDateShort, formatTime as fmtTime, formatDateTime } from '@utils/date-formatter.js';
 import { getExportHistory, openExportFile } from '@services/db/exportHistoryService.js';
 import { resolveUserRole, getUserRoleFromObject } from '@utils/userUtils';
 import { getUserRoleColor, getUserRoleIcon, getThemedIcon } from '@constants/iconTypes';
@@ -202,7 +202,7 @@ function ExportEntryRow({
             {entry.format?.toUpperCase()}
           </span>
           <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--muted)' }}>
-            {formatTime(entry.createdAt, lang)}
+            {formatDateTime(entry.createdAt, lang)}
           </span>
           {entry.user && (
             <span
