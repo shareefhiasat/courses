@@ -126,7 +126,13 @@ export const fetchWorkflowBoardData = async (filters = {}) => {
     if (!result.success) return { success: false, data: [], error: result.error };
 
     const documents = result.data || [];
-    const boardData = documents.map((doc) => ({
+    const lang = filters.lang || 'en';
+    const boardData = documents.map((doc) => {
+      const classInstructor = doc.class?.instructor || doc.instructor || null;
+      const classInstructorName = classInstructor
+        ? getLocalizedUserName(classInstructor, lang, classInstructor.displayName || '')
+        : null;
+      return {
       id: `wf-${doc.id}`,
       column: doc.status || 'DRAFT',
       type: 'workflow',
@@ -134,8 +140,14 @@ export const fetchWorkflowBoardData = async (filters = {}) => {
       name: doc.title || `Document #${doc.id}`,
       rawId: doc.id,
       status: doc.status,
-      assignee: doc.currentAssignee?.displayName || doc.currentAssignee?.name || doc.currentAssignee?.fullName || null,
-      assigneeId: doc.currentAssigneeId,
+      assignee: classInstructorName
+        || doc.currentAssignee?.displayName
+        || doc.currentAssignee?.name
+        || doc.currentAssignee?.fullName
+        || null,
+      assigneeId: classInstructor?.id || doc.currentAssigneeId,
+      classInstructorId: classInstructor?.id || doc.instructorId || null,
+      classInstructorName,
       workflowType: doc.workflowType,
       classId: doc.classId,
       className: doc.class?.nameEn || doc.class?.code,
@@ -148,7 +160,8 @@ export const fetchWorkflowBoardData = async (filters = {}) => {
       fileName: doc.file?.name || null,
       fileId: doc.file?.id || null,
       raw: doc,
-    }));
+    };
+    });
 
     const uniqueClassDates = new Map();
     for (const doc of documents) {
@@ -382,6 +395,10 @@ export const moveAttendanceCard = async (attendanceId, newStatus, notes = null, 
 export const addWorkflowBoardComment = async (documentId, comment, action = 'COMMENT') => {
   try {
     const result = await addWorkflowComment(documentId, { comment, action });
+    if (result.success) {
+      apiService.clearCacheByPrefix(`/workflow-documents/${documentId}`);
+      apiService.clearCacheByPrefix('/workflow-documents');
+    }
     return result;
   } catch (err) {
     logError(`${SERVICE_NAME}:addWorkflowBoardComment:error`, { error: err.message });

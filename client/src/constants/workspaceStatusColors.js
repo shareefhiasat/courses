@@ -2,7 +2,7 @@ import { ATTENDANCE_STATUS } from './attendanceTypes.js';
 
 /**
  * Shared status colors for welcome schedule dots and operations board lanes.
- * Schedule semantics: not taken → orange, taken → green, submitted → blue.
+ * Schedule semantics: not taken → gray, taken → green, submitted → blue.
  */
 export const SCHEDULE_WORKFLOW_STATUS = {
   NOT_TAKEN: 'not_taken',
@@ -12,9 +12,9 @@ export const SCHEDULE_WORKFLOW_STATUS = {
 };
 
 export const SCHEDULE_WORKFLOW_COLORS = {
-  [SCHEDULE_WORKFLOW_STATUS.NOT_TAKEN]: '#f97316',
-  [SCHEDULE_WORKFLOW_STATUS.DRAFT]: '#f59e0b',
-  [SCHEDULE_WORKFLOW_STATUS.TAKEN]: '#22c55e',
+  [SCHEDULE_WORKFLOW_STATUS.NOT_TAKEN]: '#9ca3af',
+  [SCHEDULE_WORKFLOW_STATUS.DRAFT]: '#9ca3af',
+  [SCHEDULE_WORKFLOW_STATUS.TAKEN]: '#ca8a04',
   [SCHEDULE_WORKFLOW_STATUS.SUBMITTED]: '#3b82f6',
 };
 
@@ -22,11 +22,14 @@ export const WORKFLOW_STATUS_COLORS = {
   DRAFT: SCHEDULE_WORKFLOW_COLORS[SCHEDULE_WORKFLOW_STATUS.DRAFT],
   TAKEN: SCHEDULE_WORKFLOW_COLORS[SCHEDULE_WORKFLOW_STATUS.TAKEN],
   SUBMITTED: SCHEDULE_WORKFLOW_COLORS[SCHEDULE_WORKFLOW_STATUS.SUBMITTED],
-  UNDER_ADMIN_REVIEW: '#ea580c',
+  UNDER_ADMIN_REVIEW: '#166534',
   UNDER_HR_REVIEW: '#7c3aed',
-  APPROVED: '#15803d',
+  APPROVED: '#00FF00',
   REJECTED: '#ef4444',
 };
+
+/** Sky blue for participation indicators on the operations board */
+export const BOARD_PARTICIPATION_COLOR = '#38bdf8';
 
 export const ATTENDANCE_BOARD_COLORS = {
   NOT_TAKEN: SCHEDULE_WORKFLOW_COLORS[SCHEDULE_WORKFLOW_STATUS.NOT_TAKEN],

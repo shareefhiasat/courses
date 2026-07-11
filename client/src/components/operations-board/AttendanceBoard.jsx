@@ -18,11 +18,11 @@ import {
   resolveBoardStudentName,
 } from './operationsBoardDisplayUtils.js';
 import { canMoveAttendanceToColumn } from './attendanceBoardRules.js';
-import { fetchAttendanceStats } from '@services/business/operationsBoardService.js';
+import { fetchAttendanceStats, ATTENDANCE_COLUMNS } from '@services/business/operationsBoardService.js';
 import { getParticipationsByClassAndDate } from '@services/business/participationService.js';
 import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import gridStyles from '@components/workspace/officialWeeklyScheduleGrid.module.css';
-import { ATTENDANCE_BOARD_COLORS } from '@constants/workspaceStatusColors';
+import { ATTENDANCE_BOARD_COLORS, BOARD_PARTICIPATION_COLOR } from '@constants/workspaceStatusColors';
 
 const CARD_ORDER_KEY = 'operations_board_card_order';
 
@@ -98,6 +98,74 @@ function resolveDropColumn(over, columns, data) {
   return columns.find((col) => col.id === over.id)?.id || null;
 }
 
+function AttendanceCardHoverTooltip({ item, stats, participationCount, t, lang }) {
+  const studentName = resolveBoardStudentName(item, lang);
+  const statusCol = ATTENDANCE_COLUMNS.find((c) => c.id === item.column);
+  const statusLabel = statusCol ? (t(statusCol.i18nKey) || statusCol.name) : item.column;
+  const statusColor = statusCol?.color || ATTENDANCE_BOARD_COLORS.NOT_TAKEN;
+  const labelColor = '#64748b';
+  const nameColor = '#1e293b';
+
+  return (
+    <div style={{ maxWidth: 220, fontSize: '0.75rem', lineHeight: 1.45, color: labelColor }}>
+      <div style={{ fontWeight: 700, marginBottom: 4, color: nameColor }}>{studentName}</div>
+      {item.studentNumber && (
+        <div style={{ marginBottom: 2 }}>
+          <span>{t('operations_board_profile_student_number') || 'Student Number'}: </span>
+          <span style={{ color: nameColor, fontWeight: 500 }}>{item.studentNumber}</span>
+        </div>
+      )}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 4 }}>
+        <span
+          style={{
+            width: 8,
+            height: 8,
+            borderRadius: '50%',
+            backgroundColor: statusColor,
+            flexShrink: 0,
+          }}
+        />
+        <span style={{ color: statusColor, fontWeight: 600 }}>{statusLabel}</span>
+      </div>
+      {stats && stats.total > 0 && (
+        <div style={{ marginBottom: 4 }}>
+          <div style={{ fontWeight: 600, fontSize: '0.7rem', marginBottom: 3 }}>
+            {t('attendance_summary') || 'Attendance Summary'}
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+            {[
+              { label: t('present') || 'Present', count: stats.present, color: ATTENDANCE_BOARD_COLORS.PRESENT },
+              { label: t('late') || 'Late', count: stats.late, color: ATTENDANCE_BOARD_COLORS.LATE },
+              { label: t('absent') || 'Absent', count: stats.absent, color: ATTENDANCE_BOARD_COLORS.ABSENT },
+            ].map((row) => (
+              <span key={row.label} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: row.color, fontWeight: 600 }}>
+                <span style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: row.color }} />
+                {row.count} {row.label}
+              </span>
+            ))}
+            <span style={{ color: '#000000', fontWeight: 500 }}>/ {stats.total}</span>
+          </div>
+        </div>
+      )}
+      {(item.notes || participationCount > 0) && (
+        <div style={{ marginTop: 4, paddingTop: 4, borderTop: '1px solid rgba(148,163,184,0.35)' }}>
+          {item.notes && (
+            <div style={{ marginBottom: 2 }}>
+              {t('operations_board_has_note') || 'Has a note'}
+            </div>
+          )}
+          {participationCount > 0 && (
+            <div style={{ color: BOARD_PARTICIPATION_COLOR, fontWeight: 600 }}>
+              {participationCount} {t('operations_board_participation') || 'Participation'}
+              {participationCount > 1 ? 's' : ''}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function AttendanceBoard({
   data,
   columns,
@@ -113,6 +181,7 @@ export default function AttendanceBoard({
   collapsedLanes = new Set(),
   onToggleLaneCollapse,
   onBulkMove,
+  participationRefreshKey = 0,
 }) {
   const [boardData, setBoardData] = useState(() => {
     const classId = data[0]?.classId;
@@ -152,7 +221,7 @@ export default function AttendanceBoard({
       }
     }).catch(() => {});
     return () => { cancelled = true; };
-  }, [classId, date]);
+  }, [classId, date, participationRefreshKey]);
 
   useEffect(() => {
     if (!classId) { setAttendanceStats(null); return; }
@@ -243,12 +312,14 @@ export default function AttendanceBoard({
       {(column) => {
         const collapsed = collapsedLanes.has(column.id);
         const laneCount = boardData.filter((d) => d.column === column.id).length;
+        const isPermitted = canMoveAttendanceToColumn(column.id, roleContext);
+        const laneClass = isPermitted ? 'operations-board-lane-permitted' : 'operations-board-lane-readonly';
         return (
         <KanbanBoard
           id={column.id}
           key={column.id}
           data-testid={`operations-board-column-${column.id}`}
-          className={`operations-board-lane${collapsed ? ' operations-board-lane-collapsed' : ''}`}
+          className={`operations-board-lane ${laneClass}${collapsed ? ' operations-board-lane-collapsed' : ''}`}
         >
           {!collapsed && onLaneResize && (
             <div
@@ -283,6 +354,8 @@ export default function AttendanceBoard({
           <KanbanCards id={column.id} className={collapsed ? 'operations-board-lane-cards-collapsed' : undefined}>
             {(item) => {
               const studentName = resolveBoardStudentName(item, lang);
+              const stats = attendanceStats?.students?.[String(item.userId)];
+              const participationCount = participationMap[String(item.userId)]?.length || 0;
               if (collapsed) {
                 return (
                   <KanbanCard
@@ -316,60 +389,70 @@ export default function AttendanceBoard({
                   name={studentName}
                   className="operations-attendance-card"
                 >
-                  <div
-                    className="relative flex items-center gap-2.5"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onCardClick(item);
-                    }}
-                  >
-                    {(item.notes || participationMap[String(item.userId)]?.length > 0) && (
-                      <div className="absolute -top-1 -right-1 flex gap-0.5 z-10">
-                        {item.notes && (
-                          <ColoredTooltip title={t('operations_board_has_note') || 'Has a note'} color="#ef4444" placement="top">
-                            <Star size={12} fill="#ef4444" color="#ef4444" data-testid={`card-notes-star-${item.id}`} />
-                          </ColoredTooltip>
-                        )}
-                        {participationMap[String(item.userId)]?.length > 0 && (
-                          <ColoredTooltip title={t('operations_board_has_participation') || 'Has participation'} color="#3b82f6" placement="top">
-                            <Star size={12} fill="#3b82f6" color="#3b82f6" data-testid={`card-participation-star-${item.id}`} />
-                          </ColoredTooltip>
-                        )}
-                      </div>
+                  <ColoredTooltip
+                    title={(
+                      <AttendanceCardHoverTooltip
+                        item={item}
+                        stats={stats}
+                        participationCount={participationCount}
+                        t={t}
+                        lang={lang}
+                      />
                     )}
-                    <BoardStudentAvatar
-                      name={studentName}
-                      profileImageUrl={item.profileImageUrl}
-                      size="md"
-                    />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-1.5 min-w-0">
-                        <BoardStatusDot column={item.column} />
-                        <p className="m-0 truncate text-sm font-medium leading-tight">{studentName}</p>
-                      </div>
-                      {(() => {
-                        const stats = attendanceStats?.students?.[String(item.userId)];
-                        if (!stats || stats.total === 0) return null;
-                        return (
+                    color="#64748b"
+                    placement="top"
+                  >
+                    <div
+                      className="relative flex items-center gap-2.5"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onCardClick(item);
+                      }}
+                    >
+                      {(item.notes || participationCount > 0) && (
+                        <div className="absolute -top-1 -right-1 flex gap-0.5 z-10">
+                          {item.notes && (
+                            <ColoredTooltip title={t('operations_board_has_note') || 'Has a note'} color="#ef4444" placement="top">
+                              <Star size={12} fill="#ef4444" color="#ef4444" data-testid={`card-notes-star-${item.id}`} />
+                            </ColoredTooltip>
+                          )}
+                          {participationCount > 0 && (
+                            <ColoredTooltip title={t('operations_board_has_participation') || 'Has participation'} color={BOARD_PARTICIPATION_COLOR} placement="top">
+                              <Star size={12} fill={BOARD_PARTICIPATION_COLOR} color={BOARD_PARTICIPATION_COLOR} data-testid={`card-participation-star-${item.id}`} />
+                            </ColoredTooltip>
+                          )}
+                        </div>
+                      )}
+                      <BoardStudentAvatar
+                        name={studentName}
+                        profileImageUrl={item.profileImageUrl}
+                        size="md"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <BoardStatusDot column={item.column} />
+                          <p className="m-0 truncate text-sm font-medium leading-tight">{studentName}</p>
+                        </div>
+                        {stats && stats.total > 0 && (
                           <div className="mt-1 flex items-center gap-1.5 text-[0.7rem] text-muted-foreground" data-testid={`attendance-summary-${item.id}`}>
                             <span className="inline-flex items-center gap-0.5">
-                              <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: '#22c55e' }} />
+                              <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: ATTENDANCE_BOARD_COLORS.PRESENT }} />
                               {stats.present}
                             </span>
                             <span className="inline-flex items-center gap-0.5">
-                              <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: '#f59e0b' }} />
+                              <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: ATTENDANCE_BOARD_COLORS.LATE }} />
                               {stats.late}
                             </span>
                             <span className="inline-flex items-center gap-0.5">
-                              <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: '#ef4444' }} />
+                              <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: ATTENDANCE_BOARD_COLORS.ABSENT }} />
                               {stats.absent}
                             </span>
                             <span>/ {stats.total}</span>
                           </div>
-                        );
-                      })()}
+                        )}
+                      </div>
                     </div>
-                  </div>
+                  </ColoredTooltip>
                 </KanbanCard>
               );
             }}

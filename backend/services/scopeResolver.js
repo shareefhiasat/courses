@@ -1,6 +1,7 @@
 /**
  * Effective data scope for admin / HR / instructor users.
  * Super admin is always unrestricted.
+ * Admin and HR are unrestricted by default, unless explicit UCA restrictions are configured.
  *
  * Layer 1 — UCA: academic boundary (programs/subjects/classes for operational data)
  * Layer 2 — Visibility profile: ALL | UCA | EXPLICIT per dimension (pickers, analytics, availability)
@@ -69,14 +70,15 @@ async function loadVisibilityContext(userId) {
 export async function getEffectiveDataScope(userId, roles = []) {
   const normalized = normalizeRoles(roles);
 
-  if (hasRole(normalized, ROLES.SUPER_ADMIN) || hasRole(normalized, ROLES.HR)) {
+  // Super Admin is always unrestricted, no exceptions
+  if (hasRole(normalized, ROLES.SUPER_ADMIN)) {
     return {
       unrestricted: true,
       categoryIds: [],
       programIds: [],
       subjectIds: [],
       classIds: [],
-      source: hasRole(normalized, ROLES.SUPER_ADMIN) ? 'super_admin' : 'hr',
+      source: 'super_admin',
       visibility: {
         programs: 'ALL',
         subjects: 'ALL',
@@ -92,6 +94,55 @@ export async function getEffectiveDataScope(userId, roles = []) {
         classIds: [],
       },
     };
+  }
+
+  // Admin and HR: unrestricted by default, unless explicit UCA restrictions exist
+  if (hasRole(normalized, ROLES.ADMIN) || hasRole(normalized, ROLES.HR)) {
+    // Check if any UCA entries exist for this user
+    const existingAccesses = await prisma.userCategoryAccess.findMany({
+      where: {
+        userId,
+        isActive: true,
+        OR: [{ canView: true }, { canManage: true }],
+      },
+      select: { id: true },
+    });
+
+    // Also check visibility profile for explicit restrictions
+    const profile = await prisma.userDataScopeProfile.findUnique({ where: { userId } });
+    const hasVisibilityRestriction = profile && (
+      profile.programsMode === 'UCA' || profile.programsMode === 'EXPLICIT' ||
+      profile.subjectsMode === 'UCA' || profile.subjectsMode === 'EXPLICIT' ||
+      profile.classesMode === 'UCA' || profile.classesMode === 'EXPLICIT'
+    );
+
+    if (existingAccesses.length === 0 && !hasVisibilityRestriction) {
+      // No restrictions configured → unrestricted access
+      return {
+        unrestricted: true,
+        categoryIds: [],
+        programIds: [],
+        subjectIds: [],
+        classIds: [],
+        source: hasRole(normalized, ROLES.ADMIN) ? 'admin_default' : 'hr_default',
+        visibility: {
+          programs: 'ALL',
+          subjects: 'ALL',
+          classes: 'ALL',
+          instructors: 'ALL',
+          rooms: 'ALL',
+        },
+        explicitGrants: {
+          instructorIds: [],
+          roomIds: [],
+          programIds: [],
+          subjectIds: [],
+          classIds: [],
+        },
+      };
+    }
+
+    // Restrictions exist → fall through to UCA resolution below
   }
 
   if (!userId) {
@@ -129,6 +180,7 @@ export async function getEffectiveDataScope(userId, roles = []) {
     },
   });
 
+  // For Admin/HR with restrictions: also include instructor taught classes if they are also instructors
   for (const access of accesses) {
     categoryIds.add(access.categoryId);
 
@@ -156,13 +208,18 @@ export async function getEffectiveDataScope(userId, roles = []) {
   const { visibility, explicitGrants } = await loadVisibilityContext(userId);
   const hasExplicitScope = categoryIds.size > 0 || programIds.size > 0 || subjectIds.size > 0 || classIds.size > 0;
 
+  // Determine the source label
+  const sourceLabel = hasRole(normalized, ROLES.ADMIN) ? 'admin_restricted' :
+    hasRole(normalized, ROLES.HR) ? 'hr_restricted' :
+    hasExplicitScope ? 'user_category_access' : 'empty';
+
   return {
     unrestricted: false,
     categoryIds: [...categoryIds],
     programIds: [...programIds],
     subjectIds: [...subjectIds],
     classIds: [...classIds],
-    source: hasExplicitScope ? 'user_category_access' : 'empty',
+    source: sourceLabel,
     canManageCategoryIds: accesses.filter((a) => a.canManage).map((a) => a.categoryId),
     visibility,
     explicitGrants,

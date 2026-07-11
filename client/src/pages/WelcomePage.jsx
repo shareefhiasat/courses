@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import Joyride from 'react-joyride';
+import TourTooltip from '@ui/TourTooltip/TourTooltip';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
@@ -46,6 +47,20 @@ function toIsoDate(value) {
   return new Date(value).toISOString().slice(0, 10);
 }
 
+const SCHEDULE_WORK_DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu'];
+
+function getWeekDayDates(selectedDate) {
+  const anchor = selectedDate instanceof Date ? new Date(selectedDate) : new Date(selectedDate);
+  const weekStart = new Date(anchor);
+  weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+  weekStart.setHours(12, 0, 0, 0);
+  return SCHEDULE_WORK_DAYS.map((_, index) => {
+    const d = new Date(weekStart);
+    d.setDate(d.getDate() + index);
+    return d;
+  });
+}
+
 const WelcomePage = () => {
   const { user, role, isInstructor, isAdmin, isHR, isSuperAdmin, isStudent } = useAuth();
   const { t, lang } = useLang();
@@ -54,14 +69,33 @@ const WelcomePage = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const [selection, setSelection] = useState(null);
+  const [selection, setSelection] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem(WELCOME_SELECTION_KEY);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.program?.id) return parsed;
+      }
+    } catch {
+      // ignore
+    }
+    return null;
+  });
   const [scheduleData, setScheduleData] = useState(null);
   const [statusMap, setStatusMap] = useState({});
   const [loading, setLoading] = useState(false);
   const [selectedSession, setSelectedSession] = useState(null);
   const [menuAnchorEl, setMenuAnchorEl] = useState(null);
-  const [selectedDate, setSelectedDate] = useState(() => new Date());
+  const [selectedDate, setSelectedDate] = useState(() => {
+    const urlDate = searchParams.get('date');
+    if (urlDate) {
+      const parsed = new Date(`${urlDate}T12:00:00`);
+      if (!isNaN(parsed.getTime())) return parsed;
+    }
+    return new Date();
+  });
   const [selectedSlot, setSelectedSlot] = useState(null);
+  const [clickedDate, setClickedDate] = useState(null);
   const [inboxOutboxOpen, setInboxOutboxOpen] = useState(false);
   const [inboxClassId, setInboxClassId] = useState(null);
   const [inboxInitialTab, setInboxInitialTab] = useState('inbox');
@@ -76,13 +110,19 @@ const WelcomePage = () => {
   const [cohortClassIds, setCohortClassIds] = useState([]);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info', progress: null });
   const [runJoyride, setRunJoyride] = useState(false);
+  const [tourSteps, setTourSteps] = useState([]);
+  const tourSeenKey = `welcomeTourSeen_${lang}`;
   const [contextSwitcherOpen, setContextSwitcherOpen] = useState(false);
   const [autoSelecting, setAutoSelecting] = useState(false);
   const [noPrograms, setNoPrograms] = useState(false);
+  const [isNavbarCollapsed, setIsNavbarCollapsed] = useState(() => {
+    try { return localStorage.getItem('navbarCollapsed') === 'true'; } catch { return false; }
+  });
 
   const visibleTabs = useMemo(() => {
-    const tabs = ['schedule', 'overview'];
+    const tabs = ['schedule'];
     if (showOperationsTab) tabs.push('operations');
+    tabs.push('overview');
     return tabs;
   }, [showOperationsTab]);
 
@@ -92,6 +132,18 @@ const WelcomePage = () => {
   const scheduleExpanded = searchParams.get('scheduleExpanded') === '1';
 
   const showSchedule = useMemo(() => Boolean(selection?.program && selection?.academicTerm), [selection]);
+
+  // Sync selectedDate when the URL date param changes (e.g., browser back/forward)
+  useEffect(() => {
+    const urlDate = searchParams.get('date');
+    if (!urlDate) return;
+    const parsed = new Date(`${urlDate}T12:00:00`);
+    if (isNaN(parsed.getTime())) return;
+    const currentIso = selectedDate.toISOString().split('T')[0];
+    if (urlDate !== currentIso) {
+      setSelectedDate(parsed);
+    }
+  }, [searchParams]);
 
   const welcomeBoardContext = useMemo(() => {
     if (!selection?.program?.id || !selection?.academicTerm?.id) return null;
@@ -188,6 +240,10 @@ const WelcomePage = () => {
   }, [setSearchParams]);
 
   const handleOpenOperations = useCallback((extraParams = {}) => {
+    if (extraParams.date) {
+      const parsed = new Date(`${extraParams.date}T12:00:00`);
+      if (!isNaN(parsed.getTime())) setSelectedDate(parsed);
+    }
     openOperationsTab(extraParams);
   }, [openOperationsTab]);
 
@@ -209,8 +265,25 @@ const WelcomePage = () => {
   // Auto-select first program + latest active term on mount
   useEffect(() => {
     const autoSelect = async () => {
-      // If we already have a selection with both program and term, keep it
-      if (selection?.program && selection?.academicTerm) return;
+      // If we already have a selection with both program and term, keep it and sync URL
+      if (selection?.program && selection?.academicTerm) {
+        setSearchParams((prev) => {
+          const next = new URLSearchParams(prev);
+          next.set('programId', String(selection.program.id));
+          next.set('termId', String(selection.academicTerm.id));
+          return next;
+        });
+        return;
+      }
+      // If we have a saved program but no term, keep the program and sync URL
+      if (selection?.program) {
+        setSearchParams((prev) => {
+          const next = new URLSearchParams(prev);
+          next.set('programId', String(selection.program.id));
+          return next;
+        });
+        return;
+      }
       setAutoSelecting(true);
       try {
         const progResult = isInstructor ? await getInstructorPrograms() : await getAllPrograms();
@@ -298,6 +371,20 @@ const WelcomePage = () => {
     }
   }, [selection, setSearchParams]);
 
+  // Sync page height with navbar collapse state
+  useEffect(() => {
+    const handleNavbarToggle = (e) => {
+      setIsNavbarCollapsed(e.detail.collapsed);
+      document.documentElement.style.setProperty('--navbar-height', e.detail.collapsed ? '0px' : '60px');
+    };
+    document.documentElement.style.setProperty('--navbar-height', isNavbarCollapsed ? '0px' : '60px');
+    window.addEventListener('navbar:toggle', handleNavbarToggle);
+    return () => {
+      window.removeEventListener('navbar:toggle', handleNavbarToggle);
+      document.documentElement.style.removeProperty('--navbar-height');
+    };
+  }, [isNavbarCollapsed]);
+
   // Listen for navbar request to change selection
   useEffect(() => {
     const onReset = () => handleResetSelection();
@@ -310,18 +397,53 @@ const WelcomePage = () => {
     };
   }, [handleResetSelection]);
 
-  // Start Joyride once when the schedule is first shown
+  // ── Guided Tour ──────────────────────────────────────────────────────────
+  const buildTourSteps = useCallback(() => [
+    { target: '#welcome-navbar-title', content: t('tour_change_program_term') || 'Click here any time to change the program or term.', disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="welcome-tabs"]', content: t('tour_welcome_tabs') || 'Switch between the Schedule, Overview, and Operations tabs.', disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="welcome-week-nav"]', content: t('tour_welcome_week_nav') || 'Use the arrows to move between weeks.', disableBeacon: true, placement: 'bottom' },
+    { target: '[data-tour="welcome-schedule-grid"]', content: t('tour_schedule_grid') || 'Click or double-click a class cell to open actions.', disableBeacon: true, placement: 'top' },
+    ...(showOperationsTab ? [{ target: '[data-tour="welcome-operations-tab"]', content: t('tour_welcome_operations') || 'The Operations tab shows the attendance and workflow board for the selected date.', disableBeacon: true, placement: 'top' }] : []),
+  ].filter(s => !!document.querySelector(s.target)), [t, showOperationsTab]);
+
+  const startTour = useCallback(() => {
+    const steps = buildTourSteps();
+    if (!steps.length) return;
+    setTourSteps(steps);
+    setRunJoyride(true);
+  }, [buildTourSteps]);
+
+  useEffect(() => {
+    const start = () => startTour();
+    window.addEventListener('app:joyride', start);
+    window.addEventListener('app:help', start);
+    return () => { window.removeEventListener('app:joyride', start); window.removeEventListener('app:help', start); };
+  }, [startTour]);
+
   useEffect(() => {
     if (!showSchedule) return;
     try {
-      const seen = localStorage.getItem('welcome_tour_seen');
-      if (seen) return;
-      const timer = setTimeout(() => setRunJoyride(true), 600);
+      if (localStorage.getItem(tourSeenKey)) return;
+      const timer = setTimeout(() => startTour(), 600);
       return () => clearTimeout(timer);
     } catch {
       // ignore
     }
-  }, [showSchedule]);
+  }, [showSchedule, tourSeenKey, startTour]);
+
+  const handleTourCallback = useCallback((data) => {
+    const { status, action } = data || {};
+    if (status === 'finished' || status === 'skipped' || action === 'close') {
+      setRunJoyride(false);
+      window.__joyrideActive = false;
+      try { localStorage.setItem(tourSeenKey, 'true'); } catch {}
+    } else if (status === 'running') {
+      window.__joyrideActive = true;
+    }
+  }, [tourSeenKey]);
+
+  const TourTooltipComponent = useMemo(() => TourTooltip({ tourSeenKey }), [tourSeenKey]);
+  // ──────────────────────────────────────────────────────────────────────────
 
   useEffect(() => {
     const programName = selection?.program
@@ -386,10 +508,17 @@ const WelcomePage = () => {
       const classIds = (sources.cohortClasses || []).map((c) => c.id).filter(Boolean);
       setCohortClassIds(classIds);
       if (classIds.length > 0) {
-        const statusResult = await getScheduleStatus(classIds, selectedDate);
-        if (statusResult.success) {
-          setStatusMap(statusResult.data);
-        }
+        const weekDates = getWeekDayDates(selectedDate);
+        const results = await Promise.all(weekDates.map((d) => getScheduleStatus(classIds, d)));
+        const combined = {};
+        results.forEach((result, index) => {
+          if (!result.success || !result.data) return;
+          const iso = toIsoDate(weekDates[index]);
+          Object.entries(result.data).forEach(([classId, status]) => {
+            combined[`${iso}:${classId}`] = status;
+          });
+        });
+        setStatusMap(combined);
       } else {
         setStatusMap({});
         setCohortClassIds([]);
@@ -399,6 +528,19 @@ const WelcomePage = () => {
 
     loadSchedule();
   }, [selection?.program, selection?.academicTerm, selectedDate, lang]);
+
+  const selectedWeekKey = useMemo(() => {
+    const anchor = selectedDate instanceof Date ? selectedDate : new Date(selectedDate);
+    const weekStart = new Date(anchor);
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+    return toIsoDate(weekStart);
+  }, [selectedDate]);
+
+  useEffect(() => {
+    setSelectedSlot(null);
+    setSelectedSession(null);
+    setMenuAnchorEl(null);
+  }, [selectedWeekKey]);
 
   const handleCellClick = useCallback((slot, anchor, openMenu = true) => {
     const session = slot?.session || (slot?.class ? {
@@ -415,11 +557,26 @@ const WelcomePage = () => {
       dayCode: slot?.dayCode,
       colKey: slot?.colKey,
     });
+
+    // Compute the actual calendar date from the clicked cell's dayCode
+    const DAY_CODES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const dayOffset = DAY_CODES.indexOf(slot?.dayCode);
+    let cellDate = selectedDate;
+    if (dayOffset >= 0) {
+      const weekStart = new Date(selectedDate);
+      weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+      cellDate = new Date(weekStart);
+      cellDate.setDate(cellDate.getDate() + dayOffset);
+      setClickedDate(cellDate);
+    } else {
+      setClickedDate(selectedDate);
+    }
+
     if (session.classId) {
       setSearchParams((prev) => {
         const next = new URLSearchParams(prev);
         next.set('classId', String(session.classId));
-        next.set('date', toIsoDate(selectedDate));
+        next.set('date', toIsoDate(cellDate));
         return next;
       });
     }
@@ -468,6 +625,7 @@ const WelcomePage = () => {
   const handleClearSelection = useCallback(() => {
     setSelectedSession(null);
     setSelectedSlot(null);
+    setClickedDate(null);
   }, []);
 
   const handleOpenInbox = useCallback((tab, classId) => {
@@ -603,25 +761,12 @@ const WelcomePage = () => {
     ? 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)'
     : 'linear-gradient(135deg, #f0f4ff 0%, #e0e7ff 100%)';
 
-  const joyrideSteps = useMemo(() => [
-    {
-      target: '#welcome-navbar-title',
-      content: t('tour_change_program_term') || 'Click here any time to change the program or term.',
-      disableBeacon: true,
-    },
-    {
-      target: '[data-testid="official-weekly-schedule-grid"]',
-      content: t('tour_schedule_grid') || 'Click or double-click a class cell to open actions.',
-      disableBeacon: true,
-    },
-  ], [t]);
-
   return (
     <div
       className={`welcome-page${scheduleExpanded ? ' welcome-page--schedule-expanded' : ''}${boardExpanded && tabParam === 'operations' ? ' welcome-page--operations-expanded' : ''}`}
       style={{
-        minHeight: showSchedule ? 'calc(100vh - 64px)' : '100vh',
-        height: showSchedule ? 'calc(100vh - 64px)' : 'auto',
+        minHeight: showSchedule ? 'calc(100vh - var(--navbar-height, 60px))' : '100vh',
+        height: showSchedule ? 'calc(100vh - var(--navbar-height, 60px))' : 'auto',
         background: pageBg,
         display: 'flex',
         flexDirection: 'column',
@@ -639,12 +784,17 @@ const WelcomePage = () => {
     >
       {showSchedule && (
         <Joyride
-          steps={joyrideSteps}
-          run={runJoyride}
+          steps={tourSteps}
+          run={runJoyride && tourSteps.length > 0}
           continuous
+          disableScrolling={false}
+          scrollOffset={100}
+          scrollToFirstStep
           showSkipButton
-          showBackButton
           showProgress
+          tooltipComponent={TourTooltipComponent}
+          spotlightClicks={false}
+          callback={handleTourCallback}
           locale={{
             back: t('tour_back') || 'Back',
             close: t('tour_close') || 'Close',
@@ -652,32 +802,14 @@ const WelcomePage = () => {
             next: t('tour_next') || 'Next',
             skip: t('tour_skip') || 'Skip',
           }}
-          callback={(data) => {
-            if (data.status === 'finished' || data.status === 'skipped') {
-              setRunJoyride(false);
-              try { localStorage.setItem('welcome_tour_seen', '1'); } catch {}
-            }
-          }}
           styles={{
             options: {
               zIndex: 10000,
-              arrowColor: isDark ? '#1e293b' : '#fff',
-              backgroundColor: isDark ? '#1e293b' : '#fff',
+              arrowColor: isDark ? '#1f2937' : '#fff',
+              backgroundColor: isDark ? '#1f2937' : '#fff',
               textColor: isDark ? '#f1f5f9' : '#0f172a',
               overlayColor: 'rgba(0, 0, 0, 0.5)',
-              primaryColor: '#8b5cf6',
-            },
-            buttonBack: {
-              color: isDark ? '#94a3b8' : '#64748b',
-            },
-            buttonSkip: {
-              color: isDark ? '#94a3b8' : '#64748b',
-            },
-            buttonNext: {
-              backgroundColor: '#8b5cf6',
-            },
-            buttonClose: {
-              color: isDark ? '#94a3b8' : '#64748b',
+              primaryColor: 'var(--color-primary, #800020)',
             },
           }}
         />
@@ -711,12 +843,36 @@ const WelcomePage = () => {
 
         {!autoSelecting && !selection?.program && noPrograms && (
           <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1, py: 8, gap: 2 }}>
-            <Box sx={{ fontSize: '18px', fontWeight: 600, color: isDark ? '#f1f5f9' : '#1e293b', textAlign: 'center' }}>
-              {t('workspace_no_classes_assigned')}
-            </Box>
-            <Box sx={{ fontSize: '14px', color: isDark ? '#94a3b8' : '#64748b', textAlign: 'center', maxWidth: '400px' }}>
-              {t('workspace_no_classes_assigned_hint')}
-            </Box>
+            {isHR ? (
+              <>
+                <Box sx={{ fontSize: '48px', mb: 1, opacity: 0.3 }}>📋</Box>
+                <Box sx={{ fontSize: '18px', fontWeight: 600, color: isDark ? '#f1f5f9' : '#1e293b', textAlign: 'center' }}>
+                  {t('welcome_hr_empty_title') || 'Welcome to HR Workspace'}
+                </Box>
+                <Box sx={{ fontSize: '14px', color: isDark ? '#94a3b8' : '#64748b', textAlign: 'center', maxWidth: '400px' }}>
+                  {t('welcome_hr_empty_hint') || 'Your assigned programs and schedules will appear here. Use the navigation menu to access HR management tools.'}
+                </Box>
+              </>
+            ) : isAdmin || isSuperAdmin ? (
+              <>
+                <Box sx={{ fontSize: '48px', mb: 1, opacity: 0.3 }}>⚙️</Box>
+                <Box sx={{ fontSize: '18px', fontWeight: 600, color: isDark ? '#f1f5f9' : '#1e293b', textAlign: 'center' }}>
+                  {t('welcome_admin_empty_title') || 'Welcome to Admin Workspace'}
+                </Box>
+                <Box sx={{ fontSize: '14px', color: isDark ? '#94a3b8' : '#64748b', textAlign: 'center', maxWidth: '400px' }}>
+                  {t('welcome_admin_empty_hint') || 'No programs are currently assigned. Use the navigation menu to manage programs, classes, and system settings.'}
+                </Box>
+              </>
+            ) : (
+              <>
+                <Box sx={{ fontSize: '18px', fontWeight: 600, color: isDark ? '#f1f5f9' : '#1e293b', textAlign: 'center' }}>
+                  {t('workspace_no_classes_assigned')}
+                </Box>
+                <Box sx={{ fontSize: '14px', color: isDark ? '#94a3b8' : '#64748b', textAlign: 'center', maxWidth: '400px' }}>
+                  {t('workspace_no_classes_assigned_hint')}
+                </Box>
+              </>
+            )}
             <button
               type="button"
               onClick={() => navigate('/', { replace: true })}
@@ -768,7 +924,7 @@ const WelcomePage = () => {
               width: '100%',
             }}
           >
-            <Box sx={{ borderBottom: 1, borderColor: 'divider', flexShrink: 0, mb: 1, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+            <Box data-tour="welcome-tabs" sx={{ borderBottom: 1, borderColor: 'divider', flexShrink: 0, mb: 1, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
               <Tabs
                 value={activeTab}
                 onChange={handleTabChange}
@@ -786,10 +942,10 @@ const WelcomePage = () => {
                 }}
               >
                 <Tab label={t('welcome_tab_schedule') || 'Schedule'} />
-                <Tab label={t('welcome_tab_overview') || 'Overview'} />
                 {showOperationsTab && (
                   <Tab label={t('welcome_tab_operations') || 'Operations'} />
                 )}
+                <Tab label={t('welcome_tab_overview') || 'Overview'} />
               </Tabs>
               {(() => {
                 const classId = searchParams.get('classId');
@@ -821,13 +977,12 @@ const WelcomePage = () => {
                     whiteSpace: 'nowrap',
                     flexShrink: 0,
                   }}>
-                    <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: '#3b82f6' }} />
                     {className}
                   </div>
                 );
               })()}
               {showSchedule && tabParam === 'schedule' && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                <div data-tour="welcome-week-nav" style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0, marginRight: '36px' }}>
                   <button
                     onClick={() => {
                       const prev = new Date(selectedDate);
@@ -902,7 +1057,7 @@ const WelcomePage = () => {
                 </div>
               )}
               {showSchedule && tabParam === 'operations' && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: '2px', flexShrink: 0, justifyContent: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '2px', flexShrink: 0, justifyContent: 'center', marginRight: '36px' }}>
                   <button
                     onClick={() => {
                       const prev = new Date(selectedDate);
@@ -979,7 +1134,7 @@ const WelcomePage = () => {
                     {t('loading') || 'Loading...'}
                   </div>
                 ) : (
-                  <div style={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
+                  <div data-tour="welcome-schedule-grid" style={{ position: 'relative', flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
                     <OfficialWeeklyScheduleGrid
                       scheduleData={scheduleData}
                       statusMap={statusMap}
@@ -999,7 +1154,7 @@ const WelcomePage = () => {
                     {selectedSlot && !menuAnchorEl && selectedSession && (
                       <ScheduleSpeedDial
                         session={selectedSession}
-                        selectedDate={selectedDate}
+                        selectedDate={clickedDate || selectedDate}
                         program={selection?.program}
                         academicTerm={selection?.academicTerm}
                         onClose={handleClearSelection}
@@ -1037,6 +1192,7 @@ const WelcomePage = () => {
 
             {tabParam === 'operations' && showOperationsTab && (
               <div
+                data-tour="welcome-operations-tab"
                 className={boardExpanded ? 'operations-expanded-overlay' : ''}
                 style={boardExpanded ? undefined : { flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}
               >
@@ -1089,7 +1245,7 @@ const WelcomePage = () => {
         anchorEl={menuAnchorEl}
         open={Boolean(selectedSession && menuAnchorEl)}
         onClose={handleCloseClassMenu}
-        selectedDate={selectedDate}
+        selectedDate={clickedDate || selectedDate}
         program={selection?.program}
         academicTerm={selection?.academicTerm}
         onOpenInbox={handleOpenInbox}

@@ -264,6 +264,25 @@ export default function BoardDetailDrawer({ open, onOpenChange, card, lane, onRe
                   {t(col.i18nKey) || col.name}
                 </Button>
               ))}
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => {
+                  onOpenChange(false);
+                  navigate('/qr-scanner', {
+                    state: {
+                      classId: card.classId,
+                      studentId: card.userId,
+                      studentNumber: card.studentNumber,
+                      date: card.date,
+                      openManual: true,
+                    },
+                  });
+                }}
+                data-testid="operations-board-mark-attendance"
+              >
+                {t('operations_board_mark_attendance') || 'Mark Attendance'}
+              </Button>
             </div>
           )}
 

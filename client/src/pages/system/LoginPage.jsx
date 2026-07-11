@@ -47,7 +47,11 @@ const LoginPage = () => {
       return <Navigate to="/summary-dashboard" replace />;
     }
 
-    if (isAdmin || isInstructor || isHR) {
+    if (isInstructor) {
+      return <Navigate to="/" replace />;
+    }
+
+    if (isAdmin || isHR) {
       return <Navigate to="/welcome" replace />;
     }
     

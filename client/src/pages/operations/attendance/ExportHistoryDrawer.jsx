@@ -4,13 +4,15 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import useResizableDrawer from '@hooks/useResizableDrawer';
-import { formatDateShort, formatTime as fmtTime, formatDateTime } from '@utils/date-formatter.js';
+import { formatDate, formatTime as fmtTime, formatDateTime } from '@utils/date-formatter.js';
 import { getExportHistory, openExportFile } from '@services/db/exportHistoryService.js';
 import { resolveUserRole, getUserRoleFromObject } from '@utils/userUtils';
 import { getUserRoleColor, getUserRoleIcon, getThemedIcon } from '@constants/iconTypes';
 import RoleBadge from '@pages/communications/chat/components/RoleBadge.jsx';
+import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import { buildSmartDriveHighlightUrl } from '@utils/exportSuccessUrls';
-import { FileText, Table, FileType2 } from 'lucide-react';
+import { format, parseISO } from 'date-fns';
+import { FileText, Table, FileType2, Download, SlidersHorizontal } from 'lucide-react';
 
 const EXPORT_TYPE_COLORS = {
   attendance_daily: '#3b82f6',
@@ -39,17 +41,44 @@ const FORMAT_ICONS = {
 };
 
 const EXPORT_TYPE_GROUPS = {
-  official: ['attendance_daily_official', 'official_attendance', 'behavioral', 'penalty', 'marks_semester_certificate', 'marks_class_subject', 'marks_qualitative_card', 'marks_warning_first', 'marks_warning_final'],
-  standard: ['attendance_daily', 'summary', 'behavioral', 'penalty'],
+  official: ['attendance_daily_official', 'official_attendance'],
+  standard: ['attendance_daily', 'summary'],
 };
 
-const BETA_TYPES = new Set(['behavioral', 'penalty']);
+const OFFICIAL_TYPE_LABELS = {
+  attendance_daily_official: 'Daily Official',
+  official_attendance: 'Attendance Official',
+};
+
+const BETA_TYPES = new Set([]);
 
 const FORMAT_KEYS = ['pdf', 'excel'];
 
 function getInitials(name) {
   if (!name) return '?';
   return name.charAt(0).toUpperCase();
+}
+
+function formatDisplayFilename(entry, classInfo, lang, t) {
+  const reportDate = entry.reportDate || entry.metadata?.reportDate || entry.createdAt;
+  let dateStr = null;
+  if (reportDate) {
+    try {
+      dateStr = typeof reportDate === 'string'
+        ? reportDate.slice(0, 10)
+        : format(reportDate, 'yyyy-MM-dd');
+    } catch {}
+  }
+  const formattedDate = dateStr ? (() => {
+    try { return format(parseISO(dateStr), 'dd-MM-yyyy'); } catch { return dateStr; }
+  })() : null;
+  const className = classInfo
+    ? (lang === 'ar' && classInfo.nameAr ? classInfo.nameAr : classInfo.nameEn || classInfo.code)
+    : (entry.className || entry.class?.nameEn || entry.class?.code || '');
+
+  if (formattedDate && className) return `${formattedDate} ${className}`;
+  if (formattedDate) return formattedDate;
+  return entry.filename;
 }
 
 function formatDateLabel(dateStr, lang, t) {
@@ -61,7 +90,7 @@ function formatDateLabel(dateStr, lang, t) {
   if (d.toDateString() === today.toDateString()) return t('today');
   if (d.toDateString() === yesterday.toDateString()) return t('yesterday');
 
-  return formatDateShort(d, lang);
+  return formatDate(d, lang);
 }
 
 function formatTime(dateStr, lang) {
@@ -97,14 +126,18 @@ function ExportEntryRow({
   theme,
   isSuperAdmin,
   currentUserId,
+  classInfo = null,
   indent = 40,
 }) {
   const [opening, setOpening] = useState(false);
   const hasFile = Boolean(entry.fileId);
   const typeColor = EXPORT_TYPE_COLORS[entry.exportType] || '#6b7280';
   const formatColor = FORMAT_COLORS[entry.format] || '#6b7280';
-  const typeLabel = t(`export_type_${entry.exportType}`) || entry.exportType;
+  const typeLabel = OFFICIAL_TYPE_LABELS[entry.exportType]
+    || t(`export_type_${entry.exportType}`)
+    || entry.exportType.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase());
   const FormatIcon = FORMAT_ICONS[entry.format] || FileType2;
+  const displayFilename = formatDisplayFilename(entry, classInfo, lang, t);
 
   const handleOpen = async (preferDownload = false) => {
     if (!hasFile) return;
@@ -157,7 +190,7 @@ function ExportEntryRow({
           title={hasFile ? entry.filename : `${entry.filename} (${t('export_file_unavailable')})`}
           onClick={() => hasFile && handleOpen(entry.format !== 'pdf')}
         >
-          {entry.filename}
+          {displayFilename}
         </div>
         <div
           style={{
@@ -202,7 +235,7 @@ function ExportEntryRow({
             {entry.format?.toUpperCase()}
           </span>
           <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--muted)' }}>
-            {formatDateTime(entry.createdAt, lang)}
+            {t('export_created_at') || 'Created'}: {formatDateTime(entry.createdAt, lang)}
           </span>
           {entry.user && (
             <span
@@ -244,7 +277,7 @@ function ExportEntryRow({
           )}
           {entry.reportDate && (
             <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--muted)' }}>
-              | {entry.reportDate}
+              {t('export_report_date') || 'Report date'}: {formatDate(entry.reportDate, lang)}
             </span>
           )}
           {!hasFile && (
@@ -259,72 +292,76 @@ function ExportEntryRow({
       </div>
       {hasFile && (
         <div style={{ display: 'flex', gap: 4, flexShrink: 0 }}>
-          <button
-            type="button"
-            disabled={opening}
-            onClick={() => handleOpen(false)}
-            title={t('export_view_file')}
-            style={{
-              background: 'transparent',
-              border: '1px solid var(--border)',
-              borderRadius: 6,
-              width: 28,
-              height: 28,
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: opening ? 'wait' : 'pointer',
-              color: 'var(--text)',
-            }}
-          >
-            {getThemedIcon('ui', 'eye', 15, 'currentColor')}
-          </button>
-          <button
-            type="button"
-            disabled={opening}
-            onClick={() => handleOpen(true)}
-            title={t('export_download_file')}
-            style={{
-              background: 'transparent',
-              border: '1px solid var(--border)',
-              borderRadius: 6,
-              width: 28,
-              height: 28,
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              cursor: opening ? 'wait' : 'pointer',
-              color: 'var(--text)',
-            }}
-          >
-            ↓
-          </button>
-          <button
-            type="button"
-            onClick={handleOpenInDrive}
-            title={t('open_in_smart_drive')}
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 28,
-              height: 28,
-              background: 'transparent',
-              border: '1px solid var(--border)',
-              borderRadius: 6,
-              cursor: 'pointer',
-              color: 'var(--color-primary, #2563eb)',
-            }}
-          >
-            {getThemedIcon('ui', 'external_link', 15, 'currentColor')}
-          </button>
+          <ColoredTooltip title={t('export_view_file')} color="#64748b" placement="top">
+            <button
+              type="button"
+              disabled={opening}
+              onClick={() => handleOpen(false)}
+              style={{
+                background: 'transparent',
+                border: '1px solid var(--border)',
+                borderRadius: 6,
+                width: 28,
+                height: 28,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: opening ? 'wait' : 'pointer',
+                color: 'var(--text)',
+              }}
+            >
+              {getThemedIcon('ui', 'eye', 15, 'currentColor')}
+            </button>
+          </ColoredTooltip>
+          <ColoredTooltip title={t('export_download_file')} color="#64748b" placement="top">
+            <button
+              type="button"
+              disabled={opening}
+              onClick={() => handleOpen(true)}
+              style={{
+                background: 'transparent',
+                border: '1px solid var(--border)',
+                borderRadius: 6,
+                width: 28,
+                height: 28,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: opening ? 'wait' : 'pointer',
+                color: 'var(--text)',
+              }}
+            >
+              <Download size={15} />
+            </button>
+          </ColoredTooltip>
+          <ColoredTooltip title={t('open_in_smart_drive')} color="#2563eb" placement="top">
+            <button
+              type="button"
+              onClick={handleOpenInDrive}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                width: 28,
+                height: 28,
+                background: 'transparent',
+                border: '1px solid var(--border)',
+                borderRadius: 6,
+                cursor: 'pointer',
+                color: 'var(--color-primary, #2563eb)',
+              }}
+            >
+              {getThemedIcon('ui', 'external_link', 15, 'currentColor')}
+            </button>
+          </ColoredTooltip>
         </div>
       )}
     </div>
   );
 }
 
-const ExportHistoryDrawer = ({ isOpen, onClose, lang, t, theme, classId = null, embedded = false }) => {
+const ExportHistoryDrawer = ({ isOpen, onClose, lang, t, theme, classId = null, classInfo = null, embedded = false, scope = 'global' }) => {
+  const isDark = theme === 'dark';
   const { user, isSuperAdmin } = useAuth();
   const { isRTL } = useLang();
   const navigate = useNavigate();
@@ -417,10 +454,14 @@ const ExportHistoryDrawer = ({ isOpen, onClose, lang, t, theme, classId = null, 
     ? history.filter((record) => Number(record.classId) === Number(classId)).length
     : history.length;
 
-  const groupChips = [
-    { key: 'official', label: t('export_group_official'), color: '#8b5cf6', types: EXPORT_TYPE_GROUPS.official },
-    { key: 'standard', label: t('export_group_standard'), color: '#3b82f6', types: EXPORT_TYPE_GROUPS.standard },
-  ];
+  const isScoped = scope !== 'global';
+
+  const groupChips = isScoped
+    ? [{ key: 'official', label: t('export_group_official'), color: '#8b5cf6', types: EXPORT_TYPE_GROUPS.official }]
+    : [
+        { key: 'official', label: t('export_group_official'), color: '#8b5cf6', types: EXPORT_TYPE_GROUPS.official },
+        { key: 'standard', label: t('export_group_standard'), color: '#3b82f6', types: EXPORT_TYPE_GROUPS.standard },
+      ];
 
   const formatChips = [
     { key: 'all', label: t('all_formats'), color: null, icon: null },
@@ -431,6 +472,13 @@ const ExportHistoryDrawer = ({ isOpen, onClose, lang, t, theme, classId = null, 
       icon: FORMAT_ICONS[key],
     })),
   ];
+
+  const getExportTypeLabel = (typeKey) => {
+    if (OFFICIAL_TYPE_LABELS[typeKey]) return t(`export_type_${typeKey}`) || OFFICIAL_TYPE_LABELS[typeKey];
+    const translated = t(`export_type_${typeKey}`);
+    if (translated && !translated.startsWith('export type')) return translated;
+    return typeKey.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+  };
 
   const panel = (
     <div
@@ -521,6 +569,27 @@ const ExportHistoryDrawer = ({ isOpen, onClose, lang, t, theme, classId = null, 
 
         {/* Type filter: group buttons row */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 4, alignItems: 'center' }}>
+          <button
+            type="button"
+            disabled
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.3rem',
+              background: 'transparent',
+              border: '1px solid var(--border)',
+              borderRadius: 6,
+              padding: '4px 8px',
+              color: isDark ? '#94a3b8' : '#6b7280',
+              fontSize: 'var(--font-size-xs)',
+              fontWeight: 400,
+              cursor: 'default',
+            }}
+          >
+            <SlidersHorizontal size={13} />
+            <span>{t('filters') || 'Filters'}</span>
+          </button>
+
           {/* All chip */}
           <button
             type="button"
@@ -544,100 +613,110 @@ const ExportHistoryDrawer = ({ isOpen, onClose, lang, t, theme, classId = null, 
             {t('all')}
           </button>
 
-          {/* Group buttons */}
-          {groupChips.map((group) => {
-            const isGroupActive = expandedGroup === group.key;
-            const isGroupTypeActive = group.types.includes(typeFilter);
-            return (
-              <button
-                key={group.key}
-                type="button"
-                onClick={() => {
-                  if (isGroupActive) {
-                    setExpandedGroup(null);
-                    setTypeFilter('all');
-                  } else {
-                    setExpandedGroup(group.key);
-                    setTypeFilter('all');
-                  }
-                }}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '0.25rem',
-                  padding: '3px 10px',
-                  borderRadius: '12px',
-                  border: `1px solid ${isGroupActive || isGroupTypeActive ? group.color : 'var(--border)'}`,
-                  background: isGroupActive || isGroupTypeActive ? `${group.color}15` : 'transparent',
-                  color: isGroupActive || isGroupTypeActive ? group.color : 'var(--text)',
-                  fontSize: 'var(--font-size-xs)',
-                  fontWeight: 600,
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                  whiteSpace: 'nowrap',
-                }}
-              >
-                {group.label}
-                <span style={{ fontSize: '0.6rem', opacity: 0.7 }}>
-                  {isGroupActive ? '▲' : '▼'}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        {/* Expanded sub-types on their own row */}
-        {expandedGroup && (
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 4, alignItems: 'center', paddingLeft: 12 }}>
-            {groupChips.filter(g => g.key === expandedGroup).map(group =>
-              group.types.map((typeKey) => {
-                const isActive = typeFilter === typeKey;
-                const chipColor = EXPORT_TYPE_COLORS[typeKey] || '#6b7280';
-                const isBeta = BETA_TYPES.has(typeKey);
+          {isScoped ? (
+            EXPORT_TYPE_GROUPS.official.map((typeKey) => {
+              const isActive = typeFilter === typeKey;
+              const chipColor = EXPORT_TYPE_COLORS[typeKey] || '#6b7280';
+              return (
+                <button
+                  key={typeKey}
+                  type="button"
+                  onClick={() => setTypeFilter(typeKey)}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '0.25rem',
+                    padding: '3px 10px',
+                    borderRadius: '12px',
+                    border: `1px solid ${isActive ? chipColor : 'var(--border)'}`,
+                    background: isActive ? `${chipColor}15` : 'transparent',
+                    color: isActive ? chipColor : 'var(--text)',
+                    fontSize: 'var(--font-size-xs)',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    whiteSpace: 'nowrap',
+                  }}
+                >
+                  {getExportTypeLabel(typeKey)}
+                </button>
+              );
+            })
+          ) : (
+            <>
+              {/* Group buttons */}
+              {groupChips.map((group) => {
+                const isGroupActive = expandedGroup === group.key;
+                const isGroupTypeActive = group.types.includes(typeFilter);
                 return (
                   <button
-                    key={typeKey}
+                    key={group.key}
                     type="button"
-                    disabled={isBeta}
-                    title={isBeta ? (t('coming_soon')) : undefined}
-                    onClick={() => { if (!isBeta) setTypeFilter(typeKey); }}
+                    onClick={() => {
+                      if (isGroupActive) {
+                        setExpandedGroup(null);
+                        setTypeFilter('all');
+                      } else {
+                        setExpandedGroup(group.key);
+                        setTypeFilter('all');
+                      }
+                    }}
                     style={{
                       display: 'inline-flex',
                       alignItems: 'center',
                       gap: '0.25rem',
                       padding: '3px 10px',
                       borderRadius: '12px',
-                      border: isBeta
-                        ? `1px dashed ${chipColor}80`
-                        : `1px solid ${isActive ? chipColor : 'var(--border)'}`,
-                      background: isBeta ? `${chipColor}08` : (isActive ? `${chipColor}15` : 'transparent'),
-                      color: isBeta ? `${chipColor}99` : (isActive ? chipColor : 'var(--text)'),
+                      border: `1px solid ${isGroupActive || isGroupTypeActive ? group.color : 'var(--border)'}`,
+                      background: isGroupActive || isGroupTypeActive ? `${group.color}15` : 'transparent',
+                      color: isGroupActive || isGroupTypeActive ? group.color : 'var(--text)',
                       fontSize: 'var(--font-size-xs)',
                       fontWeight: 600,
-                      cursor: isBeta ? 'not-allowed' : 'pointer',
+                      cursor: 'pointer',
                       transition: 'all 0.2s',
                       whiteSpace: 'nowrap',
-                      opacity: isBeta ? 0.7 : 1,
                     }}
                   >
-                    {t(`export_type_${typeKey}`) || typeKey}
-                    {isBeta && (
-                      <span
-                        style={{
-                          fontSize: '0.55rem',
-                          fontWeight: 700,
-                          padding: '0 4px',
-                          borderRadius: '4px',
-                          background: chipColor,
-                          color: 'white',
-                          letterSpacing: '0.5px',
-                          textTransform: 'uppercase',
-                          lineHeight: '1.4',
-                        }}
-                      >
-                        BETA
-                      </span>
-                    )}
+                    {group.label}
+                    <span style={{ fontSize: '0.6rem', opacity: 0.7 }}>
+                      {isGroupActive ? '▲' : '▼'}
+                    </span>
+                  </button>
+                );
+              })}
+            </>
+          )}
+        </div>
+
+        {/* Expanded sub-types on their own row */}
+        {!isScoped && expandedGroup && (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 4, alignItems: 'center', paddingLeft: 12 }}>
+            {groupChips.filter(g => g.key === expandedGroup).map(group =>
+              group.types.map((typeKey) => {
+                const isActive = typeFilter === typeKey;
+                const chipColor = EXPORT_TYPE_COLORS[typeKey] || '#6b7280';
+                return (
+                  <button
+                    key={typeKey}
+                    type="button"
+                    onClick={() => setTypeFilter(typeKey)}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.25rem',
+                      padding: '3px 10px',
+                      borderRadius: '12px',
+                      border: `1px solid ${isActive ? chipColor : 'var(--border)'}`,
+                      background: isActive ? `${chipColor}15` : 'transparent',
+                      color: isActive ? chipColor : 'var(--text)',
+                      fontSize: 'var(--font-size-xs)',
+                      fontWeight: 600,
+                      cursor: 'pointer',
+                      transition: 'all 0.2s',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {getExportTypeLabel(typeKey)}
                   </button>
                 );
               })
@@ -815,6 +894,7 @@ const ExportHistoryDrawer = ({ isOpen, onClose, lang, t, theme, classId = null, 
                           theme={theme}
                           isSuperAdmin={isSuperAdmin}
                           currentUserId={currentUserId}
+                          classInfo={classInfo}
                           indent={group.flat ? 0 : 40}
                         />
                       ))}

@@ -24,7 +24,7 @@ export default function BoardFilterBar({
   const { t } = useLang();
   const theme = useTheme();
 
-  const selectedDate = filters.date ? new Date(`${filters.date}T12:00:00`) : new Date();
+  const selectedDate = filters.date || new Date().toISOString().slice(0, 10);
 
   const handleFilterUpdate = useCallback(
     (key, value) => {
@@ -37,10 +37,9 @@ export default function BoardFilterBar({
   );
 
   const handleDateSelect = useCallback(
-    (date) => {
-      if (!date) return;
-      const value = typeof date === 'string' ? date : date.toISOString().slice(0, 10);
-      handleFilterUpdate('date', value);
+    (isoDate) => {
+      if (!isoDate) return;
+      handleFilterUpdate('date', isoDate);
     },
     [handleFilterUpdate]
   );
@@ -60,8 +59,7 @@ export default function BoardFilterBar({
       sx={{
         flexShrink: 0,
         borderRadius: 2,
-        border: 1,
-        borderColor: 'divider',
+        border: 0,
         bgcolor: theme.palette.mode === 'dark' ? 'rgba(15,23,42,0.85)' : 'rgba(255,255,255,0.95)',
         overflow: 'hidden',
       }}
@@ -72,6 +70,7 @@ export default function BoardFilterBar({
             value={lane}
             onChange={(_, value) => onLaneChange?.(value)}
             data-tour="operations-board-lane-tabs"
+            data-filter-tabs="true"
             sx={{
               minHeight: 30,
               '& .MuiTabs-indicator': { display: 'none' },
@@ -85,11 +84,14 @@ export default function BoardFilterBar({
                 borderRadius: '999px',
                 fontWeight: 500,
                 color: 'text.secondary',
+                border: '1px solid',
+                borderColor: 'divider',
                 transition: 'all 0.15s',
                 '&.Mui-selected': {
                   bgcolor: 'primary.main',
                   color: '#fff !important',
                   fontWeight: 600,
+                  borderColor: 'primary.main',
                 },
                 '&.Mui-selected.MuiTab-textColorPrimary': {
                   color: '#fff !important',
@@ -130,6 +132,7 @@ export default function BoardFilterBar({
             value={panelTab}
             onChange={(_, value) => onPanelTabChange?.(value)}
             data-tour="operations-board-panel-tabs"
+            data-filter-tabs="true"
             sx={{
               minHeight: 28,
               '& .MuiTabs-indicator': { display: 'none' },
@@ -143,11 +146,14 @@ export default function BoardFilterBar({
                 borderRadius: '999px',
                 fontWeight: 500,
                 color: 'text.secondary',
+                border: '1px solid',
+                borderColor: 'divider',
                 transition: 'all 0.15s',
                 '&.Mui-selected': {
                   bgcolor: 'primary.main',
                   color: '#fff !important',
                   fontWeight: 600,
+                  borderColor: 'primary.main',
                 },
                 '&.Mui-selected.MuiTab-textColorPrimary': {
                   color: '#fff !important',
@@ -266,6 +272,7 @@ export default function BoardFilterBar({
             onDateSelect={handleDateSelect}
             welcomeContext={welcomeContext}
             onClassSessionClick={handleClassSessionClick}
+            lane={lane}
           />
         </Box>
       )}

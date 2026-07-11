@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useLayoutEffect, useMemo } from 're
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { Chip, IconButton, Box } from '@mui/material';
-import { Maximize2, Minimize2 } from 'lucide-react';
+import { Maximize2, Minimize2, Workflow as WorkflowIcon } from 'lucide-react';
 import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import ScheduleStatusHistoryTooltip from './ScheduleStatusHistoryTooltip.jsx';
 import { getUserRoleColor, getUserRoleIcon } from '@constants/iconTypes';
@@ -13,8 +13,49 @@ import {
 import gridStyles from './officialWeeklyScheduleGrid.module.css';
 import {
   SCHEDULE_WORKFLOW_COLORS,
+  SCHEDULE_WORKFLOW_STATUS,
+  WORKFLOW_STATUS_COLORS,
   resolveScheduleWorkflowKey,
 } from '@constants/workspaceStatusColors';
+import BoardLegend from '@components/operations-board/BoardLegend.jsx';
+import {
+  getAttendanceCountsFromStatus,
+  ATTENDANCE_COUNT_ITEMS,
+} from '@components/operations-board/boardClassCalendarUtils.js';
+
+const DAY_CODES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const WORKING_DAY_CODES = new Set(['Sun', 'Mon', 'Tue', 'Wed', 'Thu']);
+
+function isSameCalendarWeek(a, b) {
+  const startA = new Date(a);
+  startA.setDate(startA.getDate() - startA.getDay());
+  startA.setHours(0, 0, 0, 0);
+  const startB = new Date(b);
+  startB.setDate(startB.getDate() - startB.getDay());
+  startB.setHours(0, 0, 0, 0);
+  return startA.getTime() === startB.getTime();
+}
+
+function computeCellIsoDate(selectedDate, dayCode) {
+  const dayOffset = DAY_CODES.indexOf(dayCode);
+  if (dayOffset < 0 || !selectedDate) return null;
+  const anchor = selectedDate instanceof Date ? new Date(selectedDate) : new Date(selectedDate);
+  const weekStart = new Date(anchor);
+  weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+  const cellDate = new Date(weekStart);
+  cellDate.setDate(cellDate.getDate() + dayOffset);
+  const y = cellDate.getFullYear();
+  const m = String(cellDate.getMonth() + 1).padStart(2, '0');
+  const d = String(cellDate.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+function resolveCellStatus(statusMap, selectedDate, dayCode, classId) {
+  if (!classId) return null;
+  const iso = computeCellIsoDate(selectedDate, dayCode);
+  if (iso && statusMap[`${iso}:${classId}`]) return statusMap[`${iso}:${classId}`];
+  return statusMap[classId] ?? null;
+}
 
 const DEFAULT_DAY_START = 7 * 60; // 07:00
 const DEFAULT_DAY_END = 17 * 60 + 30; // 17:30
@@ -260,6 +301,79 @@ function ScheduleTimeLineOverlay({
   );
 }
 
+const WORKFLOW_STATUS_LABELS = {
+  DRAFT: 'workflow.status.draft',
+  TAKEN: 'workspace_status_taken',
+  SUBMITTED: 'workspace_status_submitted',
+  UNDER_ADMIN_REVIEW: 'workflow.status.under_admin_review',
+  UNDER_HR_REVIEW: 'workflow.status.under_hr_review',
+  APPROVED: 'workflow.status.approved',
+  REJECTED: 'workflow.status.rejected',
+  AMENDED: 'workflow.status.amended',
+};
+
+function getWorkflowStatusLabel(status, t) {
+  const ws = status?.workflowStatus;
+  if (!ws) return null;
+  const key = WORKFLOW_STATUS_LABELS[ws];
+  if (!key) return null;
+  return t(key) || ws;
+}
+
+function WorkflowStatusIcon({ status, t }) {
+  const ws = status?.workflowStatus;
+  if (!ws || ws === 'NOT_TAKEN') return null;
+  const color = WORKFLOW_STATUS_COLORS[ws];
+  if (!color) return null;
+  const label = getWorkflowStatusLabel(status, t);
+  if (!label) return null;
+
+  return (
+    <ColoredTooltip title={label} color={color} placement="bottom">
+      <span className={gridStyles.workflowIconWrap} style={{ '--workflow-color': color }}>
+        <WorkflowIcon className={gridStyles.workflowIconSvg} color={color} strokeWidth={2.5} />
+      </span>
+    </ColoredTooltip>
+  );
+}
+
+function AttendanceMiniDots({ status, t }) {
+  const counts = getAttendanceCountsFromStatus(status);
+  if (!counts) return null;
+  const items = ATTENDANCE_COUNT_ITEMS
+    .map((item) => ({ ...item, count: counts[item.key] || 0 }))
+    .filter((item) => item.count > 0);
+  if (items.length === 0) return null;
+
+  const tooltip = (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, padding: '2px 0' }}>
+      {items.map((item) => (
+        <div key={item.key} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ width: 8, height: 8, borderRadius: '50%', background: item.color, flexShrink: 0 }} />
+          <span>{item.count} {t(item.labelKey) || item.fallback}</span>
+        </div>
+      ))}
+    </div>
+  );
+
+  return (
+    <ColoredTooltip title={tooltip} color="#64748b" placement="bottom">
+      <span className={gridStyles.attendanceMiniDots} aria-label={t('attendance_summary') || 'Attendance summary'}>
+        {items.map((item, idx) => (
+          <span
+            key={item.key}
+            className={gridStyles.attendanceMiniDot}
+            style={{
+              backgroundColor: item.color,
+              zIndex: items.length - idx,
+            }}
+          />
+        ))}
+      </span>
+    </ColoredTooltip>
+  );
+}
+
 function StatusDot({ status, t, lang, selectedDate }) {
   if (!status) return null;
   const key = resolveScheduleWorkflowKey(status);
@@ -333,6 +447,7 @@ function resolveSlotSession(slot) {
 
 function InteractiveSlotCell({
   slot,
+  day,
   dayCode,
   colKey,
   rowType,
@@ -350,10 +465,11 @@ function InteractiveSlotCell({
 }) {
   if (isBreak) {
     if (rowType !== 'subject') return null;
+    const dayHasClasses = day && Object.values(day.slots || {}).some(s => s && s.classId && !s.isBreak);
     return (
       <td className={styles.scheduleBreakCell} rowSpan={4}>
         <CellContent ltr className={gridStyles.breakCellInner}>
-          <VerticalText compact>{slot?.time || '—'}</VerticalText>
+          <VerticalText compact>{dayHasClasses ? (slot?.time || '—') : '—'}</VerticalText>
         </CellContent>
       </td>
     );
@@ -395,6 +511,8 @@ function InteractiveSlotCell({
   const content = (
     <CellContent ltr={rowType === 'time'} className={rowType === 'subject' ? subjectInnerClass : ''}>
       {rowType === 'subject' && <StatusDot status={status} t={t} lang={lang} selectedDate={selectedDate} />}
+      {rowType === 'subject' && <AttendanceMiniDots status={status} t={t} />}
+      {rowType === 'subject' && <WorkflowStatusIcon status={status} t={t} />}
       {rowType === 'subject' && isMine && (
         <span className={gridStyles.cellIconTray} aria-hidden="true">
           <ColoredTooltip title={t('workspace_my_class')} color={PURPLE_TOOLTIP} placement="bottom">
@@ -403,7 +521,7 @@ function InteractiveSlotCell({
               style={{ background: getUserRoleColor('instructor') }}
               aria-label={t('workspace_my_class')}
             >
-              {React.cloneElement(getUserRoleIcon('instructor'), { size: 10, color: '#fff', strokeWidth: 2 })}
+              {React.cloneElement(getUserRoleIcon('instructor'), { size: 12, color: '#fff', strokeWidth: 2 })}
             </span>
           </ColoredTooltip>
         </span>
@@ -511,7 +629,7 @@ function DayBlock({
             const isMine = classId && instructorId
               ? Number(resolvedInstructorId) === Number(instructorId)
               : false;
-            const isDimmed = Boolean(classId && instructorId && !isMine && !interactiveAll);
+            const isDimmed = Boolean(classId && instructorId && !isMine && !interactiveAll && resolvedInstructorId != null);
             const isSelected = Boolean(
               rowType === 'subject'
               && classId && selectedSlot
@@ -521,9 +639,9 @@ function DayBlock({
             );
             const hasSession = Boolean(resolveSlotSession(slot));
             const isClickable = Boolean(
-              onCellClick && classId && hasSession && (interactiveAll || isMine),
+              onCellClick && classId && hasSession && (interactiveAll || isMine || (instructorId && resolvedInstructorId == null)),
             );
-            const status = classId ? statusMap[classId] : null;
+            const status = resolveCellStatus(statusMap, selectedDate, day.dayCode, classId);
             let isInProgress = false;
             if (isTodayRow && classId && slot?.time) {
               const timeMatch = slot.time.match(/(\d{1,2}):(\d{2})\s*[–-]\s*(\d{1,2}):(\d{2})/);
@@ -541,6 +659,7 @@ function DayBlock({
               <InteractiveSlotCell
                 key={`${day.dayCode}-${col.key}-${rowType}`}
                 slot={slot}
+                day={day}
                 rowType={rowType}
                 isBreak={col.isBreak}
                 isMine={isMine}
@@ -635,8 +754,11 @@ const OfficialWeeklyScheduleGrid = ({
 
   const { columns, rowLabels, days, subtitle, year, term, batch } = scheduleData;
   const isAr = lang === 'ar';
-  const todayCode = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'][selectedDate.getDay()];
-  const isTodaySelected = selectedDate.toDateString() === new Date().toDateString();
+  const actualToday = new Date();
+  const todayCode = DAY_CODES[actualToday.getDay()];
+  const isViewingCurrentWeek = isSameCalendarWeek(selectedDate, actualToday);
+  const isWorkingToday = WORKING_DAY_CODES.has(todayCode);
+  const showTodayTimeline = isViewingCurrentWeek && isWorkingToday;
   const metaLine = [batch, year && term ? `${year} / ${term}` : year || term].filter(Boolean).join(' — ');
   const { start: dayStartMin, end: dayEndMin } = resolveProgramHours(scheduleData);
   const dateInputValue = selectedDate.toISOString().split('T')[0];
@@ -678,7 +800,7 @@ const OfficialWeeklyScheduleGrid = ({
           todayCode={todayCode}
           dayStartMin={dayStartMin}
           dayEndMin={dayEndMin}
-          visible={isTodaySelected}
+          visible={showTodayTimeline}
           columns={columns}
           days={days}
           t={t}
@@ -731,7 +853,7 @@ const OfficialWeeklyScheduleGrid = ({
               statusMap={statusMap}
               instructorId={instructorId}
               interactiveAll={interactiveAll}
-              isTodayRow={isTodaySelected && day.dayCode === todayCode}
+              isTodayRow={showTodayTimeline && day.dayCode === todayCode}
               selectedSlot={selectedSlot}
               lang={lang}
               t={t}
@@ -743,34 +865,12 @@ const OfficialWeeklyScheduleGrid = ({
       </div>
 
       <div className={`${gridStyles.statusLegend} ${gridStyles.statusLegendBottom}`}>
-        <div className={gridStyles.legendItem}>
-          <span className={`${gridStyles.legendDot} ${gridStyles.legendDot_not_taken}`} />
-          <span className={gridStyles.legendLabel} style={{ color: '#f97316' }}>{t('workspace_status_not_taken')}</span>
-        </div>
-        <div className={gridStyles.legendItem}>
-          <span className={`${gridStyles.legendDot} ${gridStyles.legendDot_draft}`} />
-          <span className={gridStyles.legendLabel} style={{ color: '#f59e0b' }}>{t('workspace_status_draft') || 'Draft'}</span>
-        </div>
-        <div className={gridStyles.legendItem}>
-          <span className={`${gridStyles.legendDot} ${gridStyles.legendDot_taken}`} />
-          <span className={gridStyles.legendLabel} style={{ color: '#22c55e' }}>{t('workspace_status_taken')}</span>
-        </div>
-        <div className={gridStyles.legendItem}>
-          <span className={`${gridStyles.legendDot} ${gridStyles.legendDot_submitted}`} />
-          <span className={gridStyles.legendLabel} style={{ color: '#3b82f6' }}>{t('workspace_status_submitted')}</span>
-        </div>
-        <div className={gridStyles.legendItem}>
-          <span className={gridStyles.legendLine} />
-          <span className={gridStyles.legendLabel} style={{ color: '#0ea5e9' }}>{t('workspace_current_time')}</span>
-        </div>
-        <div className={gridStyles.legendItem}>
-          <span className={`${gridStyles.legendDot} ${gridStyles.legendDot_inProgress}`} />
-          <span className={gridStyles.legendLabel} style={{ color: '#1d4ed8' }}>{t('workspace_lecture_in_progress')}</span>
-        </div>
-        <div className={gridStyles.legendItem}>
-          <span className={`${gridStyles.legendDot} ${gridStyles.legendDot_selected}`} />
-          <span className={gridStyles.legendLabel} style={{ color: '#8b5cf6' }}>{t('workspace_selected_class')}</span>
-        </div>
+        <BoardLegend
+          bare
+          showWorkflow
+          showScheduleExtras
+          style={{ flex: 1, minWidth: 0, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.35rem' }}
+        />
         {outsideHours && (
           <Chip
             size="small"

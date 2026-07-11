@@ -1818,11 +1818,35 @@ export async function getBoardWorkflowDocuments(filters = {}) {
       include: {
         submitter: true,
         currentAssignee: true,
+        instructor: {
+          select: {
+            id: true,
+            displayName: true,
+            displayNameAr: true,
+            firstName: true,
+            lastName: true,
+            firstNameAr: true,
+            lastNameAr: true,
+            email: true,
+          },
+        },
         file: true,
         class: {
           include: {
             program: { select: { id: true, code: true, nameEn: true, nameAr: true } },
             subject: { select: { id: true, code: true, nameEn: true, nameAr: true } },
+            instructor: {
+              select: {
+                id: true,
+                displayName: true,
+                displayNameAr: true,
+                firstName: true,
+                lastName: true,
+                firstNameAr: true,
+                lastNameAr: true,
+                email: true,
+              },
+            },
           },
         },
         statusHistory: {

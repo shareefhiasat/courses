@@ -14,7 +14,7 @@ import { useMobileDetect } from '@hooks/useMobileDetect';
 // OLD: import { BEHAVIOR_TYPES } from '@constants/behaviorTypes';
 // OLD: import { PARTICIPATION_TYPES } from '@constants/participationTypes';
 // NOW: Using useLookupTypes hook for all lookup data
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { getUsers } from '@services/business/userService';
 import { createDM } from '@services/business/chatService';
 import { getEnrollments, getEnrollmentsByProgram } from '@services/business/enrollmentService';
@@ -108,7 +108,9 @@ const QRScannerPage = () => {
   const { t, lang, isRTL } = useLang();
   const { theme } = useTheme();
   const navigate = useNavigate();
+  const location = useLocation();
   const toast = useToast();
+  const [prefillManualInput, setPrefillManualInput] = useState({ studentId: '', show: false });
   const { activityTypeOptions } = useLookupTypes();
   const {
     canBulkScan,
@@ -130,6 +132,7 @@ const QRScannerPage = () => {
   const { startLoading } = useGlobalLoading();
   const loadStudentsRef = useRef(null);
   const triggerActivityRefreshRef = useRef(null);
+  const navigationStateAppliedRef = useRef(false);
 
   const saveSelectedProgramId = useCallback((programId) => {
     try {
@@ -954,6 +957,52 @@ const QRScannerPage = () => {
     
     loadAllClasses();
   }, [lang]); // Re-sort when language changes
+
+  // Apply navigation state from operations board drawer (e.g. pre-fill class/student)
+  useEffect(() => {
+    const navState = location.state;
+    if (
+      navigationStateAppliedRef.current ||
+      !navState?.classId ||
+      programs.length === 0 ||
+      classes.length === 0
+    ) {
+      return;
+    }
+
+    navigationStateAppliedRef.current = true;
+
+    const targetClass = classes.find(
+      (c) => String(c.id) === String(navState.classId)
+    );
+
+    if (targetClass) {
+      const programId = targetClass.programId || targetClass.program;
+      const subjectId = targetClass.subjectId || targetClass.subject;
+      if (programId) saveSelectedProgramId(String(programId));
+      if (subjectId) saveSelectedSubjectId(String(subjectId));
+      saveSelectedClassId(String(targetClass.id));
+    } else {
+      saveSelectedClassId(String(navState.classId));
+    }
+
+    if (navState.date) {
+      const dateStr = typeof navState.date === 'string'
+        ? navState.date.slice(0, 10)
+        : formatForDateInput(navState.date);
+      setSelectedDate(dateStr);
+    }
+
+    if (navState.openManual && (navState.studentNumber || navState.studentId)) {
+      setPrefillManualInput({
+        studentId: String(navState.studentNumber || navState.studentId),
+        show: true,
+      });
+    }
+
+    // Clear navigation state so a refresh doesn't reapply it
+    navigate('/qr-scanner', { replace: true });
+  }, [location.state, programs, classes, saveSelectedProgramId, saveSelectedSubjectId, saveSelectedClassId, navigate]);
 
   // Memoized loadStudents function for performance
   const loadStudents = useCallback(async (classId, date, programId = null) => {
@@ -5793,6 +5842,8 @@ const QRScannerPage = () => {
               selectedDate={selectedDate}
               onMinimizeChange={handleScannerMinimizeChange}
               forceMinimized={attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? isScannerMinimized : !showScanner} // Use isScannerMinimized in standup mode
+              initialManualStudentId={prefillManualInput.studentId}
+              initialShowManualInput={prefillManualInput.show}
             />
           )}
         </div>
@@ -6454,6 +6505,9 @@ const QRScannerPage = () => {
         lang={lang}
         t={t}
         theme={theme}
+        classId={selectedClassId}
+        classInfo={classes.find((c) => String(c.id) === String(selectedClassId))}
+        scope="qr"
       />
 
       <DeductionDrawer

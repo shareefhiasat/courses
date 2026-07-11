@@ -130,7 +130,9 @@ export async function createShare(input, actor) {
         const event = fileId ? EVENTS.DRIVE_FILE_SHARED : EVENTS.DRIVE_FOLDER_SHARED;
         const basePayload = {
           ...buildNotificationNameVars(sharer, 'Unknown User'),
+          sharedBy: sharer?.displayName || 'Unknown User',
           fileName: itemName,
+          fileNameAr: itemNameAr,
           folderName: itemName,
           folderNameAr: itemNameAr,
           permission,

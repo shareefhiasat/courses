@@ -2,11 +2,15 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
-import { getThemedIcon } from '@constants/iconTypes';
+import { getThemedIcon, getUserRoleColor, getUserRoleIcon } from '@constants/iconTypes';
+import { resolveUserRole } from '@utils/userUtils';
 import useResizableDrawer from '@hooks/useResizableDrawer';
 import { getLectureLog, getRecordHistory } from '@services/business/attendanceLogService';
-import { formatDateTime } from '@utils/date-formatter.js';
-import { ATTENDANCE_BOARD_COLORS } from '@constants/workspaceStatusColors.js';
+import { formatDate, formatDateTime } from '@utils/date-formatter.js';
+import { getAttendanceColor } from '@constants/attendanceTypes.js';
+import { getWorkflowStatusColor } from '@constants/workspaceStatusColors.js';
+import { getDateGroup, getGroupLabel } from '@utils/notificationHelpers.js';
+import { Workflow as WorkflowIcon } from 'lucide-react';
 
 const TABS = {
   LECTURE_LOG: 'lecture_log',
@@ -30,6 +34,7 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
   const [lectureLog, setLectureLog] = useState([]);
   const [recordHistory, setRecordHistory] = useState([]);
   const [selectedAttendanceId, setSelectedAttendanceId] = useState(null);
+  const [expandedGroups, setExpandedGroups] = useState({});
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -79,6 +84,36 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
     return formatDateTime(ts, lang);
   }, [lang]);
 
+  const groupedLectureLog = useMemo(() => {
+    const sorted = [...lectureLog].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    const groups = {};
+    sorted.forEach((entry) => {
+      const group = getDateGroup(entry.timestamp);
+      if (!groups[group]) groups[group] = [];
+      groups[group].push(entry);
+    });
+    const order = ['Today', 'Yesterday', 'This Week', 'Earlier'];
+    return order.filter((g) => groups[g]).map((g) => ({
+      key: g,
+      label: getGroupLabel(g, t),
+      items: groups[g],
+    }));
+  }, [lectureLog, t]);
+
+  useEffect(() => {
+    setExpandedGroups((prev) => {
+      const next = { ...prev };
+      groupedLectureLog.forEach((g) => {
+        if (!(g.key in next)) next[g.key] = true;
+      });
+      return next;
+    });
+  }, [groupedLectureLog]);
+
+  const toggleGroup = useCallback((key) => {
+    setExpandedGroups((prev) => ({ ...prev, [key]: !prev[key] }));
+  }, []);
+
   const tabBtnStyle = useMemo(() => ({
     padding: '10px 20px',
     border: 'none',
@@ -121,6 +156,170 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
     fontWeight: 500,
   }), [isDark]);
 
+  const renderEntryCard = (entry, idx) => {
+    const isWorkflow = entry.type === 'workflow_status_change';
+    const isAttendanceChange = entry.type === 'attendance_status_change';
+    const isAttendanceMarked = !isWorkflow && !isAttendanceChange;
+    const rawStatus = isAttendanceMarked ? entry.status : entry.toStatus;
+    const statusRaw = isAttendanceMarked ? (lang === 'ar' ? entry.statusAr : entry.status) : (lang === 'ar' ? entry.toStatusAr : entry.toStatus);
+    const statusColor = isWorkflow
+      ? getWorkflowStatusColor(entry.toStatus)
+      : getAttendanceColor(rawStatus);
+    const iconColor = isWorkflow
+      ? getWorkflowStatusColor(entry.toStatus)
+      : getAttendanceColor(rawStatus);
+    const titleKey = isWorkflow
+      ? (lang === 'ar' ? 'تغيير حالة العمل' : 'Workflow Status Change')
+      : isAttendanceChange
+        ? (lang === 'ar' ? 'تغيير حالة الحضور' : 'Attendance Status Change')
+        : (lang === 'ar' ? 'تسجيل حضور' : 'Attendance Marked');
+
+    const actorRole = entry.user ? resolveUserRole(entry.user) : null;
+    const actorRoleIcon = actorRole ? getUserRoleIcon(actorRole) : null;
+    const actorRoleColor = actorRole ? getUserRoleColor(actorRole) : null;
+    const showRoleLabel = actorRole && (actorRole === 'admin' || actorRole === 'hr' || actorRole === 'instructor');
+
+    return (
+      <motion.div
+        key={`${entry.id || idx}-${entry.timestamp}`}
+        initial={{ opacity: 0, x: isRTL ? -10 : 10 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.2, delay: idx * 0.03 }}
+        style={cardStyle}
+      >
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
+          <div style={{
+            flexShrink: 0,
+            width: '28px',
+            height: '28px',
+            borderRadius: '50%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: isDark ? 'rgba(255,255,255,0.05)' : '#f3f4f6',
+          }}>
+            {isAttendanceMarked ? (
+              <span style={{
+                display: 'inline-block',
+                width: '10px',
+                height: '10px',
+                borderRadius: '50%',
+                backgroundColor: statusColor,
+                flexShrink: 0,
+              }} />
+            ) : isWorkflow ? (
+              <WorkflowIcon size={14} color={iconColor} strokeWidth={2.5} />
+            ) : (
+              getThemedIcon('ui', 'edit', 14, theme)
+            )}
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
+              <span style={{
+                fontSize: '12px',
+                fontWeight: 600,
+                color: iconColor,
+              }}>
+                {titleKey}
+              </span>
+              <span style={{
+                fontSize: '11px',
+                color: isDark ? '#6b7280' : '#9ca3af',
+              }}>
+                {formatTimestamp(entry.timestamp)}
+              </span>
+            </div>
+            {isAttendanceMarked ? (
+              <>
+                <div style={{ fontSize: '12px', color: isDark ? '#cbd5e1' : '#475569', marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                  <span style={{ fontWeight: 600, color: statusColor }}>{statusRaw || '—'}</span>
+                  <span style={{ color: isDark ? '#94a3b8' : '#64748b', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    {actorRoleIcon && React.cloneElement(actorRoleIcon, { color: actorRoleColor, size: 10 })}
+                    <span>· {entry.actor}</span>
+                    {showRoleLabel && (
+                      <span style={{
+                        fontSize: '9px',
+                        fontWeight: 700,
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.4px',
+                        padding: '1px 5px',
+                        borderRadius: 4,
+                        background: `${actorRoleColor}22`,
+                        color: actorRoleColor,
+                      }}>
+                        {actorRole}
+                      </span>
+                    )}
+                  </span>
+                </div>
+                {entry.reason && (
+                  <div style={{ fontSize: '11px', color: isDark ? '#94a3b8' : '#64748b', marginTop: '2px', fontStyle: 'italic' }}>
+                    "{entry.reason}"
+                  </div>
+                )}
+              </>
+            ) : (isWorkflow || isAttendanceChange) ? (
+              <>
+                <div style={{ fontSize: '12px', color: isDark ? '#cbd5e1' : '#475569', marginBottom: '2px' }}>
+                  <span style={labelStyle}>{t('log_drawer_from') || 'From'}: </span>
+                  <span style={valueStyle}>{(lang === 'ar' ? entry.fromStatusAr : entry.fromStatus) || '—'}</span>
+                  <span style={{ margin: '0 6px', color: isDark ? '#6b7280' : '#9ca3af' }}>→</span>
+                  <span style={labelStyle}>{t('log_drawer_to') || 'To'}: </span>
+                  <span style={{ ...valueStyle, color: iconColor, fontWeight: 600 }}>{(lang === 'ar' ? entry.toStatusAr : entry.toStatus) || '—'}</span>
+                </div>
+                <div style={{ fontSize: '12px', color: isDark ? '#cbd5e1' : '#475569', marginBottom: '2px', display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {actorRoleIcon && React.cloneElement(actorRoleIcon, { color: actorRoleColor, size: 12 })}
+                  <span style={valueStyle}>{entry.actor}</span>
+                  {showRoleLabel && (
+                    <span style={{
+                      fontSize: '9px',
+                      fontWeight: 700,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.4px',
+                      padding: '1px 5px',
+                      borderRadius: 4,
+                      background: `${actorRoleColor}22`,
+                      color: actorRoleColor,
+                    }}>
+                      {actorRole}
+                    </span>
+                  )}
+                </div>
+                {entry.reason && (
+                  <div style={{ fontSize: '11px', color: isDark ? '#94a3b8' : '#64748b', marginTop: '2px', fontStyle: 'italic' }}>
+                    "{entry.reason}"
+                  </div>
+                )}
+                {entry.documentTitle && (
+                  <div style={{ fontSize: '11px', color: isDark ? '#6b7280' : '#9ca3af', marginTop: '2px' }}>
+                    {t('log_drawer_document') || 'Document'}: {entry.documentTitle}
+                  </div>
+                )}
+              </>
+            ) : null}
+          </div>
+        </div>
+      </motion.div>
+    );
+  };
+
+  const groupHeaderStyle = useMemo(() => ({
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    padding: '8px 12px',
+    marginBottom: '8px',
+    borderRadius: '8px',
+    border: 'none',
+    background: isDark ? 'rgba(255,255,255,0.05)' : '#f3f4f6',
+    color: isDark ? '#f1f5f9' : '#1e293b',
+    fontSize: '13px',
+    fontWeight: 600,
+    cursor: 'pointer',
+    textAlign: 'start',
+  }), [isDark]);
+
   const renderLectureLog = () => {
     if (loading) {
       return (
@@ -143,117 +342,24 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
 
     return (
       <div style={{ padding: '12px' }}>
-        {lectureLog.map((entry, idx) => {
-          const isWorkflow = entry.type === 'workflow_status_change';
-          const isAttendanceChange = entry.type === 'attendance_status_change';
-          const isAttendanceMarked = !isWorkflow && !isAttendanceChange;
-          const statusRaw = isAttendanceMarked ? (lang === 'ar' ? entry.statusAr : entry.status) : (lang === 'ar' ? entry.toStatusAr : entry.toStatus);
-          const statusUpper = (isAttendanceMarked ? entry.status : entry.toStatus) || '';
-          const statusColor = ATTENDANCE_BOARD_COLORS[statusUpper] || (isWorkflow ? (entry.toStatus === 'APPROVED' ? '#16a34a' : entry.toStatus === 'REJECTED' ? '#dc2626' : 'var(--color-primary, #800020)') : '#2563eb');
-          const iconColor = isWorkflow
-            ? (entry.toStatus === 'APPROVED' ? '#16a34a' : entry.toStatus === 'REJECTED' ? '#dc2626' : 'var(--color-primary, #800020)')
-            : isAttendanceChange
-              ? '#f59e0b'
-              : statusColor;
-          const titleKey = isWorkflow
-            ? (lang === 'ar' ? 'تغيير حالة العمل' : 'Workflow Status Change')
-            : isAttendanceChange
-              ? (lang === 'ar' ? 'تغيير حالة الحضور' : 'Attendance Status Change')
-              : (lang === 'ar' ? 'تسجيل حضور' : 'Attendance Marked');
-
+        {groupedLectureLog.map((group) => {
+          const expanded = expandedGroups[group.key] !== false;
           return (
-            <motion.div
-              key={idx}
-              initial={{ opacity: 0, x: isRTL ? -10 : 10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ duration: 0.2, delay: idx * 0.03 }}
-              style={cardStyle}
-            >
-              <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px' }}>
-                <div style={{
-                  flexShrink: 0,
-                  width: '28px',
-                  height: '28px',
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  background: isDark ? 'rgba(255,255,255,0.05)' : '#f3f4f6',
-                }}>
-                  {isAttendanceMarked ? (
-                    <span style={{
-                      display: 'inline-block',
-                      width: '10px',
-                      height: '10px',
-                      borderRadius: '50%',
-                      backgroundColor: statusColor,
-                      flexShrink: 0,
-                    }} />
-                  ) : getThemedIcon('ui', isWorkflow ? 'refresh' : 'edit', 14, theme)}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2px' }}>
-                    <span style={{
-                      fontSize: '12px',
-                      fontWeight: 600,
-                      color: iconColor,
-                    }}>
-                      {titleKey}
-                    </span>
-                    <span style={{
-                      fontSize: '11px',
-                      color: isDark ? '#6b7280' : '#9ca3af',
-                    }}>
-                      {formatTimestamp(entry.timestamp)}
-                    </span>
-                  </div>
-                  {isAttendanceMarked ? (
-                    <>
-                      <div style={{ fontSize: '12px', color: isDark ? '#cbd5e1' : '#475569', marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                        <span style={{
-                          display: 'inline-block',
-                          width: '8px',
-                          height: '8px',
-                          borderRadius: '50%',
-                          backgroundColor: statusColor,
-                          flexShrink: 0,
-                        }} />
-                        <span style={{ fontWeight: 600, color: statusColor }}>{statusRaw || '—'}</span>
-                        <span style={{ color: isDark ? '#94a3b8' : '#64748b', fontSize: '11px' }}>· {entry.actor}</span>
-                      </div>
-                      {entry.reason && (
-                        <div style={{ fontSize: '11px', color: isDark ? '#94a3b8' : '#64748b', marginTop: '2px', fontStyle: 'italic' }}>
-                          "{entry.reason}"
-                        </div>
-                      )}
-                    </>
-                  ) : (isWorkflow || isAttendanceChange) ? (
-                    <>
-                      <div style={{ fontSize: '12px', color: isDark ? '#cbd5e1' : '#475569', marginBottom: '2px' }}>
-                        <span style={labelStyle}>{t('log_drawer_from') || 'From'}: </span>
-                        <span style={valueStyle}>{(lang === 'ar' ? entry.fromStatusAr : entry.fromStatus) || '—'}</span>
-                        <span style={{ margin: '0 6px', color: isDark ? '#6b7280' : '#9ca3af' }}>→</span>
-                        <span style={labelStyle}>{t('log_drawer_to') || 'To'}: </span>
-                        <span style={{ ...valueStyle, color: iconColor, fontWeight: 600 }}>{(lang === 'ar' ? entry.toStatusAr : entry.toStatus) || '—'}</span>
-                      </div>
-                      <div style={{ fontSize: '12px', color: isDark ? '#cbd5e1' : '#475569', marginBottom: '2px' }}>
-                        <span style={valueStyle}>{entry.actor}</span>
-                      </div>
-                      {entry.reason && (
-                        <div style={{ fontSize: '11px', color: isDark ? '#94a3b8' : '#64748b', marginTop: '2px', fontStyle: 'italic' }}>
-                          "{entry.reason}"
-                        </div>
-                      )}
-                      {entry.documentTitle && (
-                        <div style={{ fontSize: '11px', color: isDark ? '#6b7280' : '#9ca3af', marginTop: '2px' }}>
-                          {t('log_drawer_document') || 'Document'}: {entry.documentTitle}
-                        </div>
-                      )}
-                    </>
-                  ) : null}
-                </div>
-              </div>
-            </motion.div>
+            <div key={group.key} style={{ marginBottom: '12px' }}>
+              <button
+                type="button"
+                onClick={() => toggleGroup(group.key)}
+                style={groupHeaderStyle}
+              >
+                <span>{group.label} ({group.items.length})</span>
+                <span style={{ fontSize: '11px', opacity: 0.7 }}>{expanded ? '▲' : '▼'}</span>
+              </button>
+              {expanded && (
+                <AnimatePresence initial={false}>
+                  {group.items.map((entry, idx) => renderEntryCard(entry, idx))}
+                </AnimatePresence>
+              )}
+            </div>
           );
         })}
       </div>
@@ -444,11 +550,7 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
                 }}>
                   {className}
                   {dateStr && <span style={{ margin: '0 6px' }}>·</span>}
-                  {dateStr && new Date(dateStr).toLocaleDateString(lang === 'ar' ? 'ar' : 'en-US', {
-                    weekday: 'short',
-                    month: 'short',
-                    day: 'numeric',
-                  })}
+                  {dateStr && formatDate(dateStr, lang)}
                 </p>
               )}
             </div>

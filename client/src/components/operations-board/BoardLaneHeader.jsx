@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { PanelLeftClose, PanelLeftOpen, ArrowRightLeft } from 'lucide-react';
+import { PanelLeftClose, PanelLeftOpen, ArrowRightLeft, Workflow as WorkflowIcon } from 'lucide-react';
 import { KanbanHeader } from '@/components/kibo-ui/kanban';
 import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import gridStyles from '@components/workspace/officialWeeklyScheduleGrid.module.css';
@@ -19,7 +19,10 @@ export default function BoardLaneHeader({
   onBulkMove,
   columns = [],
   canMoveTo,
+  laneType = 'attendance',
+  fontScale = 100,
 }) {
+  const icon = (base) => Math.max(12, Math.round(base * fontScale / 100));
   const [bulkMenuOpen, setBulkMenuOpen] = useState(false);
   const bulkMenuRef = useRef(null);
 
@@ -59,15 +62,19 @@ export default function BoardLaneHeader({
             aria-label={collapseLabel}
             data-testid={`operations-board-lane-expand-${column.id}`}
           >
-            <span
-              className={`operations-board-lane-collapsed-dot ${pulse ? gridStyles.legendDotPulse : ''}`}
-              style={{ backgroundColor: column.color, '--dot-color': column.color }}
-              aria-hidden
-            />
+            {laneType === 'workflow' ? (
+              <WorkflowIcon size={icon(16)} style={{ color: column.color }} aria-hidden />
+            ) : (
+              <span
+                className={`operations-board-lane-collapsed-dot ${pulse ? gridStyles.legendDotPulse : ''}`}
+                style={{ backgroundColor: column.color, '--dot-color': column.color }}
+                aria-hidden
+              />
+            )}
             <span className="operations-board-lane-collapsed-count" style={{ color: column.color }}>
               {count}
             </span>
-            <PanelLeftOpen size={14} className="operations-board-lane-collapse-icon" aria-hidden />
+            <PanelLeftOpen size={icon(18)} className="operations-board-lane-collapse-icon" aria-hidden />
           </button>
         </ColoredTooltip>
       </KanbanHeader>
@@ -78,7 +85,7 @@ export default function BoardLaneHeader({
     <KanbanHeader className="operations-board-lane-header">
       <div
         className="grid items-center gap-1"
-        style={{ gridTemplateColumns: '22px 1fr 22px' }}
+        style={{ gridTemplateColumns: '28px 1fr 28px' }}
       >
         <div className="flex items-center justify-center" style={{ minWidth: 0 }}>
           {onBulkMove && moveTargets.length > 0 && (
@@ -95,7 +102,7 @@ export default function BoardLaneHeader({
                   aria-label={t('operations_board_bulk_move') || 'Move all to…'}
                   data-testid={`operations-board-lane-bulk-${column.id}`}
                 >
-                  <ArrowRightLeft size={14} />
+                  <ArrowRightLeft size={icon(18)} />
                 </button>
               </ColoredTooltip>
               {bulkMenuOpen && (
@@ -124,22 +131,44 @@ export default function BoardLaneHeader({
         </div>
 
         <div className="flex items-center justify-center gap-1.5 min-w-0 overflow-hidden">
-          <div
-            className={`h-3 w-3 shrink-0 rounded-full ring-2 ring-background ${pulse ? gridStyles.legendDotPulse : ''}`}
-            style={{ backgroundColor: column.color, '--dot-color': column.color }}
-          />
+          {laneType === 'workflow' ? (
+            <WorkflowIcon size={icon(20)} style={{ color: column.color, flexShrink: 0 }} aria-hidden />
+          ) : (
+            <div
+              className={`h-3 w-3 shrink-0 rounded-full ring-2 ring-background ${pulse ? gridStyles.legendDotPulse : ''}`}
+              style={{ backgroundColor: column.color, '--dot-color': column.color }}
+            />
+          )}
+          {laneType === 'workflow' && (
+            <span
+              className="text-xs font-semibold tabular-nums shrink-0 flex items-center justify-center"
+              style={{
+                color: column.color,
+                minWidth: 20,
+                height: 20,
+                borderRadius: '50%',
+                background: `${column.color}22`,
+                boxShadow: `0 1px 3px ${column.color}40`,
+                padding: '0 4px',
+              }}
+            >
+              {count}
+            </span>
+          )}
           <span
-            className="text-center font-semibold text-base truncate min-w-0"
+            className="text-center font-semibold text-sm truncate min-w-0"
             style={{ color: column.color }}
           >
             {title}
           </span>
-          <span
-            className="text-xs font-semibold tabular-nums shrink-0"
-            style={{ color: column.color }}
-          >
-            {count}
-          </span>
+          {laneType !== 'workflow' && (
+            <span
+              className="text-xs font-semibold tabular-nums shrink-0"
+              style={{ color: column.color }}
+            >
+              {count}
+            </span>
+          )}
         </div>
 
         <div className="flex items-center justify-center" style={{ minWidth: 0 }}>
@@ -155,7 +184,7 @@ export default function BoardLaneHeader({
               aria-label={collapseLabel}
               data-testid={`operations-board-lane-collapse-${column.id}`}
             >
-              <PanelLeftClose size={14} />
+              <PanelLeftClose size={icon(18)} />
             </button>
           </ColoredTooltip>
         </div>

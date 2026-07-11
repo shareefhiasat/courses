@@ -30,7 +30,7 @@ function buildHistoryEntries(status, fallbackDate) {
       actor: entry.actor,
     }));
   }
-  const fallbackAt = status?.firstTakenAt || status?.updatedAt || fallbackDate || null;
+  const fallbackAt = status?.firstTakenAt || status?.updatedAt || null;
   if (!fallbackAt && !status?.hasAttendance) return [];
   return [{
     key: resolveScheduleWorkflowKey(status),

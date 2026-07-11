@@ -12,7 +12,8 @@ import {
   getNotificationIcon,
   getNotificationTypeOptions,
   getNotificationStatusOptions,
-  getCategoryColor
+  getCategoryColor,
+  getNotificationBorderColor
 } from '@constants/notificationTypes.jsx';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
@@ -31,6 +32,155 @@ import useNotifications from '@hooks/useNotifications';
 import { getPrograms, getSubjects } from '@services/business/programService';
 import { getClasses } from '@services/business/classService';
 
+// ── Notification Card (extracted for reuse in sub-groups) ──────────────────
+const NotificationCard = ({ notification, idx, isDark, isRTL, theme, t, formatTime, hoveredCard, setHoveredCard, gotoFromNotification, handleMarkAsRead, handleMarkAsUnread, handleArchive, handleDelete, iconBtnStyle, getNotificationIcon, getCategoryColor, getNotificationBorderColor, PortalTooltip, getThemedIcon, motion, AnimatePresence }) => {
+  const borderColor = getNotificationBorderColor(notification);
+  const accentColor = borderColor || getCategoryColor(notification.type);
+  const iconEl = getNotificationIcon(notification.type, 20);
+  const showMessage = notification.message && notification.message !== notification.title && notification.message.trim() !== '';
+  return (
+    <motion.div
+      key={notification.id}
+      initial={{ opacity: 0, y: 8 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.2, delay: idx * 0.02 }}
+      onClick={() => gotoFromNotification(notification)}
+      onMouseEnter={() => setHoveredCard(notification.id)}
+      onMouseLeave={() => setHoveredCard(null)}
+      style={{
+        padding: '0.65rem 0.75rem',
+        marginBottom: '0.35rem',
+        borderRadius: '8px',
+        background: notification.isRead
+          ? (isDark ? 'rgba(255,255,255,0.02)' : '#fafafa')
+          : (isDark ? 'rgba(128,0,32,0.12)' : '#f0f4ff'),
+        border: `1px solid ${notification.isRead
+          ? (isDark ? 'rgba(255,255,255,0.04)' : '#e5e7eb')
+          : (isDark ? 'rgba(128,0,32,0.25)' : '#c7d2fe')}`,
+        [isRTL ? 'borderRight' : 'borderLeft']: `4px solid ${borderColor}`,
+        cursor: 'pointer',
+        transition: 'all 0.2s',
+        position: 'relative'
+      }}
+      whileHover={{ scale: 1.01, x: 2 }}
+    >
+      <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'flex-start' }}>
+        <div style={{ flexShrink: 0, marginTop: '0.125rem', color: accentColor }}>
+          {React.cloneElement(iconEl, { color: accentColor })}
+        </div>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'flex-start',
+            gap: '0.5rem',
+            marginBottom: '0.15rem'
+          }}>
+            <div style={{
+              fontWeight: notification.isRead ? 500 : 600,
+              fontSize: '0.85rem',
+              color: isDark ? '#fff' : '#111',
+              lineHeight: 1.4
+            }}>
+              {notification.title}
+            </div>
+            {!notification.isRead && (
+              <div style={{
+                width: '7px',
+                height: '7px',
+                background: 'var(--color-primary, #800020)',
+                borderRadius: '50%',
+                flexShrink: 0,
+                marginTop: '0.3rem'
+              }} />
+            )}
+          </div>
+          {showMessage && (
+            <div style={{
+              fontSize: '0.8rem',
+              color: isDark ? '#9ca3af' : '#6b7280',
+              lineHeight: 1.4,
+              marginBottom: '0.2rem',
+              wordBreak: 'break-word'
+            }}>
+              {notification.message}
+            </div>
+          )}
+          <div style={{
+            fontSize: '0.65rem',
+            color: accentColor,
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center'
+          }}>
+            <span>{formatTime(notification.createdAt)}</span>
+          </div>
+
+          <AnimatePresence>
+            {hoveredCard === notification.id && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.15 }}
+                style={{
+                  position: 'absolute',
+                  bottom: '0.5rem',
+                  [isRTL ? 'left' : 'right']: '0.5rem',
+                  display: 'flex',
+                  gap: '2px',
+                  background: isDark ? 'rgba(26,26,46,0.95)' : 'rgba(255,255,255,0.95)',
+                  borderRadius: '6px',
+                  padding: '2px',
+                  boxShadow: isDark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.1)'
+                }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                {notification.isRead ? (
+                  <PortalTooltip content={t('mark_as_unread')} position="top">
+                    <button onClick={(e) => handleMarkAsUnread(notification.id, e)} style={{...iconBtnStyle(false), padding: '4px'}}
+                      onMouseEnter={(e) => { Object.assign(e.currentTarget.style, {...iconBtnStyle(true), padding: '4px'}) }}
+                      onMouseLeave={(e) => { Object.assign(e.currentTarget.style, {...iconBtnStyle(false), padding: '4px'}) }}
+                    >
+                      {getThemedIcon('ui', 'eye_off', 14, hoveredCard === notification.id ? 'currentColor' : theme)}
+                    </button>
+                  </PortalTooltip>
+                ) : (
+                  <PortalTooltip content={t('mark_as_read')} position="top">
+                    <button onClick={(e) => handleMarkAsRead(notification.id, e)} style={{...iconBtnStyle(false), padding: '4px'}}
+                      onMouseEnter={(e) => { Object.assign(e.currentTarget.style, {...iconBtnStyle(true), padding: '4px'}) }}
+                      onMouseLeave={(e) => { Object.assign(e.currentTarget.style, {...iconBtnStyle(false), padding: '4px'}) }}
+                    >
+                      {getThemedIcon('ui', 'eye', 14, hoveredCard === notification.id ? 'currentColor' : theme)}
+                    </button>
+                  </PortalTooltip>
+                )}
+                {!notification.isArchived && (
+                  <PortalTooltip content={t('archive')} position="top">
+                    <button onClick={(e) => handleArchive(notification.id, e)} style={{...iconBtnStyle(false), padding: '4px'}}
+                      onMouseEnter={(e) => { Object.assign(e.currentTarget.style, {...iconBtnStyle(true), padding: '4px'}) }}
+                      onMouseLeave={(e) => { Object.assign(e.currentTarget.style, {...iconBtnStyle(false), padding: '4px'}) }}
+                    >
+                      {getThemedIcon('ui', 'archive', 14, hoveredCard === notification.id ? 'currentColor' : theme)}
+                    </button>
+                  </PortalTooltip>
+                )}
+                <PortalTooltip content={t('delete')} position="top">
+                  <button onClick={(e) => handleDelete(notification.id, e)} style={{...iconBtnStyle(false), padding: '4px'}}
+                    onMouseEnter={(e) => { Object.assign(e.currentTarget.style, {...iconBtnStyle(true), padding: '4px'}) }}
+                    onMouseLeave={(e) => { Object.assign(e.currentTarget.style, {...iconBtnStyle(false), padding: '4px'}) }}
+                  >
+                    {getThemedIcon('ui', 'trash', 14, hoveredCard === notification.id ? 'currentColor' : theme)}
+                  </button>
+                </PortalTooltip>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+      </div>
+    </motion.div>
+  );
+};
 
 const NotificationDrawer = ({ isOpen, onClose, feed }) => {
   const { user } = useAuth();
@@ -51,20 +201,19 @@ const NotificationDrawer = ({ isOpen, onClose, feed }) => {
     { target: '[data-tour="notif-drawer-header"]', content: t('tour.notif_drawer_header'), disableBeacon: true, placement: 'left' },
     { target: '[data-tour="notif-drawer-search"]', content: t('tour.notif_drawer_search'), disableBeacon: true, placement: 'left' },
     { target: '[data-tour="notif-drawer-mark-all"]', content: t('tour.notif_drawer_mark_all'), disableBeacon: true, placement: 'left' },
-    { target: '[data-tour="notif-drawer-settings"]', content: t('tour.notif_drawer_settings'), disableBeacon: true, placement: 'left' },
     { target: '[data-tour="notif-drawer-list"]', content: t('tour.notif_drawer_list'), disableBeacon: true, placement: 'left' },
     { target: '[data-tour="notif-drawer-list"]', content: t('tour.notif_drawer_actions'), disableBeacon: true, placement: 'left' },
-  ], [lang, t]);
+  ], [t]);
   useEffect(() => {
     const start = () => setRunTour(true);
     window.addEventListener('app:joyride', start);
     window.addEventListener('app:help', start);
     return () => { window.removeEventListener('app:joyride', start); window.removeEventListener('app:help', start); };
   }, []);
-  useEffect(() => { if (isOpen) { try { if (!localStorage.getItem(tourSeenKey)) setRunTour(true); } catch {} } }, [isOpen, tourSeenKey]);
+  useEffect(() => { if (isOpen) { try { if (!localStorage.getItem(tourSeenKey) && !window.__joyrideActive) setRunTour(true); } catch {} } }, [isOpen, tourSeenKey]);
   const handleTourCallback = useCallback((data) => {
     const { status, action } = data || {};
-    if (status === 'finished' || status === 'skipped' || action === 'close') { setRunTour(false); try { localStorage.setItem(tourSeenKey, 'true'); } catch {} }
+    if (status === 'finished' || status === 'skipped' || action === 'close') { setRunTour(false); window.__joyrideActive = false; try { localStorage.setItem(tourSeenKey, 'true'); } catch {} }
   }, [tourSeenKey]);
   const TourTooltipComponent = useMemo(() => TourTooltip({ tourSeenKey }), [tourSeenKey]);
   // ──────────────────────────────────────────────────────────────────────────
@@ -289,7 +438,7 @@ const NotificationDrawer = ({ isOpen, onClose, feed }) => {
           {/* Title Row */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <h2 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700, color: isDark ? '#fff' : '#111' }}>
+              <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: 500, color: isDark ? '#fff' : '#111' }}>
                 {t('notifications.title')}
               </h2>
               {unreadCount > 0 && (
@@ -358,27 +507,6 @@ const NotificationDrawer = ({ isOpen, onClose, feed }) => {
                   </button>
                 </PortalTooltip>
               )}
-              <PortalTooltip content={t('notifications_notification_settings')} position="top">
-                <button
-                  data-tour="notif-drawer-settings"
-                  onClick={(e) => { e.stopPropagation(); onClose(); navigate('/profile'); }}
-                  style={iconBtnStyle(false)}
-                  onMouseEnter={(e) => { Object.assign(e.currentTarget.style, iconBtnStyle(true)) }}
-                  onMouseLeave={(e) => { Object.assign(e.currentTarget.style, iconBtnStyle(false)) }}
-                >
-                  {getThemedIcon('ui', 'settings', 18, theme)}
-                </button>
-              </PortalTooltip>
-              <PortalTooltip content={t('open_in_new_tab')} position="top">
-                <button
-                  onClick={(e) => { e.stopPropagation(); window.open('/notifications', '_blank') }}
-                  style={iconBtnStyle(false)}
-                  onMouseEnter={(e) => { Object.assign(e.currentTarget.style, iconBtnStyle(true)) }}
-                  onMouseLeave={(e) => { Object.assign(e.currentTarget.style, iconBtnStyle(false)) }}
-                >
-                  {getThemedIcon('ui', 'external_link', 18, theme)}
-                </button>
-              </PortalTooltip>
               <PortalTooltip content={t('close')} position="top">
                 <button onClick={onClose} style={iconBtnStyle(false)}
                   onMouseEnter={(e) => { Object.assign(e.currentTarget.style, iconBtnStyle(true)) }}
@@ -401,99 +529,74 @@ const NotificationDrawer = ({ isOpen, onClose, feed }) => {
             />
           </div>
 
-          {/* Compact Filters */}
-          <div style={{ display: 'flex', gap: '0.35rem' }}>
-            <Select
-              value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
-              options={getNotificationStatusOptions(t, lang).map(option => ({
-                ...option,
-                label: option.value === NOTIFICATION_STATUS.UNREAD ? `${t('unread')} (${unreadCount})` :
-                       option.value === NOTIFICATION_STATUS.ARCHIVED ? `${t('archived')} (${archivedCount})` :
-                       option.label
-              }))}
-              size="small"
-              style={{ flex: 1, minWidth: '80px', fontSize: 'var(--font-size-xs)' }}
-            />
-            <div style={{ display: 'flex', flex: 1, minWidth: '80px', gap: '0.25rem', alignItems: 'center' }}>
-              <Select
-                value={filterCategory}
-                onChange={(e) => {
-                  setFilterCategory(e.target.value);
-                  setFilterPenaltyType('all');
-                  setFilterAttendanceStatus('all');
-                  setFilterAbsenceType('all');
+          {/* Status Filter Icons + Academic Filter Toggle */}
+          <div style={{ display: 'flex', gap: '0.25rem', marginBottom: '0.5rem', alignItems: 'center' }}>
+            {[
+              { value: 'all', icon: 'inbox', label: t('all') || 'All' },
+              { value: NOTIFICATION_STATUS.UNREAD, icon: 'circle', label: t('unread') || 'Unread', count: unreadCount },
+              { value: NOTIFICATION_STATUS.READ, icon: 'check_circle', label: t('read') || 'Read' },
+              { value: NOTIFICATION_STATUS.ARCHIVED, icon: 'archive', label: t('archived') || 'Archived', count: archivedCount },
+            ].map(opt => (
+              <button
+                key={opt.value}
+                onClick={() => { setFilterType(opt.value); if (opt.value === NOTIFICATION_STATUS.ARCHIVED) setShowArchived(true); }}
+                style={{
+                  background: filterType === opt.value ? 'rgba(128,0,32,0.12)' : 'transparent',
+                  border: `1px solid ${filterType === opt.value ? 'var(--color-primary, #800020)' : (isDark ? 'rgba(255,255,255,0.08)' : '#e5e7eb')}`,
+                  color: filterType === opt.value ? 'var(--color-primary, #800020)' : (isDark ? '#9ca3af' : '#6b7280'),
+                  borderRadius: '6px',
+                  padding: '4px 8px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.3rem',
+                  fontSize: 'var(--font-size-xs)',
+                  fontWeight: filterType === opt.value ? 600 : 400,
+                  transition: 'all 0.2s ease',
                 }}
-                options={[{ value: 'all', label: t('all_categories') }, ...getNotificationTypeOptions(t, lang)]}
-                size="small"
-                style={{ flex: 1, fontSize: 'var(--font-size-xs)' }}
-              />
-              <PortalTooltip content={t('advanced_filters')} position="top">
-                <button
-                  onClick={(e) => { e.stopPropagation(); setShowAdvanced(!showAdvanced) }}
-                  style={{
-                    background: showAdvanced ? 'rgba(128,0,32,0.15)' : 'transparent',
-                    border: 'none',
-                    color: showAdvanced ? 'var(--color-primary, #800020)' : (isDark ? '#9ca3af' : '#6b7280'),
-                    cursor: 'pointer',
-                    padding: '4px',
-                    borderRadius: '6px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    transition: 'all 0.2s ease',
-                    flexShrink: 0
-                  }}
-                  onMouseEnter={(e) => { if (!showAdvanced) e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.05)' : '#f3f4f6' }}
-                  onMouseLeave={(e) => { if (!showAdvanced) e.currentTarget.style.background = 'transparent' }}
-                >
-                  {getThemedIcon('ui', 'sliders_horizontal', 16, theme)}
-                </button>
-              </PortalTooltip>
-            </div>
-            {filterCategory === RECORD_TYPES.PENALTY && (
-              <Select
-                value={filterPenaltyType}
-                onChange={(e) => setFilterPenaltyType(e.target.value)}
-                options={[
-                  { value: 'all', label: t('all_penalty_types') },
-                  ...(lookupData['penalty-types'] || []).map(pt => ({ value: pt.id, label: pt.nameEn || pt.code }))
-                ]}
-                size="small"
-                style={{ flex: 1, minWidth: '100px', fontSize: 'var(--font-size-xs)' }}
-              />
-            )}
-            {filterCategory === RECORD_TYPES.ATTENDANCE && (
-              <Select
-                value={filterAttendanceStatus}
-                onChange={(e) => setFilterAttendanceStatus(e.target.value)}
-                options={[
-                  { value: 'all', label: t('all_statuses') },
-                  { value: ATTENDANCE_STATUS.PRESENT, label: t('present') },
-                  { value: ATTENDANCE_STATUS.LATE, label: t('late') },
-                  { value: ATTENDANCE_STATUS.ABSENT_NO_EXCUSE, label: t('absent_no_excuse') },
-                  { value: ATTENDANCE_STATUS.EXCUSED_LEAVE, label: t('excused_leave') },
-                  { value: ATTENDANCE_STATUS.HUMAN_CASE, label: t('human_case') }
-                ]}
-                size="small"
-                style={{ flex: 1, minWidth: '100px', fontSize: 'var(--font-size-xs)' }}
-              />
-            )}
-            {filterCategory === NOTIFICATION_TYPES.ATTENDANCE && (
-              <Select
-                value={filterAbsenceType}
-                onChange={(e) => setFilterAbsenceType(e.target.value)}
-                options={[
-                  { value: 'all', label: t('all_absence_types') },
-                  ...ABSENCE_TYPES.map(at => ({ value: at.id, label: at.label_en }))
-                ]}
-                size="small"
-                style={{ flex: 1, minWidth: '100px', fontSize: 'var(--font-size-xs)' }}
-              />
-            )}
+              >
+                {getThemedIcon('ui', opt.icon, 14, filterType === opt.value ? 'var(--color-primary, #800020)' : (isDark ? '#9ca3af' : '#6b7280'))}
+                <span>{opt.label}</span>
+                {opt.count != null && opt.count > 0 && (
+                  <span style={{
+                    background: filterType === opt.value ? 'var(--color-primary, #800020)' : (isDark ? 'rgba(255,255,255,0.1)' : '#e5e7eb'),
+                    color: filterType === opt.value ? '#fff' : (isDark ? '#9ca3af' : '#6b7280'),
+                    borderRadius: '10px',
+                    padding: '0 6px',
+                    fontSize: '0.6rem',
+                    fontWeight: 700,
+                    minWidth: '18px',
+                    textAlign: 'center',
+                  }}>{opt.count}</span>
+                )}
+              </button>
+            ))}
+            <PortalTooltip content={t('academic_filters') || 'Academic Filters'} position="top">
+              <button
+                onClick={(e) => { e.stopPropagation(); setShowAdvanced(!showAdvanced) }}
+                style={{
+                  background: showAdvanced ? 'rgba(128,0,32,0.12)' : 'transparent',
+                  border: `1px solid ${showAdvanced ? 'var(--color-primary, #800020)' : (isDark ? 'rgba(255,255,255,0.08)' : '#e5e7eb')}`,
+                  color: showAdvanced ? 'var(--color-primary, #800020)' : (isDark ? '#9ca3af' : '#6b7280'),
+                  borderRadius: '6px',
+                  padding: '4px 8px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.3rem',
+                  fontSize: 'var(--font-size-xs)',
+                  fontWeight: showAdvanced ? 600 : 400,
+                  transition: 'all 0.2s ease',
+                  marginLeft: 'auto',
+                }}
+              >
+                {getThemedIcon('ui', 'sliders_horizontal', 14, showAdvanced ? 'var(--color-primary, #800020)' : (isDark ? '#9ca3af' : '#6b7280'))}
+                <span>{t('filters') || 'Filters'}</span>
+              </button>
+            </PortalTooltip>
           </div>
 
-          {/* ── Collapsible Advanced Filters ── */}
+          {/* Collapsible Academic Filters */}
           <AnimatePresence>
             {showAdvanced && (
               <motion.div
@@ -501,88 +604,85 @@ const NotificationDrawer = ({ isOpen, onClose, feed }) => {
                 animate={{ height: 'auto', opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
                 transition={{ duration: 0.2 }}
-                style={{ overflow: 'hidden' }}
+                style={{ overflow: 'hidden', marginBottom: '0.4rem' }}
               >
+                {/* Program — own row */}
+                <div style={{ marginBottom: '0.3rem' }}>
+                  <Select
+                    value={filterProgram}
+                    onChange={(e) => { setFilterProgram(e.target.value); setFilterSubject('all'); setFilterClass('all') }}
+                    options={[
+                      { value: 'all', label: t('all_programs') },
+                      ...(programs || []).map(p => ({ value: p.docId || p.id, label: p.nameEn || p.name || p.code || p.docId }))
+                    ]}
+                    size="small" searchable fullWidth style={{ fontSize: 'var(--font-size-xs)' }}
+                  />
+                </div>
+                {/* Subject — own row */}
+                <div style={{ marginBottom: '0.3rem' }}>
+                  <Select
+                    value={filterSubject}
+                    onChange={(e) => { setFilterSubject(e.target.value); setFilterClass('all') }}
+                    options={[
+                      { value: 'all', label: t('all_subjects') },
+                      ...(subjects || []).filter(s => filterProgram === 'all' || s.programId === filterProgram).map(s => ({
+                        value: s.docId || s.id,
+                        label: `${s.code || ''} - ${s.nameEn || s.name || s.docId}`.trim()
+                      }))
+                    ]}
+                    size="small" searchable fullWidth style={{ fontSize: 'var(--font-size-xs)' }}
+                  />
+                </div>
+                {/* Class — own row */}
+                <div style={{ marginBottom: '0.3rem' }}>
+                  <Select
+                    value={filterClass}
+                    onChange={(e) => setFilterClass(e.target.value)}
+                    options={[
+                      { value: 'all', label: t('all_classes') },
+                      ...(classes || []).filter(c => {
+                        if (filterSubject !== 'all' && c.subjectId !== filterSubject) return false;
+                        if (filterProgram !== 'all') {
+                          const subject = subjects.find(s => (s.docId || s.id) === c.subjectId);
+                          if (!subject || subject.programId !== filterProgram) return false;
+                        }
+                        return true;
+                      }).map(c => ({ value: c.id || c.docId, label: `${c.name || c.code || 'Unnamed'}${c.term ? ` (${c.term})` : ''}` }))
+                    ]}
+                    size="small" searchable fullWidth style={{ fontSize: 'var(--font-size-xs)' }}
+                  />
+                </div>
+                {/* Year + Semester — one row */}
                 <div style={{
-                  marginTop: '0.4rem',
-                  display: 'flex',
-                  flexDirection: 'column',
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
                   gap: '0.3rem'
                 }}>
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(100px, 1fr))',
-                    gap: '0.3rem'
-                  }}>
-                    <Select
-                      value={filterProgram}
-                      onChange={(e) => { setFilterProgram(e.target.value); setFilterSubject('all'); setFilterClass('all') }}
-                      options={[
-                        { value: 'all', label: t('all_programs') },
-                        ...(programs || []).map(p => ({ value: p.docId || p.id, label: p.nameEn || p.name || p.code || p.docId }))
-                      ]}
-                      size="small" searchable fullWidth style={{ fontSize: 'var(--font-size-xs)' }}
-                    />
-                    <Select
-                      value={filterSubject}
-                      onChange={(e) => { setFilterSubject(e.target.value); setFilterClass('all') }}
-                      options={[
-                        { value: 'all', label: t('all_subjects') },
-                        ...(subjects || []).filter(s => filterProgram === 'all' || s.programId === filterProgram).map(s => ({
-                          value: s.docId || s.id,
-                          label: `${s.code || ''} - ${s.nameEn || s.name || s.docId}`.trim()
-                        }))
-                      ]}
-                      size="small" searchable fullWidth style={{ fontSize: 'var(--font-size-xs)' }}
-                    />
-                    <Select
-                      value={filterClass}
-                      onChange={(e) => setFilterClass(e.target.value)}
-                      options={[
-                        { value: 'all', label: t('all_classes') },
-                        ...(classes || []).filter(c => {
-                          if (filterSubject !== 'all' && c.subjectId !== filterSubject) return false;
-                          if (filterProgram !== 'all') {
-                            const subject = subjects.find(s => (s.docId || s.id) === c.subjectId);
-                            if (!subject || subject.programId !== filterProgram) return false;
-                          }
-                          return true;
-                        }).map(c => ({ value: c.id || c.docId, label: `${c.name || c.code || 'Unnamed'}${c.term ? ` (${c.term})` : ''}` }))
-                      ]}
-                      size="small" searchable fullWidth style={{ fontSize: 'var(--font-size-xs)' }}
-                    />
-                  </div>
-                  <div style={{
-                    display: 'grid',
-                    gridTemplateColumns: '1fr 1fr',
-                    gap: '0.3rem'
-                  }}>
-                    <Select
-                      value={filterYear}
-                      onChange={(e) => setFilterYear(e.target.value)}
-                      options={[
-                        { value: 'all', label: t('notifications.all_years') },
-                        ...Array.from(new Set((classes || []).map(c => {
-                          if (c.year) return String(c.year);
-                          if (c.term && c.term.includes(' ')) {
-                            const parts = c.term.split(' ');
-                            if (parts.length > 1 && !isNaN(parts[parts.length - 1])) return parts[parts.length - 1];
-                          }
-                          return null;
-                        }).filter(Boolean))).sort((a, b) => Number(b) - Number(a)).map(y => ({ value: y, label: y }))
-                      ]}
-                      size="small" fullWidth
-                    />
-                    <Select
-                      value={filterSemester}
-                      onChange={(e) => setFilterSemester(e.target.value)}
-                      options={[
-                        { value: 'all', label: t('notifications.all_semesters') },
-                        ...Array.from(new Set((subjects || []).map(s => s.semester).filter(Boolean))).map(v => ({ value: v, label: v }))
-                      ]}
-                      size="small" fullWidth
-                    />
-                  </div>
+                  <Select
+                    value={filterYear}
+                    onChange={(e) => setFilterYear(e.target.value)}
+                    options={[
+                      { value: 'all', label: t('notifications.all_years') },
+                      ...Array.from(new Set((classes || []).map(c => {
+                        if (c.year) return String(c.year);
+                        if (c.term && c.term.includes(' ')) {
+                          const parts = c.term.split(' ');
+                          if (parts.length > 1 && !isNaN(parts[parts.length - 1])) return parts[parts.length - 1];
+                        }
+                        return null;
+                      }).filter(Boolean))).sort((a, b) => Number(b) - Number(a)).map(y => ({ value: y, label: y }))
+                    ]}
+                    size="small" fullWidth style={{ fontSize: 'var(--font-size-xs)' }}
+                  />
+                  <Select
+                    value={filterSemester}
+                    onChange={(e) => setFilterSemester(e.target.value)}
+                    options={[
+                      { value: 'all', label: t('notifications.all_semesters') },
+                      ...Array.from(new Set((subjects || []).map(s => s.semester).filter(Boolean))).map(v => ({ value: v, label: v }))
+                    ]}
+                    size="small" fullWidth style={{ fontSize: 'var(--font-size-xs)' }}
+                  />
                 </div>
               </motion.div>
             )}
@@ -605,7 +705,7 @@ const NotificationDrawer = ({ isOpen, onClose, feed }) => {
             }}>
               {getThemedIcon('ui', 'bell', 48, theme)}
               <p style={{ margin: '0.5rem 0 0', fontSize: '0.9rem' }}>
-                {searchTerm || filterType !== 'all' || filterCategory !== 'all'
+                {searchTerm || filterType !== 'all' || filterProgram !== 'all' || filterSubject !== 'all' || filterClass !== 'all' || filterYear !== 'all' || filterSemester !== 'all'
                   ? t('no_notifications_match_filters')
                   : t('no_notifications_yet')}
               </p>
@@ -625,147 +725,54 @@ const NotificationDrawer = ({ isOpen, onClose, feed }) => {
                 }}>
                   {group.label}
                 </div>
-                {group.items.map((notification, idx) => (
-                  <motion.div
-                    key={notification.id}
-                    initial={{ opacity: 0, y: 8 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.2, delay: idx * 0.02 }}
-                    onClick={() => gotoFromNotification(notification)}
-                    onMouseEnter={() => setHoveredCard(notification.id)}
-                    onMouseLeave={() => setHoveredCard(null)}
-                    style={{
-                      padding: '0.65rem 0.75rem',
-                      marginBottom: '0.35rem',
-                      borderRadius: '8px',
-                      background: notification.isRead
-                        ? (isDark ? 'rgba(255,255,255,0.02)' : '#fafafa')
-                        : (isDark ? 'rgba(128,0,32,0.12)' : '#f0f4ff'),
-                      border: `1px solid ${notification.isRead
-                        ? (isDark ? 'rgba(255,255,255,0.04)' : '#e5e7eb')
-                        : (isDark ? 'rgba(128,0,32,0.25)' : '#c7d2fe')}`,
-                      [isRTL ? 'borderRight' : 'borderLeft']: `4px solid ${getCategoryColor(notification.type)}`,
-                      cursor: 'pointer',
-                      transition: 'all 0.2s',
-                      position: 'relative'
-                    }}
-                    whileHover={{ scale: 1.01, x: 2 }}
-                  >
-                    <div style={{ display: 'flex', gap: '0.6rem', alignItems: 'flex-start' }}>
-                      <div style={{ flexShrink: 0, marginTop: '0.125rem', opacity: 0.7 }}>
-                        {getNotificationIcon(notification.type)}
-                      </div>
-                      <div style={{ flex: 1, minWidth: 0 }}>
-                        <div style={{
-                          display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'flex-start',
-                          gap: '0.5rem',
-                          marginBottom: '0.15rem'
-                        }}>
-                          <div style={{
-                            fontWeight: notification.isRead ? 500 : 600,
-                            fontSize: 'var(--font-size-sm)',
-                            color: isDark ? '#fff' : '#111',
-                            lineHeight: 1.4
-                          }}>
-                            {notification.title}
-                          </div>
-                          {!notification.isRead && (
-                            <div style={{
-                              width: '7px',
-                              height: '7px',
-                              background: 'var(--color-primary, #800020)',
-                              borderRadius: '50%',
-                              flexShrink: 0,
-                              marginTop: '0.3rem'
-                            }} />
-                          )}
-                        </div>
-                        <div style={{
-                          fontSize: '0.8rem',
-                          color: isDark ? '#9ca3af' : '#6b7280',
-                          lineHeight: 1.4,
-                          marginBottom: '0.2rem',
-                          wordBreak: 'break-word'
-                        }}>
-                          {notification.message}
-                        </div>
+                {group.subGroups ? (
+                  group.subGroups.map((sub, subIdx) => (
+                    <div key={subIdx} style={{ marginBottom: subIdx < group.subGroups.length - 1 ? '0.5rem' : 0 }}>
+                      {sub.label && (
                         <div style={{
                           fontSize: '0.65rem',
-                          color: isDark ? '#6b7280' : '#9ca3af',
+                          fontWeight: 600,
+                          color: isDark ? '#a78bfa' : '#7c3aed',
+                          padding: '0.15rem 0.25rem 0.3rem',
+                          opacity: 0.8,
                           display: 'flex',
-                          justifyContent: 'space-between',
-                          alignItems: 'center'
+                          alignItems: 'center',
+                          gap: '0.3rem'
                         }}>
-                          <span>{formatTime(notification.createdAt)}</span>
+                          {getThemedIcon('ui', 'git_branch', 12, isDark ? '#a78bfa' : '#7c3aed')}
+                          {sub.label} ({sub.items.length})
                         </div>
-
-                        {/* Hover-reveal action buttons — absolutely positioned to avoid height change */}
-                        <AnimatePresence>
-                          {hoveredCard === notification.id && (
-                            <motion.div
-                              initial={{ opacity: 0 }}
-                              animate={{ opacity: 1 }}
-                              exit={{ opacity: 0 }}
-                              transition={{ duration: 0.15 }}
-                              style={{
-                                position: 'absolute',
-                                bottom: '0.5rem',
-                                [isRTL ? 'left' : 'right']: '0.5rem',
-                                display: 'flex',
-                                gap: '2px',
-                                background: isDark ? 'rgba(26,26,46,0.95)' : 'rgba(255,255,255,0.95)',
-                                borderRadius: '6px',
-                                padding: '2px',
-                                boxShadow: isDark ? '0 2px 8px rgba(0,0,0,0.3)' : '0 2px 8px rgba(0,0,0,0.1)'
-                              }}
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              {notification.isRead ? (
-                                <PortalTooltip content={t('mark_as_unread')} position="top">
-                                  <button onClick={(e) => handleMarkAsUnread(notification.id, e)} style={{...iconBtnStyle(false), padding: '4px'}}
-                                    onMouseEnter={(e) => { Object.assign(e.currentTarget.style, {...iconBtnStyle(true), padding: '4px'}) }}
-                                    onMouseLeave={(e) => { Object.assign(e.currentTarget.style, {...iconBtnStyle(false), padding: '4px'}) }}
-                                  >
-                                    {getThemedIcon('ui', 'eye_off', 14, hoveredCard === notification.id ? 'currentColor' : theme)}
-                                  </button>
-                                </PortalTooltip>
-                              ) : (
-                                <PortalTooltip content={t('mark_as_read')} position="top">
-                                  <button onClick={(e) => handleMarkAsRead(notification.id, e)} style={{...iconBtnStyle(false), padding: '4px'}}
-                                    onMouseEnter={(e) => { Object.assign(e.currentTarget.style, {...iconBtnStyle(true), padding: '4px'}) }}
-                                    onMouseLeave={(e) => { Object.assign(e.currentTarget.style, {...iconBtnStyle(false), padding: '4px'}) }}
-                                  >
-                                    {getThemedIcon('ui', 'eye', 14, hoveredCard === notification.id ? 'currentColor' : theme)}
-                                  </button>
-                                </PortalTooltip>
-                              )}
-                              {!notification.isArchived && (
-                                <PortalTooltip content={t('archive')} position="top">
-                                  <button onClick={(e) => handleArchive(notification.id, e)} style={{...iconBtnStyle(false), padding: '4px'}}
-                                    onMouseEnter={(e) => { Object.assign(e.currentTarget.style, {...iconBtnStyle(true), padding: '4px'}) }}
-                                    onMouseLeave={(e) => { Object.assign(e.currentTarget.style, {...iconBtnStyle(false), padding: '4px'}) }}
-                                  >
-                                    {getThemedIcon('ui', 'archive', 14, hoveredCard === notification.id ? 'currentColor' : theme)}
-                                  </button>
-                                </PortalTooltip>
-                              )}
-                              <PortalTooltip content={t('delete')} position="top">
-                                <button onClick={(e) => handleDelete(notification.id, e)} style={{...iconBtnStyle(false), padding: '4px'}}
-                                  onMouseEnter={(e) => { Object.assign(e.currentTarget.style, {...iconBtnStyle(true), padding: '4px'}) }}
-                                  onMouseLeave={(e) => { Object.assign(e.currentTarget.style, {...iconBtnStyle(false), padding: '4px'}) }}
-                                >
-                                  {getThemedIcon('ui', 'trash', 14, hoveredCard === notification.id ? 'currentColor' : theme)}
-                                </button>
-                              </PortalTooltip>
-                            </motion.div>
-                          )}
-                        </AnimatePresence>
-                      </div>
+                      )}
+                      {sub.items.map((notification, idx) => (
+                        <NotificationCard key={notification.id} notification={notification} idx={idx}
+                          isDark={isDark} isRTL={isRTL} theme={theme} t={t} formatTime={formatTime}
+                          hoveredCard={hoveredCard} setHoveredCard={setHoveredCard}
+                          gotoFromNotification={gotoFromNotification}
+                          handleMarkAsRead={handleMarkAsRead} handleMarkAsUnread={handleMarkAsUnread}
+                          handleArchive={handleArchive} handleDelete={handleDelete}
+                          iconBtnStyle={iconBtnStyle}
+                          getNotificationIcon={getNotificationIcon} getCategoryColor={getCategoryColor} getNotificationBorderColor={getNotificationBorderColor}
+                          PortalTooltip={PortalTooltip} getThemedIcon={getThemedIcon}
+                          motion={motion} AnimatePresence={AnimatePresence}
+                        />
+                      ))}
                     </div>
-                  </motion.div>
-                ))}
+                  ))
+                ) : (
+                  group.items.map((notification, idx) => (
+                    <NotificationCard key={notification.id} notification={notification} idx={idx}
+                      isDark={isDark} isRTL={isRTL} theme={theme} t={t} formatTime={formatTime}
+                      hoveredCard={hoveredCard} setHoveredCard={setHoveredCard}
+                      gotoFromNotification={gotoFromNotification}
+                      handleMarkAsRead={handleMarkAsRead} handleMarkAsUnread={handleMarkAsUnread}
+                      handleArchive={handleArchive} handleDelete={handleDelete}
+                      iconBtnStyle={iconBtnStyle}
+                      getNotificationIcon={getNotificationIcon} getCategoryColor={getCategoryColor} getNotificationBorderColor={getNotificationBorderColor}
+                      PortalTooltip={PortalTooltip} getThemedIcon={getThemedIcon}
+                      motion={motion} AnimatePresence={AnimatePresence}
+                    />
+                  ))
+                )}
               </div>
             ))
           )}

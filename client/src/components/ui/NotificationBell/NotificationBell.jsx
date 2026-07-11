@@ -72,8 +72,9 @@ const NotificationBell = () => {
                   background: 'rgb(255,215,31)',
                   color: '#15803d',
                   borderRadius: '50%',
-                  width: '20px',
+                  minWidth: '20px',
                   height: '20px',
+                  padding: '0 4px',
                   fontSize: '0.7rem',
                   display: 'flex',
                   alignItems: 'center',
@@ -85,7 +86,7 @@ const NotificationBell = () => {
                   boxShadow: '0 0 6px 1px rgba(34,197,94,0.45)'
                 }}
               >
-                {unreadCount > 9 ? '9+' : unreadCount}
+                {unreadCount > 99 ? '99+' : unreadCount}
               </motion.span>
             )}
           </AnimatePresence>

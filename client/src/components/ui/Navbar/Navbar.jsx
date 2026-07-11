@@ -371,15 +371,14 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                           gap: '4px',
                           padding: '2px 8px',
                           borderRadius: '10px',
-                          background: 'rgba(255, 255, 255, 0.85)',
-                          border: '1px solid rgba(226, 232, 240, 0.8)',
+                          background: 'rgba(255, 255, 255, 0.15)',
+                          border: '1px solid rgba(255, 255, 255, 0.25)',
                           fontSize: '0.65rem',
                           fontWeight: 600,
-                          color: '#3b82f6',
+                          color: '#fff',
                           whiteSpace: 'nowrap',
                           boxShadow: '0 1px 3px rgba(0, 0, 0, 0.06)',
                         }}>
-                          <span style={{ width: 5, height: 5, borderRadius: '50%', backgroundColor: '#3b82f6', flexShrink: 0 }} />
                           <span>{wizardNav.className}</span>
                         </div>
                       </>
@@ -609,27 +608,29 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                 </button>
                 </PortalTooltip>
 
-                <PortalTooltip content={t('help_center')} position="bottom">
-                <button
-                  className="nav-icon-btn"
-                  onClick={() => window.open(`${import.meta.env.VITE_HELP_URL || 'http://localhost:3000'}/${lang}`, '_blank', 'noopener,noreferrer')}
-                  aria-label={t('information')}
-                  style={{
-                    border: theme === 'light' ? '1px solid var(--border)' : '1px solid rgba(255,255,255,0.2)',
-                    background: theme === 'light' ? 'var(--panel)' : 'rgba(0,0,0,0.3)',
-                    borderRadius: '50%',
-                    width: '28px',
-                    height: '28px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    cursor: 'pointer',
-                    color: theme === 'light' ? 'var(--text-primary)' : '#fff'
-                  }}
-                >
-                  {getThemedIcon('ui', 'info', 16, theme === 'light' ? 'var(--text-primary)' : '#fff')}
-                </button>
-                </PortalTooltip>
+                {isSuperAdmin && (
+                  <PortalTooltip content={t('help_center')} position="bottom">
+                  <button
+                    className="nav-icon-btn"
+                    onClick={() => window.open(`${import.meta.env.VITE_HELP_URL || 'http://localhost:3000'}/${lang}`, '_blank', 'noopener,noreferrer')}
+                    aria-label={t('information')}
+                    style={{
+                      border: theme === 'light' ? '1px solid var(--border)' : '1px solid rgba(255,255,255,0.2)',
+                      background: theme === 'light' ? 'var(--panel)' : 'rgba(0,0,0,0.3)',
+                      borderRadius: '50%',
+                      width: '28px',
+                      height: '28px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      cursor: 'pointer',
+                      color: theme === 'light' ? 'var(--text-primary)' : '#fff'
+                    }}
+                  >
+                    {getThemedIcon('ui', 'info', 16, theme === 'light' ? 'var(--text-primary)' : '#fff')}
+                  </button>
+                  </PortalTooltip>
+                )}
 
                 <PortalTooltip content={theme==='light'?t('dark_mode'):t('light_mode')} position="bottom">
                 <button
@@ -1064,39 +1065,42 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
           aria-label={t('expand_navbar')}
           style={{
             position: 'fixed',
-            top: isMobile ? '15px' : '20px',
-            right: isMobile ? '15px' : '20px',
+            top: isMobile ? '6px' : '8px',
+            right: isMobile ? '6px' : '8px',
             zIndex: 1000,
-            background: theme === 'light' ? 'rgba(255, 255, 255, 0.8)' : 'rgba(0,0,0,0.8)',
-            backdropFilter: 'saturate(150%) blur(8px)',
-            border: theme === 'light' ? '1px solid var(--border)' : '1px solid rgba(255,255,255,0.2)',
+            background: theme === 'light' ? 'rgba(255, 255, 255, 0.45)' : 'rgba(15, 23, 42, 0.45)',
+            backdropFilter: 'saturate(150%) blur(6px)',
+            border: theme === 'light' ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.1)',
             borderRadius: '50%',
-            width: isMobile ? '32px' : '36px',
-            height: isMobile ? '32px' : '36px',
+            width: isMobile ? '22px' : '26px',
+            height: isMobile ? '22px' : '26px',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
             cursor: 'pointer',
             color: theme === 'light' ? 'var(--text-primary)' : '#fff',
-            boxShadow: theme === 'light' 
-              ? '0 4px 6px rgba(0, 0, 0, 0.1)' 
-              : '0 4px 6px rgba(0, 0, 0, 0.3)',
-            transition: 'all 0.2s ease'
+            boxShadow: theme === 'light'
+              ? '0 2px 4px rgba(0, 0, 0, 0.08)'
+              : '0 2px 4px rgba(0, 0, 0, 0.2)',
+            transition: 'all 0.2s ease',
+            opacity: 0.85,
           }}
           onMouseEnter={(e) => {
             e.currentTarget.style.transform = 'scale(1.1)';
-            e.currentTarget.style.boxShadow = theme === 'light' 
-              ? '0 6px 12px rgba(0, 0, 0, 0.15)' 
-              : '0 6px 12px rgba(0, 0, 0, 0.4)';
+            e.currentTarget.style.opacity = '1';
+            e.currentTarget.style.boxShadow = theme === 'light'
+              ? '0 4px 8px rgba(0, 0, 0, 0.12)'
+              : '0 4px 8px rgba(0, 0, 0, 0.35)';
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.transform = 'scale(1)';
-            e.currentTarget.style.boxShadow = theme === 'light' 
-              ? '0 4px 6px rgba(0, 0, 0, 0.1)' 
-              : '0 4px 6px rgba(0, 0, 0, 0.3)';
+            e.currentTarget.style.opacity = '0.85';
+            e.currentTarget.style.boxShadow = theme === 'light'
+              ? '0 2px 4px rgba(0, 0, 0, 0.08)'
+              : '0 2px 4px rgba(0, 0, 0, 0.2)';
           }}
         >
-          {getThemedIcon('ui', 'chevron_down', isMobile ? 14 : 16, theme)}
+          {getThemedIcon('ui', 'chevron_down', isMobile ? 12 : 14, theme)}
         </button>
         </PortalTooltip>
       )}

@@ -163,22 +163,22 @@ function PageTracker() {
 }
 
 const AppContent = () => {
-  const { user, isStudent } = useAuth();
+  const { user, isStudent, isInstructor } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [isSideDrawerOpen, setIsSideDrawerOpen] = useState(false);
   const [isSideDrawerCollapsed, setIsSideDrawerCollapsed] = useState(false);
 
-  // Redirect non-student users to /welcome when they land on / for the first time
+  // Redirect non-student, non-instructor users to /welcome when they land on / for the first time
   useEffect(() => {
-    if (user && !isStudent && location.pathname === '/') {
+    if (user && !isStudent && !isInstructor && location.pathname === '/') {
       const hasVisitedWelcome = sessionStorage.getItem('welcome_visited');
       if (!hasVisitedWelcome) {
         sessionStorage.setItem('welcome_visited', '1');
         navigate('/welcome', { replace: true });
       }
     }
-  }, [user, isStudent, location.pathname, navigate]);
+  }, [user, isStudent, isInstructor, location.pathname, navigate]);
   
   // useRealTimeUpdates(); // Temporarily disabled to fix notification spam
 

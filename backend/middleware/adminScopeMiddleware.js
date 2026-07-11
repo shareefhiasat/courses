@@ -9,22 +9,64 @@
  * - CLASSROOM scope: User can manage resources in specific classrooms
  * - INSTRUCTOR scope: User can manage resources for specific instructors
  * 
- * SUPER_ADMIN and HR roles bypass scope checks.
+ * SUPER_ADMIN always bypasses scope checks.
+ * ADMIN and HR bypass scope checks unless they have explicit admin scopes configured.
  */
 
 import { checkUserAdminScope, getUserEffectiveScope } from '../db/admin-scopes-postgres.js';
 
 /**
- * Check if user has SUPER_ADMIN or HR role (bypass scope check)
+ * Check if user has SUPER_ADMIN or HR role (always bypass scope check)
+ * 
+ * Admin bypasses only when no explicit admin scopes are configured.
  * 
  * @param {Object} user - User object from request
- * @returns {boolean} - True if user has bypass role
+ * @returns {boolean} - True if user always bypasses scope check
  */
-const hasBypassRole = (user) => {
+const hasAlwaysBypassRole = (user) => {
   if (!user || !user.roles) return false;
+  const alwaysBypassRoles = ['SUPER_ADMIN'];
+  return user.roles.some(role => alwaysBypassRoles.includes(role));
+};
+
+/**
+ * Check if user has ADMIN or HR role (conditional bypass)
+ * These roles bypass scope check unless they have explicit admin scopes configured.
+ * 
+ * @param {Object} user - User object from request
+ * @returns {boolean} - True if user has conditional bypass role
+ */
+const hasConditionalBypassRole = (user) => {
+  if (!user || !user.roles) return false;
+  const conditionalBypassRoles = ['ADMIN', 'HR'];
+  return user.roles.some(role => conditionalBypassRoles.includes(role));
+};
+
+/**
+ * Check if user should bypass scope check.
+ * Super Admin always bypasses.
+ * Admin and HR bypass unless they have explicit admin scopes configured.
+ * 
+ * @param {Object} user - User object from request
+ * @returns {Promise<boolean>} - True if user should bypass
+ */
+const shouldBypass = async (user) => {
+  if (hasAlwaysBypassRole(user)) return true;
+  if (!hasConditionalBypassRole(user)) return false;
   
-  const bypassRoles = ['SUPER_ADMIN', 'HR'];
-  return user.roles.some(role => bypassRoles.includes(role));
+  // For Admin and HR: check if they have any explicit admin scopes
+  const userId = user.id || user.sub || user.dbId;
+  if (!userId) return true; // Can't check scopes, allow access
+  
+  try {
+    const effectiveScope = await getUserEffectiveScope(userId);
+    if (effectiveScope.success && effectiveScope.data.scopes.length > 0) {
+      return false; // Has explicit scopes, don't bypass
+    }
+  } catch {
+    // Error checking scopes, allow access
+  }
+  return true; // No explicit scopes, bypass
 };
 
 /**
@@ -37,11 +79,11 @@ export const requireProgramScope = (optional = false) => {
     try {
       const user = req.user;
       
-      // Bypass for SUPER_ADMIN and HR
-      if (hasBypassRole(user)) {
+      // Bypass for SUPER_ADMIN, and for ADMIN/HR with no explicit scopes
+      if (await shouldBypass(user)) {
         return next();
       }
-      
+
       // Get programId from request params, query, or body
       const programId = req.params.programId || req.query.programId || req.body.programId;
       
@@ -95,11 +137,11 @@ export const requireClassroomScope = (optional = false) => {
     try {
       const user = req.user;
       
-      // Bypass for SUPER_ADMIN and HR
-      if (hasBypassRole(user)) {
+      // Bypass for SUPER_ADMIN, and for ADMIN/HR with no explicit scopes
+      if (await shouldBypass(user)) {
         return next();
       }
-      
+
       const classroomId = req.params.classroomId || req.query.classroomId || req.body.classroomId;
       
       if (!classroomId) {
@@ -150,11 +192,11 @@ export const requireInstructorScope = (optional = false) => {
     try {
       const user = req.user;
       
-      // Bypass for SUPER_ADMIN and HR
-      if (hasBypassRole(user)) {
+      // Bypass for SUPER_ADMIN, and for ADMIN/HR with no explicit scopes
+      if (await shouldBypass(user)) {
         return next();
       }
-      
+
       const instructorUserId = req.params.instructorUserId || req.query.instructorUserId || req.body.instructorUserId;
       
       if (!instructorUserId) {
@@ -210,11 +252,11 @@ export const requireAnyScope = (options = {}) => {
     try {
       const user = req.user;
       
-      // Bypass for SUPER_ADMIN and HR
-      if (hasBypassRole(user)) {
+      // Bypass for SUPER_ADMIN, and for ADMIN/HR with no explicit scopes
+      if (await shouldBypass(user)) {
         return next();
       }
-      
+
       const { requireProgram = false, requireClassroom = false, requireInstructor = false, optional = false } = options;
       
       const userId = user.id || user.sub;
@@ -301,8 +343,8 @@ export const attachUserScope = async (req, res, next) => {
   try {
     const user = req.user;
     
-    // Bypass for SUPER_ADMIN and HR (they get full access)
-    if (hasBypassRole(user)) {
+    // Bypass for SUPER_ADMIN, and for ADMIN/HR with no explicit scopes
+    if (await shouldBypass(user)) {
       req.userScope = {
         isFullAccess: true,
         programIds: [],

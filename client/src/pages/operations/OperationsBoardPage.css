@@ -303,7 +303,7 @@
 
 /* Kibo UI Kanban board styling to match the demo */
 .operations-board-page [class*="grid-flow-col"] {
-  gap: 1rem !important;
+  gap: 0.5rem !important;
   grid-template-columns: var(--ops-grid-columns, repeat(auto-fit, minmax(240px, 1fr))) !important;
   width: 100% !important;
   min-width: max-content;
@@ -662,9 +662,32 @@
   box-shadow: none !important;
 }
 
-.operations-board-page .MuiTabs-root .MuiTab-root.Mui-selected {
+.operations-board-page .MuiTabs-root:not([data-drawer-tabs]):not([data-filter-tabs]) .MuiTab-root.Mui-selected {
   outline: none !important;
   color: #3b82f6 !important;
+}
+
+.operations-board-page [data-filter-tabs] .MuiTab-root.Mui-selected,
+.operations-board-page [data-filter-tabs] .MuiTab-root.Mui-selected .MuiTab-iconWrapper,
+.operations-board-page [data-filter-tabs] .MuiTab-root.Mui-selected svg {
+  color: #fff !important;
+}
+
+.operations-board-page [data-drawer-tabs] .MuiTab-root.Mui-selected,
+.operations-board-page [data-drawer-tabs] .MuiTab-root.Mui-selected span,
+.operations-board-page [data-drawer-tabs] .MuiTab-root.Mui-selected svg {
+  color: #fff !important;
+}
+
+.operations-board-page .operations-board-lane,
+.operations-board-page .operations-board-lane-permitted {
+  border-color: rgba(15, 23, 42, 0.22) !important;
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.06);
+}
+
+.operations-board-page .operations-board-lane-header {
+  border-bottom: 1px solid rgba(15, 23, 42, 0.16) !important;
+  background: rgba(15, 23, 42, 0.03);
 }
 
 .operations-board-page .MuiTabs-indicator {
@@ -703,6 +726,23 @@
   overflow: visible !important;
   min-width: 0;
   height: 100%;
+}
+
+/* Permitted lane: white background with subtle gray outline */
+.operations-board-page .operations-board-lane-permitted,
+.operations-board-lane-permitted {
+  background-color: hsl(var(--background, 0 0% 100%)) !important;
+  border: 1px solid var(--border, #dee2e6) !important;
+  border-radius: 8px !important;
+}
+
+/* Read-only lane: muted gray background */
+.operations-board-page .operations-board-lane-readonly,
+.operations-board-lane-readonly {
+  background-color: var(--background-secondary, #f8f9fa) !important;
+  border: 1px solid var(--border, #dee2e6) !important;
+  border-radius: 8px !important;
+  opacity: 0.85;
 }
 
 .operations-board-lane > .relative.overflow-hidden {
@@ -864,12 +904,12 @@
 }
 
 .operations-board-page .operations-board-footer .legend-items-row {
-  gap: 1.25rem;
+  gap: 0.5rem;
 }
 
 @media (min-width: 1280px) {
   .operations-board-page .operations-board-footer .legend-items-row {
-    gap: 1.75rem !important;
+    gap: 0.65rem !important;
   }
 }
 
@@ -964,11 +1004,19 @@
 }
 
 .welcome-working-date-picker input,
-.welcome-working-date-picker ._input_12t6x_26 {
+.welcome-working-date-picker [class*="_input_"] {
   color: #2563eb !important;
-  border-color: rgba(59, 130, 246, 0.45) !important;
+  background: #ffffff !important;
+  border: none !important;
+  box-shadow: none !important;
   min-height: 30px !important;
   font-size: 0.8125rem !important;
+}
+
+.welcome-working-date-picker input:focus,
+.welcome-working-date-picker [class*="_input_"]:focus {
+  background: #ffffff !important;
+  outline: none !important;
 }
 
 .welcome-working-date-picker svg,

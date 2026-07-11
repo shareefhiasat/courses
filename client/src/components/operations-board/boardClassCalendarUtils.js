@@ -5,6 +5,7 @@ import {
 import {
   SCHEDULE_WORKFLOW_COLORS,
   SCHEDULE_WORKFLOW_STATUS,
+  WORKFLOW_STATUS_COLORS,
   resolveScheduleWorkflowKey,
 } from '@constants/workspaceStatusColors.js';
 
@@ -15,6 +16,10 @@ export const SCHEDULE_CALENDAR_LEGEND = [
   { key: SCHEDULE_WORKFLOW_STATUS.DRAFT, i18nKey: 'workspace_status_draft' },
   { key: SCHEDULE_WORKFLOW_STATUS.TAKEN, i18nKey: 'workspace_status_taken' },
   { key: SCHEDULE_WORKFLOW_STATUS.SUBMITTED, i18nKey: 'workspace_status_submitted' },
+  { key: 'under_admin_review', i18nKey: 'workflow.status.under_admin_review' },
+  { key: 'under_hr_review', i18nKey: 'workflow.status.under_hr_review' },
+  { key: 'approved', i18nKey: 'workflow.status.approved' },
+  { key: 'rejected', i18nKey: 'workflow.status.rejected' },
 ];
 
 export function dateToDayCode(date) {
@@ -127,7 +132,68 @@ export function buildClassCalendarEvents({
 }
 
 export function getWorkflowEventColor(workflowKey) {
-  return SCHEDULE_WORKFLOW_COLORS[workflowKey] || SCHEDULE_WORKFLOW_COLORS[SCHEDULE_WORKFLOW_STATUS.NOT_TAKEN];
+  const extendedColors = {
+    under_admin_review: WORKFLOW_STATUS_COLORS.UNDER_ADMIN_REVIEW,
+    under_hr_review: WORKFLOW_STATUS_COLORS.UNDER_HR_REVIEW,
+    approved: WORKFLOW_STATUS_COLORS.APPROVED,
+    rejected: WORKFLOW_STATUS_COLORS.REJECTED,
+  };
+  return SCHEDULE_WORKFLOW_COLORS[workflowKey]
+    || extendedColors[workflowKey]
+    || SCHEDULE_WORKFLOW_COLORS[SCHEDULE_WORKFLOW_STATUS.NOT_TAKEN];
+}
+
+/** Normalize schedule-status payload into attendance count buckets. */
+export function getAttendanceCountsFromStatus(status) {
+  if (!status) return null;
+  if (status.attendanceSummary) return status.attendanceSummary;
+  if (status.counts) return status.counts;
+  const hasField = ['presentCount', 'lateCount', 'absentCount', 'excusedCount', 'humanCaseCount', 'notTakenCount']
+    .some((k) => status[k] != null);
+  if (!hasField && !status.hasAttendance) return null;
+  return {
+    present: status.presentCount ?? 0,
+    late: status.lateCount ?? 0,
+    absent: status.absentCount ?? 0,
+    excused: status.excusedCount ?? 0,
+    humanCase: status.humanCaseCount ?? 0,
+    notTaken: status.notTakenCount ?? 0,
+  };
+}
+
+export function getWorkflowStatusLabel(workflowKey, t) {
+  const keys = {
+    not_taken: 'workspace_status_not_taken',
+    draft: 'workspace_status_draft',
+    taken: 'workspace_status_taken',
+    submitted: 'workspace_status_submitted',
+    under_admin_review: 'workflow.status.under_admin_review',
+    under_hr_review: 'workflow.status.under_hr_review',
+    approved: 'workflow.status.approved',
+    rejected: 'workflow.status.rejected',
+  };
+  const i18nKey = keys[workflowKey];
+  return i18nKey ? (t(i18nKey) || workflowKey) : (workflowKey || '—');
+}
+
+export const ATTENDANCE_COUNT_ITEMS = [
+  { key: 'present', labelKey: 'present', fallback: 'Present', color: '#10b981' },
+  { key: 'late', labelKey: 'late', fallback: 'Late', color: '#f59e0b' },
+  { key: 'absent', labelKey: 'absent', fallback: 'Absent', color: '#ef4444' },
+  { key: 'excused', labelKey: 'excused', fallback: 'Excused Leave', color: '#ec4899' },
+  { key: 'humanCase', labelKey: 'operations_board_lane_human_case', fallback: 'Human Case', color: '#8b5cf6' },
+  { key: 'notTaken', labelKey: 'operations_board_lane_not_taken', fallback: 'Not yet', color: '#9ca3af' },
+];
+
+export function resolveAttendanceEventColor(status) {
+  const counts = getAttendanceCountsFromStatus(status);
+  if (!counts || !status?.hasAttendance) return '#9ca3af';
+  if (counts.absent > 0) return '#ef4444';
+  if (counts.late > 0) return '#f59e0b';
+  if (counts.humanCase > 0) return '#8b5cf6';
+  if (counts.excused > 0) return '#ec4899';
+  if (counts.present > 0) return '#10b981';
+  return '#9ca3af';
 }
 
 export function isActionableClassSession(workflowKey) {

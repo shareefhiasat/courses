@@ -93,7 +93,7 @@ import { FeatureFlagWrapper } from '@ui/FeatureFlagWrapper';
 import { useFeatureFlags } from '@hooks/useFeatureFlags';
 import { ROLE_STRINGS } from '@utils/userUtils';
 
-export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteActivity, selectedProgramId, selectedSubjectId, selectedClassId, selectedDate, selectedProgramName, selectedSubjectName, selectedClassName, selectedProgramNameAr, selectedSubjectNameAr, selectedClassNameAr, loading = false, students = [], onMinimizeChange, forceMinimized = false, attendanceMode: propAttendanceMode }) {
+export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteActivity, selectedProgramId, selectedSubjectId, selectedClassId, selectedDate, selectedProgramName, selectedSubjectName, selectedClassName, selectedProgramNameAr, selectedSubjectNameAr, selectedClassNameAr, loading = false, students = [], onMinimizeChange, forceMinimized = false, attendanceMode: propAttendanceMode, initialManualStudentId = '', initialShowManualInput = false }) {
   const auth = useAuth();
   const { user, role, isSuperAdmin } = auth;
   const { t, lang, isRTL } = useLang();
@@ -203,9 +203,17 @@ export default function QRScanner({ onScan, classId, onActivityUpdate, onDeleteA
   }, [propAttendanceMode]);
   const [actionLoading, setActionLoading] = useState(false);
   const [currentAction, setCurrentAction] = useState(null);
-  const [showManualInput, setShowManualInput] = useState(false); // Start with false
-  const [manualStudentId, setManualStudentId] = useState('');
+  const [showManualInput, setShowManualInput] = useState(initialShowManualInput);
+  const [manualStudentId, setManualStudentId] = useState(initialManualStudentId);
   const [showClearConfirmModal, setShowClearConfirmModal] = useState(false);
+
+  // Apply pre-filled manual input values passed from parent (e.g. operations board)
+  useEffect(() => {
+    if (initialManualStudentId || initialShowManualInput) {
+      setManualStudentId(initialManualStudentId);
+      setShowManualInput(initialShowManualInput);
+    }
+  }, [initialManualStudentId, initialShowManualInput]);
   const [clearScope, setClearScope] = useState('today'); // 'today' or 'all'
   const [clearStandupModal, setClearStandupModal] = useState({ isOpen: false, loading: false });
   const [clearRegularModal, setClearRegularModal] = useState({ isOpen: false, loading: false, recordCount: 0 });

@@ -934,6 +934,18 @@ const SideDrawer = ({ isOpen, onClose, onOpen }) => {
     }
   }
 
+  // Hide Help Center from the drawer for non-super-admins
+  if (!isSuperAdmin) {
+    links = links
+      .map((section) => ({
+        ...section,
+        children: section.children?.filter((item) =>
+          !(item.id?.startsWith('help') || item.path === '/help')
+        ),
+      }))
+      .filter((section) => section.children?.length > 0);
+  }
+
   // Filter menu items based on screen access permissions
   const filterMenuItems = (items) => {
     return items.filter(item => {

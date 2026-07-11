@@ -70,7 +70,7 @@ export default function WorkflowPdfPreviewPanel({
       }}
     >
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-        <FileText size={16} color="#3b82f6" />
+        <FileText size={18} color="#3b82f6" />
         <Typography variant="body2" fontWeight={600} sx={{ flex: 1 }} noWrap>
           {fileName || (t('operations_board_preview_pdf') || 'Preview PDF')}
         </Typography>
@@ -81,14 +81,14 @@ export default function WorkflowPdfPreviewPanel({
             href={previewUrl}
             target="_blank"
             rel="noopener noreferrer"
-            aria-label={t('operations_board_view_file') || 'Open'}
+            aria-label={t('operations_board_view_file') || 'Open in new tab'}
           >
-            <ExternalLink size={14} />
+            <ExternalLink size={16} />
           </IconButton>
         )}
         {onClose && (
           <IconButton size="small" onClick={onClose} aria-label={t('close') || 'Close'} data-testid="operations-board-pdf-preview-close">
-            <X size={14} />
+            <X size={16} />
           </IconButton>
         )}
       </Box>
@@ -114,7 +114,13 @@ export default function WorkflowPdfPreviewPanel({
           <iframe
             title={fileName || 'PDF preview'}
             src={previewUrl}
-            style={{ width: '100%', height: '100%', minHeight: compact ? 220 : 360, border: 'none', borderRadius: 4 }}
+            style={{
+              width: '100%',
+              height: '100%',
+              minHeight: compact ? 220 : 360,
+              border: 'none',
+              borderRadius: 4,
+            }}
           />
         </Box>
       )}

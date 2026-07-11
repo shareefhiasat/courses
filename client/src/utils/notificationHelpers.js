@@ -61,8 +61,46 @@ export const getGroupLabel = (group, t) => {
   return labels[group] || group;
 };
 
+const WORKFLOW_EVENT_STATUS = {
+  'workflow.approved': 'APPROVED',
+  'workflow.completed': 'APPROVED',
+  'workflow.rejected': 'REJECTED',
+  'workflow.withdrawn': 'REJECTED',
+  'workflow.assigned': 'SUBMITTED',
+  'workflow.submitted': 'SUBMITTED',
+  'workflow.resubmitted': 'SUBMITTED',
+  'workflow.revised': 'SUBMITTED',
+  'workflow.returned': 'SUBMITTED',
+  'workflow.sent_for_review': 'UNDER_REVIEW',
+  'workflow.sent_for_approval': 'UNDER_ADMIN_REVIEW',
+  'workflow.amended': 'AMENDED',
+};
+
+const WORKFLOW_STATUS_ORDER = ['DRAFT', 'SUBMITTED', 'UNDER_REVIEW', 'UNDER_HR_REVIEW', 'UNDER_ADMIN_REVIEW', 'AMENDED', 'APPROVED', 'REJECTED', 'OTHER'];
+
+const getWorkflowStatusKey = (n) => {
+  if (!(n.type || '').startsWith('WORKFLOW')) return null;
+  const event = n.event || n.data?.event;
+  return WORKFLOW_EVENT_STATUS[event] || n.data?.workflowStatus || n.metadata?.status || 'OTHER';
+};
+
+const getWorkflowStatusLabel = (status, t) => {
+  const keyMap = {
+    DRAFT: 'workflow.inbox.statusDraft',
+    SUBMITTED: 'workflow.inbox.statusSubmitted',
+    UNDER_REVIEW: 'workflow.inbox.statusUnderHrReview',
+    UNDER_HR_REVIEW: 'workflow.inbox.statusUnderHrReview',
+    UNDER_ADMIN_REVIEW: 'workflow.inbox.statusUnderAdminReview',
+    APPROVED: 'workflow.inbox.approved',
+    REJECTED: 'workflow.inbox.statusRejected',
+    AMENDED: 'workflow.inbox.statusAmended',
+  };
+  return t(keyMap[status]) || status;
+};
+
 /**
- * Group notifications by date and return ordered array of { label, items }.
+ * Group notifications by date and return ordered array of { label, items, subGroups }.
+ * Workflow notifications are further grouped by their status within each date bucket.
  */
 export const groupNotificationsByDate = (notifications, t) => {
   const groups = {};
@@ -72,7 +110,42 @@ export const groupNotificationsByDate = (notifications, t) => {
     groups[group].push(n);
   });
   const order = ['Today', 'Yesterday', 'This Week', 'Earlier'];
-  return order.filter(g => groups[g]).map(g => ({ label: getGroupLabel(g, t), items: groups[g] }));
+  return order.filter(g => groups[g]).map(g => {
+    const items = groups[g];
+    const workflowItems = items.filter(n => (n.type || '').startsWith('WORKFLOW'));
+    const otherItems = items.filter(n => !(n.type || '').startsWith('WORKFLOW'));
+
+    const statusGroups = {};
+    workflowItems.forEach(n => {
+      const status = getWorkflowStatusKey(n);
+      if (!statusGroups[status]) statusGroups[status] = [];
+      statusGroups[status].push(n);
+    });
+
+    const subGroups = Object.entries(statusGroups)
+      .map(([status, statusItems]) => ({
+        label: getWorkflowStatusLabel(status, t),
+        items: statusItems,
+        isWorkflow: true,
+        status,
+      }))
+      .sort((a, b) => WORKFLOW_STATUS_ORDER.indexOf(a.status) - WORKFLOW_STATUS_ORDER.indexOf(b.status));
+
+    if (otherItems.length > 0) {
+      subGroups.push({
+        label: null,
+        items: otherItems,
+        isWorkflow: false,
+      });
+    }
+
+    return {
+      label: getGroupLabel(g, t),
+      items,
+      subGroups: subGroups.length > 0 ? subGroups : null,
+      workflowCount: workflowItems.length,
+    };
+  });
 };
 
 /**

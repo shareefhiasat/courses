@@ -82,8 +82,8 @@ function getInitialColWidths() {
   return widths;
 }
 
-function BoardStatusDot({ column, pulse = false }) {
-  const color = ATTENDANCE_BOARD_COLORS[column] || '#6b7280';
+function BoardStatusDot({ column, color: overrideColor, pulse = false }) {
+  const color = overrideColor || ATTENDANCE_BOARD_COLORS[column] || '#6b7280';
   return (
     <span
       className={`inline-block h-2.5 w-2.5 shrink-0 rounded-full ${pulse && column === 'NOT_TAKEN' ? gridStyles.legendDotPulse : ''}`}
@@ -315,7 +315,7 @@ export default function BoardTableView({ data, columns, onCardClick, t, lang = '
         return col && (
           <ColoredTooltip title={t(col.i18nKey) || col.name} color={col.color} placement="top">
             <span className="inline-flex justify-center">
-              <BoardStatusDot column={item.column} pulse />
+              <BoardStatusDot column={item.column} color={col.color} pulse />
             </span>
           </ColoredTooltip>
         );
@@ -377,7 +377,7 @@ export default function BoardTableView({ data, columns, onCardClick, t, lang = '
                 data-testid={`operations-board-table-status-filter-${status}`}
                 style={col ? { '--chip-color': col.color, '--chip-fg': col.color } : undefined}
               >
-                {col && <BoardStatusDot column={status} pulse />}
+                {col && <BoardStatusDot column={status} color={col.color} pulse />}
                 {label}
               </button>
             );

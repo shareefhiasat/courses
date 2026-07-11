@@ -453,9 +453,11 @@ export const getScheduleStatus = async ({ classIds, date }) => {
       }),
     ]);
 
-    const presentCodes = new Set(['PRESENT', 'P', 'LATE', 'L']);
-    const lateCodes = new Set(['LATE', 'L']);
-    const absentCodes = new Set(['ABSENT', 'A', 'ABSENT_EXCUSED', 'ABSENT_UNEXCUSED']);
+    const presentCodes = new Set(['PRESENT', 'P', 'ATTENDANCE_PRESENT']);
+    const lateCodes = new Set(['LATE', 'L', 'ATTENDANCE_LATE']);
+    const absentCodes = new Set(['ABSENT', 'A', 'ABSENT_UNEXCUSED', 'ATTENDANCE_ABSENT']);
+    const excusedCodes = new Set(['ABSENT_EXCUSED', 'EXCUSED', 'EXCUSED_LEAVE', 'ATTENDANCE_LEAVE', 'LEAVE']);
+    const humanCaseCodes = new Set(['HUMAN_CASE', 'ATTENDANCE_HUMAN_CASE']);
 
     const resolveUserName = (user) => {
       if (!user) return { actorNameEn: null, actorNameAr: null };
@@ -478,12 +480,23 @@ export const getScheduleStatus = async ({ classIds, date }) => {
       let presentCount = 0;
       let lateCount = 0;
       let absentCount = 0;
+      let excusedCount = 0;
+      let humanCaseCount = 0;
 
       for (const att of classAttendances) {
         const code = (att.status?.code || '').toUpperCase();
-        if (lateCodes.has(code)) lateCount += 1;
-        if (presentCodes.has(code)) presentCount += 1;
-        else if (absentCodes.has(code)) absentCount += 1;
+        if (lateCodes.has(code)) {
+          lateCount += 1;
+          presentCount += 1;
+        } else if (presentCodes.has(code)) {
+          presentCount += 1;
+        } else if (humanCaseCodes.has(code)) {
+          humanCaseCount += 1;
+        } else if (excusedCodes.has(code)) {
+          excusedCount += 1;
+        } else if (absentCodes.has(code)) {
+          absentCount += 1;
+        }
       }
 
       let statusHistory = (classWorkflow?.statusHistory || []).map((entry) => {
@@ -515,6 +528,16 @@ export const getScheduleStatus = async ({ classIds, date }) => {
         presentCount,
         lateCount,
         absentCount,
+        excusedCount,
+        humanCaseCount,
+        attendanceSummary: {
+          present: presentCount,
+          late: lateCount,
+          absent: absentCount,
+          excused: excusedCount,
+          humanCase: humanCaseCount,
+          notTaken: 0,
+        },
         workflowStatus: classWorkflow?.status || null,
         workflowDocumentId: classWorkflow?.id || null,
         statusHistory,

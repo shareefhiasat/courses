@@ -11,15 +11,21 @@ import { loadWeeklyScheduleSources } from '@services/business/weeklyScheduleExpo
 import { prepareWeeklyScheduleData } from '@services/export/official-reports/engine/prepareWeeklyScheduleData.js';
 import { buildSlotWindowsFromTimeSlots } from '@services/export/official-reports/engine/buildWeeklyScheduleFromSessions.js';
 import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
+import { formatDate } from '@utils/date-formatter.js';
 import {
   SCHEDULE_CALENDAR_LEGEND,
   buildClassCalendarEvents,
   collectDatesWithSessions,
   extractWeeklyClassSessions,
   getWorkflowEventColor,
+  getAttendanceCountsFromStatus,
+  getWorkflowStatusLabel,
+  resolveAttendanceEventColor,
+  ATTENDANCE_COUNT_ITEMS,
   toApiDate,
   toIsoDate,
 } from './boardClassCalendarUtils.js';
+import { ATTENDANCE_COLUMNS } from '@services/business/operationsBoardService.js';
 import {
   CalendarDays,
   CalendarRange,
@@ -30,11 +36,12 @@ import {
   CalendarCheck,
   Eye,
   EyeOff,
+  Workflow as WorkflowIcon,
 } from 'lucide-react';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import '@components/ui/Calendar/Calendar.css';
 
-const PURPLE_TOOLTIP = '#8b5cf6';
+const NEUTRAL_TOOLTIP = '#64748b';
 
 /** Visible hours in week/day time views: 05:00 – 23:45 */
 const CALENDAR_MIN_TIME = new Date(1970, 0, 1, 5, 0, 0);
@@ -82,17 +89,17 @@ function CalendarToolbar({ label, view, views, onNavigate, onView }) {
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '4px 8px', gap: '8px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-        <ColoredTooltip title={t('calendar_today') || 'Today'} color={PURPLE_TOOLTIP}>
+        <ColoredTooltip title={t('calendar_today') || 'Today'} color={NEUTRAL_TOOLTIP}>
           <IconButton size="small" onClick={() => onNavigate('TODAY')} sx={navBtnSx}>
             <CalendarCheck size={16} />
           </IconButton>
         </ColoredTooltip>
-        <ColoredTooltip title={t('calendar_previous') || 'Previous'} color={PURPLE_TOOLTIP}>
+        <ColoredTooltip title={t('calendar_previous') || 'Previous'} color={NEUTRAL_TOOLTIP}>
           <IconButton size="small" onClick={() => onNavigate('PREV')} sx={navBtnSx}>
             <ChevronLeft size={16} />
           </IconButton>
         </ColoredTooltip>
-        <ColoredTooltip title={t('calendar_next') || 'Next'} color={PURPLE_TOOLTIP}>
+        <ColoredTooltip title={t('calendar_next') || 'Next'} color={NEUTRAL_TOOLTIP}>
           <IconButton size="small" onClick={() => onNavigate('NEXT')} sx={navBtnSx}>
             <ChevronRight size={16} />
           </IconButton>
@@ -108,15 +115,15 @@ function CalendarToolbar({ label, view, views, onNavigate, onView }) {
           const isActive = view === v;
           const labelMap = { month: t('calendar_month') || 'Month', week: t('calendar_week') || 'Week', day: t('calendar_day') || 'Day', agenda: t('operations_board_calendar_agenda') || 'Agenda' };
           return (
-            <ColoredTooltip key={v} title={labelMap[v]} color={PURPLE_TOOLTIP}>
+            <ColoredTooltip key={v} title={labelMap[v]} color={NEUTRAL_TOOLTIP}>
               <IconButton size="small" onClick={() => onView(v)} sx={viewBtnSx(isActive)}>
                 <Icon size={16} />
               </IconButton>
             </ColoredTooltip>
           );
         })}
-        {onToggleWeekend && view === 'week' && (
-          <ColoredTooltip title={hideWeekend ? (t('calendar_show_weekend') || 'Show weekend') : (t('calendar_hide_weekend') || 'Hide weekend')} color={PURPLE_TOOLTIP}>
+        {onToggleWeekend && (view === 'week' || view === 'month') && (
+          <ColoredTooltip title={hideWeekend ? (t('calendar_show_weekend') || 'Show weekend') : (t('calendar_hide_weekend') || 'Hide weekend')} color={NEUTRAL_TOOLTIP}>
             <IconButton size="small" onClick={onToggleWeekend} sx={viewBtnSx(!hideWeekend)}>
               {hideWeekend ? <EyeOff size={16} /> : <Eye size={16} />}
             </IconButton>
@@ -177,13 +184,17 @@ function CalendarToolbar({ label, view, views, onNavigate, onView }) {
   );
 }
 
-function AgendaEvent({ event, t, zoomFactor = 1 }) {
+function AgendaEvent({ event, t, lang = 'en', zoomFactor = 1, isDark = false, lane = 'status' }) {
   const r = event.resource || {};
-  const color = getWorkflowEventColor(r.workflowKey);
+  const color = lane === 'attendance'
+    ? resolveAttendanceEventColor(r.status)
+    : getWorkflowEventColor(r.workflowKey);
+  const iconSize = Math.round(12 * zoomFactor);
+  const textColor = isDark ? '#e2e8f0' : '#1e293b';
   return (
     <ColoredTooltip
-      title={<AttendanceSummaryTooltip event={event} t={t} />}
-      color={PURPLE_TOOLTIP}
+      title={<AttendanceSummaryTooltip event={event} t={t} lang={lang} lane={lane} />}
+      color={color}
       placement="top"
       arrow
     >
@@ -193,15 +204,19 @@ function AgendaEvent({ event, t, zoomFactor = 1 }) {
         gap: '2px',
         borderLeft: `4px solid ${color}`,
         paddingLeft: '8px',
+        color: textColor,
       }}>
-        <span style={{ fontWeight: 600 }}>{event.title}</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          {lane !== 'attendance' && <WorkflowIcon size={iconSize} style={{ color, flexShrink: 0 }} />}
+          <span style={{ fontWeight: 600, color: textColor }}>{event.title}</span>
+        </div>
         {r.instructor && (
-          <span style={{ fontSize: '0.7rem', opacity: 0.85 }}>
+          <span style={{ fontSize: '0.7rem', opacity: 0.85, color: textColor }}>
             {t('class_instructor') || 'Instructor'}: {r.instructor}
           </span>
         )}
         {r.room && (
-          <span style={{ fontSize: '0.7rem', opacity: 0.85 }}>
+          <span style={{ fontSize: '0.7rem', opacity: 0.85, color: textColor }}>
             {t('room') || 'Room'}: {r.room}
           </span>
         )}
@@ -210,47 +225,56 @@ function AgendaEvent({ event, t, zoomFactor = 1 }) {
   );
 }
 
-function AttendanceSummaryTooltip({ event, t }) {
+function AttendanceCountsBreakdown({ counts, t, fontSize = '0.7rem' }) {
+  if (!counts) return null;
+  const items = ATTENDANCE_COUNT_ITEMS
+    .map((item) => ({ ...item, count: counts[item.key] || 0 }))
+    .filter((item) => item.count > 0);
+  if (!items.length) return null;
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+      {items.map((item) => (
+        <div key={item.key} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+          <span style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: item.color }} />
+          <span style={{ fontSize }}>{item.count} {t(item.labelKey) || item.fallback}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function AttendanceSummaryTooltip({ event, t, lang = 'en', lane = 'status' }) {
   const r = event.resource || {};
   const status = r.status || {};
   const workflowKey = r.workflowKey;
-  const counts = status.attendanceSummary || status.counts || null;
+  const counts = getAttendanceCountsFromStatus(status);
   const takenBy = status.takenBy || status.attendanceTakenBy || null;
   const takenAt = status.takenAt || status.attendanceTakenAt || null;
+  const creatorName = status.createdBy || status.submittedBy || status.takenBy || status.attendanceTakenBy || null;
+  const eventDate = r.date || (event.start ? toIsoDate(event.start) : null);
 
-  const statusColor = getWorkflowEventColor(workflowKey);
-  const statusLabel = (() => {
-    switch (workflowKey) {
-      case 'not_taken': return t('workspace_status_not_taken') || 'Not Taken';
-      case 'draft': return t('workspace_status_draft') || 'Draft';
-      case 'taken': return t('workspace_status_taken') || 'Taken';
-      case 'submitted': return t('workspace_status_submitted') || 'Submitted';
-      default: return workflowKey || '—';
-    }
-  })();
-
-  const summaryItems = counts ? [
-    { label: t('present') || 'Present', count: counts.present || 0, color: '#10b981' },
-    { label: t('late') || 'Late', count: counts.late || 0, color: '#f59e0b' },
-    { label: t('absent') || 'Absent', count: counts.absent || 0, color: '#ef4444' },
-    { label: t('excused') || 'Excused', count: counts.excused || 0, color: '#ec4899' },
-  ].filter((item) => item.count > 0) : [];
+  const isAttendanceLane = lane === 'attendance';
+  const statusColor = isAttendanceLane
+    ? resolveAttendanceEventColor(status)
+    : getWorkflowEventColor(workflowKey);
+  const statusLabel = isAttendanceLane
+    ? (counts && status.hasAttendance
+      ? (t('attendance_summary') || 'Attendance Summary')
+      : (t('workspace_status_not_taken') || 'Not yet'))
+    : getWorkflowStatusLabel(workflowKey, t);
 
   return (
-    <div style={{ maxWidth: 240 }}>
+    <div style={{ maxWidth: 260 }}>
       <div style={{ fontWeight: 700, marginBottom: 4 }}>{event.title}</div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 4, marginBottom: 6 }}>
-        <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: statusColor }} />
-        <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>{statusLabel}</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 6 }}>
+        {!isAttendanceLane && (
+          <WorkflowIcon size={14} style={{ color: statusColor, flexShrink: 0 }} />
+        )}
+        <span style={{ fontSize: '0.75rem', fontWeight: 600, color: statusColor }}>{statusLabel}</span>
       </div>
-      {summaryItems.length > 0 && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 6 }}>
-          {summaryItems.map((item) => (
-            <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-              <span style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: item.color }} />
-              <span style={{ fontSize: '0.7rem' }}>{item.count} {item.label}</span>
-            </div>
-          ))}
+      {counts && (
+        <div style={{ marginBottom: 6 }}>
+          <AttendanceCountsBreakdown counts={counts} t={t} />
         </div>
       )}
       {r.instructor && (
@@ -261,6 +285,16 @@ function AttendanceSummaryTooltip({ event, t }) {
       {r.room && (
         <div style={{ fontSize: '0.7rem', opacity: 0.8, marginBottom: 2 }}>
           {t('room') || 'Room'}: {r.room}
+        </div>
+      )}
+      {eventDate && (
+        <div style={{ fontSize: '0.7rem', opacity: 0.8, marginBottom: 2 }}>
+          {t('date') || 'Date'}: {formatDate(eventDate, lang)}
+        </div>
+      )}
+      {creatorName && (
+        <div style={{ fontSize: '0.7rem', opacity: 0.8, marginBottom: 2 }}>
+          {t('creator') || 'Creator'}: {creatorName}
         </div>
       )}
       {takenBy && (
@@ -277,26 +311,33 @@ function AttendanceSummaryTooltip({ event, t }) {
   );
 }
 
-function DayWeekEvent({ event, t, zoomFactor = 1 }) {
+function DayWeekEvent({ event, t, lang = 'en', zoomFactor = 1, lane = 'status' }) {
   const r = event.resource || {};
+  const iconSize = Math.round(12 * zoomFactor);
+  const color = lane === 'attendance'
+    ? resolveAttendanceEventColor(r.status)
+    : getWorkflowEventColor(r.workflowKey);
   return (
     <ColoredTooltip
-      title={<AttendanceSummaryTooltip event={event} t={t} />}
-      color={PURPLE_TOOLTIP}
+      title={<AttendanceSummaryTooltip event={event} t={t} lang={lang} lane={lane} />}
+      color={color}
       placement="top"
       arrow
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', overflow: 'hidden' }}>
-        <span style={{ fontWeight: 600, fontSize: `${0.75 * zoomFactor}rem`, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-          {event.title}
-        </span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
+          {lane !== 'attendance' && <WorkflowIcon size={iconSize} style={{ color: '#fff', flexShrink: 0 }} />}
+          <span style={{ fontWeight: 600, fontSize: `${0.85 * zoomFactor}rem`, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+            {event.title}
+          </span>
+        </div>
         {r.instructor && (
-          <span style={{ fontSize: `${0.65 * zoomFactor}rem`, opacity: 0.85, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <span style={{ fontSize: `${0.75 * zoomFactor}rem`, opacity: 0.85, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {r.instructor}
           </span>
         )}
         {r.room && (
-          <span style={{ fontSize: `${0.65 * zoomFactor}rem`, opacity: 0.8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <span style={{ fontSize: `${0.75 * zoomFactor}rem`, opacity: 0.8, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {r.room}
           </span>
         )}
@@ -305,13 +346,16 @@ function DayWeekEvent({ event, t, zoomFactor = 1 }) {
   );
 }
 
-function MonthEvent({ event, t }) {
+function MonthEvent({ event, t, lang = 'en', zoomFactor = 1, lane = 'status' }) {
   const r = event.resource || {};
-  const color = getWorkflowEventColor(r.workflowKey);
+  const color = lane === 'attendance'
+    ? resolveAttendanceEventColor(r.status)
+    : getWorkflowEventColor(r.workflowKey);
+  const iconSize = Math.round(10 * zoomFactor);
   return (
     <ColoredTooltip
-      title={<AttendanceSummaryTooltip event={event} t={t} />}
-      color={PURPLE_TOOLTIP}
+      title={<AttendanceSummaryTooltip event={event} t={t} lang={lang} lane={lane} />}
+      color={color}
       placement="top"
       arrow
     >
@@ -327,13 +371,26 @@ function MonthEvent({ event, t }) {
         padding: '1px 4px',
         borderLeft: `3px solid ${color}`,
       }}>
+        <WorkflowIcon size={iconSize} style={{ color: lane === 'attendance' ? color : '#fff', flexShrink: 0 }} />
         <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{event.title}</span>
       </div>
     </ColoredTooltip>
   );
 }
 
-function WeekDayHeader({ label, t, zoomFactor = 1, date, selectedDate }) {
+const WORKING_DAY_CODES = new Set(['Sun', 'Mon', 'Tue', 'Wed', 'Thu']);
+
+function isSameCalendarWeek(a, b) {
+  const startA = new Date(a);
+  startA.setDate(startA.getDate() - startA.getDay());
+  startA.setHours(0, 0, 0, 0);
+  const startB = new Date(b);
+  startB.setDate(startB.getDate() - startB.getDay());
+  startB.setHours(0, 0, 0, 0);
+  return startA.getTime() === startB.getTime();
+}
+
+function WeekDayHeader({ label, t, zoomFactor = 1, date, hideWeekend = false }) {
   const { dayName, dateStr, isToday } = useMemo(() => {
     if (!label) return { dayName: '', dateStr: '', isToday: false };
     const match = label.match(/^(\S+)\s*(\d+)?/);
@@ -351,9 +408,12 @@ function WeekDayHeader({ label, t, zoomFactor = 1, date, selectedDate }) {
         const dayDate = new Date(weekStart);
         dayDate.setDate(dayDate.getDate() + dayIndex);
         datePart = `${String(dayDate.getDate()).padStart(2, '0')}/${String(dayDate.getMonth() + 1).padStart(2, '0')}`;
-        if (selectedDate) {
-          const sel = selectedDate instanceof Date ? selectedDate : new Date(selectedDate);
-          isToday = dayDate.getDate() === sel.getDate() && dayDate.getMonth() === sel.getMonth() && dayDate.getFullYear() === sel.getFullYear();
+        const realToday = new Date();
+        isToday = dayDate.getDate() === realToday.getDate()
+          && dayDate.getMonth() === realToday.getMonth()
+          && dayDate.getFullYear() === realToday.getFullYear();
+        if (hideWeekend && !WORKING_DAY_CODES.has(day)) {
+          isToday = false;
         }
       } else {
         datePart = String(dayNum).padStart(2, '0');
@@ -362,7 +422,7 @@ function WeekDayHeader({ label, t, zoomFactor = 1, date, selectedDate }) {
       datePart = String(dayNum).padStart(2, '0');
     }
     return { dayName: day, dateStr: datePart, isToday };
-  }, [label, date, selectedDate]);
+  }, [label, date, hideWeekend]);
   return (
     <span style={{ fontSize: `${0.7 * zoomFactor}rem`, fontWeight: 600, textTransform: 'capitalize', display: 'flex', alignItems: 'center', gap: '4px', ...(isToday ? { color: '#3b82f6' } : {}) }}>
       {dayName}
@@ -424,14 +484,18 @@ export default function BoardScheduleCalendar({
   onDateSelect,
   welcomeContext = null,
   onClassSessionClick,
+  lane = 'status',
 }) {
   const { t, lang } = useLang();
   const theme = useTheme();
   const calendarBoxRef = useRef(null);
   const [view, setView] = useState('week');
   const [hideWeekend, setHideWeekend] = useState(() => {
-    try { return localStorage.getItem('calendarHideWeekend') === '1'; }
-    catch { return false; }
+    try {
+      const stored = localStorage.getItem('calendarHideWeekend');
+      if (stored === null) return true;
+      return stored === '1';
+    } catch { return true; }
   });
   const toggleWeekend = useCallback(() => {
     setHideWeekend((prev) => {
@@ -440,6 +504,7 @@ export default function BoardScheduleCalendar({
       return next;
     });
   }, []);
+  const isWorkingToday = new Date().getDay() <= 4;
   const [calendarZoom, setCalendarZoom] = useState(() => {
     try { return parseInt(localStorage.getItem('calendarZoom') || '100', 10); }
     catch { return 100; }
@@ -591,11 +656,33 @@ export default function BoardScheduleCalendar({
     [weeklySessions, slotWindows, rangeStartMs, rangeEndMs, statusByDate]
   );
 
+  const isDark = theme.palette.mode === 'dark';
+
   const eventStyleGetter = useMemo(() => (event) => {
     const workflowKey = event.resource?.workflowKey;
-    const color = getWorkflowEventColor(workflowKey);
+    const color = lane === 'attendance'
+      ? resolveAttendanceEventColor(event.resource?.status)
+      : getWorkflowEventColor(workflowKey);
     const now = Date.now();
     const isCurrent = event.start && event.end && now >= event.start.getTime() && now <= event.end.getTime();
+
+    if (view === 'agenda') {
+      return {
+        style: {
+          backgroundColor: isDark ? '#1e293b' : '#ffffff',
+          color: isDark ? '#e2e8f0' : '#1e293b',
+          borderRadius: '6px',
+          border: `1px solid ${isDark ? '#334155' : '#e2e8f0'}`,
+          borderLeft: `4px solid ${color}`,
+          boxShadow: 'none',
+          fontSize: `${0.8 * zoomFactor}rem`,
+          padding: `${4 * zoomFactor}px ${8 * zoomFactor}px`,
+          cursor: 'pointer',
+          opacity: 1,
+        },
+      };
+    }
+
     return {
       style: {
         backgroundColor: color,
@@ -603,7 +690,7 @@ export default function BoardScheduleCalendar({
         borderRadius: '6px',
         border: isCurrent ? '2px solid rgb(14, 165, 233)' : `1px solid ${color}`,
         boxShadow: isCurrent ? '0 0 12px rgba(14, 165, 233, 0.65), inset 0 0 0 1px rgba(255,255,255,0.3)' : 'none',
-        fontSize: `${0.75 * zoomFactor}rem`,
+        fontSize: `${0.8 * zoomFactor}rem`,
         padding: `${2 * zoomFactor}px ${6 * zoomFactor}px`,
         cursor: 'pointer',
         opacity: 1,
@@ -611,7 +698,7 @@ export default function BoardScheduleCalendar({
       },
       className: isCurrent ? 'rbc-event-current' : undefined,
     };
-  }, [zoomFactor]);
+  }, [zoomFactor, view, isDark, lane]);
 
   const messages = useMemo(() => ({
     today: t('calendar_today') || 'Today',
@@ -635,8 +722,6 @@ export default function BoardScheduleCalendar({
 
   const showInitialLoader = scheduleLoading && !weeklySessions.length;
   const missingContext = !welcomeContext?.programId || !welcomeContext?.termId;
-
-  const isDark = theme.palette.mode === 'dark';
 
   // Resizable day columns in week view
   useEffect(() => {
@@ -736,20 +821,20 @@ export default function BoardScheduleCalendar({
   const calendarComponents = useMemo(() => ({
     toolbar: CalendarToolbar,
     agenda: {
-      event: (props) => <AgendaEvent {...props} t={t} zoomFactor={zoomFactor} />,
+      event: (props) => <AgendaEvent {...props} t={t} lang={lang} zoomFactor={zoomFactor} isDark={isDark} lane={lane} />,
     },
     month: {
-      event: (props) => <MonthEvent {...props} t={t} />,
+      event: (props) => <MonthEvent {...props} t={t} lang={lang} zoomFactor={zoomFactor} lane={lane} />,
     },
     day: {
-      event: (props) => <DayWeekEvent {...props} t={t} zoomFactor={zoomFactor} />,
-      header: (props) => <WeekDayHeader {...props} t={t} zoomFactor={zoomFactor} date={currentDate} selectedDate={currentDate} />,
+      event: (props) => <DayWeekEvent {...props} t={t} lang={lang} zoomFactor={zoomFactor} lane={lane} />,
+      header: (props) => <WeekDayHeader {...props} t={t} zoomFactor={zoomFactor} date={currentDate} hideWeekend={hideWeekend} />,
     },
     week: {
-      event: (props) => <DayWeekEvent {...props} t={t} zoomFactor={zoomFactor} />,
-      header: (props) => <WeekDayHeader {...props} t={t} zoomFactor={zoomFactor} date={currentDate} selectedDate={currentDate} />,
+      event: (props) => <DayWeekEvent {...props} t={t} lang={lang} zoomFactor={zoomFactor} lane={lane} />,
+      header: (props) => <WeekDayHeader {...props} t={t} zoomFactor={zoomFactor} date={currentDate} hideWeekend={hideWeekend} />,
     },
-  }), [t, zoomFactor, currentDate]);
+  }), [t, lang, zoomFactor, currentDate, isDark, hideWeekend, lane]);
 
   const toolbarContextValue = useMemo(() => ({
     t, isDark, date: currentDate, hideWeekend, onToggleWeekend: toggleWeekend, zoom: calendarZoom, onZoomChange: handleZoomChange, onZoomCommit: handleZoomCommit,
@@ -772,8 +857,11 @@ export default function BoardScheduleCalendar({
           overflow: 'hidden',
           border: 1,
           borderColor: 'divider',
+          display: 'flex',
+          flexDirection: 'column',
           '& .rbc-calendar': {
             fontFamily: 'inherit',
+            flex: 1,
             bgcolor: isDark ? '#0f172a' : '#fff',
             color: isDark ? '#e2e8f0' : '#1e293b',
           },
@@ -787,9 +875,19 @@ export default function BoardScheduleCalendar({
           '& .rbc-off-range-bg': {
             bgcolor: isDark ? 'rgba(15,23,42,0.5)' : '#f8fafc',
           },
-          '& .rbc-today': {
+          '& .rbc-today': hideWeekend ? {
+            backgroundColor: 'transparent !important',
+          } : {
             bgcolor: isDark ? 'rgba(59,130,246,0.12)' : 'rgba(59,130,246,0.08)',
           },
+          '& .rbc-working-today': {
+            bgcolor: isDark ? 'rgba(59,130,246,0.12)' : 'rgba(59,130,246,0.08)',
+          },
+          ...(hideWeekend && !isWorkingToday ? {
+            '& .rbc-current-time-indicator': {
+              display: 'none !important',
+            },
+          } : {}),
           '& .rbc-time-column, & .rbc-label': {
             fontSize: `${0.7 * zoomFactor}rem !important`,
           },
@@ -825,7 +923,7 @@ export default function BoardScheduleCalendar({
           '& .rbc-time-header-content': {
             borderBottom: 'none',
           },
-          // Hide Fri (6th) and Sat (7th) columns in week view when hideWeekend is true
+          // Hide Fri (6th) and Sat (7th) columns in week/month view when hideWeekend is true
           ...(hideWeekend ? {
             '& .rbc-time-view .rbc-header:nth-child(6), & .rbc-time-view .rbc-header:nth-child(7)': {
               display: 'none !important',
@@ -836,7 +934,32 @@ export default function BoardScheduleCalendar({
             '& .rbc-time-view .rbc-day-bg:nth-child(6), & .rbc-time-view .rbc-day-bg:nth-child(7)': {
               display: 'none !important',
             },
+            '& .rbc-month-view .rbc-header:nth-child(6), & .rbc-month-view .rbc-header:nth-child(7)': {
+              display: 'none !important',
+            },
+            '& .rbc-month-view .rbc-day-bg:nth-child(6), & .rbc-month-view .rbc-day-bg:nth-child(7)': {
+              display: 'none !important',
+            },
+            '& .rbc-month-view .rbc-row-content .rbc-row .rbc-date-cell:nth-child(6), & .rbc-month-view .rbc-row-content .rbc-row .rbc-date-cell:nth-child(7)': {
+              display: 'none !important',
+            },
+            '& .rbc-month-view .rbc-row-content .rbc-row .rbc-event-content:nth-child(6), & .rbc-month-view .rbc-row-content .rbc-row .rbc-event-content:nth-child(7)': {
+              display: 'none !important',
+            },
           } : {}),
+          '& .rbc-agenda-view table.rbc-agenda-table': {
+            backgroundColor: isDark ? '#0f172a' : '#ffffff',
+          },
+          '& .rbc-agenda-view .rbc-agenda-date-cell, & .rbc-agenda-view .rbc-agenda-time-cell': {
+            backgroundColor: isDark ? '#1e293b' : '#ffffff',
+            color: isDark ? '#e2e8f0' : '#1e293b',
+            borderColor: theme.palette.divider,
+          },
+          '& .rbc-agenda-view .rbc-agenda-event-cell': {
+            backgroundColor: `${isDark ? '#1e293b' : '#ffffff'} !important`,
+            color: `${isDark ? '#e2e8f0' : '#1e293b'} !important`,
+            borderColor: theme.palette.divider,
+          },
           // Shadow for the selected day column in week view
           '& .rbc-time-view .rbc-day-slot.rbc-selected-day, & .rbc-time-view .rbc-header.rbc-selected-day': {
             boxShadow: `inset 0 0 0 2px ${isDark ? 'rgba(59,130,246,0.4)' : 'rgba(59,130,246,0.3)'}`,
@@ -878,19 +1001,35 @@ export default function BoardScheduleCalendar({
             onView={setView}
             views={VIEW_OPTIONS}
             date={currentDate}
-            onNavigate={(date) => onDateSelect?.(date)}
+            onNavigate={(date) => {
+              if (view === 'week') {
+                const weekStart = dfStartOfWeek(date, { weekStartsOn: 0 });
+                onDateSelect?.(toIsoDate(weekStart));
+              } else {
+                onDateSelect?.(toIsoDate(date));
+              }
+            }}
             onRangeChange={handleRangeChange}
             selectable
-            onSelectSlot={({ start }) => onDateSelect?.(start)}
+            onSelectSlot={({ start }) => onDateSelect?.(toIsoDate(start))}
             onSelectEvent={handleSelectEvent}
             eventPropGetter={eventStyleGetter}
             tooltipAccessor={null}
             dayPropGetter={(d) => {
+              const classes = [];
               const sel = currentDate instanceof Date ? currentDate : new Date(currentDate);
               if (d.getDate() === sel.getDate() && d.getMonth() === sel.getMonth() && d.getFullYear() === sel.getFullYear()) {
-                return { className: 'rbc-selected-day' };
+                classes.push('rbc-selected-day');
               }
-              return {};
+              const now = new Date();
+              const isRealToday = d.getDate() === now.getDate()
+                && d.getMonth() === now.getMonth()
+                && d.getFullYear() === now.getFullYear();
+              const isWorkingDay = d.getDay() >= 0 && d.getDay() <= 4;
+              if (isRealToday && isWorkingDay) {
+                classes.push('rbc-working-today');
+              }
+              return classes.length ? { className: classes.join(' ') } : {};
             }}
             messages={messages}
             components={calendarComponents}
@@ -912,53 +1051,90 @@ export default function BoardScheduleCalendar({
       <div
         style={{
           display: 'flex',
-          flexWrap: 'wrap',
-          gap: '6px',
+          flexDirection: 'column',
+          gap: '4px',
           padding: '6px 12px',
           borderTop: `1px solid ${theme.palette.mode === 'dark' ? '#334155' : '#e2e8f0'}`,
+          flexShrink: 0,
         }}
         data-testid="operations-board-calendar-legend"
       >
-        {SCHEDULE_CALENDAR_LEGEND.map((item) => {
-          const color = getWorkflowEventColor(item.key);
-          return (
-            <span
-              key={item.key}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '4px',
-                padding: '2px 8px',
-                borderRadius: '12px',
-                fontSize: '0.75rem',
-                fontWeight: 500,
-                backgroundColor: `${color}18`,
-                color,
-                border: `1px solid ${color}40`,
-              }}
-            >
-              <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: color }} />
-              {t(item.i18nKey)}
-            </span>
-          );
-        })}
-        <span
-          style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: '4px',
-            padding: '2px 8px',
-            borderRadius: '12px',
-            fontSize: '0.75rem',
-            fontWeight: 500,
-            backgroundColor: 'rgba(14, 165, 233, 0.1)',
-            color: 'rgb(14, 165, 233)',
-            border: '1px solid rgba(14, 165, 233, 0.25)',
-          }}
-        >
-          <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: 'rgb(14, 165, 233)', boxShadow: '0 0 6px rgba(14, 165, 233, 0.55)' }} />
-          {t('workspace_lecture_in_progress') || 'Current class'}
-        </span>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
+          {lane === 'attendance' && (
+            <>
+              <span style={{ fontSize: '0.7rem', fontWeight: 700, opacity: 0.6, marginRight: 2 }}>
+                {t('operations_board_tab_attendance') || 'Attendance'}:
+              </span>
+              {ATTENDANCE_COLUMNS.map((item) => (
+                <span
+                  key={item.id}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: '4px',
+                    padding: '2px 8px',
+                    borderRadius: '12px',
+                    fontSize: '0.75rem',
+                    fontWeight: 500,
+                    backgroundColor: `${item.color}18`,
+                    color: item.color,
+                    border: `1px solid ${item.color}40`,
+                  }}
+                >
+                  <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: item.color }} />
+                  {t(item.i18nKey) || item.name}
+                </span>
+              ))}
+            </>
+          )}
+        </div>
+        {lane === 'status' && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
+          <span style={{ fontSize: '0.7rem', fontWeight: 700, opacity: 0.6, marginRight: 2 }}>
+            {t('operations_board_tab_workflow') || 'Workflow'}:
+          </span>
+          {SCHEDULE_CALENDAR_LEGEND.map((item) => {
+            const color = getWorkflowEventColor(item.key);
+            return (
+              <span
+                key={item.key}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '2px 8px',
+                  borderRadius: '12px',
+                  fontSize: '0.75rem',
+                  fontWeight: 500,
+                  backgroundColor: `${color}18`,
+                  color,
+                  border: `1px solid ${color}40`,
+                }}
+              >
+                <WorkflowIcon size={12} style={{ color }} />
+                {t(item.i18nKey)}
+              </span>
+            );
+          })}
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px',
+              padding: '2px 8px',
+              borderRadius: '12px',
+              fontSize: '0.75rem',
+              fontWeight: 500,
+              backgroundColor: 'rgba(14, 165, 233, 0.1)',
+              color: 'rgb(14, 165, 233)',
+              border: '1px solid rgba(14, 165, 233, 0.25)',
+            }}
+          >
+            <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: 'rgb(14, 165, 233)', boxShadow: '0 0 6px rgba(14, 165, 233, 0.55)' }} />
+            {t('workspace_lecture_in_progress') || 'Current class'}
+          </span>
+        </div>
+        )}
       </div>
     </Stack>
   );

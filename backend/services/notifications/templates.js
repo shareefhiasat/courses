@@ -11,56 +11,56 @@ import { EVENTS, CATEGORIES, PRIORITIES, getCategoryFromEvent, getPriorityFromEv
 const RAW_TEMPLATES = {
   // Workflow events
   [EVENTS.WORKFLOW_SUBMITTED]: {
-    en: 'New attendance document submitted for review: {{workflowName}}',
-    ar: 'تم تقديم وثيقة حضور جديدة للمراجعة: {{workflowName}}'
+    en: '{{workflowName}}',
+    ar: '{{workflowName}}'
   },
   [EVENTS.WORKFLOW_ASSIGNED]: {
-    en: 'You have been assigned to a workflow: {{workflowName}}',
-    ar: 'تم تعيينك في سير عمل: {{workflowName}}'
+    en: '{{workflowName}}',
+    ar: '{{workflowName}}'
   },
   [EVENTS.WORKFLOW_APPROVED]: {
-    en: 'Workflow "{{workflowName}}" has been approved',
-    ar: 'تمت الموافقة على سير العمل "{{workflowName}}"'
+    en: '{{workflowName}}',
+    ar: '{{workflowName}}'
   },
   [EVENTS.WORKFLOW_REJECTED]: {
-    en: 'Workflow "{{workflowName}}" has been rejected',
-    ar: 'تم رفض سير العمل "{{workflowName}}"'
+    en: '{{workflowName}}',
+    ar: '{{workflowName}}'
   },
   [EVENTS.WORKFLOW_RETURNED]: {
-    en: 'Workflow "{{workflowName}}" has been returned for revision',
-    ar: 'تم إرجاع سير العمل "{{workflowName}}" للمراجعة'
+    en: '{{workflowName}}',
+    ar: '{{workflowName}}'
   },
   [EVENTS.WORKFLOW_SENT_FOR_REVIEW]: {
-    en: 'Workflow "{{workflowName}}" has been sent to you for review',
-    ar: 'تم إرسال سير العمل "{{workflowName}}" إليك للمراجعة'
+    en: '{{workflowName}}',
+    ar: '{{workflowName}}'
   },
   [EVENTS.WORKFLOW_RESUBMITTED]: {
-    en: 'Workflow "{{workflowName}}" has been resubmitted for review',
-    ar: 'تم إعادة تقديم سير العمل "{{workflowName}}" للمراجعة'
+    en: '{{workflowName}}',
+    ar: '{{workflowName}}'
   },
   [EVENTS.WORKFLOW_COMPLETED]: {
-    en: 'Workflow "{{workflowName}}" has been completed',
-    ar: 'تم إكمال سير العمل "{{workflowName}}"'
+    en: '{{workflowName}}',
+    ar: '{{workflowName}}'
   },
   [EVENTS.WORKFLOW_SLA_WARNING]: {
-    en: 'Workflow "{{workflowName}}" is approaching SLA deadline',
-    ar: 'سير العمل "{{workflowName}}" يقترب من موعد انتهاء SLA'
+    en: '{{workflowName}} — approaching deadline',
+    ar: '{{workflowName}} — يقترب من الموعد النهائي'
   },
   [EVENTS.WORKFLOW_SLA_OVERDUE]: {
-    en: 'Workflow "{{workflowName}}" has exceeded SLA deadline',
-    ar: 'تجاوز سير العمل "{{workflowName}}" موعد انتهاء SLA'
+    en: '{{workflowName}} — deadline exceeded',
+    ar: '{{workflowName}} — تجاوز الموعد النهائي'
   },
   [EVENTS.WORKFLOW_WITHDRAWN]: {
-    en: 'Workflow "{{workflowName}}" has been withdrawn by {{actorName}}',
-    ar: 'تم سحب سير العمل "{{workflowName}}" بواسطة {{actorName}}'
+    en: '{{workflowName}} — by {{actorName}}',
+    ar: '{{workflowName}} — بواسطة {{actorName}}'
   },
   [EVENTS.WORKFLOW_COMMENT_ADDED]: {
-    en: '{{authorName}} commented on workflow "{{workflowName}}": {{commentPreview}}',
-    ar: 'أضاف {{authorName}} تعليقاً على سير العمل "{{workflowName}}": {{commentPreview}}'
+    en: '{{authorName}}: {{commentPreview}}',
+    ar: '{{authorName}}: {{commentPreview}}'
   },
   [EVENTS.WORKFLOW_AMENDED]: {
-    en: 'Workflow "{{workflowName}}" has been amended',
-    ar: 'تم تعديل سير العمل "{{workflowName}}"'
+    en: '{{workflowName}}',
+    ar: '{{workflowName}}'
   },
   
   // Announcement events
@@ -478,6 +478,116 @@ const RAW_TEMPLATES = {
   }
 };
 
+const RAW_TITLE_TEMPLATES = {
+  [EVENTS.WORKFLOW_SUBMITTED]: { en: 'Workflow Submitted', ar: 'تم تقديم سير العمل' },
+  [EVENTS.WORKFLOW_ASSIGNED]: { en: 'Workflow Assigned', ar: 'تم تعيين سير عمل' },
+  [EVENTS.WORKFLOW_APPROVED]: { en: 'Workflow Approved', ar: 'تمت الموافقة على سير العمل' },
+  [EVENTS.WORKFLOW_REJECTED]: { en: 'Workflow Rejected', ar: 'تم رفض سير العمل' },
+  [EVENTS.WORKFLOW_RETURNED]: { en: 'Workflow Returned', ar: 'تم إرجاع سير العمل' },
+  [EVENTS.WORKFLOW_SENT_FOR_REVIEW]: { en: 'Review Requested', ar: 'طلب مراجعة' },
+  [EVENTS.WORKFLOW_RESUBMITTED]: { en: 'Workflow Resubmitted', ar: 'إعادة تقديم سير العمل' },
+  [EVENTS.WORKFLOW_COMPLETED]: { en: 'Workflow Completed', ar: 'تم إكمال سير العمل' },
+  [EVENTS.WORKFLOW_SLA_WARNING]: { en: 'SLA Warning', ar: 'تحذير SLA' },
+  [EVENTS.WORKFLOW_SLA_OVERDUE]: { en: 'SLA Overdue', ar: 'تجاوز SLA' },
+  [EVENTS.WORKFLOW_WITHDRAWN]: { en: 'Workflow Withdrawn', ar: 'تم سحب سير العمل' },
+  [EVENTS.WORKFLOW_COMMENT_ADDED]: { en: 'New Comment', ar: 'تعليق جديد' },
+  [EVENTS.WORKFLOW_AMENDED]: { en: 'Workflow Amended', ar: 'تم تعديل سير العمل' },
+  [EVENTS.ANNOUNCEMENT_POSTED]: { en: 'New Announcement', ar: 'إعلان جديد' },
+  [EVENTS.ANNOUNCEMENT_UPDATED]: { en: 'Announcement Updated', ar: 'تم تحديث الإعلان' },
+  [EVENTS.ANNOUNCEMENT_DELETED]: { en: 'Announcement Deleted', ar: 'تم حذف الإعلان' },
+  [EVENTS.QR_CODE_SENT]: { en: 'QR Code Sent', ar: 'تم إرسال رمز QR' },
+  [EVENTS.QR_CODE_GENERATED]: { en: 'QR Code Generated', ar: 'تم إنشاء رمز QR' },
+  [EVENTS.STANDUP_ATTENDANCE_MARKED]: { en: 'Standup Attendance Marked', ar: 'تم تسجيل الحضور اليومي' },
+  [EVENTS.STANDUP_ATTENDANCE_UPDATED]: { en: 'Standup Attendance Updated', ar: 'تم تحديث الحضور اليومي' },
+  [EVENTS.ATTENDANCE_MARKED]: { en: 'Attendance Marked', ar: 'تم تسجيل الحضور' },
+  [EVENTS.ATTENDANCE_MARKED_PRESENT]: { en: 'Marked Present', ar: 'تم تسجيل الحاضر' },
+  [EVENTS.ATTENDANCE_MARKED_ABSENT]: { en: 'Marked Absent', ar: 'تم تسجيل الغياب' },
+  [EVENTS.ATTENDANCE_MARKED_LATE]: { en: 'Marked Late', ar: 'تم تسجيل التأخير' },
+  [EVENTS.ATTENDANCE_MARKED_EXCUSED]: { en: 'Marked Excused', ar: 'تم تسجيل المعذور' },
+  [EVENTS.ATTENDANCE_THRESHOLD_WARNING]: { en: 'Attendance Warning', ar: 'تحذير الحضور' },
+  [EVENTS.ATTENDANCE_PATTERN_DETECTED]: { en: 'Attendance Pattern Detected', ar: 'تم اكتشاف نمط الحضور' },
+  [EVENTS.BEHAVIOR_RECORDED]: { en: 'Behavior Recorded', ar: 'تم تسجيل السلوك' },
+  [EVENTS.BEHAVIOR_POSITIVE_RECORDED]: { en: 'Positive Behavior', ar: 'سلوك إيجابي' },
+  [EVENTS.BEHAVIOR_NEGATIVE_RECORDED]: { en: 'Negative Behavior', ar: 'سلوك سلبي' },
+  [EVENTS.BEHAVIOR_UPDATED]: { en: 'Behavior Updated', ar: 'تم تحديث السلوك' },
+  [EVENTS.BEHAVIOR_DELETED]: { en: 'Behavior Deleted', ar: 'تم حذف السلوك' },
+  [EVENTS.PARTICIPATION_RECORDED]: { en: 'Participation Recorded', ar: 'تم تسجيل المشاركة' },
+  [EVENTS.PARTICIPATION_UPDATED]: { en: 'Participation Updated', ar: 'تم تحديث المشاركة' },
+  [EVENTS.PARTICIPATION_DELETED]: { en: 'Participation Deleted', ar: 'تم حذف المشاركة' },
+  [EVENTS.PARTICIPATION_EXPLAINED_LESSON]: { en: 'Participation: Explained Lesson', ar: 'مشاركة: شرح الدرس' },
+  [EVENTS.PARTICIPATION_GAVE_PROJECT]: { en: 'Participation: Gave Project', ar: 'مشاركة: قدم مشروع' },
+  [EVENTS.PARTICIPATION_GAVE_PAPER]: { en: 'Participation: Gave Paper', ar: 'مشاركة: قدم ورقة' },
+  [EVENTS.PARTICIPATION_GAVE_RESEARCH]: { en: 'Participation: Gave Research', ar: 'مشاركة: قدم بحث' },
+  [EVENTS.PARTICIPATION_ACTIVE_DISCUSSION]: { en: 'Participation: Active Discussion', ar: 'مشاركة: نقاش نشط' },
+  [EVENTS.PARTICIPATION_ANSWERED_QUESTION]: { en: 'Participation: Answered Question', ar: 'مشاركة: أجاب على سؤال' },
+  [EVENTS.PARTICIPATION_HELPED_CLASSMATE]: { en: 'Participation: Helped Classmate', ar: 'مشاركة: ساعد زميل' },
+  [EVENTS.PARTICIPATION_EXCELLENT]: { en: 'Participation: Excellent', ar: 'مشاركة: ممتاز' },
+  [EVENTS.PENALTY_ASSIGNED]: { en: 'Penalty Assigned', ar: 'تم تخصيص عقوبة' },
+  [EVENTS.PENALTY_ASSIGNED_LATE]: { en: 'Penalty: Late', ar: 'عقوبة: تأخير' },
+  [EVENTS.PENALTY_ASSIGNED_ABSENT]: { en: 'Penalty: Absent', ar: 'عقوبة: غياب' },
+  [EVENTS.PENALTY_ASSIGNED_MISCONDUCT]: { en: 'Penalty: Misconduct', ar: 'عقوبة: سوء سلوك' },
+  [EVENTS.PENALTY_UPDATED]: { en: 'Penalty Updated', ar: 'تم تحديث العقوبة' },
+  [EVENTS.PENALTY_DELETED]: { en: 'Penalty Deleted', ar: 'تم حذف العقوبة' },
+  [EVENTS.PENALTY_WAIVED]: { en: 'Penalty Waived', ar: 'تم إسقاط العقوبة' },
+  [EVENTS.GRADE_POSTED]: { en: 'Grade Posted', ar: 'تم نشر الدرجة' },
+  [EVENTS.GRADE_UPDATED]: { en: 'Grade Updated', ar: 'تم تحديث الدرجة' },
+  [EVENTS.GRADE_CALCULATED]: { en: 'Grade Calculated', ar: 'تم حساب الدرجة' },
+  [EVENTS.GRADE_FINAL]: { en: 'Final Grade', ar: 'الدرجة النهائية' },
+  [EVENTS.MARKS_UPDATED]: { en: 'Marks Updated', ar: 'تم تحديث الدرجات' },
+  [EVENTS.REPEATED_ATTEMPT_GRADED]: { en: 'Repeated Attempt Graded', ar: 'تم تقييم المحاولة المعادة' },
+  [EVENTS.QUIZ_AVAILABLE]: { en: 'Quiz Available', ar: 'اختبار متاح' },
+  [EVENTS.QUIZ_STARTED]: { en: 'Quiz Started', ar: 'بدأ الاختبار' },
+  [EVENTS.QUIZ_SUBMITTED]: { en: 'Quiz Submitted', ar: 'تم تقديم الاختبار' },
+  [EVENTS.QUIZ_GRADED]: { en: 'Quiz Graded', ar: 'تم تقييم الاختبار' },
+  [EVENTS.ASSIGNMENT_CREATED]: { en: 'New Assignment', ar: 'واجب جديد' },
+  [EVENTS.ASSIGNMENT_DUE]: { en: 'Assignment Due', ar: 'موعد تسليم الواجب' },
+  [EVENTS.ASSIGNMENT_DUE_SOON]: { en: 'Assignment Due Soon', ar: 'الواجب يستحق قريباً' },
+  [EVENTS.ASSIGNMENT_SUBMITTED]: { en: 'Assignment Submitted', ar: 'تم تقديم الواجب' },
+  [EVENTS.ASSIGNMENT_GRADED]: { en: 'Assignment Graded', ar: 'تم تقييم الواجب' },
+  [EVENTS.ASSIGNMENT_OVERDUE]: { en: 'Assignment Overdue', ar: 'واجب متأخر' },
+  [EVENTS.ACTIVITY_ASSIGNED]: { en: 'Activity Assigned', ar: 'تم تعيين نشاط' },
+  [EVENTS.ACTIVITY_COMPLETED]: { en: 'Activity Completed', ar: 'تم إكمال النشاط' },
+  [EVENTS.ACTIVITY_GRADED]: { en: 'Activity Graded', ar: 'تم تقييم النشاط' },
+  [EVENTS.ACTIVITY_FEEDBACK]: { en: 'Activity Feedback', ar: 'ملاحظات على النشاط' },
+  [EVENTS.ENROLLMENT_CONFIRMED]: { en: 'Enrollment Confirmed', ar: 'تم تأكيد التسجيل' },
+  [EVENTS.ENROLLMENT_PENDING]: { en: 'Enrollment Pending', ar: 'التسجيل قيد الانتظار' },
+  [EVENTS.ENROLLMENT_APPROVED]: { en: 'Enrollment Approved', ar: 'تمت الموافقة على التسجيل' },
+  [EVENTS.ENROLLMENT_REJECTED]: { en: 'Enrollment Rejected', ar: 'تم رفض التسجيل' },
+  [EVENTS.ENROLLMENT_DROPPED]: { en: 'Enrollment Dropped', ar: 'تم إسقاط التسجيل' },
+  [EVENTS.ENROLLMENT_COMPLETED]: { en: 'Enrollment Completed', ar: 'تم إكمال التسجيل' },
+  [EVENTS.RESOURCE_ADDED]: { en: 'New Resource', ar: 'مورد جديد' },
+  [EVENTS.RESOURCE_UPDATED]: { en: 'Resource Updated', ar: 'تم تحديث المورد' },
+  [EVENTS.RESOURCE_DELETED]: { en: 'Resource Deleted', ar: 'تم حذف المورد' },
+  [EVENTS.RESOURCE_SHARED]: { en: 'Resource Shared', ar: 'تمت مشاركة المورد' },
+  [EVENTS.FILE_SHARED]: { en: 'File Shared', ar: 'تمت مشاركة ملف' },
+  [EVENTS.FILE_UPLOADED]: { en: 'File Uploaded', ar: 'تم رفع ملف' },
+  [EVENTS.FILE_DOWNLOADED]: { en: 'File Downloaded', ar: 'تم تنزيل ملف' },
+  [EVENTS.FILE_DELETED]: { en: 'File Deleted', ar: 'تم حذف ملف' },
+  [EVENTS.DRIVE_FILE_SHARED]: { en: 'File Shared', ar: 'تمت مشاركة ملف' },
+  [EVENTS.DRIVE_FOLDER_SHARED]: { en: 'Folder Shared', ar: 'تمت مشاركة مجلد' },
+  [EVENTS.DRIVE_PERMISSION_REVOKED]: { en: 'Access Revoked', ar: 'تم إلغاء الوصول' },
+  [EVENTS.DRIVE_FILE_UPLOADED]: { en: 'File Uploaded', ar: 'تم رفع ملف' },
+  [EVENTS.DRIVE_FOLDER_CREATED]: { en: 'Folder Created', ar: 'تم إنشاء مجلد' },
+  [EVENTS.DRIVE_FILE_DELETED]: { en: 'File Deleted', ar: 'تم حذف ملف' },
+  [EVENTS.DRIVE_FOLDER_DELETED]: { en: 'Folder Deleted', ar: 'تم حذف مجلد' },
+  [EVENTS.DRIVE_FOLDER_RESTORED]: { en: 'Folder Restored', ar: 'تم استعادة مجلد' },
+  [EVENTS.DRIVE_COMMENT_ADDED]: { en: 'New Comment', ar: 'تعليق جديد' },
+  [EVENTS.DRIVE_COMMENT_UPDATED]: { en: 'Comment Updated', ar: 'تم تحديث التعليق' },
+  [EVENTS.DRIVE_COMMENT_DELETED]: { en: 'Comment Deleted', ar: 'تم حذف التعليق' },
+  [EVENTS.DRIVE_PUBLIC_LINK_CREATED]: { en: 'Public Link Created', ar: 'تم إنشاء رابط عام' },
+  [EVENTS.DRIVE_PUBLIC_LINK_REVOKED]: { en: 'Public Link Revoked', ar: 'تم إلغاء الرابط العام' },
+  [EVENTS.SYSTEM_ALERT]: { en: 'System Alert', ar: 'تنبيه النظام' },
+  [EVENTS.SYSTEM_MAINTENANCE]: { en: 'System Maintenance', ar: 'صيانة النظام' },
+  [EVENTS.SYSTEM_UPDATE]: { en: 'System Update', ar: 'تحديث النظام' },
+  [EVENTS.USER_ACCOUNT_CREATED]: { en: 'Account Created', ar: 'تم إنشاء حساب' },
+  [EVENTS.USER_PASSWORD_RESET]: { en: 'Password Reset', ar: 'إعادة تعيين كلمة المرور' },
+  [EVENTS.USER_LOGIN]: { en: 'Login Activity', ar: 'نشاط تسجيل الدخول' },
+  [EVENTS.CHAT_MESSAGE_RECEIVED]: { en: 'New Message', ar: 'رسالة جديدة' },
+  [EVENTS.CHAT_DM_RECEIVED]: { en: 'Direct Message', ar: 'رسالة مباشرة' },
+  [EVENTS.CHAT_MENTION]: { en: 'You Were Mentioned', ar: 'تم ذكرك' },
+  [EVENTS.CHAT_ROOM_CREATED]: { en: 'New Chat Room', ar: 'غرفة محادثة جديدة' },
+};
+
 /**
  * Render template with variables
  * @param {string} template - Template string with {{variable}} placeholders
@@ -611,7 +721,8 @@ export const buildNotificationLink = (event, payload = {}) => {
 export const createTemplate = (event) => {
   const raw = RAW_TEMPLATES[event];
   if (!raw) return null;
-  
+  const rawTitle = RAW_TITLE_TEMPLATES[event];
+
   return {
     event,
     category: getCategoryFromEvent(event),
@@ -628,9 +739,11 @@ export const createTemplate = (event) => {
       };
       const bodyEn = raw.en ? renderTemplate(raw.en, enVars) : event;
       const bodyAr = raw.ar ? renderTemplate(raw.ar, arVars) : bodyEn;
+      const titleEn = rawTitle?.en || event;
+      const titleAr = rawTitle?.ar || titleEn;
       return {
-        titleEn: raw.en ? renderTemplate(raw.en, enVars) : event,
-        titleAr: raw.ar ? renderTemplate(raw.ar, arVars) : event,
+        titleEn,
+        titleAr,
         bodyEn,
         bodyAr,
         link: buildNotificationLink(event, payload),

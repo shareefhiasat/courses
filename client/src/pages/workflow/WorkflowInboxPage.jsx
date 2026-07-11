@@ -40,7 +40,6 @@ const WorkflowInboxPage = () => {
   const [runTour, setRunTour] = useState(false);
   const tourSeenKey = `workflowInboxTourSeen_${lang}`;
   const tourSteps = useMemo(() => [
-    { target: 'body', content: t('tour.workflow_filters'), disableBeacon: true, placement: 'center' },
     { target: '[data-tour="workflow-filters"]', content: t('tour.workflow_filters'), disableBeacon: true, placement: 'bottom' },
     { target: '[data-tour="workflow-status-filters"]', content: t('tour.workflow_tabs'), disableBeacon: true, placement: 'bottom' },
     { target: '[data-tour="workflow-grid"]', content: t('tour.workflow_task_list'), disableBeacon: true, placement: 'top' },

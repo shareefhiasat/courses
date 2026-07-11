@@ -9,7 +9,7 @@ import { error as logError, info as logInfo } from '@services/utils/logger.js';
 import chatSocket from '@services/realtime/chatSocket.js';
 import { Announcement, AnnouncementTag, AnnouncementTitle } from '@/components/kibo-ui/announcement';
 import { Banner, BannerIcon, BannerTitle, BannerClose } from '@/components/kibo-ui/banner';
-import { toast, Toaster } from 'sonner';
+import { toast } from 'sonner';
 import { Undo2, Info, AlertTriangle, CheckCircle2, X } from 'lucide-react';
 import './OperationsBoardPage.css';
 import {
@@ -175,7 +175,8 @@ export default function OperationsBoardPage({
   }), [isInstructor, isAdmin, isHR, isSuperAdmin]);
 
   const lane = searchParams.get('lane') || (searchParams.get('mode') === 'attendance' ? LANES.ATTENDANCE : LANES.STATUS);
-  const view = searchParams.get('view') || VIEWS.KANBAN;
+  const rawView = searchParams.get('view') || VIEWS.KANBAN;
+  const view = rawView === VIEWS.LIST ? VIEWS.TABLE : (rawView === VIEWS.TABLE ? VIEWS.TABLE : VIEWS.KANBAN);
   const workflowId = searchParams.get('workflowId');
 
   const [data, setData] = useState([]);
@@ -191,6 +192,7 @@ export default function OperationsBoardPage({
   const [collapsedLanes, setCollapsedLanes] = useState(loadCollapsedLanes);
   const [pendingWorkflowMove, setPendingWorkflowMove] = useState(null);
   const [workflowMoveLoading, setWorkflowMoveLoading] = useState(false);
+  const [participationRefreshKey, setParticipationRefreshKey] = useState(0);
   const resizingLaneRef = useRef(null);
   const boardViewportRef = useRef(null);
   const [boardViewportWidth, setBoardViewportWidth] = useState(0);
@@ -484,6 +486,15 @@ export default function OperationsBoardPage({
       next.set('view', newView);
     });
   }, [updateParams]);
+
+  useEffect(() => {
+    const urlView = searchParams.get('view');
+    if (urlView === VIEWS.LIST || (urlView && urlView !== VIEWS.KANBAN && urlView !== VIEWS.TABLE)) {
+      updateParams((next) => {
+        next.set('view', urlView === VIEWS.LIST ? VIEWS.TABLE : VIEWS.KANBAN);
+      });
+    }
+  }, [searchParams, updateParams]);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -815,6 +826,15 @@ export default function OperationsBoardPage({
     setDrawerOpen(true);
   }, []);
 
+  const handleCardUpdated = useCallback((cardId, patch) => {
+    setData((prev) => prev.map((item) => (item.id === cardId ? { ...item, ...patch } : item)));
+    setSelectedCard((prev) => (prev?.id === cardId ? { ...prev, ...patch } : prev));
+  }, []);
+
+  const handleParticipationRefresh = useCallback(() => {
+    setParticipationRefreshKey((k) => k + 1);
+  }, []);
+
   const handleMarkTaken = useCallback(async (card) => {
     const result = await markWorkflowAsTaken(card.rawId);
     if (result.success) loadData();
@@ -835,14 +855,7 @@ export default function OperationsBoardPage({
     () => collapsedSetForLane(boardCollapseKey),
     [collapsedSetForLane, boardCollapseKey],
   );
-  const collapsedSet = useMemo(() => {
-    if (lane !== LANES.STATUS) return baseCollapsedSet;
-    const rejectedCount = data?.filter((d) => d.column === 'REJECTED').length || 0;
-    if (rejectedCount === 0 && !baseCollapsedSet.has('REJECTED')) {
-      return new Set([...baseCollapsedSet, 'REJECTED']);
-    }
-    return baseCollapsedSet;
-  }, [baseCollapsedSet, lane, data]);
+  const collapsedSet = baseCollapsedSet;
 
   // When collapse set changes, pin collapsed lanes and redistribute ALL expanded ones.
   const prevCollapsedSetRef = useRef(null);
@@ -923,6 +936,19 @@ export default function OperationsBoardPage({
     [data, filters.search, lang, sortBy]
   );
 
+  useEffect(() => {
+    if (!drawerOpen || !selectedCard?.id) return;
+    const updated = displayData.find((d) => d.id === selectedCard.id);
+    if (
+      updated
+      && (updated.column !== selectedCard.column
+        || updated.rawId !== selectedCard.rawId
+        || updated.notes !== selectedCard.notes)
+    ) {
+      setSelectedCard(updated);
+    }
+  }, [displayData, drawerOpen, selectedCard]);
+
   const workflowOrderKey = useMemo(() => {
     const parts = [filters.programId, filters.termId, workflowId].filter(Boolean);
     return parts.length ? parts.join('_') : 'default';
@@ -978,7 +1004,10 @@ export default function OperationsBoardPage({
     const { status, action } = data || {};
     if (status === 'finished' || status === 'skipped' || action === 'close') {
       setRunTour(false);
+      window.__joyrideActive = false;
       try { localStorage.setItem(tourSeenKey, 'true'); } catch {}
+    } else if (status === 'running') {
+      window.__joyrideActive = true;
     }
   }, [tourSeenKey]);
   const TourTooltipComponent = useMemo(() => TourTooltip({ tourSeenKey }), [tourSeenKey]);
@@ -995,18 +1024,6 @@ export default function OperationsBoardPage({
       }}
       data-testid="operations-board-page"
     >
-      <Toaster
-        position="top-center"
-        toastOptions={{
-          style: {
-            borderRadius: '8px',
-            fontSize: '0.8125rem',
-          },
-        }}
-        closeButton
-        richColors
-      />
-
       <Joyride
         continuous
         run={runTour}
@@ -1105,6 +1122,7 @@ export default function OperationsBoardPage({
             collapsedLanes={collapsedSet}
             onToggleLaneCollapse={(columnId) => toggleLaneCollapse(boardCollapseKey, columnId)}
             onBulkMove={handleBulkMove}
+            participationRefreshKey={participationRefreshKey}
           />
         ) : (
           <WorkflowBoard
@@ -1121,6 +1139,7 @@ export default function OperationsBoardPage({
             onToggleLaneCollapse={(columnId) => toggleLaneCollapse(boardCollapseKey, columnId)}
             onBulkMove={handleBulkMove}
             t={t}
+            fontScale={fontScale}
           />
         )}
         </div>
@@ -1129,6 +1148,7 @@ export default function OperationsBoardPage({
 
       <BoardFooter
         columns={columns}
+        lane={lane}
         view={view}
         onViewChange={setView}
         embedded={embedded}
@@ -1196,6 +1216,8 @@ export default function OperationsBoardPage({
         card={selectedCard}
         lane={lane}
         onRefresh={loadData}
+        onCardUpdated={handleCardUpdated}
+        onParticipationRefresh={handleParticipationRefresh}
         roleContext={roleContext}
       />
     </div>

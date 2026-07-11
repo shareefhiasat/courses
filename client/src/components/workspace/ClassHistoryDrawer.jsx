@@ -143,6 +143,8 @@ const ClassHistoryDrawer = ({ isOpen, onClose, classInfo, date, initialTab = nul
               t={t}
               theme={theme}
               classId={classInfo?.id}
+              classInfo={classInfo}
+              scope="class"
               embedded
             />
           )}

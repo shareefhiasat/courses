@@ -96,9 +96,13 @@ export function buildColumnDefsFromTimeSlots(timeSlots = [], lang = 'en') {
     } else if (key.startsWith('lecture')) {
       lectureCount += 1;
     }
+    const rawLabel = isAr ? (ts.labelAr || ts.labelEn) : (ts.labelEn || ts.labelAr);
+    const label = key === 'officeHour' && !isAr
+      ? (rawLabel || 'Office Hours').replace(/^OfficeHours$/i, 'Office Hours')
+      : rawLabel;
     return {
       key,
-      label: isAr ? (ts.labelAr || ts.labelEn) : (ts.labelEn || ts.labelAr),
+      label,
       isBreak: !!ts.isBreak,
     };
   });

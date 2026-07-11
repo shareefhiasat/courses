@@ -1,10 +1,11 @@
 import React from 'react';
 import { IconButton, Tabs, Tab } from '@mui/material';
-import { KanbanSquare, Table2, Maximize2, Minimize2, History, Star } from 'lucide-react';
+import { KanbanSquare, Table2, Maximize2, Minimize2, History } from 'lucide-react';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import gridStyles from '@components/workspace/officialWeeklyScheduleGrid.module.css';
+import BoardLegend from './BoardLegend.jsx';
 
 const VIEW_ICONS = {
   kanban: KanbanSquare,
@@ -13,6 +14,7 @@ const VIEW_ICONS = {
 
 export default function BoardFooter({
   columns = [],
+  lane = 'attendance',
   view,
   onViewChange,
   embedded = false,
@@ -31,6 +33,7 @@ export default function BoardFooter({
     { key: 'kanban', label: t('operations_board_view_board'), icon: VIEW_ICONS.kanban },
     { key: 'table', label: t('operations_board_view_table'), icon: VIEW_ICONS.table },
   ];
+  const activeView = viewOptions.some((opt) => opt.key === view) ? view : 'kanban';
 
   return (
     <footer
@@ -42,33 +45,18 @@ export default function BoardFooter({
         gap: '0.75rem',
       }}
     >
-      <div className="legend-items-row" style={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '1.25rem', flex: 1 }} data-tour="operations-board-legend">
-        {showLegend && columns.map((col) => (
-          <div key={col.id} className={gridStyles.legendItem} data-testid={`operations-board-legend-${col.id}`}>
-            <span
-              className={`${gridStyles.legendDot} ${col.id === 'NOT_TAKEN' ? gridStyles.legendDotPulse : ''}`}
-              style={{ background: col.color, '--dot-color': col.color }}
-            />
-            <span className={gridStyles.legendLabel} style={{ color: col.color }}>{t(col.i18nKey) || col.name}</span>
-          </div>
-        ))}
-        {showLegend && (
-          <>
-            <div className={gridStyles.legendItem} data-testid="operations-board-legend-note-star">
-              <Star size={12} fill="#ef4444" color="#ef4444" />
-              <span className={gridStyles.legendLabel} style={{ color: '#ef4444' }}>{t('operations_board_legend_note')}</span>
-            </div>
-            <div className={gridStyles.legendItem} data-testid="operations-board-legend-participation-star">
-              <Star size={12} fill="#3b82f6" color="#3b82f6" />
-              <span className={gridStyles.legendLabel} style={{ color: '#3b82f6' }}>{t('operations_board_legend_participation')}</span>
-            </div>
-          </>
-        )}
-      </div>
+      <BoardLegend
+        bare
+        showAttendance={lane === 'attendance'}
+        showWorkflow={lane === 'status'}
+        className="legend-items-row"
+        style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.25rem', flex: 1, minWidth: 0 }}
+        data-tour="operations-board-legend"
+      />
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
         <Tabs
-          value={view}
+          value={activeView}
           onChange={(_, next) => next && onViewChange(next)}
           aria-label={t('operations_board_view_mode')}
           data-tour="operations-board-view-mode"
@@ -99,8 +87,13 @@ export default function BoardFooter({
                 key={opt.key}
                 value={opt.key}
                 data-testid={`operations-board-view-${opt.key}`}
-                icon={<Icon size={18} />}
-                title={opt.label}
+                icon={(
+                  <ColoredTooltip title={opt.label} color={isDark ? '#94a3b8' : '#64748b'} placement="top">
+                    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <Icon size={18} />
+                    </span>
+                  </ColoredTooltip>
+                )}
                 aria-label={opt.label}
               />
             );
