@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo, useRef, lazy, Suspens
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import Joyride from 'react-joyride';
 import TourTooltip from '@ui/TourTooltip/TourTooltip';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { ChevronLeft, ChevronRight, FileText, FileSpreadsheet, CalendarDays, ClipboardList } from 'lucide-react';
 import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
@@ -18,11 +18,19 @@ import ScheduleContextMenu from '@components/workspace/ScheduleContextMenu';
 import ScheduleSpeedDial from '@components/workspace/ScheduleSpeedDial';
 import {
   Tabs, Tab, Box, Paper, Snackbar, Alert, LinearProgress,
-  CircularProgress,
+  CircularProgress, IconButton,
 } from '@mui/material';
+import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import DatePicker from '@components/ui/DatePicker/DatePicker';
 import { getScheduleStatus, getInstructorPrograms, getAllPrograms, getProgramTerms } from '@services/business/attendanceWorkspaceService';
 import { loadWeeklyScheduleSources } from '@services/business/weeklyScheduleExportService';
+import {
+  exportWeeklyScheduleForProgram,
+  exportDailyOfficialForDate,
+  exportDailyOfficialTemplate,
+  exportAttendanceOfficialForScope,
+} from '@services/business/accessScopeExportService.js';
+import { EXPORT_FORMAT } from '@services/export/official-reports/index.jsx';
 import { prepareWeeklyScheduleData } from '@services/export/official-reports/engine/prepareWeeklyScheduleData';
 import { academicTermToYearTerm } from '@utils/academicTermUtils';
 import useQRPermissions from '@hooks/useQRPermissions';
@@ -110,6 +118,7 @@ const WelcomePage = () => {
   const showOperationsTab = canAccessScreen('operations') || canExport || isAdmin || isHR;
   const [exportingKey, setExportingKey] = useState(null);
   const [cohortClassIds, setCohortClassIds] = useState([]);
+  const [cohortSubjectIds, setCohortSubjectIds] = useState([]);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info', progress: null });
   const [runJoyride, setRunJoyride] = useState(false);
   const [tourSteps, setTourSteps] = useState([]);
@@ -524,6 +533,8 @@ const WelcomePage = () => {
 
       const classIds = (sources.cohortClasses || []).map((c) => c.id).filter(Boolean);
       setCohortClassIds(classIds);
+      const subjectIds = [...new Set((sources.cohortClasses || []).map((c) => c.subjectId).filter(Boolean))];
+      setCohortSubjectIds(subjectIds);
       if (classIds.length > 0) {
         const weekDates = getWeekDayDates(selectedDate);
         const results = await Promise.all(weekDates.map((d) => getScheduleStatus(classIds, d)));
@@ -539,6 +550,7 @@ const WelcomePage = () => {
       } else {
         setStatusMap({});
         setCohortClassIds([]);
+        setCohortSubjectIds([]);
       }
       setLoading(false);
     };
@@ -708,6 +720,179 @@ const WelcomePage = () => {
     }
   }, [selection?.program, selection?.academicTerm, lang, t, user]);
 
+  const handleGenerateDailyAttendance = useCallback(async (slot, format = EXPORT_FORMAT.PDF) => {
+    const cls = slot?.class;
+    if (!cls?.id) return;
+    const DAY_CODES = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const dayOffset = DAY_CODES.indexOf(slot?.dayCode);
+    let cellDate = selectedDate;
+    if (dayOffset >= 0) {
+      const weekStart = new Date(selectedDate);
+      weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+      cellDate = new Date(weekStart);
+      cellDate.setDate(cellDate.getDate() + dayOffset);
+    }
+    const dateStr = toIsoDate(cellDate);
+    const key = `daily-att-${cls.id}-${dateStr}-${format}`;
+    setExportingKey(key);
+    setSnackbar({
+      open: true,
+      message: `${t('daily_official') || 'Daily Official'} — ${t('exporting')}…`,
+      severity: 'info',
+      progress: 0,
+    });
+    try {
+      await exportDailyOfficialForDate({
+        cls,
+        program: selection?.program,
+        subject: cls.subject,
+        academicTerm: selection?.academicTerm,
+        lang,
+        user,
+        date: dateStr,
+        instructorName: slot?.instructor,
+        format,
+      });
+      setSnackbar({
+        open: true,
+        message: `${t('daily_official') || 'Daily Official'} — ${t('export_success')}`,
+        severity: 'success',
+        progress: null,
+      });
+    } catch (err) {
+      console.error('[WelcomePage] daily attendance export failed:', err);
+      setSnackbar({
+        open: true,
+        message: `${t('daily_official') || 'Daily Official'} — ${t('export_failed')}`,
+        severity: 'error',
+        progress: null,
+      });
+    } finally {
+      setExportingKey(null);
+    }
+  }, [selection?.program, selection?.academicTerm, selectedDate, lang, t, user]);
+
+  const handleExportDailyTemplate = useCallback(async (format = EXPORT_FORMAT.PDF) => {
+    if (!selection?.program || !selection?.academicTerm) {
+      setSnackbar({
+        open: true,
+        message: `${t('daily_template') || 'Daily Template'} — select program and term first`,
+        severity: 'warning',
+        progress: null,
+      });
+      return;
+    }
+    const key = `daily-template-${format}`;
+    setExportingKey(key);
+    setSnackbar({
+      open: true,
+      message: `${t('daily_template') || 'Daily Template'} — ${t('exporting')}…`,
+      severity: 'info',
+      progress: 0,
+    });
+    try {
+      await exportDailyOfficialTemplate({
+        cls: { id: null, programId: selection.program.id },
+        program: selection.program,
+        subject: null,
+        academicTerm: selection.academicTerm,
+        lang,
+        user,
+        format,
+      });
+      setSnackbar({
+        open: true,
+        message: `${t('daily_template') || 'Daily Template'} — ${t('export_success')}`,
+        severity: 'success',
+        progress: null,
+      });
+    } catch (err) {
+      console.error('[WelcomePage] daily template export failed:', err);
+      setSnackbar({
+        open: true,
+        message: `${t('daily_template') || 'Daily Template'} — ${t('export_failed')}`,
+        severity: 'error',
+        progress: null,
+      });
+    } finally {
+      setExportingKey(null);
+    }
+  }, [selection?.program, selection?.academicTerm, lang, t, user]);
+
+  const handleExportAttendanceSummary = useCallback(async (format = EXPORT_FORMAT.PDF) => {
+    if (!selection?.program || !selection?.academicTerm) {
+      setSnackbar({
+        open: true,
+        message: `${t('attendance_summary') || 'Attendance Summary'} — select program and term first`,
+        severity: 'warning',
+        progress: null,
+      });
+      return;
+    }
+    if (cohortSubjectIds.length === 0) {
+      setSnackbar({
+        open: true,
+        message: `${t('attendance_summary') || 'Attendance Summary'} — no subjects found for this program`,
+        severity: 'warning',
+        progress: null,
+      });
+      return;
+    }
+    const anchor = selectedDate instanceof Date ? selectedDate : new Date(selectedDate);
+    const weekStart = new Date(anchor);
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 4);
+    const dateFrom = toIsoDate(weekStart);
+    const dateTo = toIsoDate(weekEnd);
+    const key = `att-summary-${format}`;
+    setExportingKey(key);
+    setSnackbar({
+      open: true,
+      message: `${t('attendance_summary') || 'Attendance Summary'} (${dateFrom} → ${dateTo}) — ${t('exporting')}…`,
+      severity: 'info',
+      progress: 0,
+    });
+    try {
+      const programName = lang === 'ar' && selection.program.nameAr
+        ? selection.program.nameAr
+        : selection.program.nameEn;
+      const result = await exportAttendanceOfficialForScope({
+        subjectIds: cohortSubjectIds,
+        violationTypes: {
+          absentNoExcuse: true,
+          absentWithExcuse: true,
+          excusedLeave: true,
+          late: true,
+          humanCase: true,
+        },
+        dateFrom,
+        dateTo,
+        programId: selection.program.id,
+        programName,
+        lang,
+        user,
+        format,
+      });
+      setSnackbar({
+        open: true,
+        message: `${t('attendance_summary') || 'Attendance Summary'} — ${t('export_success')}`,
+        severity: 'success',
+        progress: null,
+      });
+    } catch (err) {
+      console.error('[WelcomePage] attendance summary export failed:', err);
+      setSnackbar({
+        open: true,
+        message: `${t('attendance_summary') || 'Attendance Summary'} — ${t('export_failed')}`,
+        severity: 'error',
+        progress: null,
+      });
+    } finally {
+      setExportingKey(null);
+    }
+  }, [selection?.program, selection?.academicTerm, cohortSubjectIds, selectedDate, lang, t, user]);
+
   const fabActions = useMemo(() => {
     const actions = [
       {
@@ -728,6 +913,48 @@ const WelcomePage = () => {
             icon: getThemedIcon('ui', 'file_text', 16, 'currentColor'),
             disabled: exportingKey === 'weekly-excel',
             onClick: () => handleExportWeeklySchedule(EXPORT_FORMAT.EXCEL),
+          },
+        ],
+      },
+      {
+        id: 'daily-template',
+        name: t('daily_template') || 'Daily Template',
+        icon: getThemedIcon('ui', 'file_text', 20, 'currentColor'),
+        children: [
+          {
+            id: 'daily-template-pdf',
+            name: t('export_pdf'),
+            icon: getThemedIcon('ui', 'file_text', 16, 'currentColor'),
+            disabled: exportingKey === 'daily-template-pdf',
+            onClick: () => handleExportDailyTemplate(EXPORT_FORMAT.PDF),
+          },
+          {
+            id: 'daily-template-excel',
+            name: t('export_excel'),
+            icon: getThemedIcon('ui', 'file_text', 16, 'currentColor'),
+            disabled: exportingKey === 'daily-template-excel',
+            onClick: () => handleExportDailyTemplate(EXPORT_FORMAT.EXCEL),
+          },
+        ],
+      },
+      {
+        id: 'attendance-summary',
+        name: t('attendance_summary') || 'Attendance Summary',
+        icon: getThemedIcon('ui', 'file_signature', 20, 'currentColor'),
+        children: [
+          {
+            id: 'att-summary-pdf',
+            name: t('export_pdf'),
+            icon: getThemedIcon('ui', 'file_signature', 16, 'currentColor'),
+            disabled: exportingKey === 'att-summary-pdf',
+            onClick: () => handleExportAttendanceSummary(EXPORT_FORMAT.PDF),
+          },
+          {
+            id: 'att-summary-excel',
+            name: t('export_excel'),
+            icon: getThemedIcon('ui', 'file_text', 16, 'currentColor'),
+            disabled: exportingKey === 'att-summary-excel',
+            onClick: () => handleExportAttendanceSummary(EXPORT_FORMAT.EXCEL),
           },
         ],
       },
@@ -762,7 +989,7 @@ const WelcomePage = () => {
     });
 
     return actions;
-  }, [exportingKey, handleExportWeeklySchedule, openOperationsTab, t, isHR, isAdmin, isSuperAdmin, navigate]);
+  }, [exportingKey, handleExportWeeklySchedule, handleExportDailyTemplate, handleExportAttendanceSummary, openOperationsTab, t, isHR, isAdmin, isSuperAdmin, navigate]);
 
   const handleCloseInbox = useCallback(() => {
     setInboxOutboxOpen(false);
@@ -770,7 +997,7 @@ const WelcomePage = () => {
   }, []);
 
   const handleFabAction = useCallback((action) => {
-    if (!action.id.startsWith('weekly-')) {
+    if (!action.id.startsWith('weekly-') && !action.id.startsWith('daily-template-') && !action.id.startsWith('att-summary-')) {
       setSnackbar({
         open: true,
         message: `${action.name} — action triggered`,
@@ -972,6 +1199,112 @@ const WelcomePage = () => {
                 )}
                 <Tab label={t('welcome_tab_overview') || 'Overview'} />
               </Tabs>
+              {showSchedule && tabParam === 'schedule' && canExport && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                  <ColoredTooltip
+                    title={
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, padding: '4px 0' }}>
+                        <div style={{ fontWeight: 600, marginBottom: 2 }}>{t('attendance_summary') || 'Attendance Summary'}</div>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                          <span
+                            style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', color: '#e53935' }}
+                            onClick={(e) => { e.stopPropagation(); handleExportAttendanceSummary(EXPORT_FORMAT.PDF); }}
+          >
+            <FileText size={14} /> PDF
+          </span>
+                          <span
+                            style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', color: '#43a047' }}
+                            onClick={(e) => { e.stopPropagation(); handleExportAttendanceSummary(EXPORT_FORMAT.EXCEL); }}
+                          >
+            <FileSpreadsheet size={14} /> Excel
+          </span>
+                        </div>
+                      </div>
+                    }
+                    color="#7c3aed"
+                    placement="bottom"
+                  >
+                    <span>
+                      <IconButton
+                        size="small"
+                        disabled={exportingKey?.startsWith('att-summary-')}
+                        data-testid="tab-action-attendance-summary"
+                        sx={{ padding: '2px' }}
+                      >
+                        <ClipboardList size={16} style={{ color: '#7c3aed' }} />
+                      </IconButton>
+                    </span>
+                  </ColoredTooltip>
+                  <ColoredTooltip
+                    title={
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, padding: '4px 0' }}>
+                        <div style={{ fontWeight: 600, marginBottom: 2 }}>{t('weekly_schedule') || 'Weekly Schedule'}</div>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                          <span
+                            style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', color: '#e53935' }}
+                            onClick={(e) => { e.stopPropagation(); handleExportWeeklySchedule(EXPORT_FORMAT.PDF); }}
+                          >
+                            <FileText size={14} /> PDF
+                          </span>
+                          <span
+                            style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', color: '#43a047' }}
+                            onClick={(e) => { e.stopPropagation(); handleExportWeeklySchedule(EXPORT_FORMAT.EXCEL); }}
+                          >
+                            <FileSpreadsheet size={14} /> Excel
+                          </span>
+                        </div>
+                      </div>
+                    }
+                    color="#3b82f6"
+                    placement="bottom"
+                  >
+                    <span>
+                      <IconButton
+                        size="small"
+                        disabled={exportingKey?.startsWith('weekly-')}
+                        data-testid="tab-action-weekly-schedule"
+                        sx={{ padding: '2px' }}
+                      >
+                        <CalendarDays size={16} style={{ color: '#3b82f6' }} />
+                      </IconButton>
+                    </span>
+                  </ColoredTooltip>
+                  <ColoredTooltip
+                    title={
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, padding: '4px 0' }}>
+                        <div style={{ fontWeight: 600, marginBottom: 2 }}>{t('daily_template') || 'Daily Template'}</div>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                          <span
+                            style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', color: '#e53935' }}
+                            onClick={(e) => { e.stopPropagation(); handleExportDailyTemplate(EXPORT_FORMAT.PDF); }}
+                          >
+                            <FileText size={14} /> PDF
+                          </span>
+                          <span
+                            style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', color: '#43a047' }}
+                            onClick={(e) => { e.stopPropagation(); handleExportDailyTemplate(EXPORT_FORMAT.EXCEL); }}
+                          >
+                            <FileSpreadsheet size={14} /> Excel
+                          </span>
+                        </div>
+                      </div>
+                    }
+                    color="#64748b"
+                    placement="bottom"
+                  >
+                    <span>
+                      <IconButton
+                        size="small"
+                        disabled={exportingKey?.startsWith('daily-template-')}
+                        data-testid="tab-action-daily-template"
+                        sx={{ padding: '2px' }}
+                      >
+                        <FileText size={16} style={{ color: '#64748b' }} />
+                      </IconButton>
+                    </span>
+                  </ColoredTooltip>
+                </div>
+              )}
               {(() => {
                 const classId = searchParams.get('classId');
                 let className = null;
@@ -1169,6 +1502,7 @@ const WelcomePage = () => {
                       selectedSlot={selectedSlot}
                       onCellClick={handleCellClick}
                       onDateChange={setSelectedDate}
+                      onGenerateDailyAttendance={handleGenerateDailyAttendance}
                       compact
                       fillHeight
                       fillWidth

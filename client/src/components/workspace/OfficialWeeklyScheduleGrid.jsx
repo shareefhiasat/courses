@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useLayoutEffect, useMemo } from 're
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { Chip, IconButton, Box } from '@mui/material';
-import { Maximize2, Minimize2, Workflow as WorkflowIcon, ClipboardCheck } from 'lucide-react';
+import { Maximize2, Minimize2, Workflow as WorkflowIcon, ClipboardCheck, FileText, FileSpreadsheet } from 'lucide-react';
 import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import ScheduleStatusHistoryTooltip from './ScheduleStatusHistoryTooltip.jsx';
 import ClassSessionMetaBadges, { getClassSessionMetaFromStatus } from './ClassSessionMetaBadges.jsx';
@@ -341,7 +341,7 @@ function WorkflowStatusGroup({ status, t, lang, selectedDate }) {
   );
 }
 
-function AttendanceIndicatorGroup({ status, t }) {
+function AttendanceIndicatorGroup({ status, t, slot, onGenerateDailyAttendance }) {
   const counts = getAttendanceCountsFromStatus(status);
   if (!counts) return null;
   const items = ATTENDANCE_COUNT_ITEMS
@@ -360,11 +360,39 @@ function AttendanceIndicatorGroup({ status, t }) {
     </div>
   );
 
+  const hasExportHandler = Boolean(onGenerateDailyAttendance && slot?.classId);
+
+  const exportTooltip = hasExportHandler ? (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, padding: '4px 0' }}>
+      <div style={{ fontWeight: 600, marginBottom: 2 }}>{t('daily_official') || 'Daily Official'}</div>
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+        <span
+          style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', color: '#e53935' }}
+          onClick={(e) => { e.stopPropagation(); onGenerateDailyAttendance(slot, 'pdf'); }}
+        >
+          <FileText size={14} /> PDF
+        </span>
+        <span
+          style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', color: '#43a047' }}
+          onClick={(e) => { e.stopPropagation(); onGenerateDailyAttendance(slot, 'excel'); }}
+        >
+          <FileSpreadsheet size={14} /> Excel
+        </span>
+      </div>
+    </div>
+  ) : (t('attendance_summary') || 'Attendance summary');
+
   return (
     <span className={gridStyles.attendanceGroup}>
-      <ColoredTooltip title={t('attendance_summary') || 'Attendance summary'} color="#64748b" placement="bottom" cursor="default">
-        <span className={gridStyles.attendanceIconWrap} aria-hidden="true">
-          <ClipboardCheck size={12} color="#64748b" strokeWidth={2.25} />
+      <ColoredTooltip title={exportTooltip} color="#64748b" placement="bottom" cursor={hasExportHandler ? 'pointer' : 'default'}>
+        <span
+          className={gridStyles.attendanceIconWrap}
+          aria-hidden={!hasExportHandler}
+          role={hasExportHandler ? 'button' : undefined}
+          onClick={hasExportHandler ? (e) => { e.stopPropagation(); onGenerateDailyAttendance(slot, 'pdf'); } : undefined}
+          style={hasExportHandler ? { cursor: 'pointer' } : undefined}
+        >
+          <ClipboardCheck size={12} color={hasExportHandler ? '#3b82f6' : '#64748b'} strokeWidth={2.25} />
         </span>
       </ColoredTooltip>
       <span className={gridStyles.indicatorDivider} aria-hidden="true">|</span>
@@ -475,6 +503,7 @@ function InteractiveSlotCell({
   onClick,
   selectedDate,
   hideNotesParticipation = false,
+  onGenerateDailyAttendance,
 }) {
   if (isBreak) {
     if (rowType !== 'subject') return null;
@@ -560,7 +589,7 @@ function InteractiveSlotCell({
         if (!hasAttendance && !hasWorkflow) return null;
         return (
           <div className={gridStyles.subjectCellTopIndicators}>
-            {hasAttendance && <AttendanceIndicatorGroup status={status} t={t} />}
+            {hasAttendance && <AttendanceIndicatorGroup status={status} t={t} slot={{ ...slot, dayCode, colKey }} onGenerateDailyAttendance={onGenerateDailyAttendance} />}
             {hasAttendance && hasWorkflow && (
               <span className={gridStyles.indicatorDivider} aria-hidden="true">|</span>
             )}
@@ -623,6 +652,7 @@ function DayBlock({
   onCellClick,
   selectedDate,
   hideNotesParticipation = false,
+  onGenerateDailyAttendance,
 }) {
   const rowTypes = ['subject', 'time', 'instructor', 'room'];
   const rowLabelMap = {
@@ -720,6 +750,7 @@ function DayBlock({
                 onClick={onCellClick}
                 selectedDate={selectedDate}
                 hideNotesParticipation={hideNotesParticipation}
+                onGenerateDailyAttendance={onGenerateDailyAttendance}
               />
             );
           })}
@@ -738,6 +769,7 @@ const OfficialWeeklyScheduleGrid = ({
   selectedSlot,
   onCellClick,
   onDateChange,
+  onGenerateDailyAttendance,
   compact = false,
   fillHeight = false,
   fillWidth = false,
@@ -907,6 +939,7 @@ const OfficialWeeklyScheduleGrid = ({
               onCellClick={onCellClick}
               selectedDate={selectedDate}
               hideNotesParticipation={hideNotesParticipation}
+              onGenerateDailyAttendance={onGenerateDailyAttendance}
             />
           ))}
         </table>

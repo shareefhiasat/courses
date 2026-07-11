@@ -23,15 +23,6 @@ function sanitize(str) {
   return str ? String(str).replace(/[^a-zA-Z0-9\u0600-\u06FF]/g, '_') : '';
 }
 
-function triggerDownload(blob, filename) {
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = filename;
-  link.click();
-  URL.revokeObjectURL(url);
-}
-
 function resolveInstructorLabel(value, cls, lang) {
   if (typeof value === 'string' && value.trim()) return value.trim();
   if (value && typeof value === 'object') {
@@ -142,7 +133,6 @@ export async function exportWeeklyScheduleForScope({
     programId: meta.programId,
     classId: meta.classId,
   }).catch(() => {});
-  triggerDownload(blob, `${filename}.${format === EXPORT_FORMAT.EXCEL ? 'xlsx' : 'pdf'}`);
   return { filename, dataSource: reportData.dataSource };
 }
 
@@ -205,7 +195,6 @@ export async function exportWeeklyScheduleForProgram({
     exportType: 'weekly_class_schedule',
     programId: program?.id,
   }).catch(() => {});
-  triggerDownload(blob, `${filename}.${format === EXPORT_FORMAT.EXCEL ? 'xlsx' : 'pdf'}`);
   return { filename, dataSource: reportData.dataSource };
 }
 
@@ -235,7 +224,6 @@ export async function exportDailyOfficialTemplate({
   });
   const filename = `${reportData.serial}_daily_official_template_${sanitize(meta.className)}`;
   const blob = await exportDailyOfficialReport(reportData, { format, filename });
-  triggerDownload(blob, `${filename}.${format === EXPORT_FORMAT.EXCEL ? 'xlsx' : 'pdf'}`);
   return { filename };
 }
 
