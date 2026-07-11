@@ -3,10 +3,13 @@ import { isHROnlyViewer } from './hrAttendancePrivacy.js';
 
 const INSTRUCTOR_LANE_IDS = new Set(['NOT_TAKEN', 'PRESENT', 'LATE']);
 const INSTRUCTOR_MOVE_TARGETS = new Set(['NOT_TAKEN', 'PRESENT', 'LATE']);
-const ADMIN_LANE_IDS = new Set(['PRESENT', 'ABSENT', 'HUMAN_CASE', 'EXCUSED']);
-const ADMIN_MOVE_TARGETS = new Set(['PRESENT', 'ABSENT', 'HUMAN_CASE', 'EXCUSED']);
-const HR_LANE_IDS = new Set(['NOT_TAKEN', 'PRESENT', 'ABSENT', 'EXCUSED', 'HUMAN_CASE']);
-const HR_MOVE_TARGETS = new Set(['PRESENT', 'ABSENT', 'EXCUSED', 'HUMAN_CASE']);
+/** Admin sees instructor-marked Present/Late plus review lanes; Late was missing so Late cards vanished. */
+const ADMIN_LANE_IDS = new Set(['NOT_TAKEN', 'PRESENT', 'LATE', 'ABSENT', 'HUMAN_CASE', 'EXCUSED']);
+const ADMIN_MOVE_TARGETS = new Set(['PRESENT', 'LATE', 'ABSENT', 'HUMAN_CASE', 'EXCUSED']);
+/** HR sees full attendance picture including Late (no Late→Present masking). */
+const HR_LANE_IDS = new Set(['NOT_TAKEN', 'PRESENT', 'LATE', 'ABSENT', 'EXCUSED', 'HUMAN_CASE']);
+// HR is a read-only viewer for daily attendance; only Admin/Instructor/Super-Admin may edit
+const HR_MOVE_TARGETS = new Set([]);
 
 export function getAttendanceColumnsForRole(roleContext = {}) {
   const { isInstructor, isAdmin, isHR, isSuperAdmin } = roleContext;

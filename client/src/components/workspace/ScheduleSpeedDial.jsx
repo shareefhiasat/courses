@@ -13,6 +13,8 @@ import {
 } from '@services/business/accessScopeExportService.js';
 import { ATTENDANCE_TYPE_CATEGORY } from '@constants/attendanceTypes';
 import useQRPermissions from '@hooks/useQRPermissions';
+import { isHROnlyViewer } from '@components/operations-board/hrAttendancePrivacy.js';
+import { academicTermToYearTerm } from '@utils/academicTermUtils';
 
 function ScheduleSpeedDial({
   session,
@@ -22,13 +24,15 @@ function ScheduleSpeedDial({
   onClose,
   onOpenInbox,
   onOpenHistory,
+  onOpenNotifications,
 }) {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isAdmin, isHR, isSuperAdmin } = useAuth();
   const { t, lang } = useLang();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const { canExport, canSeeStandupMode } = useQRPermissions();
+  const hrOnly = isHROnlyViewer({ isHR, isAdmin, isSuperAdmin });
   const [exporting, setExporting] = useState(null);
 
   const cls = session?.class;
@@ -62,6 +66,19 @@ function ScheduleSpeedDial({
     navigate(`/qr-scanner?${params.toString()}`);
     onClose();
   }, [cls, dateStr, navigate, onClose]);
+
+  const handleOpenNotifications = useCallback(() => {
+    const { year } = academicTerm ? academicTermToYearTerm(academicTerm) : {};
+    onOpenNotifications?.({
+      filterClass: cls?.id ? String(cls.id) : 'all',
+      filterSubject: subject?.id || cls?.subjectId ? String(subject?.id || cls?.subjectId) : 'all',
+      filterProgram: program?.id ? String(program.id) : 'all',
+      filterYear: year ? String(year) : 'all',
+      filterSemester: academicTerm?.semester || academicTerm?.code || 'all',
+      showAdvanced: true,
+    });
+    onClose();
+  }, [academicTerm, cls, subject, program, onOpenNotifications, onClose]);
 
   const handleInbox = useCallback((tab) => {
     onOpenInbox?.(tab, cls?.id);
@@ -119,27 +136,29 @@ function ScheduleSpeedDial({
       });
     }
 
-    items.push({
-      id: 'scan-attendance',
-      name: t('workspace_take_attendance'),
-      icon: getThemedIcon('ui', 'check_circle', 18, 'currentColor'),
-      onClick: () => handleScan(ATTENDANCE_TYPE_CATEGORY.REGULAR),
-    });
-
-    if (canSeeStandupMode) {
+    if (!hrOnly) {
       items.push({
-        id: 'scan-standup',
-        name: t('standup_attendance'),
-        icon: getThemedIcon('ui', 'users', 18, 'currentColor'),
-        onClick: () => handleScan(ATTENDANCE_TYPE_CATEGORY.STANDUP),
+        id: 'scan-attendance',
+        name: t('workspace_take_attendance'),
+        icon: getThemedIcon('ui', 'check_circle', 18, 'currentColor'),
+        onClick: () => handleScan(ATTENDANCE_TYPE_CATEGORY.REGULAR),
       });
+
+      if (canSeeStandupMode) {
+        items.push({
+          id: 'scan-standup',
+          name: t('standup_attendance'),
+          icon: getThemedIcon('ui', 'users', 18, 'currentColor'),
+          onClick: () => handleScan(ATTENDANCE_TYPE_CATEGORY.STANDUP),
+        });
+      }
     }
 
     items.push({
       id: 'open-inbox',
       name: t('inbox_tab'),
       icon: getThemedIcon('ui', 'mailbox', 18, 'currentColor'),
-      onClick: () => handleInbox('inbox'),
+      onClick: onOpenNotifications ? handleOpenNotifications : () => handleInbox('inbox'),
     });
     items.push({
       id: 'open-history',
@@ -149,7 +168,7 @@ function ScheduleSpeedDial({
     });
 
     return items;
-  }, [canExport, cls, program, subject, academicTerm, slotInstructor, lang, t, user, dateStr, exporting, runExport, handleScan, handleInbox, handleHistory, canSeeStandupMode]);
+  }, [canExport, cls, program, subject, academicTerm, slotInstructor, lang, t, user, dateStr, exporting, runExport, handleScan, handleInbox, handleHistory, canSeeStandupMode, hrOnly, onOpenNotifications, handleOpenNotifications]);
 
   if (!session) return null;
 

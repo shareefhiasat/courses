@@ -22,7 +22,8 @@ import {
   WORKFLOW_COLUMNS,
   ATTENDANCE_COLUMNS,
 } from '@services/business/operationsBoardService.js';
-import { getStatusCodeFromRecord } from '../../constants/attendanceTypes.js';
+import { getStatusCodeFromRecord, getAttendanceColor } from '../../constants/attendanceTypes.js';
+import { getWorkflowStatusColor } from '@constants/workspaceStatusColors.js';
 import WorkflowBoard from '@components/operations-board/WorkflowBoard.jsx';
 import AttendanceBoard from '@components/operations-board/AttendanceBoard.jsx';
 import BoardTableView from '@components/operations-board/BoardTableView.jsx';
@@ -36,7 +37,7 @@ import {
   shouldConfirmWorkflowMove,
   requiresAdminInstructorOverride,
 } from '@components/operations-board/workflowBoardRules.js';
-import { resolveBoardStudentName } from '@components/operations-board/operationsBoardDisplayUtils.js';
+import { resolveBoardStudentName, parseWorkflowCardName, shortenWorkflowDisplayName } from '@components/operations-board/operationsBoardDisplayUtils.js';
 import WorkflowMoveConfirmDialog from '@components/operations-board/WorkflowMoveConfirmDialog.jsx';
 
 const VIEWS = { KANBAN: 'kanban', LIST: 'list', TABLE: 'table' };
@@ -301,6 +302,14 @@ export default function OperationsBoardPage({
       actionBannerTimerRef.current = null;
     }, 8000);
   }, [clearActionBanner]);
+
+  const showDragInvalidToast = useCallback(() => {
+    toast.warning(t('operations_board_drag_invalid'), {
+      duration: 4000,
+      icon: <AlertTriangle size={16} />,
+      className: 'operations-board-drag-invalid-toast',
+    });
+  }, [t]);
 
   useEffect(() => () => {
     if (actionBannerTimerRef.current) clearTimeout(actionBannerTimerRef.current);
@@ -636,17 +645,32 @@ export default function OperationsBoardPage({
     }
     lastLocalChangeRef.current = { id: item.rawId, time: Date.now() };
     setData((prev) => prev.map((d) => (d.id === activeId ? { ...d, column: toColumn, status: toColumn } : d)));
-    const studentName = resolveBoardStudentName(item, lang);
     const toCol = WORKFLOW_COLUMNS.find((c) => c.id === toColumn);
     const statusLabel = toCol ? (t(toCol.i18nKey) || toCol.name) : toColumn;
+    const wfParts = parseWorkflowCardName(item.name || '');
+    const classLabel = wfParts[1] || item.className || '';
+    const dateLabel = wfParts[2] ? shortenWorkflowDisplayName(wfParts[2]) : '';
+    const shortLabel = [classLabel, dateLabel].filter(Boolean).join(' · ');
+    const notifyMeta = resolveWorkflowNotifyMeta(fromColumn, toColumn, roleContext);
+    const sendsNotification = Boolean(
+      notifyMeta?.notifyKey
+      || (notifyMeta?.roles?.length > 0 && !notifyMeta.adminOverride),
+    );
     showActionBanner({
-      message: t('operations_board_action_banner', { name: studentName || item.name, status: statusLabel }),
-      onUndo: async () => {
+      pillColor: getWorkflowStatusColor(toColumn),
+      message: shortLabel
+        ? t('operations_board_workflow_action_banner', { label: shortLabel, status: statusLabel })
+        : t('operations_board_action_banner', { name: item.className || 'Workflow', status: statusLabel }),
+      notifySent: sendsNotification,
+      onUndo: sendsNotification ? null : async () => {
         clearActionBanner();
         const undoResult = await moveWorkflowCard(item.rawId, toColumn, fromColumn);
         if (undoResult.success) {
           lastLocalChangeRef.current = { id: item.rawId, time: Date.now() };
           setData((prev) => prev.map((d) => (d.id === activeId ? { ...d, column: fromColumn, status: fromColumn } : d)));
+          showActionBanner({
+            message: t('operations_board_change_reverted'),
+          });
         } else {
           setError(t('operations_board_drag_error'));
           loadData();
@@ -654,14 +678,14 @@ export default function OperationsBoardPage({
       },
     });
     return true;
-  }, [t, loadData, lang, showActionBanner, clearActionBanner]);
+  }, [t, loadData, lang, showActionBanner, clearActionBanner, roleContext]);
 
   const handleDragEnd = useCallback(async (activeId, fromColumn, toColumn) => {
     const item = data.find((d) => d.id === activeId);
     if (!item || fromColumn === toColumn) return;
 
     if (item.type === 'attendance' && !canMoveAttendanceToColumn(toColumn, roleContext)) {
-      setError(t('operations_board_drag_invalid'));
+      showDragInvalidToast();
       loadData();
       return;
     }
@@ -691,7 +715,7 @@ export default function OperationsBoardPage({
         });
       }
       if (!allowed) {
-        setError(t('operations_board_drag_invalid'));
+        showDragInvalidToast();
         loadData();
         return;
       }
@@ -731,8 +755,50 @@ export default function OperationsBoardPage({
         }));
         const studentName = resolveBoardStudentName(item, lang);
         const statusLabel = t(`operations_board_lane_${toColumn.toLowerCase()}`) || toColumn;
+        const statusColor = getAttendanceColor(toColumn);
+        if (roleContext.isAdmin || roleContext.isSuperAdmin) {
+          toast.info(t('operations_board_attendance_admin_override'));
+        }
         showActionBanner({
-          message: t('operations_board_action_banner', { name: studentName, status: statusLabel }),
+          pillColor: statusColor,
+          message: (() => {
+            const template = t('operations_board_action_banner', { name: studentName, status: '{status}' });
+            const parts = template.split('{status}');
+            const statusDot = (
+              <span
+                style={{
+                  display: 'inline-block',
+                  width: 10,
+                  height: 10,
+                  borderRadius: '50%',
+                  backgroundColor: statusColor,
+                  boxShadow: '0 0 0 2px rgba(255,255,255,0.95)',
+                  flexShrink: 0,
+                }}
+              />
+            );
+            return (
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 0 }}>
+                {parts[0]}
+                <span
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    border: '1px solid rgba(255,255,255,0.9)',
+                    borderRadius: 9999,
+                    padding: '2px 10px',
+                    marginInlineStart: 6,
+                    backgroundColor: statusColor,
+                  }}
+                >
+                  {statusDot}
+                  <span style={{ color: '#ffffff', fontWeight: 600 }}>{statusLabel}</span>
+                </span>
+                {parts[1]}
+              </span>
+            );
+          })(),
           onUndo: async () => {
             clearActionBanner();
             let undoId = result.data?.id || item.rawId;
@@ -759,6 +825,9 @@ export default function OperationsBoardPage({
                   id: undoResult.data?.id ? `att-${undoResult.data.id}` : d.id,
                 };
               }));
+              showActionBanner({
+                message: t('operations_board_change_reverted'),
+              });
             } else {
               setError(t('operations_board_drag_error'));
               loadData();
@@ -767,7 +836,7 @@ export default function OperationsBoardPage({
         });
       }
     }
-  }, [data, t, loadData, roleContext, lang, showActionBanner, clearActionBanner, applyWorkflowMove]);
+  }, [data, t, loadData, roleContext, lang, showActionBanner, clearActionBanner, applyWorkflowMove, showDragInvalidToast]);
 
   const handleBulkMove = useCallback(async (fromColumn, toColumn) => {
     if (fromColumn === toColumn) return;
@@ -776,6 +845,7 @@ export default function OperationsBoardPage({
 
     const movedIds = [];
     const undoSnapshots = [];
+    let movedAttendanceCount = 0;
 
     for (const item of itemsToMove) {
       if (item.type === 'attendance') {
@@ -789,6 +859,7 @@ export default function OperationsBoardPage({
           movedIds.push(item.id);
           undoSnapshots.push({ item, prevColumn: fromColumn, prevRawId: item.rawId, resultId: result.data?.id });
           lastLocalChangeRef.current = { id: result.data?.id || item.rawId, time: Date.now() };
+          movedAttendanceCount++;
         }
       } else if (item.type === 'workflow') {
         if (!canMoveWorkflowToColumn(fromColumn, toColumn, roleContext)) continue;
@@ -802,7 +873,7 @@ export default function OperationsBoardPage({
     }
 
     if (movedIds.length === 0) {
-      setError(t('operations_board_drag_invalid'));
+      showDragInvalidToast();
       loadData();
       return;
     }
@@ -820,8 +891,57 @@ export default function OperationsBoardPage({
 
     const fromLabel = t(`operations_board_lane_${fromColumn.toLowerCase()}`) || fromColumn;
     const toLabel = t(`operations_board_lane_${toColumn.toLowerCase()}`) || toColumn;
+    const isWorkflowBulk = itemsToMove[0]?.type === 'workflow';
+    const fromColor = isWorkflowBulk ? getWorkflowStatusColor(fromColumn) : getAttendanceColor(fromColumn);
+    const toColor = isWorkflowBulk ? getWorkflowStatusColor(toColumn) : getAttendanceColor(toColumn);
+    if (movedAttendanceCount > 0 && (roleContext.isAdmin || roleContext.isSuperAdmin)) {
+      toast.info(t('operations_board_attendance_admin_override'));
+    }
     showActionBanner({
-      message: t('operations_board_bulk_moved', { count: movedIds.length, from: fromLabel, to: toLabel }),
+      pillColor: toColor,
+      message: (() => {
+        const template = t('operations_board_bulk_moved', { count: movedIds.length, from: '{from}', to: '{to}' });
+        const [beforeFrom, afterFrom] = template.split('{from}');
+        const [beforeTo, afterTo] = (afterFrom || '').split('{to}');
+        const statusBadge = (color, label) => (
+          <span
+            key={`badge-${color}`}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: 6,
+              border: '1px solid rgba(255,255,255,0.9)',
+              borderRadius: 9999,
+              padding: '2px 10px',
+              marginInlineStart: 6,
+              backgroundColor: color,
+              flexShrink: 0,
+            }}
+          >
+            <span
+              style={{
+                display: 'inline-block',
+                width: 10,
+                height: 10,
+                borderRadius: '50%',
+                backgroundColor: color,
+                boxShadow: '0 0 0 2px rgba(255,255,255,0.95)',
+                flexShrink: 0,
+              }}
+            />
+            <span style={{ color: '#ffffff', fontWeight: 600 }}>{label}</span>
+          </span>
+        );
+        return (
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 0, flexWrap: 'wrap' }}>
+            {beforeFrom}
+            {statusBadge(fromColor, fromLabel)}
+            {beforeTo}
+            {statusBadge(toColor, toLabel)}
+            {afterTo}
+          </span>
+        );
+      })(),
       onUndo: async () => {
         clearActionBanner();
         for (const snap of undoSnapshots) {
@@ -836,6 +956,9 @@ export default function OperationsBoardPage({
           }
         }
         loadData();
+        showActionBanner({
+          message: t('operations_board_change_reverted'),
+        });
       },
     });
   }, [data, t, roleContext, showActionBanner, clearActionBanner, loadData]);
@@ -1118,6 +1241,7 @@ export default function OperationsBoardPage({
           sortBy={sortBy}
           onSortChange={handleSortChange}
           lane={lane}
+          roleContext={roleContext}
           onLaneChange={(newLane) => {
             updateParams((next) => {
               next.set('lane', newLane);
@@ -1137,14 +1261,14 @@ export default function OperationsBoardPage({
             <SimpleLoading type="brand" size="lg" />
           </div>
         ) : view === VIEWS.TABLE ? (
-          <BoardTableView data={displayData} columns={columns} onCardClick={handleCardClick} t={t} lang={lang} sortBy={sortBy} />
+          <BoardTableView data={displayData} columns={columns} onCardClick={handleCardClick} t={t} lang={lang} sortBy={sortBy} roleContext={roleContext} />
         ) : lane === LANES.ATTENDANCE ? (
           <AttendanceBoard
             data={displayData}
             columns={attendanceColumns}
             onDragEnd={handleDragEnd}
             onCardClick={handleCardClick}
-            onDragRejected={() => setError(t('operations_board_drag_invalid'))}
+            onDragRejected={showDragInvalidToast}
             t={t}
             lang={lang}
             roleContext={roleContext}
@@ -1162,7 +1286,7 @@ export default function OperationsBoardPage({
             columns={workflowColumns}
             onDragEnd={handleDragEnd}
             onCardClick={handleCardClick}
-            onDragRejected={() => setError(t('operations_board_drag_invalid'))}
+            onDragRejected={showDragInvalidToast}
             canMoveToColumn={(from, to) => canMoveWorkflowToColumn(from, to, roleContext)}
             orderKey={workflowOrderKey}
             onLaneResize={startLaneResize}
@@ -1216,17 +1340,26 @@ export default function OperationsBoardPage({
         <div className="operations-board-action-announcement" data-testid="operations-board-action-banner">
           <Announcement
             themed
-            className="operations-board-action-announcement-pill bg-emerald-100 text-emerald-700 dark:bg-emerald-700 dark:text-emerald-100"
+            className="operations-board-action-announcement-pill text-white"
+            style={{ backgroundColor: actionBanner.pillColor || '#059669' }}
           >
-            <AnnouncementTag className="bg-emerald-200/60 dark:bg-emerald-800/60">
+            <AnnouncementTag
+              className="border border-white/90 text-white"
+              style={{ backgroundColor: actionBanner.pillColor || '#059669' }}
+            >
               <CheckCircle2 size={16} className="shrink-0" />
             </AnnouncementTag>
             <AnnouncementTitle className="text-sm font-medium gap-1.5">
               {actionBanner.message}
+              {actionBanner.notifySent && (
+                <span className="text-xs font-medium opacity-85 whitespace-nowrap">
+                  · {t('operations_board_notification_sent') || 'Notification sent'}
+                </span>
+              )}
               {actionBanner.onUndo && (
                 <button
                   type="button"
-                  className="inline-flex items-center gap-0.5 rounded-md text-xs font-semibold px-1.5 py-0.5 hover:bg-emerald-300/40 dark:hover:bg-emerald-900/40 transition-colors"
+                  className="inline-flex items-center gap-0.5 rounded-md text-xs font-semibold px-1.5 py-0.5 hover:bg-white/25 transition-colors"
                   onClick={actionBanner.onUndo}
                   data-testid="operations-board-action-undo"
                 >
@@ -1236,7 +1369,7 @@ export default function OperationsBoardPage({
               )}
               <button
                 type="button"
-                className="ml-0.5 shrink-0 rounded-full p-0.5 hover:bg-emerald-300/40 dark:hover:bg-emerald-900/40 transition-colors"
+                className="ml-0.5 shrink-0 rounded-full p-0.5 hover:bg-white/25 transition-colors"
                 onClick={clearActionBanner}
                 aria-label={t('operations_board_dismiss') || 'Dismiss'}
               >
@@ -1255,6 +1388,7 @@ export default function OperationsBoardPage({
         onRefresh={loadData}
         onCardUpdated={handleCardUpdated}
         onParticipationRefresh={handleParticipationRefresh}
+        onActionBanner={showActionBanner}
         roleContext={roleContext}
       />
     </div>

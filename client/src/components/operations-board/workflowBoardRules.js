@@ -53,7 +53,6 @@ const ADMIN_TRANSITIONS = {
 
 const HR_TRANSITIONS = {
   UNDER_HR_REVIEW: new Set(['UNDER_ADMIN_REVIEW', 'APPROVED', 'REJECTED']),
-  UNDER_ADMIN_REVIEW: new Set(['UNDER_HR_REVIEW']),
   APPROVED: new Set([]),
   REJECTED: new Set([]),
 };

@@ -1010,6 +1010,20 @@
   margin-left: 0 !important;
 }
 
+.operations-board-drag-invalid-toast {
+  border: 1px solid rgba(245, 158, 11, 0.35) !important;
+  background: rgba(255, 251, 235, 0.98) !important;
+  color: #92400e !important;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12) !important;
+}
+
+.dark .operations-board-drag-invalid-toast,
+[data-theme="dark"] .operations-board-drag-invalid-toast {
+  background: rgba(69, 26, 3, 0.95) !important;
+  color: #fde68a !important;
+  border-color: rgba(251, 191, 36, 0.35) !important;
+}
+
 .welcome-working-date-picker input,
 .welcome-working-date-picker [class*="_input_"] {
   color: #2563eb !important;

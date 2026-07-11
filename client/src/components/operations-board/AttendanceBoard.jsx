@@ -210,7 +210,8 @@ export default function AttendanceBoard({
 
   useEffect(() => {
     if (!draggingRef.current) {
-      setBoardData(sortDataForBoard(sourceData, sortBy, classId, date, lang));
+      const next = sortDataForBoard(sourceData, sortBy, classId, date, lang);
+      setBoardData(next);
     }
   }, [sourceData, classId, date, sortBy, lang]);
 
@@ -239,7 +240,9 @@ export default function AttendanceBoard({
     if (!classId) { setAttendanceStats(null); return; }
     let cancelled = false;
     fetchAttendanceStats(classId).then((result) => {
-      if (!cancelled && result.success) setAttendanceStats(result.data);
+      if (!cancelled && result.success) {
+        setAttendanceStats(result.data);
+      }
     });
     return () => { cancelled = true; };
   }, [classId]);
@@ -369,6 +372,7 @@ export default function AttendanceBoard({
               const stats = maskAttendanceStatsForHR(attendanceStats?.students?.[String(item.userId)], roleContext);
               const participationCount = hrViewer ? 0 : (participationMap[String(item.userId)]?.length || 0);
               const displayColumn = maskAttendanceColumnForHR(item.column, roleContext);
+              const statusColor = ATTENDANCE_BOARD_COLORS[displayColumn] || ATTENDANCE_BOARD_COLORS.NOT_TAKEN;
               if (collapsed) {
                 return (
                   <KanbanCard
@@ -413,7 +417,7 @@ export default function AttendanceBoard({
                         roleContext={roleContext}
                       />
                     )}
-                    color="#64748b"
+                    color={statusColor}
                     placement="top"
                   >
                     <div

@@ -137,6 +137,7 @@ export default function BoardStudentDrawer({
   onRefresh,
   onCardUpdated,
   onParticipationRefresh,
+  onActionBanner,
   roleContext = {},
 }) {
   const { t, lang } = useLang();
@@ -260,6 +261,7 @@ export default function BoardStudentDrawer({
 
   const handleSaveNotes = async () => {
     if (!card || !notes.trim()) return;
+    const name = resolveBoardStudentName(card, lang);
     if (card.type === 'workflow') {
       const text = notes.trim();
       const result = await addWorkflowBoardComment(card.rawId, text, 'NOTE');
@@ -274,6 +276,9 @@ export default function BoardStudentDrawer({
         setComments((prev) => [saved, ...prev.filter((c) => c.id !== saved.id)]);
         setNotes('');
         loadDetail({ silent: true });
+        onActionBanner?.({
+          message: t('operations_board_note_saved', { name }),
+        });
       }
       return;
     }
@@ -303,6 +308,9 @@ export default function BoardStudentDrawer({
       onCardUpdated?.(card.id, { notes: combinedNotes, rawId: newRawId });
       onRefresh?.();
       loadDetail({ silent: true });
+      onActionBanner?.({
+        message: t('operations_board_note_saved', { name }),
+      });
     }
   };
 
@@ -321,6 +329,9 @@ export default function BoardStudentDrawer({
       setComments((prev) => [saved, ...prev.filter((c) => c.id !== saved.id)]);
       setNewComment('');
       loadDetail({ silent: true });
+      onActionBanner?.({
+        message: t('operations_board_comment_added', { name: resolveBoardStudentName(card, lang) }),
+      });
     }
   };
 
@@ -349,6 +360,9 @@ export default function BoardStudentDrawer({
         onParticipationRefresh?.();
         onRefresh?.();
         loadDetail({ silent: true });
+        onActionBanner?.({
+          message: t('operations_board_participation_added', { name: resolveBoardStudentName(card, lang) }),
+        });
       }
     } finally {
       setSavingParticipation(false);

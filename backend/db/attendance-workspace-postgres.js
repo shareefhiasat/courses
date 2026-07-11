@@ -378,15 +378,26 @@ export const getScheduleGrid = async ({ programId, instructorId, academicTermId,
 /**
  * Get attendance status for classes on a specific date
  */
+const QATAR_OFFSET_MS = 3 * 60 * 60 * 1000;
+
+function getQatarDayRange(dateInput) {
+  const d = new Date(dateInput);
+  const qatarTime = new Date(d.getTime() + QATAR_OFFSET_MS);
+  const y = qatarTime.getUTCFullYear();
+  const m = qatarTime.getUTCMonth();
+  const day = qatarTime.getUTCDate();
+  const dayStart = new Date(Date.UTC(y, m, day, -3, 0, 0));
+  const dayEnd = new Date(Date.UTC(y, m, day + 1, -3, 0, 0));
+  return { dayStart, dayEnd };
+}
+
 export const getScheduleStatus = async ({ classIds, date }) => {
   try {
     if (!classIds || classIds.length === 0) {
       return { success: true, data: {} };
     }
 
-    const targetDate = new Date(date);
-    const dayStart = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate());
-    const dayEnd = new Date(targetDate.getFullYear(), targetDate.getMonth(), targetDate.getDate() + 1);
+    const { dayStart, dayEnd } = getQatarDayRange(date);
 
     const ids = classIds.map((id) => parseInt(id));
 

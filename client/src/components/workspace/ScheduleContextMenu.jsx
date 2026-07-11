@@ -13,6 +13,8 @@ import { FileText, FileSpreadsheet, AlertCircle } from 'lucide-react';
 import { Dialog, DialogTitle, DialogContent, DialogActions, Button as MuiButton } from '@mui/material';
 import { ATTENDANCE_TYPE_CATEGORY } from '@constants/attendanceTypes';
 import useQRPermissions from '@hooks/useQRPermissions';
+import { isHROnlyViewer } from '@components/operations-board/hrAttendancePrivacy.js';
+import { academicTermToYearTerm } from '@utils/academicTermUtils';
 import AppMenu from '@components/ui/mui/AppMenu.jsx';
 import InitiateWorkflowDialog from '@components/workspace/InitiateWorkflowDialog.jsx';
 import WorkflowPdfPreviewPanel from '@components/operations-board/WorkflowPdfPreviewPanel.jsx';
@@ -29,11 +31,13 @@ function ScheduleContextMenu({
   onOpenInbox,
   onOpenHistory,
   onOpenOperations,
+  onOpenNotifications,
 }) {
   const navigate = useNavigate();
-  const { user, isAdmin } = useAuth();
+  const { user, isAdmin, isHR, isSuperAdmin } = useAuth();
   const { t, lang } = useLang();
   const { canExport, canSeeStandupMode } = useQRPermissions();
+  const hrOnly = isHROnlyViewer({ isHR, isAdmin, isSuperAdmin });
   const [exporting, setExporting] = useState(null);
   const [workflowDialogOpen, setWorkflowDialogOpen] = useState(false);
   const [existingWorkflow, setExistingWorkflow] = useState(null);
@@ -109,27 +113,35 @@ function ScheduleContextMenu({
     setWorkflowDialogOpen(false);
   }, []);
 
-  const handleGoToOperationsFromWorkflow = useCallback((existingWorkflow) => {
+  const handleGoToOperationsFromWorkflow = useCallback((wf) => {
     const params = {
       lane: 'status',
       classId: cls?.id,
       date: dateStr,
       _t: String(Date.now()),
     };
-    if (existingWorkflow?.id) {
-      params.workflowId = String(existingWorkflow.id);
+    if (wf?.id) {
+      params.workflowId = String(wf.id);
     }
     onOpenOperations?.(params);
     setWorkflowDialogOpen(false);
   }, [cls, dateStr, onOpenOperations]);
 
-  const handleInbox = useCallback((tab) => {
-    onOpenInbox?.(tab, cls?.id);
+  const handleOpenFilteredNotifications = useCallback(() => {
+    const { year } = academicTerm ? academicTermToYearTerm(academicTerm) : {};
+    onOpenNotifications?.({
+      filterClass: cls?.id ? String(cls.id) : 'all',
+      filterSubject: subject?.id || cls?.subjectId ? String(subject?.id || cls?.subjectId) : 'all',
+      filterProgram: program?.id ? String(program.id) : 'all',
+      filterYear: year ? String(year) : 'all',
+      filterSemester: academicTerm?.semester || academicTerm?.code || 'all',
+      showAdvanced: true,
+    });
     onClose();
-  }, [onOpenInbox, cls?.id, onClose]);
+  }, [academicTerm, cls, subject, program, onOpenNotifications, onClose]);
 
   const handleHistory = useCallback(() => {
-    onOpenHistory?.(cls, selectedDate);
+    onOpenHistory?.(cls, selectedDate, 'lecture');
     onClose();
   }, [onOpenHistory, cls, selectedDate, onClose]);
 
@@ -223,14 +235,16 @@ function ScheduleContextMenu({
       icon: getThemedIcon('ui', 'qr_code', 18, 'currentColor'),
       onClick: () => handleScan(ATTENDANCE_TYPE_CATEGORY.REGULAR),
     };
-    const standupItem = canSeeStandupMode ? {
+    const standupItem = canSeeStandupMode && !hrOnly ? {
       id: 'scan-standup',
       label: t('standup') || 'Standup',
       icon: getThemedIcon('ui', 'users', 18, 'currentColor'),
       onClick: () => handleScan(ATTENDANCE_TYPE_CATEGORY.STANDUP),
     } : null;
 
-    if (isAdmin) {
+    if (hrOnly) {
+      attendanceChildren.push(boardItem);
+    } else if (isAdmin) {
       attendanceChildren.push(boardItem, manualItem);
       if (standupItem) attendanceChildren.push(standupItem);
     } else {
@@ -245,87 +259,61 @@ function ScheduleContextMenu({
       children: attendanceChildren,
     });
 
+    const workflowChildren = existingWorkflow
+      ? [{
+        id: 'daily-attendance-existing',
+        labelNode: (
+          <span>
+            {t('workspace_menu_daily_attendance') || 'Daily attendance'}
+            {' — '}
+            <span style={{ color: '#f59e0b', fontWeight: 600 }}>
+              {t('workspace_menu_already_exists') || 'Already exists'}
+            </span>
+          </span>
+        ),
+        icon: <AlertCircle size={18} color="#f59e0b" />,
+        onClick: () => handleGoToOperationsFromWorkflow(existingWorkflow),
+        trailingActions: existingWorkflow.fileId ? [{
+          title: t('operations_board_preview_pdf') || 'Preview PDF',
+          icon: <FileText size={16} color="#3b82f6" />,
+          tooltipColor: '#3b82f6',
+          onClick: handlePreviewPdf,
+        }] : undefined,
+      }]
+      : [{
+        id: 'initiate-workflow',
+        labelKey: 'workspace_menu_workflow_initiate',
+        labelFallback: 'Initiate',
+        icon: getThemedIcon('ui', 'file_signature', 18, 'currentColor'),
+        onClick: handleInitiateWorkflow,
+      }];
+
     items.push({
       id: 'workflow',
       labelKey: 'workspace_menu_workflow',
       labelFallback: 'Workflow',
       icon: getThemedIcon('ui', 'file_signature', 18, 'currentColor'),
-      children: [
-        {
-          id: 'initiate-workflow',
-          labelNode: existingWorkflow
-            ? (
-              <span>
-                {t('workspace_menu_workflow_initiate') || 'Initiate'}
-                {' — '}
-                <span style={{ color: '#ea580c', fontWeight: 600 }}>
-                  {t('workspace_menu_workflow_exists') || 'Workflow already exists'}
-                </span>
-              </span>
-            )
-            : undefined,
-          labelKey: existingWorkflow ? undefined : 'workspace_menu_workflow_initiate',
-          labelFallback: 'Initiate',
-          icon: existingWorkflow
-            ? <AlertCircle size={18} color="#f59e0b" />
-            : getThemedIcon('ui', 'file_signature', 18, 'currentColor'),
-          onClick: handleInitiateWorkflow,
-          trailingActions: existingWorkflow ? [{
-            title: t('initiate_workflow_go_operations') || 'Go to existing',
-            icon: getThemedIcon('ui', 'external_link', 16, 'currentColor') || <FileText size={16} />,
-            tooltipColor: '#f59e0b',
-            onClick: () => handleGoToOperationsFromWorkflow(existingWorkflow),
-          }] : undefined,
-        },
-        ...(existingWorkflow ? [{
-          id: 'preview-workflow-pdf',
-          labelKey: 'workspace_menu_workflow_preview_pdf',
-          labelFallback: 'Preview PDF',
-          icon: <FileText size={18} color="#3b82f6" />,
-          onClick: handlePreviewPdf,
-          disabled: !existingWorkflow?.fileId,
-        }] : []),
-      ],
+      children: workflowChildren,
     });
 
     items.push({ divider: true });
 
     items.push({
-      id: 'messages',
-      label: t('inbox_tab'),
+      id: 'open-notifications',
+      label: t('inbox_tab') || 'Inbox',
       icon: getThemedIcon('ui', 'mailbox', 18, 'currentColor'),
-      trailingActions: [
-        {
-          title: t('inbox_tab') || 'Inbox',
-          icon: getThemedIcon('ui', 'mailbox', 16, 'currentColor'),
-          tooltipColor: '#8b5cf6',
-          onClick: () => handleInbox('inbox'),
-        },
-        {
-          title: t('outbox_tab') || 'Outbox',
-          icon: getThemedIcon('ui', 'send', 16, 'currentColor'),
-          tooltipColor: '#0ea5e9',
-          onClick: () => handleInbox('outbox'),
-        },
-      ],
+      onClick: handleOpenFilteredNotifications,
     });
 
     items.push({
       id: 'open-history',
       label: t('history') || 'History',
       icon: getThemedIcon('ui', 'history', 18, 'currentColor'),
-      trailingActions: [
-        {
-          title: t('workspace_class_history') || 'Class History',
-          icon: getThemedIcon('ui', 'history', 16, 'currentColor'),
-          tooltipColor: '#f59e0b',
-          onClick: handleHistory,
-        },
-      ],
+      onClick: handleHistory,
     });
 
     return items;
-  }, [canExport, cls, program, subject, academicTerm, slotInstructor, lang, t, user, dateStr, exporting, runExport, handleScan, handleOpenOperations, handleInitiateWorkflow, handleInbox, handleHistory, canSeeStandupMode, existingWorkflow, handlePreviewPdf, handleGoToOperationsFromWorkflow, isAdmin]);
+  }, [canExport, cls, program, subject, academicTerm, slotInstructor, lang, t, user, dateStr, runExport, handleScan, handleOpenOperations, handleInitiateWorkflow, handleHistory, canSeeStandupMode, existingWorkflow, handlePreviewPdf, handleGoToOperationsFromWorkflow, isAdmin, hrOnly, handleOpenFilteredNotifications]);
 
   return (
     <>

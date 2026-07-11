@@ -815,7 +815,8 @@ const SideDrawer = ({ isOpen, onClose, onOpen }) => {
       label: nl('attendance', 'Attendance'),
       icon: getThemedIcon('ui', 'qr_code', 18, theme),
       children: [
-        { id: 'qr-scanner', path: '/qr-scanner', screenId: 'qr-scanner', icon: getThemedIcon('ui', 'qr_code', 18, theme), label: nl('daily_scan', 'Daily Scan') },
+        { id: 'hr-attendance', path: '/hr-attendance', screenId: 'hr-attendance', icon: getThemedIcon('ui', 'qr_code', 18, theme), label: nl('hr_attendance', 'HR Attendance') },
+        { id: 'operations-board-hr', path: '/operations/board', screenId: 'operations', icon: getThemedIcon('ui', 'layout_grid', 18, theme), label: nl('operations_board_title', 'Operations Board') },
       ],
     },
     {

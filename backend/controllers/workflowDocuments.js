@@ -368,7 +368,7 @@ export const updateWorkflowDocumentStatusController = async (req, res) => {
         });
         const cls = result.data.classId ? await prisma.class.findUnique({
           where: { id: result.data.classId },
-          select: { id: true, nameEn: true, nameAr: true, code: true }
+          select: { id: true, nameEn: true, nameAr: true, code: true, subjectId: true }
         }) : null;
         const basePayload = {
           ...buildNotificationNameVars(actor, 'Unknown User'),
@@ -376,6 +376,8 @@ export const updateWorkflowDocumentStatusController = async (req, res) => {
           documentId: result.data.id,
           senderName: actor?.displayName || 'Unknown',
           senderId: user?.dbId || null,
+          classId: result.data.classId || null,
+          subjectId: cls?.subjectId || null,
           className: cls?.nameEn || null,
           classNameAr: cls?.nameAr || cls?.nameEn || null,
           previousStatus,
@@ -395,7 +397,7 @@ export const updateWorkflowDocumentStatusController = async (req, res) => {
             recipientRole: LMS_ROLES.HR,
           }, user, { role: LMS_ROLES.HR });
         } else if (status === 'UNDER_ADMIN_REVIEW' && previousStatus === 'SUBMITTED') {
-          await emit(EVENTS.WORKFLOW_SENT_FOR_REVIEW, {
+          await emit(EVENTS.WORKFLOW_SENT_FOR_APPROVAL, {
             ...basePayload,
             recipientType: 'role',
             recipientRole: LMS_ROLES.ADMIN,

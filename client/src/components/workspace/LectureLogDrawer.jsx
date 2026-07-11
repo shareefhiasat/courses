@@ -12,7 +12,44 @@ import { getWorkflowStatusColor } from '@constants/workspaceStatusColors.js';
 import { getDateGroup, getGroupLabel } from '@utils/notificationHelpers.js';
 import { Workflow as WorkflowIcon } from 'lucide-react';
 import DriveUserAvatar from '@components/ui/DriveTimeline/DriveUserAvatar.jsx';
+import { WORKFLOW_COLUMNS } from '@services/business/operationsBoardService.js';
 import { getLocalizedUserName } from '@utils/localizedUserName';
+
+const WORKFLOW_STATUS_LABEL_KEYS = Object.fromEntries(
+  WORKFLOW_COLUMNS.map((col) => [col.id, col.i18nKey]),
+);
+
+function localizeLogStatus(status, t, lang, localizedAr) {
+  if (!status) return '—';
+  const raw = typeof status === 'object'
+    ? (status.code || status.nameEn || status.id || '')
+    : status;
+  const code = String(raw).toUpperCase().trim().replace(/\s+/g, '_');
+  const labelKey = WORKFLOW_STATUS_LABEL_KEYS[code];
+  if (labelKey) {
+    const label = t(labelKey);
+    if (label && label !== labelKey) return label;
+  }
+  // Common workflow aliases
+  const aliases = {
+    SENT: 'operations_board_lane_submitted',
+    SUBMITTED: 'operations_board_lane_submitted',
+    UNDER_REVIEW: 'operations_board_lane_hr_review',
+    UNDER_HR_REVIEW: 'operations_board_lane_hr_review',
+    UNDER_ADMIN_REVIEW: 'operations_board_lane_admin_review',
+    ADMIN_APPROVED: 'operations_board_lane_approved',
+  };
+  if (aliases[code]) {
+    const label = t(aliases[code]);
+    if (label && label !== aliases[code]) return label;
+  }
+  if (lang === 'ar' && localizedAr) return localizedAr;
+  // Never show raw enum keys like UNDER_ADMIN_REVIEW to users
+  if (/^[A-Z][A-Z0-9_]+$/.test(code) && code.includes('_')) {
+    return code.split('_').map((w) => w.charAt(0) + w.slice(1).toLowerCase()).join(' ');
+  }
+  return String(raw || status);
+}
 
 const TABS = {
   LECTURE_LOG: 'lecture_log',
@@ -202,9 +239,11 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
   };
 
   const formatTransitionTitle = (entry, fallbackStatus) => {
-    const from = (lang === 'ar' ? entry.fromStatusAr : entry.fromStatus) || entry.fromStatus || '—';
-    const to = (lang === 'ar' ? entry.toStatusAr : entry.toStatus) || entry.toStatus || fallbackStatus || '—';
-    return `FROM: ${from} → TO: ${to}`;
+    const fromRaw = entry.fromStatus;
+    const toRaw = entry.toStatus || fallbackStatus;
+    const from = localizeLogStatus(fromRaw, t, lang, lang === 'ar' ? entry.fromStatusAr : null);
+    const to = localizeLogStatus(toRaw, t, lang, lang === 'ar' ? entry.toStatusAr : null);
+    return t('lecture_log_status_transition', { from, to });
   };
 
   const renderEntryCard = (entry, idx) => {

@@ -6,6 +6,7 @@ import { Input } from '@/components/kibo/ui/input';
 import { useLang } from '@contexts/LangContext';
 import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import BoardScheduleCalendar from './BoardScheduleCalendar.jsx';
+import { shouldHideNotesParticipation } from './hrAttendancePrivacy.js';
 
 export default function BoardFilterBar({
   filters,
@@ -20,9 +21,11 @@ export default function BoardFilterBar({
   onLaneChange,
   onResetLaneWidths,
   showLaneReset = false,
+  roleContext = {},
 }) {
   const { t } = useLang();
   const theme = useTheme();
+  const hideNotesParticipation = shouldHideNotesParticipation(roleContext);
 
   const selectedDate = filters.date || new Date().toISOString().slice(0, 10);
 
@@ -273,6 +276,7 @@ export default function BoardFilterBar({
             welcomeContext={welcomeContext}
             onClassSessionClick={handleClassSessionClick}
             lane={lane}
+            hideNotesParticipation={hideNotesParticipation}
           />
         </Box>
       )}

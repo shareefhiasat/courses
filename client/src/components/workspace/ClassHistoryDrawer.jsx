@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import useResizableDrawer from '@hooks/useResizableDrawer';
+import { formatDate } from '@utils/date-formatter.js';
 import ExportHistoryDrawer from '@pages/operations/attendance/ExportHistoryDrawer';
 import LectureLogDrawer from '@components/workspace/LectureLogDrawer';
 
@@ -16,6 +17,13 @@ const ClassHistoryDrawer = ({ isOpen, onClose, classInfo, date, initialTab = nul
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const [activeTab, setActiveTab] = useState(initialTab || TABS.EXPORT);
+
+  useEffect(() => {
+    if (isOpen && initialTab) {
+      setActiveTab(initialTab);
+    }
+  }, [isOpen, initialTab]);
+
   const { width: drawerWidth, resizeHandleProps } = useResizableDrawer({
     storageKey: 'class_history_drawer_width',
     defaultWidth: 520,
@@ -27,6 +35,7 @@ const ClassHistoryDrawer = ({ isOpen, onClose, classInfo, date, initialTab = nul
   const classLabel = classInfo
     ? (lang === 'ar' && classInfo.nameAr ? classInfo.nameAr : classInfo.nameEn || classInfo.code)
     : '';
+  const dateLabel = date ? formatDate(date, lang) : '';
 
   if (!isOpen) return null;
 
@@ -75,7 +84,7 @@ const ClassHistoryDrawer = ({ isOpen, onClose, classInfo, date, initialTab = nul
             </div>
             {classLabel && (
               <div style={{ fontSize: '12px', color: isDark ? '#94a3b8' : '#64748b', marginTop: '2px' }}>
-                {classLabel}
+                {classLabel}{dateLabel ? ` · ${dateLabel}` : ''}
               </div>
             )}
           </div>

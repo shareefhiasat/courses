@@ -25,6 +25,7 @@ import {
   toApiDate,
   toIsoDate,
 } from './boardClassCalendarUtils.js';
+import { SCHEDULE_WORKFLOW_STATUS } from '@constants/workspaceStatusColors.js';
 import {
   CalendarDays,
   CalendarRange,
@@ -183,17 +184,19 @@ function CalendarToolbar({ label, view, views, onNavigate, onView }) {
   );
 }
 
-function AgendaEvent({ event, t, lang = 'en', zoomFactor = 1, isDark = false, lane = 'status' }) {
+function AgendaEvent({ event, t, lang = 'en', zoomFactor = 1, isDark = false, lane = 'status', hideNotesParticipation = false }) {
   const r = event.resource || {};
   const color = lane === 'attendance'
     ? resolveAttendanceEventColor(r.status)
     : getWorkflowEventColor(r.workflowKey);
   const iconSize = Math.round(12 * zoomFactor);
   const textColor = isDark ? '#e2e8f0' : '#1e293b';
+  const tooltipColor = isDark ? '#94a3b8' : '#64748b';
   return (
     <ColoredTooltip
-      title={<AttendanceSummaryTooltip event={event} t={t} lang={lang} lane={lane} />}
-      color={color}
+      title={<AttendanceSummaryTooltip event={event} t={t} lang={lang} lane={lane} hideNotesParticipation={hideNotesParticipation} />}
+      color={tooltipColor}
+      borderColor={color}
       placement="top"
       arrow
     >
@@ -206,8 +209,15 @@ function AgendaEvent({ event, t, lang = 'en', zoomFactor = 1, isDark = false, la
         color: textColor,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-          {lane !== 'attendance' && <WorkflowIcon size={iconSize} style={{ color, flexShrink: 0 }} />}
-          <span style={{ fontWeight: 600, color: textColor }}>{event.title}</span>
+          <span style={{ fontWeight: 600, color: textColor, flex: 1 }}>{event.title}</span>
+          <EventStatusIndicators
+            status={r.status}
+            workflowKey={r.workflowKey}
+            iconSize={iconSize}
+            t={t}
+            zoomFactor={zoomFactor}
+            hideNotesParticipation={hideNotesParticipation}
+          />
         </div>
         {r.instructor && (
           <span style={{ fontSize: '0.7rem', opacity: 0.85, color: textColor }}>
@@ -235,14 +245,51 @@ function AttendanceCountsBreakdown({ counts, t, fontSize = '0.7rem' }) {
       {items.map((item) => (
         <div key={item.key} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
           <span style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: item.color }} />
-          <span style={{ fontSize }}>{item.count} {t(item.labelKey) || item.fallback}</span>
+          <span style={{ fontSize, color: item.color, fontWeight: 600 }}>{item.count} {t(item.labelKey) || item.fallback}</span>
         </div>
       ))}
     </div>
   );
 }
 
-function AttendanceSummaryTooltip({ event, t, lang = 'en', lane = 'status' }) {
+function EventStatusIndicators({ status, workflowKey, iconSize, t, zoomFactor = 1, hideNotesParticipation = false }) {
+  const counts = getAttendanceCountsFromStatus(status);
+  const items = ATTENDANCE_COUNT_ITEMS
+    .map((item) => ({ ...item, count: counts?.[item.key] || 0 }))
+    .filter((item) => item.count > 0);
+  const hasWorkflow = workflowKey && workflowKey !== SCHEDULE_WORKFLOW_STATUS.NOT_TAKEN;
+  const workflowColor = getWorkflowEventColor(workflowKey);
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '3px', flexShrink: 0 }}>
+      {hasWorkflow && (
+        <WorkflowIcon size={iconSize} style={{ color: workflowColor, flexShrink: 0 }} />
+      )}
+      {items.length > 0 && (
+        <div style={{ display: 'flex', alignItems: 'center', position: 'relative', height: iconSize }}>
+          {items.map((item, idx) => (
+            <span
+              key={item.key}
+              style={{
+                width: Math.max(6, iconSize - 2),
+                height: Math.max(6, iconSize - 2),
+                borderRadius: '50%',
+                backgroundColor: item.color,
+                marginLeft: idx > 0 ? -Math.max(2, iconSize / 4) : 0,
+                border: '1px solid #fff',
+                zIndex: items.length - idx,
+                flexShrink: 0,
+              }}
+            />
+          ))}
+        </div>
+      )}
+      <ClassSessionMetaBadges status={status} t={t} zoomFactor={zoomFactor} compact hideNotesParticipation={hideNotesParticipation} />
+    </div>
+  );
+}
+
+function AttendanceSummaryTooltip({ event, t, lang = 'en', lane = 'status', hideNotesParticipation = false }) {
   const r = event.resource || {};
   const status = r.status || {};
   const workflowKey = r.workflowKey;
@@ -252,32 +299,35 @@ function AttendanceSummaryTooltip({ event, t, lang = 'en', lane = 'status' }) {
   const creatorName = status.createdBy || status.submittedBy || status.takenBy || status.attendanceTakenBy || null;
   const eventDate = r.date || (event.start ? toIsoDate(event.start) : null);
 
-  const isAttendanceLane = lane === 'attendance';
-  const statusColor = isAttendanceLane
-    ? resolveAttendanceEventColor(status)
-    : getWorkflowEventColor(workflowKey);
-  const statusLabel = isAttendanceLane
-    ? (counts && status.hasAttendance
-      ? (t('attendance_summary') || 'Attendance Summary')
-      : (t('workspace_status_not_taken') || 'Not yet'))
-    : getWorkflowStatusLabel(workflowKey, t);
+  const hasWorkflow = workflowKey && workflowKey !== SCHEDULE_WORKFLOW_STATUS.NOT_TAKEN;
+  const hasAttendance = Boolean(counts && (Object.values(counts).some((c) => c > 0) || status.hasAttendance));
+  const workflowColor = getWorkflowEventColor(workflowKey);
+  const workflowLabel = getWorkflowStatusLabel(workflowKey, t) || (t('workspace_status_not_taken') || 'Not yet');
 
   return (
     <div style={{ maxWidth: 260 }}>
       <div style={{ fontWeight: 700, marginBottom: 4 }}>{event.title}</div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 6 }}>
-        {!isAttendanceLane && (
-          <WorkflowIcon size={14} style={{ color: statusColor, flexShrink: 0 }} />
-        )}
-        <span style={{ fontSize: '0.75rem', fontWeight: 600, color: statusColor }}>{statusLabel}</span>
-      </div>
-      {counts && (
+      {hasWorkflow && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 6 }}>
+          <WorkflowIcon size={14} style={{ color: workflowColor, flexShrink: 0 }} />
+          <span style={{ fontSize: '0.75rem', fontWeight: 600, color: workflowColor }}>{workflowLabel}</span>
+        </div>
+      )}
+      {hasAttendance && (
         <div style={{ marginBottom: 6 }}>
+          <div style={{ fontSize: '0.7rem', fontWeight: 600, marginBottom: 3 }}>
+            {t('attendance_summary') || 'Attendance Summary'}
+          </div>
           <AttendanceCountsBreakdown counts={counts} t={t} />
         </div>
       )}
+      {!hasWorkflow && !hasAttendance && (
+        <div style={{ fontSize: '0.75rem', color: '#94a3b8', marginBottom: 6 }}>
+          {t('workspace_status_not_taken') || 'Not yet'}
+        </div>
+      )}
       <div style={{ marginBottom: 6 }}>
-        <ClassSessionMetaBadges status={status} t={t} zoomFactor={1} />
+        <ClassSessionMetaBadges status={status} t={t} zoomFactor={1} hideNotesParticipation={hideNotesParticipation} />
       </div>
       {r.instructor && (
         <div style={{ fontSize: '0.7rem', opacity: 0.8, marginBottom: 2 }}>
@@ -313,26 +363,34 @@ function AttendanceSummaryTooltip({ event, t, lang = 'en', lane = 'status' }) {
   );
 }
 
-function DayWeekEvent({ event, t, lang = 'en', zoomFactor = 1, lane = 'status' }) {
+function DayWeekEvent({ event, t, lang = 'en', zoomFactor = 1, isDark = false, lane = 'status', hideNotesParticipation = false }) {
   const r = event.resource || {};
   const iconSize = Math.round(12 * zoomFactor);
   const color = lane === 'attendance'
     ? resolveAttendanceEventColor(r.status)
     : getWorkflowEventColor(r.workflowKey);
+  const tooltipColor = isDark ? '#94a3b8' : '#64748b';
   return (
     <ColoredTooltip
-      title={<AttendanceSummaryTooltip event={event} t={t} lang={lang} lane={lane} />}
-      color={color}
+      title={<AttendanceSummaryTooltip event={event} t={t} lang={lang} lane={lane} hideNotesParticipation={hideNotesParticipation} />}
+      color={tooltipColor}
+      borderColor={color}
       placement="top"
       arrow
     >
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', overflow: 'hidden' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
-          {lane !== 'attendance' && <WorkflowIcon size={iconSize} style={{ color: '#fff', flexShrink: 0 }} />}
           <span style={{ fontWeight: 600, fontSize: `${0.85 * zoomFactor}rem`, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1 }}>
             {event.title}
           </span>
-          <ClassSessionMetaBadges status={r.status} t={t} zoomFactor={zoomFactor} compact />
+          <EventStatusIndicators
+            status={r.status}
+            workflowKey={r.workflowKey}
+            iconSize={iconSize}
+            t={t}
+            zoomFactor={zoomFactor}
+            hideNotesParticipation={hideNotesParticipation}
+          />
         </div>
         {r.instructor && (
           <span style={{ fontSize: `${0.75 * zoomFactor}rem`, opacity: 0.85, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -349,16 +407,18 @@ function DayWeekEvent({ event, t, lang = 'en', zoomFactor = 1, lane = 'status' }
   );
 }
 
-function MonthEvent({ event, t, lang = 'en', zoomFactor = 1, lane = 'status' }) {
+function MonthEvent({ event, t, lang = 'en', zoomFactor = 1, isDark = false, lane = 'status', hideNotesParticipation = false }) {
   const r = event.resource || {};
   const color = lane === 'attendance'
     ? resolveAttendanceEventColor(r.status)
     : getWorkflowEventColor(r.workflowKey);
   const iconSize = Math.round(10 * zoomFactor);
+  const tooltipColor = isDark ? '#94a3b8' : '#64748b';
   return (
     <ColoredTooltip
-      title={<AttendanceSummaryTooltip event={event} t={t} lang={lang} lane={lane} />}
-      color={color}
+      title={<AttendanceSummaryTooltip event={event} t={t} lang={lang} lane={lane} hideNotesParticipation={hideNotesParticipation} />}
+      color={tooltipColor}
+      borderColor={color}
       placement="top"
       arrow
     >
@@ -374,8 +434,15 @@ function MonthEvent({ event, t, lang = 'en', zoomFactor = 1, lane = 'status' }) 
         padding: '1px 4px',
         borderLeft: `3px solid ${color}`,
       }}>
-        <WorkflowIcon size={iconSize} style={{ color: lane === 'attendance' ? color : '#fff', flexShrink: 0 }} />
-        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{event.title}</span>
+        <EventStatusIndicators
+          status={r.status}
+          workflowKey={r.workflowKey}
+          iconSize={iconSize}
+          t={t}
+          zoomFactor={zoomFactor}
+          hideNotesParticipation={hideNotesParticipation}
+        />
+        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', flex: 1 }}>{event.title}</span>
       </div>
     </ColoredTooltip>
   );
@@ -488,6 +555,7 @@ export default function BoardScheduleCalendar({
   welcomeContext = null,
   onClassSessionClick,
   lane = 'status',
+  hideNotesParticipation = false,
 }) {
   const { t, lang } = useLang();
   const theme = useTheme();
@@ -637,6 +705,8 @@ export default function BoardScheduleCalendar({
         const next = {};
         for (const { iso, data } of results) {
           next[iso] = data;
+          // DEBUG: dump schedule-status payload per date
+          console.log(`DEBUG BoardScheduleCalendar statusByDate[${iso}] =`, data);
         }
         setStatusByDate(next);
       } catch {
@@ -658,6 +728,8 @@ export default function BoardScheduleCalendar({
     }),
     [weeklySessions, slotWindows, rangeStartMs, rangeEndMs, statusByDate]
   );
+  // DEBUG: dump built events
+  console.log('DEBUG BoardScheduleCalendar events =', events);
 
   const isDark = theme.palette.mode === 'dark';
 
@@ -688,11 +760,11 @@ export default function BoardScheduleCalendar({
 
     return {
       style: {
-        backgroundColor: color,
-        color: '#fff',
+        backgroundColor: isDark ? `${color}1F` : `${color}14`,
+        color: isDark ? '#e2e8f0' : '#1e293b',
         borderRadius: '6px',
-        border: isCurrent ? '2px solid rgb(14, 165, 233)' : `1px solid ${color}`,
-        boxShadow: isCurrent ? '0 0 12px rgba(14, 165, 233, 0.65), inset 0 0 0 1px rgba(255,255,255,0.3)' : 'none',
+        border: isCurrent ? '2px solid rgb(14, 165, 233)' : `1px solid ${color}4D`,
+        boxShadow: isCurrent ? '0 0 12px rgba(14, 165, 233, 0.65), inset 0 0 0 1px rgba(14,165,233,0.2)' : 'none',
         fontSize: `${0.8 * zoomFactor}rem`,
         padding: `${2 * zoomFactor}px ${6 * zoomFactor}px`,
         cursor: 'pointer',
@@ -824,20 +896,20 @@ export default function BoardScheduleCalendar({
   const calendarComponents = useMemo(() => ({
     toolbar: CalendarToolbar,
     agenda: {
-      event: (props) => <AgendaEvent {...props} t={t} lang={lang} zoomFactor={zoomFactor} isDark={isDark} lane={lane} />,
+      event: (props) => <AgendaEvent {...props} t={t} lang={lang} zoomFactor={zoomFactor} isDark={isDark} lane={lane} hideNotesParticipation={hideNotesParticipation} />,
     },
     month: {
-      event: (props) => <MonthEvent {...props} t={t} lang={lang} zoomFactor={zoomFactor} lane={lane} />,
+      event: (props) => <MonthEvent {...props} t={t} lang={lang} zoomFactor={zoomFactor} isDark={isDark} lane={lane} hideNotesParticipation={hideNotesParticipation} />,
     },
     day: {
-      event: (props) => <DayWeekEvent {...props} t={t} lang={lang} zoomFactor={zoomFactor} lane={lane} />,
+      event: (props) => <DayWeekEvent {...props} t={t} lang={lang} zoomFactor={zoomFactor} isDark={isDark} lane={lane} hideNotesParticipation={hideNotesParticipation} />,
       header: (props) => <WeekDayHeader {...props} t={t} zoomFactor={zoomFactor} date={currentDate} hideWeekend={hideWeekend} />,
     },
     week: {
-      event: (props) => <DayWeekEvent {...props} t={t} lang={lang} zoomFactor={zoomFactor} lane={lane} />,
+      event: (props) => <DayWeekEvent {...props} t={t} lang={lang} zoomFactor={zoomFactor} isDark={isDark} lane={lane} hideNotesParticipation={hideNotesParticipation} />,
       header: (props) => <WeekDayHeader {...props} t={t} zoomFactor={zoomFactor} date={currentDate} hideWeekend={hideWeekend} />,
     },
-  }), [t, lang, zoomFactor, currentDate, isDark, hideWeekend, lane]);
+  }), [t, lang, zoomFactor, currentDate, isDark, hideWeekend, lane, hideNotesParticipation]);
 
   const toolbarContextValue = useMemo(() => ({
     t, isDark, date: currentDate, hideWeekend, onToggleWeekend: toggleWeekend, zoom: calendarZoom, onZoomChange: handleZoomChange, onZoomCommit: handleZoomCommit,

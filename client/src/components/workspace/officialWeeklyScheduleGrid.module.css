@@ -578,10 +578,58 @@
 
 .subjectCellTopIndicators .statusDotWrap,
 .subjectCellTopIndicators .workflowIconWrap,
-.subjectCellTopIndicators .attendanceMiniDots {
+.subjectCellTopIndicators .attendanceMiniDots,
+.subjectCellTopIndicators .attendanceGroup,
+.subjectCellTopIndicators .workflowGroup {
   position: static;
   top: auto;
   inset-inline-end: auto;
+}
+
+.subjectCellTopIndicators .attendanceMiniDots .attendanceMiniDot {
+  margin-inline-start: -5px;
+}
+
+.subjectCellTopIndicators .attendanceMiniDots .attendanceMiniDot:first-child {
+  margin-inline-start: 0;
+}
+
+.attendanceGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 1px;
+  cursor: default;
+  pointer-events: auto;
+}
+
+.attendanceIconWrap {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.85;
+  flex-shrink: 0;
+  cursor: default !important;
+}
+
+.attendanceGroup .attendanceMiniDots {
+  cursor: default !important;
+}
+
+.indicatorDivider {
+  color: rgba(100, 116, 139, 0.5);
+  font-size: calc(8px * var(--schedule-font-scale, 1));
+  font-weight: 400;
+  line-height: 1;
+  user-select: none;
+  padding: 0;
+  margin: 0 1px;
+  flex-shrink: 0;
+}
+
+.workflowGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
 }
 
 .subjectCellTextWithTray {

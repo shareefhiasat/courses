@@ -53,6 +53,21 @@ const getDatabaseUserId = async (user) => {
   }
 };
 
+const QATAR_OFFSET_MS = 3 * 60 * 60 * 1000;
+
+function getQatarDayRange(dateInput) {
+  const d = new Date(dateInput);
+  // Convert UTC instant to Qatar time and use that calendar date
+  const qatarTime = new Date(d.getTime() + QATAR_OFFSET_MS);
+  const y = qatarTime.getUTCFullYear();
+  const m = qatarTime.getUTCMonth();
+  const day = qatarTime.getUTCDate();
+  // Qatar midnight is UTC 21:00 of the previous day (offset -3)
+  const dayStart = new Date(Date.UTC(y, m, day, -3, 0, 0));
+  const dayEnd = new Date(Date.UTC(y, m, day + 1, -3, 0, 0));
+  return { dayStart, dayEnd };
+}
+
 const startOfDay = (dateInput) => {
   const d = new Date(dateInput);
   d.setHours(0, 0, 0, 0);
@@ -76,17 +91,15 @@ export const getAllAttendance = async (params = {}) => {
     if (subjectId) where.subjectId = parseInt(subjectId);
     if (dateFrom || dateTo) {
       where.date = {};
-      if (dateFrom) where.date.gte = startOfDay(dateFrom);
-      if (dateTo) where.date.lt = startOfNextDay(dateTo);
+      if (dateFrom) where.date.gte = getQatarDayRange(dateFrom).dayStart;
+      if (dateTo) where.date.lt = getQatarDayRange(dateTo).dayEnd;
     } else if (date) {
-      where.date = {
-        gte: startOfDay(date),
-        lt: startOfNextDay(date),
-      };
+      const { dayStart, dayEnd } = getQatarDayRange(date);
+      where.date = { gte: dayStart, lt: dayEnd };
     }
-    
+
     const skip = (parseInt(page) - 1) * parseInt(limit);
-    
+
     const [attendances, total] = await Promise.all([
       prisma.attendance.findMany({
         where,
@@ -108,7 +121,14 @@ export const getAllAttendance = async (params = {}) => {
             select: {
               id: true,
               nameEn: true,
-              code: true
+              code: true,
+              programId: true,
+              subjectId: true,
+              program: {
+                select: {
+                  categoryId: true,
+                },
+              },
             }
           },
           status: {
@@ -175,7 +195,14 @@ export const getAttendanceById = async (id) => {
           select: {
             id: true,
             nameEn: true,
-            code: true
+            code: true,
+            programId: true,
+            subjectId: true,
+            program: {
+              select: {
+                categoryId: true,
+              },
+            },
           }
         },
         status: {
@@ -457,6 +484,27 @@ export const createAttendance = async (attendanceData, user = null) => {
         user,
         { userId: parseInt(userId) }
       );
+
+      // Also notify the class instructor when an admin marks attendance
+      if (user?.isAdmin) {
+        const cls = await prisma.class.findUnique({
+          where: { id: parseInt(classId) },
+          select: { instructorId: true },
+        });
+        if (cls?.instructorId && cls.instructorId !== actorDbId) {
+          await notificationGateway.emit(
+            EVENTS.ATTENDANCE_MARKED,
+            {
+              ...buildNotificationNameVars(newAttendance.user, 'Student'),
+              date: newAttendance.date,
+              statusName: newAttendance.status.nameEn,
+              changedBy: actorUser?.displayName || 'Admin',
+            },
+            { dbId: user.dbId, id: user.keycloakId || user.id },
+            { userId: cls.instructorId }
+          );
+        }
+      }
     } catch (notificationError) {
       console.error('[Attendance Service] Failed to emit notification:', notificationError);
     }
@@ -611,6 +659,32 @@ export const updateAttendance = async (id, updateData, user = null) => {
       });
     }
 
+    // Notify class instructor when an admin overrides attendance
+    if (user?.isAdmin && data.statusId && data.statusId !== existingAttendance.statusId) {
+      try {
+        const cls = await prisma.class.findUnique({
+          where: { id: updatedAttendance.classId },
+          select: { instructorId: true },
+        });
+        if (cls?.instructorId && cls.instructorId !== user?.dbId) {
+          const actorName = user?.displayName || user?.firstName || user?.email || 'Admin';
+          await notificationGateway.emit(
+            EVENTS.ATTENDANCE_MARKED,
+            {
+              ...buildNotificationNameVars(updatedAttendance.user, 'Student'),
+              date: updatedAttendance.date,
+              statusName: updatedAttendance.status.nameEn,
+              changedBy: actorName,
+            },
+            { dbId: user.dbId, id: user.keycloakId || user.id },
+            { userId: cls.instructorId }
+          );
+        }
+      } catch (notifyErr) {
+        console.error('Failed to notify instructor after attendance update:', notifyErr);
+      }
+    }
+
     return {
       success: true,
       data: updatedAttendance,
@@ -666,6 +740,36 @@ export const deleteAttendance = async (id, user = null) => {
       });
     }
 
+    // Notify class instructor when an admin reverts attendance to NOT_TAKEN
+    if (user?.isAdmin) {
+      try {
+        const cls = await prisma.class.findUnique({
+          where: { id: existingAttendance.classId },
+          select: { instructorId: true },
+        });
+        if (cls?.instructorId && cls.instructorId !== user?.dbId) {
+          const actorName = user?.displayName || user?.firstName || user?.email || 'Admin';
+          const studentUser = await prisma.user.findUnique({
+            where: { id: existingAttendance.userId },
+            select: { id: true, displayName: true, firstName: true, lastName: true, firstNameAr: true, lastNameAr: true, displayNameAr: true },
+          });
+          await notificationGateway.emit(
+            EVENTS.ATTENDANCE_MARKED,
+            {
+              ...buildNotificationNameVars(studentUser, 'Student'),
+              date: existingAttendance.date,
+              statusName: 'Not Taken',
+              changedBy: actorName,
+            },
+            { dbId: user.dbId, id: user.keycloakId || user.id },
+            { userId: cls.instructorId }
+          );
+        }
+      } catch (notifyErr) {
+        console.error('Failed to notify instructor after attendance deletion:', notifyErr);
+      }
+    }
+
     return {
       success: true,
       data: { id: parseInt(id) },
@@ -685,14 +789,12 @@ export const deleteAttendance = async (id, user = null) => {
 export const getClassAttendanceStats = async (classId, date) => {
   try {
     const where = { classId: parseInt(classId) };
-    
+
     if (date) {
-      const startDate = new Date(date);
-      const endDate = new Date(date);
-      endDate.setDate(endDate.getDate() + 1);
+      const { dayStart, dayEnd } = getQatarDayRange(date);
       where.date = {
-        gte: startDate,
-        lt: endDate
+        gte: dayStart,
+        lt: dayEnd
       };
     }
     

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useLayoutEffect, useMemo } from 're
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { Chip, IconButton, Box } from '@mui/material';
-import { Maximize2, Minimize2, Workflow as WorkflowIcon } from 'lucide-react';
+import { Maximize2, Minimize2, Workflow as WorkflowIcon, ClipboardCheck } from 'lucide-react';
 import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import ScheduleStatusHistoryTooltip from './ScheduleStatusHistoryTooltip.jsx';
 import ClassSessionMetaBadges, { getClassSessionMetaFromStatus } from './ClassSessionMetaBadges.jsx';
@@ -321,7 +321,7 @@ function getWorkflowStatusLabel(status, t) {
   return t(key) || ws;
 }
 
-function WorkflowStatusIcon({ status, t }) {
+function WorkflowStatusGroup({ status, t, lang, selectedDate }) {
   const ws = status?.workflowStatus;
   if (!ws || ws === 'NOT_TAKEN') return null;
   const color = WORKFLOW_STATUS_COLORS[ws];
@@ -330,15 +330,18 @@ function WorkflowStatusIcon({ status, t }) {
   if (!label) return null;
 
   return (
-    <ColoredTooltip title={label} color={color} placement="bottom">
-      <span className={gridStyles.workflowIconWrap} style={{ '--workflow-color': color }}>
-        <WorkflowIcon className={gridStyles.workflowIconSvg} color={color} strokeWidth={2.5} />
-      </span>
-    </ColoredTooltip>
+    <span className={gridStyles.workflowGroup}>
+      <ColoredTooltip title={label} color={color} placement="bottom">
+        <span className={gridStyles.workflowIconWrap} style={{ '--workflow-color': color }}>
+          <WorkflowIcon className={gridStyles.workflowIconSvg} color={color} strokeWidth={2.5} />
+        </span>
+      </ColoredTooltip>
+      <StatusDot status={status} t={t} lang={lang} selectedDate={selectedDate} />
+    </span>
   );
 }
 
-function AttendanceMiniDots({ status, t }) {
+function AttendanceIndicatorGroup({ status, t }) {
   const counts = getAttendanceCountsFromStatus(status);
   if (!counts) return null;
   const items = ATTENDANCE_COUNT_ITEMS
@@ -358,20 +361,28 @@ function AttendanceMiniDots({ status, t }) {
   );
 
   return (
-    <ColoredTooltip title={tooltip} color="#64748b" placement="bottom">
-      <span className={gridStyles.attendanceMiniDots} aria-label={t('attendance_summary') || 'Attendance summary'}>
-        {items.map((item, idx) => (
-          <span
-            key={item.key}
-            className={gridStyles.attendanceMiniDot}
-            style={{
-              backgroundColor: item.color,
-              zIndex: items.length - idx,
-            }}
-          />
-        ))}
-      </span>
-    </ColoredTooltip>
+    <span className={gridStyles.attendanceGroup}>
+      <ColoredTooltip title={t('attendance_summary') || 'Attendance summary'} color="#64748b" placement="bottom" cursor="default">
+        <span className={gridStyles.attendanceIconWrap} aria-hidden="true">
+          <ClipboardCheck size={12} color="#64748b" strokeWidth={2.25} />
+        </span>
+      </ColoredTooltip>
+      <span className={gridStyles.indicatorDivider} aria-hidden="true">|</span>
+      <ColoredTooltip title={tooltip} color="#64748b" placement="bottom" cursor="default">
+        <span className={gridStyles.attendanceMiniDots} aria-label={t('attendance_summary') || 'Attendance summary'}>
+          {items.map((item, idx) => (
+            <span
+              key={item.key}
+              className={gridStyles.attendanceMiniDot}
+              style={{
+                backgroundColor: item.color,
+                zIndex: items.length - idx,
+              }}
+            />
+          ))}
+        </span>
+      </ColoredTooltip>
+    </span>
   );
 }
 
@@ -463,6 +474,7 @@ function InteractiveSlotCell({
   lang,
   onClick,
   selectedDate,
+  hideNotesParticipation = false,
 }) {
   if (isBreak) {
     if (rowType !== 'subject') return null;
@@ -504,8 +516,11 @@ function InteractiveSlotCell({
     isSelected ? gridStyles.selectedCell : '',
   ].filter(Boolean).join(' ');
 
-  const metaCounts = status ? getClassSessionMetaFromStatus(status) : null;
-  const hasMetaBadges = metaCounts && (metaCounts.notesCount || metaCounts.participationCount || metaCounts.commentsCount);
+  const metaCounts = status ? getClassSessionMetaFromStatus(status, { hideNotesParticipation }) : null;
+  const hasMetaBadges = Boolean(
+    metaCounts
+    && (metaCounts.notesCount > 0 || metaCounts.participationCount > 0 || metaCounts.commentsCount > 0),
+  );
   const showLeftTray = rowType === 'subject' && (isMine || hasMetaBadges);
 
   const subjectInnerClass = [
@@ -532,16 +547,29 @@ function InteractiveSlotCell({
               </ColoredTooltip>
             </span>
           )}
-          {hasMetaBadges && <ClassSessionMetaBadges status={status} t={t} compact />}
+          {hasMetaBadges && <ClassSessionMetaBadges status={status} t={t} compact hideNotesParticipation={hideNotesParticipation} />}
         </div>
       )}
-      {rowType === 'subject' && (
-        <div className={gridStyles.subjectCellTopIndicators}>
-          <StatusDot status={status} t={t} lang={lang} selectedDate={selectedDate} />
-          <AttendanceMiniDots status={status} t={t} />
-          <WorkflowStatusIcon status={status} t={t} />
-        </div>
-      )}
+      {rowType === 'subject' && (() => {
+        const hasAttendance = (() => {
+          const counts = getAttendanceCountsFromStatus(status);
+          if (!counts) return false;
+          return ATTENDANCE_COUNT_ITEMS.some((item) => (counts[item.key] || 0) > 0);
+        })();
+        const hasWorkflow = Boolean(status?.workflowStatus && status.workflowStatus !== 'NOT_TAKEN');
+        if (!hasAttendance && !hasWorkflow) return null;
+        return (
+          <div className={gridStyles.subjectCellTopIndicators}>
+            {hasAttendance && <AttendanceIndicatorGroup status={status} t={t} />}
+            {hasAttendance && hasWorkflow && (
+              <span className={gridStyles.indicatorDivider} aria-hidden="true">|</span>
+            )}
+            {hasWorkflow && (
+              <WorkflowStatusGroup status={status} t={t} lang={lang} selectedDate={selectedDate} />
+            )}
+          </div>
+        );
+      })()}
       <span className={rowType === 'subject' && showLeftTray ? gridStyles.subjectCellTextWithTray : (rowType === 'subject' && isMine ? gridStyles.subjectCellText : undefined)}>
         {value || (rowType === 'instructor' ? '' : '—')}
       </span>
@@ -594,6 +622,7 @@ function DayBlock({
   t,
   onCellClick,
   selectedDate,
+  hideNotesParticipation = false,
 }) {
   const rowTypes = ['subject', 'time', 'instructor', 'room'];
   const rowLabelMap = {
@@ -690,6 +719,7 @@ function DayBlock({
                 lang={lang}
                 onClick={onCellClick}
                 selectedDate={selectedDate}
+                hideNotesParticipation={hideNotesParticipation}
               />
             );
           })}
@@ -714,6 +744,7 @@ const OfficialWeeklyScheduleGrid = ({
   fontScale = SCHEDULE_FONT_SCALE_DEFAULT,
   expanded = false,
   onToggleExpand = null,
+  hideNotesParticipation = false,
 }) => {
   const { lang, t } = useLang();
   const { theme } = useTheme();
@@ -875,6 +906,7 @@ const OfficialWeeklyScheduleGrid = ({
               t={t}
               onCellClick={onCellClick}
               selectedDate={selectedDate}
+              hideNotesParticipation={hideNotesParticipation}
             />
           ))}
         </table>
@@ -885,6 +917,7 @@ const OfficialWeeklyScheduleGrid = ({
           bare
           showWorkflow
           showScheduleExtras
+          roleContext={hideNotesParticipation ? { isHR: true, isAdmin: false, isSuperAdmin: false } : {}}
           style={{ flex: 1, minWidth: 0, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '0.35rem' }}
         />
         {outsideHours && (

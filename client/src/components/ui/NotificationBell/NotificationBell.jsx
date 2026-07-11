@@ -16,10 +16,20 @@ const NotificationBell = () => {
   const feed = useNotificationsFeed({ limit: 100, archived: false });
   const { unreadCount } = feed;
   const [showDrawer, setShowDrawer] = useState(false);
+  const [initialFilters, setInitialFilters] = useState(null);
   const [focused, setFocused] = useState(false);
   const [balloonKey, setBalloonKey] = useState(0);
   const prevUnreadRef = useRef(0);
   const rootRef = useRef(null);
+
+  useEffect(() => {
+    const handleOpen = (e) => {
+      setInitialFilters(e.detail || null);
+      setShowDrawer(true);
+    };
+    window.addEventListener('app:open-notifications', handleOpen);
+    return () => window.removeEventListener('app:open-notifications', handleOpen);
+  }, []);
 
   // Trigger balloon animation when unread count increases
   useEffect(() => {
@@ -92,7 +102,15 @@ const NotificationBell = () => {
           </AnimatePresence>
         </button>
       </div>
-      <NotificationDrawer isOpen={showDrawer} onClose={() => setShowDrawer(false)} feed={feed} />
+      <NotificationDrawer
+        isOpen={showDrawer}
+        onClose={() => {
+          setShowDrawer(false);
+          setInitialFilters(null);
+        }}
+        feed={feed}
+        initialFilters={initialFilters}
+      />
     </>
   );
 };

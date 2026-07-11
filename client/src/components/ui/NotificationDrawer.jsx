@@ -182,7 +182,7 @@ const NotificationCard = ({ notification, idx, isDark, isRTL, theme, t, formatTi
   );
 };
 
-const NotificationDrawer = ({ isOpen, onClose, feed }) => {
+const NotificationDrawer = ({ isOpen, onClose, feed, initialFilters = null }) => {
   const { user } = useAuth();
   const { t, lang, isRTL } = useLang();
   const { theme } = useTheme();
@@ -266,6 +266,24 @@ const NotificationDrawer = ({ isOpen, onClose, feed }) => {
   }, [user, isOpen, refresh]);
 
   useEffect(() => {
+    if (!isOpen || !initialFilters) return;
+    const {
+      filterClass,
+      filterSubject,
+      filterProgram,
+      filterYear,
+      filterSemester,
+      showAdvanced: openAdvanced,
+    } = initialFilters;
+    if (filterClass && filterClass !== 'all') setFilterClass(String(filterClass));
+    if (filterSubject && filterSubject !== 'all') setFilterSubject(String(filterSubject));
+    if (filterProgram && filterProgram !== 'all') setFilterProgram(String(filterProgram));
+    if (filterYear && filterYear !== 'all') setFilterYear(String(filterYear));
+    if (filterSemester && filterSemester !== 'all') setFilterSemester(String(filterSemester));
+    if (openAdvanced) setShowAdvanced(true);
+  }, [isOpen, initialFilters]);
+
+  useEffect(() => {
     if (!isOpen || !showAdvanced) return;
     (async () => {
       try {
@@ -299,6 +317,24 @@ const NotificationDrawer = ({ isOpen, onClose, feed }) => {
       classes
     });
   }, [notifications, filterType, filterCategory, filterPenaltyType, filterAttendanceStatus, filterAbsenceType, searchTerm, showArchived, filterProgram, filterSubject, filterClass, filterYear, filterSemester, filterWorkflowStatus, subjects, classes]);
+
+  const hasActiveFilters = searchTerm.trim()
+    || filterProgram !== 'all'
+    || filterSubject !== 'all'
+    || filterClass !== 'all'
+    || filterYear !== 'all'
+    || filterSemester !== 'all'
+    || filterWorkflowStatus !== 'all';
+
+  const clearAllFilters = useCallback(() => {
+    setSearchTerm('');
+    setFilterProgram('all');
+    setFilterSubject('all');
+    setFilterClass('all');
+    setFilterYear('all');
+    setFilterSemester('all');
+    setFilterWorkflowStatus('all');
+  }, []);
 
   const workflowStatusCounts = useMemo(() => {
     const counts = {};
@@ -636,7 +672,7 @@ const NotificationDrawer = ({ isOpen, onClose, feed }) => {
                   fontWeight: filterWorkflowStatus === 'all' ? 700 : 500,
                 }}
               >
-                {t('operations_board_legend') || 'Status'}
+                {t('notifications_all_statuses') || 'All statuses'}
               </button>
               {WORKFLOW_NOTIFICATION_STATUS_FILTERS.filter((chip) => workflowStatusCounts[chip.id] > 0).map((chip) => {
                 const active = filterWorkflowStatus === chip.id;
@@ -671,6 +707,27 @@ const NotificationDrawer = ({ isOpen, onClose, feed }) => {
                   </button>
                 );
               })}
+            </div>
+          )}
+
+          {hasActiveFilters && (
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '0.4rem' }}>
+              <button
+                type="button"
+                onClick={clearAllFilters}
+                style={{
+                  background: 'transparent',
+                  border: `1px solid ${isDark ? 'rgba(255,255,255,0.12)' : '#e5e7eb'}`,
+                  color: isDark ? '#9ca3af' : '#6b7280',
+                  borderRadius: '999px',
+                  padding: '3px 10px',
+                  cursor: 'pointer',
+                  fontSize: '0.72rem',
+                  fontWeight: 500,
+                }}
+              >
+                {t('operations_board_clear_filters') || 'Clear all'}
+              </button>
             </div>
           )}
 
@@ -783,7 +840,7 @@ const NotificationDrawer = ({ isOpen, onClose, feed }) => {
             }}>
               {getThemedIcon('ui', 'bell', 48, theme)}
               <p style={{ margin: '0.5rem 0 0', fontSize: '0.9rem' }}>
-                {searchTerm || filterType !== 'all' || filterProgram !== 'all' || filterSubject !== 'all' || filterClass !== 'all' || filterYear !== 'all' || filterSemester !== 'all'
+                {searchTerm || filterType !== 'all' || filterProgram !== 'all' || filterSubject !== 'all' || filterClass !== 'all' || filterYear !== 'all' || filterSemester !== 'all' || filterWorkflowStatus !== 'all'
                   ? t('no_notifications_match_filters')
                   : t('no_notifications_yet')}
               </p>

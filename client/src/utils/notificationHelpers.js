@@ -81,8 +81,13 @@ const WORKFLOW_STATUS_ORDER = ['DRAFT', 'TAKEN', 'SUBMITTED', 'UNDER_ADMIN_REVIE
 
 export const getWorkflowStatusKey = (n) => {
   if (!(n.type || '').startsWith('WORKFLOW')) return null;
+  const explicit = n.data?.newStatus || n.metadata?.newStatus || n.data?.workflowStatus || n.metadata?.status;
+  if (explicit) {
+    if (explicit === 'UNDER_REVIEW') return 'UNDER_HR_REVIEW';
+    return explicit;
+  }
   const event = n.event || n.data?.event;
-  return WORKFLOW_EVENT_STATUS[event] || n.data?.workflowStatus || n.metadata?.status || 'OTHER';
+  return WORKFLOW_EVENT_STATUS[event] || 'OTHER';
 };
 
 /** Board-legend workflow status chips for notification filtering */

@@ -178,6 +178,7 @@ export const fetchWorkflowBoardData = async (filters = {}) => {
     await Promise.all(
       Array.from(uniqueClassDates.values()).map(async ({ classId, date }) => {
         try {
+          apiService.clearCacheEntry(`/attendance?classId=${classId}&date=${date}`);
           const attResult = await apiService.get(`/attendance?classId=${classId}&date=${date}`);
           const records = attResult.data?.attendances || attResult.data || [];
           const counts = { present: 0, late: 0, absent: 0, excused: 0, humanCase: 0, notTaken: 0 };
@@ -255,31 +256,84 @@ export const fetchAttendanceBoardData = async (filters = {}) => {
 
     const dateStr = typeof date === 'string' ? date.slice(0, 10) : new Date(date).toISOString().slice(0, 10);
 
-    const [rosterResult, attendanceResult] = await Promise.all([
-      apiService.get(`/enrollments/students-by-class?classId=${classId}`),
-      apiService.get(`/attendance?classId=${classId}&date=${dateStr}`),
-    ]);
+    let enrollments = [];
+    let records = [];
 
-    const enrollments = rosterResult.data?.enrollments || rosterResult.data || [];
-    const records = attendanceResult.data?.attendances || attendanceResult.data || [];
+    try {
+      const rosterResult = await apiService.get(`/enrollments/students-by-class?classId=${classId}`);
+      if (rosterResult?.success !== false) {
+        enrollments = rosterResult?.data?.enrollments || rosterResult?.data || [];
+        if (!Array.isArray(enrollments)) enrollments = [];
+      }
+      info(`${SERVICE_NAME}:fetchAttendanceBoardData:roster`, {
+        classId,
+        date: dateStr,
+        enrollmentCount: enrollments.length,
+        sampleUserId: enrollments[0]?.user?.id || enrollments[0]?.userId || null,
+      });
+    } catch (rosterErr) {
+      logError(`${SERVICE_NAME}:fetchAttendanceBoardData:roster`, {
+        error: rosterErr.message,
+        status: rosterErr.response?.status,
+        classId,
+        date: dateStr,
+      });
+    }
+
+    try {
+      // Avoid stale empty-cache result after backend timezone fixes
+      apiService.clearCacheEntry(`/attendance?classId=${classId}&date=${dateStr}`);
+      const attendanceResult = await apiService.get(`/attendance?classId=${classId}&date=${dateStr}`);
+      if (attendanceResult?.success !== false) {
+        records = attendanceResult?.data?.attendances || attendanceResult?.data || [];
+        if (!Array.isArray(records)) records = [];
+      }
+      info(`${SERVICE_NAME}:fetchAttendanceBoardData:attendance`, {
+        classId,
+        date: dateStr,
+        recordCount: records.length,
+        sampleUserId: records[0]?.userId || null,
+        sampleStatus: records[0]?.status?.code || records[0]?.status || null,
+      });
+    } catch (attendanceErr) {
+      logError(`${SERVICE_NAME}:fetchAttendanceBoardData:attendance`, {
+        error: attendanceErr.message,
+        status: attendanceErr.response?.status,
+        classId,
+        date: dateStr,
+      });
+    }
+
+    if (!enrollments.length) {
+      return {
+        success: false,
+        data: [],
+        error: records.length
+          ? 'Unable to load class roster for attendance board'
+          : 'Unable to load attendance board data',
+      };
+    }
 
     const attendanceByUserId = new Map();
     for (const rec of records) {
-      attendanceByUserId.set(rec.userId, rec);
+      const uid = rec.userId ?? rec.user?.id;
+      if (uid == null) continue;
+      attendanceByUserId.set(String(uid), rec);
     }
 
     const boardData = enrollments.map((enrollment) => {
       const user = enrollment.user || enrollment.User || {};
-      const rec = attendanceByUserId.get(user.id || enrollment.userId);
+      const uid = user.id ?? enrollment.userId;
+      const rec = uid != null ? attendanceByUserId.get(String(uid)) : null;
       const statusStr = rec ? normalizeAttendanceStatus(rec) : 'NOT_TAKEN';
-      const fallbackName = `Student #${user.id || enrollment.userId}`;
+      const fallbackName = `Student #${uid}`;
       const studentNameEn = getLocalizedUserName(user, 'en', fallbackName);
       const studentNameAr = getLocalizedUserName(user, 'ar', studentNameEn);
       const classNameEn = enrollment.class?.nameEn || enrollment.class?.code || '';
       const classNameAr = enrollment.class?.nameAr || classNameEn;
 
       return {
-        id: rec ? `att-${rec.id}` : `student-${user.id || enrollment.userId}`,
+        id: rec ? `att-${rec.id}` : `student-${uid}`,
         column: statusStr,
         type: 'attendance',
         title: studentNameEn,
@@ -287,7 +341,7 @@ export const fetchAttendanceBoardData = async (filters = {}) => {
         nameEn: studentNameEn,
         nameAr: studentNameAr,
         rawId: rec?.id || null,
-        userId: user.id || enrollment.userId,
+        userId: uid,
         profileImageUrl: user.profileImageUrl || null,
         user,
         sequence: user.sequence ?? null,
@@ -301,10 +355,20 @@ export const fetchAttendanceBoardData = async (filters = {}) => {
         programName: enrollment.program?.nameEn,
         subjectName: enrollment.subject?.nameEn,
         notes: rec?.notes || null,
-        raw: rec || { userId: user.id || enrollment.userId, classId, date: dateStr },
+        raw: rec || { userId: uid, classId, date: dateStr },
       };
     });
 
+    const columnSummary = boardData.reduce((acc, row) => {
+      acc[row.column] = (acc[row.column] || 0) + 1;
+      return acc;
+    }, {});
+    info(`${SERVICE_NAME}:fetchAttendanceBoardData:summary`, {
+      classId,
+      date: dateStr,
+      matchedRecords: boardData.filter((r) => r.rawId).length,
+      columnSummary,
+    });
     boardData.sort((a, b) => {
       const aSeq = a.sequence != null ? a.sequence : Infinity;
       const bSeq = b.sequence != null ? b.sequence : Infinity;

@@ -17,6 +17,7 @@ import {
 } from './operationsBoardDisplayUtils.js';
 import { getParticipationsByClassAndDate } from '@services/business/participationService.js';
 import { ATTENDANCE_BOARD_COLORS, BOARD_PARTICIPATION_COLOR } from '@constants/workspaceStatusColors.js';
+import { shouldHideNotesParticipation } from './hrAttendancePrivacy.js';
 import gridStyles from '@components/workspace/officialWeeklyScheduleGrid.module.css';
 
 const SORT_KEYS = {
@@ -148,15 +149,22 @@ function getSortValue(item, key, lang) {
   }
 }
 
-export default function BoardTableView({ data, columns, onCardClick, t, lang = 'en', sortBy }) {
+export default function BoardTableView({ data, columns, onCardClick, t, lang = 'en', sortBy, roleContext = {} }) {
+  const hideNotesParticipation = shouldHideNotesParticipation(roleContext);
   const columnMap = Object.fromEntries(columns.map((c) => [c.id, c]));
   const isAttendance = data.some((item) => item.type === 'attendance');
   const activeColumnDefs = useMemo(() => {
+    let defs = COLUMN_DEFS;
     if (isAttendance) {
-      return COLUMN_DEFS.filter((c) => c.id !== 'assignee' && c.id !== 'class' && c.id !== 'comments');
+      defs = defs.filter((c) => c.id !== 'assignee' && c.id !== 'class' && c.id !== 'comments');
+    } else {
+      defs = defs.filter((c) => c.id !== 'assignee');
     }
-    return COLUMN_DEFS.filter((c) => c.id !== 'assignee');
-  }, [isAttendance]);
+    if (hideNotesParticipation) {
+      defs = defs.filter((c) => c.id !== 'notes' && c.id !== 'participation');
+    }
+    return defs;
+  }, [isAttendance, hideNotesParticipation]);
   const colDefMap = useMemo(() => Object.fromEntries(activeColumnDefs.map((c) => [c.id, c])), [activeColumnDefs]);
   const [sortKey, setSortKey] = useState(SORT_KEYS.NAME);
   const [sortDir, setSortDir] = useState('asc');
@@ -343,14 +351,14 @@ export default function BoardTableView({ data, columns, onCardClick, t, lang = '
       case 'name':
         return (
           <div className="relative inline-flex items-center gap-1">
-            {(notesText || partCount > 0) && (
+            {(notesText || partCount > 0 || commentsText) && (
               <span className="inline-flex gap-0.5">
-                {notesText && (
+                {!hideNotesParticipation && notesText && (
                   <ColoredTooltip title={t('operations_board_has_note') || 'Has a note'} color="#ef4444" placement="top">
                     <Star size={12} fill="#ef4444" color="#ef4444" data-testid={`table-card-notes-star-${item.id}`} />
                   </ColoredTooltip>
                 )}
-                {partCount > 0 && (
+                {!hideNotesParticipation && partCount > 0 && (
                   <ColoredTooltip title={t('operations_board_has_participation') || 'Has participation'} color={BOARD_PARTICIPATION_COLOR} placement="top">
                     <Star size={12} fill={BOARD_PARTICIPATION_COLOR} color={BOARD_PARTICIPATION_COLOR} data-testid={`table-card-participation-star-${item.id}`} />
                   </ColoredTooltip>
@@ -417,7 +425,7 @@ export default function BoardTableView({ data, columns, onCardClick, t, lang = '
       default:
         return null;
     }
-  }, [columnMap, t, lang, onCardClick]);
+  }, [columnMap, t, lang, onCardClick, hideNotesParticipation]);
 
   return (
     <div className="overflow-hidden rounded-lg border border-border" data-testid="operations-board-table">
@@ -449,6 +457,7 @@ export default function BoardTableView({ data, columns, onCardClick, t, lang = '
               </button>
             );
           })}
+          {!hideNotesParticipation && (
           <button
             type="button"
             className={`operations-board-filter-chip ${metaFilter === 'notes' ? 'selected' : ''}`}
@@ -458,6 +467,8 @@ export default function BoardTableView({ data, columns, onCardClick, t, lang = '
             <Star size={11} fill="#ef4444" color="#ef4444" />
             {t('operations_board_tab_notes') || 'Notes'}
           </button>
+          )}
+          {!hideNotesParticipation && (
           <button
             type="button"
             className={`operations-board-filter-chip ${metaFilter === 'participation' ? 'selected' : ''}`}
@@ -467,6 +478,7 @@ export default function BoardTableView({ data, columns, onCardClick, t, lang = '
             <Star size={11} fill={BOARD_PARTICIPATION_COLOR} color={BOARD_PARTICIPATION_COLOR} />
             {t('operations_board_participation') || 'Participation'}
           </button>
+          )}
         </div>
         <span className="text-xs text-muted-foreground ml-auto shrink-0">
           {sortedData.length} / {enrichedData.length}

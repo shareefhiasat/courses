@@ -14,23 +14,15 @@ import {
   deleteAttendance,
   getClassAttendanceStats,
 } from '../controllers/attendances.js';
-import { qrScannerOps, requireAnyPermission } from '../middleware/requirePermission.js';
+import { qrScannerOps, requireAttendanceEdit } from '../middleware/requirePermission.js';
 
 const router = Router();
 
 router.get('/', qrScannerOps.view, getAllAttendance);
 router.get('/stats', qrScannerOps.view, getClassAttendanceStats);
 router.get('/:id', qrScannerOps.view, getAttendanceById);
-router.post('/', qrScannerOps.mark, createAttendance);
-router.put('/:id', requireAnyPermission(
-  'qr-scanner.canEditAttendance',
-  'qr-scanner.canMarkAttendance',
-  'qr-scanner.canManualInput',
-), updateAttendance);
-router.delete('/:id', requireAnyPermission(
-  'qr-scanner.canDeleteAttendance',
-  'qr-scanner.canMarkAttendance',
-  'qr-scanner.canManualInput',
-), deleteAttendance);
+router.post('/', requireAttendanceEdit, createAttendance);
+router.put('/:id', requireAttendanceEdit, updateAttendance);
+router.delete('/:id', requireAttendanceEdit, deleteAttendance);
 
 export default router;

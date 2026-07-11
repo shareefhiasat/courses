@@ -19,7 +19,15 @@ import {
 async function assertAttendanceRecordAccess(req, res, record) {
   if (!record) return true;
   const scope = await getRequestScope(req);
-  if (isRecordInScope(scope, record)) return true;
+  // Derive scope fields from class relation if not present directly
+  const recordWithScopeFields = {
+    ...record,
+    classId: record.classId ?? record.class?.id ?? null,
+    programId: record.programId ?? record.class?.programId ?? null,
+    subjectId: record.subjectId ?? record.class?.subjectId ?? null,
+    categoryId: record.categoryId ?? record.class?.program?.categoryId ?? null,
+  };
+  if (isRecordInScope(scope, recordWithScopeFields)) return true;
   scopeForbidden(res);
   return false;
 }
@@ -49,8 +57,19 @@ export const getAllAttendance = async (req, res) => {
 
     const result = await attendanceService.getAllAttendance(params);
     const scope = await getRequestScope(req);
-    const data = filterRecordsByScope(result.data || [], scope, { classField: 'classId' });
-
+    // Flatten class relation so scope can match by program/subject/category as well as classId
+    const recordsWithScopeFields = (result.data || []).map((rec) => ({
+      ...rec,
+      programId: rec.programId ?? rec.class?.programId ?? null,
+      subjectId: rec.subjectId ?? rec.class?.subjectId ?? null,
+      categoryId: rec.categoryId ?? rec.class?.program?.categoryId ?? null,
+    }));
+    const data = filterRecordsByScope(recordsWithScopeFields, scope, {
+      classField: 'classId',
+      programField: 'programId',
+      subjectField: 'subjectId',
+      categoryField: 'categoryId',
+    });
     res.json({
       success: true,
       data,

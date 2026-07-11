@@ -4,9 +4,15 @@
  */
 
 import { permissionsService } from '../services/permissions.js';
-import { isSuperAdmin, getEffectiveRoles } from '../utils/roleUtils.js';
+import { isSuperAdmin, getEffectiveRoles, hasRole } from '../utils/roleUtils.js';
+import { LMS_ROLES } from '../services/keycloakAdminService.js';
 import { getPrerequisitesFor } from '../utils/permissionDependencies.js';
 import { buildOperationKey } from '../../client/src/config/navigationRegistry.js';
+
+/** Admin/HR can open operations board even when matrix keys are incomplete. */
+function canBypassForOperationsBoard(roles = []) {
+  return hasRole(roles, LMS_ROLES.ADMIN) || hasRole(roles, LMS_ROLES.HR);
+}
 
 function resolveOperationKey(screenId, operation) {
   if (!operation) {
@@ -116,13 +122,85 @@ export function screenOps(screenId) {
   };
 }
 
+/** Allow Admin/HR through for operations-board attendance reads. */
+function requireOperationsBoardRead(...operationKeys) {
+  const keys = operationKeys.flat();
+  return async (req, res, next) => {
+    try {
+      if (!req.user) {
+        return res.status(401).json({ success: false, error: 'Authentication required' });
+      }
+      const roles = getEffectiveRoles(req.user.roles || []);
+      if (isSuperAdmin(roles) || canBypassForOperationsBoard(roles)) {
+        return next();
+      }
+      for (const key of keys) {
+        const resolved = key.includes('.') ? key : resolveOperationKey(key, null);
+        const allowed = await permissionsService.checkPermissionForRoles(roles, resolved);
+        if (allowed) return next();
+      }
+      return res.status(403).json({
+        success: false,
+        error: 'Insufficient permissions',
+        operationKeys: keys,
+      });
+    } catch (err) {
+      console.error('[requireOperationsBoardRead]', keys, err);
+      return res.status(500).json({ success: false, error: 'Permission check failed' });
+    }
+  };
+}
+
+/**
+ * Attendance status edits:
+ * - Admin always allowed
+ * - HR explicitly blocked
+ * - Others require qr-scanner edit/mark/manual permissions
+ */
+export function requireAttendanceEdit(req, res, next) {
+  if (!req.user) {
+    return res.status(401).json({ success: false, error: 'Authentication required' });
+  }
+  const roles = getEffectiveRoles(req.user.roles || []);
+  if (isSuperAdmin(roles) || hasRole(roles, LMS_ROLES.ADMIN)) {
+    return next();
+  }
+  if (hasRole(roles, LMS_ROLES.HR)) {
+    return res.status(403).json({
+      success: false,
+      error: 'HR is not permitted to change attendance status',
+    });
+  }
+  const keys = [
+    'qr-scanner.canEditAttendance',
+    'qr-scanner.canMarkAttendance',
+    'qr-scanner.canManualInput',
+  ];
+  (async () => {
+    for (const key of keys) {
+      const allowed = await permissionsService.checkPermissionForRoles(roles, key);
+      if (allowed) return next();
+    }
+    return res.status(403).json({
+      success: false,
+      error: 'Insufficient permissions',
+      operationKeys: keys,
+    });
+  })().catch((err) => {
+    console.error('[requireAttendanceEdit]', err);
+    return res.status(500).json({ success: false, error: 'Permission check failed' });
+  });
+}
+
 /** QR scanner granular ops used by daily attendance */
 export const qrScannerOps = {
-  view: requireAnyPermission(
+  view: requireOperationsBoardRead(
     'qr-scanner.canMarkAttendance',
     'qr-scanner.canUseQRScanner',
     'qr-scanner.canManualInput',
     'attendance.canView',
+    'operations.canView',
+    'hr-attendance.canView',
   ),
   mark: requireAnyPermission(
     'qr-scanner.canMarkAttendance',
@@ -131,7 +209,7 @@ export const qrScannerOps = {
   ),
   edit: requirePermission('qr-scanner.canEditAttendance'),
   delete: requirePermission('qr-scanner.canDeleteAttendance'),
-  export: requireAnyPermission('qr-scanner.canUseQRScanner', 'attendance.canView'),
+  export: requireAnyPermission('qr-scanner.canUseQRScanner', 'attendance.canView', 'operations.canView', 'hr-attendance.canView'),
 };
 
 /** Read programs/subjects/classes for attendance, scheduling, or academic screens. */
@@ -149,13 +227,15 @@ export const scopedAcademicRead = requireAnyPermission(
 );
 
 /** Read enrollments for attendance workflow without enrollments screen access. */
-export const enrollmentRead = requireAnyPermission(
+export const enrollmentRead = requireOperationsBoardRead(
   'enrollments.canView',
   'manage-enrollments.canView',
   'qr-scanner.canMarkAttendance',
   'qr-scanner.canManualInput',
   'qr-scanner.canUseQRScanner',
   'attendance.canView',
+  'operations.canView',
+  'hr-attendance.canView',
 );
 
 export default requirePermission;

@@ -104,6 +104,7 @@ const WelcomePage = () => {
 
   const instructorId = user?.dbId;
   const canInteractAll = isAdmin || isSuperAdmin || isHR;
+  const hideNotesParticipation = isHR && !isAdmin && !isSuperAdmin;
   const { canExport } = useQRPermissions();
   const { canAccessScreen } = usePermissions();
   const showOperationsTab = canAccessScreen('operations') || canExport || isAdmin || isHR;
@@ -650,8 +651,12 @@ const WelcomePage = () => {
     setInboxOutboxOpen(true);
   }, []);
 
-  const handleOpenHistory = useCallback((classInfo, date, initialTab = null) => {
+  const handleOpenHistory = useCallback((classInfo, date, initialTab = 'lecture') => {
     setHistoryState({ open: true, classInfo, date, initialTab });
+  }, []);
+
+  const handleOpenNotifications = useCallback((filters = {}) => {
+    window.dispatchEvent(new CustomEvent('app:open-notifications', { detail: filters }));
   }, []);
 
   const handleExportWeeklySchedule = useCallback(async (format) => {
@@ -732,28 +737,32 @@ const WelcomePage = () => {
         icon: getThemedIcon('ui', 'layout_grid', 20, 'currentColor'),
         onClick: () => openOperationsTab({ lane: 'status', view: 'kanban' }),
       },
-      {
+    ];
+
+    if (!isHR || isAdmin || isSuperAdmin) {
+      actions.push({
         id: 'attendance-official',
         name: t('official_attendance') || 'Attendance Official',
         icon: getThemedIcon('ui', 'file_signature', 20, 'currentColor'),
         onClick: () => navigate('/qr-scanner'),
-      },
-      {
-        id: 'marks-reports',
-        name: t('marks_reports') || 'Marks Reports',
-        icon: getThemedIcon('ui', 'download', 20, 'currentColor'),
-        children: [
-          { id: 'semester_certificate', name: t('semester_certificate') || 'Semester Certificate', icon: getThemedIcon('ui', 'file_signature', 16, 'currentColor'), onClick: () => navigate('/marks-entry') },
-          { id: 'qualitative_card', name: t('qualitative_card') || 'Qualitative Card', icon: getThemedIcon('ui', 'file_signature', 16, 'currentColor'), onClick: () => navigate('/marks-entry') },
-          { id: 'class_subject_report', name: t('class_subject') || 'Class Subject Report', icon: getThemedIcon('ui', 'file_signature', 16, 'currentColor'), onClick: () => navigate('/marks-entry') },
-          { id: 'first_warning', name: t('first_warning') || 'First Warning', icon: getThemedIcon('ui', 'file_signature', 16, 'currentColor'), onClick: () => navigate('/marks-entry') },
-          { id: 'final_warning', name: t('final_warning') || 'Final Warning', icon: getThemedIcon('ui', 'file_signature', 16, 'currentColor'), onClick: () => navigate('/marks-entry') },
-        ],
-      },
-    ];
+      });
+    }
+
+    actions.push({
+      id: 'marks-reports',
+      name: t('marks_reports') || 'Marks Reports',
+      icon: getThemedIcon('ui', 'download', 20, 'currentColor'),
+      children: [
+        { id: 'semester_certificate', name: t('semester_certificate') || 'Semester Certificate', icon: getThemedIcon('ui', 'file_signature', 16, 'currentColor'), onClick: () => navigate('/marks-entry') },
+        { id: 'qualitative_card', name: t('qualitative_card') || 'Qualitative Card', icon: getThemedIcon('ui', 'file_signature', 16, 'currentColor'), onClick: () => navigate('/marks-entry') },
+        { id: 'class_subject_report', name: t('class_subject') || 'Class Subject Report', icon: getThemedIcon('ui', 'file_signature', 16, 'currentColor'), onClick: () => navigate('/marks-entry') },
+        { id: 'first_warning', name: t('first_warning') || 'First Warning', icon: getThemedIcon('ui', 'file_signature', 16, 'currentColor'), onClick: () => navigate('/marks-entry') },
+        { id: 'final_warning', name: t('final_warning') || 'Final Warning', icon: getThemedIcon('ui', 'file_signature', 16, 'currentColor'), onClick: () => navigate('/marks-entry') },
+      ],
+    });
 
     return actions;
-  }, [exportingKey, handleExportWeeklySchedule, openOperationsTab, t]);
+  }, [exportingKey, handleExportWeeklySchedule, openOperationsTab, t, isHR, isAdmin, isSuperAdmin, navigate]);
 
   const handleCloseInbox = useCallback(() => {
     setInboxOutboxOpen(false);
@@ -1166,6 +1175,7 @@ const WelcomePage = () => {
                       fontScale={scheduleFontScale}
                       expanded={scheduleExpanded}
                       onToggleExpand={handleToggleScheduleExpand}
+                      hideNotesParticipation={hideNotesParticipation}
                     />
                     {selectedSlot && !menuAnchorEl && selectedSession && (
                       <ScheduleSpeedDial
@@ -1176,6 +1186,7 @@ const WelcomePage = () => {
                         onClose={handleClearSelection}
                         onOpenInbox={handleOpenInbox}
                         onOpenHistory={handleOpenHistory}
+                        onOpenNotifications={handleOpenNotifications}
                       />
                     )}
                   </div>
@@ -1267,6 +1278,7 @@ const WelcomePage = () => {
         onOpenInbox={handleOpenInbox}
         onOpenHistory={handleOpenHistory}
         onOpenOperations={handleOpenOperations}
+        onOpenNotifications={handleOpenNotifications}
       />
 
       <ClassHistoryDrawer

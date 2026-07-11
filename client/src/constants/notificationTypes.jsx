@@ -192,6 +192,7 @@ export const WORKFLOW_EVENT_COLORS = {
   'workflow.submitted':       '#3b82f6', // blue — submitted for review
   'workflow.assigned':        '#6366f1', // indigo — assigned to someone
   'workflow.sent_for_review': '#7c3aed', // purple — HR review (matches board legend)
+  'workflow.sent_for_approval': '#6366f1', // indigo — admin review
   'workflow.resubmitted':     '#3b82f6', // blue — resubmitted
   'workflow.approved':        '#22c55e', // green — approved
   'workflow.rejected':        '#ef4444', // red — rejected
@@ -215,7 +216,8 @@ export const getNotificationBorderColor = (notification) => {
   }
   const type = notification.type || notification.category;
   if (String(type).toUpperCase() === 'WORKFLOW') {
-    const status = notification.data?.workflowStatus || notification.metadata?.status;
+    const status = notification.data?.newStatus || notification.metadata?.newStatus
+      || notification.data?.workflowStatus || notification.metadata?.status;
     if (status && WORKFLOW_STATUS_COLORS[status]) {
       return WORKFLOW_STATUS_COLORS[status];
     }
