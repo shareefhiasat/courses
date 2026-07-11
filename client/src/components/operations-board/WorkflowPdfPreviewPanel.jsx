@@ -50,7 +50,17 @@ export default function WorkflowPdfPreviewPanel({
     return () => { cancelled = true; };
   }, [open, fileId, t]);
 
-  if (!open || !fileId) return null;
+  if (!open) return null;
+
+  if (!fileId) {
+    return (
+      <Box sx={{ py: 3, textAlign: 'center' }}>
+        <Typography variant="body2" color="text.secondary">
+          {t('operations_board_preview_no_file') || 'No PDF attached to this workflow yet.'}
+        </Typography>
+      </Box>
+    );
+  }
 
   return (
     <Box

@@ -31,7 +31,7 @@ function ScheduleContextMenu({
   onOpenOperations,
 }) {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isAdmin } = useAuth();
   const { t, lang } = useLang();
   const { canExport, canSeeStandupMode } = useQRPermissions();
   const [exporting, setExporting] = useState(null);
@@ -47,10 +47,11 @@ function ScheduleContextMenu({
     : new Date().toISOString().split('T')[0];
 
   useEffect(() => {
-    if (!open || !cls?.id || !dateStr) {
+    if (!cls?.id || !dateStr) {
       setExistingWorkflow(null);
       return undefined;
     }
+    if (!open) return undefined;
     let cancelled = false;
     findExistingAttendanceWorkflow(cls.id, dateStr).then((result) => {
       if (!cancelled) setExistingWorkflow(result.success ? result.data : null);
@@ -209,42 +210,62 @@ function ScheduleContextMenu({
       items.push({ divider: true });
     }
 
+    const attendanceChildren = [];
+    const boardItem = {
+      id: 'operations-attendance',
+      label: t('workspace_menu_attendance_board') || 'Board',
+      icon: getThemedIcon('ui', 'layout_grid', 18, 'currentColor'),
+      onClick: handleOpenOperations,
+    };
+    const manualItem = {
+      id: 'scan-attendance',
+      label: t('workspace_menu_attendance_manual') || 'Manual',
+      icon: getThemedIcon('ui', 'qr_code', 18, 'currentColor'),
+      onClick: () => handleScan(ATTENDANCE_TYPE_CATEGORY.REGULAR),
+    };
+    const standupItem = canSeeStandupMode ? {
+      id: 'scan-standup',
+      label: t('standup') || 'Standup',
+      icon: getThemedIcon('ui', 'users', 18, 'currentColor'),
+      onClick: () => handleScan(ATTENDANCE_TYPE_CATEGORY.STANDUP),
+    } : null;
+
+    if (isAdmin) {
+      attendanceChildren.push(boardItem, manualItem);
+      if (standupItem) attendanceChildren.push(standupItem);
+    } else {
+      attendanceChildren.push(manualItem, boardItem);
+      if (standupItem) attendanceChildren.push(standupItem);
+    }
+
     items.push({
       id: 'attendance',
       label: t('workspace_menu_attendance') || 'Attendance',
       icon: getThemedIcon('ui', 'check_circle', 18, 'currentColor'),
-      children: [
-        {
-          id: 'scan-attendance',
-          label: t('workspace_menu_attendance_manual') || 'Manual',
-          icon: getThemedIcon('ui', 'qr_code', 18, 'currentColor'),
-          onClick: () => handleScan(ATTENDANCE_TYPE_CATEGORY.REGULAR),
-        },
-        {
-          id: 'operations-attendance',
-          label: t('workspace_menu_attendance_board') || 'Board',
-          icon: getThemedIcon('ui', 'layout_grid', 18, 'currentColor'),
-          onClick: handleOpenOperations,
-        },
-        ...(canSeeStandupMode ? [{
-          id: 'scan-standup',
-          label: t('standup_attendance'),
-          icon: getThemedIcon('ui', 'users', 18, 'currentColor'),
-          onClick: () => handleScan(ATTENDANCE_TYPE_CATEGORY.STANDUP),
-        }] : []),
-      ],
+      children: attendanceChildren,
     });
 
     items.push({
       id: 'workflow',
-      label: t('workspace_menu_workflow') || 'Workflow',
+      labelKey: 'workspace_menu_workflow',
+      labelFallback: 'Workflow',
       icon: getThemedIcon('ui', 'file_signature', 18, 'currentColor'),
       children: [
         {
           id: 'initiate-workflow',
-          label: existingWorkflow
-            ? `${t('workspace_menu_workflow_initiate') || 'Initiate'} — ${t('workspace_menu_workflow_exists') || 'exists'}`
-            : (t('workspace_menu_workflow_initiate') || 'Initiate'),
+          labelNode: existingWorkflow
+            ? (
+              <span>
+                {t('workspace_menu_workflow_initiate') || 'Initiate'}
+                {' — '}
+                <span style={{ color: '#ea580c', fontWeight: 600 }}>
+                  {t('workspace_menu_workflow_exists') || 'Workflow already exists'}
+                </span>
+              </span>
+            )
+            : undefined,
+          labelKey: existingWorkflow ? undefined : 'workspace_menu_workflow_initiate',
+          labelFallback: 'Initiate',
           icon: existingWorkflow
             ? <AlertCircle size={18} color="#f59e0b" />
             : getThemedIcon('ui', 'file_signature', 18, 'currentColor'),
@@ -256,11 +277,13 @@ function ScheduleContextMenu({
             onClick: () => handleGoToOperationsFromWorkflow(existingWorkflow),
           }] : undefined,
         },
-        ...(existingWorkflow?.fileId ? [{
+        ...(existingWorkflow ? [{
           id: 'preview-workflow-pdf',
-          label: t('workspace_menu_workflow_preview_pdf') || 'Preview PDF',
+          labelKey: 'workspace_menu_workflow_preview_pdf',
+          labelFallback: 'Preview PDF',
           icon: <FileText size={18} color="#3b82f6" />,
           onClick: handlePreviewPdf,
+          disabled: !existingWorkflow?.fileId,
         }] : []),
       ],
     });
@@ -302,7 +325,7 @@ function ScheduleContextMenu({
     });
 
     return items;
-  }, [canExport, cls, program, subject, academicTerm, slotInstructor, lang, t, user, dateStr, exporting, runExport, handleScan, handleOpenOperations, handleInitiateWorkflow, handleInbox, handleHistory, canSeeStandupMode, existingWorkflow, handlePreviewPdf, handleGoToOperationsFromWorkflow]);
+  }, [canExport, cls, program, subject, academicTerm, slotInstructor, lang, t, user, dateStr, exporting, runExport, handleScan, handleOpenOperations, handleInitiateWorkflow, handleInbox, handleHistory, canSeeStandupMode, existingWorkflow, handlePreviewPdf, handleGoToOperationsFromWorkflow, isAdmin]);
 
   return (
     <>

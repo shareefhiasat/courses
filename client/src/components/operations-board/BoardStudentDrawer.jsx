@@ -14,6 +14,12 @@ import {
 } from '@services/business/operationsBoardService.js';
 import { getLectureLog } from '@services/business/attendanceLogService.js';
 import { getParticipationsByClassAndDate, createParticipation } from '@services/business/participationService.js';
+import {
+  shouldHideAttendancePrivacyTabs,
+  filterActivityEntriesForHR,
+  maskAttendanceColumnForHR,
+  isHROnlyViewer,
+} from './hrAttendancePrivacy.js';
 import { useLang } from '@contexts/LangContext';
 import { useAuth } from '@contexts/AuthContext';
 import BoardStudentAvatar from './BoardStudentAvatar.jsx';
@@ -111,11 +117,12 @@ function normalizeStatusId(value) {
   return byName?.id || upper;
 }
 
-function resolveBoardStatusMeta(statusId, t) {
+function resolveBoardStatusMeta(statusId, t, roleContext = {}) {
   const normalized = normalizeStatusId(statusId);
   if (!normalized) return { label: '—', color: '#94a3b8' };
+  const displayId = maskAttendanceColumnForHR(normalized, roleContext);
   const columns = [...ATTENDANCE_COLUMNS, ...WORKFLOW_COLUMNS];
-  const match = columns.find((col) => col.id === normalized);
+  const match = columns.find((col) => col.id === displayId);
   if (match) {
     return { label: t(match.i18nKey) || match.name, color: match.color };
   }
@@ -158,6 +165,16 @@ export default function BoardStudentDrawer({
           setHistory(histResult.data?.history || []);
           setComments(histResult.data?.comments || card.raw?.comments || []);
         }
+        if (card.classId && card.date && !shouldHideAttendancePrivacyTabs(roleContext)) {
+          const partResult = await getParticipationsByClassAndDate(card.classId, card.date);
+          if (partResult?.success && partResult.data) {
+            setParticipationList(partResult.data);
+          } else {
+            setParticipationList([]);
+          }
+        } else {
+          setParticipationList([]);
+        }
       } else if (card.type === 'attendance') {
         setNotes(card.notes || '');
         const fetches = [];
@@ -166,7 +183,9 @@ export default function BoardStudentDrawer({
         }
         if (card.classId && card.date) {
           fetches.push(getLectureLog(card.classId, card.date));
-          fetches.push(getParticipationsByClassAndDate(card.classId, card.date));
+          if (!shouldHideAttendancePrivacyTabs(roleContext)) {
+            fetches.push(getParticipationsByClassAndDate(card.classId, card.date));
+          }
         }
         const results = await Promise.all(fetches);
         let histIdx = 0;
@@ -196,9 +215,13 @@ export default function BoardStudentDrawer({
           } else {
             setLectureLogEntries([]);
           }
-          const partResult = results[lecIdx];
-          if (partResult?.success && partResult.data) {
-            setParticipationList(partResult.data.filter((p) => String(p.userId) === String(card.userId)));
+          if (!shouldHideAttendancePrivacyTabs(roleContext)) {
+            const partResult = results[lecIdx];
+            if (partResult?.success && partResult.data) {
+              setParticipationList(partResult.data.filter((p) => String(p.userId) === String(card.userId)));
+            } else {
+              setParticipationList([]);
+            }
           } else {
             setParticipationList([]);
           }
@@ -213,10 +236,18 @@ export default function BoardStudentDrawer({
     } finally {
       if (!silent) setLoading(false);
     }
-  }, [card]);
+  }, [card, roleContext]);
+
+  const openedCardIdRef = React.useRef(null);
 
   useEffect(() => {
-    if (open && card) {
+    if (!open || !card) {
+      if (!open) openedCardIdRef.current = null;
+      return;
+    }
+    const isNewCard = openedCardIdRef.current !== card.id;
+    openedCardIdRef.current = card.id;
+    if (isNewCard) {
       setTab('activity');
       setPdfPreviewOpen(false);
       setNotes(card.type === 'attendance' ? (card.notes || '') : '');
@@ -225,7 +256,7 @@ export default function BoardStudentDrawer({
       setAttendanceNotesList(parseAttendanceNotesList(card.notes, user?.displayName || user?.name));
       loadDetail();
     }
-  }, [open, card, loadDetail]);
+  }, [open, card?.id, loadDetail, user?.displayName, user?.name]);
 
   const handleSaveNotes = async () => {
     if (!card || !notes.trim()) return;
@@ -342,6 +373,7 @@ export default function BoardStudentDrawer({
   const workflowClassName = workflowNameParts[1] || className;
   const displayTitle = card.type === 'workflow' ? workflowTitle : studentName;
   const displayClassName = card.type === 'workflow' ? workflowClassName : className;
+  const studentNumber = card.studentNumber || card.user?.studentNumber || null;
   const classInstructorName = card.classInstructorName || card.assignee || null;
   const isClassInstructor = Boolean(
     card.classInstructorId && user?.dbId && String(card.classInstructorId) === String(user.dbId),
@@ -354,14 +386,20 @@ export default function BoardStudentDrawer({
   const workflowNoteItems = comments.filter((c) => c.action === 'NOTE');
 
   const statusColumns = card.type === 'attendance' ? ATTENDANCE_COLUMNS : WORKFLOW_COLUMNS;
-  const statusColumn = statusColumns.find((c) => c.id === card.column);
-  const statusLabel = statusColumn ? t(statusColumn.i18nKey) || statusColumn.name : card.column;
+  const displayColumn = card.type === 'attendance'
+    ? maskAttendanceColumnForHR(card.column, roleContext)
+    : card.column;
+  const statusColumn = statusColumns.find((c) => c.id === displayColumn);
+  const statusLabel = statusColumn ? t(statusColumn.i18nKey) || statusColumn.name : displayColumn;
+
+  const hidePrivacyTabs = shouldHideAttendancePrivacyTabs(roleContext);
+  const hrViewer = isHROnlyViewer(roleContext);
 
   const buildStatusEntry = (h, prefix = '') => {
     const fromId = typeof h.fromStatus === 'object' ? (h.fromStatus?.code || h.fromStatus?.nameEn) : h.fromStatus || h.oldStatus;
     const toId = typeof h.toStatus === 'object' ? (h.toStatus?.code || h.toStatus?.nameEn) : h.toStatus || h.newStatus;
-    const fromMeta = resolveBoardStatusMeta(fromId || h.fromStatus, t);
-    const toMeta = resolveBoardStatusMeta(toId || h.toStatus, t);
+    const fromMeta = resolveBoardStatusMeta(fromId || h.fromStatus, t, roleContext);
+    const toMeta = resolveBoardStatusMeta(toId || h.toStatus, t, roleContext);
     return {
       id: h.id || `${prefix}-${h.changedAt || h.createdAt || h.timestamp}`,
       type: 'status',
@@ -408,7 +446,26 @@ export default function BoardStudentDrawer({
   }
 
   activityEntries = activityEntries.sort((a, b) => new Date(b.at || 0) - new Date(a.at || 0));
+  activityEntries = filterActivityEntriesForHR(activityEntries, roleContext);
 
+  const drawerTabs = [
+    { key: 'activity', label: t('operations_board_tab_activity'), icon: Activity },
+    ...(card.type === 'attendance'
+      ? [{ key: 'profile', label: t('operations_board_tab_profile') || 'Profile', icon: User }]
+      : [{ key: 'details', label: t('operations_board_tab_details') || 'Details', icon: FileText }]),
+    ...(!hidePrivacyTabs ? [{ key: 'notes', label: t('operations_board_tab_notes'), icon: StickyNote }] : []),
+    ...(card.type === 'attendance' && !hidePrivacyTabs
+      ? [{ key: 'participation', label: t('operations_board_participation') || 'Participation', icon: Award }]
+      : []),
+    ...(card.type === 'workflow'
+      ? [
+        { key: 'comments', label: t('operations_board_tab_comments'), icon: MessageSquare },
+        ...(card.classId && card.date && !hidePrivacyTabs
+          ? [{ key: 'participation', label: t('operations_board_participation') || 'Participation', icon: Award }]
+          : []),
+      ]
+      : []),
+  ];
   const attendanceNoteEntries = attendanceNotesList
     .map((n) => ({
       ...n,
@@ -475,6 +532,11 @@ export default function BoardStudentDrawer({
           <Box sx={{ minWidth: 0, flex: 1, pt: 0.25 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', mb: 0.75 }}>
               <span className="text-base font-semibold truncate">{displayTitle}</span>
+              {card.type === 'attendance' && studentNumber && (
+                <span className="text-sm text-muted-foreground font-medium shrink-0">
+                  {studentNumber}
+                </span>
+              )}
               {statusColumn && card.type === 'workflow' && (
                 <span
                   className="inline-flex items-center gap-1 text-xs font-semibold shrink-0"
@@ -588,19 +650,7 @@ export default function BoardStudentDrawer({
             '& .MuiTabs-indicator': { display: 'none' },
           }}
         >
-          {[
-            { key: 'activity', label: t('operations_board_tab_activity'), icon: Activity },
-            ...(card.type === 'attendance'
-              ? [{ key: 'profile', label: t('operations_board_tab_profile') || 'Profile', icon: User }]
-              : [{ key: 'details', label: t('operations_board_tab_details') || 'Details', icon: FileText }]),
-            { key: 'notes', label: t('operations_board_tab_notes'), icon: StickyNote },
-            ...(card.type === 'attendance'
-              ? [{ key: 'participation', label: t('operations_board_participation') || 'Participation', icon: Award }]
-              : []),
-            ...(card.type === 'workflow'
-              ? [{ key: 'comments', label: t('operations_board_tab_comments'), icon: MessageSquare }]
-              : []),
-          ].map(({ key, label, icon: Icon }) => (
+          {drawerTabs.map(({ key, label, icon: Icon }) => (
             <Tab
               key={key}
               value={key}
@@ -740,15 +790,26 @@ export default function BoardStudentDrawer({
           </Box>
         )}
 
-        {tab === 'participation' && card.type === 'attendance' && (
+        {tab === 'participation' && (card.type === 'attendance' || card.type === 'workflow') && (
           <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }} data-testid="operations-board-participation-panel">
             <Box sx={{ flex: 1, overflow: 'auto', pt: 1, mb: 2 }}>
               <DrawerTimeline
-                entries={participationTimelineEntries}
+                entries={(card.type === 'workflow'
+                  ? participationList
+                  : participationList.filter((p) => String(p.userId) === String(card.userId))
+                ).map((p, idx) => ({
+                  id: p.id || `part-${idx}`,
+                  type: 'participation',
+                  actor: p.creator?.displayName || p.user?.displayName || t('operations_board_system_actor'),
+                  text: p.descriptionEn || p.descriptionAr || p.notes || p.comment || t('operations_board_participation'),
+                  at: p.createdAt,
+                  dotColor: BOARD_PARTICIPATION_COLOR,
+                }))}
                 emptyMessage={t('operations_board_no_participation') || 'No participation records for this student.'}
                 lang={lang}
               />
             </Box>
+            {card.type === 'attendance' && (
             <div className="flex gap-2">
               <Input
                 value={newParticipationNote}
@@ -762,6 +823,7 @@ export default function BoardStudentDrawer({
                 {t('operations_board_note_save') || 'Save'}
               </Button>
             </div>
+            )}
           </Box>
         )}
 

@@ -9,11 +9,12 @@ import {
   Box,
   Typography,
 } from '@mui/material';
+import { AlertTriangle, ArrowRight, Workflow as WorkflowIcon } from 'lucide-react';
+import { shortenWorkflowDisplayName } from './operationsBoardDisplayUtils.js';
 import { resolveWorkflowNotifyMeta } from './workflowBoardRules.js';
 
 /**
  * Confirmation dialog before a workflow board status move.
- * Reuses the InitiateWorkflowDialog look-and-feel.
  */
 export default function WorkflowMoveConfirmDialog({
   open,
@@ -24,41 +25,98 @@ export default function WorkflowMoveConfirmDialog({
   columns = [],
   itemName,
   loading = false,
+  adminOverride = false,
+  roleContext = {},
   t,
 }) {
   const fromCol = columns.find((c) => c.id === fromColumn);
   const toCol = columns.find((c) => c.id === toColumn);
   const fromLabel = fromCol ? (t(fromCol.i18nKey) || fromCol.name) : fromColumn;
   const toLabel = toCol ? (t(toCol.i18nKey) || toCol.name) : toColumn;
-  const meta = resolveWorkflowNotifyMeta(fromColumn, toColumn);
+  const displayName = shortenWorkflowDisplayName(itemName);
+  const meta = resolveWorkflowNotifyMeta(fromColumn, toColumn, roleContext);
+  const isOverride = adminOverride || meta.adminOverride;
+
+  const title = isOverride
+    ? (t('operations_board_move_admin_override_title') || 'Not your role — proceed with caution')
+    : (t(meta.titleKey) || t('operations_board_move_confirm_title') || 'Confirm status change');
+  const body = isOverride
+    ? (t('operations_board_move_admin_override_body') || 'Instructor action only. Continue only if they are unavailable. This is logged.')
+    : (t(meta.bodyKey) || t('operations_board_move_confirm_body') || 'Move this workflow from {from} to {to}?')
+      .replace('{from}', fromLabel)
+      .replace('{to}', toLabel);
 
   let notifyText = null;
-  if (meta?.notifyKey === 'operations_board_move_notify_role' && meta.roleKey) {
+  if (isOverride) {
+    notifyText = t('operations_board_move_admin_override_notify')
+      || 'The instructor will be notified that an Admin acted on their behalf.';
+  } else if (meta?.notifyKey === 'operations_board_move_notify_role' && meta.roleKey) {
     notifyText = (t(meta.notifyKey) || '').replace('{role}', t(meta.roleKey) || meta.roleKey);
   } else if (meta?.notifyKey) {
     notifyText = t(meta.notifyKey);
   }
 
+  const lockWarningText = meta.lockWarning
+    ? (t(meta.lockWarningKey) || t('operations_board_move_admin_lock_warning'))
+    : null;
+
   return (
-    <Dialog open={open} onClose={loading ? undefined : onClose} maxWidth="sm" fullWidth data-testid="workflow-move-confirm-dialog">
-      <DialogTitle>
-        {t('operations_board_move_confirm_title') || 'Confirm status change'}
+    <Dialog
+      open={open}
+      onClose={loading ? undefined : onClose}
+      maxWidth="sm"
+      fullWidth
+      data-testid="workflow-move-confirm-dialog"
+    >
+      <DialogTitle sx={isOverride ? { color: 'error.main', display: 'flex', alignItems: 'center', gap: 1 } : undefined}>
+        {isOverride && <AlertTriangle size={20} />}
+        {title}
       </DialogTitle>
       <DialogContent>
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2, mt: 1 }}>
-          {itemName && (
-            <Typography variant="body2" color="text.secondary">
-              {itemName}
+        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mt: 1 }}>
+          {isOverride && (
+            <Alert severity="error" variant="filled" icon={<AlertTriangle size={18} />} data-testid="workflow-move-override-alert">
+              {t('operations_board_move_admin_override_alert')
+                || 'Admin exception — use only when the instructor cannot act.'}
+            </Alert>
+          )}
+          {displayName && (
+            <Typography variant="body2" sx={{ fontWeight: 600, wordBreak: 'break-word' }}>
+              {displayName}
             </Typography>
           )}
-          <Typography variant="body2">
-            {(t('operations_board_move_confirm_body') || 'Move this workflow from {from} to {to}?')
-              .replace('{from}', fromLabel)
-              .replace('{to}', toLabel)}
-          </Typography>
+          <Box
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              flexWrap: 'wrap',
+            }}
+            data-testid="workflow-move-status-transition"
+          >
+            <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, opacity: 0.75 }}>
+              <WorkflowIcon size={16} style={{ color: fromCol?.color || '#9ca3af', flexShrink: 0 }} />
+              <Typography variant="body2" sx={{ fontWeight: 500, color: fromCol?.color || 'text.secondary' }}>
+                {fromLabel}
+              </Typography>
+            </Box>
+            <ArrowRight size={16} style={{ flexShrink: 0, opacity: 0.6 }} />
+            <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75 }}>
+              <WorkflowIcon size={18} style={{ color: toCol?.color || '#6b7280', flexShrink: 0 }} />
+              <Typography variant="body2" sx={{ fontWeight: 700, color: toCol?.color || 'text.primary' }}>
+                {toLabel}
+              </Typography>
+            </Box>
+          </Box>
+          <Typography variant="body2">{body}</Typography>
           {notifyText && (
-            <Alert severity="info" data-testid="workflow-move-notify-alert">
+            <Alert severity={isOverride ? 'warning' : 'info'} data-testid="workflow-move-notify-alert">
               {notifyText}
+            </Alert>
+          )}
+          {lockWarningText && (
+            <Alert severity="warning" data-testid="workflow-move-lock-alert">
+              {lockWarningText}
             </Alert>
           )}
         </Box>
@@ -69,13 +127,16 @@ export default function WorkflowMoveConfirmDialog({
         </Button>
         <Button
           variant="contained"
+          color={isOverride ? 'error' : 'primary'}
           onClick={onConfirm}
           disabled={loading}
           data-testid="workflow-move-confirm"
         >
           {loading
             ? (t('operations_board_loading') || 'Loading…')
-            : (t('operations_board_move_confirm') || 'Confirm')}
+            : (isOverride
+              ? (t('operations_board_move_admin_override_confirm') || 'Proceed')
+              : (t('operations_board_move_confirm') || 'Confirm'))}
         </Button>
       </DialogActions>
     </Dialog>

@@ -1,6 +1,7 @@
 import { formatDateTime, getQatarDateParts } from '@utils/date';
 import { NOTIFICATION_TYPES, NOTIFICATION_STATUS } from '@constants/notificationTypes.jsx';
 import { RECORD_TYPES } from '@utils/sharedTypes';
+import { WORKFLOW_STATUS_COLORS } from '@constants/workspaceStatusColors.js';
 
 /**
  * Format a notification timestamp as a relative time string.
@@ -76,13 +77,38 @@ const WORKFLOW_EVENT_STATUS = {
   'workflow.amended': 'AMENDED',
 };
 
-const WORKFLOW_STATUS_ORDER = ['DRAFT', 'SUBMITTED', 'UNDER_REVIEW', 'UNDER_HR_REVIEW', 'UNDER_ADMIN_REVIEW', 'AMENDED', 'APPROVED', 'REJECTED', 'OTHER'];
+const WORKFLOW_STATUS_ORDER = ['DRAFT', 'TAKEN', 'SUBMITTED', 'UNDER_ADMIN_REVIEW', 'UNDER_HR_REVIEW', 'UNDER_REVIEW', 'AMENDED', 'APPROVED', 'REJECTED', 'OTHER'];
 
-const getWorkflowStatusKey = (n) => {
+export const getWorkflowStatusKey = (n) => {
   if (!(n.type || '').startsWith('WORKFLOW')) return null;
   const event = n.event || n.data?.event;
   return WORKFLOW_EVENT_STATUS[event] || n.data?.workflowStatus || n.metadata?.status || 'OTHER';
 };
+
+/** Board-legend workflow status chips for notification filtering */
+export const WORKFLOW_NOTIFICATION_STATUS_FILTERS = [
+  { id: 'DRAFT', color: WORKFLOW_STATUS_COLORS.DRAFT, labelKey: 'operations_board_lane_draft' },
+  { id: 'TAKEN', color: WORKFLOW_STATUS_COLORS.TAKEN, labelKey: 'operations_board_lane_taken' },
+  { id: 'SUBMITTED', color: WORKFLOW_STATUS_COLORS.SUBMITTED, labelKey: 'operations_board_lane_submitted' },
+  { id: 'UNDER_ADMIN_REVIEW', color: WORKFLOW_STATUS_COLORS.UNDER_ADMIN_REVIEW, labelKey: 'operations_board_lane_admin_review' },
+  { id: 'UNDER_HR_REVIEW', color: WORKFLOW_STATUS_COLORS.UNDER_HR_REVIEW, labelKey: 'operations_board_lane_hr_review', matchKeys: ['UNDER_HR_REVIEW', 'UNDER_REVIEW'] },
+  { id: 'APPROVED', color: WORKFLOW_STATUS_COLORS.APPROVED, labelKey: 'operations_board_lane_approved' },
+  { id: 'REJECTED', color: WORKFLOW_STATUS_COLORS.REJECTED, labelKey: 'operations_board_lane_rejected' },
+];
+
+export function getWorkflowSubgroupColor(status) {
+  if (!status) return WORKFLOW_STATUS_COLORS.DRAFT;
+  if (status === 'UNDER_REVIEW') return WORKFLOW_STATUS_COLORS.UNDER_HR_REVIEW;
+  return WORKFLOW_STATUS_COLORS[status] || '#6b7280';
+}
+
+export function matchesWorkflowStatusFilter(notification, filterId) {
+  if (!filterId || filterId === 'all') return true;
+  const key = getWorkflowStatusKey(notification);
+  const filter = WORKFLOW_NOTIFICATION_STATUS_FILTERS.find((f) => f.id === filterId);
+  if (filter?.matchKeys) return filter.matchKeys.includes(key);
+  return key === filterId;
+}
 
 const getWorkflowStatusLabel = (status, t) => {
   const keyMap = {
@@ -182,6 +208,7 @@ export const filterNotifications = ({
   filterClass = 'all',
   filterYear = 'all',
   filterSemester = 'all',
+  filterWorkflowStatus = 'all',
   subjects = [],
   classes = []
 }) => {
@@ -294,6 +321,11 @@ export const filterNotifications = ({
       }
       return false;
     });
+  }
+
+  // Filter by workflow board status (legend chips)
+  if (filterWorkflowStatus !== 'all') {
+    filtered = filtered.filter((n) => matchesWorkflowStatusFilter(n, filterWorkflowStatus));
   }
 
   return filtered;

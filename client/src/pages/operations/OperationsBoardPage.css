@@ -745,6 +745,13 @@
   opacity: 0.85;
 }
 
+.operations-board-page .operations-board-lane-override,
+.operations-board-lane-override {
+  background-color: rgba(254, 243, 199, 0.45) !important;
+  border: 2px dashed rgba(217, 119, 6, 0.65) !important;
+  border-radius: 8px !important;
+}
+
 .operations-board-lane > .relative.overflow-hidden {
   overflow: auto !important;
 }
@@ -1006,7 +1013,7 @@
 .welcome-working-date-picker input,
 .welcome-working-date-picker [class*="_input_"] {
   color: #2563eb !important;
-  background: #ffffff !important;
+  background: rgb(248, 250, 252) !important;
   border: none !important;
   box-shadow: none !important;
   min-height: 30px !important;
@@ -1015,7 +1022,7 @@
 
 .welcome-working-date-picker input:focus,
 .welcome-working-date-picker [class*="_input_"]:focus {
-  background: #ffffff !important;
+  background: rgb(248, 250, 252) !important;
   outline: none !important;
 }
 
@@ -1108,7 +1115,7 @@
   height: calc(1.5rem * var(--ops-font-scale, 1)) !important;
   width: calc(1.5rem * var(--ops-font-scale, 1)) !important;
   font-size: calc(0.625rem * var(--ops-font-scale, 1)) !important;
-  margin-inline-start: 0.5rem !important;
+  margin-inline-start: 0 !important;
 }
 
 /* ── Date picker blue accent ── */

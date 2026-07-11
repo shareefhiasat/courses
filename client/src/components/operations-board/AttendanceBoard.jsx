@@ -18,6 +18,12 @@ import {
   resolveBoardStudentName,
 } from './operationsBoardDisplayUtils.js';
 import { canMoveAttendanceToColumn } from './attendanceBoardRules.js';
+import {
+  isHROnlyViewer,
+  mapAttendanceBoardDataForHR,
+  maskAttendanceColumnForHR,
+  maskAttendanceStatsForHR,
+} from './hrAttendancePrivacy.js';
 import { fetchAttendanceStats, ATTENDANCE_COLUMNS } from '@services/business/operationsBoardService.js';
 import { getParticipationsByClassAndDate } from '@services/business/participationService.js';
 import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
@@ -98,11 +104,14 @@ function resolveDropColumn(over, columns, data) {
   return columns.find((col) => col.id === over.id)?.id || null;
 }
 
-function AttendanceCardHoverTooltip({ item, stats, participationCount, t, lang }) {
+function AttendanceCardHoverTooltip({ item, stats, participationCount, t, lang, roleContext = {} }) {
   const studentName = resolveBoardStudentName(item, lang);
-  const statusCol = ATTENDANCE_COLUMNS.find((c) => c.id === item.column);
-  const statusLabel = statusCol ? (t(statusCol.i18nKey) || statusCol.name) : item.column;
+  const displayColumn = maskAttendanceColumnForHR(item.column, roleContext);
+  const statusCol = ATTENDANCE_COLUMNS.find((c) => c.id === displayColumn);
+  const statusLabel = statusCol ? (t(statusCol.i18nKey) || statusCol.name) : displayColumn;
   const statusColor = statusCol?.color || ATTENDANCE_BOARD_COLORS.NOT_TAKEN;
+  const maskedStats = maskAttendanceStatsForHR(stats, roleContext);
+  const hidePrivacy = isHROnlyViewer(roleContext);
   const labelColor = '#64748b';
   const nameColor = '#1e293b';
 
@@ -127,27 +136,27 @@ function AttendanceCardHoverTooltip({ item, stats, participationCount, t, lang }
         />
         <span style={{ color: statusColor, fontWeight: 600 }}>{statusLabel}</span>
       </div>
-      {stats && stats.total > 0 && (
+      {maskedStats && maskedStats.total > 0 && (
         <div style={{ marginBottom: 4 }}>
           <div style={{ fontWeight: 600, fontSize: '0.7rem', marginBottom: 3 }}>
             {t('attendance_summary') || 'Attendance Summary'}
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
             {[
-              { label: t('present') || 'Present', count: stats.present, color: ATTENDANCE_BOARD_COLORS.PRESENT },
-              { label: t('late') || 'Late', count: stats.late, color: ATTENDANCE_BOARD_COLORS.LATE },
-              { label: t('absent') || 'Absent', count: stats.absent, color: ATTENDANCE_BOARD_COLORS.ABSENT },
-            ].map((row) => (
+              { label: t('present') || 'Present', count: maskedStats.present, color: ATTENDANCE_BOARD_COLORS.PRESENT },
+              ...(!hidePrivacy ? [{ label: t('late') || 'Late', count: maskedStats.late, color: ATTENDANCE_BOARD_COLORS.LATE }] : []),
+              { label: t('absent') || 'Absent', count: maskedStats.absent, color: ATTENDANCE_BOARD_COLORS.ABSENT },
+            ].filter((row) => row.count > 0).map((row) => (
               <span key={row.label} style={{ display: 'inline-flex', alignItems: 'center', gap: 3, color: row.color, fontWeight: 600 }}>
                 <span style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: row.color }} />
                 {row.count} {row.label}
               </span>
             ))}
-            <span style={{ color: '#000000', fontWeight: 500 }}>/ {stats.total}</span>
+            <span style={{ color: '#000000', fontWeight: 500 }}>/ {maskedStats.total}</span>
           </div>
         </div>
       )}
-      {(item.notes || participationCount > 0) && (
+      {!hidePrivacy && (item.notes || participationCount > 0) && (
         <div style={{ marginTop: 4, paddingTop: 4, borderTop: '1px solid rgba(148,163,184,0.35)' }}>
           {item.notes && (
             <div style={{ marginBottom: 2 }}>
@@ -183,24 +192,27 @@ export default function AttendanceBoard({
   onBulkMove,
   participationRefreshKey = 0,
 }) {
+  const hrViewer = isHROnlyViewer(roleContext);
+  const sourceData = hrViewer ? mapAttendanceBoardDataForHR(data, roleContext) : data;
+
   const [boardData, setBoardData] = useState(() => {
-    const classId = data[0]?.classId;
-    const date = data[0]?.date;
-    return sortDataForBoard(data, sortBy, classId, date, lang);
+    const classId = sourceData[0]?.classId;
+    const date = sourceData[0]?.date;
+    return sortDataForBoard(sourceData, sortBy, classId, date, lang);
   });
   const [attendanceStats, setAttendanceStats] = useState(null);
   const [participationMap, setParticipationMap] = useState({});
   const dragOriginRef = useRef(null);
   const draggingRef = useRef(false);
 
-  const classId = data[0]?.classId;
-  const date = data[0]?.date;
+  const classId = sourceData[0]?.classId;
+  const date = sourceData[0]?.date;
 
   useEffect(() => {
     if (!draggingRef.current) {
-      setBoardData(sortDataForBoard(data, sortBy, classId, date, lang));
+      setBoardData(sortDataForBoard(sourceData, sortBy, classId, date, lang));
     }
-  }, [data, classId, date, sortBy, lang]);
+  }, [sourceData, classId, date, sortBy, lang]);
 
   useEffect(() => {
     if (!classId || !date) {
@@ -354,8 +366,9 @@ export default function AttendanceBoard({
           <KanbanCards id={column.id} className={collapsed ? 'operations-board-lane-cards-collapsed' : undefined}>
             {(item) => {
               const studentName = resolveBoardStudentName(item, lang);
-              const stats = attendanceStats?.students?.[String(item.userId)];
-              const participationCount = participationMap[String(item.userId)]?.length || 0;
+              const stats = maskAttendanceStatsForHR(attendanceStats?.students?.[String(item.userId)], roleContext);
+              const participationCount = hrViewer ? 0 : (participationMap[String(item.userId)]?.length || 0);
+              const displayColumn = maskAttendanceColumnForHR(item.column, roleContext);
               if (collapsed) {
                 return (
                   <KanbanCard
@@ -392,11 +405,12 @@ export default function AttendanceBoard({
                   <ColoredTooltip
                     title={(
                       <AttendanceCardHoverTooltip
-                        item={item}
+                        item={{ ...item, column: displayColumn }}
                         stats={stats}
                         participationCount={participationCount}
                         t={t}
                         lang={lang}
+                        roleContext={roleContext}
                       />
                     )}
                     color="#64748b"
@@ -409,7 +423,7 @@ export default function AttendanceBoard({
                         onCardClick(item);
                       }}
                     >
-                      {(item.notes || participationCount > 0) && (
+                      {!hrViewer && (item.notes || participationCount > 0) && (
                         <div className="absolute -top-1 -right-1 flex gap-0.5 z-10">
                           {item.notes && (
                             <ColoredTooltip title={t('operations_board_has_note') || 'Has a note'} color="#ef4444" placement="top">
@@ -430,21 +444,23 @@ export default function AttendanceBoard({
                       />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-1.5 min-w-0">
-                          <BoardStatusDot column={item.column} />
+                          <BoardStatusDot column={displayColumn} />
                           <p className="m-0 truncate text-sm font-medium leading-tight">{studentName}</p>
                         </div>
                         {stats && stats.total > 0 && (
                           <div className="mt-1 flex items-center gap-1.5 text-[0.7rem] text-muted-foreground" data-testid={`attendance-summary-${item.id}`}>
                             <span className="inline-flex items-center gap-0.5">
-                              <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: ATTENDANCE_BOARD_COLORS.PRESENT }} />
+                              <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: ATTENDANCE_BOARD_COLORS.PRESENT }} />
                               {stats.present}
                             </span>
+                            {!hrViewer && stats.late > 0 && (
                             <span className="inline-flex items-center gap-0.5">
-                              <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: ATTENDANCE_BOARD_COLORS.LATE }} />
+                              <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: ATTENDANCE_BOARD_COLORS.LATE }} />
                               {stats.late}
                             </span>
+                            )}
                             <span className="inline-flex items-center gap-0.5">
-                              <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: ATTENDANCE_BOARD_COLORS.ABSENT }} />
+                              <span className="h-2 w-2 rounded-full shrink-0" style={{ backgroundColor: ATTENDANCE_BOARD_COLORS.ABSENT }} />
                               {stats.absent}
                             </span>
                             <span>/ {stats.total}</span>

@@ -8,9 +8,13 @@ import {
 import { formatDate, formatTime } from '@utils/date-formatter.js';
 import gridStyles from './officialWeeklyScheduleGrid.module.css';
 
-function workflowStatusToKey(status) {
+function workflowStatusToKey(status, parentStatus = null, isLatest = false) {
   if (!status) return 'not_taken';
-  const code = typeof status === 'object' ? (status.code || status.nameEn) : status;
+  const code = typeof status === 'object' ? (status.code || status.nameEn || status.workflowStatus) : status;
+  const normalized = String(code || '').toUpperCase().replace(/\s+/g, '_');
+  if (isLatest && parentStatus?.hasAttendance && (normalized === 'DRAFT' || normalized === 'NOT_TAKEN' || !normalized)) {
+    return resolveScheduleWorkflowKey(parentStatus);
+  }
   return resolveScheduleWorkflowKey({ workflowStatus: code });
 }
 
@@ -22,8 +26,8 @@ function resolveActorName(entry, lang) {
 function buildHistoryEntries(status, fallbackDate) {
   const history = status?.statusHistory || [];
   if (history.length > 0) {
-    return history.map((entry) => ({
-      key: workflowStatusToKey(entry.toStatus),
+    return history.map((entry, index) => ({
+      key: workflowStatusToKey(entry.toStatus, status, index === history.length - 1),
       createdAt: entry.createdAt || entry.changedAt || null,
       actorNameEn: entry.actorNameEn,
       actorNameAr: entry.actorNameAr,

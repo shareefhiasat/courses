@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef, lazy, Suspense } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import Joyride from 'react-joyride';
 import TourTooltip from '@ui/TourTooltip/TourTooltip';
@@ -26,6 +26,7 @@ import { loadWeeklyScheduleSources } from '@services/business/weeklyScheduleExpo
 import { prepareWeeklyScheduleData } from '@services/export/official-reports/engine/prepareWeeklyScheduleData';
 import { academicTermToYearTerm } from '@utils/academicTermUtils';
 import useQRPermissions from '@hooks/useQRPermissions';
+import useScheduleStatusRealtime from '@hooks/useScheduleStatusRealtime.js';
 import { usePermissions } from '@hooks/usePermissions';
 import { getThemedIcon } from '@constants/iconTypes';
 import {
@@ -126,12 +127,27 @@ const WelcomePage = () => {
     return tabs;
   }, [showOperationsTab]);
 
+  const showSchedule = useMemo(() => Boolean(selection?.program && selection?.academicTerm), [selection]);
+
   const tabParam = searchParams.get('tab') || 'schedule';
   const activeTab = Math.max(0, visibleTabs.indexOf(visibleTabs.includes(tabParam) ? tabParam : 'schedule'));
   const boardExpanded = searchParams.get('expanded') === '1';
   const scheduleExpanded = searchParams.get('scheduleExpanded') === '1';
+  const prevTabRef = useRef(tabParam);
 
-  const showSchedule = useMemo(() => Boolean(selection?.program && selection?.academicTerm), [selection]);
+  const weekDayDates = useMemo(() => getWeekDayDates(selectedDate), [selectedDate]);
+
+  useScheduleStatusRealtime({
+    classIds: cohortClassIds,
+    weekDates: weekDayDates,
+    setStatusMap,
+    active: showSchedule && cohortClassIds.length > 0,
+    refreshOnActivate: tabParam === 'schedule' && prevTabRef.current === 'operations',
+  });
+
+  useEffect(() => {
+    prevTabRef.current = tabParam;
+  }, [tabParam]);
 
   // Sync selectedDate when the URL date param changes (e.g., browser back/forward)
   useEffect(() => {

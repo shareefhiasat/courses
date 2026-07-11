@@ -37,6 +37,13 @@ function TrailingActionButton({ action, onClose }) {
   );
 }
 
+function resolveMenuLabel(item, t) {
+  if (item.labelNode) return item.labelNode;
+  if (item.labelKey) return t(item.labelKey) || item.labelFallback || item.labelKey;
+  if (typeof item.label === 'string') return item.label;
+  return item.label;
+}
+
 function AppMenuItem({
   action,
   t,
@@ -82,7 +89,7 @@ function AppMenuItem({
           </ListItemIcon>
         )}
         <ListItemText
-          primary={t(action.label) || action.label}
+          primary={resolveMenuLabel(action, t)}
           secondary={action.hint}
           secondaryTypographyProps={{ variant: 'caption', sx: { color: 'text.secondary' } }}
         />
@@ -137,7 +144,7 @@ function AppMenuItem({
                     </ListItemIcon>
                   )}
                   <ListItemText
-                    primary={t(child.label) || child.label}
+                    primary={resolveMenuLabel(child, t)}
                     secondary={child.hint}
                     secondaryTypographyProps={{ variant: 'caption', sx: { color: 'text.secondary' } }}
                   />

@@ -445,92 +445,33 @@ router.get('/files/:fileId/collabora/edit', async (req, res) => {
 router.get('/files/:fileId/download', async (req, res, next) => {
   try {
     const { fileId } = req.params;
-    const actorUserId = req.user?.keycloakId;
-
-    if (!actorUserId) {
+    const { resolveDriveActor } = await import('../utils/driveActor.js');
+    const actor = await resolveDriveActor(req);
+    if (!actor?.userId) {
       return res.status(401).json({ success: false, error: 'User not authenticated' });
     }
 
-    // Get database user ID from Keycloak ID
-    const user = await prisma.user.findUnique({ where: { keycloakId: actorUserId } });
-    if (!user) {
-      return res.status(404).json({ success: false, error: 'User not found' });
-    }
-
-    console.log('[driveNew.js] User found:', { userId: user.id, email: user.email });
-
-    // Check if file is part of a workflow document
-    const workflowDoc = await prisma.workflowDocument.findFirst({
-      where: { fileId },
-      select: {
-        id: true,
-        submitterId: true,
-        currentAssigneeId: true,
-        workflowType: true,
-        workflowCategory: true,
-        attendanceSubtype: true,
-        approvalFlow: true,
-        status: true
-      }
-    });
-
-    console.log('[driveNew.js] Workflow document lookup:', { workflowDoc });
-
-    // If file is part of a workflow, check if user is a participant
-    if (workflowDoc) {
-      const userRoles = req.user?.roles || [];
-      const isHR = userRoles.includes('hr') || userRoles.includes('HR');
-      const isAdmin = userRoles.includes('admin') || userRoles.includes('ADMIN');
-      const isSuperAdmin = userRoles.includes('super_admin') || userRoles.includes('SUPER_ADMIN');
-      const isSubmitter = workflowDoc.submitterId === user.id;
-      const isAssignee = workflowDoc.currentAssigneeId === user.id;
-
-      console.log('[driveNew.js] Workflow permission check:', {
-        userRoles,
-        isHR,
-        isAdmin,
-        isSuperAdmin,
-        isSubmitter,
-        isAssignee,
-        workflowType: workflowDoc.workflowType
-      });
-
-      // Allow download if user is:
-      // - Submitter
-      // - Current assignee
-      // - HR (for GENERAL workflows)
-      // - Admin (for ATTENDANCE_WEEKLY workflows)
-      // - Super Admin (any workflow)
-      if (isSubmitter || isAssignee || isSuperAdmin) {
-        console.log('[driveNew.js] Workflow participant allowed download:', { fileId, userId: user.id, reason: 'participant' });
-        return next();
-      }
-
-      if (isHR && isHrAccessibleWorkflow(workflowDoc)) {
-        console.log('[driveNew.js] HR allowed download for workflow:', { fileId, userId: user.id, category: workflowDoc.workflowCategory });
-        return next();
-      }
-
-      if (isAdmin && isAdminAccessibleWorkflow(workflowDoc)) {
-        console.log('[driveNew.js] Admin allowed download for workflow:', { fileId, userId: user.id, category: workflowDoc.workflowCategory });
-        return next();
-      }
-
-      console.log('[driveNew.js] Not a workflow participant — falling through to ACL permission check:', { fileId, userId: user.id, userRoles, workflowType: workflowDoc.workflowType });
-      // Do NOT return 403 here — fall through to the standard ACL check below so users
-      // with a valid fileShare on this file can still download it.
-    }
-
-    // Standard ACL check: VIEW (or higher) share is sufficient for download.
     const { requireFilePermission } = await import('../services/permissionService.js');
-    const dbRoles = req.user?.roles || [];
-    await requireFilePermission(fileId, { userId: user.id, roles: dbRoles }, 'VIEW');
+    const { ensureWorkflowOversightFileShares } = await import('../services/workflowDocumentService.js');
 
-    // Permission granted, proceed with download
+    const grantDownload = async () => requireFilePermission(fileId, actor, 'VIEW');
+
+    try {
+      await grantDownload();
+    } catch (permErr) {
+      if (permErr.status === 403) {
+        const ensured = await ensureWorkflowOversightFileShares(fileId);
+        if (!ensured) throw permErr;
+        await grantDownload();
+      } else {
+        throw permErr;
+      }
+    }
+
     next();
   } catch (error) {
     if (error.status === 403) {
-      return res.status(403).json({ success: false, error: 'No download permission' });
+      return res.status(403).json({ success: false, error: { code: 'ACCESS_DENIED', message: 'Access denied' } });
     }
     if (error.status === 404) {
       return res.status(404).json({ success: false, error: 'File not found' });

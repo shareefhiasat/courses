@@ -11,6 +11,7 @@ import {
   Typography,
 } from '@mui/material';
 import { AlertCircle, FileText } from 'lucide-react';
+import WorkflowPdfPreviewPanel from '@components/operations-board/WorkflowPdfPreviewPanel.jsx';
 import { initiateAttendanceWorkflow, findExistingAttendanceWorkflow } from '@services/business/workflowInitiationService.js';
 
 export default function InitiateWorkflowDialog({
@@ -33,6 +34,7 @@ export default function InitiateWorkflowDialog({
   const [success, setSuccess] = useState(false);
   const [existingWorkflow, setExistingWorkflow] = useState(null);
   const [precheckExisting, setPrecheckExisting] = useState(knownExisting);
+  const [pdfPreviewOpen, setPdfPreviewOpen] = useState(false);
 
   const className = cls
     ? (lang === 'ar' ? cls.nameAr || cls.nameEn || cls.code : cls.nameEn || cls.nameAr || cls.code)
@@ -108,6 +110,7 @@ export default function InitiateWorkflowDialog({
     setSuccess(false);
     setPhase('');
     setExistingWorkflow(null);
+    setPdfPreviewOpen(false);
     onClose();
   }, [loading, onClose]);
 
@@ -116,7 +119,15 @@ export default function InitiateWorkflowDialog({
     onGoToOperations?.(wf);
   }, [handleClose, onGoToOperations]);
 
+  const activeExisting = existingWorkflow || precheckExisting;
+
+  const handlePreviewPdf = useCallback(() => {
+    if (!activeExisting?.fileId) return;
+    setPdfPreviewOpen(true);
+  }, [activeExisting?.fileId]);
+
   return (
+    <>
     <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth data-testid="initiate-workflow-dialog">
       <DialogTitle>
         {t('initiate_workflow_title') || 'Initiate Workflow'}
@@ -159,7 +170,8 @@ export default function InitiateWorkflowDialog({
                         size="small"
                         variant="text"
                         startIcon={<FileText size={14} />}
-                        onClick={() => goToExisting(precheckExisting)}
+                        onClick={handlePreviewPdf}
+                        data-testid="initiate-workflow-preview-pdf"
                       >
                         {t('operations_board_preview_pdf') || 'Preview PDF'}
                       </Button>
@@ -228,5 +240,40 @@ export default function InitiateWorkflowDialog({
         )}
       </DialogActions>
     </Dialog>
+    <Dialog
+      open={pdfPreviewOpen}
+      onClose={() => setPdfPreviewOpen(false)}
+      maxWidth="md"
+      fullWidth
+      data-testid="initiate-workflow-pdf-preview-dialog"
+    >
+      <DialogTitle>{t('operations_board_preview_pdf') || 'Preview PDF'}</DialogTitle>
+      <DialogContent>
+        <WorkflowPdfPreviewPanel
+          fileId={activeExisting?.fileId}
+          fileName={activeExisting?.fileName || activeExisting?.title}
+          open={pdfPreviewOpen}
+          onClose={() => setPdfPreviewOpen(false)}
+          t={t}
+        />
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={() => setPdfPreviewOpen(false)}>
+          {t('close') || 'Close'}
+        </Button>
+        {activeExisting && (
+          <Button
+            variant="contained"
+            onClick={() => {
+              setPdfPreviewOpen(false);
+              goToExisting(activeExisting);
+            }}
+          >
+            {t('initiate_workflow_go_operations') || 'Go to Operations'}
+          </Button>
+        )}
+      </DialogActions>
+    </Dialog>
+    </>
   );
 }

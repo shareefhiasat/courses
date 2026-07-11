@@ -40,8 +40,8 @@ export async function findExistingAttendanceWorkflow(classId, date) {
       data: {
         id: inProgress.id,
         status: inProgress.status,
-        fileId: inProgress.file?.id || inProgress.fileId || null,
-        fileName: inProgress.file?.name || null,
+        fileId: inProgress.file?.id || inProgress.fileId || inProgress.attachments?.[0]?.fileId || null,
+        fileName: inProgress.file?.name || inProgress.attachments?.[0]?.fileName || null,
         title: inProgress.title,
       },
     };

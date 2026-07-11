@@ -2,8 +2,9 @@ import React from 'react';
 import { Star, Workflow as WorkflowIcon } from 'lucide-react';
 import { useLang } from '@contexts/LangContext';
 import gridStyles from '@components/workspace/officialWeeklyScheduleGrid.module.css';
-import { ATTENDANCE_COLUMNS, WORKFLOW_COLUMNS } from '@services/business/operationsBoardService.js';
-import { BOARD_PARTICIPATION_COLOR } from '@constants/workspaceStatusColors.js';
+import { WORKFLOW_COLUMNS } from '@services/business/operationsBoardService.js';
+import { getHRLegendAttendanceColumns, isHROnlyViewer } from './hrAttendancePrivacy.js';
+import { BOARD_PARTICIPATION_COLOR, SCHEDULE_WORKFLOW_COLORS } from '@constants/workspaceStatusColors.js';
 
 /**
  * Shared attendance + workflow legend used by operations board footer and schedule grid.
@@ -13,12 +14,16 @@ export default function BoardLegend({
   showAttendance = true,
   showWorkflow = true,
   showScheduleExtras = false,
+  includeNotTaken = false,
+  roleContext = {},
   className = '',
   style,
   'data-testid': dataTestId,
   'data-tour': dataTour,
 }) {
   const { t } = useLang();
+  const attendanceLegendColumns = getHRLegendAttendanceColumns(roleContext);
+  const hidePrivacyLegend = isHROnlyViewer(roleContext);
 
   return (
     <div
@@ -27,7 +32,7 @@ export default function BoardLegend({
       data-testid={dataTestId}
       data-tour={dataTour}
     >
-      {showAttendance && ATTENDANCE_COLUMNS.map((col) => (
+      {showAttendance && attendanceLegendColumns.map((col) => (
         <div key={col.id} className={gridStyles.legendItem} data-testid={`operations-board-legend-att-${col.id}`}>
           <span
             className={`${gridStyles.legendDot} ${col.id === 'NOT_TAKEN' ? gridStyles.legendDotPulse : ''}`}
@@ -38,7 +43,7 @@ export default function BoardLegend({
           </span>
         </div>
       ))}
-      {showAttendance && (
+      {showAttendance && !hidePrivacyLegend && (
         <>
       <div className={gridStyles.legendItem} style={{ gap: 4 }} data-testid="operations-board-legend-note-star">
         <Star size={9} fill="#ef4444" color="#ef4444" />
@@ -57,6 +62,17 @@ export default function BoardLegend({
       {showWorkflow && (
         <>
           {showAttendance && <div className={gridStyles.legendDivider} aria-hidden="true" />}
+          {includeNotTaken && (
+            <div className={gridStyles.legendItem} data-testid="operations-board-legend-wf-not-taken">
+              <span
+                className={`${gridStyles.legendDot} ${gridStyles.legendDotPulse}`}
+                style={{ background: SCHEDULE_WORKFLOW_COLORS.not_taken, '--dot-color': SCHEDULE_WORKFLOW_COLORS.not_taken }}
+              />
+              <span className={gridStyles.legendLabel} style={{ color: SCHEDULE_WORKFLOW_COLORS.not_taken, fontSize: '0.7rem' }}>
+                {t('workspace_status_not_taken')}
+              </span>
+            </div>
+          )}
           {WORKFLOW_COLUMNS.map((col) => (
             <div key={col.id} className={gridStyles.legendItem} data-testid={`operations-board-legend-wf-${col.id}`}>
               <WorkflowIcon size={12} style={{ color: col.color }} />

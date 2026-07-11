@@ -879,13 +879,15 @@ export const getPreview = async (req, res) => {
  */
 export const proxyDownload = async (req, res) => {
   try {
-    const actorUserId = req.user?.dbId;
+    const { resolveDriveActor } = await import('../utils/driveActor.js');
+    const actor = await resolveDriveActor(req);
     const { fileId } = req.params;
     const { versionId } = req.query;
-    console.log('[fileController.proxyDownload] Request received:', { fileId, actorUserId, versionId });
-    // Permission check happens inside a later PR via permissionService; for
-    // now we rely on the service's ownership/share check.
-    await fileService.streamFile({ fileId, req, res, actorUserId, versionId });
+    console.log('[fileController.proxyDownload] Request received:', { fileId, actorUserId: actor?.userId, versionId });
+    if (!actor?.userId) {
+      return res.status(401).json({ success: false, error: 'User not authenticated' });
+    }
+    await fileService.streamFile({ fileId, req, res, actorUserId: actor.userId, versionId });
   } catch (error) {
     console.error('[fileController.proxyDownload]', error);
     if (!res.headersSent) {

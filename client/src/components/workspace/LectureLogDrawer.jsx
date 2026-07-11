@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
-import { getThemedIcon, getUserRoleColor, getUserRoleIcon } from '@constants/iconTypes';
+import { getThemedIcon, getUserRoleColor } from '@constants/iconTypes';
 import { resolveUserRole } from '@utils/userUtils';
 import useResizableDrawer from '@hooks/useResizableDrawer';
 import { getLectureLog, getRecordHistory } from '@services/business/attendanceLogService';
@@ -11,6 +11,8 @@ import { getAttendanceColor } from '@constants/attendanceTypes.js';
 import { getWorkflowStatusColor } from '@constants/workspaceStatusColors.js';
 import { getDateGroup, getGroupLabel } from '@utils/notificationHelpers.js';
 import { Workflow as WorkflowIcon } from 'lucide-react';
+import DriveUserAvatar from '@components/ui/DriveTimeline/DriveUserAvatar.jsx';
+import { getLocalizedUserName } from '@utils/localizedUserName';
 
 const TABS = {
   LECTURE_LOG: 'lecture_log',
@@ -156,6 +158,55 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
     fontWeight: 500,
   }), [isDark]);
 
+  const actorRoleFor = (entry) => (entry.user ? resolveUserRole(entry.user) : null);
+  const actorRoleColorFor = (entry) => {
+    const role = actorRoleFor(entry);
+    return role ? getUserRoleColor(role) : null;
+  };
+  const showRoleLabelFor = (entry) => {
+    const role = actorRoleFor(entry);
+    return role && (role === 'admin' || role === 'hr' || role === 'instructor');
+  };
+
+  const renderLogActor = (entry) => {
+    const displayName = entry.user
+      ? getLocalizedUserName(entry.user, lang, entry.actor)
+      : (entry.actor || '—');
+    return (
+      <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
+        <span style={{ transform: 'scale(0.72)', transformOrigin: 'center', flexShrink: 0, lineHeight: 0 }}>
+          <DriveUserAvatar
+            user={entry.user || { displayName }}
+            displayName={displayName}
+            size="sm"
+            showRoleBadge={false}
+          />
+        </span>
+        <span style={{ ...valueStyle, fontSize: '12px', fontWeight: 600 }}>{displayName}</span>
+        {showRoleLabelFor(entry) && (
+          <span style={{
+            fontSize: '9px',
+            fontWeight: 700,
+            textTransform: 'uppercase',
+            letterSpacing: '0.4px',
+            padding: '1px 5px',
+            borderRadius: 4,
+            background: `${actorRoleColorFor(entry)}22`,
+            color: actorRoleColorFor(entry),
+          }}>
+            {actorRoleFor(entry)}
+          </span>
+        )}
+      </span>
+    );
+  };
+
+  const formatTransitionTitle = (entry, fallbackStatus) => {
+    const from = (lang === 'ar' ? entry.fromStatusAr : entry.fromStatus) || entry.fromStatus || '—';
+    const to = (lang === 'ar' ? entry.toStatusAr : entry.toStatus) || entry.toStatus || fallbackStatus || '—';
+    return `FROM: ${from} → TO: ${to}`;
+  };
+
   const renderEntryCard = (entry, idx) => {
     const isWorkflow = entry.type === 'workflow_status_change';
     const isAttendanceChange = entry.type === 'attendance_status_change';
@@ -168,16 +219,9 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
     const iconColor = isWorkflow
       ? getWorkflowStatusColor(entry.toStatus)
       : getAttendanceColor(rawStatus);
-    const titleKey = isWorkflow
-      ? (lang === 'ar' ? 'تغيير حالة العمل' : 'Workflow Status Change')
-      : isAttendanceChange
-        ? (lang === 'ar' ? 'تغيير حالة الحضور' : 'Attendance Status Change')
-        : (lang === 'ar' ? 'تسجيل حضور' : 'Attendance Marked');
-
-    const actorRole = entry.user ? resolveUserRole(entry.user) : null;
-    const actorRoleIcon = actorRole ? getUserRoleIcon(actorRole) : null;
-    const actorRoleColor = actorRole ? getUserRoleColor(actorRole) : null;
-    const showRoleLabel = actorRole && (actorRole === 'admin' || actorRole === 'hr' || actorRole === 'instructor');
+    const titleKey = isWorkflow || isAttendanceChange
+      ? formatTransitionTitle(entry, statusRaw)
+      : (statusRaw || (lang === 'ar' ? 'تسجيل حضور' : 'Attendance Marked'));
 
     return (
       <motion.div
@@ -231,26 +275,8 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
             </div>
             {isAttendanceMarked ? (
               <>
-                <div style={{ fontSize: '12px', color: isDark ? '#cbd5e1' : '#475569', marginBottom: '2px', display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                  <span style={{ fontWeight: 600, color: statusColor }}>{statusRaw || '—'}</span>
-                  <span style={{ color: isDark ? '#94a3b8' : '#64748b', fontSize: '11px', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
-                    {actorRoleIcon && React.cloneElement(actorRoleIcon, { color: actorRoleColor, size: 10 })}
-                    <span>· {entry.actor}</span>
-                    {showRoleLabel && (
-                      <span style={{
-                        fontSize: '9px',
-                        fontWeight: 700,
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.4px',
-                        padding: '1px 5px',
-                        borderRadius: 4,
-                        background: `${actorRoleColor}22`,
-                        color: actorRoleColor,
-                      }}>
-                        {actorRole}
-                      </span>
-                    )}
-                  </span>
+                <div style={{ fontSize: '12px', color: isDark ? '#cbd5e1' : '#475569', marginBottom: '2px' }}>
+                  {renderLogActor(entry)}
                 </div>
                 {entry.reason && (
                   <div style={{ fontSize: '11px', color: isDark ? '#94a3b8' : '#64748b', marginTop: '2px', fontStyle: 'italic' }}>
@@ -261,29 +287,7 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
             ) : (isWorkflow || isAttendanceChange) ? (
               <>
                 <div style={{ fontSize: '12px', color: isDark ? '#cbd5e1' : '#475569', marginBottom: '2px' }}>
-                  <span style={labelStyle}>{t('log_drawer_from') || 'From'}: </span>
-                  <span style={valueStyle}>{(lang === 'ar' ? entry.fromStatusAr : entry.fromStatus) || '—'}</span>
-                  <span style={{ margin: '0 6px', color: isDark ? '#6b7280' : '#9ca3af' }}>→</span>
-                  <span style={labelStyle}>{t('log_drawer_to') || 'To'}: </span>
-                  <span style={{ ...valueStyle, color: iconColor, fontWeight: 600 }}>{(lang === 'ar' ? entry.toStatusAr : entry.toStatus) || '—'}</span>
-                </div>
-                <div style={{ fontSize: '12px', color: isDark ? '#cbd5e1' : '#475569', marginBottom: '2px', display: 'flex', alignItems: 'center', gap: 6 }}>
-                  {actorRoleIcon && React.cloneElement(actorRoleIcon, { color: actorRoleColor, size: 12 })}
-                  <span style={valueStyle}>{entry.actor}</span>
-                  {showRoleLabel && (
-                    <span style={{
-                      fontSize: '9px',
-                      fontWeight: 700,
-                      textTransform: 'uppercase',
-                      letterSpacing: '0.4px',
-                      padding: '1px 5px',
-                      borderRadius: 4,
-                      background: `${actorRoleColor}22`,
-                      color: actorRoleColor,
-                    }}>
-                      {actorRole}
-                    </span>
-                  )}
+                  {renderLogActor(entry)}
                 </div>
                 {entry.reason && (
                   <div style={{ fontSize: '11px', color: isDark ? '#94a3b8' : '#64748b', marginTop: '2px', fontStyle: 'italic' }}>

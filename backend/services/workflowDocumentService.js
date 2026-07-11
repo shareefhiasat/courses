@@ -108,7 +108,15 @@ async function getScopedUsersForRoleAndClass(roleCode, classId) {
 /**
  * Auto-share a workflow file with scoped users on the workflow class, or role fallback.
  */
-async function shareWorkflowFile({ fileId, submitterId, approvalFlow, specificUserIds, classId }) {
+async function shareWorkflowFile({
+  fileId,
+  submitterId,
+  approvalFlow,
+  specificUserIds,
+  classId,
+  workflowCategory,
+  attendanceSubtype,
+}) {
   if (!fileId) {
     console.warn('[shareWorkflowFile] No fileId provided, skipping auto-share');
     return;
@@ -116,6 +124,10 @@ async function shareWorkflowFile({ fileId, submitterId, approvalFlow, specificUs
 
   const actor = { userId: submitterId, roles: [] };
   const permission = 'DOWNLOAD';
+  const isDailyAttendance = workflowCategory === 'ATTENDANCE' && attendanceSubtype === 'DAILY';
+  const rolesToShare = isDailyAttendance
+    ? ['admin', 'hr']
+    : [getRoleForApprovalFlow(approvalFlow)];
 
   try {
     if (specificUserIds && specificUserIds.length > 0) {
@@ -132,21 +144,34 @@ async function shareWorkflowFile({ fileId, submitterId, approvalFlow, specificUs
         }
       }
     } else if (classId) {
-      const role = getRoleForApprovalFlow(approvalFlow);
-      const scopedUsers = await getScopedUsersForRoleAndClass(role, classId);
-      if (scopedUsers.length > 0) {
-        for (const u of scopedUsers) {
+      for (const role of rolesToShare) {
+        const scopedUsers = await getScopedUsersForRoleAndClass(role, classId);
+        if (scopedUsers.length > 0) {
+          for (const u of scopedUsers) {
+            const result = await createShare({
+              fileId,
+              subjectType: 'USER',
+              subjectUserId: u.userId,
+              permission,
+            }, actor);
+            if (!result.success) {
+              console.warn(`[shareWorkflowFile] Failed to share with scoped user ${u.userId}:`, result.error);
+            }
+          }
+        } else {
           const result = await createShare({
             fileId,
-            subjectType: 'USER',
-            subjectUserId: u.userId,
+            subjectType: 'ROLE',
+            subjectRole: role,
             permission,
           }, actor);
           if (!result.success) {
-            console.warn(`[shareWorkflowFile] Failed to share with scoped user ${u.userId}:`, result.error);
+            console.warn(`[shareWorkflowFile] Failed to share with role ${role}:`, result.error);
           }
         }
-      } else {
+      }
+    } else {
+      for (const role of rolesToShare) {
         const result = await createShare({
           fileId,
           subjectType: 'ROLE',
@@ -156,18 +181,6 @@ async function shareWorkflowFile({ fileId, submitterId, approvalFlow, specificUs
         if (!result.success) {
           console.warn(`[shareWorkflowFile] Failed to share with role ${role}:`, result.error);
         }
-      }
-    } else {
-      // Default: share with the approval flow's target role
-      const role = getRoleForApprovalFlow(approvalFlow);
-      const result = await createShare({
-        fileId,
-        subjectType: 'ROLE',
-        subjectRole: role,
-        permission,
-      }, actor);
-      if (!result.success) {
-        console.warn(`[shareWorkflowFile] Failed to share with role ${role}:`, result.error);
       }
     }
   } catch (err) {
@@ -496,6 +509,8 @@ export async function createWorkflowDocumentWithUpload(data) {
       approvalFlow: taxonomy.approvalFlow,
       specificUserIds,
       classId: data.classId,
+      workflowCategory: taxonomy.workflowCategory,
+      attendanceSubtype: taxonomy.attendanceSubtype,
     });
 
     return { 
@@ -1460,6 +1475,8 @@ export async function createCustomWorkflowDocument(data) {
         approvalFlow: taxonomy.approvalFlow,
         specificUserIds,
         classId: data.classId,
+        workflowCategory: taxonomy.workflowCategory,
+        attendanceSubtype: taxonomy.attendanceSubtype,
       });
     }
 
@@ -1970,6 +1987,45 @@ export async function ensureDailyWorkflows({ date, classIds = [], actorId = null
   }
 }
 
+/**
+ * Backfill admin/HR role shares for workflow files created before auto-share existed.
+ */
+export async function ensureWorkflowOversightFileShares(fileId) {
+  if (!fileId) return false;
+  try {
+    const doc = await prisma.workflowDocument.findFirst({
+      where: { fileId },
+      select: {
+        id: true,
+        submitterId: true,
+        status: true,
+        workflowCategory: true,
+        attendanceSubtype: true,
+        approvalFlow: true,
+        classId: true,
+      },
+    });
+    if (!doc) return false;
+    const status = String(doc.status || '').toUpperCase();
+    if (!['DRAFT', 'TAKEN', 'SUBMITTED', 'UNDER_ADMIN_REVIEW', 'UNDER_HR_REVIEW'].includes(status)) {
+      return false;
+    }
+    await shareWorkflowFile({
+      fileId,
+      submitterId: doc.submitterId,
+      approvalFlow: doc.approvalFlow,
+      classId: doc.classId,
+      workflowCategory: doc.workflowCategory,
+      attendanceSubtype: doc.attendanceSubtype,
+    });
+    console.log('[ensureWorkflowOversightFileShares] Ensured shares for workflow file:', { fileId, workflowDocumentId: doc.id });
+    return true;
+  } catch (error) {
+    console.error('[ensureWorkflowOversightFileShares] Error:', error);
+    return false;
+  }
+}
+
 export default {
   createWorkflowDocumentWithUpload,
   getWorkflowDocument,
@@ -1996,4 +2052,5 @@ export default {
   checkStudentCategoryWorkflowLock,
   getBoardWorkflowDocuments,
   ensureDailyWorkflows,
+  ensureWorkflowOversightFileShares,
 };

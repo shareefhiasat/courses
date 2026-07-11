@@ -4,6 +4,22 @@
  */
 
 import { getDatabaseUserId } from './database/userResolver.js';
+import prisma from '../db/prismaClient.js';
+
+async function loadDbRoleCodes(userId) {
+  const user = await prisma.user.findUnique({
+    where: { id: Number(userId) },
+    include: { roleAssignments: { include: { role: true } } },
+  });
+  return user?.roleAssignments?.map((ra) => ra.role?.code?.toLowerCase()).filter(Boolean) || [];
+}
+
+export function mergeActorRoles(tokenRoles = [], dbRoles = []) {
+  return [...new Set([
+    ...tokenRoles.map((r) => String(r).toLowerCase()),
+    ...dbRoles.map((r) => String(r).toLowerCase()),
+  ])];
+}
 
 /**
  * @param {import('express').Request} req
@@ -22,7 +38,9 @@ export async function resolveDriveActor(req) {
   const numericId = Number(userId);
   if (Number.isNaN(numericId)) return null;
 
-  const roles = [...new Set((req.user.roles || []).map((r) => String(r).toLowerCase()))];
+  const tokenRoles = (req.user.roles || []).map((r) => String(r).toLowerCase());
+  const dbRoles = await loadDbRoleCodes(numericId);
+  const roles = mergeActorRoles(tokenRoles, dbRoles);
 
   return {
     userId: numericId,

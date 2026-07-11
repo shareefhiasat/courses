@@ -79,7 +79,6 @@ export function deriveAction(fromStatus, toStatus) {
   if (toStatus === 'DRAFT' && (fromStatus === 'TAKEN' || fromStatus === 'SUBMITTED')) return 'RETURN';
   if (toStatus === 'TAKEN' && fromStatus === 'DRAFT') return 'MARK_TAKEN';
   if (toStatus === 'SUBMITTED' && fromStatus === 'TAKEN') return 'SUBMIT';
-  if (toStatus === 'SUBMITTED' && fromStatus === 'DRAFT') return 'SUBMIT';
   if (toStatus === 'SUBMITTED' && fromStatus === 'REJECTED') return 'RESUBMIT';
   if (
     (toStatus === 'UNDER_ADMIN_REVIEW' && fromStatus === 'SUBMITTED')
@@ -160,6 +159,7 @@ export const fetchWorkflowBoardData = async (filters = {}) => {
       fileName: doc.file?.name || null,
       fileId: doc.file?.id || null,
       raw: doc,
+      comments: doc.comments || [],
     };
     });
 

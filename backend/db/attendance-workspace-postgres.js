@@ -390,7 +390,7 @@ export const getScheduleStatus = async ({ classIds, date }) => {
 
     const ids = classIds.map((id) => parseInt(id));
 
-    const [attendances, workflowDocs] = await Promise.all([
+    const [attendances, workflowDocs, participationGroups, notesGroups] = await Promise.all([
       prisma.attendance.findMany({
         where: {
           classId: { in: ids },
@@ -428,6 +428,9 @@ export const getScheduleStatus = async ({ classIds, date }) => {
           classId: true,
           status: true,
           updatedAt: true,
+          fileId: true,
+          file: { select: { id: true, name: true } },
+          _count: { select: { comments: true } },
           statusHistory: {
             orderBy: { createdAt: 'desc' },
             select: {
@@ -451,6 +454,25 @@ export const getScheduleStatus = async ({ classIds, date }) => {
           },
         },
       }),
+      prisma.participation.groupBy({
+        by: ['classId'],
+        where: {
+          classId: { in: ids },
+          isActive: true,
+          createdAt: { gte: dayStart, lt: dayEnd },
+        },
+        _count: { id: true },
+      }),
+      prisma.attendance.groupBy({
+        by: ['classId'],
+        where: {
+          classId: { in: ids },
+          date: { gte: dayStart, lt: dayEnd },
+          notes: { not: null },
+          NOT: { notes: '' },
+        },
+        _count: { id: true },
+      }),
     ]);
 
     const presentCodes = new Set(['PRESENT', 'P', 'ATTENDANCE_PRESENT']);
@@ -471,6 +493,13 @@ export const getScheduleStatus = async ({ classIds, date }) => {
           || null,
       };
     };
+
+    const participationCountByClass = Object.fromEntries(
+      (participationGroups || []).map((row) => [row.classId, row._count.id]),
+    );
+    const notesCountByClass = Object.fromEntries(
+      (notesGroups || []).map((row) => [row.classId, row._count.id]),
+    );
 
     const statusMap = {};
     for (const id of ids) {
@@ -530,6 +559,9 @@ export const getScheduleStatus = async ({ classIds, date }) => {
         absentCount,
         excusedCount,
         humanCaseCount,
+        notesCount: notesCountByClass[id] || 0,
+        participationCount: participationCountByClass[id] || 0,
+        workflowCommentsCount: classWorkflow?._count?.comments || 0,
         attendanceSummary: {
           present: presentCount,
           late: lateCount,

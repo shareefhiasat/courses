@@ -838,8 +838,16 @@ export async function getPreviewUrl(fileId, actorUserId, fileVersionId = null, a
       ...dbRoles,
       ...(actorRoles || []).map((r) => String(r).toLowerCase()),
     ])];
-    const access = await canAccessFile(fileId, { userId, roles: mergedRoles });
+    let access = await canAccessFile(fileId, { userId, roles: mergedRoles });
     if (!access.allowed) {
+      const { ensureWorkflowOversightFileShares } = await import('./workflowDocumentService.js');
+      const ensured = await ensureWorkflowOversightFileShares(fileId);
+      if (ensured) {
+        access = await canAccessFile(fileId, { userId, roles: mergedRoles });
+      }
+    }
+    if (!access.allowed) {
+      console.warn('[fileService.getPreviewUrl] Access denied:', { fileId, userId, roles: mergedRoles, reason: access.reason });
       return err('ACCESS_DENIED', 'No permission to preview this file');
     }
 
@@ -965,31 +973,26 @@ export async function streamFile({ fileId, req, res, actorUserId, versionId = nu
   const owns = file.ownerId === actorUserId;
   console.log('[streamFile] Ownership check:', { owns, ownerId: file.ownerId, actorUserId, skipAccessCheck });
   if (!skipAccessCheck && !owns) {
-    // Get user roles for role-based share check
+    const { canAccessFile } = await import('./permissionService.js');
     const user = await prisma.user.findUnique({
       where: { id: actorUserId },
-      include: { roleAssignments: true }
+      include: { roleAssignments: { include: { role: true } } },
     });
-    
-    // Fetch role codes separately since UserRoleAssignment doesn't have role relation
-    const roleIds = user?.roleAssignments?.map(ra => ra.roleId) || [];
-    const roles = await prisma.userRoles.findMany({
-      where: { id: { in: roleIds } },
-      select: { code: true }
-    });
-    const userRoles = roles.map(r => r.code.toLowerCase());
-
-    const share = await prisma.fileShare.findFirst({
-      where: {
-        fileId,
-        OR: [
-          { subjectType: 'USER', subjectUserId: actorUserId },
-          { subjectType: 'ROLE', subjectRole: { in: userRoles } },
-        ],
-      },
-    });
-    console.log('[streamFile] Share check:', share ? { id: share.id, subjectType: share.subjectType, subjectRole: share.subjectRole } : null, 'userRoles:', userRoles);
-    if (!share) return res.status(403).json(err('ACCESS_DENIED', 'Access denied'));
+    const dbRoles = user?.roleAssignments?.map((ra) => ra.role?.code?.toLowerCase()).filter(Boolean) || [];
+    const tokenRoles = (req?.user?.roles || []).map((r) => String(r).toLowerCase());
+    const mergedRoles = [...new Set([...dbRoles, ...tokenRoles])];
+    let access = await canAccessFile(fileId, { userId: actorUserId, roles: mergedRoles });
+    if (!access.allowed) {
+      const { ensureWorkflowOversightFileShares } = await import('./workflowDocumentService.js');
+      const ensured = await ensureWorkflowOversightFileShares(fileId);
+      if (ensured) {
+        access = await canAccessFile(fileId, { userId: actorUserId, roles: mergedRoles });
+      }
+    }
+    console.log('[streamFile] Permission check:', { allowed: access.allowed, permission: access.permission, reason: access.reason });
+    if (!access.allowed) {
+      return res.status(403).json(err('ACCESS_DENIED', 'Access denied'));
+    }
   }
 
   let s3Key;

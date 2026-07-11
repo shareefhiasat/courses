@@ -509,7 +509,7 @@
 .attendanceMiniDots {
   position: absolute;
   top: 2px;
-  inset-inline-end: 36px;
+  inset-inline-end: 40px;
   z-index: 2;
   display: inline-flex;
   align-items: center;
@@ -517,16 +517,81 @@
 }
 
 .attendanceMiniDot {
-  width: calc(9px * var(--schedule-font-scale, 1));
-  height: calc(9px * var(--schedule-font-scale, 1));
+  width: calc(12px * var(--schedule-font-scale, 1));
+  height: calc(12px * var(--schedule-font-scale, 1));
   border-radius: 50%;
-  border: 1.5px solid #fff;
-  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.1);
-  margin-inline-start: -5px;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.12);
+  margin-inline-start: -6px;
 }
 
 .attendanceMiniDot:first-child {
   margin-inline-start: 0;
+}
+
+.sessionMetaBadges {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+}
+
+.subjectCellWithIndicators {
+  min-height: calc(26px * var(--schedule-font-scale, 1));
+}
+
+.subjectCellWithLeftTray {
+  justify-content: flex-start;
+  padding-inline-start: calc(72px * var(--schedule-font-scale, 1));
+}
+
+.subjectCellLeftTray {
+  position: absolute;
+  inset-inline-start: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  max-width: calc(70px * var(--schedule-font-scale, 1));
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+
+.subjectCellLeftTray .cellIconTray {
+  width: auto;
+}
+
+.subjectCellTopIndicators {
+  position: absolute;
+  inset-inline-end: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  max-width: 72%;
+  justify-content: flex-end;
+}
+
+.subjectCellTopIndicators .statusDotWrap,
+.subjectCellTopIndicators .workflowIconWrap,
+.subjectCellTopIndicators .attendanceMiniDots {
+  position: static;
+  top: auto;
+  inset-inline-end: auto;
+}
+
+.subjectCellTextWithTray {
+  flex: 1;
+  text-align: center;
+  padding: 0 2px;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .statusDot {

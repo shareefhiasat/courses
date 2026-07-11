@@ -19,7 +19,7 @@ import { useTheme } from '@contexts/ThemeContext';
 import { getThemedIcon } from '@constants/iconTypes';
 import useResizableDrawer from '@hooks/useResizableDrawer';
 import { formatDateTime } from '@utils/date';
-import { formatNotificationTime, filterNotifications as filterNotificationsUtil, groupNotificationsByDate, gotoFromNotification as gotoFromNotificationUtil } from '@utils/notificationHelpers';
+import { formatNotificationTime, filterNotifications as filterNotificationsUtil, groupNotificationsByDate, gotoFromNotification as gotoFromNotificationUtil, WORKFLOW_NOTIFICATION_STATUS_FILTERS, getWorkflowSubgroupColor, getWorkflowStatusKey } from '@utils/notificationHelpers';
 import Input from './Input';
 import Select from './Select';
 import { RECORD_TYPES } from '@utils/sharedTypes';
@@ -245,6 +245,7 @@ const NotificationDrawer = ({ isOpen, onClose, feed }) => {
   const [filterPenaltyType, setFilterPenaltyType] = useState('all');
   const [filterAttendanceStatus, setFilterAttendanceStatus] = useState('all');
   const [filterAbsenceType, setFilterAbsenceType] = useState('all');
+  const [filterWorkflowStatus, setFilterWorkflowStatus] = useState('all');
   const [showArchived, setShowArchived] = useState(false);
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [filterProgram, setFilterProgram] = useState('all');
@@ -293,10 +294,26 @@ const NotificationDrawer = ({ isOpen, onClose, feed }) => {
       filterClass,
       filterYear,
       filterSemester,
+      filterWorkflowStatus,
       subjects,
       classes
     });
-  }, [notifications, filterType, filterCategory, filterPenaltyType, filterAttendanceStatus, filterAbsenceType, searchTerm, showArchived, filterProgram, filterSubject, filterClass, filterYear, filterSemester, subjects, classes]);
+  }, [notifications, filterType, filterCategory, filterPenaltyType, filterAttendanceStatus, filterAbsenceType, searchTerm, showArchived, filterProgram, filterSubject, filterClass, filterYear, filterSemester, filterWorkflowStatus, subjects, classes]);
+
+  const workflowStatusCounts = useMemo(() => {
+    const counts = {};
+    notifications.forEach((n) => {
+      if (n.isArchived && !showArchived && filterType !== NOTIFICATION_STATUS.ARCHIVED) return;
+      if (!(n.type || '').startsWith('WORKFLOW')) return;
+      const key = getWorkflowStatusKey(n);
+      WORKFLOW_NOTIFICATION_STATUS_FILTERS.forEach((chip) => {
+        if (chip.matchKeys ? chip.matchKeys.includes(key) : chip.id === key) {
+          counts[chip.id] = (counts[chip.id] || 0) + 1;
+        }
+      });
+    });
+    return counts;
+  }, [notifications, showArchived, filterType]);
 
   const groupedNotifications = useMemo(() => {
     return groupNotificationsByDate(filteredNotifications, t);
@@ -438,7 +455,7 @@ const NotificationDrawer = ({ isOpen, onClose, feed }) => {
           {/* Title Row */}
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <h2 style={{ margin: 0, fontSize: '1rem', fontWeight: 500, color: isDark ? '#fff' : '#111' }}>
+              <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600, color: isDark ? '#fff' : '#111' }}>
                 {t('notifications.title')}
               </h2>
               {unreadCount > 0 && (
@@ -596,6 +613,67 @@ const NotificationDrawer = ({ isOpen, onClose, feed }) => {
             </PortalTooltip>
           </div>
 
+          {/* Workflow status legend chips */}
+          {Object.keys(workflowStatusCounts).length > 0 && (
+            <div style={{
+              display: 'flex',
+              gap: '0.35rem',
+              flexWrap: 'wrap',
+              marginBottom: '0.5rem',
+              alignItems: 'center',
+            }}>
+              <button
+                type="button"
+                onClick={() => setFilterWorkflowStatus('all')}
+                style={{
+                  background: filterWorkflowStatus === 'all' ? 'rgba(128,0,32,0.12)' : 'transparent',
+                  border: `1px solid ${filterWorkflowStatus === 'all' ? 'var(--color-primary, #800020)' : (isDark ? 'rgba(255,255,255,0.08)' : '#e5e7eb')}`,
+                  color: filterWorkflowStatus === 'all' ? 'var(--color-primary, #800020)' : (isDark ? '#9ca3af' : '#6b7280'),
+                  borderRadius: '999px',
+                  padding: '3px 10px',
+                  cursor: 'pointer',
+                  fontSize: '0.72rem',
+                  fontWeight: filterWorkflowStatus === 'all' ? 700 : 500,
+                }}
+              >
+                {t('operations_board_legend') || 'Status'}
+              </button>
+              {WORKFLOW_NOTIFICATION_STATUS_FILTERS.filter((chip) => workflowStatusCounts[chip.id] > 0).map((chip) => {
+                const active = filterWorkflowStatus === chip.id;
+                return (
+                  <button
+                    key={chip.id}
+                    type="button"
+                    onClick={() => setFilterWorkflowStatus(active ? 'all' : chip.id)}
+                    style={{
+                      background: active ? `${chip.color}22` : 'transparent',
+                      border: `1px solid ${active ? chip.color : (isDark ? 'rgba(255,255,255,0.08)' : '#e5e7eb')}`,
+                      color: active ? chip.color : (isDark ? '#9ca3af' : '#6b7280'),
+                      borderRadius: '999px',
+                      padding: '3px 10px',
+                      cursor: 'pointer',
+                      fontSize: '0.72rem',
+                      fontWeight: active ? 700 : 500,
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: '0.35rem',
+                    }}
+                  >
+                    <span style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: '50%',
+                      background: chip.color,
+                      flexShrink: 0,
+                    }} />
+                    {t(chip.labelKey) || chip.id}
+                    <span style={{ opacity: 0.85 }}>({workflowStatusCounts[chip.id]})</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
           {/* Collapsible Academic Filters */}
           <AnimatePresence>
             {showAdvanced && (
@@ -730,16 +808,15 @@ const NotificationDrawer = ({ isOpen, onClose, feed }) => {
                     <div key={subIdx} style={{ marginBottom: subIdx < group.subGroups.length - 1 ? '0.5rem' : 0 }}>
                       {sub.label && (
                         <div style={{
-                          fontSize: '0.65rem',
-                          fontWeight: 600,
-                          color: isDark ? '#a78bfa' : '#7c3aed',
-                          padding: '0.15rem 0.25rem 0.3rem',
-                          opacity: 0.8,
+                          fontSize: '0.8rem',
+                          fontWeight: 700,
+                          color: getWorkflowSubgroupColor(sub.status),
+                          padding: '0.2rem 0.25rem 0.35rem',
                           display: 'flex',
                           alignItems: 'center',
-                          gap: '0.3rem'
+                          gap: '0.35rem',
                         }}>
-                          {getThemedIcon('ui', 'git_branch', 12, isDark ? '#a78bfa' : '#7c3aed')}
+                          {getThemedIcon('ui', 'git_branch', 14, getWorkflowSubgroupColor(sub.status))}
                           {sub.label} ({sub.items.length})
                         </div>
                       )}

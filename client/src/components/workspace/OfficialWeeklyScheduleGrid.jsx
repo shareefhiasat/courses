@@ -5,6 +5,7 @@ import { Chip, IconButton, Box } from '@mui/material';
 import { Maximize2, Minimize2, Workflow as WorkflowIcon } from 'lucide-react';
 import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import ScheduleStatusHistoryTooltip from './ScheduleStatusHistoryTooltip.jsx';
+import ClassSessionMetaBadges, { getClassSessionMetaFromStatus } from './ClassSessionMetaBadges.jsx';
 import { getUserRoleColor, getUserRoleIcon } from '@constants/iconTypes';
 import styles from '@services/export/official-reports/templates/officialReport.module.css';
 import {
@@ -503,30 +504,45 @@ function InteractiveSlotCell({
     isSelected ? gridStyles.selectedCell : '',
   ].filter(Boolean).join(' ');
 
+  const metaCounts = status ? getClassSessionMetaFromStatus(status) : null;
+  const hasMetaBadges = metaCounts && (metaCounts.notesCount || metaCounts.participationCount || metaCounts.commentsCount);
+  const showLeftTray = rowType === 'subject' && (isMine || hasMetaBadges);
+
   const subjectInnerClass = [
     gridStyles.subjectCellInner,
+    rowType === 'subject' ? gridStyles.subjectCellWithIndicators : '',
+    showLeftTray ? gridStyles.subjectCellWithLeftTray : '',
     rowType === 'subject' && isMine ? gridStyles.subjectCellInnerWithTray : '',
   ].filter(Boolean).join(' ');
 
   const content = (
     <CellContent ltr={rowType === 'time'} className={rowType === 'subject' ? subjectInnerClass : ''}>
-      {rowType === 'subject' && <StatusDot status={status} t={t} lang={lang} selectedDate={selectedDate} />}
-      {rowType === 'subject' && <AttendanceMiniDots status={status} t={t} />}
-      {rowType === 'subject' && <WorkflowStatusIcon status={status} t={t} />}
-      {rowType === 'subject' && isMine && (
-        <span className={gridStyles.cellIconTray} aria-hidden="true">
-          <ColoredTooltip title={t('workspace_my_class')} color={PURPLE_TOOLTIP} placement="bottom">
-            <span
-              className={gridStyles.instructorIcon}
-              style={{ background: getUserRoleColor('instructor') }}
-              aria-label={t('workspace_my_class')}
-            >
-              {React.cloneElement(getUserRoleIcon('instructor'), { size: 12, color: '#fff', strokeWidth: 2 })}
+      {showLeftTray && (
+        <div className={gridStyles.subjectCellLeftTray}>
+          {isMine && (
+            <span className={gridStyles.cellIconTray} aria-hidden="true">
+              <ColoredTooltip title={t('workspace_my_class')} color={PURPLE_TOOLTIP} placement="bottom">
+                <span
+                  className={gridStyles.instructorIcon}
+                  style={{ background: getUserRoleColor('instructor') }}
+                  aria-label={t('workspace_my_class')}
+                >
+                  {React.cloneElement(getUserRoleIcon('instructor'), { size: 12, color: '#fff', strokeWidth: 2 })}
+                </span>
+              </ColoredTooltip>
             </span>
-          </ColoredTooltip>
-        </span>
+          )}
+          {hasMetaBadges && <ClassSessionMetaBadges status={status} t={t} compact />}
+        </div>
       )}
-      <span className={rowType === 'subject' && isMine ? gridStyles.subjectCellText : undefined}>
+      {rowType === 'subject' && (
+        <div className={gridStyles.subjectCellTopIndicators}>
+          <StatusDot status={status} t={t} lang={lang} selectedDate={selectedDate} />
+          <AttendanceMiniDots status={status} t={t} />
+          <WorkflowStatusIcon status={status} t={t} />
+        </div>
+      )}
+      <span className={rowType === 'subject' && showLeftTray ? gridStyles.subjectCellTextWithTray : (rowType === 'subject' && isMine ? gridStyles.subjectCellText : undefined)}>
         {value || (rowType === 'instructor' ? '' : '—')}
       </span>
       {rowType === 'subject' && isMine && <span className={gridStyles.cellEndSpacer} aria-hidden="true" />}

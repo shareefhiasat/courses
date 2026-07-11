@@ -31,6 +31,18 @@ function normalizeActorRoles(roles = []) {
   return normalizeRoles(roles).map((r) => String(r).toLowerCase());
 }
 
+function actorIsAdminOrHr(roles = []) {
+  return hasRole(roles, ROLES.ADMIN) || hasRole(roles, ROLES.HR);
+}
+
+const WORKFLOW_OVERSIGHT_STATUSES = new Set([
+  'DRAFT',
+  'TAKEN',
+  'SUBMITTED',
+  'UNDER_ADMIN_REVIEW',
+  'UNDER_HR_REVIEW',
+]);
+
 const ok = (permission) => ({ allowed: true, permission });
 const deny = (reason = 'no_matching_share') => ({ allowed: false, reason });
 
@@ -74,6 +86,9 @@ export async function canAccessFile(fileId, actor) {
     select: {
       submitterId: true,
       currentAssigneeId: true,
+      status: true,
+      workflowCategory: true,
+      attendanceSubtype: true,
     },
   });
 
@@ -83,6 +98,11 @@ export async function canAccessFile(fileId, actor) {
 
     if (isSubmitter || isAssignee) {
       return ok('COMMENT');
+    }
+
+    const docStatus = String(workflowDoc.status || '').toUpperCase();
+    if (actorIsAdminOrHr(actor.roles) && WORKFLOW_OVERSIGHT_STATUSES.has(docStatus)) {
+      return ok('DOWNLOAD');
     }
   }
 
@@ -97,7 +117,7 @@ export async function canAccessFile(fileId, actor) {
         select: {
           assignedUserId: true,
           actedById: true,
-          assignedRoles: true,
+          assignedRole: true,
         },
       },
     },
@@ -110,9 +130,10 @@ export async function canAccessFile(fileId, actor) {
     const instanceRoleUpper = workflowInstance.assignedRole?.toUpperCase();
     const isRoleAssignee = instanceRoleUpper && actorRolesUpper.includes(instanceRoleUpper);
     const isStepAssignee = workflowInstance.steps.some(step => step.assignedUserId === actorUserId);
-    const isStepRoleAssignee = workflowInstance.steps.some(step =>
-      (step.assignedRoles || []).some(r => actorRolesUpper.includes(r?.toUpperCase()))
-    );
+    const isStepRoleAssignee = workflowInstance.steps.some((step) => {
+      const stepRole = step.assignedRole?.toUpperCase();
+      return stepRole && actorRolesUpper.includes(stepRole);
+    });
     const isActor = workflowInstance.steps.some(step => step.actedById === actorUserId);
 
     if (isInitiator || isDirectAssignee || isRoleAssignee || isStepAssignee || isStepRoleAssignee || isActor) {

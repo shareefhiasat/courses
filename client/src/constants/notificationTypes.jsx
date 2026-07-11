@@ -8,6 +8,7 @@ import {
   Settings, BookOpen, Calendar, Clipboard, MessageSquare, Megaphone,
   Workflow, Activity, File, QrCode, Users, AlertTriangle, FolderOpen, Bell
 } from 'lucide-react';
+import { WORKFLOW_STATUS_COLORS } from './workspaceStatusColors.js';
 
 // Notification Types (aligned with backend CATEGORIES)
 export const NOTIFICATION_TYPES = {
@@ -190,7 +191,7 @@ export const CATEGORY_COLORS = {
 export const WORKFLOW_EVENT_COLORS = {
   'workflow.submitted':       '#3b82f6', // blue — submitted for review
   'workflow.assigned':        '#6366f1', // indigo — assigned to someone
-  'workflow.sent_for_review': '#3b82f6', // blue — sent for review
+  'workflow.sent_for_review': '#7c3aed', // purple — HR review (matches board legend)
   'workflow.resubmitted':     '#3b82f6', // blue — resubmitted
   'workflow.approved':        '#22c55e', // green — approved
   'workflow.rejected':        '#ef4444', // red — rejected
@@ -205,14 +206,21 @@ export const WORKFLOW_EVENT_COLORS = {
 
 export const getCategoryColor = (type) => CATEGORY_COLORS[type] || '#6b7280';
 
-// Returns event-specific color for workflow notifications, falls back to category color
+// Returns event-specific color for workflow notifications, falls back to workflow status / category color
 export const getNotificationBorderColor = (notification) => {
   if (!notification) return '#6b7280';
   const event = notification.event || notification.data?.event;
   if (event && WORKFLOW_EVENT_COLORS[event]) {
     return WORKFLOW_EVENT_COLORS[event];
   }
-  return getCategoryColor(notification.type || notification.category);
+  const type = notification.type || notification.category;
+  if (String(type).toUpperCase() === 'WORKFLOW') {
+    const status = notification.data?.workflowStatus || notification.metadata?.status;
+    if (status && WORKFLOW_STATUS_COLORS[status]) {
+      return WORKFLOW_STATUS_COLORS[status];
+    }
+  }
+  return getCategoryColor(type);
 };
 
 // Default export

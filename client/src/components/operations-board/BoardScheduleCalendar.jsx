@@ -11,9 +11,9 @@ import { loadWeeklyScheduleSources } from '@services/business/weeklyScheduleExpo
 import { prepareWeeklyScheduleData } from '@services/export/official-reports/engine/prepareWeeklyScheduleData.js';
 import { buildSlotWindowsFromTimeSlots } from '@services/export/official-reports/engine/buildWeeklyScheduleFromSessions.js';
 import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
+import ClassSessionMetaBadges from '@components/workspace/ClassSessionMetaBadges.jsx';
 import { formatDate } from '@utils/date-formatter.js';
 import {
-  SCHEDULE_CALENDAR_LEGEND,
   buildClassCalendarEvents,
   collectDatesWithSessions,
   extractWeeklyClassSessions,
@@ -25,7 +25,6 @@ import {
   toApiDate,
   toIsoDate,
 } from './boardClassCalendarUtils.js';
-import { ATTENDANCE_COLUMNS } from '@services/business/operationsBoardService.js';
 import {
   CalendarDays,
   CalendarRange,
@@ -277,6 +276,9 @@ function AttendanceSummaryTooltip({ event, t, lang = 'en', lane = 'status' }) {
           <AttendanceCountsBreakdown counts={counts} t={t} />
         </div>
       )}
+      <div style={{ marginBottom: 6 }}>
+        <ClassSessionMetaBadges status={status} t={t} zoomFactor={1} />
+      </div>
       {r.instructor && (
         <div style={{ fontSize: '0.7rem', opacity: 0.8, marginBottom: 2 }}>
           {t('class_instructor') || 'Instructor'}: {r.instructor}
@@ -327,9 +329,10 @@ function DayWeekEvent({ event, t, lang = 'en', zoomFactor = 1, lane = 'status' }
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1px', overflow: 'hidden' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }}>
           {lane !== 'attendance' && <WorkflowIcon size={iconSize} style={{ color: '#fff', flexShrink: 0 }} />}
-          <span style={{ fontWeight: 600, fontSize: `${0.85 * zoomFactor}rem`, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <span style={{ fontWeight: 600, fontSize: `${0.85 * zoomFactor}rem`, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', flex: 1 }}>
             {event.title}
           </span>
+          <ClassSessionMetaBadges status={r.status} t={t} zoomFactor={zoomFactor} compact />
         </div>
         {r.instructor && (
           <span style={{ fontSize: `${0.75 * zoomFactor}rem`, opacity: 0.85, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -1047,95 +1050,6 @@ export default function BoardScheduleCalendar({
           />
         </CalendarToolbarContext.Provider>
       </Box>
-
-      <div
-        style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '4px',
-          padding: '6px 12px',
-          borderTop: `1px solid ${theme.palette.mode === 'dark' ? '#334155' : '#e2e8f0'}`,
-          flexShrink: 0,
-        }}
-        data-testid="operations-board-calendar-legend"
-      >
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
-          {lane === 'attendance' && (
-            <>
-              <span style={{ fontSize: '0.7rem', fontWeight: 700, opacity: 0.6, marginRight: 2 }}>
-                {t('operations_board_tab_attendance') || 'Attendance'}:
-              </span>
-              {ATTENDANCE_COLUMNS.map((item) => (
-                <span
-                  key={item.id}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    padding: '2px 8px',
-                    borderRadius: '12px',
-                    fontSize: '0.75rem',
-                    fontWeight: 500,
-                    backgroundColor: `${item.color}18`,
-                    color: item.color,
-                    border: `1px solid ${item.color}40`,
-                  }}
-                >
-                  <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: item.color }} />
-                  {t(item.i18nKey) || item.name}
-                </span>
-              ))}
-            </>
-          )}
-        </div>
-        {lane === 'status' && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', alignItems: 'center' }}>
-          <span style={{ fontSize: '0.7rem', fontWeight: 700, opacity: 0.6, marginRight: 2 }}>
-            {t('operations_board_tab_workflow') || 'Workflow'}:
-          </span>
-          {SCHEDULE_CALENDAR_LEGEND.map((item) => {
-            const color = getWorkflowEventColor(item.key);
-            return (
-              <span
-                key={item.key}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  padding: '2px 8px',
-                  borderRadius: '12px',
-                  fontSize: '0.75rem',
-                  fontWeight: 500,
-                  backgroundColor: `${color}18`,
-                  color,
-                  border: `1px solid ${color}40`,
-                }}
-              >
-                <WorkflowIcon size={12} style={{ color }} />
-                {t(item.i18nKey)}
-              </span>
-            );
-          })}
-          <span
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: '4px',
-              padding: '2px 8px',
-              borderRadius: '12px',
-              fontSize: '0.75rem',
-              fontWeight: 500,
-              backgroundColor: 'rgba(14, 165, 233, 0.1)',
-              color: 'rgb(14, 165, 233)',
-              border: '1px solid rgba(14, 165, 233, 0.25)',
-            }}
-          >
-            <span style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: 'rgb(14, 165, 233)', boxShadow: '0 0 6px rgba(14, 165, 233, 0.55)' }} />
-            {t('workspace_lecture_in_progress') || 'Current class'}
-          </span>
-        </div>
-        )}
-      </div>
     </Stack>
   );
 }

@@ -5,6 +5,7 @@ import { useAuth } from '@contexts/AuthContext';
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import TourTooltip from '@ui/TourTooltip/TourTooltip';
+import { SimpleLoading } from '@ui';
 import { error as logError, info as logInfo } from '@services/utils/logger.js';
 import chatSocket from '@services/realtime/chatSocket.js';
 import { Announcement, AnnouncementTag, AnnouncementTitle } from '@/components/kibo-ui/announcement';
@@ -33,6 +34,7 @@ import {
   getWorkflowColumnsForRole,
   canMoveWorkflowToColumn,
   shouldConfirmWorkflowMove,
+  requiresAdminInstructorOverride,
 } from '@components/operations-board/workflowBoardRules.js';
 import { resolveBoardStudentName } from '@components/operations-board/operationsBoardDisplayUtils.js';
 import WorkflowMoveConfirmDialog from '@components/operations-board/WorkflowMoveConfirmDialog.jsx';
@@ -227,7 +229,7 @@ export default function OperationsBoardPage({
 
     const isInteractiveTarget = (target) => {
       return target.closest(
-        '.operations-attendance-card, .operations-board-card-collapsed, ' +
+        '.operations-attendance-card, .operations-workflow-card, .operations-board-card-collapsed, ' +
         'button, [role="button"], [role="separator"], ' +
         '.operations-board-lane-resize-handle, input, a, [data-dnd-draggable]'
       );
@@ -487,6 +489,11 @@ export default function OperationsBoardPage({
     });
   }, [updateParams]);
 
+  const handleBoardViewChange = useCallback((newView) => {
+    setPanelTab('board');
+    setView(newView);
+  }, [setView]);
+
   useEffect(() => {
     const urlView = searchParams.get('view');
     if (urlView === VIEWS.LIST || (urlView && urlView !== VIEWS.KANBAN && urlView !== VIEWS.TABLE)) {
@@ -660,7 +667,30 @@ export default function OperationsBoardPage({
     }
 
     if (item.type === 'workflow') {
-      if (!canMoveWorkflowToColumn(fromColumn, toColumn, roleContext)) {
+      const allowed = canMoveWorkflowToColumn(fromColumn, toColumn, roleContext);
+      const adminOverride = requiresAdminInstructorOverride(fromColumn, toColumn, roleContext);
+      if (roleContext.isAdmin) {
+        console.warn('[WorkflowBoard][Admin drag END]', {
+          activeId,
+          fromColumn,
+          toColumn,
+          allowed,
+          adminOverride,
+          itemStatus: item.status || item.column,
+          roleContext: {
+            isAdmin: roleContext.isAdmin,
+            isInstructor: roleContext.isInstructor,
+            isHR: roleContext.isHR,
+            isSuperAdmin: roleContext.isSuperAdmin,
+          },
+          hint: !allowed
+            ? 'Move not in allowed transition map (e.g. Draft→Rejected requires Taken→Sent→Admin first)'
+            : adminOverride
+              ? 'Admin instructor-area override — confirm required'
+              : 'Move allowed',
+        });
+      }
+      if (!allowed) {
         setError(t('operations_board_drag_invalid'));
         loadData();
         return;
@@ -668,7 +698,13 @@ export default function OperationsBoardPage({
       // Revert optimistic board move until user confirms
       setData((prev) => prev.map((d) => (d.id === activeId ? { ...d, column: fromColumn, status: fromColumn } : d)));
       if (shouldConfirmWorkflowMove(fromColumn, toColumn)) {
-        setPendingWorkflowMove({ activeId, fromColumn, toColumn, item });
+        setPendingWorkflowMove({
+          activeId,
+          fromColumn,
+          toColumn,
+          item,
+          adminOverride: requiresAdminInstructorOverride(fromColumn, toColumn, roleContext),
+        });
         return;
       }
       await applyWorkflowMove(activeId, fromColumn, toColumn, item);
@@ -1083,7 +1119,6 @@ export default function OperationsBoardPage({
           onSortChange={handleSortChange}
           lane={lane}
           onLaneChange={(newLane) => {
-            if (newLane !== LANES.ATTENDANCE) setPanelTab('board');
             updateParams((next) => {
               next.set('lane', newLane);
               if (newLane === LANES.ATTENDANCE) next.delete('workflowId');
@@ -1099,10 +1134,7 @@ export default function OperationsBoardPage({
         <div className="operations-board-content h-full">
         {loading ? (
           <div className="flex h-full min-h-[240px] items-center justify-center" data-testid="operations-board-loading">
-            <div className="flex flex-col items-center gap-2 text-muted-foreground">
-              <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-              <p className="text-sm">{t('operations_board_loading')}</p>
-            </div>
+            <SimpleLoading type="brand" size="lg" />
           </div>
         ) : view === VIEWS.TABLE ? (
           <BoardTableView data={displayData} columns={columns} onCardClick={handleCardClick} t={t} lang={lang} sortBy={sortBy} />
@@ -1138,6 +1170,7 @@ export default function OperationsBoardPage({
             collapsedLanes={collapsedSet}
             onToggleLaneCollapse={(columnId) => toggleLaneCollapse(boardCollapseKey, columnId)}
             onBulkMove={handleBulkMove}
+            roleContext={roleContext}
             t={t}
             fontScale={fontScale}
           />
@@ -1150,7 +1183,7 @@ export default function OperationsBoardPage({
         columns={columns}
         lane={lane}
         view={view}
-        onViewChange={setView}
+        onViewChange={handleBoardViewChange}
         embedded={embedded}
         expanded={expanded}
         onToggleExpand={onToggleExpand}
@@ -1161,6 +1194,8 @@ export default function OperationsBoardPage({
           nameAr: data[0].classNameAr,
         } : null}
         date={filters.date}
+        roleContext={roleContext}
+        panelTab={panelTab}
       />
 
       <WorkflowMoveConfirmDialog
@@ -1172,6 +1207,8 @@ export default function OperationsBoardPage({
         columns={workflowColumns}
         itemName={pendingWorkflowMove?.item?.name}
         loading={workflowMoveLoading}
+        adminOverride={pendingWorkflowMove?.adminOverride}
+        roleContext={roleContext}
         t={t}
       />
 

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
-import { Plus, ArrowUp, ArrowDown, ArrowUpDown, Filter as FilterIcon, Star, GripVertical } from 'lucide-react';
+import { Plus, ArrowUp, ArrowDown, ArrowUpDown, Filter as FilterIcon, Star, GripVertical, MessageSquare } from 'lucide-react';
 import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import {
   Table,
@@ -16,7 +16,7 @@ import {
   parseWorkflowCardName,
 } from './operationsBoardDisplayUtils.js';
 import { getParticipationsByClassAndDate } from '@services/business/participationService.js';
-import { ATTENDANCE_BOARD_COLORS } from '@constants/workspaceStatusColors.js';
+import { ATTENDANCE_BOARD_COLORS, BOARD_PARTICIPATION_COLOR } from '@constants/workspaceStatusColors.js';
 import gridStyles from '@components/workspace/officialWeeklyScheduleGrid.module.css';
 
 const SORT_KEYS = {
@@ -27,6 +27,7 @@ const SORT_KEYS = {
   ASSIGNEE: 'assignee',
   NOTES: 'notes',
   PARTICIPATION: 'participation',
+  COMMENTS: 'comments',
 };
 
 const COL_STORAGE_KEY = 'operations_board_table_columns';
@@ -35,13 +36,14 @@ const MIN_COL_WIDTH = 80;
 const MAX_COL_WIDTH = 400;
 
 const COLUMN_DEFS = [
-  { id: 'avatar', labelKey: null, sortable: false, width: 48, className: 'w-12', fixed: true },
+  { id: 'avatar', labelKey: null, sortable: false, width: 56, className: 'text-center', fixed: true },
   { id: 'name', labelKey: 'operations_board_table_name', sortable: true, width: 140 },
   { id: 'status', labelKey: 'operations_board_status', sortable: true, width: 60, className: 'w-10 text-center' },
   { id: 'date', labelKey: 'operations_board_card_date', sortable: true, width: 110 },
   { id: 'class', labelKey: 'operations_board_table_class', sortable: true, width: 160 },
   { id: 'assignee', labelKey: 'operations_board_card_assignee', sortable: true, width: 120 },
   { id: 'notes', labelKey: 'operations_board_tab_notes', sortable: true, width: 140 },
+  { id: 'comments', labelKey: 'operations_board_tab_comments', sortable: true, width: 140 },
   { id: 'participation', labelKey: 'operations_board_participation', sortable: true, width: 90, className: 'text-center' },
 ];
 
@@ -93,6 +95,34 @@ function BoardStatusDot({ column, color: overrideColor, pulse = false }) {
   );
 }
 
+function getWorkflowNotesText(item) {
+  const comments = item.raw?.comments || item.comments || [];
+  const notes = comments
+    .filter((c) => c.action === 'NOTE')
+    .map((c) => c.comment || c.text)
+    .filter(Boolean);
+  return notes.join(' · ') || item.notes || '';
+}
+
+function getWorkflowCommentsText(item) {
+  const comments = item.raw?.comments || item.comments || [];
+  const texts = comments
+    .filter((c) => !c.action || c.action === 'COMMENT')
+    .map((c) => c.comment || c.text)
+    .filter(Boolean);
+  return texts.join(' · ') || '';
+}
+
+function getItemNotesText(item) {
+  if (item.type === 'workflow') return getWorkflowNotesText(item);
+  return item.notes || '';
+}
+
+function getItemCommentsText(item) {
+  if (item.type === 'workflow') return getWorkflowCommentsText(item);
+  return '';
+}
+
 function getSortValue(item, key, lang) {
   switch (key) {
     case SORT_KEYS.NAME:
@@ -108,7 +138,9 @@ function getSortValue(item, key, lang) {
     case SORT_KEYS.ASSIGNEE:
       return item.assignee?.toLowerCase() || '';
     case SORT_KEYS.NOTES:
-      return item.notes?.toLowerCase() || '';
+      return getItemNotesText(item).toLowerCase();
+    case SORT_KEYS.COMMENTS:
+      return getItemCommentsText(item).toLowerCase();
     case SORT_KEYS.PARTICIPATION:
       return item._participationCount || 0;
     default:
@@ -120,13 +152,16 @@ export default function BoardTableView({ data, columns, onCardClick, t, lang = '
   const columnMap = Object.fromEntries(columns.map((c) => [c.id, c]));
   const isAttendance = data.some((item) => item.type === 'attendance');
   const activeColumnDefs = useMemo(() => {
-    if (isAttendance) return COLUMN_DEFS.filter((c) => c.id !== 'assignee' && c.id !== 'class');
-    return COLUMN_DEFS;
+    if (isAttendance) {
+      return COLUMN_DEFS.filter((c) => c.id !== 'assignee' && c.id !== 'class' && c.id !== 'comments');
+    }
+    return COLUMN_DEFS.filter((c) => c.id !== 'assignee');
   }, [isAttendance]);
   const colDefMap = useMemo(() => Object.fromEntries(activeColumnDefs.map((c) => [c.id, c])), [activeColumnDefs]);
   const [sortKey, setSortKey] = useState(SORT_KEYS.NAME);
   const [sortDir, setSortDir] = useState('asc');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [metaFilter, setMetaFilter] = useState('all');
   const [participationMap, setParticipationMap] = useState({});
   const [colOrder, setColOrder] = useState(() => {
     const order = getInitialColOrder();
@@ -166,6 +201,8 @@ export default function BoardTableView({ data, columns, onCardClick, t, lang = '
           if (!map[uid]) map[uid] = [];
           map[uid].push(p);
         }
+        const classTotal = Object.values(map).reduce((sum, arr) => sum + arr.length, 0);
+        map._classTotal = classTotal;
         setParticipationMap(map);
       }
     }).catch(() => {});
@@ -233,16 +270,33 @@ export default function BoardTableView({ data, columns, onCardClick, t, lang = '
   }, [colWidths, lang, colOrder, persistColConfig]);
 
   const enrichedData = useMemo(() => {
-    return data.map((item) => ({
-      ...item,
-      _participationCount: participationMap[String(item.userId)]?.length || 0,
-    }));
+    return data.map((item) => {
+      const notesText = getItemNotesText(item);
+      const commentsText = getItemCommentsText(item);
+      const partCount = item.type === 'workflow'
+        ? (participationMap._classTotal || 0)
+        : (participationMap[String(item.userId)]?.length || 0);
+      return {
+        ...item,
+        _participationCount: partCount,
+        _notesText: notesText,
+        _commentsText: commentsText,
+      };
+    });
   }, [data, participationMap]);
 
   const filteredData = useMemo(() => {
-    if (statusFilter === 'all') return enrichedData;
-    return enrichedData.filter((item) => item.column === statusFilter);
-  }, [enrichedData, statusFilter]);
+    let rows = enrichedData;
+    if (statusFilter !== 'all') {
+      rows = rows.filter((item) => item.column === statusFilter);
+    }
+    if (metaFilter === 'notes') {
+      rows = rows.filter((item) => Boolean(item._notesText));
+    } else if (metaFilter === 'participation') {
+      rows = rows.filter((item) => (item._participationCount || 0) > 0);
+    }
+    return rows;
+  }, [enrichedData, statusFilter, metaFilter]);
 
   const sortedData = useMemo(() => {
     if (!sortKey) return filteredData;
@@ -270,19 +324,21 @@ export default function BoardTableView({ data, columns, onCardClick, t, lang = '
       : <ArrowDown size={12} className="inline-block ml-1" />;
   };
 
-  const renderCell = useCallback((colId, item, studentName, partCount, notesText) => {
+  const renderCell = useCallback((colId, item, studentName, partCount, notesText, commentsText) => {
     const workflowParts = item.type === 'workflow' ? parseWorkflowCardName(item.name || '') : [];
     const workflowTitle = workflowParts[0] || studentName;
     const workflowClass = workflowParts[1] || item.className || '';
     switch (colId) {
       case 'avatar':
         return (
-          <BoardStudentAvatar
-            name={studentName}
-            profileImageUrl={item.profileImageUrl}
-            size="sm"
-            className="operations-board-table-avatar"
-          />
+          <div className="flex justify-center">
+            <BoardStudentAvatar
+              name={studentName}
+              profileImageUrl={item.profileImageUrl}
+              size="sm"
+              className="operations-board-table-avatar"
+            />
+          </div>
         );
       case 'name':
         return (
@@ -295,8 +351,13 @@ export default function BoardTableView({ data, columns, onCardClick, t, lang = '
                   </ColoredTooltip>
                 )}
                 {partCount > 0 && (
-                  <ColoredTooltip title={t('operations_board_has_participation') || 'Has participation'} color="#3b82f6" placement="top">
-                    <Star size={12} fill="#3b82f6" color="#3b82f6" data-testid={`table-card-participation-star-${item.id}`} />
+                  <ColoredTooltip title={t('operations_board_has_participation') || 'Has participation'} color={BOARD_PARTICIPATION_COLOR} placement="top">
+                    <Star size={12} fill={BOARD_PARTICIPATION_COLOR} color={BOARD_PARTICIPATION_COLOR} data-testid={`table-card-participation-star-${item.id}`} />
+                  </ColoredTooltip>
+                )}
+                {commentsText && (
+                  <ColoredTooltip title={t('operations_board_has_comment') || 'Has comments'} color="#3b82f6" placement="top">
+                    <MessageSquare size={12} color="#3b82f6" data-testid={`table-card-comments-icon-${item.id}`} />
                   </ColoredTooltip>
                 )}
               </span>
@@ -328,6 +389,12 @@ export default function BoardTableView({ data, columns, onCardClick, t, lang = '
         return (
           <span className="max-w-[160px] truncate text-xs text-muted-foreground" title={notesText}>
             {notesText || '—'}
+          </span>
+        );
+      case 'comments':
+        return (
+          <span className="max-w-[160px] truncate text-xs text-muted-foreground" title={commentsText}>
+            {commentsText || '—'}
           </span>
         );
       case 'participation':
@@ -382,6 +449,24 @@ export default function BoardTableView({ data, columns, onCardClick, t, lang = '
               </button>
             );
           })}
+          <button
+            type="button"
+            className={`operations-board-filter-chip ${metaFilter === 'notes' ? 'selected' : ''}`}
+            onClick={() => setMetaFilter((prev) => (prev === 'notes' ? 'all' : 'notes'))}
+            data-testid="operations-board-table-meta-filter-notes"
+          >
+            <Star size={11} fill="#ef4444" color="#ef4444" />
+            {t('operations_board_tab_notes') || 'Notes'}
+          </button>
+          <button
+            type="button"
+            className={`operations-board-filter-chip ${metaFilter === 'participation' ? 'selected' : ''}`}
+            onClick={() => setMetaFilter((prev) => (prev === 'participation' ? 'all' : 'participation'))}
+            data-testid="operations-board-table-meta-filter-participation"
+          >
+            <Star size={11} fill={BOARD_PARTICIPATION_COLOR} color={BOARD_PARTICIPATION_COLOR} />
+            {t('operations_board_participation') || 'Participation'}
+          </button>
         </div>
         <span className="text-xs text-muted-foreground ml-auto shrink-0">
           {sortedData.length} / {enrichedData.length}
@@ -459,7 +544,8 @@ export default function BoardTableView({ data, columns, onCardClick, t, lang = '
             sortedData.map((item) => {
               const studentName = resolveBoardStudentName(item, lang);
               const partCount = item._participationCount || 0;
-              const notesText = item.notes || '';
+              const notesText = item._notesText || '';
+              const commentsText = item._commentsText || '';
               return (
                 <TableRow
                   key={item.id}
@@ -477,7 +563,7 @@ export default function BoardTableView({ data, columns, onCardClick, t, lang = '
                         className={def.className || ''}
                         style={{ width: `${width}px`, minWidth: `${width}px` }}
                       >
-                        {renderCell(colId, item, studentName, partCount, notesText)}
+                        {renderCell(colId, item, studentName, partCount, notesText, commentsText)}
                       </TableCell>
                     );
                   })}

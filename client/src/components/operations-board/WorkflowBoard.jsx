@@ -1,4 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import Tooltip from '@mui/material/Tooltip';
+import { pointerWithin } from '@dnd-kit/core';
+import { useTheme } from '@contexts/ThemeContext';
 import {
   KanbanProvider,
   KanbanBoard,
@@ -11,6 +14,7 @@ import { FileText, Workflow as WorkflowIcon } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
 import BoardLaneHeader from './BoardLaneHeader.jsx';
 import { parseWorkflowCardName } from './operationsBoardDisplayUtils.js';
+import { isInstructorWorkflowLane, isInstructorOnly } from './workflowBoardRules.js';
 import { ATTENDANCE_BOARD_COLORS } from '@constants/workspaceStatusColors.js';
 
 const CARD_ORDER_KEY = 'operations_board_workflow_card_order';
@@ -124,14 +128,14 @@ function AttendanceCountsTooltip({ summary, t }) {
   if (items.length === 0) return null;
   return (
     <div style={{ maxWidth: 200 }}>
-      <div style={{ fontWeight: 600, fontSize: '0.75rem', marginBottom: 4 }}>
+      <div style={{ fontWeight: 600, fontSize: '0.75rem', marginBottom: 4, color: '#374151' }}>
         {t('attendance_summary') || 'Attendance Summary'}
       </div>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
         {items.map((item) => (
           <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
             <span style={{ width: 7, height: 7, borderRadius: '50%', backgroundColor: item.color }} />
-            <span style={{ fontSize: '0.7rem' }}>{item.count} {item.label}</span>
+            <span style={{ fontSize: '0.7rem', color: '#374151' }}>{item.count} {item.label}</span>
           </div>
         ))}
       </div>
@@ -145,6 +149,7 @@ function hasAttendanceCounts(summary) {
 }
 
 function WorkflowCardHoverTooltip({ item, column, summary, t }) {
+  const labelColor = '#374151';
   const parts = parseWorkflowCardName(item.name).filter((part) => !isDateLike(part));
   const statusLabel = t(column.i18nKey) || column.name;
   const dateLabel = item.date
@@ -153,11 +158,11 @@ function WorkflowCardHoverTooltip({ item, column, summary, t }) {
   const instructor = item.classInstructorName || item.assignee;
 
   return (
-    <div style={{ maxWidth: 220, fontSize: '0.75rem', lineHeight: 1.45 }}>
-      <div style={{ fontWeight: 700, marginBottom: 4 }}>{parts[0] || item.name}</div>
-      {parts[1] && <div style={{ opacity: 0.9, marginBottom: 2 }}>{parts[1]}</div>}
+    <div style={{ maxWidth: 220, fontSize: '0.75rem', lineHeight: 1.45, color: labelColor }}>
+      <div style={{ fontWeight: 700, marginBottom: 4, color: labelColor }}>{parts[0] || item.name}</div>
+      {parts[1] && <div style={{ marginBottom: 2, color: labelColor }}>{parts[1]}</div>}
       {dateLabel && (
-        <div style={{ opacity: 0.85, marginBottom: 2 }}>
+        <div style={{ marginBottom: 2, color: labelColor }}>
           {t('date') || 'Date'}: {dateLabel}
         </div>
       )}
@@ -166,7 +171,7 @@ function WorkflowCardHoverTooltip({ item, column, summary, t }) {
         <span style={{ color: column.color, fontWeight: 600 }}>{statusLabel}</span>
       </div>
       {instructor && (
-        <div style={{ opacity: 0.85, marginBottom: 2 }}>
+        <div style={{ marginBottom: 2, color: labelColor }}>
           {t('operations_board_class_instructor') || 'Class instructor'}: {instructor}
         </div>
       )}
@@ -176,6 +181,48 @@ function WorkflowCardHoverTooltip({ item, column, summary, t }) {
         </div>
       )}
     </div>
+  );
+}
+
+const TOOLTIP_LABEL_COLOR = '#374151';
+
+function WorkflowHoverTooltip({ title, children }) {
+  const { theme } = useTheme();
+  const isDark = theme === 'dark';
+  const bg = isDark ? 'rgba(15, 23, 42, 0.95)' : 'rgba(255, 255, 255, 0.96)';
+
+  if (!title) return children;
+
+  return (
+    <Tooltip
+      title={title}
+      placement="top"
+      arrow
+      slotProps={{
+        tooltip: {
+          sx: {
+            bgcolor: bg,
+            color: TOOLTIP_LABEL_COLOR,
+            fontWeight: 500,
+            fontSize: '11px',
+            border: '1px solid rgba(148, 163, 184, 0.35)',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.12)',
+            maxWidth: 280,
+            p: 1,
+          },
+        },
+        arrow: {
+          sx: {
+            color: bg,
+            '&::before': {
+              border: '1px solid rgba(148, 163, 184, 0.35)',
+            },
+          },
+        },
+      }}
+    >
+      {children}
+    </Tooltip>
   );
 }
 
@@ -196,6 +243,7 @@ export default function WorkflowBoard({
   onToggleLaneCollapse,
   canMoveToColumn,
   onBulkMove,
+  roleContext = {},
   t,
   fontScale = 100,
 }) {
@@ -203,6 +251,7 @@ export default function WorkflowBoard({
   const dragOriginRef = useRef(null);
   const dragOriginColorRef = useRef(null);
   const [dragOriginColor, setDragOriginColor] = useState(null);
+  const [draggingFromColumn, setDraggingFromColumn] = useState(null);
   const draggingRef = useRef(false);
 
   useEffect(() => {
@@ -223,11 +272,26 @@ export default function WorkflowBoard({
     draggingRef.current = true;
     const item = boardData.find((d) => d.id === event.active.id);
     dragOriginRef.current = item?.column || null;
+    setDraggingFromColumn(item?.column || null);
     const originCol = columns.find((c) => c.id === item?.column);
     const color = originCol?.color || null;
     dragOriginColorRef.current = color;
     setDragOriginColor(color);
-  }, [boardData, columns]);
+    console.warn('[WorkflowBoard][drag START]', {
+      cardId: item?.id,
+      fromColumn: item?.column,
+      title: item?.title || item?.name,
+      validTargets: columns
+        .filter((c) => c.id !== item?.column && canMoveToColumn?.(item?.column, c.id))
+        .map((c) => c.id),
+      roleContext: {
+        isAdmin: !!roleContext?.isAdmin,
+        isInstructor: !!roleContext?.isInstructor,
+        isHR: !!roleContext?.isHR,
+        isSuperAdmin: !!roleContext?.isSuperAdmin,
+      },
+    });
+  }, [boardData, columns, roleContext, canMoveToColumn]);
 
   const handleDragEnd = useCallback(
     (event) => {
@@ -236,15 +300,27 @@ export default function WorkflowBoard({
       dragOriginRef.current = null;
       dragOriginColorRef.current = null;
       setDragOriginColor(null);
+      setDraggingFromColumn(null);
 
       const { active, over } = event;
       if (!over || !active) {
+        console.warn('[WorkflowBoard][drag END] no over/active — cancelled', { fromColumn });
         setBoardData(applyStoredOrder(data, orderKey));
         return;
       }
 
-      const toColumn = resolveDropColumn(over, columns, boardData);
+      // Prefer explicit drop target; if over is the card itself (empty lane / closestCenter),
+      // use the optimistic column from drag-over so DRAFT→TAKEN still completes.
+      let toColumn = resolveDropColumn(over, columns, boardData);
+      if ((!toColumn || toColumn === fromColumn) && active.id === over.id) {
+        const optimisticColumn = boardData.find((i) => i.id === active.id)?.column;
+        if (optimisticColumn && optimisticColumn !== fromColumn) {
+          toColumn = optimisticColumn;
+        }
+      }
+
       if (!fromColumn || !toColumn) {
+        console.warn('[WorkflowBoard][drag END] unresolved column', { fromColumn, toColumn, overId: over.id });
         setBoardData(applyStoredOrder(data, orderKey));
         return;
       }
@@ -258,10 +334,22 @@ export default function WorkflowBoard({
       }
 
       if (canMoveToColumn && !canMoveToColumn(fromColumn, toColumn)) {
+        console.warn('[WorkflowBoard][drag REJECTED]', {
+          fromColumn,
+          toColumn,
+          allowed: false,
+        });
         onDragRejected?.(toColumn);
         setBoardData(applyStoredOrder(data, orderKey));
         return;
       }
+
+      console.warn('[WorkflowBoard][drag DROP]', {
+        fromColumn,
+        toColumn,
+        allowed: true,
+        cardId: active.id,
+      });
 
       setBoardData((prev) => {
         const next = prev.map((item) => (item.id === active.id ? { ...item, column: toColumn } : item));
@@ -274,12 +362,14 @@ export default function WorkflowBoard({
   );
 
   const handleDragCancel = useCallback(() => {
+    console.warn('[WorkflowBoard][drag CANCELLED]', { fromColumn: draggingFromColumn });
     draggingRef.current = false;
     dragOriginRef.current = null;
     dragOriginColorRef.current = null;
     setDragOriginColor(null);
+    setDraggingFromColumn(null);
     setBoardData(applyStoredOrder(data, orderKey));
-  }, [data, orderKey]);
+  }, [data, orderKey, draggingFromColumn]);
 
   return (
     <KanbanProvider
@@ -289,13 +379,28 @@ export default function WorkflowBoard({
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
+      collisionDetection={pointerWithin}
       className="operations-board-kanban"
     >
       {(column) => {
         const collapsed = collapsedLanes.has(column.id);
         const laneCount = boardData.filter((d) => d.column === column.id).length;
-        const isPermitted = columns.some((c) => c.id !== column.id && canMoveToColumn?.(c.id, column.id));
-        const laneClass = isPermitted ? 'operations-board-lane-permitted' : 'operations-board-lane-readonly';
+        const isAdminActingOnInstructorArea = roleContext.isAdmin
+          && !roleContext.isSuperAdmin
+          && !isInstructorOnly(roleContext);
+        let laneClass;
+        if (draggingFromColumn && isAdminActingOnInstructorArea && isInstructorWorkflowLane(draggingFromColumn)) {
+          const canDrop = draggingFromColumn !== column.id && canMoveToColumn?.(draggingFromColumn, column.id);
+          laneClass = canDrop ? 'operations-board-lane-override' : 'operations-board-lane-readonly';
+        } else if (isAdminActingOnInstructorArea && isInstructorWorkflowLane(column.id) && !draggingFromColumn) {
+          laneClass = 'operations-board-lane-readonly';
+        } else if (draggingFromColumn) {
+          const canDrop = draggingFromColumn !== column.id && canMoveToColumn?.(draggingFromColumn, column.id);
+          laneClass = canDrop ? 'operations-board-lane-override' : 'operations-board-lane-readonly';
+        } else {
+          const isPermitted = columns.some((c) => c.id !== column.id && canMoveToColumn?.(c.id, column.id));
+          laneClass = isPermitted ? 'operations-board-lane-permitted' : 'operations-board-lane-readonly';
+        }
         return (
           <KanbanBoard
             id={column.id}
@@ -343,7 +448,7 @@ export default function WorkflowBoard({
                       id={item.id}
                       key={item.id}
                       name={item.name}
-                      className="operations-board-card-collapsed"
+                      className="operations-board-card-collapsed operations-workflow-card"
                       dragColor={dragOriginColor}
                     >
                       <div
@@ -416,7 +521,7 @@ export default function WorkflowBoard({
                     key={item.id}
                     name={item.name}
                     dragColor={dragOriginColor}
-                    className="p-2"
+                    className="operations-workflow-card p-2"
                   >
                     <div
                       className="flex items-center justify-between gap-1.5"
@@ -425,13 +530,11 @@ export default function WorkflowBoard({
                         onCardClick(item);
                       }}
                     >
-                      <ColoredTooltip
+                      <WorkflowHoverTooltip
                         title={<WorkflowCardHoverTooltip item={item} column={column} summary={summary} t={t} />}
-                        color={column.color}
-                        placement="top"
                       >
                         {cardBody}
-                      </ColoredTooltip>
+                      </WorkflowHoverTooltip>
                       <WorkflowAssigneeAvatar
                         assignee={item.assignee}
                         assigneeLabel={assigneeTooltip}

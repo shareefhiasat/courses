@@ -40,6 +40,7 @@ import { emit } from '../services/notifications/index.js';
 import { EVENTS } from '../services/notifications/constants.js';
 import { buildNotificationNameVars } from '../utils/localizedUserName.js';
 import { logPermissionDenial } from '../services/permissionDenialAuditService.js';
+import { validateWorkflowBoardStatusTransition } from '../utils/workflowBoardTransitions.js';
 
 /**
  * Convert MinIO image keys in comment author objects to proxy URLs.
@@ -337,6 +338,14 @@ export const updateWorkflowDocumentStatusController = async (req, res) => {
       return res.status(404).json({ success: false, error: 'Document not found' });
     }
     const previousStatus = existing.data.status;
+
+    const transitionCheck = validateWorkflowBoardStatusTransition(user, previousStatus, status);
+    if (!transitionCheck.ok) {
+      return res.status(403).json({
+        success: false,
+        error: transitionCheck.error,
+      });
+    }
 
     const result = await updateStatus(parseInt(id), status, user.dbId, reason);
 
@@ -858,8 +867,13 @@ export const rejectWorkflowDocumentController = async (req, res) => {
         }, user, { userId: result.data.submitterId });
         if (submitterResult?.success) notifyResults.push({ target: 'Submitter', count: submitterResult.results.length });
 
-        // Notify all HR users as watchers
-        const hrResult = await emit(EVENTS.WORKFLOW_REJECTED, {
+        const everReachedHR = (document.statusHistory || []).some(
+          (h) => h.toStatus === 'UNDER_HR_REVIEW' || h.fromStatus === 'UNDER_HR_REVIEW',
+        ) || document.status === 'UNDER_HR_REVIEW';
+        const isAdminBoardReject = isAdmin && !isHR && document.status === 'UNDER_ADMIN_REVIEW';
+
+        if (everReachedHR) {
+          const hrResult = await emit(EVENTS.WORKFLOW_REJECTED, {
           ...buildNotificationNameVars(rejecter, 'Unknown User'),
           workflowName: result.data.title,
           documentId: result.data.id,
@@ -871,10 +885,12 @@ export const rejectWorkflowDocumentController = async (req, res) => {
           classNameAr: cls?.nameAr || cls?.nameEn || null,
           recipientType: 'role',
           recipientRole: LMS_ROLES.HR,
-        }, user, { role: LMS_ROLES.HR });
-        if (hrResult?.success) notifyResults.push({ target: 'HR (Watchers)', count: hrResult.results.length });
+          }, user, { role: LMS_ROLES.HR });
+          if (hrResult?.success) notifyResults.push({ target: 'HR (Watchers)', count: hrResult.results.length });
+        }
 
-        const adminResult = await emit(EVENTS.WORKFLOW_REJECTED, {
+        if (!isAdminBoardReject) {
+          const adminResult = await emit(EVENTS.WORKFLOW_REJECTED, {
           ...buildNotificationNameVars(rejecter, 'Unknown User'),
           workflowName: result.data.title,
           documentId: result.data.id,
@@ -886,8 +902,9 @@ export const rejectWorkflowDocumentController = async (req, res) => {
           classNameAr: cls?.nameAr || cls?.nameEn || null,
           recipientType: 'role',
           recipientRole: LMS_ROLES.ADMIN,
-        }, user, { role: LMS_ROLES.ADMIN });
-        if (adminResult?.success) notifyResults.push({ target: 'Admin (Watchers)', count: adminResult.results.length });
+          }, user, { role: LMS_ROLES.ADMIN });
+          if (adminResult?.success) notifyResults.push({ target: 'Admin (Watchers)', count: adminResult.results.length });
+        }
       } catch (notificationError) {
         console.error('Failed to emit notification:', notificationError);
       }

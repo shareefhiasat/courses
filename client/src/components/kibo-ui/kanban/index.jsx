@@ -209,9 +209,12 @@ export const KanbanProvider = (
       );
       const activeIndex = newData.findIndex((item) => item.id === active.id);
       const overIndex = newData.findIndex((item) => item.id === over.id);
-      const reordered = arrayMove(newData, activeIndex, overIndex);
-
-      onDataChange?.(reordered);
+      // Empty target column: over.id is the column id, so overIndex is -1 — keep card at end
+      if (overIndex === -1) {
+        onDataChange?.(newData);
+      } else {
+        onDataChange?.(arrayMove(newData, activeIndex, overIndex));
+      }
     } else if (overItem && active.id !== over.id) {
       // Same-column reorder: preserve user's freestyle ordering
       const activeIndex = data.findIndex((item) => item.id === active.id);
