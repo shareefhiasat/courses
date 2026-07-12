@@ -133,6 +133,7 @@ const AttendanceWorkspacePage = () => {
           term,
         },
         lang,
+        t,
         sessions: sources.sessions,
         breakSessions: sources.breakSessions,
         instructorAvailability: sources.instructorAvailability,

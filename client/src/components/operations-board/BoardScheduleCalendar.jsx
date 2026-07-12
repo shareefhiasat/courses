@@ -637,6 +637,7 @@ export default function BoardScheduleCalendar({
         const prepared = prepareWeeklyScheduleData({
           metadata: { programId: welcomeContext.programId },
           lang,
+          t,
           sessions: sources.sessions,
           breakSessions: sources.breakSessions,
           instructorAvailability: sources.instructorAvailability,

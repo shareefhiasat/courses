@@ -131,11 +131,11 @@ function ScheduleContextMenu({
         const url = URL.createObjectURL(result.blob);
         setLivePreviewUrl(url);
       } else {
-        setLivePreviewError('Failed to generate preview');
+        setLivePreviewError(t('live_preview_failed') || 'Failed to generate preview');
       }
     } catch (err) {
       console.error('[ScheduleContextMenu] live preview failed:', err);
-      setLivePreviewError(err.message || 'Failed to generate preview');
+      setLivePreviewError(err.message || (t('live_preview_failed') || 'Failed to generate preview'));
     } finally {
       setLivePreviewLoading(false);
     }
@@ -163,11 +163,11 @@ function ScheduleContextMenu({
         const url = URL.createObjectURL(result.blob);
         setLivePreviewUrl(url);
       } else {
-        setLivePreviewError('Failed to generate preview');
+        setLivePreviewError(t('live_preview_failed') || 'Failed to generate preview');
       }
     } catch (err) {
       console.error('[ScheduleContextMenu] live preview refresh failed:', err);
-      setLivePreviewError(err.message || 'Failed to generate preview');
+      setLivePreviewError(err.message || (t('live_preview_failed') || 'Failed to generate preview'));
     } finally {
       setLivePreviewLoading(false);
     }

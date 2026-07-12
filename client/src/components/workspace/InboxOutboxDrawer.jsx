@@ -20,13 +20,13 @@ const TABS = {
 };
 
 const WORKFLOW_TYPE_FILTERS = [
-  { value: 'ALL', labelEn: 'All Types', labelAr: 'كل الأنواع' },
-  { value: 'ATTENDANCE_DAILY', labelEn: 'Attendance Daily', labelAr: 'الحضور اليومي' },
-  { value: 'ATTENDANCE_WEEKLY', labelEn: 'Attendance Weekly', labelAr: 'الحضور الأسبوعي' },
-  { value: 'GENERAL_HR', labelEn: 'General HR', labelAr: 'عام الموارد البشرية' },
-  { value: 'GENERAL_ADMIN', labelEn: 'General Admin', labelAr: 'عام المدير' },
-  { value: 'GENERAL_MIXED_HR_ADMIN', labelEn: 'Mixed HR→Admin', labelAr: 'مختلط موارد بشرية←مدير' },
-  { value: 'GENERAL_MIXED_ADMIN_HR', labelEn: 'Mixed Admin→HR', labelAr: 'مختلط مدير←موارد بشرية' },
+  { value: 'ALL', labelKey: 'workflow_type_all' },
+  { value: 'ATTENDANCE_DAILY', labelKey: 'workflow_type_attendance_daily' },
+  { value: 'ATTENDANCE_WEEKLY', labelKey: 'workflow_type_attendance_weekly' },
+  { value: 'GENERAL_HR', labelKey: 'workflow_type_general_hr' },
+  { value: 'GENERAL_ADMIN', labelKey: 'workflow_type_general_admin' },
+  { value: 'GENERAL_MIXED_HR_ADMIN', labelKey: 'workflow_type_general_mixed_hr_admin' },
+  { value: 'GENERAL_MIXED_ADMIN_HR', labelKey: 'workflow_type_general_mixed_admin_hr' },
 ];
 
 const STATUS_COLORS = {
@@ -42,15 +42,15 @@ const STATUS_COLORS = {
 };
 
 const STATUS_LABELS = {
-  DRAFT: { en: 'Draft', ar: 'مسودة' },
-  SUBMITTED: { en: 'Submitted', ar: 'مُرسل' },
-  UNDER_REVIEW: { en: 'Under Review', ar: 'قيد المراجعة' },
-  ADMIN_APPROVED: { en: 'Admin Approved', ar: 'موافق عليه من المدير' },
-  APPROVED: { en: 'Approved', ar: 'موافق عليه' },
-  REJECTED: { en: 'Rejected', ar: 'مرفوض' },
-  RETURNED: { en: 'Returned', ar: 'مُرتجع' },
-  CLOSED: { en: 'Closed', ar: 'مغلق' },
-  WITHDRAWN: { en: 'Withdrawn', ar: 'مسحوب' },
+  DRAFT: 'analytics.label.wf_status_DRAFT',
+  SUBMITTED: 'analytics.label.wf_status_SUBMITTED',
+  UNDER_REVIEW: 'analytics.label.wf_status_UNDER_REVIEW',
+  ADMIN_APPROVED: 'analytics.label.wf_status_ADMIN_APPROVED',
+  APPROVED: 'analytics.label.wf_status_APPROVED',
+  REJECTED: 'analytics.label.wf_status_REJECTED',
+  RETURNED: 'analytics.label.wf_status_RETURNED',
+  CLOSED: 'analytics.label.wf_status_CLOSED',
+  WITHDRAWN: 'analytics.label.wf_status_WITHDRAWN',
 };
 
 const SLA_72H_MS = 72 * 60 * 60 * 1000;
@@ -63,16 +63,12 @@ const getSlaColor = (submittedAt) => {
   return '#16a34a';
 };
 
-const getSlaLabel = (submittedAt, lang) => {
+const getSlaLabel = (submittedAt, lang, t) => {
   if (!submittedAt) return '';
   const elapsed = Date.now() - new Date(submittedAt).getTime();
   const hoursLeft = Math.max(0, Math.round((SLA_72H_MS - elapsed) / (60 * 60 * 1000)));
-  if (lang === 'ar') {
-    if (hoursLeft === 0) return 'متأخر';
-    return `${hoursLeft}س متبقية`;
-  }
-  if (hoursLeft === 0) return 'Overdue';
-  return `${hoursLeft}h left`;
+  if (hoursLeft === 0) return t('inbox_overdue') || 'Overdue';
+  return t('inbox_hours_left', { count: hoursLeft }) || `${hoursLeft}h left`;
 };
 
 const InboxOutboxDrawer = ({ isOpen, onClose, classId = null, initialTab = TABS.INBOX }) => {
@@ -130,10 +126,10 @@ const InboxOutboxDrawer = ({ isOpen, onClose, classId = null, initialTab = TABS.
     if (res.success) {
       setInboxDocs(res.data || []);
     } else {
-      setError(res.error || 'Failed to load inbox');
+      setError(res.error || t('inbox_load_failed') || 'Failed to load inbox');
     }
     setLoading(false);
-  }, [role, workflowTypeFilter]);
+  }, [role, workflowTypeFilter, t]);
 
   const fetchOutbox = useCallback(async () => {
     setLoading(true);
@@ -144,10 +140,10 @@ const InboxOutboxDrawer = ({ isOpen, onClose, classId = null, initialTab = TABS.
     if (res.success) {
       setOutboxDocs(res.data || []);
     } else {
-      setError(res.error || 'Failed to load outbox');
+      setError(res.error || t('outbox_load_failed') || 'Failed to load outbox');
     }
     setLoading(false);
-  }, [workflowTypeFilter]);
+  }, [workflowTypeFilter, t]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -177,7 +173,7 @@ const InboxOutboxDrawer = ({ isOpen, onClose, classId = null, initialTab = TABS.
     if (action === 'approve') {
       result = await approveDocument(docId, actionComment);
     } else if (action === 'reject') {
-      result = await rejectDocument(docId, actionComment || 'Rejected');
+      result = await rejectDocument(docId, actionComment || t('inbox_rejected_default') || 'Rejected');
     } else if (action === 'return') {
       result = await returnDocument(docId, actionComment);
     } else if (action === 'withdraw') {
@@ -190,9 +186,9 @@ const InboxOutboxDrawer = ({ isOpen, onClose, classId = null, initialTab = TABS.
       if (activeTab === TABS.INBOX) fetchInbox();
       else fetchOutbox();
     } else {
-      setError(result?.error || 'Action failed');
+      setError(result?.error || t('action_failed') || 'Action failed');
     }
-  }, [actionComment, activeTab, fetchInbox, fetchOutbox]);
+  }, [actionComment, activeTab, fetchInbox, fetchOutbox, t]);
 
   const formatTimestamp = useCallback((ts) => {
     if (!ts) return '';
@@ -205,9 +201,9 @@ const InboxOutboxDrawer = ({ isOpen, onClose, classId = null, initialTab = TABS.
   }, [lang]);
 
   const getStatusLabel = useCallback((status) => {
-    const labels = STATUS_LABELS[status] || { en: status, ar: status };
-    return lang === 'ar' ? labels.ar : labels.en;
-  }, [lang]);
+    const key = STATUS_LABELS[status];
+    return key ? t(key) : status;
+  }, [t]);
 
   const tabBtnStyle = useMemo(() => ({
     padding: '10px 20px',
@@ -251,7 +247,7 @@ const InboxOutboxDrawer = ({ isOpen, onClose, classId = null, initialTab = TABS.
     const status = doc.status || 'DRAFT';
     const submitterName = doc.submitter?.displayName
       || `${doc.submitter?.firstName || ''} ${doc.submitter?.lastName || ''}`.trim()
-      || 'Unknown';
+      || t('unknown') || 'Unknown';
     const className = lang === 'ar' ? doc.class?.nameAr : doc.class?.nameEn || doc.class?.code || '';
     const subjectName = lang === 'ar' ? doc.class?.subject?.nameAr : doc.class?.subject?.nameEn || '';
 
@@ -275,7 +271,7 @@ const InboxOutboxDrawer = ({ isOpen, onClose, classId = null, initialTab = TABS.
                 color: isDark ? '#f1f5f9' : '#1e293b',
                 marginBottom: '2px',
               }}>
-                {doc.title || className || `Document #${doc.id}`}
+                {doc.title || className || t('document_number', { id: doc.id }) || `Document #${doc.id}`}
               </div>
               {className && (
                 <div style={{ fontSize: '12px', color: isDark ? '#94a3b8' : '#64748b' }}>
@@ -313,7 +309,7 @@ const InboxOutboxDrawer = ({ isOpen, onClose, classId = null, initialTab = TABS.
                 fontWeight: 500,
                 color: getSlaColor(doc.submittedAt),
               }}>
-                {getSlaLabel(doc.submittedAt, lang)}
+                {getSlaLabel(doc.submittedAt, lang, t)}
               </span>
             </div>
           )}
@@ -656,7 +652,7 @@ const InboxOutboxDrawer = ({ isOpen, onClose, classId = null, initialTab = TABS.
           >
             {WORKFLOW_TYPE_FILTERS.map((wf) => (
               <option key={wf.value} value={wf.value}>
-                {lang === 'ar' ? wf.labelAr : wf.labelEn}
+                {t(wf.labelKey) || wf.value}
               </option>
             ))}
           </select>

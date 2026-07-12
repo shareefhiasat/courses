@@ -89,12 +89,12 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
         if (res.success) {
           setLectureLog(res.data || []);
         } else {
-          setError(res.error || 'Failed to load');
+          setError(res.error || t('failed_to_load_history') || 'Failed to load');
         }
       })
-      .catch(() => setError('Failed to load'))
+      .catch(() => setError(t('failed_to_load_history') || 'Failed to load'))
       .finally(() => setLoading(false));
-  }, [isOpen, classId, dateStr]);
+  }, [isOpen, classId, dateStr, t]);
 
   const handleRecordHistoryFetch = useCallback(async (attendanceId) => {
     setSelectedAttendanceId(attendanceId);
@@ -104,10 +104,10 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
     if (res.success) {
       setRecordHistory(res.data || []);
     } else {
-      setError(res.error || 'Failed to load');
+      setError(res.error || t('failed_to_load_history') || 'Failed to load');
     }
     setLoading(false);
-  }, []);
+  }, [t]);
 
   const handleTabChange = useCallback((tab) => {
     setActiveTab(tab);
@@ -260,7 +260,7 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
       : getAttendanceColor(rawStatus);
     const titleKey = isWorkflow || isAttendanceChange
       ? formatTransitionTitle(entry, statusRaw)
-      : (statusRaw || (lang === 'ar' ? 'تسجيل حضور' : 'Attendance Marked'));
+      : (statusRaw || (t('attendance_marked_title') || 'Attendance Marked'));
 
     return (
       <motion.div
@@ -458,7 +458,7 @@ const LectureLogDrawer = ({ isOpen, onClose, classInfo, date, embedded = false }
           const toName = lang === 'ar' ? change.toStatus?.nameAr : change.toStatus?.nameEn;
           const actorName = change.changedByUser?.displayName
             || `${change.changedByUser?.firstName || ''} ${change.changedByUser?.lastName || ''}`.trim()
-            || 'System';
+            || t('operations_board_system_actor') || 'System';
 
           return (
             <motion.div

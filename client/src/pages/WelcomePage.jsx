@@ -541,6 +541,7 @@ const WelcomePage = () => {
       const prepared = prepareWeeklyScheduleData({
         metadata: { programId: selection.program.id, programName, year, term },
         lang,
+        t,
         sessions: sources.sessions,
         breakSessions: sources.breakSessions,
         instructorAvailability: sources.instructorAvailability,
@@ -788,7 +789,7 @@ const WelcomePage = () => {
       });
       setSnackbar({
         open: true,
-        message: `${t('daily_official') || 'Daily Official'} — ${t('export_success')}`,
+        message: `${t('daily_official') || 'Daily Official'} — ${t('export_success') || 'Export successful'}`,
         severity: 'success',
         progress: null,
       });
@@ -796,7 +797,7 @@ const WelcomePage = () => {
       console.error('[WelcomePage] daily attendance export failed:', err);
       setSnackbar({
         open: true,
-        message: `${t('daily_official') || 'Daily Official'} — ${t('export_failed')}`,
+        message: `${t('daily_official') || 'Daily Official'} — ${t('export_failed') || 'Export failed'}`,
         severity: 'error',
         progress: null,
       });
@@ -809,7 +810,7 @@ const WelcomePage = () => {
     if (!selection?.program || !selection?.academicTerm) {
       setSnackbar({
         open: true,
-        message: `${t('daily_template') || 'Daily Template'} — select program and term first`,
+        message: `${t('daily_template') || 'Daily Template'} — ${t('welcome_select_program_term_first') || 'select program and term first'}`,
         severity: 'warning',
         progress: null,
       });
@@ -835,7 +836,7 @@ const WelcomePage = () => {
       });
       setSnackbar({
         open: true,
-        message: `${t('daily_template') || 'Daily Template'} — ${t('export_success')}`,
+        message: `${t('daily_template') || 'Daily Template'} — ${t('export_success') || 'Export successful'}`,
         severity: 'success',
         progress: null,
       });
@@ -843,7 +844,7 @@ const WelcomePage = () => {
       console.error('[WelcomePage] daily template export failed:', err);
       setSnackbar({
         open: true,
-        message: `${t('daily_template') || 'Daily Template'} — ${t('export_failed')}`,
+        message: `${t('daily_template') || 'Daily Template'} — ${t('export_failed') || 'Export failed'}`,
         severity: 'error',
         progress: null,
       });
@@ -856,7 +857,7 @@ const WelcomePage = () => {
     if (!selection?.program || !selection?.academicTerm) {
       setSnackbar({
         open: true,
-        message: `${t('attendance_summary') || 'Attendance Summary'} — select program and term first`,
+        message: `${t('attendance_summary') || 'Attendance Summary'} — ${t('welcome_select_program_term_first') || 'select program and term first'}`,
         severity: 'warning',
         progress: null,
       });
@@ -865,7 +866,7 @@ const WelcomePage = () => {
     if (cohortSubjectIds.length === 0) {
       setSnackbar({
         open: true,
-        message: `${t('attendance_summary') || 'Attendance Summary'} — no subjects found for this program`,
+        message: `${t('attendance_summary') || 'Attendance Summary'} — ${t('welcome_no_subjects_for_program') || 'no subjects found for this program'}`,
         severity: 'warning',
         progress: null,
       });
@@ -934,7 +935,7 @@ const WelcomePage = () => {
       });
       setSnackbar({
         open: true,
-        message: `${t('attendance_summary') || 'Attendance Summary'} — ${t('export_success')}`,
+        message: `${t('attendance_summary') || 'Attendance Summary'} — ${t('export_success') || 'Export successful'}`,
         severity: 'success',
         progress: null,
       });
@@ -942,7 +943,7 @@ const WelcomePage = () => {
       console.error('[WelcomePage] attendance summary export failed:', err);
       setSnackbar({
         open: true,
-        message: `${t('attendance_summary') || 'Attendance Summary'} — ${t('export_failed')}`,
+        message: `${t('attendance_summary') || 'Attendance Summary'} — ${t('export_failed') || 'Export failed'}`,
         severity: 'error',
         progress: null,
       });

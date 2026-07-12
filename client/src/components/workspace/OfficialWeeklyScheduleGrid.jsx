@@ -382,13 +382,13 @@ function AttendanceIndicatorGroup({ status, t, slot, onGenerateDailyAttendance }
           style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', color: '#e53935' }}
           onClick={(e) => { e.stopPropagation(); onGenerateDailyAttendance(slot, 'pdf'); }}
         >
-          <FileText size={14} /> PDF
+          <FileText size={14} /> {t('export_pdf') || 'PDF'}
         </span>
         <span
           style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', color: '#43a047' }}
           onClick={(e) => { e.stopPropagation(); onGenerateDailyAttendance(slot, 'excel'); }}
         >
-          <FileSpreadsheet size={14} /> Excel
+          <FileSpreadsheet size={14} /> {t('export_excel') || 'Excel'}
         </span>
       </div>
     </div>
@@ -639,7 +639,7 @@ function InteractiveSlotCell({
           data-day-code={dayCode}
           data-col-key={colKey}
           data-slot={JSON.stringify(slotPayload)}
-          aria-label={slot.subjectName || slot.class?.code || 'class'}
+          aria-label={slot.subjectName || slot.class?.code || t('class') || 'class'}
         >
           {content}
         </button>
@@ -650,7 +650,7 @@ function InteractiveSlotCell({
   return <td className={cellClass}>{content}</td>;
 }
 
-function formatCountdown(ms, { includeMonths = false, compact = false } = {}) {
+function formatCountdown(ms, { includeMonths = false, compact = false, t = null } = {}) {
   if (ms <= 0) return '0';
   const totalSeconds = Math.floor(ms / 1000);
   const months = Math.floor(totalSeconds / (30 * 24 * 60 * 60));
@@ -658,21 +658,22 @@ function formatCountdown(ms, { includeMonths = false, compact = false } = {}) {
   const hours = Math.floor((totalSeconds % (24 * 60 * 60)) / (60 * 60));
   const minutes = Math.floor((totalSeconds % (60 * 60)) / 60);
   const seconds = totalSeconds % 60;
+  const tx = (key, fallback) => { const v = typeof t === 'function' ? t(key) : null; return v || fallback; };
 
   if (compact) {
-    if (includeMonths && months > 0) return `${months}mo ${days}d ${hours}h ${minutes}m`;
-    if (days > 0) return `${days}d ${hours}h ${minutes}m`;
-    if (hours > 0) return `${hours}h ${minutes}m`;
-    return `${minutes}m`;
+    if (includeMonths && months > 0) return `${months}${tx('time_month_short', 'mo')} ${days}${tx('time_day_short', 'd')} ${hours}${tx('time_hour_short', 'h')} ${minutes}${tx('time_minute_short', 'm')}`;
+    if (days > 0) return `${days}${tx('time_day_short', 'd')} ${hours}${tx('time_hour_short', 'h')} ${minutes}${tx('time_minute_short', 'm')}`;
+    if (hours > 0) return `${hours}${tx('time_hour_short', 'h')} ${minutes}${tx('time_minute_short', 'm')}`;
+    return `${minutes}${tx('time_minute_short', 'm')}`;
   }
 
   if (includeMonths && months > 0) {
-    return `${months}mo ${days}d ${hours}h ${minutes}m ${seconds}s`;
+    return `${months}${tx('time_month_short', 'mo')} ${days}${tx('time_day_short', 'd')} ${hours}${tx('time_hour_short', 'h')} ${minutes}${tx('time_minute_short', 'm')} ${seconds}${tx('time_second_short', 's')}`;
   }
   if (days > 0) {
-    return `${days}d ${hours}h ${minutes}m ${seconds}s`;
+    return `${days}${tx('time_day_short', 'd')} ${hours}${tx('time_hour_short', 'h')} ${minutes}${tx('time_minute_short', 'm')} ${seconds}${tx('time_second_short', 's')}`;
   }
-  return `${hours}h ${minutes}m ${seconds}s`;
+  return `${hours}${tx('time_hour_short', 'h')} ${minutes}${tx('time_minute_short', 'm')} ${seconds}${tx('time_second_short', 's')}`;
 }
 
 function ScheduleDayInfoWidget({ selectedDate, isViewingCurrentWeek, t }) {
@@ -706,7 +707,7 @@ function ScheduleDayInfoWidget({ selectedDate, isViewingCurrentWeek, t }) {
     return null;
   }
 
-  const countdownText = formatCountdown(diff, { includeMonths: isFarFuture, compact: true });
+  const countdownText = formatCountdown(diff, { includeMonths: isFarFuture, compact: true, t });
   const tooltip = isViewingCurrentWeek
     ? `${t('schedule_day_starts_in') || 'Working day starts in'} ${countdownText}`
     : `${t('schedule_week_starts_in') || 'Working week starts in'} ${countdownText}`;
@@ -905,7 +906,7 @@ const OfficialWeeklyScheduleGrid = ({
     return (
       <div className={`${gridStyles.wrap} ${isDark ? gridStyles.wrapDark : ''}`}>
         <div className={gridStyles.emptyState}>
-          {lang === 'ar' ? 'لا توجد جلسات مجدولة' : 'No scheduled sessions found'}
+          {t('schedule_no_sessions') || (lang === 'ar' ? 'لا توجد جلسات مجدولة' : 'No scheduled sessions found')}
         </div>
       </div>
     );
@@ -980,7 +981,7 @@ const OfficialWeeklyScheduleGrid = ({
             <tr className={styles.scheduleHeaderRow}>
               <th className={styles.scheduleCornerCell}>
                 <div className={gridStyles.verticalCellInner}>
-                  <VerticalText>{isAr ? 'اليوم' : 'Day'}</VerticalText>
+                  <VerticalText>{t('calendar_day') || (isAr ? 'اليوم' : 'Day')}</VerticalText>
                 </div>
               </th>
               <th className={styles.scheduleCornerCell}>

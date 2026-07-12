@@ -127,16 +127,16 @@ function ScheduleSpeedDial({
 
       const headers = [
         '#',
-        lang === 'ar' ? 'رقم الطالب' : 'Student Number',
-        lang === 'ar' ? 'اسم الطالب' : 'Student Name',
-        lang === 'ar' ? 'حاضر' : 'Present',
-        lang === 'ar' ? 'متأخر' : 'Late',
-        lang === 'ar' ? 'غائب بدون عذر' : 'Absent (No Excuse)',
-        lang === 'ar' ? 'غائب بعذر' : 'Absent With Excuse',
-        lang === 'ar' ? 'إجازة بعذر' : 'Excused Leave',
-        lang === 'ar' ? 'حالة إنسانية' : 'Human Case',
-        lang === 'ar' ? 'إجمالي الجلسات' : 'Total Sessions',
-        lang === 'ar' ? 'نسبة الحضور' : 'Attendance %',
+        t('student_number'),
+        t('student_name'),
+        t('attendance_present'),
+        t('attendance_late'),
+        t('absent_no_excuse'),
+        t('absent_with_excuse'),
+        t('excused_leave'),
+        t('human_case'),
+        t('total_sessions'),
+        t('attendance_percentage'),
       ];
 
       const className = lang === 'ar' && cls.nameAr ? cls.nameAr : cls.nameEn || cls.code || '';
@@ -145,7 +145,7 @@ function ScheduleSpeedDial({
 
       const blob = await exportGeneric(rows, headers, {
         rtl: lang === 'ar',
-        sheetName: lang === 'ar' ? 'ملخص الحضور' : 'Attendance Summary',
+        sheetName: t('attendance_summary'),
         fileName: filename,
       });
 
@@ -207,7 +207,7 @@ function ScheduleSpeedDial({
       if (!pdfOnly) {
         items.push({
           id: 'export-attendance-summary',
-          name: lang === 'ar' ? 'ملخص الحضور' : 'Attendance Summary',
+          name: t('attendance_summary'),
           icon: getThemedIcon('ui', 'bar_chart', 18, 'currentColor'),
           disabled: exporting === 'export-attendance-summary',
           onClick: () => runExport('export-attendance-summary', handleExportAttendanceSummary),
