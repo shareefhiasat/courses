@@ -25,6 +25,7 @@ function ScheduleSpeedDial({
   onOpenInbox,
   onOpenHistory,
   onOpenNotifications,
+  pdfOnly = false,
 }) {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -175,14 +176,16 @@ function ScheduleSpeedDial({
         onClick: () => runExport('export-daily-pdf', () =>
           exportDailyOfficialForDate({ cls, program, subject, academicTerm, lang, user, date: dateStr, instructorName: slotInstructor, format: EXPORT_FORMAT.PDF })),
       });
-      items.push({
-        id: 'export-daily-excel',
-        name: `${t('daily_official')} Excel`,
-        icon: getThemedIcon('ui', 'file_text', 18, 'currentColor'),
-        disabled: exporting === 'export-daily-excel',
-        onClick: () => runExport('export-daily-excel', () =>
-          exportDailyOfficialForDate({ cls, program, subject, academicTerm, lang, user, date: dateStr, instructorName: slotInstructor, format: EXPORT_FORMAT.EXCEL })),
-      });
+      if (!pdfOnly) {
+        items.push({
+          id: 'export-daily-excel',
+          name: `${t('daily_official')} Excel`,
+          icon: getThemedIcon('ui', 'file_text', 18, 'currentColor'),
+          disabled: exporting === 'export-daily-excel',
+          onClick: () => runExport('export-daily-excel', () =>
+            exportDailyOfficialForDate({ cls, program, subject, academicTerm, lang, user, date: dateStr, instructorName: slotInstructor, format: EXPORT_FORMAT.EXCEL })),
+        });
+      }
       items.push({
         id: 'export-weekly-pdf',
         name: `${t('weekly_schedule')} PDF`,
@@ -191,21 +194,25 @@ function ScheduleSpeedDial({
         onClick: () => runExport('export-weekly-pdf', () =>
           exportWeeklyScheduleForScope({ cls, program, subject, academicTerm, lang, t, user, format: EXPORT_FORMAT.PDF })),
       });
-      items.push({
-        id: 'export-weekly-excel',
-        name: `${t('weekly_schedule')} Excel`,
-        icon: getThemedIcon('ui', 'file_text', 18, 'currentColor'),
-        disabled: exporting === 'export-weekly-excel',
-        onClick: () => runExport('export-weekly-excel', () =>
-          exportWeeklyScheduleForScope({ cls, program, subject, academicTerm, lang, t, user, format: EXPORT_FORMAT.EXCEL })),
-      });
-      items.push({
-        id: 'export-attendance-summary',
-        name: lang === 'ar' ? 'ملخص الحضور' : 'Attendance Summary',
-        icon: getThemedIcon('ui', 'bar_chart', 18, 'currentColor'),
-        disabled: exporting === 'export-attendance-summary',
-        onClick: () => runExport('export-attendance-summary', handleExportAttendanceSummary),
-      });
+      if (!pdfOnly) {
+        items.push({
+          id: 'export-weekly-excel',
+          name: `${t('weekly_schedule')} Excel`,
+          icon: getThemedIcon('ui', 'file_text', 18, 'currentColor'),
+          disabled: exporting === 'export-weekly-excel',
+          onClick: () => runExport('export-weekly-excel', () =>
+            exportWeeklyScheduleForScope({ cls, program, subject, academicTerm, lang, t, user, format: EXPORT_FORMAT.EXCEL })),
+        });
+      }
+      if (!pdfOnly) {
+        items.push({
+          id: 'export-attendance-summary',
+          name: lang === 'ar' ? 'ملخص الحضور' : 'Attendance Summary',
+          icon: getThemedIcon('ui', 'bar_chart', 18, 'currentColor'),
+          disabled: exporting === 'export-attendance-summary',
+          onClick: () => runExport('export-attendance-summary', handleExportAttendanceSummary),
+        });
+      }
     }
 
     items.push({
@@ -216,7 +223,7 @@ function ScheduleSpeedDial({
     });
 
     return items;
-  }, [canExport, cls, program, subject, academicTerm, slotInstructor, lang, t, user, dateStr, exporting, runExport, handleScanManual, handleExportAttendanceSummary]);
+  }, [canExport, cls, program, subject, academicTerm, slotInstructor, lang, t, user, dateStr, exporting, runExport, handleScanManual, handleExportAttendanceSummary, pdfOnly]);
 
   if (!session) return null;
 

@@ -1585,6 +1585,7 @@ const WelcomePage = () => {
                         onOpenInbox={handleOpenInbox}
                         onOpenHistory={handleOpenHistory}
                         onOpenNotifications={handleOpenNotifications}
+                        pdfOnly={tabParam === 'schedule'}
                       />
                     )}
                   </div>
