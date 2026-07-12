@@ -756,29 +756,29 @@ const Navbar = ({ onToggleSidebar, hideHamburger = false }) => {
                 <div style={{ position:'absolute', [lang === 'ar' ? 'left' : 'right']:-8, top: '50%', transform: 'translateY(-50%)', display: 'flex', flexDirection: 'column', gap: '2px' }}>
                   {isSuperAdmin && (
                     <PortalTooltip content={t('super_admin')} position="left">
-                    <div style={{ background: getUserRoleColor('super_admin'), color:'#fff', borderRadius:'50%', width:18, height:18, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 0 2px rgba(255,255,255,0.8)' }}>
-                      {getUserRoleIcon('super_admin')}
+                    <div style={{ background: 'transparent', color: '#ffffff', borderRadius:'50%', width:18, height:18, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'none' }}>
+                      {React.cloneElement(getUserRoleIcon('super_admin'), { fill: getUserRoleColor('super_admin') })}
                     </div>
                     </PortalTooltip>
                   )}
                   {isAdmin && !isSuperAdmin && (
                     <PortalTooltip content={t('admin')} position="left">
-                    <div style={{ background: getUserRoleColor('admin'), color:'#fff', borderRadius:'50%', width:18, height:18, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 0 2px rgba(255,255,255,0.8)' }}>
-                      {getUserRoleIcon('admin')}
+                    <div style={{ background: 'transparent', color: '#ffffff', borderRadius:'50%', width:18, height:18, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'none' }}>
+                      {React.cloneElement(getUserRoleIcon('admin'), { fill: getUserRoleColor('admin') })}
                     </div>
                     </PortalTooltip>
                   )}
                   {isInstructor && (
                     <PortalTooltip content={t('instructor')} position="left">
-                    <div style={{ background: getUserRoleColor('instructor'), color:'#fff', borderRadius:'50%', width:18, height:18, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 0 2px rgba(255,255,255,0.8)' }}>
-                      {getUserRoleIcon('instructor')}
+                    <div style={{ background: 'transparent', color: '#ffffff', borderRadius:'50%', width:18, height:18, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'none' }}>
+                      {React.cloneElement(getUserRoleIcon('instructor'), { fill: getUserRoleColor('instructor') })}
                     </div>
                     </PortalTooltip>
                   )}
                   {isHR && (
                     <PortalTooltip content={t('hr')} position="left">
-                    <div style={{ background: getUserRoleColor('hr'), color:'#fff', borderRadius:'50%', width:18, height:18, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 0 2px rgba(255,255,255,0.8)' }}>
-                      {getUserRoleIcon('hr')}
+                    <div style={{ background: 'transparent', color: '#ffffff', borderRadius:'50%', width:18, height:18, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'none' }}>
+                      {React.cloneElement(getUserRoleIcon('hr'), { fill: getUserRoleColor('hr') })}
                     </div>
                     </PortalTooltip>
                   )}

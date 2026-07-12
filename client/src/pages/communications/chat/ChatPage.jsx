@@ -1768,8 +1768,8 @@ const ChatPage = memo(() => {
                             <span style={{ fontSize: 8, color: 'white' }}>✕</span>
                           </div>
                         ) : roleIcon ? (
-                          <div style={{ position: 'absolute', bottom: -2, insetInlineEnd: -2, width: 14, height: 14, borderRadius: '50%', background: 'var(--panel)', display: 'flex', alignItems: 'center', justifyContent: 'center', border: '1.5px solid var(--panel)', boxShadow: '0 0 0 1px var(--border)' }} title={primaryRole}>
-                            {React.cloneElement(roleIcon, { color: roleColor, size: 8 })}
+                          <div style={{ position: 'absolute', bottom: -2, insetInlineEnd: -2, width: 14, height: 14, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', border: 'none', boxShadow: 'none' }} title={primaryRole}>
+                            {React.cloneElement(roleIcon, { color: '#ffffff', fill: roleColor, size: 8 })}
                           </div>
                         ) : null}
                       </div>

@@ -66,16 +66,16 @@ export default function DriveUserAvatar({
               width: badgeSize,
               height: badgeSize,
               borderRadius: '9999px',
-              background: 'var(--panel, white)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
-              border: '1.5px solid var(--panel, white)',
-              boxShadow: '0 0 0 1px var(--border, #e5e7eb)',
+              background: 'transparent',
+              border: 'none',
+              boxShadow: 'none',
             }}
             title={t(`roles.${role}`, role)}
           >
-            {React.cloneElement(roleIcon, { color: roleColor, size: badgeIconSize })}
+            {React.cloneElement(roleIcon, { color: '#ffffff', fill: roleColor, size: badgeIconSize })}
           </div>
         );
       })()}

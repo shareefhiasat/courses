@@ -1196,23 +1196,10 @@ const SideDrawer = ({ isOpen, onClose, onOpen }) => {
                       const roleColor = getUserRoleColor(role);
                       if (!roleIcon) return null;
                       return (
-                        <div style={{
-                          position: 'absolute',
-                          bottom: '-2px',
-                          insetInlineEnd: '-2px',
-                          width: '1rem',
-                          height: '1rem',
-                          borderRadius: '9999px',
-                          background: 'var(--panel, white)',
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          border: '1.5px solid var(--panel, white)',
-                          boxShadow: '0 0 0 1px var(--border, #e5e7eb)',
-                        }}
+                        <div style={{ position: 'absolute', bottom: '-2px', insetInlineEnd: '-2px', width: 18, height: 18, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'transparent', color: '#ffffff', boxShadow: 'none' }}
                           title={t(`roles.${role}`, role)}
                         >
-                          {React.cloneElement(roleIcon, { color: roleColor, size: 8 })}
+                          {React.cloneElement(roleIcon, { fill: roleColor })}
                         </div>
                       );
                     })()}

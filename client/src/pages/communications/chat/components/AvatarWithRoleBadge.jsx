@@ -80,16 +80,16 @@ const AvatarWithRoleBadge = ({
             width: badgeSize,
             height: badgeSize,
             borderRadius: '50%',
-            background: 'var(--panel, white)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            border: '1.5px solid var(--panel, white)',
-            boxShadow: '0 0 0 1px var(--border, #e5e7eb)',
+            background: 'transparent',
+            border: 'none',
+            boxShadow: 'none',
           }}
           title={showRoleLabel && t ? t(`role_label_${role}`) || role : role}
         >
-          {React.cloneElement(roleIcon, { color: roleColor, size: iconSize })}
+          {React.cloneElement(roleIcon, { color: '#ffffff', fill: roleColor, size: iconSize })}
         </div>
       )}
     </div>
