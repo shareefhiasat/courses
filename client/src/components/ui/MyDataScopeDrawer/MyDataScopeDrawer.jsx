@@ -291,6 +291,7 @@ export default function MyDataScopeDrawer({ isOpen, onClose }) {
         lang,
         user,
         format: options.format || EXPORT_FORMAT.PDF,
+        preview: options.preview,
       });
       setAttendanceExportSuccess(result);
     } catch (err) {
@@ -570,6 +571,8 @@ export default function MyDataScopeDrawer({ isOpen, onClose }) {
         lang={lang}
         theme={theme}
         successResult={attendanceExportSuccess}
+        allowPreviewUnapproved={canAttendanceOfficial || isAdmin}
+        cls={attendanceContext?.cls}
       />
     </>
   );

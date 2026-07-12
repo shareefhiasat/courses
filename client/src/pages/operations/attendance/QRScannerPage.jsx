@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import Joyride from 'react-joyride';
 import TourTooltip from '@ui/TourTooltip/TourTooltip';
-import { formatTime, formatDateTime, formatForDateInput } from '@utils/date-formatter.js';
+import { formatTime, formatDateTime, formatForDateInput, getQatarDateParts } from '@utils/date-formatter.js';
 import { info, error, warn, debug } from '@services/utils/logger.js';
 import { formatQatarDateOnly, getQatarNow } from '@utils/qatarDate';
 import { useAuth } from '@contexts/AuthContext';
@@ -14,7 +14,7 @@ import { useMobileDetect } from '@hooks/useMobileDetect';
 // OLD: import { BEHAVIOR_TYPES } from '@constants/behaviorTypes';
 // OLD: import { PARTICIPATION_TYPES } from '@constants/participationTypes';
 // NOW: Using useLookupTypes hook for all lookup data
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { getUsers } from '@services/business/userService';
 import { createDM } from '@services/business/chatService';
 import { getEnrollments, getEnrollmentsByProgram } from '@services/business/enrollmentService';
@@ -109,6 +109,7 @@ const QRScannerPage = () => {
   const { theme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const toast = useToast();
   const [prefillManualInput, setPrefillManualInput] = useState({ studentId: '', show: false });
   const { activityTypeOptions } = useLookupTypes();
@@ -165,7 +166,7 @@ const QRScannerPage = () => {
   const validateSelection = useCallback((selectionId, availableItems, itemType) => {
     if (selectionId === 'all') return true;
     return availableItems.some(item => 
-      (item.id === selectionId)
+      item.id == selectionId
     );
   }, []);
 
@@ -228,9 +229,9 @@ const QRScannerPage = () => {
 
   const [useOfficialReports, setUseOfficialReports] = useState(() => {
     try {
-      return localStorage.getItem('qrScanner_useOfficialReports') === 'true';
+      return localStorage.getItem('qrScanner_useOfficialReports') !== 'false';
     } catch {
-      return false;
+      return true;
     }
   });
 
@@ -268,28 +269,12 @@ const QRScannerPage = () => {
     }
     steps.push({ target: '[data-tour="qr-date-picker"]', content: t('tour.qr_date_picker'), disableBeacon: true, placement: 'bottom' });
     if (canExport) {
-      steps.push({
-        target: '[data-tour="qr-report-mode-toggle"]',
-        content: t('tour.qr_report_mode_toggle'),
-        disableBeacon: true,
-        placement: 'bottom',
-      });
-      if (useOfficialReports) {
-        steps.push({ target: '[data-tour="qr-daily-official"]', content: t('tour.qr_daily_official'), disableBeacon: true, placement: 'bottom' });
-        if ((isSuperAdmin || isHR) && attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP) {
-          steps.push({ target: '[data-tour="qr-attendance-official"]', content: t('tour.qr_attendance_official'), disableBeacon: true, placement: 'bottom' });
-        }
-      } else {
-        steps.push({ target: '[data-tour="qr-daily-report"]', content: t('tour.qr_daily_report'), disableBeacon: true, placement: 'bottom' });
-        if (canExportSummary) {
-          steps.push({ target: '[data-tour="qr-summary-report"]', content: t('tour.qr_summary_report'), disableBeacon: true, placement: 'bottom' });
-        }
-        if (isSuperAdmin || isHR) {
-          steps.push({ target: '[data-tour="qr-violations-report"]', content: t('tour.qr_violations_report'), disableBeacon: true, placement: 'bottom' });
-        }
+      steps.push({ target: '[data-tour="qr-daily-official"]', content: t('tour.qr_daily_official'), disableBeacon: true, placement: 'bottom' });
+      if (isHR && attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP) {
+        steps.push({ target: '[data-tour="qr-attendance-official"]', content: t('tour.qr_attendance_official'), disableBeacon: true, placement: 'bottom' });
       }
     }
-    if (canBulkScan && !useOfficialReports) {
+    if (canBulkScan) {
       steps.push({ target: '[data-tour="qr-bulk-scan"]', content: t('tour.qr_bulk_scan'), disableBeacon: true, placement: 'bottom' });
     }
     steps.push({ target: '[data-tour="qr-scanner-panel"]', content: t('tour.qr_scanner_panel'), disableBeacon: true, placement: 'right' });
@@ -301,7 +286,7 @@ const QRScannerPage = () => {
       steps.push({ target: '[data-tour="qr-zap-panel"]', content: t('tour.qr_zap_panel'), disableBeacon: true, placement: 'left' });
     }
     setTourSteps(steps);
-  }, [lang, t, canSeeStandupMode, canExport, canExportSummary, isSuperAdmin, isHR, canBulkScan, canUseStatsPanel, canUseZapPanel, useOfficialReports, attendanceMode]);
+  }, [lang, t, canSeeStandupMode, canExport, isHR, canBulkScan, canUseStatsPanel, canUseZapPanel, attendanceMode]);
 
   useEffect(() => {
     const start = () => setRunTour(true);
@@ -612,6 +597,13 @@ const QRScannerPage = () => {
     const selectedProgram = programs.find(p => p.id == selectedProgramId);
     return selectedProgram?.nameEn || selectedProgram?.name || selectedProgram?.code || 'Unknown Program';
   }, [selectedProgramId, programs]);
+
+  const isDailyOfficialDisabled = useMemo(() => {
+    if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
+      return !selectedProgramId || selectedProgramId === 'all';
+    }
+    return !selectedProgramId || selectedProgramId === 'all' || !selectedSubjectId || selectedSubjectId === 'all' || !selectedClassId || selectedClassId === 'all';
+  }, [attendanceMode, selectedProgramId, selectedSubjectId, selectedClassId]);
 
   useEffect(() => {
     if (
@@ -977,8 +969,8 @@ const QRScannerPage = () => {
     );
 
     if (targetClass) {
-      const programId = targetClass.programId || targetClass.program;
-      const subjectId = targetClass.subjectId || targetClass.subject;
+      const programId = targetClass.programId || targetClass.program?.id;
+      const subjectId = targetClass.subjectId || targetClass.subject?.id;
       if (programId) saveSelectedProgramId(String(programId));
       if (subjectId) saveSelectedSubjectId(String(subjectId));
       saveSelectedClassId(String(targetClass.id));
@@ -1003,6 +995,50 @@ const QRScannerPage = () => {
     // Clear navigation state so a refresh doesn't reapply it
     navigate('/qr-scanner', { replace: true });
   }, [location.state, programs, classes, saveSelectedProgramId, saveSelectedSubjectId, saveSelectedClassId, navigate]);
+
+  // Apply URL search params (opened in new tab from schedule context menu)
+  const urlParamsAppliedRef = useRef(false);
+  useEffect(() => {
+    if (urlParamsAppliedRef.current) return;
+    const urlClassId = searchParams.get('classId');
+    if (!urlClassId || programs.length === 0 || classes.length === 0) return;
+
+    urlParamsAppliedRef.current = true;
+
+    const urlProgramId = searchParams.get('programId');
+    const urlSubjectId = searchParams.get('subjectId');
+    const urlDate = searchParams.get('date');
+    const urlMode = searchParams.get('mode');
+    const urlManual = searchParams.get('manual');
+
+    const targetClass = classes.find(
+      (c) => String(c.id) === String(urlClassId)
+    );
+
+    if (targetClass) {
+      const programId = urlProgramId || targetClass.programId || targetClass.program?.id;
+      const subjectId = urlSubjectId || targetClass.subjectId || targetClass.subject?.id;
+      if (programId) saveSelectedProgramId(String(programId));
+      if (subjectId) saveSelectedSubjectId(String(subjectId));
+      saveSelectedClassId(String(targetClass.id));
+    } else {
+      saveSelectedClassId(String(urlClassId));
+      if (urlProgramId) saveSelectedProgramId(String(urlProgramId));
+      if (urlSubjectId) saveSelectedSubjectId(String(urlSubjectId));
+    }
+
+    if (urlDate) {
+      setSelectedDate(urlDate.slice(0, 10));
+    }
+
+    if (urlMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
+      setAttendanceMode(ATTENDANCE_TYPE_CATEGORY.STANDUP);
+    }
+
+    if (urlManual === '1' || urlManual === 'true') {
+      setPrefillManualInput({ studentId: '', show: true });
+    }
+  }, [searchParams, programs, classes, saveSelectedProgramId, saveSelectedSubjectId, saveSelectedClassId]);
 
   // Memoized loadStudents function for performance
   const loadStudents = useCallback(async (classId, date, programId = null) => {
@@ -3178,6 +3214,7 @@ const QRScannerPage = () => {
         attendanceByUserId,
         lang,
         isStandup,
+        isTemplate: roster.length === 0,
         metadata: {
           date: formattedDate,
           programId: selectedProgramId,
@@ -3342,30 +3379,57 @@ const QRScannerPage = () => {
     try {
       setIsExportingBehavioral(true);
 
-      const attendancePromises = exportSubjects.map((subjectId) =>
-        getAttendanceRecords({
-          subjectId: Number(subjectId),
-          dateFrom,
-          dateTo,
-          limit: 5000,
-        })
-      );
+      // Fetch by classId instead of subjectId — subjectId is often NULL in the DB,
+      // so filtering by subjectId returns no records. We fetch by class, then
+      // filter by subject on the client side using class->subject mapping.
+      const selectedSubjectSet = new Set(exportSubjects.map(String));
+      const classIdsForSubjects = classes
+        .filter((c) => c.subjectId != null && selectedSubjectSet.has(String(c.subjectId)))
+        .map((c) => c.id);
 
-      const attendanceResults = await Promise.all(attendancePromises);
-      const allAttendanceData = attendanceResults
-        .filter((result) => result.success)
-        .flatMap((result) => result.data);
+      const fetchClassIds = classIdsForSubjects.length > 0 ? classIdsForSubjects : [];
+
+      let allAttendanceData = [];
+      if (fetchClassIds.length > 0) {
+        const attendancePromises = fetchClassIds.map((classId) =>
+          getAttendanceRecords({
+            classId: Number(classId),
+            dateFrom,
+            dateTo,
+            limit: 5000,
+          })
+        );
+        const attendanceResults = await Promise.all(attendancePromises);
+        allAttendanceData = attendanceResults
+          .filter((result) => result.success)
+          .flatMap((result) => result.data);
+      } else {
+        // Fallback: fetch by subjectId (for callers without class data)
+        const attendancePromises = exportSubjects.map((subjectId) =>
+          getAttendanceRecords({
+            subjectId: Number(subjectId),
+            dateFrom,
+            dateTo,
+            limit: 5000,
+          })
+        );
+        const attendanceResults = await Promise.all(attendancePromises);
+        allAttendanceData = attendanceResults
+          .filter((result) => result.success)
+          .flatMap((result) => result.data);
+      }
 
       const deduplicatedData = Array.from(
         new Map(allAttendanceData.map((record) => [record.id, record])).values()
       );
 
+      // Client-side date filter using Qatar timezone to ensure correct calendar date
       const inRange = deduplicatedData.filter((record) => {
         const raw = record.date || record.at || record.createdAt;
-        const dateKey =
-          typeof raw === 'string'
-            ? raw.split('T')[0]
-            : formatForDateInput(new Date(raw));
+        const parts = getQatarDateParts(raw);
+        const dateKey = parts
+          ? `${parts.year}-${String(parts.month).padStart(2, '0')}-${String(parts.day).padStart(2, '0')}`
+          : (typeof raw === 'string' ? raw.split('T')[0] : formatForDateInput(new Date(raw)));
         return dateKey >= dateFrom && dateKey <= dateTo;
       });
 
@@ -3374,9 +3438,18 @@ const QRScannerPage = () => {
         return;
       }
 
-      const enrichedData = inRange.map((record) => {
+      // Filter to only records whose class belongs to one of the selected subjects
+      // (resolves subjectId from class when record.subjectId is NULL)
+      const subjectFiltered = inRange.filter((record) => {
         const recordClass = classes.find((c) => c.id === record.classId);
-        const recordSubject = subjects.find((s) => s.id == record.subjectId);
+        const effectiveSubjectId = record.subjectId ?? recordClass?.subjectId ?? recordClass?.subject?.id;
+        return effectiveSubjectId != null && selectedSubjectSet.has(String(effectiveSubjectId));
+      });
+
+      const enrichedData = subjectFiltered.map((record) => {
+        const recordClass = classes.find((c) => c.id === record.classId);
+        const effectiveSubjectId = record.subjectId ?? recordClass?.subjectId ?? recordClass?.subject?.id;
+        const recordSubject = subjects.find((s) => s.id == effectiveSubjectId);
         const studentName = getLocalizedUserName(record.user, lang, '');
         const studentNumber = record.user?.studentNumber || '';
 
@@ -5384,150 +5457,21 @@ const QRScannerPage = () => {
           flexWrap: 'wrap'
         }}>
               {canExport && (
-                <div
-                  data-tour="qr-report-mode-toggle"
-                  style={{
-                    display: 'flex',
-                    gap: '0.25rem',
-                    background: 'var(--background-secondary, #f3f4f6)',
-                    padding: '0.25rem',
-                    borderRadius: '0.5rem',
-                    border: '1px solid var(--border, #e5e7eb)',
-                    flex: '0 0 auto',
-                  }}
-                >
-                  <button
-                    type="button"
-                    disabled={isExporting || isExportingBehavioral}
-                    onClick={() => setUseOfficialReports(false)}
-                    style={{
-                      padding: '0.5rem 0.75rem',
-                      background: !useOfficialReports ? 'var(--color-primary, #3b82f6)' : 'transparent',
-                      color: !useOfficialReports ? 'white' : 'var(--text-muted, #6b7280)',
-                      border: 'none',
-                      borderRadius: '0.375rem',
-                      cursor: (isExporting || isExportingBehavioral) ? 'not-allowed' : 'pointer',
-                      opacity: (isExporting || isExportingBehavioral) ? 0.5 : 1,
-                      transition: 'all 0.2s',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.375rem',
-                      fontSize: 'var(--font-size-xs)',
-                      fontWeight: 600,
-                    }}
-                    data-tooltip={t('standard_reports')}
-                    data-tooltip-pos="bottom"
-                  >
-                    {getThemedIcon('ui', 'file', 14, !useOfficialReports ? 'white' : theme)}
-                    <span>{t('standard_reports')}</span>
-                  </button>
-                  <button
-                    type="button"
-                    disabled={isExporting || isExportingBehavioral}
-                    onClick={() => setUseOfficialReports(true)}
-                    style={{
-                      padding: '0.5rem 0.75rem',
-                      background: useOfficialReports ? 'var(--color-primary, #3b82f6)' : 'transparent',
-                      color: useOfficialReports ? 'white' : 'var(--text-muted, #6b7280)',
-                      border: 'none',
-                      borderRadius: '0.375rem',
-                      cursor: (isExporting || isExportingBehavioral) ? 'not-allowed' : 'pointer',
-                      opacity: (isExporting || isExportingBehavioral) ? 0.5 : 1,
-                      transition: 'all 0.2s',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.375rem',
-                      fontSize: 'var(--font-size-xs)',
-                      fontWeight: 600,
-                    }}
-                    data-tooltip={t('official_reports')}
-                    data-tooltip-pos="bottom"
-                  >
-                    {getThemedIcon('ui', 'file_signature', 14, useOfficialReports ? 'white' : theme)}
-                    <span>{t('official_reports')}</span>
-                  </button>
-                </div>
-              )}
-
-              {canExport && !useOfficialReports && (
-                <button
-                    data-tour="qr-daily-report"
-                    onClick={() => {
-                      if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
-                        if (!selectedProgramId || selectedProgramId === 'all') {
-                          showError(t('please_select_program'));
-                          return;
-                        }
-                      } else {
-                        if (!selectedClassId || selectedClassId === 'all') {
-                          showError(t('please_select_class'));
-                          return;
-                        }
-                      }
-                      
-                      // Check if there's any attendance for today's date before opening dialog
-                      const hasAttendanceToday = students.some(student => 
-                        (student.attendance !== null && student.attendance !== undefined) ||
-                        (student.standupStatus !== null && student.standupStatus !== undefined)
-                      );
-                      if (!hasAttendanceToday) {
-                        setShowNoAttendanceModal(true);
-                        return;
-                      }
-                      
-                      setShowDailyReportModal(true);
-                    }}
-                    style={{
-                      padding: '1rem 1.5rem',
-                      background: (isExporting || isExportingBehavioral) ? '#94a3b8' : 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '0.5rem',
-                      fontSize: 'var(--font-size-sm)',
-                      fontWeight: 600,
-                      cursor: (isExporting || isExportingBehavioral) ? 'not-allowed' : 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      transition: 'all 0.2s',
-                      boxShadow: '0 2px 4px rgba(139, 92, 246, 0.2)',
-                      minWidth: '100px',
-                      justifyContent: 'center',
-                      opacity: (isExporting || isExportingBehavioral || (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || selectedProgramId === 'all' || !selectedSubjectId || selectedSubjectId === 'all' || !selectedClassId || selectedClassId === 'all'))) ? 0.5 : 1
-                    }}
-                    disabled={gridLoading || isExporting || isExportingBehavioral || (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || selectedProgramId === 'all' || !selectedSubjectId || selectedSubjectId === 'all' || !selectedClassId || selectedClassId === 'all'))}
-                    data-tooltip={t('export_daily_report')}
-                    data-tooltip-pos="bottom"
-                  >
-                    {getThemedIcon('ui', 'file', 16, 'white')}
-                    {t('daily_report')}
-                  </button>
-              )}
-
-              {canExport && useOfficialReports && (
                 <button
                   data-tour="qr-daily-official"
                   onClick={() => {
-                    if (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP) {
-                      if (!selectedProgramId || selectedProgramId === 'all') {
-                        showError(t('please_select_program'));
-                        return;
-                      }
-                    } else if (!selectedClassId || selectedClassId === 'all') {
-                      showError(t('please_select_class'));
-                      return;
-                    }
+                    if (isDailyOfficialDisabled) return;
                     setShowDailyOfficialModal(true);
                   }}
                   style={{
                     padding: '1rem 1.5rem',
-                    background: (isExporting || isExportingBehavioral) ? '#94a3b8' : 'linear-gradient(135deg, #0d9488 0%, #0f766e 100%)',
+                    background: (isExporting || isExportingBehavioral || isDailyOfficialDisabled) ? '#94a3b8' : 'linear-gradient(135deg, #0d9488 0%, #0f766e 100%)',
                     color: 'white',
                     border: 'none',
                     borderRadius: '0.5rem',
                     fontSize: 'var(--font-size-sm)',
                     fontWeight: 600,
-                    cursor: (isExporting || isExportingBehavioral) ? 'not-allowed' : 'pointer',
+                    cursor: (isExporting || isExportingBehavioral || isDailyOfficialDisabled) ? 'not-allowed' : 'pointer',
                     display: 'flex',
                     alignItems: 'center',
                     gap: '0.5rem',
@@ -5535,61 +5479,21 @@ const QRScannerPage = () => {
                     boxShadow: '0 2px 4px rgba(13, 148, 136, 0.2)',
                     minWidth: '100px',
                     justifyContent: 'center',
-                    opacity: (isExporting || isExportingBehavioral || (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || selectedProgramId === 'all' || !selectedSubjectId || selectedSubjectId === 'all' || !selectedClassId || selectedClassId === 'all'))) ? 0.5 : 1
+                    opacity: (isExporting || isExportingBehavioral || isDailyOfficialDisabled) ? 0.5 : 1
                   }}
-                  disabled={gridLoading || isExporting || isExportingBehavioral || (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || selectedProgramId === 'all' || !selectedSubjectId || selectedSubjectId === 'all' || !selectedClassId || selectedClassId === 'all'))}
-                  data-tooltip={t('export_daily_official')}
+                  disabled={gridLoading || isExporting || isExportingBehavioral || isDailyOfficialDisabled}
+                  data-tooltip={isDailyOfficialDisabled ? t('go_select_class_to_export_daily') : t('export_daily_official')}
                   data-tooltip-pos="bottom"
                 >
-                  {getThemedIcon('ui', 'file_signature', 16, 'white')}
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '0.25rem' }}>
+                    {getThemedIcon('ui', 'file_signature', 14, 'white')}
+                    {getThemedIcon('ui', 'file_text', 14, 'white')}
+                  </span>
                   {t('daily_official')}
                 </button>
               )}
 
-              {!useOfficialReports && (isHR || isSuperAdmin) && attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && (
-                  <button
-                    data-tour="qr-violations-report"
-                    onClick={() => {
-                      // Check if there's any attendance for today's date before opening dialog
-                      const hasAttendanceToday = students.some(student => 
-                        (student.attendance !== null && student.attendance !== undefined) ||
-                        (student.standupStatus !== null && student.standupStatus !== undefined)
-                      );
-                      if (!hasAttendanceToday) {
-                        setShowNoAttendanceModal(true);
-                        return;
-                      }
-                      
-                      openViolationsModal('standard');
-                    }}
-                    style={{
-                      padding: '1rem 1.5rem',
-                      background: (isExporting || isExportingBehavioral) ? '#94a3b8' : 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '0.5rem',
-                      fontSize: 'var(--font-size-sm)',
-                      fontWeight: 600,
-                      cursor: (isExporting || isExportingBehavioral) ? 'not-allowed' : 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      transition: 'all 0.2s',
-                      boxShadow: '0 2px 4px rgba(245, 158, 11, 0.2)',
-                      minWidth: '100px',
-                      justifyContent: 'center',
-                      opacity: (isExporting || isExportingBehavioral || (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || selectedProgramId === 'all' || !selectedSubjectId || selectedSubjectId === 'all' || !selectedClassId || selectedClassId === 'all'))) ? 0.5 : 1
-                    }}
-                    disabled={isExporting || isExportingBehavioral || (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || selectedProgramId === 'all' || !selectedSubjectId || selectedSubjectId === 'all' || !selectedClassId || selectedClassId === 'all'))}
-                    data-tooltip={t('export_attendance_violations')}
-                    data-tooltip-pos="bottom"
-                  >
-                    {getThemedIcon('ui', 'alert_triangle', 16, 'white')}
-                    {t('attendance')}
-                  </button>
-              )}
-
-              {useOfficialReports && (isHR || isSuperAdmin) && attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && (
+              {isHR && attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && (
                   <button
                     data-tour="qr-attendance-official"
                     onClick={() => openViolationsModal('official')}
@@ -5620,49 +5524,6 @@ const QRScannerPage = () => {
                   </button>
               )}
 
-              {!useOfficialReports && canExportSummary && (
-                  <button
-                    data-tour="qr-summary-report"
-                    onClick={() => {
-                      // Check if there's any attendance for today's date before opening dialog
-                      const hasAttendanceToday = students.some(student => 
-                        (student.attendance !== null && student.attendance !== undefined) ||
-                        (student.standupStatus !== null && student.standupStatus !== undefined)
-                      );
-                      if (!hasAttendanceToday) {
-                        setShowNoAttendanceModal(true);
-                        return;
-                      }
-                      
-                      setShowSemesterReportConfirm(true);
-                    }}
-                    style={{
-                      padding: '1rem 1.5rem',
-                      background: (isExporting || isExportingBehavioral) ? '#94a3b8' : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '0.5rem',
-                      fontSize: 'var(--font-size-sm)',
-                      fontWeight: 600,
-                      cursor: (isExporting || isExportingBehavioral) ? 'not-allowed' : 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '0.5rem',
-                      transition: 'all 0.2s',
-                      boxShadow: '0 2px 4px rgba(16, 185, 129, 0.2)',
-                      minWidth: '100px',
-                      justifyContent: 'center',
-                      opacity: (isExporting || isExportingBehavioral || (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || selectedProgramId === 'all' || !selectedSubjectId || selectedSubjectId === 'all' || !selectedClassId || selectedClassId === 'all'))) ? 0.5 : 1
-                    }}
-                    disabled={gridLoading || isExporting || isExportingBehavioral || (attendanceMode === ATTENDANCE_TYPE_CATEGORY.STANDUP ? (!selectedProgramId || selectedProgramId === 'all') : (!selectedProgramId || selectedProgramId === 'all' || !selectedSubjectId || selectedSubjectId === 'all' || !selectedClassId || selectedClassId === 'all'))}
-                    data-tooltip={t('export_summary_report')}
-                    data-tooltip-pos="bottom"
-                  >
-                    {getThemedIcon('ui', 'send', 16, 'white')}
-                    {t('summary_report')}
-                  </button>
-              )}
-
               <button
                 onClick={() => setShowExportHistory(true)}
                 style={{
@@ -5689,7 +5550,7 @@ const QRScannerPage = () => {
                 {t('history')}
               </button>
 
-              {canBulkScan && !useOfficialReports && (
+              {canBulkScan && (
                 <button
                   data-tour="qr-bulk-scan"
                   onClick={() => {
@@ -5790,7 +5651,7 @@ const QRScannerPage = () => {
               onScan={handleScan}
               classId={selectedClassId}
               onActivityUpdate={handleActivityUpdate}
-              onDeleteActivity={handleDeleteActivity}
+              onDeleteActivity={undefined}
               selectedProgramId={selectedProgramId}
               selectedSubjectId={selectedSubjectId}
               selectedClassId={selectedClassId}
@@ -5918,7 +5779,7 @@ const QRScannerPage = () => {
         {selectedStudent && (
           <>
             {gridLoading && <GlobalLoadingFallback />}
-            {attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && canUseStatsPanel && (
+            {attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && canUseStatsPanel && !isHR && (
               <StudentActionStatsPanel
                 data-tour="qr-stats-panel"
                 student={selectedStudent}
@@ -5950,7 +5811,7 @@ const QRScannerPage = () => {
         )}
 
         {/* Student Action Panel New */}
-        {selectedStudentForAction && attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && canUseZapPanel && (
+        {selectedStudentForAction && attendanceMode !== ATTENDANCE_TYPE_CATEGORY.STANDUP && canUseZapPanel && !isHR && (
           <>
             <StudentActionZapPanel
               data-tour="qr-zap-panel"

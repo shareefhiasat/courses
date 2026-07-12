@@ -92,7 +92,7 @@ export default function BoardLegend({
           </div>
           <div className={gridStyles.legendItem}>
             <span className={`${gridStyles.legendDot} ${gridStyles.legendDot_inProgress}`} />
-            <span className={gridStyles.legendLabel} style={{ color: '#1d4ed8' }}>{t('workspace_lecture_in_progress')}</span>
+            <span className={gridStyles.legendLabel} style={{ color: 'rgb(3, 105, 161)' }}>{t('workspace_lecture_in_progress')}</span>
           </div>
           <div className={gridStyles.legendItem}>
             <span className={`${gridStyles.legendDot} ${gridStyles.legendDot_selected}`} />

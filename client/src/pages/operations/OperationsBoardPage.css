@@ -440,7 +440,7 @@
   height: 100%;
   min-height: 420px;
   max-height: none;
-  padding: 1rem;
+  padding: 2px;
   border-radius: 8px;
   border: 1px solid hsl(var(--border));
 }
@@ -688,6 +688,7 @@
 .operations-board-page .operations-board-lane-header {
   border-bottom: 1px solid rgba(15, 23, 42, 0.16) !important;
   background: rgba(15, 23, 42, 0.03);
+  padding: 0.375rem !important;
 }
 
 .operations-board-page .MuiTabs-indicator {

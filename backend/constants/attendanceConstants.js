@@ -12,3 +12,73 @@ export const STANDUP_STATUS_CODES = {
   ABSENT: 'STANDUP_ABSENT',
   CLINIC: 'STANDUP_CLINIC',
 };
+
+/**
+ * Maps legacy/stale DB attendance status codes to the current canonical codes.
+ * Keep this in sync with client/src/constants/attendanceTypes.js STATUS_ALIASES.
+ */
+const STATUS_ALIASES = {
+  [ATTENDANCE_STATUS_CODES.PRESENT]: ATTENDANCE_STATUS_CODES.PRESENT,
+  [ATTENDANCE_STATUS_CODES.ABSENT]: ATTENDANCE_STATUS_CODES.ABSENT,
+  [ATTENDANCE_STATUS_CODES.LATE]: ATTENDANCE_STATUS_CODES.LATE,
+  [ATTENDANCE_STATUS_CODES.LEAVE]: ATTENDANCE_STATUS_CODES.LEAVE,
+  [ATTENDANCE_STATUS_CODES.HUMAN_CASE]: ATTENDANCE_STATUS_CODES.HUMAN_CASE,
+  [STANDUP_STATUS_CODES.PRESENT]: STANDUP_STATUS_CODES.PRESENT,
+  [STANDUP_STATUS_CODES.LATE]: STANDUP_STATUS_CODES.LATE,
+  [STANDUP_STATUS_CODES.ABSENT]: STANDUP_STATUS_CODES.ABSENT,
+  [STANDUP_STATUS_CODES.CLINIC]: STANDUP_STATUS_CODES.CLINIC,
+  // Legacy aliases
+  PRESENT: ATTENDANCE_STATUS_CODES.PRESENT,
+  ABSENT: ATTENDANCE_STATUS_CODES.ABSENT,
+  ABSENT_NO_EXCUSE: ATTENDANCE_STATUS_CODES.ABSENT,
+  ABSENT_UNEXCUSED: ATTENDANCE_STATUS_CODES.ABSENT,
+  A: ATTENDANCE_STATUS_CODES.ABSENT,
+  LATE: ATTENDANCE_STATUS_CODES.LATE,
+  L: ATTENDANCE_STATUS_CODES.LATE,
+  EXCUSED_LEAVE: ATTENDANCE_STATUS_CODES.LEAVE,
+  EXCUSED: ATTENDANCE_STATUS_CODES.LEAVE,
+  ABSENT_WITH_EXCUSE: ATTENDANCE_STATUS_CODES.LEAVE,
+  SICK_LEAVE: ATTENDANCE_STATUS_CODES.LEAVE,
+  LEAVE: ATTENDANCE_STATUS_CODES.LEAVE,
+  HUMAN_CASE: ATTENDANCE_STATUS_CODES.HUMAN_CASE,
+  HUMANITARIAN: ATTENDANCE_STATUS_CODES.HUMAN_CASE,
+  EARLY_DEPARTURE: ATTENDANCE_STATUS_CODES.HUMAN_CASE,
+  CLINIC: STANDUP_STATUS_CODES.CLINIC,
+};
+
+export function normalizeAttendanceStatus(value) {
+  if (!value) return null;
+  const upper = String(value).toUpperCase();
+  return STATUS_ALIASES[upper] || upper;
+}
+
+export function isPresentStatus(value) {
+  const code = normalizeAttendanceStatus(value);
+  return code === ATTENDANCE_STATUS_CODES.PRESENT || code === STANDUP_STATUS_CODES.PRESENT;
+}
+
+export function isAbsentStatus(value) {
+  const code = normalizeAttendanceStatus(value);
+  return code === ATTENDANCE_STATUS_CODES.ABSENT || code === STANDUP_STATUS_CODES.ABSENT;
+}
+
+export function isLateStatus(value) {
+  const code = normalizeAttendanceStatus(value);
+  return code === ATTENDANCE_STATUS_CODES.LATE || code === STANDUP_STATUS_CODES.LATE;
+}
+
+export function isExcusedStatus(value) {
+  return normalizeAttendanceStatus(value) === ATTENDANCE_STATUS_CODES.LEAVE;
+}
+
+export function isHumanCaseStatus(value) {
+  return normalizeAttendanceStatus(value) === ATTENDANCE_STATUS_CODES.HUMAN_CASE;
+}
+
+export function isStandupStatus(value) {
+  const code = normalizeAttendanceStatus(value);
+  return code === STANDUP_STATUS_CODES.PRESENT
+    || code === STANDUP_STATUS_CODES.LATE
+    || code === STANDUP_STATUS_CODES.ABSENT
+    || code === STANDUP_STATUS_CODES.CLINIC;
+}

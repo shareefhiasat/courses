@@ -212,6 +212,18 @@
   margin-top: 4px;
 }
 
+.violationsPreviewBanner {
+  text-align: center;
+  background: #fef3c7;
+  color: #92400e;
+  border: 1.5px dashed #f59e0b;
+  border-radius: 6px;
+  padding: 6px 10px;
+  margin: 6px 0 10px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
 /* Attendance official — column widths handled via colgroup inline styles */
 .violationsTable {
   table-layout: fixed;

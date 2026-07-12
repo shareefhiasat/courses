@@ -30,7 +30,7 @@ import BoardTableView from '@components/operations-board/BoardTableView.jsx';
 import BoardFilterBar from '@components/operations-board/BoardFilterBar.jsx';
 import BoardStudentDrawer from '@components/operations-board/BoardStudentDrawer.jsx';
 import BoardFooter from '@components/operations-board/BoardFooter.jsx';
-import { getAttendanceColumnsForRole, canMoveAttendanceToColumn } from '@components/operations-board/attendanceBoardRules.js';
+import { getAttendanceColumnsForRole, canMoveAttendanceToColumn, canEditAttendanceForWorkflow } from '@components/operations-board/attendanceBoardRules.js';
 import {
   getWorkflowColumnsForRole,
   canMoveWorkflowToColumn,
@@ -73,9 +73,7 @@ function loadCollapsedLanes() {
 function getDefaultCollapsedForRole(roleContext = {}) {
   const { isHR, isAdmin, isSuperAdmin } = roleContext;
   if (isSuperAdmin) return [];
-  if (isHR && !isAdmin) return ['DRAFT', 'TAKEN', 'SUBMITTED'];
-  if (isAdmin && !isHR) return ['DRAFT'];
-  if (isAdmin && isHR) return ['DRAFT', 'TAKEN', 'SUBMITTED'];
+  if (isAdmin || isHR) return ['DRAFT', 'TAKEN', 'REJECTED'];
   return [];
 }
 
@@ -190,6 +188,7 @@ export default function OperationsBoardPage({
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [actionBanner, setActionBanner] = useState(null);
   const actionBannerTimerRef = useRef(null);
+  const [currentWorkflow, setCurrentWorkflow] = useState(null);
   const [panelTab, setPanelTab] = useState('board');
   const [laneWidths, setLaneWidths] = useState(loadStoredLaneWidths);
   const [collapsedLanes, setCollapsedLanes] = useState(loadCollapsedLanes);
@@ -303,13 +302,17 @@ export default function OperationsBoardPage({
     }, 8000);
   }, [clearActionBanner]);
 
-  const showDragInvalidToast = useCallback(() => {
-    toast.warning(t('operations_board_drag_invalid'), {
-      duration: 4000,
-      icon: <AlertTriangle size={16} />,
-      className: 'operations-board-drag-invalid-toast',
+  const showDragInvalidBanner = useCallback((toColumn) => {
+    const laneLabel = toColumn ? (t(`operations_board_lane_${toColumn.toLowerCase()}`) || toColumn) : '';
+    const message = laneLabel
+      ? t('operations_board_drop_not_allowed_lane', { lane: laneLabel })
+      : t('operations_board_drag_invalid');
+    showActionBanner({
+      pillColor: '#f97316',
+      icon: <AlertTriangle size={16} className="shrink-0" />,
+      message,
     });
-  }, [t]);
+  }, [t, showActionBanner]);
 
   useEffect(() => () => {
     if (actionBannerTimerRef.current) clearTimeout(actionBannerTimerRef.current);
@@ -554,6 +557,41 @@ export default function OperationsBoardPage({
     loadData();
   }, [loadData]);
 
+  // Load the attendance workflow document for the selected class/date so we can
+  // enforce ownership before allowing attendance edits.
+  useEffect(() => {
+    if (lane !== LANES.ATTENDANCE || !filters.classId || !filters.date) {
+      setCurrentWorkflow(null);
+      return undefined;
+    }
+    let cancelled = false;
+    (async () => {
+      const wfResult = await fetchWorkflowBoardData({
+        classId: filters.classId,
+        date: filters.date,
+        programId: filters.programId,
+        workflowCategory: 'ATTENDANCE',
+        attendanceSubtype: 'DAILY',
+        lang,
+      });
+      if (cancelled) return;
+      if (wfResult.success) {
+        const docs = wfResult.data || [];
+        const dateStr = typeof filters.date === 'string' ? filters.date.slice(0, 10) : '';
+        const matching = docs.find((d) => {
+          if (String(d.classId) !== String(filters.classId)) return false;
+          if (!d.date || !dateStr) return false;
+          const docDate = typeof d.date === 'string' ? d.date.slice(0, 10) : new Date(d.date).toISOString().slice(0, 10);
+          return docDate === dateStr;
+        });
+        setCurrentWorkflow(matching || docs[0] || null);
+      } else {
+        setCurrentWorkflow(null);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [lane, filters.classId, filters.date, filters.programId, lang]);
+
   const dbCodeToBoardLane = useCallback((code) => {
     if (!code) return 'NOT_TAKEN';
     const upper = code.toUpperCase().trim();
@@ -625,6 +663,10 @@ export default function OperationsBoardPage({
           status: payload.status || item.status,
         };
       }));
+      setCurrentWorkflow((prev) => {
+        if (!prev || String(prev.rawId) !== String(payload.documentId)) return prev;
+        return { ...prev, status: payload.status || prev.status, column: payload.status || prev.column };
+      });
     };
 
     chatSocket.on('board:attendance_updated', handleAttendanceUpdate);
@@ -678,14 +720,14 @@ export default function OperationsBoardPage({
       },
     });
     return true;
-  }, [t, loadData, lang, showActionBanner, clearActionBanner, roleContext]);
+  }, [t, loadData, showActionBanner, clearActionBanner, roleContext]);
 
   const handleDragEnd = useCallback(async (activeId, fromColumn, toColumn) => {
     const item = data.find((d) => d.id === activeId);
     if (!item || fromColumn === toColumn) return;
 
     if (item.type === 'attendance' && !canMoveAttendanceToColumn(toColumn, roleContext)) {
-      showDragInvalidToast();
+      showDragInvalidBanner(toColumn);
       loadData();
       return;
     }
@@ -715,7 +757,7 @@ export default function OperationsBoardPage({
         });
       }
       if (!allowed) {
-        showDragInvalidToast();
+        showDragInvalidBanner(toColumn);
         loadData();
         return;
       }
@@ -736,6 +778,11 @@ export default function OperationsBoardPage({
     }
 
     if (item.type === 'attendance') {
+      if (!canEditAttendanceForWorkflow(currentWorkflow?.status, roleContext)) {
+        showDragInvalidBanner(toColumn);
+        loadData();
+        return;
+      }
       const result = await moveAttendanceCard(item.rawId, toColumn, null, item.rawId ? null : {
         userId: item.userId,
         classId: item.classId,
@@ -756,9 +803,6 @@ export default function OperationsBoardPage({
         const studentName = resolveBoardStudentName(item, lang);
         const statusLabel = t(`operations_board_lane_${toColumn.toLowerCase()}`) || toColumn;
         const statusColor = getAttendanceColor(toColumn);
-        if (roleContext.isAdmin || roleContext.isSuperAdmin) {
-          toast.info(t('operations_board_attendance_admin_override'));
-        }
         showActionBanner({
           pillColor: statusColor,
           message: (() => {
@@ -836,7 +880,7 @@ export default function OperationsBoardPage({
         });
       }
     }
-  }, [data, t, loadData, roleContext, lang, showActionBanner, clearActionBanner, applyWorkflowMove, showDragInvalidToast]);
+  }, [data, t, loadData, roleContext, lang, showActionBanner, clearActionBanner, applyWorkflowMove, showDragInvalidBanner, currentWorkflow]);
 
   const handleBulkMove = useCallback(async (fromColumn, toColumn) => {
     if (fromColumn === toColumn) return;
@@ -847,9 +891,11 @@ export default function OperationsBoardPage({
     const undoSnapshots = [];
     let movedAttendanceCount = 0;
 
+    const canEditAttendance = canEditAttendanceForWorkflow(currentWorkflow?.status, roleContext);
+
     for (const item of itemsToMove) {
       if (item.type === 'attendance') {
-        if (!canMoveAttendanceToColumn(toColumn, roleContext)) continue;
+        if (!canMoveAttendanceToColumn(toColumn, roleContext) || !canEditAttendance) continue;
         const result = await moveAttendanceCard(item.rawId, toColumn, null, item.rawId ? null : {
           userId: item.userId,
           classId: item.classId,
@@ -873,7 +919,7 @@ export default function OperationsBoardPage({
     }
 
     if (movedIds.length === 0) {
-      showDragInvalidToast();
+      showDragInvalidBanner(toColumn);
       loadData();
       return;
     }
@@ -961,7 +1007,7 @@ export default function OperationsBoardPage({
         });
       },
     });
-  }, [data, t, roleContext, showActionBanner, clearActionBanner, loadData]);
+  }, [data, t, roleContext, showActionBanner, clearActionBanner, loadData, currentWorkflow, showDragInvalidBanner]);
 
   const handleConfirmWorkflowMove = useCallback(async () => {
     if (!pendingWorkflowMove) return;
@@ -1268,7 +1314,7 @@ export default function OperationsBoardPage({
             columns={attendanceColumns}
             onDragEnd={handleDragEnd}
             onCardClick={handleCardClick}
-            onDragRejected={showDragInvalidToast}
+            onDragRejected={showDragInvalidBanner}
             t={t}
             lang={lang}
             roleContext={roleContext}
@@ -1286,7 +1332,7 @@ export default function OperationsBoardPage({
             columns={workflowColumns}
             onDragEnd={handleDragEnd}
             onCardClick={handleCardClick}
-            onDragRejected={showDragInvalidToast}
+            onDragRejected={showDragInvalidBanner}
             canMoveToColumn={(from, to) => canMoveWorkflowToColumn(from, to, roleContext)}
             orderKey={workflowOrderKey}
             onLaneResize={startLaneResize}
@@ -1344,10 +1390,9 @@ export default function OperationsBoardPage({
             style={{ backgroundColor: actionBanner.pillColor || '#059669' }}
           >
             <AnnouncementTag
-              className="border border-white/90 text-white"
-              style={{ backgroundColor: actionBanner.pillColor || '#059669' }}
+              className="!bg-transparent !border-0 !p-0 text-white"
             >
-              <CheckCircle2 size={16} className="shrink-0" />
+              {actionBanner.icon || <CheckCircle2 size={16} className="shrink-0" />}
             </AnnouncementTag>
             <AnnouncementTitle className="text-sm font-medium gap-1.5">
               {actionBanner.message}

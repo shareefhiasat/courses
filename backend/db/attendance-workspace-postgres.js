@@ -1,4 +1,11 @@
 import prisma from '../db/prismaClient.js';
+import {
+  isPresentStatus,
+  isLateStatus,
+  isAbsentStatus,
+  isExcusedStatus,
+  isHumanCaseStatus,
+} from '../constants/attendanceConstants.js';
 
 const SESSION_INCLUDE = {
   class: {
@@ -486,12 +493,6 @@ export const getScheduleStatus = async ({ classIds, date }) => {
       }),
     ]);
 
-    const presentCodes = new Set(['PRESENT', 'P', 'ATTENDANCE_PRESENT']);
-    const lateCodes = new Set(['LATE', 'L', 'ATTENDANCE_LATE']);
-    const absentCodes = new Set(['ABSENT', 'A', 'ABSENT_UNEXCUSED', 'ATTENDANCE_ABSENT']);
-    const excusedCodes = new Set(['ABSENT_EXCUSED', 'EXCUSED', 'EXCUSED_LEAVE', 'ATTENDANCE_LEAVE', 'LEAVE']);
-    const humanCaseCodes = new Set(['HUMAN_CASE', 'ATTENDANCE_HUMAN_CASE']);
-
     const resolveUserName = (user) => {
       if (!user) return { actorNameEn: null, actorNameAr: null };
       return {
@@ -524,17 +525,17 @@ export const getScheduleStatus = async ({ classIds, date }) => {
       let humanCaseCount = 0;
 
       for (const att of classAttendances) {
-        const code = (att.status?.code || '').toUpperCase();
-        if (lateCodes.has(code)) {
+        const code = att.status?.code;
+        if (isLateStatus(code)) {
           lateCount += 1;
           presentCount += 1;
-        } else if (presentCodes.has(code)) {
+        } else if (isPresentStatus(code)) {
           presentCount += 1;
-        } else if (humanCaseCodes.has(code)) {
+        } else if (isHumanCaseStatus(code)) {
           humanCaseCount += 1;
-        } else if (excusedCodes.has(code)) {
+        } else if (isExcusedStatus(code)) {
           excusedCount += 1;
-        } else if (absentCodes.has(code)) {
+        } else if (isAbsentStatus(code)) {
           absentCount += 1;
         }
       }

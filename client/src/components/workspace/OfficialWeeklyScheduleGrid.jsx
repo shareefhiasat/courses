@@ -2,7 +2,14 @@ import React, { useState, useEffect, useRef, useLayoutEffect, useMemo } from 're
 import { useLang } from '@contexts/LangContext';
 import { useTheme } from '@contexts/ThemeContext';
 import { Chip, IconButton, Box } from '@mui/material';
-import { Maximize2, Minimize2, Workflow as WorkflowIcon, ClipboardCheck, FileText, FileSpreadsheet } from 'lucide-react';
+import {
+  Maximize2,
+  Minimize2,
+  Workflow as WorkflowIcon,
+  ClipboardCheck,
+  FileText,
+  FileSpreadsheet,
+} from 'lucide-react';
 import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import ScheduleStatusHistoryTooltip from './ScheduleStatusHistoryTooltip.jsx';
 import ClassSessionMetaBadges, { getClassSessionMetaFromStatus } from './ClassSessionMetaBadges.jsx';
@@ -151,6 +158,7 @@ function ScheduleTimeLineOverlay({
 
   useEffect(() => {
     if (!visible) return undefined;
+    setNow(new Date());
     const timer = setInterval(() => setNow(new Date()), 60_000);
     return () => clearInterval(timer);
   }, [visible]);
@@ -260,10 +268,14 @@ function ScheduleTimeLineOverlay({
     };
 
     measure();
+    // Re-measure after the browser has painted, so the table DOM is
+    // fully laid out when returning to the current week after navigation.
+    const raf = requestAnimationFrame(measure);
     const ro = new ResizeObserver(measure);
     ro.observe(tableRef.current);
     window.addEventListener('resize', measure);
     return () => {
+      cancelAnimationFrame(raf);
       ro.disconnect();
       window.removeEventListener('resize', measure);
     };
@@ -638,6 +650,74 @@ function InteractiveSlotCell({
   return <td className={cellClass}>{content}</td>;
 }
 
+function formatCountdown(ms, { includeMonths = false, compact = false } = {}) {
+  if (ms <= 0) return '0';
+  const totalSeconds = Math.floor(ms / 1000);
+  const months = Math.floor(totalSeconds / (30 * 24 * 60 * 60));
+  const days = Math.floor((totalSeconds % (30 * 24 * 60 * 60)) / (24 * 60 * 60));
+  const hours = Math.floor((totalSeconds % (24 * 60 * 60)) / (60 * 60));
+  const minutes = Math.floor((totalSeconds % (60 * 60)) / 60);
+  const seconds = totalSeconds % 60;
+
+  if (compact) {
+    if (includeMonths && months > 0) return `${months}mo ${days}d ${hours}h ${minutes}m`;
+    if (days > 0) return `${days}d ${hours}h ${minutes}m`;
+    if (hours > 0) return `${hours}h ${minutes}m`;
+    return `${minutes}m`;
+  }
+
+  if (includeMonths && months > 0) {
+    return `${months}mo ${days}d ${hours}h ${minutes}m ${seconds}s`;
+  }
+  if (days > 0) {
+    return `${days}d ${hours}h ${minutes}m ${seconds}s`;
+  }
+  return `${hours}h ${minutes}m ${seconds}s`;
+}
+
+function ScheduleDayInfoWidget({ selectedDate, isViewingCurrentWeek, t }) {
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const timer = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const target = useMemo(() => {
+    const anchor = selectedDate instanceof Date ? new Date(selectedDate) : new Date(selectedDate);
+    const weekStart = new Date(anchor);
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+    weekStart.setHours(7, 0, 0, 0);
+
+    if (isViewingCurrentWeek) {
+      const todayTarget = new Date(now);
+      todayTarget.setHours(7, 0, 0, 0);
+      return todayTarget;
+    }
+
+    return weekStart;
+  }, [selectedDate, isViewingCurrentWeek, now]);
+
+  const diff = target.getTime() - now.getTime();
+  const isPast = diff <= 0;
+  const isFarFuture = !isViewingCurrentWeek && diff > 24 * 60 * 60 * 1000;
+
+  if (isPast) {
+    return null;
+  }
+
+  const countdownText = formatCountdown(diff, { includeMonths: isFarFuture, compact: true });
+  const tooltip = isViewingCurrentWeek
+    ? `${t('schedule_day_starts_in') || 'Working day starts in'} ${countdownText}`
+    : `${t('schedule_week_starts_in') || 'Working week starts in'} ${countdownText}`;
+
+  return (
+    <ColoredTooltip title={tooltip} color="#3b82f6" placement="bottom">
+      <span className={gridStyles.dayInfoCompactText}>{countdownText}</span>
+    </ColoredTooltip>
+  );
+}
+
 function DayBlock({
   day,
   columns,
@@ -903,7 +983,13 @@ const OfficialWeeklyScheduleGrid = ({
                   <VerticalText>{isAr ? 'اليوم' : 'Day'}</VerticalText>
                 </div>
               </th>
-              <th className={styles.scheduleCornerCell} />
+              <th className={styles.scheduleCornerCell}>
+                <ScheduleDayInfoWidget
+                  selectedDate={selectedDate}
+                  isViewingCurrentWeek={isViewingCurrentWeek}
+                  t={t}
+                />
+              </th>
               {columns.map((col) => (
                 <th
                   key={col.key}

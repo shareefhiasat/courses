@@ -152,10 +152,10 @@ function requireOperationsBoardRead(...operationKeys) {
 }
 
 /**
- * Attendance status edits:
- * - Admin always allowed
- * - HR explicitly blocked
- * - Others require qr-scanner edit/mark/manual permissions
+ * Attendance create/update:
+ * - Super admin and admin always allowed
+ * - HR allowed if they hold canEditAttendance / canMarkAttendance / canManualInput
+ * - Instructor/others allowed if they hold canEditAttendance / canMarkAttendance / canManualInput
  */
 export function requireAttendanceEdit(req, res, next) {
   if (!req.user) {
@@ -164,12 +164,6 @@ export function requireAttendanceEdit(req, res, next) {
   const roles = getEffectiveRoles(req.user.roles || []);
   if (isSuperAdmin(roles) || hasRole(roles, LMS_ROLES.ADMIN)) {
     return next();
-  }
-  if (hasRole(roles, LMS_ROLES.HR)) {
-    return res.status(403).json({
-      success: false,
-      error: 'HR is not permitted to change attendance status',
-    });
   }
   const keys = [
     'qr-scanner.canEditAttendance',
@@ -189,6 +183,23 @@ export function requireAttendanceEdit(req, res, next) {
   })().catch((err) => {
     console.error('[requireAttendanceEdit]', err);
     return res.status(500).json({ success: false, error: 'Permission check failed' });
+  });
+}
+
+/**
+ * Attendance delete: super admin only.
+ */
+export function requireAttendanceDelete(req, res, next) {
+  if (!req.user) {
+    return res.status(401).json({ success: false, error: 'Authentication required' });
+  }
+  const roles = getEffectiveRoles(req.user.roles || []);
+  if (isSuperAdmin(roles)) {
+    return next();
+  }
+  return res.status(403).json({
+    success: false,
+    error: 'Only super admin can delete attendance records',
   });
 }
 

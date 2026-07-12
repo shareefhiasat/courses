@@ -23,6 +23,7 @@ import {
 import ColoredTooltip from '@components/ui/mui/ColoredTooltip';
 import DatePicker from '@components/ui/DatePicker/DatePicker';
 import { getScheduleStatus, getInstructorPrograms, getAllPrograms, getProgramTerms } from '@services/business/attendanceWorkspaceService';
+import { getSubjects } from '@services/business/programService';
 import { loadWeeklyScheduleSources } from '@services/business/weeklyScheduleExportService';
 import {
   exportWeeklyScheduleForProgram,
@@ -44,6 +45,7 @@ import {
   SCHEDULE_FONT_SCALE_STEP,
   clampScheduleFontScale,
 } from '@constants/scheduleFontScale';
+import AttendanceViolationsModal from '@/components/qr-scanner/AttendanceViolationsModal';
 import '../pages/operations/OperationsBoardPage.css';
 
 const OperationsBoardPage = lazy(() => import('./operations/OperationsBoardPage.jsx'));
@@ -119,6 +121,23 @@ const WelcomePage = () => {
   const [exportingKey, setExportingKey] = useState(null);
   const [cohortClassIds, setCohortClassIds] = useState([]);
   const [cohortSubjectIds, setCohortSubjectIds] = useState([]);
+  const [cohortSubjects, setCohortSubjects] = useState([]);
+
+  // Attendance summary dialog state (reuses QR scanner's AttendanceViolationsModal)
+  const [showAttSummaryModal, setShowAttSummaryModal] = useState(false);
+  const [attSummaryDateFrom, setAttSummaryDateFrom] = useState('');
+  const [attSummaryDateTo, setAttSummaryDateTo] = useState('');
+  const [attSummarySelectedSubjects, setAttSummarySelectedSubjects] = useState([]);
+  const [attSummaryViolationTypes, setAttSummaryViolationTypes] = useState({
+    absentNoExcuse: true,
+    absentWithExcuse: true,
+    excusedLeave: true,
+    late: true,
+    humanCase: true,
+  });
+  const [attSummaryExportFormat, setAttSummaryExportFormat] = useState(EXPORT_FORMAT.PDF);
+  const [attSummaryExporting, setAttSummaryExporting] = useState(false);
+  const [attSummarySuccess, setAttSummarySuccess] = useState(null);
   const [snackbar, setSnackbar] = useState({ open: false, message: '', severity: 'info', progress: null });
   const [runJoyride, setRunJoyride] = useState(false);
   const [tourSteps, setTourSteps] = useState([]);
@@ -535,6 +554,20 @@ const WelcomePage = () => {
       setCohortClassIds(classIds);
       const subjectIds = [...new Set((sources.cohortClasses || []).map((c) => c.subjectId).filter(Boolean))];
       setCohortSubjectIds(subjectIds);
+
+      // Fetch subject objects for the modal's subject picker
+      if (subjectIds.length > 0 && selection?.program?.id) {
+        try {
+          const subjectsRes = await getSubjects({ programId: selection.program.id });
+          const allSubjects = subjectsRes?.success ? (subjectsRes.data || []) : [];
+          const filtered = allSubjects.filter((s) => subjectIds.some((id) => String(id) === String(s.id)));
+          setCohortSubjects(filtered);
+        } catch {
+          setCohortSubjects([]);
+        }
+      } else {
+        setCohortSubjects([]);
+      }
       if (classIds.length > 0) {
         const weekDates = getWeekDayDates(selectedDate);
         const results = await Promise.all(weekDates.map((d) => getScheduleStatus(classIds, d)));
@@ -819,7 +852,7 @@ const WelcomePage = () => {
     }
   }, [selection?.program, selection?.academicTerm, lang, t, user]);
 
-  const handleExportAttendanceSummary = useCallback(async (format = EXPORT_FORMAT.PDF) => {
+  const openAttendanceSummaryModal = useCallback((format = EXPORT_FORMAT.PDF) => {
     if (!selection?.program || !selection?.academicTerm) {
       setSnackbar({
         open: true,
@@ -843,10 +876,33 @@ const WelcomePage = () => {
     weekStart.setDate(weekStart.getDate() - weekStart.getDay());
     const weekEnd = new Date(weekStart);
     weekEnd.setDate(weekEnd.getDate() + 4);
-    const dateFrom = toIsoDate(weekStart);
-    const dateTo = toIsoDate(weekEnd);
-    const key = `att-summary-${format}`;
-    setExportingKey(key);
+    setAttSummaryDateFrom(toIsoDate(weekStart));
+    setAttSummaryDateTo(toIsoDate(weekEnd));
+    setAttSummarySelectedSubjects([...cohortSubjectIds]);
+    setAttSummaryViolationTypes({
+      absentNoExcuse: true,
+      absentWithExcuse: true,
+      excusedLeave: true,
+      late: true,
+      humanCase: true,
+    });
+    setAttSummaryExportFormat(format);
+    setAttSummarySuccess(null);
+    setShowAttSummaryModal(true);
+  }, [selection, cohortSubjectIds, selectedDate, t]);
+
+  const handleAttSummaryExport = useCallback(async (subjectsToExport, violationTypesToExport, options = {}) => {
+    const {
+      dateFrom = attSummaryDateFrom,
+      dateTo = attSummaryDateTo,
+      format = attSummaryExportFormat,
+    } = options;
+
+    if (!subjectsToExport || subjectsToExport.length === 0) return;
+    if (!dateFrom || !dateTo || dateFrom > dateTo) return;
+
+    setAttSummaryExporting(true);
+    setExportingKey(`att-summary-${format}`);
     setSnackbar({
       open: true,
       message: `${t('attendance_summary') || 'Attendance Summary'} (${dateFrom} → ${dateTo}) — ${t('exporting')}…`,
@@ -858,20 +914,22 @@ const WelcomePage = () => {
         ? selection.program.nameAr
         : selection.program.nameEn;
       const result = await exportAttendanceOfficialForScope({
-        subjectIds: cohortSubjectIds,
-        violationTypes: {
-          absentNoExcuse: true,
-          absentWithExcuse: true,
-          excusedLeave: true,
-          late: true,
-          humanCase: true,
-        },
+        subjectIds: subjectsToExport,
+        violationTypes: violationTypesToExport,
         dateFrom,
         dateTo,
         programId: selection.program.id,
         programName,
         lang,
         user,
+        format,
+        classIds: cohortClassIds,
+      });
+      setAttSummarySuccess({
+        filename: result?.filename || 'attendance_official',
+        fileId: result?.fileId || null,
+        folderId: result?.folderId || null,
+        blobUrl: result?.blobUrl || null,
         format,
       });
       setSnackbar({
@@ -889,9 +947,10 @@ const WelcomePage = () => {
         progress: null,
       });
     } finally {
+      setAttSummaryExporting(false);
       setExportingKey(null);
     }
-  }, [selection?.program, selection?.academicTerm, cohortSubjectIds, selectedDate, lang, t, user]);
+  }, [selection, attSummaryDateFrom, attSummaryDateTo, attSummaryExportFormat, lang, t, user, cohortClassIds]);
 
   const fabActions = useMemo(() => {
     const actions = [
@@ -937,7 +996,7 @@ const WelcomePage = () => {
           },
         ],
       },
-      {
+      ...(isHR ? [{
         id: 'attendance-summary',
         name: t('attendance_summary') || 'Attendance Summary',
         icon: getThemedIcon('ui', 'file_signature', 20, 'currentColor'),
@@ -947,17 +1006,17 @@ const WelcomePage = () => {
             name: t('export_pdf'),
             icon: getThemedIcon('ui', 'file_signature', 16, 'currentColor'),
             disabled: exportingKey === 'att-summary-pdf',
-            onClick: () => handleExportAttendanceSummary(EXPORT_FORMAT.PDF),
+            onClick: () => openAttendanceSummaryModal(EXPORT_FORMAT.PDF),
           },
           {
             id: 'att-summary-excel',
             name: t('export_excel'),
             icon: getThemedIcon('ui', 'file_text', 16, 'currentColor'),
             disabled: exportingKey === 'att-summary-excel',
-            onClick: () => handleExportAttendanceSummary(EXPORT_FORMAT.EXCEL),
+            onClick: () => openAttendanceSummaryModal(EXPORT_FORMAT.EXCEL),
           },
         ],
-      },
+      }] : []),
       {
         id: 'operations-board',
         name: t('operations_board_title') || 'Operations Board',
@@ -989,7 +1048,7 @@ const WelcomePage = () => {
     });
 
     return actions;
-  }, [exportingKey, handleExportWeeklySchedule, handleExportDailyTemplate, handleExportAttendanceSummary, openOperationsTab, t, isHR, isAdmin, isSuperAdmin, navigate]);
+  }, [exportingKey, handleExportWeeklySchedule, handleExportDailyTemplate, openAttendanceSummaryModal, openOperationsTab, t, isHR, isAdmin, isSuperAdmin, navigate]);
 
   const handleCloseInbox = useCallback(() => {
     setInboxOutboxOpen(false);
@@ -1201,6 +1260,7 @@ const WelcomePage = () => {
               </Tabs>
               {showSchedule && tabParam === 'schedule' && canExport && (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                  {isHR && (
                   <ColoredTooltip
                     title={
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, padding: '4px 0' }}>
@@ -1208,13 +1268,13 @@ const WelcomePage = () => {
                         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
                           <span
                             style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', color: '#e53935' }}
-                            onClick={(e) => { e.stopPropagation(); handleExportAttendanceSummary(EXPORT_FORMAT.PDF); }}
+                            onClick={(e) => { e.stopPropagation(); openAttendanceSummaryModal(EXPORT_FORMAT.PDF); }}
           >
             <FileText size={14} /> PDF
           </span>
                           <span
                             style={{ display: 'flex', alignItems: 'center', gap: 4, cursor: 'pointer', color: '#43a047' }}
-                            onClick={(e) => { e.stopPropagation(); handleExportAttendanceSummary(EXPORT_FORMAT.EXCEL); }}
+                            onClick={(e) => { e.stopPropagation(); openAttendanceSummaryModal(EXPORT_FORMAT.EXCEL); }}
                           >
             <FileSpreadsheet size={14} /> Excel
           </span>
@@ -1230,11 +1290,13 @@ const WelcomePage = () => {
                         disabled={exportingKey?.startsWith('att-summary-')}
                         data-testid="tab-action-attendance-summary"
                         sx={{ padding: '2px' }}
+                        onClick={() => openAttendanceSummaryModal(EXPORT_FORMAT.PDF)}
                       >
                         <ClipboardList size={16} style={{ color: '#7c3aed' }} />
                       </IconButton>
                     </span>
                   </ColoredTooltip>
+                  )}
                   <ColoredTooltip
                     title={
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, padding: '4px 0' }}>
@@ -1264,6 +1326,7 @@ const WelcomePage = () => {
                         disabled={exportingKey?.startsWith('weekly-')}
                         data-testid="tab-action-weekly-schedule"
                         sx={{ padding: '2px' }}
+                        onClick={() => handleExportWeeklySchedule(EXPORT_FORMAT.PDF)}
                       >
                         <CalendarDays size={16} style={{ color: '#3b82f6' }} />
                       </IconButton>
@@ -1298,6 +1361,7 @@ const WelcomePage = () => {
                         disabled={exportingKey?.startsWith('daily-template-')}
                         data-testid="tab-action-daily-template"
                         sx={{ padding: '2px' }}
+                        onClick={() => handleExportDailyTemplate(EXPORT_FORMAT.PDF)}
                       >
                         <FileText size={16} style={{ color: '#64748b' }} />
                       </IconButton>
@@ -1661,6 +1725,35 @@ const WelcomePage = () => {
           )}
         </Alert>
       </Snackbar>
+
+      <AttendanceViolationsModal
+        isOpen={showAttSummaryModal}
+        onClose={() => {
+          if (attSummarySuccess?.blobUrl) {
+            URL.revokeObjectURL(attSummarySuccess.blobUrl);
+          }
+          setAttSummarySuccess(null);
+          setShowAttSummaryModal(false);
+        }}
+        subjects={cohortSubjects}
+        selectedSubjects={attSummarySelectedSubjects}
+        setSelectedSubjects={setAttSummarySelectedSubjects}
+        selectedViolationTypes={attSummaryViolationTypes}
+        setSelectedViolationTypes={setAttSummaryViolationTypes}
+        dateFrom={attSummaryDateFrom}
+        setDateFrom={setAttSummaryDateFrom}
+        dateTo={attSummaryDateTo}
+        setDateTo={setAttSummaryDateTo}
+        exportFormat={attSummaryExportFormat}
+        setExportFormat={setAttSummaryExportFormat}
+        mode="official"
+        onExport={handleAttSummaryExport}
+        isExporting={attSummaryExporting}
+        t={t}
+        lang={lang}
+        theme={theme}
+        successResult={attSummarySuccess}
+      />
 
       <style>{`
         .welcome-working-date-picker input {

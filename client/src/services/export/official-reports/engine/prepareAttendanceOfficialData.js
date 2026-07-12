@@ -41,6 +41,7 @@ export function prepareAttendanceOfficialData({
   violationTypes = {},
   metadata = {},
   lang = 'ar',
+  preview = false,
 }) {
   const serial = buildViolationsOfficialSerial(metadata.programId);
   const issueDate = formatOfficialReportDate(new Date());
@@ -141,17 +142,24 @@ export function prepareAttendanceOfficialData({
         });
     });
 
+  const baseTitle =
+    lang === 'ar' ? 'نموذج مخالفة سلوك / مواظبة' : 'Behavior / Attendance Violation Form';
+  const previewSuffix = preview
+    ? (lang === 'ar' ? ' (معاينة قبل الاعتماد)' : ' (Preview before approval)')
+    : '';
+
   return {
     serial,
     lang,
-    title:
-      lang === 'ar' ? 'نموذج مخالفة سلوك / مواظبة' : 'Behavior / Attendance Violation Form',
+    preview,
+    title: `${baseTitle}${previewSuffix}`,
     header: {
       serial,
       issueDate,
       program: metadata.programName || '',
       dateFrom: formatOfficialReportDate(metadata.dateFrom) || metadata.dateFrom || '',
       dateTo: formatOfficialReportDate(metadata.dateTo) || metadata.dateTo || '',
+      preview,
     },
     dateGroups,
     watermarkUser: metadata.watermarkUser,

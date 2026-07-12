@@ -77,8 +77,8 @@ const NotificationCard = ({ notification, idx, isDark, isRTL, theme, t, formatTi
             marginBottom: '0.15rem'
           }}>
             <div style={{
-              fontWeight: notification.isRead ? 500 : 600,
-              fontSize: '0.85rem',
+              fontWeight: 400,
+              fontSize: '0.8rem',
               color: isDark ? '#fff' : '#111',
               lineHeight: 1.4
             }}>
@@ -865,8 +865,8 @@ const NotificationDrawer = ({ isOpen, onClose, feed, initialFilters = null }) =>
                     <div key={subIdx} style={{ marginBottom: subIdx < group.subGroups.length - 1 ? '0.5rem' : 0 }}>
                       {sub.label && (
                         <div style={{
-                          fontSize: '0.8rem',
-                          fontWeight: 700,
+                          fontSize: '0.75rem',
+                          fontWeight: 500,
                           color: getWorkflowSubgroupColor(sub.status),
                           padding: '0.2rem 0.25rem 0.35rem',
                           display: 'flex',

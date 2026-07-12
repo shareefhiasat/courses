@@ -479,7 +479,7 @@ const RAW_TEMPLATES = {
 };
 
 const RAW_TITLE_TEMPLATES = {
-  [EVENTS.WORKFLOW_SUBMITTED]: { en: 'Workflow Submitted', ar: 'تم تقديم سير العمل' },
+  [EVENTS.WORKFLOW_SUBMITTED]: { en: 'Workflow Confirmed', ar: 'تم تأكيد سير العمل' },
   [EVENTS.WORKFLOW_ASSIGNED]: { en: 'Workflow Assigned', ar: 'تم تعيين سير عمل' },
   [EVENTS.WORKFLOW_APPROVED]: { en: 'Workflow Approved', ar: 'تمت الموافقة على سير العمل' },
   [EVENTS.WORKFLOW_REJECTED]: { en: 'Workflow Rejected', ar: 'تم رفض سير العمل' },

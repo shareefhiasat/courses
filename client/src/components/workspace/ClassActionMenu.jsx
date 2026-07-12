@@ -61,11 +61,12 @@ const ClassActionMenu = ({
   onOpenHistory,
 }) => {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, isHR, isAdmin, isSuperAdmin } = useAuth();
   const { t, lang } = useLang();
   const { theme } = useTheme();
   const isDark = theme === 'dark';
   const { canExport, canSeeStandupMode } = useQRPermissions();
+  const hrOnly = isHR && !isAdmin && !isSuperAdmin;
 
   const [exporting, setExporting] = useState(null);
   const [exportFilter, setExportFilter] = useState('');
@@ -284,21 +285,33 @@ const ClassActionMenu = ({
             />
           )}
         >
-          <MenuItem onClick={() => handleScan(ATTENDANCE_TYPE_CATEGORY.REGULAR)} data-testid="class-scan-attendance">
-            <MenuRow
-              icon={getThemedIcon('ui', 'check_circle', 18, 'currentColor')}
-              iconClass={styles.scanAttendance}
-              label={t('workspace_take_attendance')}
-            />
-          </MenuItem>
-          {canSeeStandupMode && (
-            <MenuItem onClick={() => handleScan(ATTENDANCE_TYPE_CATEGORY.STANDUP)} data-testid="class-scan-standup">
+          {hrOnly ? (
+            <MenuItem onClick={() => handleScan(ATTENDANCE_TYPE_CATEGORY.REGULAR)} data-testid="class-scan-manual">
               <MenuRow
-                icon={getThemedIcon('ui', 'users', 18, 'currentColor')}
-                iconClass={styles.scanStandup}
-                label={t('standup_attendance')}
+                icon={getThemedIcon('ui', 'edit', 18, 'currentColor')}
+                iconClass={styles.scanAttendance}
+                label={t('manual_input') || 'Manual'}
               />
             </MenuItem>
+          ) : (
+            <>
+              <MenuItem onClick={() => handleScan(ATTENDANCE_TYPE_CATEGORY.REGULAR)} data-testid="class-scan-attendance">
+                <MenuRow
+                  icon={getThemedIcon('ui', 'check_circle', 18, 'currentColor')}
+                  iconClass={styles.scanAttendance}
+                  label={t('workspace_take_attendance')}
+                />
+              </MenuItem>
+              {canSeeStandupMode && (
+                <MenuItem onClick={() => handleScan(ATTENDANCE_TYPE_CATEGORY.STANDUP)} data-testid="class-scan-standup">
+                  <MenuRow
+                    icon={getThemedIcon('ui', 'users', 18, 'currentColor')}
+                    iconClass={styles.scanStandup}
+                    label={t('standup_attendance')}
+                  />
+                </MenuItem>
+              )}
+            </>
           )}
         </SubMenu>
 

@@ -3,7 +3,10 @@
  */
 
 import prisma from '../db/prismaClient.js';
-import { ATTENDANCE_STATUS_CODES } from '../constants/attendanceConstants.js';
+import {
+  ATTENDANCE_STATUS_CODES,
+  normalizeAttendanceStatus,
+} from '../constants/attendanceConstants.js';
 
 const DEFAULT_RULES = {
   [ATTENDANCE_STATUS_CODES.ABSENT]: 0.5,
@@ -332,26 +335,26 @@ export async function getClassAbsenceWarningCounts({ classId, userId }) {
   });
 
   attendances.forEach((row) => {
-    const code = row.status?.code;
+    const code = normalizeAttendanceStatus(row.status?.code);
     const entry = countsByUser.get(row.userId);
     if (!entry) return;
     switch (code) {
-      case 'ATTENDANCE_PRESENT':
+      case ATTENDANCE_STATUS_CODES.PRESENT:
         entry.presentCount += 1;
         break;
-      case 'ATTENDANCE_ABSENT':
+      case ATTENDANCE_STATUS_CODES.ABSENT:
         entry.unexcusedAbsences += 1;
         entry.totalAbsences += 1;
         break;
-      case 'ATTENDANCE_LEAVE':
+      case ATTENDANCE_STATUS_CODES.LEAVE:
         entry.excusedAbsences += 1;
         entry.totalAbsences += 1;
         break;
-      case 'ATTENDANCE_LATE':
+      case ATTENDANCE_STATUS_CODES.LATE:
         entry.lateCount += 1;
         entry.totalAbsences += 1;
         break;
-      case 'ATTENDANCE_HUMAN_CASE':
+      case ATTENDANCE_STATUS_CODES.HUMAN_CASE:
         entry.humanCaseCount += 1;
         entry.totalAbsences += 1;
         break;

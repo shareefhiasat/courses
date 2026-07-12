@@ -64,7 +64,7 @@ async function updateQRScannerPermissions() {
         canClearToday: false,
         canEditAttendance: true,     // HR can edit
         canBulkScan: false,          // HR cannot bulk scan
-        canManualInput: false,
+        canManualInput: true,        // HR can use manual attendance input
         canUseStatsPanel: false,     // Disabled per requirements
         canUseZapPanel: false,       // Disabled per requirements
         canMarkAttendance: true,

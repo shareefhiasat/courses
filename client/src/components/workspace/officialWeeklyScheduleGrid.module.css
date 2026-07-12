@@ -161,7 +161,7 @@
 }
 
 .legendDot_inProgress {
-  background: #1d4ed8;
+  background: rgb(3, 105, 161);
   animation: legendPulse 1.8s ease-in-out infinite;
 }
 
@@ -171,8 +171,8 @@
 }
 
 @keyframes legendPulse {
-  0%, 100% { box-shadow: 0 0 0 0 rgba(29, 78, 216, 0.65); }
-  50% { box-shadow: 0 0 0 4px rgba(29, 78, 216, 0); }
+  0%, 100% { box-shadow: 0 0 0 0 rgba(3, 105, 161, 0.65); }
+  50% { box-shadow: 0 0 0 4px rgba(3, 105, 161, 0); }
 }
 
 .statusLegendBottom {
@@ -431,12 +431,12 @@
 
 @keyframes inProgressPulse {
   0%, 100% {
-    box-shadow: inset 0 0 0 2px rgba(29, 78, 216, 0.75);
-    background-color: rgba(29, 78, 216, 0.08);
+    box-shadow: inset 0 0 0 2px rgba(3, 105, 161, 0.75), 0 0 0 0 rgba(3, 105, 161, 0.65);
+    background-color: rgba(3, 105, 161, 0.08);
   }
   50% {
-    box-shadow: inset 0 0 0 2px rgba(29, 78, 216, 0.35);
-    background-color: rgba(29, 78, 216, 0.16);
+    box-shadow: inset 0 0 0 2px rgba(3, 105, 161, 0.35), 0 0 0 5px rgba(3, 105, 161, 0.18);
+    background-color: rgba(3, 105, 161, 0.16);
   }
 }
 
@@ -1012,4 +1012,25 @@
 
 .wrapDark .legendDot_selected {
   background: #a78bfa;
+}
+
+.dayInfoCompactText {
+  display: inline-block;
+  font-size: calc(10px * var(--schedule-font-scale, 1));
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #3b82f6;
+  cursor: default;
+  padding: 1px 2px;
+  border-radius: 4px;
+  line-height: 1;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.wrapDark .dayInfoCompactText {
+  color: #60a5fa;
 }

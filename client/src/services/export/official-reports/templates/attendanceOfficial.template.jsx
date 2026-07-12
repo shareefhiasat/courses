@@ -139,6 +139,13 @@ function ViolationsPage({ data, dateGroups, labels, showHeader, showFooter, show
                 </div>
               )}
             </div>
+            {data.preview && (
+              <div className={styles.violationsPreviewBanner}>
+                {data.lang === 'ar'
+                  ? 'هذه معاينة قبل الاعتماد — لا يجوز استخدامها كوثيقة رسمية.'
+                  : 'This is a preview before approval — not for official use.'}
+              </div>
+            )}
             <div className={styles.violationsMeta}>
               <span className={styles.violationsMetaBold}>
                 {labels.issueDate}: {data.header.issueDate}

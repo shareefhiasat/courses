@@ -84,6 +84,34 @@ const WorkflowAnalyticsPage = lazy(() => import('./pages/workflow/WorkflowAnalyt
 const WorkflowConfigPage = lazy(() => import('./pages/workflow/WorkflowConfigPage'));
 const SmartDrivePage = lazy(() => import('./pages/SmartDrivePage'));
 
+function HomeOrWelcomeRedirect() {
+  const { user, isStudent, isInstructor, isAdmin, isHR, isSuperAdmin } = useAuth();
+  const location = useLocation();
+
+  if (!user) {
+    return <Navigate to="/login" state={{ from: location.pathname + location.search }} replace />;
+  }
+
+  if (isSuperAdmin) {
+    return <Navigate to="/summary-dashboard" replace />;
+  }
+
+  if (isStudent) {
+    return (
+      <Suspense fallback={<GlobalLoadingFallback />}>
+        <HomePage />
+      </Suspense>
+    );
+  }
+
+  // Instructors, admins, and HR see the welcome screen instead of the student home page
+  if (isInstructor || isAdmin || isHR) {
+    return <Navigate to="/welcome" replace />;
+  }
+
+  return <Navigate to="/welcome" replace />;
+}
+
 const lazyProtectedRoutes = [
   { path: '/dashboard', screenId: 'dashboard', screenName: 'Dashboard', Component: DashboardPage },
   { path: '/summary-dashboard', screenId: 'summaryDashboard', screenName: 'Summary Dashboard', Component: SummaryDashboardPage },
@@ -105,7 +133,7 @@ const lazyProtectedRoutes = [
 const protectedRoutes = [
   { path: '/welcome', screenId: 'welcome', screenName: 'Welcome', Component: WelcomePage },
   { path: '/attendance-workspace', screenId: 'attendance', screenName: 'Attendance Workspace', Component: AttendanceWorkspacePage },
-  { path: '/', screenId: 'home', screenName: 'Home', Component: HomePage },
+  { path: '/', Component: HomeOrWelcomeRedirect },
   { path: '/student-profile', screenId: 'studentProfile', screenName: 'Student Profile', Component: StudentProfilePage },
   { path: '/activity/:activityId', screenId: 'activities', screenName: 'Activity Details', Component: ActivityDetailPage },
   { path: '/quizzes', screenId: 'quizzes', screenName: 'Quizzes', Component: QuizzesPage },
@@ -163,23 +191,10 @@ function PageTracker() {
 }
 
 const AppContent = () => {
-  const { user, isStudent, isInstructor } = useAuth();
-  const navigate = useNavigate();
-  const location = useLocation();
+  const { user } = useAuth();
   const [isSideDrawerOpen, setIsSideDrawerOpen] = useState(false);
   const [isSideDrawerCollapsed, setIsSideDrawerCollapsed] = useState(false);
 
-  // Redirect non-student, non-instructor users to /welcome when they land on / for the first time
-  useEffect(() => {
-    if (user && !isStudent && !isInstructor && location.pathname === '/') {
-      const hasVisitedWelcome = sessionStorage.getItem('welcome_visited');
-      if (!hasVisitedWelcome) {
-        sessionStorage.setItem('welcome_visited', '1');
-        navigate('/welcome', { replace: true });
-      }
-    }
-  }, [user, isStudent, isInstructor, location.pathname, navigate]);
-  
   // useRealTimeUpdates(); // Temporarily disabled to fix notification spam
 
   const prevTokenRef = useRef(null);

@@ -5,6 +5,11 @@
 import prisma from './prismaClient.js';
 import { buildLocalizedNameFields } from '../utils/localizedUserName.js';
 import {
+  isPresentStatus,
+  isAbsentStatus,
+  isLateStatus,
+} from '../constants/attendanceConstants.js';
+import {
   resolveDateRange,
   toDateStr,
   toDateTimeRange,
@@ -382,10 +387,6 @@ async function computeWidgetAnalytics(params) {
     workflowWhere.classId = { in: classIds };
   }
 
-  const isPresentCode = (code) => code === 'ATTENDANCE_PRESENT' || code === 'STANDUP_PRESENT';
-  const isAbsentCode = (code) => code === 'ATTENDANCE_ABSENT' || code === 'STANDUP_ABSENT';
-  const isLateCode = (code) => code === 'ATTENDANCE_LATE' || code === 'STANDUP_LATE';
-
   const [classAttendanceRows, standupAttendanceRows, sessionInstructors, workflowRows] = await Promise.all([
     prisma.attendance.findMany({
       where: attendanceWhere,
@@ -526,9 +527,9 @@ async function computeWidgetAnalytics(params) {
 
     uniqueStudents.add(row.userId);
     uniqueClasses.add(row.classId);
-    if (isPresentCode(code)) presentCount += 1;
-    if (isAbsentCode(code)) absentCount += 1;
-    if (isLateCode(code)) lateCount += 1;
+    if (isPresentStatus(code)) presentCount += 1;
+    if (isAbsentStatus(code)) absentCount += 1;
+    if (isLateStatus(code)) lateCount += 1;
 
     attendanceRecords.push({
       id: row.id,
@@ -574,9 +575,9 @@ async function computeWidgetAnalytics(params) {
     const dateStr = toDateStr(new Date(row.date));
 
     uniqueStudents.add(row.userId);
-    if (isPresentCode(code)) presentCount += 1;
-    if (isAbsentCode(code)) absentCount += 1;
-    if (isLateCode(code)) lateCount += 1;
+    if (isPresentStatus(code)) presentCount += 1;
+    if (isAbsentStatus(code)) absentCount += 1;
+    if (isLateStatus(code)) lateCount += 1;
 
     attendanceRecords.push({
       id: `standup-${row.id}`,

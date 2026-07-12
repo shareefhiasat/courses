@@ -12,12 +12,14 @@ import { loadWeeklyScheduleSources } from '@services/business/weeklyScheduleExpo
 import { getAttendanceByClass } from '@services/business/attendanceService.js';
 import { getAttendanceRecords } from '@services/business/attendanceService.js';
 import { getStudentsByClass } from '@services/business/enrollmentService.js';
-import { getClassById } from '@services/business/classService.js';
+import { getClassById, getClasses } from '@services/business/classService.js';
+import { getSubjects } from '@services/business/programService.js';
 import { formatQatarDateOnly } from '@utils/qatarDate.js';
 import { getLocalizedUserName } from '@utils/localizedUserName.js';
 import { academicTermToYearTerm, resolveLocalizedYearTerm } from '@utils/academicTermUtils.js';
 import { ATTENDANCE_STATUS } from '@constants/attendanceTypes';
 import { getStatusCodeFromRecord } from '@constants/attendanceTypes';
+import { formatForDateInput, getQatarDateParts } from '@utils/date-formatter.js';
 
 function sanitize(str) {
   return str ? String(str).replace(/[^a-zA-Z0-9\u0600-\u06FF]/g, '_') : '';
@@ -56,8 +58,8 @@ function buildClassMetadata(cls, program, subject, lang, extras = {}) {
   });
 
   return {
-    programId: cls.programId,
-    subjectId: cls.subjectId,
+    programId: cls.programId || cls.program?.id,
+    subjectId: cls.subjectId || cls.subject?.id,
     classId: cls.id,
     programName,
     subjectName,
@@ -237,6 +239,7 @@ export async function exportDailyOfficialForDate({
   date,
   format = EXPORT_FORMAT.PDF,
   skipDownload = false,
+  skipPersist = false,
   instructorName,
 }) {
   const resolvedClass = await resolveClassForExport(cls, { instructorName });
@@ -283,6 +286,7 @@ export async function exportDailyOfficialForDate({
     attendanceByUserId,
     lang,
     isStandup: false,
+    isTemplate: roster.length === 0,
     metadata: {
       date: formattedDate,
       ...meta,
@@ -292,7 +296,7 @@ export async function exportDailyOfficialForDate({
 
   const filename = `${reportData.serial}_daily_official_${sanitize(meta.className)}`;
   const blob = await exportDailyOfficialReport(reportData, { format, filename, download: !skipDownload });
-  const driveResult = await persistAndLogExport({
+  const driveResult = skipPersist ? null : await persistAndLogExport({
     blob,
     filename,
     mimeType: mimeTypeForFormat(format),
@@ -316,42 +320,120 @@ export async function exportAttendanceOfficialForScope({
   lang,
   user,
   format = EXPORT_FORMAT.PDF,
+  preview = false,
+  classIds = [],
 }) {
-  const attendancePromises = subjectIds.map((subjectId) =>
-    getAttendanceRecords({
-      subjectId: Number(subjectId),
-      dateFrom,
-      dateTo,
-      limit: 5000,
-    })
-  );
+  // Fetch attendance by classId (subjectId is often NULL in the database,
+  // so filtering by subjectId returns no records). We fetch by class with
+  // date range, then filter by subject on the client side using class->subject mapping.
+  const fetchClassIds = classIds.length > 0 ? classIds : [];
 
-  const attendanceResults = await Promise.all(attendancePromises);
-  const allAttendanceData = attendanceResults
-    .filter((result) => result.success)
-    .flatMap((result) => result.data);
+  let allAttendanceData = [];
+
+  if (fetchClassIds.length > 0) {
+    // Fetch attendance for each class in the cohort
+    const attendancePromises = fetchClassIds.map((classId) =>
+      getAttendanceRecords({
+        classId: Number(classId),
+        dateFrom,
+        dateTo,
+        limit: 5000,
+      })
+    );
+
+    const attendanceResults = await Promise.all(attendancePromises);
+    allAttendanceData = attendanceResults
+      .filter((result) => result.success)
+      .flatMap((result) => result.data);
+  } else {
+    // Fallback: fetch by subjectId (for callers that don't pass classIds)
+    const attendancePromises = subjectIds.map((subjectId) =>
+      getAttendanceRecords({
+        subjectId: Number(subjectId),
+        dateFrom,
+        dateTo,
+        limit: 5000,
+      })
+    );
+
+    const attendanceResults = await Promise.all(attendancePromises);
+    allAttendanceData = attendanceResults
+      .filter((result) => result.success)
+      .flatMap((result) => result.data);
+  }
 
   const deduplicatedData = Array.from(
     new Map(allAttendanceData.map((record) => [record.id, record])).values()
   );
 
-  const filteredData = deduplicatedData.filter((record) => {
+  // Client-side date filter using Qatar timezone to ensure correct calendar date
+  const inRange = deduplicatedData.filter((record) => {
+    const raw = record.date || record.at || record.createdAt;
+    const parts = getQatarDateParts(raw);
+    const dateKey = parts
+      ? `${parts.year}-${String(parts.month).padStart(2, '0')}-${String(parts.day).padStart(2, '0')}`
+      : (typeof raw === 'string' ? raw.split('T')[0] : formatForDateInput(new Date(raw)));
+    return dateKey >= dateFrom && dateKey <= dateTo;
+  });
+
+  // Build a set of selected subject IDs for filtering (as strings for loose comparison)
+  const selectedSubjectSet = new Set(subjectIds.map(String));
+
+  // Enrich records with subject and class objects (needed by prepareAttendanceOfficialData
+  // for subject names in the report rows). When record.subjectId is NULL (common in the DB),
+  // resolve the subject from the class's subjectId.
+  const [classesRes, subjectsRes] = await Promise.all([
+    getClasses({ programId, isActive: true, limit: 500 }),
+    getSubjects({ programId }),
+  ]);
+  const allClasses = classesRes?.success ? (classesRes.data || []) : [];
+  const allSubjects = subjectsRes?.success ? (subjectsRes.data || []) : [];
+
+  // Filter to only records whose class belongs to one of the selected subjects
+  const subjectFiltered = inRange.filter((record) => {
+    const recordClass = allClasses.find((c) => c.id === record.classId);
+    const effectiveSubjectId = record.subjectId ?? recordClass?.subjectId ?? recordClass?.subject?.id;
+    return effectiveSubjectId != null && selectedSubjectSet.has(String(effectiveSubjectId));
+  });
+
+  const enrichedData = subjectFiltered.map((record) => {
+    const recordClass = allClasses.find((c) => c.id === record.classId);
+    const effectiveSubjectId = record.subjectId ?? recordClass?.subjectId ?? recordClass?.subject?.id;
+    const recordSubject = allSubjects.find((s) => s.id == effectiveSubjectId);
+    const studentName = getLocalizedUserName(record.user, lang, '');
+    const studentNumber = record.user?.studentNumber || '';
+
+    return {
+      ...record,
+      studentName,
+      studentNumber,
+      className:
+        lang === 'ar'
+          ? recordClass?.nameAr || recordClass?.name || recordClass?.nameEn || ''
+          : recordClass?.nameEn || recordClass?.name || '',
+      subjectName:
+        lang === 'ar'
+          ? recordSubject?.nameAr || recordSubject?.name || recordSubject?.nameEn || ''
+          : recordSubject?.nameEn || recordSubject?.name || '',
+      subject: recordSubject,
+      class: recordClass,
+    };
+  });
+
+  const filteredData = enrichedData.filter((record) => {
     const statusCode = getStatusCodeFromRecord(record) || '';
     if (violationTypes.absentNoExcuse && statusCode === ATTENDANCE_STATUS.ABSENT_NO_EXCUSE) return true;
     if ((violationTypes.absentWithExcuse || violationTypes.excusedLeave) && statusCode === ATTENDANCE_STATUS.EXCUSED_LEAVE) return true;
     if (violationTypes.late && statusCode === ATTENDANCE_STATUS.LATE) return true;
     if (violationTypes.humanCase && statusCode === ATTENDANCE_STATUS.HUMAN_CASE) return true;
     return false;
-  }).map((record) => ({
-    ...record,
-    studentName: getLocalizedUserName(record.user, lang, ''),
-    studentNumber: record.user?.studentNumber || '',
-  }));
+  });
 
   const reportData = prepareAttendanceOfficialData({
     records: filteredData,
     violationTypes,
     lang,
+    preview,
     metadata: {
       programId,
       programName,
@@ -364,7 +446,7 @@ export async function exportAttendanceOfficialForScope({
   const filename = `${reportData.serial}_attendance_official_${sanitize(programName)}`;
   const blob = await exportAttendanceOfficialReport(reportData, { format, filename });
   const blobUrl = URL.createObjectURL(blob);
-  await persistAndLogExport({
+  const driveResult = await persistAndLogExport({
     blob,
     filename,
     mimeType: mimeTypeForFormat(format),
@@ -375,8 +457,10 @@ export async function exportAttendanceOfficialForScope({
   }).catch(() => {});
 
   return {
-    filename,
+    filename: driveResult?.filename || filename,
     blobUrl,
+    fileId: driveResult?.fileId || null,
+    folderId: driveResult?.folderId || null,
     format,
   };
 }

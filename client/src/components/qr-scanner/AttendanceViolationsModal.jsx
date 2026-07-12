@@ -1,9 +1,10 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState, useCallback } from 'react';
 import Modal from '@components/ui/Modal';
 import DatePicker from '@components/ui/DatePicker/DatePicker';
 import { EXPORT_FORMAT } from '@services/export/official-reports/index.jsx';
 import OfficialExportFormatPicker from './OfficialExportFormatPicker.jsx';
 import ExportSuccessPanel from '@components/export/ExportSuccessPanel.jsx';
+import { findWeeklySummaryWorkflowStatus } from '@services/business/workflowInitiationService.js';
 
 const AttendanceViolationsModal = ({
   isOpen,
@@ -26,7 +27,11 @@ const AttendanceViolationsModal = ({
   lang,
   theme = 'currentColor',
   successResult = null,
+  allowPreviewUnapproved = false,
+  cls = null,
 }) => {
+  const [workflowStatus, setWorkflowStatus] = useState(null);
+  const [checkingWorkflow, setCheckingWorkflow] = useState(false);
   const isOfficial = mode === 'official';
 
   useEffect(() => {
@@ -34,6 +39,22 @@ const AttendanceViolationsModal = ({
       setExportFormat(EXPORT_FORMAT.PDF);
     }
   }, [isOpen, isOfficial, setExportFormat]);
+
+  useEffect(() => {
+    if (!isOpen || !isOfficial || !cls?.id || !dateFrom) {
+      setWorkflowStatus(null);
+      return undefined;
+    }
+    let cancelled = false;
+    setCheckingWorkflow(true);
+    findWeeklySummaryWorkflowStatus(cls.id, dateFrom).then((result) => {
+      if (cancelled) return;
+      setWorkflowStatus(result.success ? result.data : null);
+    }).finally(() => {
+      if (!cancelled) setCheckingWorkflow(false);
+    });
+    return () => { cancelled = true; };
+  }, [isOpen, isOfficial, cls?.id, dateFrom]);
 
   const toggleSubject = (subjectId) => {
     if (selectedSubjects.includes(subjectId)) {
@@ -57,6 +78,10 @@ const AttendanceViolationsModal = ({
     dateTo &&
     dateFrom <= dateTo;
 
+  const isApproved = workflowStatus?.approved === true;
+  const showApprovalWarning = isOfficial && workflowStatus && !isApproved;
+  const isPreviewExport = showApprovalWarning && allowPreviewUnapproved;
+
   const handleExport = () => {
     if (!canExport) return;
     onExport(selectedSubjects, selectedViolationTypes, {
@@ -64,6 +89,7 @@ const AttendanceViolationsModal = ({
       dateTo,
       format: isOfficial ? exportFormat : EXPORT_FORMAT.EXCEL,
       mode,
+      preview: isPreviewExport,
     });
     if (!isOfficial) {
       onClose();
@@ -77,6 +103,26 @@ const AttendanceViolationsModal = ({
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={modalTitle} size="large" showCloseButton>
       <div style={{ padding: '1.5rem 0' }}>
+        {showApprovalWarning && (
+          <div
+            style={{
+              marginBottom: '1.5rem',
+              padding: '0.75rem 1rem',
+              borderRadius: '0.5rem',
+              background: theme === 'dark' ? 'rgba(245, 158, 11, 0.15)' : '#fffbeb',
+              border: `1px solid ${theme === 'dark' ? 'rgba(245, 158, 11, 0.4)' : '#fcd34d'}`,
+              color: theme === 'dark' ? '#fbbf24' : '#92400e',
+              fontSize: '0.9rem',
+            }}
+          >
+            <strong>{t('attendance_official_approval_blocked') || 'Official summary blocked'}</strong>
+            <span style={{ display: 'block', marginTop: '0.35rem' }}>
+              {isPreviewExport
+                ? (t('attendance_official_preview_hint') || 'The weekly attendance workflow is not approved yet. You can export a preview for audit — it will be marked as "Preview before approval".')
+                : (t('attendance_official_approval_hint') || 'The weekly attendance workflow is not approved yet. Please wait for approval before generating the official summary.')}
+            </span>
+          </div>
+        )}
         {successResult ? (
           <>
             <ExportSuccessPanel successResult={successResult} t={t} theme={theme} />

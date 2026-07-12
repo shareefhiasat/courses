@@ -51,6 +51,37 @@ export async function findExistingAttendanceWorkflow(classId, date) {
   }
 }
 
+/**
+ * Look up the approval status of a weekly-summary attendance workflow for a class + date.
+ * Returns the most relevant document status, or null if none exists.
+ */
+export async function findWeeklySummaryWorkflowStatus(classId, date) {
+  if (!classId || !date) return { success: true, data: null };
+  try {
+    const params = new URLSearchParams({
+      classId: String(classId),
+      date: String(date).slice(0, 10),
+      workflowCategory: 'ATTENDANCE',
+      attendanceSubtype: 'WEEKLY_SUMMARY',
+    });
+    const result = await apiService.get(`/workflow-documents/board?${params.toString()}`);
+    if (!result.success) return { success: false, data: null, error: result.error };
+    const docs = result.data || [];
+    const approvedDoc = docs.find((d) => String(d.status || '').toUpperCase() === 'APPROVED');
+    if (approvedDoc) {
+      return { success: true, data: { status: approvedDoc.status, approved: true, id: approvedDoc.id } };
+    }
+    const pendingDoc = docs[0];
+    if (pendingDoc) {
+      return { success: true, data: { status: pendingDoc.status, approved: false, id: pendingDoc.id } };
+    }
+    return { success: true, data: null };
+  } catch (err) {
+    console.error('[workflowInitiationService] findWeeklySummaryWorkflowStatus error:', err);
+    return { success: false, data: null, error: err.message };
+  }
+}
+
 export async function initiateAttendanceWorkflow({
   cls,
   program,
